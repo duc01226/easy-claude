@@ -12,7 +12,7 @@ description: '[Skill Management] Use when starting a detected workflow, initiali
 
 1. **Detect** — Execute explicit `/workflow-*` or `/start-workflow <id>` directly; otherwise match prompt against workflow catalog and skill list
 2. **Auto-select** — Choose direct execution, a skill, a standard workflow, or a custom pipeline without asking the user to pick the path
-3. **Activate** — Create ALL TaskCreate items for chosen sequence; mark first `in_progress`
+3. **Activate** — Create ALL TaskCreate items for chosen sequence; materialize every declared `parallelGroups` group as a wave in those tasks; mark first `in_progress`
 
 **Key Rules:**
 
@@ -24,6 +24,8 @@ description: '[Skill Management] Use when starting a detected workflow, initiali
 - Propose Custom Pipeline when no catalog workflow is a strong fit (>80% steps relevant = use catalog)
 - `workflows.json` `workflows` field is an **OBJECT** — use `workflows[workflowId]`, NEVER `.find()` or `[index]`
 - Create ALL `TaskCreate` items BEFORE marking the first task `in_progress` — batch creation, then execute
+- Read `parallelGroups` at activation and tag its member tasks as one wave — 1:1 tasks still stand (a group never collapses members into one task)
+- No `parallelGroups` = `sequence` is the order — surface only adjacent read-only steps as a `Candidate wave`, NEVER a wave that contradicts `sequence`
 - NEVER mark a task `completed` without invoking its `Skill` tool — skip = `in_progress` + comment, not delete
 - ALWAYS check context for `## Workflow Catalog` first (Tier 1) — NEVER read `workflows.json` directly when catalog is in context
 - If another workflow is active, it auto-switches (ends current, starts new) — no manual cleanup needed
@@ -158,12 +160,13 @@ slashCmd = "/" + stepId                     // "scout" → "/scout"
 
 **WorkflowEntry fields:**
 
-| Field        | Type     | Notes                                   |
-| ------------ | -------- | --------------------------------------- |
-| `name`       | string   | Display name                            |
-| `sequence`   | string[] | Ordered step IDs — SOLE source of truth |
-| `whenToUse`  | string   | Natural language intent matching        |
-| `preActions` | object   | Optional `injectContext` / `readFiles`  |
+| Field            | Type     | Notes                                                                                     |
+| ---------------- | -------- | ----------------------------------------------------------------------------------------- |
+| `name`           | string   | Display name                                                                              |
+| `sequence`       | string[] | Ordered step IDs — SOLE source of truth                                                   |
+| `whenToUse`      | string   | Natural language intent matching                                                          |
+| `preActions`     | object   | Optional `injectContext` / `readFiles`                                                    |
+| `parallelGroups` | object[] | Optional all-return barrier groups — `{id, members[], barrier:true, conditionalMembers[]}` |
 
 **FORBIDDEN (common mistakes):**
 
@@ -197,6 +200,27 @@ TaskCreate: subject="[Workflow] /{step-name} — {brief description}", descripti
 - **Conditional steps still get tasks** — add to description: "Conditional — skip if reviews pass"
 - **Recursive self-calls get tasks** — e.g., `[Workflow] /workflow-review-changes — Recursive re-review (conditional)`
 - **Count verification** — after creation: `task count == len(sequence)`. Fix mismatch before proceeding.
+
+### Parallel waves from `parallelGroups` (compute at activation, BEFORE the first task runs)
+
+A workflow MAY declare barrier groups in `parallelGroups` (schema: `.claude/workflows.schema.json` → `WorkflowEntry.parallelGroups`; live example: `workflow-review-changes`, groups `initial-reviews` and `reviewers`). Materialize each declared group as a wave IN THE TASK LIST, so the barrier is visible in the tasks and not only in prose.
+
+1. **Read `parallelGroups` alongside `sequence`.** Tier 1 (`## Workflow Catalog` in `CLAUDE.md`) renders members FLAT and carries no group data. When activating a workflow that may declare groups, use Tier 2 — `Grep '"<workflowId>":' .claude/workflows.json --context 35` — and parse `parallelGroups` with `sequence`.
+2. **Expand any barrier token you were given.** The Codex mirrors (`AGENTS.md`, `.codex/CODEX_CONTEXT.md`) collapse a group into ONE `[parallel ⇉ all-return barrier: a, b*]` token (`*` = conditional member). That token is a barrier marker, NOT a step — expand it back to its member steps and create one task per member.
+3. **Task count is still `len(sequence)`.** A group NEVER collapses its members into a single task; it only adds wave metadata to the member tasks.
+4. **Tag each member task** — subject `[Workflow] [wave: {groupId}] /{step} — {brief description}`, description `Workflow step N/{total}. Parallel group '{groupId}' — spawned together with {other members}; barrier: advance only after ALL members return. {conditional note}`.
+5. **Conditional members still get their own task** — add "Conditional — a skipped member still counts as returned for the barrier"; skip via `in_progress` → comment → `completed`, never delete.
+6. **Execute a group as ONE wave** — spawn every member in ONE message, barrier on all returns, then advance to the first step after the group. That next step is a SEQ boundary: never start it — and never start any code-mutating step — while a member is still in flight.
+7. **Malformed group → STOP, do not repair.** A member absent from `sequence`, a member in two groups, or `barrier ≠ true` means the workflow definition is broken: report it and run the sequence strictly in order rather than guessing the intended grouping.
+
+### When a workflow declares NO `parallelGroups`
+
+`sequence` is the source of truth. Absence of `parallelGroups` is NOT permission to invent groups.
+
+- **NEVER** reorder, merge, drop, or co-schedule steps in any way that contradicts `sequence` — no self-authored wave may run a step ahead of a step that precedes it in `sequence`, and a workflow's fixed order overrides any independence you infer.
+- **DO surface a candidate wave** when adjacent steps are obviously independent — ALL of: (a) contiguous in `sequence`, (b) read-only / report-producing (review, scan, investigation, research — each writes only its own `plans/reports/` file), (c) neither consumes the other's output. Announce it as `Candidate wave (not declared): [...]` and keep the 1:1 tasks unchanged.
+- **NEVER** put in a candidate wave: any step that writes source files, any gate awaiting user approval, any step consuming a previous step's output, or any non-adjacent pair. When in doubt → run sequentially; a wrong wave silently reorders the workflow, a missed wave only costs time.
+- **Persist what proves right** — if a candidate wave was correct, tell the user to add a `parallelGroups` entry to `.claude/workflows.json` (never edit it mid-run). An undeclared wave must never become the de-facto sequence.
 
 Create ALL tasks first → then `TaskUpdate` first task to `in_progress`.
 
@@ -334,6 +358,31 @@ When `/workflow-review-changes` appears in any workflow sequence (e.g. `workflow
 
 <!-- /SYNC:goal-contract-satisfaction-loop:reminder -->
 
+<!-- SYNC:parallel-subagent-dispatch -->
+
+> **Parallel Sub-Agent Dispatch** — Plan parallelism the moment a task breakdown exists, BEFORE executing it — running provably independent tasks sequentially wastes wall-clock. Applies to every multi-step job: workflow steps, planning, batch updates, investigation, research, scans, reviews, doc sync. **Plan execution is metadata-gated, NEVER default-parallel** — fan-out follows ONLY what the plan declares (`PAR`/`SEQ` tags + per-phase write set); an untagged plan runs sequentially — why: a derived write set cannot see cascade or generated writes.
+>
+> 1. **Tag every task `PAR` or `SEQ`.** `PAR` = inputs exclude every pending task's output AND write set disjoint from every other `PAR`. Else `SEQ` — MUST ATTENTION name the dependency forcing it.
+> 2. **Group `PAR` into waves.** No edge between members. Two writers of one file NEVER share a wave. Read-only work (search, investigation, review, research) parallelizes freely.
+> 3. **Declare before dispatch:** `Parallel plan: wave 1 = [...] · wave 2 = [...] · SEQ = [...] (reason)`.
+> 4. **Spawn each wave in ONE message** — every `Agent` call in one response, NEVER dripped per turn. Route each task to its specialist (`.claude/skills/shared/sub-agent-selection-guide.md`); NEVER `code-reviewer` as catch-all.
+> 5. **Brief each sub-agent self-contained:** goal · scope + owned files · reference docs · return contract (summary + `Full report:` path, per SYNC:subagent-return-contract) · incremental persistence to `plans/reports/` (per SYNC:incremental-persistence).
+> 6. **Barrier per wave.** Advance ONLY after EVERY member returns (a skipped conditional counts as returned). Merge, mark each task completed/skipped, THEN dispatch the next wave. Mutating steps wait for the barrier.
+> 7. **One level deep.** A dispatched sub-agent executes its own brief; further fan-out stays the orchestrator's job unless that agent's `.claude/agents/*.md` definition authorizes it.
+>
+> **NEVER parallelize:** tasks sharing a write target · a task consuming a pending task's output · trivial single-file work (dispatch overhead > gain) · an order a workflow explicitly fixes · gates awaiting user approval.
+>
+> **Blocked until:** MUST ATTENTION every task tagged PAR/SEQ with a named reason per SEQ · waves declared + write-set disjointness checked · each wave spawned in ONE message · barrier honored before the next wave.
+
+<!-- /SYNC:parallel-subagent-dispatch -->
+
+<!-- SYNC:parallel-subagent-dispatch:reminder -->
+
+- **MANDATORY** After planning tasks, tag each PAR/SEQ and spawn every PAR wave as parallel sub-agents in ONE message — default parallel for workflows, batch updates, investigation, research, reviews; plan execution fans out ONLY on what the plan declares.
+- **MANDATORY** Disjoint write sets per wave · all-return barrier before the next wave · specialist routing · sub-agents NEVER fan out further unless their own agent definition authorizes it.
+
+<!-- /SYNC:parallel-subagent-dispatch:reminder -->
+
 ## Closing Reminders
 
 **Protocols in force (concise digest of the SYNC/shared blocks this skill carries):**
@@ -342,13 +391,16 @@ When `/workflow-review-changes` appears in any workflow sequence (e.g. `workflow
 - **Critical Thinking:** traced `file:line` proof, confidence >80%; NEVER present guess as fact.
 - **Incremental Persistence:** append findings to report per file; NEVER hold in memory.
 - **Sub-Agent Return Contract:** sub-agents return summary only; NEVER inline full output.
+- **Parallel Sub-Agent Dispatch:** Tag tasks PAR/SEQ, group PAR into disjoint-write-set waves, spawn each wave in ONE message, barrier before advancing.
 
 **MUST ATTENTION** auto-select the best path for ordinary prompts; explicit `/workflow-*` or `/start-workflow <id>` invocation executes directly. Do not ask for workflow-selection confirmation.
 **MUST ATTENTION** `workflows` is an OBJECT — `workflows[workflowId]`, NEVER `.find()` / `[index]` / `.forEach()`
 **MUST ATTENTION** create ALL `TaskCreate` items for the full sequence BEFORE marking the first task `in_progress`
 **MUST ATTENTION** never mark a task `completed` without invoking its `Skill` tool — skip means comment + completed, not delete
 **MUST ATTENTION** custom pipeline steps must be canonical step ids (each maps to a real `.claude/skills/<step>/SKILL.md`) — never invent step names
-**MUST ATTENTION** use Tier 1 context parse FIRST — check `## Workflow Catalog` in context before any file read
+**MUST ATTENTION** use Tier 1 context parse FIRST — check `## Workflow Catalog` in context before any file read; use Tier 2 when the workflow may declare `parallelGroups` (Tier 1 renders members flat and carries no group data)
+**MUST ATTENTION** materialize every declared `parallelGroups` group as a wave in the task list — one task per member, wave-tagged, spawned in ONE message, all-return barrier before the next step — why: a barrier that lives only in prose gets executed one step at a time
+**MUST ATTENTION** no `parallelGroups` → `sequence` IS the order — never invent a group that contradicts it; only adjacent read-only steps may be surfaced as a `Candidate wave (not declared)` — why: a self-authored wave silently reorders a validated workflow, and that costs more than the time it saves
 
 **[TASK-PLANNING]** Before acting, analyze task scope and systematically break it into small todo tasks and sub-tasks using TaskCreate.
 

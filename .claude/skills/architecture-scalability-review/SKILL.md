@@ -327,6 +327,36 @@ List only user-confirmed recommendations or mark `N/A`.
 
 <!-- /SYNC:trade-off-interrogation-gate:reminder -->
 
+<!-- SYNC:critical-thinking-mindset -->
+
+> **Critical Thinking Mindset** — Apply critical thinking, sequential thinking. Every claim needs traced proof, confidence >80% to act.
+> **Anti-hallucination:** Never present guess as fact — cite sources for every claim, admit uncertainty freely, self-check output for errors, cross-reference independently, stay skeptical of own confidence — certainty without evidence root of all hallucination.
+
+<!-- /SYNC:critical-thinking-mindset -->
+
+<!-- SYNC:ai-mistake-prevention -->
+
+> **AI Mistake Prevention** — Failure modes to avoid on every task:
+>
+> **Re-read files after context changes.** Context compaction, resume, or long-running work can make memory stale; verify current files before acting.
+> **Verify generated content against source evidence.** AI hallucinates APIs, names, claims, and document facts. Check the relevant source before documenting or referencing.
+> **Check downstream references before deleting or renaming.** Removing an artifact can stale docs, generated mirrors, configs, and callers; map references first.
+> **Trace the full impact chain after edits.** Changing a definition can miss derived outputs and consumers. Follow the affected chain before declaring done.
+> **Verify ALL affected outputs, not just the first.** One green check is not all green checks; validate every output surface the change can affect.
+> **Assume existing values are intentional — ask WHY before changing OR flagging one as a defect.** Before changing or reporting a constant, limit, flag, cutoff, wording, or pattern, read nearby context and history, the CALLER's ordering, and 2+ sibling call sites of the same convention. A doc stating WHAT without WHY is missing rationale, not proof of a missing guard.
+> **Surface ambiguity before acting — don't pick silently.** Multiple valid interpretations require an explicit question or stated assumption with risk.
+> **Assert the outcome your system owns, not the intermediate state your infrastructure owns.** When verifying async work, assert the final business state — never the delivery/retry bookkeeping held in shared infrastructure that any co-running process can write. Such a check passes when run alone and flakes the moment anything else shares that infrastructure.
+> **Keep shared guidance role-relevant.** Universal guidance must help every receiving skill or agent; code-specific obligations belong only in code-specific protocols.
+
+<!-- /SYNC:ai-mistake-prevention -->
+
+<!-- SYNC:critical-thinking-mindset:reminder -->
+**MUST ATTENTION** apply critical + sequential thinking — every claim needs appropriate traced evidence (`file:line` for repo/code claims; source URL or artifact section for research, product, content, and docs claims); confidence >80% to act, <60% DO NOT recommend. Anti-hallucination: never present guess as fact, admit uncertainty freely, cross-reference independently, stay skeptical of own confidence.
+<!-- /SYNC:critical-thinking-mindset:reminder -->
+
+<!-- SYNC:ai-mistake-prevention:reminder -->
+**MUST ATTENTION** apply AI mistake prevention — verify generated content against evidence, trace downstream references before deleting or renaming, verify all affected outputs, re-read files after context loss, and surface ambiguity before acting.
+<!-- /SYNC:ai-mistake-prevention:reminder -->
 
 ## Closing Reminders
 

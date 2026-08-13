@@ -127,8 +127,15 @@ REMINDERS = {
 3. Add the block name to the relevant tier list(s) (controls which targets receive it + insertion order):
 
 ```python
-# Skills keep the original 2-block set — do NOT add agent-only rules here.
-SKILL_BLOCK_ORDER = ["critical-thinking-mindset", "ai-mistake-prevention"]
+# Skills-3: the two universal blocks + the orchestration block. Do NOT add
+# agent-only rules here. `parallel-subagent-dispatch` is deliberately SKILL-ONLY
+# — not because an agent cannot spawn, but because an agent receives ONE brief an
+# orchestrator has ALREADY partitioned, so re-running the partitioning protocol in
+# the leaf re-decides an upstream decision. It is ALSO declared in
+# agent_protocol_matrix.py EXCLUDED_ORCHESTRATION and in the TC-UAR-017
+# AGENT_ADOPTION_EXEMPT set (see "Skill-only blocks" below).
+SKILL_BLOCK_ORDER = ["critical-thinking-mindset", "ai-mistake-prevention",
+                     "parallel-subagent-dispatch"]
 
 # Core-6: every agent (skills/SKILL.md is unaffected).
 CORE_BLOCK_ORDER = ["critical-thinking-mindset", "ai-mistake-prevention",
@@ -157,6 +164,15 @@ An agent in **none of the three sets (or in more than one)** raises `SystemExit`
 >
 > **Note — the inserter is insert-only.** Moving an agent from CODE to READONLY_CODE (or otherwise dropping a block from its tier) does NOT remove the now-excess SYNC block from its `.md` on disk — `process_file` only inserts missing blocks. Strip the excess block(s) from the agent `.md` source by hand (or a scoped one-off) so the regression suite's tier assertions pass.
 
+**Skill-only blocks (orchestration).** A block in `SKILL_BLOCK_ORDER` but in NO agent tier reaches every skill and zero agents. TC-UAR-017 treats that shape as drift by default — a protocol that reached ≥3 skills but no agent is usually an oversight — so declare a genuinely skill-only block in BOTH lists:
+
+- `.claude/hooks/tests/suites/agent-universal-rules.test.cjs` → `AGENT_ADOPTION_EXEMPT` — the ONLY list TC-UAR-017 reads. Omit the block here and the suite fails.
+- `.claude/scripts/agent_protocol_matrix.py` → `EXCLUDED_ORCHESTRATION` — read only by that file's own `--validate` check (b) (`agent_protocol_matrix.py:481`), which rejects a per-agent manifest that assigns an excluded block without an `ORCHESTRATION_WHITELIST` entry. Omit it here and no test fails; the manifest is simply free to assign the block to an agent.
+
+> **No cross-check exists.** The two lists are enforced by two SEPARATE mechanisms and nothing verifies they agree — TC-UAR-017 never reads `EXCLUDED_ORCHESTRATION` (it appears in that test file only in a comment and a failure-message string). Keeping them in step is a **convention**, not an enforced invariant: update both by hand in the same change.
+
+The bar for that exemption is caller-side ownership: the block must drive orchestration the leaf either **cannot perform** (it has no access to the parent conversation, workflow state, or the user) or **has no basis to perform** (the decision was already made upstream before its brief was issued). Current members — `nested-task-creation`, `subagent-return-contract`, `sub-agent-selection`, `parallel-phase-advancement`, `parallel-subagent-dispatch`, `goal-contract-satisfaction-loop` — expand workflow steps, choose/brief sub-agents, partition a task list into parallel waves, or drive a user-facing convergence loop. `parallel-subagent-dispatch` is the second kind: an agent CAN spawn (agent files generally carry no `tools:` restriction), but it receives one already-partitioned brief, so re-running PAR/SEQ tagging inside it re-decides upstream's call. An agent that legitimately fans out carries that instruction in its own `.claude/agents/*.md` definition instead.
+
 #### Step B3: Run the script (dry-run first)
 
 ```bash
@@ -170,8 +186,13 @@ python .claude/scripts/sync-hooks-to-skills.py --verbose
 #### Step B4: Verify
 
 ```bash
-# Confirm target files now contain the new block. Expected count is TIER-AWARE:
-#   - block in SKILL_BLOCK_ORDER          → all skills + all agents
+# Confirm target files now contain the new block. Expected count is TIER-AWARE.
+# The skill tier and the agent tiers are INDEPENDENT lists — a block reaches
+# agents only if it is ALSO in an agent tier, so union the rows that apply:
+#   - block in SKILL_BLOCK_ORDER ONLY     → all 163 skills, 0 agents
+#                                           (skill-only ⇒ must be declared in BOTH
+#                                            exemption lists — see "Skill-only blocks")
+#   - block in SKILL_BLOCK_ORDER + CORE   → all 163 skills + all 29 agents
 #   - block in CORE_BLOCK_ORDER           → all 29 agents (skills excluded)
 #   - block in READONLY_CODE_BLOCK_ORDER  → 21 agents (17 code + 4 readonly-code)
 #   - block in CODE_BLOCK_ORDER           → 17 code agents only

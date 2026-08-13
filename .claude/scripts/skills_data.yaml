@@ -1008,7 +1008,9 @@
   deprecated_since: null
   description: '[Implementation] Use when you need to start coding & testing an existing
     plan. Flags: --approval=off (auto/trust mode, no approval gate), --tests=off (skip
-    the test step), --parallel (parallel phase execution via subagents).'
+    the test step), --parallel={auto|on|off} (default off — sequential; --parallel/=on
+    opts in to parallel sub-agent waves; =auto fans out only when the plan declares
+    PAR/SEQ tags and write sets).'
   has_references: false
   has_scripts: false
   name: plan-execute

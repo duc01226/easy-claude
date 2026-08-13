@@ -1053,6 +1053,30 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 
 <!-- /SYNC:trade-off-interrogation-gate:reminder -->
 
+<!-- SYNC:parallel-subagent-dispatch -->
+
+> **Parallel Sub-Agent Dispatch** — Plan parallelism the moment a task breakdown exists, BEFORE executing it — running provably independent tasks sequentially wastes wall-clock. Applies to every multi-step job: workflow steps, planning, batch updates, investigation, research, scans, reviews, doc sync. **Plan execution is metadata-gated, NEVER default-parallel** — fan-out follows ONLY what the plan declares (`PAR`/`SEQ` tags + per-phase write set); an untagged plan runs sequentially — why: a derived write set cannot see cascade or generated writes.
+>
+> 1. **Tag every task `PAR` or `SEQ`.** `PAR` = inputs exclude every pending task's output AND write set disjoint from every other `PAR`. Else `SEQ` — MUST ATTENTION name the dependency forcing it.
+> 2. **Group `PAR` into waves.** No edge between members. Two writers of one file NEVER share a wave. Read-only work (search, investigation, review, research) parallelizes freely.
+> 3. **Declare before dispatch:** `Parallel plan: wave 1 = [...] · wave 2 = [...] · SEQ = [...] (reason)`.
+> 4. **Spawn each wave in ONE message** — every `Agent` call in one response, NEVER dripped per turn. Route each task to its specialist (`.claude/skills/shared/sub-agent-selection-guide.md`); NEVER `code-reviewer` as catch-all.
+> 5. **Brief each sub-agent self-contained:** goal · scope + owned files · reference docs · return contract (summary + `Full report:` path, per SYNC:subagent-return-contract) · incremental persistence to `plans/reports/` (per SYNC:incremental-persistence).
+> 6. **Barrier per wave.** Advance ONLY after EVERY member returns (a skipped conditional counts as returned). Merge, mark each task completed/skipped, THEN dispatch the next wave. Mutating steps wait for the barrier.
+> 7. **One level deep.** A dispatched sub-agent executes its own brief; further fan-out stays the orchestrator's job unless that agent's `.claude/agents/*.md` definition authorizes it.
+>
+> **NEVER parallelize:** tasks sharing a write target · a task consuming a pending task's output · trivial single-file work (dispatch overhead > gain) · an order a workflow explicitly fixes · gates awaiting user approval.
+>
+> **Blocked until:** MUST ATTENTION every task tagged PAR/SEQ with a named reason per SEQ · waves declared + write-set disjointness checked · each wave spawned in ONE message · barrier honored before the next wave.
+
+<!-- /SYNC:parallel-subagent-dispatch -->
+
+<!-- SYNC:parallel-subagent-dispatch:reminder -->
+
+- **MANDATORY** After planning tasks, tag each PAR/SEQ and spawn every PAR wave as parallel sub-agents in ONE message — default parallel for workflows, batch updates, investigation, research, reviews; plan execution fans out ONLY on what the plan declares.
+- **MANDATORY** Disjoint write sets per wave · all-return barrier before the next wave · specialist routing · sub-agents NEVER fan out further unless their own agent definition authorizes it.
+
+<!-- /SYNC:parallel-subagent-dispatch:reminder -->
 
 ## Closing Reminders
 
@@ -1077,6 +1101,7 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 - **Graph Impact Analysis:** run blast-radius when graph.db exists; impacted minus changed = stale files.
 - **Severity Rubric:** classify findings Critical/High/Medium/Low by consequence; Critical/High block PASS.
 - **Trade-Off Interrogation Gate:** always ask — trade-off? worth it? material → confirm with the user before any PASS.
+- **Parallel Sub-Agent Dispatch:** Tag tasks PAR/SEQ, group PAR into disjoint-write-set waves, spawn each wave in ONE message, barrier before advancing.
 
 **IMPORTANT MUST ATTENTION** default stance SKEPTIC, NOT validator — before ANY verdict complete all 7 Anti-Bias Gate boxes: steel-man ≥1 rejected alternative, name ≥1 unseen alternative, list 2-3 arguments AGAINST chosen approach, stress-test 2-3 hidden assumptions, run a pre-mortem, check pros/cons symmetry, run the Trade-Off Interrogation Gate. — why: section presence is never a pass, and a reviewer who already endorsed the reasoning needs a forced reset to find what's wrong.
 

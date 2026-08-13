@@ -136,6 +136,7 @@ const AGENT_ADOPTION_EXEMPT = new Set([
     'nested-task-creation',        // expands a workflow step's child phase tasks
     'subagent-return-contract',    // instructs ITS sub-agents how to return (inverted for a leaf)
     'parallel-phase-advancement',  // all-return barrier across a parallel phase group
+    'parallel-subagent-dispatch',  // orchestrator partitions ITS task list into PAR/SEQ waves and spawns them; a leaf agent runs one brief and (per the block's own rule 7) must not fan out
     'sub-agent-selection',         // a dispatcher choosing which sub-agents to spawn
     'goal-contract-satisfaction-loop', // session goal file + convergence loop + user escalation
 ]);

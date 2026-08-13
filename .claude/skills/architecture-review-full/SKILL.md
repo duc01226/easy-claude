@@ -812,6 +812,30 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 
 <!-- /SYNC:trade-off-interrogation-gate:reminder -->
 
+<!-- SYNC:parallel-subagent-dispatch -->
+
+> **Parallel Sub-Agent Dispatch** — Plan parallelism the moment a task breakdown exists, BEFORE executing it — running provably independent tasks sequentially wastes wall-clock. Applies to every multi-step job: workflow steps, planning, batch updates, investigation, research, scans, reviews, doc sync. **Plan execution is metadata-gated, NEVER default-parallel** — fan-out follows ONLY what the plan declares (`PAR`/`SEQ` tags + per-phase write set); an untagged plan runs sequentially — why: a derived write set cannot see cascade or generated writes.
+>
+> 1. **Tag every task `PAR` or `SEQ`.** `PAR` = inputs exclude every pending task's output AND write set disjoint from every other `PAR`. Else `SEQ` — MUST ATTENTION name the dependency forcing it.
+> 2. **Group `PAR` into waves.** No edge between members. Two writers of one file NEVER share a wave. Read-only work (search, investigation, review, research) parallelizes freely.
+> 3. **Declare before dispatch:** `Parallel plan: wave 1 = [...] · wave 2 = [...] · SEQ = [...] (reason)`.
+> 4. **Spawn each wave in ONE message** — every `Agent` call in one response, NEVER dripped per turn. Route each task to its specialist (`.claude/skills/shared/sub-agent-selection-guide.md`); NEVER `code-reviewer` as catch-all.
+> 5. **Brief each sub-agent self-contained:** goal · scope + owned files · reference docs · return contract (summary + `Full report:` path, per SYNC:subagent-return-contract) · incremental persistence to `plans/reports/` (per SYNC:incremental-persistence).
+> 6. **Barrier per wave.** Advance ONLY after EVERY member returns (a skipped conditional counts as returned). Merge, mark each task completed/skipped, THEN dispatch the next wave. Mutating steps wait for the barrier.
+> 7. **One level deep.** A dispatched sub-agent executes its own brief; further fan-out stays the orchestrator's job unless that agent's `.claude/agents/*.md` definition authorizes it.
+>
+> **NEVER parallelize:** tasks sharing a write target · a task consuming a pending task's output · trivial single-file work (dispatch overhead > gain) · an order a workflow explicitly fixes · gates awaiting user approval.
+>
+> **Blocked until:** MUST ATTENTION every task tagged PAR/SEQ with a named reason per SEQ · waves declared + write-set disjointness checked · each wave spawned in ONE message · barrier honored before the next wave.
+
+<!-- /SYNC:parallel-subagent-dispatch -->
+
+<!-- SYNC:parallel-subagent-dispatch:reminder -->
+
+- **MANDATORY** After planning tasks, tag each PAR/SEQ and spawn every PAR wave as parallel sub-agents in ONE message — default parallel for workflows, batch updates, investigation, research, reviews; plan execution fans out ONLY on what the plan declares.
+- **MANDATORY** Disjoint write sets per wave · all-return barrier before the next wave · specialist routing · sub-agents NEVER fan out further unless their own agent definition authorizes it.
+
+<!-- /SYNC:parallel-subagent-dispatch:reminder -->
 
 ## Closing Reminders
 
@@ -835,6 +859,7 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 - **Systematic Batching:** each child owns its own map-reduce for a large scope.
 - **Severity Rubric:** Classify Critical/High/Medium/Low by consequence; map sub-scores onto it.
 - **Category Review Thinking:** each child derives its concerns from first principles, not a checklist.
+- **Parallel Sub-Agent Dispatch:** Tag tasks PAR/SEQ, group PAR into disjoint-write-set waves, spawn each wave in ONE message, barrier before advancing.
 
 **IMPORTANT MUST ATTENTION** this is a THIN orchestrator — NEVER re-implement any of the three reviews inline; the children are 25k–34k tokens each and MUST run as sub-agents while this skill runs INLINE and spawns them — why: running them inline blows the main context and defeats the map-reduce this skill exists to perform.
 **IMPORTANT MUST ATTENTION** spawn all three sub-agents in ONE message and honor the all-return barrier — advance only after EVERY child returns — why: starting synthesis before all three return produces a report missing a whole dimension.

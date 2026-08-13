@@ -212,7 +212,6 @@ When (a) is true but (b) is false → **escalate** (a real finding the loop cann
 
 <!-- /SYNC:trade-off-interrogation-gate:reminder -->
 
-
 ## Closing Reminders
 
 **IMPORTANT MUST ATTENTION Goal:** Re-run the WHOLE `/workflow-review-changes` inline, round after round, over a fixed scope ∪ accumulated fixes, until a complete round applies **zero fixes**.

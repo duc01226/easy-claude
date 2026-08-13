@@ -428,6 +428,19 @@ For EACH identified category:
 
 > **UI/frontend dimension (OWNED by this skill):** When a _Client-side logic_ or _Styles/Assets_ category surfaces frontend files matching the project's configured frontend/UI file patterns, `$changes-review` owns the UI review and invokes `$ui-review` as its UI dimension — preferably as a dedicated `ui-ux-designer` sub-agent spawned in the same parallel batch as the other dimensional agents (inline-fold its checklist only when sub-agent spawning is unavailable). The checklist: long-content overflow (wrap vs ellipsis+tooltip), responsive multi-screen via flex, flex-grow vs fixed sizing (prefer min/max + flex over fixed px), z-index scale discipline (no raw numbers, no `!important`), and SCSS/BEM quality. This is the SAME behavior in both standalone and workflow contexts — `$ui-review` is NOT a separate workflow step; it always runs here. Skip entirely if no frontend files changed.
 
+**Step 2.5: Declare the Dimensional Wave (MANDATORY before spawning any reviewer)**
+
+> **Purpose:** the dimensional reviewers are read-only over the same frozen diff and share no write target — they are ONE wave, not a queue. This declaration lives in the SKILL, not only in a parent workflow's injected context, because standalone runs receive no injected context at all and would otherwise serialize the batch.
+
+1. **Spec-compliance pre-pass FIRST, then declare and spawn the wave in ONE message.** When a documented spec/PBI governs the change, spawn `spec-compliance-reviewer` ALONE and let it RETURN before wave 1 is spawned — its completion is a precondition for the wave, per the pre-pass rule above — why: a pass running concurrently with the pass it precedes is not a pre-pass, and the parallel-dispatch protocol below forbids parallelizing an order this skill explicitly fixes. When no spec/PBI governs the change, record the skip and spawn the wave immediately — a skipped pre-pass NEVER delays it. Then declare: `Parallel plan: SEQ pre-pass = [spec-compliance-reviewer (conditional — returns BEFORE wave 1 is spawned)] · wave 1 = [every [Review-{Category}] agent from Step 2, [Review-General], ui-review (conditional), Phase 0.8 $why-review] · SEQ = [Phase 4 consolidation, Phase 6 validation, Phase 7 fixes] (each consumes the whole wave)`.
+2. **Batch members** = every `[Review-{Category}]` task created in Step 2 + the always-created `[Review-General]` + the Phase 0.8 `$why-review` rationale agent, each routed per **Sub-Agent Type Selection** above (`code-reviewer`, `security-auditor`, `performance-optimizer`, `ui-ux-designer`, `general-purpose`).
+3. **Conditional members are skipped ENTIRELY when their trigger files are absent — and a skipped member counts as "returned"** for the barrier; never hold the wave open for an agent that was correctly never spawned. Record each skip with its trigger: `ui-review` (no frontend files in the diff) and any derived category with no changed files.
+4. **The batch is READ-ONLY.** No member edits code, docs, or specs — findings only, each with `file:line` proof, persisted incrementally to its own `plans/reports/` file. Many agents reading one file is safe; any agent WRITING during the wave races the diff every other agent is reading.
+5. **Barrier before every mutating step.** Phase 4 consolidation waits for ALL members; `$code-simplifier` (3.5), Phase 7 fixes, and the Phase 8 `$docs-update` act only on the consolidated post-barrier snapshot — consolidating on a partial agent set silently drops a whole dimension's findings.
+6. **One level deep.** A dimensional reviewer reviews its own file set and does not fan out further; a category too large for one agent escalates through `SYNC:systematic-review-batching` (size-capped batches), which YOU orchestrate.
+
+**Inside `$workflow-review-changes`:** this local wave is nested INSIDE parent step 1 and covers only this skill's own dimensions; the parent's own parallel groups and barriers are declared in `.claude/workflows.json` (the authority — read them there, never restate them here), and each phase's workflow-mode entry gate owns its own defer/skip rule.
+
 **Phase 0.8: Parallel Why-Review Rationale Dimension (MANDATORY — spawned in the SAME batch as the Phase 0.7 dimensional agents)**
 
 > **Purpose:** every Phase 0.7 dimensional reviewer is *scoped* — one category, one file set, one concern. NONE asks the rationale question: *was this change the right call, and does its reasoning survive an adversarial pass?* `$why-review` owns it. Run it CONCURRENTLY with the dimensional agents so rationale findings enter the finding set from the START and flow through the same validate → fix → re-review loop as every other finding; NEVER defer them to Phase 7.5, where fixes already rest on an unquestioned premise. — why: a diff can be clean on every dimension and still be the wrong change; discovering that after the loop converges wastes the whole loop.
@@ -2032,6 +2045,30 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 
 <!-- /SYNC:trade-off-interrogation-gate:reminder -->
 
+<!-- SYNC:parallel-subagent-dispatch -->
+
+> **Parallel Sub-Agent Dispatch** — Plan parallelism the moment a task breakdown exists, BEFORE executing it — running provably independent tasks sequentially wastes wall-clock. Applies to every multi-step job: workflow steps, planning, batch updates, investigation, research, scans, reviews, doc sync. **Plan execution is metadata-gated, NEVER default-parallel** — fan-out follows ONLY what the plan declares (`PAR`/`SEQ` tags + per-phase write set); an untagged plan runs sequentially — why: a derived write set cannot see cascade or generated writes.
+>
+> 1. **Tag every task `PAR` or `SEQ`.** `PAR` = inputs exclude every pending task's output AND write set disjoint from every other `PAR`. Else `SEQ` — MUST ATTENTION name the dependency forcing it.
+> 2. **Group `PAR` into waves.** No edge between members. Two writers of one file NEVER share a wave. Read-only work (search, investigation, review, research) parallelizes freely.
+> 3. **Declare before dispatch:** `Parallel plan: wave 1 = [...] · wave 2 = [...] · SEQ = [...] (reason)`.
+> 4. **Spawn each wave in ONE message** — every `spawn_agent` call in one response, NEVER dripped per turn. Route each task to its specialist (`.claude/skills/shared/sub-agent-selection-guide.md`); NEVER `code-reviewer` as catch-all.
+> 5. **Brief each sub-agent self-contained:** goal · scope + owned files · reference docs · return contract (summary + `Full report:` path, per SYNC:subagent-return-contract) · incremental persistence to `plans/reports/` (per SYNC:incremental-persistence).
+> 6. **Barrier per wave.** Advance ONLY after EVERY member returns (a skipped conditional counts as returned). Merge, mark each task completed/skipped, THEN dispatch the next wave. Mutating steps wait for the barrier.
+> 7. **One level deep.** A dispatched sub-agent executes its own brief; further fan-out stays the orchestrator's job unless that agent's `.claude/agents/*.md` definition authorizes it.
+>
+> **NEVER parallelize:** tasks sharing a write target · a task consuming a pending task's output · trivial single-file work (dispatch overhead > gain) · an order a workflow explicitly fixes · gates awaiting user approval.
+>
+> **Blocked until:** MUST ATTENTION every task tagged PAR/SEQ with a named reason per SEQ · waves declared + write-set disjointness checked · each wave spawned in ONE message · barrier honored before the next wave.
+
+<!-- /SYNC:parallel-subagent-dispatch -->
+
+<!-- SYNC:parallel-subagent-dispatch:reminder -->
+
+- **MANDATORY** After planning tasks, tag each PAR/SEQ and spawn every PAR wave as parallel sub-agents in ONE message — default parallel for workflows, batch updates, investigation, research, reviews; plan execution fans out ONLY on what the plan declares.
+- **MANDATORY** Disjoint write sets per wave · all-return barrier before the next wave · specialist routing · sub-agents NEVER fan out further unless their own agent definition authorizes it.
+
+<!-- /SYNC:parallel-subagent-dispatch:reminder -->
 
 ## Closing Reminders
 
@@ -2063,6 +2100,7 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 - **Spec Drift:** classify CODE-WRONG/SPEC-STALE/AMBIGUOUS/SPEC-SILENT, route fix.
 - **AI Mistake Prevention:** verify generated content against evidence, trace downstream references, verify all affected outputs, re-read after context loss, surface ambiguity.
 - **Severity Rubric:** classify Critical/High/Medium/Low by consequence.
+- **Parallel Sub-Agent Dispatch:** Tag tasks PAR/SEQ, group PAR into disjoint-write-set waves, spawn each wave in ONE message, barrier before advancing.
 
 > **[CRITICAL — TOP 3 RULES REPEATED]**
 >
@@ -2167,7 +2205,8 @@ Source: `.claude/.ck.json` + `.claude/skills/shared/sync-inline-versions.md` (`:
 3. **AUTO-SELECT:** Pick the best option yourself. Do not ask the user to choose between direct execution, skill, standard workflow, or custom workflow.
 4. **ACTIVATE:** For a selected workflow, call `$start-workflow <workflowId>`; for a selected skill, invoke that skill; for a custom workflow, sequence custom steps directly; for direct execution, proceed with the task.
 5. **CREATE TASKS:** task tracking for ALL workflow/skill/custom steps before execution when the selected path has multiple steps.
-6. **EXECUTE:** Advance per the **Workflow Step Advancement & Parallel Phases** rule in your context instructions — model-driven; a sub-agent completion advances a step identically to an inline call; a parallel-phase group is an all-return barrier (advance only after ALL members return, never serialize it)
+6. **PARALLELIZE:** Before executing the task list, tag each task `PAR` (independent inputs + write set disjoint from every other `PAR` task) or `SEQ` (name the blocking dependency), group `PAR` tasks into waves, declare the wave plan, and spawn each wave's sub-agents in ONE message — all-return barrier per wave, fan-out one level deep unless a sub-agent's own definition authorizes further fan-out. Sequential-by-default is a defect when tasks are independent; do not parallelize shared write targets, output-consuming tasks, trivial single-file work, workflow-fixed ordering, or user-approval gates.
+7. **EXECUTE:** Advance per the **Workflow Step Advancement & Parallel Phases** rule in your context instructions — model-driven; a sub-agent completion advances a step identically to an inline call; a parallel-phase group is an all-return barrier (advance only after ALL members return, never serialize it)
 ## Shared AI-SDD Protocol Markers
 
 Source: `.claude/skills/shared/sync-inline-versions.md`

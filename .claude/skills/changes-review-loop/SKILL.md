@@ -219,7 +219,6 @@ When validated findings remain but cannot be fixed (owner/product input needed) 
 
 <!-- /SYNC:trade-off-interrogation-gate:reminder -->
 
-
 ## Closing Reminders
 
 **IMPORTANT MUST ATTENTION Goal:** Pair `/changes-review` + `/fix` in a recursive loop over a fixed diff scope — `/changes-review` (report-only) to find validated findings → `/fix` to resolve them → fresh full re-review of the CHANGED diff — until a complete `/changes-review` pass produces **zero validated findings** (nothing left to fix).

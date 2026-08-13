@@ -218,7 +218,6 @@ When findings remain but cannot be fixed (owner/product input needed) → **esca
 
 <!-- /SYNC:trade-off-interrogation-gate:reminder -->
 
-
 ## Closing Reminders
 
 **IMPORTANT MUST ATTENTION Goal:** Pair `/why-review` + `/fix` in a recursive loop over a fixed target — review to find validated findings → `/fix` to resolve them → fresh full re-review of the CHANGED target — until a complete `/why-review` pass produces **zero findings** (nothing left to fix).

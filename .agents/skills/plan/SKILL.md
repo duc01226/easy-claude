@@ -57,7 +57,8 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 **Summary:**
 
 - PLANNING ONLY — NEVER implement/execute code; produce `plan.md` + per-phase `phase-XX` files + a `goal.md` Goal Contract, then hand off.
-- **Main pipeline (the steps AI keeps forgetting):** pre-check active/suggested plan → bootstrap Goal Contract (`goal.md`) → parallel `researcher` subagents → codebase + project-reference analysis (scout if docs absent) → `planner` subagent writes `plan.md` + `phase-XX` files (Alternatives, Rationale, UI Layout, Test Specs) → post-plan granularity self-check → mandatory final tasks.
+- **Main pipeline (the steps AI keeps forgetting):** pre-check active/suggested plan → bootstrap Goal Contract (`goal.md`) → ONE research wave (`researcher` + `scout` subagents, spawned together, barrier before synthesis) → codebase + project-reference analysis (scout if docs absent) → `planner` subagent writes `plan.md` + `phase-XX` files (Alternatives, Rationale, UI Layout, Test Specs) → parallelism pass (tag every phase PAR/SEQ + write set + `## Execution Waves`) → post-plan granularity self-check → mandatory final tasks.
+- **The plan output itself carries parallelism metadata** — every phase tagged `PAR`/`SEQ` with the write set it owns, every `SEQ` naming its forcing dependency (see [Plan Parallelism Metadata](#plan-parallelism-metadata-mandatory--every-plan-output)). Omitting it is a defect of THIS skill: `$plan-execute` fans out only on what the plan declares.
 - **`--mode={ci|cro}` routing:** `ci` plans a fix from a GitHub Actions run/log (loads `references/mode-ci.md`); `cro` plans conversion-rate optimization (25-item framework, `references/mode-cro.md`); default (no flag) = standard flow. Mode only ADDS a reference payload — SAME engine, SAME `$plan-review` gate, SAME `planner` agent.
 - Default mode HARD (parallel subagents, project-reference docs, 3-round `$plan-review`); fast mode ONLY when EVERY trivial-task condition holds. Every phase passes the 5-point granularity check ("Can I start coding RIGHT NOW?"), carries `## Test Specifications` with TC IDs, uses bottom-up estimation (phase-hours drive man-days; SP DERIVED).
 - **Mandatory final tasks + gates:** write Test Specs per phase → `$plan-validate` → `$plan-review` (3-round) → `$why-review` (standalone) → re-estimate vs finalized phases; New Tech/Lib gate before approval; ask the user directly confirm before any next step.
@@ -65,10 +66,11 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 **Workflow:**
 
 1. **Pre-Check** — Detect active/suggested plan or create new directory
-2. **Research** — Parallel researcher subagents explore aspects (max 5 tool calls each)
+2. **Research wave** — All independent research threads spawned in ONE message (researcher + scout subagents, max 5 tool calls each), then a barrier before synthesis
 3. **Codebase Analysis** — Search for project reference docs (patterns-reference, project-structure, architecture, adr); scout if not found
 4. **Plan Creation** — Planner subagent creates plan.md + phase-XX files with full sections
-5. **Post-Validation** — Optionally interview user to confirm decisions via $plan-validate
+5. **Parallelism pass** — Tag every phase PAR/SEQ with its write set; declare `## Execution Waves` in plan.md
+6. **Post-Validation** — Optionally interview user to confirm decisions via $plan-validate
 
 **Key Rules:**
 
@@ -202,10 +204,12 @@ Check `## Plan Context` section in injected context:
 1. If creating new: create directory using `Plan dir:` from `## Naming` section, then run `node .claude/scripts/set-active-plan.cjs {plan-dir}`. If reusing: use active plan path from Plan Context. Pass directory path to every subagent.
 2. **Goal Contract bootstrap (BEFORE investigation and phase writing):** resolve active goal per `SYNC:goal-contract-satisfaction-loop` — create/update `{plan-dir}/goal.md` from `.claude/templates/goal-contract-template.md`, recording original request, purpose, success criteria, constraints, required evidence. Every phase's success criteria maps to a saved goal criterion. Redact secrets.
 3. Follow strictly the "Plan Creation & Organization" rules in `references/engine-plan-organization.md`.
-4. Use `researcher` agents (max 2) in parallel: each researches a different aspect; max 5 tool calls per agent.
-5. Analyze codebase: search project reference docs (`patterns-reference`, `project-structure`, `architecture`, `adr`); read those found. **ONLY IF docs not found or older than 3 days:** use `$scout <instructions>` to search codebase for needed files.
-6. Main agent gathers research/scout report filepaths; pass to `planner` subagent with prompt to create implementation plan.
-7. Main agent receives implementation plan from `planner`; ask user to review.
+4. **Research wave — ONE message, ONE barrier.** Enumerate the independent research threads this task needs — per-module code investigation, pattern discovery, dependency mapping, prior-art/library search, reference-doc reading — then tag each `PAR`/`SEQ` and declare `Parallel plan: wave 1 = [...] · SEQ = [...] (reason)` before dispatch. Research is read-only, so a thread is `PAR` unless it consumes another thread's output (name that output). Spawn the whole wave in ONE message: `researcher` agents (max 2) for external/prior-art threads, max 5 tool calls per agent; `scout` agents for codebase threads, one per module/area with a disjoint read scope. Give each agent its own report path under `{plan-dir}/research/` or `{plan-dir}/scout/` so no two agents write the same file.
+5. Analyze codebase: search project reference docs (`patterns-reference`, `project-structure`, `architecture`, `adr`); read those found — this read runs in the main agent while the wave is in flight. **ONLY IF docs not found or older than 3 days:** use `$scout <instructions>` to search codebase for needed files — as a member of the step-4 wave, not a separate round trip.
+6. **Barrier, then synthesize.** Advance only after EVERY wave member returns (a skipped thread counts as returned). Read the report FILES (not memory), reconcile conflicting findings, and record unresolved gaps — a second wave is dispatched only for gaps the first wave exposed.
+7. Main agent gathers research/scout report filepaths; pass to `planner` subagent with prompt to create implementation plan.
+8. **Parallelism pass (MANDATORY before handoff).** Tag every phase in `plan.md` and each `phase-XX` file `PAR` or `SEQ`, record the write set each phase owns, name the forcing dependency on every `SEQ`, and write the `## Execution Waves` line — see [Plan Parallelism Metadata](#plan-parallelism-metadata-mandatory--every-plan-output). This is what lets `$plan-execute` fan out; an untagged plan executes strictly sequentially.
+9. Main agent receives implementation plan from `planner`; ask user to review.
 
 ## Post-Plan Validation (Optional)
 
@@ -266,9 +270,30 @@ After plan creation, offer validation interview to confirm decisions before impl
     ---
     ```
 
-- Save overview at `{plan-dir}/plan.md` (<80 lines): list each phase with status, progress, links to phase files.
-- For each phase, create `{plan-dir}/phase-XX-phase-name-here.md` with sections: Context links, Overview, Key Insights, Requirements, **Alternatives Considered** (minimum 2 approaches with pros/cons), **Design Rationale** (WHY chosen approach), Architecture, **UI Layout** (see below), Related code files, Implementation Steps, Todo list, Success Criteria, Risk Assessment, Security Considerations, Next steps.
+- Save overview at `{plan-dir}/plan.md` (<80 lines): list each phase with status, progress, **Mode (`PAR`/`SEQ`)**, links to phase files; add the `## Execution Waves` line below the phases table.
+- For each phase, create `{plan-dir}/phase-XX-phase-name-here.md` with sections: Context links, Overview, Key Insights, Requirements, **Alternatives Considered** (minimum 2 approaches with pros/cons), **Design Rationale** (WHY chosen approach), Architecture, **UI Layout** (see below), Related code files, **Parallel Execution** (Mode `PAR`/`SEQ` · Write set · SEQ dependency — see below), Implementation Steps, Todo list, Success Criteria, Risk Assessment, Security Considerations, Next steps.
 - **UI Layout:** For frontend-facing phases, include ASCII wireframe. Classify components by tier (common/domain-shared/page-app). For backend-only phases: `## UI Layout` → `N/A — Backend-only change.`
+
+## Plan Parallelism Metadata (MANDATORY — every plan output)
+
+`$plan-execute` fans out ONLY on what the plan declares. An untagged plan forces sequential execution, so omitting this metadata is a defect of THIS skill, not of the executor.
+
+1. **Tag every phase `PAR` or `SEQ`** — in the `plan.md` phases table (`Mode` column) and in each phase file's `## Parallel Execution` section. `PAR` = its inputs contain no pending phase's output AND its write set is disjoint from every other `PAR` phase.
+2. **Declare the write set per phase** — the exact file paths the phase creates / modifies / deletes (globs only when their members are enumerable from the plan). Two `PAR` phases MUST have disjoint write sets; any overlap → merge the phases, or demote the later one to `SEQ` and name the shared file.
+3. **Every `SEQ` names its forcing dependency** — `SEQ — needs phase-02's {migration | generated type | contract | file}`. "Feels sequential", "safer in order", or an unnamed dependency is not a reason: retag it `PAR`.
+4. **Group `PAR` phases into waves** in a `## Execution Waves` line in `plan.md`:
+   `Execution waves: wave 1 = [phase-01, phase-03] · wave 2 = [phase-04] · SEQ = [phase-02 (needs phase-01 schema), phase-06 (approval gate)]`.
+5. **Gates and reviews are SEQ boundaries** — a user-approval, review, verification, or migration phase never shares a wave with the phases it gates; it runs after that wave's barrier.
+6. **Phase-file block format** (copy verbatim into each phase file):
+
+    ```markdown
+    ## Parallel Execution
+
+    - Mode: PAR | SEQ
+    - Write set: `src/a/x.ts`, `src/a/x.spec.ts`
+    - Wave: 1
+    - SEQ dependency: {name the phase + the exact artifact it produces — omit when Mode: PAR}
+    ```
 
 **Behavior/Sync Planning Checks**
 
@@ -794,6 +819,31 @@ After creating all phase files, run **recursive decomposition loop**:
 
 <!-- /SYNC:goal-contract-satisfaction-loop:reminder -->
 
+<!-- SYNC:parallel-subagent-dispatch -->
+
+> **Parallel Sub-Agent Dispatch** — Plan parallelism the moment a task breakdown exists, BEFORE executing it — running provably independent tasks sequentially wastes wall-clock. Applies to every multi-step job: workflow steps, planning, batch updates, investigation, research, scans, reviews, doc sync. **Plan execution is metadata-gated, NEVER default-parallel** — fan-out follows ONLY what the plan declares (`PAR`/`SEQ` tags + per-phase write set); an untagged plan runs sequentially — why: a derived write set cannot see cascade or generated writes.
+>
+> 1. **Tag every task `PAR` or `SEQ`.** `PAR` = inputs exclude every pending task's output AND write set disjoint from every other `PAR`. Else `SEQ` — MUST ATTENTION name the dependency forcing it.
+> 2. **Group `PAR` into waves.** No edge between members. Two writers of one file NEVER share a wave. Read-only work (search, investigation, review, research) parallelizes freely.
+> 3. **Declare before dispatch:** `Parallel plan: wave 1 = [...] · wave 2 = [...] · SEQ = [...] (reason)`.
+> 4. **Spawn each wave in ONE message** — every `spawn_agent` call in one response, NEVER dripped per turn. Route each task to its specialist (`.claude/skills/shared/sub-agent-selection-guide.md`); NEVER `code-reviewer` as catch-all.
+> 5. **Brief each sub-agent self-contained:** goal · scope + owned files · reference docs · return contract (summary + `Full report:` path, per SYNC:subagent-return-contract) · incremental persistence to `plans/reports/` (per SYNC:incremental-persistence).
+> 6. **Barrier per wave.** Advance ONLY after EVERY member returns (a skipped conditional counts as returned). Merge, mark each task completed/skipped, THEN dispatch the next wave. Mutating steps wait for the barrier.
+> 7. **One level deep.** A dispatched sub-agent executes its own brief; further fan-out stays the orchestrator's job unless that agent's `.claude/agents/*.md` definition authorizes it.
+>
+> **NEVER parallelize:** tasks sharing a write target · a task consuming a pending task's output · trivial single-file work (dispatch overhead > gain) · an order a workflow explicitly fixes · gates awaiting user approval.
+>
+> **Blocked until:** MUST ATTENTION every task tagged PAR/SEQ with a named reason per SEQ · waves declared + write-set disjointness checked · each wave spawned in ONE message · barrier honored before the next wave.
+
+<!-- /SYNC:parallel-subagent-dispatch -->
+
+<!-- SYNC:parallel-subagent-dispatch:reminder -->
+
+- **MANDATORY** After planning tasks, tag each PAR/SEQ and spawn every PAR wave as parallel sub-agents in ONE message — default parallel for workflows, batch updates, investigation, research, reviews; plan execution fans out ONLY on what the plan declares.
+- **MANDATORY** Disjoint write sets per wave · all-return barrier before the next wave · specialist routing · sub-agents NEVER fan out further unless their own agent definition authorizes it.
+
+<!-- /SYNC:parallel-subagent-dispatch:reminder -->
+
 ## Closing Reminders
 
 **IMPORTANT MUST ATTENTION Goal:** deliver a validated, implementation-ready plan — every phase startable immediately (exact file paths, zero open decisions, mapped TC IDs) — so coding runs without rework at minimum future change cost.
@@ -814,6 +864,7 @@ After creating all phase files, run **recursive decomposition loop**:
 - **Iterative Phase Quality:** score complexity first; decompose at score ≥6.
 - **Fix-Layer Accountability:** NEVER fix at the crash site; fix the invariant owner.
 - **AI Mistake Prevention:** verify generated content against evidence, trace downstream references, verify all affected outputs, re-read after context loss, surface ambiguity.
+- **Parallel Sub-Agent Dispatch:** Tag tasks PAR/SEQ, group PAR into disjoint-write-set waves, spawn each wave in ONE message, barrier before advancing.
 
 **IMPORTANT MUST ATTENTION** PLANNING ONLY — NEVER implement or execute code; produce `plan.md` + per-phase files + `goal.md` Goal Contract, then hand off — why: this skill's contract is a plan, not a change.
 **IMPORTANT MUST ATTENTION** default mode HARD — opt out to fast mode ONLY when ALL trivial-task conditions hold — why: skipping rigor on a non-trivial task costs more rework than rigor saves.
@@ -827,7 +878,9 @@ After creating all phase files, run **recursive decomposition loop**:
 **MANDATORY IMPORTANT MUST ATTENTION** for `.claude` skills/hooks/workflows/sync work, plans MUST include generated-mirror sync action or explicit no-sync evidence — why: a silently stale mirror diverges from source.
 **MANDATORY IMPORTANT MUST ATTENTION** NEVER skip `$plan-review` after plan creation — run it standalone or as the workflow step; standalone `$plan` also appends `$changes-review` as a final task.
 **IMPORTANT MUST ATTENTION** search 3+ existing patterns and read target code BEFORE planning; cite `file:line`; run graph trace when `.code-graph/graph.db` exists — why: local conventions override generic framework defaults.
-**MANDATORY IMPORTANT MUST ATTENTION** run the full main pipeline in order — pre-check plan → bootstrap `goal.md` → parallel `researcher` subagents → codebase + project-reference analysis (scout if docs absent) → `planner` writes `plan.md` + `phase-XX` → granularity self-check → mandatory final tasks; NEVER skip a step because it seems obvious — why: the skipped step (Goal Contract, granularity, test specs) is the one AI silently drops.
+**MANDATORY IMPORTANT MUST ATTENTION** run the full main pipeline in order — pre-check plan → bootstrap `goal.md` → ONE research wave (`researcher` + `scout` in one message) → barrier → codebase + project-reference analysis (scout if docs absent) → `planner` writes `plan.md` + `phase-XX` → parallelism pass (PAR/SEQ + write sets + `## Execution Waves`) → granularity self-check → mandatory final tasks; NEVER skip a step because it seems obvious — why: the skipped step (Goal Contract, granularity, test specs) is the one AI silently drops.
+**MANDATORY IMPORTANT MUST ATTENTION** dispatch the research threads as ONE wave in ONE message (declare `Parallel plan:` first, one report path per agent) and synthesize only after EVERY member returns — why: dripping researchers one per turn serializes the cheapest-to-parallelize half of planning.
+**MANDATORY IMPORTANT MUST ATTENTION** the emitted plan MUST carry parallelism metadata — every phase tagged `PAR`/`SEQ`, its write set declared, every `SEQ` naming the exact artifact it waits on, and `## Execution Waves` in `plan.md` — why: `$plan-execute` fans out only on what the plan declares, so an untagged plan silently forces sequential execution.
 **MANDATORY IMPORTANT MUST ATTENTION** queue the final-task block on EVERY plan — Test Specs per phase → `$plan-validate` → `$plan-review` (3-round) → `$why-review` (standalone only) → re-estimate vs finalized phases (flag `SHOULD-RESCOPE` when delta >50%).
 **IMPORTANT MUST ATTENTION** `--mode={ci|cro}` only ADDS a domain reference load (`references/mode-ci.md` / `mode-cro.md`) + intake on top of the SAME engine, gate, and `planner` agent — default (no flag) runs the standard flow byte-for-byte; NEVER let a mode replace the engine or skip `$plan-review`.
 
@@ -844,6 +897,8 @@ After creating all phase files, run **recursive decomposition loop**:
 | "It's a `.claude` change, no sync" | State the mirror action or explicit no-sync evidence — stale mirrors fail the oracle.    |
 | "`--mode=ci`, so skip the normal flow" | Mode only ADDS a reference payload — same engine, same `$plan-review`, same `planner` agent. |
 | "Plan's done, skip the final tasks"| Test Specs → `$plan-validate` → `$plan-review` → `$why-review` → re-estimate are MANDATORY, not optional. |
+| "Phases feel sequential, skip the tags" | "Feels sequential" is not a dependency. Tag `PAR`/`SEQ`, declare write sets, and name the artifact each `SEQ` waits on. |
+| "The executor can work the order out"  | It can't — `$plan-execute` fans out only on declared write sets. No tags = sequential execution you caused.        |
 
 **[TASK-PLANNING]** Before acting, analyze task scope and systematically break into small todo tasks and sub-tasks via task tracking.
 
@@ -871,7 +926,8 @@ Source: `.claude/.ck.json` + `.claude/skills/shared/sync-inline-versions.md` (`:
 3. **AUTO-SELECT:** Pick the best option yourself. Do not ask the user to choose between direct execution, skill, standard workflow, or custom workflow.
 4. **ACTIVATE:** For a selected workflow, call `$start-workflow <workflowId>`; for a selected skill, invoke that skill; for a custom workflow, sequence custom steps directly; for direct execution, proceed with the task.
 5. **CREATE TASKS:** task tracking for ALL workflow/skill/custom steps before execution when the selected path has multiple steps.
-6. **EXECUTE:** Advance per the **Workflow Step Advancement & Parallel Phases** rule in your context instructions — model-driven; a sub-agent completion advances a step identically to an inline call; a parallel-phase group is an all-return barrier (advance only after ALL members return, never serialize it)
+6. **PARALLELIZE:** Before executing the task list, tag each task `PAR` (independent inputs + write set disjoint from every other `PAR` task) or `SEQ` (name the blocking dependency), group `PAR` tasks into waves, declare the wave plan, and spawn each wave's sub-agents in ONE message — all-return barrier per wave, fan-out one level deep unless a sub-agent's own definition authorizes further fan-out. Sequential-by-default is a defect when tasks are independent; do not parallelize shared write targets, output-consuming tasks, trivial single-file work, workflow-fixed ordering, or user-approval gates.
+7. **EXECUTE:** Advance per the **Workflow Step Advancement & Parallel Phases** rule in your context instructions — model-driven; a sub-agent completion advances a step identically to an inline call; a parallel-phase group is an all-return barrier (advance only after ALL members return, never serialize it)
 ## Shared AI-SDD Protocol Markers
 
 Source: `.claude/skills/shared/sync-inline-versions.md`

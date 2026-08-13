@@ -104,6 +104,11 @@ EXCLUDED_ORCHESTRATION = {
     "sub-agent-selection",        # a dispatcher choosing which sub-agents to spawn
     "subagent-return-contract",   # instructs *its* sub-agents how to return (inverted for a leaf)
     "parallel-phase-advancement", # all-return barrier across a parallel workflow phase group
+    # Orchestrator-only: partitions ITS OWN task list into PAR/SEQ waves and
+    # spawns each wave. A headless leaf sub-agent receives one brief and, by rule
+    # 7 of the block itself, does NOT fan out another wave -- copying it would
+    # instruct the agent to perform the exact action the block forbids it.
+    "parallel-subagent-dispatch",
     # Session-scoped goal-file loop owned by the CALLER, not a leaf agent: step 1
     # resolves the goal from "the current user request" (a sub-agent sees only its
     # task prompt, never the parent conversation), step 6 drives the review->fix
