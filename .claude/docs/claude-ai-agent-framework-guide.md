@@ -772,7 +772,7 @@ Workflows are **JSON-defined sequences of skills** stored in `.claude/workflows.
 }
 ```
 
-### 6.2 Workflow Catalog (18 Workflows)
+### 6.2 Workflow Catalog (19 Workflows)
 
 ```
 WORKFLOW CATALOG
@@ -785,8 +785,9 @@ WORKFLOW CATALOG
 ├── REFACTORING (1)
 │   └── workflow-refactor
 │
-├── TESTING (4)
+├── TESTING (5)
 │   ├── workflow-e2e (--source=changes|recording|update-ui)
+│   ├── workflow-integration-test-green
 │   ├── workflow-spec-sync
 │   ├── workflow-seed-test-data
 │   └── workflow-write-integration-test
@@ -1560,10 +1561,10 @@ feature:
   plan-execute → seed-test-data → domain-entities-review → spec [mode=tests] → why-review → artifact-review --type=spec-tests →
   spec [mode=sync] → integration-test → integration-test-review →
   integration-test-verify → workflow-review-changes →
-  security-review → changelog → test → docs-update → workflow-end → watzup
+  security-review → changelog → test → scan --target=domain-entities → docs-update → workflow-end → watzup
 ```
 
-**Note:** `feature` includes a second planning round (`plan → plan-review`) that refines the implementation plan with test strategy after specs are written, and two verification points after implementation — `/integration-test-verify` following integration-test generation and the final `/test` regression check before docs.
+**Note:** `feature` includes a second planning round (`plan → plan-review`) that refines the implementation plan with test strategy after specs are written, and two verification points after implementation — `/integration-test-verify` following integration-test generation and the final `/test` regression check. After that test and before `/docs-update`, run `/scan --target=domain-entities` only when the final diff changes an entity/model, DTO/data contract, persistence schema/migration, or entity-sync evidence; otherwise complete the scan task with a cited skip reason.
 
 ---
 

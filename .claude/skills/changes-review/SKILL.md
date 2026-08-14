@@ -26,7 +26,7 @@ description: '[Code Quality] Use when reviewing current changes, staged or unsta
 **Summary:** read-this-if-nothing-else digest —
 
 - **Report-driven and evidence-gated.** Every finding is written to `plans/reports/code-review-{date}-{slug}.md` with `file:line` proof; speculation is forbidden, "looks fine" is not a verdict, codebase convention (grep 3+ examples) wins over textbook rules.
-- **Self-recursive loop is protocol-bound (goal-gated when available).** Standalone mode's FIRST action (Phase -1) binds the review loop as a standing protocol obligation you self-drive — and installs a `/goal` Stop-hook condition WHEN available — so stopping is BLOCKED until the loop converges. Findings are never auto-fixed on sight: validate (Phase 6 `/why-review --validate-findings`, an actual skill call) → SELF-FIX (Phase 7) → restart `/changes-review` from Phase 0 over the WHOLE updated diff (combined with prior fixes, not just the last fix), looping until one whole pass has zero findings. Inside `$workflow-review-changes` you skip Phase -1, stop after the report, and hand findings to the parent (which owns the goal).
+- **Self-recursive loop is protocol-bound (goal-gated when available).** Standalone mode's FIRST action (Phase -1) binds the review loop as a standing protocol obligation you self-drive — and installs a `/goal` Stop-hook condition WHEN available — so stopping is BLOCKED until the loop converges. Findings are never auto-fixed on sight: validate (Phase 6 `/why-review --validate-findings`, an actual skill call) → SELF-FIX (Phase 7) → restart `/changes-review` from Phase 0 over the WHOLE updated diff (combined with prior fixes, not just the last fix), looping until one whole pass clears that round's exit bar — **zero findings in rounds 1-2, zero CRITICAL/HIGH/MEDIUM from round 3 (a LOW-only round ENDS the loop; list those LOWs as deferred, never fix-and-loop for them)**. Inside `$workflow-review-changes` you skip Phase -1, stop after the report, and hand findings to the parent (which owns the goal).
 - **When code changed, three delegated gates are MANDATORY:** Phase 3.5 `/code-simplifier` (clarity/maintainability), Phase 3.7 `/integration-test-review` Gate-7 coverage (every behavior change → covering test + spec TC), and — for every behavior change — Spec Drift Adjudication + the Dual-Feedback Ledger (the gap feeds BOTH spec AND tests).
 - **Docs-update is the unconditional terminal step.** Once the loop converges clean, Phase 8 `/docs-update` ALWAYS runs over the full changeset (deferred only to the parent inside the workflow).
 - **MUST ATTENTION — run ALL main phases in order (the steps AI keeps forgetting):** Phase -1 bind self-recursive review loop — protocol-primary, optional `/goal` gate when available (standalone, FIRST action) → 0 `/graph-blast-radius` → 0.1 change-context + full-pipeline trace (tier FE↔BE + cross-service/event) → 0.3 change-type risk tasks → 0.7 surface-detection dimension tasks → 0.8 parallel full-mode `/why-review` rationale sub-agent, spawned in the SAME batch as the 0.7 agents → 0.5 plan compliance → 1 collect diff + create report → 2 file-by-file review → 3 fresh-context gate (SKIP when findings exist) → 3.5 `/code-simplifier` (code diffs) → 3.7 `/integration-test-review` Gate-7 coverage (behavior diffs) → 4 finalize + Dual-Feedback Ledger → 5 docs triage → 6 `/why-review --validate-findings` → 7 self-fix + full restart from Phase 0 → 7.5 holistic full-mode `/why-review` → 8 `/docs-update` (unconditional terminal) — why: a skipped phase silently drops a guard (coverage, spec-drift, holistic review, or docs sync) and ships unreviewed work.
@@ -37,7 +37,7 @@ description: '[Code Quality] Use when reviewing current changes, staged or unsta
 
 **Workflow:**
 
-0. **Phase -1: Bind the Self-Recursive Review Loop (FIRST ACTION — standalone-only; protocol-first, `/goal` optional)** — Before any other work, in standalone mode bind the review loop as a standing protocol obligation you self-drive — and, WHEN available, invoke the `/goal` command as an ACTUAL call — with a self-recursive review-loop condition so stopping is BLOCKED until the loop converges: *review the full diff → validate findings (Phase 6) → SELF-FIX validated findings (Phase 7) → restart `/changes-review` from Phase 0 over the WHOLE updated diff (combined with the prior fixes, never just re-checking the last fix) → loop until one complete pass has zero findings, then docs-update*. Skip this gate when running as step 1 inside `$workflow-review-changes` (the parent owns the goal). Full procedure in **Phase -1**.
+0. **Phase -1: Bind the Self-Recursive Review Loop (FIRST ACTION — standalone-only; protocol-first, `/goal` optional)** — Before any other work, in standalone mode bind the review loop as a standing protocol obligation you self-drive — and, WHEN available, invoke the `/goal` command as an ACTUAL call — with a self-recursive review-loop condition so stopping is BLOCKED until the loop converges: *review the full diff → validate findings (Phase 6) → SELF-FIX validated findings (Phase 7) → restart `/changes-review` from Phase 0 over the WHOLE updated diff (combined with the prior fixes, never just re-checking the last fix) → loop until one complete pass clears that round's exit bar — **zero findings in rounds 1-2, zero CRITICAL/HIGH/MEDIUM from round 3 (a LOW-only round ENDS the loop; list those LOWs as deferred, never fix-and-loop for them)**, then docs-update*. Skip this gate when running as step 1 inside `$workflow-review-changes` (the parent owns the goal). Full procedure in **Phase -1**.
 1. **Phase 0: Blast Radius** — Call `/graph-blast-radius` skill FIRST (if `.code-graph/graph.db` exists)
 1. **Phase 0.1: Change Context & Full-Pipeline Impact Trace (MANDATORY comprehension-first)** — Note the change context, then holistically trace the main affected area's full pipeline across BOTH boundaries — client↔server tier (FE↔BE) AND service/event/external — classifying each seam/touchpoint NONE/ADDITIVE/BREAKING (explicit N/A for single-tier or monolith)
 2. **Phase 0.3: Change Types** — Detect high-risk change types; create risk tasks
@@ -52,8 +52,8 @@ description: '[Code Quality] Use when reviewing current changes, staged or unsta
 10. **Phase 4: Finalize** — Generate critical issues, recommendations, suggested commit message
 11. **Phase 5: Docs Triage** — Record stale-doc findings for validation/fix loop
 12. **Phase 6: Why-Review Findings Validation (standalone-only; REQUIRED before any standalone fix)** — Whenever the report contains one or more findings, you MUST invoke the `/why-review` skill (an actual `Skill`-tool call) with `--validate-findings` to verify every finding is correct, proof-backed, reasonable, and best-practice before fixing. This is a genuine skill invocation — re-reading the cited lines yourself, "self-validating," or any inline/manual substitute does NOT satisfy this gate. When this skill is step 1 inside `$workflow-review-changes`, stop after the report; parent step 2 owns findings validation.
-13. **Phase 7: Recursive Fix + Full Re-Review Loop (standalone-only)** — If validated findings remain in standalone mode, auto-fix them, then re-invoke `/changes-review` from Phase 0 with a fresh task breakdown over the full current diff; repeat until an entire review pass has zero findings. When inside `$workflow-review-changes`, parent steps 10-15 own plan/feature-implement/restart.
-14. **Phase 7.5: Holistic Standalone Full-Mode Why-Review Gate (standalone-only)** — Once the dimensional review/fix loop converges clean, invoke `/why-review` in **FULL mode** (NOT `--validate-findings`) ONCE over the WHOLE review target combined with the current changes as a single artifact — a real standalone `/why-review` call, the same as a user running `/why-review` against the target directly. The per-file/per-dimension reviewers and the Phase 6 validate-findings gate routinely miss holistic design-rationale and whole-package issues that a standalone full-mode review catches. If it surfaces findings, fix them and re-run Phase 7.5 (run→fix→run) until a full-mode pass returns zero findings. When inside `$workflow-review-changes`, SKIP this — the parent workflow's dedicated standalone `/why-review` step (step 13) owns the holistic pass.
+13. **Phase 7: Recursive Fix + Full Re-Review Loop (standalone-only)** — If validated findings remain in standalone mode, auto-fix them, then re-invoke `/changes-review` from Phase 0 with a fresh task breakdown over the full current diff; repeat until an entire review pass clears that round's exit bar — **zero findings in rounds 1-2, zero CRITICAL/HIGH/MEDIUM from round 3 (a LOW-only round ENDS the loop; list those LOWs as deferred, never fix-and-loop for them)**. When inside `$workflow-review-changes`, parent steps 10-15 own plan/feature-implement/restart.
+14. **Phase 7.5: Holistic Standalone Full-Mode Why-Review Gate (standalone-only)** — Once the dimensional review/fix loop converges clean, invoke `/why-review` in **FULL mode** (NOT `--validate-findings`) ONCE over the WHOLE review target combined with the current changes as a single artifact — a real standalone `/why-review` call, the same as a user running `/why-review` against the target directly. The per-file/per-dimension reviewers and the Phase 6 validate-findings gate routinely miss holistic design-rationale and whole-package issues that a standalone full-mode review catches. If it surfaces findings, fix them and re-run Phase 7.5 (run→fix→run) until a full-mode pass clears that round's exit bar — **zero findings in rounds 1-2, zero CRITICAL/HIGH/MEDIUM from round 3 (a LOW-only round ENDS the loop; list those LOWs as deferred, never fix-and-loop for them)**. When inside `$workflow-review-changes`, SKIP this — the parent workflow's dedicated standalone `/why-review` step (step 13) owns the holistic pass.
 15. **Phase 8: Mandatory Final Docs-Update Gate (MANDATORY — runs once the review/fix loop converges clean)** — After the review reaches zero findings and all fixes are applied, ALWAYS invoke `/docs-update` over the full changeset as the terminal step so no stale docs survive. This is unconditional (not gated on a flagged finding) — `/docs-update` independently detects impacted docs the review may not have surfaced. When inside `$workflow-review-changes`, the parent workflow's `/docs-update` step owns this; do not run it locally.
 
 **Key Rules:**
@@ -72,7 +72,8 @@ description: '[Code Quality] Use when reviewing current changes, staged or unsta
 - FIRST ACTION (standalone): bind the Phase -1 self-recursive review loop — the **protocol loop is the primary, host-independent binding** you self-drive, plus an optional `/goal` Stop-hook gate WHEN available — so stopping is blocked until a complete review pass over the whole diff is clean; soft "loop until clean" prose alone is not enough, and the protocol binding makes abandoning the loop early impossible whether or not `/goal` exists
 - After Phase 6 validation, the skill MUST SELF-FIX every validated finding in Phase 7 (standalone) — a surfaced+validated finding that is reported but left unfixed keeps the review loop open (and, when available, the `/goal` gate); never hand validated findings back to the user as "recommendations" in standalone mode
 - Every fix cycle invalidates the prior review result; restart `/changes-review` from Phase 0 and review the full updated diff AS A WHOLE FROM THE BEGINNING — combined with the prior fixes, NOT just re-reviewing the previous cycle's fix in isolation
-- Continue review → validate findings → self-fix → full whole-diff re-review until a complete review pass returns zero findings; do not add a fresh-context pass just because findings exist or a fix cycle restarted the review
+- Continue review → validate findings → self-fix → full whole-diff re-review until a complete review pass clears that round's exit bar — **zero findings in rounds 1-2, zero CRITICAL/HIGH/MEDIUM from round 3 (a LOW-only round ENDS the loop; list those LOWs as deferred, never fix-and-loop for them)**; do not add a fresh-context pass just because findings exist or a fix cycle restarted the review
+- **Severity floor — from round 3, LOW stops blocking.** Rounds 1-2 of the Phase 7 loop require zero findings at any severity. **From round 3 the bar is zero validated CRITICAL/HIGH/MEDIUM — a round whose validated findings are ALL LOW ENDS the loop.** Do NOT restart Phase 0 for LOW findings alone: record them under `## Deferred LOW Findings (severity floor, round ≥3)` in the report and advance to Phase 7.5. NEVER re-tier a real CRITICAL/HIGH/MEDIUM down to LOW to reach the exit, and NEVER apply the floor to a binary gate (a missing §8 TC for a behavior change is HIGH, not a deferrable LOW). Severity tiers per `SYNC:severity-rubric`.
 
 > **MANDATORY** Plan ToDo Task to discover and READ project-specific reference docs:
 >
@@ -212,12 +213,12 @@ Update todo status as each phase completes.
 1. Set the `[Review Phase -1]` task to `in_progress`.
 2. **Protocol loop — ALWAYS binding (hook/command-independent).** You, the running agent, are personally responsible for not stopping until the loop below converges or bounded-escalates. This binds Claude, Codex, and Copilot equally, whether or not `/goal` exists:
 
-    > Review the full diff → run `/why-review --validate-findings` on every finding → SELF-FIX each validated finding → restart `/changes-review` from Phase 0 over the WHOLE updated diff (combined with the prior fixes, not just the last fix) → loop until one complete review pass finds zero findings → then run Phase 7.5: one standalone FULL-mode `/why-review` over the whole target+diff (NOT `--validate-findings`), fixing and re-running until it is clean → only then run the Phase 8 `/docs-update`. Do not stop while any validated finding is unfixed, any review pass is non-clean, or the holistic full-mode `/why-review` has unaddressed findings.
+    > Review the full diff → run `/why-review --validate-findings` on every finding → SELF-FIX each validated finding → restart `/changes-review` from Phase 0 over the WHOLE updated diff (combined with the prior fixes, not just the last fix) → loop until one complete review pass clears that round's bar (rounds 1-2: zero findings; round 3+: zero CRITICAL/HIGH/MEDIUM, a LOW-only round ENDS the loop with the LOWs recorded as deferred) → then run Phase 7.5: one standalone FULL-mode `/why-review` over the whole target+diff (NOT `--validate-findings`), fixing and re-running until it is clean → only then run the Phase 8 `/docs-update`. Do not stop while any validated finding is unfixed, any review pass is non-clean, or the holistic full-mode `/why-review` has unaddressed findings.
 
 3. **`/goal` command — invoke as an accelerator WHEN AVAILABLE.** If a `/goal` command exists and you are permitted to run it in this environment, ALSO invoke it (the actual command, NOT a paraphrase) with the SAME condition, so a session Stop hook mechanically enforces the loop:
 
     ```
-    /goal changes-review self-recursive loop: review the full diff → run /why-review --validate-findings on every finding → SELF-FIX each validated finding → restart /changes-review from Phase 0 over the WHOLE updated diff (combined with the prior fixes, not just the last fix) → loop until one complete review pass finds zero findings → then run Phase 7.5: one standalone FULL-mode /why-review over the whole target+diff (NOT --validate-findings), fixing and re-running until it is clean → only then run the Phase 8 /docs-update. Do not stop while any validated finding is unfixed, any review pass is non-clean, or the holistic full-mode /why-review has unaddressed findings.
+    /goal changes-review self-recursive loop: review the full diff → run /why-review --validate-findings on every finding → SELF-FIX each validated finding → restart /changes-review from Phase 0 over the WHOLE updated diff (combined with the prior fixes, not just the last fix) → loop until one complete review pass clears that round's bar (rounds 1-2: zero findings; round 3+: zero CRITICAL/HIGH/MEDIUM, a LOW-only round ENDS the loop with the LOWs recorded as deferred) → then run Phase 7.5: one standalone FULL-mode /why-review over the whole target+diff (NOT --validate-findings), fixing and re-running until it is clean → only then run the Phase 8 /docs-update. Do not stop while any validated finding is unfixed, any review pass is non-clean, or the holistic full-mode /why-review has unaddressed findings.
     ```
 
     The `/goal` Stop hook blocks stopping until that condition holds and auto-clears when it does — do not tell the user to clear it. **If `/goal` is unavailable, unregistered, or not permitted** (e.g. Codex/Copilot, or a Claude run without the command): DO NOT error, DO NOT block, and DO NOT invent a stand-in gate. Record `/goal accelerator unavailable — review loop bound by protocol (Phase -1 step 2)` on the `[Review Phase -1]` task and proceed; the protocol loop IS the gate, enforced by discipline instead of a hook.
@@ -929,7 +930,7 @@ If `architectureRules` not present in project-config.json, skip silently.
     - Re-run Phase 0 blast radius, Phase 0.3 risk detection, Phase 0.7 surface categorization, Phase 1 diff collection, and later phases
     - Re-read all changed files from scratch, including original changes and Phase 7 fixes
     - Treat previous report as historical context only; never reuse prior findings as truth
-6. Repeat Phase 0 → Phase 7 until one complete `/changes-review` invocation produces unconditional PASS with zero findings and Phase 6 is skipped as "no findings to validate".
+6. Repeat Phase 0 → Phase 7 until one complete `/changes-review` invocation clears that round's bar: **rounds 1-2** → unconditional PASS with zero findings and Phase 6 skipped as "no findings to validate"; **round 3+** → zero validated CRITICAL/HIGH/MEDIUM, with any remaining LOW findings recorded under `## Deferred LOW Findings (severity floor, round ≥3)` instead of triggering another round.
 
 **Stop conditions:**
 
@@ -961,12 +962,12 @@ If `architectureRules` not present in project-config.json, skip silently.
 1. Set the `[Review Phase 7.5]` task to `in_progress`.
 2. **Invoke `/why-review` in FULL mode** — an ACTUAL `Skill`-tool call, NOT `--validate-findings`, NOT a manual/inline self-review — over the **WHOLE review target combined with the current changes** as a single artifact (the full Phase 1 diff plus every Phase 7 fix, read together). Frame it as a standalone holistic review of the target, identical to a user running `/why-review` against that target directly. Let `/why-review` apply its own adversarial mindset (steel-man rejected alternatives, invert stated reasons, stress-test top assumptions, pre-mortem, surface missed alternatives) and its own internal validation/self-recursion.
 3. **If `/why-review` returns CLEAN (zero findings):** record `Phase 7.5: full-mode /why-review of whole target — CLEAN` in the review report and proceed to Phase 8.
-4. **If `/why-review` returns findings:** treat them as validated holistic findings — auto-fix them at the owning layer (same fix discipline as Phase 7), append a `## Phase 7.5 Holistic Fix Cycle {N}` block to the report (findings, files changed, verification), then **re-run Phase 7.5 from step 2** over the full updated target. Repeat run→fix→run until one full-mode `/why-review` pass returns zero findings.
+4. **If `/why-review` returns findings:** treat them as validated holistic findings — auto-fix them at the owning layer (same fix discipline as Phase 7), append a `## Phase 7.5 Holistic Fix Cycle {N}` block to the report (findings, files changed, verification), then **re-run Phase 7.5 from step 2** over the full updated target. Repeat run→fix→run until one full-mode `/why-review` pass clears the round's bar (rounds 1-2: zero findings; round 3+: zero CRITICAL/HIGH/MEDIUM, LOW-only ENDS the loop with the LOWs deferred).
 5. Set the `[Review Phase 7.5]` task to `completed` once a full-mode pass is clean (or the gate was deferred to the parent workflow).
 
 **Stop conditions:** Same as Phase 7 — if the same holistic finding repeats for 3 full-mode passes with no observable progress, or a finding needs product/owner input, stop and ask the user instead of spinning. The Phase -1 review-loop binding stays in force until this gate's loop also converges clean (the `/goal` gate too, WHEN available).
 
-> **MANDATORY:** In standalone mode, never advance to Phase 8 or hand off until one full-mode `/why-review` pass over the whole target has returned zero findings (or the gate was explicitly deferred to the parent workflow). A passing dimensional review with a skipped holistic `/why-review` is an INCOMPLETE review — it is exactly the gap this gate closes.
+> **MANDATORY:** In standalone mode, never advance to Phase 8 or hand off until one full-mode `/why-review` pass over the whole target has cleared the round's bar — zero findings, or (from round 3) zero CRITICAL/HIGH/MEDIUM with the remaining LOW findings recorded as deferred — (or the gate was explicitly deferred to the parent workflow). A passing dimensional review with a skipped holistic `/why-review` is an INCOMPLETE review — it is exactly the gap this gate closes.
 
 ---
 
@@ -1071,7 +1072,7 @@ changes-review (you are here)
   ├─ Phase 6 + Phase 7 recursive loop
   │    → If ANY findings exist: /why-review --validate-findings
   │    → If validated findings remain: auto-fix, verify, then restart /changes-review from Phase 0
-  │    → Repeat until a full review invocation has zero findings
+  │    → Repeat until a full review invocation clears the round's bar (rounds 1-2: zero findings; round 3+: zero CRITICAL/HIGH/MEDIUM, LOW-only ends it)
   │
   ├─ Phase 7.5: [MANDATORY after the loop converges clean — standalone-only] → /why-review FULL mode (NOT --validate-findings)
   │    → ONE real standalone /why-review of the WHOLE target + diff as a single artifact (what scoped per-file/per-dimension review misses)
@@ -1091,7 +1092,7 @@ changes-review (you are here)
 > **[CRITICAL — TOP 3 RULES]**
 >
 > 1. **MUST ATTENTION Phase 0 graph blast-radius FIRST** — NEVER skip; informs entire review order
-> 2. **Findings trigger validate → fix → full restart.** Run `/why-review --validate-findings`, fix validated findings, then rerun `/changes-review` from Phase 0 until a full pass has zero findings.
+> 2. **Findings trigger validate → fix → full restart.** Run `/why-review --validate-findings`, fix validated findings, then rerun `/changes-review` from Phase 0 until a full pass clears the round's bar — zero findings in rounds 1-2, zero CRITICAL/HIGH/MEDIUM from round 3 (a LOW-only round ENDS the loop; defer those LOWs).
 > 3. **MUST ATTENTION TaskCreate ALL phases** before starting; missing tests MUST surface via `AskUserQuestion` — NOT silently logged
 
 > **[IMPORTANT]** Use `TaskCreate` to break ALL work into small tasks BEFORE starting — including tasks for each file read. Prevents context loss from long files. For simple tasks, AI MUST ATTENTION ask user whether to skip.
@@ -1328,11 +1329,29 @@ changes-review (you are here)
 
 <!-- SYNC:double-round-trip-review -->
 
-> **Validated-Finding Fix + Full Re-Review Loop** — Re-review is triggered by a validated finding fix cycle, not by a round number. Review purpose: `review → validate findings → fix validated findings → full re-review` until a complete review pass finds no issues. **A clean review ENDS the loop — no further rounds required.**
+> **Validated-Finding Fix + Full Re-Review Loop** — Re-review is triggered by a validated finding fix cycle, not by a round number. Review purpose: `review → validate findings → fix validated findings → full re-review` until a complete review pass clears the round's exit bar (see **Severity floor** below). **A clean review ENDS the loop — no further rounds required.**
 >
-> _aka **Self-Review Convergence Loop**._ The name is historical — there is **NO 2-round cap**; "double-round-trip" only means a validated-finding fix cycle forces at least one fresh re-review. It runs until a clean pass, bounded by the **5-round ceiling** below.
+> _aka **Self-Review Convergence Loop**._ The name is historical — there is **NO 2-round cap**; "double-round-trip" only means a validated-finding fix cycle forces at least one fresh re-review. It runs until a clean pass, bounded by the **3-round ceiling** below.
 >
-> **Round cap — 5 rounds MAX (a ceiling, NEVER a target).** A clean pass ENDS the loop immediately at ANY round — round 1 included; the cap never obliges you to keep spinning. Hitting round 5 with validated findings still open → **STOP and escalate via `AskUserQuestion`** with the still-open findings listed; NEVER emit a silent "good enough" PASS on cap exhaustion, and NEVER let the cap substitute for the clean-review requirement. The 3-repeated-no-progress blocker rule stays an EARLIER exit — escalate at whichever trips first.
+> **Round cap — 3 rounds MAX (a ceiling, NEVER a target).** A clean pass ENDS the loop immediately at ANY round — round 1 included; the cap never obliges you to keep spinning. Hitting round 3 with blocking findings still open (severity floor applied) → **STOP and escalate via `AskUserQuestion`** with the still-open findings listed; NEVER emit a silent "good enough" PASS on cap exhaustion, and NEVER let the cap substitute for the clean-review requirement. The 2-repeated-no-progress blocker rule stays an EARLIER exit — escalate at whichever trips first.
+>
+> **Severity floor — from round 3, LOW stops blocking.** The exit bar tightens by round, so the loop converges on consequence instead of spinning on polish:
+
+> Define one predicate everywhere: `blocking_findings(round, findings)` returns all validated findings in rounds 1–2 and only validated CRITICAL/HIGH/MEDIUM findings in round 3+. A binary gate (test-green, security must-fix, required artifact) is exempt only when its owning invariant explicitly says so.
+>
+> | Round | Exit bar — loop ENDS when the fresh full review has… | Must be fixed to continue |
+> | --- | --- | --- |
+> | 1-2 | zero validated findings at ANY severity | CRITICAL · HIGH · MEDIUM · LOW |
+> | 3+ | zero validated CRITICAL / HIGH / MEDIUM findings — **LOW-only is a PASS** | CRITICAL · HIGH · MEDIUM only |
+>
+> From round 3 onward LOW findings are **NOT required to be fixed**: a round whose validated findings are ALL LOW **ENDS the loop immediately** — do not open another round for them. Severity tiers are `SYNC:severity-rubric` (CRITICAL block-merge · HIGH must-fix · MEDIUM should-fix · LOW nice-to-fix); rounds 1-2 are unchanged, so an easy LOW still gets fixed early when it is cheap.
+>
+> **Severity-floor rules:**
+>
+> - **Never silently drop a deferred LOW.** Every unfixed LOW is listed in the final report under `## Deferred LOW Findings (severity floor, round ≥3)` with file, line, and description, so the owner can schedule it. Dropping it from the report is a protocol violation, not a clean pass.
+> - **Never re-tier a finding to trigger the exit.** Downgrading a real CRITICAL/HIGH/MEDIUM to LOW so the loop can end is a FALSE PASS. Severity is set by consequence per `SYNC:severity-rubric` before the round bar is applied — never after, and never with the exit in view. — why: a floor that can be reached by relabeling is not a floor.
+> - **The floor bounds the loop, not the standard.** It ends *iteration*; it never authorizes shipping a known CRITICAL/HIGH/MEDIUM, and it never lowers the finding-survival bar that admits a finding in the first place.
+> - **The floor never applies to a hard gate.** Test-green gates (a suite must actually pass), security must-fix gates, and any gate whose criterion is binary rather than severity-rated are unaffected — a failing test is a failure, not a LOW finding.
 >
 > **Universal scope (any new output/judgment):** any newly produced output or judgment gets **≥1 self-review**; any **new judgment** gets **≥1 `/why-review --validate-findings` pass**; anything flagged to re-check is re-checked **≥1 time** — before that output is treated as final. This loop is the default convergence contract for ANY work-producing skill, not review skills only.
 >
@@ -1343,7 +1362,7 @@ changes-review (you are here)
 > **Decision after Round 1:**
 >
 > - **No issues found (PASS, zero findings)** → review ENDS. Do NOT spawn a fresh sub-agent for confirmation.
-> - **Issues found (FAIL, or any non-zero findings)** → run the active review skill's findings-validation gate first; for review skills the default gate is `/why-review --validate-findings <report-path>`. Fix only validated findings, then restart the full review protocol from the beginning with a fresh task breakdown.
+> - **`blocking_findings(round, findings)` is non-empty** → run the active review skill's findings-validation gate first; for review skills the default gate is `/why-review --validate-findings <report-path>`. Fix only validated findings, then restart the full review protocol from the beginning with a fresh task breakdown.
 >
 > **Fresh full re-review after every fix cycle:** Re-run the whole review protocol over the current full target. When sub-agents are part of that protocol, spawn NEW `Agent` calls — never reuse prior agents. Reviewers re-read ALL files from scratch with ZERO memory of prior rounds. See `SYNC:fresh-context-review` for the spawn mechanism and `SYNC:review-protocol-injection` for the canonical Agent prompt template. Each fresh full review must catch:
 >
@@ -1354,22 +1373,24 @@ changes-review (you are here)
 > - Subtle edge cases the prior round rationalized away
 > - Regressions introduced by the fixes themselves
 >
-> **Loop termination:** After each full re-review, repeat the same decision: clean → END; issues → validate findings → fix → restart from the first review phase. Continue until a complete review pass finds zero issues, **capped at 5 rounds**. Escalate via `AskUserQuestion` at whichever comes first: the same validated finding repeats for 3 full invocations with no progress · a fix requires product/owner input · round 5 completes with validated findings still open. NEVER loop past 5 rounds, and NEVER convert cap exhaustion into a PASS.
+> **Loop termination:** After each full re-review, repeat the same decision against **that round's exit bar**: bar cleared → END; blocking findings remain → validate findings → fix → restart from the first review phase. Rounds 1-2 clear on zero findings at any severity; **from round 3 the bar is zero CRITICAL/HIGH/MEDIUM, so a LOW-only round ENDS the loop** (deferred LOWs go in the report). Capped at **3 rounds**. Escalate via `AskUserQuestion` at whichever comes first: the same validated finding repeats for 2 full invocations with no progress · a fix requires product/owner input · round 3 completes with CRITICAL/HIGH/MEDIUM still open. NEVER loop past 3 rounds, and NEVER convert cap exhaustion into a PASS.
 >
 > **Rules:**
 >
 > - A clean Round 1 ENDS the review — no mandatory Round 2
+> - From round 3 on, a round whose validated findings are ALL LOW ENDS the loop — never open round N+1 to fix LOW alone; list those LOWs as deferred instead
+> - NEVER re-tier a CRITICAL/HIGH/MEDIUM down to LOW to reach the round-3 exit — severity is assigned by consequence before the bar is applied
 > - NEVER fix unvalidated findings; validate first using the caller's validation gate
 > - Every surviving finding must additionally clear the **finding-survival bar** defined in why-review's Findings Validation Routine (a deliberately higher bar than the generic act-gate — "keep this finding?" is a stricter question than "act on this evidence?"); a finding below the bar is demoted or dropped, not kept
 > - NEVER skip the full re-review after a fix cycle (every fix invalidates the prior verdict)
 > - NEVER reuse a sub-agent across rounds — every iteration that uses sub-agents spawns NEW Agent calls
 > - Main agent READS sub-agent reports but MUST NOT filter, reinterpret, or override findings
-> - The 5-round cap NEVER replaces the clean-review requirement — it bounds runaway looping, it does not authorize shipping an un-clean review; a clean pass ends the loop early at any round, and cap exhaustion escalates rather than passes
-> - Enforce the round cap of 5 alongside the 3 repeated-no-progress blocker rule; both are escalation triggers, neither is a completion criterion
+> - The 3-round cap NEVER replaces the clean-review requirement — it bounds runaway looping, it does not authorize shipping an un-clean review; a clean pass ends the loop early at any round, and cap exhaustion escalates rather than passes
+> - Enforce the round cap of 3 alongside the 2 repeated-no-progress blocker rule; both are escalation triggers, neither is a completion criterion
 > - Track recursive invocation count and repeated blockers in conversation context (session-scoped)
 > - Final verdict must incorporate ALL rounds executed
 >
-> **Report must include `## Round N Findings (Fresh Sub-Agent)` for every round N≥2 that was executed.**
+> **Report must include `## Round N Findings (Fresh Sub-Agent)` for every round N≥2 that was executed, plus `## Deferred LOW Findings (severity floor, round ≥3)` whenever the loop ended on the round-3+ bar with LOWs still open.**
 
 <!-- /SYNC:double-round-trip-review -->
 
@@ -1395,7 +1416,7 @@ changes-review (you are here)
 > - SKIP fresh sub-agent when the prior full review found zero issues (no fixes = nothing new to verify)
 > - NEVER skip the full review restart after a fix cycle — every fix invalidates the prior verdict
 > - NEVER reuse a sub-agent across rounds — every fresh round spawns a NEW `Agent` call
-> - Continue until a complete full review pass has zero findings; if the same blocker repeats 3 times with no progress, escalate via `AskUserQuestion`
+> - Continue until a complete full review pass clears that round's exit bar per `SYNC:double-round-trip-review`: **rounds 1-2** → zero findings at any severity; **round 3+** → zero CRITICAL/HIGH/MEDIUM, so a round whose validated findings are ALL LOW ENDS the loop (list those LOWs as deferred instead of spawning another round). If the same blocker repeats 3 times with no progress, escalate via `AskUserQuestion`
 > - Track iteration count and repeated blockers in conversation context (session-scoped, no persistent files)
 
 <!-- /SYNC:fresh-context-review -->
@@ -1996,7 +2017,8 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 <!-- SYNC:double-round-trip-review:reminder -->
 
 - **MANDATORY IMPORTANT MUST ATTENTION** execute the review loop (aka **Self-Review Convergence Loop**): review → validate findings → fix validated findings → full re-review. A complete review pass with zero findings ENDS the review. Any newly produced output/judgment gets ≥1 self-review; any new judgment gets ≥1 `/why-review --validate-findings` pass before it is treated as final.
-- **MANDATORY** enforce the **round cap of 5 — a ceiling, NEVER a target**: a clean pass ends the loop immediately at any round (round 1 included), and round 5 completing with validated findings still open → **STOP & escalate via `AskUserQuestion`**, never a silent PASS. The 3-repeated-no-progress blocker rule is an earlier exit — escalate at whichever trips first. NEVER loop open-ended.
+- **MANDATORY** apply the **severity floor**: rounds 1-2 exit on zero findings at any severity; **from round 3 the bar is zero CRITICAL/HIGH/MEDIUM — LOW findings are no longer required to be fixed, so a LOW-only round ENDS the loop.** List every deferred LOW in the report; NEVER re-tier a real CRITICAL/HIGH/MEDIUM down to LOW to reach the exit, and NEVER apply the floor to a binary gate (test-green, security must-fix).
+- **MANDATORY** enforce the **round cap of 3 — a ceiling, NEVER a target**: a clean pass ends the loop immediately at any round (round 1 included), and round 3 completing with CRITICAL/HIGH/MEDIUM still open → **STOP & escalate via `AskUserQuestion`**, never a silent PASS. The 2-repeated-no-progress blocker rule is an earlier exit — escalate at whichever trips first. NEVER loop open-ended.
 
 <!-- /SYNC:double-round-trip-review:reminder -->
 

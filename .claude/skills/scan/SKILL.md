@@ -77,7 +77,7 @@ Launch the **N general-purpose sub-agents** defined in the target entry (count +
 - Cite `file:line` for every pattern example
 - Confidence: >80% document as pattern; 60-80% document as "observed (unverified)"; <60% omit
 
-All findings → `plans/reports/scan-{target}-{YYMMDD}-{HHMM}-report.md`.
+Each worker writes a **unique shard** under `plans/reports/scan-{target}-{YYMMDD}-{HHMM}/`; workers never append to the same report. After the barrier, the main agent reads and validates every shard and is the **sole writer** of `plans/reports/scan-{target}-{YYMMDD}-{HHMM}-report.md`.
 
 > Honor any **conditional / ordered** sub-agents from the entry (e.g. an Anti-Pattern agent that runs AFTER the discovery agents; a Cross-Service agent that runs ONLY for microservices; a BDD agent that runs ONLY if a BDD framework is detected). Honor any **CRITICAL security flag** the entry defines (e.g. hardcoded credentials).
 

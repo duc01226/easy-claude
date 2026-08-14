@@ -73,9 +73,15 @@ Report:
 
 ---
 
-### Operation B: Add a New Block to All Files
+### Operation B: Add a New Tiered Block
 
-Use when a NEW SYNC: block needs to be inserted into all 183 skill/agent files that don't have it yet. This is a bulk-insert operation — not a content-update.
+Use when a NEW SYNC: block needs tiered propagation. Derive the on-disk target inventory at runtime; never copy a fixed skill or agent count into this contract.
+
+- `SKILL_BLOCK_ORDER` is the base tier for every skill.
+- `ORCHESTRATOR_SKILL_BLOCK_ORDER` extends that base only for skills in `ORCHESTRATOR_SKILLS`.
+- Agent tiers remain independently governed by the injector's explicit agent sets.
+
+This is a bulk-insert operation, not a content update. Verify the computed target set before writing so orchestration-only rules never leak into every skill.
 
 **When to use:** A new protocol rule is added to `.claude/skills/shared/sync-inline-versions.md` and should appear in static carriers (`CLAUDE.md`, `AGENTS.md`, Codex, skills, and agents).
 
@@ -180,7 +186,7 @@ python .claude/scripts/sync-hooks-to-skills.py --dry-run --verbose
 # Verify: expected N updated, 0 errors
 
 python .claude/scripts/sync-hooks-to-skills.py --verbose
-# Verify: 183 updated (or close — some may already have it → skip)
+# Verify: the computed on-disk tier inventory was processed; already-current targets skip
 ```
 
 #### Step B4: Verify
@@ -189,17 +195,17 @@ python .claude/scripts/sync-hooks-to-skills.py --verbose
 # Confirm target files now contain the new block. Expected count is TIER-AWARE.
 # The skill tier and the agent tiers are INDEPENDENT lists — a block reaches
 # agents only if it is ALSO in an agent tier, so union the rows that apply:
-#   - block in SKILL_BLOCK_ORDER ONLY     → all 163 skills, 0 agents
+#   - block in SKILL_BLOCK_ORDER ONLY     → every discovered skill, 0 agents
 #                                           (skill-only ⇒ must be declared in BOTH
 #                                            exemption lists — see "Skill-only blocks")
-#   - block in SKILL_BLOCK_ORDER + CORE   → all 163 skills + all 29 agents
-#   - block in CORE_BLOCK_ORDER           → all 29 agents (skills excluded)
+#   - block in SKILL_BLOCK_ORDER + CORE   → every discovered skill + every discovered agent
+#   - block in CORE_BLOCK_ORDER           → every discovered agent (skills excluded)
 #   - block in READONLY_CODE_BLOCK_ORDER  → 21 agents (17 code + 4 readonly-code)
 #   - block in CODE_BLOCK_ORDER           → 17 code agents only
 grep -rl "SYNC:new-block-name" .claude/skills/*/SKILL.md .claude/agents/*.md | wc -l
 
 # Then run the agent-coverage regression suite — it asserts tier membership,
-# disjointness, and SYNC tag balance across all 29 agents.
+# disjointness, and SYNC tag balance across the discovered agent inventory.
 node .claude/hooks/tests/run-all-tests.cjs --filter=agent-universal
 ```
 

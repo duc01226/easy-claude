@@ -120,7 +120,7 @@ Partitioning by path still searches ONE way. Each axis below finds files the oth
 
 **Graph is the sixth axis and it stays with YOU** — Step 3, after the barrier; sub-agents do not run it here.
 
-Wave rules: the whole fan-out is read-only with zero write overlap, so it parallelizes freely — one message for the entire wave, each agent briefed with its own scope and its own report path, barrier before Step 3, and an axis the prompt gives no trigger for is simply not spawned (it counts as returned). Both engines take identical axis briefs — `--ext` only swaps `scout` for `scout-external`.
+Wave rules: precompute the full path × triggered-axis assignment set, then dispatch it in consecutive **capacity-bounded waves** with one unique exact artifact path per assignment. Never drop an axis to fit host capacity; queue overflow assignments into the next wave. Each wave is read-only with zero write overlap, launches in one message, and reaches its barrier before Step 3. An axis the prompt gives no trigger for is not an assignment and counts as returned. Both engines take identical axis briefs — `--ext` only swaps `scout` for `scout-external`.
 
 ### Step 3: Graph Expand (MANDATORY — DO NOT SKIP)
 

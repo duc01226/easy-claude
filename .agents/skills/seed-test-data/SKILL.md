@@ -268,7 +268,7 @@ Review seeder at [file:path]. Verify with file:line evidence for each:
 Report: PASS or FAIL with file:line for each finding.
 ```
 
-**Fix loop:** If FAIL → validate findings → fix validated findings → restart full review from first phase. When restarted review uses sub-agents, NEVER reuse them across rounds. If same blocker repeats across 3 full invocations with no progress, escalate to user.
+**Fix loop:** If FAIL → validate findings → fix validated findings → restart full review from first phase. When restarted review uses sub-agents, NEVER reuse them across rounds. If same blocker repeats across 2 full invocations with no progress, escalate to user.
 NEVER fix unvalidated findings. Do not spawn a fresh sub-agent only to re-review known findings before validation/fix.
 
 ---

@@ -26,13 +26,13 @@ description: '[Skill Management] Use when starting a detected workflow, initiali
 - Create ALL `TaskCreate` items BEFORE marking the first task `in_progress` — batch creation, then execute
 - Read `parallelGroups` at activation and tag its member tasks as one wave — 1:1 tasks still stand (a group never collapses members into one task)
 - No `parallelGroups` = `sequence` is the order — surface only adjacent read-only steps as a `Candidate wave`, NEVER a wave that contradicts `sequence`
-- NEVER mark a task `completed` without invoking its `Skill` tool — skip = `in_progress` + comment, not delete
-- ALWAYS check context for `## Workflow Catalog` first (Tier 1) — NEVER read `workflows.json` directly when catalog is in context
+- NEVER mark a task `completed` without invoking its `Skill` tool, except when the selected canonical `preActions.injectContext` explicitly authorizes an evidence-backed conditional skip — use `in_progress` → cited comment → `completed`; never delete the task
+- ALWAYS check context for `## Workflow Catalog` first (Tier 1). Tier 2 is mandatory before task creation only for `workflow-big-feature`, `workflow-bugfix`, and `workflow-feature` (to load their terminal refresh predicate), or when Tier 1 cannot supply required `parallelGroups` metadata — NEVER expose the full `workflows.json` to context
 - If another workflow is active, it auto-switches (ends current, starts new) — no manual cleanup needed
 
 **NOT for:** Manual step execution (follow TaskCreate items), workflow design (use `plan`), catalog management.
 
-**Related:** `/start-workflow <workflowId>` | Catalog: static `## Workflow Catalog` baked into `CLAUDE.md` (no router/tracker hooks)
+**Related:** `/start-workflow <workflowId>` | Catalog: host-specific static workflow-catalog surfaces derived from `.claude/workflows.json` (no router/tracker hooks)
 
 ---
 
@@ -85,50 +85,40 @@ Option B — Custom Pipeline: "Quick Fix + Docs"
 Same 1:1 protocol — one `TaskCreate` per step. Use `[Custom]` prefix to distinguish from catalog tasks:
 
 ```
-TaskCreate: subject="[Custom] /{step-name} — {brief description}", description="Custom pipeline step N/{total}.", activeForm="Executing /{step-name}"
+TaskCreate: subject="[Custom] {step-name} — {brief description}", description="Custom pipeline step N/{total}.", activeForm="Executing {step-name}"
 ```
 
 ---
 
-## Workflow Lookup — Token-Efficient (3-Tier Strategy)
+## Workflow Lookup — Tier 1 Selection, Tier 2 Execution
 
-ALWAYS try tiers in order — stop at first success.
+Use Tier 1 to select every route. For the three policy-bound delivery workflows (`workflow-big-feature`, `workflow-bugfix`, and `workflow-feature`), use Tier 2 before TaskCreate to materialize their execution contract because static catalogs omit the terminal-refresh pre-action. Other workflows retain their existing Tier-1 task materialization unless `parallelGroups` metadata is required.
 
 ### Tier 1: Context (FREE — no file reads)
 
-The workflow catalog is already present as the `## Workflow Catalog` section in your context — baked statically into `CLAUDE.md` (and the `AGENTS.md` mirror), not injected by any hook.
+The workflow catalog is already present in static host context — derived into `CLAUDE.md`, `AGENTS.md`, and Codex context rather than injected by a hook. Its headings and row grammar vary by host.
 
-1. Search your context for `## Workflow Catalog`
-2. Find the line: `**{workflowId}** — {name}`
-3. Read the NEXT line: `  Use: ... | Steps: /step1 → /step2 → ...`
-4. Parse the `Steps:` value — these ARE the slash commands for TaskCreate
+1. Search the available catalog surface for the exact workflow ID: `{workflowId}`.
+2. Use its name and `whenToUse` summary only to confirm the route.
+3. For `workflow-big-feature`, `workflow-bugfix`, and `workflow-feature`, do NOT parse a static catalog sequence or command syntax for TaskCreate; Tier 1 is route selection only. Other workflows retain their existing Tier-1 task materialization unless a Tier-2 `parallelGroups` read is required.
 
-**Example:** `Steps: /scout → /plan → /feature-implement → /test → /workflow-end`
-→ Create 5 TaskCreate items for `/scout`, `/plan`, `/feature-implement`, `/test`, `/workflow-end` in order.
+✅ Use Tier 1 for: route selection, and existing task materialization for workflows outside the policy-bound delivery set.
+⚠️ Tier 2 is required immediately after selection and **before TaskCreate for only `workflow-big-feature`, `workflow-bugfix`, and `workflow-feature`**, plus any activation that needs canonical `parallelGroups`. The complete canonical entry loads `sequence`, `preActions.injectContext`, and `parallelGroups`.
 
-✅ Use Tier 1 for: all standard TaskCreate creation (no file reads needed)
-⚠️ Use Tier 2 if: catalog not in context, OR you need `preActions.injectContext`
+### Tier 2: Complete Canonical Entry Read (JSON-aware)
 
-### Tier 2: Targeted Grep (1 grep operation)
-
-Use when catalog is absent from context OR `preActions.injectContext` is needed:
+After Tier 1 identifies a policy-bound delivery workflow or an activation needing `parallelGroups`, use this selected-entry read before creating tasks. For the three delivery workflows, the static catalog is a route-selection aid; the selected canonical entry remains the execution contract:
 
 ```
-Grep: pattern='"<workflowId>":'  path='.claude/workflows.json'  context=35
+node .claude/scripts/codex/read-workflow-entry.mjs <workflowId>
 ```
 
-Returns only that workflow's entry (~35 lines vs full file).
-Parse: `sequence` array → step IDs → invoke each as `/<stepId>`.
+This JSON-aware helper prints the complete `workflows[workflowId]` object only, including every sequence step even when the entry is long. It accepts the exact Tier-1-selected workflow ID as a data argument; it does not interpolate it into a shell command.
+Parse: `sequence` array → step IDs, `preActions.injectContext`, and `parallelGroups` → invoke each with the active host's command syntax for that step.
 
-### Tier 3: Minimal Read (last resort — avoid)
+### Tier 3: Missing Entry (stop)
 
-Only if Tier 1 and Tier 2 both fail:
-
-```
-Grep '"<workflowId>":' context=30    ← that workflow's entry only
-```
-
-**NEVER** read the full file — it is large and wastes tokens.
+If the JSON-aware lookup cannot return the exact selected entry, stop and report catalog drift or a missing canonical workflow. Do not fall back to a fixed-context grep, and do not expose the full file to context.
 
 ---
 
@@ -154,8 +144,7 @@ FIRST action after activation: create EXACTLY one `TaskCreate` for EACH entry in
 ```
 workflow = workflows[workflowId]           // key lookup — NOT .find(), NOT [index]
 steps    = workflow.sequence               // array of step ID strings
-// resolve slash command — step id IS the command:
-slashCmd = "/" + stepId                     // "scout" → "/scout"
+invocation = resolveActiveHostSyntax(stepId) // e.g. the active host's syntax for "scout"
 ```
 
 **WorkflowEntry fields:**
@@ -182,22 +171,24 @@ Object.keys(workflows)   // list all IDs
 
 ### Task creation steps
 
-1. **Tier 1 first (no file read):** Search context for `## Workflow Catalog` → find `**{workflowId}**` → parse `Steps:` line → slash commands are ready to use
-2. **Tier 2 if needed:** `Grep .claude/workflows.json --pattern '"<workflowId>":'  --context 35` → parse `sequence`, invoke each step as `/<stepId>`
-3. Create one `TaskCreate` per step IN ORDER
+1. **Tier 1 first (no file read):** search the available static catalog surface for `{workflowId}`. For workflows outside the policy-bound delivery set, use its established active-host sequence to create tasks unless canonical `parallelGroups` metadata is required.
+2. **Tier 2 required before TaskCreate only for `workflow-big-feature`, `workflow-bugfix`, and `workflow-feature`, or when `parallelGroups` metadata is required:** `node .claude/scripts/codex/read-workflow-entry.mjs <workflowId>` → treat the complete selected entry's `sequence`, `preActions.injectContext`, and `parallelGroups` as canonical. If the static preview differs, stop and report catalog drift rather than choosing one silently.
+3. **Apply delivery-workflow pre-actions to task context:** preserve the selected entry's `preActions.injectContext` as workflow-level execution context. For every conditional step it governs, put the exact run condition and evidence-backed skip transition in that task's description; never infer or drop a predicate because the static catalog rendered only a step name.
+4. Create one `TaskCreate` per selected sequence step IN ORDER
 
 > See **Workflow Lookup — Token-Efficient (3-Tier Strategy)** above for full lookup rules and fallback chain.
 
 **Task format:**
 
 ```
-TaskCreate: subject="[Workflow] /{step-name} — {brief description}", description="Workflow step N/{total}. {conditional note}", activeForm="Executing /{step-name}"
+TaskCreate: subject="[Workflow] {step-name} — {brief description}", description="Workflow step N/{total}. {conditional note}", activeForm="Executing {step-name}"
 ```
 
 **Rules (NON-NEGOTIABLE):**
 
 - **1:1 mapping** — each sequence entry = exactly one task. No consolidation, no invented tasks.
-- **Conditional steps still get tasks** — add to description: "Conditional — skip if reviews pass"
+- **Conditional steps still get tasks** — add the exact canonical run condition and evidence-backed skip transition to the description; when the selected canonical `preActions.injectContext` authorizes that skip, it may complete without a Skill invocation after the cited comment. Never use a generic skip label.
+- **Delivery-workflow pre-actions are mandatory execution input** — after Tier 1 selects `workflow-big-feature`, `workflow-bugfix`, or `workflow-feature`, Tier 2 must load `preActions.injectContext` before TaskCreate. A conditional step's task description must state its canonical run condition and evidence-backed skip transition.
 - **Recursive self-calls get tasks** — e.g., `[Workflow] /workflow-review-changes — Recursive re-review (conditional)`
 - **Count verification** — after creation: `task count == len(sequence)`. Fix mismatch before proceeding.
 
@@ -205,7 +196,7 @@ TaskCreate: subject="[Workflow] /{step-name} — {brief description}", descripti
 
 A workflow MAY declare barrier groups in `parallelGroups` (schema: `.claude/workflows.schema.json` → `WorkflowEntry.parallelGroups`; live example: `workflow-review-changes`, groups `initial-reviews` and `reviewers`). Materialize each declared group as a wave IN THE TASK LIST, so the barrier is visible in the tasks and not only in prose.
 
-1. **Read `parallelGroups` alongside `sequence`.** Tier 1 (`## Workflow Catalog` in `CLAUDE.md`) renders members FLAT and carries no group data. When activating a workflow that may declare groups, use Tier 2 — `Grep '"<workflowId>":' .claude/workflows.json --context 35` — and parse `parallelGroups` with `sequence`.
+1. **Read `parallelGroups` alongside `sequence`.** Tier 1 (`## Workflow Catalog` in `CLAUDE.md`) renders members FLAT and carries no group data. Tier 2's JSON-aware selected-entry lookup supplies `parallelGroups` with `sequence`.
 2. **Expand any barrier token you were given.** The Codex mirrors (`AGENTS.md`, `.codex/CODEX_CONTEXT.md`) collapse a group into ONE `[parallel ⇉ all-return barrier: a, b*]` token (`*` = conditional member). That token is a barrier marker, NOT a step — expand it back to its member steps and create one task per member.
 3. **Task count is still `len(sequence)`.** A group NEVER collapses its members into a single task; it only adds wave metadata to the member tasks.
 4. **Tag each member task** — subject `[Workflow] [wave: {groupId}] /{step} — {brief description}`, description `Workflow step N/{total}. Parallel group '{groupId}' — spawned together with {other members}; barrier: advance only after ALL members return. {conditional note}`.
@@ -228,11 +219,11 @@ Create ALL tasks first → then `TaskUpdate` first task to `in_progress`.
 
 ## Step Execution Protocol
 
-Per step: `TaskUpdate in_progress` → **invoke `Skill` tool** → complete skill → `TaskUpdate completed`.
+Per required (non-skipped) step: `TaskUpdate in_progress` → **invoke `Skill` tool** → complete skill → `TaskUpdate completed`.
 
-- Completing a task without invoking its `Skill` tool = **workflow violation**
+- Completing a task without invoking its `Skill` tool = **workflow violation**, except for a conditionally skipped task explicitly authorized by the selected canonical pre-action, which may complete without invoking its Skill tool after its cited comment
 - Validation gates (`/plan-validate`, `/plan-review`, `/why-review`) MUST use explicit evidence and local project protocol — NEVER auto-approve inferred decisions. Explicit user approval in the prompt may satisfy the gate only when the gate's skill permits it.
-- To skip a conditional step: `TaskUpdate in_progress` → comment "Skipped — {reason}" → `TaskUpdate completed`. Never delete.
+- To skip a conditionally authorized step: `TaskUpdate in_progress` → cited comment "Skipped — {reason}" → `TaskUpdate completed` without invoking its Skill tool. Never delete.
 
 ---
 
@@ -267,7 +258,7 @@ When `/workflow-review-changes` appears in any workflow sequence (e.g. `workflow
 
 > **[MANDATORY]** `TaskCreate` FIRST — break every workflow into tasks before any action. NEVER skip.
 > **[MANDATORY]** Auto-select the best path for auto-detected workflows; do not use `AskUserQuestion` for workflow-selection confirmation. Explicit workflow invocation executes directly.
-> **[MANDATORY]** `Skill` tool REQUIRED per step — NEVER mark a task `completed` without invoking it.
+> **[MANDATORY]** `Skill` tool REQUIRED for every non-skipped step. The sole exception is an evidence-backed conditional skip explicitly authorized by the selected canonical `preActions.injectContext`.
 
 <!-- SYNC:ai-mistake-prevention -->
 
@@ -396,9 +387,9 @@ When `/workflow-review-changes` appears in any workflow sequence (e.g. `workflow
 **MUST ATTENTION** auto-select the best path for ordinary prompts; explicit `/workflow-*` or `/start-workflow <id>` invocation executes directly. Do not ask for workflow-selection confirmation.
 **MUST ATTENTION** `workflows` is an OBJECT — `workflows[workflowId]`, NEVER `.find()` / `[index]` / `.forEach()`
 **MUST ATTENTION** create ALL `TaskCreate` items for the full sequence BEFORE marking the first task `in_progress`
-**MUST ATTENTION** never mark a task `completed` without invoking its `Skill` tool — skip means comment + completed, not delete
+**MUST ATTENTION** never mark a task `completed` without invoking its `Skill` tool, except an evidence-backed conditional skip explicitly authorized by selected canonical `preActions.injectContext` — cite comment + completed, never delete
 **MUST ATTENTION** custom pipeline steps must be canonical step ids (each maps to a real `.claude/skills/<step>/SKILL.md`) — never invent step names
-**MUST ATTENTION** use Tier 1 context parse FIRST — check `## Workflow Catalog` in context before any file read; use Tier 2 when the workflow may declare `parallelGroups` (Tier 1 renders members flat and carries no group data)
+**MUST ATTENTION** use Tier 1 context selection FIRST, then Tier 2 JSON-aware complete canonical-entry read before TaskCreate only for `workflow-big-feature`, `workflow-bugfix`, `workflow-feature`, or an activation needing `parallelGroups` — load `sequence`, `preActions.injectContext`, and `parallelGroups`; never use fixed-context grep output
 **MUST ATTENTION** materialize every declared `parallelGroups` group as a wave in the task list — one task per member, wave-tagged, spawned in ONE message, all-return barrier before the next step — why: a barrier that lives only in prose gets executed one step at a time
 **MUST ATTENTION** no `parallelGroups` → `sequence` IS the order — never invent a group that contradicts it; only adjacent read-only steps may be surfaced as a `Candidate wave (not declared)` — why: a self-authored wave silently reorders a validated workflow, and that costs more than the time it saves
 

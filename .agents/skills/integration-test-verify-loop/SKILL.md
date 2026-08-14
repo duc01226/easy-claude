@@ -62,7 +62,7 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 - **Convergence:** stop ONLY when a **fresh full** `$integration-test-verify` over the CURRENT (post-fix) code reports **zero failed tests across 2 consecutive runs without a DB reset**, with real runner output — never a stale green predating the last fix.
 - **Inline invariant:** run `$integration-test-verify`, `$debug-investigate`, and `$integration-test-review` via the skill invocation, NEVER the `spawn_agent` tool. `$debug-investigate` requires its `$why-review` gate **in the same session/main agent** (`debug-investigate/SKILL.md:34`), and `$integration-test-review` self-binds its own fix + re-review obligations — a sub-agent cannot own or carry either back to this loop. Their OWN internal fan-outs (verify's `integration-tester` per-project sub-agents, `integration-test-review`'s phase agents) stay sub-agents by their own design, so context stays bounded.
 - **No fake green — Round Integrity Check:** a round converges only if the executed test count did **not shrink** and the skipped count did **not grow** versus the prior round. Deleting, skipping, or narrowing tests is a REGRESSION, never convergence.
-- **Bounded:** round cap default 5; failing count not shrinking across 2 rounds, or cap hit with failures still open → **STOP & escalate** by asking the user directly. Increasing failures → STOP (fixes regressing). Environment/infrastructure fault → **BLOCKED**, escalate immediately — never loop against an unhealthy system.
+- **Bounded:** round cap default 3; failing count not shrinking across 2 rounds, or cap hit with failures still open → **STOP & escalate** by asking the user directly. Increasing failures → STOP (fixes regressing). Environment/infrastructure fault → **BLOCKED**, escalate immediately — never loop against an unhealthy system.
 
 **Why this skill exists (READ FIRST — it is the whole justification):** the obligation to loop already exists as **prose scattered across three skills**, with no mechanism behind it. `$integration-test-verify` says _"After fixing → re-run the full 2-run verify sequence"_ (`integration-test-verify/SKILL.md:238`) and its `SYNC:integration-test-execution-discipline` §5 says _"Loop until the whole suite is green"_ (`:404`) — but there is **no round cap, no Goal Contract, no shrinking-failures gate, and no escalation path**, so an agent that fixes one test and reports success is not violating anything mechanical. Worse, the fix half is **triple-owned and undefined**: `$integration-test-review` fixes tests and re-reviews itself (P5–P8), `$fix --target=test` runs its own unbounded _"if tests fail, repeat from step 2"_ (`fix/SKILL.md:218`), and verify's own failure protocol says fix-and-re-run (`:232-238`) — three overlapping loops that can double-fix the same failure or each assume another owns it. This skill makes the loop a **bounded, evidence-gated convergence contract with one owner**: verify FINDS, the `$debug-investigate` + `$integration-test-review` pair ADJUDICATES fault, `$fix` RESOLVES, and a fresh full verify RE-PROVES — with a Round Integrity Check so the suite can never go "green" by losing tests. Without it, "tests failed, then something fixed them" ships on a single green run over a hand-picked subset.
 
@@ -78,7 +78,7 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 - **One written Fault Verdict per failure BEFORE any edit** — `TEST-WRONG` · `TEST-NOT-OPTIMAL` · `SOURCE-WRONG` · `ENVIRONMENT-BLOCKED` · `AMBIGUOUS` — with `file:line` evidence and confidence. `AMBIGUOUS` → ask the user directly, never a silent pick.
 - **NEVER force green.** No weakened or removed assertions, no skip annotations, no widened assertion timeouts, no retries around a failing assertion, no repository-hacked domain data, no narrowed scope. Fix the SCENARIO (an ARRANGE barrier on a real observable) or the product defect.
 - **Convergence = a fresh full verify over the post-fix code, 2/2 green, zero failures, real runner output, Round Integrity Check passed.** All five, or it is not converged.
-- **Round cap (default 5)**; failures not shrinking across 2 rounds, increasing, or cap hit with failures open → **STOP & escalate** by asking the user directly. `ENVIRONMENT-BLOCKED` → escalate immediately; never loop against an unhealthy system.
+- **Round cap (default 3)**; failures not shrinking across 2 rounds, increasing, or cap hit with failures open → **STOP & escalate** by asking the user directly. `ENVIRONMENT-BLOCKED` → escalate immediately; never loop against an unhealthy system.
 
 ---
 
@@ -109,7 +109,7 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 
    > _A fresh full `$integration-test-verify` over `{scope}` reports **zero failed tests** across **2 consecutive runs without a DB reset**, evidenced by actual test-runner output (Passed/Failed/Skipped counts), with no test deleted, skipped, or weakened to get there._
 
-   Record in **Constraints**: `{scope}` (the project list), the round cap (default 5), the baseline executed/skipped test counts once round 1 reports them, and `quickRunCommand`.
+   Record in **Constraints**: `{scope}` (the project list), the round cap (default 3), the baseline executed/skipped test counts once round 1 reports them, and `quickRunCommand`.
 
 ## Step 0b — Bind the Convergence Loop (protocol-first; `/goal` is an optional accelerator)
 
@@ -502,7 +502,7 @@ When failures remain but cannot be fixed (product decision, unclear intent, envi
 **IMPORTANT MUST ATTENTION** the **Round Integrity Check is BLOCKING** — executed test count must NOT decrease, skipped count must NOT increase, `{scope}` must NOT shrink; any of the three → STOP & escalate and restore the coverage — why: unlike a review loop, a test loop has a cheap fake exit — remove what fails.
 **IMPORTANT MUST ATTENTION** NEVER force green — no weakened or removed assertions, no skip annotations, no widened timeouts, no repository-hacked domain data, no narrowed scope. Fix the scenario or the product defect, then restart the 2-run gate from run 1.
 **IMPORTANT MUST ATTENTION** convergence requires ALL FIVE: a fresh full verify over post-fix code · zero failed tests · 2 consecutive green runs without a DB reset · real runner output (Passed/Failed/Skipped counts + names) · Round Integrity Check passed — plus the working-tree-unchanged backstop on the converging pass.
-**IMPORTANT MUST ATTENTION** enforce the **round cap (default 5)**; failing count not shrinking across 2 rounds, failures increasing, or cap hit with failures still open → **STOP & escalate** by asking the user directly. `ENVIRONMENT-BLOCKED` → escalate IMMEDIATELY and point at `startupScript` — never loop against an unhealthy system.
+**IMPORTANT MUST ATTENTION** enforce the **round cap (default 3)**; failing count not shrinking across 2 rounds, failures increasing, or cap hit with failures still open → **STOP & escalate** by asking the user directly. `ENVIRONMENT-BLOCKED` → escalate IMMEDIATELY and point at `startupScript` — never loop against an unhealthy system.
 **IMPORTANT MUST ATTENTION** run the terminal `$spec [mode=sync]` + `$docs-update` once converged when STANDALONE; SKIP them when a parent workflow already declares those steps, and say so in the recap. Do NOT commit or push unless the user explicitly asks.
 **IMPORTANT MUST ATTENTION** resolve and update the active Goal Contract — append per-round counts, Fault Verdicts, and fix evidence to the Iteration Log and matrix; NEVER copy raw sensitive fixture data into goal files.
 
@@ -520,7 +520,7 @@ When failures remain but cannot be fixed (product decision, unclear intent, envi
 | "Review already fixed it, and so did $fix"    | Report-only mode means `$fix` owns the fix. If review self-fixed, SKIP `$fix` that round — never double-fix.                    |
 | "Tests are green, no need to review the fix"  | Green is exactly the blind spot — it cannot see a wrong-layer fix, a broken invariant elsewhere, or a security/perf regression. Any fix landed → `$changes-review` that round. |
 | "I'll code-review everything at the end"      | A deferred review lets round 2 build on round 1's unreviewed fix. Review the fix diff in the round that lands it.               |
-| "Round 5 hit, close enough"                   | Cap hit with failures open → STOP & escalate with the still-failing tests and their verdicts. Never silently continue.          |
+| "Round 3 hit, close enough"                   | Cap hit with failures open → STOP & escalate with the still-failing tests and their verdicts. Never silently continue.          |
 | "The DB was down, I'll relax the test"        | `ENVIRONMENT-BLOCKED` → escalate and point at `startupScript`. NEVER change a test because the system was down.                 |
 
 > **[IMPORTANT]** Use task tracking to break ALL work into small tasks BEFORE starting — analyze task size first.
@@ -530,7 +530,7 @@ When failures remain but cannot be fixed (product decision, unclear intent, envi
 **IMPORTANT MUST ATTENTION Goal:** A fresh full `$integration-test-verify` over `{scope}` reporting ZERO failures across 2 consecutive runs without a DB reset — with no test deleted, skipped, or weakened to get there.
 **IMPORTANT MUST ATTENTION** adjudicate EVERY failure with `$debug-investigate` + `$integration-test-review` (report-only) into ONE Fault Verdict BEFORE any edit — test-wrong vs test-not-optimal vs source-wrong vs environment vs ambiguous.
 **IMPORTANT MUST ATTENTION** EVERY round that lands a fix runs `$changes-review` (INLINE, report-only) on that round's fix diff — no fix ever reaches the next round un-code-reviewed.
-**IMPORTANT MUST ATTENTION** the Round Integrity Check is BLOCKING and the round cap is 5 — a suite that got greener by losing tests regressed, and a loop that stops shrinking escalates instead of spinning.
+**IMPORTANT MUST ATTENTION** the Round Integrity Check is BLOCKING and the round cap is 3 — a suite that got greener by losing tests regressed, and a loop that stops shrinking escalates instead of spinning.
 
 ---
 

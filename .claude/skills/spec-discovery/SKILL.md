@@ -94,7 +94,7 @@ Step 1 (specs), Step 2 (code), and the invariant/test-case sweep read DIFFERENT 
 | **Related-code discovery**         | the code the idea touches (the Step 2 delegation)                                        | `/scout {keywords}`                                                   | Related Code                           |
 | **Invariant / test-case landscape** | [HARD] BRs (§4), §5 entity invariants, existing §8 TC coverage of the touched specs      | one `scout`; fold into the corpus sweep when the corpus is small      | Invariant Landscape · Missing TCs      |
 
-Rules binding this wave: each member owns exactly ONE report section — there is never a second writer of `spec-discovery-{slug}.md`, so members return summaries and YOU append their sections. Barrier before Step 3.
+Rules binding this wave: each member owns a **unique artifact path** under `plans/reports/spec-discovery-{slug}/`; no worker writes `spec-discovery-{slug}.md`. After the barrier, YOU are the sole reducer: read and validate every artifact, then synthesize the final report in section order. A missing artifact is rerun or reported, never silently replaced by a bounded summary.
 
 **SEQ — keep these OUT of the wave (each names its blocker):** the Step 2 graph expansion (YOU run it, and only after the code member returns its key files) · Step 3 gap & invariant reconciliation (consumes all three members) · the Step 5 scope-decision gate (a BLOCKING `AskUserQuestion` cannot block from inside a sub-agent) · Step 6 handoff.
 

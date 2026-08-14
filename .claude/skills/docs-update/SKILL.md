@@ -40,6 +40,9 @@ git diff → Triage → Phase 1: Project Docs (inline)
 **Key Rules:**
 
 - Router only — NEVER duplicate sub-skill logic or write Section 8 / `docs/specs/` content
+- Phase 1/docs-manager MUST NOT own any `docs/specs/**`, test-spec, spec-index/ERD, or derived technical-view path.
+- Every excluded artifact is explicitly reserved to its child skill (`/spec`, `/spec-index`, or `/tech-spec`) so one canonical writer owns it.
+- Exclude `docs/specs/**` and generated technical views from every docs-manager brief and write set.
 - Each phase checks whether needed before invoking — skip phases with no impact
 - Step-to-skill order is fixed — run phases sequentially, never out of order
 - ALWAYS report what was checked, even if nothing needed updating

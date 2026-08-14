@@ -339,16 +339,16 @@ ORCHESTRATOR_SKILL_BLOCK_ORDER = SKILL_BLOCK_ORDER + ["parallel-subagent-dispatc
 # plan-execute, investigate, scan). A skill that never spawns and never partitions
 # a task list does NOT belong here — it cannot act on the protocol.
 ORCHESTRATOR_SKILLS = {
-    "architecture-review", "architecture-review-full", "artifact-review",
+    "architecture-design", "architecture-review", "architecture-review-full", "artifact-review",
     "changes-review", "code-review", "code-simplifier", "commit",
     "context-optimization", "db-migrate", "debug-investigate", "docs-update",
-    "domain-entities-review", "e2e-test", "integration-test",
+    "demo-guide", "domain-entities-review", "e2e-test", "feature-presentation", "integration-test",
     "integration-test-review", "investigate", "knowledge-review",
     "performance-review", "plan", "plan-execute", "plan-review",
     "production-readiness-review", "project-init", "scan",
     "scan-codebase-health", "scout", "security-review", "seed-test-data",
     "spec-clarify", "spec-discovery", "spec-index", "start-workflow",
-    "tech-spec", "ui-review", "understand", "why-review",
+    "tech-spec", "test", "ui-review", "understand", "why-review",
     "workflow-code-to-spec", "workflow-idea-to-pbi", "workflow-idea-to-spec",
     "workflow-review-changes",
 }
