@@ -169,7 +169,40 @@ test("TC-WSC-007 the real catalog carries no YAML escape artifacts", () => {
   );
 });
 
-// TC-WSC-009 (builder half) — block wraps cleanly with the exported markers
+// TC-WSC-008 — the builder is the source of the static Claude catalog.  Checking only the
+// in-memory builder lets workflow changes reach the live workflow registry while the Tier-1
+// Claude activation catalog keeps an older sequence.
+test("TC-WSC-008 shipped Claude workflow catalog matches the canonical builder", () => {
+  const claudeMd = fs.readFileSync(path.join(repoRoot, "CLAUDE.md"), "utf8");
+  const from = claudeMd.indexOf(CK_SKILLS_START);
+  const to = claudeMd.indexOf(CK_SKILLS_END, from + CK_SKILLS_START.length);
+
+  assert.notEqual(from, -1, "CLAUDE.md must contain the workflow catalog start marker");
+  assert.notEqual(to, -1, "CLAUDE.md must contain the workflow catalog end marker");
+
+  const shipped = claudeMd.slice(from + CK_SKILLS_START.length, to).trim();
+  // CLAUDE.md owns routing in its static workflow gate; this marked block is generated from
+  // the workflow and skill sections only.
+  const expected = buildWorkflowSkillsCatalog({ rootDir: repoRoot, sections: ["workflows", "skills"] });
+  assert.equal(shipped, expected, "regenerate CLAUDE.md from the workflow catalog builder");
+});
+
+// TC-WSC-009 — the framework guide calls its feature sequence "full". Keep that human-facing
+// execution contract synchronized with the canonical workflow registry's terminal refresh.
+test("TC-WSC-009 framework guide carries the current workflow count and conditional feature refresh", () => {
+  const guide = fs.readFileSync(
+    path.join(repoRoot, ".claude", "docs", "claude-ai-agent-framework-guide.md"),
+    "utf8"
+  );
+
+  assert.match(guide, /Workflow Catalog \(19 Workflows\)/);
+  assert.match(guide, /workflow-integration-test-green/);
+  assert.match(guide, /test → scan --target=domain-entities → docs-update/);
+  assert.match(guide, /only when the final diff changes an entity\/model, DTO\/data contract, persistence schema\/migration, or entity-sync evidence/i);
+  assert.match(guide, /otherwise complete the scan task with a cited skip reason/i);
+});
+
+// TC-WSC-010 (builder half) — block wraps cleanly with the exported markers
 test("exported CK markers are stable", () => {
   assert.equal(CK_SKILLS_START, "<!-- CK:WORKFLOW-SKILLS -->");
   assert.equal(CK_SKILLS_END, "<!-- /CK:WORKFLOW-SKILLS -->");

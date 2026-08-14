@@ -173,7 +173,7 @@ ARCHITECTURE AUDIT (READ-ONLY, ONE PASS, PROGRESSIVE SYNTHESIS):
 ### workflow-big-feature — Big Feature (Research + Implement)
 - Description: Research-driven feature development for large, complex, or ambiguous features in an existing project — includes idea refinement, market research, business evaluation, domain analysis, tech stack research, and full implementation
 - When To Use: User wants to implement a large, complex, or ambiguous feature that needs research, market analysis, business evaluation, domain modeling, or tech stack analysis before implementation. Big new module, major enhancement, cross-cutting capability, or feature where scope is unclear
-- Sequence: `idea -> web-research -> deep-research -> business-evaluation -> spec-discovery -> domain-analysis -> why-review -> tech-stack-research -> architecture-design -> architecture-scalability-review -> why-review -> plan -> plan-review -> refine -> why-review -> artifact-review --type=pbi -> story -> why-review -> artifact-review --type=story -> pbi-challenge -> dor-gate -> pbi-mockup -> spec -> spec [mode=tests] -> why-review -> artifact-review --type=spec-tests -> spec-clarify -> plan -> plan-review -> scaffold -> architecture-review-full -> plan-validate -> why-review -> plan-execute -> seed-test-data -> domain-entities-review -> integration-test -> integration-test-review -> integration-test-verify -> spec [mode=sync] -> workflow-review-changes -> security-review -> changelog -> test -> docs-update -> workflow-end -> watzup`
+- Sequence: `idea -> web-research -> deep-research -> business-evaluation -> spec-discovery -> domain-analysis -> why-review -> tech-stack-research -> architecture-design -> architecture-scalability-review -> why-review -> plan -> plan-review -> refine -> why-review -> artifact-review --type=pbi -> story -> why-review -> artifact-review --type=story -> pbi-challenge -> dor-gate -> pbi-mockup -> spec -> spec [mode=tests] -> why-review -> artifact-review --type=spec-tests -> spec-clarify -> plan -> plan-review -> scaffold -> architecture-review-full -> plan-validate -> why-review -> plan-execute -> seed-test-data -> domain-entities-review -> integration-test -> integration-test-review -> integration-test-verify -> spec [mode=sync] -> workflow-review-changes -> security-review -> changelog -> test -> scan --target=domain-entities -> docs-update -> workflow-end -> watzup`
 
 Protocol:
 ```text
@@ -255,12 +255,15 @@ UNIVERSAL RULES:
 - Goal-Driven Execution: define success criteria before execution; loop until observable checks pass.
 - Tests Verify Intent: when creating or reviewing specs/tests, name the protected business intent or invariant and ensure the test would fail if that intent breaks.
 - Spec-Loop Discipline (spec→code→tests→review loop): §8 must derive universally-quantified Invariant/Property TCs (for-ALL-inputs rules + boundary counter-cases) for every [HARD] §4 rule and §5 invariant — not just example scenarios — and back them with property/metamorphic tests whose quality bar is the MUTATION-SCORE gate (a surviving mutant on changed core-logic = a missing invariant → write the killing test), NOT line-coverage %. Every behavior-changing finding feeds the Dual-Feedback Ledger into BOTH the spec AND the tests (a blank Spec-feedback OR Test-feedback cell = INCOMPLETE), never a code-only fix. Re-review the whole package (spec + tests + code, not just the diff) and loop until a complete review pass surfaces zero new gap or hidden rule — each cycle enriches the spec.
+DOMAIN-ENTITY REFERENCE REFRESH (CONDITIONAL TERMINAL STEP):
+- After $test and before $docs-update, run $scan --target=domain-entities when the final diff changes an entity/model, DTO/data contract, persistence schema/migration, or entity-sync evidence represented in docs/project-reference/domain-entities-reference.md.
+- Otherwise mark the scan step completed with a cited skip reason naming the changed files and why they are outside this scope.
 ```
 
 ### workflow-bugfix — Bug Fix
 - Description: Systematic debugging and fix workflow with end-to-start debugger trace before fix
 - When To Use: User reports a bug, error, crash, failure, regression, stale/incorrect final output, or something not working; wants to fix/debug/troubleshoot an issue with end-to-start trace
-- Sequence: `scout -> investigate -> debug-investigate -> spec [mode=amend] -> plan -> plan-review -> plan-validate -> why-review -> spec [mode=tests] -> why-review -> artifact-review --type=spec-tests -> integration-test -> fix -> prove-fix -> integration-test -> integration-test-review -> integration-test-verify -> spec [mode=sync] -> workflow-review-changes -> changelog -> test -> docs-update -> demo-guide -> workflow-end -> watzup`
+- Sequence: `scout -> investigate -> debug-investigate -> spec [mode=amend] -> plan -> plan-review -> plan-validate -> why-review -> spec [mode=tests] -> why-review -> artifact-review --type=spec-tests -> integration-test -> fix -> prove-fix -> integration-test -> integration-test-review -> integration-test-verify -> spec [mode=sync] -> workflow-review-changes -> changelog -> test -> scan --target=domain-entities -> docs-update -> demo-guide -> workflow-end -> watzup`
 
 Protocol:
 ```text
@@ -308,6 +311,9 @@ UNIVERSAL RULES:
 - Goal-Driven Execution: define success criteria before execution; loop until observable checks pass.
 - Tests Verify Intent: when creating or reviewing specs/tests, name the protected business intent or invariant and ensure the test would fail if that intent breaks.
 - Spec-Loop Discipline (spec→fix→tests→review loop): the regression §8 TCs must include universally-quantified Invariant/Property TCs (for-ALL-inputs rules + boundary counter-cases) for every [HARD] §4 rule and §5 invariant the bug touched — not just the single reproduction example — backed by property/metamorphic tests whose quality bar is the MUTATION-SCORE gate (a surviving mutant on the fixed core-logic = a missing invariant → write the killing test), NOT line-coverage %. Every behavior-changing finding feeds the Dual-Feedback Ledger into BOTH the spec AND the tests (a blank Spec-feedback OR Test-feedback cell = INCOMPLETE), never a code-only patch. Re-review the whole package (spec + tests + fix, not just the diff) and loop until a complete review pass surfaces zero new gap or hidden rule — each cycle enriches the spec.
+DOMAIN-ENTITY REFERENCE REFRESH (CONDITIONAL TERMINAL STEP):
+- After $test and before $docs-update, run $scan --target=domain-entities when the final diff changes an entity/model, DTO/data contract, persistence schema/migration, or entity-sync evidence represented in docs/project-reference/domain-entities-reference.md.
+- Otherwise mark the scan step completed with a cited skip reason naming the changed files and why they are outside this scope.
 ```
 
 ### workflow-code-to-spec — Code to Feature Spec
@@ -357,7 +363,7 @@ UNIVERSAL RULES:
 ### workflow-feature — Feature Implementation
 - Description: Full feature development workflow with search-first approach, planning, implementation, testing, and documentation
 - When To Use: User wants to implement a well-defined feature, add a component, build a capability, develop a module, implement/execute an existing plan, create a new API endpoint, or design an API contract, TDD/test-first development, spec-driven feature implementation with test specs written before code
-- Sequence: `scout -> investigate -> spec-discovery -> domain-analysis -> why-review -> spec -> spec-clarify -> plan -> plan-review -> plan-validate -> why-review -> spec [mode=tests] -> why-review -> artifact-review --type=spec-tests -> plan -> plan-review -> plan-execute -> seed-test-data -> domain-entities-review -> spec [mode=tests] -> why-review -> artifact-review --type=spec-tests -> spec [mode=sync] -> integration-test -> integration-test-review -> integration-test-verify -> workflow-review-changes -> security-review -> changelog -> test -> docs-update -> demo-guide -> workflow-end -> watzup`
+- Sequence: `scout -> investigate -> spec-discovery -> domain-analysis -> why-review -> spec -> spec-clarify -> plan -> plan-review -> plan-validate -> why-review -> spec [mode=tests] -> why-review -> artifact-review --type=spec-tests -> plan -> plan-review -> plan-execute -> seed-test-data -> domain-entities-review -> spec [mode=tests] -> why-review -> artifact-review --type=spec-tests -> spec [mode=sync] -> integration-test -> integration-test-review -> integration-test-verify -> workflow-review-changes -> security-review -> changelog -> test -> scan --target=domain-entities -> docs-update -> demo-guide -> workflow-end -> watzup`
 
 Protocol:
 ```text
@@ -405,6 +411,9 @@ UNIVERSAL RULES:
 - Goal-Driven Execution: define success criteria before execution; loop until observable checks pass.
 - Tests Verify Intent: when creating or reviewing specs/tests, name the protected business intent or invariant and ensure the test would fail if that intent breaks.
 - Spec-Loop Discipline (spec→code→tests→review loop): §8 must derive universally-quantified Invariant/Property TCs (for-ALL-inputs rules + boundary counter-cases) for every [HARD] §4 rule and §5 invariant — not just example scenarios — and back them with property/metamorphic tests whose quality bar is the MUTATION-SCORE gate (a surviving mutant on changed core-logic = a missing invariant → write the killing test), NOT line-coverage %. Every behavior-changing finding feeds the Dual-Feedback Ledger into BOTH the spec AND the tests (a blank Spec-feedback OR Test-feedback cell = INCOMPLETE), never a code-only fix. Re-review the whole package (spec + tests + code, not just the diff) and loop until a complete review pass surfaces zero new gap or hidden rule — each cycle enriches the spec.
+DOMAIN-ENTITY REFERENCE REFRESH (CONDITIONAL TERMINAL STEP):
+- After $test and before $docs-update, run $scan --target=domain-entities when the final diff changes an entity/model, DTO/data contract, persistence schema/migration, or entity-sync evidence represented in docs/project-reference/domain-entities-reference.md.
+- Otherwise mark the scan step completed with a cited skip reason naming the changed files and why they are outside this scope.
 ```
 
 ### workflow-feature-spec — Business Feature Documentation
