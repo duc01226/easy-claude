@@ -172,11 +172,11 @@ test('TC-WFADV-022: whole-target why-review starts in parallel with changes-revi
     assert.match(skillText, /step 16[^\n]*settled[^\n]*whole target/i);
     assert.match(
         codexContextText,
-        /plan-execute -> changes-review -> why-review -> docs-update/,
+        /plan-execute -> changes-review -> why-review -> scan --target=domain-entities -> docs-update/,
         'generated guidance must preserve the later conditional changes-review occurrence'
     );
-    assert.match(loopSkillText, /full 19-step sequence/);
-    assert.doesNotMatch(loopSkillText, /full 18-step sequence/);
+    assert.match(loopSkillText, /full 20-step sequence/);
+    assert.doesNotMatch(loopSkillText, /full 19-step sequence/);
     assert.match(loopSkillText, /fix cycle, steps 12[–-]15/);
     assert.doesNotMatch(loopSkillText, /fix cycle, steps 11[–-]14/);
     assert.doesNotMatch(

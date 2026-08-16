@@ -7,14 +7,15 @@
 >
 > Classify complexity and risk first, then route it:
 >
-> | Request is about… | Default route |
-> | --- | --- |
-> | A simple, straightforward task with a clear target and low risk | **direct execution** — do it without a workflow |
-> | A simple task that needs a few coordinated steps or skills | **custom simple workflow** — sequence only the necessary skills/steps |
-> | A non-trivial bug, error, crash, regression, or wrong/stale output | **`workflow-bugfix` workflow** — `/start-workflow workflow-bugfix` |
-> | A non-trivial new feature, capability, or enhancement | **`workflow-feature` workflow** — `/start-workflow workflow-feature` (use `workflow-big-feature` when scope is large, ambiguous, or research-heavy) |
-> | Anything matching a skill's or workflow's "Use" clause | that skill / workflow |
-> | A one-off question, or a truly trivial edit | direct execution |
+> | Request is about…                                                                                           | Default route                                                                                                                                       |
+> | ----------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
+> | A simple, straightforward task with a clear target and low risk                                             | **direct execution** — do it without a workflow                                                                                                     |
+> | A simple task that needs a few coordinated steps or skills                                                  | **custom simple workflow** — sequence only the necessary skills/steps                                                                               |
+> | A non-trivial bug, error, crash, regression, or wrong/stale output                                          | **`workflow-bugfix` workflow** — `/start-workflow workflow-bugfix`                                                                                  |
+> | A non-trivial new feature, capability, or enhancement                                                       | **`workflow-feature` workflow** — `/start-workflow workflow-feature` (use `workflow-big-feature` when scope is large, ambiguous, or research-heavy) |
+> | A request matching a saved project custom prompt (see `docs/project-reference/custom-prompts-reference.md`) | **`custom-prompt` skill** — `/custom-prompt <request>`; propose the match and CONFIRM it with the user before executing                             |
+> | Anything matching a skill's or workflow's "Use" clause                                                      | that skill / workflow                                                                                                                               |
+> | A one-off question, or a truly trivial edit                                                                 | direct execution                                                                                                                                    |
 >
 > 1. **An explicit `/skill` or `/workflow` in the prompt is the user's choice — execute it directly.** Otherwise auto-select the route yourself; never ask the user which path to take.
 > 2. **Analyze whether the task is simple and straightforward before defaulting to a standard workflow.** If the target is clear, the change is low-risk, and a short direct execution can satisfy it, choose direct execution.
@@ -25,13 +26,14 @@
 >     - **Skill route →** invoke that skill via the `Skill` tool.
 >     - **Custom simple workflow →** create a small task list from the selected skills/steps, then execute them in order.
 >     - **Direct route →** build the task list yourself, then proceed.
->   In every case the route must be activated BEFORE the first edit, sub-agent, or command.
+>       In every case the route must be activated BEFORE the first edit, sub-agent, or command.
 > 6. **Direct execution is a legitimate route** for trivial, one-off, or simple straightforward work — but the declare-route and activate steps still apply.
 > 7. **Scaffolding-first for new foundations.** `workflow-greenfield-init` and `workflow-big-feature` scaffold a REVIEWED (`architecture-review-full`), example-rich, convention-bearing foundation — base abstractions + golden-path example code + a project-reference doc set — BEFORE fanning out feature work; features never build on an unreviewed foundation.
 
 <!-- /CK:WORKFLOW-GATE -->
 
 <!-- CK:WORKFLOW-SKILLS -->
+
 ## Workflow & Skills Catalog
 
 Session-start reference derived from `.claude/workflows.json` — use it to pick a route on any prompt: run a standard workflow, compose a custom workflow from the step-skills, invoke a single skill, or execute directly.
@@ -47,13 +49,13 @@ Session-start reference derived from `.claude/workflows.json` — use it to pick
 | `workflow-e2e` | generate, update, or maintain e2e/playwright tests from code/spec | scout → e2e-test → test → docs-update → workflow-end → watzup |
 | `workflow-feature` | implement a well-defined feature, add a component, build a capability | scout → investigate → spec-discovery → domain-analysis → why-review → spec → spec-clarify → plan → plan-review → plan-validate → why-review → spec [mode=tests] → why-review → artifact-review --type=spec-tests → plan → plan-review → plan-execute → seed-test-data → domain-entities-review → spec [mode=tests] → why-review → artifact-review --type=spec-tests → spec [mode=sync] → integration-test → integration-test-review → integration-test-verify → workflow-review-changes → security-review → changelog → test → scan --target=domain-entities → docs-update → demo-guide → workflow-end → watzup |
 | `workflow-feature-spec` | create or update business feature documentation | scout → investigate → plan → plan-review → plan-validate → why-review → docs-update → workflow-review-changes → workflow-end → watzup |
-| `workflow-greenfield-init` | start a new project from scratch, init a greenfield project, plan a new application | idea → web-research → deep-research → business-evaluation → spec-discovery → domain-analysis → why-review → tech-stack-research → architecture-design → architecture-scalability-review → why-review → plan → plan-review → security-review → performance-review → plan-review → refine → why-review → artifact-review --type=pbi → story → why-review → artifact-review --type=story → pbi-challenge → dor-gate → pbi-mockup → plan-validate → why-review → spec [mode=tests] → why-review → artifact-review --type=spec-tests → spec-clarify → plan → plan-review → scaffold → linter-setup → harness-setup → architecture-review-full → scan --target=ui-system → scan --target=backend-patterns → scan --target=integration-tests → scan --target=project-structure → why-review → plan-execute → domain-entities-review → spec [mode=tests] → why-review → artifact-review --type=spec-tests → plan → plan-review → integration-test → integration-test-review → integration-test-verify → test → workflow-review-changes → security-review → changelog → test → docs-update → workflow-end → watzup |
+| `workflow-greenfield-init` | start a new project from scratch, init a greenfield project, plan a new application | idea → web-research → deep-research → business-evaluation → spec-discovery → domain-analysis → why-review → tech-stack-research → architecture-design → architecture-scalability-review → why-review → plan → plan-review → security-review → performance-review → plan-review → refine → why-review → artifact-review --type=pbi → story → why-review → artifact-review --type=story → pbi-challenge → dor-gate → pbi-mockup → plan-validate → why-review → spec [mode=tests] → why-review → artifact-review --type=spec-tests → spec-clarify → plan → plan-review → scaffold → linter-setup → harness-setup → architecture-review-full → scan --target=ui-system → scan --target=backend-patterns → scan --target=integration-tests → scan --target=project-structure → why-review → plan-execute → domain-entities-review → spec [mode=tests] → why-review → artifact-review --type=spec-tests → plan → plan-review → integration-test → integration-test-review → integration-test-verify → test → workflow-review-changes → security-review → changelog → test → scan --target=domain-entities → docs-update → workflow-end → watzup |
 | `workflow-idea-to-pbi` | po/ba wants a grooming-ready pbi backlog, user stories, tdd test specifications | web-research → deep-research → brainstorm → idea → spec-discovery → artifact-review → refine → why-review → spec [mode=draft] → spec [mode=tests] → why-review → artifact-review --type=spec-tests → spec-clarify → domain-analysis → why-review → plan → plan-review → plan-validate → why-review → artifact-review --type=pbi → story → why-review → artifact-review --type=story → pbi-challenge → dor-gate → pbi-mockup → design-spec → prioritize → docs-update → feature-presentation → workflow-end → watzup |
 | `workflow-idea-to-spec` | turn a raw product idea, vision, or problem statement into one canonical | web-research → deep-research → brainstorm → spec-discovery → domain-analysis → why-review → idea → spec [mode=draft] → spec [mode=tests] → artifact-review --type=spec-tests → artifact-review → design-spec → spec-clarify → why-review → docs-update → feature-presentation → workflow-end → watzup |
 | `workflow-integration-test-green` | make all integration tests pass, fix failing integration tests, drive the integration test suite to | scout → integration-test-verify-loop → spec [mode=sync] → scan --target=integration-tests → docs-update → workflow-end → watzup |
-| `workflow-refactor` | restructure, reorganize, clean up | scout → investigate → plan → plan-review → plan-validate → why-review → plan-execute → spec [mode=tests] → why-review → artifact-review --type=spec-tests → spec [mode=sync] → integration-test → integration-test-review → integration-test-verify → workflow-review-changes → changelog → test → docs-update → workflow-end → watzup |
+| `workflow-refactor` | restructure, reorganize, clean up | scout → investigate → plan → plan-review → plan-validate → why-review → plan-execute → spec [mode=tests] → why-review → artifact-review --type=spec-tests → spec [mode=sync] → integration-test → integration-test-review → integration-test-verify → workflow-review-changes → changelog → test → scan --target=domain-entities → docs-update → workflow-end → watzup |
 | `workflow-research` | research a topic from web sources, a business/market viability evaluation, a marketing strategy | web-research → deep-research → knowledge-synthesis → knowledge-review → workflow-end |
-| `workflow-review-changes` | review current uncommitted, staged, or unstaged changes before committing | changes-review → why-review --target=whole-review-target → why-review → architecture-review → domain-entities-review → performance-review → integration-test-review → security-review → production-readiness-review → ui-review → code-simplifier → plan → plan-review → plan-execute → changes-review → why-review → docs-update → workflow-end → watzup |
+| `workflow-review-changes` | review current uncommitted, staged, or unstaged changes before committing | changes-review → why-review --target=whole-review-target → why-review → architecture-review → domain-entities-review → performance-review → integration-test-review → security-review → production-readiness-review → ui-review → code-simplifier → plan → plan-review → plan-execute → changes-review → why-review → scan --target=domain-entities → docs-update → workflow-end → watzup |
 | `workflow-seed-test-data` | seed test data, implement data seeders, realistic development environment data | scout → investigate → seed-test-data → changes-review → code-simplifier → docs-update → workflow-end → watzup |
 | `workflow-spec-sync` | fixing a bug update test specs, code changes update test specs, pr review update test specs | workflow-review-changes → spec [mode=tests] → why-review → artifact-review --type=spec-tests → spec [mode=sync] → integration-test → integration-test-review → integration-test-verify → test → docs-update → workflow-end |
 | `workflow-spec-to-pbi` | create all pbis from an existing, convert a large feature spec into, dependent pbis from docs/specs | scout → spec-index → domain-analysis → why-review → spec-clarify → plan → plan-review → plan-validate → why-review → refine → why-review → artifact-review --type=pbi → story → why-review → artifact-review --type=story → pbi-challenge → dor-gate → pbi-mockup → design-spec → prioritize → docs-update → feature-presentation → workflow-end → watzup |
@@ -127,6 +129,7 @@ Distinct step-skills used across the workflows above — compose these into a cu
 | `why-review` | [Code Quality] Use when reviewing rationale and change quality for plans, PBIs, commits, diffs, docs, specs, reports, or explicit artifacts. |
 | `workflow-end` | [Process] Use when you need to end the active workflow and clear state. |
 | `workflow-review-changes` | [Workflow] Use when activating the Review Current Changes workflow for review, fix, and re-review recursively until all issues resolved. |
+
 <!-- /CK:WORKFLOW-SKILLS -->
 
 <!-- CK:CRITICAL-THINKING -->
@@ -157,7 +160,7 @@ Distinct step-skills used across the workflows above — compose these into a cu
 - **Sub-agents inherit knowledge only from their agent .md definition — use custom agent types, not built-in Explore.** Tool adoption = permission + knowledge + enforcement (numbered workflow step).
 - **Persist sub-agent findings incrementally, not as a final batch.** Long sub-agents hit cutoffs before final write — findings lost. Instruct append-per-section to report file.
 - **When debugging, ask "whose responsibility?" before fixing.** Trace caller (wrong data) vs callee (wrong handling). Fix at responsible layer — never patch symptom site.
-- **Test failure → adjudicate WHO is at fault (source vs test) before forcing green.** A green-again suite is not the goal; the correct verdict on what was actually wrong is. Root-cause first, then triangulate the failure against the governing spec (`docs/specs/**` if one exists) AND the source: SOURCE-WRONG → fix code at the owning layer and keep/strengthen the test; TEST-WRONG → fix the stale assertion/setup at its root. NEVER weaken an assertion, add a skip, or relax a timeout to force green, and never change source to satisfy a broken test. Spec silent or ambiguous about which side is correct → STOP and ask the user.
+- **Test failure → record a provisional verdict before trace/edit, then investigate.** Use the full five-way taxonomy: SOURCE-WRONG (production violates intent), TEST-WRONG (assertion/setup is stale), TEST-NOT-OPTIMAL (valid but fragile or low-signal test), ENVIRONMENT-BLOCKED (external state prevents a verdict), or AMBIGUOUS (intent/evidence cannot choose safely). Then trace root cause and triangulate against the governing spec (`docs/specs/**` if one exists) AND source. NEVER weaken an assertion, add a skip, relax a timeout, or change source merely to force green.
 - **Grep ALL removed names after extraction/refactoring.** Primary file "done" ≠ secondary files clean. Grep entire scope for every removed symbol before declaring complete.
 - **Assume existing values are intentional — ask WHY before changing OR flagging one as a defect.** Pattern-matching as "wrong" skips context. Before changing or reporting any constant/limit/flag/cutoff: read comments, git blame, the CALLER's ordering (the guarantee that makes the value correct usually lives in code running immediately BEFORE the cited line), and 2+ sibling call sites of the same convention. A doc stating WHAT without WHY is missing rationale, not proof of a missing guard — and in a validation pass, an accurate `file:line` citation proves the transcription, never the defect.
 - **Verify ALL affected outputs, not just the first.** One build green ≠ all green. Multi-stack changes (backend/frontend/tests/docs) require verifying EVERY output.
@@ -239,10 +242,10 @@ Workflow progression is **model-driven** — your responsibility, not a tool/hoo
 
 **Decision Quick-Ref:**
 
-| Task | Pattern |
-|---|---|
-| New API endpoint | Controller + CQRS Command |
-| Business logic | Command Handler (Application layer) |
+| Task             | Pattern                             |
+| ---------------- | ----------------------------------- |
+| New API endpoint | Controller + CQRS Command           |
+| Business logic   | Command Handler (Application layer) |
 
 <!-- /SECTION:decision-quick-ref -->
 
@@ -446,11 +449,11 @@ python .claude/scripts/code_graph search <keyword> --kind Function --json       
 
 When editing files matching these path patterns, pre-read the listed context first:
 
-| Path Pattern | Skill / Auto-Context | Pre-Read Files |
-|---|---|---|
-| `/\.claude/hooks/.*\.cjs$**` | _(auto-context)_ | `.claude/docs/hooks/README.md` |
-| `/\.claude/skills/.*SKILL\.md$**` | _(auto-context)_ | `.claude/docs/skills/README.md` |
-| `/\.claude/agents/.*\.md$**` | _(auto-context)_ | `.claude/docs/agents/README.md` |
+| Path Pattern                      | Skill / Auto-Context | Pre-Read Files                  |
+| --------------------------------- | -------------------- | ------------------------------- |
+| `/\.claude/hooks/.*\.cjs$**`      | _(auto-context)_     | `.claude/docs/hooks/README.md`  |
+| `/\.claude/skills/.*SKILL\.md$**` | _(auto-context)_     | `.claude/docs/skills/README.md` |
+| `/\.claude/agents/.*\.md$**`      | _(auto-context)_     | `.claude/docs/agents/README.md` |
 
 <!-- /SECTION:skill-activation -->
 
@@ -464,7 +467,7 @@ When editing files matching these path patterns, pre-read the listed context fir
 
 | Kind        | Count                                       |
 | ----------- | ------------------------------------------- |
-| Skills      | <!-- COUNT:skills -->163<!-- /COUNT -->     |
+| Skills      | <!-- COUNT:skills -->164<!-- /COUNT -->     |
 | Hooks       | <!-- COUNT:hooks -->16<!-- /COUNT -->       |
 | Agents      | <!-- COUNT:agents -->29<!-- /COUNT -->      |
 | Workflows   | <!-- COUNT:workflows -->19<!-- /COUNT -->   |
@@ -486,14 +489,15 @@ docs/templates/  (1 files)
 
 <!-- SECTION:doc-lookup -->
 
-| If user prompt mentions... | Read first |
-|---|---|
-| Feature specs, capability behavior, business rules, test cases | `docs/specs/` + `docs/project-reference/feature-spec-reference.md` |
-| Spec paths, TC format, canonical vs derived spec artifacts | `docs/project-reference/spec-system-reference.md` |
-| Spec quality, AI-implementability, tech-agnostic prose | `docs/project-reference/spec-principles.md` |
-| Behavior or public contract changes, spec-test-code sync | `docs/project-reference/workflow-spec-test-code-cycle-reference.md` |
-| Backend patterns, CQRS, validation | `docs/project-reference/backend-patterns-reference.md` |
-| Frontend patterns, components, stores | `docs/project-reference/frontend-patterns-reference.md` |
+| If user prompt mentions...                                      | Read first                                                                                           |
+| --------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
+| Feature specs, capability behavior, business rules, test cases  | `docs/specs/` + `docs/project-reference/feature-spec-reference.md`                                   |
+| Spec paths, TC format, canonical vs derived spec artifacts      | `docs/project-reference/spec-system-reference.md`                                                    |
+| Spec quality, AI-implementability, tech-agnostic prose          | `docs/project-reference/spec-principles.md`                                                          |
+| Behavior or public contract changes, spec-test-code sync        | `docs/project-reference/workflow-spec-test-code-cycle-reference.md`                                  |
+| Backend patterns, CQRS, validation                              | `docs/project-reference/backend-patterns-reference.md`                                               |
+| Frontend patterns, components, stores                           | `docs/project-reference/frontend-patterns-reference.md`                                              |
+| Custom prompts, saved prompts, playbooks, "run my prompt for X" | `docs/project-reference/custom-prompts-reference.md` (index only; bodies in `docs/project-prompts/`) |
 
 <!-- /SECTION:doc-lookup -->
 
@@ -525,7 +529,7 @@ docs/templates/  (1 files)
 - **Sub-agents inherit knowledge only from their agent .md definition — use custom agent types, not built-in Explore.** Tool adoption = permission + knowledge + enforcement (numbered workflow step).
 - **Persist sub-agent findings incrementally, not as a final batch.** Long sub-agents hit cutoffs before final write — findings lost. Instruct append-per-section to report file.
 - **When debugging, ask "whose responsibility?" before fixing.** Trace caller (wrong data) vs callee (wrong handling). Fix at responsible layer — never patch symptom site.
-- **Test failure → adjudicate WHO is at fault (source vs test) before forcing green.** A green-again suite is not the goal; the correct verdict on what was actually wrong is. Root-cause first, then triangulate the failure against the governing spec (`docs/specs/**` if one exists) AND the source: SOURCE-WRONG → fix code at the owning layer and keep/strengthen the test; TEST-WRONG → fix the stale assertion/setup at its root. NEVER weaken an assertion, add a skip, or relax a timeout to force green, and never change source to satisfy a broken test. Spec silent or ambiguous about which side is correct → STOP and ask the user.
+- **Test failure → record a provisional verdict before trace/edit, then investigate.** Use the full five-way taxonomy: SOURCE-WRONG (production violates intent), TEST-WRONG (assertion/setup is stale), TEST-NOT-OPTIMAL (valid but fragile or low-signal test), ENVIRONMENT-BLOCKED (external state prevents a verdict), or AMBIGUOUS (intent/evidence cannot choose safely). Then trace root cause and triangulate against the governing spec (`docs/specs/**` if one exists) AND source. NEVER weaken an assertion, add a skip, relax a timeout, or change source merely to force green.
 - **Grep ALL removed names after extraction/refactoring.** Primary file "done" ≠ secondary files clean. Grep entire scope for every removed symbol before declaring complete.
 - **Assume existing values are intentional — ask WHY before changing OR flagging one as a defect.** Pattern-matching as "wrong" skips context. Before changing or reporting any constant/limit/flag/cutoff: read comments, git blame, the CALLER's ordering (the guarantee that makes the value correct usually lives in code running immediately BEFORE the cited line), and 2+ sibling call sites of the same convention. A doc stating WHAT without WHY is missing rationale, not proof of a missing guard — and in a validation pass, an accurate `file:line` citation proves the transcription, never the defect.
 - **Verify ALL affected outputs, not just the first.** One build green ≠ all green. Multi-stack changes (backend/frontend/tests/docs) require verifying EVERY output.

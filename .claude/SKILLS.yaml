@@ -1,10 +1,10 @@
 metadata:
   title: Skills Catalog
   description: Auto-generated catalog of all available skills in ClaudeKit Engineer
-  last_updated: '2026-08-13'
-  total_skills: 163
+  last_updated: '2026-08-16'
+  total_skills: 164
   total_by_status:
-    active: 162
+    active: 163
     deprecated: 1
     experimental: 0
 categories:
@@ -315,6 +315,26 @@ skills:
       category: other
       has_scripts: false
       has_references: false
+      status: active
+      deprecated_by: null
+      deprecated_since: null
+      removal_after: null
+    - name: custom-prompt
+      path: custom-prompt/SKILL.md
+      description: '[Utilities] Use when the user invokes, lists, saves, updates,
+        or deletes a PROJECT-SPECIFIC saved prompt — a named, reusable procedure stored
+        with the project rather than in the portable framework. `/custom-prompt list`
+        prints every defined prompt with its description; `/custom-prompt <free-text
+        request>` matches the request to the closest saved prompt and executes it
+        only after a confirmation gate; `/custom-prompt save|update|delete ...` maintains
+        the registry — save never stores raw wording, it drafts the best version of
+        the prompt and confirms the name, description, inferred goal, and steps with
+        the user first. Triggers: custom prompt, custom prompts, list custom prompts,
+        save this prompt, save this prompt task, update this prompt, my saved prompt,
+        project prompt, playbook, recipe, runbook.'
+      category: other
+      has_scripts: false
+      has_references: true
       status: active
       deprecated_by: null
       deprecated_since: null
