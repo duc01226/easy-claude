@@ -117,6 +117,10 @@ EXCLUDED_ORCHESTRATION = {
     # ``trade-off-interrogation-gate`` (same 20 review skills) DOES propagate --
     # that block explicitly defines non-asking sub-agent behaviour.
     "goal-contract-satisfaction-loop",
+    # Overlay resolution is performed by whoever INVOKES the skill; a headless leaf
+    # sub-agent receives one already-scoped brief whose overlay the dispatching
+    # orchestrator already resolved.
+    "project-protocol-overlay",
 }
 
 # Per-agent exceptions: a normally-excluded block IS legitimate content for this

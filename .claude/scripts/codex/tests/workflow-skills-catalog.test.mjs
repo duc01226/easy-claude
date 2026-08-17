@@ -17,6 +17,12 @@ const {
   CK_SKILLS_END,
 } = require(path.join(repoRoot, ".claude", "scripts", "lib", "workflow-skills-catalog.cjs"));
 
+// Working-tree line endings belong to the git checkout (`core.autocrlf=true` materializes the
+// LF-in-index sources as CRLF on Windows), never to the content — the builder always emits LF.
+// Normalize every file read so these assertions compare CATALOG CONTENT and cannot fail purely
+// because of the platform that checked the repo out.
+const normalizeEol = (text) => text.replace(/\r\n/g, "\n");
+
 const workflowsDoc = JSON.parse(
   fs.readFileSync(path.join(repoRoot, ".claude", "workflows.json"), "utf8")
 );
@@ -173,7 +179,7 @@ test("TC-WSC-007 the real catalog carries no YAML escape artifacts", () => {
 // in-memory builder lets workflow changes reach the live workflow registry while the Tier-1
 // Claude activation catalog keeps an older sequence.
 test("TC-WSC-008 shipped Claude workflow catalog matches the canonical builder", () => {
-  const claudeMd = fs.readFileSync(path.join(repoRoot, "CLAUDE.md"), "utf8");
+  const claudeMd = normalizeEol(fs.readFileSync(path.join(repoRoot, "CLAUDE.md"), "utf8"));
   const from = claudeMd.indexOf(CK_SKILLS_START);
   const to = claudeMd.indexOf(CK_SKILLS_END, from + CK_SKILLS_START.length);
 
@@ -190,9 +196,11 @@ test("TC-WSC-008 shipped Claude workflow catalog matches the canonical builder",
 // TC-WSC-009 — the framework guide calls its feature sequence "full". Keep that human-facing
 // execution contract synchronized with the canonical workflow registry's terminal refresh.
 test("TC-WSC-009 framework guide carries the current workflow count and conditional feature refresh", () => {
-  const guide = fs.readFileSync(
-    path.join(repoRoot, ".claude", "docs", "claude-ai-agent-framework-guide.md"),
-    "utf8"
+  const guide = normalizeEol(
+    fs.readFileSync(
+      path.join(repoRoot, ".claude", "docs", "claude-ai-agent-framework-guide.md"),
+      "utf8"
+    )
   );
 
   assert.match(guide, /Workflow Catalog \(19 Workflows\)/);
