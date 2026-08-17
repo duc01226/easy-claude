@@ -57,11 +57,12 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 **Summary:**
 
 - **Purpose:** an intelligent fix router that cures the disease, not the symptom — diagnose root cause with evidence, fix at the lowest invariant-owning layer, prove it with `$prove-fix`, then keep spec + tests + code in sync.
-- **Router first (`--target=`):** with `--target={ci|issue|logs|test|types|ui}` jump to that self-contained inline branch (each runs its own diagnosis + `$prove-fix`); no flag = run the full diagnose→fix spine. — why: branches must not re-run §1/§2 of the standalone spine.
-- **Main steps (no-flag spine):** scout (parallel subagents) → diagnose root cause end-to-start (`debug-investigate`, `file:line` evidence, hypothesis matrix, forward convergence proof) → Confidence & Evidence Gate → plan with impact analysis → 🛑 Validate-Before-Fix approval → implement at the owning layer → `$prove-fix` → conditional `$spec` correctness check → `$changes-review` (production code) → `$why-review` terminal sign-off.
-- **Two hard gates that cannot be skipped:** the Confidence & Evidence Gate (declare `Confidence: X%` + `file:line`, STOP if <60%) and the 🛑 Validate-Before-Fix approval (present root cause + plan by asking the user directly before any code change — skip approval only inside a workflow).
+- **Router first (`--target=`):** with `--target={ci|issue|logs|test|types|ui}` clear the Root-Cause Prerequisite Gate, then jump to that self-contained inline branch (each runs its own diagnosis + `$prove-fix`); no flag = run the full diagnose→fix spine. — why: branches must not re-run §1/§2 of the standalone spine, but no branch is exempt from having a traced root cause.
+- **Main steps (no-flag spine):** Root-Cause Prerequisite Gate → scout (parallel subagents) → diagnose root cause end-to-start (`debug-investigate`, `file:line` evidence, hypothesis matrix, forward convergence proof) → Confidence & Evidence Gate → plan with impact analysis → 🛑 Validate-Before-Fix approval → implement at the owning layer → `$prove-fix` → conditional `$spec` correctness check → `$changes-review` (production code) → `$why-review` terminal sign-off.
+- **Root-Cause Prerequisite Gate (BLOCKING, runs FIRST):** a direct `$fix` call — no-flag spine **and** every `--target=` branch — MUST NOT edit code until `$debug-investigate` produced a root cause for THIS problem in THIS session, proven by a the current task list row or a written investigation report (memory is not evidence; a parent workflow row alone is not proof). Not run → run `$debug-investigate` first, then resume from the planning step. — why: otherwise the first edit lands with zero traced cause and patches the symptom site.
+- **Three hard gates that cannot be skipped:** the Root-Cause Prerequisite Gate (above), the Confidence & Evidence Gate (declare `Confidence: X%` + `file:line`, STOP if <60%) and the 🛑 Validate-Before-Fix approval (present root cause + plan by asking the user directly before any code change — skip approval only inside a workflow).
 - **Diagnose before patching:** trace the symptom end-to-start to the invariant-owning layer, and NEVER fix at the crash site — the crash site is a symptom, the cause enters at a lower layer.
-- **Mode + skip rules:** default mode HARD (full rigor) unless ALL 5 trivial-bug opt-out conditions hold; standalone (no parent workflow) self-assembles the minimum spine `debug-investigate → fix + prove-fix → $spec correctness check → $changes-review (production code) → $why-review`; inside a workflow this whole contract is SKIPPED. — why: standalone has no sequence supplying diagnosis, spec sync, or review.
+- **Mode + skip rules:** default mode HARD (full rigor) unless ALL 5 trivial-bug opt-out conditions hold; standalone (no parent workflow) self-assembles the minimum spine `debug-investigate → fix + prove-fix → $spec correctness check → $changes-review (production code) → $why-review`; inside a workflow this whole contract is SKIPPED — **except the Root-Cause Prerequisite Gate, which never skips**: it still demands proof the sequence actually ran `debug-investigate` for this problem. — why: standalone has no sequence supplying diagnosis, spec sync, or review; and a workflow row is not proof its diagnosis step ran.
 
 **Workflow:**
 
@@ -72,6 +73,7 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 
 **Key Rules:**
 
+- **Root-Cause Prerequisite Gate (BLOCKING):** no code edit until `$debug-investigate` traced THIS problem in THIS session — evidence, not recall
 - Debug Mindset: every claim needs `file:line` evidence
 - Use subagents for parallel investigation of multiple hypotheses
 - Always create a plan before implementing complex fixes
@@ -93,15 +95,45 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 >
 > **Fast mode skips (and only skips):** parallel subagent investigation (direct read/grep instead), separate fix plan (inline change), regression-test authoring (only if covering test exists). Does NOT skip Confidence & Evidence Gate, Behavioral Delta Matrix, or running existing test suite.
 
+## 🛑 Root-Cause Prerequisite Gate (Direct `$fix` Invocation) — BLOCKING
+
+> **[BLOCKING] `$fix` MUST NOT edit code until `$debug-investigate` has produced a root cause for THIS problem in THIS session.** This gate runs BEFORE the Standalone Mode Minimum Contract below, BEFORE any `--target=` branch body, and BEFORE the 🛑 Validate-Before-Fix approval. — why: `$fix` invoked directly can otherwise reach its first edit with zero traced root cause, which patches the symptom site and ships the disease.
+>
+> **1. Trigger — ALL direct `$fix` invocations.** User-typed slash command or model-selected skill; every `--target={ci|issue|logs|test|types|ui}` branch **and** the no-flag spine alike. The `--target=` branches do NOT re-run §1/§2 of the contract below, but they DO pass through this gate. — why: a branch's own `debugger`/`tester` subagent step is not an end-to-start root-cause trace, so scoping the run does not remove the need for one.
+>
+> **2. Check — evidence, never memory.** Before the first code edit, determine whether `$debug-investigate` already ran **in this session, for this same problem**. Accept ONLY:
+>
+> - a the current task list row for `debug-investigate` (or its phase tasks) covering this symptom, **or**
+> - a written investigation report naming this symptom (e.g. `.ai/workspace/analysis/{issue-name}.analysis.md`, `plans/reports/debug-investigate-*.md`) containing the end-to-start trace.
+>
+> **No such evidence → treat as NOT run.** Recalling that the cause "is known" is not evidence. — why: after context compaction the model's belief that it already investigated survives while the actual findings do not.
+>
+> **3. Act.** Not run → run `$debug-investigate` on the problem FIRST, then resume the `$fix` spine **from its planning step** using that root-cause report. This subsumes the spine's internal step-1 `debugger` subagent (identical to the contract's §1 rule below). — why: re-running diagnosis after the skill already traced it double-runs the spine.
+>
+> **4. Same-problem test.** A prior `$debug-investigate` for a **different** symptom does NOT satisfy this gate. Satisfaction binds to the problem, not to the skill name. When the current `<issues>` names a symptom the existing report does not cover, the gate FIRES. — why: one investigation per session would otherwise license unlimited untraced fixes.
+>
+> **5. Skip conditions — explicit, narrow, and recorded.** Record which one applies with its proof; never skip silently:
+>
+> | Condition                                                                                                                  | Skip? |
+> | -------------------------------------------------------------------------------------------------------------------------- | ----- |
+> | Same-problem evidence per §2 exists → cite the `file:line` / task-row proof and proceed                                     | YES   |
+> | Fast-mode-trivial bug (**ALL 5** `Default Mode Policy` opt-out conditions hold) → MAY inline the end-to-start trace instead of spawning the skill; the trace itself is still REQUIRED | PARTIAL |
+> | Active parent workflow row whose sequence **already executed** `debug-investigate` for this problem → cite the completed step | YES   |
+> | Active parent workflow row **alone**, with no completed `debug-investigate` step for this problem                            | **NO** |
+>
+> **The last row is the hole this gate closes.** The contract below detects standalone mode by the mere *presence* of a parent workflow row (`Detect mode`, §"Standalone Mode Minimum Contract"); a row can exist while the sequence's `debug-investigate` step never ran, ran for a different symptom, or was skipped. This gate ADDS the stricter requirement — proof of execution for THIS problem — on top of that detection; it never relaxes it. — why: presence of a container task is not evidence that the work inside it happened.
+>
+> **BLOCKED until:** the §2 check is stated with its evidence (or its explicit skip row + proof) AND a root-cause trace for this problem exists. **NEVER** proceed to plan or edit on "the cause is obvious" alone.
+
 ## Standalone Mode Minimum Contract (Non-Workflow Only)
 
 > **`$fix` is normally a step inside `workflow-bugfix`** — there the sequence (`scout → investigate → debug-investigate → spec [mode=amend] → plan → … → fix → prove-fix → … → spec [mode=sync] → workflow-review-changes`) supplies the diagnosis, spec sync, and review around the fix. **Called STANDALONE, no sequence supplies them.** `$fix` alone diagnoses and patches code; it does NOT by itself guarantee the root cause was traced to its owning layer, that the Feature Spec under `docs/specs/` still matches behavior, or that the change was reviewed. Standalone, that gap is symptom-patching + spec/doc drift.
 >
 > **Scope:** this contract governs the **no-flag `$fix` spine** (the full diagnose→fix path). The `--target={ci|issue|logs|test|types|ui}` branches are self-contained — each runs its own diagnosis + `$prove-fix` — so they do NOT re-run §1/§2 here; standalone, they inherit only **§3 (spec-correctness check)** and **§4 (why-review)** as their trailing gates (and `--target=issue` already owns its own `$changes-review` gate — see that branch).
 >
-> **Detect mode:** call the current task list first (per the Nested Task Expansion Contract below). **Active parent workflow row present → this whole section is SKIPPED** (the workflow owns these steps; duplicating them double-runs the spine). **No parent row → standalone:** before the first code edit, MUST ATTENTION self-assemble this minimum bugfix spine as task tracking todos, in order:
+> **Detect mode:** call the current task list first (per the Nested Task Expansion Contract below). **Active parent workflow row present → this whole section is SKIPPED** (the workflow owns these steps; duplicating them double-runs the spine) — **but the Root-Cause Prerequisite Gate above still applies**: skipping this section requires the parent sequence's `debug-investigate` step to be *completed for this problem*, not merely present. Row present + that step not run → the gate fires and `$debug-investigate` runs first. **No parent row → standalone:** before the first code edit, MUST ATTENTION self-assemble this minimum bugfix spine as task tracking todos, in order:
 >
-> 1. **`$debug-investigate`** — *root cause, FIRST.* Trace the symptom end-to-start to the invariant-owning layer with `file:line` evidence (hypothesis matrix + forward convergence proof). This **is** the standalone diagnosis — it subsumes the spine's internal step-1 `debugger` subagent; resume the spine from its planning step using this report. *Fast-mode-trivial bugs (ALL Default Mode Policy opt-out conditions met) MAY inline the trace instead of spawning the skill, but the end-to-start trace is still required.*
+> 1. **`$debug-investigate`** — *root cause, FIRST; mandated by the Root-Cause Prerequisite Gate above, whose §2 evidence check decides whether it already ran for this problem.* Trace the symptom end-to-start to the invariant-owning layer with `file:line` evidence (hypothesis matrix + forward convergence proof). This **is** the standalone diagnosis — it subsumes the spine's internal step-1 `debugger` subagent; resume the spine from its planning step using this report. *Fast-mode-trivial bugs (ALL Default Mode Policy opt-out conditions met) MAY inline the trace instead of spawning the skill, but the end-to-start trace is still required.*
 > 2. **Fix spine** — *this skill's* `plan → 🛑 approve → implement → `$prove-fix`` body below. The Validate-Before-Fix approval gate and `$prove-fix` are unchanged.
 > 3. **`$spec` spec-correctness check** — *CONDITIONAL, ensures spec docs aren't left stale.* From the proven root cause, decide which case holds:
 >    - **Spec was WRONG / stale** — it described behavior that was never true, or intended behavior changed and the spec wasn't updated. The spec is (part of) the defect → run `$spec [mode=amend]` to correct the §1-§7 spec, then `$spec [mode=sync]` to reconcile §8 `TC-{FEATURE}-{NNN}` ↔ integration tests.
@@ -196,7 +228,7 @@ The Debug Mindset, Confidence & Evidence Gate, and all SYNC gates below apply to
 
 **Workflow:**
 
-1. Activate the `debug-investigate` skill and follow its workflow. See `.claude/docs/AI-DEBUGGING-PROTOCOL.md` for comprehensive guidelines.
+1. Activate the `debug-investigate` skill and follow its workflow — this step **satisfies** the Root-Cause Prerequisite Gate for this problem; record its report path as the gate's §2 evidence. See `.claude/docs/AI-DEBUGGING-PROTOCOL.md` for comprehensive guidelines.
 2. Use external memory at `.ai/workspace/analysis/issue-[number].analysis.md` for structured analysis. **Re-read the ENTIRE analysis file before proposing any fix.**
 3. **🛑 Present root cause + proposed fix → ask the user directly → wait for approval before implementing.**
 4. Implement, then run `$prove-fix`.
@@ -305,7 +337,7 @@ If user provides screenshots or videos, use `visual analysis tooling` skill to d
 - No questions → start next step.
 
 > **⚠️ Validate Before Fix (NON-NEGOTIABLE):** After root cause + plan creation, MUST ATTENTION present findings + proposed fix plan to user by asking the user directly and get explicit approval BEFORE any code changes. No silent fixes.
-> **End-to-Start Trace Gate:** For non-trivial bugs, failed verification, stale/incorrect final outputs, or behavior-changing fixes, the root-cause plan MUST ATTENTION include `Debugger Trace: End -> Start`, feeder paths, hypothesis matrix, owning fix layer, and forward convergence proof. If missing, STOP and run `$debug-investigate` or `$investigate` before planning code changes.
+> **End-to-Start Trace Gate:** For non-trivial bugs, failed verification, stale/incorrect final outputs, or behavior-changing fixes, the root-cause plan MUST ATTENTION include `Debugger Trace: End -> Start`, feeder paths, hypothesis matrix, owning fix layer, and forward convergence proof. If missing, STOP and run `$debug-investigate` or `$investigate` before planning code changes. (The Root-Cause Prerequisite Gate already forces this at invocation time; this gate re-checks the *content* of the resulting trace.)
 
 ### Fix the issue
 
@@ -315,7 +347,7 @@ Use `sequential-thinking` skill to break complex problems into sequential though
 Use `problem-solving` skills to tackle issues.
 Analyze skills catalog and activate other needed skills during the process.
 
-1. Use `debugger` subagent to find root cause and report back to main agent.
+1. Use `debugger` subagent to find root cause and report back to main agent. **Skip this step when the Root-Cause Prerequisite Gate already ran `$debug-investigate` for this problem** — that report subsumes this step; resume at step 3 (planning) instead of re-tracing. — why: re-running diagnosis double-runs the spine.
    1.5. Write investigation results to `.ai/workspace/analysis/{issue-name}.analysis.md`. Re-read ENTIRE file before planning fix.
    1.6. Confirm the report contains final symptom -> reader -> storage/projection -> writer -> consumer/job -> producer/origin, all feeder paths, hypothesis matrix, owning fix layer, and forward convergence proof.
 2. Use `researcher` subagent to research root causes on internet (if needed) and report back.
@@ -344,7 +376,7 @@ Analyze skills catalog and activate other needed skills during the process.
 
 ## Next Steps (Standalone: after the Minimum Contract completes. Skip if inside workflow.)
 
-> **The Standalone Mode Minimum Contract above is NOT optional and NOT a question** — standalone `$fix` has already auto-run `debug-investigate` → fix spine → `$prove-fix` → conditional `$spec` check → (`$changes-review` for production code) → `$why-review` as the terminal sign-off. Do not re-ask the user whether to do those; they are the guaranteed floor.
+> **The Root-Cause Prerequisite Gate and the Standalone Mode Minimum Contract above are NOT optional and NOT a question** — standalone `$fix` has already auto-run `debug-investigate` (gate-enforced) → fix spine → `$prove-fix` → conditional `$spec` check → (`$changes-review` for production code) → `$why-review` as the terminal sign-off. Do not re-ask the user whether to do those; they are the guaranteed floor.
 >
 > **AFTER that floor is met,** MUST ATTENTION use ask the user directly to offer what lies BEYOND the minimum (user decides):
 
@@ -633,12 +665,13 @@ Analyze skills catalog and activate other needed skills during the process.
 - **Source/Test Drift Check:** when source behavior changes, decide from evidence whether affected tests change.
 - **AI Mistake Prevention:** verify generated content against evidence, trace downstream references, verify all affected outputs, re-read after context loss, surface ambiguity.
 
+**IMPORTANT MUST ATTENTION** Root-Cause Prerequisite Gate (BLOCKING, FIRST) — a direct `$fix` call (no-flag spine AND every `--target=` branch) MUST NOT edit code until `$debug-investigate` traced THIS problem in THIS session, proven by a the current task list row or a written investigation report; recall is NOT evidence, a prior investigation of a DIFFERENT symptom does NOT count, and a parent workflow row alone is NOT proof its diagnosis step ran — not satisfied → run `$debug-investigate` first, then resume from the planning step — why: without it the first edit lands with zero traced cause and patches the symptom site
 **IMPORTANT MUST ATTENTION** trace the symptom end-to-start to the invariant-owning layer and fix there — NEVER at the crash site — why: the crash site is a symptom; the bad state enters at a lower layer and one fix there protects all downstream consumers
 **IMPORTANT MUST ATTENTION** declare `Confidence: X%` + `file:line` proof for EVERY claim — 95%+ recommend, 80-94% caveats, 60-79% list unknowns, STOP if <60% — why: speculation patches the wrong layer and ships the disease
 **IMPORTANT MUST ATTENTION** 🛑 Validate-Before-Fix — present root cause + plan by asking the user directly and get approval BEFORE any code change (skip ONLY inside a workflow) — why: silent fixes bypass the human gate on irreversible code change
 **IMPORTANT MUST ATTENTION** route on `--target=` FIRST — each `{ci|issue|logs|test|types|ui}` branch is self-contained (own diagnosis + `$prove-fix`); no flag = full diagnose→fix spine — why: branches must not re-run §1/§2 of the standalone spine
 **IMPORTANT MUST ATTENTION** default mode HARD (full rigor) — opt out to fast mode ONLY when the bug is genuinely trivial (ALL 5 Default Mode Policy conditions met); when in doubt default hard — why: skipping diagnosis on a non-trivial bug fixes the symptom and leaves the disease
-**IMPORTANT MUST ATTENTION** standalone (no parent workflow) self-assembles the spine `debug-investigate → fix + prove-fix → $spec correctness check → $changes-review (production code) → $why-review`; inside a workflow SKIP it — why: standalone has no sequence supplying diagnosis, spec sync, or review
+**IMPORTANT MUST ATTENTION** standalone (no parent workflow) self-assembles the spine `debug-investigate → fix + prove-fix → $spec correctness check → $changes-review (production code) → $why-review`; inside a workflow SKIP the contract — but NEVER the Root-Cause Prerequisite Gate, which still demands proof the sequence's `debug-investigate` step ran for this problem — why: standalone has no sequence supplying diagnosis, spec sync, or review; and a container row is not proof its diagnosis step ran
 **IMPORTANT MUST ATTENTION** after fixing, run `$prove-fix` — build code proof traces per change with confidence scores; never skip — why: a "should fix it" without a forward convergence proof is unverified
 **IMPORTANT MUST ATTENTION** spec-loop completion — the fix is NOT done until the violated §4/§5 invariant has a universally-quantified property TC + boundary case, the changed line is mutation-killed, and the finding fed BOTH spec and tests (Dual-Feedback) — why: a code-only patch leaves the bug case undocumented and able to silently return
 **IMPORTANT MUST ATTENTION** break work into small task tracking todos BEFORE starting (one read = one task); call the current task list first on context loss to resume, never duplicate — why: long debug files exhaust context and silently lose findings
@@ -652,6 +685,9 @@ Analyze skills catalog and activate other needed skills during the process.
 | Evasion                                  | Rebuttal                                                                                          |
 | ---------------------------------------- | ------------------------------------------------------------------------------------------------ |
 | "Root cause is obvious, just patch it"   | Trace end-to-start to the invariant owner with `file:line` first — the obvious site is the symptom. |
+| "I already investigated this"            | Show the the current task list row or investigation report for THIS symptom. Recall is not evidence — after compaction the belief survives, the findings do not. |
+| "A workflow is running, it handled diagnosis" | A parent row is a container, not proof. Cite the *completed* `debug-investigate` step for this problem or the gate fires. |
+| "`--target=` scopes it, so no trace needed"   | Every branch passes through the Root-Cause Prerequisite Gate. A `debugger`/`tester` subagent step is not an end-to-start trace. |
 | "Fix it where it crashes"                | Crash site ≠ cause site. Fix at the LOWEST layer that owns the invariant and protects all consumers. |
 | "Add a `?.` / guard and move on"         | Scattered defensive checks = wrong layer. One authoritative fix beats many guards.               |
 | "Confident enough, skip evidence"        | No `file:line` + Confidence % = no claim. STOP and gather evidence if <60%.                       |
@@ -659,6 +695,7 @@ Analyze skills catalog and activate other needed skills during the process.
 | "Tests pass, the fix is done"            | Not done until property TC + boundary case exist, the changed line is mutation-killed, and spec ↔ tests fed (Dual-Feedback). |
 | "Already searched the codebase"          | Show `file:line` evidence. No proof = no search.                                                 |
 
+**IMPORTANT MUST ATTENTION** NEVER edit code until `$debug-investigate` traced THIS problem in THIS session — evidence (task row / report), not recall.
 **IMPORTANT MUST ATTENTION** NEVER fix at the crash site — trace end-to-start to the invariant owner and fix there.
 **IMPORTANT MUST ATTENTION** declare `Confidence: X%` + `file:line` for every claim; STOP if <60%.
 **IMPORTANT MUST ATTENTION** 🛑 Validate-Before-Fix approval before any code change, then `$prove-fix` after — never skip either.
