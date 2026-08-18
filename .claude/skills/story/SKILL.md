@@ -44,30 +44,36 @@ description: '[Project Management] Use when creating user stories from PBIs, sli
 
 **Key Rules:**
 
+- Slice VERTICALLY (thin end-to-end); NEVER horizontally (backend/frontend split) — why: a horizontal slice ships no user-visible value on its own.
+- SP >8 MUST ATTENTION be split; >5 SHOULD be split — apply SPIDR until each story is INVEST-valid.
+- Every story MUST ATTENTION carry `story_points`, `complexity`, `man_days_traditional`, `man_days_ai` — plus the `risk_*` / `blast_radius` / `estimate_reasoning` fields `/prioritize` and `/plan` read downstream.
+- SP is DERIVED from bottom-up phase-hours → days × productivity factor — NEVER the driver.
+- Min 3 GIVEN/WHEN/THEN scenarios (happy + edge + error) PLUS a mandatory authorization scenario; each criterion has exactly ONE observable interpretation.
+- Tech-agnostic prose ONLY — no framework/class/file names; anchor with `[Source: namespace/service/id]`, NEVER `file:line`.
+- Story Dependencies table is mandatory — NEVER leave an orphan story.
+- Run the `AskUserQuestion` validation interview before handoff — NEVER auto-decide slicing, scope, or effort.
+
 ### Frontend/UI Context (if applicable)
 
-> When this task involves frontend or UI changes,
+> When the task involves frontend or UI changes, read:
 
 - Component patterns: `docs/project-reference/frontend-patterns-reference.md`
 - Styling/BEM guide: `docs/project-reference/scss-styling-guide.md`
 - Design system tokens: `docs/project-reference/design-system/README.md`
 
-- Stories with SP >8 MUST ATTENTION be split; >5 SHOULD be split (see estimation-framework.md)
-- All stories MUST ATTENTION include `story_points`, `complexity`, `man_days_traditional`, `man_days_ai` fields
-
 ## Greenfield Mode
 
-> **Auto-detected:** If no existing codebase is found (no discovered source directories, no manifest files, no populated `project-config.json`), this skill switches to greenfield mode automatically. Planning artifacts (docs/, plans/, .claude/) don't count — the repository must have actual code directories with content.
+> **Auto-detected:** no existing codebase (no discovered source directories, no manifest files, no populated `project-config.json`) → greenfield mode switches on automatically. Planning artifacts (`docs/`, `plans/`, `.claude/`) do NOT count — the repository needs actual code directories with content.
 
 **When greenfield is detected:**
 
 1. Generate **foundation PBIs** instead of feature stories: infrastructure setup, project scaffold, CI/CD pipeline, first feature vertical slice
-2. Add dependency ordering: infrastructure stories BEFORE feature stories
-3. Skip "MUST ATTENTION READ project-structure-reference.md" (won't exist)
+2. Dependency ordering: infrastructure stories BEFORE feature stories
+3. Skip the `project-structure-reference.md` read — it will not exist
 4. Include setup stories: dev environment, build tooling, deployment pipeline, monitoring
 5. Priority order: infra → scaffold → first feature → remaining features
-6. **[CRITICAL] Architecture Scaffolding Story:** FIRST story = "Architecture Scaffolding" — all OOP/SOLID base abstract classes, generic interfaces, infrastructure abstractions per chosen tech stack. AI self-investigates what base classes the project needs. All feature stories depend on this.
-7. Scaffolding acceptance criteria: all base classes compile/type-check, DI/IoC registrations resolve, smoke test passes
+6. **[CRITICAL] Architecture Scaffolding Story:** FIRST story = "Architecture Scaffolding" — every OOP/SOLID base abstract class, generic interface, and infrastructure abstraction the chosen stack needs. AI self-investigates which base classes the project requires; every feature story depends on it — why: features built on an unscaffolded foundation encode the wrong abstractions permanently.
+7. Scaffolding acceptance criteria: base classes compile/type-check, DI/IoC registrations resolve, smoke test passes
 8. **UI System Foundation Story:** If the project has a frontend, generate a "UI System Foundation" story (Sprint 0) with these sub-stories:
 
     | Sub-Story                                                                 | SP  | Priority  | Depends On               |
@@ -327,7 +333,6 @@ Given {context}
 When {action}
 Then {outcome}
 ```
-````
 
 #### Scenario 2: {Edge case title}
 
@@ -809,6 +814,7 @@ Example for a "Create Invoice" story:
 <!-- /SYNC:ai-mistake-prevention -->
 
 <!-- SYNC:estimation-framework:reminder -->
+
 - **MANDATORY MUST ATTENTION** estimation: bottom-up phase hours drive `man_days_traditional` (`Σh/6 × productivity_factor`); SP DERIVED. UI cost usually dominates — bump SP one bucket if NEW UI surface (page/complex form/dashboard). Frontmatter MUST include `story_points`, `complexity`, `man_days_traditional`, `man_days_ai`, `estimate_scope_included`, `estimate_scope_excluded`, `estimate_reasoning` (UI vs backend cost driver). Cap SP 3 for additive-on-existing-model+existing-UI unless test scope >1.5d. SP 13 SHOULD split, SP 21 MUST split.
 <!-- /SYNC:estimation-framework:reminder -->
 
@@ -900,9 +906,8 @@ Example for a "Create Invoice" story:
 | "Slicing is obvious, skip validation"     | `AskUserQuestion` validation is MANDATORY, not optional. The user confirms slicing/scope/effort. |
 
 **IMPORTANT MUST ATTENTION** AI-SDD M1-M5/M7 (tech-agnostic + demoable) + dependency table + bottom-up estimate are the three rules this skill must never skip — re-anchored here (recency) and in the Quick Summary (primacy).
-````
 
-**MANDATORY IMPORTANT MUST ATTENTION** READ the following files before starting:
+**MANDATORY IMPORTANT MUST ATTENTION** READ the project-reference docs named in the Quick Summary blockquote BEFORE starting — `project-structure-reference.md`, `docs/project-reference/domain-entities-reference.md` (business entities/models), `docs/specs/` (existing TCs for related features) — plus the Frontend/UI Context docs when the PBI touches UI. File not found → search for the project's documentation, coding standards, and architecture docs instead — why: story scoping that guesses at entity names and module structure mis-slices the work.
 
 **[TASK-PLANNING]** Before acting, analyze task scope and systematically break it into small todo tasks and sub-tasks using TaskCreate.
 
