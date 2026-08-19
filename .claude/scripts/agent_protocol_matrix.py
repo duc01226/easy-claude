@@ -203,6 +203,8 @@ AGENT_QUALITY_BLOCKS = {
         # wave 2 (twin: code-review / changes-review)
         "trade-off-interrogation-gate", "cross-stack-impact-trace", "spec-drift-adjudication",
         "integration-test-sync-check",
+        # wave 3 (twin: changes-review Phase 3.8 -- domain entity gate)
+        "domain-entity-change-gate",
     ],
     "security-auditor": [
         "severity-rubric", "systematic-review-batching", "category-review-thinking",
@@ -267,6 +269,8 @@ AGENT_QUALITY_BLOCKS = {
         "graph-assisted-investigation", "review-protocol-injection",
         # wave 2 (twin: plan-review)
         "trade-off-interrogation-gate",
+        # wave 3 (twin: plan Domain Entity Gate / plan-review Dimension 8)
+        "domain-entity-change-gate",
     ],
     "architect": [
         "severity-rubric", "systematic-review-batching", "category-review-thinking",
@@ -329,6 +333,8 @@ AGENT_QUALITY_BLOCKS = {
         "source-test-drift-check", "graph-assisted-investigation",
         # wave 2 (twin: ui-review / design / design-spec)
         "trade-off-interrogation-gate", "ui-intent-layer", "existing-ui-research",
+        # UI/UX design principles -- 40 clauses (twin: ui-review / design / design-spec)
+        "ui-ux-design-principles",
     ],
     "code-simplifier": [
         "complexity-prevention", "design-patterns-quality", "severity-rubric",
@@ -353,16 +359,23 @@ AGENT_QUALITY_BLOCKS = {
         "design-patterns-quality", "complexity-prevention",
         # wave 2 (twin: plan-execute / feature-implement)
         "source-test-drift-check", "graph-assisted-investigation",
+        # wave 3 -- authors entities, so it acts on all 6 gate decision points;
+        # without it the implementer runs weaker rules than its own reviewer.
+        "domain-entity-change-gate",
     ],
     "frontend-developer": [
         "design-patterns-quality", "complexity-prevention",
         # wave 2 (twin: plan-execute / feature-implement)
         "source-test-drift-check", "graph-assisted-investigation", "ui-system-context",
+        # UI/UX design principles -- 40 clauses; the implementer gate for user-facing surfaces
+        "ui-ux-design-principles",
     ],
     "fullstack-developer": [
         "design-patterns-quality", "complexity-prevention",
         # wave 2 (twin: plan-execute / feature-implement)
         "source-test-drift-check", "graph-assisted-investigation", "ui-system-context",
+        # UI/UX design principles -- 40 clauses; binds FRONTEND phases only (backend-only: N/A)
+        "ui-ux-design-principles",
     ],
 }
 

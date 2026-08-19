@@ -147,6 +147,32 @@ Select the checklist + output template by artifact type. Pass `--type={pbi|story
 | 5   | **Interaction patterns documented** — animations, transitions, and user interaction flows are specified                                       | Are interaction behaviors described?                | Are timing and easing values specified? Is behavior defined for both forward and reverse interactions (e.g., open AND close)? Unspecified interactions are implemented inconsistently.          |
 | 6   | **Linked from the Feature Spec** — the design-spec path is recorded in the governing Feature Spec frontmatter `design_spec:` key so the spec stays the navigable hub | Is the design-spec path present in the Feature Spec frontmatter `design_spec:` (or `mockup:`) key? | Does the recorded path resolve to THIS design-spec, and does the design-spec deepen the spec's tech-agnostic §6 interaction surface (same UX-role view names / observable states) rather than diverge from it? An unlinked design-spec is an orphan — FAIL. Contract: `SYNC:ui-intent-layer` (inlined in this skill). |
 
+#### UI/UX Design Principles Pass — `--type=design` ONLY (9 dimensions)
+
+> **Scope gate:** this pass applies to `--type=design` and to NOTHING else. `--type=pbi`, `--type=story`, and `--type=spec-tests` are UNAFFECTED — their checklists, tallies, and verdicts are unchanged. A design artifact for a feature with no user-facing surface skips the whole pass with the reason stated.
+
+The 40 clauses of `SYNC:ui-ux-design-principles` (full body inlined below in this skill) bind the design-spec path in the **REVIEW** role: each clause is a fail-condition against the ARTIFACT — *does the spec SPECIFY the decision this clause demands, at a depth an implementer could not get wrong?* The missing specification is the finding; the reviewer names the gap, never supplies the value.
+
+Run **NINE focused passes over the artifact — one dimension at a time**, never a simultaneous sweep (a simultaneous sweep degenerates into the presence-checking this skill's Adversarial Review Mindset already forbids). Answer each `Think:` prompt from first principles before looking for the gap.
+
+**Every finding:** `UI-<clause>` + `file:line` (artifact section + line) + severity per `SYNC:severity-rubric` already in force (Critical/High/Medium/Low), folded into the EXISTING verdict machinery — a clause gap that leaves a Required check unmet drives that check to fail (**FAIL**); a gap that only weakens depth lands as a Recommended miss or an Action Item under **NEEDS WORK**. No new scale, no new verdict.
+
+| #   | Dimension                 | Clauses            | `Think:`                                                                                                                                                                                                                                              |
+| --- | ------------------------- | ------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1   | Visual Hierarchy & Layout | `UI-1.1`-`UI-1.5` | Does the spec name ONE focal element per view, or leave first-read priority to the implementer? Is grouping expressed as whitespace or as nested boxes? Are the empty, loading and error states specified as fully as the populated state, or sketched? |
+| 2   | Typography                | `UI-2.1`-`UI-2.5` | Does the spec reference a fixed 6-step scale with named families/weights (max 2 families, 3 weights each), or ad-hoc sizes? Are body size (16px web, 17px mobile, never below 14px), measure (45-75 characters), and leading (1.5 body, 1.1-1.2 display) stated or assumed? |
+| 3   | Colour & Contrast         | `UI-3.1`-`UI-3.4` | Are contrast ratios written as measured numbers (4.5:1 text, 3:1 UI edges) or as the word "accessible"? Does any state carry meaning by colour alone with no icon/label/position pair? Is dark mode specified as its own surface treatment, or implied as an inversion? |
+| 4   | Spacing & Grid            | `UI-4.1`-`UI-4.4` | Is a single base unit (4px or 8px) declared, with every gap a multiple of it? Is spacing assigned to containers rather than children? Are breakpoints justified by where the layout fails, or copied from device names?                              |
+| 5   | Interaction & Feedback    | `UI-5.1`-`UI-5.5` | Is a response under 100ms specified for every action? Are all 5 states plus loading enumerated per component? Is undo offered where the spec calls for a confirmation? Are motion duration/easing (150-250ms, ease-out) and reduced-motion behaviour written down? Is the focus ring's appearance specified rather than removed? |
+| 6   | Navigation & IA           | `UI-6.1`-`UI-6.4` | Does each specified view answer where-am-I / what's-here / where-next? How many top-level destinations does the IA declare (max 5)? Are labels drawn from user vocabulary or internal naming? Does every state have a URL or a defined back path?    |
+| 7   | Forms & Input             | `UI-7.1`-`UI-7.5` | Does the spec justify each field's existence today? Are labels specified as persistently visible rather than placeholders? Are validation timing (on blur), error placement, and remediation wording defined? Are keyboard type/autocomplete/autocapitalise declared per field? Is data preservation across error, navigation and refresh specified? |
+| 8   | Mobile & Touch            | `UI-8.1`-`UI-8.4` | Are hit targets specified at >=44x44pt with 8px separation independent of icon size? Where does the spec place primary actions relative to the thumb zone? Is every gesture given a tappable equivalent? Are safe areas and keyboard avoidance addressed? _(No touch surface in the artifact → skip with the reason stated.)_ |
+| 9   | Speed & Perceived Speed   | `UI-9.1`-`UI-9.4` | Does the spec choose skeleton vs spinner deliberately per surface? Is optimistic update with a VISIBLE rollback specified? Is reserved space defined for every async or media element so nothing shifts? Are offline, timeout and retry specified as designed states rather than left as edge cases? |
+
+**No double-counting** with Design Spec checks 1-6: check 1 (6 component states) meets `UI-5.2`/`UI-1.5`; check 2 (design tokens) meets `UI-2.5`/`UI-4.1`/`UI-3.2`; check 3 (responsive) meets `UI-4.4`/`UI-8.*`; check 4 (accessibility) meets `UI-3.1`/`UI-3.3`/`UI-5.5`; check 5 (interaction patterns) meets `UI-5.4`/`UI-5.1`. Where they meet, emit ONE finding carrying BOTH citations at the HIGHER severity — never two findings for one gap.
+
+**Precedence:** the project design-system / SCSS / token docs **OUTRANK** these clauses — a spec following the project's own scale, unit, breakpoints, or token pairs SATISFIES the clause. A genuine conflict is surfaced to the user with both sides, NEVER resolved silently.
+
 ### Test Spec Review (`--type=spec-tests`)
 
 > **[BLOCKING] Read** `docs/project-reference/spec-principles.md` — use Section 5 (Test Case Registry — TC ID format, priorities, minimum coverage) and Section 6 (Evidence Format) as review criteria in addition to the checklist below.
@@ -821,6 +847,92 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 <!-- /SYNC:trade-off-interrogation-gate -->
 
 
+<!-- SYNC:ui-ux-design-principles -->
+
+> **UI/UX Design Principles (Rev 1.0 — 40 clauses, web + mobile)** — the working rule set for ANY task that designs, plans, implements, or reviews a user interface. Applies to BOTH platforms unless a clause names one (§8 is mobile/touch). Cite clauses by ID: `UI-3.1`, `UI-8.2`.
+>
+> **Precedence:** project design-system / SCSS / frontend-pattern docs OUTRANK these clauses; these clauses outrank generic taste. A genuine conflict is SURFACED to the user with both sides — NEVER resolved silently. — why: the project's own recorded decision is the authority; these clauses are the default when it is silent.
+>
+> **1.0 Visual Hierarchy & Layout**
+>
+> - `UI-1.1` One focal point per screen. Two elements competing for first read → demote one.
+> - `UI-1.2` Signal order: size → weight → colour → position. Use the cheapest signal that works before adding another.
+> - `UI-1.3` Group by proximity, NEVER by border. Whitespace separates cleanly; boxes inside boxes do not.
+> - `UI-1.4` Align to a shared edge. Every unexplained indent reads as an accident.
+> - `UI-1.5` Design the empty, loading and error state FIRST. The full state is the easy one.
+>
+> **2.0 Typography**
+>
+> - `UI-2.1` Max 2 families, 3 weights each. More variety reads as inconsistency, not range.
+> - `UI-2.2` Body text 16px web, 17px mobile. NEVER below 14px for anything a user must read.
+> - `UI-2.3` Line length 45–75 characters. Constrain the measure, not the container.
+> - `UI-2.4` Leading scales inversely with size: 1.5 body, 1.1–1.2 display.
+> - `UI-2.5` Fixed type scale — 6 named steps shared with engineering. NEVER one-off sizes.
+>
+> **3.0 Colour & Contrast**
+>
+> - `UI-3.1` Contrast 4.5:1 text, 3:1 UI edges. Measure it — NEVER judge by eye on a bright screen.
+> - `UI-3.2` One accent, one job. An accent that is everywhere points at nothing.
+> - `UI-3.3` Colour NEVER carries meaning alone — pair it with an icon, label or position.
+> - `UI-3.4` Dark mode is NOT inverted light mode. Lift surfaces to signal elevation; soften pure-white text.
+>
+> **4.0 Spacing & Grid**
+>
+> - `UI-4.1` One spacing unit, multiplied — 4px or 8px base; every gap a multiple of it.
+> - `UI-4.2` Space belongs to the container, not the child. Use `gap`; reserve margins for exceptions.
+> - `UI-4.3` Tighter inside, looser between — inner padding always smaller than the gap to the next group.
+> - `UI-4.4` Breakpoints follow content, not devices. Break where the layout stops working.
+>
+> **5.0 Interaction & Feedback**
+>
+> - `UI-5.1` Every action gets a response under 100ms, even when the result takes longer.
+> - `UI-5.2` Specify all 5 states — default, hover, focus, active, disabled — plus loading where it applies.
+> - `UI-5.3` Prefer undo over confirmation. Confirm ONLY what cannot be reversed.
+> - `UI-5.4` Motion clarifies cause and effect: 150–250ms, ease-out, honours reduced-motion.
+> - `UI-5.5` Keep the visible focus ring. Restyle it if it clashes; NEVER remove it.
+>
+> **6.0 Navigation & IA**
+>
+> - `UI-6.1` Every screen answers: where am I, what's here, where next.
+> - `UI-6.2` Max 5 top-level destinations. Depth beats a crowded first level.
+> - `UI-6.3` Label by the user's word, not the internal one. Team vocabulary is not a taxonomy.
+> - `UI-6.4` Every state deserves a URL or a back path. Deep links and hardware back must land somewhere sensible.
+>
+> **7.0 Forms & Input**
+>
+> - `UI-7.1` Ask for less. Every field needs a reason it exists today.
+> - `UI-7.2` Labels stay visible. Placeholders are hints, NEVER labels.
+> - `UI-7.3` Validate on blur, not on keystroke. Errors sit next to the field and say how to fix it.
+> - `UI-7.4` Match keyboard to data type — correct input type, autocomplete and autocapitalise on every field.
+> - `UI-7.5` NEVER lose entered data. Preserve input across errors, navigation and refresh.
+>
+> **8.0 Mobile & Touch** _(mobile/touch surfaces)_
+>
+> - `UI-8.1` Hit target ≥44×44pt, 8px apart. The target may exceed the visible icon.
+> - `UI-8.2` Primary actions in the bottom third — that is where the thumb lives.
+> - `UI-8.3` Gestures are shortcuts, NEVER the only route. Anything swipeable is also tappable.
+> - `UI-8.4` Respect safe areas and the keyboard. Notch, home indicator and on-screen keyboard all steal space.
+>
+> **9.0 Speed & Perceived Speed**
+>
+> - `UI-9.1` Show structure before data — skeletons for known layouts, spinners only for unknown waits.
+> - `UI-9.2` Assume success optimistically. Update UI first, reconcile after, roll back visibly on failure.
+> - `UI-9.3` Reserve space for anything that loads. Images, ads and fonts must NEVER shift the layout.
+> - `UI-9.4` Design for the slow connection. Offline, timeout and retry are states, NOT edge cases.
+>
+> **Apply by role** — the clauses are one set; what you DO with them depends on the task:
+>
+> | Role                                | Obligation                                                                                                                                                              |
+> | ----------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+> | DESIGN / PLAN a surface             | Clauses shape the artifact: empty/loading/error specified first (`UI-1.5`), all 5 states enumerated (`UI-5.2`), type scale + spacing unit declared (`UI-2.5`, `UI-4.1`) |
+> | IMPLEMENT a component               | Pre-completion gate: states · tokens · contrast · focus ring · touch target · reserved space (`UI-5.2`, `UI-2.5`/`UI-4.1`, `UI-3.1`, `UI-5.5`, `UI-8.1`, `UI-9.3`)      |
+> | REVIEW UI code or a design artifact | Each clause is a fail-condition; every finding cites `UI-<clause>` + `file:line` + severity. NEVER a tick-box sweep — one focused pass per section                      |
+> | SCAN / document a UI system         | Record where the PROJECT deliberately deviates, so the overriding doc becomes the recorded authority                                                                    |
+>
+> **Skip ONLY** when the change has no user-facing surface (backend-only, tooling, docs) — state that explicitly so the skip is auditable, not an omission.
+
+<!-- /SYNC:ui-ux-design-principles -->
+
 <!-- SYNC:understand-code-first:reminder -->
 
 **IMPORTANT MUST ATTENTION** search 3+ existing patterns and read code BEFORE any modification. Run graph trace when graph.db exists.
@@ -948,6 +1060,12 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 
 <!-- /SYNC:project-protocol-overlay:reminder -->
 
+<!-- SYNC:ui-ux-design-principles:reminder -->
+
+- **MUST ATTENTION** apply the 40 UI/UX Design Principles (`UI-1.1`–`UI-9.4`) to any user-facing surface: one focal point, proximity grouping, empty/loading/error designed FIRST (§1) · ≤2 families, 16px web / 17px mobile body, never <14px, 45–75ch, fixed 6-step scale (§2) · 4.5:1 text / 3:1 edges measured, one accent, colour never alone, dark mode ≠ inversion (§3) · one 4/8px unit, `gap` over margins, tighter-inside-looser-between, content-driven breakpoints (§4) · <100ms response, all 5 states, undo over confirm, 150–250ms ease-out honouring reduced-motion, visible focus ring (§5) · where-am-I/what's-here/where-next, ≤5 top-level destinations, user's words, URL or back path (§6) · fewer fields, visible labels, validate on blur, matched keyboard, NEVER lose input (§7) · ≥44×44pt targets 8px apart, bottom-third primaries, gestures never the only route, safe areas (§8) · structure before data, optimistic update with visible rollback, reserved space, slow-connection states (§9). Project design-system docs OUTRANK these clauses — a genuine conflict goes to the user, NEVER resolved silently. Cite every finding as `UI-<clause>` + `file:line`. Skip ONLY for changes with no user-facing surface, stated explicitly.
+
+<!-- /SYNC:ui-ux-design-principles:reminder -->
+
 ## Closing Reminders
 
 **IMPORTANT MUST ATTENTION Goal:** Review an artifact (PBI, design spec, story, test spec) for completeness and quality so reviewed artifacts are complete, evidence-backed, and ready for handoff without missing assumptions or acceptance gaps.
@@ -973,6 +1091,7 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 **IMPORTANT MUST ATTENTION** M7 (business-visibility) is judged on each case's BODY via the demo test — *"what would a stakeholder SEE change?"*; no answer → NEEDS WORK as TECHNICAL-ONLY. A `When` that is an invocation (handler runs, consumer receives, job fires, data syncs, model inspected) or a `Then` asserting schema/type/nullability/call-count FAILS M7 **even in flawless tech-free prose** — why: M1 governs vocabulary, M7 governs subject matter, and passing a case because its prose is clean is exactly how technical cases accumulate in business specs one bugfix at a time.
 **IMPORTANT MUST ATTENTION** exempt source identifiers inside evidence carriers (`[Source:]`, `**Evidence**`, `CoveredBy`, legacy `IntegrationTest`, frontmatter, mermaid) — flag tech leakage only in narrative/AC/scenario prose — why: carriers are CORRECT places for class/path/test names; flagging them is a false finding.
 **IMPORTANT MUST ATTENTION** dispatch on `--type={pbi|story|spec-tests|design}` (infer if omitted) — apply that type's Required/Recommended checklist; verdict = PASS (all Required + ≥50% Recommended) | WARN (all Required, <50% Recommended) | FAIL (any Required fails).
+**IMPORTANT MUST ATTENTION** for `--type=design` ONLY: run the 9-dimension UI/UX Design Principles pass — all 40 clauses (`UI-1.1`-`UI-9.4`), one dimension at a time; every finding cites `UI-<clause>` + `file:line` + `SYNC:severity-rubric` severity and folds into the existing Required/Recommended verdict; `pbi`/`story`/`spec-tests` are unaffected, and project design-system docs OUTRANK the clauses.
 **IMPORTANT MUST ATTENTION** for `--type=spec-tests`: every `[HARD]` §4 rule / §5 invariant maps to ≥1 universally-quantified property TC + boundary counter-case — a missing property category is a blocking finding; one business TC covered by MANY tests is the correct one-to-many shape, NEVER a duplicate.
 **IMPORTANT MUST ATTENTION** run the findings-validation gate BEFORE fixing — invoke `/why-review --validate-findings <report-path>` first; NEVER edit the artifact to resolve findings before this gate returns CLEAN — why: validate-before-fix at parity with `/plan-review` prevents fixing phantom findings.
 **IMPORTANT MUST ATTENTION** fix only validated findings, then restart the FULL review with a fresh `general-purpose` sub-agent (artifacts are NOT code) and loop until a clean pass — a clean review with zero findings ENDS the loop; NEVER spawn a confirmation sub-agent after a clean round — why: every fix invalidates the prior verdict, but a clean pass needs no re-confirmation.

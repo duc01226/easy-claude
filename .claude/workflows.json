@@ -609,6 +609,8 @@
       "sequence": [
         "scout",
         "integration-test-verify-loop",
+        "debug-investigate [on-failure]",
+        "fix [on-failure]",
         "spec [mode=sync]",
         "scan --target=integration-tests",
         "docs-update",

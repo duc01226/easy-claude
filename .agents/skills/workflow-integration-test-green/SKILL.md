@@ -70,7 +70,36 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 - NEVER force green by weakening or removing assertions, adding skip annotations, widening assertion timeouts, wrapping a retry around a failing assertion, or narrowing the scope.
 - NEVER skip mandatory workflow or skill gates.
 
-**IMPORTANT MANDATORY Steps:** $scout -> $integration-test-verify-loop -> $spec [mode=sync] -> $scan --target=integration-tests -> $docs-update -> $workflow-end -> $watzup
+**IMPORTANT MANDATORY Steps:** $scout -> $integration-test-verify-loop -> $debug-investigate [on-failure] -> $fix [on-failure] -> $spec [mode=sync] -> $scan --target=integration-tests -> $docs-update -> $workflow-end -> $watzup
+
+> **[BLOCKING] Step 0 — CREATE THE FULL TASK LIST BEFORE ANY VERIFICATION WORK.** Call the current task list first (resume, never duplicate), then task tracking EVERY task below in one pass — before `$scout`, before the first test run. A workflow that starts verifying with an empty task list has already lost the ability to show where it is, and an interrupted run cannot be resumed. — why: this loop can span many rounds and a context compaction mid-round; the task list is the only state that survives it.
+>
+> **Fixed tasks — created 1:1 from the canonical `sequence` in `.claude/workflows.json`, in order:**
+>
+> 1. `[1] scout — resolve verification scope to a concrete project/suite list`
+> 2. `[2] integration-test-verify-loop — drive the suite to green (parent of the per-round tasks)`
+> 3. `[3] debug-investigate [on-failure] — traced root cause behind every Fault Verdict` *(CONDITIONAL)*
+> 4. `[4] fix [on-failure] — resolve every verdict at the owning layer` *(CONDITIONAL)*
+> 5. `[5] spec [mode=sync] — reconcile §8 TCs with the executing tests`
+> 6. `[6] scan --target=integration-tests — regenerate the integration-test reference doc`
+> 7. `[7] docs-update — update every other impacted doc`
+> 8. `[8] workflow-end — close workflow state`
+> 9. `[9] watzup — summarize the convergence trail`
+> 10. `[10] final review — verify work quality + extract lessons` *(not a sequence step — the standing close-out task)*
+>
+> **`[3]` and `[4]` are ROLL-UPS, not separate invocations.** They appear in the canonical sequence so the conditional fix half is visible in the task list from the start, but `$integration-test-verify-loop` is their single executing owner: each firing happens INSIDE a round as `[2.N.2]` / `[2.N.5]` below. Complete `[3]`/`[4]` once the loop converges, summarizing which rounds fired them — or, if no round ever failed, complete them with the reason recorded (`no failure in any round`). NEVER run them a second time at workflow level after the loop returns — that would be a parallel fix loop the Inline Execution Gate forbids.
+>
+> **Per-round tasks (created when EACH round opens — round N is not planned until round N-1 reported):**
+>
+> - `[2.N.1] verify — full run over {scope}, capture real counts` *(always)*
+> - `[2.N.2] debug-investigate — trace root cause of each failure` *(CONDITIONAL: only if round N reported failures — the round-N instance of `[3]`)*
+> - `[2.N.3] integration-test-review — report-only fault gates` *(CONDITIONAL: same trigger)*
+> - `[2.N.4] fault verdict — one written verdict per failure` *(CONDITIONAL: same trigger)*
+> - `[2.N.5] fix — resolve at the owning layer` *(CONDITIONAL: same trigger — the round-N instance of `[4]`)*
+> - `[2.N.6] changes-review — review this round's fix diff` *(CONDITIONAL: only if a fix landed)*
+> - `[2.N.7] round integrity check — counts not shrunk, scope not narrowed` *(always)*
+>
+> A conditional task whose trigger never fires is marked **completed with the reason recorded** (`no failures this round`), NEVER silently dropped — why: a skipped-and-unrecorded gate is indistinguishable from a forgotten one when someone audits the run later.
 
 > **[BLOCKING]** Each step MUST ATTENTION invoke its skill invocation — marking a task `completed` without skill invocation is a workflow violation. NEVER batch-complete validation gates.
 
@@ -86,12 +115,20 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 
 Activate the `workflow-integration-test-green` workflow. Run `$start-workflow workflow-integration-test-green` with the user's prompt as context.
 
-**Steps:** $scout → $integration-test-verify-loop → $spec [mode=sync] → $scan --target=integration-tests → $docs-update → $workflow-end → $watzup
+**Steps:** $scout → $integration-test-verify-loop → $debug-investigate [on-failure] → $fix [on-failure] → $spec [mode=sync] → $scan --target=integration-tests → $docs-update → $workflow-end → $watzup
+
+> **[CRITICAL] Recursive Until Green — the loop is the workflow, not a step inside it.** Step 2 does NOT run once. It RECURSES: run the full suite → if ANY test fails, adjudicate and fix that failure → run the FULL suite again from scratch → repeat. The workflow is finished only when a fresh full run reports **zero failures twice consecutively** with no test deleted, skipped, or weakened. Reporting failures and stopping is NOT an outcome this workflow permits — either it converges, or it **bounded-escalates** by asking the user directly (round cap 3 · failures not shrinking across 2 rounds · failures increasing · coverage lost · an open validated review finding · `ENVIRONMENT-BLOCKED`). — why: "the tests fail" is a status, not a deliverable; the caller asked for a green suite, and a workflow that hands back a red one has done the diagnosis and skipped the job.
+>
+> **`$debug-investigate` and `$fix` are CONDITIONAL steps of the loop, executed INSIDE `$integration-test-verify-loop`.** They fire on every round that reports a failure and are skipped (with a recorded reason) on a round that is already green. They are tracked as their own tasks per round (Step 0) so they are visible in the task list, but `$integration-test-verify-loop` remains their single executing owner — NEVER invoke them as a second, parallel fix loop at workflow level. — why: the fix half was previously triple-owned across three skills, which let two loops double-fix one failure or each assume the other owned it; one owner with visible sub-tasks keeps both the accountability and the visibility.
+>
+> **Step 2 RECURSES:** `$integration-test-verify` → *(on failure)* `$debug-investigate` → `$integration-test-review` → Fault Verdict → `$fix` → `$changes-review` → fresh full re-verify — repeating until the suite is green twice consecutively. Steps 3 and 4 of the sequence are the workflow-level roll-ups of that conditional half; `$integration-test-verify-loop` executes them inside each round, never again after it returns.
 
 > **[STEP PURPOSES]** Every step has a distinct purpose — NEVER deduplicate or batch:
 >
 > **`$scout`** — Resolve the verification scope to a concrete test-project list. No target in the prompt → the WHOLE system (every project via `testProjectPattern` > `testProjects` from `docs/project-config.json` → `integrationTestVerify`). A named suite/module/feature/diff narrows it — state how the target maps to projects. Output: the fixed scope string the loop will reuse every round.
 > **`$integration-test-verify-loop`** — The convergence engine, and the only step that changes code. Sets the Goal Contract first, then loops: `$integration-test-verify` INLINE over the fixed scope (2 consecutive green runs, no DB reset, real counts) → on ANY failure run `$debug-investigate` + `$integration-test-review` (report-only) → ONE Fault Verdict per failure → `$fix` at the owning layer → **conditional `$changes-review`** (INLINE, report-only, over the round's fix diff — runs in EVERY round that landed a fix; validated findings fold back into that same round's fix set) → **Round Integrity Check** (executed count must not shrink, skipped count must not grow, scope must not narrow) → fresh full re-verify. Round cap 3; not shrinking across 2 rounds, increasing failures, cap hit with failures open, lost coverage, an open validated review finding, or `ENVIRONMENT-BLOCKED` → STOP and escalate by asking the user directly. Output: zero-failure runner evidence for both runs + the per-round verdict/fix/review trail.
+> **`$debug-investigate`** *(CONDITIONAL — only on a round with failures)* — Trace each failure end-to-start to its root cause BEFORE any edit; produces the traced cause that the Fault Verdict rests on. Skipped on a green round, with the skip recorded.
+> **`$fix`** *(CONDITIONAL — only on a round with an adjudicated failure)* — Resolve the verdict at the lowest invariant-owning layer (Entity > Service > Handler), never the crash site. A `SOURCE-WRONG` fix KEEPS or STRENGTHENS the test that caught it. NEVER runs before a written Fault Verdict exists for that failure.
 > **`$spec [mode=sync]`** — Reconcile §8 `TC-{FEATURE}-{NNN}` specs ↔ the executing test code under `docs/specs/`. Update each TC's `CoveredBy` field with **all** covering `{File}::{MethodName}` links (one TC → many tests, 1:N; a test-filter expression when the set is large). Coverage = ≥1 annotation-tagged test; never force one test per TC. Runs AFTER convergence so it syncs the final tests, not intermediate ones.
 > **`$scan --target=integration-tests`** — Regenerate the integration-test project-reference doc from the suite as it now stands: patterns, base fixtures, async-wait and unique-data helper conventions, suite/project inventory, and lessons. This is the doc every future agent reads before touching a test — a loop that changed test structure without regenerating it leaves the next agent following stale conventions.
 > **`$docs-update`** — Update every OTHER impacted doc: feature-doc evidence fields, version history, and any doc embedding test counts or coverage claims the loop changed. Covers what `$spec [mode=sync]` (spec TCs) and `$scan --target=integration-tests` (the reference doc) do not.
@@ -99,7 +136,7 @@ Activate the `workflow-integration-test-green` workflow. Run `$start-workflow wo
 
 ---
 
-**IMPORTANT MANDATORY Steps:** $scout -> $integration-test-verify-loop -> $spec [mode=sync] -> $scan --target=integration-tests -> $docs-update -> $workflow-end -> $watzup
+**IMPORTANT MANDATORY Steps:** $scout -> $integration-test-verify-loop -> $debug-investigate [on-failure] -> $fix [on-failure] -> $spec [mode=sync] -> $scan --target=integration-tests -> $docs-update -> $workflow-end -> $watzup
 
 <!-- SYNC:integration-test-execution-discipline -->
 

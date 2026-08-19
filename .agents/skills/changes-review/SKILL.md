@@ -75,22 +75,23 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 
 0. **Phase -1: Bind the Self-Recursive Review Loop (FIRST ACTION — standalone-only; protocol-first, `/goal` optional)** — Before any other work, in standalone mode bind the review loop as a standing protocol obligation you self-drive — and, WHEN available, invoke the `/goal` command as an ACTUAL call — with a self-recursive review-loop condition so stopping is BLOCKED until the loop converges: *review the full diff → validate findings (Phase 6) → SELF-FIX validated findings (Phase 7) → restart `$changes-review` from Phase 0 over the WHOLE updated diff (combined with the prior fixes, never just re-checking the last fix) → loop until one complete pass clears that round's exit bar — **zero findings in rounds 1-2, zero CRITICAL/HIGH/MEDIUM from round 3 (a LOW-only round ENDS the loop; list those LOWs as deferred, never fix-and-loop for them)**, then docs-update*. Skip this gate when running as step 1 inside `$workflow-review-changes` (the parent owns the goal). Full procedure in **Phase -1**.
 1. **Phase 0: Blast Radius** — Call `$graph-blast-radius` skill FIRST (if `.code-graph/graph.db` exists)
-1. **Phase 0.1: Change Context & Full-Pipeline Impact Trace (MANDATORY comprehension-first)** — Note the change context, then holistically trace the main affected area's full pipeline across BOTH boundaries — client↔server tier (FE↔BE) AND service/event/external — classifying each seam/touchpoint NONE/ADDITIVE/BREAKING (explicit N/A for single-tier or monolith)
-2. **Phase 0.3: Change Types** — Detect high-risk change types; create risk tasks
-3. **Phase 0.5: Plan Compliance** — Verify against active plan (conditional)
-4. **Phase 0.7: Surface Detection** — AI categorizes changed files; creates dimension tasks
-5. **Phase 0.8: Parallel Rationale Review** — Spawn a full-mode `$why-review` sub-agent in the SAME parallel batch as the 0.7 dimensional agents; its findings merge into the Phase 4 final evaluation (standalone-only)
-6. **Phase 1: Collect** — Run git status/diff, create report file
-6. **Phase 2: File Review** — Review each changed file, update report incrementally
-7. **Phase 3: Fresh-Context Gate** — Skip when findings already exist; run a second-round sub-agent only for an explicit user/workflow/high-risk synthesis trigger
-8. **Phase 3.5: Code-Simplifier Optimization (MANDATORY when code files changed)** — Invoke `$code-simplifier` scoped to the changed code files to surface clarity/consistency/maintainability simplifications; record them as findings that flow into the same validation/fix loop (skip docs-only diffs)
-9. **Phase 3.7: Integration-Test-Review Coverage Gate (MANDATORY when behavior-bearing code changed)** — Invoke `$integration-test-review` over the full diff; its 8 quality gates audit changed tests AND its Gate 7 (Change Coverage) maps every behavior-changing production file to a covering test (integration-first; unit fallback needs justification) and a spec TC. GAP/SPEC-GAP results become findings for the same validation/fix loop (skip docs-only diffs; deferred to the parent's dedicated step inside `$workflow-review-changes`)
-10. **Phase 4: Finalize** — Generate critical issues, recommendations, suggested commit message
-11. **Phase 5: Docs Triage** — Record stale-doc findings for validation/fix loop
-12. **Phase 6: Why-Review Findings Validation (standalone-only; REQUIRED before any standalone fix)** — Whenever the report contains one or more findings, you MUST invoke the `$why-review` skill (an actual skill invocation-tool call) with `--validate-findings` to verify every finding is correct, proof-backed, reasonable, and best-practice before fixing. This is a genuine skill invocation — re-reading the cited lines yourself, "self-validating," or any inline/manual substitute does NOT satisfy this gate. When this skill is step 1 inside `$workflow-review-changes`, stop after the report; parent step 2 owns findings validation.
-13. **Phase 7: Recursive Fix + Full Re-Review Loop (standalone-only)** — If validated findings remain in standalone mode, auto-fix them, then re-invoke `$changes-review` from Phase 0 with a fresh task breakdown over the full current diff; repeat until an entire review pass clears that round's exit bar — **zero findings in rounds 1-2, zero CRITICAL/HIGH/MEDIUM from round 3 (a LOW-only round ENDS the loop; list those LOWs as deferred, never fix-and-loop for them)**. When inside `$workflow-review-changes`, parent steps 10-15 own plan/feature-implement/restart.
-14. **Phase 7.5: Holistic Standalone Full-Mode Why-Review Gate (standalone-only)** — Once the dimensional review/fix loop converges clean, invoke `$why-review` in **FULL mode** (NOT `--validate-findings`) ONCE over the WHOLE review target combined with the current changes as a single artifact — a real standalone `$why-review` call, the same as a user running `$why-review` against the target directly. The per-file/per-dimension reviewers and the Phase 6 validate-findings gate routinely miss holistic design-rationale and whole-package issues that a standalone full-mode review catches. If it surfaces findings, fix them and re-run Phase 7.5 (run→fix→run) until a full-mode pass clears that round's exit bar — **zero findings in rounds 1-2, zero CRITICAL/HIGH/MEDIUM from round 3 (a LOW-only round ENDS the loop; list those LOWs as deferred, never fix-and-loop for them)**. When inside `$workflow-review-changes`, SKIP this — the parent workflow's dedicated standalone `$why-review` step (step 13) owns the holistic pass.
-15. **Phase 8: Mandatory Final Docs-Update Gate (MANDATORY — runs once the review/fix loop converges clean)** — After the review reaches zero findings and all fixes are applied, ALWAYS invoke `$docs-update` over the full changeset as the terminal step so no stale docs survive. This is unconditional (not gated on a flagged finding) — `$docs-update` independently detects impacted docs the review may not have surfaced. When inside `$workflow-review-changes`, the parent workflow's `$docs-update` step owns this; do not run it locally.
+2. **Phase 0.1: Change Context & Full-Pipeline Impact Trace (MANDATORY comprehension-first)** — Note the change context, then holistically trace the main affected area's full pipeline across BOTH boundaries — client↔server tier (FE↔BE) AND service/event/external — classifying each seam/touchpoint NONE/ADDITIVE/BREAKING (explicit N/A for single-tier or monolith)
+3. **Phase 0.3: Change Types** — Detect high-risk change types; create risk tasks
+4. **Phase 0.5: Plan Compliance** — Verify against active plan (conditional)
+5. **Phase 0.7: Surface Detection** — AI categorizes changed files; creates dimension tasks
+6. **Phase 0.8: Parallel Rationale Review** — Spawn a full-mode `$why-review` sub-agent in the SAME parallel batch as the 0.7 dimensional agents; its findings merge into the Phase 4 final evaluation (standalone-only)
+7. **Phase 1: Collect** — Run git status/diff, create report file
+8. **Phase 2: File Review** — Review each changed file, update report incrementally
+9. **Phase 3: Fresh-Context Gate** — Skip when findings already exist; run a second-round sub-agent only for an explicit user/workflow/high-risk synthesis trigger
+10. **Phase 3.5: Code-Simplifier Optimization (MANDATORY when code files changed)** — Invoke `$code-simplifier` scoped to the changed code files to surface clarity/consistency/maintainability simplifications; record them as findings that flow into the same validation/fix loop (skip docs-only diffs)
+11. **Phase 3.7: Integration-Test-Review Coverage Gate (MANDATORY when behavior-bearing code changed)** — Invoke `$integration-test-review` over the full diff; its 8 quality gates audit changed tests AND its Gate 7 (Change Coverage) maps every behavior-changing production file to a covering test (integration-first; unit fallback needs justification) and a spec TC. GAP/SPEC-GAP results become findings for the same validation/fix loop (skip docs-only diffs; deferred to the parent's dedicated step inside `$workflow-review-changes`)
+12. **Phase 3.8: Domain Entity Gate (MANDATORY when the diff touches an entity/VO/aggregate)** — Apply `SYNC:domain-entity-change-gate` over the changed domain types; Mode A reviews inline, Mode B delegates to `$domain-entities-review` (its A–P checklist owns the gate). Findings flow into the same validation/fix loop (skip when no domain-entity surface)
+13. **Phase 4: Finalize** — Generate critical issues, recommendations, suggested commit message
+14. **Phase 5: Docs Triage** — Record stale-doc findings for validation/fix loop
+15. **Phase 6: Why-Review Findings Validation (standalone-only; REQUIRED before any standalone fix)** — Whenever the report contains one or more findings, you MUST invoke the `$why-review` skill (an actual skill invocation-tool call) with `--validate-findings` to verify every finding is correct, proof-backed, reasonable, and best-practice before fixing. This is a genuine skill invocation — re-reading the cited lines yourself, "self-validating," or any inline/manual substitute does NOT satisfy this gate. When this skill is step 1 inside `$workflow-review-changes`, stop after the report; parent step 2 owns findings validation.
+16. **Phase 7: Recursive Fix + Full Re-Review Loop (standalone-only)** — If validated findings remain in standalone mode, auto-fix them, then re-invoke `$changes-review` from Phase 0 with a fresh task breakdown over the full current diff; repeat until an entire review pass clears that round's exit bar — **zero findings in rounds 1-2, zero CRITICAL/HIGH/MEDIUM from round 3 (a LOW-only round ENDS the loop; list those LOWs as deferred, never fix-and-loop for them)**. When inside `$workflow-review-changes`, parent steps 10-15 own plan/feature-implement/restart.
+17. **Phase 7.5: Holistic Standalone Full-Mode Why-Review Gate (standalone-only)** — Once the dimensional review/fix loop converges clean, invoke `$why-review` in **FULL mode** (NOT `--validate-findings`) ONCE over the WHOLE review target combined with the current changes as a single artifact — a real standalone `$why-review` call, the same as a user running `$why-review` against the target directly. The per-file/per-dimension reviewers and the Phase 6 validate-findings gate routinely miss holistic design-rationale and whole-package issues that a standalone full-mode review catches. If it surfaces findings, fix them and re-run Phase 7.5 (run→fix→run) until a full-mode pass clears that round's exit bar — **zero findings in rounds 1-2, zero CRITICAL/HIGH/MEDIUM from round 3 (a LOW-only round ENDS the loop; list those LOWs as deferred, never fix-and-loop for them)**. When inside `$workflow-review-changes`, SKIP this — the parent workflow's dedicated standalone `$why-review` step (step 13) owns the holistic pass.
+18. **Phase 8: Mandatory Final Docs-Update Gate (MANDATORY — runs once the review/fix loop converges clean)** — After the review reaches zero findings and all fixes are applied, ALWAYS invoke `$docs-update` over the full changeset as the terminal step so no stale docs survive. This is unconditional (not gated on a flagged finding) — `$docs-update` independently detects impacted docs the review may not have surfaced. When inside `$workflow-review-changes`, the parent workflow's `$docs-update` step owns this; do not run it locally.
 
 **Key Rules:**
 
@@ -223,6 +224,7 @@ Before starting, call task tracking with:
 - [ ] `[Review Phase 3] Evaluate fresh-context gate; skip when findings already exist` - pending
 - [ ] `[Review Phase 3.5] Run $code-simplifier on changed code files to optimize code quality` - pending **(MANDATORY when code files changed; skip docs-only diffs)**
 - [ ] `[Review Phase 3.7] Run $integration-test-review coverage gate over full diff` - pending **(MANDATORY when behavior-bearing code changed; skip docs-only diffs; deferred to parent step inside `$workflow-review-changes`)**
+- [ ] `[Review Phase 3.8] Run the domain entity change gate over changed entities/VOs/aggregates` - pending **(MANDATORY when the diff touches an entity, value object, or aggregate; skip otherwise)**
 - [ ] `[Review Phase 4] Generate final review findings` - pending
 - [ ] `[Review Phase 5] Record stale-doc findings for validation/fix loop` - pending
 - [ ] `[Review Phase 6] Why-review findings validation gate before any fix` - pending **(MANDATORY when findings exist)**
@@ -675,6 +677,25 @@ For each changed file, identify related documentation:
 
 **Parent workflow boundary:** When this skill is invoked as step 1 inside `$workflow-review-changes`, do NOT run Phase 3.7 locally — the parent workflow's dedicated `$integration-test-review` step owns the 7-gate audit and coverage mapping. Record `Phase 3.7 deferred to parent workflow $integration-test-review step.` (`SYNC:integration-test-sync-check` still applies locally as the lightweight pairing check.)
 
+**Phase 3.8: Domain Entity Change Gate (MANDATORY when the diff touches an entity, value object, or aggregate)**
+
+> **Purpose:** Phase 3.7 proves the change is covered and specced; this gate proves the **domain model itself** is sound. `$domain-entities-review` is the canonical owner of the A–P entity checklist — this skill routes to it rather than judging aggregate boundaries, invariant ownership, or concurrency by eye. Apply `SYNC:domain-entity-change-gate` (inlined below) — the SAME protocol `$plan` and `$plan-review` read, so a design planned under it is reviewed under it.
+
+**Entry gate:**
+
+- Run when the diff adds or changes a domain entity, value object, aggregate root, repository, domain event, or a cross-aggregate reference.
+- **SKIP** when no domain-entity surface is touched. Record: `Skipped Phase 3.8 — no domain-entity surface in diff.`
+
+**Protocol:**
+
+1. Set the `[Review Phase 3.8]` task to `in_progress`.
+2. Detect **paradigm** (OO-mutable / type-driven-immutable / event-sourced, per aggregate) and **subdomain fit** (core / supporting / generic / CRUD) FIRST — both decide which rules apply. NEVER report anemic model before stating the subdomain judgment with evidence.
+3. Apply the gate's 6 decision points as review lenses — **Mode A (default):** read `$domain-entities-review` Phase 2 A–P and apply inline. **Mode B:** delegate to `$domain-entities-review` when standalone AND the diff carries 3+ entity files.
+4. Findings enter the normal set with `file:line` + severity — they consolidate in Phase 4, validate in Phase 6, and only validated ones are fixed in Phase 7.
+5. Set the `[Review Phase 3.8]` task to `completed`.
+
+**Parent workflow boundary:** When this skill is invoked as step 1 inside `$workflow-review-changes`, do NOT run Phase 3.8 locally — the parent workflow's dedicated `$domain-entities-review` step 5 owns the A–P audit. Record `Phase 3.8 deferred to parent workflow $domain-entities-review step 5.` — why: running both duplicates a parallel-batch member and closes a review cycle.
+
 **Phase 4: Generate Final Review Result**
 
 Update report with final sections (**MUST ATTENTION** — include every section below):
@@ -1059,6 +1080,7 @@ If `architectureRules` not present in project-config.json, skip silently.
 | `$integration-test-review` | **Mandatory coverage gate (Phase 3.7)** — 7-gate test-quality audit + Gate 7 change-coverage mapping (every behavior change → covering test + spec TC) | ALWAYS at Phase 3.7 when behavior-bearing code changed (standalone); deferred to the parent's dedicated step in `$workflow-review-changes`. Skip only docs-only diffs |
 | `$ui-review`               | **UI/frontend quality gate** — overflow, responsive flex, z-index, SCSS/BEM | Owned by this skill — invoked internally as the UI dimension (ui-ux-designer sub-agent) when the diff has frontend/UI files; NOT a separate workflow step |
 | `$code-simplifier`         | **Quality-optimization dimension** — clarity/consistency/maintainability simplifications | Owned by this skill — invoked internally in Phase 3.5 (report mode) when the diff has code files; its findings flow through Phase 6 validation → Phase 7 fix |
+| `$domain-entities-review`  | **Domain entity gate (Phase 3.8)** — canonical owner of `SYNC:domain-entity-change-gate`; its Phase 2 A–P checklist IS the gate | Phase 3.8 Mode B, when the diff changes 3+ entity/VO/aggregate files; Mode A reviews inline against the same gate. Skip when the diff has no domain-entity surface |
 | `$code-review`             | **Code quality** — deeper review of changed code                            | Always follows changes-review quality pass                                                                  |
 
 ## Standalone Chain
@@ -1081,6 +1103,10 @@ changes-review (you are here)
   │    → Gate 7 maps every behavior-changing production file to a covering test (integration-first) + spec TC
   │    → GAP/SPEC-GAP verdicts feed Phase 6 validation → Phase 7 fix
   │    → GAP fix = WRITE the missing test via $integration-test; SPEC-GAP fix = $spec [mode=tests] [update] (skip docs-only diffs)
+  │
+  ├─ Phase 3.8: Domain entity gate (INTERNAL — SYNC:domain-entity-change-gate over changed entities/VOs/aggregates)
+  │    → Mode A reviews inline; Mode B (3+ entity files) delegates to $domain-entities-review
+  │    → Gate findings feed Phase 6 validation → Phase 7 fix (skip when no domain-entity surface)
   │
   ├─ Follow-on quality checks (architecture-review → code-review → performance)
   │
@@ -1904,6 +1930,57 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 
 <!-- /SYNC:trade-off-interrogation-gate -->
 
+
+<!-- SYNC:domain-entity-change-gate -->
+
+> **Domain Entity Change Gate** — ONE protocol binding every skill or agent that PLANS, IMPLEMENTS, or REVIEWS a change touching a domain entity, value object, or aggregate, so a planner, an implementer, and a reviewer apply the SAME rules to the SAME change. `$domain-entities-review` is the canonical owner of the full A–P checklist; this gate is the shared trigger plus the decision set that must be answered. NEVER re-derive a weaker local copy — why: when planning and review disagree on entity rules, the plan ships a design that review then rejects, and the rework is paid twice.
+>
+> **Trigger — fires when ANY holds:** a new entity / value object / aggregate root is introduced · an existing one gains or loses a field, invariant, relationship, or state transition · an aggregate boundary, repository, or cross-aggregate reference changes · a domain event is added, renamed, or re-payloaded · a concurrency or reconstitution concern on a root changes. State `No domain-entity surface — gate N/A` when none holds.
+>
+> **Step 1 — Detect BEFORE deciding.** Both answers change which rules even apply:
+>
+> - **Paradigm** (per aggregate, from the code — NEVER assumed): OO-mutable · type-driven/immutable · event-sourced. Setter, mutability, and reconstitution rules are written for OO-mutable; applying them to the other two manufactures false findings and false plan tasks.
+> - **Subdomain fit:** core (rich model owed) · supporting (Active Record or light model) · generic (buy, do not model) · CRUD (Transaction Script — a rich entity here is ceremony). NEVER plan or flag a rich model where the subdomain has no invariant beyond required-field.
+>
+> **Step 2 — Answer all 6 decision points.** Each is a decision the change MUST make explicitly:
+>
+> | # | Decision point | Answered when |
+> | - | -------------- | ------------- |
+> | 1 | **Classification** — entity vs value object vs aggregate root | The swap test is applied ("would an identical copy be interchangeable?"); a VO is immutable with structural equality and has no repository |
+> | 2 | **Invariant ownership** — entity owns "can this state exist?", the boundary owns "is this input acceptable?" | Each rule is placed on one side and named; failure signalling (throw vs `Result`) matches the project convention consistently; a DB constraint is a backstop, NEVER the rule |
+> | 3 | **Aggregate boundary + concurrency** | Only true always-consistent invariants share an aggregate; cross-aggregate references are by ID; one aggregate mutates per transaction; the ROOT carries the concurrency token; set-based invariants (uniqueness across instances) name a real enforcing mechanism, never an in-memory check |
+> | 4 | **Construction vs reconstitution** | Creation and load are separate paths; the load path raises NO domain events and re-runs NO creation rules; required data sits in the constructor/factory |
+> | 5 | **Events** | Raised inside the aggregate; dispatched AFTER commit (outbox when crossing a process); internal domain events kept distinct from published integration contracts; handlers idempotent |
+> | 6 | **Test obligation** | Every invariant maps to a universally-quantified property TC PLUS a boundary counter-case — the spec NAMES it and a test GUARDS it (Dual-Feedback); a single happy-path example is NOT coverage |
+>
+> **Step 3 — Apply by context.** Same decisions, different obligation:
+>
+> | Calling context | Obligation |
+> | --------------- | ---------- |
+> | **Planning** (`$plan`) | The plan MUST name the decision and the owning file for every triggered row. An unanswered row is a plan that is not executable — surface it, do NOT let implementation discover it. |
+> | **Plan review** (`$plan-review`) | An unanswered, hand-waved, or deferred-to-implementation row is a FINDING with `file:line` into the plan. Presence of the word "entity" is NEVER an answer. |
+> | **Implementation** (`$plan-execute`, `$fix`, and any implementing agent — e.g. `backend-developer`) | The decisions are INPUTS, not questions to reopen: implement each triggered row as the plan/spec decided it, at the owning file it named. A row that arrives UNANSWERED is a blocker — surface it and get it decided; NEVER settle it silently at the keyboard, and NEVER pick an aggregate boundary from a DB table or UI screen because the plan left it open. Paradigm and subdomain fit still gate which rules apply. |
+> | **Change review** (`$changes-review`) | Route to the owner — **Mode A (default):** read `$domain-entities-review`'s Phase 2 A–P checklist and apply it as review lenses. **Mode B (escalation):** delegate to `$domain-entities-review` when standalone AND the diff carries 3+ entity files. Findings enter the normal finding set with `file:line` + severity. |
+>
+> **Duplication guard — SKIP the gate entirely when ANY row holds.** Record the deferral line, then proceed:
+>
+> | Suppressing context | Deferral line |
+> | ------------------- | ------------- |
+> | The running skill IS `$domain-entities-review` | `Gate is this skill's own body — A–P checklist owns it.` |
+> | Invoked inside `$workflow-review-changes` (its step 5 runs `$domain-entities-review` as a dedicated conditional parallel member) | `Gate deferred to workflow step 5 $domain-entities-review.` |
+> | `$why-review` running in `--validate-findings` terminal mode | `Gate N/A — validate-findings is terminal, no sub-skill calls.` |
+>
+> — why: unguarded, this edge duplicates a review the parent workflow already runs and closes a `changes-review → domain-entities-review → why-review → changes-review` cycle.
+>
+> **BLOCKED until:** trigger evaluated (or `gate N/A` recorded) · paradigm + subdomain fit stated · all 6 triggered decision points answered or raised as findings · guard row checked before any delegation.
+
+<!-- /SYNC:domain-entity-change-gate -->
+
+<!-- SYNC:domain-entity-change-gate:reminder -->
+
+**MUST ATTENTION** when the change PLANS or REVIEWS a new/updated domain entity, value object, or aggregate, apply the **Domain Entity Change Gate** — `$domain-entities-review` owns the full A–P checklist; detect paradigm + subdomain fit FIRST, then answer all 6 decision points (classification · invariant ownership + failure signalling · aggregate boundary + concurrency · construction vs reconstitution · events · property-TC test obligation). Planning must NAME each decision; plan review treats an unanswered row as a FINDING; change review routes to the owner (Mode A read / Mode B delegate). SKIP under the 3-row duplication guard and record the deferral line. — why: one protocol shared by planner and reviewer is what stops a plan shipping an entity design that review then rejects.
+
+<!-- /SYNC:domain-entity-change-gate:reminder -->
 
 <!-- SYNC:understand-code-first:reminder -->
 
