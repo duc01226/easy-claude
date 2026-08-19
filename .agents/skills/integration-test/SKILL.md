@@ -59,7 +59,8 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 - TC traceability is the spine: each test method carries a `TC-{FEATURE}-{NNN}` test-spec annotation; one business TC maps to MANY tests (1:N, integration + unit), so cover with as many tests as needed — never split a TC to force 1:1, and auto-create a TC in feature-doc Section 8 only for genuinely uncovered business behavior.
 - Always search existing tests in the SAME service and read `references/integration-test-patterns.md` before writing; match local conventions (collection, base class, helpers, unique-name generators) and organize files by domain feature, never by `Queries/`/`Commands/` CQRS type.
 - Done means repeatable, not green-once: the suite must pass 2 consecutive `$integration-test-verify` runs WITHOUT a DB reset; the in-skill `review`/`verify` modes are lightweight inline passes, distinct from the heavier standalone `$integration-test-review` and `$integration-test-verify` skills.
-- **Main steps (MANDATORY order):** (1) FIRST — for business-visible behavior, verify/upsert each `TC-{FEATURE}-{NNN}` in feature-doc Section 8 (create if missing, update if stale, output TC→method mapping); for technical-only behavior, record `TECHNICAL-ONLY — no business TC` and use a technical annotation instead; (2) MIDDLE — implement test files with the appropriate annotation, following the project's existing base classes/helpers; (3) FINAL — verify traceability bidirectionally across integration AND unit suites (business tests → exactly one doc TC; technical-only tests → `TechnicalSpec`; every doc TC → ≥1 test; flag orphans). Per-mode loop: Detect mode → Find targets → Gather context → Execute → Report.
+- **Main steps (MANDATORY order):** (1) FIRST — for business-visible behavior, verify/upsert each `TC-{FEATURE}-{NNN}` in feature-doc Section 8 (create if missing, update if stale, output TC→method mapping); for technical-only behavior, record `TECHNICAL-ONLY — no business TC` and use a technical annotation instead; (2) MIDDLE — implement test files with the appropriate annotation, following the project's existing base classes/helpers; (3) FINAL — verify traceability bidirectionally, feature-area-WIDE, across integration AND unit suites (business tests → exactly one doc TC; technical-only tests → `TechnicalSpec`; every §8 TC in the feature area → ≥1 test, not only TCs this run touched; flag orphans). Per-mode loop: Detect mode → Find targets → Gather context → Execute → Report.
+- **MANDATORY "Validate: no missing integration tests" task** — non-skippable whenever inside a workflow, current git changes exist, or by user request (essentially every run): every changed file has a covering test AND every §8 TC in the feature area has a covering test; zero-GAP table required before marking done.
 
 **Workflow:** Detect mode → Find targets → Gather context → Execute → Report
 
@@ -173,12 +174,24 @@ ALWAYS create and execute tasks in this exact order:
     - Each test method gets the TC annotation before it (outside the method body) using the configured test framework's attribute/decorator/tag/marker syntax.
     - Follow existing patterns from project's test base classes
 
-3. **FINAL: Verify traceability (cardinality: 1 TC : N tests)**
+3. **FINAL: Verify traceability (cardinality: 1 TC : N tests) — scope: WHOLE current feature area, not only this run's TCs**
     - Grep test-spec annotations across **all** test projects/suites for the stack — integration **and** unit (a TC may be covered by tests in either — grep only the integration project and unit-only-covered TCs falsely look uncovered)
-    - Grep all `TC-{FEATURE}-{NNN}` in feature doc Section 8 / specs doc
+    - Grep **every** `TC-{FEATURE}-{NNN}` in Section 8 of **all** feature doc(s) implicated by this run — doc(s) covering changed files' domain, or user-named feature/domain — including TCs this run did NOT touch. TC pre-dating this run in scope same as one created in step 1.
     - Verify: every business test method → **exactly one** doc TC (its `TestSpec` annotation); every technical-only test method → a `TechnicalSpec` annotation; every doc TC → **≥1** covering test method. **One TC may be covered by many test methods** (integration + unit, across components/services) — that is the expected one-to-many shape. NEVER require one test per TC, and NEVER split/technicalize a business TC to make tests map 1:1 (breaks the spec's business/user-story orientation, M1/M5 — see `tc-format.md` → TC ↔ Test Code Cardinality).
     - Flag orphans: tests whose `TestSpec` TC is absent from §8; technical-only tests that still carry business `TestSpec`; doc TCs with **zero** covering tests. (Many tests sharing one TC is NOT an orphan and NOT a duplicate.)
     - Update the `CoveredBy` field in feature doc TCs with the covering tests — `{File}::{MethodName}` comma-separated **on one line**, or a test-filter expression when the set is large (the field is representative; the annotation in code is authoritative). The covering set MAY include unit tests, not only integration tests. Legacy `IntegrationTest:` is migration input only.
+
+    > **MANDATORY task — "Validate: no missing integration tests" (non-skippable — three trigger conditions: inside workflow, current git changes present (staged/unstaged), or direct user request — essentially every run; ONLY exception: narrow read-only single-TC lookup, no test generation intended).** Create as OWN named task tracking item, not folded silently into step 3. Subsumes same bidirectional logic as VERIFY-TRACEABILITY mode below, run every time — not only when user types `verify` — scoped to feature area:
+    >
+    > 1. Every changed command/query/handler/entity/event-handler file in this run has **≥1** covering test (grep + read; name match alone NOT coverage).
+    > 2. Every `TC-{FEATURE}-{NNN}` in Section 8 of implicated feature doc(s) — FULL set, not only TCs this run created/touched — has **≥1** covering test.
+    > 3. Emit result as table; require **zero GAP rows** before marking run done:
+    >
+    > | TC / Changed File | Covering Test(s) | Status |
+    > | ------------------ | ----------------- | ------------------------ |
+    > | TC-{FEATURE}-{NNN} or {file:line} | {file}::{method}[, …] / NONE | COVERED / GAP |
+    >
+    > Any `GAP` row → generate missing test (loop back to Step 3: Generate Test File) before task marked `completed`. Do NOT report done with open GAP row.
 
 ## Module Abbreviation Registry
 
@@ -582,6 +595,8 @@ Test fails
 # VERIFY-TRACEABILITY Mode — Test ↔ Spec ↔ Feature Doc Verification
 
 Mode = VERIFY: bidirectional traceability check between test code, test specs, feature docs.
+
+> **Relationship to Mandatory "no missing integration tests" task (Mandatory Task Ordering, step 3).** That task already runs SAME bidirectional logic, feature-area-scoped, EVERY run (workflow / git-changes-present / user-request) — not only when user explicitly types `verify`. This standalone VERIFY mode exists for on-demand, potentially broader (multi-feature-doc or whole-service) traceability sweep user invokes by name — not a separate, narrower obligation. Both apply same run → audit once, satisfy both.
 
 ## Verify Workflow
 
@@ -1185,7 +1200,8 @@ integration-test (you are here)
 - **MANDATORY IMPORTANT MUST ATTENTION** search 3+ existing tests in the SAME service and READ `references/integration-test-patterns.md` BEFORE writing — match collection, base class, helpers, unique-name generators — why: local conventions override generic templates
 - **MANDATORY IMPORTANT MUST ATTENTION** cite `file:line` evidence (confidence >80% to act, <60% do NOT recommend) for every claim about field changes, entities, or handler behavior — why: AI hallucinates APIs/signatures; grep to confirm before asserting
 - **MANDATORY IMPORTANT MUST ATTENTION** task tracking — break ALL work into small tasks BEFORE starting; transition one task at a time, add a final review task — why: tracking survives context loss/compaction
-- **MANDATORY IMPORTANT MUST ATTENTION** execute the main task ordering IN ORDER — (1) FIRST verify/upsert TCs in feature-doc §8 for business-visible behavior, or record `TECHNICAL-ONLY` for non-business behavior, (2) MIDDLE implement tests with the correct annotation, (3) FINAL verify traceability across integration + unit suites — and run the per-mode loop Detect mode → Find targets → Gather context → Execute → Report — why: implementing before traceability exists produces orphans and skipping FINAL leaves drift undetected
+- **MANDATORY IMPORTANT MUST ATTENTION** execute the main task ordering IN ORDER — (1) FIRST verify/upsert TCs in feature-doc §8 for business-visible behavior, or record `TECHNICAL-ONLY` for non-business behavior, (2) MIDDLE implement tests with the correct annotation, (3) FINAL verify traceability, feature-area-WIDE, across integration + unit suites — and run the per-mode loop Detect mode → Find targets → Gather context → Execute → Report — why: implementing before traceability exists produces orphans and skipping FINAL leaves drift undetected
+- **MANDATORY IMPORTANT MUST ATTENTION** run the named "Validate: no missing integration tests" task tracking item — non-skippable inside a workflow, with current git changes present, or by user request (essentially every run) — every changed file covered AND every §8 TC in the WHOLE feature area covered, zero GAP rows before marking done — why: a diff-scoped-only check misses pre-existing orphaned TCs outside this run
 - **MANDATORY IMPORTANT MUST ATTENTION** every test method carries a traceability annotation: `TestSpec=TC-{FEATURE}-{NNN}` for business §8 coverage, or `TechnicalSpec=...` for technical-only regression coverage. Auto-create in Section 8 ONLY for genuinely uncovered business behavior — why: the annotation is the join key for traceability
 - **MANDATORY IMPORTANT MUST ATTENTION** one business TC maps to MANY tests (1:N, integration + unit) — NEVER split or technicalize a TC to force 1:1 — why: 1:1 splitting breaks the spec's business/user-story orientation (M1/M5)
 - **MANDATORY IMPORTANT MUST ATTENTION** for any handler enforcing a `[HARD]` §4 rule or §5 invariant, generate a Pattern 9 property/metamorphic test + boundary counter-case tied to a §8 Invariant/Property TC — why: example tests guard fixed points; the rule must fail across its whole input domain (mutation-kill, not line-coverage)

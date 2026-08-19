@@ -189,7 +189,7 @@
             "type": "command"
           }
         ],
-        "matcher": "startup"
+        "matcher": "startup|resume"
       }
     ],
     "Stop": [
@@ -207,6 +207,14 @@
         "hooks": [
           {
             "command": "node \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/init-prompt-gate.cjs",
+            "type": "command"
+          }
+        ]
+      },
+      {
+        "hooks": [
+          {
+            "command": "node \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/graph-prompt-sync.cjs",
             "type": "command"
           }
         ]

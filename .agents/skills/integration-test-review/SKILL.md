@@ -60,6 +60,7 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 - **The phase pipeline (run ALL, task tracking each):** P0 Scope-detect → P1 Collect (split prod vs test files) → P2 Gate Review (Gates 1-6 + 8 per file, Gate 7 across set) → P3 Spec Cross-Check (both directions) → P4 Initial Report → P5 Fix ALL Crit/High + WRITE missing tests → P6 Validated-fix + full fresh re-review until 0 Crit/0 High → P7 Build & run ALL tests → P8 Failure Investigation → P9 Why-Review self-validation.
 - **Read handler/service source (and feature docs) BEFORE judging any assertion.** FAIL smoke-only, existence-only (not-null), dead (always-true), copy-paste, and DI-resolution-only tests — why: assertion quality is unknowable without knowing what the handler actually writes.
 - **Don't just report gaps — fix them.** Gate 6: NEVER fix a test to match broken code, NEVER self-resolve a three-way conflict (escalate by asking the user directly). Phase 5 WRITES the missing test (runs `$spec [mode=tests]` for SPEC-GAPs); a full fresh re-review runs after every validated fix cycle until a clean pass returns 0 CRITICAL/0 HIGH.
+- **MANDATORY feature-area-wide TC audit (Phase 1 task + Phase 3 addendum):** Gate 7 alone is diff-scoped — it can't see a pre-existing §8 TC that lost its covering test outside the diff. Every review non-skippably enumerates the FULL Section-8 TC list of the implicated feature doc(s), not only diff-touched TCs, into the SAME Coverage Mapping Table; zero GAP rows required, whole table, before PASS.
 
 **Scope:** The FULL change set — changed production code AND changed test files — from uncommitted changes (default), user-specified files, or a user-specified diff (branch/PR). The review target is never "just the test files".
 
@@ -267,6 +268,8 @@ Compare each pair with `file:line` evidence for each source.
 
 This gate makes the skill verify the REVIEW TARGET has coverage — not merely review tests that happen to exist.
 
+> **Scope note:** protocol below diff-scoped (changed production files → TC). Does NOT by itself prove 100% feature-area coverage — a pre-existing TC that lost its covering test, or was never covered, sits outside this diff and passes silently. **Phase 3 addendum — Feature-Area-Wide TC Audit** (below) closes that gap: audits every Section-8 TC in implicated feature doc(s), not only ones this diff touches; both feed the SAME Coverage Mapping Table, SAME zero-GAP exit bar.
+
 **Protocol:**
 
 1. **Collect changed production files** from the review target (Phase 0 scope): commands, queries, handlers, entities, services, event handlers, consumers, controllers, frontend services/stores with business logic.
@@ -331,6 +334,8 @@ Use task tracking for EACH phase before starting.
 
 **Phase 1 — Collect:** Split the change set: production files (Gate 7 coverage targets) vs test files. Categorize test files: new (full review), modified (changed methods only), new projects (infra + samples). Categorize production files: behavior-changing vs excluded (with reason).
 
+> **MANDATORY task — "Validate: 100% Section-8 TC coverage for {feature doc(s)} — not just diff-touched TCs."** Create as OWN named task tracking item in Phase 1 breakdown. Non-skippable whenever this review runs inside a workflow, current git changes are present (staged/unstaged), or by direct user request — every invocation of this skill except a scope explicitly narrowed by the user to a single named TC/test. Identify feature doc(s) implicated by the change set (or named by the user) up front — their full Section 8 TC list is the audit scope for Phase 3's addendum below, independent of which TCs the diff touches.
+
 **Phase 2 — Gate Review:** Per test file, apply Gates 1-6 and Gate 8. Apply Gate 7 once across the change set and produce the Coverage Mapping Table. Record per-file verdict table:
 
 | Gate                              | Verdict                 | Evidence    |
@@ -359,6 +364,14 @@ For each behavior-changing production file in the review target (reverse directi
 
 7. Verify a TC exists describing the changed behavior AND read it to confirm it describes the CURRENT behavior — run this even when a covering test was already found and the row is otherwise COVERED. If the TC still describes the OLD behavior, downgrade the row from COVERED to SPEC-GAP and flag it stale (route to `$spec [mode=tests]` UPDATE). Finding a covering test never excuses re-checking the TC's correctness.
 8. New behavior with no TC anywhere → SPEC-GAP finding (Gate 7); recommend `$spec [mode=tests]` (and `$spec` when business rules changed)
+
+**Phase 3 addendum — Feature-Area-Wide TC Audit (MANDATORY, satisfies Phase 1 "100% Section-8 TC coverage" task).** Steps 1-8 above diff-scoped: map changed production files → TC. This addendum TC-scoped instead, covers TCs the diff never touched:
+
+9. Enumerate **every** `TC-{FEATURE}-{NNN}` in Section 8 of **all** feature doc(s) implicated by the change set (or named by the user) — FULL list, not the subset steps 1-8 already visited.
+10. For each TC not already resolved by steps 1-8, find covering test(s) the same way Gate 7 does (graph query / grep the handler or class the TC describes; read test — name match alone NOT coverage) and read TC to confirm it still describes CURRENT behavior.
+11. Classify each using SAME verdicts and Coverage Mapping Table format as Gate 7 (`COVERED` / `COVERED-UNIT` / `GAP` / `SPEC-GAP`) — append rows to the SAME Coverage Mapping Table Gate 7 produces, so review emits one unified table covering both diff-touched and pre-existing TCs.
+12. A `GAP` surfaced here (pre-existing TC, zero covering test — coverage regressed or never written) carries the SAME Phase 5 "WRITE the missing test" obligation as a diff-touched Gate 7 GAP — not a lesser finding merely because the diff didn't touch it. Severity: HIGH minimum per Gate 7's rule.
+13. Zero `GAP` rows across the WHOLE unified table (diff-touched + feature-area-wide) required before review can report PASS on Gate 7 / the Phase 1 mandatory task.
 
 **Phase 4 — Initial Report:** Write to `plans/reports/integration-test-review-{date}-{slug}.md`
 
@@ -1332,6 +1345,7 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 **IMPORTANT MUST ATTENTION** bootstrap task tracking for ALL 9 phases BEFORE starting; on context loss call the current task list first and resume, never duplicate — why: phase tracking is the only recovery anchor after compaction
 **IMPORTANT MUST ATTENTION** search 3+ existing test patterns and the project's test reference docs (`integration-test-reference.md` via grep, NEVER hardcoded paths) before judging conventions; evaluate pattern FIT (same base class, scope, DI path) before copying a nearby example — why: local conventions override generic framework defaults
 **IMPORTANT MUST ATTENTION** every behavior-changing production change needs a covering test — integration-first; unit fallback requires recorded infeasibility justification; GAP = HIGH minimum (CRITICAL on auth/money/data-integrity), fixed by WRITING the test in Phase 5, not just reporting
+**IMPORTANT MUST ATTENTION** run the Phase 1 "Validate: 100% Section-8 TC coverage" task + Phase 3 addendum EVERY review (inside a workflow, current git changes present, or by user request) — enumerate the FULL Section-8 TC list of the implicated feature doc(s), not only diff-touched TCs, into the SAME Coverage Mapping Table; zero GAP rows across the WHOLE table before PASS — why: Gate 7 alone is diff-scoped and misses a pre-existing TC whose covering test regressed outside the diff
 **IMPORTANT MUST ATTENTION** Gate 1 mutation probe is non-skippable — record the Mutation Probe Ledger (KILLED/SURVIVOR per changed core-logic line); no ledger = Gate 1 FAIL, not "skipped" — why: a surviving mutant is a fakeable test that protects no invariant
 **IMPORTANT MUST ATTENTION** spec-driven alignment runs BOTH directions — from TCs in tests AND from changed code back to spec docs; missing OR stale-but-covered TC = SPEC-GAP finding — why: a covering test whose mapped TC documents OLD behavior passes a spec gap silently
 **IMPORTANT MUST ATTENTION** a test that cannot fail is decoration — if it cannot catch the protected business rule/invariant breaking, delete or fix it; flag smoke-only/existence-only/dead assertions as FAIL unless justified by explicit design comment

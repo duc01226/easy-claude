@@ -66,7 +66,7 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 2. **Phase A — Stack Detection** — read plan / architecture-design / tech-stack reports; write `stack-profile.md`; ask the user directly on any undetectable field.
 3. **Phase B — Feedforward Guides** — author/enhance CLAUDE.md/AGENTS.md (architecture patterns, anti-patterns, naming, module boundaries) + skill-activation rules + `docs/architecture/*` notes + pattern catalog; confirm by asking the user directly.
 4. **Phase C — Computational Sensors** — confirm `$linter-setup` outputs; list config paths (invoke `$linter-setup` if any missing).
-5. **Phase D — Inferential Sensors** — wire review skills to lifecycle gates (`$why-review` pre-impl · `$code-review` pre-commit · `$domain-entities-review` post-impl · `$production-readiness-review` + `$security-review` pre-release · `$scan-codebase-health` recurring); record under "## Review Gates".
+5. **Phase D — Inferential Sensors** — wire review skills to lifecycle gates (`$why-review` pre-impl · `$code-review` pre-commit · `$domain-entities-review` post-impl · `$production-readiness-review` + `$security-review` pre-release · `$scan-codebase-health` recurring · `$integration-test-review` feature-area TC audit BOTH pre-release AND recurring — closes the diff-scoped blind spot); record under "## Review Gates".
 6. **Phase E — Behaviour Harness** — pick spec format, define test pyramid + approved fixtures, gate on mutation score (NEVER line %), add property/behavior coverage; write `test-strategy.md`.
 7. **Phase F — Inventory Report** — append `harness-inventory.md` (feedforward + computational/inferential sensors + open gaps); present by asking the user directly.
 8. **Next Steps** — ask the user directly: `$feature-implement` (recommended) · `$why-review` · skip.
@@ -195,6 +195,7 @@ Configure which AI review skills fire at each lifecycle stage. Present to user b
 **Recurring drift detection:**
 
 - `$scan-codebase-health` — schedule quarterly (or on CI schedule) to detect drift
+- `$integration-test-review` — Missing Integration Test / Spec-Coverage Gate: feature-area-wide TC audit (Phase 3 addendum in that skill) catches orphaned Section-8 TCs and uncovered changed behavior. Wire BOTH pre-release (mandatory gate, alongside `$production-readiness-review` and `$security-review`) AND same recurring cadence as `$scan-codebase-health` — a diff-scoped run alone cannot see a TC whose covering test regressed outside the current change set; only a periodic feature-area sweep does.
 
 Add the agreed sensor configuration to CLAUDE.md under "## Review Gates".
 
@@ -270,6 +271,7 @@ Stack: {detected stack from Phase A}
 | Post-implementation | $domain-entities-review | Domain model quality           |
 | Pre-release         | $production-readiness-review             | Operational readiness          |
 | Pre-release         | $security-review               | Security vulnerabilities       |
+| Pre-release + Recurring | $integration-test-review (feature-area TC audit) | Orphaned Section-8 TCs, uncovered changed behavior |
 
 ## Open Gaps
 
@@ -381,13 +383,14 @@ ask the user directly:
 - **AI Mistake Prevention:** verify generated content against evidence, trace downstream references, verify all affected outputs, re-read after context loss, surface ambiguity.
 - **Harness Engineering:** feedforward + feedback loops; gate on mutation score, never line-coverage %, keep quality left.
 
-**IMPORTANT MUST ATTENTION Main steps (in order — each BLOCKS the next):** Guards (verify `$linter-setup`) → A Stack Detection (`stack-profile.md`) → B Feedforward Guides (CLAUDE.md patterns/anti-patterns/naming/boundaries + skill-activation rules + pattern catalog) → C Computational Sensors (confirm linter/hook/CI) → D Inferential Sensors (wire `$why-review`, `$code-review`, `$domain-entities-review`, `$production-readiness-review`, `$security-review`, `$scan-codebase-health` to gates) → E Behaviour Harness (spec format + test pyramid + mutation-score gate + `test-strategy.md`) → F Inventory Report (`harness-inventory.md`) → Next Steps. NEVER skip or reorder — why: each phase consumes the prior phase's verified output.
+**IMPORTANT MUST ATTENTION Main steps (in order — each BLOCKS the next):** Guards (verify `$linter-setup`) → A Stack Detection (`stack-profile.md`) → B Feedforward Guides (CLAUDE.md patterns/anti-patterns/naming/boundaries + skill-activation rules + pattern catalog) → C Computational Sensors (confirm linter/hook/CI) → D Inferential Sensors (wire `$why-review`, `$code-review`, `$domain-entities-review`, `$production-readiness-review`, `$security-review`, `$scan-codebase-health`, `$integration-test-review` missing-test/spec-coverage gate to gates) → E Behaviour Harness (spec format + test pyramid + mutation-score gate + `test-strategy.md`) → F Inventory Report (`harness-inventory.md`) → Next Steps. NEVER skip or reorder — why: each phase consumes the prior phase's verified output.
 
 **IMPORTANT MUST ATTENTION** BLOCK on the `$linter-setup` prerequisite first — ALWAYS verify computational sensors (linter config, pre-commit hook, CI gate) exist before any phase runs — why: keep quality left; cheapest gates must precede inferential ones, and this skill never installs them itself
 **IMPORTANT MUST ATTENTION** NEVER auto-decide feedforward-guide or sensor content — present the draft and confirm by asking the user directly — why: harness conventions bind every future agent; silent choices propagate to all later sessions
 **IMPORTANT MUST ATTENTION** write `.ai/workspace/harness/harness-inventory.md` incrementally (append after each phase) — NEVER hold findings in memory — why: long context drifts and silently drops findings
 **IMPORTANT MUST ATTENTION** walk phases A→F as a hard barrier sequence — NEVER skip or reorder; each phase BLOCKS the next until its guard passes — why: a later phase consumes the prior phase's verified output
 **IMPORTANT MUST ATTENTION** gate the behaviour harness on mutation score + property coverage — NEVER fail a build on a line-coverage % — why: lines execute without asserting intent, so coverage % is a diagnostic only, never a quality gate
+**IMPORTANT MUST ATTENTION** wire `$integration-test-review`'s feature-area-wide TC audit as a Phase D sensor BOTH pre-release AND on the SAME recurring cadence as `$scan-codebase-health` — never pre-release only — why: a diff-scoped-only run cannot see a §8 TC whose covering test regressed outside the current change set; only a periodic feature-area sweep catches it
 **IMPORTANT MUST ATTENTION** research tool choices per detected stack — NEVER hardcode a linter/formatter/mutation tool — present top 2-3 options, enforce strictest defaults, loosen only with explicit approval — why: harnessability depends on the actual stack, not a default
 **IMPORTANT MUST ATTENTION** harness inventory is a LIVING document — update it when new sensors are added later — why: a stale inventory misrepresents the active feedback loop
 **IMPORTANT MUST ATTENTION** grep 3+ existing guides/sensors before authoring a new one; verify fit (same stack, gate stage, lifecycle) before copying a nearby pattern — why: closest example ≠ matching preconditions

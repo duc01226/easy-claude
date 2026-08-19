@@ -755,7 +755,7 @@ UNIVERSAL RULES:
 ### workflow-integration-test-green — Integration Test Green (Verify · Adjudicate · Fix · Loop)
 - Description: Drive an integration-test suite to fully green with a bounded convergence loop — verify the whole system (or the named target), adjudicate every failure with debug-investigate + integration-test-review before any edit, fix at the owning layer, re-verify from scratch, then sync spec TCs, the integration-test reference doc, and feature docs
 - When To Use: Make all integration tests pass, fix failing integration tests, drive the integration test suite to green, run the whole integration test suite and fix whatever fails, integration tests are red after a change, verify the whole system integration tests pass repeatably, loop until all integration tests are green, diagnose and fix an intermittent or flaky integration test
-- Sequence: `scout -> integration-test-verify-loop -> spec [mode=sync] -> scan --target=integration-tests -> docs-update -> workflow-end -> watzup`
+- Sequence: `scout -> integration-test-verify-loop -> debug-investigate [on-failure] -> fix [on-failure] -> spec [mode=sync] -> scan --target=integration-tests -> docs-update -> workflow-end -> watzup`
 
 Protocol:
 ```text

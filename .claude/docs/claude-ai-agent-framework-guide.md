@@ -45,7 +45,7 @@
 
 ## 1. Executive Summary
 
-This framework wraps Claude Code in a three-pillar execution framework — **16 top-level hook files**, **165 skills**, **19 registered workflows**, and **29 specialized agents** — that transforms a generic LLM into a project-aware, quality-enforced, hallucination-resistant development agent. The framework covers the **entire software development lifecycle** — from idea capture and TDD test specification through implementation, testing, E2E testing, code review, and documentation — with AI as a first-class participant at every stage.
+This framework wraps Claude Code in a three-pillar execution framework — **17 top-level hook files**, **165 skills**, **19 registered workflows**, and **29 specialized agents** — that transforms a generic LLM into a project-aware, quality-enforced, hallucination-resistant development agent. The framework covers the **entire software development lifecycle** — from idea capture and TDD test specification through implementation, testing, E2E testing, code review, and documentation — with AI as a first-class participant at every stage.
 
 It is also **harness- and project-agnostic**: the `.claude/` source compiles to verified OpenAI Codex mirrors (`AGENTS.md`, `.agents/`, `.codex/`), while all project-specific knowledge is factored into `project-config.json` + reference docs — so the same behavior runs on any supported AI tool and ports to any codebase (Section 13).
 
@@ -3178,7 +3178,7 @@ NEVER skip, batch-complete, or mark done without invoking the sub-skill.
 
 # Task  Subject                                               Conditional?
   1     Phase 0 — Triage                                      No — always
-  2     Phase 1 — Project docs update                         Yes — arch changes only
+  2     Phase 1 — Project context sync (impact-scoped)        No — unless the impact map is empty
   3     Phase 2 — /spec invocation                            Yes — service files changed
   4     Phase 2.5 — /spec-index [mode=index]                  Yes — Feature Spec changed; bucket has derived index
   5     Phase 3 — /spec [mode=tests] update                   Yes — behavior changed
@@ -3860,7 +3860,7 @@ The framework succeeds because it aligns with how LLMs actually fail:
 
 ### The Result
 
-**16 top-level hook files**, **165 skills**, **19 registered workflows**, and **29 specialized agents** working in concert to deliver:
+**17 top-level hook files**, **165 skills**, **19 registered workflows**, and **29 specialized agents** working in concert to deliver:
 
 - **Fewer hallucinations** — Evidence gates and proof traces catch AI fabrications before they reach files
 - **Better code quality** — Pattern injection ensures AI follows project conventions, not generic training data

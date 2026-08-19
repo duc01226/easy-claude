@@ -70,7 +70,16 @@ Requires Python 3.10+ with: `pip install tree-sitter tree-sitter-language-pack n
 | `update`          | `update --json`                    | Re-parse uncommitted working-tree changes (staged/unstaged)               | `/graph-update` |
 | `sync`            | `sync --json` then `update --json` | Sync committed git changes (last_synced_commit → HEAD), then working tree | `/graph-sync`   |
 
-Default (no `--scope`) auto-detects from `status`. `update` = working-tree changes (base `HEAD~1`, options `--base`/`--repo`). `sync` = committed changes + chained working-tree `update` (the sync→update chain is preserved). Session-start auto-sync runs the CLI `sync` directly via the `graph-session-init` hook — independent of this skill. Pick `--scope` FIRST (default auto-detect), then run the matching branch.
+Default (no `--scope`) auto-detects from `status`. `update` = working-tree changes (base `HEAD~1`, options `--base`/`--repo`). `sync` = committed changes + chained working-tree `update` (the sync→update chain is preserved). Pick `--scope` FIRST (default auto-detect), then run the matching branch.
+
+**Automatic HEAD reconciliation (independent of this skill).** Two hooks call the CLI `sync` directly, so a manual run is rarely needed just because HEAD moved:
+
+| Hook | Fires | Catches |
+| ---- | ----- | ------- |
+| `graph-session-init` | SessionStart (`startup\|resume`) | Commits that landed while the session was away |
+| `graph-prompt-sync` | UserPromptSubmit | A `git pull` / `checkout` / `merge` performed MID-session — gated on a cheap `git rev-parse HEAD` compare, so Python spawns only when HEAD actually moved |
+
+The `graph-auto-update` PostToolUse hook covers file EDITS; these two cover HEAD MOVES. Between them the graph should already be current — reach for a manual `--scope=sync` only to force the issue or after a rebase/force-push.
 
 ## Steps
 
@@ -130,6 +139,8 @@ Diffs the working tree against a base commit (default `HEAD~1`), re-parses chang
 
 3. **Report:** files synced/added/modified/deleted, then working-tree update results (or "working tree clean").
 
+> **Older checkout is a deliberate no-op.** When HEAD is an ANCESTOR of the graph's `last_synced_commit` — you checked out an older branch or commit the graph already covers — `sync` returns `{"reason": "graph_ahead_skipped"}` and changes nothing: no re-parse, and `last_synced_commit` is NOT dragged backwards. This is intentional. `git diff A..B` succeeds in BOTH directions, so without the guard an older checkout would silently rewrite the graph to the older tree. **Trade-off to know:** while sitting on that older branch the graph describes the newer tree, so it can report symbols the checked-out code does not have; run `--scope=full` if you need the graph to match an older branch exactly. Diverged branches are NOT "behind" (neither commit is an ancestor of the other) and still sync normally.
+
 > **sync vs update:** `sync` detects **committed** changes only (`last_synced_commit` → HEAD; use after pull/merge/checkout). `update` detects **working-tree** changes (staged/uncommitted, mid-session). No `--files` flag on `sync`/`update` (auto-detected from git); there is no `incremental` subcommand (use `update`).
 
 ## When to Use
@@ -137,7 +148,7 @@ Diffs the working tree against a base commit (default `HEAD~1`), re-parses chang
 - First time setting up graph for a project
 - After major refactoring or branch switches
 - If graph seems stale or out of sync
-- Graph auto-updates via PostToolUse hook, so manual builds are rarely needed
+- Graph auto-updates via the PostToolUse hook (file edits) and auto-syncs via the SessionStart / UserPromptSubmit hooks (HEAD moves), so manual builds are rarely needed
 
 ## Notes
 
