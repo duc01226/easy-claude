@@ -777,6 +777,7 @@ When graph DB available, use `trace` to analyze data flow paths for security rev
 > - **Security:** Auth enforced at every entry point? Input validated at boundaries? No secrets in the diff?
 > - **Performance:** Unbounded operations? N+1 patterns? Blocking calls in async context? Unindexed queries?
 > - **Maintainability:** DRY? Single responsibility? Complexity within reason? Names reveal intent?
+> - **Boundary naming:** When the category exposes public or cross-layer types, APIs, events, or modules, verify that names describe the capability, domain purpose, or contract rather than the current provider/framework/transport; concrete adapters may carry those details. Check callers and implementations before flagging a name, and treat generic names (`Manager`, `Helper`, `Utils`, `Data`) as signals rather than automatic violations.
 > - **Test coverage:** Are the changed paths covered by tests? Are existing tests still valid after the change?
 > - **Documentation:** Do related docs, specs, or READMEs reflect the changes?
 >

@@ -202,7 +202,7 @@ Strategy: **reduce degree, improve locality, weaken strength.**
 
 ### DRY applies to KNOWLEDGE, not to text
 
-**MUST ATTENTION** duplication is CHEAPER than the wrong abstraction. Two code paths that look alike but change for DIFFERENT reasons are NOT duplication — merging them creates a shared module with two actors, and every future change to one breaks the other. Wait for the **rule of three** (three real occurrences with the same reason to change) before abstracting. Extracting a wrong abstraction is far harder to undo than extracting a right one is to delay. — why: a premature abstraction is defended by everyone who now depends on it, so the cost compounds while duplication's cost stays linear.
+**MUST ATTENTION** duplication is CHEAPER than the wrong abstraction. Two code paths that look alike but change for DIFFERENT reasons are NOT duplication — merging them creates a shared module with two actors, and every future change to one breaks the other. For repeated-code extraction, wait for the **rule of three** (three real occurrences with the same reason to change) before abstracting. A boundary port is a separate decision: require an evidenced ownership or substitution boundary and name the quality attribute or change cost it buys, even with one implementation. Extracting a wrong abstraction is far harder to undo than extracting a right one is to delay. — why: a premature abstraction is defended by everyone who now depends on it, so the cost compounds while duplication's cost stays linear.
 
 ---
 

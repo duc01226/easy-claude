@@ -308,6 +308,8 @@ If an architecture report exists (from `$architecture-design`), read the "Scaffo
 4. **Interface Segregation** — Small, focused interfaces (not one giant IService)
 5. **Dependency Inversion** — All infrastructure behind interfaces, injected via DI
 
+**Purpose-oriented abstraction naming gate:** Name generated public or cross-layer interfaces, ports, and base abstractions by capability or domain contract; keep provider, SDK, framework, database, and transport details on concrete adapters (`IStorage`/`Storage` → `AzureBlobStorage`). Verify the name against the plan, callers, and implementations, preserve local language syntax, and add an abstraction only for an evidenced boundary, substitution need, or multiple meaningful implementations.
+
 **Anti-patterns to prevent:**
 
 - God classes combining multiple concerns

@@ -324,6 +324,8 @@ Per recommended pattern document: **Apply to**, **Why**, **Example**, **Risk if 
 
 **MUST ATTENTION** patterns are a VOCABULARY for a solution you already need, never a menu to shop from — applying patterns to demonstrate knowledge produces the *gas factory* anti-pattern. The right number of patterns is the SMALLEST number that removes a DEMONSTRATED pain. Watch the chronically over-applied ones: Singleton (global mutable state → prefer one DI registration), Service Locator (hides dependencies from compiler and tests), CQRS on simple CRUD, event sourcing used as an audit log (an audit table is the right answer).
 
+**Purpose-oriented abstraction naming gate:** Name ports, interfaces, modules, APIs, and adapters by the capability or domain contract consumers rely on; keep provider, SDK, framework, database, and transport details on concrete implementations (`IStorage`/`Storage` → `AzureBlobStorage`). Check the proposed name against callers and all implementations, use a narrower name when the contract is narrower, preserve local interface syntax, and require an evidenced boundary/substitution need before adding an abstraction.
+
 ---
 
 ## Step 3C: Data & Consistency Architecture
