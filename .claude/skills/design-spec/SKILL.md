@@ -17,12 +17,13 @@ description: '[Project Management] Use when you need to create UI/UX design spec
 
 **Goal:** Produce a structured, tech-agnostic UI/UX design specification from a requirement/PBI/story/wireframe so a developer can rebuild the UI on ANY stack — every component, state, design token, responsive rule, and accessibility need documented and linked back to the governing Feature Spec.
 
-**Summary (read this if nothing else — PURPOSE + every main step):**
+**Summary:**
 
 - **Purpose** — translate requirements into a developer-ready UI/UX spec (component inventory, states, design tokens, responsive behavior, accessibility), tech-agnostic: name components by UX role, never by framework/library class.
 - **Step 0–0b — research first:** inventory existing related screens/components + map connected flows, record in §1 so the spec matches the live UI system; if a governing Feature Spec exists, seed from its §6 interaction surface and reuse its view + observable-state vocabulary verbatim. — why: divergent vocabulary breaks the navigable spec↔design hub.
 - **Step 1–2 — read & route input, set complexity:** Figma URL → `/figma-design`; image/screenshot → visual analysis tooling; wireframe/sketch → `--mode=wireframe`; PBI/text → extract requirements. Pick Quick Spec (§1–4) vs Full Spec (§1–7, +Flow Diagram for multi-page).
 - **Step 3–6 — author the body:** build component inventory (new vs existing), define all 7 states + interactions, extract design tokens (reuse design-system), document responsive breakpoints (mobile 320–767 / tablet 768–1023 / desktop 1024+).
+- For a UI PBI, preserve the parent releasable outcome's complete surface: every required page/view, navigation path, common/domain/page component, applicable state, and end-to-end demo journey. Multi-page outcomes require Full Spec + Flow Diagram; do not collapse them into one screen.
 - **Step 7–8 — save & link back:** write the artifact to `team-artifacts/design-specs/`, then set the governing Feature Spec's `design_spec:`/`mockup:` frontmatter to the saved path — frontmatter only, never the §1–8 body. — why: `artifact-review --type=design` fails if the path is not recorded.
 
 **Workflow:**
@@ -42,6 +43,7 @@ description: '[Project Management] Use when you need to create UI/UX design spec
 - Component patterns: `docs/project-reference/frontend-patterns-reference.md`
 - Include accessibility requirements (keyboard nav, ARIA labels, contrast)
 - **[BLOCKING] Tech-agnostic output:** spec prose/headings follow `docs/project-reference/spec-principles.md` §3 — describe components by UX role, not framework/library names; source paths and class names appear ONLY in evidence fields (`**Evidence**`, `[Source:]`), frontmatter, and Mermaid.
+- **[BLOCKING] Releasable UI surface:** apply `.claude/skills/shared/releasable-pbi-contract.md`; the design spec must deepen, not reduce, the PBI/mockup page/view, navigation, component, state, and full-flow inventories.
 
 **Be skeptical. Apply critical thinking, sequential thinking. Every claim needs traced proof, confidence percentages (Idea should be more than 80%).**
 
@@ -627,13 +629,14 @@ For an accessibility-audit deliverable, produce this checklist report and save i
 
 ## Closing Reminders
 
-**IMPORTANT MUST ATTENTION Goal:** Produce a structured, tech-agnostic UI/UX design specification from a requirement/PBI/story/wireframe so a developer can rebuild the UI on ANY stack — every component, state, design token, responsive rule, and accessibility need documented and linked back to the governing Feature Spec.
+**IMPORTANT MUST ATTENTION Goal:** Produce a structured, tech-agnostic UI/UX design specification that preserves the PBI's complete releasable UI outcome — every required page/view, navigation path, component, state, responsive rule, accessibility need, and end-to-end demo journey — so a developer can rebuild it on ANY stack.
 
 **IMPORTANT MUST ATTENTION main steps (do not forget any):**
 
 - **Step 0–0b first** — inventory existing related UI + map connected flows (record in §1); seed from the governing Feature Spec's §6 and reuse its view/state vocabulary verbatim — why: reinventing what exists or renaming spec terms breaks the navigable hub.
 - **Step 1–2** — route by input type (Figma→`/figma-design`, image→visual analysis, wireframe→`--mode=wireframe`, PBI/text→extract), then set Quick (§1–4) vs Full (§1–7) complexity.
 - **Step 3–6** — author component inventory (new vs existing), all 7 states + interactions, design tokens (reuse design-system), responsive breakpoints.
+- **Releasable full-flow surface** — never collapse a multi-page PBI/mockup into one screen; carry the complete page/view, navigation, common/domain/page component, state, and flow inventories forward and deepen them.
 - **Step 7–8** — save to `team-artifacts/design-specs/`, then set the governing Feature Spec's `design_spec:`/`mockup:` frontmatter to the saved path (frontmatter only) — why: the link-back gate fails without it.
 - **M1–M5 gate (BLOCKING)** — business-level component names, no code-prop refs in prose, cross-ref behavior by logical ID (`OP-`/`BR-`/`FR-`), one testable interpretation per state, rebuildable from spec alone — why: a tech-leaking spec cannot be rebuilt on another stack.
 

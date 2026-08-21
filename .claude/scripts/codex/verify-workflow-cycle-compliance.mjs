@@ -214,8 +214,12 @@ const START_WORKFLOW_PREACTION_REQUIREMENTS = [
     re: /Tier 2[^.\n]*required[^.\n]*before[^.\n]*TaskCreate/i,
   },
   {
-    label: "three-workflow policy scope",
-    re: /workflow-big-feature[^.\n]*workflow-bugfix[^.\n]*workflow-feature/i,
+    label: "all-standard-workflow policy scope",
+    re: /every standard workflow/i,
+  },
+  {
+    label: "required non-empty inject-context contract",
+    re: /non-empty `?preActions\.injectContext`?/i,
   },
   {
     label: "JSON-aware complete canonical-entry read",
@@ -272,10 +276,6 @@ const START_WORKFLOW_PREACTION_FORBIDDEN = [
     label: "slash-form task activity template",
     re: /activeForm="Executing \/\{step-name\}"/i,
   },
-  {
-    label: "unapproved all-standard-workflow Tier-2 expansion",
-    re: /before every standard-workflow TaskCreate/i,
-  },
 ];
 
 export function checkStartWorkflowPreActionPolicy(rel, content) {
@@ -291,6 +291,23 @@ export function checkStartWorkflowPreActionPolicy(rel, content) {
     if (re.test(content)) {
       failures.push(
         `start-workflow pre-action violation (${rel}): found ${label} — Tier 1 selects a route and Tier 2 must load the canonical execution contract before TaskCreate`
+      );
+    }
+  }
+  return failures;
+}
+
+export function checkWorkflowInjectContextCoverage(workflows) {
+  const failures = [];
+  for (const [workflowId, workflow] of Object.entries(workflows ?? {})) {
+    if (!Array.isArray(workflow?.sequence) || workflow.sequence.length === 0) {
+      failures.push(`Workflow ${workflowId} has no executable sequence`);
+      continue;
+    }
+    const injectContext = workflow?.preActions?.injectContext;
+    if (typeof injectContext !== "string" || injectContext.trim().length === 0) {
+      failures.push(
+        `Workflow ${workflowId} is missing required non-empty preActions.injectContext`
       );
     }
   }
@@ -814,6 +831,8 @@ async function main() {
   const stepAliases = STEP_ALIASES;
 
   const workflowIds = Object.keys(workflows).sort();
+
+  failures.push(...checkWorkflowInjectContextCoverage(workflows));
 
   for (const workflowId of workflowIds) {
     const workflow = workflows?.[workflowId];

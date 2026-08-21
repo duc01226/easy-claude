@@ -20,6 +20,35 @@ const projectReferenceGateRequiredDocs = [
   "docs/project-reference/lessons.md",
 ];
 
+test("sync-context-workflows rejects a workflow without injectContext", async () => {
+  const tempRoot = await fs.mkdtemp(path.join(os.tmpdir(), "codex-sync-context-missing-inject-"));
+
+  try {
+    await fs.mkdir(path.join(tempRoot, ".claude", "skills", "test"), { recursive: true });
+    await fs.writeFile(
+      path.join(tempRoot, ".claude", "workflows.json"),
+      JSON.stringify(
+        { workflows: { testing: { name: "Testing", sequence: ["test"] } } },
+        null,
+        2
+      ),
+      "utf8"
+    );
+    await fs.writeFile(
+      path.join(tempRoot, ".claude", "skills", "test", "SKILL.md"),
+      ["---", "name: test", "description: Test skill", "---", "", "# Test", ""].join("\n"),
+      "utf8"
+    );
+
+    await assert.rejects(
+      execFileAsync(process.execPath, [syncContextScript], { cwd: tempRoot }),
+      /missing required non-empty preActions\.injectContext/
+    );
+  } finally {
+    await fs.rm(tempRoot, { recursive: true, force: true });
+  }
+});
+
 test("sync-context-workflows mirrors subagent authorization into AGENTS.md", async () => {
   const tempRoot = await fs.mkdtemp(path.join(os.tmpdir(), "codex-sync-context-"));
 

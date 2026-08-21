@@ -25,6 +25,15 @@ async function main() {
     throw new Error(`Unknown workflow ID: ${workflowId}`);
   }
 
+  if (
+    typeof workflow?.preActions?.injectContext !== "string" ||
+    workflow.preActions.injectContext.trim().length === 0
+  ) {
+    throw new Error(
+      `Workflow ${workflowId} is missing required non-empty preActions.injectContext`
+    );
+  }
+
   process.stdout.write(`${JSON.stringify(workflow, null, 2)}\n`);
 }
 

@@ -20,17 +20,21 @@ description: '[Project Management] Use when converting ideas to PBIs, validating
 **Summary:**
 
 - **Purpose:** turn a raw idea into a groomable, Definition-of-Ready PBI a team can build without re-asking what or why.
-- **Main steps — run in order, track EACH (AI keeps forgetting sub-phases):** Phase 0 locate active plan → 1 idea intake + module detect → 2 domain research → 3 problem-hypothesis validation (GATE) → 4 BABOK elicitation → 5 BDD acceptance criteria → 5.1 AI-SDD M1-M5/M7 gate (BLOCKING) → 5.5 testability assessment → 6 prioritization + draft estimate → 7 validation interview (GATE, 3-5 Qs) → 7.5 RE-DERIVE estimate vs locked scope → 8 PBI artifact generation.
+- **Main steps — run in order, track EACH (AI keeps forgetting sub-phases):** Phase 0 locate active plan → 0.5 applicability and large-idea decomposition gate → 1 idea intake + module detect → 2 domain research → 3 problem-hypothesis validation (GATE) → 4 BABOK elicitation → 5 BDD acceptance criteria → 5.1 AI-SDD M1-M5/M7 gate (BLOCKING) → 5.5 testability assessment → 6 prioritization + draft estimate → 7 validation interview (GATE, 3-5 Qs) → 7.5 RE-DERIVE estimate vs locked scope → 7.6 RELEASABLE OUTCOME gate → 8 PBI artifact generation.
 - Two gates are NON-OPTIONAL: validate the problem hypothesis (Phase 3) before building, and run the 3-5 question validation interview (Phase 7) before writing the PBI — the user decides assumptions, scope, and dependencies, never the AI.
 - Acceptance criteria are BDD GIVEN/WHEN/THEN (min 3: happy/edge/error) and MUST satisfy the AI-SDD M1-M5 and M7 gate (Phase 5.1): tech-agnostic Business Intent, logical FR-/BR- IDs first, observable single-interpretation ACs, rebuild-from-scratch validity, and every AC demoable as a business outcome (M7).
 - Estimate twice: Phase 6 drafts story points/man-days against draft scope, then Phase 7.5 RE-DERIVES them against the locked post-interview scope (per SYNC:estimation-framework) — shipping stale Phase 6 numbers is the cardinal failure.
 - The PBI frontmatter MUST carry `story_points`, `complexity`, `man_days_traditional`, `man_days_ai`, and every PBI MUST include a complete Dependencies table (`must-before`/`can-parallel`/`blocked-by`/`independent`).
+- Apply `isLargeIdea = multipleIndependentOutcomes || ambiguousOrResearchHeavy || releaseScopeDecomposition || oversizedPbiThatMustSplit` before elicitation. When true, the owning PBI MUST carry the complete `large_idea_decomposition` block (`outcome_slices`, `dependencies_order`, `non_goals`, `risks_evidence`, and `deferred_work_owner`) and every slice must be independently releasable. Do not create `docs/product-roadmap.md` by default; use the standalone roadmap branch only for an explicit roadmap request. All-false ideas omit roadmap/milestone placeholders. An existing roadmap is read-only context.
+- Every generated PBI MUST be one independently releasable, actor-facing business outcome with a complete demonstrable journey. Technical-only, foundation-only, migration-only, or setup-only work belongs as enabling tasks/dependencies under a releasable PBI, never as a standalone PBI. Read `.claude/skills/shared/releasable-pbi-contract.md`.
+- For UI PBIs, the outcome MUST include the page/view inventory, navigation map, component inventory, applicable states, and full-flow demo journey required for a mock app outcome; one isolated screen is insufficient.
 
 **Workflow:**
 
 | Phase | Name                | Key Activity                     | Output                 |
 | ----- | ------------------- | -------------------------------- | ---------------------- |
 | 0     | Locate Active Plan  | Load `plan.md` if in workflow    | Plan context           |
+| 0.5   | Applicability / Decomposition (GATE) | Evaluate large-idea signals and capture embedded slices when needed | Embedded decomposition or ordinary isolated boundary |
 | 1     | Idea Intake         | Load artifact, detect module     | Context loaded         |
 | 2     | Domain Research     | WebSearch market/competitors     | Research summary       |
 | 3     | Problem Hypothesis (GATE) | Validate problem exists       | Confirmed hypothesis   |
@@ -41,6 +45,7 @@ description: '[Project Management] Use when converting ideas to PBIs, validating
 | 6     | Prioritization      | RICE/MoSCoW + DRAFT Story Points | Priority + draft est.  |
 | 7     | Validation (GATE)   | Interview user (MANDATORY, 3-5Q) | Assumptions confirmed  |
 | 7.5   | Re-estimate         | RE-DERIVE vs LOCKED scope        | Final estimate         |
+| 7.6   | Releasable Outcome (GATE) | Confirm actor-facing outcome and full-flow surface | Releasable outcome gate |
 | 8     | PBI Generation      | Create artifact                  | PBI file saved         |
 
 **Key Rules:**
@@ -50,8 +55,12 @@ description: '[Project Management] Use when converting ideas to PBIs, validating
 - Use project domain-specific vocabulary when available
 - MUST ATTENTION include `story_points`, `complexity`, `man_days_traditional`, `man_days_ai` in PBI frontmatter
 - Every PBI MUST ATTENTION include Dependencies table — types: `must-before` | `can-parallel` | `blocked-by` | `independent`
+- Every generated PBI MUST ATTENTION pass the Releasable Outcome Gate: one actor-facing outcome, complete entry-to-result journey, observable evidence, and no standalone technical/foundation scope.
+- UI PBIs MUST ATTENTION define the full-flow surface: all required pages/views, navigation, reusable/domain/page components, applicable states, and a demo journey. A single screen is not a releasable UI PBI.
 - `docs/specs/` — read existing TCs for related features; recommend test spec generation for new PBIs
 - `docs/project-reference/domain-entities-reference.md` — read when task involves business entities/models
+- `.claude/skills/shared/product-roadmap-contract.md` — read for applicability, the embedded decomposition schema, and the explicit roadmap handoff contract
+- `.claude/skills/shared/releasable-pbi-contract.md` — read for the PBI outcome and UI full-flow contract
 
 ---
 
@@ -90,6 +99,16 @@ If running in workflow (big-feature, greenfield-init, etc.):
 3. Read existing research — `{plan-dir}/research/*.md` for business evaluation, domain analysis
 4. Read `docs/project-reference/domain-entities-reference.md` (if exists) — existing domain entities
 5. Use plan context — don't re-ask questions answered in prior steps
+
+## Phase 0.5: Applicability and Large-Idea Decomposition Gate
+
+Read `.claude/skills/shared/product-roadmap-contract.md` before eliciting PBI details. Evaluate the shared four-operand `isLargeIdea` rule:
+
+1. If any signal is true, capture the complete `large_idea_decomposition` block in the owning PBI handoff. Include stable slice IDs, independently releasable outcomes, dependency order, non-goals with owners, risks/evidence with owners and statuses, and deferred-work owners. Ask the owner about material ambiguity; do not invent boundaries.
+2. If all signals are false, omit the decomposition block and all roadmap/milestone/scope-brief placeholders. Preserve the actor, outcome, in-scope behavior, non-goals, lifecycle terms, source-of-truth state, persistence expectation, and evidence directly in the PBI.
+3. If the user explicitly requests a product roadmap, route to `$product-roadmap`; only that explicit branch may require `docs/product-roadmap.md`, a selected milestone, and a scope brief. An existing roadmap supplied by the user is read-only context.
+4. For a framework/library change, use the shared `FRAMEWORK-LIBRARY` technical branch. For an isolated brownfield change, use the explicit EXEMPT branch. Neither branch creates a product roadmap.
+5. Use `AskUserQuestion` for mismatches or material ambiguity. Do not infer whether “ready,” “published,” “delivered,” or equivalent means reviewable, sellable, visible, or accessible.
 
 ## Phase 1: Idea Intake & Context Loading
 
@@ -372,6 +391,36 @@ Compute `delta_pct = (new_likely_days - draft_likely_days) / draft_likely_days �
 
 ---
 
+## Phase 7.6: Releasable Outcome Gate (BLOCKING)
+
+Read `.claude/skills/shared/releasable-pbi-contract.md` and evaluate the locked scope before writing the PBI. This gate prevents a technical work package from being disguised as a product backlog item.
+
+The PBI is **BLOCKED** unless all of the following are true:
+
+1. A named primary actor can achieve one observable business outcome independently within the PBI boundary.
+2. The journey is complete: entry/context → action/input → validation or decision → success/result → resulting visible or persisted truth → exit or next action.
+3. Applicable authorization, persistence, refresh/duplicate-submit, loading, empty, error, and recovery behavior is explicit; use `N/A` only with a reason.
+4. Technical-only, foundation-only, migration-only, and setup-only work is attached as enabling work to this outcome or explicitly excluded; it is never emitted as the PBI's sole outcome.
+5. For UI work, the PBI defines every required page/view, navigation path, common/domain/page component, applicable state, and full-flow demo journey. Do not reduce a multi-step outcome to one screen.
+6. The owner has approved any trade-off that changes the outcome, release boundary, or required surface.
+
+If the scope fails this gate, ask the owner to reframe the outcome or attach the enabling work to a releasable PBI. Do not continue to Phase 8 with a “technical PBI” or an assumed UI flow.
+
+Record the gate in the PBI inputs before generation:
+
+```markdown
+## Releasable Outcome Gate
+- Status: PASS | BLOCKED
+- Actor and observable outcome: { ... }
+- Full-flow journey: {entry → action → result → exit}
+- Persistence/access/error/recovery coverage: { ... | N/A with reason}
+- Technical-only work: {attached enabling tasks | none}
+- UI surface: {page/view inventory + navigation + components + states | N/A — backend-only with reason}
+- Evidence: {AC/test/demo/mockup references}
+```
+
+---
+
 ## Phase 8: PBI Artifact Generation
 
 **Path:** `team-artifacts/pbis/{YYMMDD}-pbi-{slug}.md` | **ID Pattern:** `PBI-{YYMMDD}-{NNN}`
@@ -395,6 +444,8 @@ status: draft | refined | ready | in_progress | done
 rice_score: { calculated }
 created: '{YYYY-MM-DD}'
 source_idea: '{idea artifact path or ID}'
+scope_mode: ORDINARY | DECOMPOSITION-EMBEDDED | EXPLICIT-ROADMAP | EXEMPT | FRAMEWORK-LIBRARY
+large_idea_decomposition: {complete block when any isLargeIdea signal is true; omit when all signals are false}
 ---
 
 # {PBI Title}
@@ -425,6 +476,45 @@ source_idea: '{idea artifact path or ID}'
 **Experience** {specific problem}
 **Because** {root cause}
 **We'll know this is true when** {validation metric}
+
+## Releasable Outcome
+
+- **Gate status:** PASS | BLOCKED
+- **Primary actor:** {role}
+- **Observable outcome:** {what the actor can achieve and recognize as complete}
+- **Complete journey:** {entry/context → action/input → validation/decision → success/result → visible or persisted truth → exit/next action}
+- **Applicable states and recovery:** {access, loading, empty, error, duplicate-submit, refresh, persistence, recovery behavior | N/A with reason}
+- **Technical/enabling work:** {attached tasks/dependencies | none}; standalone technical/foundation/migration/setup work is not a PBI
+- **Evidence:** {ACs, test outline, demo journey, or linked artifact}
+
+## Full-Flow Coverage
+
+- **Entry/context view:** {role and purpose}
+- **Action/input view(s):** {role and purpose}
+- **Result/confirmation view:** {role and purpose}
+- **Exit/next view:** {role and purpose}
+- **Navigation map:** {entry → transitions → outcome → exit}
+- **State coverage:** {default/loading/empty/error/success/permission states as applicable}
+
+## UI Surface (UI PBIs only)
+
+| Surface type | Inventory | Purpose in the releasable flow |
+| ------------ | --------- | ------------------------------ |
+| Page/view    | {all required views; add rows as needed} | {why the flow needs it} |
+| Common component | {reusable component} | {where it appears} |
+| Domain component | {domain-specific component} | {business behavior it conveys} |
+| Page component | {page-level composition} | {view responsibility} |
+
+> Backend-only PBI: `N/A — backend-only change; the observable business outcome is {outcome} and no user-facing surface is required.`
+
+## Scope and Large-Idea Decomposition
+
+- Applicability: `ORDINARY | DECOMPOSITION-EMBEDDED | EXPLICIT-ROADMAP | EXEMPT | FRAMEWORK-LIBRARY`
+- In scope: {behaviors owned by this PBI}
+- Non-goals: {behaviors deliberately deferred}
+- Evidence gate: {observable completion proof}
+
+When `isLargeIdea=true`, include the complete shared `large_idea_decomposition` block here. It MUST contain `outcome_slices`, `dependencies_order`, `non_goals`, `risks_evidence`, and `deferred_work_owner`; repeat the owning slice ID in this PBI and link enabling work to that outcome. Do not add `docs/product-roadmap.md` or a fabricated milestone. For `EXPLICIT-ROADMAP`, record the user-supplied roadmap/milestone references in the explicit branch only. For `ORDINARY`, omit the block.
 
 ## Business Rules
 
@@ -587,6 +677,9 @@ Then error "{message}"
 
 - **Every PBI MUST ATTENTION include Dependencies table** — types: `must-before`, `can-parallel`, `blocked-by`, `independent`. Enables `/prioritize` and `/plan` to respect ordering.
 - **No vague dependency descriptions** — Each dependency must specify concrete PBI, service, or feature and WHY relationship exists.
+- **Every generated PBI MUST ATTENTION be a releasable actor-facing outcome** with a complete entry-to-result journey and evidence. Technical-only, foundation-only, migration-only, and setup-only work is enabling work under a releasable PBI, never a standalone PBI.
+- **UI PBIs MUST ATTENTION include the full-flow surface** — all required pages/views, navigation, common/domain/page components, applicable states, and the demo journey. One screen or a disconnected screen set is not enough.
+- **Read and apply** `.claude/skills/shared/releasable-pbi-contract.md`; if its gate is `BLOCKED`, do not write a ready/refined PBI.
 
 ## BA Team Refinement Context (canonical)
 
@@ -611,6 +704,8 @@ Then error "{message}"
 - [ ] AI pre-review passed (`/artifact-review --type=pbi` or `/pbi-challenge`)
 - [ ] Story points estimated by AI
 - [ ] Dependencies table complete
+- [ ] Releasable Outcome Gate passed — one actor-facing outcome, complete journey, no standalone technical-only scope
+- [ ] (UI PBIs) Full-flow surface complete — page/view inventory, navigation, components, states, and demo journey; backend-only records an explicit reason
 
 **Refinement Cadence:** Always one sprint ahead. Weekly meeting (60 min + ~3h async).
 **Skills:** Use `/pbi-challenge` for collaborative review, `/dor-gate` before grooming.
@@ -953,8 +1048,10 @@ For domain PBIs: detect module from `docs/specs/` directory names, extract busin
 
 ## Closing Reminders
 
-- **IMPORTANT MUST ATTENTION Goal:** transform a raw idea into a Definition-of-Ready PBI — problem-validated, tech-agnostic, with testable acceptance criteria, estimates, and a Dependencies table — so a team can build it without re-asking what or why.
-- **IMPORTANT MUST ATTENTION — run + track EVERY step (AI forgets sub-phases):** Phase 0 locate active plan → 1 idea intake + module detect → 2 domain research → 3 problem-hypothesis GATE → 4 BABOK elicitation → 5 BDD acceptance criteria → 5.1 AI-SDD M1-M5/M7 BLOCKING gate → 5.5 testability → 6 prioritization + DRAFT estimate → 7 validation interview GATE → 7.5 RE-DERIVE estimate vs locked scope → 8 PBI generation — NEVER skip, reorder, or merge a phase without explicit user approval.
+- **IMPORTANT MUST ATTENTION Goal:** transform a raw idea into a Definition-of-Ready PBI that is one independently releasable actor-facing outcome — problem-validated, tech-agnostic, with testable acceptance criteria, estimates, dependencies, and a complete full-flow surface when UI is involved.
+- **IMPORTANT MUST ATTENTION Main steps:** locate the active plan → classify applicability/decomposition → intake and research the idea → validate the problem hypothesis → elicit and write BDD criteria → assess testability and estimate → run the validation interview → re-derive the locked estimate → pass the releasable-outcome gate → generate the PBI.
+- **IMPORTANT MUST ATTENTION — run + track EVERY step (AI forgets sub-phases):** Phase 0 locate active plan → 0.5 applicability / large-idea decomposition GATE → 1 idea intake + module detect → 2 domain research → 3 problem-hypothesis GATE → 4 BABOK elicitation → 5 BDD acceptance criteria → 5.1 AI-SDD M1-M5/M7 BLOCKING gate → 5.5 testability → 6 prioritization + DRAFT estimate → 7 validation interview GATE → 7.5 RE-DERIVE estimate vs locked scope → 7.6 RELEASABLE OUTCOME GATE → 8 PBI generation — NEVER skip, reorder, or merge a phase without explicit user approval.
+- **IMPORTANT MUST ATTENTION Boundary anchor:** when any large-idea signal is true, carry the complete five-field decomposition and stable slice ID into the PBI; when all signals are false, omit roadmap fields; only an explicit roadmap request can use `docs/product-roadmap.md`.
 
 **Protocols in force — MUST ATTENTION (concise digest of the SYNC/shared blocks this skill carries):**
 
@@ -967,8 +1064,11 @@ For domain PBIs: detect module from `docs/specs/` directory names, extract busin
 
 - **IMPORTANT MUST ATTENTION** Phase 3 problem-hypothesis validation + Phase 7 validation interview (3-5 questions) are NON-OPTIONAL for new features — user decides assumptions/scope/dependencies, AI NEVER auto-decides — why: 42% of products fail from no market need; a silent AI assumption ships an unvalidated build
 - **IMPORTANT MUST ATTENTION** Phase 7.5 RE-DERIVES `story_points`/`complexity`/`man_days_traditional`/`man_days_ai` against the LOCKED post-interview scope (per `SYNC:estimation-framework`) — NEVER ship stale Phase 6 draft numbers — why: pre-validation guesses are the #1 source of unreliable velocity data
+- **IMPORTANT MUST ATTENTION** every generated PBI MUST pass the Releasable Outcome Gate: one actor-facing outcome, complete entry-to-result journey, observable evidence, and no standalone technical/foundation/migration/setup scope — read `.claude/skills/shared/releasable-pbi-contract.md`
+- **IMPORTANT MUST ATTENTION** UI PBIs MUST include all pages/views, navigation, reusable/domain/page components, applicable states, and a full-flow demo journey; one static screen is NOT a releasable UI outcome
 - **MANDATORY IMPORTANT MUST ATTENTION** break work into small tasks via `TaskCreate` BEFORE starting; mark one `in_progress`, complete it before the next; on context loss `TaskList` first — why: compaction wipes prior-work memory, resume don't duplicate
 - **MANDATORY IMPORTANT MUST ATTENTION** validate decisions with user via `AskUserQuestion` — NEVER auto-decide
+- **MANDATORY IMPORTANT MUST ATTENTION** apply the shared four-signal `isLargeIdea` rule before PBI elicitation; when true, require and propagate the complete five-field `large_idea_decomposition` block and stable slice IDs, then run conditional scenario analysis where needed. Only an explicit roadmap request uses `docs/product-roadmap.md`; ordinary ideas must not create it, and ambiguous product intent is BLOCKED rather than inferred.
 - **IMPORTANT MUST ATTENTION** acceptance criteria are BDD GIVEN/WHEN/THEN (min 3: happy/edge/error) and MUST satisfy the Phase 5.1 AI-SDD M1-M5 and M7 gate — tech-agnostic Business Intent, logical `FR-`/`BR-` IDs first, observable single-interpretation ACs, rebuild-from-scratch validity, every AC demoable as a business outcome — why: a reader who must guess a rule/limit/role re-implements the wrong behavior
 - **IMPORTANT MUST ATTENTION** apply the M7 demo test to every AC's BODY — _"what would a stakeholder SEE change?"_; no answer → TECHNICAL-ONLY, drop it. FAIL a `WHEN` that is an invocation (handler runs, consumer receives, job fires, data syncs) or a `THEN` asserting schema/type/nullability/call-count; NEVER derive the AC count from an architecture inventory — why: M1 governs vocabulary, M7 governs subject matter — a technical AC in tech-free prose passes M1 and still rots the PBI
 - **IMPORTANT MUST ATTENTION** every PBI MUST include `story_points`, `complexity`, `man_days_traditional`, `man_days_ai` frontmatter AND a complete Dependencies table (`must-before`/`can-parallel`/`blocked-by`/`independent`) — fill even when `independent`

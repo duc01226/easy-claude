@@ -1,10 +1,10 @@
 metadata:
   title: Skills Catalog
   description: Auto-generated catalog of all available skills in ClaudeKit Engineer
-  last_updated: '2026-08-17'
-  total_skills: 165
+  last_updated: '2026-08-22'
+  total_skills: 167
   total_by_status:
-    active: 164
+    active: 166
     deprecated: 1
     experimental: 0
 categories:
@@ -105,7 +105,8 @@ skills:
     - name: brainstorm
       path: brainstorm/SKILL.md
       description: '[Content] Use when you need to brainstorm as a PO/BA — structured
-        ideation for problem-solving, new product creation, or feature enhancement.'
+        ideation for problem-solving, new product creation, feature enhancement, or
+        outcome-roadmap framing. Flag: --mode={roadmap|scope}.'
       category: other
       has_scripts: false
       has_references: false
@@ -954,6 +955,18 @@ skills:
       deprecated_by: null
       deprecated_since: null
       removal_after: null
+    - name: product-roadmap
+      path: product-roadmap/SKILL.md
+      description: '[Planning] Use only when the user explicitly requests a product
+        roadmap deliverable, roadmap update, or milestone selection; handles outcome
+        milestones, MVP scope, non-goals, risks, human decisions, and evidence gates.'
+      category: other
+      has_scripts: true
+      has_references: true
+      status: active
+      deprecated_by: null
+      deprecated_since: null
+      removal_after: null
     - name: production-readiness-review
       path: production-readiness-review/SKILL.md
       description: '[Code Quality] Use when reviewing service-layer and API changes
@@ -1170,6 +1183,19 @@ skills:
       category: other
       has_scripts: false
       has_references: false
+      status: active
+      deprecated_by: null
+      deprecated_since: null
+      removal_after: null
+    - name: scenario
+      path: scenario/SKILL.md
+      description: '[Planning] Use when enumerating adversarial scenarios, failure
+        modes, data-integrity risks, state boundaries, access risks, or pre-plan edge
+        cases for an embedded large-idea slice, explicit roadmap milestone, framework/library
+        scope, or isolated change.'
+      category: other
+      has_scripts: true
+      has_references: true
       status: active
       deprecated_by: null
       deprecated_since: null

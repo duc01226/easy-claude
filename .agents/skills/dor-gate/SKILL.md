@@ -55,11 +55,12 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 
 **Summary:**
 
-- **Purpose:** an automated quality gate (NOT a collaborative review — `$pbi-challenge` is for that) running two checklists — the 7 Required DoR criteria (story template, testable AC, wireframes, UI design, AI pre-review, story points, dependencies) AND the M1-M7 compliance gate; ANY single failure across either set returns FAIL.
-- **Main steps (run in order):** (1) Locate PBI in `team-artifacts/pbis/` or active plan; (2) apply the self-contained DoR 7-criteria checklist; (3) parse each PBI section against all 7 items (template format, GIVEN/WHEN/THEN AC ×3+, wireframes, UI design, AI pre-review, story-point frontmatter, dependencies table); (4) run the M1-M7 mandate gate; (5) verify estimation frontmatter; (6) classify PASS/FAIL; (7) emit the DoR Gate Result template, then route by asking the user directly.
+- **Purpose:** an automated quality gate (NOT a collaborative review — `$pbi-challenge` is for that) running two checklists — the 8 Required DoR criteria (story template, testable AC, wireframes/full-flow surface, UI design, AI pre-review, story points, dependencies, releasable outcome) AND the M1-M7 compliance gate; ANY single failure across either set returns FAIL.
+- **Main steps (run in order):** (1) Locate PBI in `team-artifacts/pbis/` or active plan; (2) apply the self-contained DoR 8-criteria checklist; (3) parse each PBI section against all 8 items (template format, GIVEN/WHEN/THEN AC ×3+, full-flow surface, UI design, AI pre-review, story-point frontmatter, dependencies table, releasable outcome); (4) run the M1-M7 mandate gate; (5) verify estimation frontmatter; (6) classify PASS/FAIL; (7) emit the DoR Gate Result template, then route by asking the user directly.
 - The DoR is self-contained here (BA Refinement Context section) — no external protocol file needed; every verdict MUST cite the concrete PBI section + line/AC, and a PASS over any M1-M5 or M7 violation is itself defective.
 - Verify story-point estimation frontmatter (Fibonacci 1-21 + complexity, man-days range, blast-radius) per the SYNC estimation framework; story points >13 trigger a SHOULD-SPLIT WARN (NOT a FAIL).
 - Carriers are EXEMPT from M1/M2 — flag source-identifier leakage ONLY in narrative prose, never inside `[Source: ...]` / `**Evidence**` / frontmatter / ` ```mermaid``` ` carriers.
+- Every generated PBI MUST pass `.claude/skills/shared/releasable-pbi-contract.md`; technical-only/foundation-only/setup-only PBIs FAIL, and UI PBIs need a complete multi-view mock-app flow rather than one isolated screen.
 
 **Key distinction:** Automated quality gate (not collaborative review — use `$pbi-challenge` for that).
 
@@ -68,17 +69,18 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 ## Workflow
 
 1. **Locate PBI** — Find PBI artifact in `team-artifacts/pbis/` or active plan context. If not found, ask user for path.
-2. **Load DoR protocol** — Apply DoR 7-criteria checklist (story template, testable AC, wireframes, UI design, AI pre-review, story points, dependencies)
-3. **Evaluate each criterion** — Parse PBI sections against 7 DoR items:
+2. **Load DoR protocol** — Apply DoR 8-criteria checklist (story template, testable AC, full-flow surface, UI design, AI pre-review, story points, dependencies, releasable outcome)
+3. **Evaluate each criterion** — Parse PBI sections against 8 DoR items:
     - Check user story template format ("As a... I want... So that...")
     - Scan AC for vague language ("should", "might", "TBD", "etc.", "various")
     - Verify GIVEN/WHEN/THEN format (min 3 scenarios)
-    - Check for wireframe/mockup references (or explicit "N/A" for backend-only)
+    - Check for the page/view inventory, navigation map, component inventory, applicable states, and full-flow demo/mockup (or explicit "N/A" for backend-only)
     - Check for UI design status (incl. design-spec link or inline UI specs for UI PBIs)
     - Verify story_points and complexity fields present with valid values
     - Verify dependencies table with correct columns
+    - Verify the Releasable Outcome Gate: one actor-facing outcome, complete entry-to-result journey, observable evidence, and no standalone technical/foundation/migration/setup scope
 4. **Classify result:**
-    - **PASS** — All 7 criteria pass → ready for grooming
+    - **PASS** — All 8 criteria pass → ready for grooming
     - **FAIL** — Any criterion fails → blocked, list fixes needed
 5. **Output verdict** — Use the DoR Gate Output Template from protocol
 
@@ -88,7 +90,8 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 
 - MUST ATTENTION verify **User story template** — "As a {role}, I want {goal}, so that {benefit}" present
 - MUST ATTENTION verify **AC testable** — All AC use GIVEN/WHEN/THEN, no vague language, min 3 scenarios
-- MUST ATTENTION verify **Wireframes/mockups** — Present or explicit "N/A" for backend-only
+- MUST ATTENTION verify **Releasable outcome** — The PBI names one independently releasable actor-facing outcome, demonstrates entry → action → result → exit, covers applicable visible/persisted truth and recovery, and does not make technical/foundation/migration/setup work the outcome
+- MUST ATTENTION verify **Wireframes/mockups and full-flow surface** — For UI PBIs, all required pages/views, navigation, common/domain/page components, applicable states, and a connected demo/mockup are present; backend-only requires an explicit "N/A" reason
 - MUST ATTENTION verify **UI design ready** — Completed incl. design-spec linked (`$design-spec` artifact or inline UI specs in `## UI Layout`) for UI PBIs; or "N/A" for backend-only
 - MUST ATTENTION verify **AI pre-review** — `$artifact-review --type=pbi` or `$pbi-challenge` result is PASS or WARN
 - MUST ATTENTION verify **Story points** — Valid Fibonacci (1-21) + complexity (Low/Medium/High)
@@ -121,7 +124,8 @@ If ANY box fails → DoR result is FAIL; list each violated mandate ID with its 
 
 - [ ] User story template (As a... I want... So that...)
 - [ ] AC testable (GIVEN/WHEN/THEN, no vague language; min 3 scenarios + 1 auth scenario)
-- [ ] Wireframes attached (UX BA) + UI design ready (Designer BA) — incl. design-spec linked (`$design-spec` artifact or inline UI specs in `## UI Layout`) for UI PBIs; backend-only → explicit "N/A"
+- [ ] Releasable actor-facing outcome and complete entry-to-result journey — no standalone technical/foundation/migration/setup PBI
+- [ ] Wireframes/full-flow mock app attached (UX BA) + UI design ready (Designer BA) — page/view inventory, navigation, components, applicable states, and design-spec linked (`$design-spec` artifact or inline UI specs in `## UI Layout`) for UI PBIs; backend-only → explicit "N/A" reason
 - [ ] AI pre-review passed (`$artifact-review --type=pbi` or `$pbi-challenge` returned PASS or WARN)
 - [ ] Story points estimated (Fibonacci 1-21 + complexity); >13 SP → recommend split
 - [ ] Dependencies table complete (Dependency · Type must-before/can-parallel/blocked-by/independent · Status)
@@ -143,11 +147,12 @@ If ANY box fails → DoR result is FAIL; list each violated mandate ID with its 
 | --- | --------------------------- | --------- | ---------------- |
 | 1   | User story template         | ✅/❌     | {evidence}       |
 | 2   | AC testable and unambiguous | ✅/❌     | {evidence}       |
-| 3   | Wireframes/mockups          | ✅/❌/N/A | {evidence}       |
-| 4   | UI design ready             | ✅/❌/N/A | {evidence}       |
-| 5   | AI pre-review passed        | ✅/❌     | {evidence}       |
-| 6   | Story points estimated      | ✅/❌     | {evidence}       |
-| 7   | Dependencies complete       | ✅/❌     | {evidence}       |
+| 3   | Releasable actor-facing outcome | ✅/❌  | {evidence}       |
+| 4   | Full-flow wireframes/mock app | ✅/❌/N/A | {evidence}       |
+| 5   | UI design ready             | ✅/❌/N/A | {evidence}       |
+| 6   | AI pre-review passed        | ✅/❌     | {evidence}       |
+| 7   | Story points estimated      | ✅/❌     | {evidence}       |
+| 8   | Dependencies complete       | ✅/❌     | {evidence}       |
 
 ### Blocking Items (if FAIL)
 
@@ -411,7 +416,7 @@ If ANY box fails → DoR result is FAIL; list each violated mandate ID with its 
 
 ## Closing Reminders
 
-**IMPORTANT MUST ATTENTION Goal:** Only grooming-ready PBIs pass the gate — every DoR/M1-M7 failure caught with its concrete section/line citation, so no ambiguous, untestable, or unimplementable story reaches the team.
+**IMPORTANT MUST ATTENTION Goal:** Only grooming-ready PBIs pass the gate — every DoR/M1-M7 failure and every non-releasable outcome is caught with its concrete section/line citation, so no ambiguous, untestable, technical-only, or incomplete full-flow PBI reaches the team.
 
 **IMPORTANT MUST ATTENTION — Protocols in force (concise digest of the SYNC/shared blocks this skill carries; each is a signpost to its canonical body above, NEVER a replacement):**
 
@@ -419,9 +424,9 @@ If ANY box fails → DoR result is FAIL; list each violated mandate ID with its 
 - **Estimation:** bottom-up phase hours drive man-days; SP derived; >13 SHOULD-SPLIT.
 - **Critical Thinking:** traced proof per claim, confidence >80% to act, never guess.
 
-**IMPORTANT MUST ATTENTION** run the gate steps in order — Locate PBI → apply self-contained DoR 7-criteria → evaluate each criterion against the PBI → run the M1-M7 mandate gate → verify estimation frontmatter → classify PASS/FAIL → emit result template → route ask the user directly; NEVER skip the M1-M7 gate or the estimation check. — why: a skipped sub-check silently passes an unready story.
-**MANDATORY IMPORTANT MUST ATTENTION** FAIL blocks grooming — ANY of the 7 required criteria OR any M1-M5 or M7 mandate fails → return FAIL, name the violated ID with its concrete PBI section + line/AC citation. NEVER PASS over an M1-M5 or M7 violation — a PASS over one is itself defective. — why: an unready story poisons grooming and ships ambiguity downstream.
-**IMPORTANT MUST ATTENTION** automated quality gate, NOT collaborative review — run both checklists (7 required + M1-M7); route `$pbi-challenge` for collaborative review. — why: conflating gate with review lets soft-pass judgments through a hard gate.
+**IMPORTANT MUST ATTENTION** run the gate steps in order — Locate PBI → apply self-contained DoR 8-criteria → evaluate each criterion against the PBI → run the M1-M7 mandate gate → verify estimation frontmatter → classify PASS/FAIL → emit result template → route ask the user directly; NEVER skip the releasable-outcome, full-flow, M1-M7, or estimation checks. — why: a skipped sub-check silently passes an unready story.
+**MANDATORY IMPORTANT MUST ATTENTION** FAIL blocks grooming — ANY of the 8 required criteria OR any M1-M5 or M7 mandate fails → return FAIL, name the violated ID with its concrete PBI section + line/AC citation. NEVER PASS over an M1-M5/M7 violation, a technical-only PBI, or a UI PBI that lacks the pages/components/states needed for a full-flow mock app. — why: an unready story poisons grooming and ships ambiguity downstream.
+**IMPORTANT MUST ATTENTION** automated quality gate, NOT collaborative review — run both checklists (8 required + M1-M7); route `$pbi-challenge` for collaborative review. — why: conflating gate with review lets soft-pass judgments through a hard gate.
 **IMPORTANT MUST ATTENTION** cite `file:line`/section evidence for EVERY verdict (confidence >80% to act, <60% DO NOT decide) — every check references the concrete PBI section + line/AC; NEVER guess a criterion's status. — why: an uncited PASS/FAIL is unauditable and pattern-matched, not verified.
 **IMPORTANT MUST ATTENTION** carriers EXEMPT from M1/M2 — source identifiers are CORRECT inside `[Source: ...]`, `**Evidence**`, `**IntegrationTest**`, YAML frontmatter, ` ```mermaid ``` `; flag leakage ONLY in PBI narrative prose (banned tokens: `spec-principles.md` §3.2). — why: flagging a carrier as a violation is a false FAIL that blocks a ready PBI.
 **IMPORTANT MUST ATTENTION** verify story-point frontmatter per the SYNC estimation framework — Fibonacci 1-21 + complexity, bottom-up `man_days` range, blast-radius; story points >13 → SHOULD-SPLIT WARN, NOT a FAIL. — why: a WARN escalated to a FAIL wrongly blocks a groomable large story.

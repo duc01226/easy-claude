@@ -237,6 +237,204 @@ const PROJECT_LAYOUT_TERMS = [
   "changed_files=src/Services",
 ];
 
+// --- ROADMAP-BOUNDARY: embedded large-idea protocol -------------------------
+// This is deliberately a pure, data-in/data-out policy so the same contract can
+// be exercised against canonical prompt surfaces, generated mirrors, and temporary
+// mutation fixtures without creating a product roadmap in the repository.
+const ROADMAP_BOUNDARY_POLICY = {
+  defaultRouteIds: [
+    "workflow-big-feature",
+    "workflow-feature",
+    "workflow-greenfield-init",
+    "workflow-idea-to-pbi",
+    "workflow-idea-to-spec",
+    "workflow-spec-to-pbi",
+  ],
+  largeIdeaSignals: [
+    "multipleIndependentOutcomes",
+    "ambiguousOrResearchHeavy",
+    "releaseScopeDecomposition",
+    "oversizedPbiThatMustSplit",
+  ],
+  decompositionFields: [
+    "outcome_slices",
+    "dependencies_order",
+    "non_goals",
+    "risks_evidence",
+    "deferred_work_owner",
+  ],
+  failureCodes: {
+    defaultWriter: "ROADMAP-DEFAULT-WRITER",
+    decompositionSchema: "ROADMAP-DECOMPOSITION-SCHEMA",
+    explicitRoute: "ROADMAP-EXPLICIT-ROUTE",
+    replacement: "ROADMAP-REPLACEMENT-MISSING",
+    surfaceCoverage: "ROADMAP-SURFACE-COVERAGE",
+  },
+  checks: {
+    noDefaultWriter: true,
+    replacementPresence: true,
+    explicitRequestOnly: true,
+  },
+};
+
+const ROADMAP_SEQUENCE_PATTERN = /(?:^|\n)[ \t]*(?:["']product-roadmap["']|product-roadmap)[ \t]*(?:,|\n|$)/i;
+const ROADMAP_POSITIVE_WRITER_PATTERN =
+  /(?:\b(?:run|invoke|execute|call)\s+[`$\/]?product-roadmap\b|\b(?:create|write|update|generate)\s+(?:[`']?docs\/product-roadmap\.md|a product roadmap))/gi;
+const ROADMAP_NEGATION_PATTERN =
+  /\b(?:do not|does not|never|must not|cannot|can't|without)\b/i;
+const ROADMAP_PATH_PATTERN = /docs\/product-roadmap\.md/i;
+
+function hasRoadmapWriter(text = "") {
+  if (ROADMAP_SEQUENCE_PATTERN.test(text)) return true;
+  return [...text.matchAll(ROADMAP_POSITIVE_WRITER_PATTERN)].some((match) => {
+    const statementStart = Math.max(
+      text.lastIndexOf("\n", match.index),
+      text.lastIndexOf(".", match.index),
+      text.lastIndexOf("!", match.index),
+      text.lastIndexOf("?", match.index),
+      text.lastIndexOf(";", match.index)
+    );
+    return !ROADMAP_NEGATION_PATTERN.test(text.slice(statementStart + 1, match.index));
+  });
+}
+
+const DECOMPOSITION_FIELD_KEYS = Object.freeze({
+  outcome_slices: ["id", "outcome", "releasable_when", "owning_artifact"],
+  dependencies_order: ["before", "after", "reason"],
+  non_goals: ["statement", "owner"],
+  risks_evidence: ["risk", "evidence_needed", "status", "owner"],
+  deferred_work_owner: ["item", "owner", "follow_up_artifact", "target_slice"],
+});
+
+function isNonEmptyDecompositionField(value, field, decomposition) {
+  if (!Array.isArray(value)) return false;
+  if (value.length === 0) {
+    return Boolean(
+      field !== "outcome_slices" &&
+        decomposition?.none_identified === true &&
+        typeof decomposition?.none_identified_note === "string" &&
+        decomposition.none_identified_note.trim().length > 0
+    );
+  }
+  const requiredKeys = DECOMPOSITION_FIELD_KEYS[field] ?? [];
+  return value.every((item) =>
+    item &&
+    typeof item === "object" &&
+    !Array.isArray(item) &&
+    requiredKeys.every((key) => typeof item[key] === "string" && item[key].trim().length > 0)
+  );
+}
+
+function evaluateRoadmapBoundary(surface = {}, policy = ROADMAP_BOUNDARY_POLICY) {
+  const failures = [];
+  const routes = Array.isArray(surface.routes) ? surface.routes : [];
+  const routeById = new Map(routes.map((route) => [route.routeId, route]));
+  const failure = (code, message, routeId = undefined) => {
+    failures.push({ code, message, ...(routeId ? { routeId } : {}) });
+  };
+
+  for (const message of surface.coverageFailures ?? []) {
+    failure(policy.failureCodes.surfaceCoverage, message);
+  }
+
+  if (policy.checks?.noDefaultWriter) {
+    for (const routeId of policy.defaultRouteIds ?? []) {
+      const route = routeById.get(routeId);
+      if (!route) continue;
+      const sequenceText = Array.isArray(route.sequence) ? route.sequence.join("\n") : "";
+      const routeText = `${sequenceText}\n${route.text ?? ""}`;
+      if (hasRoadmapWriter(routeText)) {
+        failure(
+          policy.failureCodes.defaultWriter,
+          `default route ${routeId} contains a product-roadmap writer or writer sequence`,
+          routeId
+        );
+      }
+    }
+  }
+
+  if (policy.checks?.replacementPresence) {
+    for (const routeId of policy.defaultRouteIds ?? []) {
+      const route = routeById.get(routeId);
+      if (!route) continue;
+      const routeText = `${route.text ?? ""}\n${
+        Array.isArray(route.sequence) ? route.sequence.join("\n") : ""
+      }`;
+      if (!routeText.includes("isLargeIdea") || !routeText.includes("large_idea_decomposition")) {
+        failure(
+          policy.failureCodes.replacement,
+          `default route ${routeId} is missing the embedded large-idea replacement contract`,
+          routeId
+        );
+      }
+    }
+  }
+
+  if (surface.signals) {
+    const signalNames = policy.largeIdeaSignals ?? [];
+    const missingSignals = signalNames.filter((name) => typeof surface.signals[name] !== "boolean");
+    if (missingSignals.length > 0) {
+      failure(
+        policy.failureCodes.decompositionSchema,
+        `large-idea signal set is incomplete: ${missingSignals.join(", ")}`
+      );
+    } else {
+      const isLargeIdea = signalNames.some((name) => surface.signals[name] === true);
+      const decompositionPresent = surface.decomposition !== undefined && surface.decomposition !== null;
+      if (isLargeIdea) {
+        if (!decompositionPresent || typeof surface.decomposition !== "object") {
+          failure(
+            policy.failureCodes.decompositionSchema,
+            "large_idea_decomposition is required when any authoritative signal is true"
+          );
+        } else {
+          const requiredFields = [
+            ...new Set([
+              ...(policy.decompositionFields ?? []),
+              ...Object.keys(DECOMPOSITION_FIELD_KEYS),
+            ]),
+          ];
+          const missingFields = requiredFields.filter(
+            (field) => !isNonEmptyDecompositionField(surface.decomposition[field], field, surface.decomposition)
+          );
+          if (missingFields.length > 0) {
+            failure(
+              policy.failureCodes.decompositionSchema,
+              `large_idea_decomposition is missing required fields: ${missingFields.join(", ")}`
+            );
+          }
+        }
+      } else if (decompositionPresent || surface.roadmapMetadata) {
+        failure(
+          policy.failureCodes.decompositionSchema,
+          "ordinary all-false scope must omit large_idea_decomposition and roadmap metadata"
+        );
+      }
+    }
+  }
+
+  const standalone = surface.standalone;
+  if (standalone) {
+    const standaloneText = `${standalone.text ?? ""}\n${standalone.sequence ?? ""}`;
+    const writerTextPresent = hasRoadmapWriter(standaloneText) || ROADMAP_PATH_PATTERN.test(standaloneText);
+    if (policy.checks?.explicitRequestOnly && writerTextPresent && standalone.explicitRequest !== true) {
+      failure(
+        policy.failureCodes.explicitRoute,
+        "standalone product-roadmap writer must be guarded by an explicit request"
+      );
+    }
+    if (standalone.explicitRequest === true &&
+        (!standaloneText.includes("explicit") || !ROADMAP_PATH_PATTERN.test(standaloneText))) {
+      failure(
+        policy.failureCodes.explicitRoute,
+        "standalone product-roadmap route must retain explicit-only wording and its canonical writer path"
+      );
+    }
+  }
+
+  return failures;
+}
+
 const CHECKS = [
   {
     code: "SDD001",
@@ -909,6 +1107,80 @@ async function scanEvidenceModelFile(rootDir, relativeFile, options = {}) {
   };
 }
 
+const ROADMAP_BOUNDARY_ROUTE_FILES = new Map([
+  ["workflow-big-feature", ".claude/skills/workflow-big-feature/SKILL.md"],
+  ["workflow-feature", ".claude/skills/workflow-feature/SKILL.md"],
+  ["workflow-greenfield-init", ".claude/skills/workflow-greenfield-init/SKILL.md"],
+  ["workflow-idea-to-pbi", ".claude/skills/workflow-idea-to-pbi/SKILL.md"],
+  ["workflow-idea-to-spec", ".claude/skills/workflow-idea-to-spec/SKILL.md"],
+  ["workflow-spec-to-pbi", ".claude/skills/workflow-spec-to-pbi/SKILL.md"],
+]);
+
+async function loadRoadmapBoundarySurface(rootDir, options = {}) {
+  const workflowJson = await readFileOrNull(rootDir, ".claude/workflows.json", options);
+  const roadmapSkill = await readFileOrNull(rootDir, ".claude/skills/product-roadmap/SKILL.md", options);
+  const routeContents = new Map(
+    await Promise.all(
+      [...ROADMAP_BOUNDARY_ROUTE_FILES.entries()].map(async ([routeId, relativeFile]) => [
+        routeId,
+        await readFileOrNull(rootDir, relativeFile, options),
+      ])
+    )
+  );
+  const routePresentCount = [...routeContents.values()].filter((content) => content !== null).length;
+  const hasBoundaryArtifacts =
+    roadmapSkill !== null || routePresentCount >= ROADMAP_BOUNDARY_ROUTE_FILES.size - 1;
+  if (!hasBoundaryArtifacts) return null;
+
+  const coverageFailures = [];
+  if (workflowJson === null) coverageFailures.push("roadmap boundary surface is missing .claude/workflows.json");
+  if (roadmapSkill === null) coverageFailures.push("roadmap boundary surface is missing .claude/skills/product-roadmap/SKILL.md");
+  if (workflowJson === null || roadmapSkill === null) {
+    return { routes: [], standalone: undefined, coverageFailures };
+  }
+
+  let workflows;
+  try {
+    workflows = JSON.parse(workflowJson).workflows ?? {};
+  } catch {
+    return {
+      routes: [],
+      standalone: undefined,
+      coverageFailures: ["roadmap boundary surface has invalid JSON in .claude/workflows.json"],
+    };
+  }
+
+  const routes = [];
+  for (const [routeId, relativeFile] of ROADMAP_BOUNDARY_ROUTE_FILES) {
+    const text = routeContents.get(routeId);
+    if (text === null) {
+      coverageFailures.push(`roadmap boundary surface is missing ${relativeFile}`);
+      continue;
+    }
+    if (!workflows[routeId]) {
+      coverageFailures.push(`roadmap boundary surface is missing workflow route ${routeId} in .claude/workflows.json`);
+      continue;
+    }
+    routes.push({
+      routeId,
+      sequence: Array.isArray(workflows[routeId].sequence) ? workflows[routeId].sequence : [],
+      text: `${text}\n${JSON.stringify(workflows[routeId].preActions ?? {})}`,
+      file: relativeFile,
+    });
+  }
+
+  return {
+    routes,
+    standalone: {
+      routeId: "product-roadmap",
+      explicitRequest: true,
+      text: roadmapSkill,
+      file: ".claude/skills/product-roadmap/SKILL.md",
+    },
+    coverageFailures,
+  };
+}
+
 async function runChecks(rootDir = process.cwd(), checks = CHECKS, options = {}) {
   const failures = [];
   const metrics = {
@@ -930,6 +1202,7 @@ async function runChecks(rootDir = process.cwd(), checks = CHECKS, options = {})
     legacyPhysicalEvidenceFindings: 0,
     malformedAbstractAnchorFindings: 0,
     proseSourceIdentifierFindings: 0,
+    roadmapBoundaryFindings: 0,
   };
   const checkedFiles = new Set();
 
@@ -1091,6 +1364,23 @@ async function runChecks(rootDir = process.cwd(), checks = CHECKS, options = {})
     }
   }
 
+  const roadmapBoundarySurface = await loadRoadmapBoundarySurface(rootDir, options);
+  if (roadmapBoundarySurface) {
+    const roadmapFailures = evaluateRoadmapBoundary(roadmapBoundarySurface);
+    for (const finding of roadmapFailures) {
+      metrics.roadmapBoundaryFindings += 1;
+      const route = finding.routeId
+        ? roadmapBoundarySurface.routes.find((candidate) => candidate.routeId === finding.routeId)
+        : roadmapBoundarySurface.standalone;
+      failures.push({
+        severity: "error",
+        code: finding.code,
+        file: route?.file ?? ".claude/skills/shared/product-roadmap-contract.md",
+        message: finding.message,
+      });
+    }
+  }
+
   metrics.checkedFiles = checkedFiles.size;
   metrics.hardFailures = failures.filter((failure) => failure.severity !== "warn").length;
 
@@ -1192,6 +1482,9 @@ export {
   AI_SDD_SUPPORTED_TOOL_TEXT,
   GENERIC_SDD_REFERENCE_TERMS,
   PROJECT_LAYOUT_TERMS,
+  ROADMAP_BOUNDARY_POLICY,
+  evaluateRoadmapBoundary,
+  loadRoadmapBoundarySurface,
   BANNED_PROSE_TECH_TERMS,
   SDD022_SCAN_ROOTS,
   SDD022_EXEMPT_FILES,

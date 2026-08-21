@@ -42,6 +42,7 @@ Each in-scope artifact feeds one or more stakeholder slide sections:
 | Idea          | `team-artifacts/ideas/{YYMMDD}-*`                   | Business context (problem, value, idea→spec narrative)                                 |
 | Feature Spec  | `docs/specs/{Bucket}/README.{Feature}.md`           | Business context (§1-3); Behavior & rules (§4 rules / §5 invariants); QC view (§8 TCs) |
 | PBI           | `team-artifacts/pbis/{YYMMDD}-pbi-*.md`             | Scope & backlog (PBI cards in ranked order, each showing its `priority` label + numeric `rank` from frontmatter, plus acceptance criteria) |
+| Decomposition | Owning idea/spec/PBI `large_idea_decomposition` block | Decomposition & boundaries (slice IDs/outcomes, dependency order, non-goals, risks/evidence owners, deferred-work owners); required when any shared large-idea signal is true |
 | Backlog       | `team-artifacts/backlog/*-backlog.md`               | Scope & backlog (the ranked order + priority source when PBI frontmatter is thin — reconcile against per-PBI `priority`/`rank`) |
 | User story    | `team-artifacts/pbis/stories/{YYMMDD}-us-*.md`     | Scope & backlog (As-a/I-want/So-that, acceptance criteria)                             |
 | Design-spec   | `team-artifacts/design-specs/{YYMMDD}-designspec-*.md` | UI / mockups (ASCII wireframe + Component Inventory / States / Design-Tokens tables) |
@@ -98,12 +99,13 @@ The accumulation step produces an ordered, stakeholder-sectioned content model:
 
 1. **Title / agenda** — feature(s), run date, resolved scope.
 2. **Business context** — from ideas + Feature Spec §1-3.
-3. **Scope & backlog** — from PBIs + stories, presented in ranked order with each PBI's `priority` label + numeric `rank` (read from PBI frontmatter, reconciled against the ranked `team-artifacts/backlog/*-backlog.md` when present). Priority display is MANDATORY when the PBIs are prioritized; if they are not yet prioritized, say so explicitly rather than omitting the field.
-4. **Behavior & rules** — from Feature Spec §4 rules / §5 invariants + §8 test cases.
-5. **Journeys / demo flows** — ordered main-story journeys (§6 extraction map); each handed to the render side as an interactive demo-flow slide (or narrated ASCII frames in spec-only context).
-6. **UI / mockups** — per the spec-only vs mockup-bearing branch (or empty-state).
-7. **QC view** — from Feature Spec §8 test specifications + states matrix + edge cases.
-8. **Summary / next steps**.
+3. **Decomposition & boundaries** — when any shared large-idea signal is true, from the complete owning block; show stable slice IDs, ordered dependencies, non-goals, risk/evidence ownership, and deferred-work ownership. When all signals are false, show `N/A — ordinary isolated scope` and do not invent roadmap content.
+4. **Scope & backlog** — from PBIs + stories, presented in ranked order with each PBI's `priority` label + numeric `rank` (read from PBI frontmatter, reconciled against the ranked `team-artifacts/backlog/*-backlog.md` when present). Priority display is MANDATORY when the PBIs are prioritized; if they are not yet prioritized, say so explicitly rather than omitting the field.
+5. **Behavior & rules** — from Feature Spec §4 rules / §5 invariants + §8 test cases.
+6. **Journeys / demo flows** — ordered main-story journeys (§6 extraction map); each handed to the render side as an interactive demo-flow slide (or narrated ASCII frames in spec-only context).
+7. **UI / mockups** — per the spec-only vs mockup-bearing branch (or empty-state).
+8. **QC view** — from Feature Spec §8 test specifications + states matrix + edge cases.
+9. **Summary / next steps**.
 
 The render-side (`deck-template.md`) turns this content model into the single standalone HTML deck.
 

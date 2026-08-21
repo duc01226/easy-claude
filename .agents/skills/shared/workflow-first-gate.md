@@ -4,6 +4,16 @@
        - .claude/skills/claude-md-init/scripts/generate-claude-md.cjs  → CLAUDE.md (mirrored into AGENTS.md / .codex/CODEX_CONTEXT.md)
      The block between the CK:WORKFLOW-GATE markers below is what gets stamped verbatim. -->
 
+## Quick Summary
+
+**Goal:** Route each request before tool use, sending ordinary large/ambiguous ideas to their owning workflow with embedded decomposition and reserving standalone roadmap writing for explicit user intent.
+
+**Summary:** classify complexity/risk → choose direct, custom, skill, or workflow route → activate it before edits/tools → apply the four-signal large-idea rule → preserve explicit-only roadmap writing and conditional scenario analysis.
+
+**Main steps:** classify complexity/risk → declare the route → activate it before tools or edits → apply the selected protocol → verify the route preserved the explicit-only roadmap boundary.
+
+**Key Rules:** the gate is hook-independent; explicit skill/workflow requests win; ordinary product vision/big/greenfield routes NEVER create a roadmap file by default; only an explicit roadmap request enters `product-roadmap`.
+
 <!-- CK:WORKFLOW-GATE -->
 
 > **[WORKFLOW-GATE] — routing is your FIRST action, before any tool call.**
@@ -17,6 +27,9 @@
 > | A simple task that needs a few coordinated steps or skills | **custom simple workflow** — sequence only the necessary skills/steps |
 > | A non-trivial bug, error, crash, regression, or wrong/stale output | **`workflow-bugfix` workflow** — `$start-workflow workflow-bugfix` |
 > | A non-trivial new feature, capability, or enhancement | **`workflow-feature` workflow** — `$start-workflow workflow-feature` (use `workflow-big-feature` when scope is large, ambiguous, or research-heavy) |
+> | A product vision, greenfield app, big/ambiguous capability, or release-scoped idea | **the owning idea/feature workflow** — apply the shared `isLargeIdea` rule and embed decomposition in PBI/spec/story/presentation/mock-up artifacts; do not create a roadmap file by default |
+> | An explicit request for a product roadmap, roadmap update, or milestone selection | **`product-roadmap` skill** — the standalone writer is explicit-only and may create/update `docs/product-roadmap.md` |
+> | A selected roadmap milestone or a large idea whose embedded decomposition needs adversarial failure, replay, state, ownership, recovery, or evidence analysis | **`scenario` skill** — run conditionally for that scope before `$plan`; it does not create a roadmap artifact |
 > | Anything matching a skill's or workflow's "Use" clause | that skill / workflow |
 > | A one-off question, or a truly trivial edit | direct execution |
 >
@@ -34,3 +47,9 @@
 > 7. **Scaffolding-first for new foundations.** `workflow-greenfield-init` and `workflow-big-feature` scaffold a REVIEWED (`architecture-review-full`), example-rich, convention-bearing foundation — base abstractions + golden-path example code + a project-reference doc set — BEFORE fanning out feature work; features never build on an unreviewed foundation.
 
 <!-- /CK:WORKFLOW-GATE -->
+
+## Closing Reminders
+
+**IMPORTANT MUST ATTENTION Goal:** Route first and preserve the product-roadmap boundary: ordinary routes embed large-idea scope in owning artifacts, while only explicit roadmap requests may write `docs/product-roadmap.md`.
+
+**IMPORTANT MUST ATTENTION Main steps:** classify complexity/risk → declare route → activate route → apply the matching workflow/skill protocol → verify the selected route did not create an unauthorized roadmap artifact.

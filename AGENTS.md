@@ -15,16 +15,17 @@ Do not edit manually; update `CLAUDE.md` and re-sync.
 >
 > Classify complexity and risk first, then route it:
 >
-> | Request is about…                                                                                           | Default route                                                                                                                                       |
-> | ----------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
-> | A simple, straightforward task with a clear target and low risk                                             | **direct execution** — do it without a workflow                                                                                                     |
-> | A simple task that needs a few coordinated steps or skills                                                  | **custom simple workflow** — sequence only the necessary skills/steps                                                                               |
-> | A non-trivial bug, error, crash, regression, or wrong/stale output                                          | **`workflow-bugfix` workflow** — `$start-workflow workflow-bugfix`                                                                                  |
-> | A non-trivial new feature, capability, or enhancement                                                       | **`workflow-feature` workflow** — `$start-workflow workflow-feature` (use `workflow-big-feature` when scope is large, ambiguous, or research-heavy) |
-> | A request matching a saved project custom prompt (see `docs/project-reference/custom-prompts-reference.md`) | **`custom-prompt` skill** — `$custom-prompt <request>`; propose the match and CONFIRM it with the user before executing                             |
-> | Adding, changing, listing, or removing the project's OWN extra rules for a skill                            | **`project-skill-protocol` skill** — `$project-skill-protocol <request>`                                                                            |
-> | Anything matching a skill's or workflow's "Use" clause                                                      | that skill / workflow                                                                                                                               |
-> | A one-off question, or a truly trivial edit                                                                 | direct execution                                                                                                                                    |
+> | Request is about… | Default route |
+> | --- | --- |
+> | A simple, straightforward task with a clear target and low risk | **direct execution** — do it without a workflow |
+> | A simple task that needs a few coordinated steps or skills | **custom simple workflow** — sequence only the necessary skills/steps |
+> | A non-trivial bug, error, crash, regression, or wrong/stale output | **`workflow-bugfix` workflow** — `$start-workflow workflow-bugfix` |
+> | A non-trivial new feature, capability, or enhancement | **`workflow-feature` workflow** — `$start-workflow workflow-feature` (use `workflow-big-feature` when scope is large, ambiguous, or research-heavy) |
+> | A product vision, greenfield app, big/ambiguous capability, or release-scoped idea | **the owning idea/feature workflow** — apply the shared `isLargeIdea` rule and embed decomposition in PBI/spec/story/presentation/mock-up artifacts; do not create a roadmap file by default |
+> | An explicit request for a product roadmap, roadmap update, or milestone selection | **`product-roadmap` skill** — the standalone writer is explicit-only and may create/update `docs/product-roadmap.md` |
+> | A selected roadmap milestone or a large idea whose embedded decomposition needs adversarial failure, replay, state, ownership, recovery, or evidence analysis | **`scenario` skill** — run conditionally for that scope before `$plan`; it does not create a roadmap artifact |
+> | Anything matching a skill's or workflow's "Use" clause | that skill / workflow |
+> | A one-off question, or a truly trivial edit | direct execution |
 >
 > 1. **An explicit `/skill` or `/workflow` in the prompt is the user's choice — execute it directly.** Otherwise auto-select the route yourself; never ask the user which path to take.
 > 2. **Analyze whether the task is simple and straightforward before defaulting to a standard workflow.** If the target is clear, the change is low-risk, and a short direct execution can satisfy it, choose direct execution.
@@ -35,11 +36,18 @@ Do not edit manually; update `CLAUDE.md` and re-sync.
 >     - **Skill route →** invoke that skill via the skill invocation.
 >     - **Custom simple workflow →** create a small task list from the selected skills/steps, then execute them in order.
 >     - **Direct route →** build the task list yourself, then proceed.
->       In every case the route must be activated BEFORE the first edit, sub-agent, or command.
+>   In every case the route must be activated BEFORE the first edit, sub-agent, or command.
 > 6. **Direct execution is a legitimate route** for trivial, one-off, or simple straightforward work — but the declare-route and activate steps still apply.
 > 7. **Scaffolding-first for new foundations.** `workflow-greenfield-init` and `workflow-big-feature` scaffold a REVIEWED (`architecture-review-full`), example-rich, convention-bearing foundation — base abstractions + golden-path example code + a project-reference doc set — BEFORE fanning out feature work; features never build on an unreviewed foundation.
 
 <!-- /CK:WORKFLOW-GATE -->
+
+<!-- prettier-ignore-start -->
+
+
+<!-- prettier-ignore-end -->
+
+
 
 <!-- CK:PROJECT-PROTOCOLS -->
 
@@ -54,9 +62,6 @@ Do not edit manually; update `CLAUDE.md` and re-sync.
 > Active overlays: _(none)_
 
 <!-- /CK:PROJECT-PROTOCOLS -->
-
-
-
 
 # easy-claude - Code Instructions
 
@@ -122,10 +127,10 @@ Workflow progression is **model-driven** — your responsibility, not a tool/hoo
 
 **Decision Quick-Ref:**
 
-| Task             | Pattern                             |
-| ---------------- | ----------------------------------- |
-| New API endpoint | Controller + CQRS Command           |
-| Business logic   | Command Handler (Application layer) |
+| Task | Pattern |
+|---|---|
+| New API endpoint | Controller + CQRS Command |
+| Business logic | Command Handler (Application layer) |
 
 <!-- /SECTION:decision-quick-ref -->
 
@@ -329,11 +334,11 @@ python .claude/scripts/code_graph search <keyword> --kind Function --json       
 
 When editing files matching these path patterns, pre-read the listed context first:
 
-| Path Pattern                      | Skill / Auto-Context | Pre-Read Files                  |
-| --------------------------------- | -------------------- | ------------------------------- |
-| `/\.claude/hooks/.*\.cjs$**`      | _(auto-context)_     | `.claude/docs/hooks/README.md`  |
-| `/\.claude/skills/.*SKILL\.md$**` | _(auto-context)_     | `.claude/docs/skills/README.md` |
-| `/\.claude/agents/.*\.md$**`      | _(auto-context)_     | `.claude/docs/agents/README.md` |
+| Path Pattern | Skill / Auto-Context | Pre-Read Files |
+|---|---|---|
+| `/\.claude/hooks/.*\.cjs$**` | _(auto-context)_ | `.claude/docs/hooks/README.md` |
+| `/\.claude/skills/.*SKILL\.md$**` | _(auto-context)_ | `.claude/docs/skills/README.md` |
+| `/\.claude/agents/.*\.md$**` | _(auto-context)_ | `.claude/docs/agents/README.md` |
 
 <!-- /SECTION:skill-activation -->
 
@@ -347,11 +352,11 @@ When editing files matching these path patterns, pre-read the listed context fir
 
 | Kind        | Count                                       |
 | ----------- | ------------------------------------------- |
-| Skills      | <!-- COUNT:skills -->165<!-- /COUNT -->     |
+| Skills      | <!-- COUNT:skills -->167<!-- /COUNT -->     |
 | Hooks       | <!-- COUNT:hooks -->17<!-- /COUNT -->       |
 | Agents      | <!-- COUNT:agents -->29<!-- /COUNT -->      |
 | Workflows   | <!-- COUNT:workflows -->19<!-- /COUNT -->   |
-| Shared      | <!-- COUNT:shared -->6<!-- /COUNT -->       |
+| Shared      | <!-- COUNT:shared -->8<!-- /COUNT -->       |
 | Lib modules | <!-- COUNT:lib-modules -->26<!-- /COUNT --> |
 
 ---
@@ -360,7 +365,7 @@ When editing files matching these path patterns, pre-read the listed context fir
 
 ```
 docs/adr/  (2 files)
-docs/project-reference/  (15 files)
+docs/project-reference/  (17 files)
 docs/release/  (1 files)
 docs/templates/  (1 files)
 ```
@@ -369,16 +374,14 @@ docs/templates/  (1 files)
 
 <!-- SECTION:doc-lookup -->
 
-| If user prompt mentions...                                      | Read first                                                                                           |
-| --------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
-| Feature specs, capability behavior, business rules, test cases  | `docs/specs/` + `docs/project-reference/feature-spec-reference.md`                                   |
-| Spec paths, TC format, canonical vs derived spec artifacts      | `docs/project-reference/spec-system-reference.md`                                                    |
-| Spec quality, AI-implementability, tech-agnostic prose          | `docs/project-reference/spec-principles.md`                                                          |
-| Behavior or public contract changes, spec-test-code sync        | `docs/project-reference/workflow-spec-test-code-cycle-reference.md`                                  |
-| Backend patterns, CQRS, validation                              | `docs/project-reference/backend-patterns-reference.md`                                               |
-| Frontend patterns, components, stores                           | `docs/project-reference/frontend-patterns-reference.md`                                              |
-| Custom prompts, saved prompts, playbooks, "run my prompt for X" | `docs/project-reference/custom-prompts-reference.md` (index only; bodies in `docs/project-prompts/`) |
-| Project protocol overlays, extra project rules layered onto a skill | `docs/project-reference/skill-protocols-reference.md` (index only; bodies in `docs/project-protocols/`) |
+| If user prompt mentions... | Read first |
+|---|---|
+| Feature specs, capability behavior, business rules, test cases | `docs/specs/` + `docs/project-reference/feature-spec-reference.md` |
+| Spec paths, TC format, canonical vs derived spec artifacts | `docs/project-reference/spec-system-reference.md` |
+| Spec quality, AI-implementability, tech-agnostic prose | `docs/project-reference/spec-principles.md` |
+| Behavior or public contract changes, spec-test-code sync | `docs/project-reference/workflow-spec-test-code-cycle-reference.md` |
+| Backend patterns, CQRS, validation | `docs/project-reference/backend-patterns-reference.md` |
+| Frontend patterns, components, stores | `docs/project-reference/frontend-patterns-reference.md` |
 
 <!-- /SECTION:doc-lookup -->
 <!-- CLAUDE-MIRROR:END -->
@@ -564,10 +567,16 @@ ARCHITECTURE AUDIT (READ-ONLY, ONE PASS, PROGRESSIVE SYNTHESIS):
 ### workflow-big-feature — Big Feature (Research + Implement)
 - Description: Research-driven feature development for large, complex, or ambiguous features in an existing project — includes idea refinement, market research, business evaluation, domain analysis, tech stack research, and full implementation
 - When To Use: User wants to implement a large, complex, or ambiguous feature that needs research, market analysis, business evaluation, domain modeling, or tech stack analysis before implementation. Big new module, major enhancement, cross-cutting capability, or feature where scope is unclear
-- Sequence: `idea -> web-research -> deep-research -> business-evaluation -> spec-discovery -> domain-analysis -> why-review -> tech-stack-research -> architecture-design -> architecture-scalability-review -> why-review -> plan -> plan-review -> refine -> why-review -> artifact-review --type=pbi -> story -> why-review -> artifact-review --type=story -> pbi-challenge -> dor-gate -> pbi-mockup -> spec -> spec [mode=tests] -> why-review -> artifact-review --type=spec-tests -> spec-clarify -> plan -> plan-review -> scaffold -> architecture-review-full -> plan-validate -> why-review -> plan-execute -> seed-test-data -> domain-entities-review -> integration-test -> integration-test-review -> integration-test-verify -> spec [mode=sync] -> workflow-review-changes -> security-review -> changelog -> test -> scan --target=domain-entities -> docs-update -> workflow-end -> watzup`
+- Sequence: `idea -> web-research -> deep-research -> business-evaluation -> spec-discovery -> domain-analysis -> why-review -> tech-stack-research -> architecture-design -> architecture-scalability-review -> why-review -> scenario -> plan -> plan-review -> refine -> why-review -> artifact-review --type=pbi -> story -> why-review -> artifact-review --type=story -> pbi-challenge -> dor-gate -> pbi-mockup -> spec -> spec [mode=tests] -> why-review -> artifact-review --type=spec-tests -> spec-clarify -> plan -> plan-review -> scaffold -> architecture-review-full -> plan-validate -> why-review -> plan-execute -> seed-test-data -> domain-entities-review -> integration-test -> integration-test-review -> integration-test-verify -> spec [mode=sync] -> workflow-review-changes -> security-review -> changelog -> test -> scan --target=domain-entities -> docs-update -> workflow-end -> watzup`
 
 Protocol:
 ```text
+LARGE-IDEA DECOMPOSITION CHAIN (MANDATORY):
+For new, greenfield, big, ambiguous, multi-capability, or release-scoped work, evaluate the shared isLargeIdea rule before authoring a spec, PBI, story, or plan. When any signal is true, require the complete large_idea_decomposition block in the owning artifacts and carry its stable slice IDs through downstream outputs. Ordinary isolated ideas omit the block and do not create docs/product-roadmap.md. Run $scenario conditionally for the embedded scope. A standalone product-roadmap route is explicit-only; an existing supplied roadmap is read-only context.
+RELEASABLE PBI PROTOCOL (MANDATORY): Every generated PBI MUST be one independently releasable actor-facing outcome with a complete entry-to-result journey, visible/persisted truth, applicable access/failure/recovery behavior, scope, and evidence. Technical/foundation/setup/migration work is enabling work attached to a releasable PBI or a separate actor-facing outcome—never a standalone technical PBI. UI PBIs MUST include a complete multi-view mock-app surface: all required pages/views, navigation, common/domain/page components, applicable states, and a connected full-flow demo result; one static/disconnected screen fails. Apply .claude/skills/shared/releasable-pbi-contract.md.
+For a genuinely isolated brownfield change or bugfix, record Decomposition Applicability: EXEMPT with the reason and accepting owner; do not create docs/product-roadmap.md. An explicitly supplied roadmap remains read-only context.
+The scenario step is conditional for the selected embedded scope; product-roadmap is not an implicit workflow step. Preserve the canonical sequence order after applicability filtering.
+
 BIG FEATURE PROTOCOL (Research-Driven):
 For large/ambiguous features in an existing codebase that need research before implementation.
 
@@ -754,10 +763,16 @@ UNIVERSAL RULES:
 ### workflow-feature — Feature Implementation
 - Description: Full feature development workflow with search-first approach, planning, implementation, testing, and documentation
 - When To Use: User wants to implement a well-defined feature, add a component, build a capability, develop a module, implement/execute an existing plan, create a new API endpoint, or design an API contract, TDD/test-first development, spec-driven feature implementation with test specs written before code
-- Sequence: `scout -> investigate -> spec-discovery -> domain-analysis -> why-review -> spec -> spec-clarify -> plan -> plan-review -> plan-validate -> why-review -> spec [mode=tests] -> why-review -> artifact-review --type=spec-tests -> plan -> plan-review -> plan-execute -> seed-test-data -> domain-entities-review -> spec [mode=tests] -> why-review -> artifact-review --type=spec-tests -> spec [mode=sync] -> integration-test -> integration-test-review -> integration-test-verify -> workflow-review-changes -> security-review -> changelog -> test -> scan --target=domain-entities -> docs-update -> demo-guide -> workflow-end -> watzup`
+- Sequence: `scout -> investigate -> spec-discovery -> domain-analysis -> why-review -> spec -> spec-clarify -> scenario -> plan -> plan-review -> plan-validate -> why-review -> spec [mode=tests] -> why-review -> artifact-review --type=spec-tests -> plan -> plan-review -> plan-execute -> seed-test-data -> domain-entities-review -> spec [mode=tests] -> why-review -> artifact-review --type=spec-tests -> spec [mode=sync] -> integration-test -> integration-test-review -> integration-test-verify -> workflow-review-changes -> security-review -> changelog -> test -> scan --target=domain-entities -> docs-update -> demo-guide -> workflow-end -> watzup`
 
 Protocol:
 ```text
+LARGE-IDEA DECOMPOSITION CHAIN (MANDATORY):
+For new, greenfield, big, ambiguous, multi-capability, or release-scoped work, evaluate the shared isLargeIdea rule before authoring a spec, PBI, story, or plan. When any signal is true, require the complete large_idea_decomposition block in the owning artifacts and carry its stable slice IDs through downstream outputs. Ordinary isolated ideas omit the block and do not create docs/product-roadmap.md. Run $scenario conditionally for the embedded scope. A standalone product-roadmap route is explicit-only; an existing supplied roadmap is read-only context.
+RELEASABLE PBI PROTOCOL (MANDATORY): Every generated PBI MUST be one independently releasable actor-facing outcome with a complete entry-to-result journey, visible/persisted truth, applicable access/failure/recovery behavior, scope, and evidence. Technical/foundation/setup/migration work is enabling work attached to a releasable PBI or a separate actor-facing outcome—never a standalone technical PBI. UI PBIs MUST include a complete multi-view mock-app surface: all required pages/views, navigation, common/domain/page components, applicable states, and a connected full-flow demo result; one static/disconnected screen fails. Apply .claude/skills/shared/releasable-pbi-contract.md.
+For a genuinely isolated brownfield change or bugfix, record Decomposition Applicability: EXEMPT with the reason and accepting owner; do not create docs/product-roadmap.md. An explicitly supplied roadmap remains read-only context.
+The scenario step is conditional for the selected embedded scope; product-roadmap is not an implicit workflow step. Preserve the canonical sequence order after applicability filtering.
+
 FEATURE IMPLEMENTATION PROTOCOL:
 ⚠️ PROJECT CONTEXT: Read docs/project-config.json → workflowPatterns and docs/project-reference/docs-index-reference.md for project-specific architecture, test, documentation, naming, and CSS conventions. Apply the shared SDD Artifact Contract from shared/sdd-artifact-contract.md in the active skills root. Any supported AI tool may implement or review when this context is synced.
 ⚠️ MANDATORY: Search existing code BEFORE planning
@@ -835,10 +850,16 @@ UNIVERSAL RULES:
 ### workflow-greenfield-init — Greenfield Project Init
 - Description: Full waterfall project inception from idea through implementation with integration testing
 - When To Use: User wants to start a new project from scratch, init a greenfield project, plan a new application, research and plan before coding, bootstrap a new codebase, build something new
-- Sequence: `idea -> web-research -> deep-research -> business-evaluation -> spec-discovery -> domain-analysis -> why-review -> tech-stack-research -> architecture-design -> architecture-scalability-review -> why-review -> plan -> plan-review -> security-review -> performance-review -> plan-review -> refine -> why-review -> artifact-review --type=pbi -> story -> why-review -> artifact-review --type=story -> pbi-challenge -> dor-gate -> pbi-mockup -> plan-validate -> why-review -> spec [mode=tests] -> why-review -> artifact-review --type=spec-tests -> spec-clarify -> plan -> plan-review -> scaffold -> linter-setup -> harness-setup -> architecture-review-full -> scan --target=ui-system -> scan --target=backend-patterns -> scan --target=integration-tests -> scan --target=project-structure -> why-review -> plan-execute -> domain-entities-review -> spec [mode=tests] -> why-review -> artifact-review --type=spec-tests -> plan -> plan-review -> integration-test -> integration-test-review -> integration-test-verify -> test -> workflow-review-changes -> security-review -> changelog -> test -> scan --target=domain-entities -> docs-update -> workflow-end -> watzup`
+- Sequence: `idea -> web-research -> deep-research -> business-evaluation -> spec-discovery -> domain-analysis -> why-review -> tech-stack-research -> architecture-design -> architecture-scalability-review -> why-review -> scenario -> plan -> plan-review -> security-review -> performance-review -> plan-review -> refine -> why-review -> artifact-review --type=pbi -> story -> why-review -> artifact-review --type=story -> pbi-challenge -> dor-gate -> pbi-mockup -> plan-validate -> why-review -> spec [mode=tests] -> why-review -> artifact-review --type=spec-tests -> spec-clarify -> plan -> plan-review -> scaffold -> linter-setup -> harness-setup -> architecture-review-full -> scan --target=ui-system -> scan --target=backend-patterns -> scan --target=integration-tests -> scan --target=project-structure -> why-review -> plan-execute -> domain-entities-review -> spec [mode=tests] -> why-review -> artifact-review --type=spec-tests -> plan -> plan-review -> integration-test -> integration-test-review -> integration-test-verify -> test -> workflow-review-changes -> security-review -> changelog -> test -> scan --target=domain-entities -> docs-update -> workflow-end -> watzup`
 
 Protocol:
 ```text
+LARGE-IDEA DECOMPOSITION CHAIN (MANDATORY):
+For new, greenfield, big, ambiguous, multi-capability, or release-scoped work, evaluate the shared isLargeIdea rule before authoring a spec, PBI, story, or plan. When any signal is true, require the complete large_idea_decomposition block in the owning artifacts and carry its stable slice IDs through downstream outputs. Ordinary isolated ideas omit the block and do not create docs/product-roadmap.md. Run $scenario conditionally for the embedded scope. A standalone product-roadmap route is explicit-only; an existing supplied roadmap is read-only context.
+RELEASABLE PBI PROTOCOL (MANDATORY): Every generated PBI MUST be one independently releasable actor-facing outcome with a complete entry-to-result journey, visible/persisted truth, applicable access/failure/recovery behavior, scope, and evidence. Technical/foundation/setup/migration work is enabling work attached to a releasable PBI or a separate actor-facing outcome—never a standalone technical PBI. UI PBIs MUST include a complete multi-view mock-app surface: all required pages/views, navigation, common/domain/page components, applicable states, and a connected full-flow demo result; one static/disconnected screen fails. Apply .claude/skills/shared/releasable-pbi-contract.md.
+For a genuinely isolated brownfield change or bugfix, record Decomposition Applicability: EXEMPT with the reason and accepting owner; do not create docs/product-roadmap.md. An explicitly supplied roadmap remains read-only context.
+The scenario step is conditional for the selected embedded scope; product-roadmap is not an implicit workflow step. Preserve the canonical sequence order after applicability filtering.
+
 GREENFIELD PROJECT INCEPTION PROTOCOL:
 You are acting as a Solution Architect for a brand-new project.
 
@@ -919,10 +940,16 @@ UNIVERSAL RULES:
 ### workflow-idea-to-pbi — Idea to PBI
 - Description: PO/BA idea → grooming-ready backlog. TWO modes: (1) SINGLE-PBI DEEP — one concrete idea/ticket/brief → deep single PBI via idea → draft Feature Spec → TDD test specs → domain → plan → PBI/stories → challenge → DoR → mockup → prioritize; (2) MULTI-OPPORTUNITY DISCOVERY — a raw vision/problem → brainstorm (optionally web-research → deep-research) → RICE opportunity map → user multi-select → light per-opportunity PBI loop → cross-PBI ranked backlog. For idea → ONE provisional Feature Spec only (no backlog) use workflow-idea-to-spec.
 - When To Use: PO/BA wants a grooming-ready PBI backlog from an idea. SINGLE-PBI DEEP: a raw idea — or a handed-off artifact/ticket/brief — through to ONE grooming-ready PBI with a provisional Feature Spec, user stories, TDD test specifications, Dev BA PIC challenge, DoR validation, wireframes, and prioritization. MULTI-OPPORTUNITY DISCOVERY: a raw product vision/problem statement → structured brainstorm → RICE opportunity map → user multi-select → multiple PBIs (light per-opportunity loop) → cross-PBI ranked backlog. For idea → ONE provisional Feature Spec only (no backlog), use workflow-idea-to-spec
-- Sequence: `web-research -> deep-research -> brainstorm -> idea -> spec-discovery -> artifact-review -> refine -> why-review -> spec [mode=draft] -> spec [mode=tests] -> why-review -> artifact-review --type=spec-tests -> spec-clarify -> domain-analysis -> why-review -> plan -> plan-review -> plan-validate -> why-review -> artifact-review --type=pbi -> story -> why-review -> artifact-review --type=story -> pbi-challenge -> dor-gate -> pbi-mockup -> design-spec -> prioritize -> docs-update -> feature-presentation -> workflow-end -> watzup`
+- Sequence: `web-research -> deep-research -> brainstorm -> idea -> spec-discovery -> artifact-review -> refine -> why-review -> spec [mode=draft] -> spec [mode=tests] -> why-review -> artifact-review --type=spec-tests -> spec-clarify -> scenario -> domain-analysis -> why-review -> plan -> plan-review -> plan-validate -> why-review -> artifact-review --type=pbi -> story -> why-review -> artifact-review --type=story -> pbi-challenge -> dor-gate -> pbi-mockup -> design-spec -> prioritize -> docs-update -> feature-presentation -> workflow-end -> watzup`
 
 Protocol:
 ```text
+LARGE-IDEA DECOMPOSITION CHAIN (MANDATORY):
+For new, greenfield, big, ambiguous, multi-capability, or release-scoped work, evaluate the shared isLargeIdea rule before authoring a spec, PBI, story, or plan. When any signal is true, require the complete large_idea_decomposition block in the owning artifacts and carry its stable slice IDs through downstream outputs. Ordinary isolated ideas omit the block and do not create docs/product-roadmap.md. Run $scenario conditionally for the embedded scope. A standalone product-roadmap route is explicit-only; an existing supplied roadmap is read-only context.
+RELEASABLE PBI PROTOCOL (MANDATORY): Every generated PBI MUST be one independently releasable actor-facing outcome with a complete entry-to-result journey, visible/persisted truth, applicable access/failure/recovery behavior, scope, and evidence. Technical/foundation/setup/migration work is enabling work attached to a releasable PBI or a separate actor-facing outcome—never a standalone technical PBI. UI PBIs MUST include a complete multi-view mock-app surface: all required pages/views, navigation, common/domain/page components, applicable states, and a connected full-flow demo result; one static/disconnected screen fails. Apply .claude/skills/shared/releasable-pbi-contract.md.
+For a genuinely isolated brownfield change or bugfix, record Decomposition Applicability: EXEMPT with the reason and accepting owner; do not create docs/product-roadmap.md. An explicitly supplied roadmap remains read-only context.
+The scenario step is conditional for the selected embedded scope; product-roadmap is not an implicit workflow step. Preserve the canonical sequence order after applicability filtering.
+
 IDEA TO PBI PROTOCOL:
 Capture and refine a raw idea — or a handed-off artifact/ticket/brief — into a grooming-ready PBI via an idea → test specs → (from those specs) PBI/stories/plan flow, with domain analysis, challenge review, DoR validation, and wireframe. Apply the shared SDD Artifact Contract from shared/sdd-artifact-contract.md in the active skills root and read docs/project-config.json plus docs/project-reference/docs-index-reference.md for project-specific conventions. Any supported AI tool may produce or review artifacts when this context is synced.
 
@@ -1048,10 +1075,16 @@ UNIVERSAL RULES:
 ### workflow-idea-to-spec — Idea to Feature Spec
 - Description: Idea-to-spec — turns a raw idea/vision/problem statement into ONE canonical, provisional Feature Spec (the tech-free 8-section spec + §8 test specs at docs/specs/{Bucket}/README.{Feature}.md, Evidence: TBD until code lands). STOPS at the reviewed Feature Spec — it does NOT produce a PBI backlog. For a backlog, chain workflow-spec-to-pbi afterward. For code→spec (implementation already exists) use workflow-code-to-spec.
 - When To Use: PO/BA wants to turn a raw product idea, vision, or problem statement into ONE canonical (provisional) Feature Spec — spec-driven: idea → framing → Feature Spec (the tech-free 8-section spec + §8 test specs, Evidence: TBD until code lands). STOPS at the reviewed Feature Spec; for a PBI backlog chain workflow-spec-to-pbi next, or use workflow-idea-to-pbi for idea → full backlog in one pass
-- Sequence: `web-research -> deep-research -> brainstorm -> spec-discovery -> domain-analysis -> why-review -> idea -> spec [mode=draft] -> spec [mode=tests] -> artifact-review --type=spec-tests -> artifact-review -> design-spec -> spec-clarify -> why-review -> docs-update -> feature-presentation -> workflow-end -> watzup`
+- Sequence: `web-research -> deep-research -> brainstorm -> spec-discovery -> scenario -> domain-analysis -> why-review -> idea -> spec [mode=draft] -> spec [mode=tests] -> artifact-review --type=spec-tests -> artifact-review -> design-spec -> spec-clarify -> why-review -> docs-update -> feature-presentation -> workflow-end -> watzup`
 
 Protocol:
 ```text
+LARGE-IDEA DECOMPOSITION CHAIN (MANDATORY):
+For new, greenfield, big, ambiguous, multi-capability, or release-scoped work, evaluate the shared isLargeIdea rule before authoring a spec, PBI, story, or plan. When any signal is true, require the complete large_idea_decomposition block in the owning artifacts and carry its stable slice IDs through downstream outputs. Ordinary isolated ideas omit the block and do not create docs/product-roadmap.md. Run $scenario conditionally for the embedded scope. A standalone product-roadmap route is explicit-only; an existing supplied roadmap is read-only context.
+RELEASABLE PBI PROTOCOL (MANDATORY): Every generated PBI MUST be one independently releasable actor-facing outcome with a complete entry-to-result journey, visible/persisted truth, applicable access/failure/recovery behavior, scope, and evidence. Technical/foundation/setup/migration work is enabling work attached to a releasable PBI or a separate actor-facing outcome—never a standalone technical PBI. UI PBIs MUST include a complete multi-view mock-app surface: all required pages/views, navigation, common/domain/page components, applicable states, and a connected full-flow demo result; one static/disconnected screen fails. Apply .claude/skills/shared/releasable-pbi-contract.md.
+For a genuinely isolated brownfield change or bugfix, record Decomposition Applicability: EXEMPT with the reason and accepting owner; do not create docs/product-roadmap.md. An explicitly supplied roadmap remains read-only context.
+The scenario step is conditional for the selected embedded scope; product-roadmap is not an implicit workflow step. Preserve the canonical sequence order after applicability filtering.
+
 IDEA-TO-SPEC PROTOCOL (SPEC-DRIVEN, STOPS AT SPEC):
 Converts a raw idea / product vision / problem statement into ONE canonical, provisional Feature Spec. This workflow ENDS at a reviewed Feature Spec — it does NOT decompose into PBIs, stories, or a backlog. If the user wants a backlog, hand off to workflow-spec-to-pbi after this workflow completes.
 
@@ -1362,10 +1395,16 @@ UNIVERSAL RULES:
 ### workflow-spec-to-pbi — Spec to PBI Backlog
 - Description: Generate a complete, dependency-aware PBI backlog from existing canonical Feature Specs (docs/specs/{Bucket}/). Audits spec freshness, decomposes large Feature Specs by capability and feature, creates PBIs/stories/DoR evidence, and produces a ranked backlog.
 - When To Use: User wants to create all PBIs from an existing Feature Spec, convert a large Feature Spec into a complete prioritized backlog, generate dependent PBIs from docs/specs, split a very big Feature Spec into sprint-ready PBIs, or produce a ranked implementation order from a bucket of Feature Specs.
-- Sequence: `scout -> spec-index -> domain-analysis -> why-review -> spec-clarify -> plan -> plan-review -> plan-validate -> why-review -> refine -> why-review -> artifact-review --type=pbi -> story -> why-review -> artifact-review --type=story -> pbi-challenge -> dor-gate -> pbi-mockup -> design-spec -> prioritize -> docs-update -> feature-presentation -> workflow-end -> watzup`
+- Sequence: `scout -> spec-index -> domain-analysis -> why-review -> spec-clarify -> scenario -> plan -> plan-review -> plan-validate -> why-review -> refine -> why-review -> artifact-review --type=pbi -> story -> why-review -> artifact-review --type=story -> pbi-challenge -> dor-gate -> pbi-mockup -> design-spec -> prioritize -> docs-update -> feature-presentation -> workflow-end -> watzup`
 
 Protocol:
 ```text
+LARGE-IDEA DECOMPOSITION CHAIN (MANDATORY):
+For new, greenfield, big, ambiguous, multi-capability, or release-scoped work, evaluate the shared isLargeIdea rule before authoring a spec, PBI, story, or plan. When any signal is true, require the complete large_idea_decomposition block in the owning artifacts and carry its stable slice IDs through downstream outputs. Ordinary isolated ideas omit the block and do not create docs/product-roadmap.md. Run $scenario conditionally for the embedded scope. A standalone product-roadmap route is explicit-only; an existing supplied roadmap is read-only context.
+RELEASABLE PBI PROTOCOL (MANDATORY): Every generated PBI MUST be one independently releasable actor-facing outcome with a complete entry-to-result journey, visible/persisted truth, applicable access/failure/recovery behavior, scope, and evidence. Technical/foundation/setup/migration work is enabling work attached to a releasable PBI or a separate actor-facing outcome—never a standalone technical PBI. UI PBIs MUST include a complete multi-view mock-app surface: all required pages/views, navigation, common/domain/page components, applicable states, and a connected full-flow demo result; one static/disconnected screen fails. Apply .claude/skills/shared/releasable-pbi-contract.md.
+For a genuinely isolated brownfield change or bugfix, record Decomposition Applicability: EXEMPT with the reason and accepting owner; do not create docs/product-roadmap.md. An explicitly supplied roadmap remains read-only context.
+The scenario step is conditional for the selected embedded scope; product-roadmap is not an implicit workflow step. Preserve the canonical sequence order after applicability filtering.
+
 SPEC TO PBI BACKLOG PROTOCOL:
 Use when the user has existing canonical Feature Specs at docs/specs/{Bucket}/README.{Feature}.md and wants all implementable PBIs created from them.
 
@@ -1373,10 +1412,10 @@ MANDATORY RULES:
 1. Treat the Feature Specs as canonical input; do not brainstorm unrelated opportunities. Decompose each PBI from spec sections (§3 US/AC, §4 BR, §5 ERD, §6 flows, §7 permissions, §8 TCs).
 2. Run spec-index audit first if a Feature Spec may be stale vs code (the freshness-vs-code audit). Then, after domain-analysis + its why-review and BEFORE any decomposition (plan / refine), run spec-clarify to validate the spec's DECISIONS with the user (EXISTING-SPEC context): it does NOT re-author the canonical spec — confirmed material changes route via $spec [mode=update] FIRST — and complements the spec-index audit (freshness-vs-code on one side, decision-confirmation-with-the-user on the other).
 3. Build a capability x feature/operation inventory before creating any PBI.
-4. Decompose large Feature Specs into independently deliverable vertical slices. Create explicit shared/foundation PBIs for cross-cutting prerequisites.
+4. Decompose large Feature Specs into independently releasable actor-facing vertical slices. Attach cross-cutting enabling work to a releasable PBI or define a separate actor-facing releasable outcome; never emit a standalone technical/foundation/setup/migration PBI.
 5. For each PBI, include acceptance criteria, story points, dependencies, priority, domain impact, spec [mode=tests] needs, and DoR status. Carry §4 BR-/§3 US- logical IDs as the primary citation spine.
 6. Run domain-analysis when the spec implies new/changed entities, aggregates, invariants, state machines, or cross-service ownership.
-7. For each UI PBI, run pbi-mockup THEN design-spec (both CONDITIONAL — SKIP for backend-only PBIs with a stated skip reason; both gated by SYNC:existing-ui-research). pbi-mockup produces a faithful HTML mockup matching the current UI system; design-spec authors the PBI's tech-agnostic UI specs. Both MUST link back to the governing Feature Spec §6 interaction surface — the mockup and the design-spec's View Inventory / Key UI States / per-story click-path must trace to (and stay consistent with) §6. This mirrors workflow-idea-to-pbi so the spec→pbi decomposition half is IDENTICAL across both workflows (idea-to-pbi == idea-to-spec + spec-to-pbi).
+7. For each UI PBI, run pbi-mockup THEN design-spec (both CONDITIONAL — SKIP for backend-only PBIs with a stated skip reason; both gated by SYNC:existing-ui-research). pbi-mockup produces a faithful, multi-view HTML mock app covering the releasable full flow, required pages/views, navigation, components, and applicable states; design-spec authors the PBI's tech-agnostic UI specs. Both MUST link back to the governing Feature Spec §6 interaction surface — the mockup and the design-spec's View Inventory / Key UI States / per-story click-path must trace to (and stay consistent with) §6. This mirrors workflow-idea-to-pbi so the spec→pbi decomposition half is IDENTICAL across both workflows (idea-to-pbi == idea-to-spec + spec-to-pbi).
 8. Run prioritize once at the end across all generated PBIs to produce a dependency-aware ranked backlog. PRIORITY PROPAGATION (MANDATORY): prioritize MUST write the computed rank/priority back into every generated PBI's frontmatter `priority` field — never leave a generated PBI without priority. Every generated PBI carries priority info.
 9. Write artifacts immediately after each capability/feature is processed; never hold all PBIs in memory.
 10. Run docs-update after prioritize and before workflow-end so Feature Specs (§8) and derived indexes stay synchronized.
@@ -1478,7 +1517,7 @@ UNIVERSAL RULES:
 
 Session-start reference derived from `.claude/workflows.json` — use it to pick a route on any prompt: run a standard workflow, compose a custom workflow from the step-skills, invoke a single skill, or execute directly.
 
-### Workflow Skills (61 composable steps)
+### Workflow Skills (62 composable steps)
 
 Distinct step-skills used across the workflows above — compose these into a custom workflow when no standard workflow fits.
 
@@ -1489,7 +1528,7 @@ Distinct step-skills used across the workflows above — compose these into a cu
 | `architecture-review-full` | [Architecture] Use when auditing the ENTIRE project architecture and production readiness in one pass — bundles architecture-review + architecture-scalability-review + production-readiness-review at project or diff scope, then synthesizes one consolidated Architecture Health Report. |
 | `architecture-scalability-review` | [Architecture] Use when grading project architecture and scalability quality for greenfield init or brownfield audit: build/CI scalability, distributed-monolith risk, module isolation, dependency discipline, loose coupling, horizontal scaling, DRY, abstraction, clean architecture, observability, and delivery. |
 | `artifact-review` | [Code Quality] Use when you need to review artifact quality (PBI, user story, test spec, design spec) before handoff. Supports --type={pbi\|story\|spec-tests\|design}. |
-| `brainstorm` | [Content] Use when you need to brainstorm as a PO/BA — structured ideation for problem-solving, new product creation, or feature enhancement. |
+| `brainstorm` | [Content] Use when you need to brainstorm as a PO/BA — structured ideation for problem-solving, new product creation, feature enhancement, or outcome-roadmap framing. Flag: --mode={roadmap\|scope}. |
 | `business-evaluation` | [Content] Use when you need to evaluate business idea viability: Business Model Canvas, financial projections, risk matrix, go-to-market, execution plan. |
 | `changelog` | [Documentation] Use when you need to generate or update changelog entries. |
 | `changes-review` | [Code Quality] Use when reviewing current changes, staged or unstaged diffs, or branch-to-branch diffs. |
@@ -1529,6 +1568,7 @@ Distinct step-skills used across the workflows above — compose these into a cu
 | `refine` | [Project Management] Use when converting ideas to PBIs, validating problem hypotheses, adding acceptance criteria, or refining requirements. |
 | `scaffold` | [Architecture] Use when scaffolding reusable OOP/SOLID project foundations before feature implementation. |
 | `scan` | [Documentation] Use when scanning the codebase to (re)generate ONE project-reference doc. Parameterized by `--target=<key>`: project-structure \| backend-patterns \| frontend-patterns \| scss-styling \| design-system \| code-review-rules \| domain-entities \| feature-spec \| docs-index \| e2e-tests \| integration-tests \| seed-test-data \| ui-system. Shared 4-phase scan engine; per-target detail lives in references/targets.md. `ui-system` is an orchestrator meta-target (`kind: orchestrator`) that runs the 3 UI child scans in parallel instead of the 4-phase engine. |
+| `scenario` | [Planning] Use when enumerating adversarial scenarios, failure modes, data-integrity risks, state boundaries, access risks, or pre-plan edge cases for an embedded large-idea slice, explicit roadmap milestone, framework/library scope, or isolated change. |
 | `scout` | [Investigation] Use when quickly locating relevant files and affected areas across a large codebase. |
 | `security-review` | [Code Quality] Use when you need to perform a security review or audit on any scope — application code (OWASP Top 10 2025), secrets exposure, dependency/supply-chain malware, third-party repository vetting before install, infrastructure/config, CI/CD pipeline, AI-agent risks, and host/VPS compromise detection. |
 | `seed-test-data` | [Dev Data] Use when you need to implement or enhance test data seeders that simulate QC happy-path scenarios via application-layer commands. Flag: --mode=review reviews a target seeder (or the current changes / current work-context result) against every universal seed-data rule AND the project-specific seeder conventions — read-only, evidence-backed PASS/FAIL. |

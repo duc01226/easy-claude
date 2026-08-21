@@ -30,6 +30,7 @@ const {
   checkGoalContractFileLifecycle,
   checkReviewChangesInlineExecutionPolicy,
   checkStartWorkflowPreActionPolicy,
+  checkWorkflowInjectContextCoverage,
 } = await import(pathToFileURL(verifyScript).href);
 
 const workflowIds = [
@@ -153,6 +154,12 @@ function makeWorkflowJson() {
     ]
       .filter(Boolean)
       .join("\n");
+  }
+
+  for (const workflowId of workflowIds) {
+    const workflow = workflows[`workflow-${workflowId}`];
+    workflow.preActions ??= {};
+    workflow.preActions.injectContext ??= `Canonical context for ${workflowId}.`;
   }
 
   return {
@@ -747,7 +754,8 @@ test("checkReviewChangesInlineExecutionPolicy enforces inline-in-main-session, r
 test("checkStartWorkflowPreActionPolicy requires canonical pre-actions before TaskCreate", () => {
   const rel = ".claude/skills/start-workflow/SKILL.md";
   const compliant = [
-    "Tier 2 is required before TaskCreate only for workflow-big-feature, workflow-bugfix, and workflow-feature.",
+    "Tier 2 is required before TaskCreate for every standard workflow.",
+    "The complete entry has non-empty preActions.injectContext.",
     "Use a JSON-aware complete canonical entry read.",
     "Read preActions.injectContext from the selected entry.",
     "The static catalog is a route-selection aid.",
@@ -764,7 +772,7 @@ test("checkStartWorkflowPreActionPolicy requires canonical pre-actions before Ta
     rel,
     "Tier 1 alone creates tasks from the static catalog."
   );
-  assert.equal(failures.length, 10);
+  assert.equal(failures.length, 11);
   assert.ok(failures.some((failure) => /Tier-2 canonical entry read/.test(failure)));
   assert.ok(failures.some((failure) => /conditional task run\/skip propagation/.test(failure)));
 
@@ -792,9 +800,28 @@ test("checkStartWorkflowPreActionPolicy requires canonical pre-actions before Ta
     rel,
     `${compliant}\nTier 2 is required before every standard-workflow TaskCreate.`
   );
-  assert.ok(scopeFailures.some((failure) => /all-standard-workflow Tier-2 expansion/.test(failure)));
+  assert.deepEqual(scopeFailures, []);
 
   assert.deepEqual(checkStartWorkflowPreActionPolicy("some/other/file.md", compliant), []);
+});
+
+test("checkWorkflowInjectContextCoverage requires context for every executable workflow", () => {
+  assert.deepEqual(
+    checkWorkflowInjectContextCoverage({
+      "workflow-ok": {
+        sequence: ["step"],
+        preActions: { injectContext: "Canonical context." },
+      },
+    }),
+    []
+  );
+
+  const failures = checkWorkflowInjectContextCoverage({
+    "workflow-missing": { sequence: ["step"], preActions: {} },
+    "workflow-blank": { sequence: ["step"], preActions: { injectContext: "  " } },
+  });
+  assert.equal(failures.length, 2);
+  assert.ok(failures.every((failure) => /required non-empty preActions\.injectContext/.test(failure)));
 });
 
 test("read-workflow-entry returns the complete Big Feature entry through its terminal refresh", async () => {

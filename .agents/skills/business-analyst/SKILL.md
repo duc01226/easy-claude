@@ -44,6 +44,12 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 
 **Goal:** Refine requirements into actionable user stories with BDD acceptance criteria and business rule traceability.
 
+**Summary:**
+
+- Load business rules and domain entities before authoring.
+- Produce tech-agnostic, INVEST-valid stories and PBIs with observable GWT criteria, estimates, dependencies, and evidence.
+- Every PBI is a releasable actor-facing outcome; UI PBIs carry the complete page/view, navigation, component, state, and mock-app flow surface.
+
 **Workflow:**
 
 1. **Extract Business Rules** — Locate feature docs, extract BR-{MOD}-XXX rules, reference in stories
@@ -57,6 +63,7 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 - User stories must pass INVEST criteria (Independent, Negotiable, Valuable, Estimable, Small, Testable)
 - Include entity context and related domain model in every story
 - MUST ATTENTION include `story_points` and `complexity` in all PBI/story outputs
+- Every PBI output MUST be one independently releasable actor-facing outcome with a complete entry-to-result journey; technical/foundation/setup work is enabling work under that outcome, never a standalone PBI. UI PBIs require the complete page/view, navigation, component, state, and mock-app flow surface. Apply `.claude/skills/shared/releasable-pbi-contract.md`.
 - **[BLOCKING] Tech-agnostic output:** story/acceptance-criteria prose follows `docs/project-reference/spec-principles.md` §3 — no framework/product/language/design-pattern names; source paths, class names, and test identifiers appear ONLY in evidence fields (`**Evidence**`, `IntegrationTest`, `[Source:]`), frontmatter, and Mermaid.
 
 **Be skeptical. Apply critical thinking, sequential thinking. Every claim needs traced proof, confidence percentages (Idea should be more than 80%).**
@@ -290,7 +297,7 @@ When user runs `$refine {idea-file}`:
 4. Extract requirements
 5. **Extract existing BRs** from feature docs
 6. Identify acceptance criteria using TC patterns
-7. Create PBI with GIVEN/WHEN/THEN format
+7. Create a releasable PBI with GIVEN/WHEN/THEN format and the full-flow outcome/surface contract
 8. Save to `team-artifacts/pbis/`
 
 ### Creating User Stories
@@ -582,11 +589,15 @@ Add to user story/PBI:
 
 ## Closing Reminders
 
+**IMPORTANT MUST ATTENTION Goal:** Refine requirements into actionable, tech-agnostic stories and releasable PBIs with observable behavior, business-rule traceability, and complete UI full-flow evidence when applicable.
+**IMPORTANT MUST ATTENTION** run the workflow in order: extract business rules → investigate entities → write INVEST stories/PBIs → define GWT criteria → validate releasable outcome/full-flow surface → save artifacts → review.
+
 **MUST ATTENTION Protocols in force (concise digest of the SYNC/shared blocks this skill carries):**
 
 - **AI Mistake Prevention:** verify generated content against evidence, trace downstream references, verify all affected outputs, re-read after context loss, surface ambiguity.
 - **Critical Thinking:** traced `file:line` proof per claim, confidence >80% to act, never guess.
 - **Sequential Thinking:** multi-step Thought N/M with REVISION/BRANCH/HYPOTHESIS markers and confidence closer.
+- **Releasable PBI Contract:** every PBI is an actor-facing outcome with a complete entry-to-result journey; UI PBIs include all required pages/views, navigation, components, states, and mock-app evidence; technical-only PBIs are rejected. Apply `.claude/skills/shared/releasable-pbi-contract.md`.
 
 - **MANDATORY IMPORTANT MUST ATTENTION** break work into small todo tasks using task tracking BEFORE starting
 - **MANDATORY IMPORTANT MUST ATTENTION** search codebase for 3+ similar patterns before creating new code

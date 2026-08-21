@@ -57,11 +57,12 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 **Summary:**
 
 - PLANNING ONLY — NEVER implement/execute code; produce `plan.md` + per-phase `phase-XX` files + a `goal.md` Goal Contract, then hand off.
-- **Main pipeline (the steps AI keeps forgetting):** pre-check active/suggested plan → bootstrap Goal Contract (`goal.md`) → ONE research wave (`researcher` + `scout` subagents, spawned together, barrier before synthesis) → codebase + project-reference analysis (scout if docs absent) → `planner` subagent writes `plan.md` + `phase-XX` files (Alternatives, Rationale, UI Layout, Test Specs) → parallelism pass (tag every phase PAR/SEQ + write set + `## Execution Waves`) → post-plan granularity self-check → mandatory final tasks.
+- **Main steps/pipeline (the steps AI keeps forgetting):** pre-check active/suggested plan → bootstrap Goal Contract (`goal.md`) → ONE research wave (`researcher` + `scout` subagents, spawned together, barrier before synthesis) → codebase + project-reference analysis (scout if docs absent) → `planner` subagent writes `plan.md` + `phase-XX` files (Alternatives, Rationale, UI Layout, Test Specs) → parallelism pass (tag every phase PAR/SEQ + write set + `## Execution Waves`) → post-plan granularity self-check → mandatory final tasks.
 - **The plan output itself carries parallelism metadata** — every phase tagged `PAR`/`SEQ` with the write set it owns, every `SEQ` naming its forcing dependency (see [Plan Parallelism Metadata](#plan-parallelism-metadata-mandatory--every-plan-output)). Omitting it is a defect of THIS skill: `$plan-execute` fans out only on what the plan declares.
 - **`--mode={ci|cro}` routing:** `ci` plans a fix from a GitHub Actions run/log (loads `references/mode-ci.md`); `cro` plans conversion-rate optimization (25-item framework, `references/mode-cro.md`); default (no flag) = standard flow. Mode only ADDS a reference payload — SAME engine, SAME `$plan-review` gate, SAME `planner` agent.
 - Default mode HARD (parallel subagents, project-reference docs, the `$plan-review` convergence loop under its 3-round ceiling); fast mode ONLY when EVERY trivial-task condition holds. Every phase passes the 5-point granularity check ("Can I start coding RIGHT NOW?"), carries `## Test Specifications` with TC IDs, uses bottom-up estimation (phase-hours drive man-days; SP DERIVED).
 - **Mandatory final tasks + gates:** write Test Specs per phase → `$plan-validate` → `$plan-review` (convergence loop, 3-round ceiling) → `$why-review` (standalone) → re-estimate vs finalized phases; New Tech/Lib gate before approval; **Domain Entity Gate (MANDATORY when the plan touches an entity/VO/aggregate)** — apply `SYNC:domain-entity-change-gate` so the plan DECIDES classification, invariant ownership, aggregate boundary, concurrency, construction, events, and the test obligation (each naming its owning file) instead of deferring them to implementation; ask the user directly confirm before any next step.
+- **Applicability Gate:** before research or planner handoff, load `.claude/skills/shared/product-roadmap-contract.md`. For a large idea, verify the complete embedded `large_idea_decomposition` block and slice/conditional-scenario evidence; for an explicit roadmap request, resolve the approved roadmap milestone, scope brief, and scenario analysis; for a framework/library or isolated change, resolve its complete technical/EXEMPT branch. The emitted `plan.md` MUST contain the applicable `## Plan Gate` with decisions or explicit `N/A`, skeleton, commands, evidence, and human approval. A missing or open decision is `BLOCKED`, not an invitation to infer.
 
 **Workflow:**
 
@@ -205,6 +206,41 @@ Phase 1 of plan MUST ATTENTION be **Architecture Scaffolding** — all base abst
 > After plan creation, ALWAYS run `$plan-review` to validate plan.
 > ASK user to confirm plan before any next step.
 
+## Applicability Preflight and Plan Gate (MANDATORY)
+
+Read `.claude/skills/shared/product-roadmap-contract.md` before creating the Goal Contract or dispatching research. Apply the preflight to every plan, but select the branch from the shared four-operand `isLargeIdea` rule rather than treating a large idea as a roadmap request.
+
+1. Classify applicability before resolving upstream artifacts. For embedded large-idea work, resolve the owning PBI/spec and verify the complete `large_idea_decomposition` block, selected slice IDs, non-goals, risks/evidence, and deferred owners; require `scenario-analysis.md` only when the slice's replay/state/ownership/recovery/evidence risks need adversarial analysis. For an explicit roadmap request, resolve `docs/product-roadmap.md`, exactly one owner-approved milestone, its scope brief, and scenario analysis. For a framework/library or EXEMPT change, resolve its technical/EXEMPT scope and scenario branch without requiring a roadmap or product milestone. If the applicable artifacts are missing or outside `plans/{plan-id}/`, route to the owning branch and stop with `BLOCKED`.
+2. Confirm the selected slice/outcome or technical/EXEMPT boundary, in-scope behavior, explicit non-goals, lifecycle definitions, business/operational source of truth, persistence expectation, high-impact scenario coverage, project skeleton/configuration, build/test/run commands, and redacted evidence plan. Do not let architecture or code research choose an unresolved product meaning.
+3. For a large idea, write the embedded decomposition owner/slice references in the plan. For a genuinely isolated brownfield change, write `## Roadmap Applicability` with `Status: EXEMPT`, reason, and accepting owner. For a framework/library change, write `Status: FRAMEWORK-LIBRARY` with technical outcome and evidence owner. Neither branch creates a product roadmap.
+4. Before handoff, write exactly one `## Plan Gate` block in `plan.md`, using the applicable branch in the shared contract. Set `DECOMPOSITION-EMBEDDED`, `FRAMEWORK-LIBRARY`, or `EXEMPT` only when that branch is complete; set `READY` only for an explicit roadmap branch whose outcome/boundaries match, material decisions are `CONFIRMED`, scenarios have proof mappings, skeleton/commands/evidence are known, and the human owner has approved. Otherwise set `BLOCKED`. Never use an AI-generated `PASS` as approval.
+
+Required output shape:
+
+For explicit-roadmap plans:
+
+```markdown
+## Plan Gate
+- Status: READY | BLOCKED
+- Roadmap: docs/product-roadmap.md
+- Milestone: M{n} — {outcome}
+- Scope brief: plans/{plan-id}/scope-brief.md
+- Scenarios: plans/{plan-id}/scenario-analysis.md
+- Product decisions: CONFIRMED | OPEN — {decision IDs}
+- Project skeleton: CONFIRMED | MISSING — {frontend/backend/data/config status}
+- Commands: CONFIRMED | MISSING — {build/test/run commands}
+- Evidence plan: CONFIRMED | MISSING — {journey, assertions, artifacts, redaction}
+- Human approval: APPROVED | REQUIRED
+```
+
+For an embedded large-idea plan, use the shared contract's `DECOMPOSITION-EMBEDDED` branch: `Roadmap: NOT APPLICABLE — embedded large-idea decomposition`, `Milestone: NOT APPLICABLE — slice IDs live in the owning artifacts`, the owning PBI/spec and selected slice IDs, a conditional scenario path, `Product decisions: CONFIRMED | OPEN`, and the same skeleton, commands, evidence, and human-approval fields. The complete five-field decomposition block is required whenever any signal is true.
+
+For a `FRAMEWORK-LIBRARY` plan, use the shared technical branch: `Roadmap: NOT APPLICABLE — framework/library branch`, a technical registry ID only when useful, the technical scope/scenario sibling paths, `Product decisions: N/A — no adopter product intent changed`, the framework owner approval, and the same skeleton, commands, evidence, and human-approval fields. Neither branch creates a product roadmap.
+
+For an EXEMPT plan, use the shared contract's EXEMPT branch: `Roadmap: EXEMPT — {reason}`, `Milestone: EXEMPT — product-level scope unchanged`, the stable scope/scenario sibling paths, `Product decisions: N/A — {reason}`, and the same skeleton, commands, evidence, and human-approval fields. Do not use `M{n}` or a missing roadmap path as a placeholder.
+
+`plan-review` and `plan-validate` are downstream gates. They may not turn `BLOCKED` into `READY` without the missing product decision or explicit owner approval.
+
 ## Your mission
 
 <task>
@@ -287,6 +323,12 @@ After plan creation, offer validation interview to confirm decisions before impl
     man_days_ai: '{ total with AI e.g., 3d (2d code + 1d test) }'
     branch: { current git branch }
     tags: [relevant, tags]
+    applicability: EXPLICIT-ROADMAP | DECOMPOSITION-EMBEDDED | FRAMEWORK-LIBRARY | EXEMPT
+    roadmap: 'docs/product-roadmap.md' # explicit-roadmap branch only; omit otherwise
+    milestone_id: 'M{n}' # explicit-roadmap branch only; omit otherwise
+    scope_brief: 'plans/{plan-id}/scope-brief.md' # required only for the applicable branch
+    scenario_analysis: 'plans/{plan-id}/scenario-analysis.md' # conditional for embedded work
+    large_idea_decomposition: {complete block when any isLargeIdea signal is true; omit when all are false}
     created: { YYYY-MM-DD }
     ---
     ```
@@ -319,6 +361,7 @@ After plan creation, offer validation interview to confirm decisions before impl
 **Behavior/Sync Planning Checks**
 
 - For behavior-changing work, every phase should name changed behavior, unchanged behavior to preserve, TC/test proof, and docs/spec sync action.
+- For explicit-roadmap work, `plan.md` must include the approved roadmap/milestone/scope/scenario references and the `## Plan Gate`; embedded, framework, and EXEMPT work must use their own shared branches and must not fabricate roadmap fields.
 - For AI-extracted specs/TCs, plan must mark them reference-only until canonical acceptance.
 - For `.claude` skills/hooks/workflows/sync tooling, plan must include generated mirror sync or explicit no-sync evidence.
 
@@ -938,6 +981,10 @@ After creating all phase files, run **recursive decomposition loop**:
 
 **IMPORTANT MUST ATTENTION Goal:** deliver a validated, implementation-ready plan — every phase startable immediately (exact file paths, zero open decisions, mapped TC IDs) — so coding runs without rework at minimum future change cost.
 
+**IMPORTANT MUST ATTENTION Main steps:** pre-check and establish the Goal Contract → run the research wave → analyze project/code evidence → author plan and phases → tag PAR/SEQ execution waves → run granularity and validation/review gates → re-estimate and hand off only when approved.
+
+**IMPORTANT MUST ATTENTION Applicability:** a plan is not ready to cook until its `## Plan Gate` proves the applicable branch: complete embedded decomposition and slice evidence, one approved explicit roadmap outcome, complete framework technical evidence, or complete EXEMPT scope. Every branch still needs explicit non-goals, scenario coverage where applicable, known skeleton/commands, redacted evidence, and human approval; missing product intent is BLOCKED, never silently inferred.
+
 **Protocols in force (concise digest of the SYNC/shared blocks this skill carries):**
 
 - **Plan Granularity:** every phase passes the 5-point check or sub-plans.
@@ -960,6 +1007,7 @@ After creating all phase files, run **recursive decomposition loop**:
 **IMPORTANT MUST ATTENTION** default mode HARD — opt out to fast mode ONLY when ALL trivial-task conditions hold — why: skipping rigor on a non-trivial task costs more rework than rigor saves.
 **MANDATORY IMPORTANT MUST ATTENTION** break work into small todo tasks via task tracking BEFORE starting; add a final review todo; on context loss call the current task list first — never duplicate tasks.
 **MANDATORY IMPORTANT MUST ATTENTION** bootstrap the Goal Contract (`goal.md` from `goal-contract-template.md`) BEFORE investigation; every phase success criterion maps to a saved goal criterion. Redact secrets.
+- **MANDATORY IMPORTANT MUST ATTENTION** resolve the Applicability Preflight before Goal Contract/research and persist the exact branch-specific `## Plan Gate` in `plan.md`; downstream review/validation cannot waive a missing upstream artifact or owner approval.
 **MANDATORY IMPORTANT MUST ATTENTION** validate decisions with user by asking the user directly — NEVER auto-decide because a task seems "obvious"; the user decides the next step.
 **MANDATORY IMPORTANT MUST ATTENTION** every phase passes the 5-point granularity check ("Can I start coding RIGHT NOW?") — failing phases → sub-plan (max depth 3).
 **MANDATORY IMPORTANT MUST ATTENTION** detect new tech/lib not in project → task tracking per lib → WebSearch top 3 → compare → recommend with confidence % → ask the user directly — why: an unvetted dependency is an irreversible decision exposed too early.

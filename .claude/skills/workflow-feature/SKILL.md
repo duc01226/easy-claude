@@ -9,6 +9,14 @@ disable-model-invocation: false
 
 **Goal:** [Workflow] Trigger Feature Implementation workflow — implement a well-defined feature with investigation, planning, implementation, and review. This workflow is spec-driven with tests by default: test specs (`/spec [mode=tests]`) are written and reviewed BEFORE implementation (`/plan-execute`), covering former TDD/test-first use cases.
 
+**Summary:**
+
+- Apply the shared `isLargeIdea` rule before the first mutating `/spec`; when true, carry the five-field `large_idea_decomposition` block through the owning spec/PBI and downstream presentation/mock-up artifacts. Do not create a roadmap artifact by default.
+- For a genuinely isolated brownfield change, carry the shared contract's EXEMPT reason/owner and retain spec, scenario, test, review, and human-confirmation gates.
+- Follow the investigation → spec → scenario → plan → review → implementation → verification sequence; never let implementation outrun product readiness.
+
+ - **Main steps:** investigate → spec/clarify → scenario → plan/review/validate → pre-implementation test specs → implement → integration/spec sync → review/security/test/docs/demo handoff.
+
 **Workflow:**
 
 1. **Detect** — classify request scope and target artifacts.
@@ -25,6 +33,7 @@ disable-model-invocation: false
 - MUST ATTENTION apply the shared SDD Artifact Contract from `shared/sdd-artifact-contract.md` in the active skills root; use `docs/project-config.json` and `docs/project-reference/docs-index-reference.md` for project-specific conventions.
 - MUST ATTENTION preserve expected, unchanged, and no-regression behavior in the plan and review evidence when behavior can change.
 - MUST ATTENTION treat code-extracted specs and TCs as reference-only until canonical review accepts them.
+- MUST ATTENTION apply `isLargeIdea = multipleIndependentOutcomes || ambiguousOrResearchHeavy || releaseScopeDecomposition || oversizedPbiThatMustSplit` before the first mutating `/spec`. A true signal requires `outcome_slices`, `dependencies_order`, `non_goals`, `risks_evidence`, and `deferred_work_owner`; all-false work omits them. Run `$scenario` after spec clarification only when slice risks require it. An explicitly supplied roadmap is read-only context; the standalone writer is explicit-only.
 - MUST ATTENTION allow any supported AI tool to implement or review when the shared contract, synced context, and local docs are available.
 - NEVER skip mandatory workflow or skill gates.
 
@@ -34,14 +43,14 @@ This workflow has steps that appear multiple times. When creating tasks, use the
 
 | Step                                 | Occurrence   | Task Description                                 |
 | ------------------------------------ | ------------ | ------------------------------------------------ |
-| `/plan`                              | 1st (pos 8)  | PLAN₁: Feature Spec-backed implementation plan   |
-| `/plan`                              | 2nd (pos 15) | PLAN₂: Sprint-ready plan incorporating TDD specs |
-| `/plan-review`                       | 1st (pos 9)  | Review PLAN₁                                     |
-| `/plan-review`                       | 2nd (pos 16) | Review PLAN₂                                     |
-| `/spec [mode=tests]`                 | 1st (pos 12) | TDD-SPEC₁: Pre-implementation test specs         |
-| `/spec [mode=tests]`                 | 2nd (pos 20) | TDD-SPEC₂: Post-implementation test spec update  |
-| `/artifact-review --type=spec-tests` | 1st (pos 14) | Review TDD-SPEC₁                                 |
-| `/artifact-review --type=spec-tests` | 2nd (pos 22) | Review TDD-SPEC₂                                 |
+| `/plan`                              | 1st (pos 10) | PLAN₁: Feature Spec-backed implementation plan   |
+| `/plan`                              | 2nd (pos 17) | PLAN₂: Sprint-ready plan incorporating TDD specs |
+| `/plan-review`                       | 1st (pos 11) | Review PLAN₁                                     |
+| `/plan-review`                       | 2nd (pos 18) | Review PLAN₂                                     |
+| `/spec [mode=tests]`                 | 1st (pos 14) | TDD-SPEC₁: Pre-implementation test specs         |
+| `/spec [mode=tests]`                 | 2nd (pos 22) | TDD-SPEC₂: Post-implementation test spec update  |
+| `/artifact-review --type=spec-tests` | 1st (pos 16) | Review TDD-SPEC₁                                 |
+| `/artifact-review --type=spec-tests` | 2nd (pos 24) | Review TDD-SPEC₂                                 |
 
 **NEVER deduplicate** — each occurrence is a distinct task with a different purpose.
 
@@ -67,11 +76,13 @@ Every non-skipped step = `TaskUpdate in_progress` → `Skill` tool → complete 
 
 > **Goal Contract propagation (workflow-owned):** At workflow start, resolve the active Goal Contract per `SYNC:goal-contract-satisfaction-loop` (active plan `goal.md` → `plans/goals/{YYMMDD-HHmm}-{slug}/goal.md` → create from the feature request). Before `/plan-execute`, verify the plan's feature success criteria map to the saved criteria. Pass the same goal file reference to every child step — child skills read the SAME saved goal, never a re-derived one from chat memory. Before `/workflow-end`, emit the final Goal Satisfaction matrix (PASS/FAIL/BLOCKED); workflow completion requires every required criterion PASS or BLOCKED with a user-facing escalation.
 
-**IMPORTANT MANDATORY Steps:** /scout -> /investigate -> /spec-discovery -> /domain-analysis -> /why-review -> /spec -> /spec-clarify -> /plan -> /plan-review -> /plan-validate -> /why-review -> /spec [mode=tests] -> /why-review -> /artifact-review --type=spec-tests -> /plan -> /plan-review -> /plan-execute -> /seed-test-data -> /domain-entities-review -> /spec [mode=tests] -> /why-review -> /artifact-review --type=spec-tests -> /spec [mode=sync] -> /integration-test -> /integration-test-review -> /integration-test-verify -> /workflow-review-changes -> /security-review -> /changelog -> /test -> /scan --target=domain-entities -> /docs-update -> /demo-guide -> /workflow-end -> /watzup
+> **Large-Idea preflight:** Before the first mutating `/spec` for a new, broad, ambiguous, release-scoped, or multi-capability outcome, evaluate the shared four-operand rule and require the complete embedded decomposition block in the owning artifacts. After spec clarification and before `/plan`, run `$scenario` conditionally for replay/state/ownership/recovery risks. A `BLOCKED` Plan Gate stops `/plan-execute`; no default roadmap file is created.
+
+**IMPORTANT MANDATORY Steps:** /scout -> /investigate -> /spec-discovery -> /domain-analysis -> /why-review -> /spec -> /spec-clarify -> /scenario -> /plan -> /plan-review -> /plan-validate -> /why-review -> /spec [mode=tests] -> /why-review -> /artifact-review --type=spec-tests -> /plan -> /plan-review -> /plan-execute -> /seed-test-data -> /domain-entities-review -> /spec [mode=tests] -> /why-review -> /artifact-review --type=spec-tests -> /spec [mode=sync] -> /integration-test -> /integration-test-review -> /integration-test-verify -> /workflow-review-changes -> /security-review -> /changelog -> /test -> /scan --target=domain-entities -> /docs-update -> /demo-guide -> /workflow-end -> /watzup
 
 ---
 
-**IMPORTANT MANDATORY Steps:** /scout -> /investigate -> /spec-discovery -> /domain-analysis -> /why-review -> /spec -> /spec-clarify -> /plan -> /plan-review -> /plan-validate -> /why-review -> /spec [mode=tests] -> /why-review -> /artifact-review --type=spec-tests -> /plan -> /plan-review -> /plan-execute -> /seed-test-data -> /domain-entities-review -> /spec [mode=tests] -> /why-review -> /artifact-review --type=spec-tests -> /spec [mode=sync] -> /integration-test -> /integration-test-review -> /integration-test-verify -> /workflow-review-changes -> /security-review -> /changelog -> /test -> /scan --target=domain-entities -> /docs-update -> /demo-guide -> /workflow-end -> /watzup
+**IMPORTANT MANDATORY Steps:** /scout -> /investigate -> /spec-discovery -> /domain-analysis -> /why-review -> /spec -> /spec-clarify -> /scenario -> /plan -> /plan-review -> /plan-validate -> /why-review -> /spec [mode=tests] -> /why-review -> /artifact-review --type=spec-tests -> /plan -> /plan-review -> /plan-execute -> /seed-test-data -> /domain-entities-review -> /spec [mode=tests] -> /why-review -> /artifact-review --type=spec-tests -> /spec [mode=sync] -> /integration-test -> /integration-test-review -> /integration-test-verify -> /workflow-review-changes -> /security-review -> /changelog -> /test -> /scan --target=domain-entities -> /docs-update -> /demo-guide -> /workflow-end -> /watzup
 
 > **Single-pass steps are self-loop-backed (convergence lives in the skill, not the sequence):** `/domain-entities-review` and both `/artifact-review --type=spec-tests` occurrences appear once each in the flat sequence with no repeat wired — intentionally. Each carries the full `SYNC:double-round-trip-review` self-loop (review → validate findings → fix validated findings → full re-review until a clean pass), so a single sequence occurrence still converges to zero findings on its own. The workflow relies on that per-skill loop; it does NOT re-list the step to force convergence. (Contrast the six specialists in `/workflow-review-changes` steps 3–8, whose scoped-re-run note lives in that skill.)
 
@@ -81,7 +92,7 @@ Activate the `workflow-feature` workflow. Run `/start-workflow workflow-feature`
 
 > **Spec check (before investigation):** If `docs/specs/` has a spec for the affected service/module, read the relevant ERD + business-rules + API-contracts files FIRST. Engineering specs provide domain context that reduces investigation time significantly. Command: `ls docs/specs/` to discover available app buckets or flat system folders; then probe `ls docs/specs/{app-bucket}/` or `ls docs/specs/{system-name}/` to find the specific service spec.
 
-**Steps:** /scout → /investigate → /spec-discovery → /domain-analysis → /why-review → /spec → /spec-clarify → /plan → /plan-review → /plan-validate → /why-review → /spec [mode=tests] → /why-review → /artifact-review --type=spec-tests → /plan → /plan-review → /plan-execute → /seed-test-data → /domain-entities-review → /spec [mode=tests] → /why-review → /artifact-review --type=spec-tests → /spec [mode=sync] → /integration-test → /integration-test-review → /integration-test-verify → /workflow-review-changes → /security-review → /changelog → /test → /scan --target=domain-entities → /docs-update → /demo-guide → /workflow-end → /watzup
+**Steps:** /scout → /investigate → /spec-discovery → /domain-analysis → /why-review → /spec → /spec-clarify → /scenario → /plan → /plan-review → /plan-validate → /why-review → /spec [mode=tests] → /why-review → /artifact-review --type=spec-tests → /plan → /plan-review → /plan-execute → /seed-test-data → /domain-entities-review → /spec [mode=tests] → /why-review → /artifact-review --type=spec-tests → /spec [mode=sync] → /integration-test → /integration-test-review → /integration-test-verify → /workflow-review-changes → /security-review → /changelog → /test → /scan --target=domain-entities → /docs-update → /demo-guide → /workflow-end → /watzup
 
 > **[CONDITIONAL TERMINAL DOMAIN-ENTITY REFERENCE REFRESH]** After `/test` and before `/docs-update`, run `/scan --target=domain-entities` to refresh the project-reference entity catalog only when the final diff changes an entity/model, DTO/data contract, persistence schema/migration, or entity-sync evidence represented in `docs/project-reference/domain-entities-reference.md`. Otherwise mark the scan step completed with a cited skip reason naming the changed files and why they are outside this scope; this is the explicitly authorized exception to the per-step skill-invocation rule.
 >
@@ -254,6 +265,7 @@ Activate the `workflow-feature` workflow. Run `/start-workflow workflow-feature`
 ## Closing Reminders
 
 **IMPORTANT MUST ATTENTION Goal:** [Workflow] Trigger Feature Implementation workflow — implement a well-defined feature with investigation, planning, spec-driven test-first implementation, and review.
+**IMPORTANT MUST ATTENTION Main steps:** investigate → spec/clarify → scenario → plan/review/validate → pre-implementation test specs → implement → integration/spec sync → review/security/test/docs/demo handoff; large ideas carry embedded decomposition and ordinary runs never create a roadmap file.
 
 **Protocols in force (concise digest of the SYNC/shared blocks this skill carries):**
 

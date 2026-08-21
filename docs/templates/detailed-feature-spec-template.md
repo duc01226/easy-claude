@@ -6,6 +6,14 @@ entities: ['{Entity1}', '{Entity2}']
 status: draft | active | deprecated
 owner: '{Team or role that maintains this capability}'
 last_updated: '{YYYY-MM-DD}'
+scope_mode: ORDINARY | DECOMPOSITION-EMBEDDED | EXPLICIT-ROADMAP | EXEMPT | FRAMEWORK-LIBRARY
+# Include the following only when isLargeIdea=true; omit for ordinary all-false ideas.
+large_idea_decomposition: null
+# Explicit-roadmap branch only; do not populate these fields for ordinary embedded work.
+roadmap: null
+milestone_id: null
+scope_brief: null
+roadmap_status: null
 ---
 
 # {FeatureName} — Feature Spec
@@ -37,6 +45,19 @@ last_updated: '{YYYY-MM-DD}'
 > **Anti-pattern:** No ROI tables, no architecture, no technology names.
 
 {2-3 sentences: what this capability does, who it serves, what problem it solves.}
+
+## Large-Idea Decomposition (Conditional)
+
+<!-- Required when any shared isLargeIdea signal is true. Omit this section for an ordinary all-false capability. -->
+
+```yaml
+large_idea_decomposition:
+  outcome_slices: [{stable ID, independently releasable outcome, releasable-when evidence, owning artifact}]
+  dependencies_order: [{before, after, reason}]
+  non_goals: [{statement, owner}]
+  risks_evidence: [{risk, evidence_needed, status, owner}]
+  deferred_work_owner: [{item, owner, follow_up_artifact, target_slice}]
+```
 
 ---
 

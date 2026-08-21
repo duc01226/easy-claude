@@ -20,10 +20,11 @@ description: '[Planning] Use when you need to validate a plan with critical ques
 **Summary:**
 
 - **Purpose:** validate a finished plan via a critical-questions interview so every assumption-laden decision and every preservation-critical behavior is user-confirmed BEFORE implementation — no unstated assumption silently reaches code.
-- **Main steps (run in order):** Phase 0 Detect Plan Type → resolve plan path (`$ARGUMENTS` / `## Plan Context` / ask) → load `mode` + `questions` range as hard constraints → Step 1 Read `plan.md` + all `phase-*.md`, flag decisions/assumptions/risks/tradeoffs → Step 2 Extract topics across 8 categories (Architecture, Assumptions, Tradeoffs, Risks, Scope, New Tech/Lib, Test Specs, Preservation) → Step 3 Generate questions (2-4 concrete options each, surface implicit decisions) → Step 4 Interview via `AskUserQuestion` (≤4 per call) → Step 5 Document answers → offer implement/refine/skip.
+- **Main steps (run in order):** Phase 0 Detect Plan Type → resolve plan path (`$ARGUMENTS` / `## Plan Context` / ask) → load `mode` + `questions` range as hard constraints → Phase 0.5 resolve Applicability / Plan Gate → Step 1 Read `plan.md` + all `phase-*.md`, flag decisions/assumptions/risks/tradeoffs → Step 2 Extract topics across 9 categories (Applicability, Architecture, Assumptions, Tradeoffs, Risks, Scope, New Tech/Lib, Test Specs, Preservation) → Step 3 Generate questions (2-4 concrete options each, surface implicit decisions) → Step 4 Interview via `AskUserQuestion` (≤4 per call) → Step 5 Document answers → offer implement/refine/skip.
 - **Phase 0 weights everything:** plan type (bugfix/feature/migration/refactor/other) decides which question categories fire; any fix/bug/regression/broken/defect keyword makes the Preservation question BLOCKING — never skip it.
 - **The output is a REAL interview, not a self-answer:** honor the `questions` MIN-MAX range from `## Plan Context`, give 2-4 concrete options per question, treat the Preservation "Unsure" answer as BLOCKED → route to `/plan`; if the plan adds new tech/packages, probe whether alternatives were evaluated before accepting the choice.
 - **Persist results narrowly:** add ONLY a `## Validation Summary` (confirmed decisions + action items) to `plan.md` — NEVER edit phase files; close by offering implement/refine/skip via `AskUserQuestion`.
+- **Applicability is mandatory for every plan:** read `.claude/skills/shared/product-roadmap-contract.md`, verify the plan's branch-specific `## Plan Gate`, and ask the owner to confirm the embedded slice/decomposition, explicit roadmap outcome, framework technical outcome, or EXEMPT boundary plus non-goals, scenario proof, commands, evidence, and approval. `BLOCKED`, `OPEN`, `MISSING`, or `REQUIRED` cannot be silently upgraded.
 
 **Workflow:**
 
@@ -40,6 +41,7 @@ description: '[Planning] Use when you need to validate a plan with critical ques
 - Ask ONLY about genuine choices affecting implementation — NEVER about non-decision points — why: noise questions burn the interview budget and erode trust
 - Bugfix plans ALWAYS trigger the Preservation question (keywords: fix, bug, regression, broken, defect) — why: an unverified preserved-correctness invariant is a silent regression
 - Persist via a `## Validation Summary` on `plan.md` — NEVER modify phase files — why: phase files are the plan's source of truth; validation is a read-then-annotate pass
+- For embedded, explicit-roadmap, framework/library, or EXEMPT plans, include the final applicability status and exact owning paths in that same summary; use each branch only when the plan records its required evidence and owner.
 
 ## First Principle — Easy to Change
 
@@ -81,6 +83,17 @@ Classify plan type BEFORE generating questions — drives question category weig
 2. Check `## Plan Context` section → use active plan path
 3. No plan found → ask user to specify path or run `/plan` first
 
+## Phase 0.5: Applicability / Plan Gate
+
+Before extracting technical questions, read `.claude/skills/shared/product-roadmap-contract.md` and classify the plan's branch.
+
+- For an embedded large-idea plan, read the owning PBI/spec and verify the complete `large_idea_decomposition` block, selected slice, non-goals/deferred owners, and conditional scenario artifact when needed. Do not require `docs/product-roadmap.md` or a product milestone.
+- For an explicit-roadmap plan, read `docs/product-roadmap.md`, the selected milestone's scope brief, and `scenario-analysis.md`.
+- For a framework/library plan, read the technical scope, operational scenarios, generated-carrier evidence, and commands.
+- Verify `plan.md` contains one `## Plan Gate` with matching branch/outcome/boundaries, explicit non-goals, defined lifecycle terms when applicable, the branch decision state, known or explicitly inapplicable skeleton/configuration, build/test/run commands, redacted evidence, and `Human approval: APPROVED`.
+- Missing upstream artifacts or `BLOCKED`/`OPEN`/`MISSING`/`REQUIRED` values create a blocking Applicability question. Do not begin implementation or recommend `implement` while it remains unresolved.
+- For an isolated brownfield change or bugfix, verify the shared contract's EXEMPT branch: the scope brief and plan contain the reason/owner, the sibling scenario exists when required, roadmap/milestone are explicitly `EXEMPT`, product decisions use explicit `N/A` rationale, and commands/evidence/approval are known. Retain all existing preservation/spec/test/review questions.
+
 ## Configuration (from injected context)
 
 Check `## Plan Context` section:
@@ -112,6 +125,7 @@ Read plan directory:
 | **New Tech/Lib** | install, add package, new dependency, npm install, dotnet add, unfamiliar framework names  |
 | **Test Specs**   | TC-, test case, coverage, TDD, test specification                                          |
 | **Preservation** | auto-trigger on bugfix keywords in title/frontmatter — scan Preservation Inventory section |
+| **Product Readiness** | roadmap-applicable or EXEMPT plan — scan the applicable `## Plan Gate` branch, scope/scenario refs, non-goals, definitions, evidence, and human approval |
 
 ### Step 3: Generate Questions
 
@@ -121,6 +135,12 @@ Read plan directory:
 - Mark recommended with "(Recommended)" suffix
 - "Other" option automatic — do NOT add
 - Surface implicit decisions
+
+For a roadmap-applicable plan, ask a Product Readiness question before lower-level choices:
+
+> Does the plan implement the owning slice/outcome or technical boundary exactly, with the stated non-goals, lifecycle definitions where applicable, scenario proof, known skeleton/commands, redacted evidence, and human approval?
+
+Offer concrete choices such as: **Yes, approve the Plan Gate (Recommended)**; **No, revise the scope/plan**; **A product decision remains open**; **This plan is an explicitly accepted isolated-change exemption**. Never answer this question from the plan author's confidence alone.
 
 **Examples:**
 
@@ -178,6 +198,15 @@ Add `## Validation Summary` to `plan.md`:
 
 **Validated:** {date}
 **Questions asked:** {count}
+
+### Applicability
+
+- **Branch:** DECOMPOSITION-EMBEDDED | EXPLICIT-ROADMAP | FRAMEWORK-LIBRARY | EXEMPT | BLOCKED
+- **Owning artifact / roadmap:** `{paths}` or `NOT APPLICABLE — embedded/framework/EXEMPT`
+- **Slice / milestone / technical outcome:** `{ID and outcome}`
+- **Scope handoff / scenarios:** `{paths or conditional N/A}`
+- **Plan Gate:** DECOMPOSITION-EMBEDDED | READY | FRAMEWORK-LIBRARY | EXEMPT | BLOCKED
+- **Human approval:** APPROVED | REQUIRED
 
 ### Confirmed Decisions
 
@@ -453,6 +482,10 @@ After validation:
 
 **IMPORTANT MUST ATTENTION Goal:** Force every assumption-laden plan decision and every preservation-critical behavior through explicit user confirmation BEFORE implementation — by interviewing the user with critical questions that validate assumptions and surface issues — so no unstated assumption silently reaches code.
 
+**IMPORTANT MUST ATTENTION Main steps:** detect plan type → resolve the plan and applicability gate → read plan/phase files → extract decision topics → ask bounded user questions → document confirmed answers → offer implement/refine/skip.
+
+**IMPORTANT MUST ATTENTION Applicability:** validate the embedded decomposition/slice evidence, explicit roadmap milestone chain, framework technical evidence, or EXEMPT reason/owner plus non-goals, definitions, scenario proof where applicable, skeleton/commands, redacted evidence, and human approval before offering implementation; unresolved intent or evidence is BLOCKED.
+
 **Protocols in force (concise digest of the SYNC/shared blocks this skill carries):**
 
 - **Nested Task Creation:** child skill still creates visible phase tasks; link parent when nested.
@@ -465,7 +498,7 @@ After validation:
 - **Cross-Service Check:** scan producers, consumers, sagas, contracts; flag breaking-change risk.
 - **AI Mistake Prevention:** verify generated content against evidence, trace downstream references, verify all affected outputs, re-read after context loss, surface ambiguity.
 
-**IMPORTANT MUST ATTENTION** run the main steps IN ORDER — Phase 0 Detect Plan Type → resolve plan path → load `mode` + `questions` range → Step 1 Read `plan.md` + all `phase-*.md` (flag decisions/assumptions/risks/tradeoffs) → Step 2 Extract topics (8 categories) → Step 3 Generate questions (2-4 options each) → Step 4 Interview via `AskUserQuestion` (≤4 per call) → Step 5 Document answers → offer implement/refine/skip — why: the pipeline IS the work; never collapse or skip a step from memory
+**IMPORTANT MUST ATTENTION** run the main steps IN ORDER — Phase 0 Detect Plan Type → resolve plan path → load `mode` + `questions` range → Phase 0.5 Product Readiness / Plan Gate → Step 1 Read `plan.md` + all `phase-*.md` (flag decisions/assumptions/risks/tradeoffs) → Step 2 Extract topics (9 categories) → Step 3 Generate questions (2-4 options each) → Step 4 Interview via `AskUserQuestion` (≤4 per call) → Step 5 Document answers → offer implement/refine/skip — why: the pipeline IS the work; never collapse or skip a step from memory
 
 **IMPORTANT MUST ATTENTION** validate decisions with the user via `AskUserQuestion` — NEVER auto-decide or self-answer; completing without ≥1 question is a protocol violation — why: the user owns every assumption-laden choice, not the agent
 **IMPORTANT MUST ATTENTION** detect plan type FIRST (Phase 0) BEFORE generating questions — bugfix keywords (fix, bug, regression, broken, defect) make the Preservation question BLOCKING, never skipped — why: detection drives which categories fire and the Preservation gate

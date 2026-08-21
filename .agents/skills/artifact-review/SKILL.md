@@ -60,6 +60,7 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 - **Type dispatch + verdict:** each `--type` has its own Required/Recommended checklist and output template — verdict = PASS (all Required + ≥50% Recommended) | WARN (all Required, <50% Recommended) | FAIL (any Required fails).
 - **M1-M7 gate (ALL types, BLOCKING):** any **M1-M5 or M7** violation forces NEEDS WORK citing the mandate ID + exact section/line; exempt source identifiers inside evidence carriers (`[Source:]`, `**Evidence**`, `CoveredBy`, legacy `IntegrationTest`, frontmatter, mermaid) — flag tech leakage only in narrative/AC/scenario prose. — why: carriers are the correct home for class/path/test names; flagging them is a false finding. **M7 (business-visibility) is judged on each case's BODY via the demo test, NOT its prose** — a tech-free-sounding case about a consumer/sync/handler passes M1 and STILL fails M7. — why: M1 governs vocabulary, M7 governs subject matter; the gap between them is how business specs rot.
 - **Validated-fix loop:** before fixing, invoke `$why-review --validate-findings <report-path>` on the review report FIRST (validate-before-fix discipline, at parity with `$plan-review`) — NEVER edit the artifact to resolve findings before this gate returns CLEAN. Then fix only validated findings, do not confirm-in-place, restart the FULL review (fresh `general-purpose` sub-agent — artifacts are NOT code), loop until a clean pass — clean review ENDS the loop.
+- **PBI releaseability is a Required check:** every generated PBI MUST be one independently releasable actor-facing outcome with a complete entry-to-result journey. For UI PBIs, the review MUST also verify the page/view inventory, navigation, component inventory, applicable states, and full-flow demo surface; a technical-only PBI or single static screen FAILS.
 
 **Workflow:**
 
@@ -72,6 +73,7 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 - Use type-specific checklists
 - Every NEEDS WORK item must be actionable
 - Focus on completeness — never block on stylistic preferences
+- PBI reviews MUST apply `.claude/skills/shared/releasable-pbi-contract.md`: a technical-only PBI, incomplete journey, or UI PBI without the required page/view, navigation, component, state, and demo surface is a Required-check failure.
 
 **Be skeptical. Apply critical thinking, sequential thinking. Every claim needs traced proof, confidence percentages (Idea should be more than 80%).**
 
@@ -155,12 +157,13 @@ Select the checklist + output template by artifact type. Pass `--type={pbi|story
 
 | #   | Check                                                                                                      | Presence                                                  | Quality Depth                                                                                                                                                                                  |
 | --- | ---------------------------------------------------------------------------------------------------------- | --------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 1   | **Problem statement is clear** — the problem being solved is described in concrete terms                   | Is a problem statement present? Is it 2+ sentences?       | Is the problem scoped correctly? Could it be framed differently to lead to a different (simpler) solution? Are symptoms confused with root cause?                                              |
-| 2   | **Acceptance criteria are testable and measurable** — each AC can be verified by a test                    | Are ACs present? Do they use measurable language?         | Can a QA engineer write an automated test for EACH AC without clarification? Are they specific enough to catch regressions? Vague ACs ("feature works correctly") are not acceptance criteria. |
-| 3   | **Scope is well-defined (what's in and out)** — both in-scope and out-of-scope items are explicitly listed | Is an in/out scope list present? Does it have both sides? | Are out-of-scope items specific enough to prevent scope creep? Is anything ambiguously in/out? A scope that says nothing is out of scope is an undefined scope.                                |
-| 4   | **Dependencies are identified** — all external dependencies the PBI relies on are listed                   | Is a dependencies section present? Does it list items?    | Are ALL dependencies listed (technical, data, service, team)? Are "can-parallel" items truly safe to parallelize, or do they share a shared resource?                                          |
-| 5   | **Business value is articulated** — the why behind the PBI is stated in terms of user or business outcome  | Is business value described?                              | Is the value quantified or just stated? Does it connect to a user outcome, not just a feature delivery? "Users can now do X" is better than "we implemented feature Y".                        |
-| 6   | **Priority is assigned** — the PBI has an explicit priority level                                          | Is a priority level assigned?                             | Is priority justified with data (RICE/MoSCoW), or arbitrary? Is it consistent with other PBIs in the same sprint? A PBI that is "high priority" without justification is unranked.             |
+| 1   | **Releasable outcome and full flow are defined** — the PBI is an independently releasable actor-facing outcome, not a technical layer | Is the actor, outcome, complete journey, and gate evidence present? For UI, are pages/views, navigation, components, states, and demo journey present? | Can a stakeholder recognize the value from entry through result and exit? Are persistence, access, failure, recovery, and visible truth covered where applicable? Does the scope hide foundation/setup/migration work as the outcome? A UI PBI represented by one isolated screen FAILS. |
+| 2   | **Problem statement is clear** — the problem being solved is described in concrete terms                   | Is a problem statement present? Is it 2+ sentences?       | Is the problem scoped correctly? Could it be framed differently to lead to a different (simpler) solution? Are symptoms confused with root cause?                                              |
+| 3   | **Acceptance criteria are testable and measurable** — each AC can be verified by a test                    | Are ACs present? Do they use measurable language?         | Can a QA engineer write an automated test for EACH AC without clarification? Are they specific enough to catch regressions? Vague ACs ("feature works correctly") are not acceptance criteria. |
+| 4   | **Scope is well-defined (what's in and out)** — both in-scope and out-of-scope items are explicitly listed | Is an in/out scope list present? Does it have both sides? | Are out-of-scope items specific enough to prevent scope creep? Is anything ambiguously in/out? A scope that says nothing is out of scope is an undefined scope.                                |
+| 5   | **Dependencies are identified** — all external dependencies the PBI relies on are listed                   | Is a dependencies section present? Does it list items?    | Are ALL dependencies listed (technical, data, service, team)? Are "can-parallel" items truly safe to parallelize, or do they share a shared resource?                                          |
+| 6   | **Business value is articulated** — the why behind the PBI is stated in terms of user or business outcome  | Is business value described?                              | Is the value quantified or just stated? Does it connect to a user outcome, not just a feature delivery? "Users can now do X" is better than "we implemented feature Y".                        |
+| 7   | **Priority is assigned** — the PBI has an explicit priority level                                          | Is a priority level assigned?                             | Is priority justified with data (RICE/MoSCoW), or arbitrary? Is it consistent with other PBIs in the same sprint? A PBI that is "high priority" without justification is unranked.             |
 
 ### User Story Review (`--type=story`)
 
@@ -317,6 +320,14 @@ Pick the template matching `--type`. All templates lead with a **Status/Verdict*
 
 - ❌ FAIL: {issue}
 - ⚠️ WARN: {issue}
+
+### Releasable Outcome Evidence
+
+- **Actor and outcome:** { ... }
+- **Full-flow journey:** {entry → action → result → exit}
+- **Technical-only work:** {attached enabling tasks | none}
+- **UI surface:** {page/view inventory + navigation + components + states + demo journey | N/A — backend-only with reason}
+- **Gate:** PASS | BLOCKED
 
 ### Verdict
 
@@ -1109,7 +1120,7 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 
 ## Closing Reminders
 
-**IMPORTANT MUST ATTENTION Goal:** Review an artifact (PBI, design spec, story, test spec) for completeness and quality so reviewed artifacts are complete, evidence-backed, and ready for handoff without missing assumptions or acceptance gaps.
+**IMPORTANT MUST ATTENTION Goal:** Review artifacts for evidence-backed handoff quality, and make every generated PBI prove one independently releasable actor-facing outcome with a complete full-flow surface when UI is involved.
 
 **Protocols in force — MUST ATTENTION honor every block below (concise digest of the SYNC/shared blocks this skill carries):**
 
@@ -1120,6 +1131,7 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 - **Evidence Based Reasoning:** No claim without cited evidence; state confidence.
 - **Understand Code First:** Read code, grep 3+ patterns before any change.
 - **Double Round Trip Review:** Validate findings, fix, restart full review until clean.
+- **Releasable PBI Contract:** Apply `.claude/skills/shared/releasable-pbi-contract.md`; technical-only PBIs and UI PBIs represented by one isolated screen are FAIL, not WARN.
 - **Fresh Context Review:** Spawn fresh zero-memory sub-agent after each fix cycle.
 - **Review Protocol Injection:** Embed all 11 protocol bodies verbatim in sub-agent prompts.
 - **AI Mistake Prevention:** verify generated content against evidence, trace downstream references, verify all affected outputs, re-read after context loss, surface ambiguity.

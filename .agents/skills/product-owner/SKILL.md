@@ -42,7 +42,13 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 
 ## Quick Summary
 
-**Goal:** Help Product Owners capture ideas, manage backlogs, and prioritize using RICE, MoSCoW, and Value/Effort frameworks.
+**Goal:** Help Product Owners capture ideas, manage backlogs, and prioritize using RICE, MoSCoW, and Value/Effort frameworks while preserving outcome boundaries inside the owning PBI/spec artifacts. A standalone roadmap is an explicit product capability, not a prerequisite for ordinary backlog work.
+
+**Summary:**
+
+- Load the shared roadmap contract before creating or updating roadmap, feature, PBI, story, or release-scope artifacts.
+- Apply the shared four-signal `isLargeIdea` rule. For true signals, keep milestone-minded decomposition embedded in the owning PBI/spec and carry stable slice IDs into stories, mock-ups, and the all-PBI presentation; for false signals, omit roadmap/milestone placeholders. Use one approved milestone only for an explicit roadmap request, or an explicit EXEMPT/framework branch where applicable.
+- Validate assumptions with the owner before handoff; never let prioritization or backlog wording silently decide product meaning.
 
 > **MANDATORY IMPORTANT MUST ATTENTION** Plan ToDo Task to READ the following project-specific reference doc:
 >
@@ -50,6 +56,8 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 > - `docs/project-reference/domain-entities-reference.md` — Domain entity catalog, relationships, cross-service sync (read when task involves business entities/models)
 >
 > If file not found, search for: project documentation, coding standards, architecture docs.
+
+ - **Main steps:** capture → contextualize → refine → prioritize → owner-validate → hand off with the applicable decomposition, explicit roadmap, EXEMPT, or framework branch.
 
 **Workflow:**
 
@@ -64,6 +72,10 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 - Always detect project module and load feature context for domain ideas
 - Post-refinement validation interview is NOT optional
 - Use the project's domain-specific entity names (resolve them from the project's domain/feature docs)
+- Read `.claude/skills/shared/product-roadmap-contract.md` when creating or updating roadmap, PBI, feature, or release-scope artifacts
+- Roadmaps are outcome-based: each milestone names the user outcome, risk retired, non-goals, human decisions, dependencies, and evidence gate — never only dates, screens, or feature labels
+- A PBI or story must carry the parent `large_idea_decomposition` block and owning slice ID when any signal is true; an explicit roadmap branch may reference one approved milestone, while ordinary artifacts omit roadmap fields. Deferred work stays visible through `deferred_work_owner` instead of leaking into the current slice.
+- Every generated PBI must be an independently releasable actor-facing outcome with a complete entry-to-result journey; technical/foundation/setup work is enabling work under that outcome, never a standalone PBI. UI PBIs must carry the full page/view, navigation, component, state, and mock-app flow surface. Apply `.claude/skills/shared/releasable-pbi-contract.md`.
 
 **Be skeptical. Apply critical thinking, sequential thinking. Every claim needs traced proof, confidence percentages (Idea should be more than 80%).**
 
@@ -304,31 +316,54 @@ When user says "prioritize" or "order backlog":
 - Commitment: {%}
 ```
 
-### Roadmap Update
+### Product Roadmap (Explicit Request Only)
 
 ```markdown
-## Roadmap Update - {Date}
+## Product Roadmap - {Product or Capability}
 
-### This Quarter
+> Canonical path: `docs/product-roadmap.md`. This is an outcome roadmap, not a delivery calendar or implementation plan.
 
-| Priority | Item | Target | Status |
-| -------- | ---- | ------ | ------ |
-| 1        |      |        |        |
+### Product Outcome and Boundary
 
-### Next Quarter
+- **Outcome / hypothesis:** {what user problem and product hypothesis this roadmap validates}
+- **Actors / owner:** {primary actor, operating owner, affected boundary}
+- **Business source of truth:** {state or record that determines truth}
 
-| Item | Dependencies | Notes |
-| ---- | ------------ | ----- |
-|      |              |       |
+### Outcome-Based Milestones
 
-### Deferred
+| ID | User outcome | Risk retired | Explicit non-goals | Human decisions | Evidence gate | Dependencies |
+| -- | ------------ | ------------ | ------------------ | --------------- | ------------- | ------------ |
+| M1 |              |              |                    |                 |               |              |
 
-| Item | Reason |
-| ---- | ------ |
-|      |        |
+### Open Decisions
+
+| Decision | Why it matters | Status | Owner | Needed before |
+| -------- | -------------- | ------ | ----- | ------------- |
+|          |                | OPEN / CONFIRMED / DEFERRED |     |               |
+
+### Selected Milestone
+
+- **Milestone:** M{n}
+- **Scope brief:** `plans/{plan-id}/scope-brief.md`
+- **Approval:** REQUIRED until the owner confirms the outcome, boundaries, non-goals, and evidence gate
 ```
 
 ---
+
+### Embedded Large-Idea Decomposition
+
+For ordinary idea-to-PBI/spec work, capture the milestone mindset in the owning artifact instead of creating a roadmap file:
+
+```yaml
+large_idea_decomposition:
+  outcome_slices: [{stable slice ID, independently releasable outcome, owning artifact}]
+  dependencies_order: [{before, after, reason}]
+  non_goals: [{statement, owner}]
+  risks_evidence: [{risk, evidence_needed, status, owner}]
+  deferred_work_owner: [{item, owner, follow_up_artifact, target_slice}]
+```
+
+Require all five fields when any shared `isLargeIdea` signal is true. Downstream PBIs, stories, mock-ups, and the single all-PBI presentation consume this block read-only; they flag gaps or conflicts but do not create `docs/product-roadmap.md`.
 
 ## Quality Checklist
 
@@ -341,6 +376,10 @@ Before completing PO artifacts:
 - [ ] Status frontmatter current
 - [ ] **Module detected and context loaded** (if domain-related)
 - [ ] **Domain vocabulary used correctly**
+- [ ] If the user explicitly requested a roadmap, its milestones are outcome/risk/evidence based, not date or screen based
+- [ ] If any `isLargeIdea` signal is true, the PBI/spec has the complete five-field decomposition block and each story/mock-up/presentation retains the owning slice ID
+- [ ] Ordinary all-false artifacts omit roadmap/milestone placeholders; EXEMPT/framework branches record their explicit reason/technical outcome and owner
+- [ ] Ambiguous terms and human decisions are confirmed before handoff
 
 ---
 
@@ -488,6 +527,9 @@ Add to idea/PBI:
 
 ## Closing Reminders
 
+**IMPORTANT MUST ATTENTION Goal:** Keep product decisions outcome-based, owner-approved, and traceable from roadmap or explicit EXEMPT boundary through a releasable PBI/story handoff; never let prioritization invent scope or let technical work masquerade as a PBI outcome.
+**IMPORTANT MUST ATTENTION Main steps:** capture → contextualize → refine → prioritize → owner-validate → hand off; true large ideas keep the complete decomposition block and stable slice IDs, ordinary ideas omit roadmap fields, and only explicit roadmap requests use the standalone writer.
+
 **Protocols in force (concise digest of the SYNC/shared blocks this skill carries):**
 
 - **AI Mistake Prevention:** verify generated content against evidence, trace downstream references, verify all affected outputs, re-read after context loss, surface ambiguity.
@@ -498,6 +540,7 @@ Add to idea/PBI:
 **IMPORTANT MUST ATTENTION** search codebase for 3+ similar patterns before creating new code
 **IMPORTANT MUST ATTENTION** cite `file:line` evidence for every claim (confidence >80% to act)
 **IMPORTANT MUST ATTENTION** add a final review todo task to verify work quality
+**IMPORTANT MUST ATTENTION** every generated PBI is a releasable actor-facing outcome; UI PBIs include all pages/views, navigation, components, applicable states, and the full-flow mock-app evidence required by `.claude/skills/shared/releasable-pbi-contract.md`
 
 **[TASK-PLANNING]** Before acting, analyze task scope and systematically break it into small todo tasks and sub-tasks using task tracking.
 

@@ -103,7 +103,12 @@ test("TC-WSC-005 falls back (no throw) for a step-skill with no SKILL.md", () =>
     path.join(tmp, ".claude", "workflows.json"),
     JSON.stringify({
       workflows: {
-        "workflow-x": { name: "X", whenToUse: "test", sequence: ["ghost-step", "missing-step"] },
+        "workflow-x": {
+          name: "X",
+          whenToUse: "test",
+          sequence: ["ghost-step", "missing-step"],
+          preActions: { injectContext: "Use the selected workflow context." },
+        },
       },
     })
   );
@@ -135,7 +140,12 @@ test("TC-WSC-006 decodes quoted frontmatter scalars instead of leaking their esc
     path.join(tmp, ".claude", "workflows.json"),
     JSON.stringify({
       workflows: {
-        "workflow-x": { name: "X", whenToUse: "test", sequence: ["sq-skill", "dq-skill", "bare-skill"] },
+        "workflow-x": {
+          name: "X",
+          whenToUse: "test",
+          sequence: ["sq-skill", "dq-skill", "bare-skill"],
+          preActions: { injectContext: "Use the selected workflow context." },
+        },
       },
     })
   );

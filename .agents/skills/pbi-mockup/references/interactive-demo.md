@@ -4,7 +4,7 @@ Render-side reference for `pbi-mockup`. Governs the **scripted clickable prototy
 
 **One vocabulary across the skill:** flow-spec, journey, screen/state, hotspot, `goTo`, narration, "⚠ Simulated" banner, demo controls (▶ Play · ⏭ Next · ⏮ Prev · ↺ Reset · ⏏ Exit).
 
-**Scope guard (read first):** the prototype is **scripted/simulated interactivity only** — clickable navigation, canned state transitions, guided narration. NO real `fetch`/`XMLHttpRequest`/auth/persistence/backend, NO external `<script src>` (Google Fonts CSS only), and it MUST work self-contained inside an `<iframe srcdoc>` sandbox (the deck embeds it). Illustrative data only; a visible banner makes the simulation explicit.
+**Scope guard (read first):** the prototype is **scripted/simulated interactivity only** — clickable navigation, canned state transitions, guided narration. NO real `fetch`/`XMLHttpRequest`/auth/persistence/backend, NO external `<script src>` (Google Fonts CSS only), and it MUST work self-contained inside an `<iframe srcdoc>` sandbox (the deck embeds it). Illustrative data only; a visible banner makes the simulation explicit. When the parent PBI carries `large_idea_decomposition`, every flow-spec also records the owning slice ID and must not cross its non-goals/deferred-work boundary.
 
 ---
 

@@ -19,6 +19,29 @@ test("orchestrator tier includes every proven direct-dispatch skill (CR-089)", a
   assert.match(source, /ORCHESTRATOR_SKILL_BLOCK_ORDER = SKILL_BLOCK_ORDER \+ \["parallel-subagent-dispatch"\]/);
 });
 
+test("large ideas use embedded decomposition and ordinary workflows do not add a roadmap writer", async () => {
+  const [contract, ideaToPbi, ideaToSpec, specToPbi, presentation, mockup, roadmap] = await Promise.all([
+    read(".claude/skills/shared/product-roadmap-contract.md"),
+    read(".claude/skills/workflow-idea-to-pbi/SKILL.md"),
+    read(".claude/skills/workflow-idea-to-spec/SKILL.md"),
+    read(".claude/skills/workflow-spec-to-pbi/SKILL.md"),
+    read(".claude/skills/feature-presentation/SKILL.md"),
+    read(".claude/skills/pbi-mockup/SKILL.md"),
+    read(".claude/skills/product-roadmap/SKILL.md"),
+  ]);
+  for (const content of [contract, ideaToPbi, ideaToSpec, specToPbi]) {
+    assert.match(content, /isLargeIdea/);
+    assert.match(content, /large_idea_decomposition/);
+    assert.match(content, /outcome_slices/);
+    assert.match(content, /deferred_work_owner/);
+  }
+  assert.match(presentation, /all-PBI presentation/i);
+  assert.match(presentation, /Decomposition & boundaries/i);
+  assert.match(mockup, /Decomposition boundary/);
+  assert.match(roadmap, /explicitly requested/i);
+  assert.match(roadmap, /do not create.*docs\/product-roadmap\.md/i);
+});
+
 test("shared-protocol maintenance documents both skill tiers without fixed inventory counts (CR-095)", async () => {
   const skill = await read(".claude/skills/sync-skills-shared-protocols/SKILL.md");
   assert.match(skill, /ORCHESTRATOR_SKILL_BLOCK_ORDER/);

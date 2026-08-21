@@ -228,7 +228,7 @@ flowchart LR
 
 - **Business rules / invariants it protects:** {the rule in domain words, and where it is enforced — `file:line`}
 - **What breaks for the user if the rule breaks:** {the concrete consequence, not "data integrity"}
-- **Proven by:** `{REAL TC-* / test IDs}` — **never invent a case ID.** Use the actual spec `TC-*` and/or the test `it`/`[Fact]`/scenario names. Nothing covers it → write *"no test covers this story"* and record it as a coverage gap
+- **Proven by:** `{REAL TC-* / test IDs}` — **never invent a case ID.** Use the actual spec `TC-*` and/or the test `it`/`[Fact]` names and scenarios. Nothing covers it → write *"no test covers this story"* and record it as a coverage gap
 - **Read it in:** §4 Stage {N}
 
 ---

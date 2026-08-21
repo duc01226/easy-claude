@@ -9,6 +9,15 @@ disable-model-invocation: false
 
 **Goal:** [Workflow] Trigger Big Feature workflow — research-driven development for large, complex, or ambiguous features needing market research, business evaluation, domain analysis, tech stack research, and architecture design before implementation.
 
+**Summary:**
+
+- Apply the shared four-operand `isLargeIdea` rule before research and planning; large ideas carry the complete decomposition block in PBIs/specs and downstream presentation/mock-up artifacts. Run `$scenario` before the first plan when the slice/risk context requires it; do not create a roadmap artifact by default.
+- Keep research, architecture, specs, PBIs, and implementation downstream of the product boundary; preserve explicit non-goals and human decisions.
+- Every generated PBI in this workflow MUST pass the Releasable Outcome Gate: one independently releasable actor-facing outcome with a complete entry-to-result journey; technical/foundation/setup work is attached enabling work, never a standalone PBI. UI PBIs require the full page/view, navigation, component, state, and mock-app flow surface.
+- Execute the canonical steps in order, with reviewed scaffolding before feature work and evidence-backed verification at the end.
+
+ - **Main steps:** classify/decompose → research/evaluate → domain/architecture/scenario → plan/review → PBI/story/mock-up/spec gates → scaffold/review → implementation/integration verification → final review/security/test/docs/handoff.
+
 **Workflow:**
 
 1. **Detect** — classify request scope and target artifacts.
@@ -21,6 +30,7 @@ disable-model-invocation: false
 - MUST ATTENTION keep task tracking updated as each step starts/completes.
 - MUST ATTENTION define success criteria before execution and loop until observable verification passes.
 - MUST ATTENTION when creating/reviewing specs or tests, name `Business Intent / Invariant Guarded` or the protected business intent/invariant and ensure the test would fail if that intent breaks.
+- MUST ATTENTION classify the idea with `isLargeIdea = multipleIndependentOutcomes || ambiguousOrResearchHeavy || releaseScopeDecomposition || oversizedPbiThatMustSplit` before research, specs, PBIs, or plans. When true, require `outcome_slices`, `dependencies_order`, `non_goals`, `risks_evidence`, and `deferred_work_owner`; run `$scenario` conditionally for the embedded scope. An existing roadmap is read-only context and only an explicit roadmap request enters the standalone writer.
 - NEVER skip mandatory workflow or skill gates.
 
 ## Repeated Steps Disambiguation (CRITICAL for task creation)
@@ -29,10 +39,10 @@ This workflow has steps that appear multiple times. When creating tasks, use the
 
 | Step           | Occurrence   | Task Description                                                                  |
 | -------------- | ------------ | --------------------------------------------------------------------------------- |
-| `/plan`        | 1st (pos 12) | PLAN₁: High-level architecture plan (after architecture-design)                   |
-| `/plan`        | 2nd (pos 28) | PLAN₂: Sprint-ready implementation plan (after artifact-review --type=spec-tests) |
-| `/plan-review` | 1st (pos 13) | Review PLAN₁ architecture                                                         |
-| `/plan-review` | 2nd (pos 29) | Review PLAN₂ implementation                                                       |
+| `/plan`        | 1st (pos 14) | PLAN₁: High-level architecture plan (after architecture-design and scenario gate) |
+| `/plan`        | 2nd (pos 30) | PLAN₂: Sprint-ready implementation plan (after artifact-review --type=spec-tests) |
+| `/plan-review` | 1st (pos 15) | Review PLAN₁ architecture                                                         |
+| `/plan-review` | 2nd (pos 31) | Review PLAN₂ implementation                                                       |
 
 **NEVER deduplicate** — each occurrence is a distinct task with a different purpose.
 
@@ -44,9 +54,9 @@ Every non-skipped step = `TaskUpdate in_progress` → `Skill` tool → complete 
 
 ---
 
-**IMPORTANT MANDATORY Steps:** /idea -> /web-research -> /deep-research -> /business-evaluation -> /spec-discovery -> /domain-analysis -> /why-review -> /tech-stack-research -> /architecture-design -> /architecture-scalability-review -> /why-review -> /plan -> /plan-review -> /refine -> /why-review -> /artifact-review --type=pbi -> /story -> /why-review -> /artifact-review --type=story -> /pbi-challenge -> /dor-gate -> /pbi-mockup -> /spec -> /spec [mode=tests] -> /why-review -> /artifact-review --type=spec-tests -> /spec-clarify -> /plan -> /plan-review -> /scaffold -> /architecture-review-full -> /plan-validate -> /why-review -> /plan-execute -> /seed-test-data -> /domain-entities-review -> /integration-test -> /integration-test-review -> /integration-test-verify -> /spec [mode=sync] -> /workflow-review-changes -> /security-review -> /changelog -> /test -> /scan --target=domain-entities -> /docs-update -> /workflow-end -> /watzup
+**IMPORTANT MANDATORY Steps:** /idea -> /web-research -> /deep-research -> /business-evaluation -> /spec-discovery -> /domain-analysis -> /why-review -> /tech-stack-research -> /architecture-design -> /architecture-scalability-review -> /why-review -> /scenario -> /plan -> /plan-review -> /refine -> /why-review -> /artifact-review --type=pbi -> /story -> /why-review -> /artifact-review --type=story -> /pbi-challenge -> /dor-gate -> /pbi-mockup -> /spec -> /spec [mode=tests] -> /why-review -> /artifact-review --type=spec-tests -> /spec-clarify -> /plan -> /plan-review -> /scaffold -> /architecture-review-full -> /plan-validate -> /why-review -> /plan-execute -> /seed-test-data -> /domain-entities-review -> /integration-test -> /integration-test-review -> /integration-test-verify -> /spec [mode=sync] -> /workflow-review-changes -> /security-review -> /changelog -> /test -> /scan --target=domain-entities -> /docs-update -> /workflow-end -> /watzup
 
-**IMPORTANT MANDATORY Steps:** /idea -> /web-research -> /deep-research -> /business-evaluation -> /spec-discovery -> /domain-analysis -> /why-review -> /tech-stack-research -> /architecture-design -> /architecture-scalability-review -> /why-review -> /plan -> /plan-review -> /refine -> /why-review -> /artifact-review --type=pbi -> /story -> /why-review -> /artifact-review --type=story -> /pbi-challenge -> /dor-gate -> /pbi-mockup -> /spec -> /spec [mode=tests] -> /why-review -> /artifact-review --type=spec-tests -> /spec-clarify -> /plan -> /plan-review -> /scaffold -> /architecture-review-full -> /plan-validate -> /why-review -> /plan-execute -> /seed-test-data -> /domain-entities-review -> /integration-test -> /integration-test-review -> /integration-test-verify -> /spec [mode=sync] -> /workflow-review-changes -> /security-review -> /changelog -> /test -> /scan --target=domain-entities -> /docs-update -> /workflow-end -> /watzup
+**IMPORTANT MANDATORY Steps:** /idea -> /web-research -> /deep-research -> /business-evaluation -> /spec-discovery -> /domain-analysis -> /why-review -> /tech-stack-research -> /architecture-design -> /architecture-scalability-review -> /why-review -> /scenario -> /plan -> /plan-review -> /refine -> /why-review -> /artifact-review --type=pbi -> /story -> /why-review -> /artifact-review --type=story -> /pbi-challenge -> /dor-gate -> /pbi-mockup -> /spec -> /spec [mode=tests] -> /why-review -> /artifact-review --type=spec-tests -> /spec-clarify -> /plan -> /plan-review -> /scaffold -> /architecture-review-full -> /plan-validate -> /why-review -> /plan-execute -> /seed-test-data -> /domain-entities-review -> /integration-test -> /integration-test-review -> /integration-test-verify -> /spec [mode=sync] -> /workflow-review-changes -> /security-review -> /changelog -> /test -> /scan --target=domain-entities -> /docs-update -> /workflow-end -> /watzup
 
 > **[BLOCKING]** Each non-skipped step MUST ATTENTION invoke its `Skill` tool — marking a task `completed` without skill invocation is a workflow violation, except a cited conditional skip explicitly authorized by canonical `preActions.injectContext`. NEVER batch-complete validation gates.
 
@@ -54,7 +64,7 @@ Activate the `workflow-big-feature` workflow. Run `/start-workflow workflow-big-
 
 > **Spec check (before investigation):** If `docs/specs/` has a spec for the affected service/module, read the relevant ERD + business-rules + API-contracts files FIRST. Engineering specs provide domain context that reduces investigation time significantly. Command: `ls docs/specs/` to discover available app buckets or flat system folders; then probe `ls docs/specs/{app-bucket}/` or `ls docs/specs/{system-name}/` to find the specific service spec.
 
-**Steps:** /idea → /web-research → /deep-research → /business-evaluation → /spec-discovery → /domain-analysis → /why-review → /tech-stack-research → /architecture-design → /architecture-scalability-review → /why-review → /plan → /plan-review → /refine → /why-review → /artifact-review --type=pbi → /story → /why-review → /artifact-review --type=story → /pbi-challenge → /dor-gate → /pbi-mockup → /spec → /spec [mode=tests] → /why-review → /artifact-review --type=spec-tests → /spec-clarify → /plan → /plan-review → /scaffold → /architecture-review-full → /plan-validate → /why-review → /plan-execute → /seed-test-data → /domain-entities-review → /integration-test → /integration-test-review → /integration-test-verify → /spec [mode=sync] → /workflow-review-changes → /security-review → /changelog → /test → /scan --target=domain-entities → /docs-update → /workflow-end → /watzup
+**Steps:** /idea → /web-research → /deep-research → /business-evaluation → /spec-discovery → /domain-analysis → /why-review → /tech-stack-research → /architecture-design → /architecture-scalability-review → /why-review → /scenario → /plan → /plan-review → /refine → /why-review → /artifact-review --type=pbi → /story → /why-review → /artifact-review --type=story → /pbi-challenge → /dor-gate → /pbi-mockup → /spec → /spec [mode=tests] → /why-review → /artifact-review --type=spec-tests → /spec-clarify → /plan → /plan-review → /scaffold → /architecture-review-full → /plan-validate → /why-review → /plan-execute → /seed-test-data → /domain-entities-review → /integration-test → /integration-test-review → /integration-test-verify → /spec [mode=sync] → /workflow-review-changes → /security-review → /changelog → /test → /scan --target=domain-entities → /docs-update → /workflow-end → /watzup
 
 > **[CONDITIONAL TERMINAL DOMAIN-ENTITY REFERENCE REFRESH]** After `/test` and before `/docs-update`, run `/scan --target=domain-entities` to refresh the project-reference entity catalog only when the final diff changes an entity/model, DTO/data contract, persistence schema/migration, or entity-sync evidence represented in `docs/project-reference/domain-entities-reference.md`. Otherwise mark the scan step completed with a cited skip reason naming the changed files and why they are outside this scope; this is the explicitly authorized exception to the per-step skill-invocation rule.
 
@@ -177,6 +187,10 @@ Activate the `workflow-big-feature` workflow. Run `/start-workflow workflow-big-
 <!-- /SYNC:project-protocol-overlay:reminder -->
 
 ## Closing Reminders
+
+**IMPORTANT MUST ATTENTION Goal:** Complete the reviewed large-feature workflow with a bounded, independently releasable actor-facing outcome, embedded decomposition when triggered, scenario evidence, reviewed foundation, full-flow UI proof when applicable, implementation proof, and synchronized handoff; ordinary runs never create `docs/product-roadmap.md`.
+**IMPORTANT MUST ATTENTION Main steps:** classify/decompose → research → domain/architecture/scenario → plan/review → PBI/story/mock-up/spec gates → scaffold/review → implementation/integration verification → final review/security/test/docs/handoff.
+**IMPORTANT MUST ATTENTION** every generated PBI MUST pass `.claude/skills/shared/releasable-pbi-contract.md`; technical/foundation/setup work is enabling work under a releasable PBI, and UI PBIs require all pages/views, navigation, components, states, and a connected mock-app demo.
 
 **IMPORTANT MUST ATTENTION Protocols in force (concise digest of the SYNC/shared blocks this skill carries):**
 

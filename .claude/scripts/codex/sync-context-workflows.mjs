@@ -400,6 +400,12 @@ function buildWorkflowSection(workflowEntries) {
     const sequence = Array.isArray(workflow?.sequence) ? workflow.sequence : [];
     const protocol = resolvePortabilityTokens(workflow?.preActions?.injectContext);
 
+    if (typeof protocol !== "string" || protocol.trim().length === 0) {
+      throw new Error(
+        `Workflow ${workflowId} is missing required non-empty preActions.injectContext`
+      );
+    }
+
     const parallelGroups = Array.isArray(workflow?.parallelGroups) ? workflow.parallelGroups : [];
 
     lines.push(`### ${workflowId} — ${name}`);
@@ -412,7 +418,7 @@ function buildWorkflowSection(workflowEntries) {
     lines.push("");
     lines.push("Protocol:");
     lines.push("```text");
-    lines.push(typeof protocol === "string" && protocol.trim().length > 0 ? protocol.trim() : "No injectContext protocol defined.");
+    lines.push(protocol.trim());
     lines.push("```");
     lines.push("");
   }

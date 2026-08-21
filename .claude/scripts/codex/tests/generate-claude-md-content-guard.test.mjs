@@ -110,6 +110,7 @@ test("TC-CLG-007 init mode bakes former hook guidance into CLAUDE.md static carr
               description: "Run local tests",
               whenToUse: "user wants to verify changes",
               sequence: ["test"],
+              preActions: { injectContext: "Use the selected workflow context." },
             },
           },
         },
