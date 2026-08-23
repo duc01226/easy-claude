@@ -62,7 +62,7 @@ test('TC-CONVLOOP-042: all real review-family skills pass both rules', () => {
 // (so a skill merely using the word "finding"/"Severity" is never scanned = no false positive).
 test('TC-CONVLOOP-043: allow-list is the 14 review-family skills, no non-review skill included', () => {
     assert.equal(REVIEW_FAMILY_SKILLS.length, 14);
-    for (const nonReview of ['plan', 'investigate', 'scout', 'fix', 'plan-execute', 'why-review']) {
+    for (const nonReview of ['plan', 'investigate', 'fix', 'plan-execute', 'why-review']) {
         assert.ok(!REVIEW_FAMILY_SKILLS.includes(nonReview), `non-review skill must NOT be scanned: ${nonReview}`);
     }
     // Every grader is also a member of the review-family allow-list.

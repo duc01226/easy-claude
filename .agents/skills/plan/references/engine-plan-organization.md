@@ -19,7 +19,7 @@ Use `Plan dir:` from `## Naming` section injected by hooks. This is the full com
 │   ├── researcher-XX-report.md
 │   └── ...
 ├── reports/
-│   ├── scout-report.md
+│   ├── investigate-report.md
 │   ├── researcher-report.md
 │   └── ...
 ├── plan.md                                    # Overview access point
@@ -166,7 +166,7 @@ Mandatory block — `$plan-execute` derives its write set from here:
 - SEQ dependency: {phase + exact artifact it waits on — omit when Mode: PAR}
 ```
 
-Rules: two `PAR` phases MUST have disjoint write sets (overlap → merge the phases or demote the later one to `SEQ`); a `SEQ` phase without a named artifact dependency is mistagged — retag it `PAR`; approval, review, and migration phases are always `SEQ` boundaries.
+Rules: review every phase's **Mode, Wave, write set, and SEQ dependency** as one coherent metadata contract. Two `PAR` phases MUST have disjoint write sets (overlap → merge the phases or demote the later one to `SEQ`); a `SEQ` phase without a named artifact dependency is mistagged — retag it `PAR`; approval, review, and migration phases are always `SEQ` boundaries.
 
 ###### Implementation Steps
 
@@ -407,8 +407,8 @@ plans/
     ├── reports/
     │   ├── XX-report.md
     │   └── ...
-    ├── scout/
-    │   ├── scout-XX-report.md
+    ├── investigate/
+    │   ├── investigate-XX-report.md
     │   └── ...
     ├── plan.md
     ├── phase-XX-phase-name-here.md

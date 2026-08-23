@@ -110,6 +110,22 @@ const deadModuleVerificationTests = [
         }
     },
     {
+        name: '[workflow-context] every workflow has non-empty preActions.injectContext',
+        fn: async () => {
+            const fs = require('fs');
+            const configPath = path.resolve(__dirname, '..', '..', '..', 'workflows.json');
+            const data = JSON.parse(fs.readFileSync(configPath, 'utf8'));
+            const missing = Object.entries(data.workflows).filter(([, w]) => {
+                const context = w?.preActions?.injectContext;
+                return typeof context !== 'string' || context.trim().length === 0;
+            });
+            assertTrue(
+                missing.length === 0,
+                `Every workflow requires non-empty preActions.injectContext, missing: ${missing.map(([id]) => id).join(', ')}`
+            );
+        }
+    },
+    {
         name: '[review-guidance] workflow-review-changes injectContext includes multilingual UI sync check',
         fn: async () => {
             const configPath = path.resolve(__dirname, '..', '..', '..', 'workflows.json');

@@ -246,7 +246,7 @@ The skills/gates below pull graph context on demand. Only the two graph hooks (`
 | Session start                          | `graph-session-init.cjs` (hook)            | Status: "Graph active. 94 files, 875 nodes" or install instructions |
 | `/code-review` running                 | skill runs `code_graph graph-blast-radius` | Blast radius summary, risk level, impacted files                    |
 | `/changes-review` running              | skill runs `code_graph graph-blast-radius` | Same as above                                                       |
-| `/scout` running                       | skill runs `code_graph` trace/connections  | Structural overview for exploration                                 |
+| `/investigate` running                 | skill runs `code_graph` trace/connections  | Structural overview for exploration                                 |
 | `/debug-investigate` running           | skill runs `code_graph` trace/query        | Dependency context for tracing                                      |
 | `/production-readiness-review` running | skill runs `code_graph graph-blast-radius` | Impact assessment for prod readiness                                |
 | `/investigate` invoked                 | (in-skill RECOMMENDED)                     | Callers, imports, tests, inheritance queries for target             |
@@ -464,15 +464,15 @@ The BFS trace algorithm (`tools.py:trace_connections`) follows both structural e
 | `graph-export`       | Export graph to JSON (`--format=json`) or single-file Mermaid diagram (`--format=mermaid`)                                                                                                         |
 
 **Skills with graph integration** (RECOMMENDED if graph.db exists):
-scout, debug, code-review, changes-review, production-readiness-review, investigate
+investigate, debug, code-review, changes-review, production-readiness-review
 
 ## Example Workflow: Bug Fix with Graph
 
 ```
 1. User: "fix the login timeout bug"
 
-2. Claude detects: bugfix workflow → /scout
-   scout pulls graph baseline → code_graph trace/connections
+2. Claude detects: bugfix workflow → /investigate
+   investigate pulls graph context → code_graph trace/connections
    → "Risk: LOW | Changed: 0 files | No changes detected"
    (No changes yet — graph provides baseline)
 
@@ -540,7 +540,7 @@ graph LR
 
 ## How the Graph Helps in Workflows
 
-The graph integrates into easy-claude workflows through 2 auto-firing hooks (`graph-session-init.cjs`, `graph-auto-update.cjs`); the scout-baseline and code-review blast-radius pulls shown below are skill-driven:
+The graph integrates into easy-claude workflows through 2 auto-firing hooks (`graph-session-init.cjs`, `graph-auto-update.cjs`); the investigation baseline and code-review blast-radius pulls shown below are skill-driven:
 
 ```mermaid
 sequenceDiagram
@@ -549,14 +549,14 @@ sequenceDiagram
     participant Hook as Graph (hooks + skills)
     participant Graph as graph.db
 
-    Note over Dev,Graph: Feature Workflow: /scout → /feature-implement → /code-review
+    Note over Dev,Graph: Feature Workflow: /investigate → /feature-implement → /code-review
 
     Dev->>WF: "implement login feature"
     WF->>WF: Detect: feature workflow
 
     rect rgb(230, 245, 255)
-        Note over WF,Graph: Step 1: /scout
-        WF->>Hook: scout skill pulls graph baseline
+        Note over WF,Graph: Step 1: /investigate
+        WF->>Hook: investigate skill pulls graph context
         Hook->>Graph: code_graph trace/connections (no changes yet)
         Graph-->>Hook: Baseline: 0 changed, 94 files indexed
         Hook-->>WF: structural overview
@@ -583,11 +583,11 @@ sequenceDiagram
 
 | Workflow          | Steps Where Graph Activates                                                                           | What Graph Provides                                                |
 | ----------------- | ----------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------ |
-| **feature**       | /scout, /feature-implement (auto-update), /code-review, /changes-review, /production-readiness-review | Structural overview, incremental tracking, blast radius for review |
-| **bugfix**        | /scout, /debug-investigate, /fix (auto-update), /code-review                                          | Dependency tracing for root cause, impact assessment of fix        |
-| **refactor**      | /scout, /plan-execute (auto-update), /code-review, /production-readiness-review                       | Ensures refactoring doesn't break callers/dependents               |
-| **hotfix**        | /scout, /fix (auto-update), /changes-review, /production-readiness-review                             | Fast blast radius to verify minimal production impact              |
-| **investigation** | /scout, /investigate                                                                                  | Structural map for understanding code relationships                |
+| **feature**       | /investigate, /feature-implement (auto-update), /code-review, /changes-review, /production-readiness-review | Structural overview, incremental tracking, blast radius for review |
+| **bugfix**        | /investigate, /debug-investigate, /fix (auto-update), /code-review                                          | Dependency tracing for root cause, impact assessment of fix        |
+| **refactor**      | /investigate, /plan-execute (auto-update), /code-review, /production-readiness-review                       | Ensures refactoring doesn't break callers/dependents               |
+| **hotfix**        | /investigate, /fix (auto-update), /changes-review, /production-readiness-review                             | Fast blast radius to verify minimal production impact              |
+| **investigation** | /investigate                                                                                              | Structural map for understanding code relationships                |
 
 ### Graph-Powered Skills
 
@@ -599,7 +599,7 @@ sequenceDiagram
 | `/graph-export`                | Export full graph to JSON (`--format=json`) or single-file Mermaid diagram (`--format=mermaid`) |
 | `/graph-connect-api`           | Detect frontend-backend API connections via graph edges                                         |
 | `/code-review`                 | Auto-receives blast radius context when graph exists                                            |
-| `/scout`                       | Auto-receives structural overview when graph exists                                             |
+| `/investigate`                 | Auto-receives structural overview when graph exists                                             |
 | `/debug-investigate`           | Auto-receives dependency context for tracing                                                    |
 | `/production-readiness-review` | Auto-receives impact assessment for prod readiness                                              |
 
@@ -875,7 +875,7 @@ It's like a GPS navigator: the map data costs a few KB, but saves hours of drivi
 | Phase          | Trigger                                     | What's surfaced                                    | Cost       | Savings                                                 |
 | -------------- | ------------------------------------------- | -------------------------------------------------- | ---------- | ------------------------------------------------------- |
 | Session start  | `graph-session-init.cjs` fires once         | "Graph active. 350 files, 1200 edges" (~30 tokens) | 30 tokens  | Claude knows graph exists, uses queries instead of grep |
-| `/scout` runs  | scout skill pulls `code_graph` baseline     | Baseline structural overview (~200 tokens)         | 200 tokens | Claude maps code area in seconds vs minutes of grepping |
+| `/investigate` runs | investigate skill pulls `code_graph` context | Baseline structural overview (~200 tokens)      | 200 tokens | Claude maps code area in seconds vs minutes of grepping |
 | File edited    | `graph-auto-update.cjs` fires silently      | Nothing visible — graph.db updated in background   | 0 tokens   | Graph stays current. No manual rebuild needed           |
 | `/code-review` | code-review skill runs `graph-blast-radius` | Full blast radius report (~300 tokens)             | 300 tokens | Claude reviews 7 files instead of grepping 350          |
 | `/investigate` | Skill RECOMMENDED section                   | Claude runs targeted graph queries (~500 tokens)   | 500 tokens | 4 queries replace reading 47 grep matches               |
@@ -897,7 +897,7 @@ It's like a GPS navigator: the map data costs a few KB, but saves hours of drivi
 | Scenario                 | What Claude sees automatically         | How it helps                                  |
 | ------------------------ | -------------------------------------- | --------------------------------------------- |
 | Session starts           | "Graph active. 350 files, 1,200 edges" | Claude knows graph is available               |
-| `/scout` runs            | Structural overview of target area     | Faster discovery than blind grep              |
+| `/investigate` runs      | Structural overview of target area     | Faster discovery than blind grep              |
 | File edited              | _(silent)_ graph updates in background | Always current for next query                 |
 | `/code-review` runs      | Full blast radius with risk level      | Reviews impacted files, not just changed ones |
 | `/investigate` runs      | Targeted callers/imports/tests queries | Maps call chains in seconds vs minutes        |

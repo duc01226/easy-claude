@@ -7,7 +7,9 @@ disable-model-invocation: false
 
 ## Quick Summary
 
-**Goal:** [Workflow] Trigger Seed Test Data workflow — scout existing seeder patterns, implement idempotent QC happy-path seeders via application commands, review compliance, simplify.
+**Goal:** [Workflow] Trigger Seed Test Data workflow — investigate existing seeder patterns, implement idempotent QC happy-path seeders via application commands, review compliance, simplify.
+
+**Summary:** Run `/investigate` → `/seed-test-data` → `/changes-review` → `/code-simplifier` → `/docs-update` → `/workflow-end` → `/watzup`; before writing, read the Data Seeders project-config group and seed reference, then enforce environment-first gating, configured counts, application-command-only writes, `existing_count`→`target_count` idempotency, and scoped DI per iteration.
 
 **Workflow:**
 
@@ -23,7 +25,7 @@ disable-model-invocation: false
 - MUST ATTENTION when creating/reviewing specs or tests, name `Business Intent / Invariant Guarded` or the protected business intent/invariant and ensure the test would fail if that intent breaks.
 - NEVER skip mandatory workflow or skill gates.
 
-**IMPORTANT MANDATORY Steps:** /scout -> /investigate -> /seed-test-data -> /changes-review -> /code-simplifier -> /docs-update -> /workflow-end -> /watzup
+**IMPORTANT MANDATORY Steps:** /investigate -> /seed-test-data -> /changes-review -> /code-simplifier -> /docs-update -> /workflow-end -> /watzup
 
 > **[BLOCKING]** Each step MUST ATTENTION invoke its `Skill` tool — marking a task `completed` without skill invocation is a workflow violation. NEVER batch-complete validation gates.
 
@@ -31,11 +33,11 @@ disable-model-invocation: false
 
 Activate the `workflow-seed-test-data` workflow. Run `/start-workflow workflow-seed-test-data` with the user's prompt as context.
 
-**Steps:** /scout → /investigate → /seed-test-data → /changes-review → /code-simplifier → /docs-update → /workflow-end → /watzup
+**Steps:** /investigate → /seed-test-data → /changes-review → /code-simplifier → /docs-update → /workflow-end → /watzup
 
 > **[STEP PURPOSES]** Every step has a distinct purpose — NEVER deduplicate or batch:
 >
-> **`/scout`** — Find feature area command files; locate existing seeders in the same service for pattern matching. Output: target seeder file path (or "none — create new") + existing seeder examples.
+> **`/investigate`** — Find feature area command files; locate existing seeders in the same service for pattern matching. Output: target seeder file path (or "none — create new") + existing seeder examples.
 > **`/investigate`** — Read the commands the seeder will call. Map: required inputs, validation rules, side effects, cross-service dependencies. Output: command signature list + dependency chain (what data must pre-exist).
 > **`/seed-test-data`** — Implement or enhance the seeder. Environment gate FIRST → read count from config → idempotency check → loop from existing to target → dispatch application commands with realistic, diverse inputs.
 > **`/changes-review`** — Full compliance review: environment gate present, count read from config key, idempotency correct (loop from `existing` not from `0`), no direct DB writes for domain entities, project's scoped DI mechanism used per iteration.
@@ -45,7 +47,7 @@ Activate the `workflow-seed-test-data` workflow. Run `/start-workflow workflow-s
 
 ---
 
-**IMPORTANT MANDATORY Steps:** /scout -> /investigate -> /seed-test-data -> /changes-review -> /code-simplifier -> /docs-update -> /workflow-end -> /watzup
+**IMPORTANT MANDATORY Steps:** /investigate -> /seed-test-data -> /changes-review -> /code-simplifier -> /docs-update -> /workflow-end -> /watzup
 
 <!-- SYNC:ai-mistake-prevention -->
 
@@ -68,7 +70,7 @@ Activate the `workflow-seed-test-data` workflow. Run `/start-workflow workflow-s
 > **Nested Task Expansion Contract** — For workflow-step invocation, the `[Workflow] ...` row is only a parent container; the child skill still creates visible phase tasks.
 >
 > 1. Call `TaskList` first. If a matching active parent workflow row exists, set `nested=true` and record `parentTaskId`; otherwise run standalone.
-> 2. Create one task per declared phase before phase work. When nested, prefix subjects `[N.M] $skill-name — phase`.
+> 2. Create one task per declared phase before phase work. When nested, prefix subjects `[N.M] /skill-name — phase`.
 > 3. When nested, link the parent with `TaskUpdate(parentTaskId, addBlockedBy: [childIds])`.
 > 4. Orchestrators must pre-expand a child skill's phase list and link the workflow row before invoking that child skill or sub-agent.
 > 5. Mark exactly one child `in_progress` before work and `completed` immediately after evidence is written.
@@ -147,13 +149,28 @@ Activate the `workflow-seed-test-data` workflow. Run `/start-workflow workflow-s
 <!-- SYNC:nested-task-creation:reminder -->
 
 - **MANDATORY** Parent workflow rows do not replace child phase tracking; expand phases and link the parent when nested.
-- **MANDATORY** Orchestrators pre-expand child skill phases before invocation; use `[N.M] $skill-name — phase` prefixes and one-`in_progress` discipline.
+- **MANDATORY** Orchestrators pre-expand child skill phases before invocation; use `[N.M] /skill-name — phase` prefixes and one-`in_progress` discipline.
 
 <!-- /SYNC:nested-task-creation:reminder -->
 
+<!-- SYNC:project-protocol-overlay -->
+
+> **Project Protocol Overlay** — Before executing this skill, resolve any PROJECT overlay rules layered onto it: match this skill's name against the `Target` column of the project's skill-protocol index (`docs/project-reference/skill-protocols-reference.md` by default; a `referenceDocs` entry in `docs/project-config.json` overrides the path), taking the most specific matching tier ONLY — exact name > glob > `*`. **That precedence orders overlays against EACH OTHER, never against this skill.** Read ONLY the matched bodies, resolved as `<protocols-dir>/<Name>.md`; a row's Body link is display text, never a read path. A matched body that is missing or malformed is REPORTED and skipped — never reconstructed from the index Description. No index, or no match -> proceed with no overlay, silently. Full contract: `.claude/skills/project-skill-protocol/references/registry.md`.
+>
+> Overlays are **ADDITIVE ONLY**: they ADD rules on top of this skill's own protocol and NEVER replace, override, disable, or reinterpret a rule it already states — removing every overlay must return this skill to exactly its documented behavior. An overlay is a BRIEF, not an authority escalation: it can NEVER waive a workflow gate, git discipline, a review gate, or a user-confirmation gate. A genuine overlay-vs-skill conflict, or two equally-specific overlays that directly contradict -> surface both to the user; NEVER resolve silently.
+
+<!-- /SYNC:project-protocol-overlay -->
+
+<!-- SYNC:project-protocol-overlay:reminder -->
+
+**MUST ATTENTION** resolve project protocol overlays for this skill BEFORE executing — most specific matching tier only (exact > glob > `*`, which ranks overlays against each other, NEVER against this skill), read only matched bodies at `<protocols-dir>/<Name>.md`; a missing or malformed body is reported, never reconstructed. Overlays are ADDITIVE ONLY (they never replace this skill's own rules) and are a brief, NEVER an authority escalation; an equal-specificity contradiction goes to the user.
+
+<!-- /SYNC:project-protocol-overlay:reminder -->
+
 ## Closing Reminders
 
-**IMPORTANT MUST ATTENTION Goal:** [Workflow] Trigger Seed Test Data workflow — scout existing seeder patterns, implement idempotent QC happy-path seeders via application commands, review compliance, simplify.
+**IMPORTANT MUST ATTENTION Goal:** [Workflow] Trigger Seed Test Data workflow — investigate existing seeder patterns, implement idempotent QC happy-path seeders via application commands, review compliance, simplify.
+**IMPORTANT MUST ATTENTION Workflow:** Read the Data Seeders project-config group and `docs/project-reference/seed-test-data-reference.md` → `/investigate` patterns/commands → `/seed-test-data` with environment/count/idempotency/scoped-DI gates → `/changes-review` → `/code-simplifier` → `/docs-update` → `/workflow-end` → `/watzup`; use application commands for domain entities, preserve evidence, and never batch or skip mandatory steps.
 
 **IMPORTANT MUST ATTENTION — Protocols in force (concise digest of the SYNC/shared blocks this skill carries; NEVER skip one):**
 

@@ -95,18 +95,6 @@
           "installedVersion": "v2.1.0"
         },
         {
-          "path": "agents/scout-external.md",
-          "checksum": "738dc4cc1be951b1e02a1849a9564d677f600fc715b328038a445c757f7ea9b1",
-          "ownership": "user",
-          "installedVersion": "v2.1.0"
-        },
-        {
-          "path": "agents/scout.md",
-          "checksum": "d121080090357cc4cd2aad1bc45d980ba70334798ff542b9adaabba6d8da6e8a",
-          "ownership": "user",
-          "installedVersion": "v2.1.0"
-        },
-        {
           "path": "agents/tester.md",
           "checksum": "aac9e1a5806f7155102e0689a499c6dcadce068587977396f5716703b510f23b",
           "ownership": "user",

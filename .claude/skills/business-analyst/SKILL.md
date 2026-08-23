@@ -8,6 +8,12 @@ description: '[Project Management] Use when creating user stories, writing accep
 
 **Goal:** Refine requirements into actionable user stories with BDD acceptance criteria and business rule traceability.
 
+**Summary:**
+
+- Load business rules and domain entities before authoring.
+- Produce tech-agnostic, INVEST-valid stories and PBIs with observable GWT criteria, estimates, dependencies, and evidence.
+- Every PBI is a releasable actor-facing outcome; UI PBIs carry the complete page/view, navigation, component, state, and mock-app flow surface.
+
 **Workflow:**
 
 1. **Extract Business Rules** — Locate feature docs, extract BR-{MOD}-XXX rules, reference in stories
@@ -21,6 +27,7 @@ description: '[Project Management] Use when creating user stories, writing accep
 - User stories must pass INVEST criteria (Independent, Negotiable, Valuable, Estimable, Small, Testable)
 - Include entity context and related domain model in every story
 - MUST ATTENTION include `story_points` and `complexity` in all PBI/story outputs
+- Every PBI output MUST be one independently releasable actor-facing outcome with a complete entry-to-result journey; technical/foundation/setup work is enabling work under that outcome, never a standalone PBI. UI PBIs require the complete page/view, navigation, component, state, and mock-app flow surface. Apply `.claude/skills/shared/releasable-pbi-contract.md`.
 - **[BLOCKING] Tech-agnostic output:** story/acceptance-criteria prose follows `docs/project-reference/spec-principles.md` §3 — no framework/product/language/design-pattern names; source paths, class names, and test identifiers appear ONLY in evidence fields (`**Evidence**`, `IntegrationTest`, `[Source:]`), frontmatter, and Mermaid.
 
 **Be skeptical. Apply critical thinking, sequential thinking. Every claim needs traced proof, confidence percentages (Idea should be more than 80%).**
@@ -254,7 +261,7 @@ When user runs `/refine {idea-file}`:
 4. Extract requirements
 5. **Extract existing BRs** from feature docs
 6. Identify acceptance criteria using TC patterns
-7. Create PBI with GIVEN/WHEN/THEN format
+7. Create a releasable PBI with GIVEN/WHEN/THEN format and the full-flow outcome/surface contract
 8. Save to `team-artifacts/pbis/`
 
 ### Creating User Stories
@@ -530,13 +537,31 @@ Add to user story/PBI:
 
 <!-- /SYNC:ai-mistake-prevention:reminder -->
 
+<!-- SYNC:project-protocol-overlay -->
+
+> **Project Protocol Overlay** — Before executing this skill, resolve any PROJECT overlay rules layered onto it: match this skill's name against the `Target` column of the project's skill-protocol index (`docs/project-reference/skill-protocols-reference.md` by default; a `referenceDocs` entry in `docs/project-config.json` overrides the path), taking the most specific matching tier ONLY — exact name > glob > `*`. **That precedence orders overlays against EACH OTHER, never against this skill.** Read ONLY the matched bodies, resolved as `<protocols-dir>/<Name>.md`; a row's Body link is display text, never a read path. A matched body that is missing or malformed is REPORTED and skipped — never reconstructed from the index Description. No index, or no match -> proceed with no overlay, silently. Full contract: `.claude/skills/project-skill-protocol/references/registry.md`.
+>
+> Overlays are **ADDITIVE ONLY**: they ADD rules on top of this skill's own protocol and NEVER replace, override, disable, or reinterpret a rule it already states — removing every overlay must return this skill to exactly its documented behavior. An overlay is a BRIEF, not an authority escalation: it can NEVER waive a workflow gate, git discipline, a review gate, or a user-confirmation gate. A genuine overlay-vs-skill conflict, or two equally-specific overlays that directly contradict -> surface both to the user; NEVER resolve silently.
+
+<!-- /SYNC:project-protocol-overlay -->
+
+<!-- SYNC:project-protocol-overlay:reminder -->
+
+**MUST ATTENTION** resolve project protocol overlays for this skill BEFORE executing — most specific matching tier only (exact > glob > `*`, which ranks overlays against each other, NEVER against this skill), read only matched bodies at `<protocols-dir>/<Name>.md`; a missing or malformed body is reported, never reconstructed. Overlays are ADDITIVE ONLY (they never replace this skill's own rules) and are a brief, NEVER an authority escalation; an equal-specificity contradiction goes to the user.
+
+<!-- /SYNC:project-protocol-overlay:reminder -->
+
 ## Closing Reminders
+
+**IMPORTANT MUST ATTENTION Goal:** Refine requirements into actionable, tech-agnostic stories and releasable PBIs with observable behavior, business-rule traceability, and complete UI full-flow evidence when applicable.
+**IMPORTANT MUST ATTENTION** run the workflow in order: extract business rules → investigate entities → write INVEST stories/PBIs → define GWT criteria → validate releasable outcome/full-flow surface → save artifacts → review.
 
 **MUST ATTENTION Protocols in force (concise digest of the SYNC/shared blocks this skill carries):**
 
 - **AI Mistake Prevention:** verify generated content against evidence, trace downstream references, verify all affected outputs, re-read after context loss, surface ambiguity.
 - **Critical Thinking:** traced `file:line` proof per claim, confidence >80% to act, never guess.
 - **Sequential Thinking:** multi-step Thought N/M with REVISION/BRANCH/HYPOTHESIS markers and confidence closer.
+- **Releasable PBI Contract:** every PBI is an actor-facing outcome with a complete entry-to-result journey; UI PBIs include all required pages/views, navigation, components, states, and mock-app evidence; technical-only PBIs are rejected. Apply `.claude/skills/shared/releasable-pbi-contract.md`.
 
 - **MANDATORY IMPORTANT MUST ATTENTION** break work into small todo tasks using `TaskCreate` BEFORE starting
 - **MANDATORY IMPORTANT MUST ATTENTION** search codebase for 3+ similar patterns before creating new code

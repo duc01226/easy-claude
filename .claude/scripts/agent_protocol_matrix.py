@@ -117,6 +117,10 @@ EXCLUDED_ORCHESTRATION = {
     # ``trade-off-interrogation-gate`` (same 20 review skills) DOES propagate --
     # that block explicitly defines non-asking sub-agent behaviour.
     "goal-contract-satisfaction-loop",
+    # Overlay resolution is performed by whoever INVOKES the skill; a headless leaf
+    # sub-agent receives one already-scoped brief whose overlay the dispatching
+    # orchestrator already resolved.
+    "project-protocol-overlay",
 }
 
 # Per-agent exceptions: a normally-excluded block IS legitimate content for this
@@ -174,7 +178,7 @@ MUTATION_CODE_TAGS = {
     "fix-layer-accountability",
 }
 READONLY_CODE_AGENTS = {
-    "researcher", "scout", "scout-external", "ui-ux-designer",
+    "researcher", "ui-ux-designer",
 }
 
 # Blocks deliberately REMOVED from a carrier as off-role (TC-UAR-016). Re-adding one
@@ -199,6 +203,8 @@ AGENT_QUALITY_BLOCKS = {
         # wave 2 (twin: code-review / changes-review)
         "trade-off-interrogation-gate", "cross-stack-impact-trace", "spec-drift-adjudication",
         "integration-test-sync-check",
+        # wave 3 (twin: changes-review Phase 3.8 -- domain entity gate)
+        "domain-entity-change-gate",
     ],
     "security-auditor": [
         "severity-rubric", "systematic-review-batching", "category-review-thinking",
@@ -234,17 +240,6 @@ AGENT_QUALITY_BLOCKS = {
         # wave 2 (twin: debug-investigate / investigate)
         "test-failure-fault-adjudication", "source-test-drift-check",
     ],
-    # NOTE: the `scout` SKILL carries `cross-service-check`, but scout/scout-external
-    # are READONLY_CODE agents -- that tag is a MUTATION_CODE_TAG reserved for
-    # code-mutating agents (TC-UAR-004). Deliberate non-parity; do NOT "fix".
-    "scout": [
-        "graph-assisted-investigation",
-        "incremental-persistence", "rationalization-prevention",
-    ],
-    "scout-external": [
-        "graph-assisted-investigation",
-        "incremental-persistence", "rationalization-prevention",
-    ],
     "researcher": [
         "web-research", "incremental-persistence", "output-quality-principles",
     ],
@@ -263,6 +258,8 @@ AGENT_QUALITY_BLOCKS = {
         "graph-assisted-investigation", "review-protocol-injection",
         # wave 2 (twin: plan-review)
         "trade-off-interrogation-gate",
+        # wave 3 (twin: plan Domain Entity Gate / plan-review Dimension 8)
+        "domain-entity-change-gate",
     ],
     "architect": [
         "severity-rubric", "systematic-review-batching", "category-review-thinking",
@@ -325,6 +322,8 @@ AGENT_QUALITY_BLOCKS = {
         "source-test-drift-check", "graph-assisted-investigation",
         # wave 2 (twin: ui-review / design / design-spec)
         "trade-off-interrogation-gate", "ui-intent-layer", "existing-ui-research",
+        # UI/UX design principles -- 40 clauses (twin: ui-review / design / design-spec)
+        "ui-ux-design-principles",
     ],
     "code-simplifier": [
         "complexity-prevention", "design-patterns-quality", "severity-rubric",
@@ -349,16 +348,23 @@ AGENT_QUALITY_BLOCKS = {
         "design-patterns-quality", "complexity-prevention",
         # wave 2 (twin: plan-execute / feature-implement)
         "source-test-drift-check", "graph-assisted-investigation",
+        # wave 3 -- authors entities, so it acts on all 6 gate decision points;
+        # without it the implementer runs weaker rules than its own reviewer.
+        "domain-entity-change-gate",
     ],
     "frontend-developer": [
         "design-patterns-quality", "complexity-prevention",
         # wave 2 (twin: plan-execute / feature-implement)
         "source-test-drift-check", "graph-assisted-investigation", "ui-system-context",
+        # UI/UX design principles -- 40 clauses; the implementer gate for user-facing surfaces
+        "ui-ux-design-principles",
     ],
     "fullstack-developer": [
         "design-patterns-quality", "complexity-prevention",
         # wave 2 (twin: plan-execute / feature-implement)
         "source-test-drift-check", "graph-assisted-investigation", "ui-system-context",
+        # UI/UX design principles -- 40 clauses; binds FRONTEND phases only (backend-only: N/A)
+        "ui-ux-design-principles",
     ],
 }
 
@@ -372,7 +378,7 @@ FAMILIES = {
         "spec-compliance-reviewer", "quality-gate-review",
     ],
     "investigation": [
-        "debugger", "scout", "scout-external", "researcher", "knowledge-worker",
+        "debugger", "researcher", "knowledge-worker",
     ],
     "planning": [
         "planner", "architect", "solution-architect", "business-analyst", "product-owner",

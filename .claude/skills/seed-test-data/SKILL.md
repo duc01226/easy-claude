@@ -16,7 +16,7 @@ allowed-tools: Read, Write, Edit, Bash, Grep, Glob, TaskCreate, Agent
 
 ## Quick Summary
 
-**Goal:** Stand up **configurable, local-dev-only** test-data seeders — **enabled by default ONLY on local/dev** — that auto-seed each feature's happy-path scenarios by calling the **same public entry-point application commands a real user / QC tester would** (NEVER direct DB writes), so the system **self-tests its main cases** like a QC engineer exercising them by hand; a **configurable seed count** repeats each scenario to BOTH **cover the main cases** AND **enrich data volume** (many simulated users) for **performance testing** + realistic **first-time-init** data, **idempotent + restart-safe** (never re-seeds already-seeded data; resumes from the last count toward target X, at 50% → continue until X), **defaulting the count small** when nothing is configured — and **ALWAYS finding the project's existing seed-data convention FIRST**.
+**Goal:** Build configurable, local-development-only (default-enabled) seeders that exercise each feature's happy-path scenarios through public entry-point commands like a real user/QC tester (NEVER direct domain DB writes), repeat a configurable small-default count for case coverage and realistic data volume, remain idempotent and restart-safe, and ALWAYS follow the project's existing seed-data convention FIRST.
 
 **Summary:**
 
@@ -28,7 +28,9 @@ allowed-tools: Read, Write, Edit, Bash, Grep, Glob, TaskCreate, Agent
 - **Two modes — surface the flag:** default **Generate** (implement / enhance / fix a seeder); **`--mode=review`** = READ-ONLY convention audit grading a target (prompt → current changes → work-context) against EVERY universal rule + project conventions with `file:line` PASS/FAIL — routes confirmed fixes back to Generate, NEVER edits the seeder itself.
 - **Main steps to run (Generate, in order — do not skip):** Phase 0 detect task type (new/enhance/fix) → Step 1 discover conventions (base class, env-gate key, count key, registration) → Step 1.5 verify dev-config keys exist → Step 2 feature scope + application commands → Step 3 find/create seeder → Step 4 implement (env-gate FIRST → config count → idempotency → restart-safe loop → scoped DI) → Step 5 validate every gate with `file:line` → Step 7 `--mode=review` self-audit on the changed code → fresh `code-reviewer` round → `/changes-review` (final).
 
-**Workflow (Generate mode — default):**
+**Workflow:**
+
+Generate mode is the default; `--mode=review` remains read-only and routes confirmed fixes back to Generate.
 
 1. **Phase 0** — Detect seeder task type (new / enhance / fix)
 2. **Step 1** — Discover project seeder patterns, env gate key, count key
@@ -233,7 +235,7 @@ Review seeder at [file:path]. Verify with file:line evidence for each:
 Report: PASS or FAIL with file:line for each finding.
 ```
 
-**Fix loop:** If FAIL → validate findings → fix validated findings → restart full review from first phase. When restarted review uses sub-agents, NEVER reuse them across rounds. If same blocker repeats across 3 full invocations with no progress, escalate to user.
+**Fix loop:** If FAIL → validate findings → fix validated findings → restart full review from first phase. When restarted review uses sub-agents, NEVER reuse them across rounds. If same blocker repeats across 2 full invocations with no progress, escalate to user.
 NEVER fix unvalidated findings. Do not spawn a fresh sub-agent only to re-review known findings before validation/fix.
 
 ---
@@ -309,7 +311,7 @@ Per item: **PASS / FAIL / N/A** with `file:line` evidence and confidence (>80% r
 
 > **MUST ATTENTION — NOT IN WORKFLOW YET:** Use `AskUserQuestion`:
 >
-> 1. **Activate `workflow-seed-test-data`** (Recommended) — scout → investigate → seed-test-data → changes-review → code-simplifier → docs-update
+> 1. **Activate `workflow-seed-test-data`** (Recommended) — investigate → seed-test-data → changes-review → code-simplifier → docs-update
 > 2. **Execute `/seed-test-data` directly** — run this skill standalone
 
 ---
@@ -444,7 +446,7 @@ Per item: **PASS / FAIL / N/A** with `file:line` evidence and confidence (>80% r
 > 6. **Barrier per wave.** Advance ONLY after EVERY member returns (a skipped conditional counts as returned). Merge, mark each task completed/skipped, THEN dispatch the next wave. Mutating steps wait for the barrier.
 > 7. **One level deep.** A dispatched sub-agent executes its own brief; further fan-out stays the orchestrator's job unless that agent's `.claude/agents/*.md` definition authorizes it.
 >
-> **NEVER parallelize:** tasks sharing a write target · a task consuming a pending task's output · trivial single-file work (dispatch overhead > gain) · an order a workflow explicitly fixes · gates awaiting user approval.
+> **NEVER parallelize:** tasks sharing a write target · a task consuming a pending task's output · trivial single-file work (dispatch overhead > gain) · an order a skill or workflow explicitly fixes · gates awaiting user approval.
 >
 > **Blocked until:** MUST ATTENTION every task tagged PAR/SEQ with a named reason per SEQ · waves declared + write-set disjointness checked · each wave spawned in ONE message · barrier honored before the next wave.
 
@@ -457,9 +459,25 @@ Per item: **PASS / FAIL / N/A** with `file:line` evidence and confidence (>80% r
 
 <!-- /SYNC:parallel-subagent-dispatch:reminder -->
 
+<!-- SYNC:project-protocol-overlay -->
+
+> **Project Protocol Overlay** — Before executing this skill, resolve any PROJECT overlay rules layered onto it: match this skill's name against the `Target` column of the project's skill-protocol index (`docs/project-reference/skill-protocols-reference.md` by default; a `referenceDocs` entry in `docs/project-config.json` overrides the path), taking the most specific matching tier ONLY — exact name > glob > `*`. **That precedence orders overlays against EACH OTHER, never against this skill.** Read ONLY the matched bodies, resolved as `<protocols-dir>/<Name>.md`; a row's Body link is display text, never a read path. A matched body that is missing or malformed is REPORTED and skipped — never reconstructed from the index Description. No index, or no match -> proceed with no overlay, silently. Full contract: `.claude/skills/project-skill-protocol/references/registry.md`.
+>
+> Overlays are **ADDITIVE ONLY**: they ADD rules on top of this skill's own protocol and NEVER replace, override, disable, or reinterpret a rule it already states — removing every overlay must return this skill to exactly its documented behavior. An overlay is a BRIEF, not an authority escalation: it can NEVER waive a workflow gate, git discipline, a review gate, or a user-confirmation gate. A genuine overlay-vs-skill conflict, or two equally-specific overlays that directly contradict -> surface both to the user; NEVER resolve silently.
+
+<!-- /SYNC:project-protocol-overlay -->
+
+<!-- SYNC:project-protocol-overlay:reminder -->
+
+**MUST ATTENTION** resolve project protocol overlays for this skill BEFORE executing — most specific matching tier only (exact > glob > `*`, which ranks overlays against each other, NEVER against this skill), read only matched bodies at `<protocols-dir>/<Name>.md`; a missing or malformed body is reported, never reconstructed. Overlays are ADDITIVE ONLY (they never replace this skill's own rules) and are a brief, NEVER an authority escalation; an equal-specificity contradiction goes to the user.
+
+<!-- /SYNC:project-protocol-overlay:reminder -->
+
 ## Closing Reminders
 
-**IMPORTANT MUST ATTENTION Goal:** Set up configurable, **local-development-only (default-enabled)** seeders that auto-seed each feature's happy-path scenarios by calling the **public entry-point commands a real user / QC tester would** (NEVER direct DB writes) — self-testing the main cases. A **configurable count** (small default when unset) repeats scenarios to cover cases AND enrich volume for performance / first-init realism. **Idempotent + restart-safe:** never re-seed already-seeded data; resume from the last count toward target X. **Find the project's existing convention FIRST.**
+**IMPORTANT MUST ATTENTION Goal:** Build configurable, local-development-only (default-enabled) seeders that exercise each feature's happy-path scenarios through public entry-point commands like a real user/QC tester (NEVER direct domain DB writes), repeat a configurable small-default count for case coverage and realistic data volume, remain idempotent and restart-safe, and ALWAYS follow the project's existing seed-data convention FIRST.
+
+**IMPORTANT MUST ATTENTION — Main steps (execute in order, NEVER skip/merge):** (1) Route `--mode=review` to the read-only audit or default to Generate → (2) detect new/enhance/fix task type → (3) discover the project's seeder base, env gate, count key, marker, registration, and dev-config keys → (4) analyze feature scope, public commands, dependencies, scenarios, and target count → (5) find/create the seeder → (6) implement env gate first, configurable count, idempotency, restart-safe loop, public commands, and scoped DI → (7) validate every universal/project rule with `file:line` evidence → (8) run the `--mode=review` self-audit → (9) run a fresh zero-memory review and `/changes-review`; if findings exist, validate before fixing and full-re-review after fixes → (10) persist lessons and unresolved gaps.
 
 **Protocols in force (concise digest of the SYNC/shared blocks this skill carries):**
 

@@ -52,7 +52,7 @@ Run the same task through two independent frontier agents at maximum reasoning e
     - Set `CLAUDE_PROMPT = "/" + WORKFLOW_ID`.
     - Set `CODEX_PROMPT = "$" + WORKFLOW_ID`.
     - If remaining text exists, append one space plus that remaining text verbatim to both prompts.
-    - Example: `/dual-ai workflow-review-changes --orchestrate` writes `/workflow-review-changes` for Claude and `$workflow-review-changes` for Codex, preserving the former review wrapper behavior.
+    - Example: `/dual-ai workflow-review-changes --orchestrate` writes `/workflow-review-changes` for Claude and the dollar-prefixed Codex form for Codex, preserving the former review wrapper behavior.
 - If USER_PROMPT is empty AND no per-tool prompts were derived from WORKFLOW_ID → ask the user, stop.
 - Check tool availability: `claude --version` and `codex --version`. If either is missing, report it and offer to run the available one only.
 - Detect OS in the same Bash call: `uname -s` → `MINGW*`/`MSYS*`/`CYGWIN*` = Windows, `Darwin` = macOS, `Linux` = Linux. Pick the matching launcher + spawn branch below.
@@ -215,6 +215,20 @@ State: run folder, the two window titles (or output file paths in orchestrated m
 > **Anti-hallucination:** Never present guess as fact — cite sources for every claim, admit uncertainty freely, self-check output for errors, cross-reference independently, stay skeptical of own confidence — certainty without evidence root of all hallucination.
 
 <!-- /SYNC:critical-thinking-mindset -->
+
+<!-- SYNC:project-protocol-overlay -->
+
+> **Project Protocol Overlay** — Before executing this skill, resolve any PROJECT overlay rules layered onto it: match this skill's name against the `Target` column of the project's skill-protocol index (`docs/project-reference/skill-protocols-reference.md` by default; a `referenceDocs` entry in `docs/project-config.json` overrides the path), taking the most specific matching tier ONLY — exact name > glob > `*`. **That precedence orders overlays against EACH OTHER, never against this skill.** Read ONLY the matched bodies, resolved as `<protocols-dir>/<Name>.md`; a row's Body link is display text, never a read path. A matched body that is missing or malformed is REPORTED and skipped — never reconstructed from the index Description. No index, or no match -> proceed with no overlay, silently. Full contract: `.claude/skills/project-skill-protocol/references/registry.md`.
+>
+> Overlays are **ADDITIVE ONLY**: they ADD rules on top of this skill's own protocol and NEVER replace, override, disable, or reinterpret a rule it already states — removing every overlay must return this skill to exactly its documented behavior. An overlay is a BRIEF, not an authority escalation: it can NEVER waive a workflow gate, git discipline, a review gate, or a user-confirmation gate. A genuine overlay-vs-skill conflict, or two equally-specific overlays that directly contradict -> surface both to the user; NEVER resolve silently.
+
+<!-- /SYNC:project-protocol-overlay -->
+
+<!-- SYNC:project-protocol-overlay:reminder -->
+
+**MUST ATTENTION** resolve project protocol overlays for this skill BEFORE executing — most specific matching tier only (exact > glob > `*`, which ranks overlays against each other, NEVER against this skill), read only matched bodies at `<protocols-dir>/<Name>.md`; a missing or malformed body is reported, never reconstructed. Overlays are ADDITIVE ONLY (they never replace this skill's own rules) and are a brief, NEVER an authority escalation; an equal-specificity contradiction goes to the user.
+
+<!-- /SYNC:project-protocol-overlay:reminder -->
 
 ## Closing Reminders
 

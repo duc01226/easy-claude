@@ -62,7 +62,7 @@ Use this matrix when planning, implementing, or reviewing portable project initi
 | TC-PI-019 | Universal guides opt-out | Config has `portability.requireUniversalGuides=false` | Existing project-only root files are accepted, missing files still flagged. |
 | TC-PI-020 | Skill gate allowlist | Missing root files and skill is `project-init` | Gate allows `project-init` so setup does not deadlock. |
 | TC-PI-021 | Prompt gate allowlist | Config missing and prompt mentions `/project-init` | Prompt gate allows the setup route. |
-| TC-PI-022 | Hookless Codex mirror text | Generated `.agents` skill/project gate block | Missing context tells the agent to auto-run `$project-init` or the narrow setup route, not separate legacy routes. |
+| TC-PI-022 | Hookless Codex mirror text | Generated `.agents` skill/project gate block | Missing context tells the agent to auto-run `/project-init` or the narrow setup route, not separate legacy routes. |
 | TC-PI-023 | Codex sync after CLAUDE update | `CLAUDE.md` changed | `AGENTS.md` mirrors CLAUDE and Codex context blocks. |
 | TC-PI-024 | Idempotent re-run | Fully initialized temp project | Second `/project-init` produces no destructive changes and still resolves the mandatory spec workflow finalization task. |
 | TC-PI-025 | Project-neutral skill residue | New/updated setup skill | Residue verifier finds no project-specific product names in `.claude/skills`. |
@@ -75,7 +75,7 @@ Use this matrix when planning, implementing, or reviewing portable project initi
 | TC-PI-032 | Existing project no specs | Content-bearing temp project with `docs/specs/` missing/empty | Spec finalization invokes `/workflow-code-to-spec init-full` after context setup. |
 | TC-PI-033 | Existing project with specs | Content-bearing temp project with Feature Specs present | Spec finalization invokes `/workflow-code-to-spec audit`, or `update` when active diff/new requirement exists. |
 | TC-PI-034 | Fixed Feature Spec root | Project config lacks a spec-root override | Spec finalization probes `docs/specs/` directly and does not require or read a configurable spec-root field. |
-| TC-PI-035 | Large grown project split | Scout finds >10 capabilities | Spec finalization requires grouped `/workflow-code-to-spec init-full` runs; 4-10 capabilities require sub-agents. |
+| TC-PI-035 | Large grown project split | investigate finds >10 capabilities | Spec finalization requires grouped `/workflow-code-to-spec init-full` runs; 4-10 capabilities require sub-agents. |
 | TC-PI-036 | Post-config parallel context build | Content-bearing temp project after `/project-config` init | Task plan includes sibling `Call /scan-all` and `Call /workflow-code-to-spec`; `/project-init` does not proceed to root/mirror/final review until both have outcomes. |
 | TC-PI-037 | Final background graph task | Any `/project-init` run after final review/verification | Task plan includes `Spawn background /graph-build sub-agent`; `/graph-build` is invoked in a background sub-agent and its outcome or blocker appears in the report. |
 | TC-PI-038 | Canonical-floor merge enforced | Drifted config: extras + legacy alias, missing canonical entries | `mergeReferenceDocs()` returns all canonical docs first (canonical order, canonical `templatePath` preserved) then extras; legacy alias absorbed; override `purpose`/`sections` honored without dropping the canonical entry. |

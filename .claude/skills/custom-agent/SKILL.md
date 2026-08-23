@@ -5,7 +5,9 @@ description: '[AI & Tools] Use when you need create, verify, or enhance Claude C
 
 ## Quick Summary
 
-**Goal:** Create new custom agents, audit existing agent quality, or enhance agent definitions.
+**Goal:** Create new custom agents, audit existing agent quality, or enhance agent definitions so each agent is valid, least-privilege, structurally complete, and ready for safe delegation.
+
+**Summary:** Route the request to Create, Audit, or Enhance; inspect existing agents and conventions; apply only confirmed changes; then validate frontmatter, tools, prompt structure, and quality score.
 
 **Workflow:** Detect mode (Create/Audit/Enhance) from `$ARGUMENTS` → Execute → Validate
 
@@ -100,7 +102,7 @@ isolation: worktree # Run in temporary git worktree
 
 | Agent Type           | Recommended `tools`                     |
 | -------------------- | --------------------------------------- |
-| Explorer/Scout       | `Read, Grep, Glob, Bash`                |
+| Explorer / `/investigate` | `Read, Grep, Glob, Bash`                |
 | Reviewer (read-only) | `Read, Grep, Glob`                      |
 | Writer/Implementer   | `Read, Write, Edit, Grep, Glob, Bash`   |
 | Researcher           | `Read, Grep, Glob, WebFetch, WebSearch` |
@@ -222,7 +224,25 @@ Same `name` across levels: higher-priority wins. Use `claude agents` CLI to list
 
 <!-- /SYNC:ai-mistake-prevention:reminder -->
 
+<!-- SYNC:project-protocol-overlay -->
+
+> **Project Protocol Overlay** — Before executing this skill, resolve any PROJECT overlay rules layered onto it: match this skill's name against the `Target` column of the project's skill-protocol index (`docs/project-reference/skill-protocols-reference.md` by default; a `referenceDocs` entry in `docs/project-config.json` overrides the path), taking the most specific matching tier ONLY — exact name > glob > `*`. **That precedence orders overlays against EACH OTHER, never against this skill.** Read ONLY the matched bodies, resolved as `<protocols-dir>/<Name>.md`; a row's Body link is display text, never a read path. A matched body that is missing or malformed is REPORTED and skipped — never reconstructed from the index Description. No index, or no match -> proceed with no overlay, silently. Full contract: `.claude/skills/project-skill-protocol/references/registry.md`.
+>
+> Overlays are **ADDITIVE ONLY**: they ADD rules on top of this skill's own protocol and NEVER replace, override, disable, or reinterpret a rule it already states — removing every overlay must return this skill to exactly its documented behavior. An overlay is a BRIEF, not an authority escalation: it can NEVER waive a workflow gate, git discipline, a review gate, or a user-confirmation gate. A genuine overlay-vs-skill conflict, or two equally-specific overlays that directly contradict -> surface both to the user; NEVER resolve silently.
+
+<!-- /SYNC:project-protocol-overlay -->
+
+<!-- SYNC:project-protocol-overlay:reminder -->
+
+**MUST ATTENTION** resolve project protocol overlays for this skill BEFORE executing — most specific matching tier only (exact > glob > `*`, which ranks overlays against each other, NEVER against this skill), read only matched bodies at `<protocols-dir>/<Name>.md`; a missing or malformed body is reported, never reconstructed. Overlays are ADDITIVE ONLY (they never replace this skill's own rules) and are a brief, NEVER an authority escalation; an equal-specificity contradiction goes to the user.
+
+<!-- /SYNC:project-protocol-overlay:reminder -->
+
 ## Closing Reminders
+
+**IMPORTANT MUST ATTENTION Goal:** Create new custom agents, audit existing agent quality, or enhance agent definitions so each agent is valid, least-privilege, structurally complete, and ready for safe delegation.
+
+**IMPORTANT MUST ATTENTION** follow the mode-specific path: detect mode → Create: clarify, check existing agents, scaffold, write the system prompt, validate; Audit: discover, parse, validate, report, and fix only after confirmation; Enhance: read, analyze, recommend, apply only after confirmation; then run the final audit checklist and quality-score validation.
 
 **Protocols in force (concise digest of the SYNC/shared blocks this skill carries):**
 

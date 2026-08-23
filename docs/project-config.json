@@ -248,6 +248,11 @@
       "filename": "docs-index-reference.md",
       "purpose": "Documentation tree, file counts by category, doc relationships, and keyword-to-doc lookup table.",
       "sections": ["Documentation System", "Documentation Graph", "Key Doc Relationships", "Doc Lookup Guide"]
+    },
+    {
+      "filename": "custom-prompts-reference.md",
+      "purpose": "Index of project-specific custom prompts (name, description, triggers) — managed by the /custom-prompt skill; prompt bodies live in docs/project-prompts/.",
+      "sections": ["Usage", "Registry", "Conventions"]
     }
   ]
 }

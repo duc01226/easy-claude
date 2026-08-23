@@ -56,10 +56,11 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 **Summary:**
 
 - **Purpose:** validate a finished plan via a critical-questions interview so every assumption-laden decision and every preservation-critical behavior is user-confirmed BEFORE implementation — no unstated assumption silently reaches code.
-- **Main steps (run in order):** Phase 0 Detect Plan Type → resolve plan path (`$ARGUMENTS` / `## Plan Context` / ask) → load `mode` + `questions` range as hard constraints → Step 1 Read `plan.md` + all `phase-*.md`, flag decisions/assumptions/risks/tradeoffs → Step 2 Extract topics across 8 categories (Architecture, Assumptions, Tradeoffs, Risks, Scope, New Tech/Lib, Test Specs, Preservation) → Step 3 Generate questions (2-4 concrete options each, surface implicit decisions) → Step 4 Interview by asking the user directly (≤4 per call) → Step 5 Document answers → offer implement/refine/skip.
+- **Main steps (run in order):** Phase 0 Detect Plan Type → resolve plan path (`$ARGUMENTS` / `## Plan Context` / ask) → load `mode` + `questions` range as hard constraints → Phase 0.5 resolve Applicability / Plan Gate → Step 1 Read `plan.md` + all `phase-*.md`, flag decisions/assumptions/risks/tradeoffs → Step 2 Extract topics across 9 categories (Applicability, Architecture, Assumptions, Tradeoffs, Risks, Scope, New Tech/Lib, Test Specs, Preservation) → Step 3 Generate questions (2-4 concrete options each, surface implicit decisions) → Step 4 Interview by asking the user directly (≤4 per call) → Step 5 Document answers → offer implement/refine/skip.
 - **Phase 0 weights everything:** plan type (bugfix/feature/migration/refactor/other) decides which question categories fire; any fix/bug/regression/broken/defect keyword makes the Preservation question BLOCKING — never skip it.
 - **The output is a REAL interview, not a self-answer:** honor the `questions` MIN-MAX range from `## Plan Context`, give 2-4 concrete options per question, treat the Preservation "Unsure" answer as BLOCKED → route to `$plan`; if the plan adds new tech/packages, probe whether alternatives were evaluated before accepting the choice.
 - **Persist results narrowly:** add ONLY a `## Validation Summary` (confirmed decisions + action items) to `plan.md` — NEVER edit phase files; close by offering implement/refine/skip by asking the user directly.
+- **Applicability is mandatory for every plan:** read `.claude/skills/shared/product-roadmap-contract.md`, verify the plan's branch-specific `## Plan Gate`, and ask the owner to confirm the embedded slice/decomposition, explicit roadmap outcome, framework technical outcome, or EXEMPT boundary plus non-goals, scenario proof, commands, evidence, and approval. `BLOCKED`, `OPEN`, `MISSING`, or `REQUIRED` cannot be silently upgraded.
 
 **Workflow:**
 
@@ -76,6 +77,7 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 - Ask ONLY about genuine choices affecting implementation — NEVER about non-decision points — why: noise questions burn the interview budget and erode trust
 - Bugfix plans ALWAYS trigger the Preservation question (keywords: fix, bug, regression, broken, defect) — why: an unverified preserved-correctness invariant is a silent regression
 - Persist via a `## Validation Summary` on `plan.md` — NEVER modify phase files — why: phase files are the plan's source of truth; validation is a read-then-annotate pass
+- For embedded, explicit-roadmap, framework/library, or EXEMPT plans, include the final applicability status and exact owning paths in that same summary; use each branch only when the plan records its required evidence and owner.
 
 ## First Principle — Easy to Change
 
@@ -117,6 +119,17 @@ Classify plan type BEFORE generating questions — drives question category weig
 2. Check `## Plan Context` section → use active plan path
 3. No plan found → ask user to specify path or run `$plan` first
 
+## Phase 0.5: Applicability / Plan Gate
+
+Before extracting technical questions, read `.claude/skills/shared/product-roadmap-contract.md` and classify the plan's branch.
+
+- For an embedded large-idea plan, read the owning PBI/spec and verify the complete `large_idea_decomposition` block, selected slice, non-goals/deferred owners, and conditional scenario artifact when needed. Do not require `docs/product-roadmap.md` or a product milestone.
+- For an explicit-roadmap plan, read `docs/product-roadmap.md`, the selected milestone's scope brief, and `scenario-analysis.md`.
+- For a framework/library plan, read the technical scope, operational scenarios, generated-carrier evidence, and commands.
+- Verify `plan.md` contains one `## Plan Gate` with matching branch/outcome/boundaries, explicit non-goals, defined lifecycle terms when applicable, the branch decision state, known or explicitly inapplicable skeleton/configuration, build/test/run commands, redacted evidence, and `Human approval: APPROVED`.
+- Missing upstream artifacts or `BLOCKED`/`OPEN`/`MISSING`/`REQUIRED` values create a blocking Applicability question. Do not begin implementation or recommend `implement` while it remains unresolved.
+- For an isolated brownfield change or bugfix, verify the shared contract's EXEMPT branch: the scope brief and plan contain the reason/owner, the sibling scenario exists when required, roadmap/milestone are explicitly `EXEMPT`, product decisions use explicit `N/A` rationale, and commands/evidence/approval are known. Retain all existing preservation/spec/test/review questions.
+
 ## Configuration (from injected context)
 
 Check `## Plan Context` section:
@@ -148,6 +161,7 @@ Read plan directory:
 | **New Tech/Lib** | install, add package, new dependency, npm install, dotnet add, unfamiliar framework names  |
 | **Test Specs**   | TC-, test case, coverage, TDD, test specification                                          |
 | **Preservation** | auto-trigger on bugfix keywords in title/frontmatter — scan Preservation Inventory section |
+| **Product Readiness** | roadmap-applicable or EXEMPT plan — scan the applicable `## Plan Gate` branch, scope/scenario refs, non-goals, definitions, evidence, and human approval |
 
 ### Step 3: Generate Questions
 
@@ -157,6 +171,12 @@ Read plan directory:
 - Mark recommended with "(Recommended)" suffix
 - "Other" option automatic — do NOT add
 - Surface implicit decisions
+
+For a roadmap-applicable plan, ask a Product Readiness question before lower-level choices:
+
+> Does the plan implement the owning slice/outcome or technical boundary exactly, with the stated non-goals, lifecycle definitions where applicable, scenario proof, known skeleton/commands, redacted evidence, and human approval?
+
+Offer concrete choices such as: **Yes, approve the Plan Gate (Recommended)**; **No, revise the scope/plan**; **A product decision remains open**; **This plan is an explicitly accepted isolated-change exemption**. Never answer this question from the plan author's confidence alone.
 
 **Examples:**
 
@@ -215,6 +235,15 @@ Add `## Validation Summary` to `plan.md`:
 **Validated:** {date}
 **Questions asked:** {count}
 
+### Applicability
+
+- **Branch:** DECOMPOSITION-EMBEDDED | EXPLICIT-ROADMAP | FRAMEWORK-LIBRARY | EXEMPT | BLOCKED
+- **Owning artifact / roadmap:** `{paths}` or `NOT APPLICABLE — embedded/framework/EXEMPT`
+- **Slice / milestone / technical outcome:** `{ID and outcome}`
+- **Scope handoff / scenarios:** `{paths or conditional N/A}`
+- **Plan Gate:** DECOMPOSITION-EMBEDDED | READY | FRAMEWORK-LIBRARY | EXEMPT | BLOCKED
+- **Human approval:** APPROVED | REQUIRED
+
 ### Confirmed Decisions
 
 - {decision 1}: {user choice}
@@ -259,7 +288,7 @@ After validation:
 > **Nested Task Expansion Contract** — For workflow-step invocation, the `[Workflow] ...` row is only a parent container; the child skill still creates visible phase tasks.
 >
 > 1. Call the current task list first. If a matching active parent workflow row exists, set `nested=true` and record `parentTaskId`; otherwise run standalone.
-> 2. Create one task per declared phase before phase work. When nested, prefix subjects `[N.M] $skill-name — phase`.
+> 2. Create one task per declared phase before phase work. When nested, prefix subjects `[N.M] /skill-name — phase`.
 > 3. When nested, link the parent with `TaskUpdate(parentTaskId, addBlockedBy: [childIds])`.
 > 4. Orchestrators must pre-expand a child skill's phase list and link the workflow row before invoking that child skill or sub-agent.
 > 5. Mark exactly one child `in_progress` before work and `completed` immediately after evidence is written.
@@ -353,6 +382,10 @@ After validation:
 > 4. Before any new workflow step: call the current task list and re-read the phase file
 > 5. On context compaction: call the current task list FIRST — never create duplicate tasks
 > 6. Verify TC satisfaction per phase before marking complete (evidence must be `file:line`, not TBD)
+> 7. **Purpose-oriented naming:** For every planned public or cross-layer contract, port, interface, module, or adapter, name the consumer-visible capability or domain purpose; keep provider, framework, and transport names in concrete implementations (`IStorage`/`Storage` → `AzureBlobStorage`). — why: a contract name should survive an implementation swap.
+> 8. **Contract-fit gate:** Check the proposed name against its callers and all implementations; use a narrower purpose name when a broad name overpromises (`IObjectStore` or `DocumentStore` instead of `IStorage` when the behavior is narrower). — why: abstraction names must describe the actual contract, not hide a mismatch.
+> 9. **No speculative abstraction:** Plan an interface or port only when a real boundary, substitution need, or multiple meaningful implementations justifies it; keep a concrete type when it is the honest contract. — why: an unnecessary abstraction adds indirection and a second name without reducing change cost.
+> 10. **Language convention:** Preserve the repository's naming syntax (`I` prefix where the language/project uses it); never force `I` or `Interface` markers across languages. — why: semantic purpose is portable, syntax is not.
 >
 > **Mode:** TDD-first → reference existing TCs with `Evidence: TBD`. Implement-first → use TBD → `$spec [mode=tests]` fills after.
 
@@ -452,7 +485,7 @@ After validation:
 <!-- SYNC:nested-task-creation:reminder -->
 
 - **MANDATORY** Parent workflow rows do not replace child phase tracking; expand phases and link the parent when nested.
-- **MANDATORY** Orchestrators pre-expand child skill phases before invocation; use `[N.M] $skill-name — phase` prefixes and one-`in_progress` discipline.
+- **MANDATORY** Orchestrators pre-expand child skill phases before invocation; use `[N.M] /skill-name — phase` prefixes and one-`in_progress` discipline.
 
 <!-- /SYNC:nested-task-creation:reminder -->
 
@@ -467,9 +500,27 @@ After validation:
 
 <!-- PROMPT-ENHANCE:STEP-TASK-CLOSING:END -->
 
+<!-- SYNC:project-protocol-overlay -->
+
+> **Project Protocol Overlay** — Before executing this skill, resolve any PROJECT overlay rules layered onto it: match this skill's name against the `Target` column of the project's skill-protocol index (`docs/project-reference/skill-protocols-reference.md` by default; a `referenceDocs` entry in `docs/project-config.json` overrides the path), taking the most specific matching tier ONLY — exact name > glob > `*`. **That precedence orders overlays against EACH OTHER, never against this skill.** Read ONLY the matched bodies, resolved as `<protocols-dir>/<Name>.md`; a row's Body link is display text, never a read path. A matched body that is missing or malformed is REPORTED and skipped — never reconstructed from the index Description. No index, or no match -> proceed with no overlay, silently. Full contract: `.claude/skills/project-skill-protocol/references/registry.md`.
+>
+> Overlays are **ADDITIVE ONLY**: they ADD rules on top of this skill's own protocol and NEVER replace, override, disable, or reinterpret a rule it already states — removing every overlay must return this skill to exactly its documented behavior. An overlay is a BRIEF, not an authority escalation: it can NEVER waive a workflow gate, git discipline, a review gate, or a user-confirmation gate. A genuine overlay-vs-skill conflict, or two equally-specific overlays that directly contradict -> surface both to the user; NEVER resolve silently.
+
+<!-- /SYNC:project-protocol-overlay -->
+
+<!-- SYNC:project-protocol-overlay:reminder -->
+
+**MUST ATTENTION** resolve project protocol overlays for this skill BEFORE executing — most specific matching tier only (exact > glob > `*`, which ranks overlays against each other, NEVER against this skill), read only matched bodies at `<protocols-dir>/<Name>.md`; a missing or malformed body is reported, never reconstructed. Overlays are ADDITIVE ONLY (they never replace this skill's own rules) and are a brief, NEVER an authority escalation; an equal-specificity contradiction goes to the user.
+
+<!-- /SYNC:project-protocol-overlay:reminder -->
+
 ## Closing Reminders
 
 **IMPORTANT MUST ATTENTION Goal:** Force every assumption-laden plan decision and every preservation-critical behavior through explicit user confirmation BEFORE implementation — by interviewing the user with critical questions that validate assumptions and surface issues — so no unstated assumption silently reaches code.
+
+**IMPORTANT MUST ATTENTION Main steps:** detect plan type → resolve the plan and applicability gate → read plan/phase files → extract decision topics → ask bounded user questions → document confirmed answers → offer implement/refine/skip.
+
+**IMPORTANT MUST ATTENTION Applicability:** validate the embedded decomposition/slice evidence, explicit roadmap milestone chain, framework technical evidence, or EXEMPT reason/owner plus non-goals, definitions, scenario proof where applicable, skeleton/commands, redacted evidence, and human approval before offering implementation; unresolved intent or evidence is BLOCKED.
 
 **Protocols in force (concise digest of the SYNC/shared blocks this skill carries):**
 
@@ -483,7 +534,7 @@ After validation:
 - **Cross-Service Check:** scan producers, consumers, sagas, contracts; flag breaking-change risk.
 - **AI Mistake Prevention:** verify generated content against evidence, trace downstream references, verify all affected outputs, re-read after context loss, surface ambiguity.
 
-**IMPORTANT MUST ATTENTION** run the main steps IN ORDER — Phase 0 Detect Plan Type → resolve plan path → load `mode` + `questions` range → Step 1 Read `plan.md` + all `phase-*.md` (flag decisions/assumptions/risks/tradeoffs) → Step 2 Extract topics (8 categories) → Step 3 Generate questions (2-4 options each) → Step 4 Interview by asking the user directly (≤4 per call) → Step 5 Document answers → offer implement/refine/skip — why: the pipeline IS the work; never collapse or skip a step from memory
+**IMPORTANT MUST ATTENTION** run the main steps IN ORDER — Phase 0 Detect Plan Type → resolve plan path → load `mode` + `questions` range → Phase 0.5 Product Readiness / Plan Gate → Step 1 Read `plan.md` + all `phase-*.md` (flag decisions/assumptions/risks/tradeoffs) → Step 2 Extract topics (9 categories) → Step 3 Generate questions (2-4 options each) → Step 4 Interview by asking the user directly (≤4 per call) → Step 5 Document answers → offer implement/refine/skip — why: the pipeline IS the work; never collapse or skip a step from memory
 
 **IMPORTANT MUST ATTENTION** validate decisions with the user by asking the user directly — NEVER auto-decide or self-answer; completing without ≥1 question is a protocol violation — why: the user owns every assumption-laden choice, not the agent
 **IMPORTANT MUST ATTENTION** detect plan type FIRST (Phase 0) BEFORE generating questions — bugfix keywords (fix, bug, regression, broken, defect) make the Preservation question BLOCKING, never skipped — why: detection drives which categories fire and the Preservation gate
@@ -539,7 +590,7 @@ Source: `.claude/.ck.json` + `.claude/skills/shared/sync-inline-versions.md` (`:
 3. **AUTO-SELECT:** Pick the best option yourself. Do not ask the user to choose between direct execution, skill, standard workflow, or custom workflow.
 4. **ACTIVATE:** For a selected workflow, call `$start-workflow <workflowId>`; for a selected skill, invoke that skill; for a custom workflow, sequence custom steps directly; for direct execution, proceed with the task.
 5. **CREATE TASKS:** task tracking for ALL workflow/skill/custom steps before execution when the selected path has multiple steps.
-6. **PARALLELIZE:** Before executing the task list, tag each task `PAR` (independent inputs + write set disjoint from every other `PAR` task) or `SEQ` (name the blocking dependency), group `PAR` tasks into waves, declare the wave plan, and spawn each wave's sub-agents in ONE message — all-return barrier per wave, fan-out one level deep unless a sub-agent's own definition authorizes further fan-out. Sequential-by-default is a defect when tasks are independent; do not parallelize shared write targets, output-consuming tasks, trivial single-file work, workflow-fixed ordering, or user-approval gates.
+6. **PARALLELIZE:** Before executing the task list, tag each task `PAR` (independent inputs + write set disjoint from every other `PAR` task) or `SEQ` (name the blocking dependency), group `PAR` tasks into waves, declare the wave plan, and spawn each wave's sub-agents in ONE message — all-return barrier per wave, fan-out one level deep unless a sub-agent's own definition authorizes further fan-out. Sequential-by-default is a defect when tasks are independent; do not parallelize shared write targets, output-consuming tasks, trivial single-file work, ordering a skill or workflow explicitly fixes, or user-approval gates.
 7. **EXECUTE:** Advance per the **Workflow Step Advancement & Parallel Phases** rule in your context instructions — model-driven; a sub-agent completion advances a step identically to an inline call; a parallel-phase group is an all-return barrier (advance only after ALL members return, never serialize it)
 ## Shared AI-SDD Protocol Markers
 
@@ -601,7 +652,7 @@ Break work into small tasks (task tracking) before starting. Add final task: "An
 - **Sub-agents inherit knowledge only from their agent .md definition — use custom agent types, not built-in Explore.** Tool adoption = permission + knowledge + enforcement (numbered workflow step).
 - **Persist sub-agent findings incrementally, not as a final batch.** Long sub-agents hit cutoffs before final write — findings lost. Instruct append-per-section to report file.
 - **When debugging, ask "whose responsibility?" before fixing.** Trace caller (wrong data) vs callee (wrong handling). Fix at responsible layer — never patch symptom site.
-- **Test failure → adjudicate WHO is at fault (source vs test) before forcing green.** A green-again suite is not the goal; the correct verdict on what was actually wrong is. Root-cause first, then triangulate the failure against the governing spec (`docs/specs/**` if one exists) AND the source: SOURCE-WRONG → fix code at the owning layer and keep/strengthen the test; TEST-WRONG → fix the stale assertion/setup at its root. NEVER weaken an assertion, add a skip, or relax a timeout to force green, and never change source to satisfy a broken test. Spec silent or ambiguous about which side is correct → STOP and ask the user.
+- **Test failure → record a provisional verdict before trace/edit, then investigate.** Use the full five-way taxonomy: SOURCE-WRONG (production violates intent), TEST-WRONG (assertion/setup is stale), TEST-NOT-OPTIMAL (valid but fragile or low-signal test), ENVIRONMENT-BLOCKED (external state prevents a verdict), or AMBIGUOUS (intent/evidence cannot choose safely). Then trace root cause and triangulate against the governing spec (`docs/specs/**` if one exists) AND source. NEVER weaken an assertion, add a skip, relax a timeout, or change source merely to force green.
 - **Grep ALL removed names after extraction/refactoring.** Primary file "done" ≠ secondary files clean. Grep entire scope for every removed symbol before declaring complete.
 - **Assume existing values are intentional — ask WHY before changing OR flagging one as a defect.** Pattern-matching as "wrong" skips context. Before changing or reporting any constant/limit/flag/cutoff: read comments, git blame, the CALLER's ordering (the guarantee that makes the value correct usually lives in code running immediately BEFORE the cited line), and 2+ sibling call sites of the same convention. A doc stating WHAT without WHY is missing rationale, not proof of a missing guard — and in a validation pass, an accurate `file:line` citation proves the transcription, never the defect.
 - **Verify ALL affected outputs, not just the first.** One build green ≠ all green. Multi-stack changes (backend/frontend/tests/docs) require verifying EVERY output.

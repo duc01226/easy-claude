@@ -43,7 +43,25 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 
 ## Quick Summary
 
-**Goal:** Convert one or more canonical 8-section Feature Specs into a complete, sprint-ready PBI backlog.
+**Goal:** Convert canonical tech-free 8-section Feature Specs into a complete, prioritized, dependency-aware, sprint-ready PBI/story backlog with actor-facing outcomes, full UI flows, and evidence-backed review/sync gates.
+
+**Summary:**
+
+- **Main steps:** investigate/index → applicability/domain/rationale → clarify/scenario → plan/review/validate → refine → PBI/story/challenge/DoR → mock-up/design-spec → prioritize → docs/presentation/handoff.
+
+- Load and audit the canonical Feature Specs, then evaluate the shared `isLargeIdea` rule and apply the embedded decomposition contract or the explicit isolated-change branch before decomposition.
+- Map every spec requirement, business rule, test case, domain impact, and dependency to tech-agnostic PBIs and vertically sliced stories.
+- Review, challenge, validate readiness, prioritize across PBIs, synchronize docs, and produce the backlog plus stakeholder evidence.
+- Every generated PBI MUST be one independently releasable actor-facing outcome with a complete entry-to-result journey; technical/foundation/migration/setup work is attached enabling work, never a standalone PBI.
+- For UI PBIs, the mockup MUST be a navigable mock app containing every required page/view, navigation edge, common/domain/page component, applicable state, and full-flow demo; one isolated screen is a blocking failure.
+
+**Workflow:** Load/index → freshness audit → coverage/decomposition/domain gates → plan/review/validate → refine/review stories and PBIs → DoR + UI artifacts → prioritize → docs-update → presentation → close.
+
+**Key Rules:**
+
+- **MUST ATTENTION** keep every PBI independently releasable and actor-facing; attach technical enabling work to a releasable outcome.
+- **MUST ATTENTION** preserve logical-ID citations, source evidence, full UI flows, priority propagation, and the final docs/presentation gates.
+- **NEVER** invent product scope, emit standalone technical PBIs, or skip freshness, review, validation, priority, or synchronization gates.
 
 **Canonical input:** `docs/specs/{Bucket}/README.{Feature}.md` (one tech-free 8-section Feature Spec per capability). There is no separate A-E engineering bundle — code is the technical source of truth.
 
@@ -62,6 +80,8 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 - MUST ATTENTION when creating/reviewing specs or tests, name `Business Intent / Invariant Guarded` or the protected business intent/invariant and ensure the test would fail if that intent breaks.
 - **[BLOCKING] Tech-agnostic output:** PBI / backlog / report prose stays tech-agnostic per `docs/project-reference/spec-principles.md` §3 — no framework/product/language/design-pattern names; source paths and class names appear ONLY in evidence fields (`**Evidence**`, `[Source:]`), frontmatter, and Mermaid.
 - **[BLOCKING] Inherit M1-M5/M7 + logical-ID carry:** See `.claude/skills/shared/sdd-artifact-contract.md` → "AI-SDD Mandates (M1-M7)" for BLOCKING criteria. Every generated PBI MUST satisfy M1-M5 and M7. **M7 — business-visibility:** a PBI is a business-tree artifact, so apply the demo test to each acceptance criterion's BODY — *"what would a stakeholder SEE change?"*; no answer → FAIL as TECHNICAL-ONLY. Every `Given` = a state a user could arrange; every `When` = an action a user could take; every `Then` = an outcome a user could see. FAIL a `When` that is an invocation (a handler runs, a consumer receives, a job fires, data syncs) or a `Then` asserting schema/type/nullability/call-count, and NEVER derive a PBI's AC count from an architecture inventory. Judge the BODY, never the title or ID. **M1 governs vocabulary; M7 governs subject matter — a technical AC in impeccably tech-free prose satisfies M1 while violating M7**, and that gap is the most common way business specs rot. Carry each requirement's logical ID (`FR-`/`BR-`) from the spec's requirement/rule statements into the PBI as the PRIMARY citation spine, keeping the spec's `[Source: namespace/service/id]` abstract-anchor evidence as the SECONDARY carrier (KEEP it). Generated acceptance criteria stay tech-agnostic and observable — one valid interpretation, named failure modes, no implementation details.
+- **[BLOCKING] Decomposition scope chain:** read `.claude/skills/shared/product-roadmap-contract.md`. For a large spec, carry the complete `large_idea_decomposition` block (`outcome_slices`, `dependencies_order`, `non_goals`, `risks_evidence`, `deferred_work_owner`) through every generated PBI, story, mock-up, and the all-PBI presentation. For an isolated spec, omit the block and roadmap fields. An explicitly supplied roadmap is read-only context; only an explicit roadmap-deliverable request invokes the standalone writer.
+- **[BLOCKING] Releasable PBI contract:** read `.claude/skills/shared/releasable-pbi-contract.md`. Every generated PBI must name an actor-facing outcome, complete the entry-to-result journey, and carry evidence. UI PBIs must carry the complete page/view, navigation, component, state, and mock-app flow surface. A blocked gate cannot advance by assumption.
 
 ## When to Use
 
@@ -96,6 +116,8 @@ Locate and read, per target capability:
     - §7 Permissions & Roles → access-control acceptance criteria
     - §8 Test Specifications (`TC-`) → expected TC categories per PBI
 
+- `large_idea_decomposition` from the Feature Spec and its source evidence when the spec is large. If an explicit roadmap path is supplied, read it as context and verify its approval; do not create or update one. Run `$scenario` conditionally when slice risks require it.
+
 If the spec path is missing or ambiguous, ask the user for the exact bucket / Feature Spec path before generating PBIs.
 
 ### 3. Freshness Gate
@@ -112,13 +134,13 @@ Create a matrix with one row per independently deliverable item:
 
 | Spec Source      | Capability     | Feature/Operation | Domain Impact             | Shared Dependency | PBI Type                                      | Status  |
 | ---------------- | -------------- | ----------------- | ------------------------- | ----------------- | --------------------------------------------- | ------- |
-| `{Feature §sec}` | `{capability}` | `{feature}`       | entity/state/event/API/UI | yes/no            | feature/foundation/shared/migration/test-data | planned |
+| `{Feature §sec}` | `{capability}` | `{feature}`       | entity/state/event/API/UI | yes/no            | releasable feature / enabling task / existing reference / out-of-scope | planned |
 
 Every source feature/operation must map to exactly one of:
 
-- Generated PBI
-- Shared/foundation PBI
-- Existing PBI reference
+- Generated releasable PBI
+- Enabling task attached to a releasable PBI (not a standalone PBI)
+- Existing releasable PBI reference
 - Explicit out-of-scope decision with reason
 
 ### 5. Large Spec Decomposition
@@ -131,7 +153,7 @@ Apply these scale rules before creating PBIs:
 | 4-10 capabilities          | Split by capability, then feature/operation group                     |
 | 10+ capabilities           | Incremental capability-group batches with coverage matrix checkpoints |
 | Any PBI > 8 story points   | Split with SPIDR until each PBI is <= 8 story points                  |
-| Cross-cutting prerequisite | Create shared/foundation PBI before dependent feature PBIs            |
+| Cross-cutting prerequisite | Attach enabling work to the dependent releasable PBI, or define a separate actor-facing releasable outcome; never emit a technical-only PBI |
 
 ### 6. Domain Analysis Gate
 
@@ -148,13 +170,13 @@ Record domain findings in each affected PBI under `## Domain Impact`.
 
 For each matrix row that needs a new PBI:
 
-1. Run `$refine` to create the PBI artifact.
-2. Run `$artifact-review --type=pbi`.
+1. Run `$refine` to create the PBI artifact and pass its Releasable Outcome Gate.
+2. Run `$artifact-review --type=pbi` and fail any technical-only, incomplete-journey, or missing UI-surface PBI.
 3. Run `$story` to create vertical-slice stories.
 4. Run `$artifact-review --type=story`.
 5. Run `$pbi-challenge`.
 6. Run `$dor-gate`.
-7. Run `$pbi-mockup` only when UI is involved. The generated mockup file MUST surface the PBI's priority/rank (header badge) so the prototype carries the same priority info as the backlog.
+7. Run `$pbi-mockup` only when UI is involved. The generated mockup MUST be a navigable multi-view mock app covering the full outcome flow, required components/states, and all stories; it MUST also surface the PBI's priority/rank (header badge) so the prototype carries the same priority info as the backlog.
 8. Run `$design-spec` only when UI is involved (after `$pbi-mockup`) — mirrors `workflow-idea-to-pbi` so the spec→pbi half is step-for-step IDENTICAL.
 
 > **Spec-hub coupling (§6 interaction surface ↔ UI artifacts):** for UI PBIs the `$pbi-mockup` and `$design-spec` produced here are NOT standalone artifacts — they are the deep companions of the existing canonical Feature Spec's **§6 interaction surface** (View Inventory / Navigation Map / Key UI States / per-story click-path) you decomposed in step 2. Both couple to §6: the §6 thin intent seeds them, and `design-spec` records its path in the spec's `design_spec:` frontmatter (the mockup in `mockup:`) so the spec stays the navigable hub: a reader goes spec → §6 thin intent → mockup + `design-spec` deep companions, and the three never drift. Keep deep visual fidelity (layout, tokens, pixel detail) in the mockup/`design-spec`, never in §6. See the `SYNC:ui-intent-layer` block below for the full rule — do not restate it here. Backend-only PBIs (no UI) → skip `$pbi-mockup` + `$design-spec` and state that reason.
@@ -168,7 +190,9 @@ Each PBI MUST include:
 - Dependencies table with `must-before`, `can-parallel`, `blocked-by`, or `independent`.
 - Priority input data for `$prioritize`.
 - Test specification needs, including expected TC categories.
-- Domain impact and shared/foundation task references.
+- Domain impact and enabling-task/dependency references; shared/foundation work is never emitted as a standalone technical-only PBI.
+- Releasable Outcome Gate evidence: actor, observable outcome, entry-to-result journey, visible/persisted truth, applicable access/failure/recovery behavior, and explicit non-goals.
+- For UI: page/view inventory, navigation map, common/domain/page component inventory, applicable states, and full-flow mock-app evidence; backend-only: explicit no-UI reason.
 
 ### 8. Cross-PBI Prioritization
 
@@ -178,7 +202,7 @@ The backlog artifact MUST include:
 
 - Rank and recommended implementation order.
 - Dependency graph and first-do/blocked/defer groups.
-- Foundation/shared tasks first when other PBIs depend on them.
+- Required enabling work is attached to and ordered with the releasable PBIs it enables; never emit a standalone technical/foundation/setup/migration PBI.
 - RICE or MoSCoW rationale.
 - DoR status per PBI.
 - Remaining open questions.
@@ -212,22 +236,23 @@ Workflow can close only when:
 - Every spec source item is represented in the coverage matrix.
 - Every generated PBI has dependency and priority fields.
 - `$prioritize` has run and written rank/priority back into EACH PBI's frontmatter (priority propagation), not just the standalone backlog.
-- Shared/foundation PBIs are explicit and ordered before dependents.
+- Every generated PBI passes the Releasable Outcome Gate; enabling/foundation work is attached to a releasable outcome and ordered before the behavior it enables, never emitted as a technical-only PBI.
 - Domain-analysis findings are attached where domain changes are implied.
 - The final backlog artifact ranks all PBIs and explains what to do first.
 - `$docs-update` has run as the near-final sync gate, with Feature Specs (§8) and derived bucket indexes either updated or explicitly marked unchanged.
+- The generated PBIs carry the complete decomposition block and stable slice/dependency IDs when the spec is large; scenario proof is mapped to the appropriate PBI/TC or recorded in `deferred_work_owner`. No separate roadmap artifact is required.
 - `$feature-presentation` has run, producing one standalone HTML deck whose Scope & backlog slide surfaces each PBI's priority/rank.
 
-**IMPORTANT MANDATORY Steps:** $scout -> $spec-index -> $domain-analysis -> $why-review -> $spec-clarify -> $plan -> $plan-review -> $plan-validate -> $why-review -> $refine -> $why-review -> $artifact-review --type=pbi -> $story -> $why-review -> $artifact-review --type=story -> $pbi-challenge -> $dor-gate -> $pbi-mockup -> $design-spec -> $prioritize -> $docs-update -> $feature-presentation -> $workflow-end -> $watzup
+**IMPORTANT MANDATORY Steps:** $investigate -> $spec-index -> $domain-analysis -> $why-review -> $spec-clarify -> $scenario -> $plan -> $plan-review -> $plan-validate -> $why-review -> $refine -> $why-review -> $artifact-review --type=pbi -> $story -> $why-review -> $artifact-review --type=story -> $pbi-challenge -> $dor-gate -> $pbi-mockup -> $design-spec -> $prioritize -> $docs-update -> $feature-presentation -> $workflow-end -> $watzup
 
-> **[BLOCKING]** Each step MUST invoke its skill invocation. Marking a workflow step completed without skill invocation is a workflow violation.
+> **[BLOCKING]** Each selected step MUST invoke its skill invocation. `$scenario` is conditional: run it only when the selected decomposition/slice risks need adversarial replay, state, ownership, recovery, or evidence analysis; otherwise mark the step skipped with evidence and an explicit reason. Marking a selected workflow step completed without skill invocation is a workflow violation.
 
 <!-- SYNC:nested-task-creation -->
 
 > **Nested Task Expansion Contract** — For workflow-step invocation, the `[Workflow] ...` row is only a parent container; the child skill still creates visible phase tasks.
 >
 > 1. Call the current task list first. If a matching active parent workflow row exists, set `nested=true` and record `parentTaskId`; otherwise run standalone.
-> 2. Create one task per declared phase before phase work. When nested, prefix subjects `[N.M] $skill-name — phase`.
+> 2. Create one task per declared phase before phase work. When nested, prefix subjects `[N.M] /skill-name — phase`.
 > 3. When nested, link the parent with `TaskUpdate(parentTaskId, addBlockedBy: [childIds])`.
 > 4. Orchestrators must pre-expand a child skill's phase list and link the workflow row before invoking that child skill or sub-agent.
 > 5. Mark exactly one child `in_progress` before work and `completed` immediately after evidence is written.
@@ -326,7 +351,7 @@ Workflow can close only when:
 <!-- SYNC:nested-task-creation:reminder -->
 
 - **MANDATORY** Parent workflow rows do not replace child phase tracking; expand phases and link the parent when nested.
-- **MANDATORY** Orchestrators pre-expand child skill phases before invocation; use `[N.M] $skill-name — phase` prefixes and one-`in_progress` discipline.
+- **MANDATORY** Orchestrators pre-expand child skill phases before invocation; use `[N.M] /skill-name — phase` prefixes and one-`in_progress` discipline.
 
 <!-- /SYNC:nested-task-creation:reminder -->
 
@@ -336,7 +361,24 @@ Workflow can close only when:
 
 <!-- /SYNC:ui-intent-layer:reminder -->
 
+<!-- SYNC:project-protocol-overlay -->
+
+> **Project Protocol Overlay** — Before executing this skill, resolve any PROJECT overlay rules layered onto it: match this skill's name against the `Target` column of the project's skill-protocol index (`docs/project-reference/skill-protocols-reference.md` by default; a `referenceDocs` entry in `docs/project-config.json` overrides the path), taking the most specific matching tier ONLY — exact name > glob > `*`. **That precedence orders overlays against EACH OTHER, never against this skill.** Read ONLY the matched bodies, resolved as `<protocols-dir>/<Name>.md`; a row's Body link is display text, never a read path. A matched body that is missing or malformed is REPORTED and skipped — never reconstructed from the index Description. No index, or no match -> proceed with no overlay, silently. Full contract: `.claude/skills/project-skill-protocol/references/registry.md`.
+>
+> Overlays are **ADDITIVE ONLY**: they ADD rules on top of this skill's own protocol and NEVER replace, override, disable, or reinterpret a rule it already states — removing every overlay must return this skill to exactly its documented behavior. An overlay is a BRIEF, not an authority escalation: it can NEVER waive a workflow gate, git discipline, a review gate, or a user-confirmation gate. A genuine overlay-vs-skill conflict, or two equally-specific overlays that directly contradict -> surface both to the user; NEVER resolve silently.
+
+<!-- /SYNC:project-protocol-overlay -->
+
+<!-- SYNC:project-protocol-overlay:reminder -->
+
+**MUST ATTENTION** resolve project protocol overlays for this skill BEFORE executing — most specific matching tier only (exact > glob > `*`, which ranks overlays against each other, NEVER against this skill), read only matched bodies at `<protocols-dir>/<Name>.md`; a missing or malformed body is reported, never reconstructed. Overlays are ADDITIVE ONLY (they never replace this skill's own rules) and are a brief, NEVER an authority escalation; an equal-specificity contradiction goes to the user.
+
+<!-- /SYNC:project-protocol-overlay:reminder -->
+
 ## Closing Reminders
+
+**IMPORTANT MUST ATTENTION Goal:** Convert canonical tech-free 8-section Feature Specs into a complete, prioritized, dependency-aware, sprint-ready PBI/story backlog with actor-facing outcomes, full UI flows, and evidence-backed review/sync gates.
+**IMPORTANT MUST ATTENTION Main steps:** `$investigate` → `$spec-index` (audit freshness) → `$domain-analysis` → `$why-review` → `$spec-clarify` → conditional `$scenario` → `$plan` → `$plan-review` → `$plan-validate` → `$why-review` → `$refine` → `$why-review` → `$artifact-review --type=pbi` → `$story` → `$why-review` → `$artifact-review --type=story` → `$pbi-challenge` → `$dor-gate` → conditional `$pbi-mockup` → conditional `$design-spec` → `$prioritize` → `$docs-update` → `$feature-presentation` → `$workflow-end` → `$watzup`. **NEVER** skip coverage, releasable-outcome, priority-propagation, or synchronization gates.
 
 **Protocols in force (concise digest of the SYNC/shared blocks this skill carries):**
 
@@ -349,6 +391,8 @@ Workflow can close only when:
 - **MUST** use the canonical Feature Specs as input; do not invent unrelated opportunities.
 - **MUST** decompose big Feature Specs into small PBIs before story generation.
 - **MUST** include dependency, priority, domain impact, and shared-task details.
+- **MUST** apply `.claude/skills/shared/releasable-pbi-contract.md`: no standalone technical/foundation/migration/setup PBI; enabling work belongs under a releasable outcome.
+- **MUST**, for UI PBIs, carry the complete page/view inventory, navigation map, common/domain/page components, applicable states, and a navigable full-flow mock-app outcome; one isolated screen is a FAIL.
 - **MUST** write artifacts incrementally after each capability/feature.
 - **MUST** run `$prioritize` once at the end across all generated PBIs, and write the resulting rank/priority back into EACH PBI's frontmatter (priority propagation) — not only the standalone backlog.
 - **MUST**, for UI PBIs, run `$pbi-mockup` then `$design-spec` (both UI-conditional) — mirrors `workflow-idea-to-pbi` so the spec→pbi half is step-for-step IDENTICAL.
@@ -370,7 +414,7 @@ Source: `.claude/.ck.json` + `.claude/skills/shared/sync-inline-versions.md` (`:
 3. **AUTO-SELECT:** Pick the best option yourself. Do not ask the user to choose between direct execution, skill, standard workflow, or custom workflow.
 4. **ACTIVATE:** For a selected workflow, call `$start-workflow <workflowId>`; for a selected skill, invoke that skill; for a custom workflow, sequence custom steps directly; for direct execution, proceed with the task.
 5. **CREATE TASKS:** task tracking for ALL workflow/skill/custom steps before execution when the selected path has multiple steps.
-6. **PARALLELIZE:** Before executing the task list, tag each task `PAR` (independent inputs + write set disjoint from every other `PAR` task) or `SEQ` (name the blocking dependency), group `PAR` tasks into waves, declare the wave plan, and spawn each wave's sub-agents in ONE message — all-return barrier per wave, fan-out one level deep unless a sub-agent's own definition authorizes further fan-out. Sequential-by-default is a defect when tasks are independent; do not parallelize shared write targets, output-consuming tasks, trivial single-file work, workflow-fixed ordering, or user-approval gates.
+6. **PARALLELIZE:** Before executing the task list, tag each task `PAR` (independent inputs + write set disjoint from every other `PAR` task) or `SEQ` (name the blocking dependency), group `PAR` tasks into waves, declare the wave plan, and spawn each wave's sub-agents in ONE message — all-return barrier per wave, fan-out one level deep unless a sub-agent's own definition authorizes further fan-out. Sequential-by-default is a defect when tasks are independent; do not parallelize shared write targets, output-consuming tasks, trivial single-file work, ordering a skill or workflow explicitly fixes, or user-approval gates.
 7. **EXECUTE:** Advance per the **Workflow Step Advancement & Parallel Phases** rule in your context instructions — model-driven; a sub-agent completion advances a step identically to an inline call; a parallel-phase group is an all-return barrier (advance only after ALL members return, never serialize it)
 ## Shared AI-SDD Protocol Markers
 
@@ -432,7 +476,7 @@ Break work into small tasks (task tracking) before starting. Add final task: "An
 - **Sub-agents inherit knowledge only from their agent .md definition — use custom agent types, not built-in Explore.** Tool adoption = permission + knowledge + enforcement (numbered workflow step).
 - **Persist sub-agent findings incrementally, not as a final batch.** Long sub-agents hit cutoffs before final write — findings lost. Instruct append-per-section to report file.
 - **When debugging, ask "whose responsibility?" before fixing.** Trace caller (wrong data) vs callee (wrong handling). Fix at responsible layer — never patch symptom site.
-- **Test failure → adjudicate WHO is at fault (source vs test) before forcing green.** A green-again suite is not the goal; the correct verdict on what was actually wrong is. Root-cause first, then triangulate the failure against the governing spec (`docs/specs/**` if one exists) AND the source: SOURCE-WRONG → fix code at the owning layer and keep/strengthen the test; TEST-WRONG → fix the stale assertion/setup at its root. NEVER weaken an assertion, add a skip, or relax a timeout to force green, and never change source to satisfy a broken test. Spec silent or ambiguous about which side is correct → STOP and ask the user.
+- **Test failure → record a provisional verdict before trace/edit, then investigate.** Use the full five-way taxonomy: SOURCE-WRONG (production violates intent), TEST-WRONG (assertion/setup is stale), TEST-NOT-OPTIMAL (valid but fragile or low-signal test), ENVIRONMENT-BLOCKED (external state prevents a verdict), or AMBIGUOUS (intent/evidence cannot choose safely). Then trace root cause and triangulate against the governing spec (`docs/specs/**` if one exists) AND source. NEVER weaken an assertion, add a skip, relax a timeout, or change source merely to force green.
 - **Grep ALL removed names after extraction/refactoring.** Primary file "done" ≠ secondary files clean. Grep entire scope for every removed symbol before declaring complete.
 - **Assume existing values are intentional — ask WHY before changing OR flagging one as a defect.** Pattern-matching as "wrong" skips context. Before changing or reporting any constant/limit/flag/cutoff: read comments, git blame, the CALLER's ordering (the guarantee that makes the value correct usually lives in code running immediately BEFORE the cited line), and 2+ sibling call sites of the same convention. A doc stating WHAT without WHY is missing rationale, not proof of a missing guard — and in a validation pass, an accurate `file:line` citation proves the transcription, never the defect.
 - **Verify ALL affected outputs, not just the first.** One build green ≠ all green. Multi-stack changes (backend/frontend/tests/docs) require verifying EVERY output.

@@ -9,11 +9,17 @@ disable-model-invocation: false
 
 ## Quick Summary
 
-**Goal:** [Workflow] Trigger the spec-driven Idea-to-Spec workflow to convert a raw idea — a raw vision or problem → structured brainstorm framing → canonical, provisional Feature Spec (the tech-free 8-section spec + §8 test specs at `docs/specs/{Bucket}/README.{Feature}.md`, `Evidence: TBD` until code lands) → reviewed and docs-synced. This workflow **STOPS at the reviewed Feature Spec** — it does NOT produce a PBI backlog. For a backlog, chain `workflow-spec-to-pbi` afterward; for idea → full backlog in one pass use `workflow-idea-to-pbi`; for code→spec (implementation already exists) use `workflow-code-to-spec`.
+**Goal:** Convert a raw idea/vision/problem into one reviewed, docs-synced, provisional, tech-free 8-section Feature Spec with §8 planned TCs and conditional large-idea decomposition; stop there, never create a PBI backlog or implicit roadmap. Chain `workflow-spec-to-pbi`/`workflow-idea-to-pbi` as appropriate; use `workflow-code-to-spec` only after implementation exists.
+
+**Summary:**
+
+- **Main steps (run in order):** (1) brainstorm the raw idea and classify the four `isLargeIdea` signals; (2) conditionally carry the complete five-field `large_idea_decomposition` block; (3) run spec discovery, conditional scenario analysis, domain analysis, and rationale review; (4) capture the idea; (5) author the provisional Feature Spec and §8 test specs; (6) run artifact review, UI design-spec, clarification, rationale review, docs sync, presentation, and workflow end gates.
+- Large ideas embed stable slice IDs, dependency order, non-goals, risk/evidence owners, and deferred-work owners in the Feature Spec and downstream presentation/mock-up inputs. Ordinary ideas omit the block and roadmap fields; no default workflow step creates `docs/product-roadmap.md`.
+- The workflow stops at the reviewed, docs-synced Feature Spec; it never decomposes into PBIs/stories or invents unresolved product meaning. Explicit `--mode=roadmap` remains a separate, user-requested route.
 
 **Workflow:**
 
-1. **Frame** — brainstorm the idea, analyze domain, validate the problem framing (why-review).
+1. **Frame** — brainstorm the idea, classify large-idea signals, capture any required decomposition block, analyze domain, and validate the problem framing (why-review).
 2. **Author** — capture the idea, then author the canonical provisional Feature Spec (`spec [mode=draft]`) + §8 test specs (`spec [mode=tests]`).
 3. **Review & Sync** — review the test specs and the Feature Spec, validate rationale (why-review), sync docs.
 
@@ -24,6 +30,7 @@ disable-model-invocation: false
 - MUST ATTENTION define success criteria before execution and loop until observable verification passes.
 - MUST ATTENTION when creating/reviewing specs or tests, name `Business Intent / Invariant Guarded` or the protected business intent/invariant and ensure the test would fail if that intent breaks.
 - MUST ATTENTION author the spec via `spec [mode=draft]` — idea-sourced, no code yet → §8 `Evidence: TBD`, `Status: Planned`, frontmatter `provisional: true`.
+- MUST ATTENTION apply the shared `isLargeIdea = multipleIndependentOutcomes || ambiguousOrResearchHeavy || releaseScopeDecomposition || oversizedPbiThatMustSplit` rule before authoring. A true signal requires the complete `large_idea_decomposition` block (`outcome_slices`, `dependencies_order`, `non_goals`, `risks_evidence`, `deferred_work_owner`) in the Feature Spec; all-false ideas omit it. An explicitly supplied roadmap is read-only context, not a writer trigger.
 - NEVER decompose into PBIs/stories/backlog here — that is `workflow-spec-to-pbi`'s job. NEVER skip the Feature Spec authoring core.
 
 ## When to Use
@@ -42,7 +49,11 @@ disable-model-invocation: false
 
 ## Key Mechanics
 
-### 1. Brainstorm → Converge on the Capability to Spec
+### 1. Embedded Decomposition → Capability to Spec
+
+Run `/brainstorm` to converge the capability and evaluate the four large-idea signals. When any signal is true, record the complete decomposition block in the owning Feature Spec: stable slice IDs, dependency edges, non-goals, risk/evidence owners, and deferred-work owners. Run `/scenario` after spec discovery when the decomposition or supplied scope needs replay, state, ownership, persistence, recovery, or evidence analysis. Do not invoke the standalone product-roadmap writer unless the user explicitly requests a roadmap deliverable.
+
+### 1a. Brainstorm → Converge on the Capability to Spec
 
 The `/brainstorm` step frames the idea using the Double Diamond process:
 
@@ -54,9 +65,9 @@ The `/brainstorm` step frames the idea using the Double Diamond process:
 Output: the converged capability (or a short list if multiple distinct capabilities emerge).
 AI presents the framing and confirms scope: **"Which capability should we author as a Feature Spec?"** If multiple distinct capabilities are in scope, confirm with the user and author one Feature Spec per capability (sub-agent per capability for 4+ — see Scale awareness).
 
-### 1a. Spec-Discovery (Landscape Investigation — After brainstorm, Before domain-analysis)
+### 1b. Spec-Discovery (Landscape Investigation — After scope brainstorm, Before domain-analysis)
 
-`/spec-discovery` investigates the surrounding system BEFORE authoring: it Globs `docs/specs/**` to classify every related / overlapping / affected Feature Spec, scouts related code (graph-expanded when `.code-graph/graph.db` exists), and surfaces gaps, missing test cases / user stories, and the **invariant landscape** the idea must respect. It ends in a **BLOCKING scope-decision gate** — author a NEW spec, EXTEND an existing one, or SPLIT into N — so no duplicate / overlapping spec is authored. Greenfield (no specs + no code) short-circuits with a recorded reason.
+`/spec-discovery` investigates the surrounding system BEFORE authoring: it Globs `docs/specs/**` to classify every related / overlapping / affected Feature Spec, investigates related code (graph-expanded when `.code-graph/graph.db` exists), and surfaces gaps, missing test cases / user stories, and the **invariant landscape** the idea must respect. It ends in a **BLOCKING scope-decision gate** — author a NEW spec, EXTEND an existing one, or SPLIT into N — so no duplicate / overlapping spec is authored. Greenfield (no specs + no code) short-circuits with a recorded reason.
 
 ### 2. Why-Review Gate (After domain-analysis, Before spec authoring)
 
@@ -112,14 +123,14 @@ At `/workflow-end`, AI presents:
 
 ---
 
-**IMPORTANT MANDATORY Steps:** /web-research -> /deep-research -> /brainstorm -> /spec-discovery -> /domain-analysis -> /why-review -> /idea -> /spec [mode=draft] -> /spec [mode=tests] -> /artifact-review --type=spec-tests -> /artifact-review -> /design-spec -> /spec-clarify -> /why-review -> /docs-update -> /feature-presentation -> /workflow-end -> /watzup
+**IMPORTANT MANDATORY Steps:** /web-research -> /deep-research -> /brainstorm -> /spec-discovery -> /scenario -> /domain-analysis -> /why-review -> /idea -> /spec [mode=draft] -> /spec [mode=tests] -> /artifact-review --type=spec-tests -> /artifact-review -> /design-spec -> /spec-clarify -> /why-review -> /docs-update -> /feature-presentation -> /workflow-end -> /watzup
 
-> **[BLOCKING]** Each step MUST ATTENTION invoke its `Skill` tool — marking a task `completed` without skill invocation is a workflow violation. NEVER batch-complete validation gates.
+> **[BLOCKING]** Each selected step MUST ATTENTION invoke its `Skill` tool — marking a selected task `completed` without skill invocation is a workflow violation. `/scenario` is conditional: run it only when the embedded decomposition or supplied scope needs adversarial replay, state, ownership, persistence, recovery, or evidence analysis; otherwise record the skip with evidence and an explicit reason. NEVER batch-complete validation gates.
 
 Activate the `workflow-idea-to-spec` workflow. Run `/start-workflow workflow-idea-to-spec` with the user's prompt as context.
 
 **Steps:**
-/web-research → /deep-research → /brainstorm → /spec-discovery → /domain-analysis → /why-review → /idea → /spec [mode=draft] → /spec [mode=tests] → /artifact-review --type=spec-tests → /artifact-review → /design-spec → /spec-clarify → /why-review → /docs-update → /feature-presentation → /workflow-end → /watzup
+/web-research → /deep-research → /brainstorm → /spec-discovery → /scenario → /domain-analysis → /why-review → /idea → /spec [mode=draft] → /spec [mode=tests] → /artifact-review --type=spec-tests → /artifact-review → /design-spec → /spec-clarify → /why-review → /docs-update → /feature-presentation → /workflow-end → /watzup
 
 > **Scale awareness:** When the brainstorm converges on multiple distinct capabilities, this workflow authors one Feature Spec per capability. For 4+ capabilities, spawn one `spec` sub-agent per capability in ONE message (each gets the framing context + output path); the main context assembles and reviews. Use incremental-write patterns to prevent context overrun.
 
@@ -144,7 +155,7 @@ Activate the `workflow-idea-to-spec` workflow. Run `/start-workflow workflow-ide
 > **Nested Task Expansion Contract** — For workflow-step invocation, the `[Workflow] ...` row is only a parent container; the child skill still creates visible phase tasks.
 >
 > 1. Call `TaskList` first. If a matching active parent workflow row exists, set `nested=true` and record `parentTaskId`; otherwise run standalone.
-> 2. Create one task per declared phase before phase work. When nested, prefix subjects `[N.M] $skill-name — phase`.
+> 2. Create one task per declared phase before phase work. When nested, prefix subjects `[N.M] /skill-name — phase`.
 > 3. When nested, link the parent with `TaskUpdate(parentTaskId, addBlockedBy: [childIds])`.
 > 4. Orchestrators must pre-expand a child skill's phase list and link the workflow row before invoking that child skill or sub-agent.
 > 5. Mark exactly one child `in_progress` before work and `completed` immediately after evidence is written.
@@ -239,7 +250,7 @@ Activate the `workflow-idea-to-spec` workflow. Run `/start-workflow workflow-ide
 <!-- SYNC:nested-task-creation:reminder -->
 
 - **MANDATORY** Parent workflow rows do not replace child phase tracking; expand phases and link the parent when nested.
-- **MANDATORY** Orchestrators pre-expand child skill phases before invocation; use `[N.M] $skill-name — phase` prefixes and one-`in_progress` discipline.
+- **MANDATORY** Orchestrators pre-expand child skill phases before invocation; use `[N.M] /skill-name — phase` prefixes and one-`in_progress` discipline.
 
 <!-- /SYNC:nested-task-creation:reminder -->
 
@@ -261,7 +272,7 @@ Activate the `workflow-idea-to-spec` workflow. Run `/start-workflow workflow-ide
 > 6. **Barrier per wave.** Advance ONLY after EVERY member returns (a skipped conditional counts as returned). Merge, mark each task completed/skipped, THEN dispatch the next wave. Mutating steps wait for the barrier.
 > 7. **One level deep.** A dispatched sub-agent executes its own brief; further fan-out stays the orchestrator's job unless that agent's `.claude/agents/*.md` definition authorizes it.
 >
-> **NEVER parallelize:** tasks sharing a write target · a task consuming a pending task's output · trivial single-file work (dispatch overhead > gain) · an order a workflow explicitly fixes · gates awaiting user approval.
+> **NEVER parallelize:** tasks sharing a write target · a task consuming a pending task's output · trivial single-file work (dispatch overhead > gain) · an order a skill or workflow explicitly fixes · gates awaiting user approval.
 >
 > **Blocked until:** MUST ATTENTION every task tagged PAR/SEQ with a named reason per SEQ · waves declared + write-set disjointness checked · each wave spawned in ONE message · barrier honored before the next wave.
 
@@ -274,9 +285,24 @@ Activate the `workflow-idea-to-spec` workflow. Run `/start-workflow workflow-ide
 
 <!-- /SYNC:parallel-subagent-dispatch:reminder -->
 
+<!-- SYNC:project-protocol-overlay -->
+
+> **Project Protocol Overlay** — Before executing this skill, resolve any PROJECT overlay rules layered onto it: match this skill's name against the `Target` column of the project's skill-protocol index (`docs/project-reference/skill-protocols-reference.md` by default; a `referenceDocs` entry in `docs/project-config.json` overrides the path), taking the most specific matching tier ONLY — exact name > glob > `*`. **That precedence orders overlays against EACH OTHER, never against this skill.** Read ONLY the matched bodies, resolved as `<protocols-dir>/<Name>.md`; a row's Body link is display text, never a read path. A matched body that is missing or malformed is REPORTED and skipped — never reconstructed from the index Description. No index, or no match -> proceed with no overlay, silently. Full contract: `.claude/skills/project-skill-protocol/references/registry.md`.
+>
+> Overlays are **ADDITIVE ONLY**: they ADD rules on top of this skill's own protocol and NEVER replace, override, disable, or reinterpret a rule it already states — removing every overlay must return this skill to exactly its documented behavior. An overlay is a BRIEF, not an authority escalation: it can NEVER waive a workflow gate, git discipline, a review gate, or a user-confirmation gate. A genuine overlay-vs-skill conflict, or two equally-specific overlays that directly contradict -> surface both to the user; NEVER resolve silently.
+
+<!-- /SYNC:project-protocol-overlay -->
+
+<!-- SYNC:project-protocol-overlay:reminder -->
+
+**MUST ATTENTION** resolve project protocol overlays for this skill BEFORE executing — most specific matching tier only (exact > glob > `*`, which ranks overlays against each other, NEVER against this skill), read only matched bodies at `<protocols-dir>/<Name>.md`; a missing or malformed body is reported, never reconstructed. Overlays are ADDITIVE ONLY (they never replace this skill's own rules) and are a brief, NEVER an authority escalation; an equal-specificity contradiction goes to the user.
+
+<!-- /SYNC:project-protocol-overlay:reminder -->
+
 ## Closing Reminders
 
-**IMPORTANT MUST ATTENTION Goal:** Ensure spec-driven idea-to-spec converts a raw idea into ONE canonical, provisional Feature Spec — reviewed and docs-synced, ready to hand off for backlog decomposition or implementation.
+**IMPORTANT MUST ATTENTION Goal:** Convert a raw idea/vision/problem into one reviewed, docs-synced, provisional, tech-free 8-section Feature Spec with §8 planned TCs and conditional large-idea decomposition; stop there, never create a PBI backlog or implicit roadmap. Chain `workflow-spec-to-pbi`/`workflow-idea-to-pbi` as appropriate; use `workflow-code-to-spec` only after implementation exists.
+**IMPORTANT MUST ATTENTION Main steps:** `/web-research` → `/deep-research` → `/brainstorm` → `/spec-discovery` → conditional `/scenario` → `/domain-analysis` → `/why-review` → `/idea` → `/spec [mode=draft]` → `/spec [mode=tests]` → `/artifact-review --type=spec-tests` → `/artifact-review` → conditional `/design-spec` → `/spec-clarify` → `/why-review` → `/docs-update` → `/feature-presentation` → `/workflow-end` → `/watzup`; **NEVER** create a backlog or implicit roadmap here.
 
 **IMPORTANT MUST ATTENTION — Protocols in force (concise digest of the SYNC/shared blocks this skill carries; each is a signpost to its canonical body above):**
 
@@ -288,6 +314,7 @@ Activate the `workflow-idea-to-spec` workflow. Run `/start-workflow workflow-ide
 
 - **MANDATORY IMPORTANT MUST ATTENTION** break work into small todo tasks using `TaskCreate` BEFORE starting — one task per workflow step (per capability when multiple capabilities are in scope)
 - **MANDATORY IMPORTANT MUST ATTENTION** brainstorm converges on the capability to spec BEFORE the `/idea` step
+- **MANDATORY IMPORTANT MUST ATTENTION** run the default `/brainstorm` mode for ordinary idea-to-spec framing; `--mode=scope` is reserved for an explicitly supplied roadmap scope brief and must never be used as an implicit roadmap writer
 - **MANDATORY IMPORTANT MUST ATTENTION** SPEC-DRIVEN ORDER — author the Feature Spec (`/spec [mode=draft]` → `/spec [mode=tests]`) and review it; this workflow STOPS at the reviewed spec
 - **MANDATORY IMPORTANT MUST ATTENTION** PROVISIONAL OUTPUT — §8 carries `Evidence: TBD` / `Status: Planned` and frontmatter `provisional: true`; reconcile against code later via `workflow-code-to-spec`
 - **MANDATORY IMPORTANT MUST ATTENTION** NEVER decompose into PBIs/stories/backlog here — chain `workflow-spec-to-pbi` for a backlog

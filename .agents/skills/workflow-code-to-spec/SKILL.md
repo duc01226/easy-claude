@@ -54,7 +54,11 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 
 ## Quick Summary
 
-**Goal:** Keep the Feature Spec, implementation, tests, and project docs synchronized through a governed spec-driven workflow — a single entry point for spec-driven doc generation and maintenance over **ONE canonical artifact**, the tech-free **8-section Feature Spec** at `docs/specs/{Bucket}/README.{Feature}.md` (code is the technical source of truth; there is no parallel engineering tree).
+**Goal:** Keep one canonical, tech-free 8-section Feature Spec synchronized with implementation, tests, and project docs through the correct init-full/update/audit workflow; derive indexes only, never a parallel engineering tree.
+
+**Summary:** Confirm mode and scope, then investigate, size/plan, author or update the Feature Spec and §8 tests, review artifacts, synchronize docs/derived aids, and close with coverage evidence.
+
+**Workflow:** Confirm mode/capability → select `init-full`, `update`, or `audit` → trace the full vertical chain → create tasks/ledger → run the declared spec/test/review/docs gates → report coverage and close. **MUST ATTENTION** keep steps ordered and evidence-backed.
 
 > **[SINGLE HOME]** There is ONE canonical artifact — the tech-free 8-section Feature Spec authored by `spec` at `docs/specs/{Bucket}/`. There is no parallel A-E "Engineering Spec" bundle and no separate Business Feature Docs tree; `spec-index` only regenerates a DERIVED index/ERD over the Feature Specs. Authority: [`docs/project-reference/spec-system-reference.md`](../../../docs/project-reference/spec-system-reference.md).
 
@@ -75,9 +79,9 @@ Resolve service→bucket assignments from the canonical table in [`docs/project-
 
 | Mode        | When to Use                                  | Step Sequence                                                                                                                                                                                                                           |
 | ----------- | -------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `init-full` | Zero — no Feature Spec for target scope      | scout → **size-evaluation** → **plan** → **plan-review** → **plan-validate** → spec [mode=init] → **spec [mode=tests]** → **artifact-review --type=spec-tests** → artifact-review → **docs-update(final sync)** → workflow-end → watzup |
+| `init-full` | Zero — no Feature Spec for target scope      | investigate → **size-evaluation** → **plan** → **plan-review** → **plan-validate** → spec [mode=init] → **spec [mode=tests]** → **artifact-review --type=spec-tests** → artifact-review → **docs-update(final sync)** → workflow-end → watzup |
 | `update`    | Code changed, new requirement, new PBI       | workflow-review-changes → spec [mode=update] → **spec [mode=tests]** → **artifact-review --type=spec-tests** → spec [mode=sync] → changes-review → **docs-update(final sync)** → workflow-end → watzup                                  |
-| `audit`     | Quarterly health check, verify doc freshness | scout → spec [mode=audit] → artifact-review → **docs-update(final sync)** → workflow-end → watzup                                                                                                                                       |
+| `audit`     | Quarterly health check, verify doc freshness | investigate → spec [mode=audit] → artifact-review → **docs-update(final sync)** → workflow-end → watzup                                                                                                                                       |
 
 **Key Rules:**
 
@@ -131,18 +135,18 @@ Starting from zero: no `docs/specs/{Bucket}/README.{Feature}.md` for the target 
 ### Step Sequence
 
 ````
-## Step A — Discovery (scout)
+## Step A — Discovery (investigate)
 
-$scout
+$investigate
   → Holistic codebase map — capability registry, entry points, integration boundaries
   → Identify the set of capabilities in scope (one Feature Spec each)
   → **Full-chain awareness:** map not just backend layers but the complete vertical slice per
      capability — UI view/action → API → handler → domain entity/rule → event → consumer/read model
      → UI outcome. The detailed per-capability trace + reconciliation gate runs inside
      `$spec [mode=init]` Step 1-INIT.4.6 (use `graph-connect-api` for frontend→backend links,
-     `graph-trace` for backend flow); scout just confirms both ends (frontend + backend) are in scope
+     `graph-trace` for backend flow); investigate just confirms both ends (frontend + backend) are in scope
      so no seam is invisible at planning time.
-  → Task tracking: "scout — enumerate capabilities + full FE→BE→domain entry points for {Bucket}"
+  → Task tracking: "investigate — enumerate capabilities + full FE→BE→domain entry points for {Bucket}"
 
 ## Step B — Size Evaluation and Divide-and-Conquer Planning (MANDATORY — runs BEFORE plan)
 
@@ -178,7 +182,7 @@ tracked in a **persistent, resumable ledger on disk**, not in memory or the task
 the guard for "the whole-project code-to-spec works flawlessly and nothing is missed."
 
 1. **Enumerate the full target set:** for every bucket (App Bucket Mapping), list every capability
-   discovered in scout. This is the denominator — the complete set that MUST end with a Feature Spec.
+   discovered in investigate. This is the denominator — the complete set that MUST end with a Feature Spec.
 2. **Write the ledger** to `plans/reports/code-to-spec-coverage-{date}.md`:
 
    | Bucket | Capability | Spec path | §1-7 | §6 (UI) | §8 TCs | Chain trace | Status |
@@ -189,9 +193,9 @@ the guard for "the whole-project code-to-spec works flawlessly and nothing is mi
    `Status` ∈ NOT STARTED → IN PROGRESS → SPEC DONE → REVIEWED. `§6 (UI)` is `n/a` for backend-only.
 4. **Resume rule:** on any session start / after compaction, read the ledger FIRST, re-glob
    `docs/specs/**` to confirm, and continue from the first non-REVIEWED row — NEVER re-author a done
-   capability, NEVER re-run scout for already-enumerated buckets.
+   capability, NEVER re-run investigate for already-enumerated buckets.
 5. **[BLOCKING] Whole-Project Completeness Gate (before `$workflow-end`):** every row is `REVIEWED`,
-   OR carries an explicit, recorded deferral reason. A bucket/capability discovered in scout but
+   OR carries an explicit, recorded deferral reason. A bucket/capability discovered in investigate but
    absent from `docs/specs/**` with no deferral reason = the workflow is NOT complete. Report the
    final coverage as `{reviewed}/{total} capabilities` in `$watzup`.
 
@@ -348,7 +352,7 @@ Budget multiplier: If last audit was >90 days ago → ×1.5 (more drift expected
 ### Step Sequence
 
 ```
-$scout
+$investigate
   → Quick codebase scan: current state of entities, commands, controllers (lightweight, 30min max)
 
 $spec [mode=audit]
@@ -393,7 +397,7 @@ $watzup
 
 ## Sub-Agent Coordination Protocol (init-full, 4+ capabilities)
 
-1. `$scout` + `$plan` in main context → capability registry + per-capability task list
+1. `$investigate` + `$plan` in main context → capability registry + per-capability task list
 2. Spawn `spec` sub-agents (one per capability) in ONE message
 3. Wait for all sub-agents to complete
 4. Spawn `spec [mode=tests]` sub-agents (one per capability) in ONE message to populate Section 8
@@ -455,12 +459,12 @@ The Feature Spec stays in sync on every feature/bugfix/refactor workflow.
 
 ---
 
-**IMPORTANT MANDATORY Steps:** $scout -> $plan -> $plan-review -> $plan-validate -> $spec -> $spec [mode=tests] -> $artifact-review --type=spec-tests -> $artifact-review -> $docs-update -> $workflow-end -> $watzup
+**IMPORTANT MANDATORY Steps:** $investigate -> $plan -> $plan-review -> $plan-validate -> $spec -> $spec [mode=tests] -> $artifact-review --type=spec-tests -> $artifact-review -> $docs-update -> $workflow-end -> $watzup
 
 > **[BLOCKING]** Invoke skill invocation for EACH step — NEVER batch-complete, NEVER mark done without skill invocation.
 > **[BLOCKING]** Confirm mode by asking the user directly BEFORE any action — NEVER skip Step 0.
 > **[BLOCKING]** Spawn sub-agents for 4+ capabilities in ONE message — NEVER sequential spawning.
-> **[BLOCKING — Context Compaction / Session Resume]** At any session start or after context compaction: (1) the current task list FIRST — resume existing, NEVER create duplicates; (2) re-glob `docs/specs/{Bucket}/` to see which capabilities already have a Feature Spec — skip those; (3) NEVER re-run `$scout` or `$plan` in a resumed session.
+> **[BLOCKING — Context Compaction / Session Resume]** At any session start or after context compaction: (1) the current task list FIRST — resume existing, NEVER create duplicates; (2) re-glob `docs/specs/{Bucket}/` to see which capabilities already have a Feature Spec — skip those; (3) NEVER re-run `$investigate` or `$plan` in a resumed session.
 > **[BLOCKING]** Read `docs/project-reference/spec-principles.md` before running any author/update/audit step — it is the shared spec quality baseline (tech-agnostic rule + banned-token list).
 
 > **Goal Contract propagation (workflow-owned):** At workflow start, resolve the active Goal Contract per `SYNC:goal-contract-satisfaction-loop` (active plan `goal.md` → `plans/goals/{YYMMDD-HHmm}-{slug}/goal.md` → create from the spec request). Map each spec/test/code cycle output (Feature Specs authored, TCs written, audit findings fixed) to the saved success criteria and append the evidence to the goal file's Iteration Log per cycle. Before `$workflow-end`, emit the Goal Satisfaction matrix (PASS/FAIL/BLOCKED); completion requires every required criterion PASS or BLOCKED with a user-facing escalation.
@@ -470,7 +474,7 @@ The Feature Spec stays in sync on every feature/bugfix/refactor workflow.
 > **Nested Task Expansion Contract** — For workflow-step invocation, the `[Workflow] ...` row is only a parent container; the child skill still creates visible phase tasks.
 >
 > 1. Call the current task list first. If a matching active parent workflow row exists, set `nested=true` and record `parentTaskId`; otherwise run standalone.
-> 2. Create one task per declared phase before phase work. When nested, prefix subjects `[N.M] $skill-name — phase`.
+> 2. Create one task per declared phase before phase work. When nested, prefix subjects `[N.M] /skill-name — phase`.
 > 3. When nested, link the parent with `TaskUpdate(parentTaskId, addBlockedBy: [childIds])`.
 > 4. Orchestrators must pre-expand a child skill's phase list and link the workflow row before invoking that child skill or sub-agent.
 > 5. Mark exactly one child `in_progress` before work and `completed` immediately after evidence is written.
@@ -569,7 +573,7 @@ The Feature Spec stays in sync on every feature/bugfix/refactor workflow.
 <!-- SYNC:nested-task-creation:reminder -->
 
 - **MANDATORY** Parent workflow rows do not replace child phase tracking; expand phases and link the parent when nested.
-- **MANDATORY** Orchestrators pre-expand child skill phases before invocation; use `[N.M] $skill-name — phase` prefixes and one-`in_progress` discipline.
+- **MANDATORY** Orchestrators pre-expand child skill phases before invocation; use `[N.M] /skill-name — phase` prefixes and one-`in_progress` discipline.
 
 <!-- /SYNC:nested-task-creation:reminder -->
 
@@ -609,7 +613,7 @@ The Feature Spec stays in sync on every feature/bugfix/refactor workflow.
 > 6. **Barrier per wave.** Advance ONLY after EVERY member returns (a skipped conditional counts as returned). Merge, mark each task completed/skipped, THEN dispatch the next wave. Mutating steps wait for the barrier.
 > 7. **One level deep.** A dispatched sub-agent executes its own brief; further fan-out stays the orchestrator's job unless that agent's `.claude/agents/*.md` definition authorizes it.
 >
-> **NEVER parallelize:** tasks sharing a write target · a task consuming a pending task's output · trivial single-file work (dispatch overhead > gain) · an order a workflow explicitly fixes · gates awaiting user approval.
+> **NEVER parallelize:** tasks sharing a write target · a task consuming a pending task's output · trivial single-file work (dispatch overhead > gain) · an order a skill or workflow explicitly fixes · gates awaiting user approval.
 >
 > **Blocked until:** MUST ATTENTION every task tagged PAR/SEQ with a named reason per SEQ · waves declared + write-set disjointness checked · each wave spawned in ONE message · barrier honored before the next wave.
 
@@ -622,9 +626,25 @@ The Feature Spec stays in sync on every feature/bugfix/refactor workflow.
 
 <!-- /SYNC:parallel-subagent-dispatch:reminder -->
 
+<!-- SYNC:project-protocol-overlay -->
+
+> **Project Protocol Overlay** — Before executing this skill, resolve any PROJECT overlay rules layered onto it: match this skill's name against the `Target` column of the project's skill-protocol index (`docs/project-reference/skill-protocols-reference.md` by default; a `referenceDocs` entry in `docs/project-config.json` overrides the path), taking the most specific matching tier ONLY — exact name > glob > `*`. **That precedence orders overlays against EACH OTHER, never against this skill.** Read ONLY the matched bodies, resolved as `<protocols-dir>/<Name>.md`; a row's Body link is display text, never a read path. A matched body that is missing or malformed is REPORTED and skipped — never reconstructed from the index Description. No index, or no match -> proceed with no overlay, silently. Full contract: `.claude/skills/project-skill-protocol/references/registry.md`.
+>
+> Overlays are **ADDITIVE ONLY**: they ADD rules on top of this skill's own protocol and NEVER replace, override, disable, or reinterpret a rule it already states — removing every overlay must return this skill to exactly its documented behavior. An overlay is a BRIEF, not an authority escalation: it can NEVER waive a workflow gate, git discipline, a review gate, or a user-confirmation gate. A genuine overlay-vs-skill conflict, or two equally-specific overlays that directly contradict -> surface both to the user; NEVER resolve silently.
+
+<!-- /SYNC:project-protocol-overlay -->
+
+<!-- SYNC:project-protocol-overlay:reminder -->
+
+**MUST ATTENTION** resolve project protocol overlays for this skill BEFORE executing — most specific matching tier only (exact > glob > `*`, which ranks overlays against each other, NEVER against this skill), read only matched bodies at `<protocols-dir>/<Name>.md`; a missing or malformed body is reported, never reconstructed. Overlays are ADDITIVE ONLY (they never replace this skill's own rules) and are a brief, NEVER an authority escalation; an equal-specificity contradiction goes to the user.
+
+<!-- /SYNC:project-protocol-overlay:reminder -->
+
 ## Closing Reminders
 
-**IMPORTANT MUST ATTENTION Goal:** Ensure the Feature Spec, implementation, tests, and project docs stay synchronized through a governed spec-driven workflow.
+**IMPORTANT MUST ATTENTION Goal:** Keep one canonical, tech-free 8-section Feature Spec synchronized with implementation, tests, and project docs through the correct init-full/update/audit workflow; derive indexes only, never a parallel engineering tree.
+
+**IMPORTANT MUST ATTENTION Main steps:** Step 0 confirm mode → `init-full`: investigate → size/ledger → plan → plan-review → plan-validate → spec init → spec tests → artifact-review (TCs) → artifact-review → docs-update → workflow-end → watzup; `update`: workflow-review-changes → spec update/tests → TC review → spec sync → changes-review → docs-update → workflow-end → watzup; `audit`: investigate → spec audit → artifact-review → docs-update → workflow-end → watzup. **NEVER** skip gates, vertical-chain reconciliation, or coverage closure.
 
 **Protocols in force (concise digest of the SYNC/shared blocks this skill carries):**
 
@@ -638,7 +658,7 @@ The Feature Spec stays in sync on every feature/bugfix/refactor workflow.
 - **[BLOCKING]** Invoke skill invocation for EACH step — NEVER batch-complete or mark done without invocation
 - **[BLOCKING]** Spawn sub-agents for 4+ capabilities in ONE message — NEVER sequential spawning
 - **[BLOCKING]** ONE canonical artifact — the Feature Spec at `docs/specs/{Bucket}/README.{Feature}.md`; the §5 Mermaid ERD is authored INSIDE it (no separate ERD file, no A-E tree)
-- **[BLOCKING]** Scout holistically FIRST — capability registry MUST exist before plan creation; NEVER re-run scout or plan in a resumed session
+- **[BLOCKING]** investigate holistically FIRST — capability registry MUST exist before plan creation; NEVER re-run investigate or plan in a resumed session
 - **[BLOCKING]** Trace the FULL vertical chain per capability (UI → API → handler → domain/rule → event → consumer → read model → UI) and pass the Step 1-INIT.4.6 reconciliation gate — no orphan UI, no orphan operation, event + read-side closure; a BROKEN chain is a spec-correctness finding, never silently dropped
 - **[BLOCKING]** Every spec ships all three rebuild layers — business logic (§1-7) + UI/UX interaction surface (§6.2-6.5, or stated backend-only skip) + test specs (§8); a UI feature missing §6 fails review
 - **[BLOCKING]** Whole-project / multi-bucket scope → size it via Step B (classify breadth → build the resumable Coverage Ledger), and clear the Whole-Project Completeness Gate (every capability REVIEWED or explicitly deferred) before `$workflow-end` — report `{reviewed}/{total}` in `$watzup`
@@ -646,7 +666,7 @@ The Feature Spec stays in sync on every feature/bugfix/refactor workflow.
 - **[BLOCKING]** Per-section authoring: write each section immediately — NEVER accumulate across sections
 - **[REQUIRED]** §1-7 STRICTLY tech-free (no framework names, no language constructs, no class names in prose); identifiers live only in §8 evidence carriers, `[Source: ns/service/id]`, and ` ```mermaid ``` ` blocks — mark `[UNVERIFIED]` not blank
 - **[REQUIRED]** Each sub-agent prompt MUST include: capability name, output path, tech-agnostic contract, SYNC protocols (critical-thinking, evidence-based, incremental-persistence, cross-scope boundary)
-- **[BLOCKING]** Context compaction / session resume → the current task list first, re-glob existing Feature Specs, skip done capabilities — NEVER re-run scout or plan
+- **[BLOCKING]** Context compaction / session resume → the current task list first, re-glob existing Feature Specs, skip done capabilities — NEVER re-run investigate or plan
 - **[BLOCKING]** artifact-review: PASS = zero `[UNVERIFIED]` without exclusion reason + zero tech terms in §1-7; gap found → validate findings → fix validated gaps → restart the full artifact-review pass from the first check
 - **[BLOCKING]** Verify the current task list count ≥ capability_count before any authoring begins — this is the plan completeness gate
 - **[REQUIRED]** Apply critical thinking — every claim needs traced proof, confidence >80% to act. Anti-hallucination: never present guess as fact.
@@ -677,7 +697,7 @@ Source: `.claude/.ck.json` + `.claude/skills/shared/sync-inline-versions.md` (`:
 3. **AUTO-SELECT:** Pick the best option yourself. Do not ask the user to choose between direct execution, skill, standard workflow, or custom workflow.
 4. **ACTIVATE:** For a selected workflow, call `$start-workflow <workflowId>`; for a selected skill, invoke that skill; for a custom workflow, sequence custom steps directly; for direct execution, proceed with the task.
 5. **CREATE TASKS:** task tracking for ALL workflow/skill/custom steps before execution when the selected path has multiple steps.
-6. **PARALLELIZE:** Before executing the task list, tag each task `PAR` (independent inputs + write set disjoint from every other `PAR` task) or `SEQ` (name the blocking dependency), group `PAR` tasks into waves, declare the wave plan, and spawn each wave's sub-agents in ONE message — all-return barrier per wave, fan-out one level deep unless a sub-agent's own definition authorizes further fan-out. Sequential-by-default is a defect when tasks are independent; do not parallelize shared write targets, output-consuming tasks, trivial single-file work, workflow-fixed ordering, or user-approval gates.
+6. **PARALLELIZE:** Before executing the task list, tag each task `PAR` (independent inputs + write set disjoint from every other `PAR` task) or `SEQ` (name the blocking dependency), group `PAR` tasks into waves, declare the wave plan, and spawn each wave's sub-agents in ONE message — all-return barrier per wave, fan-out one level deep unless a sub-agent's own definition authorizes further fan-out. Sequential-by-default is a defect when tasks are independent; do not parallelize shared write targets, output-consuming tasks, trivial single-file work, ordering a skill or workflow explicitly fixes, or user-approval gates.
 7. **EXECUTE:** Advance per the **Workflow Step Advancement & Parallel Phases** rule in your context instructions — model-driven; a sub-agent completion advances a step identically to an inline call; a parallel-phase group is an all-return barrier (advance only after ALL members return, never serialize it)
 ## Shared AI-SDD Protocol Markers
 
@@ -739,7 +759,7 @@ Break work into small tasks (task tracking) before starting. Add final task: "An
 - **Sub-agents inherit knowledge only from their agent .md definition — use custom agent types, not built-in Explore.** Tool adoption = permission + knowledge + enforcement (numbered workflow step).
 - **Persist sub-agent findings incrementally, not as a final batch.** Long sub-agents hit cutoffs before final write — findings lost. Instruct append-per-section to report file.
 - **When debugging, ask "whose responsibility?" before fixing.** Trace caller (wrong data) vs callee (wrong handling). Fix at responsible layer — never patch symptom site.
-- **Test failure → adjudicate WHO is at fault (source vs test) before forcing green.** A green-again suite is not the goal; the correct verdict on what was actually wrong is. Root-cause first, then triangulate the failure against the governing spec (`docs/specs/**` if one exists) AND the source: SOURCE-WRONG → fix code at the owning layer and keep/strengthen the test; TEST-WRONG → fix the stale assertion/setup at its root. NEVER weaken an assertion, add a skip, or relax a timeout to force green, and never change source to satisfy a broken test. Spec silent or ambiguous about which side is correct → STOP and ask the user.
+- **Test failure → record a provisional verdict before trace/edit, then investigate.** Use the full five-way taxonomy: SOURCE-WRONG (production violates intent), TEST-WRONG (assertion/setup is stale), TEST-NOT-OPTIMAL (valid but fragile or low-signal test), ENVIRONMENT-BLOCKED (external state prevents a verdict), or AMBIGUOUS (intent/evidence cannot choose safely). Then trace root cause and triangulate against the governing spec (`docs/specs/**` if one exists) AND source. NEVER weaken an assertion, add a skip, relax a timeout, or change source merely to force green.
 - **Grep ALL removed names after extraction/refactoring.** Primary file "done" ≠ secondary files clean. Grep entire scope for every removed symbol before declaring complete.
 - **Assume existing values are intentional — ask WHY before changing OR flagging one as a defect.** Pattern-matching as "wrong" skips context. Before changing or reporting any constant/limit/flag/cutoff: read comments, git blame, the CALLER's ordering (the guarantee that makes the value correct usually lives in code running immediately BEFORE the cited line), and 2+ sibling call sites of the same convention. A doc stating WHAT without WHY is missing rationale, not proof of a missing guard — and in a validation pass, an accurate `file:line` citation proves the transcription, never the defect.
 - **Verify ALL affected outputs, not just the first.** One build green ≠ all green. Multi-stack changes (backend/frontend/tests/docs) require verifying EVERY output.

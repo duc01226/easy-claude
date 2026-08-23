@@ -1,4 +1,4 @@
-> The `spec` skill (`../SKILL.md`) loads this body for `[mode=draft|init|update|audit|amend]` — the Feature Spec authoring + §8-shell modes. The shared M1-M7 contract, SYNC blocks, and prompt-enhance scaffolding live ONCE in the host SKILL.md; this body carries only the authoring procedure.
+> The `spec` skill (`../SKILL.md`) loads this body for `[mode=draft|init|update|audit|amend]` — the Feature Spec authoring + §8-shell modes. The shared M1-M7 contract, roadmap alignment gate, SYNC blocks, and prompt-enhance scaffolding live ONCE in the host SKILL.md; this body carries only the authoring procedure.
 
 ## Source Resolution (code vs idea) — resolve BEFORE Project Pattern Discovery
 
@@ -13,7 +13,7 @@ Every author-mode run sources from ONE of two inputs. Resolve which before any e
 
 1. Derive §1-7 (Overview, Glossary, User Stories & AC, Business Rules, Domain Model, Process Flows & Interaction Surface, Permissions & Roles) from the supplied idea/requirement/prompt — SAME 8-section tech-free template (`docs/templates/detailed-feature-spec-template.md`), SAME M1-M5 + M7 mandate rules, SAME size caps. Draft does NOT get a lighter template — only a lighter evidence obligation. In particular M7 binds a draft exactly as it binds a code-sourced spec: an idea-sourced §8 TC shell is still judged by the demo test, and having no code yet is never a reason to admit a technical case. For a UI-bearing idea, populate §6.2–6.5 (View Inventory, Navigation Map, Key UI States, Per-Story Interaction Flow) per the §6 sub-procedure above from the idea text, and record any companion `design_spec:`/`mockup:` path supplied with the idea in YAML frontmatter; backend-only ideas state the §6 skip reason explicitly.
 2. Author §8 TC **shells** in the canonical `tc-format.md` template (Objective, GWT, AC, Test Data, Edge Cases) but set **`Evidence: TBD`** and **`Status: Planned`** — these are reference-only until code lands.
-3. Flag the spec provisional: add `provisional: true` to YAML frontmatter and a header banner `> **DRAFT — provisional spec, unverified until code lands. §8 evidence is TBD.**`.
+3. Flag the spec provisional: add `provisional: true` to YAML frontmatter and a header banner `> **DRAFT — provisional spec, unverified until code lands. §8 evidence is TBD.**`. Preserve the applicable branch metadata alongside the provisional marker. For a large idea, carry the complete `large_idea_decomposition` block; for an ordinary idea, do not add roadmap or milestone placeholders. Provisional means code evidence is pending, not that product scope is undecided.
 4. State the next step explicitly: *"Reconcile against real code via `/spec [mode=update]` once implemented — that run upgrades every `Evidence: TBD` to a real `[Source:]` anchor and clears the provisional flag."*
 
 **Draft → update transition rule (BLOCKING for the first code-backed run):** when `update` (or `init`, if the draft was a scratch file later replaced) runs against a spec carrying `provisional: true`, it MUST (a) replace every §8 `Evidence: TBD` with the verified `[Source: namespace/service/id]` anchor discovered from code, (b) flip each upgraded TC `Status` from `Planned` to `Untested`/`Tested` per `sync`, and (c) remove `provisional: true` + the DRAFT banner. A spec that still has any `Evidence: TBD` MUST keep its provisional flag. `tests`/`sync` need no special-casing beyond this upgrade — a TBD TC is treated as a not-yet-implemented TC.
@@ -200,7 +200,7 @@ When a companion `design-spec`/mockup exists, record its path in the spec frontm
 > 2. **§3 Acceptance Criteria** — adjust ONLY the AC the fix changes; add a new `AC-{FC}-NN` if the fix guarantees a new behavior. Preserve existing AC IDs.
 > 3. **§8 Test Specifications** — add the regression `TC-{FC}-NNN` guarding the fix (GIVEN bug repro / WHEN fixed path / THEN correct outcome) + its `CoveredBy: {File}::{Method}` once the regression test exists (Status `Untested` until it lands).
 > 4. **§6 Interaction Surface** — touch ONLY if the fix changed an observable UI behavior the spec records (a view's role, a navigation transition, an observable state, or a per-story click-path); then correct ONLY that affected §6.2–6.5 line, M1-clean. Otherwise leave §6 alone.
-> 5. Do NOT re-extract the domain model, re-scout the whole module, or rewrite §1/§2/§5/§7 (or §6 beyond the scoped line in item 4).
+> 5. Do NOT re-extract the domain model, re-investigate the whole module, or rewrite §1/§2/§5/§7 (or §6 beyond the scoped line in item 4).
 >
 > Scale doc work to change size — full INIT/UPDATE extraction is FORBIDDEN in AMEND.
 
@@ -216,7 +216,7 @@ When no docs exist, run spec-index-style extraction before folding into the 8-se
 > trace cross-service flow → fold into the 8 tech-free sections. The `{...}` placeholders and concrete commands shown below
 > are illustrative; substitute the values discovered for the current stack. The emitted Feature Spec stays tech-free regardless (M1).
 
-#### Step 1-INIT.1: Holistic Scout
+#### Step 1-INIT.1: Holistic investigate
 
 Map module's codebase before reading any file in detail:
 
@@ -803,7 +803,7 @@ No `.ai.md` companion files. Single `README.{Feature}.md` only output. Template:
     3. Preserve TC ID continuity — both parts share `TC-{FEATURE}-` prefix; NEVER renumber
     4. Add cross-references: each part includes "**See also:** README.{FeatureName}-Part{N}.md" in header
     5. Flag that derived spec artifacts must be refreshed so `/spec-index` can relink both parts
-- **YAML frontmatter** required: module, service, feature_code, entities[], status, last_updated
+- **YAML frontmatter** required: module, service, feature_code, entities[], status, last_updated. When `isLargeIdea=true`, also require the complete `large_idea_decomposition` block and its stable slice IDs. Only the explicit roadmap branch carries `roadmap`, `milestone_id`, and `scope_brief`; ordinary specs omit those fields, while EXEMPT/framework branches carry their own explicit applicability metadata.
 - **Audit mode produces AUDIT-{date}.md** — NEVER modifies existing docs
 - **Init mode uses spec-index extraction phases** — all entities, rules, APIs MUST be read from source before writing
 
@@ -911,6 +911,7 @@ See `.claude/skills/shared/sdd-artifact-contract.md` → "AI-SDD Mandates (M1-M7
 - [ ] Documentation placed in `docs/specs/{Bucket}/README.{FeatureName}.md`
 - [ ] Feature Spec follows template format (8 tech-free sections, in order)
 - [ ] **YAML frontmatter** present with module, service, feature_code, entities[]
+- [ ] **Applicability and Decomposition Gate** passes: embedded large-idea specs carry the complete decomposition block and stable slice IDs; explicit-roadmap specs carry approved roadmap metadata; ordinary specs omit roadmap placeholders; isolated/framework changes carry their explicit branch
 - [ ] Derived spec artifact refresh flagged for `/spec-index` when Feature Specs were created, renamed, split, or deleted
 - [ ] Stakeholder navigation table present
 - [ ] **Split criteria** — no line-count cap applies; split when TCs>40 or distinct module-level capabilities emerge (follow split procedure in Key Principles)

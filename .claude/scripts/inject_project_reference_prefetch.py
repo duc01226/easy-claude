@@ -31,9 +31,8 @@ SKILL_NAMES = [
     "plan-execute",
     # Fix family (ci/issue/logs/test/ui folded into /fix --target=*)
     "fix",
-    # Investigate / scout family
+    # Investigate family
     "investigate", "debug-investigate",
-    "scout",
     # Spec authoring quality family (idea → spec gates)
     "spec-discovery", "spec-clarify",
     # Refactor / migration / scaffold

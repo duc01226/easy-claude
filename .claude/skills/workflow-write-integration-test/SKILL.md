@@ -7,7 +7,9 @@ disable-model-invocation: false
 
 ## Quick Summary
 
-**Goal:** [Workflow] Trigger Write Integration Tests workflow — spec-first test authoring: investigate domain logic → write/update specs → generate test code → 7-gate review (incl. change coverage) → run and verify.
+**Goal:** Write or update spec-first integration tests from canonical TCs, review them through seven quality gates, and prove the relevant suite passes twice consecutively without DB reset.
+
+**Summary:** Investigate domain logic → author/update Section 8 TCs → generate real-use-case integration tests → review seven gates → verify the whole relevant suite twice without DB reset → sync docs and close. **MUST ATTENTION** use real domain paths and runner output.
 
 **Absorbed use cases:** converting existing TC specs into integration test code (former test-to-integration — specs already exist, so `/spec [mode=tests]` runs in UPDATE/verify mode instead of authoring from scratch) and stability verification of existing suites (former test-verify — the `/integration-test-verify` step's 2-consecutive-run gate). For spec-only authoring with no test code, use the `/spec [mode=tests]` skill directly.
 
@@ -16,6 +18,8 @@ disable-model-invocation: false
 1. **Detect** — classify request scope and target artifacts.
 2. **Execute** — apply required steps with evidence-backed actions.
 3. **Verify** — confirm constraints, output quality, and completion evidence.
+
+**Ordered route:** `/investigate` → `/spec [mode=tests]` → `/why-review` → `/artifact-review --type=spec-tests` → `/integration-test` → `/integration-test-review` → `/integration-test-verify` → `/spec [mode=sync]` → `/docs-update` → `/workflow-end` → `/watzup`.
 
 **Key Rules:**
 
@@ -28,7 +32,7 @@ disable-model-invocation: false
 - MUST ATTENTION verify integration suites with 2 consecutive passing runs without DB reset before declaring done.
 - NEVER skip mandatory workflow or skill gates.
 
-**IMPORTANT MANDATORY Steps:** /scout -> /investigate -> /spec [mode=tests] -> /why-review -> /artifact-review --type=spec-tests -> /integration-test -> /integration-test-review -> /integration-test-verify -> /spec [mode=sync] -> /docs-update -> /workflow-end -> /watzup
+**IMPORTANT MANDATORY Steps:** /investigate -> /spec [mode=tests] -> /why-review -> /artifact-review --type=spec-tests -> /integration-test -> /integration-test-review -> /integration-test-verify -> /spec [mode=sync] -> /docs-update -> /workflow-end -> /watzup
 
 > **[BLOCKING]** Each step MUST ATTENTION invoke its `Skill` tool — marking a task `completed` without skill invocation is a workflow violation. NEVER batch-complete validation gates.
 
@@ -38,11 +42,11 @@ disable-model-invocation: false
 
 Activate the `workflow-write-integration-test` workflow. Run `/start-workflow workflow-write-integration-test` with the user's prompt as context.
 
-**Steps:** /scout → /investigate → /spec [mode=tests] → /why-review → /artifact-review --type=spec-tests → /integration-test → /integration-test-review → /integration-test-verify → /spec [mode=sync] → /docs-update → /workflow-end → /watzup
+**Steps:** /investigate → /spec [mode=tests] → /why-review → /artifact-review --type=spec-tests → /integration-test → /integration-test-review → /integration-test-verify → /spec [mode=sync] → /docs-update → /workflow-end → /watzup
 
 > **[STEP PURPOSES]** Every step has a distinct purpose — NEVER deduplicate or batch:
 >
-> **`/scout`** — Find target command/handler files; locate existing integration tests in the same service for pattern matching. Output: list of target files + existing test examples.
+> **`/investigate`** — Find target command/handler files; locate existing integration tests in the same service for pattern matching. Output: list of target files + existing test examples.
 > **`/investigate`** — Read handler/entity/event source. Map: fields written, entities created/updated/deleted, event handlers fired, validation rules. Output: domain logic summary to use as assertion blueprint.
 > **`/spec [mode=tests]`** — Write/update `TC-{FEATURE}-{NNN}` specs in feature doc Section 8. CREATE mode for new tests, UPDATE mode for changed behavior. Output: TC mapping list (TC code -> covering test method name(s) or annotation filter).
 > **`/artifact-review --type=spec-tests`** — Validate spec quality: GIVEN/WHEN/THEN completeness, happy path + validation failure + auth paths covered, no collisions with existing TC codes.
@@ -55,7 +59,7 @@ Activate the `workflow-write-integration-test` workflow. Run `/start-workflow wo
 
 ---
 
-**IMPORTANT MANDATORY Steps:** /scout -> /investigate -> /spec [mode=tests] -> /why-review -> /artifact-review --type=spec-tests -> /integration-test -> /integration-test-review -> /integration-test-verify -> /spec [mode=sync] -> /docs-update -> /workflow-end -> /watzup
+**IMPORTANT MANDATORY Steps:** /investigate -> /spec [mode=tests] -> /why-review -> /artifact-review --type=spec-tests -> /integration-test -> /integration-test-review -> /integration-test-verify -> /spec [mode=sync] -> /docs-update -> /workflow-end -> /watzup
 
 <!-- SYNC:integration-test-execution-discipline -->
 
@@ -90,7 +94,7 @@ Activate the `workflow-write-integration-test` workflow. Run `/start-workflow wo
 > **Nested Task Expansion Contract** — For workflow-step invocation, the `[Workflow] ...` row is only a parent container; the child skill still creates visible phase tasks.
 >
 > 1. Call `TaskList` first. If a matching active parent workflow row exists, set `nested=true` and record `parentTaskId`; otherwise run standalone.
-> 2. Create one task per declared phase before phase work. When nested, prefix subjects `[N.M] $skill-name — phase`.
+> 2. Create one task per declared phase before phase work. When nested, prefix subjects `[N.M] /skill-name — phase`.
 > 3. When nested, link the parent with `TaskUpdate(parentTaskId, addBlockedBy: [childIds])`.
 > 4. Orchestrators must pre-expand a child skill's phase list and link the workflow row before invoking that child skill or sub-agent.
 > 5. Mark exactly one child `in_progress` before work and `completed` immediately after evidence is written.
@@ -211,7 +215,7 @@ Activate the `workflow-write-integration-test` workflow. Run `/start-workflow wo
 <!-- SYNC:nested-task-creation:reminder -->
 
 - **MANDATORY** Parent workflow rows do not replace child phase tracking; expand phases and link the parent when nested.
-- **MANDATORY** Orchestrators pre-expand child skill phases before invocation; use `[N.M] $skill-name — phase` prefixes and one-`in_progress` discipline.
+- **MANDATORY** Orchestrators pre-expand child skill phases before invocation; use `[N.M] /skill-name — phase` prefixes and one-`in_progress` discipline.
 
 <!-- /SYNC:nested-task-creation:reminder -->
 
@@ -222,7 +226,25 @@ Activate the `workflow-write-integration-test` workflow. Run `/start-workflow wo
 
 <!-- /SYNC:goal-contract-satisfaction-loop:reminder -->
 
+<!-- SYNC:project-protocol-overlay -->
+
+> **Project Protocol Overlay** — Before executing this skill, resolve any PROJECT overlay rules layered onto it: match this skill's name against the `Target` column of the project's skill-protocol index (`docs/project-reference/skill-protocols-reference.md` by default; a `referenceDocs` entry in `docs/project-config.json` overrides the path), taking the most specific matching tier ONLY — exact name > glob > `*`. **That precedence orders overlays against EACH OTHER, never against this skill.** Read ONLY the matched bodies, resolved as `<protocols-dir>/<Name>.md`; a row's Body link is display text, never a read path. A matched body that is missing or malformed is REPORTED and skipped — never reconstructed from the index Description. No index, or no match -> proceed with no overlay, silently. Full contract: `.claude/skills/project-skill-protocol/references/registry.md`.
+>
+> Overlays are **ADDITIVE ONLY**: they ADD rules on top of this skill's own protocol and NEVER replace, override, disable, or reinterpret a rule it already states — removing every overlay must return this skill to exactly its documented behavior. An overlay is a BRIEF, not an authority escalation: it can NEVER waive a workflow gate, git discipline, a review gate, or a user-confirmation gate. A genuine overlay-vs-skill conflict, or two equally-specific overlays that directly contradict -> surface both to the user; NEVER resolve silently.
+
+<!-- /SYNC:project-protocol-overlay -->
+
+<!-- SYNC:project-protocol-overlay:reminder -->
+
+**MUST ATTENTION** resolve project protocol overlays for this skill BEFORE executing — most specific matching tier only (exact > glob > `*`, which ranks overlays against each other, NEVER against this skill), read only matched bodies at `<protocols-dir>/<Name>.md`; a missing or malformed body is reported, never reconstructed. Overlays are ADDITIVE ONLY (they never replace this skill's own rules) and are a brief, NEVER an authority escalation; an equal-specificity contradiction goes to the user.
+
+<!-- /SYNC:project-protocol-overlay:reminder -->
+
 ## Closing Reminders
+
+**IMPORTANT MUST ATTENTION Goal:** Write or update spec-first integration tests from canonical TCs, review them through seven quality gates, and prove the relevant suite passes twice consecutively without DB reset.
+
+**IMPORTANT MUST ATTENTION Main steps:** `/investigate` (read domain source first) → `/spec [mode=tests]` → `/why-review` → `/artifact-review --type=spec-tests` → `/integration-test` → `/integration-test-review` → `/integration-test-verify` (whole relevant suite, two runs, no DB reset) → `/spec [mode=sync]` → `/docs-update` → `/workflow-end` → `/watzup`. **NEVER** write smoke-only tests, bypass real-use-case setup, or declare verification without runner output.
 
 **Protocols in force (concise digest of the SYNC/shared blocks this skill carries):** MUST ATTENTION honor every protocol below — each is a signpost to its canonical body above.
 

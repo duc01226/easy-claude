@@ -30,9 +30,9 @@ git --version
 ```
 .claude/
 |-- settings.json     # Main configuration (hooks, features)
-|-- skills/           # 163 skills (invoked via / prefix, activated by context)
+|-- skills/           # 166 skills (invoked via / prefix, activated by context)
 |-- agents/           # Subagent configurations
-|-- hooks/            # 16 top-level hook files + 25 lib modules
+|-- hooks/            # 17 top-level hook files + 26 lib modules
 |   +-- lib/          # Shared hook libraries
 |-- workflows/        # Development rules and workflows
 +-- scripts/          # Utility scripts
@@ -59,7 +59,7 @@ Lists all available commands with descriptions.
 ### Understand a feature
 
 ```bash
-/scout "how does employee management work"
+/investigate "how does employee management work"
 ```
 
 Searches codebase for relevant files and explains functionality.
@@ -100,7 +100,7 @@ Searches codebase for relevant files and explains functionality.
 
 ```bash
 # Quick scan
-/scout "where is validation handled"
+/investigate "where is validation handled"
 
 # Deep investigation
 /investigate "how does employee validation work"

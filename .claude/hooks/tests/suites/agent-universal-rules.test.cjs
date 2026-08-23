@@ -20,7 +20,7 @@
  *   - CODE_STANDARDS : agent-code-standards (dev-rules + pattern pointers) — gated
  *                    on a SEPARATE axis (CODE_STANDARDS_AGENTS) from the tier sets.
  *                    An agent may be READONLY_CODE (reads/locates code) yet NOT
- *                    code-standards (researcher/scout/ui-ux-designer don't author/review code).
+ *                    code-standards (researcher/ui-ux-designer don't author/review code).
  *
  * Tests:
  *   A (TC-UAR-003) — every agent carries all Core-6 open+close tags.
@@ -113,7 +113,7 @@ const CODE_AGENTS = new Set([
 ]);
 // Read-only/design agents: READONLY_CODE_TAGS only, NOT MUTATION_CODE_TAGS.
 const READONLY_CODE_AGENTS = new Set([
-    'researcher', 'scout', 'scout-external', 'ui-ux-designer',
+    'researcher', 'ui-ux-designer',
 ]);
 const CORE_ONLY_AGENTS = new Set([
     'business-analyst', 'docs-manager', 'git-manager', 'journal-writer',
@@ -139,6 +139,7 @@ const AGENT_ADOPTION_EXEMPT = new Set([
     'parallel-subagent-dispatch',  // orchestrator partitions ITS task list into PAR/SEQ waves and spawns them; a leaf agent runs one brief and (per the block's own rule 7) must not fan out
     'sub-agent-selection',         // a dispatcher choosing which sub-agents to spawn
     'goal-contract-satisfaction-loop', // session goal file + convergence loop + user escalation
+    'project-protocol-overlay',    // overlay resolution is performed by whoever INVOKES the skill; a headless leaf sub-agent receives one already-scoped brief whose overlay the dispatching orchestrator already resolved
 ]);
 // agent-code-standards audience — SEPARATE axis (mirror sync-hooks-to-skills.py
 // CODE_STANDARDS_AGENTS verbatim). NOT the same set as CODE_AGENTS.

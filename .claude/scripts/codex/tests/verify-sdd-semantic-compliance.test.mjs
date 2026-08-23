@@ -30,7 +30,171 @@ const {
   scanProseForBannedTokens,
   classifyEvidenceBody,
   findProseSourceIdentifiers,
+  ROADMAP_BOUNDARY_POLICY,
+  evaluateRoadmapBoundary,
+  loadRoadmapBoundarySurface,
 } = await import(pathToFileURL(verifierPath).href);
+
+const roadmapSignals = (overrides = {}) => ({
+  multipleIndependentOutcomes: false,
+  ambiguousOrResearchHeavy: false,
+  releaseScopeDecomposition: false,
+  oversizedPbiThatMustSplit: false,
+  ...overrides,
+});
+
+const completeRoadmapDecomposition = () => ({
+  outcome_slices: [{ id: "SLICE-001", outcome: "Actor completes the outcome", releasable_when: "Visible result", owning_artifact: "PBI-001" }],
+  dependencies_order: [{ before: "SLICE-001", after: "N/A", reason: "No predecessor" }],
+  non_goals: [{ statement: "Later capability is deferred", owner: "PBI-001" }],
+  risks_evidence: [{ risk: "Outcome may be unclear", evidence_needed: "Owner observes result", status: "open", owner: "PO" }],
+  deferred_work_owner: [{ item: "Later capability", owner: "PO", follow_up_artifact: "PBI-002", target_slice: "N/A" }],
+});
+
+const cleanRoadmapRoutes = () =>
+  ROADMAP_BOUNDARY_POLICY.defaultRouteIds.map((routeId) => ({
+    routeId,
+    sequence: ["isLargeIdea", "large_idea_decomposition"],
+    text: "isLargeIdea large_idea_decomposition; standalone product-roadmap route is explicit-only; ordinary scope does not create docs/product-roadmap.md",
+  }));
+
+test("roadmap boundary has six clean default routes and retains the explicit standalone writer", () => {
+  const clean = evaluateRoadmapBoundary({
+    routes: cleanRoadmapRoutes(),
+    standalone: {
+      explicitRequest: true,
+      text: "explicit-only product-roadmap request may create docs/product-roadmap.md",
+    },
+  });
+  assert.deepEqual(clean, []);
+
+  const dirty = evaluateRoadmapBoundary({
+    routes: cleanRoadmapRoutes().map((route, index) =>
+      index === 2 ? { ...route, sequence: ["product-roadmap"] } : route
+    ),
+  });
+  assert.ok(dirty.some((finding) => finding.code === "ROADMAP-DEFAULT-WRITER"));
+});
+
+test("each authoritative large-idea signal requires all five decomposition fields", () => {
+  for (const signal of ROADMAP_BOUNDARY_POLICY.largeIdeaSignals) {
+    const clean = evaluateRoadmapBoundary({
+      signals: roadmapSignals({ [signal]: true }),
+      decomposition: completeRoadmapDecomposition(),
+    });
+    assert.deepEqual(clean, [], `${signal} complete block should pass`);
+
+    const incomplete = completeRoadmapDecomposition();
+    delete incomplete.deferred_work_owner;
+    const failures = evaluateRoadmapBoundary({
+      signals: roadmapSignals({ [signal]: true }),
+      decomposition: incomplete,
+    });
+    assert.ok(
+      failures.some((finding) => finding.code === "ROADMAP-DECOMPOSITION-SCHEMA"),
+      `${signal} missing field should fail`
+    );
+  }
+});
+
+test("ordinary all-false scope omits decomposition, including independentlySliceable counterexample", () => {
+  assert.deepEqual(
+    evaluateRoadmapBoundary({
+      signals: roadmapSignals(),
+      independentlySliceable: true,
+    }),
+    []
+  );
+  const failures = evaluateRoadmapBoundary({
+    signals: roadmapSignals(),
+    decomposition: completeRoadmapDecomposition(),
+  });
+  assert.ok(failures.some((finding) => finding.code === "ROADMAP-DECOMPOSITION-SCHEMA"));
+});
+
+test("standalone roadmap writer remains explicit-only", () => {
+  const guarded = evaluateRoadmapBoundary({
+    standalone: {
+      explicitRequest: true,
+      text: "explicit-only product-roadmap request may create docs/product-roadmap.md",
+    },
+  });
+  assert.deepEqual(guarded, []);
+
+  const unguarded = evaluateRoadmapBoundary({
+    standalone: {
+      explicitRequest: false,
+      text: "product-roadmap create docs/product-roadmap.md",
+    },
+  });
+  assert.ok(unguarded.some((finding) => finding.code === "ROADMAP-EXPLICIT-ROUTE"));
+});
+
+test("roadmap writer detection is statement-aware", () => {
+  const disclaimerOnly = evaluateRoadmapBoundary({
+    routes: ROADMAP_BOUNDARY_POLICY.defaultRouteIds.map((routeId) => ({
+      routeId,
+      text: "isLargeIdea large_idea_decomposition. Do not create docs/product-roadmap.md by default.",
+    })),
+  });
+  assert.deepEqual(disclaimerOnly, []);
+
+  const disclaimerAndWriter = evaluateRoadmapBoundary({
+    routes: ROADMAP_BOUNDARY_POLICY.defaultRouteIds.map((routeId, index) => ({
+      routeId,
+      text: index === 0
+        ? "isLargeIdea large_idea_decomposition. Do not create docs/product-roadmap.md by default.\nRun product-roadmap here."
+        : "isLargeIdea large_idea_decomposition; ordinary route; no roadmap writer",
+    })),
+  });
+  assert.ok(disclaimerAndWriter.some((finding) => finding.code === "ROADMAP-DEFAULT-WRITER"));
+});
+
+test("decomposition validator rejects malformed field types and item shapes", () => {
+  const malformedType = completeRoadmapDecomposition();
+  malformedType.outcome_slices = {};
+  malformedType.dependencies_order = "SLICE-001";
+  malformedType.risks_evidence = { risk: "unclear" };
+  const typeFailures = evaluateRoadmapBoundary({
+    signals: roadmapSignals({ multipleIndependentOutcomes: true }),
+    decomposition: malformedType,
+  });
+  assert.ok(typeFailures.some((finding) => finding.code === "ROADMAP-DECOMPOSITION-SCHEMA"));
+
+  const malformedItem = completeRoadmapDecomposition();
+  malformedItem.outcome_slices = [{ id: "SLICE-001" }];
+  const itemFailures = evaluateRoadmapBoundary({
+    signals: roadmapSignals({ multipleIndependentOutcomes: true }),
+    decomposition: malformedItem,
+  });
+  assert.ok(itemFailures.some((finding) => finding.code === "ROADMAP-DECOMPOSITION-SCHEMA"));
+});
+
+test("roadmap surface coverage failure is hard and does not silently disable the gate", async () => {
+  const coverage = evaluateRoadmapBoundary({
+    coverageFailures: ["roadmap boundary surface is missing workflow-feature"],
+  });
+  assert.ok(coverage.some((finding) => finding.code === "ROADMAP-SURFACE-COVERAGE"));
+
+  const tempRoot = await fs.mkdtemp(path.join(os.tmpdir(), "roadmap-boundary-surface-"));
+  try {
+    for (const routeId of ["workflow-feature", "workflow-idea-to-pbi"]) {
+      const routeFile = path.join(tempRoot, ".claude", "skills", routeId, "SKILL.md");
+      await fs.mkdir(path.dirname(routeFile), { recursive: true });
+      await fs.writeFile(routeFile, "isLargeIdea large_idea_decomposition", "utf8");
+    }
+    const roadmapSkill = path.join(tempRoot, ".claude", "skills", "product-roadmap", "SKILL.md");
+    await fs.mkdir(path.dirname(roadmapSkill), { recursive: true });
+    await fs.writeFile(roadmapSkill, "explicit-only docs/product-roadmap.md", "utf8");
+    const surface = await loadRoadmapBoundarySurface(tempRoot);
+    assert.ok(surface.coverageFailures.length >= 1);
+    assert.ok(
+      evaluateRoadmapBoundary(surface).some((finding) => finding.code === "ROADMAP-SURFACE-COVERAGE")
+    );
+  } finally {
+    await fs.rm(tempRoot, { recursive: true, force: true });
+  }
+});
 
 test("evaluateCheck fails unsafe drift wording", () => {
   const failures = evaluateCheck(

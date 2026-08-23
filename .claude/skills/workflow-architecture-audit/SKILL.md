@@ -7,20 +7,20 @@ disable-model-invocation: false
 
 ## Quick Summary
 
-**Goal:** [Workflow] Audit the WHOLE project's architecture, scalability, and production readiness in ONE read-only pass and synthesize a single consolidated Architecture Health Report — three sub-scores and one combined verdict. Findings only; every validated fix routes to a FOLLOW-UP `/plan` or feature workflow.
+**Goal:** Activate a read-only whole-project architecture, scalability, and production-readiness audit; synthesize one Architecture Health Report with three sub-scores and one combined verdict, then route validated fixes to a follow-up plan or feature workflow.
 
 **Summary:**
 
 - READ-ONLY audit — produces findings + ONE consolidated Architecture Health Report (3 sub-scores + 1 combined verdict); NEVER applies fixes: every validated fix routes to a FOLLOW-UP `/plan` or feature workflow.
 - Core engine `architecture-review-full` runs INLINE (it owns the parallel fan-out + all-return barrier); this workflow declares NO workflow-level parallel groups.
 - FINAL `/why-review` gate (step 3) = the machine-visible guarantee no audit finding ships unvalidated — every PRIOR step routes its output into it; `docs-update` runs AFTER the gate and self-validates its own doc diff.
-- Main steps in order: **1** Scout scope → **2** Architecture-Review-Full (fan out 3 non-overlapping reviewers → progressive dedup synthesis → per-face `/why-review` fix → Finalize verdict) → **3** Why-Review FINAL gate → **4** Docs-Update → **5** Workflow-End → **6** Watzup.
+- Main steps in order: **1** investigate scope → **2** Architecture-Review-Full (fan out 3 non-overlapping reviewers → progressive dedup synthesis → per-face `/why-review` fix → Finalize verdict) → **3** Why-Review FINAL gate → **4** Docs-Update → **5** Workflow-End → **6** Watzup.
 
 **Workflow:**
 
-1. **Scout** — locate the modules, boundaries, and hotspots that scope the audit (whole project / current diff / specific path). **→ On completion, hand its scope map forward to the final `/why-review` (step 3) so the audit scope itself is validated (nothing in-scope missed, nothing out-of-scope pulled in).**
+1. **investigate** — locate the modules, boundaries, and hotspots that scope the audit (whole project / current diff / specific path). **→ On completion, hand its scope map forward to the final `/why-review` (step 3) so the audit scope itself is validated (nothing in-scope missed, nothing out-of-scope pulled in).**
 2. **Architecture-Review-Full** — the core step: runs INLINE (it spawns sub-agents), fans out three non-overlapping reviewers behind an all-return barrier, then PROGRESSIVELY synthesizes each face into ONE report file (status `IN PROGRESS` → `VALIDATING` → `FINISHED`): dedup, a fix-report-per-review `/why-review` gate that walks each of the three faces, and a Finalize step that locks the combined verdict. **→ On completion, hand the FINISHED consolidated report forward to the final `/why-review` (step 3) for report-level validation.**
-3. **Why-Review (FINAL VALIDATION GATE over the audit findings)** — MANDATORY. Validates the findings AND reviews the results of every PRIOR step it can reach: the scout scope map, the FINISHED consolidated report (verdict-rollup correctness, dedup completeness, cross-review severity consistency), and each of the three review faces' contributions. Every prior step routes its output here; no audit finding ships unvalidated. `docs-update` runs AFTER this gate and is NOT validated by it — it self-validates its own doc diff (see step 4).
+3. **Why-Review (FINAL VALIDATION GATE over the audit findings)** — MANDATORY. Validates the findings AND reviews the results of every PRIOR step it can reach: the investigate scope map, the FINISHED consolidated report (verdict-rollup correctness, dedup completeness, cross-review severity consistency), and each of the three review faces' contributions. Every prior step routes its output here; no audit finding ships unvalidated. `docs-update` runs AFTER this gate and is NOT validated by it — it self-validates its own doc diff (see step 4).
 4. **Docs-Update** — refresh any documentation the validated audit shows as stale. **→ Self-validates its own output: re-invoke `/why-review` on the doc diff when docs-update makes non-trivial edits, so the doc changes are reviewed before workflow-end.**
 5. **Workflow-End** — clear workflow state.
 6. **Watzup** — wrap up and summarize.
@@ -34,7 +34,7 @@ disable-model-invocation: false
 - MUST ATTENTION every PRIOR step routes its output to the FINAL `/why-review` gate (step 3): each producing step hands its findings + results forward, and the final `/why-review` validates the findings AND reviews the results of every prior step before docs-update — it is the final gate over the AUDIT FINDINGS. `docs-update` runs AFTER the gate and owns validation of its own output via an inline `/why-review` on non-trivial doc edits.
 - NEVER skip mandatory workflow or skill gates.
 
-**IMPORTANT MANDATORY Steps:** /scout -> /architecture-review-full -> /why-review -> /docs-update -> /workflow-end -> /watzup
+**IMPORTANT MANDATORY Steps:** /investigate -> /architecture-review-full -> /why-review -> /docs-update -> /workflow-end -> /watzup
 
 > **[BLOCKING]** Each step MUST ATTENTION invoke its `Skill` tool — marking a task `completed` without skill invocation is a workflow violation. NEVER batch-complete validation gates.
 
@@ -57,7 +57,7 @@ Parallelism lives INSIDE `architecture-review-full` (it owns the fan-out + all-r
 
 After `architecture-review-full` returns the FINISHED report, the workflow-level **`why-review`** step runs the FINAL VALIDATION GATE over the AUDIT FINDINGS — a distinct altitude from the engine's per-face fix, and the machine-visible guarantee no audit finding ships without a why-review pass. Every PRIOR step routes its output into this gate; the gate BOTH validates findings AND reviews results across the steps it reaches:
 
-- **Scout scope map** → validate audit scope (nothing in-scope missed, nothing out-of-scope pulled in).
+- **investigate scope map** → validate audit scope (nothing in-scope missed, nothing out-of-scope pulled in).
 - **`architecture-review-full` FINISHED report** → validate verdict-rollup correctness, dedup completeness, cross-review severity consistency; confirm each of the three review faces' contributions survived the per-face fix intact.
 - **`docs-update` output** → NOT validated by this gate (docs-update runs AFTER it); `docs-update` self-validates its own doc diff by re-invoking `/why-review` inline on non-trivial edits (see step 4) before workflow-end.
 
@@ -72,11 +72,11 @@ READ-ONLY audit: produces findings + a verdict only. Every validated finding rou
 
 Activate the `workflow-architecture-audit` workflow. Run `/start-workflow workflow-architecture-audit` with the user's prompt as context and the audit protocol above.
 
-**Steps:** /scout → /architecture-review-full → /why-review → /docs-update → /workflow-end → /watzup
+**Steps:** /investigate → /architecture-review-full → /why-review → /docs-update → /workflow-end → /watzup
 
 ---
 
-**IMPORTANT MANDATORY Steps:** /scout -> /architecture-review-full -> /why-review -> /docs-update -> /workflow-end -> /watzup
+**IMPORTANT MANDATORY Steps:** /investigate -> /architecture-review-full -> /why-review -> /docs-update -> /workflow-end -> /watzup
 
 <!-- SYNC:ai-mistake-prevention -->
 
@@ -99,7 +99,7 @@ Activate the `workflow-architecture-audit` workflow. Run `/start-workflow workfl
 > **Nested Task Expansion Contract** — For workflow-step invocation, the `[Workflow] ...` row is only a parent container; the child skill still creates visible phase tasks.
 >
 > 1. Call `TaskList` first. If a matching active parent workflow row exists, set `nested=true` and record `parentTaskId`; otherwise run standalone.
-> 2. Create one task per declared phase before phase work. When nested, prefix subjects `[N.M] $skill-name — phase`.
+> 2. Create one task per declared phase before phase work. When nested, prefix subjects `[N.M] /skill-name — phase`.
 > 3. When nested, link the parent with `TaskUpdate(parentTaskId, addBlockedBy: [childIds])`.
 > 4. Orchestrators must pre-expand a child skill's phase list and link the workflow row before invoking that child skill or sub-agent.
 > 5. Mark exactly one child `in_progress` before work and `completed` immediately after evidence is written.
@@ -178,15 +178,29 @@ Activate the `workflow-architecture-audit` workflow. Run `/start-workflow workfl
 <!-- SYNC:nested-task-creation:reminder -->
 
 - **MANDATORY** Parent workflow rows do not replace child phase tracking; expand phases and link the parent when nested.
-- **MANDATORY** Orchestrators pre-expand child skill phases before invocation; use `[N.M] $skill-name — phase` prefixes and one-`in_progress` discipline.
+- **MANDATORY** Orchestrators pre-expand child skill phases before invocation; use `[N.M] /skill-name — phase` prefixes and one-`in_progress` discipline.
 
 <!-- /SYNC:nested-task-creation:reminder -->
 
+<!-- SYNC:project-protocol-overlay -->
+
+> **Project Protocol Overlay** — Before executing this skill, resolve any PROJECT overlay rules layered onto it: match this skill's name against the `Target` column of the project's skill-protocol index (`docs/project-reference/skill-protocols-reference.md` by default; a `referenceDocs` entry in `docs/project-config.json` overrides the path), taking the most specific matching tier ONLY — exact name > glob > `*`. **That precedence orders overlays against EACH OTHER, never against this skill.** Read ONLY the matched bodies, resolved as `<protocols-dir>/<Name>.md`; a row's Body link is display text, never a read path. A matched body that is missing or malformed is REPORTED and skipped — never reconstructed from the index Description. No index, or no match -> proceed with no overlay, silently. Full contract: `.claude/skills/project-skill-protocol/references/registry.md`.
+>
+> Overlays are **ADDITIVE ONLY**: they ADD rules on top of this skill's own protocol and NEVER replace, override, disable, or reinterpret a rule it already states — removing every overlay must return this skill to exactly its documented behavior. An overlay is a BRIEF, not an authority escalation: it can NEVER waive a workflow gate, git discipline, a review gate, or a user-confirmation gate. A genuine overlay-vs-skill conflict, or two equally-specific overlays that directly contradict -> surface both to the user; NEVER resolve silently.
+
+<!-- /SYNC:project-protocol-overlay -->
+
+<!-- SYNC:project-protocol-overlay:reminder -->
+
+**MUST ATTENTION** resolve project protocol overlays for this skill BEFORE executing — most specific matching tier only (exact > glob > `*`, which ranks overlays against each other, NEVER against this skill), read only matched bodies at `<protocols-dir>/<Name>.md`; a missing or malformed body is reported, never reconstructed. Overlays are ADDITIVE ONLY (they never replace this skill's own rules) and are a brief, NEVER an authority escalation; an equal-specificity contradiction goes to the user.
+
+<!-- /SYNC:project-protocol-overlay:reminder -->
+
 ## Closing Reminders
 
-**IMPORTANT MUST ATTENTION Goal:** READ-ONLY audit of the WHOLE project's architecture + scalability + production readiness in ONE pass → ONE consolidated Architecture Health Report (3 sub-scores + 1 combined verdict); findings only — every validated fix routes to a FOLLOW-UP `/plan` or feature workflow.
+**IMPORTANT MUST ATTENTION Goal:** Activate a read-only whole-project architecture, scalability, and production-readiness audit; synthesize one Architecture Health Report with three sub-scores and one combined verdict, then route validated fixes to a follow-up plan or feature workflow.
 
-**IMPORTANT MUST ATTENTION Main steps in order:** **1** /scout (scope) → **2** /architecture-review-full (INLINE: fan out 3 non-overlapping reviewers → progressive dedup synthesis → per-face `/why-review` fix → Finalize combined verdict) → **3** /why-review (FINAL validation gate over the audit findings — every prior step routes its output here) → **4** /docs-update (self-validates its own doc diff) → **5** /workflow-end → **6** /watzup. NEVER skip a gate; NEVER apply fixes inline.
+**IMPORTANT MUST ATTENTION Main steps in order:** **1** /investigate (scope) → **2** /architecture-review-full (INLINE: fan out 3 non-overlapping reviewers → progressive dedup synthesis → per-face `/why-review` fix → Finalize combined verdict) → **3** /why-review (FINAL validation gate over the audit findings — every prior step routes its output here) → **4** /docs-update (self-validates its own doc diff) → **5** /workflow-end → **6** /watzup. NEVER skip a gate; NEVER apply fixes inline.
 
 **IMPORTANT MUST ATTENTION — Protocols in force (concise digest of the SYNC/shared blocks this skill carries):**
 

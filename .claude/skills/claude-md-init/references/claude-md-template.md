@@ -75,7 +75,7 @@ Before writing code, you MUST grep/glob for 3+ similar examples and follow the l
 3. Provide `file:line` evidence in the plan.
 
 **Why:** projects have local conventions that differ from framework defaults.
-**Enforced by:** Feature/Bugfix/Refactor workflows (scout → investigate steps).
+**Enforced by:** Feature/Bugfix/Refactor workflows (investigate steps).
 
 ## Project Reference Loading
 

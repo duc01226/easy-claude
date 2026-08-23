@@ -1515,7 +1515,7 @@ async function testNotification() {
     logSubsection('Non-Whitelisted Events (skipped cleanly)');
 
     {
-        const result = await runHook(ROUTER, { hook_event_name: 'SubagentStop', agent_type: 'scout', cwd: 'D:/Projects/MyProject' }, testEnv);
+        const result = await runHook(ROUTER, { hook_event_name: 'SubagentStop', agent_type: 'researcher', cwd: 'D:/Projects/MyProject' }, testEnv);
         logResult('SubagentStop skipped (exit 0)', result.code === 0);
         logResult('SubagentStop not in whitelist', result.stderr.includes('not in whitelist'));
     }

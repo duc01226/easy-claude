@@ -1,6 +1,6 @@
 # Agents Reference
 
-> 29 specialized subagents for autonomous task execution
+> 27 specialized subagents for autonomous task execution
 
 ## Overview
 
@@ -9,7 +9,7 @@ Agents are specialized subprocesses spawned via the `Task` tool to handle comple
 ```
 Main Claude Session
        │
-       ├── Task(subagent_type="scout") ──────► Scout Agent (codebase exploration)
+       ├── /investigate ─────────────────────► Deep codebase investigation
        │
        ├── Task(subagent_type="planner") ────► Planner Agent (implementation plans)
        │
@@ -26,8 +26,6 @@ Main Claude Session
 
 | Agent              | Purpose                                               | Tools                                  |
 | ------------------ | ----------------------------------------------------- | -------------------------------------- |
-| `scout`            | Locate relevant files across codebase                 | All tools (no frontmatter restriction) |
-| `scout-external`   | External agentic tools (Gemini, OpenCode)             | All tools (no frontmatter restriction) |
 | `Explore`          | Fast codebase exploration                             | Built-in read-only toolset             |
 | `researcher`       | Comprehensive technical research                      | All tools (no frontmatter restriction) |
 | `knowledge-worker` | Web research, knowledge synthesis, structured reports | All tools (no frontmatter restriction) |
@@ -96,7 +94,7 @@ Main Claude Session
 
 ```typescript
 Task({
-    subagent_type: 'scout',
+    subagent_type: 'researcher',
     prompt: 'Find all entity event handlers in the Growth service',
     description: 'Locate Growth event handlers'
 });
@@ -109,7 +107,7 @@ Launch multiple agents in a single message for concurrent execution:
 ```typescript
 // Single message with multiple Task calls
 Task({
-    subagent_type: 'scout',
+    subagent_type: 'researcher',
     prompt: 'Find authentication-related files',
     description: 'Find auth files'
 });
@@ -152,7 +150,7 @@ Task({
 
 | Scenario                      | Agent                  | Why                                               |
 | ----------------------------- | ---------------------- | ------------------------------------------------- |
-| Find files by pattern         | `scout`                | Fast file discovery with pattern matching         |
+| Investigate codebase behavior | `/investigate`         | Deep tracing with evidence and graph context     |
 | Understand codebase structure | `Explore`              | Comprehensive exploration with context            |
 | Research new technology       | `researcher`           | Web search + documentation synthesis              |
 | Plan feature implementation   | `planner`              | Creates structured implementation plans           |
@@ -222,9 +220,6 @@ Configure agent-specific instructions in `.claude/.ck.json`:
 {
     "subagent": {
         "agents": {
-            "scout": {
-                "contextPrefix": "Focus on YourProject service boundaries when exploring"
-            },
             "debugger": {
                 "contextPrefix": "Check project framework patterns first"
             }
@@ -253,7 +248,7 @@ Agent results are returned to the main session:
 
 ```typescript
 // Agent completes and returns result
-const result = Task({ subagent_type: "scout", ... });
+const result = Task({ subagent_type: "researcher", ... });
 // result contains agent's findings + agent_id for resumption
 ```
 
@@ -267,7 +262,7 @@ const result = Task({ subagent_type: "scout", ... });
 
 ```typescript
 // ❌ Over-using agents for simple tasks
-Task({ subagent_type: 'scout', prompt: 'Find Button.tsx' });
+Task({ subagent_type: 'researcher', prompt: 'Find Button.tsx' });
 
 // ✅ Direct tool for simple searches
 Glob({ pattern: '**/Button.tsx' });
@@ -290,11 +285,11 @@ Task({
 
 ```typescript
 // ❌ Sequential when parallel is possible
-const files = await Task({ subagent_type: "scout", ... });
+const files = await Task({ subagent_type: "researcher", ... });
 const research = await Task({ subagent_type: "researcher", ... });
 
 // ✅ Parallel execution in single message
-Task({ subagent_type: "scout", ... })
+Task({ subagent_type: "researcher", ... })
 Task({ subagent_type: "researcher", ... })
 ```
 
@@ -335,7 +330,7 @@ Optionally specify model for cost/speed optimization:
 
 ```typescript
 Task({
-    subagent_type: 'scout',
+    subagent_type: 'researcher',
     prompt: 'Quick file search',
     model: 'sonnet' // Default, balanced capability
 });
@@ -373,13 +368,13 @@ Every agent carries the **same role-specific quality protocol** as its twin skil
 
 **Tier model** (enforced by `agent_protocol_matrix.py` `validate()` and the `agent-universal-rules` test suite — `TC-UAR-003..007`):
 
-- **Core-6** universal blocks → all 29 agents.
+- **Core-6** universal blocks → all 27 agents.
 - **Code-10** blocks (`understand-code-first`, `evidence-based-reasoning`, `cross-service-check`, `fix-layer-accountability`) → only the 17 code-touching/fixing agents; NEVER a core-only agent (business-analyst, docs-manager, git-manager, journal-writer, knowledge-worker, product-owner, project-manager, quality-gate-review).
-- **Readonly-Code-8** blocks (`understand-code-first`, `evidence-based-reasoning` only) → the 4 read-only/design agents (`researcher`, `scout`, `scout-external`, `ui-ux-designer`) that locate/read/design code but never fix a layer or cross a service boundary; the two mutation-oriented blocks (`cross-service-check`, `fix-layer-accountability`) are deliberately excluded to save tokens.
-- **Code-standards** (`agent-code-standards`) → the 17 agents that author/review code (a separate axis — `researcher`/`scout`/`scout-external`/`ui-ux-designer` read code but don't author it, so they're excluded).
-- **Additive quality blocks** → per the matrix manifest; 26 agents carry a quality-block row, 3 (git-manager, journal-writer, project-manager) intentionally carry only Core-6.
+- **Readonly-Code** blocks (`understand-code-first`, `evidence-based-reasoning` only) → the 2 read-only/design agents (`researcher`, `ui-ux-designer`) that locate/read/design code but never fix a layer or cross a service boundary; the two mutation-oriented blocks (`cross-service-check`, `fix-layer-accountability`) are deliberately excluded to save tokens.
+- **Code-standards** (`agent-code-standards`) → the 17 agents that author/review code (a separate axis — `researcher`/`ui-ux-designer` read code but don't author it, so they're excluded).
+- **Additive quality blocks** → per the matrix manifest; 26 agents carry a quality-block row, 3 (git-manager, journal-writer, project-manager) intentionally carry no quality-block ROW. Of those, `git-manager` additionally carries `SYNC:estimation-framework` — hand-added outside the manifest so the commit estimate it stamps derives from the same rules the `commit` skill applies; `journal-writer` and `project-manager` remain Core-6 only.
 
-Partition: 17 Code-10 + 4 Readonly-Code-8 + 8 Core-6 = 29 agents (pairwise disjoint).
+Partition: 17 Code-10 + 2 Readonly-Code + 8 Core-6 = 27 agents (pairwise disjoint).
 
 > See [agent-patterns.md](./agent-patterns.md) → _Adding or changing an agent's quality protocol_ for the contributor loop and the `framework-maintainer` orchestration whitelist. Source-side edits land first; mirrors (`.agents/`, `.codex/`, `AGENTS.md`) regenerate via `npm run sync:all` + `npm run verify:all` as a tracked follow-up.
 

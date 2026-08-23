@@ -20,17 +20,17 @@ context-budget: medium
 
 **Summary:**
 
-- This is BOTH spec-aware and code-aware: it reads `docs/specs/**` (the canonical Feature Specs) AND delegates to `/scout` + code-graph for the code logic the idea touches. Spec-only or code-only discovery misses half the landscape.
+- This is BOTH spec-aware and code-aware: it reads `docs/specs/**` (the canonical Feature Specs) AND delegates to `/investigate` + code-graph for the code logic the idea touches. Spec-only or code-only discovery misses half the landscape.
 - It runs BEFORE `spec [mode=draft]` and feeds it. Its job is to decide WHETHER a new standalone spec is even the right move — the alternative is extending an existing spec, which only a spec-corpus scan can reveal.
 - It is INLINE on the main agent (NOT a sub-agent) because step 5 is a BLOCKING `AskUserQuestion` scope-decision gate that only works inline. It MAY spawn sub-agents for parallel spec reads, but it orchestrates and gates inline.
 - Greenfield short-circuit: when there are no specs AND no code, auto-detect it, record the reason, skip the heavy discovery, and hand off a minimal landscape — never grind through empty discovery.
-- **Main steps (0→6) — do ALL in order:** (0) frame scope = keywords/entities/bucket → (1) spec-corpus discovery = Glob all candidate specs, read §1/§4/§5/§8, classify each EXTENDS/OVERLAPS/DEPENDS-ON/AFFECTED/UNRELATED with `file:line` → (2) code-logic discovery = `/scout` + MANDATORY graph expansion, bridge code→spec via §8 `[Source:]` → (3) gap & invariant analysis = missing features, missing TCs/user stories, system unknowns, [HARD]/§5 invariant landscape → (4) report incrementally to `plans/.../spec-discovery-{slug}.md` → (5) BLOCKING `AskUserQuestion` scope gate = recommend NEW / EXTEND X / SPLIT, confirm cross-refs → (6) handoff to `domain-analysis` + `spec [mode=draft|update]`.
+- **Main steps (0→6) — do ALL in order:** (0) frame scope = keywords/entities/bucket → (1) spec-corpus discovery = Glob all candidate specs, read §1/§4/§5/§8, classify each EXTENDS/OVERLAPS/DEPENDS-ON/AFFECTED/UNRELATED with `file:line` → (2) code-logic discovery = `/investigate` + MANDATORY graph expansion, bridge code→spec via §8 `[Source:]` → (3) gap & invariant analysis = missing features, missing TCs/user stories, system unknowns, [HARD]/§5 invariant landscape → (4) report incrementally to `plans/.../spec-discovery-{slug}.md` → (5) BLOCKING `AskUserQuestion` scope gate = recommend NEW / EXTEND X / SPLIT, confirm cross-refs → (6) handoff to `domain-analysis` + `spec [mode=draft|update]`.
 
 **Workflow:**
 
 0. **Scope** — read the framed capability (brainstorm/idea output); extract keywords, candidate entities/actors, target spec bucket.
 1. **Spec-corpus discovery** — `Glob docs/specs/**/README.*.md`; read §1/§4/§5/§8 of each candidate; classify each as EXTENDS / OVERLAPS / DEPENDS-ON / AFFECTED / UNRELATED.
-2. **Code-logic discovery** — `/scout {keywords}` + MANDATORY graph expansion on key files when `.code-graph/graph.db` exists; bridge code→spec via §8 `[Source:]` anchors.
+2. **Code-logic discovery** — `/investigate {keywords}` + MANDATORY graph expansion on key files when `.code-graph/graph.db` exists; bridge code→spec via §8 `[Source:]` anchors.
 3. **Gap & invariant analysis** — missing features, missing test cases / user stories, system unknowns (<80% confidence), and the existing [HARD] rules / §5 invariants the idea must respect.
 4. **Report** — write `plans/{plan-dir}/research/spec-discovery-{slug}.md` incrementally (Related Specs · Related Code · Affected Specs · Gaps · Invariant Landscape · Open Questions).
 5. **Scope-decision gate (BLOCKING `AskUserQuestion`)** — recommend NEW / EXTEND existing X / SPLIT into N, and confirm which existing specs to cross-reference.
@@ -90,11 +90,11 @@ Step 1 (specs), Step 2 (code), and the invariant/test-case sweep read DIFFERENT 
 
 | Wave-1 member                      | Scope (read-only)                                                                       | Route to                                                              | Feeds                                  |
 | ---------------------------------- | ----------------------------------------------------------------------------------------- | --------------------------------------------------------------------- | -------------------------------------- |
-| **Spec-corpus sweep**              | the `docs/specs/**` candidates the keywords touch — §1/§4/§5/§8 ONLY, never whole specs | one `scout` per bucket when the corpus is large; inline for a small one | Related Specs · Affected Specs         |
-| **Related-code discovery**         | the code the idea touches (the Step 2 delegation)                                        | `/scout {keywords}`                                                   | Related Code                           |
-| **Invariant / test-case landscape** | [HARD] BRs (§4), §5 entity invariants, existing §8 TC coverage of the touched specs      | one `scout`; fold into the corpus sweep when the corpus is small      | Invariant Landscape · Missing TCs      |
+| **Spec-corpus sweep**              | the `docs/specs/**` candidates the keywords touch — §1/§4/§5/§8 ONLY, never whole specs | one `investigate` per bucket when the corpus is large; inline for a small one | Related Specs · Affected Specs         |
+| **Related-code discovery**         | the code the idea touches (the Step 2 delegation)                                        | `/investigate {keywords}`                                                   | Related Code                           |
+| **Invariant / test-case landscape** | [HARD] BRs (§4), §5 entity invariants, existing §8 TC coverage of the touched specs      | one `investigate`; fold into the corpus sweep when the corpus is small      | Invariant Landscape · Missing TCs      |
 
-Rules binding this wave: each member owns exactly ONE report section — there is never a second writer of `spec-discovery-{slug}.md`, so members return summaries and YOU append their sections. Barrier before Step 3.
+Rules binding this wave: each member owns a **unique artifact path** under `plans/reports/spec-discovery-{slug}/`; no worker writes `spec-discovery-{slug}.md`. After the barrier, YOU are the sole reducer: read and validate every artifact, then synthesize the final report in section order. A missing artifact is rerun or reported, never silently replaced by a bounded summary.
 
 **SEQ — keep these OUT of the wave (each names its blocker):** the Step 2 graph expansion (YOU run it, and only after the code member returns its key files) · Step 3 gap & invariant reconciliation (consumes all three members) · the Step 5 scope-decision gate (a BLOCKING `AskUserQuestion` cannot block from inside a sub-agent) · Step 6 handoff.
 
@@ -132,14 +132,14 @@ Use the bucket `INDEX.md` (produced by `/spec-index`) as a fast navigation map w
 
 Bridge the idea to the implementation so the spec reflects what actually exists (or what the idea will touch).
 
-1. **Delegate to `/scout {keywords}`** — fast parallel file discovery of the code the idea relates to. Use scout's numbered, prioritized list as targets; do NOT re-grep what scout already mapped.
-2. **MANDATORY graph expansion** — when `.code-graph/graph.db` exists, run graph commands YOURSELF (sub-agents cannot) on 2–3 key files scout surfaced:
+1. **Delegate to `/investigate {keywords}`** — fast parallel file discovery of the code the idea relates to. Use investigate's numbered, prioritized list as targets; do NOT re-grep what investigate already mapped.
+2. **MANDATORY graph expansion** — when `.code-graph/graph.db` exists, run graph commands YOURSELF (sub-agents cannot) on 2–3 key files investigate surfaced:
     ```bash
     python .claude/scripts/code_graph trace <key-entity-or-command> --direction both --json
     python .claude/scripts/code_graph connections <key-file> --json
     ```
     Graph reveals callers, consumers, event chains, and tests grep cannot find — exactly the downstream the new spec must account for.
-3. **Delegate ambiguous areas to `/investigate`** — when scout + graph surface a flow whose behavior is unclear (the idea hinges on how it works), hand that narrow slice to `investigate` rather than guessing.
+3. **Delegate ambiguous areas to `/investigate`** — when investigate + graph surface a flow whose behavior is unclear (the idea hinges on how it works), hand that narrow slice to `investigate` rather than guessing.
 4. **Bridge code → spec** — for each key code file, find its governing spec via the §8 `[Source: namespace/service/id]` anchors / Related Files. A code area with NO governing spec is a gap (record in Step 3); a code area WITH a governing spec strengthens the Step 1 relationship classification.
 
 ### Step 3: Gap & Invariant Analysis
@@ -166,7 +166,7 @@ Write `plans/{plan-dir}/research/spec-discovery-{slug}.md` (resolve `{plan-dir}`
 | ---- | ------------ | ---------------- | -------------- |
 
 ## Related Code
-{scout's prioritized files + graph evidence — callers/consumers/tests}
+{investigate's prioritized files + graph evidence — callers/consumers/tests}
 
 ## Affected Specs (forward-impact)
 {specs whose documented behavior the idea would change}
@@ -239,7 +239,7 @@ Feed the discovery forward:
 
 ## Related Skills
 
-`scout` (code file discovery — Step 2) | `investigate` (deep-dive ambiguous flows — Step 2) | `spec [mode=draft]` (authors §1–7 from the idea — Step 6 handoff) | `spec [mode=update]` (the EXTEND reroute — Step 5) | `domain-analysis` (entity/invariant modeling — Step 6) | `spec-index` (derived bucket INDEX.md used in Step 1)
+`investigate` (code discovery and deep-dive ambiguous flows — Step 2) | `spec [mode=draft]` (authors §1–7 from the idea — Step 6 handoff) | `spec [mode=update]` (the EXTEND reroute — Step 5) | `domain-analysis` (entity/invariant modeling — Step 6) | `spec-index` (derived bucket INDEX.md used in Step 1)
 
 ---
 
@@ -263,7 +263,7 @@ Feed the discovery forward:
 >
 > | Task                | Minimum Graph Action                         |
 > | ------------------- | -------------------------------------------- |
-> | Investigation/Scout | `trace --direction both` on 2-3 entry files  |
+> | Investigation | `trace --direction both` on 2-3 entry files  |
 > | Fix/Debug           | `callers_of` on buggy function + `tests_for` |
 > | Feature/Enhancement | `connections` on files to be modified        |
 > | Code Review         | `tests_for` on changed functions             |
@@ -325,7 +325,7 @@ Feed the discovery forward:
 > **Nested Task Expansion Contract** — For workflow-step invocation, the `[Workflow] ...` row is only a parent container; the child skill still creates visible phase tasks.
 >
 > 1. Call `TaskList` first. If a matching active parent workflow row exists, set `nested=true` and record `parentTaskId`; otherwise run standalone.
-> 2. Create one task per declared phase before phase work. When nested, prefix subjects `[N.M] $skill-name — phase`.
+> 2. Create one task per declared phase before phase work. When nested, prefix subjects `[N.M] /skill-name — phase`.
 > 3. When nested, link the parent with `TaskUpdate(parentTaskId, addBlockedBy: [childIds])`.
 > 4. Orchestrators must pre-expand a child skill's phase list and link the workflow row before invoking that child skill or sub-agent.
 > 5. Mark exactly one child `in_progress` before work and `completed` immediately after evidence is written.
@@ -484,7 +484,7 @@ Feed the discovery forward:
 <!-- SYNC:nested-task-creation:reminder -->
 
 - **MANDATORY** Parent workflow rows do not replace child phase tracking; expand phases and link the parent when nested.
-- **MANDATORY** Orchestrators pre-expand child skill phases before invocation; use `[N.M] $skill-name — phase` prefixes and one-`in_progress` discipline.
+- **MANDATORY** Orchestrators pre-expand child skill phases before invocation; use `[N.M] /skill-name — phase` prefixes and one-`in_progress` discipline.
 
 <!-- /SYNC:nested-task-creation:reminder -->
 
@@ -511,7 +511,7 @@ Feed the discovery forward:
 > 6. **Barrier per wave.** Advance ONLY after EVERY member returns (a skipped conditional counts as returned). Merge, mark each task completed/skipped, THEN dispatch the next wave. Mutating steps wait for the barrier.
 > 7. **One level deep.** A dispatched sub-agent executes its own brief; further fan-out stays the orchestrator's job unless that agent's `.claude/agents/*.md` definition authorizes it.
 >
-> **NEVER parallelize:** tasks sharing a write target · a task consuming a pending task's output · trivial single-file work (dispatch overhead > gain) · an order a workflow explicitly fixes · gates awaiting user approval.
+> **NEVER parallelize:** tasks sharing a write target · a task consuming a pending task's output · trivial single-file work (dispatch overhead > gain) · an order a skill or workflow explicitly fixes · gates awaiting user approval.
 >
 > **Blocked until:** MUST ATTENTION every task tagged PAR/SEQ with a named reason per SEQ · waves declared + write-set disjointness checked · each wave spawned in ONE message · barrier honored before the next wave.
 
@@ -524,9 +524,25 @@ Feed the discovery forward:
 
 <!-- /SYNC:parallel-subagent-dispatch:reminder -->
 
+<!-- SYNC:project-protocol-overlay -->
+
+> **Project Protocol Overlay** — Before executing this skill, resolve any PROJECT overlay rules layered onto it: match this skill's name against the `Target` column of the project's skill-protocol index (`docs/project-reference/skill-protocols-reference.md` by default; a `referenceDocs` entry in `docs/project-config.json` overrides the path), taking the most specific matching tier ONLY — exact name > glob > `*`. **That precedence orders overlays against EACH OTHER, never against this skill.** Read ONLY the matched bodies, resolved as `<protocols-dir>/<Name>.md`; a row's Body link is display text, never a read path. A matched body that is missing or malformed is REPORTED and skipped — never reconstructed from the index Description. No index, or no match -> proceed with no overlay, silently. Full contract: `.claude/skills/project-skill-protocol/references/registry.md`.
+>
+> Overlays are **ADDITIVE ONLY**: they ADD rules on top of this skill's own protocol and NEVER replace, override, disable, or reinterpret a rule it already states — removing every overlay must return this skill to exactly its documented behavior. An overlay is a BRIEF, not an authority escalation: it can NEVER waive a workflow gate, git discipline, a review gate, or a user-confirmation gate. A genuine overlay-vs-skill conflict, or two equally-specific overlays that directly contradict -> surface both to the user; NEVER resolve silently.
+
+<!-- /SYNC:project-protocol-overlay -->
+
+<!-- SYNC:project-protocol-overlay:reminder -->
+
+**MUST ATTENTION** resolve project protocol overlays for this skill BEFORE executing — most specific matching tier only (exact > glob > `*`, which ranks overlays against each other, NEVER against this skill), read only matched bodies at `<protocols-dir>/<Name>.md`; a missing or malformed body is reported, never reconstructed. Overlays are ADDITIVE ONLY (they never replace this skill's own rules) and are a brief, NEVER an authority escalation; an equal-specificity contradiction goes to the user.
+
+<!-- /SYNC:project-protocol-overlay:reminder -->
+
 ## Closing Reminders
 
-**IMPORTANT MUST ATTENTION Goal:** Before a new Feature Spec is authored, deliver the pre-spec landscape — related/overlapping/affected specs, related code, missing features + missing TCs/user stories, system unknowns, and the invariant landscape the new spec must respect — so the author never ships a duplicate, contradicts a [HARD] rule, or specs into a blind spot.
+**IMPORTANT MUST ATTENTION Goal:** Before a single line of a new Feature Spec is authored, deliver the pre-spec landscape — every existing Feature Spec the idea relates to / overlaps / depends on / would affect, the related code logic, the missing features and missing test cases / user stories, the system unknowns, and the invariant landscape the new spec must respect — so the author never ships a duplicate, contradicts a [HARD] rule, or specs into a blind spot.
+
+**IMPORTANT MUST ATTENTION Workflow:** Phase 0 classify the corpus and short-circuit when empty → declare the parallel discovery wave → Step 1 scan related specs → Step 2 discover related code and graph paths → Step 3 reconcile gaps and invariants → Step 4 persist the report → Step 5 obtain the blocking scope decision → Step 6 hand off to `domain-analysis` and `spec [mode=draft|update]`.
 
 **IMPORTANT MUST ATTENTION — Protocols in force (concise digest of the SYNC/shared blocks this skill carries; each is a signpost to its canonical body above):**
 
@@ -545,11 +561,11 @@ Feed the discovery forward:
 
 **MUST ATTENTION** every protocol above is in force for this spec-discovery — honor its canonical body, not just the digest line.
 
-**IMPORTANT MUST ATTENTION** be BOTH spec-aware AND code-aware — read `docs/specs/**` (§1/§4/§5/§8 of related specs) AND delegate to `/scout` + code-graph; spec-only or code-only discovery misses half the landscape — why: overlap lives in the spec corpus, downstream impact lives in the code.
+**IMPORTANT MUST ATTENTION** be BOTH spec-aware AND code-aware — read `docs/specs/**` (§1/§4/§5/§8 of related specs) AND delegate to `/investigate` + code-graph; spec-only or code-only discovery misses half the landscape — why: overlap lives in the spec corpus, downstream impact lives in the code.
 **IMPORTANT MUST ATTENTION** run INLINE — the step 5 scope-decision gate is a BLOCKING `AskUserQuestion` that only works inline; spawn sub-agents only for parallel spec reads, NEVER delegate the whole skill — why: a delegated user gate cannot block, so the author would proceed before the user decides scope.
 **IMPORTANT MUST ATTENTION** NEVER auto-pick NEW — classify every candidate spec EXTENDS/OVERLAPS/DEPENDS-ON/AFFECTED/UNRELATED with `file:line` evidence, then recommend and let the user decide via the BLOCKING gate — why: OVERLAPS detection is the entire reason this skill runs before the author; silently picking NEW ships a duplicate spec.
 **MUST ATTENTION** stay in the LANDSCAPE lane — surface related/overlapping/affected specs + the invariant landscape fast; do NOT author the spec (that is `spec [mode=draft]`) and do NOT deep-dive every flow (that is `investigate`) — why: scope creep into authoring/analysis duplicates the next steps and burns the budget.
-**MUST ATTENTION** graph expand is MANDATORY when `.code-graph/graph.db` exists — run at least ONE graph command on 2–3 key files scout surfaced; when absent, grep + read still bridge code→spec via `[Source:]` anchors — why: structural callers/consumers/event chains the new spec must account for are invisible to grep.
+**MUST ATTENTION** graph expand is MANDATORY when `.code-graph/graph.db` exists — run at least ONE graph command on 2–3 key files investigate surfaced; when absent, grep + read still bridge code→spec via `[Source:]` anchors — why: structural callers/consumers/event chains the new spec must account for are invisible to grep.
 **MUST ATTENTION** capture the invariant landscape explicitly — list every existing [HARD] rule (§4) and §5 invariant the idea must respect, as "for ALL {inputs}, {invariant} — owned by {spec/BR-id}" — why: a new spec that contradicts a DEPENDS-ON spec's [HARD] rule ships a defect.
 **MUST ATTENTION** apply the greenfield short-circuit — when no specs AND no code, record the reason with `Glob`/grep evidence, skip heavy discovery, hand off a minimal landscape; run the scope gate only if there is something to decide — why: grinding through empty discovery wastes the budget and produces nothing.
 **MUST ATTENTION** persist the report incrementally (per-section) to the research file — never hold the whole landscape in memory — why: context cutoff mid-discovery loses every finding; disk writes survive compaction.

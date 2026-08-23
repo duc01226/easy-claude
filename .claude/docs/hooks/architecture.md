@@ -9,7 +9,7 @@ Hooks are small CommonJS entry points that run at Claude Code lifecycle events. 
 - Hook processes receive one JSON payload on stdin. Prefer `lib/stdin-parser.cjs` or an existing hook helper over ad hoc parsing.
 - Text written to stdout is injected into model context. Keep it concise, action-oriented, and deduped when possible.
 - Diagnostics and block reasons go to stderr.
-- Exit `0` to allow the operation. Exit `2` only for intentional blocking gates such as path, privacy, scout, init, or commit guards.
+- Exit `0` to allow the operation. Exit `2` only for intentional blocking gates such as path, privacy, broad-search, init, or commit guards.
 
 ## Lifecycle
 

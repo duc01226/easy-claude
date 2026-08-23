@@ -14,7 +14,7 @@ description: '[Testing] Use when you need to verify integration tests pass after
 
 ## Quick Summary
 
-**Goal:** Prove the reviewed integration tests (written by `/integration-test`, reviewed by `/integration-test-review`) pass repeatably — 2 consecutive green runs without DB reset, using project-configured run commands, against an environment whose doc-declared preconditions were harvested and verified BEFORE the first test command — with every pass/fail claim backed by actual test-runner output, never assumption.
+**Goal:** Prove reviewed integration tests pass repeatably: run each relevant suite twice without DB reset using project-configured commands, after harvesting and verifying doc-declared environment preconditions; back every result with actual runner output, never assumptions.
 
 **Summary:** read-this-if-nothing-else digest of the 5 main steps —
 
@@ -360,7 +360,7 @@ A test that is red in one run of the 2-run gate and green in another has NOT tol
 
 > **MANDATORY IMPORTANT MUST ATTENTION — NO EXCEPTIONS:** If you are NOT already in a workflow, you MUST ATTENTION use `AskUserQuestion` to ask the user. Do NOT judge task complexity or decide this is "simple enough to skip" — the user decides whether to use a workflow, not you:
 >
-> 1. **Activate `workflow-write-integration-test` workflow** (Recommended) — scout → investigate → spec-tests → why-review → artifact-review --type=spec-tests → integration-test → integration-test-review → integration-test-verify → spec-tests [direction=sync] → docs-update → workflow-end → watzup
+> 1. **Activate `workflow-write-integration-test` workflow** (Recommended) — investigate → spec-tests → why-review → artifact-review --type=spec-tests → integration-test → integration-test-review → integration-test-verify → spec-tests [direction=sync] → docs-update → workflow-end → watzup
 > 2. **Execute `/integration-test-verify` directly** — run this skill standalone
 
 ---
@@ -391,11 +391,14 @@ A test that is red in one run of the 2-run gate and green in another has NOT tol
 
 > **Test-Failure Fault Adjudication** — When a test fails (or you are debugging or fixing a failure), the job is to determine *who is at fault — the source code or the test code*. Getting that verdict right matters more than turning the suite green. Binds every debug / fix / test skill identically.
 >
-> 1. **Root-cause first — never guess, never patch the symptom.** `/debug-investigate` and trace the failure end-to-start to its actual cause before touching either side. A green-again suite is NOT the goal; a correct verdict on what was actually wrong is.
+> 1. **Provisional verdict before touching either side.** Classify the observed evidence as SOURCE-WRONG, TEST-WRONG, TEST-NOT-OPTIMAL, ENVIRONMENT-BLOCKED, or AMBIGUOUS; then `/debug-investigate` and trace end-to-start before editing. A green-again suite is NOT the goal.
 > 2. **Triangulate against the spec AND the source.** If a governing Feature Spec covers the behavior (e.g. `docs/specs/**` — §3 ACs / §4 BRs / §5 invariants / §8 TCs), it is the tiebreaker for *intended* behavior — compare BOTH the production source and the failing test against it. With no spec, the documented intent / acceptance criteria / caller contract is the reference. Decide from this evidence whether the SOURCE is wrong or the TEST is wrong.
 > 3. **Classify who is at fault, then fix the wrong side at its root:**
 >     - **SOURCE-WRONG** — production code violates the spec's intended behavior or a clear invariant → fix the source at the owning layer; keep or strengthen the test that caught it.
 >     - **TEST-WRONG** — the test encodes a stale or incorrect assertion, setup, or expectation that contradicts intended behavior → fix the test at its root. NEVER weaken an assertion, add a skip, or relax a timeout to force green.
+>     - **TEST-NOT-OPTIMAL** — intended behavior is valid but the test seam, timing, or assertion signal is fragile → improve the test without weakening the invariant.
+>     - **ENVIRONMENT-BLOCKED** — infrastructure or external state prevents a source/test verdict → preserve diagnostics and stop mutation until the environment is healthy.
+>     - **AMBIGUOUS** — evidence or intended behavior does not safely select an owner → ask the user or canonical owner before editing.
 >     - NEVER change a test to match broken source, and NEVER change source to satisfy a broken test. (Migration code excluded — schema/data migrations are one-time execution paths, not core application logic.)
 > 4. **Ask the user when intended behavior is unclear.** If no spec covers the behavior, the spec is silent, or the spec is ambiguous about which side is correct, STOP and `AskUserQuestion` (or consult the canonical spec owner) before editing either side — never silently pick source or test just to make the suite pass.
 >
@@ -484,7 +487,7 @@ A test that is red in one run of the 2-run gate and green in another has NOT tol
 > **Nested Task Expansion Contract** — For workflow-step invocation, the `[Workflow] ...` row is only a parent container; the child skill still creates visible phase tasks.
 >
 > 1. Call `TaskList` first. If a matching active parent workflow row exists, set `nested=true` and record `parentTaskId`; otherwise run standalone.
-> 2. Create one task per declared phase before phase work. When nested, prefix subjects `[N.M] $skill-name — phase`.
+> 2. Create one task per declared phase before phase work. When nested, prefix subjects `[N.M] /skill-name — phase`.
 > 3. When nested, link the parent with `TaskUpdate(parentTaskId, addBlockedBy: [childIds])`.
 > 4. Orchestrators must pre-expand a child skill's phase list and link the workflow row before invoking that child skill or sub-agent.
 > 5. Mark exactly one child `in_progress` before work and `completed` immediately after evidence is written.
@@ -558,7 +561,7 @@ A test that is red in one run of the 2-run gate and green in another has NOT tol
 <!-- SYNC:nested-task-creation:reminder -->
 
 - **MANDATORY** Parent workflow rows do not replace child phase tracking; expand phases and link the parent when nested.
-- **MANDATORY** Orchestrators pre-expand child skill phases before invocation; use `[N.M] $skill-name — phase` prefixes and one-`in_progress` discipline.
+- **MANDATORY** Orchestrators pre-expand child skill phases before invocation; use `[N.M] /skill-name — phase` prefixes and one-`in_progress` discipline.
 
 <!-- /SYNC:nested-task-creation:reminder -->
 
@@ -580,9 +583,25 @@ A test that is red in one run of the 2-run gate and green in another has NOT tol
 
 <!-- PROMPT-ENHANCE:STEP-TASK-CLOSING:END -->
 
+<!-- SYNC:project-protocol-overlay -->
+
+> **Project Protocol Overlay** — Before executing this skill, resolve any PROJECT overlay rules layered onto it: match this skill's name against the `Target` column of the project's skill-protocol index (`docs/project-reference/skill-protocols-reference.md` by default; a `referenceDocs` entry in `docs/project-config.json` overrides the path), taking the most specific matching tier ONLY — exact name > glob > `*`. **That precedence orders overlays against EACH OTHER, never against this skill.** Read ONLY the matched bodies, resolved as `<protocols-dir>/<Name>.md`; a row's Body link is display text, never a read path. A matched body that is missing or malformed is REPORTED and skipped — never reconstructed from the index Description. No index, or no match -> proceed with no overlay, silently. Full contract: `.claude/skills/project-skill-protocol/references/registry.md`.
+>
+> Overlays are **ADDITIVE ONLY**: they ADD rules on top of this skill's own protocol and NEVER replace, override, disable, or reinterpret a rule it already states — removing every overlay must return this skill to exactly its documented behavior. An overlay is a BRIEF, not an authority escalation: it can NEVER waive a workflow gate, git discipline, a review gate, or a user-confirmation gate. A genuine overlay-vs-skill conflict, or two equally-specific overlays that directly contradict -> surface both to the user; NEVER resolve silently.
+
+<!-- /SYNC:project-protocol-overlay -->
+
+<!-- SYNC:project-protocol-overlay:reminder -->
+
+**MUST ATTENTION** resolve project protocol overlays for this skill BEFORE executing — most specific matching tier only (exact > glob > `*`, which ranks overlays against each other, NEVER against this skill), read only matched bodies at `<protocols-dir>/<Name>.md`; a missing or malformed body is reported, never reconstructed. Overlays are ADDITIVE ONLY (they never replace this skill's own rules) and are a brief, NEVER an authority escalation; an equal-specificity contradiction goes to the user.
+
+<!-- /SYNC:project-protocol-overlay:reminder -->
+
 ## Closing Reminders
 
-**IMPORTANT MUST ATTENTION Goal:** Prove the reviewed integration tests pass repeatably — 2 consecutive green runs without DB reset, using project-configured run commands — with every pass/fail claim backed by actual test-runner output, never assumption.
+**IMPORTANT MUST ATTENTION Goal:** Prove reviewed integration tests pass repeatably: run each relevant suite twice without DB reset using project-configured commands, after harvesting and verifying doc-declared environment preconditions; back every result with actual runner output, never assumptions.
+
+**IMPORTANT MUST ATTENTION — Main steps:** read config/reference docs → harvest a cited environment checklist → run the system and precondition gates → determine touched test projects → run two consecutive no-reset suites (parallel only when isolated) → report actual pass/fail/skip counts and names → adjudicate failures at the owning layer and route the convergence loop when needed.
 
 **IMPORTANT MUST ATTENTION — Protocols in force (concise digest of the SYNC/shared blocks this skill carries):**
 

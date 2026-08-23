@@ -16,7 +16,7 @@ context-budget: medium
 
 ## Quick Summary
 
-**Goal:** Close the gap between a spec artifact that is internally well-formed and one that is COMPLETE-AND-CONFIRMED against the broader discovered system — so the artifact (a freshly-authored Feature Spec, an existing canonical spec headed for decomposition, or a refined idea + §8 test-specs) is finalized only after every related/affected behavior is reflected, every needed and pre-existing invariant is captured, every encoded assumption is classified, and every NON-OBVIOUS or CONFLICTING decision has been confirmed by the user through an exhaustive-but-budget-bounded blocking clarification gate.
+**Goal:** Finalize an authored spec, existing canonical spec, or refined idea + §8 test-specs only after reflecting every related behavior/invariant from the discovered system and user-confirming every encoded NON-OBVIOUS or CONFLICTING decision through an exhaustive, budget-bounded blocking clarification gate.
 
 **Summary:**
 
@@ -75,7 +75,7 @@ A Feature Spec can be internally perfect — all 8 sections present, every AC te
 | Add a "completeness + confirm" phase to `artifact-review --type=spec-tests` | No new skill; one place to maintain                             | `artifact-review` runs fresh sub-agents for re-review; a sub-agent cannot run `AskUserQuestion`, so the confirm loop is impossible there | Rejected — the blocking user gate is structurally incompatible with the sub-agent re-review model |
 | Fold the open-questions brainstorm into `why-review`                     | `why-review` already does adversarial rationale work            | `why-review` validates decisions already MADE; it does not surface decisions the author never realized they made, nor confirm them with the user | Rejected — different purpose (rationale of made decisions vs surfacing+confirming unmade ones)    |
 | Fully autonomous — AI resolves every ambiguity by best-guess, no user gate | Fastest; no human round-trip                                    | Automation bias: a silently-picked NON-OBVIOUS default ships a spec the user never agreed to; the failure surfaces only in code | Rejected — the cost of a wrong silent default exceeds one confirmation round                      |
-| Run BEFORE authoring instead of after                                    | Catches gaps earlier                                            | Before authoring there is no concrete artifact to audit for hypotheses/conflicts; the assumptions are not yet encoded | Rejected — this gate operates on a CONCRETE artifact; earlier discovery is `scout`/`spec-discovery`'s job |
+| Run BEFORE authoring instead of after                                    | Catches gaps earlier                                            | Before authoring there is no concrete artifact to audit for hypotheses/conflicts; the assumptions are not yet encoded | Rejected — this gate operates on a CONCRETE artifact; earlier discovery is `investigate`/`spec-discovery`'s job |
 | A separate `spec-validate` skill (mirroring `plan-validate`) per flow      | Clean single-purpose per context                                | +1 skill per context = SYNC-carrier + mirror + catalog drift; duplicates this skill's completeness-vs-system engine three times | Rejected — the three contexts share ONE core (audit a concrete artifact vs system + user); a Phase-0 branch over one skill is the lower future-change-cost choice |
 | Keep the single AUTHORED context + minimal gate                            | Smallest skill                                                  | Fails the two PBI flows (spec-to-pbi has NO spec-decision gate; idea-to-pbi has only plan/PBI gates) and the "ask a lot of questions / all important aspects" intent | Rejected — leaves the exact gaps this upgrade exists to close |
 
@@ -111,7 +111,7 @@ State `Context: {AUTHORED-SPEC | EXISTING-SPEC | TEST-SPEC} | Budget: {MIN-MAX} 
 Resolve and confirm these inputs exist BEFORE the completeness pass. A missing input is a finding, not a reason to guess.
 
 1. **The artifact under validation** — resolved per the detected context: `AUTHORED-SPEC` / `EXISTING-SPEC` → the full §1-8 Feature Spec (§1 Overview, §2 Glossary, §3 User Stories & Acceptance Criteria, §4 Business Rules with `[HARD]`/`[SOFT]` markers, §5 Domain Model, §6 Process Flows & Interaction Surface, §7 Permissions & Roles, §8 Test Specifications `TC-{FEATURE}-{NNN}`); `TEST-SPEC` → the refined idea + the §8 TC set (no §1-7 draft yet). Read `docs/project-reference/feature-spec-reference.md` + `spec-system-reference.md` + `spec-principles.md` first.
-2. **The `spec-discovery` landscape report** — `plans/{plan-dir}/research/spec-discovery-{slug}.md` (Related Specs, Related Code, Affected Specs, Gaps, Invariant Landscape, Open Questions), the investigation of related/overlapping/affected specs + code. This is the baseline against which completeness is judged. For `TEST-SPEC` the landscape also comes from `spec-discovery` (present in the `idea-to-pbi` deep-mode sequence). If it is absent (skill run standalone), fall back to `scout` + `investigate` plus the derived `/spec-index` artifacts (index / ERD / reimplementation guide) under `docs/specs/`, and flag the absence as a finding.
+2. **The `spec-discovery` landscape report** — `plans/{plan-dir}/research/spec-discovery-{slug}.md` (Related Specs, Related Code, Affected Specs, Gaps, Invariant Landscape, Open Questions), the investigation of related/overlapping/affected specs + code. This is the baseline against which completeness is judged. For `TEST-SPEC` the landscape also comes from `spec-discovery` (present in the `idea-to-pbi` deep-mode sequence). If it is absent (skill run standalone), fall back to `/investigate` plus the derived `/spec-index` artifacts (index / ERD / reimplementation guide) under `docs/specs/`, and flag the absence as a finding.
 3. **The originating idea / brainstorm** — the requirement that the artifact is meant to satisfy; its implied operations and edge cases drive the missing-coverage check.
 4. **The domain-analysis output** — bounded contexts, aggregates, entities, domain events, and the invariants the artifact must respect.
 
@@ -205,7 +205,7 @@ Run **Phase 0 (Spec-Context Detection)** above first — it sets the context + b
 > **Nested Task Expansion Contract** — For workflow-step invocation, the `[Workflow] ...` row is only a parent container; the child skill still creates visible phase tasks.
 >
 > 1. Call `TaskList` first. If a matching active parent workflow row exists, set `nested=true` and record `parentTaskId`; otherwise run standalone.
-> 2. Create one task per declared phase before phase work. When nested, prefix subjects `[N.M] $skill-name — phase`.
+> 2. Create one task per declared phase before phase work. When nested, prefix subjects `[N.M] /skill-name — phase`.
 > 3. When nested, link the parent with `TaskUpdate(parentTaskId, addBlockedBy: [childIds])`.
 > 4. Orchestrators must pre-expand a child skill's phase list and link the workflow row before invoking that child skill or sub-agent.
 > 5. Mark exactly one child `in_progress` before work and `completed` immediately after evidence is written.
@@ -302,7 +302,7 @@ Run **Phase 0 (Spec-Context Detection)** above first — it sets the context + b
 > - SKIP fresh sub-agent when the prior full review found zero issues (no fixes = nothing new to verify)
 > - NEVER skip the full review restart after a fix cycle — every fix invalidates the prior verdict
 > - NEVER reuse a sub-agent across rounds — every fresh round spawns a NEW `Agent` call
-> - Continue until a complete full review pass has zero findings; if the same blocker repeats 3 times with no progress, escalate via `AskUserQuestion`
+> - Continue until a complete full review pass clears that round's exit bar per `SYNC:double-round-trip-review`: **rounds 1-2** → zero findings at any severity; **round 3+** → zero CRITICAL/HIGH/MEDIUM, so a round whose validated findings are ALL LOW ENDS the loop (list those LOWs as deferred instead of spawning another round). If the same blocker repeats 3 times with no progress, escalate via `AskUserQuestion`
 > - Track iteration count and repeated blockers in conversation context (session-scoped, no persistent files)
 
 <!-- /SYNC:fresh-context-review -->
@@ -370,7 +370,12 @@ Priority checks for every code change:
 2. Right Responsibility: Logic in LOWEST layer (Entity > Domain Service > Application Service > Controller). Never business logic in controllers.
 3. SOLID: Single responsibility (one reason to change). Open-closed (extend, don't modify). Liskov (subtypes substitutable). Interface segregation (small interfaces). Dependency inversion (depend on abstractions).
 4. After extraction/move/rename: Grep ENTIRE scope for dangling references. Zero tolerance.
-5. YAGNI gate: NEVER recommend patterns unless 3+ occurrences exist. Don't extract for hypothetical future use.
+5. YAGNI gate: Recommend extraction when 3+ similar patterns exist OR an evidenced consumer boundary/substitution need justifies it; do not create patterns for hypothetical future use.
+6. Purpose-oriented naming: Name public or cross-layer abstractions by the capability, domain purpose, or contract consumers rely on—not the current provider, SDK, framework, database, or transport. `IStorage`/`Storage` → `AzureBlobStorage`; use `IAzureStorage` only when Azure-specific semantics are intentionally part of the contract.
+7. Contract-fit check: Read callers and every implementation before judging a name; narrow an over-broad abstraction (`IObjectStore`, `DocumentStore`) instead of rewarding a generic name that lies about behavior.
+8. Mechanism/generic-name smell: Treat `Manager`, `Helper`, `Utils`, `Data`, `Thing`, `Service`, `Interface`, type decorations, and unexplained abbreviations as review signals—not automatic defects; flag them only when they hide purpose, scope, or responsibility.
+9. Concrete implementation names: Provider, strategy, transport, or test-double names are valid on concrete types when they distinguish real behavior (`AzureBlobStorage`, `InMemoryStorage`, `RetryingStorage`); keep those details out of the caller-facing contract unless the contract promises them.
+10. Language convention: Preserve local interface syntax and naming style; `.NET` `I` prefixes and Google TypeScript's unmarked interfaces are both valid local conventions.
 Anti-patterns to flag: God Object, Copy-Paste inheritance, Circular Dependency, Leaky Abstraction.
 
 ### Logic & Intention Review
@@ -430,7 +435,7 @@ AI skips steps via these evasions. Recognize and reject:
 MANDATORY when .code-graph/graph.db exists.
 HARD-GATE: MUST run at least ONE graph command on key files before concluding any investigation.
 Pattern: Grep finds files → trace --direction both reveals full system flow → Grep verifies details.
-- Investigation/Scout: trace --direction both on 2-3 entry files
+- Investigation: trace --direction both on 2-3 entry files
 - Fix/Debug: callers_of on buggy function + tests_for
 - Feature/Enhancement: connections on files to be modified
 - Code Review: tests_for on changed functions
@@ -555,7 +560,7 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 <!-- SYNC:nested-task-creation:reminder -->
 
 - **MANDATORY** Parent workflow rows do not replace child phase tracking; expand phases and link the parent when nested.
-- **MANDATORY** Orchestrators pre-expand child skill phases before invocation; use `[N.M] $skill-name — phase` prefixes and one-`in_progress` discipline.
+- **MANDATORY** Orchestrators pre-expand child skill phases before invocation; use `[N.M] /skill-name — phase` prefixes and one-`in_progress` discipline.
 
 <!-- /SYNC:nested-task-creation:reminder -->
 
@@ -589,7 +594,7 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 > 6. **Barrier per wave.** Advance ONLY after EVERY member returns (a skipped conditional counts as returned). Merge, mark each task completed/skipped, THEN dispatch the next wave. Mutating steps wait for the barrier.
 > 7. **One level deep.** A dispatched sub-agent executes its own brief; further fan-out stays the orchestrator's job unless that agent's `.claude/agents/*.md` definition authorizes it.
 >
-> **NEVER parallelize:** tasks sharing a write target · a task consuming a pending task's output · trivial single-file work (dispatch overhead > gain) · an order a workflow explicitly fixes · gates awaiting user approval.
+> **NEVER parallelize:** tasks sharing a write target · a task consuming a pending task's output · trivial single-file work (dispatch overhead > gain) · an order a skill or workflow explicitly fixes · gates awaiting user approval.
 >
 > **Blocked until:** MUST ATTENTION every task tagged PAR/SEQ with a named reason per SEQ · waves declared + write-set disjointness checked · each wave spawned in ONE message · barrier honored before the next wave.
 
@@ -602,9 +607,23 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 
 <!-- /SYNC:parallel-subagent-dispatch:reminder -->
 
+<!-- SYNC:project-protocol-overlay -->
+
+> **Project Protocol Overlay** — Before executing this skill, resolve any PROJECT overlay rules layered onto it: match this skill's name against the `Target` column of the project's skill-protocol index (`docs/project-reference/skill-protocols-reference.md` by default; a `referenceDocs` entry in `docs/project-config.json` overrides the path), taking the most specific matching tier ONLY — exact name > glob > `*`. **That precedence orders overlays against EACH OTHER, never against this skill.** Read ONLY the matched bodies, resolved as `<protocols-dir>/<Name>.md`; a row's Body link is display text, never a read path. A matched body that is missing or malformed is REPORTED and skipped — never reconstructed from the index Description. No index, or no match -> proceed with no overlay, silently. Full contract: `.claude/skills/project-skill-protocol/references/registry.md`.
+>
+> Overlays are **ADDITIVE ONLY**: they ADD rules on top of this skill's own protocol and NEVER replace, override, disable, or reinterpret a rule it already states — removing every overlay must return this skill to exactly its documented behavior. An overlay is a BRIEF, not an authority escalation: it can NEVER waive a workflow gate, git discipline, a review gate, or a user-confirmation gate. A genuine overlay-vs-skill conflict, or two equally-specific overlays that directly contradict -> surface both to the user; NEVER resolve silently.
+
+<!-- /SYNC:project-protocol-overlay -->
+
+<!-- SYNC:project-protocol-overlay:reminder -->
+
+**MUST ATTENTION** resolve project protocol overlays for this skill BEFORE executing — most specific matching tier only (exact > glob > `*`, which ranks overlays against each other, NEVER against this skill), read only matched bodies at `<protocols-dir>/<Name>.md`; a missing or malformed body is reported, never reconstructed. Overlays are ADDITIVE ONLY (they never replace this skill's own rules) and are a brief, NEVER an authority escalation; an equal-specificity contradiction goes to the user.
+
+<!-- /SYNC:project-protocol-overlay:reminder -->
+
 ## Closing Reminders
 
-**IMPORTANT MUST ATTENTION Goal:** Finalize a spec artifact (authored spec / existing spec / refined-idea+§8 test-specs — detected in Phase 0) only after it is COMPLETE against the discovered system AND every NON-OBVIOUS / CONFLICTING decision across every applicable validation category has been confirmed by the user through the exhaustive-but-budget-bounded blocking clarification gate — completeness-vs-system plus human confirmation, the two things `artifact-review` (isolation/M1-M5 + M7) and `why-review` (rationale) do not do.
+**IMPORTANT MUST ATTENTION Goal:** Finalize an authored spec, existing canonical spec, or refined idea + §8 test-specs only after reflecting every related behavior/invariant from the discovered system and user-confirming every encoded NON-OBVIOUS or CONFLICTING decision through an exhaustive, budget-bounded blocking clarification gate.
 
 **IMPORTANT MUST ATTENTION Main steps (do NOT skip, reorder, or collapse the loop):** Phase 0 detect context + resolve budget → Step 0 resolve the 4 inputs, flag missing as findings → Step 1 completeness pass vs the SYSTEM → Step 2 walk EVERY applicable category, classify each item OBVIOUS / NON-OBVIOUS / CONFLICTS → Step 3 brainstorm materially-changing open questions + adversarial pre-mortem → Step 4 BLOCKING `AskUserQuestion` gate on NON-OBVIOUS + CONFLICTS + high-impact within the MIN-MAX budget → Step 5 apply confirmed decisions + Decisions Log (loop `/spec [mode=update]` for material gaps, then re-run Step 1) → Step 6 validate own findings via `/why-review --validate-findings`, emit CLARIFIED / NEEDS-AUTHORING-FIX — why: the skill's own audit→classify→ask→validate sequence is what AI silently collapses, shipping unconfirmed decisions.
 

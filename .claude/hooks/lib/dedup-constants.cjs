@@ -330,7 +330,7 @@ module.exports = {
     /**
      * Legacy marker — the graph-grep-suggester hook (deleted in the de-hooking refactor) emitted
      * this directive. Its post-grep "run a graph trace; grep can't find callers/consumers/events"
-     * mandate now lives statically in the scout skill (drift-locked by content-presence TC-CP-007).
+     * mandate now lives statically in the investigate skill (drift-locked by content-presence TC-CP-007).
      * Retained as the source-of-truth string for any future re-use.
      */
     GRAPH_GREP_SUGGESTER: '[graph] **STOP AND DECIDE',

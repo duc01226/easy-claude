@@ -15,7 +15,7 @@ description: '[Fix & Debug] Use when investigating a bug''s root cause — repro
 
 ## Quick Summary
 
-**Goal:** Deliver a `/why-review`-validated root cause pinned to `file:line` at the invariant-owning layer — investigation-only, so `/fix` corrects the cause, not the symptom — or an honest "hypothesis, not confirmed" naming the evidence gaps.
+**Goal:** Deliver a `/why-review`-validated root cause at the invariant-owning layer, pinned to `file:line`; investigate only so `/fix` corrects causes, not symptoms — or report an honest "hypothesis, not confirmed" with evidence gaps.
 
 **Summary:**
 
@@ -213,7 +213,7 @@ After `/fix` applies changes, `/prove-fix` MUST be run — builds code proof tra
 
 **MUST ATTENTION — NO EXCEPTIONS:** Not in workflow? Use `AskUserQuestion`:
 
-1. **Activate `workflow-bugfix` workflow** (Recommended) — scout → investigate → debug → plan → fix → prove-fix → review → test
+1. **Activate `workflow-bugfix` workflow** (Recommended) — investigate → debug → plan → fix → prove-fix → review → test
 2. **Execute `/debug-investigate` directly** — standalone
 
 ---
@@ -226,8 +226,6 @@ After `/fix` applies changes, `/prove-fix` MUST be run — builds code proof tra
 - **"/fix"** — apply fix based on debug findings
 - **"/plan"** — if fix requires planning first
 - **"Skip, continue manually"** — user decides
-
-**Standalone Review Gate:** Outside workflow? MUST create `/changes-review` task as LAST task.
 
 ---
 
@@ -324,11 +322,14 @@ After `/fix` applies changes, `/prove-fix` MUST be run — builds code proof tra
 
 > **Test-Failure Fault Adjudication** — When a test fails (or you are debugging or fixing a failure), the job is to determine *who is at fault — the source code or the test code*. Getting that verdict right matters more than turning the suite green. Binds every debug / fix / test skill identically.
 >
-> 1. **Root-cause first — never guess, never patch the symptom.** `/debug-investigate` and trace the failure end-to-start to its actual cause before touching either side. A green-again suite is NOT the goal; a correct verdict on what was actually wrong is.
+> 1. **Provisional verdict before touching either side.** Classify the observed evidence as SOURCE-WRONG, TEST-WRONG, TEST-NOT-OPTIMAL, ENVIRONMENT-BLOCKED, or AMBIGUOUS; then `/debug-investigate` and trace end-to-start before editing. A green-again suite is NOT the goal.
 > 2. **Triangulate against the spec AND the source.** If a governing Feature Spec covers the behavior (e.g. `docs/specs/**` — §3 ACs / §4 BRs / §5 invariants / §8 TCs), it is the tiebreaker for *intended* behavior — compare BOTH the production source and the failing test against it. With no spec, the documented intent / acceptance criteria / caller contract is the reference. Decide from this evidence whether the SOURCE is wrong or the TEST is wrong.
 > 3. **Classify who is at fault, then fix the wrong side at its root:**
 >     - **SOURCE-WRONG** — production code violates the spec's intended behavior or a clear invariant → fix the source at the owning layer; keep or strengthen the test that caught it.
 >     - **TEST-WRONG** — the test encodes a stale or incorrect assertion, setup, or expectation that contradicts intended behavior → fix the test at its root. NEVER weaken an assertion, add a skip, or relax a timeout to force green.
+>     - **TEST-NOT-OPTIMAL** — intended behavior is valid but the test seam, timing, or assertion signal is fragile → improve the test without weakening the invariant.
+>     - **ENVIRONMENT-BLOCKED** — infrastructure or external state prevents a source/test verdict → preserve diagnostics and stop mutation until the environment is healthy.
+>     - **AMBIGUOUS** — evidence or intended behavior does not safely select an owner → ask the user or canonical owner before editing.
 >     - NEVER change a test to match broken source, and NEVER change source to satisfy a broken test. (Migration code excluded — schema/data migrations are one-time execution paths, not core application logic.)
 > 4. **Ask the user when intended behavior is unclear.** If no spec covers the behavior, the spec is silent, or the spec is ambiguous about which side is correct, STOP and `AskUserQuestion` (or consult the canonical spec owner) before editing either side — never silently pick source or test just to make the suite pass.
 >
@@ -357,7 +358,7 @@ After `/fix` applies changes, `/prove-fix` MUST be run — builds code proof tra
 > **Nested Task Expansion Contract** — For workflow-step invocation, the `[Workflow] ...` row is only a parent container; the child skill still creates visible phase tasks.
 >
 > 1. Call `TaskList` first. If a matching active parent workflow row exists, set `nested=true` and record `parentTaskId`; otherwise run standalone.
-> 2. Create one task per declared phase before phase work. When nested, prefix subjects `[N.M] $skill-name — phase`.
+> 2. Create one task per declared phase before phase work. When nested, prefix subjects `[N.M] /skill-name — phase`.
 > 3. When nested, link the parent with `TaskUpdate(parentTaskId, addBlockedBy: [childIds])`.
 > 4. Orchestrators must pre-expand a child skill's phase list and link the workflow row before invoking that child skill or sub-agent.
 > 5. Mark exactly one child `in_progress` before work and `completed` immediately after evidence is written.
@@ -721,7 +722,7 @@ After `/fix` applies changes, `/prove-fix` MUST be run — builds code proof tra
 <!-- SYNC:nested-task-creation:reminder -->
 
 - **MANDATORY** Parent workflow rows do not replace child phase tracking; expand phases and link the parent when nested.
-- **MANDATORY** Orchestrators pre-expand child skill phases before invocation; use `[N.M] $skill-name — phase` prefixes and one-`in_progress` discipline.
+- **MANDATORY** Orchestrators pre-expand child skill phases before invocation; use `[N.M] /skill-name — phase` prefixes and one-`in_progress` discipline.
 
 <!-- /SYNC:nested-task-creation:reminder -->
 
@@ -748,7 +749,7 @@ After `/fix` applies changes, `/prove-fix` MUST be run — builds code proof tra
 > 6. **Barrier per wave.** Advance ONLY after EVERY member returns (a skipped conditional counts as returned). Merge, mark each task completed/skipped, THEN dispatch the next wave. Mutating steps wait for the barrier.
 > 7. **One level deep.** A dispatched sub-agent executes its own brief; further fan-out stays the orchestrator's job unless that agent's `.claude/agents/*.md` definition authorizes it.
 >
-> **NEVER parallelize:** tasks sharing a write target · a task consuming a pending task's output · trivial single-file work (dispatch overhead > gain) · an order a workflow explicitly fixes · gates awaiting user approval.
+> **NEVER parallelize:** tasks sharing a write target · a task consuming a pending task's output · trivial single-file work (dispatch overhead > gain) · an order a skill or workflow explicitly fixes · gates awaiting user approval.
 >
 > **Blocked until:** MUST ATTENTION every task tagged PAR/SEQ with a named reason per SEQ · waves declared + write-set disjointness checked · each wave spawned in ONE message · barrier honored before the next wave.
 
@@ -761,9 +762,23 @@ After `/fix` applies changes, `/prove-fix` MUST be run — builds code proof tra
 
 <!-- /SYNC:parallel-subagent-dispatch:reminder -->
 
+<!-- SYNC:project-protocol-overlay -->
+
+> **Project Protocol Overlay** — Before executing this skill, resolve any PROJECT overlay rules layered onto it: match this skill's name against the `Target` column of the project's skill-protocol index (`docs/project-reference/skill-protocols-reference.md` by default; a `referenceDocs` entry in `docs/project-config.json` overrides the path), taking the most specific matching tier ONLY — exact name > glob > `*`. **That precedence orders overlays against EACH OTHER, never against this skill.** Read ONLY the matched bodies, resolved as `<protocols-dir>/<Name>.md`; a row's Body link is display text, never a read path. A matched body that is missing or malformed is REPORTED and skipped — never reconstructed from the index Description. No index, or no match -> proceed with no overlay, silently. Full contract: `.claude/skills/project-skill-protocol/references/registry.md`.
+>
+> Overlays are **ADDITIVE ONLY**: they ADD rules on top of this skill's own protocol and NEVER replace, override, disable, or reinterpret a rule it already states — removing every overlay must return this skill to exactly its documented behavior. An overlay is a BRIEF, not an authority escalation: it can NEVER waive a workflow gate, git discipline, a review gate, or a user-confirmation gate. A genuine overlay-vs-skill conflict, or two equally-specific overlays that directly contradict -> surface both to the user; NEVER resolve silently.
+
+<!-- /SYNC:project-protocol-overlay -->
+
+<!-- SYNC:project-protocol-overlay:reminder -->
+
+**MUST ATTENTION** resolve project protocol overlays for this skill BEFORE executing — most specific matching tier only (exact > glob > `*`, which ranks overlays against each other, NEVER against this skill), read only matched bodies at `<protocols-dir>/<Name>.md`; a missing or malformed body is reported, never reconstructed. Overlays are ADDITIVE ONLY (they never replace this skill's own rules) and are a brief, NEVER an authority escalation; an equal-specificity contradiction goes to the user.
+
+<!-- /SYNC:project-protocol-overlay:reminder -->
+
 ## Closing Reminders
 
-**IMPORTANT MUST ATTENTION Goal:** Deliver a `/why-review`-validated root cause pinned to `file:line` at the invariant-owning layer — investigation-ONLY, so `/fix` corrects the cause, not the symptom — or an honest "hypothesis, not confirmed" naming the evidence gaps.
+**IMPORTANT MUST ATTENTION Goal:** Deliver a `/why-review`-validated root cause at the invariant-owning layer, pinned to `file:line`; investigate only so `/fix` corrects causes, not symptoms — or report an honest "hypothesis, not confirmed" with evidence gaps.
 
 **Protocols in force (concise digest of the SYNC/shared blocks this skill carries):**
 
@@ -797,7 +812,7 @@ After `/fix` applies changes, `/prove-fix` MUST be run — builds code proof tra
 **MUST ATTENTION** run a graph trace when `graph.db` exists — `callers_of` / `importers_of` / `tests_for` / `trace` reveal MESSAGE_BUS consumers and event handlers grep cannot see — why: cross-service chains are invisible to text search.
 **MUST ATTENTION** prove convergence FORWARD after choosing the fix layer — walk start → end, map each root cause to a fix part and each fix part to a test/proof; `/prove-fix` MUST run after `/fix` applies changes.
 **MUST ATTENTION** OOM/memory → check row COUNT before row SIZE (unbounded query > large row); 3+ failed fixes → STOP, question the architecture, escalate to user.
-**MUST ATTENTION** bootstrap `TaskCreate` task tracking BEFORE first file read; persist findings incrementally to `plans/reports/`; standalone (outside workflow) → add a `/changes-review` task as the LAST task — why: context cutoff loses in-memory findings.
+**MUST ATTENTION** bootstrap `TaskCreate` task tracking BEFORE first file read; persist findings incrementally to `plans/reports/`; return the investigation findings without modifying target code or applying fixes.
 
 **Anti-Rationalization:**
 

@@ -140,7 +140,7 @@ POS_ROW_RE = re.compile(
 
 def primary_steps_tokens(text):
     for line in text.splitlines():
-        if ("why-review" in line or "/scout" in line or "$scout" in line or "/idea" in line) and (
+        if ("why-review" in line or "/investigate" in line or "$investigate" in line or "/idea" in line) and (
             " → " in line or " -> " in line
         ):
             mstart = re.search(r"[/$][a-z]", line)

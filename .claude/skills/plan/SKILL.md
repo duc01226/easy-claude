@@ -21,17 +21,19 @@ disable-model-invocation: false
 **Summary:**
 
 - PLANNING ONLY — NEVER implement/execute code; produce `plan.md` + per-phase `phase-XX` files + a `goal.md` Goal Contract, then hand off.
-- **Main pipeline (the steps AI keeps forgetting):** pre-check active/suggested plan → bootstrap Goal Contract (`goal.md`) → ONE research wave (`researcher` + `scout` subagents, spawned together, barrier before synthesis) → codebase + project-reference analysis (scout if docs absent) → `planner` subagent writes `plan.md` + `phase-XX` files (Alternatives, Rationale, UI Layout, Test Specs) → parallelism pass (tag every phase PAR/SEQ + write set + `## Execution Waves`) → post-plan granularity self-check → mandatory final tasks.
+- **Ordered pipeline (run in order; NEVER skip or reorder):** pre-check active/suggested plan + applicability branch → bootstrap Goal Contract (`goal.md`) → ONE `researcher` wave (spawn together; barrier before synthesis) → project-reference/codebase/pattern analysis + convention alignment → `planner` writes `plan.md` + `phase-XX` files (Alternatives, Rationale, UI Layout, Test Specs) → tag PAR/SEQ write sets + `## Execution Waves` → granularity self-check → Test Specs → `/plan-validate` → `/plan-review` → standalone `/why-review` → re-estimate → `AskUserQuestion` handoff.
 - **The plan output itself carries parallelism metadata** — every phase tagged `PAR`/`SEQ` with the write set it owns, every `SEQ` naming its forcing dependency (see [Plan Parallelism Metadata](#plan-parallelism-metadata-mandatory--every-plan-output)). Omitting it is a defect of THIS skill: `/plan-execute` fans out only on what the plan declares.
 - **`--mode={ci|cro}` routing:** `ci` plans a fix from a GitHub Actions run/log (loads `references/mode-ci.md`); `cro` plans conversion-rate optimization (25-item framework, `references/mode-cro.md`); default (no flag) = standard flow. Mode only ADDS a reference payload — SAME engine, SAME `/plan-review` gate, SAME `planner` agent.
-- Default mode HARD (parallel subagents, project-reference docs, 3-round `/plan-review`); fast mode ONLY when EVERY trivial-task condition holds. Every phase passes the 5-point granularity check ("Can I start coding RIGHT NOW?"), carries `## Test Specifications` with TC IDs, uses bottom-up estimation (phase-hours drive man-days; SP DERIVED).
-- **Mandatory final tasks + gates:** write Test Specs per phase → `/plan-validate` → `/plan-review` (3-round) → `/why-review` (standalone) → re-estimate vs finalized phases; New Tech/Lib gate before approval; `AskUserQuestion` confirm before any next step.
+- Default mode HARD (parallel subagents, project-reference docs, the `/plan-review` convergence loop under its 3-round ceiling); fast mode ONLY when EVERY trivial-task condition holds. Every phase passes the 5-point granularity check ("Can I start coding RIGHT NOW?"), carries `## Test Specifications` with TC IDs, uses bottom-up estimation (phase-hours drive man-days; SP DERIVED).
+- **Conditional Project Pattern Alignment is mandatory:** always read `docs/project-config.json`, `docs/project-reference/docs-index-reference.md`, `docs/project-reference/lessons.md`, and `docs/project-reference/code-review-rules.md`; if the plan edits frontend/UI, also read `frontend-patterns-reference.md`; if it edits backend/hook code, also read `backend-patterns-reference.md`; if it edits both, read both. These pattern docs and their documented examples are the authority — there is no separate project-reference example-code file to assume. Cite corroborating source examples (`file:line`) when that scope has implementation code; explicit N/A/scarcity evidence is required otherwise.
+- **Mandatory final tasks + gates:** write Test Specs per phase → `/plan-validate` → `/plan-review` (convergence loop, 3-round ceiling) → `/why-review` (standalone) → re-estimate vs finalized phases; New Tech/Lib gate before approval; **Domain Entity Gate (MANDATORY when the plan touches an entity/VO/aggregate)** — apply `SYNC:domain-entity-change-gate` so the plan DECIDES classification, invariant ownership, aggregate boundary, concurrency, construction, events, and the test obligation (each naming its owning file) instead of deferring them to implementation; `AskUserQuestion` confirm before any next step.
+- **Applicability Gate:** before research or planner handoff, load `.claude/skills/shared/product-roadmap-contract.md`. For a large idea, verify the complete embedded `large_idea_decomposition` block and slice/conditional-scenario evidence; for an explicit roadmap request, resolve the approved roadmap milestone, scope brief, and scenario analysis; for a framework/library or isolated change, resolve its complete technical/EXEMPT branch. The emitted `plan.md` MUST contain the applicable `## Plan Gate` with decisions or explicit `N/A`, skeleton, commands, evidence, and human approval. A missing or open decision is `BLOCKED`, not an invitation to infer.
 
 **Workflow:**
 
 1. **Pre-Check** — Detect active/suggested plan or create new directory
-2. **Research wave** — All independent research threads spawned in ONE message (researcher + scout subagents, max 5 tool calls each), then a barrier before synthesis
-3. **Codebase Analysis** — Search for project reference docs (patterns-reference, project-structure, architecture, adr); scout if not found
+2. **Research wave** — All independent research threads spawned in ONE message (`researcher` subagents, max 5 tool calls each), then a barrier before synthesis; use the main `/investigate` skill for inline code tracing
+3. **Codebase + Conditional Pattern Analysis** — Resolve `code-review-rules.md` and the frontend/backend pattern reference(s) triggered by the plan, then inspect matching repository examples; investigate if required docs or implementation evidence is absent
 4. **Plan Creation** — Planner subagent creates plan.md + phase-XX files with full sections
 5. **Parallelism pass** — Tag every phase PAR/SEQ with its write set; declare `## Execution Waves` in plan.md
 6. **Post-Validation** — Optionally interview user to confirm decisions via /plan-validate
@@ -42,6 +44,7 @@ disable-model-invocation: false
 - Always run /plan-review after plan creation
 - Ask user to confirm before any next step
 - **MANDATORY IMPORTANT MUST ATTENTION** detect new tech/lib in plan and create validation task (see New Tech/Lib Gate below)
+- **MANDATORY IMPORTANT MUST ATTENTION** when the plan touches an entity, value object, or aggregate, run the **Domain Entity Gate** below — state paradigm + subdomain fit BEFORE any entity task, and answer every triggered decision row with its OWNING FILE; "discover during implementation" is not an answer. Record `No domain-entity surface — gate N/A` when it does not fire
 
 ## First Principle — Easy to Change
 
@@ -65,7 +68,7 @@ below — if a downstream rule raises change cost, this principle wins.
 
 ## Default Mode Policy
 
-> **Default mode HARD (full rigor).** Every section below — parallel researcher subagents, 3-round `/plan-review`, base-class greps, microservices/event-driven analysis, mandatory user approval — applies by default.
+> **Default mode HARD (full rigor).** Every section below — parallel researcher subagents, the full `/plan-review` convergence loop (3-round ceiling), base-class greps, microservices/event-driven analysis, mandatory user approval — applies by default.
 >
 > **Opt out to fast mode ONLY when ALL true** (task genuinely trivial):
 >
@@ -77,11 +80,30 @@ below — if a downstream rule raises change cost, this principle wins.
 >
 > **Any condition fails → use full protocol below.** When in doubt, default hard — skipping rigor on a non-trivial task wastes more rework than rigor saves.
 >
-> **Fast mode skips (and only skips):** parallel researcher subagents (direct grep instead), 3-round `/plan-review` (1 round), `/plan-validate` interview (inline confirm only), New Tech/Lib Gate (only if truly no new deps).
+> **Fast mode skips (and only skips):** parallel researcher subagents (direct grep instead), the `/plan-review` re-review loop (single round, no fresh re-review even when findings remain), `/plan-validate` interview (inline confirm only), New Tech/Lib Gate (only if truly no new deps).
 
 ## New Tech/Lib Gate (MANDATORY for all plans)
 
 **MANDATORY IMPORTANT MUST ATTENTION** after plan creation, detect new tech/packages/libraries not in project. If found: `TaskCreate` per lib → WebSearch top 3 alternatives → compare (fit, size, community, learning curve, license) → recommend with confidence % → `AskUserQuestion` to confirm. **Skip if** plan uses only existing dependencies.
+
+## Domain Entity Gate (MANDATORY when the plan touches an entity, VO, or aggregate)
+
+> Apply `SYNC:domain-entity-change-gate` (inlined below) — the SAME protocol `/plan-review` and `/changes-review` read, and whose A–P checklist `/domain-entities-review` owns. — why: a plan that leaves aggregate boundary, invariant ownership, or concurrency to "discover during implementation" ships a design review will reject, and the rework is paid twice.
+
+**Fires when** the plan introduces or changes a domain entity / value object / aggregate root, its fields, invariants, relationships, or state transitions; an aggregate boundary, repository, or cross-aggregate reference; a domain event; or a concurrency/reconstitution concern. Otherwise record `No domain-entity surface — gate N/A`.
+
+**The plan MUST name the decision AND the owning file for every triggered row** — an unanswered row is a plan that is not executable:
+
+1. **Classification** — entity vs value object vs aggregate root (swap test applied).
+2. **Invariant ownership** — which rules the entity enforces vs which the boundary validates; failure signalling (throw vs `Result`) consistent with the project convention.
+3. **Aggregate boundary + concurrency** — what shares a transaction and why; cross-aggregate refs by ID; concurrency token on the ROOT; enforcing mechanism for any set-based invariant.
+4. **Construction vs reconstitution** — separate creation and load paths; load raises no events.
+5. **Events** — what is raised, when it dispatches (after commit / outbox), domain vs integration contract.
+6. **Test obligation** — each invariant gets a property TC + boundary counter-case as a planned task, NEVER left implicit.
+
+MUST ATTENTION state **paradigm** (OO-mutable / type-driven-immutable / event-sourced) and **subdomain fit** (core / supporting / generic / CRUD) BEFORE planning entity tasks — NEVER plan a rich domain model for a CRUD subdomain, and NEVER plan setter/mutability tasks against an immutable or event-sourced model.
+
+---
 
 ## Greenfield Mode
 
@@ -105,7 +127,7 @@ Run the planning methodology engine. Load the relevant `references/engine-*.md` 
 
 - `references/engine-research.md` — Research & Analysis (skip if given researcher reports)
 - `references/engine-figma.md` — Design Context Extraction (skip if no Figma URLs / backend-only)
-- `references/engine-codebase-understanding.md` — Codebase Understanding (skip if given scout reports)
+- `references/engine-codebase-understanding.md` — Codebase Understanding (skip if given investigate reports)
 - `references/engine-solution-design.md` — Solution Design (trade-offs, security, performance, edge cases, architecture)
 - `references/engine-plan-organization.md` — Plan Creation, Organization & Output Standards
 
@@ -149,6 +171,41 @@ Phase 1 of plan MUST ATTENTION be **Architecture Scaffolding** — all base abst
 > After plan creation, ALWAYS run `/plan-review` to validate plan.
 > ASK user to confirm plan before any next step.
 
+## Applicability Preflight and Plan Gate (MANDATORY)
+
+Read `.claude/skills/shared/product-roadmap-contract.md` before creating the Goal Contract or dispatching research. Apply the preflight to every plan, but select the branch from the shared four-operand `isLargeIdea` rule rather than treating a large idea as a roadmap request.
+
+1. Classify applicability before resolving upstream artifacts. For embedded large-idea work, resolve the owning PBI/spec and verify the complete `large_idea_decomposition` block, selected slice IDs, non-goals, risks/evidence, and deferred owners; require `scenario-analysis.md` only when the slice's replay/state/ownership/recovery/evidence risks need adversarial analysis. For an explicit roadmap request, resolve `docs/product-roadmap.md`, exactly one owner-approved milestone, its scope brief, and scenario analysis. For a framework/library or EXEMPT change, resolve its technical/EXEMPT scope and scenario branch without requiring a roadmap or product milestone. If the applicable artifacts are missing or outside `plans/{plan-id}/`, route to the owning branch and stop with `BLOCKED`.
+2. Confirm the selected slice/outcome or technical/EXEMPT boundary, in-scope behavior, explicit non-goals, lifecycle definitions, business/operational source of truth, persistence expectation, high-impact scenario coverage, project skeleton/configuration, build/test/run commands, and redacted evidence plan. Do not let architecture or code research choose an unresolved product meaning.
+3. For a large idea, write the embedded decomposition owner/slice references in the plan. For a genuinely isolated brownfield change, write `## Roadmap Applicability` with `Status: EXEMPT`, reason, and accepting owner. For a framework/library change, write `Status: FRAMEWORK-LIBRARY` with technical outcome and evidence owner. Neither branch creates a product roadmap.
+4. Before handoff, write exactly one `## Plan Gate` block in `plan.md`, using the applicable branch in the shared contract. Set `DECOMPOSITION-EMBEDDED`, `FRAMEWORK-LIBRARY`, or `EXEMPT` only when that branch is complete; set `READY` only for an explicit roadmap branch whose outcome/boundaries match, material decisions are `CONFIRMED`, scenarios have proof mappings, skeleton/commands/evidence are known, and the human owner has approved. Otherwise set `BLOCKED`. Never use an AI-generated `PASS` as approval.
+
+Required output shape:
+
+For explicit-roadmap plans:
+
+```markdown
+## Plan Gate
+- Status: READY | BLOCKED
+- Roadmap: docs/product-roadmap.md
+- Milestone: M{n} — {outcome}
+- Scope brief: plans/{plan-id}/scope-brief.md
+- Scenarios: plans/{plan-id}/scenario-analysis.md
+- Product decisions: CONFIRMED | OPEN — {decision IDs}
+- Project skeleton: CONFIRMED | MISSING — {frontend/backend/data/config status}
+- Commands: CONFIRMED | MISSING — {build/test/run commands}
+- Evidence plan: CONFIRMED | MISSING — {journey, assertions, artifacts, redaction}
+- Human approval: APPROVED | REQUIRED
+```
+
+For an embedded large-idea plan, use the shared contract's `DECOMPOSITION-EMBEDDED` branch: `Roadmap: NOT APPLICABLE — embedded large-idea decomposition`, `Milestone: NOT APPLICABLE — slice IDs live in the owning artifacts`, the owning PBI/spec and selected slice IDs, a conditional scenario path, `Product decisions: CONFIRMED | OPEN`, and the same skeleton, commands, evidence, and human-approval fields. The complete five-field decomposition block is required whenever any signal is true.
+
+For a `FRAMEWORK-LIBRARY` plan, use the shared technical branch: `Roadmap: NOT APPLICABLE — framework/library branch`, a technical registry ID only when useful, the technical scope/scenario sibling paths, `Product decisions: N/A — no adopter product intent changed`, the framework owner approval, and the same skeleton, commands, evidence, and human-approval fields. Neither branch creates a product roadmap.
+
+For an EXEMPT plan, use the shared contract's EXEMPT branch: `Roadmap: EXEMPT — {reason}`, `Milestone: EXEMPT — product-level scope unchanged`, the stable scope/scenario sibling paths, `Product decisions: N/A — {reason}`, and the same skeleton, commands, evidence, and human-approval fields. Do not use `M{n}` or a missing roadmap path as a placeholder.
+
+`plan-review` and `plan-validate` are downstream gates. They may not turn `BLOCKED` into `READY` without the missing product decision or explicit owner approval.
+
 ## Your mission
 
 <task>
@@ -168,12 +225,29 @@ Check `## Plan Context` section in injected context:
 1. If creating new: create directory using `Plan dir:` from `## Naming` section, then run `node .claude/scripts/set-active-plan.cjs {plan-dir}`. If reusing: use active plan path from Plan Context. Pass directory path to every subagent.
 2. **Goal Contract bootstrap (BEFORE investigation and phase writing):** resolve active goal per `SYNC:goal-contract-satisfaction-loop` — create/update `{plan-dir}/goal.md` from `.claude/templates/goal-contract-template.md`, recording original request, purpose, success criteria, constraints, required evidence. Every phase's success criteria maps to a saved goal criterion. Redact secrets.
 3. Follow strictly the "Plan Creation & Organization" rules in `references/engine-plan-organization.md`.
-4. **Research wave — ONE message, ONE barrier.** Enumerate the independent research threads this task needs — per-module code investigation, pattern discovery, dependency mapping, prior-art/library search, reference-doc reading — then tag each `PAR`/`SEQ` and declare `Parallel plan: wave 1 = [...] · SEQ = [...] (reason)` before dispatch. Research is read-only, so a thread is `PAR` unless it consumes another thread's output (name that output). Spawn the whole wave in ONE message: `researcher` agents (max 2) for external/prior-art threads, max 5 tool calls per agent; `scout` agents for codebase threads, one per module/area with a disjoint read scope. Give each agent its own report path under `{plan-dir}/research/` or `{plan-dir}/scout/` so no two agents write the same file.
-5. Analyze codebase: search project reference docs (`patterns-reference`, `project-structure`, `architecture`, `adr`); read those found — this read runs in the main agent while the wave is in flight. **ONLY IF docs not found or older than 3 days:** use `/scout <instructions>` to search codebase for needed files — as a member of the step-4 wave, not a separate round trip.
-6. **Barrier, then synthesize.** Advance only after EVERY wave member returns (a skipped thread counts as returned). Read the report FILES (not memory), reconcile conflicting findings, and record unresolved gaps — a second wave is dispatched only for gaps the first wave exposed.
-7. Main agent gathers research/scout report filepaths; pass to `planner` subagent with prompt to create implementation plan.
-8. **Parallelism pass (MANDATORY before handoff).** Tag every phase in `plan.md` and each `phase-XX` file `PAR` or `SEQ`, record the write set each phase owns, name the forcing dependency on every `SEQ`, and write the `## Execution Waves` line — see [Plan Parallelism Metadata](#plan-parallelism-metadata-mandatory--every-plan-output). This is what lets `/plan-execute` fan out; an untagged plan executes strictly sequentially.
-9. Main agent receives implementation plan from `planner`; ask user to review.
+4. **Project-reference preflight — BEFORE dispatch.** Resolve and read the required project-reference documents first. Record missing or stale references as scoped research inputs; never discover the governing conventions only after workers have already started.
+5. **Research wave — ONE message, ONE barrier.** Enumerate the independent research threads this task needs — per-module code investigation, pattern discovery, dependency mapping, prior-art/library search — then tag each `PAR`/`SEQ` and declare `Parallel plan: wave 1 = [...] · SEQ = [...] (reason)` before dispatch. Research is read-only, so a thread is `PAR` unless it consumes another thread's output (name that output). Spawn the whole wave in ONE message: `researcher` agents (max 2) for external/prior-art and codebase threads, max 5 tool calls per agent; use the main `/investigate` skill for deeper inline code tracing. Give each agent its own report path under `{plan-dir}/research/` so no two agents write the same file.
+6. Analyze codebase against the preflight references and complete the **Project Convention & Example Alignment Gate** below. **ONLY IF a required reference is missing or older than 3 days:** include a scoped `/investigate <instructions>` pass in the research wave to gather the missing evidence; do not launch an unplanned later round trip.
+7. **Barrier, then synthesize.** Advance only after EVERY wave member returns (a skipped thread counts as returned). Read the report FILES (not memory), reconcile conflicting findings, and record unresolved gaps — a second wave is dispatched only for gaps the first wave exposed.
+8. Main agent gathers research report filepaths; pass them to the `planner` subagent together with the resolved pattern-doc paths/headings and the convention matrix requirements. The planner must use those sources, not generic framework memory, when creating the implementation plan.
+9. **Parallelism pass (MANDATORY before handoff).** Validate each phase's **Mode, Wave, write set, and SEQ dependency**, then write the `## Execution Waves` line — see [Plan Parallelism Metadata](#plan-parallelism-metadata-mandatory--every-plan-output). This is what lets `/plan-execute` fan out; an untagged plan executes strictly sequentially.
+10. Main agent receives implementation plan from `planner`; ask user to review.
+
+## Project Convention & Example Alignment Gate (MANDATORY)
+
+Run this gate after the project-reference preflight and codebase analysis, before the planner handoff. Project docs and local examples outrank generic framework knowledge.
+
+1. **Resolve the authority.** Derive the frontend/backend triggers from the requested changes and the planned file/module list, not the plan title alone. Always read `docs/project-config.json`, `docs/project-reference/docs-index-reference.md`, `docs/project-reference/lessons.md`, and `docs/project-reference/code-review-rules.md`. If the plan edits frontend/UI, also read `docs/project-reference/frontend-patterns-reference.md`; if it edits backend/hook code, also read `docs/project-reference/backend-patterns-reference.md`; if it edits both, read both. Record exact paths/headings in `plan.md` under `Reference docs read:`. Missing or stale context routes through the documented project setup/scan route and blocks handoff until resolved. Do not search for or require a separate project-reference example-code file.
+2. **Use the right evidence source.** Treat the applicable pattern-reference sections and the code-review document's Golden-Path, Architecture, Skill Definition, and relevant checklist sections as the convention source. Then search/read actual source examples (`file:line`) when the planned scope has implementation code; use at least 3 comparable patterns where 3 exist, and if the repository or the applicable reference explicitly has no such surface, record `N/A` or a bounded scarcity reason. For framework/tooling-only work, analogous `.claude` skills, hooks, agents, workflows, tests, or scripts are the examples — never frontend skill assets as application conventions. Examples must share the decision's preconditions, scope, lifetime, and boundary; the nearest file is not automatically a valid precedent.
+3. **Record an auditable matrix.** `plan.md` MUST contain `## Project Convention Alignment` with one row per major decision:
+
+   | Decision | Applicable pattern source (path + heading) | Corroborating source example(s) (`file:line`) or explicit N/A | Plan choice | Status |
+   | --- | --- | --- | --- | --- |
+   | {placement/layer/naming/test/etc.} | `{docs/...}#{section}` | `{path}:{line}` or `{N/A reason}` | {concrete choice} | `MATCH` / `DEVIATION` / `N/A` |
+
+   `MATCH` requires the applicable local pattern source and, when implementation code exists, a context-fit source example. Every `DEVIATION` names the violated convention, why it does not fit, the rejected alternative, and the future-change-cost trade-off; irreversible deviations also require the applicable user/owner decision. `N/A` is allowed only with an explicit reason grounded in the plan scope or a documented N/A reference.
+4. **Trace every phase.** Each `phase-XX` file MUST include `## Convention Alignment` linking its file/layer/test/documentation choices to the matrix rows. `OPEN`, `MISSING`, `UNVERIFIED`, dead citations, generic-only justification, or an unreferenced major decision blocks planner handoff and must become a bounded research task.
+5. **Greenfield exception.** When the repository has no implementation surface, write `N/A — no existing project code or local examples` and use the accepted architecture/tech-stack decisions as the governing evidence. Do not claim brownfield conformance where no precedent exists.
 
 ## Post-Plan Validation (Optional)
 
@@ -202,8 +276,8 @@ After plan creation, offer validation interview to confirm decisions before impl
 ├── reports/
 │   ├── XX-report.md
 │   └── ...
-├── scout/
-│   ├── scout-XX-report.md
+├── investigate/
+│   ├── investigate-XX-report.md
 │   └── ...
 ├── plan.md
 ├── phase-XX-phase-name-here.md
@@ -230,12 +304,18 @@ After plan creation, offer validation interview to confirm decisions before impl
     man_days_ai: '{ total with AI e.g., 3d (2d code + 1d test) }'
     branch: { current git branch }
     tags: [relevant, tags]
+    applicability: EXPLICIT-ROADMAP | DECOMPOSITION-EMBEDDED | FRAMEWORK-LIBRARY | EXEMPT
+    roadmap: 'docs/product-roadmap.md' # explicit-roadmap branch only; omit otherwise
+    milestone_id: 'M{n}' # explicit-roadmap branch only; omit otherwise
+    scope_brief: 'plans/{plan-id}/scope-brief.md' # required only for the applicable branch
+    scenario_analysis: 'plans/{plan-id}/scenario-analysis.md' # conditional for embedded work
+    large_idea_decomposition: {complete block when any isLargeIdea signal is true; omit when all are false}
     created: { YYYY-MM-DD }
     ---
     ```
 
 - Save overview at `{plan-dir}/plan.md` (<80 lines): list each phase with status, progress, **Mode (`PAR`/`SEQ`)**, links to phase files; add the `## Execution Waves` line below the phases table.
-- For each phase, create `{plan-dir}/phase-XX-phase-name-here.md` with sections: Context links, Overview, Key Insights, Requirements, **Alternatives Considered** (minimum 2 approaches with pros/cons), **Design Rationale** (WHY chosen approach), Architecture, **UI Layout** (see below), Related code files, **Parallel Execution** (Mode `PAR`/`SEQ` · Write set · SEQ dependency — see below), Implementation Steps, Todo list, Success Criteria, Risk Assessment, Security Considerations, Next steps.
+- For each phase, create `{plan-dir}/phase-XX-phase-name-here.md` with sections: Context links, Overview, Key Insights, Requirements, **Alternatives Considered** (minimum 2 approaches with pros/cons), **Design Rationale** (WHY chosen approach), **Convention Alignment** (matrix row IDs + reference/example evidence), Architecture, **UI Layout** (see below), Related code files, **Parallel Execution** (Mode `PAR`/`SEQ` · Write set · SEQ dependency — see below), Implementation Steps, Todo list, Success Criteria, Risk Assessment, Security Considerations, Next steps.
 - **UI Layout:** For frontend-facing phases, include ASCII wireframe. Classify components by tier (common/domain-shared/page-app). For backend-only phases: `## UI Layout` → `N/A — Backend-only change.`
 
 ## Plan Parallelism Metadata (MANDATORY — every plan output)
@@ -262,8 +342,10 @@ After plan creation, offer validation interview to confirm decisions before impl
 **Behavior/Sync Planning Checks**
 
 - For behavior-changing work, every phase should name changed behavior, unchanged behavior to preserve, TC/test proof, and docs/spec sync action.
+- For explicit-roadmap work, `plan.md` must include the approved roadmap/milestone/scope/scenario references and the `## Plan Gate`; embedded, framework, and EXEMPT work must use their own shared branches and must not fabricate roadmap fields.
 - For AI-extracted specs/TCs, plan must mark them reference-only until canonical acceptance.
 - For `.claude` skills/hooks/workflows/sync tooling, plan must include generated mirror sync or explicit no-sync evidence.
+- For every plan with implementation scope, `## Project Convention Alignment` must map major solution decisions to `code-review-rules.md` and any conditional frontend/backend pattern-reference sections, plus context-fit `file:line` examples when source exists; deviations and explicit N/A/scarcity gaps must be justified.
 
 ## **IMPORTANT Task Planning Notes (MUST ATTENTION FOLLOW)**
 
@@ -272,7 +354,7 @@ After plan creation, offer validation interview to confirm decisions before impl
 - **MANDATORY FINAL TASKS:** After all planning todos, ALWAYS add these final tasks:
     1. **Task: "Write test specifications for each phase"** — Add `## Test Specifications` with TC-{FEATURE}-{NNN} IDs to every phase file. Use `/spec [mode=tests]` if feature docs exist; `Evidence: TBD` for TDD-first mode.
     2. **Task: "Run /plan-validate"** — `/plan-validate` skill interviews user with critical questions, validates plan assumptions.
-    3. **Task: "Run /plan-review"** — `/plan-review` skill, deep 3-round protocol (R1: checklist, R2: code-proof trace, R3: adversarial simulation). Depth by SP: ≤3 → 2 rounds min, 4-8 → 3 rounds, >8 → 3 rounds + code-proof mandatory.
+    3. **Task: "Run /plan-review"** — `/plan-review` skill, convergence loop (review → validate findings → fix → fresh full re-review) bounded by a **3-round ceiling, NEVER a target**: a clean pass ENDS the loop at ANY round, round 1 included; round 3 completing with CRITICAL/HIGH/MEDIUM still open escalates via `AskUserQuestion`, never a silent PASS. SP raises the RIGOR of each round, never a round floor: ≤3 → checklist + code-proof trace; 4-8 → + adversarial simulation; >8 → code-proof trace mandatory in every round.
     4. **Task: "Run /why-review (standalone only)"** — If NOT inside a workflow, `/why-review` validates design rationale, alternatives considered, risk assessment. Skip if a workflow already includes `/why-review`.
     5. **Task: "Re-evaluate estimation against finalized plan"** — Pre-completion estimates anchor on scope guesses; finalized phases reveal true cost. After phases/TCs/decisions locked: (a) re-derive `bottom_up_hours = Σ phase_hours` from finalized phase files; (b) recompute `likely_days`, `risk_margin_pct`, `min-max range` per `SYNC:estimation-framework`; (c) compare to current frontmatter `man_days_traditional` / `story_points`. If `|delta| > 20%` → UPDATE frontmatter, add `reestimate_delta_pct: <signed>` + 1-line `reestimate_reason`. If `|delta| > 50%` → flag `SHOULD-RESCOPE` and surface to user via `AskUserQuestion` before implementation.
 
@@ -353,7 +435,7 @@ After creating all phase files, run **recursive decomposition loop**:
 > **Nested Task Expansion Contract** — For workflow-step invocation, the `[Workflow] ...` row is only a parent container; the child skill still creates visible phase tasks.
 >
 > 1. Call `TaskList` first. If a matching active parent workflow row exists, set `nested=true` and record `parentTaskId`; otherwise run standalone.
-> 2. Create one task per declared phase before phase work. When nested, prefix subjects `[N.M] $skill-name — phase`.
+> 2. Create one task per declared phase before phase work. When nested, prefix subjects `[N.M] /skill-name — phase`.
 > 3. When nested, link the parent with `TaskUpdate(parentTaskId, addBlockedBy: [childIds])`.
 > 4. Orchestrators must pre-expand a child skill's phase list and link the workflow row before invoking that child skill or sub-agent.
 > 5. Mark exactly one child `in_progress` before work and `completed` immediately after evidence is written.
@@ -630,6 +712,10 @@ After creating all phase files, run **recursive decomposition loop**:
 > 4. Before any new workflow step: call `TaskList` and re-read the phase file
 > 5. On context compaction: call `TaskList` FIRST — never create duplicate tasks
 > 6. Verify TC satisfaction per phase before marking complete (evidence must be `file:line`, not TBD)
+> 7. **Purpose-oriented naming:** For every planned public or cross-layer contract, port, interface, module, or adapter, name the consumer-visible capability or domain purpose; keep provider, framework, and transport names in concrete implementations (`IStorage`/`Storage` → `AzureBlobStorage`). — why: a contract name should survive an implementation swap.
+> 8. **Contract-fit gate:** Check the proposed name against its callers and all implementations; use a narrower purpose name when a broad name overpromises (`IObjectStore` or `DocumentStore` instead of `IStorage` when the behavior is narrower). — why: abstraction names must describe the actual contract, not hide a mismatch.
+> 9. **No speculative abstraction:** Plan an interface or port only when a real boundary, substitution need, or multiple meaningful implementations justifies it; keep a concrete type when it is the honest contract. — why: an unnecessary abstraction adds indirection and a second name without reducing change cost.
+> 10. **Language convention:** Preserve the repository's naming syntax (`I` prefix where the language/project uses it); never force `I` or `Interface` markers across languages. — why: semantic purpose is portable, syntax is not.
 >
 > **Mode:** TDD-first → reference existing TCs with `Evidence: TBD`. Implement-first → use TBD → `/spec [mode=tests]` fills after.
 
@@ -689,6 +775,57 @@ After creating all phase files, run **recursive decomposition loop**:
 > **Keep shared guidance role-relevant.** Universal guidance must help every receiving skill or agent; code-specific obligations belong only in code-specific protocols.
 
 <!-- /SYNC:ai-mistake-prevention -->
+
+<!-- SYNC:domain-entity-change-gate -->
+
+> **Domain Entity Change Gate** — ONE protocol binding every skill or agent that PLANS, IMPLEMENTS, or REVIEWS a change touching a domain entity, value object, or aggregate, so a planner, an implementer, and a reviewer apply the SAME rules to the SAME change. `/domain-entities-review` is the canonical owner of the full A–P checklist; this gate is the shared trigger plus the decision set that must be answered. NEVER re-derive a weaker local copy — why: when planning and review disagree on entity rules, the plan ships a design that review then rejects, and the rework is paid twice.
+>
+> **Trigger — fires when ANY holds:** a new entity / value object / aggregate root is introduced · an existing one gains or loses a field, invariant, relationship, or state transition · an aggregate boundary, repository, or cross-aggregate reference changes · a domain event is added, renamed, or re-payloaded · a concurrency or reconstitution concern on a root changes. State `No domain-entity surface — gate N/A` when none holds.
+>
+> **Step 1 — Detect BEFORE deciding.** Both answers change which rules even apply:
+>
+> - **Paradigm** (per aggregate, from the code — NEVER assumed): OO-mutable · type-driven/immutable · event-sourced. Setter, mutability, and reconstitution rules are written for OO-mutable; applying them to the other two manufactures false findings and false plan tasks.
+> - **Subdomain fit:** core (rich model owed) · supporting (Active Record or light model) · generic (buy, do not model) · CRUD (Transaction Script — a rich entity here is ceremony). NEVER plan or flag a rich model where the subdomain has no invariant beyond required-field.
+>
+> **Step 2 — Answer all 6 decision points.** Each is a decision the change MUST make explicitly:
+>
+> | # | Decision point | Answered when |
+> | - | -------------- | ------------- |
+> | 1 | **Classification** — entity vs value object vs aggregate root | The swap test is applied ("would an identical copy be interchangeable?"); a VO is immutable with structural equality and has no repository |
+> | 2 | **Invariant ownership** — entity owns "can this state exist?", the boundary owns "is this input acceptable?" | Each rule is placed on one side and named; failure signalling (throw vs `Result`) matches the project convention consistently; a DB constraint is a backstop, NEVER the rule |
+> | 3 | **Aggregate boundary + concurrency** | Only true always-consistent invariants share an aggregate; cross-aggregate references are by ID; one aggregate mutates per transaction; the ROOT carries the concurrency token; set-based invariants (uniqueness across instances) name a real enforcing mechanism, never an in-memory check |
+> | 4 | **Construction vs reconstitution** | Creation and load are separate paths; the load path raises NO domain events and re-runs NO creation rules; required data sits in the constructor/factory |
+> | 5 | **Events** | Raised inside the aggregate; dispatched AFTER commit (outbox when crossing a process); internal domain events kept distinct from published integration contracts; handlers idempotent |
+> | 6 | **Test obligation** | Every invariant maps to a universally-quantified property TC PLUS a boundary counter-case — the spec NAMES it and a test GUARDS it (Dual-Feedback); a single happy-path example is NOT coverage |
+>
+> **Step 3 — Apply by context.** Same decisions, different obligation:
+>
+> | Calling context | Obligation |
+> | --------------- | ---------- |
+> | **Planning** (`/plan`) | The plan MUST name the decision and the owning file for every triggered row. An unanswered row is a plan that is not executable — surface it, do NOT let implementation discover it. |
+> | **Plan review** (`/plan-review`) | An unanswered, hand-waved, or deferred-to-implementation row is a FINDING with `file:line` into the plan. Presence of the word "entity" is NEVER an answer. |
+> | **Implementation** (`/plan-execute`, `/fix`, and any implementing agent — e.g. `backend-developer`) | The decisions are INPUTS, not questions to reopen: implement each triggered row as the plan/spec decided it, at the owning file it named. A row that arrives UNANSWERED is a blocker — surface it and get it decided; NEVER settle it silently at the keyboard, and NEVER pick an aggregate boundary from a DB table or UI screen because the plan left it open. Paradigm and subdomain fit still gate which rules apply. |
+> | **Change review** (`/changes-review`) | Route to the owner — **Mode A (default):** read `/domain-entities-review`'s Phase 2 A–P checklist and apply it as review lenses. **Mode B (escalation):** delegate to `/domain-entities-review` when standalone AND the diff carries 3+ entity files. Findings enter the normal finding set with `file:line` + severity. |
+>
+> **Duplication guard — SKIP the gate entirely when ANY row holds.** Record the deferral line, then proceed:
+>
+> | Suppressing context | Deferral line |
+> | ------------------- | ------------- |
+> | The running skill IS `/domain-entities-review` | `Gate is this skill's own body — A–P checklist owns it.` |
+> | Invoked inside `/workflow-review-changes` (its step 5 runs `/domain-entities-review` as a dedicated conditional parallel member) | `Gate deferred to workflow step 5 /domain-entities-review.` |
+> | `/why-review` running in `--validate-findings` terminal mode | `Gate N/A — validate-findings is terminal, no sub-skill calls.` |
+>
+> — why: unguarded, this edge duplicates a review the parent workflow already runs and closes a `changes-review → domain-entities-review → why-review → changes-review` cycle.
+>
+> **BLOCKED until:** trigger evaluated (or `gate N/A` recorded) · paradigm + subdomain fit stated · all 6 triggered decision points answered or raised as findings · guard row checked before any delegation.
+
+<!-- /SYNC:domain-entity-change-gate -->
+
+<!-- SYNC:domain-entity-change-gate:reminder -->
+
+**MUST ATTENTION** when the change PLANS or REVIEWS a new/updated domain entity, value object, or aggregate, apply the **Domain Entity Change Gate** — `/domain-entities-review` owns the full A–P checklist; detect paradigm + subdomain fit FIRST, then answer all 6 decision points (classification · invariant ownership + failure signalling · aggregate boundary + concurrency · construction vs reconstitution · events · property-TC test obligation). Planning must NAME each decision; plan review treats an unanswered row as a FINDING; change review routes to the owner (Mode A read / Mode B delegate). SKIP under the 3-row duplication guard and record the deferral line. — why: one protocol shared by planner and reviewer is what stops a plan shipping an entity design that review then rejects.
+
+<!-- /SYNC:domain-entity-change-gate:reminder -->
 
 <!-- SYNC:estimation-framework:reminder -->
 
@@ -772,7 +909,7 @@ After creating all phase files, run **recursive decomposition loop**:
 <!-- SYNC:nested-task-creation:reminder -->
 
 - **MANDATORY** Parent workflow rows do not replace child phase tracking; expand phases and link the parent when nested.
-- **MANDATORY** Orchestrators pre-expand child skill phases before invocation; use `[N.M] $skill-name — phase` prefixes and one-`in_progress` discipline.
+- **MANDATORY** Orchestrators pre-expand child skill phases before invocation; use `[N.M] /skill-name — phase` prefixes and one-`in_progress` discipline.
 
 <!-- /SYNC:nested-task-creation:reminder -->
 
@@ -795,7 +932,7 @@ After creating all phase files, run **recursive decomposition loop**:
 > 6. **Barrier per wave.** Advance ONLY after EVERY member returns (a skipped conditional counts as returned). Merge, mark each task completed/skipped, THEN dispatch the next wave. Mutating steps wait for the barrier.
 > 7. **One level deep.** A dispatched sub-agent executes its own brief; further fan-out stays the orchestrator's job unless that agent's `.claude/agents/*.md` definition authorizes it.
 >
-> **NEVER parallelize:** tasks sharing a write target · a task consuming a pending task's output · trivial single-file work (dispatch overhead > gain) · an order a workflow explicitly fixes · gates awaiting user approval.
+> **NEVER parallelize:** tasks sharing a write target · a task consuming a pending task's output · trivial single-file work (dispatch overhead > gain) · an order a skill or workflow explicitly fixes · gates awaiting user approval.
 >
 > **Blocked until:** MUST ATTENTION every task tagged PAR/SEQ with a named reason per SEQ · waves declared + write-set disjointness checked · each wave spawned in ONE message · barrier honored before the next wave.
 
@@ -808,9 +945,27 @@ After creating all phase files, run **recursive decomposition loop**:
 
 <!-- /SYNC:parallel-subagent-dispatch:reminder -->
 
+<!-- SYNC:project-protocol-overlay -->
+
+> **Project Protocol Overlay** — Before executing this skill, resolve any PROJECT overlay rules layered onto it: match this skill's name against the `Target` column of the project's skill-protocol index (`docs/project-reference/skill-protocols-reference.md` by default; a `referenceDocs` entry in `docs/project-config.json` overrides the path), taking the most specific matching tier ONLY — exact name > glob > `*`. **That precedence orders overlays against EACH OTHER, never against this skill.** Read ONLY the matched bodies, resolved as `<protocols-dir>/<Name>.md`; a row's Body link is display text, never a read path. A matched body that is missing or malformed is REPORTED and skipped — never reconstructed from the index Description. No index, or no match -> proceed with no overlay, silently. Full contract: `.claude/skills/project-skill-protocol/references/registry.md`.
+>
+> Overlays are **ADDITIVE ONLY**: they ADD rules on top of this skill's own protocol and NEVER replace, override, disable, or reinterpret a rule it already states — removing every overlay must return this skill to exactly its documented behavior. An overlay is a BRIEF, not an authority escalation: it can NEVER waive a workflow gate, git discipline, a review gate, or a user-confirmation gate. A genuine overlay-vs-skill conflict, or two equally-specific overlays that directly contradict -> surface both to the user; NEVER resolve silently.
+
+<!-- /SYNC:project-protocol-overlay -->
+
+<!-- SYNC:project-protocol-overlay:reminder -->
+
+**MUST ATTENTION** resolve project protocol overlays for this skill BEFORE executing — most specific matching tier only (exact > glob > `*`, which ranks overlays against each other, NEVER against this skill), read only matched bodies at `<protocols-dir>/<Name>.md`; a missing or malformed body is reported, never reconstructed. Overlays are ADDITIVE ONLY (they never replace this skill's own rules) and are a brief, NEVER an authority escalation; an equal-specificity contradiction goes to the user.
+
+<!-- /SYNC:project-protocol-overlay:reminder -->
+
 ## Closing Reminders
 
-**IMPORTANT MUST ATTENTION Goal:** deliver a validated, implementation-ready plan — every phase startable immediately (exact file paths, zero open decisions, mapped TC IDs) — so coding runs without rework at minimum future change cost.
+**IMPORTANT MUST ATTENTION Goal:** Research the codebase and collaborate with the user to deliver a validated, implementation-ready phased plan — every phase startable immediately (exact file paths, zero open decisions, mapped TC IDs) — so coding proceeds without rework at minimum future change cost.
+
+**IMPORTANT MUST ATTENTION Main steps:** pre-check active/suggested plan + applicability → bootstrap Goal Contract → one `researcher` wave + barrier → project-reference/codebase/pattern analysis + convention alignment → run New Tech/Lib and conditional Domain Entity gates → planner authors plan/phases → tag PAR/SEQ write sets + `## Execution Waves` → granularity self-check → Test Specs → `/plan-validate` → `/plan-review` → standalone `/why-review` → re-estimate → `AskUserQuestion` approval/handoff.
+
+**IMPORTANT MUST ATTENTION Applicability:** a plan is not ready to cook until its `## Plan Gate` proves the applicable branch: complete embedded decomposition and slice evidence, one approved explicit roadmap outcome, complete framework technical evidence, or complete EXEMPT scope. Every branch still needs explicit non-goals, scenario coverage where applicable, known skeleton/commands, redacted evidence, and human approval; missing product intent is BLOCKED, never silently inferred.
 
 **Protocols in force (concise digest of the SYNC/shared blocks this skill carries):**
 
@@ -818,6 +973,7 @@ After creating all phase files, run **recursive decomposition loop**:
 - **Preservation Inventory:** bugfix plans tabulate invariants with `file:line` + verification.
 - **Nested Task Creation:** child skills expand visible phase tasks; link parent when nested.
 - **Project Reference Docs Guide:** ALWAYS read required project docs before target work.
+- **Conditional Project Pattern Alignment:** always use `code-review-rules.md`; add frontend/backend pattern references only when the plan scope triggers them; cite source examples when implementation exists and record explicit N/A/scarcity evidence otherwise.
 - **Task Tracking & External Report:** bootstrap tasks; persist findings to `plans/reports/`.
 - **Critical Thinking:** every claim needs traced proof; confidence >80% to act.
 - **Sequential Thinking:** multi-step Thought N/M with REVISION/BRANCH/HYPOTHESIS markers.
@@ -834,6 +990,7 @@ After creating all phase files, run **recursive decomposition loop**:
 **IMPORTANT MUST ATTENTION** default mode HARD — opt out to fast mode ONLY when ALL trivial-task conditions hold — why: skipping rigor on a non-trivial task costs more rework than rigor saves.
 **MANDATORY IMPORTANT MUST ATTENTION** break work into small todo tasks via `TaskCreate` BEFORE starting; add a final review todo; on context loss call `TaskList` first — never duplicate tasks.
 **MANDATORY IMPORTANT MUST ATTENTION** bootstrap the Goal Contract (`goal.md` from `goal-contract-template.md`) BEFORE investigation; every phase success criterion maps to a saved goal criterion. Redact secrets.
+- **MANDATORY IMPORTANT MUST ATTENTION** resolve the Applicability Preflight before Goal Contract/research and persist the exact branch-specific `## Plan Gate` in `plan.md`; downstream review/validation cannot waive a missing upstream artifact or owner approval.
 **MANDATORY IMPORTANT MUST ATTENTION** validate decisions with user via `AskUserQuestion` — NEVER auto-decide because a task seems "obvious"; the user decides the next step.
 **MANDATORY IMPORTANT MUST ATTENTION** every phase passes the 5-point granularity check ("Can I start coding RIGHT NOW?") — failing phases → sub-plan (max depth 3).
 **MANDATORY IMPORTANT MUST ATTENTION** detect new tech/lib not in project → `TaskCreate` per lib → WebSearch top 3 → compare → recommend with confidence % → `AskUserQuestion` — why: an unvetted dependency is an irreversible decision exposed too early.
@@ -842,10 +999,10 @@ After creating all phase files, run **recursive decomposition loop**:
 **MANDATORY IMPORTANT MUST ATTENTION** for `.claude` skills/hooks/workflows/sync work, plans MUST include generated-mirror sync action or explicit no-sync evidence — why: a silently stale mirror diverges from source.
 **MANDATORY IMPORTANT MUST ATTENTION** NEVER skip `/plan-review` after plan creation — run it standalone or as the workflow step; standalone `/plan` also appends `/changes-review` as a final task.
 **IMPORTANT MUST ATTENTION** search 3+ existing patterns and read target code BEFORE planning; cite `file:line`; run graph trace when `.code-graph/graph.db` exists — why: local conventions override generic framework defaults.
-**MANDATORY IMPORTANT MUST ATTENTION** run the full main pipeline in order — pre-check plan → bootstrap `goal.md` → ONE research wave (`researcher` + `scout` in one message) → barrier → codebase + project-reference analysis (scout if docs absent) → `planner` writes `plan.md` + `phase-XX` → parallelism pass (PAR/SEQ + write sets + `## Execution Waves`) → granularity self-check → mandatory final tasks; NEVER skip a step because it seems obvious — why: the skipped step (Goal Contract, granularity, test specs) is the one AI silently drops.
+**MANDATORY IMPORTANT MUST ATTENTION** run the full main pipeline in order — pre-check plan → bootstrap `goal.md` → ONE research wave (`researcher` + `investigate` in one message) → barrier → codebase + conditional pattern-doc analysis → convention matrix → `planner` writes `plan.md` + `phase-XX` → parallelism pass (PAR/SEQ + write sets + `## Execution Waves`) → granularity self-check → mandatory final tasks; NEVER skip a triggered pattern doc or silently require a nonexistent example-code file — why: the skipped reference or invented convention is the one AI silently drops.
 **MANDATORY IMPORTANT MUST ATTENTION** dispatch the research threads as ONE wave in ONE message (declare `Parallel plan:` first, one report path per agent) and synthesize only after EVERY member returns — why: dripping researchers one per turn serializes the cheapest-to-parallelize half of planning.
 **MANDATORY IMPORTANT MUST ATTENTION** the emitted plan MUST carry parallelism metadata — every phase tagged `PAR`/`SEQ`, its write set declared, every `SEQ` naming the exact artifact it waits on, and `## Execution Waves` in `plan.md` — why: `/plan-execute` fans out only on what the plan declares, so an untagged plan silently forces sequential execution.
-**MANDATORY IMPORTANT MUST ATTENTION** queue the final-task block on EVERY plan — Test Specs per phase → `/plan-validate` → `/plan-review` (3-round) → `/why-review` (standalone only) → re-estimate vs finalized phases (flag `SHOULD-RESCOPE` when delta >50%).
+**MANDATORY IMPORTANT MUST ATTENTION** queue the final-task block on EVERY plan — Test Specs per phase → `/plan-validate` → `/plan-review` (convergence loop, 3-round ceiling — a clean pass ends it at any round) → `/why-review` (standalone only) → re-estimate vs finalized phases (flag `SHOULD-RESCOPE` when delta >50%).
 **IMPORTANT MUST ATTENTION** `--mode={ci|cro}` only ADDS a domain reference load (`references/mode-ci.md` / `mode-cro.md`) + intake on top of the SAME engine, gate, and `planner` agent — default (no flag) runs the standard flow byte-for-byte; NEVER let a mode replace the engine or skip `/plan-review`.
 
 **Anti-Rationalization:**

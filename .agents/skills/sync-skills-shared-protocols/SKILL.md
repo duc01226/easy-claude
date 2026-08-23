@@ -44,9 +44,13 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 
 **Goal:** Two operations — (A) propagate updated content for existing SYNC: blocks across all skills, or (B) add a new SYNC: block to all skill/agent files that don't have it yet.
 
-> **Renamed:** formerly `/sync-protocols` — that name no longer resolves as a slash command; use `$sync-skills-shared-protocols`.
+**Summary:** Use `$sync-skills-shared-protocols` for Operation A (update existing blocks) or Operation B (add a new tiered block); `/sync-protocols` no longer resolves.
 
 **Canonical source:** `.claude/skills/shared/sync-inline-versions.md`
+
+**Key Rules:** Edit the canonical source first; change only SYNC block bodies; preserve `:reminder` blocks unless asked; use the script for bulk insertion; verify balance, parity, and the computed target inventory.
+
+**Workflow:** Choose Operation A or B → follow its canonical-source and target-inventory steps → verify before reporting.
 
 ## Workflow
 
@@ -109,9 +113,15 @@ Report:
 
 ---
 
-### Operation B: Add a New Block to All Files
+### Operation B: Add a New Tiered Block
 
-Use when a NEW SYNC: block needs to be inserted into all 183 skill/agent files that don't have it yet. This is a bulk-insert operation — not a content-update.
+Use when a NEW SYNC: block needs tiered propagation. Derive the on-disk target inventory at runtime; never copy a fixed skill or agent count into this contract.
+
+- `SKILL_BLOCK_ORDER` is the base tier for every skill.
+- `ORCHESTRATOR_SKILL_BLOCK_ORDER` extends that base only for skills in `ORCHESTRATOR_SKILLS`.
+- Agent tiers remain independently governed by the injector's explicit agent sets.
+
+This is a bulk-insert operation, not a content update. Verify the computed target set before writing so orchestration-only rules never leak into every skill.
 
 **When to use:** A new protocol rule is added to `.claude/skills/shared/sync-inline-versions.md` and should appear in static carriers (`CLAUDE.md`, `AGENTS.md`, Codex, skills, and agents).
 
@@ -191,7 +201,7 @@ READONLY_CODE_BLOCK_ORDER = CORE_BLOCK_ORDER + ["understand-code-first", "eviden
 **Agent tiering:** agents no longer share one block list. `find_target_files()` classifies each `.claude/agents/*.md` by explicit membership in one of three sets:
 
 - `CODE_AGENTS` (17 code/review/fix agents → `CODE_BLOCK_ORDER`, Code-10).
-- `READONLY_CODE_AGENTS` (4 read-only/design agents — `researcher`, `scout`, `scout-external`, `ui-ux-designer` → `READONLY_CODE_BLOCK_ORDER`, Core-6 + understand-code-first + evidence-based-reasoning; the mutation-oriented `cross-service-check` + `fix-layer-accountability` are deliberately excluded to save tokens on agents that only locate/read/design code).
+- `READONLY_CODE_AGENTS` (2 read-only/design agents — `researcher`, `ui-ux-designer` → `READONLY_CODE_BLOCK_ORDER`, Core-6 + understand-code-first + evidence-based-reasoning; the mutation-oriented `cross-service-check` + `fix-layer-accountability` are deliberately excluded to save tokens on agents that only locate/read/design code).
 - `CORE_ONLY_AGENTS` (8 non-code agents → `CORE_BLOCK_ORDER`, Core-6).
 
 An agent in **none of the three sets (or in more than one)** raises `SystemExit` — no silent default; classify it before the script will run. Skills always use `SKILL_BLOCK_ORDER`. Pass `--agents-only` to scope a run to agents (skip skills).
@@ -216,7 +226,7 @@ python .claude/scripts/sync-hooks-to-skills.py --dry-run --verbose
 # Verify: expected N updated, 0 errors
 
 python .claude/scripts/sync-hooks-to-skills.py --verbose
-# Verify: 183 updated (or close — some may already have it → skip)
+# Verify: the computed on-disk tier inventory was processed; already-current targets skip
 ```
 
 #### Step B4: Verify
@@ -225,17 +235,17 @@ python .claude/scripts/sync-hooks-to-skills.py --verbose
 # Confirm target files now contain the new block. Expected count is TIER-AWARE.
 # The skill tier and the agent tiers are INDEPENDENT lists — a block reaches
 # agents only if it is ALSO in an agent tier, so union the rows that apply:
-#   - block in SKILL_BLOCK_ORDER ONLY     → all 163 skills, 0 agents
+#   - block in SKILL_BLOCK_ORDER ONLY     → every discovered skill, 0 agents
 #                                           (skill-only ⇒ must be declared in BOTH
 #                                            exemption lists — see "Skill-only blocks")
-#   - block in SKILL_BLOCK_ORDER + CORE   → all 163 skills + all 29 agents
-#   - block in CORE_BLOCK_ORDER           → all 29 agents (skills excluded)
+#   - block in SKILL_BLOCK_ORDER + CORE   → every discovered skill + every discovered agent
+#   - block in CORE_BLOCK_ORDER           → every discovered agent (skills excluded)
 #   - block in READONLY_CODE_BLOCK_ORDER  → 21 agents (17 code + 4 readonly-code)
 #   - block in CODE_BLOCK_ORDER           → 17 code agents only
 grep -rl "SYNC:new-block-name" .claude/skills/*/SKILL.md .claude/agents/*.md | wc -l
 
 # Then run the agent-coverage regression suite — it asserts tier membership,
-# disjointness, and SYNC tag balance across all 29 agents.
+# disjointness, and SYNC tag balance across the discovered agent inventory.
 node .claude/hooks/tests/run-all-tests.cjs --filter=agent-universal
 ```
 
@@ -311,7 +321,25 @@ $sync-skills-shared-protocols                            # Interactive — asks 
 
 <!-- /SYNC:ai-mistake-prevention:reminder -->
 
+<!-- SYNC:project-protocol-overlay -->
+
+> **Project Protocol Overlay** — Before executing this skill, resolve any PROJECT overlay rules layered onto it: match this skill's name against the `Target` column of the project's skill-protocol index (`docs/project-reference/skill-protocols-reference.md` by default; a `referenceDocs` entry in `docs/project-config.json` overrides the path), taking the most specific matching tier ONLY — exact name > glob > `*`. **That precedence orders overlays against EACH OTHER, never against this skill.** Read ONLY the matched bodies, resolved as `<protocols-dir>/<Name>.md`; a row's Body link is display text, never a read path. A matched body that is missing or malformed is REPORTED and skipped — never reconstructed from the index Description. No index, or no match -> proceed with no overlay, silently. Full contract: `.claude/skills/project-skill-protocol/references/registry.md`.
+>
+> Overlays are **ADDITIVE ONLY**: they ADD rules on top of this skill's own protocol and NEVER replace, override, disable, or reinterpret a rule it already states — removing every overlay must return this skill to exactly its documented behavior. An overlay is a BRIEF, not an authority escalation: it can NEVER waive a workflow gate, git discipline, a review gate, or a user-confirmation gate. A genuine overlay-vs-skill conflict, or two equally-specific overlays that directly contradict -> surface both to the user; NEVER resolve silently.
+
+<!-- /SYNC:project-protocol-overlay -->
+
+<!-- SYNC:project-protocol-overlay:reminder -->
+
+**MUST ATTENTION** resolve project protocol overlays for this skill BEFORE executing — most specific matching tier only (exact > glob > `*`, which ranks overlays against each other, NEVER against this skill), read only matched bodies at `<protocols-dir>/<Name>.md`; a missing or malformed body is reported, never reconstructed. Overlays are ADDITIVE ONLY (they never replace this skill's own rules) and are a brief, NEVER an authority escalation; an equal-specificity contradiction goes to the user.
+
+<!-- /SYNC:project-protocol-overlay:reminder -->
+
 ## Closing Reminders
+
+**IMPORTANT MUST ATTENTION Goal:** Two operations — (A) propagate updated content for existing SYNC: blocks across all skills, or (B) add a new SYNC: block to all skill/agent files that don't have it yet.
+
+**IMPORTANT MUST ATTENTION Workflow:** Operation A: identify tag(s) → read canonical content → find targets → replace only block bodies → verify balance/parity/outside-block diff → handle reminders as separately requested; Operation B: edit canonical → update inserter tiers → dry-run → run → verify tier coverage and balance → report tags/files/errors.
 
 **Protocols in force (concise digest of the SYNC/shared blocks this skill carries):**
 
@@ -340,7 +368,7 @@ Source: `.claude/.ck.json` + `.claude/skills/shared/sync-inline-versions.md` (`:
 3. **AUTO-SELECT:** Pick the best option yourself. Do not ask the user to choose between direct execution, skill, standard workflow, or custom workflow.
 4. **ACTIVATE:** For a selected workflow, call `$start-workflow <workflowId>`; for a selected skill, invoke that skill; for a custom workflow, sequence custom steps directly; for direct execution, proceed with the task.
 5. **CREATE TASKS:** task tracking for ALL workflow/skill/custom steps before execution when the selected path has multiple steps.
-6. **PARALLELIZE:** Before executing the task list, tag each task `PAR` (independent inputs + write set disjoint from every other `PAR` task) or `SEQ` (name the blocking dependency), group `PAR` tasks into waves, declare the wave plan, and spawn each wave's sub-agents in ONE message — all-return barrier per wave, fan-out one level deep unless a sub-agent's own definition authorizes further fan-out. Sequential-by-default is a defect when tasks are independent; do not parallelize shared write targets, output-consuming tasks, trivial single-file work, workflow-fixed ordering, or user-approval gates.
+6. **PARALLELIZE:** Before executing the task list, tag each task `PAR` (independent inputs + write set disjoint from every other `PAR` task) or `SEQ` (name the blocking dependency), group `PAR` tasks into waves, declare the wave plan, and spawn each wave's sub-agents in ONE message — all-return barrier per wave, fan-out one level deep unless a sub-agent's own definition authorizes further fan-out. Sequential-by-default is a defect when tasks are independent; do not parallelize shared write targets, output-consuming tasks, trivial single-file work, ordering a skill or workflow explicitly fixes, or user-approval gates.
 7. **EXECUTE:** Advance per the **Workflow Step Advancement & Parallel Phases** rule in your context instructions — model-driven; a sub-agent completion advances a step identically to an inline call; a parallel-phase group is an all-return barrier (advance only after ALL members return, never serialize it)
 ## Shared AI-SDD Protocol Markers
 
@@ -402,7 +430,7 @@ Break work into small tasks (task tracking) before starting. Add final task: "An
 - **Sub-agents inherit knowledge only from their agent .md definition — use custom agent types, not built-in Explore.** Tool adoption = permission + knowledge + enforcement (numbered workflow step).
 - **Persist sub-agent findings incrementally, not as a final batch.** Long sub-agents hit cutoffs before final write — findings lost. Instruct append-per-section to report file.
 - **When debugging, ask "whose responsibility?" before fixing.** Trace caller (wrong data) vs callee (wrong handling). Fix at responsible layer — never patch symptom site.
-- **Test failure → adjudicate WHO is at fault (source vs test) before forcing green.** A green-again suite is not the goal; the correct verdict on what was actually wrong is. Root-cause first, then triangulate the failure against the governing spec (`docs/specs/**` if one exists) AND the source: SOURCE-WRONG → fix code at the owning layer and keep/strengthen the test; TEST-WRONG → fix the stale assertion/setup at its root. NEVER weaken an assertion, add a skip, or relax a timeout to force green, and never change source to satisfy a broken test. Spec silent or ambiguous about which side is correct → STOP and ask the user.
+- **Test failure → record a provisional verdict before trace/edit, then investigate.** Use the full five-way taxonomy: SOURCE-WRONG (production violates intent), TEST-WRONG (assertion/setup is stale), TEST-NOT-OPTIMAL (valid but fragile or low-signal test), ENVIRONMENT-BLOCKED (external state prevents a verdict), or AMBIGUOUS (intent/evidence cannot choose safely). Then trace root cause and triangulate against the governing spec (`docs/specs/**` if one exists) AND source. NEVER weaken an assertion, add a skip, relax a timeout, or change source merely to force green.
 - **Grep ALL removed names after extraction/refactoring.** Primary file "done" ≠ secondary files clean. Grep entire scope for every removed symbol before declaring complete.
 - **Assume existing values are intentional — ask WHY before changing OR flagging one as a defect.** Pattern-matching as "wrong" skips context. Before changing or reporting any constant/limit/flag/cutoff: read comments, git blame, the CALLER's ordering (the guarantee that makes the value correct usually lives in code running immediately BEFORE the cited line), and 2+ sibling call sites of the same convention. A doc stating WHAT without WHY is missing rationale, not proof of a missing guard — and in a validation pass, an accurate `file:line` citation proves the transcription, never the defect.
 - **Verify ALL affected outputs, not just the first.** One build green ≠ all green. Multi-stack changes (backend/frontend/tests/docs) require verifying EVERY output.

@@ -1,7 +1,7 @@
 ---
 name: brainstorm
 version: 2.0.0
-description: '[Content] Use when you need to brainstorm as a PO/BA — structured ideation for problem-solving, new product creation, or feature enhancement.'
+description: '[Content] Use when you need to brainstorm as a PO/BA — structured ideation for problem-solving, new product creation, feature enhancement, or outcome-roadmap framing. Flag: --mode={roadmap|scope}.'
 disable-model-invocation: false
 ---
 
@@ -25,6 +25,8 @@ disable-model-invocation: false
 - Strictly separate diverge (Phases 1 & 3 — generate, "Yes, and…", zero judgment) from converge (Phases 2 & 4 — narrow, RICE/Kano/MoSCoW scoring); mixing the two modes is the Golden Rule violation that kills idea output.
 - Never stop at a raw or flat idea list: every top-3 candidate MUST carry a problem + value hypothesis card, an identified riskiest assumption (RAT), and the single cheapest validation test designed before any build commitment.
 - Close with an opinionated decision (Phase 6 — recommend ONE option with trade-offs, not a menu), every claim evidence-backed at >80% confidence, then offer handoff via `AskUserQuestion` to `/idea`, `/refine`, `/plan`, etc. — EXCEPT in **Multi-Opportunity Discovery mode**, where convergence RANKS the opportunity map (3–8 RICE-scored items) and hands off via multi-select to a per-opportunity PBI loop instead of picking ONE winner.
+- Apply the shared `isLargeIdea` rule during convergence. For any true signal, capture one complete `large_idea_decomposition` block in the owning idea/PBI/spec handoff: ordered releasable slices, dependency order, non-goals, risk/evidence owners, and deferred-work owners. This is embedded scope context; it does not create `docs/product-roadmap.md`.
+- If `--mode=roadmap`, frame product outcomes and milestone choices, then hand off to `/product-roadmap`; this explicit mode may create/update `docs/product-roadmap.md` and does not choose implementation. If `--mode=scope`, resolve and amend the selected stable scope brief in place, then stop before scenario/plan work.
 
 **Four Scenarios:**
 
@@ -49,6 +51,31 @@ Discover ──► Define               Develop ──► Deliver
 **Be skeptical. Apply critical thinking. Every idea needs a testable hypothesis. Confidence >80% required before recommending.**
 
 ---
+
+## Roadmap and Scope Modes
+
+Resolve the flag before Phase 0:
+
+| Mode | Purpose | Output / stop condition |
+| --- | --- | --- |
+| `--mode=roadmap` | Product-level framing for a broad vision or new product | Outcome hypothesis, actors, risks, 3–8 milestone candidates, non-goals, decisions, and evidence proposals; hand off to `/product-roadmap` to write/approve `docs/product-roadmap.md`; no code, framework, schema, or timeline |
+| `--mode=scope` | Clarify one selected roadmap milestone | Amend the exact selected `plans/{plan-id}/scope-brief.md` with in-scope behavior, non-goals, terms, source of truth, risks, decisions, and evidence; stop before `/scenario`/`/plan` |
+| default | Standard Double Diamond ideation | Existing idea shortlist or multi-opportunity map flow below |
+
+`--mode=roadmap` is not a shortcut around owner approval. Use `AskUserQuestion` for milestone boundaries and lifecycle terms. The product-roadmap skill owns the canonical artifact and selection gate; this mode supplies structured framing to it.
+
+`--mode=scope` MUST resolve the existing scope-brief path from the product-roadmap handoff, `$ARGUMENTS`, or active plan context, then amend that file in place. If no stable `plans/{plan-id}/scope-brief.md` is available, stop and route to `/product-roadmap`; never create a competing scope brief or write one under `plans/reports/`.
+
+For the default mode, do not route to `--mode=roadmap` merely because the idea is broad. Evaluate:
+
+```text
+isLargeIdea = multipleIndependentOutcomes
+            || ambiguousOrResearchHeavy
+            || releaseScopeDecomposition
+            || oversizedPbiThatMustSplit
+```
+
+When true, the brainstorm handoff owns this portable block and downstream skills consume it read-only. When all four signals are false, omit the block and all roadmap/milestone placeholders. An existing roadmap is context only unless the user explicitly chose `--mode=roadmap`.
 
 ## Answer this question:
 
@@ -877,9 +904,27 @@ After brainstorm session concludes, use `AskUserQuestion` to present next steps:
 
 <!-- PROMPT-ENHANCE:STEP-TASK-CLOSING:END -->
 
+<!-- SYNC:project-protocol-overlay -->
+
+> **Project Protocol Overlay** — Before executing this skill, resolve any PROJECT overlay rules layered onto it: match this skill's name against the `Target` column of the project's skill-protocol index (`docs/project-reference/skill-protocols-reference.md` by default; a `referenceDocs` entry in `docs/project-config.json` overrides the path), taking the most specific matching tier ONLY — exact name > glob > `*`. **That precedence orders overlays against EACH OTHER, never against this skill.** Read ONLY the matched bodies, resolved as `<protocols-dir>/<Name>.md`; a row's Body link is display text, never a read path. A matched body that is missing or malformed is REPORTED and skipped — never reconstructed from the index Description. No index, or no match -> proceed with no overlay, silently. Full contract: `.claude/skills/project-skill-protocol/references/registry.md`.
+>
+> Overlays are **ADDITIVE ONLY**: they ADD rules on top of this skill's own protocol and NEVER replace, override, disable, or reinterpret a rule it already states — removing every overlay must return this skill to exactly its documented behavior. An overlay is a BRIEF, not an authority escalation: it can NEVER waive a workflow gate, git discipline, a review gate, or a user-confirmation gate. A genuine overlay-vs-skill conflict, or two equally-specific overlays that directly contradict -> surface both to the user; NEVER resolve silently.
+
+<!-- /SYNC:project-protocol-overlay -->
+
+<!-- SYNC:project-protocol-overlay:reminder -->
+
+**MUST ATTENTION** resolve project protocol overlays for this skill BEFORE executing — most specific matching tier only (exact > glob > `*`, which ranks overlays against each other, NEVER against this skill), read only matched bodies at `<protocols-dir>/<Name>.md`; a missing or malformed body is reported, never reconstructed. Overlays are ADDITIVE ONLY (they never replace this skill's own rules) and are a brief, NEVER an authority escalation; an equal-specificity contradiction goes to the user.
+
+<!-- /SYNC:project-protocol-overlay:reminder -->
+
 ## Closing Reminders
 
 - **IMPORTANT MUST ATTENTION Goal:** Deliver a scored, ranked shortlist of 3-5 candidate ideas — each carrying a problem + value hypothesis, an identified riskiest assumption, and the cheapest validation test designed — so the team commits to the right problem AND the right solution before building, never to a flat unvalidated idea list.
+- **IMPORTANT MUST ATTENTION Main steps:** detect scenario/role → frame the problem → frame opportunities → diverge ideas → converge and score → validate hypotheses → decide or rank the opportunity map → document and hand off.
+- **IMPORTANT MUST ATTENTION Roadmap mode:** `--mode=roadmap` is explicit-only; it frames outcome-based milestones, risks, non-goals, human decisions, and evidence, then hands off to `/product-roadmap`; it does not choose technology or implementation.
+- **IMPORTANT MUST ATTENTION Embedded decomposition:** when any shared `isLargeIdea` signal is true, write the complete five-field `large_idea_decomposition` block in the owning handoff and carry its stable slice IDs into PBIs, stories, mock-ups, and the all-PBI presentation; do not create a default roadmap file.
+- **IMPORTANT MUST ATTENTION Scope mode:** `--mode=scope` resolves and amends exactly one approved `plans/{plan-id}/scope-brief.md` in place, then stops before `/scenario` or `/plan`; it never creates a competing brief.
 - **IMPORTANT MUST ATTENTION Main steps (run in order, track each):** P0 Session Setup (detect scenario + role + known) → P1 Problem Framing/diverge (POV → 5 Whys/Fishbone → JTBD → HMW) → P2 Opportunity Framing/converge (OST / Lean Canvas / ERRC / Value-Prop) → P3 Ideation/diverge (SCAMPER → Crazy 8s → Brainwriting → Impact Map → Analogy, 25–40 ideas) → P4 Evaluation/converge (Dot Vote → RICE → Kano → 2×2 → MoSCoW, shortlist 3–5) → P5 Hypothesis Validation (Problem + Value card + RAT + cheapest test + Build-Measure-Learn) → P6 Decision (ONE recommendation) → P7 Documentation & Handoff — why: the skill's own phases are the steps AI most often forgets; re-anchor to them before each phase.
 
 **Protocols in force (concise digest of the SYNC/shared blocks this skill carries):**

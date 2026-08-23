@@ -22,7 +22,7 @@ description: '[Documentation] Use when you need to generate a step-by-step demo 
 1. **RESOLVE scope** — prompt → current working context → `AskUserQuestion`. NEVER invent the feature silently.
 2. **LOAD the contract** (`references/demo-guide-template.md`) and **SIZE the target into a tier S0–S4**; announce both in one line.
 3. **DECOMPOSE into story groups** (≥2 from tier S2) and **BREAK THE WORK INTO TASKS before the first deep read** — `TaskList` first; a group task completes only when its block is **on disk**.
-4. **[BLOCKING GATE] UNDERSTAND the feature** — clear the 6-question comprehension bar with `file:line` each, **delegating to read-only investigation skills** (`/scout`, `/investigate`, `/debug-investigate`, `/graph-trace`, `/spec-index`) when a direct read cannot answer one. No demo step is written before this gate clears.
+4. **[BLOCKING GATE] UNDERSTAND the feature** — clear the 6-question comprehension bar with `file:line` each, **delegating to read-only investigation skills** (`/investigate`, `/debug-investigate`, `/graph-trace`, `/spec-index`) when a direct read cannot answer one. No demo step is written before this gate clears.
 5. **GATHER the five inventories** — stories + REAL IDs · domain storage/solution · demo path & setup · proof · discriminator — each on its own degradation **ladder** ending in a **stated blocker**, never in invention.
 6. **MAP story → cases** and persist the map before writing.
 7. **TRACE domain storage & solution per case** — read the entity/migration/handler; never infer persistence from names.
@@ -137,7 +137,7 @@ State the resolved scope and its source in one line (e.g. `Scope: <feature> — 
 
 | The gate needs…                                                        | Invoke                              | Feeds                                        |
 | ---------------------------------------------------------------------- | ----------------------------------- | -------------------------------------------- |
-| Where the feature's files even are, across a large or unfamiliar repo  | `/scout`                            | Step 0.4 group decomposition + file lists    |
+| Where the feature's files even are, across a large or unfamiliar repo  | `/investigate`                            | Step 0.4 group decomposition + file lists    |
 | How the existing feature actually works, beyond what one read shows    | `/investigate`                      | Bar Q1 · Q3 · Q4 → the storage/solution block |
 | Why a fixed defect now behaves differently (bug-fix demo)              | `/debug-investigate`                | Bar Q1's before → after discriminator        |
 | The call/flow chain and which read path renders the outcome            | `/graph-trace` · `/graph-blast-radius` | Bar Q3 · the "where to look" demo step     |
@@ -258,7 +258,7 @@ Block or file absent → degrade gracefully: default `outputDir` to the project'
 ## Integration with Other Skills
 
 - **`/understand`** — reuse its Purpose→How→Why framing for the "how the domain solves the feature" explanation. ⚠️ **Boundary — decide by audience, not by overlap:** `/understand` §11 *Test & Demo* is **reviewer-facing** — how to run and see the change you are about to review, scoped to that change. This skill is **presenter-facing** — a standalone, stakeholder-ready script that walks a room through a whole feature. The per-case block is deliberately the same shape in both so they converge instead of drifting; showing finished work to people → here, preparing to review it → `/understand`.
-- **`/investigate`** / **`/scout`** / **`/debug-investigate`** / **`/graph-trace`** — the Step 1 gate's read-only gather delegates. Their output is INPUT, re-verified at `file:line`; they never author a case block.
+- **`/investigate`** / **`/debug-investigate`** / **`/graph-trace`** — the Step 1 gate's read-only gather delegates. Their output is INPUT, re-verified at `file:line`; they never author a case block.
 - **`/spec`** — the canonical source of user stories + `TC-*` IDs when the project maintains feature specs. **A business `TC-*` and a demo case are the SAME event for two audiences** — the spec states it as intent, this guide stages it for a room. So they converge by construction: reuse the TC's demo flow and expected result rather than re-deriving them, and **cite the `TC-*` ID per case** so the two cannot drift apart. ⚠️ **A `TC-*` you cannot stage as a live demo is a finding, not a formatting problem** — it means a non-demoable (technical) case reached the business spec, which violates **M7**. Report it; do NOT invent a demo to cover for it.
 - **`/release-doc`** / **`/changelog`** — sibling generators; `demo-guide` is presenter-facing (how to show it), they are change-facing (what changed).
 - **`/commit`** — commit the generated guide when the user wants it version-controlled.
@@ -313,7 +313,7 @@ Block or file absent → degrade gracefully: default `outputDir` to the project'
 >
 > | Task                | Minimum Graph Action                         |
 > | ------------------- | -------------------------------------------- |
-> | Investigation/Scout | `trace --direction both` on 2-3 entry files  |
+> | Investigation | `trace --direction both` on 2-3 entry files  |
 > | Fix/Debug           | `callers_of` on buggy function + `tests_for` |
 > | Feature/Enhancement | `connections` on files to be modified        |
 > | Code Review         | `tests_for` on changed functions             |
@@ -409,9 +409,46 @@ Block or file absent → degrade gracefully: default `outputDir` to the project'
 
 <!-- /SYNC:output-quality-principles:reminder -->
 
+<!-- SYNC:parallel-subagent-dispatch -->
+
+> **Parallel Sub-Agent Dispatch** — Plan parallelism the moment a task breakdown exists, BEFORE executing it — running provably independent tasks sequentially wastes wall-clock. Applies to every multi-step job: workflow steps, planning, batch updates, investigation, research, scans, reviews, doc sync. **Plan execution is metadata-gated, NEVER default-parallel** — fan-out follows ONLY what the plan declares (`PAR`/`SEQ` tags + per-phase write set); an untagged plan runs sequentially — why: a derived write set cannot see cascade or generated writes.
+>
+> 1. **Tag every task `PAR` or `SEQ`.** `PAR` = inputs exclude every pending task's output AND write set disjoint from every other `PAR`. Else `SEQ` — MUST ATTENTION name the dependency forcing it.
+> 2. **Group `PAR` into waves.** No edge between members. Two writers of one file NEVER share a wave. Read-only work (search, investigation, review, research) parallelizes freely.
+> 3. **Declare before dispatch:** `Parallel plan: wave 1 = [...] · wave 2 = [...] · SEQ = [...] (reason)`.
+> 4. **Spawn each wave in ONE message** — every `Agent` call in one response, NEVER dripped per turn. Route each task to its specialist (`.claude/skills/shared/sub-agent-selection-guide.md`); NEVER `code-reviewer` as catch-all.
+> 5. **Brief each sub-agent self-contained:** goal · scope + owned files · reference docs · return contract (summary + `Full report:` path, per SYNC:subagent-return-contract) · incremental persistence to `plans/reports/` (per SYNC:incremental-persistence).
+> 6. **Barrier per wave.** Advance ONLY after EVERY member returns (a skipped conditional counts as returned). Merge, mark each task completed/skipped, THEN dispatch the next wave. Mutating steps wait for the barrier.
+> 7. **One level deep.** A dispatched sub-agent executes its own brief; further fan-out stays the orchestrator's job unless that agent's `.claude/agents/*.md` definition authorizes it.
+>
+> **NEVER parallelize:** tasks sharing a write target · a task consuming a pending task's output · trivial single-file work (dispatch overhead > gain) · an order a skill or workflow explicitly fixes · gates awaiting user approval.
+>
+> **Blocked until:** MUST ATTENTION every task tagged PAR/SEQ with a named reason per SEQ · waves declared + write-set disjointness checked · each wave spawned in ONE message · barrier honored before the next wave.
+
+<!-- /SYNC:parallel-subagent-dispatch -->
+
+<!-- SYNC:parallel-subagent-dispatch:reminder -->
+- **MANDATORY** After planning tasks, tag each PAR/SEQ and spawn every PAR wave as parallel sub-agents in ONE message — default parallel for workflows, batch updates, investigation, research, reviews; plan execution fans out ONLY on what the plan declares.
+- **MANDATORY** Disjoint write sets per wave · all-return barrier before the next wave · specialist routing · sub-agents NEVER fan out further unless their own agent definition authorizes it.
+<!-- /SYNC:parallel-subagent-dispatch:reminder -->
+
+<!-- SYNC:project-protocol-overlay -->
+
+> **Project Protocol Overlay** — Before executing this skill, resolve any PROJECT overlay rules layered onto it: match this skill's name against the `Target` column of the project's skill-protocol index (`docs/project-reference/skill-protocols-reference.md` by default; a `referenceDocs` entry in `docs/project-config.json` overrides the path), taking the most specific matching tier ONLY — exact name > glob > `*`. **That precedence orders overlays against EACH OTHER, never against this skill.** Read ONLY the matched bodies, resolved as `<protocols-dir>/<Name>.md`; a row's Body link is display text, never a read path. A matched body that is missing or malformed is REPORTED and skipped — never reconstructed from the index Description. No index, or no match -> proceed with no overlay, silently. Full contract: `.claude/skills/project-skill-protocol/references/registry.md`.
+>
+> Overlays are **ADDITIVE ONLY**: they ADD rules on top of this skill's own protocol and NEVER replace, override, disable, or reinterpret a rule it already states — removing every overlay must return this skill to exactly its documented behavior. An overlay is a BRIEF, not an authority escalation: it can NEVER waive a workflow gate, git discipline, a review gate, or a user-confirmation gate. A genuine overlay-vs-skill conflict, or two equally-specific overlays that directly contradict -> surface both to the user; NEVER resolve silently.
+
+<!-- /SYNC:project-protocol-overlay -->
+
+<!-- SYNC:project-protocol-overlay:reminder -->
+
+**MUST ATTENTION** resolve project protocol overlays for this skill BEFORE executing — most specific matching tier only (exact > glob > `*`, which ranks overlays against each other, NEVER against this skill), read only matched bodies at `<protocols-dir>/<Name>.md`; a missing or malformed body is reported, never reconstructed. Overlays are ADDITIVE ONLY (they never replace this skill's own rules) and are a brief, NEVER an authority escalation; an equal-specificity contradiction goes to the user.
+
+<!-- /SYNC:project-protocol-overlay:reminder -->
+
 ## Closing Reminders
 
-**IMPORTANT MUST ATTENTION Goal:** UNDERSTAND the feature first, then script it — investigate until the comprehension bar is cleared with `file:line`, then produce a demo guide listing every main user story with its REAL test-case IDs, a step-by-step demo flow per case, how the domain stores/changes the data and solves the feature, and a proof rung per case — so the presenter shows the behaviour, explains the data behind it, and never claims proof that was not earned.
+**IMPORTANT MUST ATTENTION Goal:** **UNDERSTAND the feature first, then script it** — investigate the capability end-to-end until you can answer the comprehension bar with `file:line`, and only then produce a stakeholder-ready demo guide that lists every **main user story** with its **REAL test-case IDs**, gives a **step-by-step demo flow** per case, explains **how the domain stores/changes the data and how that solves the feature**, and places every case on the **proof ladder** — so the presenter can show the behaviour, explain the data behind it, and never claim proof that was not earned.
 
 **Protocols in force (concise digest of the SYNC/shared blocks this skill carries) — MUST ATTENTION each:**
 
@@ -426,7 +463,7 @@ Block or file absent → degrade gracefully: default `outputDir` to the project'
 - **MUST ATTENTION** run the main steps in order, none skipped: (0) Resolve scope + load contract + size + task → (1) **UNDERSTAND the feature [BLOCKING gate]** → (2) Gather five inventories → (3) Map stories → REAL case IDs → (4) Trace domain storage/solution → (5) Open guide + ledger and accumulate → (6) Write each case's four parts → (7) Place every case on the proof ladder → (8) Validate.
 - **MUST ATTENTION** Step 1 is a **[BLOCKING] gate, not a preamble** — until all six comprehension questions are answered with `file:line` per story group, NO demo step, expected result, or storage claim may be written. Unanswerable question → keep investigating, delegate, or **state it as a blocker**; NEVER paper over it with a plausible step.
 - **MUST ATTENTION** scope precedence is **prompt → current context → ASK** — NEVER silently invent the feature.
-- **MUST ATTENTION** DELEGATE the GATHERING to read-only skills (`/scout`, `/investigate`, `/debug-investigate`, `/graph-trace`, `/spec-index`) when read + grep + trace cannot clear the bar — NEVER to a mutating or findings-emitting skill, never let a delegate author a case block, and re-verify every delegated claim at `file:line` first. At S3+ delegation runs inside the group's sub-agent, not the orchestrator.
+- **MUST ATTENTION** DELEGATE the GATHERING to read-only skills (`/investigate`, `/debug-investigate`, `/graph-trace`, `/spec-index`) when read + grep + trace cannot clear the bar — NEVER to a mutating or findings-emitting skill, never let a delegate author a case block, and re-verify every delegated claim at `file:line` first. At S3+ delegation runs inside the group's sub-agent, not the orchestrator.
 - **MUST ATTENTION** SIZE the target into a tier (S0–S4) and DECOMPOSE anything above S1 into story groups (≤8 files / ≤2000 diff-lines, each demoable in one sitting) — announce both in one line. Scale buys MORE GROUPS, never FEWER PARTS per case; *"too big to demo properly"* is a conclusion this skill may never reach.
 - **MUST ATTENTION** BREAK THE WORK INTO TASKS **before the first deep read** — `TaskList` first (resume, never duplicate), one task per story group plus the fixed tasks, exactly one `in_progress`, and a group task `completed` ONLY when its block is on disk.
 - **MUST ATTENTION** OPEN the guide — header, ledger, group rows — before case one, ACCUMULATE story group by story group, and write the guide-level sections **from the written blocks**, never from memory. After any cutoff or compaction, verify every `written` ledger row against the filesystem before continuing.

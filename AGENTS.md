@@ -15,14 +15,17 @@ Do not edit manually; update `CLAUDE.md` and re-sync.
 >
 > Classify complexity and risk first, then route it:
 >
-> | Request is about…                                                  | Default route                                                                                                                                       |
-> | ------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------- |
-> | A simple, straightforward task with a clear target and low risk    | **direct execution** — do it without a workflow                                                                                                     |
-> | A simple task that needs a few coordinated steps or skills         | **custom simple workflow** — sequence only the necessary skills/steps                                                                               |
-> | A non-trivial bug, error, crash, regression, or wrong/stale output | **`workflow-bugfix` workflow** — `$start-workflow workflow-bugfix`                                                                                  |
-> | A non-trivial new feature, capability, or enhancement              | **`workflow-feature` workflow** — `$start-workflow workflow-feature` (use `workflow-big-feature` when scope is large, ambiguous, or research-heavy) |
-> | Anything matching a skill's or workflow's "Use" clause             | that skill / workflow                                                                                                                               |
-> | A one-off question, or a truly trivial edit                        | direct execution                                                                                                                                    |
+> | Request is about… | Default route |
+> | --- | --- |
+> | A simple, straightforward task with a clear target and low risk | **direct execution** — do it without a workflow |
+> | A simple task that needs a few coordinated steps or skills | **custom simple workflow** — sequence only the necessary skills/steps |
+> | A non-trivial bug, error, crash, regression, or wrong/stale output | **`workflow-bugfix` workflow** — `$start-workflow workflow-bugfix` |
+> | A non-trivial new feature, capability, or enhancement | **`workflow-feature` workflow** — `$start-workflow workflow-feature` (use `workflow-big-feature` when scope is large, ambiguous, or research-heavy) |
+> | A product vision, greenfield app, big/ambiguous capability, or release-scoped idea | **the owning idea/feature workflow** — apply the shared `isLargeIdea` rule and embed decomposition in PBI/spec/story/presentation/mock-up artifacts; do not create a roadmap file by default |
+> | An explicit request for a product roadmap, roadmap update, or milestone selection | **`product-roadmap` skill** — the standalone writer is explicit-only and may create/update `docs/product-roadmap.md` |
+> | A selected roadmap milestone or a large idea whose embedded decomposition needs adversarial failure, replay, state, ownership, recovery, or evidence analysis | **`scenario` skill** — run conditionally for that scope before `$plan`; it does not create a roadmap artifact |
+> | Anything matching a skill's or workflow's "Use" clause | that skill / workflow |
+> | A one-off question, or a truly trivial edit | direct execution |
 >
 > 1. **An explicit `/skill` or `/workflow` in the prompt is the user's choice — execute it directly.** Otherwise auto-select the route yourself; never ask the user which path to take.
 > 2. **Analyze whether the task is simple and straightforward before defaulting to a standard workflow.** If the target is clear, the change is low-risk, and a short direct execution can satisfy it, choose direct execution.
@@ -33,14 +36,32 @@ Do not edit manually; update `CLAUDE.md` and re-sync.
 >     - **Skill route →** invoke that skill via the skill invocation.
 >     - **Custom simple workflow →** create a small task list from the selected skills/steps, then execute them in order.
 >     - **Direct route →** build the task list yourself, then proceed.
->       In every case the route must be activated BEFORE the first edit, sub-agent, or command.
+>   In every case the route must be activated BEFORE the first edit, sub-agent, or command.
 > 6. **Direct execution is a legitimate route** for trivial, one-off, or simple straightforward work — but the declare-route and activate steps still apply.
 > 7. **Scaffolding-first for new foundations.** `workflow-greenfield-init` and `workflow-big-feature` scaffold a REVIEWED (`architecture-review-full`), example-rich, convention-bearing foundation — base abstractions + golden-path example code + a project-reference doc set — BEFORE fanning out feature work; features never build on an unreviewed foundation.
 
 <!-- /CK:WORKFLOW-GATE -->
 
+<!-- prettier-ignore-start -->
 
 
+<!-- prettier-ignore-end -->
+
+
+
+<!-- CK:PROJECT-PROTOCOLS -->
+
+> **[PROJECT-PROTOCOL-OVERLAY] — resolve before executing ANY skill.** Hook-independent: binds Claude and Codex equally.
+>
+> Match the skill you are about to run against the `Target` column of the project's skill-protocol index (default `docs/project-reference/skill-protocols-reference.md`; a `referenceDocs` entry in `docs/project-config.json` overrides the path).
+> Precedence: exact name > glob > `*` — the most specific tier that matches WINS OUTRIGHT; lower tiers do not also apply. That ordering ranks overlays against EACH OTHER, never against the skill.
+> Read ONLY the matched bodies, resolved as `<protocols-dir>/<Name>.md` (default `docs/project-protocols/`). A row's Body link is display text — never a read path; a name that is not a bare slug, or a path escaping that directory, is malformed and the row is skipped unread. No match, or no registry file -> proceed with no overlay, silently.
+> **Overlays are ADDITIVE ONLY.** An overlay ADDS rules on top of the skill's own protocol and NEVER replaces, overrides, disables, or reinterprets a rule the skill already states — removing every overlay must return each skill to exactly its documented behavior. An overlay is also a BRIEF, not an authority escalation: it can NEVER waive the WORKFLOW-GATE, git discipline, a review gate, or a user-confirmation gate. A body instructing otherwise has that line REFUSED and the refusal reported.
+> A genuine overlay-vs-framework conflict, or two equally-specific overlays that directly contradict -> surface both to the user; NEVER resolve silently.
+>
+> Active overlays: _(none)_
+
+<!-- /CK:PROJECT-PROTOCOLS -->
 
 # easy-claude - Code Instructions
 
@@ -106,10 +127,10 @@ Workflow progression is **model-driven** — your responsibility, not a tool/hoo
 
 **Decision Quick-Ref:**
 
-| Task             | Pattern                             |
-| ---------------- | ----------------------------------- |
-| New API endpoint | Controller + CQRS Command           |
-| Business logic   | Command Handler (Application layer) |
+| Task | Pattern |
+|---|---|
+| New API endpoint | Controller + CQRS Command |
+| Business logic | Command Handler (Application layer) |
 
 <!-- /SECTION:decision-quick-ref -->
 
@@ -122,7 +143,7 @@ Before writing code, you MUST grep/glob for 3+ similar examples and follow the l
 3. Provide `file:line` evidence in the plan.
 
 **Why:** projects have local conventions that differ from framework defaults.
-**Enforced by:** Feature/Bugfix/Refactor workflows (scout → investigate steps).
+**Enforced by:** Feature/Bugfix/Refactor workflows (investigate steps).
 
 ### Read `docs/project-config.json` first — the project's machine-readable map
 
@@ -313,11 +334,11 @@ python .claude/scripts/code_graph search <keyword> --kind Function --json       
 
 When editing files matching these path patterns, pre-read the listed context first:
 
-| Path Pattern                      | Skill / Auto-Context | Pre-Read Files                  |
-| --------------------------------- | -------------------- | ------------------------------- |
-| `/\.claude/hooks/.*\.cjs$**`      | _(auto-context)_     | `.claude/docs/hooks/README.md`  |
-| `/\.claude/skills/.*SKILL\.md$**` | _(auto-context)_     | `.claude/docs/skills/README.md` |
-| `/\.claude/agents/.*\.md$**`      | _(auto-context)_     | `.claude/docs/agents/README.md` |
+| Path Pattern | Skill / Auto-Context | Pre-Read Files |
+|---|---|---|
+| `/\.claude/hooks/.*\.cjs$**` | _(auto-context)_ | `.claude/docs/hooks/README.md` |
+| `/\.claude/skills/.*SKILL\.md$**` | _(auto-context)_ | `.claude/docs/skills/README.md` |
+| `/\.claude/agents/.*\.md$**` | _(auto-context)_ | `.claude/docs/agents/README.md` |
 
 <!-- /SECTION:skill-activation -->
 
@@ -331,12 +352,12 @@ When editing files matching these path patterns, pre-read the listed context fir
 
 | Kind        | Count                                       |
 | ----------- | ------------------------------------------- |
-| Skills      | <!-- COUNT:skills -->163<!-- /COUNT -->     |
-| Hooks       | <!-- COUNT:hooks -->16<!-- /COUNT -->       |
-| Agents      | <!-- COUNT:agents -->29<!-- /COUNT -->      |
+| Skills      | <!-- COUNT:skills -->166<!-- /COUNT -->     |
+| Hooks       | <!-- COUNT:hooks -->17<!-- /COUNT -->       |
+| Agents      | <!-- COUNT:agents -->27<!-- /COUNT -->      |
 | Workflows   | <!-- COUNT:workflows -->19<!-- /COUNT -->   |
-| Shared      | <!-- COUNT:shared -->6<!-- /COUNT -->       |
-| Lib modules | <!-- COUNT:lib-modules -->25<!-- /COUNT --> |
+| Shared      | <!-- COUNT:shared -->8<!-- /COUNT -->       |
+| Lib modules | <!-- COUNT:lib-modules -->26<!-- /COUNT --> |
 
 ---
 
@@ -344,7 +365,7 @@ When editing files matching these path patterns, pre-read the listed context fir
 
 ```
 docs/adr/  (2 files)
-docs/project-reference/  (15 files)
+docs/project-reference/  (17 files)
 docs/release/  (1 files)
 docs/templates/  (1 files)
 ```
@@ -353,14 +374,14 @@ docs/templates/  (1 files)
 
 <!-- SECTION:doc-lookup -->
 
-| If user prompt mentions...                                     | Read first                                                          |
-| -------------------------------------------------------------- | ------------------------------------------------------------------- |
-| Feature specs, capability behavior, business rules, test cases | `docs/specs/` + `docs/project-reference/feature-spec-reference.md`  |
-| Spec paths, TC format, canonical vs derived spec artifacts     | `docs/project-reference/spec-system-reference.md`                   |
-| Spec quality, AI-implementability, tech-agnostic prose         | `docs/project-reference/spec-principles.md`                         |
-| Behavior or public contract changes, spec-test-code sync       | `docs/project-reference/workflow-spec-test-code-cycle-reference.md` |
-| Backend patterns, CQRS, validation                             | `docs/project-reference/backend-patterns-reference.md`              |
-| Frontend patterns, components, stores                          | `docs/project-reference/frontend-patterns-reference.md`             |
+| If user prompt mentions... | Read first |
+|---|---|
+| Feature specs, capability behavior, business rules, test cases | `docs/specs/` + `docs/project-reference/feature-spec-reference.md` |
+| Spec paths, TC format, canonical vs derived spec artifacts | `docs/project-reference/spec-system-reference.md` |
+| Spec quality, AI-implementability, tech-agnostic prose | `docs/project-reference/spec-principles.md` |
+| Behavior or public contract changes, spec-test-code sync | `docs/project-reference/workflow-spec-test-code-cycle-reference.md` |
+| Backend patterns, CQRS, validation | `docs/project-reference/backend-patterns-reference.md` |
+| Frontend patterns, components, stores | `docs/project-reference/frontend-patterns-reference.md` |
 
 <!-- /SECTION:doc-lookup -->
 <!-- CLAUDE-MIRROR:END -->
@@ -395,7 +416,7 @@ Source: `.claude/.ck.json` + `.claude/skills/shared/sync-inline-versions.md` (`:
 3. **AUTO-SELECT:** Pick the best option yourself. Do not ask the user to choose between direct execution, skill, standard workflow, or custom workflow.
 4. **ACTIVATE:** For a selected workflow, call `$start-workflow <workflowId>`; for a selected skill, invoke that skill; for a custom workflow, sequence custom steps directly; for direct execution, proceed with the task.
 5. **CREATE TASKS:** task tracking for ALL workflow/skill/custom steps before execution when the selected path has multiple steps.
-6. **PARALLELIZE:** Before executing the task list, tag each task `PAR` (independent inputs + write set disjoint from every other `PAR` task) or `SEQ` (name the blocking dependency), group `PAR` tasks into waves, declare the wave plan, and spawn each wave's sub-agents in ONE message — all-return barrier per wave, fan-out one level deep unless a sub-agent's own definition authorizes further fan-out. Sequential-by-default is a defect when tasks are independent; do not parallelize shared write targets, output-consuming tasks, trivial single-file work, workflow-fixed ordering, or user-approval gates.
+6. **PARALLELIZE:** Before executing the task list, tag each task `PAR` (independent inputs + write set disjoint from every other `PAR` task) or `SEQ` (name the blocking dependency), group `PAR` tasks into waves, declare the wave plan, and spawn each wave's sub-agents in ONE message — all-return barrier per wave, fan-out one level deep unless a sub-agent's own definition authorizes further fan-out. Sequential-by-default is a defect when tasks are independent; do not parallelize shared write targets, output-consuming tasks, trivial single-file work, ordering a skill or workflow explicitly fixes, or user-approval gates.
 7. **EXECUTE:** Advance per the **Workflow Step Advancement & Parallel Phases** rule in your context instructions — model-driven; a sub-agent completion advances a step identically to an inline call; a parallel-phase group is an all-return barrier (advance only after ALL members return, never serialize it)
 ## Shared AI-SDD Protocol Markers
 
@@ -445,7 +466,7 @@ Source: `.claude/skills/shared/sync-inline-versions.md`
 - **Sub-agents inherit knowledge only from their agent .md definition — use custom agent types, not built-in Explore.** Tool adoption = permission + knowledge + enforcement (numbered workflow step).
 - **Persist sub-agent findings incrementally, not as a final batch.** Long sub-agents hit cutoffs before final write — findings lost. Instruct append-per-section to report file.
 - **When debugging, ask "whose responsibility?" before fixing.** Trace caller (wrong data) vs callee (wrong handling). Fix at responsible layer — never patch symptom site.
-- **Test failure → adjudicate WHO is at fault (source vs test) before forcing green.** A green-again suite is not the goal; the correct verdict on what was actually wrong is. Root-cause first, then triangulate the failure against the governing spec (`docs/specs/**` if one exists) AND the source: SOURCE-WRONG → fix code at the owning layer and keep/strengthen the test; TEST-WRONG → fix the stale assertion/setup at its root. NEVER weaken an assertion, add a skip, or relax a timeout to force green, and never change source to satisfy a broken test. Spec silent or ambiguous about which side is correct → STOP and ask the user.
+- **Test failure → record a provisional verdict before trace/edit, then investigate.** Use the full five-way taxonomy: SOURCE-WRONG (production violates intent), TEST-WRONG (assertion/setup is stale), TEST-NOT-OPTIMAL (valid but fragile or low-signal test), ENVIRONMENT-BLOCKED (external state prevents a verdict), or AMBIGUOUS (intent/evidence cannot choose safely). Then trace root cause and triangulate against the governing spec (`docs/specs/**` if one exists) AND source. NEVER weaken an assertion, add a skip, relax a timeout, or change source merely to force green.
 - **Grep ALL removed names after extraction/refactoring.** Primary file "done" ≠ secondary files clean. Grep entire scope for every removed symbol before declaring complete.
 - **Assume existing values are intentional — ask WHY before changing OR flagging one as a defect.** Pattern-matching as "wrong" skips context. Before changing or reporting any constant/limit/flag/cutoff: read comments, git blame, the CALLER's ordering (the guarantee that makes the value correct usually lives in code running immediately BEFORE the cited line), and 2+ sibling call sites of the same convention. A doc stating WHAT without WHY is missing rationale, not proof of a missing guard — and in a validation pass, an accurate `file:line` citation proves the transcription, never the defect.
 - **Verify ALL affected outputs, not just the first.** One build green ≠ all green. Multi-stack changes (backend/frontend/tests/docs) require verifying EVERY output.
@@ -527,7 +548,7 @@ Workflow source: `.claude/workflows.json` (19 workflows).
 ### workflow-architecture-audit — Architecture Audit
 - Description: Architecture Audit — audit the whole project's architecture, scalability, and production readiness in one pass; synthesize one consolidated Architecture Health Report with three sub-scores and one combined verdict. Read-only: fixes route to a follow-up plan/feature workflow.
 - When To Use: User wants to review my project architecture, run an architecture health check, check is this production ready, or audit scalability/coupling across the whole project
-- Sequence: `scout -> architecture-review-full -> why-review -> docs-update -> workflow-end -> watzup`
+- Sequence: `investigate -> architecture-review-full -> why-review -> docs-update -> workflow-end -> watzup`
 
 Protocol:
 ```text
@@ -536,7 +557,7 @@ ARCHITECTURE AUDIT (READ-ONLY, ONE PASS, PROGRESSIVE SYNTHESIS):
 - This workflow audits the WHOLE project architecture + scalability + production readiness in one pass and synthesizes ONE consolidated Architecture Health Report that grows from IN PROGRESS to FINISHED.
 - The core step `architecture-review-full` runs INLINE in the main session because it SPAWNS sub-agents. It: (1) resolves scope (whole project / current diff / specific path); (2) fans out the three deliberately-non-overlapping reviewers as PARALLEL read-only sub-agents in ONE message behind an all-return barrier — `architecture-scalability-review` (architect, scorecard /20), `architecture-review` (architect, 13-category PASS/WARN/BLOCKED), `production-readiness-review` (code-reviewer, SRE /24 + 8-item gate); (3) PROGRESSIVE SYNTHESIS — creates the ONE consolidated report file at status `IN PROGRESS` when fan-out starts and MERGES each child's findings into it AS that child returns (never held in memory to the end), DEDUPING the siblings' intentional cross-references (one underlying issue = one finding citing every source); (4) FIX-REPORT-PER-REVIEW `$why-review` gate — a SINGLE merged `$why-review` pass that WALKS EACH of the three review faces plus the dedup and fixes the consolidated report in place (revise severities, remove false positives, restore any distinct issue the dedup collapsed); (5) FINALIZE — lock the combined verdict (worst-case rollup: any BLOCKED / NOT READY / HIGH RISK dominates) and flip the report status to `FINISHED`.
 - Parallelism lives INSIDE `architecture-review-full` (it owns the fan-out + all-return barrier), so this workflow declares NO workflow-level parallel groups.
-- The workflow-level `why-review` step is the FINAL VALIDATION GATE over the AUDIT FINDINGS — a distinct altitude from the engine's per-face finding-level fix, and the machine-visible guarantee that no audit finding ships without a why-review pass. EVERY prior step routes its output into this gate, and the gate BOTH validates findings AND reviews results across the steps it can reach: (a) the `scout` scope map — validate nothing in-scope was missed and nothing out-of-scope pulled in; (b) the FINALIZED consolidated report — verdict-rollup correctness, dedup completeness, cross-review severity consistency, and each of the three review faces' contributions intact. `docs-update` runs AFTER this gate and is NOT validated by it — it self-validates its own doc diff by re-invoking `why-review` inline on non-trivial edits before workflow-end. Each PRIOR step, on completion, MUST hand its findings + results forward to this gate; a prior step is not done until its output has been routed to the final `why-review`. `docs-update`, which runs after the gate, owns validation of its own output.
+- The workflow-level `why-review` step is the FINAL VALIDATION GATE over the AUDIT FINDINGS — a distinct altitude from the engine's per-face finding-level fix, and the machine-visible guarantee that no audit finding ships without a why-review pass. EVERY prior step routes its output into this gate, and the gate BOTH validates findings AND reviews results across the steps it can reach: (a) the `investigate` scope map — validate nothing in-scope was missed and nothing out-of-scope pulled in; (b) the FINALIZED consolidated report — verdict-rollup correctness, dedup completeness, cross-review severity consistency, and each of the three review faces' contributions intact. `docs-update` runs AFTER this gate and is NOT validated by it — it self-validates its own doc diff by re-invoking `why-review` inline on non-trivial edits before workflow-end. Each PRIOR step, on completion, MUST hand its findings + results forward to this gate; a prior step is not done until its output has been routed to the final `why-review`. `docs-update`, which runs after the gate, owns validation of its own output.
 - This is a READ-ONLY audit: it produces findings + a verdict only. Every validated finding routes to a FOLLOW-UP `$plan` or feature workflow that owns the fix — no fixes are applied in this workflow.
 - SCALE-TECHNIQUE MATRIX (advisory deliverable): the consolidated Architecture Health Report MUST include the merged Technique Applicability Matrix produced by the three sub-reviewers via SYNC:scale-technique-gate — derive the tier ONCE: architecture-scalability-review's tier is authoritative for the merged matrix, note (do not merge) any divergent child tier — then list each warranted technique as PRESENT / MISSING-WARRANTED / N/A-by-scale / OVER-ENGINEERED with advice. This matrix is ADVISORY guidance only: it is deduped onto one axis and NEVER changes any sub-score, the combined verdict, or a gate result. Full catalog: .claude/docs/scale-technique-catalog.md.
 - SCENARIO-STRESS MATRIX (advisory deliverable): the consolidated Architecture Health Report MUST also include the merged Scenario Stress Matrix produced by the three sub-reviewers via SYNC:scenario-stress-eval — pin ONE authoritative scale tier AND business-criticality read (architecture-scalability-review's derived T-tier + B-tier is canonical; note, do not merge, any divergent child read) — then judge each in-scope scenario (big-traffic / big-data / dependency-failure / node-loss / data-corruption / self-heal survival vs. business need) WITHSTANDS / DEGRADES-GRACEFULLY / FAILS-HARD / N/A-by-business / OVER-HARDENED. Like the technique matrix this is ADVISORY guidance only: deduped onto one axis, it NEVER changes any sub-score, the combined verdict, or a gate result. Full catalog: .claude/docs/scenario-stress-catalog.md.
@@ -546,10 +567,16 @@ ARCHITECTURE AUDIT (READ-ONLY, ONE PASS, PROGRESSIVE SYNTHESIS):
 ### workflow-big-feature — Big Feature (Research + Implement)
 - Description: Research-driven feature development for large, complex, or ambiguous features in an existing project — includes idea refinement, market research, business evaluation, domain analysis, tech stack research, and full implementation
 - When To Use: User wants to implement a large, complex, or ambiguous feature that needs research, market analysis, business evaluation, domain modeling, or tech stack analysis before implementation. Big new module, major enhancement, cross-cutting capability, or feature where scope is unclear
-- Sequence: `idea -> web-research -> deep-research -> business-evaluation -> spec-discovery -> domain-analysis -> why-review -> tech-stack-research -> architecture-design -> architecture-scalability-review -> why-review -> plan -> plan-review -> refine -> why-review -> artifact-review --type=pbi -> story -> why-review -> artifact-review --type=story -> pbi-challenge -> dor-gate -> pbi-mockup -> spec -> spec [mode=tests] -> why-review -> artifact-review --type=spec-tests -> spec-clarify -> plan -> plan-review -> scaffold -> architecture-review-full -> plan-validate -> why-review -> plan-execute -> seed-test-data -> domain-entities-review -> integration-test -> integration-test-review -> integration-test-verify -> spec [mode=sync] -> workflow-review-changes -> security-review -> changelog -> test -> docs-update -> workflow-end -> watzup`
+- Sequence: `idea -> web-research -> deep-research -> business-evaluation -> spec-discovery -> domain-analysis -> why-review -> tech-stack-research -> architecture-design -> architecture-scalability-review -> why-review -> scenario -> plan -> plan-review -> refine -> why-review -> artifact-review --type=pbi -> story -> why-review -> artifact-review --type=story -> pbi-challenge -> dor-gate -> pbi-mockup -> spec -> spec [mode=tests] -> why-review -> artifact-review --type=spec-tests -> spec-clarify -> plan -> plan-review -> scaffold -> architecture-review-full -> plan-validate -> why-review -> plan-execute -> seed-test-data -> domain-entities-review -> integration-test -> integration-test-review -> integration-test-verify -> spec [mode=sync] -> workflow-review-changes -> security-review -> changelog -> test -> scan --target=domain-entities -> docs-update -> workflow-end -> watzup`
 
 Protocol:
 ```text
+LARGE-IDEA DECOMPOSITION CHAIN (MANDATORY):
+For new, greenfield, big, ambiguous, multi-capability, or release-scoped work, evaluate the shared isLargeIdea rule before authoring a spec, PBI, story, or plan. When any signal is true, require the complete large_idea_decomposition block in the owning artifacts and carry its stable slice IDs through downstream outputs. Ordinary isolated ideas omit the block and do not create docs/product-roadmap.md. Run $scenario conditionally for the embedded scope. A standalone product-roadmap route is explicit-only; an existing supplied roadmap is read-only context.
+RELEASABLE PBI PROTOCOL (MANDATORY): Every generated PBI MUST be one independently releasable actor-facing outcome with a complete entry-to-result journey, visible/persisted truth, applicable access/failure/recovery behavior, scope, and evidence. Technical/foundation/setup/migration work is enabling work attached to a releasable PBI or a separate actor-facing outcome—never a standalone technical PBI. UI PBIs MUST include a complete multi-view mock-app surface: all required pages/views, navigation, common/domain/page components, applicable states, and a connected full-flow demo result; one static/disconnected screen fails. Apply .claude/skills/shared/releasable-pbi-contract.md.
+For a genuinely isolated brownfield change or bugfix, record Decomposition Applicability: EXEMPT with the reason and accepting owner; do not create docs/product-roadmap.md. An explicitly supplied roadmap remains read-only context.
+The scenario step is conditional for the selected embedded scope; product-roadmap is not an implicit workflow step. Preserve the canonical sequence order after applicability filtering.
+
 BIG FEATURE PROTOCOL (Research-Driven):
 For large/ambiguous features in an existing codebase that need research before implementation.
 
@@ -628,19 +655,21 @@ UNIVERSAL RULES:
 - Goal-Driven Execution: define success criteria before execution; loop until observable checks pass.
 - Tests Verify Intent: when creating or reviewing specs/tests, name the protected business intent or invariant and ensure the test would fail if that intent breaks.
 - Spec-Loop Discipline (spec→code→tests→review loop): §8 must derive universally-quantified Invariant/Property TCs (for-ALL-inputs rules + boundary counter-cases) for every [HARD] §4 rule and §5 invariant — not just example scenarios — and back them with property/metamorphic tests whose quality bar is the MUTATION-SCORE gate (a surviving mutant on changed core-logic = a missing invariant → write the killing test), NOT line-coverage %. Every behavior-changing finding feeds the Dual-Feedback Ledger into BOTH the spec AND the tests (a blank Spec-feedback OR Test-feedback cell = INCOMPLETE), never a code-only fix. Re-review the whole package (spec + tests + code, not just the diff) and loop until a complete review pass surfaces zero new gap or hidden rule — each cycle enriches the spec.
+DOMAIN-ENTITY REFERENCE REFRESH (CONDITIONAL TERMINAL STEP):
+- After $test and before $docs-update, run $scan --target=domain-entities when the final diff changes an entity/model, DTO/data contract, persistence schema/migration, or entity-sync evidence represented in docs/project-reference/domain-entities-reference.md.
+- Otherwise mark the scan step completed with a cited skip reason naming the changed files and why they are outside this scope.
 ```
 
 ### workflow-bugfix — Bug Fix
 - Description: Systematic debugging and fix workflow with end-to-start debugger trace before fix
 - When To Use: User reports a bug, error, crash, failure, regression, stale/incorrect final output, or something not working; wants to fix/debug/troubleshoot an issue with end-to-start trace
-- Sequence: `scout -> investigate -> debug-investigate -> spec [mode=amend] -> plan -> plan-review -> plan-validate -> why-review -> spec [mode=tests] -> why-review -> artifact-review --type=spec-tests -> integration-test -> fix -> prove-fix -> integration-test -> integration-test-review -> integration-test-verify -> spec [mode=sync] -> workflow-review-changes -> changelog -> test -> docs-update -> demo-guide -> workflow-end -> watzup`
+- Sequence: `investigate -> debug-investigate -> spec [mode=amend] -> plan -> plan-review -> plan-validate -> why-review -> spec [mode=tests] -> why-review -> artifact-review --type=spec-tests -> integration-test -> fix -> prove-fix -> integration-test -> integration-test-review -> integration-test-verify -> spec [mode=sync] -> workflow-review-changes -> changelog -> test -> scan --target=domain-entities -> docs-update -> demo-guide -> workflow-end -> watzup`
 
 Protocol:
 ```text
 BUG FIX PROTOCOL (TDD-FIRST):
 PROJECT CONTEXT: Apply the shared SDD Artifact Contract from shared/sdd-artifact-contract.md in the active skills root. Read docs/project-config.json and docs/project-reference/docs-index-reference.md for project-specific conventions. Any supported AI tool may implement or review when this context is synced.
-1. Scout: Find files related to the reported issue
-2. Investigate: Understand current vs expected behavior and unchanged behavior that must be preserved
+1. Investigate: Find files related to the reported issue, understand current vs expected behavior, and identify unchanged behavior that must be preserved
    IMPORTANT: When analyzing 'unused' code during investigation:
    - Follow Investigation Protocol (CLAUDE.md)
    - Require grep evidence, confidence >=80%, cross-module/service checks (see docs/project-config.json → workflowPatterns.crossModuleValidation)
@@ -681,12 +710,15 @@ UNIVERSAL RULES:
 - Goal-Driven Execution: define success criteria before execution; loop until observable checks pass.
 - Tests Verify Intent: when creating or reviewing specs/tests, name the protected business intent or invariant and ensure the test would fail if that intent breaks.
 - Spec-Loop Discipline (spec→fix→tests→review loop): the regression §8 TCs must include universally-quantified Invariant/Property TCs (for-ALL-inputs rules + boundary counter-cases) for every [HARD] §4 rule and §5 invariant the bug touched — not just the single reproduction example — backed by property/metamorphic tests whose quality bar is the MUTATION-SCORE gate (a surviving mutant on the fixed core-logic = a missing invariant → write the killing test), NOT line-coverage %. Every behavior-changing finding feeds the Dual-Feedback Ledger into BOTH the spec AND the tests (a blank Spec-feedback OR Test-feedback cell = INCOMPLETE), never a code-only patch. Re-review the whole package (spec + tests + fix, not just the diff) and loop until a complete review pass surfaces zero new gap or hidden rule — each cycle enriches the spec.
+DOMAIN-ENTITY REFERENCE REFRESH (CONDITIONAL TERMINAL STEP):
+- After $test and before $docs-update, run $scan --target=domain-entities when the final diff changes an entity/model, DTO/data contract, persistence schema/migration, or entity-sync evidence represented in docs/project-reference/domain-entities-reference.md.
+- Otherwise mark the scan step completed with a cited skip reason naming the changed files and why they are outside this scope.
 ```
 
 ### workflow-code-to-spec — Code to Feature Spec
 - Description: Code-to-spec — authors and maintains ONE canonical artifact per capability FROM existing code: the tech-free 8-section Feature Spec at docs/specs/{Bucket}/README.{Feature}.md (code is the technical source of truth; derived bucket INDEX/ERD are regenerable aids). Modes: init-full (zero → Feature Specs), update (incremental sync from code changes), audit (staleness check). For idea→spec (no code yet) use workflow-idea-to-spec.
 - When To Use: Initial Feature Spec generation from zero docs, maintaining spec sync after code changes, quarterly spec health audits, before tech migrations, after major features land — authors + three-way-syncs the canonical Feature Spec. Use spec-index instead when only regenerating derived indexes/ERDs.
-- Sequence: `scout -> plan -> plan-review -> plan-validate -> spec -> spec [mode=tests] -> artifact-review --type=spec-tests -> artifact-review -> docs-update -> workflow-end -> watzup`
+- Sequence: `investigate -> plan -> plan-review -> plan-validate -> spec -> spec [mode=tests] -> artifact-review --type=spec-tests -> artifact-review -> docs-update -> workflow-end -> watzup`
 
 Protocol:
 ```text
@@ -712,7 +744,7 @@ UNIVERSAL RULES:
 ### workflow-e2e — E2E Testing
 - Description: Generate, update, or maintain E2E/Playwright tests — source-parameterized (changes | recording | update-ui)
 - When To Use: User wants to generate, update, or maintain E2E/Playwright tests from code/spec changes (--source=changes), a Chrome DevTools recording (--source=recording), or for UI screenshot baselines (--source=update-ui)
-- Sequence: `scout -> e2e-test -> test -> docs-update -> workflow-end -> watzup`
+- Sequence: `investigate -> e2e-test -> test -> docs-update -> workflow-end -> watzup`
 
 Protocol:
 ```text
@@ -730,15 +762,20 @@ UNIVERSAL RULES:
 ### workflow-feature — Feature Implementation
 - Description: Full feature development workflow with search-first approach, planning, implementation, testing, and documentation
 - When To Use: User wants to implement a well-defined feature, add a component, build a capability, develop a module, implement/execute an existing plan, create a new API endpoint, or design an API contract, TDD/test-first development, spec-driven feature implementation with test specs written before code
-- Sequence: `scout -> investigate -> spec-discovery -> domain-analysis -> why-review -> spec -> spec-clarify -> plan -> plan-review -> plan-validate -> why-review -> spec [mode=tests] -> why-review -> artifact-review --type=spec-tests -> plan -> plan-review -> plan-execute -> seed-test-data -> domain-entities-review -> spec [mode=tests] -> why-review -> artifact-review --type=spec-tests -> spec [mode=sync] -> integration-test -> integration-test-review -> integration-test-verify -> workflow-review-changes -> security-review -> changelog -> test -> docs-update -> demo-guide -> workflow-end -> watzup`
+- Sequence: `investigate -> spec-discovery -> domain-analysis -> why-review -> spec -> spec-clarify -> scenario -> plan -> plan-review -> plan-validate -> why-review -> spec [mode=tests] -> why-review -> artifact-review --type=spec-tests -> plan -> plan-review -> plan-execute -> seed-test-data -> domain-entities-review -> spec [mode=tests] -> why-review -> artifact-review --type=spec-tests -> spec [mode=sync] -> integration-test -> integration-test-review -> integration-test-verify -> workflow-review-changes -> security-review -> changelog -> test -> scan --target=domain-entities -> docs-update -> demo-guide -> workflow-end -> watzup`
 
 Protocol:
 ```text
+LARGE-IDEA DECOMPOSITION CHAIN (MANDATORY):
+For new, greenfield, big, ambiguous, multi-capability, or release-scoped work, evaluate the shared isLargeIdea rule before authoring a spec, PBI, story, or plan. When any signal is true, require the complete large_idea_decomposition block in the owning artifacts and carry its stable slice IDs through downstream outputs. Ordinary isolated ideas omit the block and do not create docs/product-roadmap.md. Run $scenario conditionally for the embedded scope. A standalone product-roadmap route is explicit-only; an existing supplied roadmap is read-only context.
+RELEASABLE PBI PROTOCOL (MANDATORY): Every generated PBI MUST be one independently releasable actor-facing outcome with a complete entry-to-result journey, visible/persisted truth, applicable access/failure/recovery behavior, scope, and evidence. Technical/foundation/setup/migration work is enabling work attached to a releasable PBI or a separate actor-facing outcome—never a standalone technical PBI. UI PBIs MUST include a complete multi-view mock-app surface: all required pages/views, navigation, common/domain/page components, applicable states, and a connected full-flow demo result; one static/disconnected screen fails. Apply .claude/skills/shared/releasable-pbi-contract.md.
+For a genuinely isolated brownfield change or bugfix, record Decomposition Applicability: EXEMPT with the reason and accepting owner; do not create docs/product-roadmap.md. An explicitly supplied roadmap remains read-only context.
+The scenario step is conditional for the selected embedded scope; product-roadmap is not an implicit workflow step. Preserve the canonical sequence order after applicability filtering.
+
 FEATURE IMPLEMENTATION PROTOCOL:
 ⚠️ PROJECT CONTEXT: Read docs/project-config.json → workflowPatterns and docs/project-reference/docs-index-reference.md for project-specific architecture, test, documentation, naming, and CSS conventions. Apply the shared SDD Artifact Contract from shared/sdd-artifact-contract.md in the active skills root. Any supported AI tool may implement or review when this context is synced.
 ⚠️ MANDATORY: Search existing code BEFORE planning
-1. Scout: Find similar features, patterns, and implementation examples using Grep/Glob
-2. Investigate: Study existing patterns - validate with 3+ codebase examples (NOT generic framework docs)
+1. Investigate: Find similar features and patterns, then study existing implementations and validate with 3+ codebase examples (NOT generic framework docs)
 2a. Spec Discovery — CONDITIONAL (short-circuits on empty spec corpus): run $spec-discovery after investigate to investigate all existing Feature Specs AND related code logic FIRST — surfacing related/overlapping/affected specs, missing features/test cases, and the invariant landscape — before authoring the spec.
 2b. Domain Analysis — CONDITIONAL: if feature creates/modifies domain entities, run $domain-analysis after spec-discovery to model bounded contexts and ERD before planning.
 3. Author Feature Spec: with $spec BEFORE planning, capture intended behavior — §1-7 business rules, invariants, and acceptance criteria the plan and tests are built against. Validate investigation + spec rationale with $why-review.
@@ -778,12 +815,15 @@ UNIVERSAL RULES:
 - Goal-Driven Execution: define success criteria before execution; loop until observable checks pass.
 - Tests Verify Intent: when creating or reviewing specs/tests, name the protected business intent or invariant and ensure the test would fail if that intent breaks.
 - Spec-Loop Discipline (spec→code→tests→review loop): §8 must derive universally-quantified Invariant/Property TCs (for-ALL-inputs rules + boundary counter-cases) for every [HARD] §4 rule and §5 invariant — not just example scenarios — and back them with property/metamorphic tests whose quality bar is the MUTATION-SCORE gate (a surviving mutant on changed core-logic = a missing invariant → write the killing test), NOT line-coverage %. Every behavior-changing finding feeds the Dual-Feedback Ledger into BOTH the spec AND the tests (a blank Spec-feedback OR Test-feedback cell = INCOMPLETE), never a code-only fix. Re-review the whole package (spec + tests + code, not just the diff) and loop until a complete review pass surfaces zero new gap or hidden rule — each cycle enriches the spec.
+DOMAIN-ENTITY REFERENCE REFRESH (CONDITIONAL TERMINAL STEP):
+- After $test and before $docs-update, run $scan --target=domain-entities when the final diff changes an entity/model, DTO/data contract, persistence schema/migration, or entity-sync evidence represented in docs/project-reference/domain-entities-reference.md.
+- Otherwise mark the scan step completed with a cited skip reason naming the changed files and why they are outside this scope.
 ```
 
 ### workflow-feature-spec — Business Feature Documentation
 - Description: Business feature documentation with tech-free 8-section Feature Spec template enforcement, plan validation, and mandatory test coverage (TCs in Section 8)
 - When To Use: User wants to create or update business feature documentation under the fixed docs/specs Feature Spec root
-- Sequence: `scout -> investigate -> plan -> plan-review -> plan-validate -> why-review -> docs-update -> workflow-review-changes -> workflow-end -> watzup`
+- Sequence: `investigate -> plan -> plan-review -> plan-validate -> why-review -> docs-update -> workflow-review-changes -> workflow-end -> watzup`
 
 Protocol:
 ```text
@@ -808,10 +848,16 @@ UNIVERSAL RULES:
 ### workflow-greenfield-init — Greenfield Project Init
 - Description: Full waterfall project inception from idea through implementation with integration testing
 - When To Use: User wants to start a new project from scratch, init a greenfield project, plan a new application, research and plan before coding, bootstrap a new codebase, build something new
-- Sequence: `idea -> web-research -> deep-research -> business-evaluation -> spec-discovery -> domain-analysis -> why-review -> tech-stack-research -> architecture-design -> architecture-scalability-review -> why-review -> plan -> plan-review -> security-review -> performance-review -> plan-review -> refine -> why-review -> artifact-review --type=pbi -> story -> why-review -> artifact-review --type=story -> pbi-challenge -> dor-gate -> pbi-mockup -> plan-validate -> why-review -> spec [mode=tests] -> why-review -> artifact-review --type=spec-tests -> spec-clarify -> plan -> plan-review -> scaffold -> linter-setup -> harness-setup -> architecture-review-full -> scan --target=ui-system -> scan --target=backend-patterns -> scan --target=integration-tests -> scan --target=project-structure -> why-review -> plan-execute -> domain-entities-review -> spec [mode=tests] -> why-review -> artifact-review --type=spec-tests -> plan -> plan-review -> integration-test -> integration-test-review -> integration-test-verify -> test -> workflow-review-changes -> security-review -> changelog -> test -> docs-update -> workflow-end -> watzup`
+- Sequence: `idea -> web-research -> deep-research -> business-evaluation -> spec-discovery -> domain-analysis -> why-review -> tech-stack-research -> architecture-design -> architecture-scalability-review -> why-review -> scenario -> plan -> plan-review -> security-review -> performance-review -> plan-review -> refine -> why-review -> artifact-review --type=pbi -> story -> why-review -> artifact-review --type=story -> pbi-challenge -> dor-gate -> pbi-mockup -> plan-validate -> why-review -> spec [mode=tests] -> why-review -> artifact-review --type=spec-tests -> spec-clarify -> plan -> plan-review -> scaffold -> linter-setup -> harness-setup -> architecture-review-full -> scan --target=ui-system -> scan --target=backend-patterns -> scan --target=integration-tests -> scan --target=project-structure -> why-review -> plan-execute -> domain-entities-review -> spec [mode=tests] -> why-review -> artifact-review --type=spec-tests -> plan -> plan-review -> integration-test -> integration-test-review -> integration-test-verify -> test -> workflow-review-changes -> security-review -> changelog -> test -> scan --target=domain-entities -> docs-update -> workflow-end -> watzup`
 
 Protocol:
 ```text
+LARGE-IDEA DECOMPOSITION CHAIN (MANDATORY):
+For new, greenfield, big, ambiguous, multi-capability, or release-scoped work, evaluate the shared isLargeIdea rule before authoring a spec, PBI, story, or plan. When any signal is true, require the complete large_idea_decomposition block in the owning artifacts and carry its stable slice IDs through downstream outputs. Ordinary isolated ideas omit the block and do not create docs/product-roadmap.md. Run $scenario conditionally for the embedded scope. A standalone product-roadmap route is explicit-only; an existing supplied roadmap is read-only context.
+RELEASABLE PBI PROTOCOL (MANDATORY): Every generated PBI MUST be one independently releasable actor-facing outcome with a complete entry-to-result journey, visible/persisted truth, applicable access/failure/recovery behavior, scope, and evidence. Technical/foundation/setup/migration work is enabling work attached to a releasable PBI or a separate actor-facing outcome—never a standalone technical PBI. UI PBIs MUST include a complete multi-view mock-app surface: all required pages/views, navigation, common/domain/page components, applicable states, and a connected full-flow demo result; one static/disconnected screen fails. Apply .claude/skills/shared/releasable-pbi-contract.md.
+For a genuinely isolated brownfield change or bugfix, record Decomposition Applicability: EXEMPT with the reason and accepting owner; do not create docs/product-roadmap.md. An explicitly supplied roadmap remains read-only context.
+The scenario step is conditional for the selected embedded scope; product-roadmap is not an implicit workflow step. Preserve the canonical sequence order after applicability filtering.
+
 GREENFIELD PROJECT INCEPTION PROTOCOL:
 You are acting as a Solution Architect for a brand-new project.
 
@@ -892,10 +938,16 @@ UNIVERSAL RULES:
 ### workflow-idea-to-pbi — Idea to PBI
 - Description: PO/BA idea → grooming-ready backlog. TWO modes: (1) SINGLE-PBI DEEP — one concrete idea/ticket/brief → deep single PBI via idea → draft Feature Spec → TDD test specs → domain → plan → PBI/stories → challenge → DoR → mockup → prioritize; (2) MULTI-OPPORTUNITY DISCOVERY — a raw vision/problem → brainstorm (optionally web-research → deep-research) → RICE opportunity map → user multi-select → light per-opportunity PBI loop → cross-PBI ranked backlog. For idea → ONE provisional Feature Spec only (no backlog) use workflow-idea-to-spec.
 - When To Use: PO/BA wants a grooming-ready PBI backlog from an idea. SINGLE-PBI DEEP: a raw idea — or a handed-off artifact/ticket/brief — through to ONE grooming-ready PBI with a provisional Feature Spec, user stories, TDD test specifications, Dev BA PIC challenge, DoR validation, wireframes, and prioritization. MULTI-OPPORTUNITY DISCOVERY: a raw product vision/problem statement → structured brainstorm → RICE opportunity map → user multi-select → multiple PBIs (light per-opportunity loop) → cross-PBI ranked backlog. For idea → ONE provisional Feature Spec only (no backlog), use workflow-idea-to-spec
-- Sequence: `web-research -> deep-research -> brainstorm -> idea -> spec-discovery -> artifact-review -> refine -> why-review -> spec [mode=draft] -> spec [mode=tests] -> why-review -> artifact-review --type=spec-tests -> spec-clarify -> domain-analysis -> why-review -> plan -> plan-review -> plan-validate -> why-review -> artifact-review --type=pbi -> story -> why-review -> artifact-review --type=story -> pbi-challenge -> dor-gate -> pbi-mockup -> design-spec -> prioritize -> docs-update -> feature-presentation -> workflow-end -> watzup`
+- Sequence: `web-research -> deep-research -> brainstorm -> idea -> spec-discovery -> artifact-review -> refine -> why-review -> spec [mode=draft] -> spec [mode=tests] -> why-review -> artifact-review --type=spec-tests -> spec-clarify -> scenario -> domain-analysis -> why-review -> plan -> plan-review -> plan-validate -> why-review -> artifact-review --type=pbi -> story -> why-review -> artifact-review --type=story -> pbi-challenge -> dor-gate -> pbi-mockup -> design-spec -> prioritize -> docs-update -> feature-presentation -> workflow-end -> watzup`
 
 Protocol:
 ```text
+LARGE-IDEA DECOMPOSITION CHAIN (MANDATORY):
+For new, greenfield, big, ambiguous, multi-capability, or release-scoped work, evaluate the shared isLargeIdea rule before authoring a spec, PBI, story, or plan. When any signal is true, require the complete large_idea_decomposition block in the owning artifacts and carry its stable slice IDs through downstream outputs. Ordinary isolated ideas omit the block and do not create docs/product-roadmap.md. Run $scenario conditionally for the embedded scope. A standalone product-roadmap route is explicit-only; an existing supplied roadmap is read-only context.
+RELEASABLE PBI PROTOCOL (MANDATORY): Every generated PBI MUST be one independently releasable actor-facing outcome with a complete entry-to-result journey, visible/persisted truth, applicable access/failure/recovery behavior, scope, and evidence. Technical/foundation/setup/migration work is enabling work attached to a releasable PBI or a separate actor-facing outcome—never a standalone technical PBI. UI PBIs MUST include a complete multi-view mock-app surface: all required pages/views, navigation, common/domain/page components, applicable states, and a connected full-flow demo result; one static/disconnected screen fails. Apply .claude/skills/shared/releasable-pbi-contract.md.
+For a genuinely isolated brownfield change or bugfix, record Decomposition Applicability: EXEMPT with the reason and accepting owner; do not create docs/product-roadmap.md. An explicitly supplied roadmap remains read-only context.
+The scenario step is conditional for the selected embedded scope; product-roadmap is not an implicit workflow step. Preserve the canonical sequence order after applicability filtering.
+
 IDEA TO PBI PROTOCOL:
 Capture and refine a raw idea — or a handed-off artifact/ticket/brief — into a grooming-ready PBI via an idea → test specs → (from those specs) PBI/stories/plan flow, with domain analysis, challenge review, DoR validation, and wireframe. Apply the shared SDD Artifact Contract from shared/sdd-artifact-contract.md in the active skills root and read docs/project-config.json plus docs/project-reference/docs-index-reference.md for project-specific conventions. Any supported AI tool may produce or review artifacts when this context is synced.
 
@@ -1021,10 +1073,16 @@ UNIVERSAL RULES:
 ### workflow-idea-to-spec — Idea to Feature Spec
 - Description: Idea-to-spec — turns a raw idea/vision/problem statement into ONE canonical, provisional Feature Spec (the tech-free 8-section spec + §8 test specs at docs/specs/{Bucket}/README.{Feature}.md, Evidence: TBD until code lands). STOPS at the reviewed Feature Spec — it does NOT produce a PBI backlog. For a backlog, chain workflow-spec-to-pbi afterward. For code→spec (implementation already exists) use workflow-code-to-spec.
 - When To Use: PO/BA wants to turn a raw product idea, vision, or problem statement into ONE canonical (provisional) Feature Spec — spec-driven: idea → framing → Feature Spec (the tech-free 8-section spec + §8 test specs, Evidence: TBD until code lands). STOPS at the reviewed Feature Spec; for a PBI backlog chain workflow-spec-to-pbi next, or use workflow-idea-to-pbi for idea → full backlog in one pass
-- Sequence: `web-research -> deep-research -> brainstorm -> spec-discovery -> domain-analysis -> why-review -> idea -> spec [mode=draft] -> spec [mode=tests] -> artifact-review --type=spec-tests -> artifact-review -> design-spec -> spec-clarify -> why-review -> docs-update -> feature-presentation -> workflow-end -> watzup`
+- Sequence: `web-research -> deep-research -> brainstorm -> spec-discovery -> scenario -> domain-analysis -> why-review -> idea -> spec [mode=draft] -> spec [mode=tests] -> artifact-review --type=spec-tests -> artifact-review -> design-spec -> spec-clarify -> why-review -> docs-update -> feature-presentation -> workflow-end -> watzup`
 
 Protocol:
 ```text
+LARGE-IDEA DECOMPOSITION CHAIN (MANDATORY):
+For new, greenfield, big, ambiguous, multi-capability, or release-scoped work, evaluate the shared isLargeIdea rule before authoring a spec, PBI, story, or plan. When any signal is true, require the complete large_idea_decomposition block in the owning artifacts and carry its stable slice IDs through downstream outputs. Ordinary isolated ideas omit the block and do not create docs/product-roadmap.md. Run $scenario conditionally for the embedded scope. A standalone product-roadmap route is explicit-only; an existing supplied roadmap is read-only context.
+RELEASABLE PBI PROTOCOL (MANDATORY): Every generated PBI MUST be one independently releasable actor-facing outcome with a complete entry-to-result journey, visible/persisted truth, applicable access/failure/recovery behavior, scope, and evidence. Technical/foundation/setup/migration work is enabling work attached to a releasable PBI or a separate actor-facing outcome—never a standalone technical PBI. UI PBIs MUST include a complete multi-view mock-app surface: all required pages/views, navigation, common/domain/page components, applicable states, and a connected full-flow demo result; one static/disconnected screen fails. Apply .claude/skills/shared/releasable-pbi-contract.md.
+For a genuinely isolated brownfield change or bugfix, record Decomposition Applicability: EXEMPT with the reason and accepting owner; do not create docs/product-roadmap.md. An explicitly supplied roadmap remains read-only context.
+The scenario step is conditional for the selected embedded scope; product-roadmap is not an implicit workflow step. Preserve the canonical sequence order after applicability filtering.
+
 IDEA-TO-SPEC PROTOCOL (SPEC-DRIVEN, STOPS AT SPEC):
 Converts a raw idea / product vision / problem statement into ONE canonical, provisional Feature Spec. This workflow ENDS at a reviewed Feature Spec — it does NOT decompose into PBIs, stories, or a backlog. If the user wants a backlog, hand off to workflow-spec-to-pbi after this workflow completes.
 
@@ -1059,7 +1117,7 @@ SPEC AUTHORING FLOW (core mechanic — idea → provisional Feature Spec):
   1. (CONDITIONAL) Run $web-research to discover existing products, competitors, market solutions, and common best-practice patterns for this idea — AUTO-SKIP for internal tools / well-understood domains (record the skip reason).
   2. (CONDITIONAL) Run $deep-research to deep-dive the top sources from step 1 into an evidence base — runs only when step 1 ran; its findings FEED the brainstorm.
   3. Run $brainstorm to frame the idea (informed by the research evidence when present) and converge on the capability to spec.
-  4. Run $spec-discovery to investigate the surrounding system BEFORE authoring — Glob docs/specs/** to classify every related/overlapping/affected Feature Spec, $scout + graph-trace the related code logic, then surface gaps (missing features/test-cases/user-stories), system unknowns, and the existing invariant landscape the idea must respect. Ends in a BLOCKING scope-decision gate (NEW standalone spec / EXTEND existing spec X via $spec [mode=update] / SPLIT into N). CONDITIONAL: on an empty corpus (no specs + no code) it records the reason and short-circuits.
+  4. Run $spec-discovery to investigate the surrounding system BEFORE authoring — Glob docs/specs/** to classify every related/overlapping/affected Feature Spec, $investigate + graph-trace the related code logic, then surface gaps (missing features/test-cases/user-stories), system unknowns, and the existing invariant landscape the idea must respect. Ends in a BLOCKING scope-decision gate (NEW standalone spec / EXTEND existing spec X via $spec [mode=update] / SPLIT into N). CONDITIONAL: on an empty corpus (no specs + no code) it records the reason and short-circuits.
   5. Run $domain-analysis if new domain entities are implied (skip otherwise).
   6. Run $why-review to validate the idea framing (right problem? pre-mortem? systemic alternatives?).
   7. Run $idea to capture the converged idea as a structured artifact → configured idea artifact root.
@@ -1119,7 +1177,7 @@ UNIVERSAL RULES:
 ### workflow-integration-test-green — Integration Test Green (Verify · Adjudicate · Fix · Loop)
 - Description: Drive an integration-test suite to fully green with a bounded convergence loop — verify the whole system (or the named target), adjudicate every failure with debug-investigate + integration-test-review before any edit, fix at the owning layer, re-verify from scratch, then sync spec TCs, the integration-test reference doc, and feature docs
 - When To Use: Make all integration tests pass, fix failing integration tests, drive the integration test suite to green, run the whole integration test suite and fix whatever fails, integration tests are red after a change, verify the whole system integration tests pass repeatably, loop until all integration tests are green, diagnose and fix an intermittent or flaky integration test
-- Sequence: `scout -> integration-test-verify-loop -> spec [mode=sync] -> scan --target=integration-tests -> docs-update -> workflow-end -> watzup`
+- Sequence: `investigate -> integration-test-verify-loop -> debug-investigate [on-failure] -> fix [on-failure] -> spec [mode=sync] -> scan --target=integration-tests -> docs-update -> workflow-end -> watzup`
 
 Protocol:
 ```text
@@ -1127,7 +1185,7 @@ INTEGRATION TEST GREEN PROTOCOL (Verify → Adjudicate → Fix → Re-verify, lo
 ⚠️ PROJECT CONTEXT: Read docs/project-config.json → integrationTestVerify (quickRunCommand, testProjectPattern, testProjects, systemCheckCommand, startupScript, referenceDocs) AND framework.integrationTestDoc before any test command. NEVER hardcode a language-specific runner.
 ⚠️ SCOPE DEFAULT: the WHOLE SYSTEM. With no target in the prompt, verify EVERY integration-test project discoverable via testProjectPattern > testProjects — NOT the git-changed subset. A target named in the prompt (suite, module, feature, diff/branch/PR) narrows the scope; state how it was resolved.
 
-1. Scout: resolve the target scope to a concrete test-project list (fast when the scope is the whole system — record the discovered project list as the scope string).
+1. Investigate: resolve the target scope to a concrete test-project list (fast when the scope is the whole system — record the discovered project list as the scope string).
 2. Integration Test Verify Loop ($integration-test-verify-loop): the core convergence engine. Sets the Goal Contract FIRST, then loops:
    a. Run $integration-test-verify INLINE over the fixed scope (passed explicitly) — 2 consecutive green runs without DB reset, real Passed/Failed/Skipped counts.
    b. On ANY failure, adjudicate BEFORE any edit by running BOTH INLINE: $debug-investigate (end-to-start trace to a file:line root cause at the invariant-owning layer, validated by its own $why-review gate) AND $integration-test-review in REPORT-ONLY mode (8 gates: assertion value, data state, repeatability, domain logic, spec traceability, three-way sync, change coverage, scenario fidelity) — it STOPS after its findings report; the loop owns fixing and re-running.
@@ -1135,7 +1193,7 @@ INTEGRATION TEST GREEN PROTOCOL (Verify → Adjudicate → Fix → Re-verify, lo
    d. $fix at the OWNING layer (Entity > Service > Handler), never the crash site. SOURCE-WRONG keeps/strengthens the test that caught it. TEST-NOT-OPTIMAL repairs the SCENARIO with an ARRANGE-phase barrier on a real observable.
    e. CONDITIONAL $changes-review — in EVERY round that applied ANY fix (source, test, scenario, or spec), run $changes-review INLINE and REPORT-ONLY over that round's fix diff (the files changed since the round's snapshot), validate its findings with $why-review --validate-findings, and fold every VALIDATED finding into the SAME round's fix set. No fix landed → skip with a recorded reason. Unfixable validated findings → STOP and escalate. This SUBSUMES the SOURCE-WRONG verdict's own changes-review obligation — run it once per round over the whole fix diff, never twice, and never open a nested review→fix loop inside a round.
    f. Round Integrity Check (BLOCKING): executed test count must not decrease, skipped count must not increase, scope must not shrink.
-   g. Re-verify from a FRESH full run. Round cap 5; failing count not shrinking across 2 rounds, failures increasing, cap hit with failures open, lost coverage, an open validated $changes-review finding, or ENVIRONMENT-BLOCKED → STOP and escalate by asking the user directly.
+   g. Re-verify from a FRESH full run. Round cap 3; failing count not shrinking across 2 rounds, failures increasing, cap hit with failures open, lost coverage, an open validated $changes-review finding, or ENVIRONMENT-BLOCKED → STOP and escalate by asking the user directly.
 3. Spec Sync ($spec [mode=sync]): reconcile §8 TC-{FEATURE}-{NNN} specs ↔ the executing test code. Update each TC CoveredBy field with all covering {File}::{MethodName} links (1 TC → many tests is correct).
 4. Integration Test Doc Scan ($scan --target=integration-tests): regenerate the integration-test project-reference doc so patterns, fixtures, helper conventions, and suite inventory reflect the tests as they now stand after the loop.
 5. Docs Update ($docs-update): update every OTHER impacted doc — feature-doc evidence fields, version history, and any doc embedding test counts or coverage claims that the loop changed.
@@ -1160,7 +1218,7 @@ UNIVERSAL RULES:
 ### workflow-refactor — Code Refactoring
 - Description: Code improvement and restructuring workflow with search-first approach
 - When To Use: User wants to restructure, reorganize, clean up, or improve existing code without changing behavior; technical debt
-- Sequence: `scout -> investigate -> plan -> plan-review -> plan-validate -> why-review -> plan-execute -> spec [mode=tests] -> why-review -> artifact-review --type=spec-tests -> spec [mode=sync] -> integration-test -> integration-test-review -> integration-test-verify -> workflow-review-changes -> changelog -> test -> docs-update -> workflow-end -> watzup`
+- Sequence: `investigate -> plan -> plan-review -> plan-validate -> why-review -> plan-execute -> spec [mode=tests] -> why-review -> artifact-review --type=spec-tests -> spec [mode=sync] -> integration-test -> integration-test-review -> integration-test-verify -> workflow-review-changes -> changelog -> test -> scan --target=domain-entities -> docs-update -> workflow-end -> watzup`
 
 Protocol:
 ```text
@@ -1168,8 +1226,7 @@ Role: Refactoring Specialist
 REFACTORING PROTOCOL:
 ⚠️ PROJECT CONTEXT: Read docs/project-config.json → workflowPatterns for project-specific architecture patterns, code hierarchy, and naming conventions.
 ⚠️ MANDATORY: Search existing code BEFORE planning
-1. Scout: Find similar refactoring patterns, identify target architecture examples using Grep/Glob
-2. Investigate: Study existing patterns - validate with 3+ codebase examples (NOT generic framework docs)
+1. Investigate: Find similar refactoring patterns and target architecture examples, then validate with 3+ codebase examples (NOT generic framework docs)
 3. Plan: Identify code smells, define target architecture following discovered project patterns
 4. Validate plan  --  ensure no behavioral changes, only structural
 5. Validate design rationale with $why-review (features/refactors)
@@ -1233,7 +1290,7 @@ UNIVERSAL RULES:
 ### workflow-review-changes — Review Current Changes
 - Description: Review uncommitted changes, plan and fix issues, then re-review recursively until clean
 - When To Use: User wants to review current uncommitted, staged, or unstaged changes before committing
-- Sequence: `[parallel ⇉ all-return barrier: changes-review, why-review --target=whole-review-target] -> why-review -> [parallel ⇉ all-return barrier: architecture-review, domain-entities-review*, performance-review, integration-test-review, security-review, production-readiness-review, ui-review*] -> code-simplifier -> plan -> plan-review -> plan-execute -> changes-review -> why-review -> docs-update -> workflow-end -> watzup`
+- Sequence: `[parallel ⇉ all-return barrier: changes-review, why-review --target=whole-review-target] -> why-review -> [parallel ⇉ all-return barrier: architecture-review, domain-entities-review*, performance-review, integration-test-review, security-review, production-readiness-review, ui-review*] -> code-simplifier -> plan -> plan-review -> plan-execute -> changes-review -> why-review -> scan --target=domain-entities -> docs-update -> workflow-end -> watzup`
 - Parallel phase = all-return barrier: spawn ALL members together (one message); advance only after EVERY member returns (a skipped conditional member, marked `*`, counts as returned). A sub-agent completion advances the step identically to an inline call.
 
 Protocol:
@@ -1280,9 +1337,9 @@ UNIVERSAL RULES:
 ```
 
 ### workflow-seed-test-data — Seed Test Data
-- Description: Generate or enhance test data seeders that simulate QC happy-path scenarios for a feature area. Scouts existing patterns, implements idempotent command-based seeders, reviews compliance, simplifies.
+- Description: Generate or enhance test data seeders that simulate QC happy-path scenarios for a feature area. Investigates existing patterns, implements idempotent command-based seeders, reviews compliance, simplifies.
 - When To Use: User wants to seed test data, implement data seeders, generate realistic development environment data, add happy-path scenarios for a feature, create dummy data for manual QC testing, fill dev database with realistic test cases
-- Sequence: `scout -> investigate -> seed-test-data -> changes-review -> code-simplifier -> docs-update -> workflow-end -> watzup`
+- Sequence: `investigate -> seed-test-data -> changes-review -> code-simplifier -> docs-update -> workflow-end -> watzup`
 
 Protocol:
 ```text
@@ -1335,10 +1392,16 @@ UNIVERSAL RULES:
 ### workflow-spec-to-pbi — Spec to PBI Backlog
 - Description: Generate a complete, dependency-aware PBI backlog from existing canonical Feature Specs (docs/specs/{Bucket}/). Audits spec freshness, decomposes large Feature Specs by capability and feature, creates PBIs/stories/DoR evidence, and produces a ranked backlog.
 - When To Use: User wants to create all PBIs from an existing Feature Spec, convert a large Feature Spec into a complete prioritized backlog, generate dependent PBIs from docs/specs, split a very big Feature Spec into sprint-ready PBIs, or produce a ranked implementation order from a bucket of Feature Specs.
-- Sequence: `scout -> spec-index -> domain-analysis -> why-review -> spec-clarify -> plan -> plan-review -> plan-validate -> why-review -> refine -> why-review -> artifact-review --type=pbi -> story -> why-review -> artifact-review --type=story -> pbi-challenge -> dor-gate -> pbi-mockup -> design-spec -> prioritize -> docs-update -> feature-presentation -> workflow-end -> watzup`
+- Sequence: `investigate -> spec-index -> domain-analysis -> why-review -> spec-clarify -> scenario -> plan -> plan-review -> plan-validate -> why-review -> refine -> why-review -> artifact-review --type=pbi -> story -> why-review -> artifact-review --type=story -> pbi-challenge -> dor-gate -> pbi-mockup -> design-spec -> prioritize -> docs-update -> feature-presentation -> workflow-end -> watzup`
 
 Protocol:
 ```text
+LARGE-IDEA DECOMPOSITION CHAIN (MANDATORY):
+For new, greenfield, big, ambiguous, multi-capability, or release-scoped work, evaluate the shared isLargeIdea rule before authoring a spec, PBI, story, or plan. When any signal is true, require the complete large_idea_decomposition block in the owning artifacts and carry its stable slice IDs through downstream outputs. Ordinary isolated ideas omit the block and do not create docs/product-roadmap.md. Run $scenario conditionally for the embedded scope. A standalone product-roadmap route is explicit-only; an existing supplied roadmap is read-only context.
+RELEASABLE PBI PROTOCOL (MANDATORY): Every generated PBI MUST be one independently releasable actor-facing outcome with a complete entry-to-result journey, visible/persisted truth, applicable access/failure/recovery behavior, scope, and evidence. Technical/foundation/setup/migration work is enabling work attached to a releasable PBI or a separate actor-facing outcome—never a standalone technical PBI. UI PBIs MUST include a complete multi-view mock-app surface: all required pages/views, navigation, common/domain/page components, applicable states, and a connected full-flow demo result; one static/disconnected screen fails. Apply .claude/skills/shared/releasable-pbi-contract.md.
+For a genuinely isolated brownfield change or bugfix, record Decomposition Applicability: EXEMPT with the reason and accepting owner; do not create docs/product-roadmap.md. An explicitly supplied roadmap remains read-only context.
+The scenario step is conditional for the selected embedded scope; product-roadmap is not an implicit workflow step. Preserve the canonical sequence order after applicability filtering.
+
 SPEC TO PBI BACKLOG PROTOCOL:
 Use when the user has existing canonical Feature Specs at docs/specs/{Bucket}/README.{Feature}.md and wants all implementable PBIs created from them.
 
@@ -1346,10 +1409,10 @@ MANDATORY RULES:
 1. Treat the Feature Specs as canonical input; do not brainstorm unrelated opportunities. Decompose each PBI from spec sections (§3 US/AC, §4 BR, §5 ERD, §6 flows, §7 permissions, §8 TCs).
 2. Run spec-index audit first if a Feature Spec may be stale vs code (the freshness-vs-code audit). Then, after domain-analysis + its why-review and BEFORE any decomposition (plan / refine), run spec-clarify to validate the spec's DECISIONS with the user (EXISTING-SPEC context): it does NOT re-author the canonical spec — confirmed material changes route via $spec [mode=update] FIRST — and complements the spec-index audit (freshness-vs-code on one side, decision-confirmation-with-the-user on the other).
 3. Build a capability x feature/operation inventory before creating any PBI.
-4. Decompose large Feature Specs into independently deliverable vertical slices. Create explicit shared/foundation PBIs for cross-cutting prerequisites.
+4. Decompose large Feature Specs into independently releasable actor-facing vertical slices. Attach cross-cutting enabling work to a releasable PBI or define a separate actor-facing releasable outcome; never emit a standalone technical/foundation/setup/migration PBI.
 5. For each PBI, include acceptance criteria, story points, dependencies, priority, domain impact, spec [mode=tests] needs, and DoR status. Carry §4 BR-/§3 US- logical IDs as the primary citation spine.
 6. Run domain-analysis when the spec implies new/changed entities, aggregates, invariants, state machines, or cross-service ownership.
-7. For each UI PBI, run pbi-mockup THEN design-spec (both CONDITIONAL — SKIP for backend-only PBIs with a stated skip reason; both gated by SYNC:existing-ui-research). pbi-mockup produces a faithful HTML mockup matching the current UI system; design-spec authors the PBI's tech-agnostic UI specs. Both MUST link back to the governing Feature Spec §6 interaction surface — the mockup and the design-spec's View Inventory / Key UI States / per-story click-path must trace to (and stay consistent with) §6. This mirrors workflow-idea-to-pbi so the spec→pbi decomposition half is IDENTICAL across both workflows (idea-to-pbi == idea-to-spec + spec-to-pbi).
+7. For each UI PBI, run pbi-mockup THEN design-spec (both CONDITIONAL — SKIP for backend-only PBIs with a stated skip reason; both gated by SYNC:existing-ui-research). pbi-mockup produces a faithful, multi-view HTML mock app covering the releasable full flow, required pages/views, navigation, components, and applicable states; design-spec authors the PBI's tech-agnostic UI specs. Both MUST link back to the governing Feature Spec §6 interaction surface — the mockup and the design-spec's View Inventory / Key UI States / per-story click-path must trace to (and stay consistent with) §6. This mirrors workflow-idea-to-pbi so the spec→pbi decomposition half is IDENTICAL across both workflows (idea-to-pbi == idea-to-spec + spec-to-pbi).
 8. Run prioritize once at the end across all generated PBIs to produce a dependency-aware ranked backlog. PRIORITY PROPAGATION (MANDATORY): prioritize MUST write the computed rank/priority back into every generated PBI's frontmatter `priority` field — never leave a generated PBI without priority. Every generated PBI carries priority info.
 9. Write artifacts immediately after each capability/feature is processed; never hold all PBIs in memory.
 10. Run docs-update after prioritize and before workflow-end so Feature Specs (§8) and derived indexes stay synchronized.
@@ -1380,7 +1443,7 @@ UNIVERSAL RULES:
 ### workflow-visualize — Visual Diagram
 - Description: Create visual Excalidraw diagrams from codebase investigation or web research
 - When To Use: User wants to visualize, diagram, draw, or create visual representation of workflows, architectures, concepts, systems, or research findings
-- Sequence: `scout -> investigate -> excalidraw-diagram -> workflow-end`
+- Sequence: `investigate -> excalidraw-diagram -> workflow-end`
 
 Protocol:
 ```text
@@ -1388,8 +1451,7 @@ VISUAL DIAGRAM PROTOCOL:
 This workflow creates Excalidraw diagrams. Two paths based on source:
 
 PATH A — Codebase Visualization (default if topic is about this project):
-1. Scout: Find relevant files, architecture, and code patterns
-2. Investigate: Trace code paths, understand relationships and data flow
+1. Investigate: Find relevant files, architecture, code patterns, and trace relationships and data flow
 3. Diagram: Generate .excalidraw file visualizing the findings
 
 PATH B — Knowledge Visualization (if topic requires web research):
@@ -1411,15 +1473,14 @@ UNIVERSAL RULES:
 ### workflow-write-integration-test — Write Integration Tests
 - Description: Write or update integration tests for existing code — spec-first: investigate domain logic → write/update specs → generate test code → 7-gate review (incl. change coverage) → run and verify
 - When To Use: Write integration tests for a specific command/handler, add test coverage to an untested feature, update integration tests after code changes, integration test authoring from scratch for a feature area, cover uncommitted code changes with integration tests, generate integration tests from existing test specs or feature docs, review/audit existing integration tests for quality, flakiness, traceability, or failures
-- Sequence: `scout -> investigate -> spec [mode=tests] -> why-review -> artifact-review --type=spec-tests -> integration-test -> integration-test-review -> integration-test-verify -> spec [mode=sync] -> docs-update -> workflow-end -> watzup`
+- Sequence: `investigate -> spec [mode=tests] -> why-review -> artifact-review --type=spec-tests -> integration-test -> integration-test-review -> integration-test-verify -> spec [mode=sync] -> docs-update -> workflow-end -> watzup`
 
 Protocol:
 ```text
 WRITE INTEGRATION TEST PROTOCOL:
 ⚠️ PROJECT CONTEXT: Read docs/project-config.json → framework.integrationTestDoc for project-specific test patterns, helper classes, and async wait conventions.
 ⚠️ MANDATORY: Understand domain logic BEFORE writing assertions
-1. Scout: Find target command/handler files; locate existing integration tests in same service for pattern matching
-2. Investigate: Read the handler/entity/event source — understand WHAT fields change, WHAT entities are created/updated/deleted, WHAT event handlers fire. This is the prerequisite for correct assertions.
+1. Investigate: Find target command/handler files, matching integration tests, and the handler/entity/event source; understand WHAT fields change, WHAT entities are created/updated/deleted, and WHAT event handlers fire. This is the prerequisite for correct assertions.
 3. TDD Spec: Write/update test specs in feature doc Section 8 (TC-{FEATURE}-{NNN} codes). Path: docs/specs/{Bucket}/README.{Feature}.md. Authors new TCs and updates existing TCs for changed behavior.
 4. TDD Spec Review: Validate spec coverage — GIVEN/WHEN/THEN completeness, happy path + validation failure + auth paths, no duplicate TC codes
 5. Integration Test: Generate test files from TC specs. FROM-PROMPT for specific target, FROM-CHANGES for git diff.
@@ -1462,7 +1523,7 @@ Distinct step-skills used across the workflows above — compose these into a cu
 | `architecture-review-full` | [Architecture] Use when auditing the ENTIRE project architecture and production readiness in one pass — bundles architecture-review + architecture-scalability-review + production-readiness-review at project or diff scope, then synthesizes one consolidated Architecture Health Report. |
 | `architecture-scalability-review` | [Architecture] Use when grading project architecture and scalability quality for greenfield init or brownfield audit: build/CI scalability, distributed-monolith risk, module isolation, dependency discipline, loose coupling, horizontal scaling, DRY, abstraction, clean architecture, observability, and delivery. |
 | `artifact-review` | [Code Quality] Use when you need to review artifact quality (PBI, user story, test spec, design spec) before handoff. Supports --type={pbi\|story\|spec-tests\|design}. |
-| `brainstorm` | [Content] Use when you need to brainstorm as a PO/BA — structured ideation for problem-solving, new product creation, or feature enhancement. |
+| `brainstorm` | [Content] Use when you need to brainstorm as a PO/BA — structured ideation for problem-solving, new product creation, feature enhancement, or outcome-roadmap framing. Flag: --mode={roadmap\|scope}. |
 | `business-evaluation` | [Content] Use when you need to evaluate business idea viability: Business Model Canvas, financial projections, risk matrix, go-to-market, execution plan. |
 | `changelog` | [Documentation] Use when you need to generate or update changelog entries. |
 | `changes-review` | [Code Quality] Use when reviewing current changes, staged or unstaged diffs, or branch-to-branch diffs. |
@@ -1502,7 +1563,7 @@ Distinct step-skills used across the workflows above — compose these into a cu
 | `refine` | [Project Management] Use when converting ideas to PBIs, validating problem hypotheses, adding acceptance criteria, or refining requirements. |
 | `scaffold` | [Architecture] Use when scaffolding reusable OOP/SOLID project foundations before feature implementation. |
 | `scan` | [Documentation] Use when scanning the codebase to (re)generate ONE project-reference doc. Parameterized by `--target=<key>`: project-structure \| backend-patterns \| frontend-patterns \| scss-styling \| design-system \| code-review-rules \| domain-entities \| feature-spec \| docs-index \| e2e-tests \| integration-tests \| seed-test-data \| ui-system. Shared 4-phase scan engine; per-target detail lives in references/targets.md. `ui-system` is an orchestrator meta-target (`kind: orchestrator`) that runs the 3 UI child scans in parallel instead of the 4-phase engine. |
-| `scout` | [Investigation] Use when quickly locating relevant files and affected areas across a large codebase. |
+| `scenario` | [Planning] Use when enumerating adversarial scenarios, failure modes, data-integrity risks, state boundaries, access risks, or pre-plan edge cases for an embedded large-idea slice, explicit roadmap milestone, framework/library scope, or isolated change. |
 | `security-review` | [Code Quality] Use when you need to perform a security review or audit on any scope — application code (OWASP Top 10 2025), secrets exposure, dependency/supply-chain malware, third-party repository vetting before install, infrastructure/config, CI/CD pipeline, AI-agent risks, and host/VPS compromise detection. |
 | `seed-test-data` | [Dev Data] Use when you need to implement or enhance test data seeders that simulate QC happy-path scenarios via application-layer commands. Flag: --mode=review reviews a target seeder (or the current changes / current work-context result) against every universal seed-data rule AND the project-specific seeder conventions — read-only, evidence-backed PASS/FAIL. |
 | `spec` | [Documentation] Use to author, audit, amend, or test-spec a business Feature Spec. The single spec skill — modes draft\|init\|update\|audit\|amend create/maintain the tech-free 8-section Feature Spec; draft authors a provisional spec from an idea/requirement (no code yet, Evidence: TBD); tests generates Section 8 TC-{FEATURE}-{NNN} test specifications; sync reconciles §8 TCs ↔ executing test code. Per-mode procedure lives in references/{author,tests,sync}.md. |

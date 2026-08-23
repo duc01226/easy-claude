@@ -527,7 +527,7 @@
     },
     {
       "type": "text", "id": "ev_workflow_text", "x": 710, "y": 562, "width": 235, "height": 115,
-      "text": "Example: Bug Fix Workflow\n\n1. /scout \u2192 baseline (0 changes)\n2. Claude edits auth.py\n   \u2192 auto-update fires (2s)\n3. /code-review \u2192 injected:\n   Risk: MEDIUM, 8 nodes\n4. Claude checks impacted files\n   + flags untested functions", "originalText": "Example: Bug Fix Workflow\n\n1. /scout \u2192 baseline (0 changes)\n2. Claude edits auth.py\n   \u2192 auto-update fires (2s)\n3. /code-review \u2192 injected:\n   Risk: MEDIUM, 8 nodes\n4. Claude checks impacted files\n   + flags untested functions",
+      "text": "Example: Bug Fix Workflow\n\n1. /investigate \u2192 baseline (0 changes)\n2. Claude edits auth.py\n   \u2192 auto-update fires (2s)\n3. /code-review \u2192 injected:\n   Risk: MEDIUM, 8 nodes\n4. Claude checks impacted files\n   + flags untested functions", "originalText": "Example: Bug Fix Workflow\n\n1. /investigate \u2192 baseline (0 changes)\n2. Claude edits auth.py\n   \u2192 auto-update fires (2s)\n3. /code-review \u2192 injected:\n   Risk: MEDIUM, 8 nodes\n4. Claude checks impacted files\n   + flags untested functions",
       "fontSize": 10, "fontFamily": 3, "textAlign": "left", "verticalAlign": "middle",
       "strokeColor": "#22c55e", "backgroundColor": "transparent", "fillStyle": "solid",
       "strokeWidth": 1, "strokeStyle": "solid", "roughness": 0, "opacity": 100, "angle": 0,

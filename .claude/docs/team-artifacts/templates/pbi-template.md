@@ -9,7 +9,7 @@ sprint: '{Sprint name or N/A}'
 assigned_to: '{Name or Unassigned}'
 created: { YYYY-MM-DD }
 updated: { YYYY-MM-DD }
-template_version: '2.0'
+template_version: '2.1'
 
 # Domain Context (for domain features — populate from project-config.json modules)
 module: '' # Module name from project-config.json backendServices.serviceMap
@@ -20,6 +20,9 @@ primary_feature_doc: '' # Primary related feature documentation
 idea_reference: '' # Link to source idea (IDEA-YYYY-NNN)
 epic_reference: '' # Link to parent epic (if applicable)
 dependencies: [] # Other PBIs this depends on
+scope_mode: ORDINARY | DECOMPOSITION-EMBEDDED | EXPLICIT-ROADMAP | EXEMPT | FRAMEWORK-LIBRARY
+# Required only when any shared isLargeIdea signal is true; omit for ordinary all-false ideas.
+large_idea_decomposition: null
 ---
 
 # {Title}
@@ -31,6 +34,45 @@ dependencies: [] # Other PBIs this depends on
 ## Business Value
 
 <!-- Why this matters to users/business -->
+
+## Large-Idea Decomposition (Conditional)
+
+<!-- Required when any shared isLargeIdea signal is true. Preserve this block into stories, mock-ups, plans, and the all-PBI presentation. -->
+
+```yaml
+large_idea_decomposition:
+  outcome_slices: [{stable ID, independently releasable outcome, releasable-when evidence, owning artifact}]
+  dependencies_order: [{before, after, reason}]
+  non_goals: [{statement, owner}]
+  risks_evidence: [{risk, evidence_needed, status, owner}]
+  deferred_work_owner: [{item, owner, follow_up_artifact, target_slice}]
+```
+
+## Releasable Outcome (Required)
+
+<!-- A PBI is one independently releasable actor-facing outcome, not a technical work package. -->
+
+- **Primary actor:** {Who can achieve the outcome}
+- **Outcome:** {What the actor can accomplish after this PBI}
+- **Entry → result → exit journey:** {How the actor enters, acts, sees the result, and leaves or continues}
+- **Visible/persisted truth:** {What proves the result is accurate after refresh, revisit, or retry}
+- **Access and recovery:** {Applicable roles, loading/empty/error/duplicate-submit/refresh/recovery behavior}
+- **Technical/enabling work:** {Attached tasks/dependencies | None}; never emit technical/foundation/setup/migration work as a standalone PBI
+- **Gate:** `PASS | BLOCKED` — {Evidence that this outcome is independently releasable}
+
+### Full-Flow Surface (Required for UI PBIs)
+
+<!-- Cover the complete demoable outcome. “Many pages” means every required view, not an arbitrary page count. -->
+
+| View/page | Entry from | User action/result | Exit/next view | Components | States |
+| --------- | ---------- | ----------------- | -------------- | ---------- | ------ |
+| {View/page} | {Navigation entry} | {Observable action/result} | {Next view or exit} | {Common/domain/page components} | {Applicable states} |
+
+**Navigation map:** `{view} → {view} → {business result} → {exit/next step}`
+
+**Mock-app evidence:** {Path to a multi-view mock app, or `N/A — backend-only with explicit reason`}
+
+**Full-flow demo status:** `PASS | BLOCKED` — {The demo covers all required views, navigation, components, states, and the visible/persisted result}
 
 ## Related Business Rules
 

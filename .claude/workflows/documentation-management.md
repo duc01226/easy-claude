@@ -73,7 +73,7 @@ plans/
     │   ├── researcher-XX-report.md
     │   └── ...
 │   ├── reports/
-│   │   ├── scout-report.md
+│   │   ├── investigation-report.md
 │   │   ├── researcher-report.md
 │   │   └── ...
 │   ├── plan.md                                # Overview access point

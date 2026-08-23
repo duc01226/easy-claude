@@ -105,7 +105,7 @@ $design:screenshot analyze this design and suggest improvements
 
 ```bash
 $code-review analyze authentication implementation
-$scout --ext find all payment-related files
+$investigate find all payment-related files
 ```
 
 **Strategic planning:**

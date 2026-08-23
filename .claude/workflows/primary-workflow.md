@@ -6,7 +6,7 @@
 
 **Core Phases (all workflows follow subsets of these):**
 
-1. **Discover** — Scout files, investigate patterns, run graph traces
+1. **Discover** — Use `/investigate` to locate files, inspect patterns, and run graph traces
 2. **Plan** — `/plan` + `/plan-review` + `/plan-validate`, save in `./plans/`
 3. **Design Review** — `/why-review` (rationale), `/spec [mode=tests]` + `/artifact-review --type=spec-tests` (test specs)
 4. **Implement** — `/feature-implement` or `/plan-execute`, compile-check after every file change

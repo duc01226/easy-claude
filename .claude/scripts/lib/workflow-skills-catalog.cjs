@@ -207,6 +207,15 @@ function buildWorkflowSkillsCatalog(opts = {}) {
     a[0].localeCompare(b[0])
   );
 
+  for (const [workflowId, workflow] of entries) {
+    const injectContext = workflow && workflow.preActions && workflow.preActions.injectContext;
+    if (typeof injectContext !== "string" || injectContext.trim().length === 0) {
+      throw new Error(
+        `Workflow ${workflowId} is missing required non-empty preActions.injectContext`
+      );
+    }
+  }
+
   const skillSet = new Set();
   for (const [, wf] of entries) {
     for (const step of (wf && wf.sequence) || []) skillSet.add(baseSkill(step));

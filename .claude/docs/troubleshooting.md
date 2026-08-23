@@ -366,7 +366,7 @@ await foreach (var entity in repository.AsAsyncEnumerable(expr))
 
 1. **Study Example App:** Check project's example/reference app for working patterns
 2. **Search Documentation:**
-    - Use `/scout` command for codebase exploration
+    - Use `/investigate` command for codebase exploration
     - Check `docs/project-reference/project-structure-reference.md` for file locations
 3. **Check Existing Implementations:**
     - Look for similar features in the codebase

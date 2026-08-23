@@ -17,11 +17,20 @@ const verifyScript = path.join(
   "codex",
   "verify-workflow-cycle-compliance.mjs"
 );
+const readWorkflowEntryScript = path.join(
+  repoRoot,
+  ".claude",
+  "scripts",
+  "codex",
+  "read-workflow-entry.mjs"
+);
 const {
   checkWorkflowDebuggerTracePolicy,
   checkGoalContractSkillCompliance,
   checkGoalContractFileLifecycle,
   checkReviewChangesInlineExecutionPolicy,
+  checkStartWorkflowPreActionPolicy,
+  checkWorkflowInjectContextCoverage,
 } = await import(pathToFileURL(verifyScript).href);
 
 const workflowIds = [
@@ -31,6 +40,11 @@ const workflowIds = [
   "full-feature-lifecycle",
   "spec-sync",
 ];
+const DOMAIN_ENTITY_REFERENCE_REFRESH_CONTEXT = [
+  "DOMAIN-ENTITY REFERENCE REFRESH (CONDITIONAL TERMINAL STEP):",
+  "After /test and before /docs-update, run /scan --target=domain-entities when the final diff changes an entity/model, DTO/data contract, persistence schema/migration, or entity-sync evidence represented in docs/project-reference/domain-entities-reference.md.",
+  "Otherwise mark the scan step completed with a cited skip reason naming the changed files and why they are outside this scope.",
+].join("\n");
 
 const sequenceByWorkflow = {
   "big-feature": [
@@ -44,11 +58,12 @@ const sequenceByWorkflow = {
     "integration-test-verify",
     "spec [mode=sync]",
     "workflow-review-changes",
+    "test",
+    "scan --target=domain-entities",
     "docs-update",
     "workflow-end",
   ],
   bugfix: [
-    "scout",
     "investigate",
     "spec [mode=amend]",
     "plan",
@@ -60,11 +75,12 @@ const sequenceByWorkflow = {
     "integration-test-verify",
     "spec [mode=sync]",
     "workflow-review-changes",
+    "test",
+    "scan --target=domain-entities",
     "docs-update",
     "workflow-end",
   ],
   feature: [
-    "scout",
     "investigate",
     "spec",
     "plan",
@@ -76,6 +92,8 @@ const sequenceByWorkflow = {
     "integration-test-verify",
     "spec [mode=sync]",
     "workflow-review-changes",
+    "test",
+    "scan --target=domain-entities",
     "docs-update",
     "workflow-end",
   ],
@@ -112,7 +130,7 @@ function makeWorkflowJson() {
     // JSON workflow keys are `workflow-`-prefixed (matches production workflows.json);
     // the activation skill dir is identity (`workflow-bugfix` → skills/workflow-bugfix).
     workflows[`workflow-${workflowId}`] = {
-      sequence: sequenceByWorkflow[workflowId],
+      sequence: [...sequenceByWorkflow[workflowId]],
     };
   }
 
@@ -124,6 +142,23 @@ function makeWorkflowJson() {
     injectContext:
       "END-TO-START TRACE: observed final state, feeder paths, hypothesis matrix, owning fix layer, forward convergence proof",
   };
+
+  for (const workflowId of ["big-feature", "bugfix", "feature"]) {
+    const workflow = workflows[`workflow-${workflowId}`];
+    workflow.preActions ??= {};
+    workflow.preActions.injectContext = [
+      workflow.preActions.injectContext,
+      DOMAIN_ENTITY_REFERENCE_REFRESH_CONTEXT,
+    ]
+      .filter(Boolean)
+      .join("\n");
+  }
+
+  for (const workflowId of workflowIds) {
+    const workflow = workflows[`workflow-${workflowId}`];
+    workflow.preActions ??= {};
+    workflow.preActions.injectContext ??= `Canonical context for ${workflowId}.`;
+  }
 
   return {
     workflows,
@@ -232,7 +267,7 @@ async function writeSkillFile(root, workflowId, stepsLine, options = {}) {
   await fs.writeFile(path.join(targetDir, "SKILL.md"), content.join("\n"), "utf8");
 }
 
-test("verify-workflow-cycle-compliance passes with normalized aliases", async () => {
+test("verify-workflow-cycle-compliance accepts the domain refresh for delivery workflows and excludes non-delivery workflows", async () => {
   const tempRoot = await fs.mkdtemp(path.join(os.tmpdir(), "codex-verify-cycle-pass-"));
 
   try {
@@ -262,6 +297,90 @@ test("verify-workflow-cycle-compliance passes with normalized aliases", async ()
     await execFileAsync(process.execPath, [verifyScript], { cwd: tempRoot });
   } finally {
     await fs.rm(tempRoot, { recursive: true, force: true });
+  }
+});
+
+test("verify-workflow-cycle-compliance enforces terminal domain-entity reference refresh policy", async () => {
+  const cases = [
+    {
+      name: "missing scan",
+      mutate(workflowsJson) {
+        workflowsJson.workflows["workflow-bugfix"].sequence = workflowsJson.workflows[
+          "workflow-bugfix"
+        ].sequence.filter((step) => step !== "scan --target=domain-entities");
+      },
+      expected: /requires exactly one terminal domain-entity reference refresh/,
+    },
+    {
+      name: "reordered scan",
+      mutate(workflowsJson) {
+        const sequence = workflowsJson.workflows["workflow-feature"].sequence;
+        const scanIndex = sequence.indexOf("scan --target=domain-entities");
+        sequence.splice(scanIndex, 1);
+        sequence.splice(sequence.indexOf("test"), 0, "scan --target=domain-entities");
+      },
+      expected: /missing terminal domain-entity reference refresh/,
+    },
+    {
+      name: "duplicate scan",
+      mutate(workflowsJson) {
+        workflowsJson.workflows["workflow-feature"].sequence.splice(
+          0,
+          0,
+          "scan --target=domain-entities"
+        );
+      },
+      expected: /requires exactly one terminal domain-entity reference refresh/,
+    },
+    {
+      name: "unconditional context",
+      mutate(workflowsJson) {
+        workflowsJson.workflows["workflow-big-feature"].preActions.injectContext =
+          "After /test and before /docs-update, run /scan --target=domain-entities for every final diff, including entity/model, DTO/data contract, persistence schema/migration, and entity-sync evidence. Record a cited skip reason for changes outside scope.";
+      },
+      expected: /missing conditional domain-entity reference refresh context term\(s\)/,
+    },
+  ];
+
+  for (const policyCase of cases) {
+    const tempRoot = await fs.mkdtemp(
+      path.join(os.tmpdir(), `codex-verify-domain-entity-${policyCase.name.replaceAll(" ", "-")}-`)
+    );
+
+    try {
+      await fs.mkdir(path.join(tempRoot, ".claude", "skills"), { recursive: true });
+      await fs.mkdir(path.join(tempRoot, ".agents", "skills"), { recursive: true });
+
+      const workflowsJson = makeWorkflowJson();
+      policyCase.mutate(workflowsJson);
+      await fs.writeFile(
+        path.join(tempRoot, ".claude", "workflows.json"),
+        `${JSON.stringify(workflowsJson, null, 2)}\n`,
+        "utf8"
+      );
+
+      for (const workflowId of workflowIds) {
+        const steps = workflowsJson.workflows[`workflow-${workflowId}`].sequence;
+        await writeSkillFile(
+          path.join(tempRoot, ".claude", "skills"),
+          workflowId,
+          steps.map((step) => `/${toSkillStepToken(step)}`).join(" -> ")
+        );
+        await writeSkillFile(
+          path.join(tempRoot, ".agents", "skills"),
+          workflowId,
+          steps.map((step) => `$${toSkillStepToken(step)}`).join(" -> ")
+        );
+      }
+
+      await assert.rejects(
+        execFileAsync(process.execPath, [verifyScript], { cwd: tempRoot }),
+        policyCase.expected,
+        policyCase.name
+      );
+    } finally {
+      await fs.rm(tempRoot, { recursive: true, force: true });
+    }
   }
 });
 
@@ -295,7 +414,7 @@ test("verify-workflow-cycle-compliance fails on paired-drift", async () => {
     await writeSkillFile(
       path.join(tempRoot, ".agents", "skills"),
       "feature",
-      "$scout -> $investigate -> $unknown-step -> $workflow-end"
+      "$investigate -> $unknown-step -> $workflow-end"
     );
 
     await assert.rejects(
@@ -405,7 +524,6 @@ test("verify-workflow-cycle-compliance enforces spec before implementation plann
 
     const workflowsJson = makeWorkflowJson();
     workflowsJson.workflows["workflow-feature"].sequence = [
-      "scout",
       "investigate",
       "plan",
       "spec",
@@ -628,6 +746,102 @@ test("checkReviewChangesInlineExecutionPolicy enforces inline-in-main-session, r
 
   // Unknown surface ⇒ no-op (no false positives on unrelated files).
   assert.deepEqual(checkReviewChangesInlineExecutionPolicy("some/other/file.md", "anything"), []);
+});
+
+test("checkStartWorkflowPreActionPolicy requires canonical pre-actions before TaskCreate", () => {
+  const rel = ".claude/skills/start-workflow/SKILL.md";
+  const compliant = [
+    "Tier 2 is required before TaskCreate for every standard workflow.",
+    "The complete entry has non-empty preActions.injectContext.",
+    "Use a JSON-aware complete canonical entry read.",
+    "Read preActions.injectContext from the selected entry.",
+    "The static catalog is a route-selection aid.",
+    "Use the exact canonical run condition and evidence-backed skip transition.",
+    "Search for the exact workflow ID.",
+    "Do NOT parse a static catalog sequence for TaskCreate.",
+    "Invoke each with the active host's command syntax.",
+    "A conditionally skipped task may complete without invoking its Skill tool.",
+  ].join("\n");
+
+  assert.deepEqual(checkStartWorkflowPreActionPolicy(rel, compliant), []);
+
+  const failures = checkStartWorkflowPreActionPolicy(
+    rel,
+    "Tier 1 alone creates tasks from the static catalog."
+  );
+  assert.equal(failures.length, 11);
+  assert.ok(failures.some((failure) => /Tier-2 canonical entry read/.test(failure)));
+  assert.ok(failures.some((failure) => /conditional task run\/skip propagation/.test(failure)));
+
+  const bypassFailures = checkStartWorkflowPreActionPolicy(
+    rel,
+    `${compliant}\nALWAYS try tiers in order — stop at first success.\nuse Tier 2 when the workflow may declare \`parallelGroups\``
+  );
+  assert.ok(bypassFailures.some((failure) => /stop-at-first-success tier fallback/.test(failure)));
+  assert.ok(bypassFailures.some((failure) => /parallel-groups-only Tier-2 condition/.test(failure)));
+
+  const placeholderFailures = checkStartWorkflowPreActionPolicy(
+    rel,
+    `${compliant}\nParse: sequence → invoke each as \`/<stepId>\``
+  );
+  assert.ok(placeholderFailures.some((failure) => /Claude-only generic step placeholder/.test(failure)));
+
+  const extractionFailures = checkStartWorkflowPreActionPolicy(
+    rel,
+    `${compliant}\nGrep: pattern='"<workflowId>":' context=35\nTaskCreate: activeForm="Executing /{step-name}"`
+  );
+  assert.ok(extractionFailures.some((failure) => /fixed-context workflow extraction/.test(failure)));
+  assert.ok(extractionFailures.some((failure) => /slash-form task activity template/.test(failure)));
+
+  const scopeFailures = checkStartWorkflowPreActionPolicy(
+    rel,
+    `${compliant}\nTier 2 is required before every standard-workflow TaskCreate.`
+  );
+  assert.deepEqual(scopeFailures, []);
+
+  assert.deepEqual(checkStartWorkflowPreActionPolicy("some/other/file.md", compliant), []);
+});
+
+test("checkWorkflowInjectContextCoverage requires context for every executable workflow", () => {
+  assert.deepEqual(
+    checkWorkflowInjectContextCoverage({
+      "workflow-ok": {
+        sequence: ["step"],
+        preActions: { injectContext: "Canonical context." },
+      },
+    }),
+    []
+  );
+
+  const failures = checkWorkflowInjectContextCoverage({
+    "workflow-missing": { sequence: ["step"], preActions: {} },
+    "workflow-blank": { sequence: ["step"], preActions: { injectContext: "  " } },
+  });
+  assert.equal(failures.length, 2);
+  assert.ok(failures.every((failure) => /required non-empty preActions\.injectContext/.test(failure)));
+});
+
+test("read-workflow-entry returns the complete Big Feature entry through its terminal refresh", async () => {
+  const { stdout } = await execFileAsync(process.execPath, [
+    readWorkflowEntryScript,
+    "workflow-big-feature",
+  ]);
+  const workflow = JSON.parse(stdout);
+  const scanIndex = workflow.sequence.indexOf("scan --target=domain-entities");
+
+  assert.ok(scanIndex > 0, "expected Big Feature entry to include the domain-entity scan");
+  assert.equal(workflow.sequence[scanIndex - 1], "test");
+  assert.equal(workflow.sequence[scanIndex + 1], "docs-update");
+  assert.match(workflow.preActions.injectContext, /DOMAIN-ENTITY REFERENCE REFRESH/);
+});
+
+test("read-workflow-entry rejects an unknown workflow ID", async () => {
+  for (const workflowId of ["workflow-does-not-exist", "__proto__", "constructor", "toString"]) {
+    await assert.rejects(
+      execFileAsync(process.execPath, [readWorkflowEntryScript, workflowId]),
+      new RegExp(`Unknown workflow ID: ${workflowId.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}`)
+    );
+  }
 });
 
 test("checkGoalContractFileLifecycle validates a full goal-contract lifecycle", () => {

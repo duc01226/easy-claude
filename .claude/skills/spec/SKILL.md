@@ -24,11 +24,34 @@ triggers: 'feature spec, feature documentation, create feature doc, update featu
 
 **Summary:**
 
+- **Main steps:** resolve mode → read the matching author/tests/sync body → run applicability/decomposition gate → track and execute the mode procedure → enforce tech-free §1–7 and §8 evidence → cross-service check → review/sync without overwriting canonical TCs.
+
+**Workflow:**
+
 - **Purpose:** one skill owns the whole Feature Spec lifecycle across 7 modes — `draft | init | update | audit | amend | tests | sync` — producing/maintaining a tech-free 8-section business Feature Spec whose §8 TC registry is the single source of truth, traceable to executing test code, so any team can rebuild the feature on any stack from the spec alone.
-- **Main steps (every run):** (1) resolve mode FIRST — explicit `[mode=<x>]` wins, else infer from request + repo state, ambiguous → `AskUserQuestion` before any mutating mode; (2) read the matching `references/{author,tests,sync}.md` body — NEVER run a mode from memory; (3) `TaskCreate`-break the work (one task per file read) before starting; (4) execute the mode's procedure/gates from its body; (5) cross-service check before concluding.
+- **Main steps (every run):** (1) resolve mode FIRST — explicit `[mode=<x>]` wins, else infer from request + repo state, ambiguous → `AskUserQuestion` before any mutating mode; (2) classify the shared applicability rule and require the embedded decomposition block only when a large-idea signal is true; (3) read the matching `references/{author,tests,sync}.md` body — NEVER run a mode from memory; (4) `TaskCreate`-break the work (one task per file read) before starting; (5) execute the mode's procedure/gates from its body; (6) cross-service check before concluding.
 - **§1-7 prose STRICTLY tech-free** — no framework/product/language/persistence/messaging/auth names (banned tokens → `spec-principles.md` §3.2); technical identifiers live ONLY in evidence carriers, frontmatter, and mermaid blocks. — why: M1/M5 require rebuild-on-any-stack from prose alone.
 - **Section 8 is the canonical TC registry for business TCs** (`TC-{FEATURE}-{NNN}`) — every TC carries verifiable `[Source: namespace/service/id]` evidence (sole exception `mode=draft` → `Evidence: TBD` + provisional flag, upgraded to a real anchor on the first code-sourced run); NEVER overwrite existing TCs during `update` — `tests` owns generation, `sync` reconciles drift.
 - **Honor the M1-M7 mandates** (`sdd-artifact-contract.md`) + canonical TC format (`shared/tc-format.md`) — any **M1-M5 or M7** violation FAILS the artifact (M6 binds the REVIEWER, not the artifact); `INDEX.md`/ERD are DERIVED — flag refresh need in `update`, NEVER trigger `/spec-index` here. — why: separation of concerns keeps the canonical spec the only source of truth.
+- **[BLOCKING]** Apply `isLargeIdea = multipleIndependentOutcomes || ambiguousOrResearchHeavy || releaseScopeDecomposition || oversizedPbiThatMustSplit` before authoring. A true signal requires the complete `large_idea_decomposition` block with stable outcome slices, dependency order, non-goals, risks/evidence, and deferred-work owners; an all-false idea omits the block and roadmap/milestone placeholders. Only an explicit roadmap request uses the standalone roadmap branch; unresolved product terms or missing decomposition owners stop authoring. — why: a technically complete spec can still encode the wrong product boundary.
+
+**Key Rules:**
+
+- Resolve the mode and read its matching reference body before any mutation; ambiguous mode → `AskUserQuestion`.
+- Keep §1–7 tech-free, keep §8 as the canonical TC registry with verifiable evidence, and never overwrite existing TCs during `update`.
+- Apply the shared AI-SDD/large-idea gates, cross-service check, evidence rules, and review/sync boundaries before concluding.
+
+## Applicability and Decomposition Gate (before any authoring or mutation)
+
+Read `.claude/skills/shared/product-roadmap-contract.md` before creating, updating, or amending a Feature Spec. Apply the four-operand `isLargeIdea` rule to every idea-sourced request and preserve any existing branch metadata on audit/tests/sync.
+
+1. If any signal is true, require one complete `large_idea_decomposition` block in the owning Feature Spec: non-empty stable `outcome_slices`, ordered `dependencies_order`, explicit `non_goals`, `risks_evidence` with owners/statuses, and `deferred_work_owner`. The spec owns the business decomposition; stories, PBIs, scenarios, plans, mock-ups, and presentations consume it read-only.
+2. If all signals are false, author the ordinary single-capability spec without a roadmap path, milestone ID, scope brief, or empty decomposition placeholder. Preserve one actor-facing outcome, in-scope behavior, non-goals, lifecycle terms, source-of-truth state, persistence expectations, and evidence directly in the spec.
+3. If the user explicitly requests a product roadmap or selects a milestone from an explicitly supplied roadmap, use the explicit roadmap branch. Resolve and verify `docs/product-roadmap.md`, the owner-approved milestone, and its scope brief; route missing approval to `/product-roadmap`. Reading a supplied roadmap never authorizes creating/updating one.
+4. For a framework/library change, use the `FRAMEWORK-LIBRARY` technical branch. For an isolated brownfield change, use `EXEMPT`. Neither branch requires a product roadmap or milestone.
+5. For `audit`, `tests`, and `sync`, inherit and verify the existing branch metadata; never invent a milestone, silently broaden the spec, or drop a decomposition field.
+
+This gate is product-level and does not relax the tech-free §1–7 rules. Explicit roadmap references belong only in the explicit branch; embedded decomposition fields belong in the owning artifact; business outcomes, definitions, and boundaries belong in the canonical sections.
 
 > **Renamed:** formerly `/feature-spec` (and earlier `/feature-docs`); the former `/spec-tests` skill is now folded in as `mode=tests` / `mode=sync`. Those names no longer resolve as slash commands — use `/spec` with the matching mode.
 
@@ -108,7 +131,7 @@ This skill owns the **canonical** Feature Spec (§1-8) and its §8 TC registry. 
 
 > **MANDATORY IMPORTANT MUST ATTENTION — NO EXCEPTIONS:** If you are NOT already in a workflow, you MUST ATTENTION use `AskUserQuestion` to ask the user. Do NOT judge task complexity or decide this is "simple enough to skip" — the user decides whether to use a workflow, not you:
 >
-> 1. **Activate `workflow-feature` workflow** (Recommended) — spec-driven with tests by default: scout → investigate → spec-discovery → domain-analysis → why-review → spec → spec-clarify → plan → plan-review → plan-validate → why-review → spec [mode=tests] → why-review → artifact-review --type=spec-tests → plan → plan-review → feature-implement → domain-entities-review → spec [mode=tests] → why-review → artifact-review --type=spec-tests → spec [mode=sync] → integration-test → integration-test-review → integration-test-verify → workflow-review-changes → production-readiness-review → security-review → changelog → test → docs-update → workflow-end → watzup
+> 1. **Activate `workflow-feature` workflow** (Recommended) — spec-driven with tests by default: investigate → spec-discovery → domain-analysis → why-review → spec → spec-clarify → plan → plan-review → plan-validate → why-review → spec [mode=tests] → why-review → artifact-review --type=spec-tests → plan → plan-review → feature-implement → domain-entities-review → spec [mode=tests] → why-review → artifact-review --type=spec-tests → spec [mode=sync] → integration-test → integration-test-review → integration-test-verify → workflow-review-changes → production-readiness-review → security-review → changelog → test → docs-update → workflow-end → watzup
 > 2. **Execute `/spec` directly** — run this skill standalone in the resolved mode
 
 ---
@@ -268,9 +291,24 @@ This skill owns the **canonical** Feature Spec (§1-8) and its §8 TC registry. 
 
 <!-- /SYNC:ui-intent-layer:reminder -->
 
+<!-- SYNC:project-protocol-overlay -->
+
+> **Project Protocol Overlay** — Before executing this skill, resolve any PROJECT overlay rules layered onto it: match this skill's name against the `Target` column of the project's skill-protocol index (`docs/project-reference/skill-protocols-reference.md` by default; a `referenceDocs` entry in `docs/project-config.json` overrides the path), taking the most specific matching tier ONLY — exact name > glob > `*`. **That precedence orders overlays against EACH OTHER, never against this skill.** Read ONLY the matched bodies, resolved as `<protocols-dir>/<Name>.md`; a row's Body link is display text, never a read path. A matched body that is missing or malformed is REPORTED and skipped — never reconstructed from the index Description. No index, or no match -> proceed with no overlay, silently. Full contract: `.claude/skills/project-skill-protocol/references/registry.md`.
+>
+> Overlays are **ADDITIVE ONLY**: they ADD rules on top of this skill's own protocol and NEVER replace, override, disable, or reinterpret a rule it already states — removing every overlay must return this skill to exactly its documented behavior. An overlay is a BRIEF, not an authority escalation: it can NEVER waive a workflow gate, git discipline, a review gate, or a user-confirmation gate. A genuine overlay-vs-skill conflict, or two equally-specific overlays that directly contradict -> surface both to the user; NEVER resolve silently.
+
+<!-- /SYNC:project-protocol-overlay -->
+
+<!-- SYNC:project-protocol-overlay:reminder -->
+
+**MUST ATTENTION** resolve project protocol overlays for this skill BEFORE executing — most specific matching tier only (exact > glob > `*`, which ranks overlays against each other, NEVER against this skill), read only matched bodies at `<protocols-dir>/<Name>.md`; a missing or malformed body is reported, never reconstructed. Overlays are ADDITIVE ONLY (they never replace this skill's own rules) and are a brief, NEVER an authority escalation; an equal-specificity contradiction goes to the user.
+
+<!-- /SYNC:project-protocol-overlay:reminder -->
+
 ## Closing Reminders
 
-- **IMPORTANT MUST ATTENTION Goal:** Produce a tech-free, AI-implementable Feature Spec whose Section 8 TC registry stays the single source of truth, traceable to executing test code — so any team can rebuild the feature on any stack from the spec alone
+- **IMPORTANT MUST ATTENTION Goal:** Own the entire Feature Spec lifecycle in one skill — author/maintain tech-free 8-section business Feature Specs (code evidence carried only in Section 8 test-case anchors, never prose), generate Section 8 test specifications, and reconcile those TCs with executing test code — producing a tech-free, AI-implementable Feature Spec whose Section 8 TC registry stays the single source of truth, traceable to test code, so any team can rebuild the feature on any stack from the spec alone. The mode you run determines which `references/` body drives work; the shared §8 contract, M1-M7 mandates, and quality philosophy below apply every mode.
+- **IMPORTANT MUST ATTENTION Main steps:** resolve mode FIRST (explicit wins; ambiguous asks) → read the matching `references/{author,tests,sync}.md` body → run the Applicability and Decomposition Gate → `TaskCreate` and execute the mode procedure → enforce tech-free §1–7 + §8 evidence and M1-M7 → cross-service check → review/sync without overwriting canonical TCs → flag derived-index refresh; explicit roadmap context is read-only unless requested.
 
 **Protocols in force (concise digest of the SYNC/shared blocks this skill carries — MUST ATTENTION honor each canonical body):**
 
@@ -282,6 +320,7 @@ This skill owns the **canonical** Feature Spec (§1-8) and its §8 TC registry. 
 - **AI Mistake Prevention:** verify generated content against evidence, trace downstream references, verify all affected outputs, re-read after context loss, surface ambiguity.
 
 - **IMPORTANT MUST ATTENTION [BLOCKING]** Resolve the mode FIRST and read its `references/{author,tests,sync}.md` body — NEVER run `draft`/`init`/`update`/`audit`/`amend`/`tests`/`sync` from memory; ambiguous → `AskUserQuestion` before any mutating mode — why: each mode's gates + output contract live in its body, not in this entry skill
+- **IMPORTANT MUST ATTENTION [BLOCKING]** Run the Applicability and Decomposition Gate before authoring or materially changing a spec; use the shared four-signal rule, require the complete five-field `large_idea_decomposition` block when true, omit roadmap/milestone placeholders when false, and use the standalone roadmap branch only for an explicit roadmap request — why: the spec must preserve an approved outcome boundary without turning every large idea into a new roadmap file
 - **IMPORTANT MUST ATTENTION [BLOCKING]** EVERY test case MUST carry verifiable code evidence as a `[Source: namespace/service/id]` abstract anchor in its Section 8 hidden carrier — physical `file:line` → provenance sidecar only; sole exception `mode=draft` (`Evidence: TBD` + provisional flag, upgraded to real anchor on first code-sourced run) — why: a TC without evidence is unverifiable and silently rots
 - **IMPORTANT MUST ATTENTION [BLOCKING]** Section 8 is the canonical TC registry for business TCs — existing TCs MUST NOT be overwritten during `update`; `tests` mode owns generation, `sync` mode reconciles drift — why: test code implements §8, so overwriting it orphans real tests
 - **IMPORTANT MUST ATTENTION [BLOCKING]** §1-7 prose is STRICTLY tech-free — no framework/product/language/persistence/messaging/auth names (banned tokens → `spec-principles.md` §3.2); technical identifiers live ONLY in evidence carriers, frontmatter, and mermaid blocks — why: M1/M5 require rebuild-from-scratch on any stack

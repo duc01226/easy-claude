@@ -32,6 +32,7 @@ description: '[Code Quality] Use when reviewing rationale and change quality for
 - **STEP 4 — REVIEW as SKEPTIC** → complete ALL 7 Anti-Bias Gate boxes (steel-man rejected alt · unseen alternative · args against · stressed assumptions · pre-mortem · pros/cons symmetry · **Trade-Off Interrogation Gate**) + Validation Checklist (presence AND quality depth) + Round 2 re-review; triangulate spec↔tests↔code — any disagreeing face is a finding, presence is NEVER a pass.
 - **TRADE-OFF GATE — ALWAYS ASK, on every decision AND every recommendation YOU make:** (1) **is there any trade-off?** name the sacrifice — "none" is an unfinished analysis, so state the dimensions checked; (2) **is it worth it?** gain vs cost, who pays, when → WORTH IT / NOT WORTH IT / UNCLEAR; (3) **is it material enough to confirm with the user?** irreversible · cost shifted elsewhere · quality attribute traded · boundary crossed · high-consequence path · UNCLEAR → **STOP and confirm via `AskUserQuestion` BEFORE the verdict**. Emit the `Trade-Off Assessment` table; a material trade-off unconfirmed = NEVER PASS.
 - **STEP 5 — FINDINGS VALIDATION GATE** on your OWN findings (any severity): re-invoke terminal `--validate-findings`, reconcile, RE-DO the full review until CLEAN with no new findings (max 2), then ask next step via `AskUserQuestion` (+ conditional `/llm-council`). Dual-feedback: a behavior-changing finding needs BOTH a spec-drift verdict (CODE-WRONG / SPEC-STALE / AMBIGUOUS / SPEC-SILENT / in-sync) AND a test-feedback action; SPEC-SILENT also REQUIRES §4 BR/§3 AC + §8 TC enrichment — a missing axis is HAS-ISSUES, never clean.
+- **STEP 6 — CLOSE WITH USER OWNERSHIP:** **MUST ATTENTION** ask the required next-step question in full mode only after validation/re-review; apply the workflow-suppression and frontmatter gates before any optional `/llm-council` follow-up, and keep `validate-findings` terminal. **NEVER** auto-proceed past a material trade-off or unresolved blocking finding.
 
 **Workflow:** Detect mode/target → (full mode only) bind the self-recursive review loop (protocol-primary; optional `/goal` accelerator when available) → route path/docs/graph/sub-agent focus → review dimensions/adversarial gates/Easy-to-Change → validate findings via terminal `--validate-findings` → reconcile + holistic full re-review until CLEAN with no new findings (max 2 re-dos) → ask next step in full mode.
 
@@ -238,7 +239,7 @@ When target is code changes:
 | --- | --- | --- |
 | Mode is `validate-findings` | Terminal mode — no sub-skill calls at all | `Linkage N/A — validate-findings is terminal.` |
 | Invoked by `/integration-test-review` Phase 9 | It calls this skill at `integration-test-review/SKILL.md:429-431` and guards the reverse edge at `:438` | `Linkage deferred — invoked by /integration-test-review Phase 9.` |
-| Invoked by `changes-review` in ANY phase — 0.8 parallel rationale dimension, 6 validate-findings, or 7.5 holistic — or inside `$workflow-review-changes` | `changes-review/SKILL.md:395` (Phase 0.8, which states this deferral as a binding sub-agent constraint), `:867` (Phase 6), `:938` (Phase 7.5); its Phase 3.7 (`:608-626`) already owns the gate | `Linkage deferred to changes-review Phase 3.7 / parent workflow step.` |
+| Invoked by `changes-review` in ANY phase — 0.8 parallel rationale dimension, 6 validate-findings, or 7.5 holistic — or inside `/workflow-review-changes` | `changes-review/SKILL.md:395` (Phase 0.8, which states this deferral as a binding sub-agent constraint), `:867` (Phase 6), `:938` (Phase 7.5); its Phase 3.7 (`:608-626`) already owns the gate | `Linkage deferred to changes-review Phase 3.7 / parent workflow step.` |
 | Invoked by `/debug-investigate`'s Root Cause Validation gate | `debug-investigate/SKILL.md:151`; inside `integration-test-verify-loop` that gate fires in a round already running `/integration-test-review` (`integration-test-verify-loop/SKILL.md:98,110,495`) | `Linkage deferred — debug-investigate gate; the verify loop owns the audit.` |
 
 > — why: unguarded, this edge closes a cycle (`why-review` → `integration-test-review` → Phase 9 → `why-review`) and re-creates the duplicate-ownership defect `integration-test-verify-loop/SKILL.md:31` removes.
@@ -517,7 +518,7 @@ If suppressed or no-fire, do NOT mention `/llm-council`. If gate fires, ask a **
 > **Nested Task Expansion Contract** — For workflow-step invocation, the `[Workflow] ...` row is only a parent container; the child skill still creates visible phase tasks.
 >
 > 1. Call `TaskList` first. If a matching active parent workflow row exists, set `nested=true` and record `parentTaskId`; otherwise run standalone.
-> 2. Create one task per declared phase before phase work. When nested, prefix subjects `[N.M] $skill-name — phase`.
+> 2. Create one task per declared phase before phase work. When nested, prefix subjects `[N.M] /skill-name — phase`.
 > 3. When nested, link the parent with `TaskUpdate(parentTaskId, addBlockedBy: [childIds])`.
 > 4. Orchestrators must pre-expand a child skill's phase list and link the workflow row before invoking that child skill or sub-agent.
 > 5. Mark exactly one child `in_progress` before work and `completed` immediately after evidence is written.
@@ -657,11 +658,29 @@ If suppressed or no-fire, do NOT mention `/llm-council`. If gate fires, ask a **
 
 <!-- SYNC:double-round-trip-review -->
 
-> **Validated-Finding Fix + Full Re-Review Loop** — Re-review is triggered by a validated finding fix cycle, not by a round number. Review purpose: `review → validate findings → fix validated findings → full re-review` until a complete review pass finds no issues. **A clean review ENDS the loop — no further rounds required.**
+> **Validated-Finding Fix + Full Re-Review Loop** — Re-review is triggered by a validated finding fix cycle, not by a round number. Review purpose: `review → validate findings → fix validated findings → full re-review` until a complete review pass clears the round's exit bar (see **Severity floor** below). **A clean review ENDS the loop — no further rounds required.**
 >
-> _aka **Self-Review Convergence Loop**._ The name is historical — there is **NO 2-round cap**; "double-round-trip" only means a validated-finding fix cycle forces at least one fresh re-review. It runs until a clean pass, bounded by the **5-round ceiling** below.
+> _aka **Self-Review Convergence Loop**._ The name is historical — there is **NO 2-round cap**; "double-round-trip" only means a validated-finding fix cycle forces at least one fresh re-review. It runs until a clean pass, bounded by the **3-round ceiling** below.
 >
-> **Round cap — 5 rounds MAX (a ceiling, NEVER a target).** A clean pass ENDS the loop immediately at ANY round — round 1 included; the cap never obliges you to keep spinning. Hitting round 5 with validated findings still open → **STOP and escalate via `AskUserQuestion`** with the still-open findings listed; NEVER emit a silent "good enough" PASS on cap exhaustion, and NEVER let the cap substitute for the clean-review requirement. The 3-repeated-no-progress blocker rule stays an EARLIER exit — escalate at whichever trips first.
+> **Round cap — 3 rounds MAX (a ceiling, NEVER a target).** A clean pass ENDS the loop immediately at ANY round — round 1 included; the cap never obliges you to keep spinning. Hitting round 3 with blocking findings still open (severity floor applied) → **STOP and escalate via `AskUserQuestion`** with the still-open findings listed; NEVER emit a silent "good enough" PASS on cap exhaustion, and NEVER let the cap substitute for the clean-review requirement. The 2-repeated-no-progress blocker rule stays an EARLIER exit — escalate at whichever trips first.
+>
+> **Severity floor — from round 3, LOW stops blocking.** The exit bar tightens by round, so the loop converges on consequence instead of spinning on polish:
+
+> Define one predicate everywhere: `blocking_findings(round, findings)` returns all validated findings in rounds 1–2 and only validated CRITICAL/HIGH/MEDIUM findings in round 3+. A binary gate (test-green, security must-fix, required artifact) is exempt only when its owning invariant explicitly says so.
+>
+> | Round | Exit bar — loop ENDS when the fresh full review has… | Must be fixed to continue |
+> | --- | --- | --- |
+> | 1-2 | zero validated findings at ANY severity | CRITICAL · HIGH · MEDIUM · LOW |
+> | 3+ | zero validated CRITICAL / HIGH / MEDIUM findings — **LOW-only is a PASS** | CRITICAL · HIGH · MEDIUM only |
+>
+> From round 3 onward LOW findings are **NOT required to be fixed**: a round whose validated findings are ALL LOW **ENDS the loop immediately** — do not open another round for them. Severity tiers are `SYNC:severity-rubric` (CRITICAL block-merge · HIGH must-fix · MEDIUM should-fix · LOW nice-to-fix); rounds 1-2 are unchanged, so an easy LOW still gets fixed early when it is cheap.
+>
+> **Severity-floor rules:**
+>
+> - **Never silently drop a deferred LOW.** Every unfixed LOW is listed in the final report under `## Deferred LOW Findings (severity floor, round ≥3)` with file, line, and description, so the owner can schedule it. Dropping it from the report is a protocol violation, not a clean pass.
+> - **Never re-tier a finding to trigger the exit.** Downgrading a real CRITICAL/HIGH/MEDIUM to LOW so the loop can end is a FALSE PASS. Severity is set by consequence per `SYNC:severity-rubric` before the round bar is applied — never after, and never with the exit in view. — why: a floor that can be reached by relabeling is not a floor.
+> - **The floor bounds the loop, not the standard.** It ends *iteration*; it never authorizes shipping a known CRITICAL/HIGH/MEDIUM, and it never lowers the finding-survival bar that admits a finding in the first place.
+> - **The floor never applies to a hard gate.** Test-green gates (a suite must actually pass), security must-fix gates, and any gate whose criterion is binary rather than severity-rated are unaffected — a failing test is a failure, not a LOW finding.
 >
 > **Universal scope (any new output/judgment):** any newly produced output or judgment gets **≥1 self-review**; any **new judgment** gets **≥1 `/why-review --validate-findings` pass**; anything flagged to re-check is re-checked **≥1 time** — before that output is treated as final. This loop is the default convergence contract for ANY work-producing skill, not review skills only.
 >
@@ -672,7 +691,7 @@ If suppressed or no-fire, do NOT mention `/llm-council`. If gate fires, ask a **
 > **Decision after Round 1:**
 >
 > - **No issues found (PASS, zero findings)** → review ENDS. Do NOT spawn a fresh sub-agent for confirmation.
-> - **Issues found (FAIL, or any non-zero findings)** → run the active review skill's findings-validation gate first; for review skills the default gate is `/why-review --validate-findings <report-path>`. Fix only validated findings, then restart the full review protocol from the beginning with a fresh task breakdown.
+> - **`blocking_findings(round, findings)` is non-empty** → run the active review skill's findings-validation gate first; for review skills the default gate is `/why-review --validate-findings <report-path>`. Fix only validated findings, then restart the full review protocol from the beginning with a fresh task breakdown.
 >
 > **Fresh full re-review after every fix cycle:** Re-run the whole review protocol over the current full target. When sub-agents are part of that protocol, spawn NEW `Agent` calls — never reuse prior agents. Reviewers re-read ALL files from scratch with ZERO memory of prior rounds. See `SYNC:fresh-context-review` for the spawn mechanism and `SYNC:review-protocol-injection` for the canonical Agent prompt template. Each fresh full review must catch:
 >
@@ -683,22 +702,24 @@ If suppressed or no-fire, do NOT mention `/llm-council`. If gate fires, ask a **
 > - Subtle edge cases the prior round rationalized away
 > - Regressions introduced by the fixes themselves
 >
-> **Loop termination:** After each full re-review, repeat the same decision: clean → END; issues → validate findings → fix → restart from the first review phase. Continue until a complete review pass finds zero issues, **capped at 5 rounds**. Escalate via `AskUserQuestion` at whichever comes first: the same validated finding repeats for 3 full invocations with no progress · a fix requires product/owner input · round 5 completes with validated findings still open. NEVER loop past 5 rounds, and NEVER convert cap exhaustion into a PASS.
+> **Loop termination:** After each full re-review, repeat the same decision against **that round's exit bar**: bar cleared → END; blocking findings remain → validate findings → fix → restart from the first review phase. Rounds 1-2 clear on zero findings at any severity; **from round 3 the bar is zero CRITICAL/HIGH/MEDIUM, so a LOW-only round ENDS the loop** (deferred LOWs go in the report). Capped at **3 rounds**. Escalate via `AskUserQuestion` at whichever comes first: the same validated finding repeats for 2 full invocations with no progress · a fix requires product/owner input · round 3 completes with CRITICAL/HIGH/MEDIUM still open. NEVER loop past 3 rounds, and NEVER convert cap exhaustion into a PASS.
 >
 > **Rules:**
 >
 > - A clean Round 1 ENDS the review — no mandatory Round 2
+> - From round 3 on, a round whose validated findings are ALL LOW ENDS the loop — never open round N+1 to fix LOW alone; list those LOWs as deferred instead
+> - NEVER re-tier a CRITICAL/HIGH/MEDIUM down to LOW to reach the round-3 exit — severity is assigned by consequence before the bar is applied
 > - NEVER fix unvalidated findings; validate first using the caller's validation gate
 > - Every surviving finding must additionally clear the **finding-survival bar** defined in why-review's Findings Validation Routine (a deliberately higher bar than the generic act-gate — "keep this finding?" is a stricter question than "act on this evidence?"); a finding below the bar is demoted or dropped, not kept
 > - NEVER skip the full re-review after a fix cycle (every fix invalidates the prior verdict)
 > - NEVER reuse a sub-agent across rounds — every iteration that uses sub-agents spawns NEW Agent calls
 > - Main agent READS sub-agent reports but MUST NOT filter, reinterpret, or override findings
-> - The 5-round cap NEVER replaces the clean-review requirement — it bounds runaway looping, it does not authorize shipping an un-clean review; a clean pass ends the loop early at any round, and cap exhaustion escalates rather than passes
-> - Enforce the round cap of 5 alongside the 3 repeated-no-progress blocker rule; both are escalation triggers, neither is a completion criterion
+> - The 3-round cap NEVER replaces the clean-review requirement — it bounds runaway looping, it does not authorize shipping an un-clean review; a clean pass ends the loop early at any round, and cap exhaustion escalates rather than passes
+> - Enforce the round cap of 3 alongside the 2 repeated-no-progress blocker rule; both are escalation triggers, neither is a completion criterion
 > - Track recursive invocation count and repeated blockers in conversation context (session-scoped)
 > - Final verdict must incorporate ALL rounds executed
 >
-> **Report must include `## Round N Findings (Fresh Sub-Agent)` for every round N≥2 that was executed.**
+> **Report must include `## Round N Findings (Fresh Sub-Agent)` for every round N≥2 that was executed, plus `## Deferred LOW Findings (severity floor, round ≥3)` whenever the loop ended on the round-3+ bar with LOWs still open.**
 
 <!-- /SYNC:double-round-trip-review -->
 
@@ -724,7 +745,7 @@ If suppressed or no-fire, do NOT mention `/llm-council`. If gate fires, ask a **
 > - SKIP fresh sub-agent when the prior full review found zero issues (no fixes = nothing new to verify)
 > - NEVER skip the full review restart after a fix cycle — every fix invalidates the prior verdict
 > - NEVER reuse a sub-agent across rounds — every fresh round spawns a NEW `Agent` call
-> - Continue until a complete full review pass has zero findings; if the same blocker repeats 3 times with no progress, escalate via `AskUserQuestion`
+> - Continue until a complete full review pass clears that round's exit bar per `SYNC:double-round-trip-review`: **rounds 1-2** → zero findings at any severity; **round 3+** → zero CRITICAL/HIGH/MEDIUM, so a round whose validated findings are ALL LOW ENDS the loop (list those LOWs as deferred instead of spawning another round). If the same blocker repeats 3 times with no progress, escalate via `AskUserQuestion`
 > - Track iteration count and repeated blockers in conversation context (session-scoped, no persistent files)
 
 <!-- /SYNC:fresh-context-review -->
@@ -792,7 +813,12 @@ Priority checks for every code change:
 2. Right Responsibility: Logic in LOWEST layer (Entity > Domain Service > Application Service > Controller). Never business logic in controllers.
 3. SOLID: Single responsibility (one reason to change). Open-closed (extend, don't modify). Liskov (subtypes substitutable). Interface segregation (small interfaces). Dependency inversion (depend on abstractions).
 4. After extraction/move/rename: Grep ENTIRE scope for dangling references. Zero tolerance.
-5. YAGNI gate: NEVER recommend patterns unless 3+ occurrences exist. Don't extract for hypothetical future use.
+5. YAGNI gate: Recommend extraction when 3+ similar patterns exist OR an evidenced consumer boundary/substitution need justifies it; do not create patterns for hypothetical future use.
+6. Purpose-oriented naming: Name public or cross-layer abstractions by the capability, domain purpose, or contract consumers rely on—not the current provider, SDK, framework, database, or transport. `IStorage`/`Storage` → `AzureBlobStorage`; use `IAzureStorage` only when Azure-specific semantics are intentionally part of the contract.
+7. Contract-fit check: Read callers and every implementation before judging a name; narrow an over-broad abstraction (`IObjectStore`, `DocumentStore`) instead of rewarding a generic name that lies about behavior.
+8. Mechanism/generic-name smell: Treat `Manager`, `Helper`, `Utils`, `Data`, `Thing`, `Service`, `Interface`, type decorations, and unexplained abbreviations as review signals—not automatic defects; flag them only when they hide purpose, scope, or responsibility.
+9. Concrete implementation names: Provider, strategy, transport, or test-double names are valid on concrete types when they distinguish real behavior (`AzureBlobStorage`, `InMemoryStorage`, `RetryingStorage`); keep those details out of the caller-facing contract unless the contract promises them.
+10. Language convention: Preserve local interface syntax and naming style; `.NET` `I` prefixes and Google TypeScript's unmarked interfaces are both valid local conventions.
 Anti-patterns to flag: God Object, Copy-Paste inheritance, Circular Dependency, Leaky Abstraction.
 
 ### Logic & Intention Review
@@ -852,7 +878,7 @@ AI skips steps via these evasions. Recognize and reject:
 MANDATORY when .code-graph/graph.db exists.
 HARD-GATE: MUST run at least ONE graph command on key files before concluding any investigation.
 Pattern: Grep finds files → trace --direction both reveals full system flow → Grep verifies details.
-- Investigation/Scout: trace --direction both on 2-3 entry files
+- Investigation: trace --direction both on 2-3 entry files
 - Fix/Debug: callers_of on buggy function + tests_for
 - Feature/Enhancement: connections on files to be modified
 - Code Review: tests_for on changed functions
@@ -1008,7 +1034,7 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 <!-- SYNC:nested-task-creation:reminder -->
 
 - **MANDATORY** Parent workflow rows do not replace child phase tracking; expand phases and link the parent when nested.
-- **MANDATORY** Orchestrators pre-expand child skill phases before invocation; use `[N.M] $skill-name — phase` prefixes and one-`in_progress` discipline.
+- **MANDATORY** Orchestrators pre-expand child skill phases before invocation; use `[N.M] /skill-name — phase` prefixes and one-`in_progress` discipline.
 
 <!-- /SYNC:nested-task-creation:reminder -->
 
@@ -1040,7 +1066,8 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 <!-- SYNC:double-round-trip-review:reminder -->
 
 - **MANDATORY IMPORTANT MUST ATTENTION** execute the review loop (aka **Self-Review Convergence Loop**): review → validate findings → fix validated findings → full re-review. A complete review pass with zero findings ENDS the review. Any newly produced output/judgment gets ≥1 self-review; any new judgment gets ≥1 `/why-review --validate-findings` pass before it is treated as final.
-- **MANDATORY** enforce the **round cap of 5 — a ceiling, NEVER a target**: a clean pass ends the loop immediately at any round (round 1 included), and round 5 completing with validated findings still open → **STOP & escalate via `AskUserQuestion`**, never a silent PASS. The 3-repeated-no-progress blocker rule is an earlier exit — escalate at whichever trips first. NEVER loop open-ended.
+- **MANDATORY** apply the **severity floor**: rounds 1-2 exit on zero findings at any severity; **from round 3 the bar is zero CRITICAL/HIGH/MEDIUM — LOW findings are no longer required to be fixed, so a LOW-only round ENDS the loop.** List every deferred LOW in the report; NEVER re-tier a real CRITICAL/HIGH/MEDIUM down to LOW to reach the exit, and NEVER apply the floor to a binary gate (test-green, security must-fix).
+- **MANDATORY** enforce the **round cap of 3 — a ceiling, NEVER a target**: a clean pass ends the loop immediately at any round (round 1 included), and round 3 completing with CRITICAL/HIGH/MEDIUM still open → **STOP & escalate via `AskUserQuestion`**, never a silent PASS. The 2-repeated-no-progress blocker rule is an earlier exit — escalate at whichever trips first. NEVER loop open-ended.
 
 <!-- /SYNC:double-round-trip-review:reminder -->
 
@@ -1065,7 +1092,7 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 > 6. **Barrier per wave.** Advance ONLY after EVERY member returns (a skipped conditional counts as returned). Merge, mark each task completed/skipped, THEN dispatch the next wave. Mutating steps wait for the barrier.
 > 7. **One level deep.** A dispatched sub-agent executes its own brief; further fan-out stays the orchestrator's job unless that agent's `.claude/agents/*.md` definition authorizes it.
 >
-> **NEVER parallelize:** tasks sharing a write target · a task consuming a pending task's output · trivial single-file work (dispatch overhead > gain) · an order a workflow explicitly fixes · gates awaiting user approval.
+> **NEVER parallelize:** tasks sharing a write target · a task consuming a pending task's output · trivial single-file work (dispatch overhead > gain) · an order a skill or workflow explicitly fixes · gates awaiting user approval.
 >
 > **Blocked until:** MUST ATTENTION every task tagged PAR/SEQ with a named reason per SEQ · waves declared + write-set disjointness checked · each wave spawned in ONE message · barrier honored before the next wave.
 
@@ -1077,6 +1104,20 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 - **MANDATORY** Disjoint write sets per wave · all-return barrier before the next wave · specialist routing · sub-agents NEVER fan out further unless their own agent definition authorizes it.
 
 <!-- /SYNC:parallel-subagent-dispatch:reminder -->
+
+<!-- SYNC:project-protocol-overlay -->
+
+> **Project Protocol Overlay** — Before executing this skill, resolve any PROJECT overlay rules layered onto it: match this skill's name against the `Target` column of the project's skill-protocol index (`docs/project-reference/skill-protocols-reference.md` by default; a `referenceDocs` entry in `docs/project-config.json` overrides the path), taking the most specific matching tier ONLY — exact name > glob > `*`. **That precedence orders overlays against EACH OTHER, never against this skill.** Read ONLY the matched bodies, resolved as `<protocols-dir>/<Name>.md`; a row's Body link is display text, never a read path. A matched body that is missing or malformed is REPORTED and skipped — never reconstructed from the index Description. No index, or no match -> proceed with no overlay, silently. Full contract: `.claude/skills/project-skill-protocol/references/registry.md`.
+>
+> Overlays are **ADDITIVE ONLY**: they ADD rules on top of this skill's own protocol and NEVER replace, override, disable, or reinterpret a rule it already states — removing every overlay must return this skill to exactly its documented behavior. An overlay is a BRIEF, not an authority escalation: it can NEVER waive a workflow gate, git discipline, a review gate, or a user-confirmation gate. A genuine overlay-vs-skill conflict, or two equally-specific overlays that directly contradict -> surface both to the user; NEVER resolve silently.
+
+<!-- /SYNC:project-protocol-overlay -->
+
+<!-- SYNC:project-protocol-overlay:reminder -->
+
+**MUST ATTENTION** resolve project protocol overlays for this skill BEFORE executing — most specific matching tier only (exact > glob > `*`, which ranks overlays against each other, NEVER against this skill), read only matched bodies at `<protocols-dir>/<Name>.md`; a missing or malformed body is reported, never reconstructed. Overlays are ADDITIVE ONLY (they never replace this skill's own rules) and are a brief, NEVER an authority escalation; an equal-specificity contradiction goes to the user.
+
+<!-- /SYNC:project-protocol-overlay:reminder -->
 
 ## Closing Reminders
 
@@ -1115,7 +1156,7 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 **IMPORTANT MUST ATTENTION** break work into small todo tasks via `TaskCreate` BEFORE starting; in full mode create the **Findings Validation Gate** closing task at skill START (Task Bootstrap) and run it whenever findings exist — re-invoke `/why-review --validate-findings` (TERMINAL, SAME session) to confirm every finding is correct, proof-backed, reasonable, best-practice; RE-DO ONLY on surfaced finding issues/enhancements (max 2 re-dos, then escalate via `AskUserQuestion`). — why: the gate catches inflated, misread, or unproven findings before handoff.
 **IMPORTANT MUST ATTENTION** execute the review loop: review → validate findings → fix validated findings → full re-review; a complete review pass with zero findings ENDS the review. NEVER fix unvalidated findings; NEVER reuse a sub-agent across rounds (spawn NEW `Agent` calls); main agent reads sub-agent reports but does NOT filter or override. — why: every fix invalidates the prior verdict, and orchestrator confirmation bias hides regressions a fresh zero-memory reviewer catches.
 **IMPORTANT MUST ATTENTION** judge the WHOLE PACKAGE, not the diff alone — load the behavior's spec (§3 AC / §4 BR / §8 TC), its tests, and the changed code together and triangulate; a missing or disagreeing face is itself a finding (CODE-WRONG / SPEC-STALE / TEST-GAP / SPEC-SILENT). NEVER mark PASS while any face disagrees without a logged finding. — why: the diff is the entry point, the package is the unit of judgment.
-**IMPORTANT MUST ATTENTION** when the target holds integration/E2E tests — or changes behavior that HAS covering integration tests — apply the **Integration-Test-Review Linkage**: `/integration-test-review` owns the 8 test-quality gates, so read its protocol (Mode A default) or delegate to it (Mode B, standalone full mode only) rather than judging assertion quality by eye. SKIP under any of the 4 guard rows (validate-findings mode · invoked by `/integration-test-review` Phase 9 · by `changes-review` in ANY phase — 0.8, 6, or 7.5 — or `$workflow-review-changes` · by `/debug-investigate`'s root-cause gate) and record the deferral line. — why: this skill's `Test/spec/doc sync` dimension claims to prove tests protect the invariant, but only those gates can answer it; and an unguarded call closes a `why-review → integration-test-review → why-review` cycle.
+**IMPORTANT MUST ATTENTION** when the target holds integration/E2E tests — or changes behavior that HAS covering integration tests — apply the **Integration-Test-Review Linkage**: `/integration-test-review` owns the 8 test-quality gates, so read its protocol (Mode A default) or delegate to it (Mode B, standalone full mode only) rather than judging assertion quality by eye. SKIP under any of the 4 guard rows (validate-findings mode · invoked by `/integration-test-review` Phase 9 · by `changes-review` in ANY phase — 0.8, 6, or 7.5 — or `/workflow-review-changes` · by `/debug-investigate`'s root-cause gate) and record the deferral line. — why: this skill's `Test/spec/doc sync` dimension claims to prove tests protect the invariant, but only those gates can answer it; and an unguarded call closes a `why-review → integration-test-review → why-review` cycle.
 **IMPORTANT MUST ATTENTION** every behavior-changing finding carries BOTH a spec-drift verdict (CODE-WRONG / SPEC-STALE / AMBIGUOUS / SPEC-SILENT / in-sync) AND a concrete test-feedback action; a SPEC-SILENT verdict additionally REQUIRES a spec-enrichment action (§4 BR/§3 AC + §8 TC). A missing axis is HAS-ISSUES, never a clean finding. — why: code-only fixes silently drop the invariant from the spec and leave it unguarded.
 **IMPORTANT MUST ATTENTION** for bugfix / regression / behavior-changing reviews, walk the End-to-Start debugger trace (observed final state → backward → feeder paths → hypothesis matrix → owning layer → forward convergence proof) and produce the Behavioral Delta Matrix (≥3 rows, ≥1 row outside the bug report) BEFORE the verdict; any REGRESSION delta → FAIL until a preservation test covers it. — why: narrative claims hide regressions and symptom-first fixes the matrix and trace force into view.
 **IMPORTANT MUST ATTENTION** require fixes at the owning layer — the lowest layer that owns the invariant — NEVER at the symptom/crash site; a fix touching 3+ files with defensive checks signals the wrong layer, go lower. — why: symptom-site patches leave every other consumer exposed.

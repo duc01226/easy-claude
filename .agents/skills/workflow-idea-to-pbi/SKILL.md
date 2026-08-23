@@ -45,14 +45,24 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 
 **Goal:** [Workflow] Trigger Idea to PBI workflow in one of two modes. **SINGLE-PBI DEEP** — capture or review idea/artifact, refine, author the §1-7 Feature Spec draft, generate TDD test specs from the idea, model the domain, plan, derive the PBI and stories, challenge review, DoR gate, mockup, prioritize (idea → draft Feature Spec → specs → from those specs to PBI). **MULTI-OPPORTUNITY DISCOVERY** — a raw product vision/problem → brainstorm (optionally web-research → deep-research) → RICE opportunity map → user multi-select → a light per-opportunity PBI loop → cross-PBI ranked backlog.
 
+**Summary:**
+
+- Detect the track first: Single-PBI Deep keeps spec/scenario/plan gates; Multi-Opportunity Discovery keeps one embedded decomposition context and skips the deep per-opportunity plan cycle.
+- Apply the shared `isLargeIdea` rule before either track. When true, keep the complete `large_idea_decomposition` block in the PBI/spec outputs and aggregate it in the final presentation/mock-ups; do not create a roadmap file by default.
+- Treat generated ideas, specs, PBIs, stories, and mockups as draft until their review/acceptance gates pass; finish with prioritized, dependency-aware backlog evidence.
+- Every generated PBI MUST be one independently releasable actor-facing outcome with a complete entry-to-result journey; technical-only/foundation/setup work is enabling work under that outcome, never a standalone PBI.
+- For UI PBIs, `$pbi-mockup` MUST produce a navigable mock app with every required page/view, navigation edge, common/domain/page component, applicable state, and full-flow demo — one isolated screen is a blocking failure.
+
 **Mode Detection Gate (FIRST — pick the track before any step, then declare it):**
 
 | Input                                                        | Mode                            | Track                                                                                                                                                                                                                  |
 | ------------------------------------------------------------ | ------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| ONE concrete idea / ticket / brief                           | **Single-PBI Deep**             | full track incl. `spec [mode=draft]` + `spec [mode=tests]` + `plan`/`plan-review`/`plan-validate` → 1 deeply-groomed PBI. SKIP `brainstorm`/`web-research`/`deep-research`.                                            |
-| Raw product vision / problem spanning multiple opportunities | **Multi-Opportunity Discovery** | `brainstorm` (optionally `web-research` → `deep-research`) → RICE map → multi-select → light per-opportunity loop → cross-PBI `prioritize`. `spec [mode=draft]` + `spec [mode=tests]` + `plan` cycle are **deep-mode only — never per opportunity**; `domain-analysis` runs once up front. |
+| ONE concrete idea / ticket / brief                           | **Single-PBI Deep**             | Apply the large-idea signal check, then full track incl. `spec [mode=draft]` + `spec [mode=tests]` + conditional `$scenario` + `plan`/`plan-review`/`plan-validate` → 1 deeply-groomed PBI. SKIP `brainstorm`$research. |
+| Raw product vision / problem spanning multiple opportunities | **Multi-Opportunity Discovery** | `brainstorm` (optionally research) → RICE map → multi-select → light per-opportunity PBI loop → cross-PBI `prioritize`; the shared decomposition block carries slice/dependency/non-goal/risk/deferred-owner context. Spec/plan/scenario cycle is **deep-mode only — never per opportunity**; `domain-analysis` runs once up front. |
 
 When the input is ambiguous, ask by asking the user directly before step 1.
+
+ - **Main steps:** detect mode → research/brainstorm as applicable → capture/refine → deep-only spec/test/scenario/plan gates → PBI/story review → challenge/DoR → UI mock-up/design-spec → prioritize → docs/presentation/handoff.
 
 **Workflow:**
 
@@ -66,9 +76,12 @@ When the input is ambiguous, ask by asking the user directly before step 1.
 - MUST ATTENTION keep task tracking updated as each step starts/completes.
 - MUST ATTENTION define success criteria before execution and loop until observable verification passes.
 - MUST ATTENTION when creating/reviewing specs or tests, name `Business Intent / Invariant Guarded` or the protected business intent/invariant and ensure the test would fail if that intent breaks.
+- MUST ATTENTION apply `isLargeIdea = multipleIndependentOutcomes || ambiguousOrResearchHeavy || releaseScopeDecomposition || oversizedPbiThatMustSplit` before either track. A true signal requires all five fields: `outcome_slices`, `dependencies_order`, `non_goals`, `risks_evidence`, and `deferred_work_owner`; all-false ideas omit the block. An existing supplied roadmap is read-only context; only an explicit roadmap-deliverable request enters the standalone writer.
+- MUST ATTENTION run `$scenario` before the Single-PBI Deep plan only when the selected slice/decomposition needs adversarial replay, state, ownership, recovery, or evidence analysis; otherwise record the conditional skip with evidence. Multi-Opportunity Discovery skips it with the explicitly skipped per-opportunity plan cycle.
 - MUST ATTENTION apply the shared SDD Artifact Contract from `shared/sdd-artifact-contract.md` in the active skills root; use `docs/project-config.json` and `docs/project-reference/docs-index-reference.md` for project-specific conventions.
 - **[BLOCKING] Tech-agnostic output:** idea / PBI / story / problem-statement prose stays tech-agnostic per `docs/project-reference/spec-principles.md` §3 — no framework/product/language/design-pattern names; source paths and class names appear ONLY in evidence fields (`**Evidence**`, `[Source:]`), frontmatter, and Mermaid.
 - MUST ATTENTION treat AI-generated ideas, PBIs, stories, mockups, and TCs as draft/reference until their review or acceptance gate approves them.
+- MUST ATTENTION apply `.claude/skills/shared/releasable-pbi-contract.md` at refine, artifact review, DoR, story, and mockup handoffs; a blocked outcome cannot advance by assumption.
 - MUST ATTENTION allow any supported AI tool to produce or review artifacts when the shared contract, synced context, and local docs are available.
 - NEVER skip mandatory workflow or skill gates.
 
@@ -100,6 +113,7 @@ When the input is ambiguous, ask by asking the user directly before step 1.
 After confirming the workflow, present the full step list and let the user deselect irrelevant steps:
 
 ```
+- [x] Large-idea decomposition gate — conditional: stable slice IDs, dependency order, non-goals, risks/evidence, and deferred-work owners in the owning PBI/spec
 - [x] Brainstorm (brainstorm)                      — DISCOVERY MODE ONLY; RICE opportunity map
 - [ ] Market research (web-research)               — DISCOVERY MODE, CONDITIONAL
 - [ ] Deep research (deep-research)                 — DISCOVERY MODE, CONDITIONAL; runs only when web-research ran
@@ -113,6 +127,7 @@ After confirming the workflow, present the full step list and let the user desel
 - [x] Test specifications (spec [mode=tests])       — DEEP MODE ONLY; idea → draft → specs
 - [x] Test-spec rationale review (why-review)       — deep mode
 - [x] Test specification review (artifact-review --type=spec-tests)  — deep mode
+- [x] Scenario analysis (scenario)                  — SINGLE-PBI DEEP MODE ONLY: adversarial replay, persistence, state, access, recovery, and evidence cases before the plan; skip with the plan cycle in discovery mode
 - [ ] Domain analysis (domain-analysis)            — CONDITIONAL; discovery mode runs it ONCE up front
 - [x] Domain rationale review (why-review)
 - [x] Implementation plan (plan)                    — DEEP MODE ONLY
@@ -131,7 +146,7 @@ After confirming the workflow, present the full step list and let the user desel
 - [x] Documentation synchronization (docs-update)
 ```
 
-Mark skipped steps as completed immediately. In single-PBI deep mode, deselect `brainstorm`/`web-research`/`deep-research`. In discovery mode, deselect `spec [mode=draft]`, `spec [mode=tests]`, `artifact-review --type=spec-tests`, and the `plan`/`plan-review`/`plan-validate` cycle (deep-mode-only); run `domain-analysis` once up front.
+Mark skipped steps as completed immediately. In single-PBI deep mode, deselect `brainstorm`/`web-research`/`deep-research`; keep the decomposition gate and run `$scenario` only when the slice/risk context needs it. In discovery mode, run `brainstorm` before the PBI loop and preserve one shared decomposition context; deselect `spec [mode=draft]`, `spec [mode=tests]`, `artifact-review --type=spec-tests`, `scenario`, and the `plan`/`plan-review`/`plan-validate` cycle (deep-mode-only); run `domain-analysis` once up front.
 
 ### 1a. Multi-Opportunity Discovery Loop (Discovery Mode core mechanic)
 
@@ -142,11 +157,11 @@ Activated only when the input is a raw product vision/problem spanning multiple 
 3. **Opportunity-map why-review gate** (before the loop): challenge whether the top-ranked opportunities are the right problems, whether RICE Reach/Impact are founded or speculative, run a pre-mortem, and name systemic alternatives. FAIL on a high-ranked opportunity → drop it or revisit framing; WARN → document and proceed with user acknowledgment.
 4. **Task decomposition gate.** Call task tracking for EVERY task (N opportunities × 9 loop steps = N×9 minimum) BEFORE processing any opportunity — never start the loop without a complete task list.
 5. **Per-opportunity light loop** (for EACH selected opportunity — NO `spec [mode=draft]`, NO `spec [mode=tests]`, NO `plan`/`plan-review`/`plan-validate`; `domain-analysis` already ran once up front):
-   `$idea` → `$refine` → `$artifact-review --type=pbi` → `$story` → `$artifact-review --type=story` → `$pbi-challenge` → `$dor-gate` → `$pbi-mockup` → `$design-spec` (mockup + UI specs skip for backend-only PBIs).
+   `$idea` → `$refine` (including the Releasable Outcome Gate) → `$artifact-review --type=pbi` → `$story` → `$artifact-review --type=story` → `$pbi-challenge` → `$dor-gate` → `$pbi-mockup` → `$design-spec` (mockup + UI specs skip for backend-only PBIs).
 6. **Scale management.** For 6+ selected opportunities, spawn one sub-agent per opportunity (each gets brainstorm context + its task list); the main context runs `$prioritize` at the end. Update a session summary table after every 3 opportunities.
 7. **Cross-PBI prioritize.** After ALL opportunities are processed, run `$prioritize` across all session PBIs (cross-PBI RICE + dependency graph) → sprint-ready ranked backlog, flagging Must/Should/Could-Have. `$prioritize` MUST write the resulting rank/priority back into EACH PBI's frontmatter (priority propagation), not only the standalone backlog — so `$pbi-mockup` (header badge) and `$feature-presentation` (Scope & backlog slide) can surface each PBI's priority from the PBI itself.
 
-> **Spec-hub coupling (§6 interaction surface ↔ UI artifacts):** for UI PBIs the `$pbi-mockup` and `$design-spec` produced here are NOT standalone artifacts — they are the deep companions of the governing Feature Spec's **§6 interaction surface** (View Inventory / Navigation Map / Key UI States / per-story click-path). The §6 thin intent seeds both; `design-spec` records its path in the spec's `design_spec:` frontmatter (and the mockup in `mockup:`) so the spec stays the navigable hub: a reader goes spec → §6 thin intent → mockup + `design-spec` deep companions, and the three never drift. Keep deep visual fidelity (layout, tokens, pixel detail) in the mockup/`design-spec`, never in §6. See the `SYNC:ui-intent-layer` block below for the full rule — do not restate it here. Backend-only PBIs (no UI) → skip `$pbi-mockup` + `$design-spec` and state that reason.
+> **Spec-hub coupling (§6 interaction surface ↔ UI artifacts):** for UI PBIs the `$pbi-mockup` and `$design-spec` produced here are NOT standalone artifacts — they are the deep companions of the governing Feature Spec's **§6 interaction surface** (View Inventory / Navigation Map / Key UI States / per-story click-path). The §6 thin intent seeds both; `design-spec` records its path in the spec's `design_spec:` frontmatter (and the mockup in `mockup:`) so the spec stays the navigable hub: a reader goes spec → §6 thin intent → mockup + `design-spec` deep companions, and the three never drift. Keep deep visual fidelity (layout, tokens, pixel detail) in the mockup/`design-spec`, never in §6. See the `SYNC:ui-intent-layer` block below for the full rule — do not restate it here. Backend-only PBIs (no UI) → skip `$pbi-mockup` + `$design-spec` and state that reason. UI PBIs MUST carry the page/view, navigation, component, state, and full-flow evidence required by the shared releasable-PBI contract.
 
 ### 2. task tracking Before Starting
 
@@ -158,6 +173,7 @@ Task tracking: "Market research (web-research)" [discovery mode, conditional]
 Task tracking: "Deep research (deep-research)" [discovery mode, conditional; only when web-research ran]
 Task tracking: "Idea capture"
 Task tracking: "Refine to PBI"
+Task tracking: "Releasable Outcome Gate (inside refine)"
 Task tracking: "Refinement rationale review (why-review after refine)"
 Task tracking: "Feature Spec draft (spec [mode=draft])"
 Task tracking: "Test specifications (spec [mode=tests])"
@@ -282,16 +298,16 @@ Purpose:
 
 ---
 
-**IMPORTANT MANDATORY Steps:** $web-research -> $deep-research -> $brainstorm -> $idea -> $spec-discovery -> $artifact-review -> $refine -> $why-review -> $spec [mode=draft] -> $spec [mode=tests] -> $why-review -> $artifact-review --type=spec-tests -> $spec-clarify -> $domain-analysis -> $why-review -> $plan -> $plan-review -> $plan-validate -> $why-review -> $artifact-review --type=pbi -> $story -> $why-review -> $artifact-review --type=story -> $pbi-challenge -> $dor-gate -> $pbi-mockup -> $design-spec -> $prioritize -> $docs-update -> $feature-presentation -> $workflow-end -> $watzup
+**IMPORTANT MANDATORY Steps:** $web-research -> $deep-research -> $brainstorm -> $idea -> $spec-discovery -> $artifact-review -> $refine -> $why-review -> $spec [mode=draft] -> $spec [mode=tests] -> $why-review -> $artifact-review --type=spec-tests -> $spec-clarify -> $scenario -> $domain-analysis -> $why-review -> $plan -> $plan-review -> $plan-validate -> $why-review -> $artifact-review --type=pbi -> $story -> $why-review -> $artifact-review --type=story -> $pbi-challenge -> $dor-gate -> $pbi-mockup -> $design-spec -> $prioritize -> $docs-update -> $feature-presentation -> $workflow-end -> $watzup
 
 > **Mode gating of the canonical sequence above** — **Single-PBI deep mode:** skip $brainstorm + $web-research + $deep-research; run the full deep track (one PBI). **Discovery mode:** run $brainstorm (optionally $web-research → $deep-research), skip $spec [mode=draft], $spec [mode=tests], $artifact-review --type=spec-tests, $spec-clarify, $plan, $plan-review, $plan-validate; loop $idea→/refine→/artifact-review --type=pbi→/story→/artifact-review --type=story→/pbi-challenge→/dor-gate→/pbi-mockup→/design-spec per selected opportunity, then $prioritize cross-PBI.
 
-> **[BLOCKING]** Each step MUST ATTENTION invoke its skill invocation — marking a task `completed` without skill invocation is a workflow violation. NEVER batch-complete validation gates.
+> **[BLOCKING]** Each selected step MUST ATTENTION invoke its skill invocation — marking a selected task `completed` without skill invocation is a workflow violation. A declared conditional or mode-gated step may be marked skipped only with evidence and an explicit reason; NEVER batch-complete validation gates.
 
 Activate the `workflow-idea-to-pbi` workflow. Run `$start-workflow workflow-idea-to-pbi` with the user's prompt as context.
 
 **Steps:**
-$web-research → $deep-research → $brainstorm → $idea → $spec-discovery → $artifact-review → $refine → $why-review → $spec [mode=draft] → $spec [mode=tests] → $why-review → $artifact-review --type=spec-tests → $spec-clarify → $domain-analysis → $why-review → $plan → $plan-review → $plan-validate → $why-review → $artifact-review --type=pbi → $story → $why-review → $artifact-review --type=story → $pbi-challenge → $dor-gate → $pbi-mockup → $design-spec → $prioritize → $docs-update → $feature-presentation → $workflow-end → $watzup
+$web-research → $deep-research → $brainstorm → $idea → $spec-discovery → $artifact-review → $refine → $why-review → $spec [mode=draft] → $spec [mode=tests] → $why-review → $artifact-review --type=spec-tests → $spec-clarify → $scenario → $domain-analysis → $why-review → $plan → $plan-review → $plan-validate → $why-review → $artifact-review --type=pbi → $story → $why-review → $artifact-review --type=story → $pbi-challenge → $dor-gate → $pbi-mockup → $design-spec → $prioritize → $docs-update → $feature-presentation → $workflow-end → $watzup
 
 > **Conditional / mode-gated steps:**
 >
@@ -299,6 +315,7 @@ $web-research → $deep-research → $brainstorm → $idea → $spec-discovery �
 > - `$spec [mode=draft]`, `$spec [mode=tests]`, `$artifact-review --type=spec-tests`, `$plan`, `$plan-review`, `$plan-validate` — DEEP MODE only; never run per opportunity in discovery mode
 > - `$artifact-review` — skip if no existing artifact/ticket/PRD; proceed straight to `$refine`
 > - `$domain-analysis` — skip if the idea introduces no new/changed domain entities; in discovery mode run once up front
+> - `$scenario` — run for a selected slice when its risks need adversarial replay/state/ownership/recovery/evidence analysis; otherwise mark the conditional skip with evidence
 > - `$pbi-mockup` — skip if PBI is backend-only (no UI changes); when run, the mockup MUST faithfully match the current UI system (gated by `SYNC:existing-ui-research`)
 > - `$design-spec` — UI PBIs only (runs right after `$pbi-mockup`); skip if PBI is backend-only; authors the PBI's tech-agnostic UI specs, gated by `SYNC:existing-ui-research`
 
@@ -325,7 +342,7 @@ $web-research → $deep-research → $brainstorm → $idea → $spec-discovery �
 > **Nested Task Expansion Contract** — For workflow-step invocation, the `[Workflow] ...` row is only a parent container; the child skill still creates visible phase tasks.
 >
 > 1. Call the current task list first. If a matching active parent workflow row exists, set `nested=true` and record `parentTaskId`; otherwise run standalone.
-> 2. Create one task per declared phase before phase work. When nested, prefix subjects `[N.M] $skill-name — phase`.
+> 2. Create one task per declared phase before phase work. When nested, prefix subjects `[N.M] /skill-name — phase`.
 > 3. When nested, link the parent with `TaskUpdate(parentTaskId, addBlockedBy: [childIds])`.
 > 4. Orchestrators must pre-expand a child skill's phase list and link the workflow row before invoking that child skill or sub-agent.
 > 5. Mark exactly one child `in_progress` before work and `completed` immediately after evidence is written.
@@ -420,7 +437,7 @@ $web-research → $deep-research → $brainstorm → $idea → $spec-discovery �
 <!-- SYNC:nested-task-creation:reminder -->
 
 - **MANDATORY** Parent workflow rows do not replace child phase tracking; expand phases and link the parent when nested.
-- **MANDATORY** Orchestrators pre-expand child skill phases before invocation; use `[N.M] $skill-name — phase` prefixes and one-`in_progress` discipline.
+- **MANDATORY** Orchestrators pre-expand child skill phases before invocation; use `[N.M] /skill-name — phase` prefixes and one-`in_progress` discipline.
 
 <!-- /SYNC:nested-task-creation:reminder -->
 
@@ -442,7 +459,7 @@ $web-research → $deep-research → $brainstorm → $idea → $spec-discovery �
 > 6. **Barrier per wave.** Advance ONLY after EVERY member returns (a skipped conditional counts as returned). Merge, mark each task completed/skipped, THEN dispatch the next wave. Mutating steps wait for the barrier.
 > 7. **One level deep.** A dispatched sub-agent executes its own brief; further fan-out stays the orchestrator's job unless that agent's `.claude/agents/*.md` definition authorizes it.
 >
-> **NEVER parallelize:** tasks sharing a write target · a task consuming a pending task's output · trivial single-file work (dispatch overhead > gain) · an order a workflow explicitly fixes · gates awaiting user approval.
+> **NEVER parallelize:** tasks sharing a write target · a task consuming a pending task's output · trivial single-file work (dispatch overhead > gain) · an order a skill or workflow explicitly fixes · gates awaiting user approval.
 >
 > **Blocked until:** MUST ATTENTION every task tagged PAR/SEQ with a named reason per SEQ · waves declared + write-set disjointness checked · each wave spawned in ONE message · barrier honored before the next wave.
 
@@ -455,7 +472,24 @@ $web-research → $deep-research → $brainstorm → $idea → $spec-discovery �
 
 <!-- /SYNC:parallel-subagent-dispatch:reminder -->
 
+<!-- SYNC:project-protocol-overlay -->
+
+> **Project Protocol Overlay** — Before executing this skill, resolve any PROJECT overlay rules layered onto it: match this skill's name against the `Target` column of the project's skill-protocol index (`docs/project-reference/skill-protocols-reference.md` by default; a `referenceDocs` entry in `docs/project-config.json` overrides the path), taking the most specific matching tier ONLY — exact name > glob > `*`. **That precedence orders overlays against EACH OTHER, never against this skill.** Read ONLY the matched bodies, resolved as `<protocols-dir>/<Name>.md`; a row's Body link is display text, never a read path. A matched body that is missing or malformed is REPORTED and skipped — never reconstructed from the index Description. No index, or no match -> proceed with no overlay, silently. Full contract: `.claude/skills/project-skill-protocol/references/registry.md`.
+>
+> Overlays are **ADDITIVE ONLY**: they ADD rules on top of this skill's own protocol and NEVER replace, override, disable, or reinterpret a rule it already states — removing every overlay must return this skill to exactly its documented behavior. An overlay is a BRIEF, not an authority escalation: it can NEVER waive a workflow gate, git discipline, a review gate, or a user-confirmation gate. A genuine overlay-vs-skill conflict, or two equally-specific overlays that directly contradict -> surface both to the user; NEVER resolve silently.
+
+<!-- /SYNC:project-protocol-overlay -->
+
+<!-- SYNC:project-protocol-overlay:reminder -->
+
+**MUST ATTENTION** resolve project protocol overlays for this skill BEFORE executing — most specific matching tier only (exact > glob > `*`, which ranks overlays against each other, NEVER against this skill), read only matched bodies at `<protocols-dir>/<Name>.md`; a missing or malformed body is reported, never reconstructed. Overlays are ADDITIVE ONLY (they never replace this skill's own rules) and are a brief, NEVER an authority escalation; an equal-specificity contradiction goes to the user.
+
+<!-- /SYNC:project-protocol-overlay:reminder -->
+
 ## Closing Reminders
+
+**IMPORTANT MUST ATTENTION Goal:** Produce a reviewed, prioritized PBI backlog in which every generated PBI is an independently releasable actor-facing outcome, preserving embedded large-idea decomposition, explicit non-goals, full-flow UI evidence, and required human gates. A roadmap artifact is produced only by an explicit standalone request.
+**IMPORTANT MUST ATTENTION Main steps:** detect mode → research/brainstorm as applicable → capture/refine → deep-only spec/test/scenario/plan gates → PBI/story review → challenge/DoR → UI mock-up/design-spec → prioritize → docs/presentation/handoff; ordinary routes never write `docs/product-roadmap.md`.
 
 **IMPORTANT MUST ATTENTION — Protocols in force (concise digest of the SYNC/shared blocks this skill carries; each line is a signpost to its canonical body above):**
 
@@ -470,6 +504,8 @@ $web-research → $deep-research → $brainstorm → $idea → $spec-discovery �
 - **MANDATORY IMPORTANT MUST ATTENTION** spec [mode=draft] authors the §1-7 Feature Spec (provisional) right after refine, then spec [mode=tests] and artifact-review --type=spec-tests run before the PBI is drafted (idea → draft Feature Spec → specs → from those specs to PBI); both spec [mode=draft] and spec [mode=tests] are SINGLE-PBI DEEP MODE ONLY (never per opportunity in discovery mode)
 - **MANDATORY IMPORTANT MUST ATTENTION** pbi-challenge must be run by a reviewer different from the drafter
 - **MANDATORY IMPORTANT MUST ATTENTION** dor-gate must pass (PASS or WARN) before pbi-mockup is finalized; for UI PBIs, pbi-mockup AND design-spec both run (mockup first, then UI specs) so the PBI carries a faithful mockup matching the current UI system PLUS UI specs — both skip for backend-only PBIs and both are gated by SYNC:existing-ui-research; the code-producing design lanes are reference-only, not part of this workflow
+- **MANDATORY IMPORTANT MUST ATTENTION** every generated PBI MUST pass the Releasable Outcome Gate before artifact handoff: one actor-facing outcome, complete entry-to-result journey, observable evidence, and no standalone technical/foundation/setup/migration scope — apply `.claude/skills/shared/releasable-pbi-contract.md`
+- **MANDATORY IMPORTANT MUST ATTENTION** for UI PBIs, pbi-mockup MUST be a navigable mock app containing every required page/view, navigation edge, common/domain/page component, applicable state, and full-flow demo; one isolated screen is a FAIL, not a partial pass
 - **MANDATORY IMPORTANT MUST ATTENTION** write each artifact immediately — never batch output across steps
 - **MANDATORY IMPORTANT MUST ATTENTION** prioritize must write the resulting rank/priority back into EACH PBI's frontmatter (priority propagation) — not only the standalone backlog — and that priority MUST then surface in the pbi-mockup generated files (header badge) and the feature-presentation deck (Scope & backlog slide, ranked order + priority label per PBI)
 - **MANDATORY IMPORTANT MUST ATTENTION** docs-update runs after prioritize and before workflow-end to sync specs, feature docs, and TDD/spec dashboards
@@ -495,7 +531,7 @@ Source: `.claude/.ck.json` + `.claude/skills/shared/sync-inline-versions.md` (`:
 3. **AUTO-SELECT:** Pick the best option yourself. Do not ask the user to choose between direct execution, skill, standard workflow, or custom workflow.
 4. **ACTIVATE:** For a selected workflow, call `$start-workflow <workflowId>`; for a selected skill, invoke that skill; for a custom workflow, sequence custom steps directly; for direct execution, proceed with the task.
 5. **CREATE TASKS:** task tracking for ALL workflow/skill/custom steps before execution when the selected path has multiple steps.
-6. **PARALLELIZE:** Before executing the task list, tag each task `PAR` (independent inputs + write set disjoint from every other `PAR` task) or `SEQ` (name the blocking dependency), group `PAR` tasks into waves, declare the wave plan, and spawn each wave's sub-agents in ONE message — all-return barrier per wave, fan-out one level deep unless a sub-agent's own definition authorizes further fan-out. Sequential-by-default is a defect when tasks are independent; do not parallelize shared write targets, output-consuming tasks, trivial single-file work, workflow-fixed ordering, or user-approval gates.
+6. **PARALLELIZE:** Before executing the task list, tag each task `PAR` (independent inputs + write set disjoint from every other `PAR` task) or `SEQ` (name the blocking dependency), group `PAR` tasks into waves, declare the wave plan, and spawn each wave's sub-agents in ONE message — all-return barrier per wave, fan-out one level deep unless a sub-agent's own definition authorizes further fan-out. Sequential-by-default is a defect when tasks are independent; do not parallelize shared write targets, output-consuming tasks, trivial single-file work, ordering a skill or workflow explicitly fixes, or user-approval gates.
 7. **EXECUTE:** Advance per the **Workflow Step Advancement & Parallel Phases** rule in your context instructions — model-driven; a sub-agent completion advances a step identically to an inline call; a parallel-phase group is an all-return barrier (advance only after ALL members return, never serialize it)
 ## Shared AI-SDD Protocol Markers
 
@@ -557,7 +593,7 @@ Break work into small tasks (task tracking) before starting. Add final task: "An
 - **Sub-agents inherit knowledge only from their agent .md definition — use custom agent types, not built-in Explore.** Tool adoption = permission + knowledge + enforcement (numbered workflow step).
 - **Persist sub-agent findings incrementally, not as a final batch.** Long sub-agents hit cutoffs before final write — findings lost. Instruct append-per-section to report file.
 - **When debugging, ask "whose responsibility?" before fixing.** Trace caller (wrong data) vs callee (wrong handling). Fix at responsible layer — never patch symptom site.
-- **Test failure → adjudicate WHO is at fault (source vs test) before forcing green.** A green-again suite is not the goal; the correct verdict on what was actually wrong is. Root-cause first, then triangulate the failure against the governing spec (`docs/specs/**` if one exists) AND the source: SOURCE-WRONG → fix code at the owning layer and keep/strengthen the test; TEST-WRONG → fix the stale assertion/setup at its root. NEVER weaken an assertion, add a skip, or relax a timeout to force green, and never change source to satisfy a broken test. Spec silent or ambiguous about which side is correct → STOP and ask the user.
+- **Test failure → record a provisional verdict before trace/edit, then investigate.** Use the full five-way taxonomy: SOURCE-WRONG (production violates intent), TEST-WRONG (assertion/setup is stale), TEST-NOT-OPTIMAL (valid but fragile or low-signal test), ENVIRONMENT-BLOCKED (external state prevents a verdict), or AMBIGUOUS (intent/evidence cannot choose safely). Then trace root cause and triangulate against the governing spec (`docs/specs/**` if one exists) AND source. NEVER weaken an assertion, add a skip, relax a timeout, or change source merely to force green.
 - **Grep ALL removed names after extraction/refactoring.** Primary file "done" ≠ secondary files clean. Grep entire scope for every removed symbol before declaring complete.
 - **Assume existing values are intentional — ask WHY before changing OR flagging one as a defect.** Pattern-matching as "wrong" skips context. Before changing or reporting any constant/limit/flag/cutoff: read comments, git blame, the CALLER's ordering (the guarantee that makes the value correct usually lives in code running immediately BEFORE the cited line), and 2+ sibling call sites of the same convention. A doc stating WHAT without WHY is missing rationale, not proof of a missing guard — and in a validation pass, an accurate `file:line` citation proves the transcription, never the defect.
 - **Verify ALL affected outputs, not just the first.** One build green ≠ all green. Multi-stack changes (backend/frontend/tests/docs) require verifying EVERY output.

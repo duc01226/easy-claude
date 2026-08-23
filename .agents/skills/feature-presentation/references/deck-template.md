@@ -66,6 +66,7 @@ ONE self-contained file. Inline `<style>` and `<script>`. No external `<script s
 - **Title / agenda** — feature(s), run date, scope.
 - **How to drive this demo** — early guide slide: click hotspots and use each demo's own ▶ Play / ⏮ ⏭ / ↺ controls (inside the mock-up); ←/→ change slides (see §3b).
 - **Business context** — problem, value, idea→spec narrative, epics.
+- **Decomposition & boundaries** — when any large-idea signal is true, render the owning `large_idea_decomposition` block: stable slice IDs/outcomes, dependency order, non-goals, risks/evidence owners, and deferred-work owners. When all signals are false, render `N/A — ordinary isolated scope`; never invent a roadmap or milestone.
 - **Scope & backlog** — PBI cards, user stories, acceptance criteria, priorities.
 - **Behavior & rules** — Feature Spec §4 business rules / §5 invariants, §8 test cases.
 - **Demo flows / user journeys** — one slide per main user story: interactive mockup embed + narration strip (see §3b); spec-only → narrated ASCII frames.

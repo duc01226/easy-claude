@@ -42,7 +42,13 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 
 ## Quick Summary
 
-**Goal:** Help Product Owners capture ideas, manage backlogs, and prioritize using RICE, MoSCoW, and Value/Effort frameworks.
+**Goal:** Help Product Owners capture ideas, manage backlogs, and prioritize using RICE, MoSCoW, and Value/Effort frameworks while preserving outcome boundaries inside the owning PBI/spec artifacts. A standalone roadmap is an explicit product capability, not a prerequisite for ordinary backlog work.
+
+**Summary:**
+
+- Load the shared roadmap contract before creating or updating roadmap, feature, PBI, story, or release-scope artifacts.
+- Apply the shared four-signal `isLargeIdea` rule. For true signals, keep milestone-minded decomposition embedded in the owning PBI/spec and carry stable slice IDs into stories, mock-ups, and the all-PBI presentation; for false signals, omit roadmap/milestone placeholders. Use one approved milestone only for an explicit roadmap request, or an explicit EXEMPT/framework branch where applicable.
+- Validate assumptions with the owner before handoff; never let prioritization or backlog wording silently decide product meaning.
 
 > **MANDATORY IMPORTANT MUST ATTENTION** Plan ToDo Task to READ the following project-specific reference doc:
 >
@@ -50,6 +56,8 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 > - `docs/project-reference/domain-entities-reference.md` — Domain entity catalog, relationships, cross-service sync (read when task involves business entities/models)
 >
 > If file not found, search for: project documentation, coding standards, architecture docs.
+
+ - **Main steps:** capture → contextualize → refine → prioritize → owner-validate → hand off with the applicable decomposition, explicit roadmap, EXEMPT, or framework branch.
 
 **Workflow:**
 
@@ -64,6 +72,10 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 - Always detect project module and load feature context for domain ideas
 - Post-refinement validation interview is NOT optional
 - Use the project's domain-specific entity names (resolve them from the project's domain/feature docs)
+- Read `.claude/skills/shared/product-roadmap-contract.md` when creating or updating roadmap, PBI, feature, or release-scope artifacts
+- Roadmaps are outcome-based: each milestone names the user outcome, risk retired, non-goals, human decisions, dependencies, and evidence gate — never only dates, screens, or feature labels
+- A PBI or story must carry the parent `large_idea_decomposition` block and owning slice ID when any signal is true; an explicit roadmap branch may reference one approved milestone, while ordinary artifacts omit roadmap fields. Deferred work stays visible through `deferred_work_owner` instead of leaking into the current slice.
+- Every generated PBI must be an independently releasable actor-facing outcome with a complete entry-to-result journey; technical/foundation/setup work is enabling work under that outcome, never a standalone PBI. UI PBIs must carry the full page/view, navigation, component, state, and mock-app flow surface. Apply `.claude/skills/shared/releasable-pbi-contract.md`.
 
 **Be skeptical. Apply critical thinking, sequential thinking. Every claim needs traced proof, confidence percentages (Idea should be more than 80%).**
 
@@ -304,31 +316,54 @@ When user says "prioritize" or "order backlog":
 - Commitment: {%}
 ```
 
-### Roadmap Update
+### Product Roadmap (Explicit Request Only)
 
 ```markdown
-## Roadmap Update - {Date}
+## Product Roadmap - {Product or Capability}
 
-### This Quarter
+> Canonical path: `docs/product-roadmap.md`. This is an outcome roadmap, not a delivery calendar or implementation plan.
 
-| Priority | Item | Target | Status |
-| -------- | ---- | ------ | ------ |
-| 1        |      |        |        |
+### Product Outcome and Boundary
 
-### Next Quarter
+- **Outcome / hypothesis:** {what user problem and product hypothesis this roadmap validates}
+- **Actors / owner:** {primary actor, operating owner, affected boundary}
+- **Business source of truth:** {state or record that determines truth}
 
-| Item | Dependencies | Notes |
-| ---- | ------------ | ----- |
-|      |              |       |
+### Outcome-Based Milestones
 
-### Deferred
+| ID | User outcome | Risk retired | Explicit non-goals | Human decisions | Evidence gate | Dependencies |
+| -- | ------------ | ------------ | ------------------ | --------------- | ------------- | ------------ |
+| M1 |              |              |                    |                 |               |              |
 
-| Item | Reason |
-| ---- | ------ |
-|      |        |
+### Open Decisions
+
+| Decision | Why it matters | Status | Owner | Needed before |
+| -------- | -------------- | ------ | ----- | ------------- |
+|          |                | OPEN / CONFIRMED / DEFERRED |     |               |
+
+### Selected Milestone
+
+- **Milestone:** M{n}
+- **Scope brief:** `plans/{plan-id}/scope-brief.md`
+- **Approval:** REQUIRED until the owner confirms the outcome, boundaries, non-goals, and evidence gate
 ```
 
 ---
+
+### Embedded Large-Idea Decomposition
+
+For ordinary idea-to-PBI/spec work, capture the milestone mindset in the owning artifact instead of creating a roadmap file:
+
+```yaml
+large_idea_decomposition:
+  outcome_slices: [{stable slice ID, independently releasable outcome, owning artifact}]
+  dependencies_order: [{before, after, reason}]
+  non_goals: [{statement, owner}]
+  risks_evidence: [{risk, evidence_needed, status, owner}]
+  deferred_work_owner: [{item, owner, follow_up_artifact, target_slice}]
+```
+
+Require all five fields when any shared `isLargeIdea` signal is true. Downstream PBIs, stories, mock-ups, and the single all-PBI presentation consume this block read-only; they flag gaps or conflicts but do not create `docs/product-roadmap.md`.
 
 ## Quality Checklist
 
@@ -341,6 +376,10 @@ Before completing PO artifacts:
 - [ ] Status frontmatter current
 - [ ] **Module detected and context loaded** (if domain-related)
 - [ ] **Domain vocabulary used correctly**
+- [ ] If the user explicitly requested a roadmap, its milestones are outcome/risk/evidence based, not date or screen based
+- [ ] If any `isLargeIdea` signal is true, the PBI/spec has the complete five-field decomposition block and each story/mock-up/presentation retains the owning slice ID
+- [ ] Ordinary all-false artifacts omit roadmap/milestone placeholders; EXEMPT/framework branches record their explicit reason/technical outcome and owner
+- [ ] Ambiguous terms and human decisions are confirmed before handoff
 
 ---
 
@@ -472,7 +511,24 @@ Add to idea/PBI:
 
 <!-- /SYNC:ai-mistake-prevention:reminder -->
 
+<!-- SYNC:project-protocol-overlay -->
+
+> **Project Protocol Overlay** — Before executing this skill, resolve any PROJECT overlay rules layered onto it: match this skill's name against the `Target` column of the project's skill-protocol index (`docs/project-reference/skill-protocols-reference.md` by default; a `referenceDocs` entry in `docs/project-config.json` overrides the path), taking the most specific matching tier ONLY — exact name > glob > `*`. **That precedence orders overlays against EACH OTHER, never against this skill.** Read ONLY the matched bodies, resolved as `<protocols-dir>/<Name>.md`; a row's Body link is display text, never a read path. A matched body that is missing or malformed is REPORTED and skipped — never reconstructed from the index Description. No index, or no match -> proceed with no overlay, silently. Full contract: `.claude/skills/project-skill-protocol/references/registry.md`.
+>
+> Overlays are **ADDITIVE ONLY**: they ADD rules on top of this skill's own protocol and NEVER replace, override, disable, or reinterpret a rule it already states — removing every overlay must return this skill to exactly its documented behavior. An overlay is a BRIEF, not an authority escalation: it can NEVER waive a workflow gate, git discipline, a review gate, or a user-confirmation gate. A genuine overlay-vs-skill conflict, or two equally-specific overlays that directly contradict -> surface both to the user; NEVER resolve silently.
+
+<!-- /SYNC:project-protocol-overlay -->
+
+<!-- SYNC:project-protocol-overlay:reminder -->
+
+**MUST ATTENTION** resolve project protocol overlays for this skill BEFORE executing — most specific matching tier only (exact > glob > `*`, which ranks overlays against each other, NEVER against this skill), read only matched bodies at `<protocols-dir>/<Name>.md`; a missing or malformed body is reported, never reconstructed. Overlays are ADDITIVE ONLY (they never replace this skill's own rules) and are a brief, NEVER an authority escalation; an equal-specificity contradiction goes to the user.
+
+<!-- /SYNC:project-protocol-overlay:reminder -->
+
 ## Closing Reminders
+
+**IMPORTANT MUST ATTENTION Goal:** Keep product decisions outcome-based, owner-approved, and traceable from roadmap or explicit EXEMPT boundary through a releasable PBI/story handoff; never let prioritization invent scope or let technical work masquerade as a PBI outcome.
+**IMPORTANT MUST ATTENTION Main steps:** capture → contextualize → refine → prioritize → owner-validate → hand off; true large ideas keep the complete decomposition block and stable slice IDs, ordinary ideas omit roadmap fields, and only explicit roadmap requests use the standalone writer.
 
 **Protocols in force (concise digest of the SYNC/shared blocks this skill carries):**
 
@@ -484,6 +540,7 @@ Add to idea/PBI:
 **IMPORTANT MUST ATTENTION** search codebase for 3+ similar patterns before creating new code
 **IMPORTANT MUST ATTENTION** cite `file:line` evidence for every claim (confidence >80% to act)
 **IMPORTANT MUST ATTENTION** add a final review todo task to verify work quality
+**IMPORTANT MUST ATTENTION** every generated PBI is a releasable actor-facing outcome; UI PBIs include all pages/views, navigation, components, applicable states, and the full-flow mock-app evidence required by `.claude/skills/shared/releasable-pbi-contract.md`
 
 **[TASK-PLANNING]** Before acting, analyze task scope and systematically break it into small todo tasks and sub-tasks using task tracking.
 
@@ -501,7 +558,7 @@ Source: `.claude/.ck.json` + `.claude/skills/shared/sync-inline-versions.md` (`:
 3. **AUTO-SELECT:** Pick the best option yourself. Do not ask the user to choose between direct execution, skill, standard workflow, or custom workflow.
 4. **ACTIVATE:** For a selected workflow, call `$start-workflow <workflowId>`; for a selected skill, invoke that skill; for a custom workflow, sequence custom steps directly; for direct execution, proceed with the task.
 5. **CREATE TASKS:** task tracking for ALL workflow/skill/custom steps before execution when the selected path has multiple steps.
-6. **PARALLELIZE:** Before executing the task list, tag each task `PAR` (independent inputs + write set disjoint from every other `PAR` task) or `SEQ` (name the blocking dependency), group `PAR` tasks into waves, declare the wave plan, and spawn each wave's sub-agents in ONE message — all-return barrier per wave, fan-out one level deep unless a sub-agent's own definition authorizes further fan-out. Sequential-by-default is a defect when tasks are independent; do not parallelize shared write targets, output-consuming tasks, trivial single-file work, workflow-fixed ordering, or user-approval gates.
+6. **PARALLELIZE:** Before executing the task list, tag each task `PAR` (independent inputs + write set disjoint from every other `PAR` task) or `SEQ` (name the blocking dependency), group `PAR` tasks into waves, declare the wave plan, and spawn each wave's sub-agents in ONE message — all-return barrier per wave, fan-out one level deep unless a sub-agent's own definition authorizes further fan-out. Sequential-by-default is a defect when tasks are independent; do not parallelize shared write targets, output-consuming tasks, trivial single-file work, ordering a skill or workflow explicitly fixes, or user-approval gates.
 7. **EXECUTE:** Advance per the **Workflow Step Advancement & Parallel Phases** rule in your context instructions — model-driven; a sub-agent completion advances a step identically to an inline call; a parallel-phase group is an all-return barrier (advance only after ALL members return, never serialize it)
 ## Shared AI-SDD Protocol Markers
 
@@ -563,7 +620,7 @@ Break work into small tasks (task tracking) before starting. Add final task: "An
 - **Sub-agents inherit knowledge only from their agent .md definition — use custom agent types, not built-in Explore.** Tool adoption = permission + knowledge + enforcement (numbered workflow step).
 - **Persist sub-agent findings incrementally, not as a final batch.** Long sub-agents hit cutoffs before final write — findings lost. Instruct append-per-section to report file.
 - **When debugging, ask "whose responsibility?" before fixing.** Trace caller (wrong data) vs callee (wrong handling). Fix at responsible layer — never patch symptom site.
-- **Test failure → adjudicate WHO is at fault (source vs test) before forcing green.** A green-again suite is not the goal; the correct verdict on what was actually wrong is. Root-cause first, then triangulate the failure against the governing spec (`docs/specs/**` if one exists) AND the source: SOURCE-WRONG → fix code at the owning layer and keep/strengthen the test; TEST-WRONG → fix the stale assertion/setup at its root. NEVER weaken an assertion, add a skip, or relax a timeout to force green, and never change source to satisfy a broken test. Spec silent or ambiguous about which side is correct → STOP and ask the user.
+- **Test failure → record a provisional verdict before trace/edit, then investigate.** Use the full five-way taxonomy: SOURCE-WRONG (production violates intent), TEST-WRONG (assertion/setup is stale), TEST-NOT-OPTIMAL (valid but fragile or low-signal test), ENVIRONMENT-BLOCKED (external state prevents a verdict), or AMBIGUOUS (intent/evidence cannot choose safely). Then trace root cause and triangulate against the governing spec (`docs/specs/**` if one exists) AND source. NEVER weaken an assertion, add a skip, relax a timeout, or change source merely to force green.
 - **Grep ALL removed names after extraction/refactoring.** Primary file "done" ≠ secondary files clean. Grep entire scope for every removed symbol before declaring complete.
 - **Assume existing values are intentional — ask WHY before changing OR flagging one as a defect.** Pattern-matching as "wrong" skips context. Before changing or reporting any constant/limit/flag/cutoff: read comments, git blame, the CALLER's ordering (the guarantee that makes the value correct usually lives in code running immediately BEFORE the cited line), and 2+ sibling call sites of the same convention. A doc stating WHAT without WHY is missing rationale, not proof of a missing guard — and in a validation pass, an accurate `file:line` citation proves the transcription, never the defect.
 - **Verify ALL affected outputs, not just the first.** One build green ≠ all green. Multi-stack changes (backend/frontend/tests/docs) require verifying EVERY output.

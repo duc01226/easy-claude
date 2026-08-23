@@ -97,7 +97,7 @@ def generate_commands_yaml():
             'integrate': 'Integrations',
             'plan': 'Planning',
             'review': 'Code Review',
-            'scout': 'Scout Commands',
+            'investigate': 'Investigation Commands',
             'skill': 'Skill Management'
         },
         'commands': categories

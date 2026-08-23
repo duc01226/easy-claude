@@ -1,6 +1,8 @@
 # Scale Protocol — sizing, understanding groups, task breakdown, accumulation
 
 > Loaded at SKILL.md Step 0.5, **only when the sized tier is S2 or larger**. S0/S1 runs never pay for this file — one group, append per section, done.
+
+**S2 gather agents receive no fragment path.** They return bounded evidence to the orchestrator, which alone authors the combined report; fragment/shard ownership starts at S3+.
 >
 > This file answers the four questions a big target makes unavoidable: **what is one group**, **what order do the groups go in**, **what tasks exist before the first deep read**, and **how does the ONE report file accumulate so a run that dies mid-way still leaves finished work on disk**.
 >

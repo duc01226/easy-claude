@@ -433,7 +433,7 @@ This skill is the **mandatory verification gate** between `/fix` and `/code-simp
 
 > **MANDATORY IMPORTANT MUST ATTENTION — NO EXCEPTIONS:** If you are NOT already in a workflow, you MUST ATTENTION use `AskUserQuestion` to ask the user. Do NOT judge task complexity or decide this is "simple enough to skip" — the user decides whether to use a workflow, not you:
 >
-> 1. **Activate `workflow-bugfix` workflow** (Recommended) — scout → investigate → debug → plan → fix → prove-fix → review → test
+> 1. **Activate `workflow-bugfix` workflow** (Recommended) — investigate → debug → plan → fix → prove-fix → review → test
 > 2. **Execute `/prove-fix` directly** — run this skill standalone
 
 ---
@@ -498,7 +498,7 @@ This skill is the **mandatory verification gate** between `/fix` and `/code-simp
 >
 > | Task                | Minimum Graph Action                         |
 > | ------------------- | -------------------------------------------- |
-> | Investigation/Scout | `trace --direction both` on 2-3 entry files  |
+> | Investigation | `trace --direction both` on 2-3 entry files  |
 > | Fix/Debug           | `callers_of` on buggy function + `tests_for` |
 > | Feature/Enhancement | `connections` on files to be modified        |
 > | Code Review         | `tests_for` on changed functions             |
@@ -564,11 +564,14 @@ This skill is the **mandatory verification gate** between `/fix` and `/code-simp
 
 > **Test-Failure Fault Adjudication** — When a test fails (or you are debugging or fixing a failure), the job is to determine *who is at fault — the source code or the test code*. Getting that verdict right matters more than turning the suite green. Binds every debug / fix / test skill identically.
 >
-> 1. **Root-cause first — never guess, never patch the symptom.** `/debug-investigate` and trace the failure end-to-start to its actual cause before touching either side. A green-again suite is NOT the goal; a correct verdict on what was actually wrong is.
+> 1. **Provisional verdict before touching either side.** Classify the observed evidence as SOURCE-WRONG, TEST-WRONG, TEST-NOT-OPTIMAL, ENVIRONMENT-BLOCKED, or AMBIGUOUS; then `/debug-investigate` and trace end-to-start before editing. A green-again suite is NOT the goal.
 > 2. **Triangulate against the spec AND the source.** If a governing Feature Spec covers the behavior (e.g. `docs/specs/**` — §3 ACs / §4 BRs / §5 invariants / §8 TCs), it is the tiebreaker for *intended* behavior — compare BOTH the production source and the failing test against it. With no spec, the documented intent / acceptance criteria / caller contract is the reference. Decide from this evidence whether the SOURCE is wrong or the TEST is wrong.
 > 3. **Classify who is at fault, then fix the wrong side at its root:**
 >     - **SOURCE-WRONG** — production code violates the spec's intended behavior or a clear invariant → fix the source at the owning layer; keep or strengthen the test that caught it.
 >     - **TEST-WRONG** — the test encodes a stale or incorrect assertion, setup, or expectation that contradicts intended behavior → fix the test at its root. NEVER weaken an assertion, add a skip, or relax a timeout to force green.
+>     - **TEST-NOT-OPTIMAL** — intended behavior is valid but the test seam, timing, or assertion signal is fragile → improve the test without weakening the invariant.
+>     - **ENVIRONMENT-BLOCKED** — infrastructure or external state prevents a source/test verdict → preserve diagnostics and stop mutation until the environment is healthy.
+>     - **AMBIGUOUS** — evidence or intended behavior does not safely select an owner → ask the user or canonical owner before editing.
 >     - NEVER change a test to match broken source, and NEVER change source to satisfy a broken test. (Migration code excluded — schema/data migrations are one-time execution paths, not core application logic.)
 > 4. **Ask the user when intended behavior is unclear.** If no spec covers the behavior, the spec is silent, or the spec is ambiguous about which side is correct, STOP and `AskUserQuestion` (or consult the canonical spec owner) before editing either side — never silently pick source or test just to make the suite pass.
 >
@@ -657,9 +660,23 @@ This skill is the **mandatory verification gate** between `/fix` and `/code-simp
 
 <!-- PROMPT-ENHANCE:STEP-TASK-CLOSING:END -->
 
+<!-- SYNC:project-protocol-overlay -->
+
+> **Project Protocol Overlay** — Before executing this skill, resolve any PROJECT overlay rules layered onto it: match this skill's name against the `Target` column of the project's skill-protocol index (`docs/project-reference/skill-protocols-reference.md` by default; a `referenceDocs` entry in `docs/project-config.json` overrides the path), taking the most specific matching tier ONLY — exact name > glob > `*`. **That precedence orders overlays against EACH OTHER, never against this skill.** Read ONLY the matched bodies, resolved as `<protocols-dir>/<Name>.md`; a row's Body link is display text, never a read path. A matched body that is missing or malformed is REPORTED and skipped — never reconstructed from the index Description. No index, or no match -> proceed with no overlay, silently. Full contract: `.claude/skills/project-skill-protocol/references/registry.md`.
+>
+> Overlays are **ADDITIVE ONLY**: they ADD rules on top of this skill's own protocol and NEVER replace, override, disable, or reinterpret a rule it already states — removing every overlay must return this skill to exactly its documented behavior. An overlay is a BRIEF, not an authority escalation: it can NEVER waive a workflow gate, git discipline, a review gate, or a user-confirmation gate. A genuine overlay-vs-skill conflict, or two equally-specific overlays that directly contradict -> surface both to the user; NEVER resolve silently.
+
+<!-- /SYNC:project-protocol-overlay -->
+
+<!-- SYNC:project-protocol-overlay:reminder -->
+
+**MUST ATTENTION** resolve project protocol overlays for this skill BEFORE executing — most specific matching tier only (exact > glob > `*`, which ranks overlays against each other, NEVER against this skill), read only matched bodies at `<protocols-dir>/<Name>.md`; a missing or malformed body is reported, never reconstructed. Overlays are ADDITIVE ONLY (they never replace this skill's own rules) and are a brief, NEVER an authority escalation; an equal-specificity contradiction goes to the user.
+
+<!-- /SYNC:project-protocol-overlay:reminder -->
+
 ## Closing Reminders
 
-**IMPORTANT MUST ATTENTION Goal:** block shipping an unproven fix — adopt a SKEPTIC's stance and try to DISPROVE the fix first, then build a `file:line` proof trace (debugger-style: symptom → root cause → fix mechanism → why-correct → refutation attempt → edge cases → side effects) and confidence score per change, so a fix ships only when correctness SURVIVES a genuine attack (≥80%), never when it merely looks correct.
+**IMPORTANT MUST ATTENTION Goal:** Block shipping an unproven fix — adopt a SKEPTIC's stance and try to DISPROVE the fix first, then build a code proof trace (like a debugger stack trace) for each change with confidence percentages, so every code change carries a `file:line` evidence chain that survived a genuine refutation attempt and a fix ships only when its correctness is proven (≥80%), never assumed.
 
 **IMPORTANT MUST ATTENTION** default stance is SKEPTIC, NOT validator — your job is to find why the fix is WRONG/INCOMPLETE, not confirm it works; run the Refutation Pass (counter-case, weak-test, wrong-layer, new-regression, contrarian) and complete the Anti-Bias Gate per change BEFORE any SHIP verdict; a change that has not been genuinely attacked is capped at 79%. — why: the skill name, the post-`/fix` context, and the points rubric all bias toward confirmation; confidence must be earned by surviving attack, not awarded for coherence.
 **IMPORTANT MUST ATTENTION** trace ALL related things — every caller, consumer, sibling/alternate path, feeder path, downstream dependent, and shared-state writer the change touches; an un-enumerated related path is an unproven path and caps confidence below 80%. — why: the reproduction exercises one path; the bug often survives through the paths you never traced.

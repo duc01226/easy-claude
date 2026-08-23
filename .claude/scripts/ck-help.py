@@ -58,7 +58,7 @@ TASK_MAPPINGS = {
     "content": ["copy", "text", "marketing", "content", "blog", "seo"],
     "integrate": ["integrate", "payment", "api", "connect", "webhook", "third-party"],
     "skill": ["skill", "agent", "automate", "workflow"],
-    "scout": ["find", "search", "locate", "explore", "scan", "where"],
+    "investigate": ["find", "search", "locate", "explore", "scan", "where", "trace", "investigate"],
     "config": ["config", "configure", "settings", "ck.json", ".ck.json", "setup", "locale", "language", "paths"],
     "coding-level": ["coding", "level", "eli5", "junior", "senior", "lead", "god", "beginner", "expert", "teach", "learn", "explain"],
 }
@@ -157,11 +157,11 @@ CATEGORY_GUIDES = {
         ],
         "tip": "Skills extend agent capabilities — optimize/fix-logs are skill-creator modes",
     },
-    "scout": {
+    "investigate": {
         "title": "Codebase Exploration",
         "workflow": [
-            ("Find files", "`/scout` \"what to find\""),
-            ("External tools", "`/scout --ext` \"query\""),
+            ("Investigate", "`/investigate` \"what to find\""),
+            ("Trace flow", "`/investigate` \"trace how it works\""),
         ],
         "tip": "Be specific about what you're looking for",
     },

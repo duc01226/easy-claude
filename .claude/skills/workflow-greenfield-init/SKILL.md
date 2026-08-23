@@ -9,6 +9,15 @@ disable-model-invocation: false
 
 **Goal:** [Workflow] Trigger Greenfield Project Init workflow — full waterfall project inception from idea through implementation with integration testing.
 
+**Summary:**
+
+- Begin with the shared large-idea classification and embedded decomposition contract; run `/scenario` before the first plan when the outcome slices require adversarial risk analysis. A roadmap artifact is not a default greenfield prerequisite.
+- Research the product, domain, technology, architecture, and foundation in order; scaffold and review the foundation before feature work.
+- Every generated PBI MUST pass the Releasable Outcome Gate: one independently releasable actor-facing outcome with a complete entry-to-result journey; foundation/scaffold/setup work is enabling work attached to that outcome, never a standalone technical PBI. UI PBIs require the full page/view, navigation, component, state, and mock-app flow surface.
+- Preserve the full spec/PBI/story/test chain and finish with implementation, integration verification, synchronized evidence, and handoff.
+
+ - **Main steps:** classify/decompose → research → domain/tech/architecture → scenario/plan/review → PBI/story/mock-up/spec gates → scaffold/lint/harness/architecture review → implementation/integration verification → final review/security/test/docs/handoff.
+
 **Workflow:**
 
 1. **Detect** — classify request scope and target artifacts.
@@ -21,6 +30,7 @@ disable-model-invocation: false
 - MUST ATTENTION keep task tracking updated as each step starts/completes.
 - MUST ATTENTION define success criteria before execution and loop until observable verification passes.
 - MUST ATTENTION when creating/reviewing specs or tests, name `Business Intent / Invariant Guarded` or the protected business intent/invariant and ensure the test would fail if that intent breaks.
+- MUST ATTENTION classify the greenfield idea with `isLargeIdea = multipleIndependentOutcomes || ambiguousOrResearchHeavy || releaseScopeDecomposition || oversizedPbiThatMustSplit` before market research, architecture, specs, PBIs, or plans. When true, require the complete embedded `large_idea_decomposition` block in the owning PBI/spec with `outcome_slices`, `dependencies_order`, `non_goals`, `risks_evidence`, and `deferred_work_owner`, then carry stable slice IDs into stories, mock-ups, and the all-PBI presentation; run `/scenario` only when the selected scope needs adversarial risk analysis, otherwise record the conditional skip with evidence. An explicit roadmap request may use the standalone writer separately.
 - NEVER skip mandatory workflow or skill gates.
 
 ## Repeated Steps Disambiguation (CRITICAL for task creation)
@@ -29,22 +39,22 @@ This workflow has steps that appear multiple times. When creating tasks, use the
 
 | Step                                 | Occurrence   | Task Description                                                                          |
 | ------------------------------------ | ------------ | ----------------------------------------------------------------------------------------- |
-| `/plan`                              | 1st (pos 12) | PLAN₁: High-level architecture plan (after architecture-design)                           |
-| `/plan`                              | 2nd (pos 32) | PLAN₂: Sprint-ready implementation plan (after artifact-review --type=spec-tests)         |
-| `/plan`                              | 3rd (pos 48) | PLAN₃: Integration test architecture plan (post-implementation)                           |
-| `/plan-review`                       | 1st (pos 13) | Review PLAN₁ architecture (immediate gate; replaces former rationale why-review)          |
-| `/plan-review`                       | 2nd (pos 16) | Re-review PLAN₁ after architecture-security + performance analysis                        |
-| `/plan-review`                       | 3rd (pos 33) | Review PLAN₂ implementation                                                               |
-| `/plan-review`                       | 4th (pos 49) | Review PLAN₃ integration tests                                                            |
-| `/security-review`                   | 1st (pos 14) | Architecture security review                                                              |
-| `/security-review`                   | 2nd (pos 55) | Production readiness security review                                                      |
-| `/spec [mode=tests]`                 | 1st (pos 28) | TDD-SPEC₁: Feature test specs (before implementation)                                     |
-| `/spec [mode=tests]`                 | 2nd (pos 45) | TDD-SPEC₂: Post-implementation test spec update                                           |
-| `/artifact-review --type=spec-tests` | 1st (pos 30) | Review TDD-SPEC₁                                                                          |
-| `/artifact-review --type=spec-tests` | 2nd (pos 47) | Review TDD-SPEC₂                                                                          |
-| `/test`                              | 1st (pos 53) | Test after integration tests                                                              |
-| `/test`                              | 2nd (pos 57) | Final test verification                                                                   |
-| `/domain-entities-review`            | 1st (pos 44) | DDD quality review — conditional: skip if no domain entity files in changeset             |
+| `/plan`                              | 1st (pos 14) | PLAN₁: High-level architecture plan (after architecture-design and conditional decomposition scenario gate) |
+| `/plan`                              | 2nd (pos 34) | PLAN₂: Sprint-ready implementation plan (after artifact-review --type=spec-tests)         |
+| `/plan`                              | 3rd (pos 50) | PLAN₃: Integration test architecture plan (post-implementation)                           |
+| `/plan-review`                       | 1st (pos 15) | Review PLAN₁ architecture (immediate gate; replaces former rationale why-review)          |
+| `/plan-review`                       | 2nd (pos 18) | Re-review PLAN₁ after architecture-security + performance analysis                        |
+| `/plan-review`                       | 3rd (pos 35) | Review PLAN₂ implementation                                                               |
+| `/plan-review`                       | 4th (pos 51) | Review PLAN₃ integration tests                                                            |
+| `/security-review`                   | 1st (pos 16) | Architecture security review                                                              |
+| `/security-review`                   | 2nd (pos 57) | Production readiness security review                                                      |
+| `/spec [mode=tests]`                 | 1st (pos 30) | TDD-SPEC₁: Feature test specs (before implementation)                                     |
+| `/spec [mode=tests]`                 | 2nd (pos 47) | TDD-SPEC₂: Post-implementation test spec update                                           |
+| `/artifact-review --type=spec-tests` | 1st (pos 32) | Review TDD-SPEC₁                                                                          |
+| `/artifact-review --type=spec-tests` | 2nd (pos 49) | Review TDD-SPEC₂                                                                          |
+| `/test`                              | 1st (pos 55) | Test after integration tests                                                              |
+| `/test`                              | 2nd (pos 59) | Final test verification                                                                   |
+| `/domain-entities-review`            | 1st (pos 46) | DDD quality review — conditional: skip if no domain entity files in changeset             |
 | `/linter-setup`                      | (new)        | LINTER-SETUP: Install and configure computational feedback sensors                        |
 | `/harness-setup`                     | (new)        | HARNESS-SETUP: Full outer agent harness (feedforward guides + feedback sensors inventory) |
 
@@ -52,15 +62,17 @@ This workflow has steps that appear multiple times. When creating tasks, use the
 
 ---
 
-**IMPORTANT MANDATORY Steps:** /idea -> /web-research -> /deep-research -> /business-evaluation -> /spec-discovery -> /domain-analysis -> /why-review -> /tech-stack-research -> /architecture-design -> /architecture-scalability-review -> /why-review -> /plan -> /plan-review -> /security-review -> /performance-review -> /plan-review -> /refine -> /why-review -> /artifact-review --type=pbi -> /story -> /why-review -> /artifact-review --type=story -> /pbi-challenge -> /dor-gate -> /pbi-mockup -> /plan-validate -> /why-review -> /spec [mode=tests] -> /why-review -> /artifact-review --type=spec-tests -> /spec-clarify -> /plan -> /plan-review -> /scaffold -> /linter-setup -> /harness-setup -> /architecture-review-full -> /scan --target=ui-system -> /scan --target=backend-patterns -> /scan --target=integration-tests -> /scan --target=project-structure -> /why-review -> /plan-execute -> /domain-entities-review -> /spec [mode=tests] -> /why-review -> /artifact-review --type=spec-tests -> /plan -> /plan-review -> /integration-test -> /integration-test-review -> /integration-test-verify -> /test -> /workflow-review-changes -> /security-review -> /changelog -> /test -> /docs-update -> /workflow-end -> /watzup
+**IMPORTANT MANDATORY Steps:** /idea -> /web-research -> /deep-research -> /business-evaluation -> /spec-discovery -> /domain-analysis -> /why-review -> /tech-stack-research -> /architecture-design -> /architecture-scalability-review -> /why-review -> /scenario -> /plan -> /plan-review -> /security-review -> /performance-review -> /plan-review -> /refine -> /why-review -> /artifact-review --type=pbi -> /story -> /why-review -> /artifact-review --type=story -> /pbi-challenge -> /dor-gate -> /pbi-mockup -> /plan-validate -> /why-review -> /spec [mode=tests] -> /why-review -> /artifact-review --type=spec-tests -> /spec-clarify -> /plan -> /plan-review -> /scaffold -> /linter-setup -> /harness-setup -> /architecture-review-full -> /scan --target=ui-system -> /scan --target=backend-patterns -> /scan --target=integration-tests -> /scan --target=project-structure -> /why-review -> /plan-execute -> /domain-entities-review -> /spec [mode=tests] -> /why-review -> /artifact-review --type=spec-tests -> /plan -> /plan-review -> /integration-test -> /integration-test-review -> /integration-test-verify -> /test -> /workflow-review-changes -> /security-review -> /changelog -> /test -> /scan --target=domain-entities -> /docs-update -> /workflow-end -> /watzup
 
-**IMPORTANT MANDATORY Steps:** /idea -> /web-research -> /deep-research -> /business-evaluation -> /spec-discovery -> /domain-analysis -> /why-review -> /tech-stack-research -> /architecture-design -> /architecture-scalability-review -> /why-review -> /plan -> /plan-review -> /security-review -> /performance-review -> /plan-review -> /refine -> /why-review -> /artifact-review --type=pbi -> /story -> /why-review -> /artifact-review --type=story -> /pbi-challenge -> /dor-gate -> /pbi-mockup -> /plan-validate -> /why-review -> /spec [mode=tests] -> /why-review -> /artifact-review --type=spec-tests -> /spec-clarify -> /plan -> /plan-review -> /scaffold -> /linter-setup -> /harness-setup -> /architecture-review-full -> /scan --target=ui-system -> /scan --target=backend-patterns -> /scan --target=integration-tests -> /scan --target=project-structure -> /why-review -> /plan-execute -> /domain-entities-review -> /spec [mode=tests] -> /why-review -> /artifact-review --type=spec-tests -> /plan -> /plan-review -> /integration-test -> /integration-test-review -> /integration-test-verify -> /test -> /workflow-review-changes -> /security-review -> /changelog -> /test -> /docs-update -> /workflow-end -> /watzup
+**IMPORTANT MANDATORY Steps:** /idea -> /web-research -> /deep-research -> /business-evaluation -> /spec-discovery -> /domain-analysis -> /why-review -> /tech-stack-research -> /architecture-design -> /architecture-scalability-review -> /why-review -> /scenario -> /plan -> /plan-review -> /security-review -> /performance-review -> /plan-review -> /refine -> /why-review -> /artifact-review --type=pbi -> /story -> /why-review -> /artifact-review --type=story -> /pbi-challenge -> /dor-gate -> /pbi-mockup -> /plan-validate -> /why-review -> /spec [mode=tests] -> /why-review -> /artifact-review --type=spec-tests -> /spec-clarify -> /plan -> /plan-review -> /scaffold -> /linter-setup -> /harness-setup -> /architecture-review-full -> /scan --target=ui-system -> /scan --target=backend-patterns -> /scan --target=integration-tests -> /scan --target=project-structure -> /why-review -> /plan-execute -> /domain-entities-review -> /spec [mode=tests] -> /why-review -> /artifact-review --type=spec-tests -> /plan -> /plan-review -> /integration-test -> /integration-test-review -> /integration-test-verify -> /test -> /workflow-review-changes -> /security-review -> /changelog -> /test -> /scan --target=domain-entities -> /docs-update -> /workflow-end -> /watzup
 
-> **[BLOCKING]** Each step MUST ATTENTION invoke its `Skill` tool — marking a task `completed` without skill invocation is a workflow violation. NEVER batch-complete validation gates.
+> **[BLOCKING]** Each selected step MUST ATTENTION invoke its `Skill` tool — marking a selected task `completed` without skill invocation is a workflow violation. A declared conditional step such as `/scenario` may be marked skipped only with evidence and an explicit reason; NEVER batch-complete validation gates.
 
 Activate the `workflow-greenfield-init` workflow. Run `/start-workflow workflow-greenfield-init` with the user's prompt as context.
 
-**Steps:** /idea → /web-research → /deep-research → /business-evaluation → /spec-discovery → /domain-analysis → /why-review → /tech-stack-research → /architecture-design → /architecture-scalability-review → /why-review → /plan → /plan-review → /security-review → /performance-review → /plan-review → /refine → /why-review → /artifact-review --type=pbi → /story → /why-review → /artifact-review --type=story → /pbi-challenge → /dor-gate → /pbi-mockup → /plan-validate → /why-review → /spec [mode=tests] → /why-review → /artifact-review --type=spec-tests → /spec-clarify → /plan → /plan-review → /scaffold → /linter-setup → /harness-setup → /architecture-review-full → /scan --target=ui-system → /scan --target=backend-patterns → /scan --target=integration-tests → /scan --target=project-structure → /why-review → /plan-execute → /domain-entities-review → /spec [mode=tests] → /why-review → /artifact-review --type=spec-tests → /plan → /plan-review → /integration-test → /integration-test-review → /integration-test-verify → /test → /workflow-review-changes → /security-review → /changelog → /test → /docs-update → /workflow-end → /watzup
+**Steps:** /idea → /web-research → /deep-research → /business-evaluation → /spec-discovery → /domain-analysis → /why-review → /tech-stack-research → /architecture-design → /architecture-scalability-review → /why-review → /scenario → /plan → /plan-review → /security-review → /performance-review → /plan-review → /refine → /why-review → /artifact-review --type=pbi → /story → /why-review → /artifact-review --type=story → /pbi-challenge → /dor-gate → /pbi-mockup → /plan-validate → /why-review → /spec [mode=tests] → /why-review → /artifact-review --type=spec-tests → /spec-clarify → /plan → /plan-review → /scaffold → /linter-setup → /harness-setup → /architecture-review-full → /scan --target=ui-system → /scan --target=backend-patterns → /scan --target=integration-tests → /scan --target=project-structure → /why-review → /plan-execute → /domain-entities-review → /spec [mode=tests] → /why-review → /artifact-review --type=spec-tests → /plan → /plan-review → /integration-test → /integration-test-review → /integration-test-verify → /test → /workflow-review-changes → /security-review → /changelog → /test → /scan --target=domain-entities → /docs-update → /workflow-end → /watzup
+
+> **[CONDITIONAL TERMINAL DOMAIN-ENTITY REFERENCE REFRESH]** After `/test` and before `/docs-update`, run `/scan --target=domain-entities` to refresh the project-reference entity catalog only when the final diff changes an entity/model, DTO/data contract, persistence schema/migration, or entity-sync evidence represented in `docs/project-reference/domain-entities-reference.md`. Otherwise mark the scan step completed with a cited skip reason naming the changed files and why they are outside this scope; this is the explicitly authorized exception to the per-step skill-invocation rule.
 
 > **Architecture quality gate (`/architecture-scalability-review`, pos 10).** Immediately after `/architecture-design` and before the first `/plan`, greenfield runs the architecture & scalability scorecard (init mode) so its findings and gate items feed the implementation plan. This is the comprehensive project-quality evaluation for greenfield/init — Build & CI scalability, architecture pattern (modular monolith vs. microservices / distributed-monolith avoidance), module isolation, dependency discipline, loose coupling, horizontal scaling, DRY, abstraction/easy-to-change, clean architecture, and observability/DevOps. Brownfield or day-to-day audits invoke the same skill on demand via `/architecture-scalability-review mode=audit`; it is intentionally NOT a member of the every-change `workflow-review-changes` batch — that batch's `architecture-review` step carries the lightweight per-change scalability & coupling regression check instead.
 
@@ -89,7 +101,7 @@ Activate the `workflow-greenfield-init` workflow. Run `/start-workflow workflow-
 > **Nested Task Expansion Contract** — For workflow-step invocation, the `[Workflow] ...` row is only a parent container; the child skill still creates visible phase tasks.
 >
 > 1. Call `TaskList` first. If a matching active parent workflow row exists, set `nested=true` and record `parentTaskId`; otherwise run standalone.
-> 2. Create one task per declared phase before phase work. When nested, prefix subjects `[N.M] $skill-name — phase`.
+> 2. Create one task per declared phase before phase work. When nested, prefix subjects `[N.M] /skill-name — phase`.
 > 3. When nested, link the parent with `TaskUpdate(parentTaskId, addBlockedBy: [childIds])`.
 > 4. Orchestrators must pre-expand a child skill's phase list and link the workflow row before invoking that child skill or sub-agent.
 > 5. Mark exactly one child `in_progress` before work and `completed` immediately after evidence is written.
@@ -168,11 +180,29 @@ Activate the `workflow-greenfield-init` workflow. Run `/start-workflow workflow-
 <!-- SYNC:nested-task-creation:reminder -->
 
 - **MANDATORY** Parent workflow rows do not replace child phase tracking; expand phases and link the parent when nested.
-- **MANDATORY** Orchestrators pre-expand child skill phases before invocation; use `[N.M] $skill-name — phase` prefixes and one-`in_progress` discipline.
+- **MANDATORY** Orchestrators pre-expand child skill phases before invocation; use `[N.M] /skill-name — phase` prefixes and one-`in_progress` discipline.
 
 <!-- /SYNC:nested-task-creation:reminder -->
 
+<!-- SYNC:project-protocol-overlay -->
+
+> **Project Protocol Overlay** — Before executing this skill, resolve any PROJECT overlay rules layered onto it: match this skill's name against the `Target` column of the project's skill-protocol index (`docs/project-reference/skill-protocols-reference.md` by default; a `referenceDocs` entry in `docs/project-config.json` overrides the path), taking the most specific matching tier ONLY — exact name > glob > `*`. **That precedence orders overlays against EACH OTHER, never against this skill.** Read ONLY the matched bodies, resolved as `<protocols-dir>/<Name>.md`; a row's Body link is display text, never a read path. A matched body that is missing or malformed is REPORTED and skipped — never reconstructed from the index Description. No index, or no match -> proceed with no overlay, silently. Full contract: `.claude/skills/project-skill-protocol/references/registry.md`.
+>
+> Overlays are **ADDITIVE ONLY**: they ADD rules on top of this skill's own protocol and NEVER replace, override, disable, or reinterpret a rule it already states — removing every overlay must return this skill to exactly its documented behavior. An overlay is a BRIEF, not an authority escalation: it can NEVER waive a workflow gate, git discipline, a review gate, or a user-confirmation gate. A genuine overlay-vs-skill conflict, or two equally-specific overlays that directly contradict -> surface both to the user; NEVER resolve silently.
+
+<!-- /SYNC:project-protocol-overlay -->
+
+<!-- SYNC:project-protocol-overlay:reminder -->
+
+**MUST ATTENTION** resolve project protocol overlays for this skill BEFORE executing — most specific matching tier only (exact > glob > `*`, which ranks overlays against each other, NEVER against this skill), read only matched bodies at `<protocols-dir>/<Name>.md`; a missing or malformed body is reported, never reconstructed. Overlays are ADDITIVE ONLY (they never replace this skill's own rules) and are a brief, NEVER an authority escalation; an equal-specificity contradiction goes to the user.
+
+<!-- /SYNC:project-protocol-overlay:reminder -->
+
 ## Closing Reminders
+
+**IMPORTANT MUST ATTENTION Goal:** Complete greenfield inception from an owner-approved capability boundary—using embedded large-idea decomposition when triggered, or an explicit roadmap only when requested—through a releasable first vertical outcome, reviewed enabling foundation, implementation, tests, full-flow UI evidence when applicable, and handoff without skipping gates.
+**IMPORTANT MUST ATTENTION Main steps:** classify/decompose → research → domain/tech/architecture → scenario/plan/review → PBI/story/mock-up/spec gates → scaffold/lint/harness/architecture review → implementation/integration verification → final review/security/test/docs/handoff.
+**IMPORTANT MUST ATTENTION** apply `.claude/skills/shared/releasable-pbi-contract.md`: no standalone technical/foundation/setup PBI; UI PBIs must include all required pages/views, navigation, components, states, and a connected mock-app demo.
 
 **Protocols in force (concise digest of the SYNC/shared blocks this skill carries):**
 

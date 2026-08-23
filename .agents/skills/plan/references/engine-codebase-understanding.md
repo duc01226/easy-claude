@@ -1,15 +1,15 @@
 # Planning Engine — Codebase Understanding
 
-### 3. Codebase Understanding (**Skip if:** Provided with scout reports)
+### 3. Codebase Understanding (**Skip if:** Provided with investigate reports)
 
 
 #### Core Activities
 
-##### Parallel Scout Agents
+##### Parallel Researcher Agents
 
-- Use `$scout --ext` (external engine) or `$scout` (internal, default) slash command to search the codebase for files needed to complete the task
-- Each scout locates files needed for specific task aspects
-- Wait for all scout agents to report back before analysis
+- Use `researcher` subagents for independent codebase file-discovery threads; use the main `$investigate` skill for inline graph-backed tracing
+- Each researcher locates files needed for a specific task aspect
+- Wait for all researcher agents to report back before analysis
 - Efficient for finding relevant code across large codebases
 
 ##### Essential Documentation Review
@@ -61,7 +61,7 @@ ALWAYS read these files first:
 #### Codebase Understanding Best Practices
 
 - Start with documentation before diving into code
-- Use scouts for targeted file discovery
+- Use the `$investigate` skill or a scoped `researcher` thread for targeted file discovery
 - Document patterns found for consistency
 - Note any inconsistencies or technical debt
 - Consider impact on existing features

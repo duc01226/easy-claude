@@ -7,13 +7,17 @@ disable-model-invocation: false
 
 ## Quick Summary
 
-**Goal:** [Workflow] Trigger Business Feature Documentation workflow — business feature documentation with 8-section tech-free template enforcement, plan validation, and mandatory test coverage.
+**Goal:** Activate the Business Feature Documentation workflow to produce one tech-free 8-section Feature Spec with validated planning, mandatory business test coverage, and synchronized docs/change evidence.
+
+**Summary:** Detect scope, investigate, plan/review/validate, author the tech-free Feature Spec and TCs, challenge docs/code alignment, sync docs, and close with evidence.
 
 **Workflow:**
 
 1. **Detect** — classify request scope and target artifacts.
 2. **Execute** — apply required steps with evidence-backed actions.
 3. **Verify** — confirm constraints, output quality, and completion evidence.
+
+**Ordered route:** `/investigate` → `/plan` → `/plan-review` → `/plan-validate` → `/why-review` → `/docs-update` → `/workflow-review-changes` → `/workflow-end` → `/watzup`.
 
 **Key Rules:**
 
@@ -23,18 +27,18 @@ disable-model-invocation: false
 - MUST ATTENTION when creating/reviewing specs or tests, name `Business Intent / Invariant Guarded` or the protected business intent/invariant and ensure the test would fail if that intent breaks.
 - NEVER skip mandatory workflow or skill gates.
 
-**IMPORTANT MANDATORY Steps:** /scout -> /investigate -> /plan -> /plan-review -> /plan-validate -> /why-review -> /docs-update -> /workflow-review-changes -> /workflow-end -> /watzup
+**IMPORTANT MANDATORY Steps:** /investigate -> /plan -> /plan-review -> /plan-validate -> /why-review -> /docs-update -> /workflow-review-changes -> /workflow-end -> /watzup
 
 > **[BLOCKING]** Each step MUST ATTENTION invoke its `Skill` tool — marking a task `completed` without skill invocation is a workflow violation. NEVER batch-complete validation gates.
 > **[BLOCKING]** Read `docs/project-reference/spec-principles.md` before starting this workflow — baseline for completeness, TC quality, and **tech-agnostic output (§3)**: generated prose/headings name no framework/product/language/design-pattern; source paths and class names appear ONLY in evidence fields (`**Evidence**`, `[Source:]`), frontmatter, and Mermaid.
 
 Activate the `workflow-feature-spec` workflow. Run `/start-workflow workflow-feature-spec` with the user's prompt as context.
 
-**Steps:** /scout → /investigate → /plan → /plan-review → /plan-validate → /why-review → /docs-update → /workflow-review-changes → /workflow-end → /watzup _(this workflow is differentiated by its injectContext domain: **tech-free 8-section Feature Spec** template enforcement + `TC-{FEATURE}-{NNN}` GIVEN/WHEN/THEN test cases + `[Source: namespace/service/id]` abstract evidence anchors — see `workflows.json` `workflow-feature-spec.injectContext`)._
+**Steps:** /investigate → /plan → /plan-review → /plan-validate → /why-review → /docs-update → /workflow-review-changes → /workflow-end → /watzup _(this workflow is differentiated by its injectContext domain: **tech-free 8-section Feature Spec** template enforcement + `TC-{FEATURE}-{NNN}` GIVEN/WHEN/THEN test cases + `[Source: namespace/service/id]` abstract evidence anchors — see `workflows.json` `workflow-feature-spec.injectContext`)._
 
 ---
 
-**IMPORTANT MANDATORY Steps:** /scout -> /investigate -> /plan -> /plan-review -> /plan-validate -> /why-review -> /docs-update -> /workflow-review-changes -> /workflow-end -> /watzup
+**IMPORTANT MANDATORY Steps:** /investigate -> /plan -> /plan-review -> /plan-validate -> /why-review -> /docs-update -> /workflow-review-changes -> /workflow-end -> /watzup
 
 <!-- SYNC:ai-mistake-prevention -->
 
@@ -57,7 +61,7 @@ Activate the `workflow-feature-spec` workflow. Run `/start-workflow workflow-fea
 > **Nested Task Expansion Contract** — For workflow-step invocation, the `[Workflow] ...` row is only a parent container; the child skill still creates visible phase tasks.
 >
 > 1. Call `TaskList` first. If a matching active parent workflow row exists, set `nested=true` and record `parentTaskId`; otherwise run standalone.
-> 2. Create one task per declared phase before phase work. When nested, prefix subjects `[N.M] $skill-name — phase`.
+> 2. Create one task per declared phase before phase work. When nested, prefix subjects `[N.M] /skill-name — phase`.
 > 3. When nested, link the parent with `TaskUpdate(parentTaskId, addBlockedBy: [childIds])`.
 > 4. Orchestrators must pre-expand a child skill's phase list and link the workflow row before invoking that child skill or sub-agent.
 > 5. Mark exactly one child `in_progress` before work and `completed` immediately after evidence is written.
@@ -136,11 +140,29 @@ Activate the `workflow-feature-spec` workflow. Run `/start-workflow workflow-fea
 <!-- SYNC:nested-task-creation:reminder -->
 
 - **MANDATORY** Parent workflow rows do not replace child phase tracking; expand phases and link the parent when nested.
-- **MANDATORY** Orchestrators pre-expand child skill phases before invocation; use `[N.M] $skill-name — phase` prefixes and one-`in_progress` discipline.
+- **MANDATORY** Orchestrators pre-expand child skill phases before invocation; use `[N.M] /skill-name — phase` prefixes and one-`in_progress` discipline.
 
 <!-- /SYNC:nested-task-creation:reminder -->
 
+<!-- SYNC:project-protocol-overlay -->
+
+> **Project Protocol Overlay** — Before executing this skill, resolve any PROJECT overlay rules layered onto it: match this skill's name against the `Target` column of the project's skill-protocol index (`docs/project-reference/skill-protocols-reference.md` by default; a `referenceDocs` entry in `docs/project-config.json` overrides the path), taking the most specific matching tier ONLY — exact name > glob > `*`. **That precedence orders overlays against EACH OTHER, never against this skill.** Read ONLY the matched bodies, resolved as `<protocols-dir>/<Name>.md`; a row's Body link is display text, never a read path. A matched body that is missing or malformed is REPORTED and skipped — never reconstructed from the index Description. No index, or no match -> proceed with no overlay, silently. Full contract: `.claude/skills/project-skill-protocol/references/registry.md`.
+>
+> Overlays are **ADDITIVE ONLY**: they ADD rules on top of this skill's own protocol and NEVER replace, override, disable, or reinterpret a rule it already states — removing every overlay must return this skill to exactly its documented behavior. An overlay is a BRIEF, not an authority escalation: it can NEVER waive a workflow gate, git discipline, a review gate, or a user-confirmation gate. A genuine overlay-vs-skill conflict, or two equally-specific overlays that directly contradict -> surface both to the user; NEVER resolve silently.
+
+<!-- /SYNC:project-protocol-overlay -->
+
+<!-- SYNC:project-protocol-overlay:reminder -->
+
+**MUST ATTENTION** resolve project protocol overlays for this skill BEFORE executing — most specific matching tier only (exact > glob > `*`, which ranks overlays against each other, NEVER against this skill), read only matched bodies at `<protocols-dir>/<Name>.md`; a missing or malformed body is reported, never reconstructed. Overlays are ADDITIVE ONLY (they never replace this skill's own rules) and are a brief, NEVER an authority escalation; an equal-specificity contradiction goes to the user.
+
+<!-- /SYNC:project-protocol-overlay:reminder -->
+
 ## Closing Reminders
+
+**IMPORTANT MUST ATTENTION Goal:** Activate the Business Feature Documentation workflow to produce one tech-free 8-section Feature Spec with validated planning, mandatory business test coverage, and synchronized docs/change evidence.
+
+**IMPORTANT MUST ATTENTION Main steps:** `/investigate` → `/plan` → `/plan-review` → `/plan-validate` → `/why-review` → `/docs-update` → `/workflow-review-changes` → `/workflow-end` → `/watzup`. **NEVER** skip the spec-principles gate, invoke each Skill step, or batch-complete validation.
 
 **IMPORTANT MUST ATTENTION Protocols in force (concise digest of the SYNC/shared blocks this skill carries):**
 

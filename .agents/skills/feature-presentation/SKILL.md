@@ -59,6 +59,8 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 - **Main steps (read-this-if-nothing-else):** (1) resolve scope on `activePlan` created→now range → (2) gap-fill missing PBIs/mockups via SUB-AGENT → (3) load project design context → (4) [BLOCKING] inventory existing UI + map flows → (5) accumulate + extract main-story journeys (one todo each) → (6) assemble ONE standalone HTML deck → (7) save → (8) [BLOCKING] fidelity gate (incl. demo integrity) + (8b) Demo-Quality review → (9) report.
 - **Output:** exactly ONE self-contained HTML file at `team-artifacts/presentations/{YYMMDD}-presentation-{slug}.html` — inline CSS/JS, Google Fonts only, NO CDN (no reveal.js); a ~60-line vanilla-JS slide engine (keyboard ←/→/Home/End, nav dots, counter, light/dark toggle).
 - **Interactive demo + mockup reuse:** every in-scope main user story is an **interactive MVP demo slide** ("click X → see Y → move to Z") with a plain-language narration strip + a "How to drive this demo" guide slide near the top; existing `team-artifacts/pbis/*-mockup.html` are REUSED (never regenerated), embedded via `<iframe srcdoc="…entity-escaped…">` (escaping rule in `references/deck-template.md`) — the mock-up is self-driving, the deck adds only narration; journeys are planned as an ordered list (Step 5, one todo each) and signed off by the final Demo-Quality review (Step 8b).
+- **Full-flow mock-app requirement:** every reused or gap-filled PBI mockup MUST already demonstrate the PBI's releasable outcome through all required pages/views, navigation, common/domain/page components, applicable states, and the visible/persisted result. A one-screen or disconnected mockup is not accepted as a complete demo; delegate back to `pbi-mockup` for correction.
+- **Large-idea synthesis requirement:** evaluate the shared `isLargeIdea` rule from the owning idea/spec/PBI. When any signal is true, ingest the complete `large_idea_decomposition` block, retain stable slice IDs, and add a **Decomposition & boundaries** section alongside the all-PBI backlog and all-PBI presentation showing slices, dependency order, non-goals, risks/evidence owners, and deferred-work owners. Missing or conflicting fields are a blocking deck-quality finding; the presentation never creates `docs/product-roadmap.md`.
 - **Spec-only branch:** `idea-to-spec` degrades to design-spec visuals (ASCII wireframes + inventory/states/tokens tables) + a narrated step-through of ASCII frames — NO HTML mockups, NO `pbi-mockup` invocation — preserving the spec-only contract; full HTML mockups appear only in `idea-to-pbi`.
 
 **Workflow:**
@@ -147,7 +149,7 @@ Determine which artifacts the deck synthesizes. See `references/artifact-accumul
 Fill missing downstream artifacts so the deck is complete. See `references/artifact-accumulation.md` → "Gap-Fill Routing".
 
 1. **Spec lacks PBIs:** Invoke `workflow-spec-to-pbi` **AS A SUB-AGENT** (`spawn_agent` tool) — per CLAUDE.md "Workflow Step Advancement §3", a step that activates a multi-step workflow MUST run as a sub-agent: it returns only a summary and writes full findings to `plans/reports/`. This keeps the deck-build context bounded.
-2. **PBIs lack `-mockup.html` AND the workflow is mockup-bearing (`idea-to-pbi`):** Invoke `pbi-mockup` per PBI to generate the missing mockup.
+2. **PBIs lack `-mockup.html` AND the workflow is mockup-bearing (`idea-to-pbi`):** Invoke `pbi-mockup` per PBI to generate the missing mockup. Require its Releasable Full-Flow gate to PASS before embedding.
 3. **Spec-only `idea-to-spec` context:** SKIP all mockup generation — never invoke `pbi-mockup`. The deck will use design-spec visuals only (Step 6 spec-only path). This preserves the `idea-to-spec` no-mockup contract.
 
 ### Step 3: Load Project Design Context
@@ -174,6 +176,7 @@ Parse each in-scope artifact into stakeholder-oriented slide sections (see Slide
 - Use REAL domain entity field names + realistic sample data from `docs/project-reference/domain-entities-reference.md` — never Lorem ipsum or "Item 1, Item 2".
 - Keep accompanying prose/captions tech-agnostic (business/observable terms, not framework/CSS class names).
 - **Extract each PBI's priority/rank** — read the `priority` label + numeric `rank` from each PBI's frontmatter (and the ranked-order backlog artifact `team-artifacts/backlog/*-backlog.md` when present). The Scope & backlog slide MUST display PBIs in ranked order with a priority label per PBI card — the deck carries the same priority info the backlog and mockups do. If PBIs lack priority, note it explicitly rather than dropping the field.
+- **Extract the decomposition context** — locate the owning idea/spec/PBI block, validate all five fields (`outcome_slices`, `dependencies_order`, `non_goals`, `risks_evidence`, `deferred_work_owner`) when any large-idea signal is true, and preserve each slice ID through every PBI/story/mockup. Add a Decomposition & boundaries slide (or an equivalent section in Scope & backlog) with dependency order, non-goals, evidence owners, and deferred-work ownership. If all signals are false, record `Decomposition: N/A — ordinary isolated scope` and do not invent a roadmap section.
 - **Extract the main-story / MVP flows into an ordered journey list** — from PBI `## Acceptance Criteria` GIVEN/WHEN/THEN + story "As a / I want / So that" + each mock-up's flow-specs (`references/artifact-accumulation.md` §6 Journey-Extraction Map). One journey per main user story (MVP happy path), each an ordered sequence: entry → click steps ("click X → see Y → move to Z") → end state + one plain-language explanation per step. When a `-mockup.html` exists, reuse its flow-specs verbatim so the deck demo == the per-PBI prototype.
 - **task tracking one todo per journey slide** — so each journey is assembled (Step 6) and later verified (Step 8 demo integrity / final demo-quality review) individually. (The "think → plan → many todos before do".)
 
@@ -186,6 +189,7 @@ Build the single self-contained HTML file from the scaffold in `references/deck-
 - **"How to drive this demo" guide slide** near the top — teach the viewer how to click hotspots and use each demo's own ▶ Play / ⏮ ⏭ / ↺ Reset controls (inside the mock-up) to walk a journey, and ←/→ to change slides, so a non-technical stakeholder is never lost (`references/deck-template.md` §3b).
 - **Demo-flow slides (one per journey from Step 5):** each embeds the **interactive** `pbi-mockup` HTML scoped to that flow via `<iframe srcdoc="…escaped…">` and overlays a deck-level narration/explanation strip (current step + plain-language explanation, text only + "⚠ Simulated" note). The journey's ▶/⏮/⏭/↺ controls live INSIDE the embedded mock-up — it is self-driving; the deck adds only narration and does NOT re-implement or duplicate those controls (`references/deck-template.md` §3b).
 - **Mockup-bearing path (`idea-to-pbi`):** embed each existing `-mockup.html` via `<iframe srcdoc="…escaped…">` — the entity-escaping rule (`&`-first, escape-once-unconditionally) is in `references/deck-template.md`. Never regenerate a mockup that already exists.
+- **Decomposition integrity:** the deck is an aggregation surface, not a new product-scope decision maker. It must not split, merge, rename, or reinterpret slice IDs; flag conflicts back to the owning PBI/spec/refine step and stop the fidelity gate until resolved.
 - **Spec-only path (`idea-to-spec`):** render the design-spec ASCII wireframes + Component Inventory / States / Design-Tokens tables instead of HTML mockups; the journey demo is a **narrated step-through of design-spec ASCII frames** advanced by Next, each with its step explanation. NO `<iframe srcdoc>` mockup embed, NEVER invoke `pbi-mockup`.
 - **Empty-state (F3):** when an in-scope feature has NO `-mockup.html` AND NO design-spec, render an explicit empty-state slide ("No mockup/design-spec available for {feature}") — never a broken/blank iframe.
 
@@ -401,9 +405,46 @@ A synthesis deck is a *different artifact at a different altitude* than a per-PB
 
 <!-- PROMPT-ENHANCE:STEP-TASK-CLOSING:END -->
 
+<!-- SYNC:parallel-subagent-dispatch -->
+
+> **Parallel Sub-Agent Dispatch** — Plan parallelism the moment a task breakdown exists, BEFORE executing it — running provably independent tasks sequentially wastes wall-clock. Applies to every multi-step job: workflow steps, planning, batch updates, investigation, research, scans, reviews, doc sync. **Plan execution is metadata-gated, NEVER default-parallel** — fan-out follows ONLY what the plan declares (`PAR`/`SEQ` tags + per-phase write set); an untagged plan runs sequentially — why: a derived write set cannot see cascade or generated writes.
+>
+> 1. **Tag every task `PAR` or `SEQ`.** `PAR` = inputs exclude every pending task's output AND write set disjoint from every other `PAR`. Else `SEQ` — MUST ATTENTION name the dependency forcing it.
+> 2. **Group `PAR` into waves.** No edge between members. Two writers of one file NEVER share a wave. Read-only work (search, investigation, review, research) parallelizes freely.
+> 3. **Declare before dispatch:** `Parallel plan: wave 1 = [...] · wave 2 = [...] · SEQ = [...] (reason)`.
+> 4. **Spawn each wave in ONE message** — every `spawn_agent` call in one response, NEVER dripped per turn. Route each task to its specialist (`.claude/skills/shared/sub-agent-selection-guide.md`); NEVER `code-reviewer` as catch-all.
+> 5. **Brief each sub-agent self-contained:** goal · scope + owned files · reference docs · return contract (summary + `Full report:` path, per SYNC:subagent-return-contract) · incremental persistence to `plans/reports/` (per SYNC:incremental-persistence).
+> 6. **Barrier per wave.** Advance ONLY after EVERY member returns (a skipped conditional counts as returned). Merge, mark each task completed/skipped, THEN dispatch the next wave. Mutating steps wait for the barrier.
+> 7. **One level deep.** A dispatched sub-agent executes its own brief; further fan-out stays the orchestrator's job unless that agent's `.claude/agents/*.md` definition authorizes it.
+>
+> **NEVER parallelize:** tasks sharing a write target · a task consuming a pending task's output · trivial single-file work (dispatch overhead > gain) · an order a skill or workflow explicitly fixes · gates awaiting user approval.
+>
+> **Blocked until:** MUST ATTENTION every task tagged PAR/SEQ with a named reason per SEQ · waves declared + write-set disjointness checked · each wave spawned in ONE message · barrier honored before the next wave.
+
+<!-- /SYNC:parallel-subagent-dispatch -->
+
+<!-- SYNC:parallel-subagent-dispatch:reminder -->
+- **MANDATORY** After planning tasks, tag each PAR/SEQ and spawn every PAR wave as parallel sub-agents in ONE message — default parallel for workflows, batch updates, investigation, research, reviews; plan execution fans out ONLY on what the plan declares.
+- **MANDATORY** Disjoint write sets per wave · all-return barrier before the next wave · specialist routing · sub-agents NEVER fan out further unless their own agent definition authorizes it.
+<!-- /SYNC:parallel-subagent-dispatch:reminder -->
+
+<!-- SYNC:project-protocol-overlay -->
+
+> **Project Protocol Overlay** — Before executing this skill, resolve any PROJECT overlay rules layered onto it: match this skill's name against the `Target` column of the project's skill-protocol index (`docs/project-reference/skill-protocols-reference.md` by default; a `referenceDocs` entry in `docs/project-config.json` overrides the path), taking the most specific matching tier ONLY — exact name > glob > `*`. **That precedence orders overlays against EACH OTHER, never against this skill.** Read ONLY the matched bodies, resolved as `<protocols-dir>/<Name>.md`; a row's Body link is display text, never a read path. A matched body that is missing or malformed is REPORTED and skipped — never reconstructed from the index Description. No index, or no match -> proceed with no overlay, silently. Full contract: `.claude/skills/project-skill-protocol/references/registry.md`.
+>
+> Overlays are **ADDITIVE ONLY**: they ADD rules on top of this skill's own protocol and NEVER replace, override, disable, or reinterpret a rule it already states — removing every overlay must return this skill to exactly its documented behavior. An overlay is a BRIEF, not an authority escalation: it can NEVER waive a workflow gate, git discipline, a review gate, or a user-confirmation gate. A genuine overlay-vs-skill conflict, or two equally-specific overlays that directly contradict -> surface both to the user; NEVER resolve silently.
+
+<!-- /SYNC:project-protocol-overlay -->
+
+<!-- SYNC:project-protocol-overlay:reminder -->
+
+**MUST ATTENTION** resolve project protocol overlays for this skill BEFORE executing — most specific matching tier only (exact > glob > `*`, which ranks overlays against each other, NEVER against this skill), read only matched bodies at `<protocols-dir>/<Name>.md`; a missing or malformed body is reported, never reconstructed. Overlays are ADDITIVE ONLY (they never replace this skill's own rules) and are a brief, NEVER an authority escalation; an equal-specificity contradiction goes to the user.
+
+<!-- /SYNC:project-protocol-overlay:reminder -->
+
 ## Closing Reminders
 
-**IMPORTANT MUST ATTENTION Goal:** synthesize every session idea/spec/PBI/story/design-spec/mockup into ONE standalone HTML slide deck for PO/BA/Dev/QC — project-faithful, an interactive MVP demo of every main user journey, vanilla-JS engine — so the whole team reviews from a single offline file before build.
+**IMPORTANT MUST ATTENTION Goal:** synthesize every session idea/spec/PBI/story/design-spec/mockup into ONE standalone HTML slide deck for PO/BA/Dev/QC, reusing only complete mock-app flows that demonstrate each PBI's releasable outcome through the required views, navigation, components, states, result, and exit.
 
 **Protocols in force (concise digest of the SYNC/shared blocks this skill carries):**
 
@@ -414,6 +455,7 @@ A synthesis deck is a *different artifact at a different altitude* than a per-PB
 **IMPORTANT MUST ATTENTION** emit exactly ONE self-contained HTML deck at `team-artifacts/presentations/{YYMMDD}-presentation-{slug}.html` — inline CSS/JS, Google Fonts only, NO CDN reveal.js, vanilla-JS slide engine — why: stakeholders open one offline file with no server, no build step.
 **IMPORTANT MUST ATTENTION** present every in-scope main user story as an interactive MVP demo slide ("click X → see Y → move to Z") — extract the journeys first (Step 5, one todo per journey), embed the self-driving interactive mockup + a deck narration strip + "⚠ Simulated" note, add a "How to drive this demo" guide slide, and sign off with the final Demo-Quality review (Step 8b) — why: a narrated journey answers "how does it work", which is what the user asked for; the deck adds only narration, never a second interactivity engine.
 **IMPORTANT MUST ATTENTION** REUSE existing `-mockup.html` via `<iframe srcdoc="…escaped…">` — never regenerate a mockup that already exists; escaping rule (`&`-first, escape-once-unconditionally) lives in `references/deck-template.md` — why: re-rendering duplicates the mockup engine and risks divergence.
+**IMPORTANT MUST ATTENTION** accept a PBI mockup only when its Releasable Full-Flow gate passes: all required pages/views, navigation edges, common/domain/page components, applicable states, and the visible/persisted business result are demoable; one static/disconnected screen set is FAIL and routes back to `pbi-mockup`.
 **IMPORTANT MUST ATTENTION** spec-only `idea-to-spec` → design-spec ASCII wireframes + inventory/states/tokens tables + a narrated step-through of ASCII frames ONLY; NEVER generate HTML mockups, NEVER invoke `pbi-mockup` — why: full mockups break the spec-only no-code contract.
 
 **MANDATORY IMPORTANT MUST ATTENTION** break work into small todo tasks using task tracking BEFORE starting; add a final review todo to verify quality.
@@ -465,7 +507,7 @@ Source: `.claude/.ck.json` + `.claude/skills/shared/sync-inline-versions.md` (`:
 3. **AUTO-SELECT:** Pick the best option yourself. Do not ask the user to choose between direct execution, skill, standard workflow, or custom workflow.
 4. **ACTIVATE:** For a selected workflow, call `$start-workflow <workflowId>`; for a selected skill, invoke that skill; for a custom workflow, sequence custom steps directly; for direct execution, proceed with the task.
 5. **CREATE TASKS:** task tracking for ALL workflow/skill/custom steps before execution when the selected path has multiple steps.
-6. **PARALLELIZE:** Before executing the task list, tag each task `PAR` (independent inputs + write set disjoint from every other `PAR` task) or `SEQ` (name the blocking dependency), group `PAR` tasks into waves, declare the wave plan, and spawn each wave's sub-agents in ONE message — all-return barrier per wave, fan-out one level deep unless a sub-agent's own definition authorizes further fan-out. Sequential-by-default is a defect when tasks are independent; do not parallelize shared write targets, output-consuming tasks, trivial single-file work, workflow-fixed ordering, or user-approval gates.
+6. **PARALLELIZE:** Before executing the task list, tag each task `PAR` (independent inputs + write set disjoint from every other `PAR` task) or `SEQ` (name the blocking dependency), group `PAR` tasks into waves, declare the wave plan, and spawn each wave's sub-agents in ONE message — all-return barrier per wave, fan-out one level deep unless a sub-agent's own definition authorizes further fan-out. Sequential-by-default is a defect when tasks are independent; do not parallelize shared write targets, output-consuming tasks, trivial single-file work, ordering a skill or workflow explicitly fixes, or user-approval gates.
 7. **EXECUTE:** Advance per the **Workflow Step Advancement & Parallel Phases** rule in your context instructions — model-driven; a sub-agent completion advances a step identically to an inline call; a parallel-phase group is an all-return barrier (advance only after ALL members return, never serialize it)
 ## Shared AI-SDD Protocol Markers
 
@@ -527,7 +569,7 @@ Break work into small tasks (task tracking) before starting. Add final task: "An
 - **Sub-agents inherit knowledge only from their agent .md definition — use custom agent types, not built-in Explore.** Tool adoption = permission + knowledge + enforcement (numbered workflow step).
 - **Persist sub-agent findings incrementally, not as a final batch.** Long sub-agents hit cutoffs before final write — findings lost. Instruct append-per-section to report file.
 - **When debugging, ask "whose responsibility?" before fixing.** Trace caller (wrong data) vs callee (wrong handling). Fix at responsible layer — never patch symptom site.
-- **Test failure → adjudicate WHO is at fault (source vs test) before forcing green.** A green-again suite is not the goal; the correct verdict on what was actually wrong is. Root-cause first, then triangulate the failure against the governing spec (`docs/specs/**` if one exists) AND the source: SOURCE-WRONG → fix code at the owning layer and keep/strengthen the test; TEST-WRONG → fix the stale assertion/setup at its root. NEVER weaken an assertion, add a skip, or relax a timeout to force green, and never change source to satisfy a broken test. Spec silent or ambiguous about which side is correct → STOP and ask the user.
+- **Test failure → record a provisional verdict before trace/edit, then investigate.** Use the full five-way taxonomy: SOURCE-WRONG (production violates intent), TEST-WRONG (assertion/setup is stale), TEST-NOT-OPTIMAL (valid but fragile or low-signal test), ENVIRONMENT-BLOCKED (external state prevents a verdict), or AMBIGUOUS (intent/evidence cannot choose safely). Then trace root cause and triangulate against the governing spec (`docs/specs/**` if one exists) AND source. NEVER weaken an assertion, add a skip, relax a timeout, or change source merely to force green.
 - **Grep ALL removed names after extraction/refactoring.** Primary file "done" ≠ secondary files clean. Grep entire scope for every removed symbol before declaring complete.
 - **Assume existing values are intentional — ask WHY before changing OR flagging one as a defect.** Pattern-matching as "wrong" skips context. Before changing or reporting any constant/limit/flag/cutoff: read comments, git blame, the CALLER's ordering (the guarantee that makes the value correct usually lives in code running immediately BEFORE the cited line), and 2+ sibling call sites of the same convention. A doc stating WHAT without WHY is missing rationale, not proof of a missing guard — and in a validation pass, an accurate `file:line` citation proves the transcription, never the defect.
 - **Verify ALL affected outputs, not just the first.** One build green ≠ all green. Multi-stack changes (backend/frontend/tests/docs) require verifying EVERY output.

@@ -1,4 +1,4 @@
-<!-- Last scanned: 2026-08-04 -->
+<!-- Last scanned: 2026-08-17 -->
 
 # Documentation Index Reference
 
@@ -8,8 +8,8 @@
 
 ## Quick Summary
 
-- 366 unique authored/tracked markdown files are indexed across 11 whitelist categories.
-- `docs/` contains 20 markdown files; the whitelist union leaves 0 uncategorized.
+- 377 unique authored/tracked markdown files are indexed across 11 whitelist categories.
+- `docs/` contains 22 markdown files; the whitelist union leaves 0 uncategorized.
 - Design System is a one-file subset of Project Reference and is counted once in the unique total.
 
 ## Workflow
@@ -26,21 +26,21 @@
 
 ## Documentation System
 
-366 unique authored/tracked markdown files across 11 indexed categories. Last scanned: 2026-08-04.
+377 unique authored/tracked markdown files across 11 indexed categories. Last scanned: 2026-08-17.
 
-| Category | Verified count | Reproducible scope |
-| --- | ---: | --- |
-| Root-Level Docs | 3 | root-only `*.md` |
-| Project Reference | 16 | `docs/project-reference/**/*.md` |
-| Operations | 0 | direct getting-started/deployment/operations/runbook/setup/install/configuration docs |
-| Design System | 1 | `docs/project-reference/design-system/**/*.md` |
-| Feature Specs | 0 | `docs/specs/*/README.*.md` |
-| Spec Catalogs | 0 | `docs/specs/*/INDEX.md` |
-| Architecture Decisions | 2 | `docs/adr/**/*.md` |
-| Templates | 1 | `docs/templates/**/*.md` |
-| Release Notes | 1 | `docs/release/**/*.md` |
-| Framework Docs | 32 | `.claude/docs/**/*.md` |
-| Skill Markdown | 311 | `rg --files .claude/skills -g '*.md'` |
+| Category               | Verified count | Reproducible scope                                                                    |
+| ---------------------- | -------------: | ------------------------------------------------------------------------------------- |
+| Root-Level Docs        |              3 | root-only `*.md`                                                                      |
+| Project Reference      |             18 | `docs/project-reference/**/*.md`                                                      |
+| Operations             |              0 | direct getting-started/deployment/operations/runbook/setup/install/configuration docs |
+| Design System          |              1 | `docs/project-reference/design-system/**/*.md`                                        |
+| Feature Specs          |              0 | `docs/specs/*/README.*.md`                                                            |
+| Spec Catalogs          |              0 | `docs/specs/*/INDEX.md`                                                               |
+| Architecture Decisions |              2 | `docs/adr/**/*.md`                                                                    |
+| Templates              |              1 | `docs/templates/**/*.md`                                                              |
+| Release Notes          |              1 | `docs/release/**/*.md`                                                                |
+| Framework Docs         |             32 | `.claude/docs/**/*.md`                                                                |
+| Skill Markdown         |            320 | `rg --files .claude/skills -g '*.md'`                                                 |
 
 The unique total is the normalized union returned by `rg --files` for Root-Level Docs, all `docs/**/*.md`, Framework Docs, and Skill Markdown. Design System is nested inside Project Reference, so its count is informative rather than additive. Ignored dependency artifacts such as skill-local `.venv/` files are excluded.
 
@@ -51,13 +51,14 @@ easy-claude/
 ├── AGENTS.md                                      # Codex/agent instructions
 ├── CLAUDE.md                                      # Claude project instructions
 ├── README.md                                      # Project overview and adoption entry point
-├── docs/                                          # 20 markdown files
+├── docs/                                          # 22 markdown files
 │   ├── adr/                                       # 2 architecture decisions
 │   │   ├── 0001-skill-lifecycle.md
 │   │   └── 0002-canonical-count-metrics.md
-│   ├── project-reference/                         # 16 files
+│   ├── project-reference/                         # 18 files
 │   │   ├── backend-patterns-reference.md
 │   │   ├── code-review-rules.md
+│   │   ├── custom-prompts-reference.md
 │   │   ├── docs-index-reference.md
 │   │   ├── domain-entities-reference.md
 │   │   ├── e2e-test-reference.md
@@ -68,6 +69,7 @@ easy-claude/
 │   │   ├── project-structure-reference.md
 │   │   ├── scss-styling-guide.md
 │   │   ├── seed-test-data-reference.md
+│   │   ├── skill-protocols-reference.md
 │   │   ├── spec-principles.md
 │   │   ├── spec-system-reference.md
 │   │   ├── workflow-spec-test-code-cycle-reference.md
@@ -81,7 +83,7 @@ easy-claude/
 │   ├── hooks/                                     # 3
 │   ├── skills/                                    # 2
 │   └── team-artifacts/templates/                  # 6
-└── .claude/skills/                                # 311 authored/tracked markdown assets
+└── .claude/skills/                                # 320 authored/tracked markdown assets
 ```
 
 Absent whitelist branches: Operations, Feature Specs, and Spec Catalogs.
@@ -119,39 +121,41 @@ Evidence: `README.md:395-401`, `CLAUDE.md:264-267`, `CLAUDE.md:357`, `CLAUDE.md:
 
 ## Doc Lookup Guide
 
-| Category | Keyword / topic | Unique path or status |
-| --- | --- | --- |
-| Root-Level Docs | overview, install, adoption | `README.md` |
-| Root-Level Docs | Claude project instructions | `CLAUDE.md` |
-| Root-Level Docs | Codex, agents, harness instructions | `AGENTS.md` |
-| Project Reference | project structure, modules, tech stack | `docs/project-reference/project-structure-reference.md` |
-| Project Reference | backend, hooks, validation, state | `docs/project-reference/backend-patterns-reference.md` |
-| Project Reference | seed test data, dev data | `docs/project-reference/seed-test-data-reference.md` |
-| Project Reference | frontend, components, state management | `docs/project-reference/frontend-patterns-reference.md` |
-| Project Reference | integration tests, fixtures, assertions | `docs/project-reference/integration-test-reference.md` |
-| Project Reference | Feature Spec structure, TC format | `docs/project-reference/feature-spec-reference.md` |
-| Project Reference | spec routing, canonical artifacts | `docs/project-reference/spec-system-reference.md` |
-| Project Reference | spec principles, local SDD rules | `docs/project-reference/spec-principles.md` |
-| Project Reference | spec-test-code synchronization | `docs/project-reference/workflow-spec-test-code-cycle-reference.md` |
-| Project Reference | code review, anti-patterns | `docs/project-reference/code-review-rules.md` |
-| Project Reference | domain concepts, entities, DTOs | `docs/project-reference/domain-entities-reference.md` |
-| Project Reference | E2E, browser tests, Page Objects | `docs/project-reference/e2e-test-reference.md` |
-| Project Reference | SCSS, BEM, styling | `docs/project-reference/scss-styling-guide.md` |
-| Project Reference | documentation tree, counts, lookup | `docs/project-reference/docs-index-reference.md` |
-| Project Reference | learned lessons | `docs/project-reference/lessons.md` |
-| Design System | tokens, components, app mapping | `docs/project-reference/design-system/README.md` |
-| Operations | getting started, deployment, runbook | No authored Operations file |
-| Feature Specs | business capability specifications | No Feature Spec bucket |
-| Spec Catalogs | bucket indexes, spec catalogs | No Spec Catalog |
-| Architecture Decisions | ADRs, architecture decisions | `docs/adr/` |
-| Templates | detailed Feature Spec template | `docs/templates/detailed-feature-spec-template.md` |
-| Release Notes | release history | `docs/release/` |
-| Framework Docs | framework guides, hooks, configuration | `.claude/docs/README.md` |
-| Skill Markdown | authored skills, references, templates | `.claude/skills/` |
+| Category               | Keyword / topic                          | Unique path or status                                               |
+| ---------------------- | ---------------------------------------- | ------------------------------------------------------------------- |
+| Root-Level Docs        | overview, install, adoption              | `README.md`                                                         |
+| Root-Level Docs        | Claude project instructions              | `CLAUDE.md`                                                         |
+| Root-Level Docs        | Codex, agents, harness instructions      | `AGENTS.md`                                                         |
+| Project Reference      | project structure, modules, tech stack   | `docs/project-reference/project-structure-reference.md`             |
+| Project Reference      | backend, hooks, validation, state        | `docs/project-reference/backend-patterns-reference.md`              |
+| Project Reference      | seed test data, dev data                 | `docs/project-reference/seed-test-data-reference.md`                |
+| Project Reference      | frontend, components, state management   | `docs/project-reference/frontend-patterns-reference.md`             |
+| Project Reference      | integration tests, fixtures, assertions  | `docs/project-reference/integration-test-reference.md`              |
+| Project Reference      | Feature Spec structure, TC format        | `docs/project-reference/feature-spec-reference.md`                  |
+| Project Reference      | spec routing, canonical artifacts        | `docs/project-reference/spec-system-reference.md`                   |
+| Project Reference      | spec principles, local SDD rules         | `docs/project-reference/spec-principles.md`                         |
+| Project Reference      | spec-test-code synchronization           | `docs/project-reference/workflow-spec-test-code-cycle-reference.md` |
+| Project Reference      | code review, anti-patterns               | `docs/project-reference/code-review-rules.md`                       |
+| Project Reference      | domain concepts, entities, DTOs          | `docs/project-reference/domain-entities-reference.md`               |
+| Project Reference      | E2E, browser tests, Page Objects         | `docs/project-reference/e2e-test-reference.md`                      |
+| Project Reference      | SCSS, BEM, styling                       | `docs/project-reference/scss-styling-guide.md`                      |
+| Project Reference      | documentation tree, counts, lookup       | `docs/project-reference/docs-index-reference.md`                    |
+| Project Reference      | learned lessons                          | `docs/project-reference/lessons.md`                                 |
+| Project Reference      | custom prompts, saved prompts, playbooks | `docs/project-reference/custom-prompts-reference.md`                |
+| Project Reference      | skill protocol overlays, project rules   | `docs/project-reference/skill-protocols-reference.md`               |
+| Design System          | tokens, components, app mapping          | `docs/project-reference/design-system/README.md`                    |
+| Operations             | getting started, deployment, runbook     | No authored Operations file                                         |
+| Feature Specs          | business capability specifications       | No Feature Spec bucket                                              |
+| Spec Catalogs          | bucket indexes, spec catalogs            | No Spec Catalog                                                     |
+| Architecture Decisions | ADRs, architecture decisions             | `docs/adr/`                                                         |
+| Templates              | detailed Feature Spec template           | `docs/templates/detailed-feature-spec-template.md`                  |
+| Release Notes          | release history                          | `docs/release/`                                                     |
+| Framework Docs         | framework guides, hooks, configuration   | `.claude/docs/README.md`                                            |
+| Skill Markdown         | authored skills, references, templates   | `.claude/skills/`                                                   |
 
 ## Uncategorized Files
 
-None. A fresh broad `docs/**/*.md` scan returned 20 paths; the normalized union of Project Reference, Operations, Design System, Feature Specs, Spec Catalogs, Architecture Decisions, Templates, and Release Notes covered all 20.
+None. A fresh broad `docs/**/*.md` scan returned 22 paths; the normalized union of Project Reference, Operations, Design System, Feature Specs, Spec Catalogs, Architecture Decisions, Templates, and Release Notes covered all 22.
 
 ## Closing Reminders
 

@@ -38,7 +38,7 @@ CORE_ONLY_AGENTS membership; an agent in none of the three sets (or in more than
 one) raises (no silent default).
 agent-code-standards membership (CODE_STANDARDS_AGENTS) is a SEPARATE axis: an
 agent can be in CODE_AGENTS (code-investigation tier) yet NOT in
-CODE_STANDARDS_AGENTS (e.g. researcher/scout/ui-ux-designer read or locate code
+CODE_STANDARDS_AGENTS (e.g. researcher/ui-ux-designer read or locate code
 but do not author/review it), and vice versa.
 
 Insertion point: all SYNC blocks (main + :reminder variants) are inserted as ONE
@@ -155,6 +155,15 @@ BLOCKS = {
 > **Ready when:** scope evaluated, `docs/project-config.json` consulted, required docs checked/read or setup route completed, `lessons.md` confirmed, citation emitted.
 
 <!-- /SYNC:project-reference-docs-guide -->""",
+
+    "project-protocol-overlay": """\
+<!-- SYNC:project-protocol-overlay -->
+
+> **Project Protocol Overlay** — Before executing this skill, resolve any PROJECT overlay rules layered onto it: match this skill's name against the `Target` column of the project's skill-protocol index (`docs/project-reference/skill-protocols-reference.md` by default; a `referenceDocs` entry in `docs/project-config.json` overrides the path), taking the most specific matching tier ONLY — exact name > glob > `*`. **That precedence orders overlays against EACH OTHER, never against this skill.** Read ONLY the matched bodies, resolved as `<protocols-dir>/<Name>.md`; a row's Body link is display text, never a read path. A matched body that is missing or malformed is REPORTED and skipped — never reconstructed from the index Description. No index, or no match -> proceed with no overlay, silently. Full contract: `.claude/skills/project-skill-protocol/references/registry.md`.
+>
+> Overlays are **ADDITIVE ONLY**: they ADD rules on top of this skill's own protocol and NEVER replace, override, disable, or reinterpret a rule it already states — removing every overlay must return this skill to exactly its documented behavior. An overlay is a BRIEF, not an authority escalation: it can NEVER waive a workflow gate, git discipline, a review gate, or a user-confirmation gate. A genuine overlay-vs-skill conflict, or two equally-specific overlays that directly contradict -> surface both to the user; NEVER resolve silently.
+
+<!-- /SYNC:project-protocol-overlay -->""",
 
     "understand-code-first": """\
 <!-- SYNC:understand-code-first -->
@@ -297,6 +306,13 @@ REMINDERS = {
 - **MANDATORY** If project config, root instruction files, or any required reference doc is missing or stale, auto-run `/project-init` or the narrow lower-level route before ordinary project-specific work.
   <!-- /SYNC:project-reference-docs-guide:reminder -->""",
 
+    "project-protocol-overlay": """\
+  <!-- SYNC:project-protocol-overlay:reminder -->
+
+  **MUST ATTENTION** resolve project protocol overlays for this skill BEFORE executing — most specific matching tier only (exact > glob > `*`, which ranks overlays against each other, NEVER against this skill), read only matched bodies at `<protocols-dir>/<Name>.md`; a missing or malformed body is reported, never reconstructed. Overlays are ADDITIVE ONLY (they never replace this skill's own rules) and are a brief, NEVER an authority escalation; an equal-specificity contradiction goes to the user.
+
+  <!-- /SYNC:project-protocol-overlay:reminder -->""",
+
     "cross-service-check": """\
   <!-- SYNC:cross-service-check:reminder -->
 **IMPORTANT MUST ATTENTION** microservices/event-driven: scan producers, consumers, sagas, contracts in task scope. Per touchpoint: owner · message · consumers · risk (NONE/ADDITIVE/BREAKING). Missing consumer = silent regression.
@@ -327,7 +343,15 @@ REMINDERS = {
 # `.claude/skills/shared/sync-inline-versions.md` ("Universal guidance must help
 # every receiving skill or agent"), which is the same lesson the agent tiers below
 # already encode. Keep the two-tier split.
-SKILL_BLOCK_ORDER = ["critical-thinking-mindset", "ai-mistake-prevention"]
+# project-protocol-overlay is universal across SKILLS and skill-only, for the SAME reason
+# parallel-subagent-dispatch is skill-only: overlay resolution is performed by whoever INVOKES
+# the skill; a headless leaf sub-agent receives one already-scoped brief whose overlay the
+# dispatching orchestrator already resolved. It IS role-relevant to every skill though — any
+# skill can be an overlay Target — so it belongs in SKILL_BLOCK_ORDER, not the orchestrator tier.
+# Mirrored — by convention, no automated cross-check — in agent_protocol_matrix.py
+# EXCLUDED_ORCHESTRATION and in the TC-UAR-017 AGENT_ADOPTION_EXEMPT set. Do NOT add it to
+# CORE_BLOCK_ORDER, any *_AGENTS set, or PRUNABLE_BLOCKS.
+SKILL_BLOCK_ORDER = ["critical-thinking-mindset", "ai-mistake-prevention", "project-protocol-overlay"]
 
 # Orchestrator skills: SKILL_BLOCK_ORDER + the parallel-dispatch protocol.
 ORCHESTRATOR_SKILL_BLOCK_ORDER = SKILL_BLOCK_ORDER + ["parallel-subagent-dispatch"]
@@ -339,16 +363,16 @@ ORCHESTRATOR_SKILL_BLOCK_ORDER = SKILL_BLOCK_ORDER + ["parallel-subagent-dispatc
 # plan-execute, investigate, scan). A skill that never spawns and never partitions
 # a task list does NOT belong here — it cannot act on the protocol.
 ORCHESTRATOR_SKILLS = {
-    "architecture-review", "architecture-review-full", "artifact-review",
+    "architecture-design", "architecture-review", "architecture-review-full", "artifact-review",
     "changes-review", "code-review", "code-simplifier", "commit",
     "context-optimization", "db-migrate", "debug-investigate", "docs-update",
-    "domain-entities-review", "e2e-test", "integration-test",
+    "demo-guide", "domain-entities-review", "e2e-test", "feature-presentation", "integration-test",
     "integration-test-review", "investigate", "knowledge-review",
     "performance-review", "plan", "plan-execute", "plan-review",
     "production-readiness-review", "project-init", "scan",
-    "scan-codebase-health", "scout", "security-review", "seed-test-data",
+    "scan-codebase-health", "security-review", "seed-test-data",
     "spec-clarify", "spec-discovery", "spec-index", "start-workflow",
-    "tech-spec", "ui-review", "understand", "why-review",
+    "tech-spec", "test", "ui-review", "understand", "why-review",
     "workflow-code-to-spec", "workflow-idea-to-pbi", "workflow-idea-to-spec",
     "workflow-review-changes",
 }
@@ -408,7 +432,7 @@ CODE_AGENTS = {
 # cross-service-check + fix-layer-accountability blocks — they locate/read/design
 # code, they do not fix at a layer or evaluate a service-boundary change.
 READONLY_CODE_AGENTS = {
-    "researcher", "scout", "scout-external", "ui-ux-designer",
+    "researcher", "ui-ux-designer",
 }
 CORE_ONLY_AGENTS = {
     "business-analyst", "docs-manager", "git-manager", "journal-writer",
@@ -417,7 +441,7 @@ CORE_ONLY_AGENTS = {
 
 # agent-code-standards audience — SEPARATE axis from CODE_AGENTS. Only agents that
 # author/modify/review/debug/optimize/test production or framework code. An agent
-# in CODE_AGENTS may be excluded here (researcher/scout/scout-external research or
+# in CODE_AGENTS may be excluded here (researcher research or
 # locate code but do not author/review it; ui-ux-designer produces design artifacts).
 # Membership is NOT validated against the disk set the way CODE/CORE_ONLY are — it is
 # a pure inclusion list; absence simply means "no code-standards block".

@@ -132,9 +132,9 @@ The `codeReview` section records which project-specific review-rule doc the revi
 
 | Workflow                  | Sequence (abridged, from `workflows.json`)                                                                                                                           | whenToUse (abridged)                              |
 | ------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------- |
-| `workflow-feature`        | scout → investigate → … → plan → plan-review → … → plan-execute → … → integration-test → … → workflow-end                                                            | Well-defined feature implementation               |
-| `workflow-bugfix`         | scout → investigate → debug-investigate → … → fix → prove-fix → … → workflow-end                                                                                     | Bug, error, crash, regression; end-to-start trace |
-| `workflow-refactor`       | scout → investigate → plan → … → plan-execute → … → workflow-end                                                                                                     | Restructure code without behavior change          |
+| `workflow-feature`        | investigate → … → plan → plan-review → … → plan-execute → … → integration-test → … → workflow-end                                                                   | Well-defined feature implementation               |
+| `workflow-bugfix`         | investigate → debug-investigate → … → fix → prove-fix → … → workflow-end                                                                                              | Bug, error, crash, regression; end-to-start trace |
+| `workflow-refactor`       | investigate → plan → … → plan-execute → … → workflow-end                                                                                                               | Restructure code without behavior change          |
 | `workflow-review-changes` | [parallel: changes-review + whole-target why-review] → validate findings → parallel specialists → code-simplifier → … → final whole-target why-review → workflow-end | Review uncommitted changes before committing      |
 
 ---

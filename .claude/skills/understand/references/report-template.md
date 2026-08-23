@@ -228,7 +228,7 @@ flowchart LR
 
 - **Business rules / invariants it protects:** {the rule in domain words, and where it is enforced — `file:line`}
 - **What breaks for the user if the rule breaks:** {the concrete consequence, not "data integrity"}
-- **Proven by:** `{REAL TC-* / test IDs}` — **never invent a case ID.** Use the actual spec `TC-*` and/or the test `it`/`[Fact]`/scenario names. Nothing covers it → write *"no test covers this story"* and record it as a coverage gap
+- **Proven by:** `{REAL TC-* / test IDs}` — **never invent a case ID.** Use the actual spec `TC-*` and/or the test `it`/`[Fact]` names and scenarios. Nothing covers it → write *"no test covers this story"* and record it as a coverage gap
 - **Read it in:** §4 Stage {N}
 
 ---
@@ -456,7 +456,7 @@ The **spine** is not a file — it is the **header region of the one report file
 
 **Date:** {YYYY-MM-DD HH:mm} · **Tier:** {S2|S3|S4} · **Groups:** {N} · **Style level:** {N} ({name})
 **Grouping axis:** {module | capability | flow | layer slice | structural} — {the rung, and why it was the first that fit}
-**Sources read:** {…} · **Graph trace:** {ran | not applicable — reason} · **Delegated:** {`/scout` G1–G3 | none}
+**Sources read:** {…} · **Graph trace:** {ran | not applicable — reason} · **Delegated:** {`/investigate` G1–G3 | none}
 
 > **How to read this:** **§0** is the whole report in short. §4 names which GROUP to open first. Each group block below is a full report in its own scope; this spine region carries what they share and what only appears when you look across them.
 

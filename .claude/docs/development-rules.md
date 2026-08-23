@@ -51,7 +51,8 @@
 
 - **Name the PURPOSE, not the member list.** `OrXxx/AndYyy` joining roles/types/statuses → red flag. Test: "If I add/remove one item, must I rename?" → YES = content-driven = rename.
 - **"Or" is fine in behavioral idioms** (`FirstOrDefault`, `SuccessOrThrow`) — it expresses WHAT HAPPENS, not WHO IS IN A SET.
-- Full examples: `docs/project-reference/code-review-rules.md` → `### Naming Abstraction — Purpose vs Content`.
+- **For public/cross-layer abstractions, name the capability or domain contract, not the current provider, SDK, framework, database, or transport.** Keep those details on concrete adapters (`IStorage`/`Storage` → `AzureBlobStorage`); use a narrower contract when “storage” overpromises and preserve local interface syntax.
+- Canonical portable protocol: `.claude/skills/shared/sync-inline-versions.md` (`SYNC:design-patterns-quality`); research synthesis: `plans/reports/research-abstraction-naming-260820.md`.
 
 ### Standards
 
@@ -343,3 +344,4 @@ After completing code changes, check for stale documentation:
 **MANDATORY IMPORTANT MUST ATTENTION** run doc review at session wrap-up (map changed files → affected docs)
 **MANDATORY IMPORTANT MUST ATTENTION** activate relevant skills from catalog during the process
 **MANDATORY IMPORTANT MUST ATTENTION** names express PURPOSE not CONTENT — "OrXxx/AndYyy" joining roles/types/statuses = content-driven = rename. "Or" in behavioral idioms (`FirstOrDefault`, `SuccessOrThrow`) is fine.
+**MANDATORY IMPORTANT MUST ATTENTION** public/cross-layer abstractions express capability or domain contract, not provider/framework/transport; keep technical details on concrete adapters and verify the contract against callers and implementations.

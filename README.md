@@ -4,7 +4,7 @@
 
 ## What is this?
 
-**easy-claude** is a portable `.claude` template you copy into any project to supercharge Claude Code with **16 top-level hook files**, **163 skills**, **19 workflows**, and **29 specialized agents**. It covers the entire software development lifecycle — from idea capture and test specification through implementation, code review, and documentation. The Claude-authored source also syncs to Codex mirrors under `.agents/` and `.codex/`, with Copilot instruction generation available through sync skills and scripts.
+**easy-claude** is a portable `.claude` template you copy into any project to supercharge Claude Code with **17 top-level hook files**, **166 skills**, **19 workflows**, and **27 specialized agents**. It covers the entire software development lifecycle — from idea capture and test specification through implementation, code review, and documentation. The Claude-authored source also syncs to Codex mirrors under `.agents/` and `.codex/`, with Copilot instruction generation available through sync skills and scripts.
 
 **Core insight:** LLMs forget, hallucinate, and drift. Instead of hoping the AI "just gets it right," this framework uses **programmatic guardrails** (hooks) and **prompt-engineered protocols** (skills/workflows) to enforce correctness at every stage.
 
@@ -137,7 +137,7 @@ npm run codex:sync                                          # same via package.j
 
 ## What's Inside
 
-### Hooks (16 top-level `.cjs` files + 1 `.js` helper, 25 lib modules)
+### Hooks (16 top-level `.cjs` files + 1 `.js` helper, 26 lib modules)
 
 Runtime Node.js scripts that fire on Claude Code lifecycle events.
 
@@ -165,13 +165,13 @@ Runtime Node.js scripts that fire on Claude Code lifecycle events.
 (and the `AGENTS.md` mirror). Re-reading these static files restores rules and lessons after
 compaction. This stateless-per-turn design prevents context drift over long sessions.
 
-### Skills (163 definitions)
+### Skills (166 definitions)
 
 Markdown-based prompts with YAML frontmatter that guide AI behavior.
 
 | Category           | Examples                                                                                                   | What They Do                                             |
 | ------------------ | ---------------------------------------------------------------------------------------------------------- | -------------------------------------------------------- |
-| **Planning**       | `/plan`, `/scout`, `/investigate`                                                                          | Research, plan, investigate before coding                |
+| **Planning**       | `/plan`, `/investigate`                                                                                     | Research, plan, investigate before coding                |
 | **Implementation** | `/feature-implement`, `/plan-execute`, `/fix`, `/refactoring`                                              | Write code with quality gates                            |
 | **Testing**        | `/test`, `/integration-test`, `/integration-test-review`, `/integration-test-verify`, `/e2e-test`, `/spec` | Test-first, test-after, and spec-traceability workflows  |
 | **Review**         | `/code-review`, `/changes-review`, `/security-review`                                                      | Code quality, security audits                            |
@@ -225,7 +225,7 @@ Reviews are first-class skills you can run standalone, and several are chained a
 | `/artifact-review`             | PBI / story / test-spec / design artifact quality before handoff         |
 | `/quality-gate`                | Run the consolidated quality-gate checklist                              |
 
-### Agents (29 specialists)
+### Agents (27 specialists)
 
 Subagent definitions for parallelized, specialized work.
 
@@ -248,13 +248,13 @@ easy-claude/
 ├── .agents/                  # Codex skill mirror generated from .claude/skills
 ├── .codex/                   # Codex agents, hooks, and context parity files
 ├── .claude/                  # <-- The framework template (copy this to your project)
-│   ├── agents/               # 29 specialized agent definitions
-│   ├── hooks/                # 16 top-level hook files + lib/ utilities
+│   ├── agents/               # 27 specialized agent definitions
+│   ├── hooks/                # 17 top-level hook files + lib/ utilities
 │   │   ├── lib/              # Shared hook libraries
 │   │   ├── notifications/    # Multi-channel notification system
 │   │   ├── scout-block/      # Broad search prevention
 │   │   └── tests/            # Hook test suites
-│   ├── skills/               # 163 skill definitions
+│   ├── skills/               # 166 skill definitions
 │   │   ├── <skill>/          # Each skill directory contains:
 │   │   │   ├── SKILL.md      # Entry point (prompt + frontmatter)
 │   │   │   ├── scripts/      # Optional automation scripts
@@ -286,7 +286,7 @@ The entire framework is **project-agnostic**. All project-specific knowledge liv
 ```
 ┌─────────────────────────────────────┐
 │     Generic Framework (reusable)    │
-│ 16 Hook Files + 163 Skills + 19 Flows │
+│ 17 Hook Files + 166 Skills + 19 Flows │
 └──────────────┬──────────────────────┘
                │
         ┌──────┴──────┐

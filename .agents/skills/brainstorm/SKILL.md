@@ -1,6 +1,6 @@
 ---
 name: brainstorm
-description: '[Content] Use when you need to brainstorm as a PO/BA — structured ideation for problem-solving, new product creation, or feature enhancement.'
+description: '[Content] Use when you need to brainstorm as a PO/BA — structured ideation for problem-solving, new product creation, feature enhancement, or outcome-roadmap framing. Flag: --mode={roadmap|scope}.'
 disable-model-invocation: false
 ---
 
@@ -61,6 +61,8 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 - Strictly separate diverge (Phases 1 & 3 — generate, "Yes, and…", zero judgment) from converge (Phases 2 & 4 — narrow, RICE/Kano/MoSCoW scoring); mixing the two modes is the Golden Rule violation that kills idea output.
 - Never stop at a raw or flat idea list: every top-3 candidate MUST carry a problem + value hypothesis card, an identified riskiest assumption (RAT), and the single cheapest validation test designed before any build commitment.
 - Close with an opinionated decision (Phase 6 — recommend ONE option with trade-offs, not a menu), every claim evidence-backed at >80% confidence, then offer handoff by asking the user directly to `$idea`, `$refine`, `$plan`, etc. — EXCEPT in **Multi-Opportunity Discovery mode**, where convergence RANKS the opportunity map (3–8 RICE-scored items) and hands off via multi-select to a per-opportunity PBI loop instead of picking ONE winner.
+- Apply the shared `isLargeIdea` rule during convergence. For any true signal, capture one complete `large_idea_decomposition` block in the owning idea/PBI/spec handoff: ordered releasable slices, dependency order, non-goals, risk/evidence owners, and deferred-work owners. This is embedded scope context; it does not create `docs/product-roadmap.md`.
+- If `--mode=roadmap`, frame product outcomes and milestone choices, then hand off to `$product-roadmap`; this explicit mode may create/update `docs/product-roadmap.md` and does not choose implementation. If `--mode=scope`, resolve and amend the selected stable scope brief in place, then stop before scenario/plan work.
 
 **Four Scenarios:**
 
@@ -85,6 +87,31 @@ Discover ──► Define               Develop ──► Deliver
 **Be skeptical. Apply critical thinking. Every idea needs a testable hypothesis. Confidence >80% required before recommending.**
 
 ---
+
+## Roadmap and Scope Modes
+
+Resolve the flag before Phase 0:
+
+| Mode | Purpose | Output / stop condition |
+| --- | --- | --- |
+| `--mode=roadmap` | Product-level framing for a broad vision or new product | Outcome hypothesis, actors, risks, 3–8 milestone candidates, non-goals, decisions, and evidence proposals; hand off to `$product-roadmap` to write/approve `docs/product-roadmap.md`; no code, framework, schema, or timeline |
+| `--mode=scope` | Clarify one selected roadmap milestone | Amend the exact selected `plans/{plan-id}/scope-brief.md` with in-scope behavior, non-goals, terms, source of truth, risks, decisions, and evidence; stop before `$scenario`/`$plan` |
+| default | Standard Double Diamond ideation | Existing idea shortlist or multi-opportunity map flow below |
+
+`--mode=roadmap` is not a shortcut around owner approval. Use ask the user directly for milestone boundaries and lifecycle terms. The product-roadmap skill owns the canonical artifact and selection gate; this mode supplies structured framing to it.
+
+`--mode=scope` MUST resolve the existing scope-brief path from the product-roadmap handoff, `$ARGUMENTS`, or active plan context, then amend that file in place. If no stable `plans/{plan-id}/scope-brief.md` is available, stop and route to `$product-roadmap`; never create a competing scope brief or write one under `plans/reports/`.
+
+For the default mode, do not route to `--mode=roadmap` merely because the idea is broad. Evaluate:
+
+```text
+isLargeIdea = multipleIndependentOutcomes
+            || ambiguousOrResearchHeavy
+            || releaseScopeDecomposition
+            || oversizedPbiThatMustSplit
+```
+
+When true, the brainstorm handoff owns this portable block and downstream skills consume it read-only. When all four signals are false, omit the block and all roadmap/milestone placeholders. An existing roadmap is context only unless the user explicitly chose `--mode=roadmap`.
 
 ## Answer this question:
 
@@ -913,9 +940,27 @@ After brainstorm session concludes, use ask the user directly to present next st
 
 <!-- PROMPT-ENHANCE:STEP-TASK-CLOSING:END -->
 
+<!-- SYNC:project-protocol-overlay -->
+
+> **Project Protocol Overlay** — Before executing this skill, resolve any PROJECT overlay rules layered onto it: match this skill's name against the `Target` column of the project's skill-protocol index (`docs/project-reference/skill-protocols-reference.md` by default; a `referenceDocs` entry in `docs/project-config.json` overrides the path), taking the most specific matching tier ONLY — exact name > glob > `*`. **That precedence orders overlays against EACH OTHER, never against this skill.** Read ONLY the matched bodies, resolved as `<protocols-dir>/<Name>.md`; a row's Body link is display text, never a read path. A matched body that is missing or malformed is REPORTED and skipped — never reconstructed from the index Description. No index, or no match -> proceed with no overlay, silently. Full contract: `.claude/skills/project-skill-protocol/references/registry.md`.
+>
+> Overlays are **ADDITIVE ONLY**: they ADD rules on top of this skill's own protocol and NEVER replace, override, disable, or reinterpret a rule it already states — removing every overlay must return this skill to exactly its documented behavior. An overlay is a BRIEF, not an authority escalation: it can NEVER waive a workflow gate, git discipline, a review gate, or a user-confirmation gate. A genuine overlay-vs-skill conflict, or two equally-specific overlays that directly contradict -> surface both to the user; NEVER resolve silently.
+
+<!-- /SYNC:project-protocol-overlay -->
+
+<!-- SYNC:project-protocol-overlay:reminder -->
+
+**MUST ATTENTION** resolve project protocol overlays for this skill BEFORE executing — most specific matching tier only (exact > glob > `*`, which ranks overlays against each other, NEVER against this skill), read only matched bodies at `<protocols-dir>/<Name>.md`; a missing or malformed body is reported, never reconstructed. Overlays are ADDITIVE ONLY (they never replace this skill's own rules) and are a brief, NEVER an authority escalation; an equal-specificity contradiction goes to the user.
+
+<!-- /SYNC:project-protocol-overlay:reminder -->
+
 ## Closing Reminders
 
 - **IMPORTANT MUST ATTENTION Goal:** Deliver a scored, ranked shortlist of 3-5 candidate ideas — each carrying a problem + value hypothesis, an identified riskiest assumption, and the cheapest validation test designed — so the team commits to the right problem AND the right solution before building, never to a flat unvalidated idea list.
+- **IMPORTANT MUST ATTENTION Main steps:** detect scenario/role → frame the problem → frame opportunities → diverge ideas → converge and score → validate hypotheses → decide or rank the opportunity map → document and hand off.
+- **IMPORTANT MUST ATTENTION Roadmap mode:** `--mode=roadmap` is explicit-only; it frames outcome-based milestones, risks, non-goals, human decisions, and evidence, then hands off to `$product-roadmap`; it does not choose technology or implementation.
+- **IMPORTANT MUST ATTENTION Embedded decomposition:** when any shared `isLargeIdea` signal is true, write the complete five-field `large_idea_decomposition` block in the owning handoff and carry its stable slice IDs into PBIs, stories, mock-ups, and the all-PBI presentation; do not create a default roadmap file.
+- **IMPORTANT MUST ATTENTION Scope mode:** `--mode=scope` resolves and amends exactly one approved `plans/{plan-id}/scope-brief.md` in place, then stops before `$scenario` or `$plan`; it never creates a competing brief.
 - **IMPORTANT MUST ATTENTION Main steps (run in order, track each):** P0 Session Setup (detect scenario + role + known) → P1 Problem Framing/diverge (POV → 5 Whys/Fishbone → JTBD → HMW) → P2 Opportunity Framing/converge (OST / Lean Canvas / ERRC / Value-Prop) → P3 Ideation/diverge (SCAMPER → Crazy 8s → Brainwriting → Impact Map → Analogy, 25–40 ideas) → P4 Evaluation/converge (Dot Vote → RICE → Kano → 2×2 → MoSCoW, shortlist 3–5) → P5 Hypothesis Validation (Problem + Value card + RAT + cheapest test + Build-Measure-Learn) → P6 Decision (ONE recommendation) → P7 Documentation & Handoff — why: the skill's own phases are the steps AI most often forgets; re-anchor to them before each phase.
 
 **Protocols in force (concise digest of the SYNC/shared blocks this skill carries):**
@@ -960,7 +1005,7 @@ Source: `.claude/.ck.json` + `.claude/skills/shared/sync-inline-versions.md` (`:
 3. **AUTO-SELECT:** Pick the best option yourself. Do not ask the user to choose between direct execution, skill, standard workflow, or custom workflow.
 4. **ACTIVATE:** For a selected workflow, call `$start-workflow <workflowId>`; for a selected skill, invoke that skill; for a custom workflow, sequence custom steps directly; for direct execution, proceed with the task.
 5. **CREATE TASKS:** task tracking for ALL workflow/skill/custom steps before execution when the selected path has multiple steps.
-6. **PARALLELIZE:** Before executing the task list, tag each task `PAR` (independent inputs + write set disjoint from every other `PAR` task) or `SEQ` (name the blocking dependency), group `PAR` tasks into waves, declare the wave plan, and spawn each wave's sub-agents in ONE message — all-return barrier per wave, fan-out one level deep unless a sub-agent's own definition authorizes further fan-out. Sequential-by-default is a defect when tasks are independent; do not parallelize shared write targets, output-consuming tasks, trivial single-file work, workflow-fixed ordering, or user-approval gates.
+6. **PARALLELIZE:** Before executing the task list, tag each task `PAR` (independent inputs + write set disjoint from every other `PAR` task) or `SEQ` (name the blocking dependency), group `PAR` tasks into waves, declare the wave plan, and spawn each wave's sub-agents in ONE message — all-return barrier per wave, fan-out one level deep unless a sub-agent's own definition authorizes further fan-out. Sequential-by-default is a defect when tasks are independent; do not parallelize shared write targets, output-consuming tasks, trivial single-file work, ordering a skill or workflow explicitly fixes, or user-approval gates.
 7. **EXECUTE:** Advance per the **Workflow Step Advancement & Parallel Phases** rule in your context instructions — model-driven; a sub-agent completion advances a step identically to an inline call; a parallel-phase group is an all-return barrier (advance only after ALL members return, never serialize it)
 ## Shared AI-SDD Protocol Markers
 
@@ -1022,7 +1067,7 @@ Break work into small tasks (task tracking) before starting. Add final task: "An
 - **Sub-agents inherit knowledge only from their agent .md definition — use custom agent types, not built-in Explore.** Tool adoption = permission + knowledge + enforcement (numbered workflow step).
 - **Persist sub-agent findings incrementally, not as a final batch.** Long sub-agents hit cutoffs before final write — findings lost. Instruct append-per-section to report file.
 - **When debugging, ask "whose responsibility?" before fixing.** Trace caller (wrong data) vs callee (wrong handling). Fix at responsible layer — never patch symptom site.
-- **Test failure → adjudicate WHO is at fault (source vs test) before forcing green.** A green-again suite is not the goal; the correct verdict on what was actually wrong is. Root-cause first, then triangulate the failure against the governing spec (`docs/specs/**` if one exists) AND the source: SOURCE-WRONG → fix code at the owning layer and keep/strengthen the test; TEST-WRONG → fix the stale assertion/setup at its root. NEVER weaken an assertion, add a skip, or relax a timeout to force green, and never change source to satisfy a broken test. Spec silent or ambiguous about which side is correct → STOP and ask the user.
+- **Test failure → record a provisional verdict before trace/edit, then investigate.** Use the full five-way taxonomy: SOURCE-WRONG (production violates intent), TEST-WRONG (assertion/setup is stale), TEST-NOT-OPTIMAL (valid but fragile or low-signal test), ENVIRONMENT-BLOCKED (external state prevents a verdict), or AMBIGUOUS (intent/evidence cannot choose safely). Then trace root cause and triangulate against the governing spec (`docs/specs/**` if one exists) AND source. NEVER weaken an assertion, add a skip, relax a timeout, or change source merely to force green.
 - **Grep ALL removed names after extraction/refactoring.** Primary file "done" ≠ secondary files clean. Grep entire scope for every removed symbol before declaring complete.
 - **Assume existing values are intentional — ask WHY before changing OR flagging one as a defect.** Pattern-matching as "wrong" skips context. Before changing or reporting any constant/limit/flag/cutoff: read comments, git blame, the CALLER's ordering (the guarantee that makes the value correct usually lives in code running immediately BEFORE the cited line), and 2+ sibling call sites of the same convention. A doc stating WHAT without WHY is missing rationale, not proof of a missing guard — and in a validation pass, an accurate `file:line` citation proves the transcription, never the defect.
 - **Verify ALL affected outputs, not just the first.** One build green ≠ all green. Multi-stack changes (backend/frontend/tests/docs) require verifying EVERY output.

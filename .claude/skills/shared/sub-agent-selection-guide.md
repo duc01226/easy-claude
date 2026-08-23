@@ -31,8 +31,8 @@
 | Product/backlog †             | `product-owner`            | PBI, prioritization, sprint planning                          |
 | Project status                | `project-manager`          | Progress tracking, cross-agent consolidation                  |
 | Spec compliance               | `spec-compliance-reviewer` | Verify implementation matches spec (before code-reviewer)     |
-| Codebase exploration (internal) | `scout`                  | Parallel file/symbol search WITH graph CLI + Bash (`.claude/agents/scout.md`) |
-| Codebase exploration (external) | `scout-external`         | Same, via external CLIs (Gemini, OpenCode) — `--ext` / `--engine=external`    |
+| Codebase exploration (internal) | `/investigate`                  | Main-session file/symbol search with graph-backed tracing |
+| Codebase exploration (delegated) | `researcher`         | Read-only landscape research in a scoped report |
 | Business analysis †           | `business-analyst`         | Requirements, user stories, acceptance criteria               |
 | Greenfield / inception        | `solution-architect`       | New project DDD modeling, tech stack selection                |
 | Knowledge synthesis †         | `knowledge-worker`         | Research synthesis, structured reports, market analysis       |
@@ -101,7 +101,7 @@ Why one wave: all seven are read-only, share no mutable state, and none consumes
 | -------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Disjoint write sets        | No two members write the same file. Read-only members trivially pass.                                                                                                                                                       |
 | No output dependency       | No member consumes another member's output — such a task is `SEQ` and belongs in a later wave.                                                                                                                               |
-| Self-contained brief       | Each member gets: goal · exact scope + owned files · reference docs to read · return contract (summary + `Full report:` path, per `SYNC:subagent-return-contract`) · incremental persistence to `plans/reports/` (per `SYNC:incremental-persistence`). |
+| Self-contained brief       | Each member gets: goal · exact scope + owned files · reference docs to read · a **unique exact artifact** path · return contract (summary + `Full report:` path, per `SYNC:subagent-return-contract`) · incremental persistence to `plans/reports/` (per `SYNC:incremental-persistence`). |
 | Specialist routing         | Every member routed via the decision table above — never `code-reviewer` as a catch-all.                                                                                                                                     |
 | Barrier before next wave   | Next wave dispatches only after every member returns or is skipped, findings merged, tasks marked.                                                                                                                           |
 | Mutating steps deferred    | Code-mutating or state-mutating steps run after the barrier, never inside the wave.                                                                                                                                          |

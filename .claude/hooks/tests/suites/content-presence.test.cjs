@@ -29,7 +29,7 @@
  *   TC-CP-006 — ba-refinement-context hook's DoR / hypothesis-validation BA guidance
  *               relocated into the refine skill.
  *   TC-CP-007 — graph-grep-suggester hook's post-grep "run a graph trace, grep can't find
- *               callers/consumers/events" mandate relocated into the scout skill.
+ *               callers/consumers/events" mandate relocated into the investigate skill.
  *   TC-CP-009 — the integration-test execution-discipline rules (verify the WHOLE system,
  *               never hack seed data / drive through real use-case paths, /debug-investigate
  *               the root cause on failure, 60s runtime cap, loop until green) are present in
@@ -192,8 +192,8 @@ module.exports = {
             ]),
         },
         {
-            name: '[content-presence] TC-CP-007 graph-grep post-grep trace mandate relocated into scout skill',
-            fn: () => assertRelocated('graph-grep-suggester', 'scout', [
+            name: '[content-presence] TC-CP-007 graph-grep post-grep trace mandate relocated into investigate skill',
+            fn: () => assertRelocated('graph-grep-suggester', 'investigate', [
                 'Post-Grep Trace Trigger',
                 'grep CANNOT find',
             ]),
@@ -245,7 +245,7 @@ module.exports = {
                 // still passes, but DROPPING a rule from any family skill fails loudly.
                 const rules = {
                     'who-is-at-fault': 'who is at fault — the source code or the test code',
-                    'root-cause-first': 'Root-cause first',
+                    'root-cause-first': 'trace end-to-start before editing',
                     'triangulate-spec-and-source': 'Triangulate against the spec AND the source',
                     'classify-source-wrong': 'SOURCE-WRONG',
                     'classify-test-wrong': 'TEST-WRONG',

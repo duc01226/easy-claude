@@ -8,58 +8,25 @@ This guide provides detailed patterns for using each agent type, including decis
 
 ---
 
-## Exploration Agents
+## Exploration and Investigation
 
-### Scout Agent
+### `/investigate` Skill
 
-**Purpose:** Fast file discovery using pattern matching.
+**Purpose:** Evidence-based codebase investigation with dependency tracing, graph context, and explicit validation of findings.
 
 **Best For:**
 
-- Finding files by name patterns
-- Locating implementations before changes
-- Understanding file distribution across directories
+- Finding relevant files and entry points before changes
+- Tracing behavior across layers and service boundaries
+- Mapping callers, dependents, tests, and failure paths
 
 **Invocation:**
 
-```typescript
-Task({
-    subagent_type: 'scout',
-    prompt: 'Find all files related to employee validation in ServiceB',
-    description: 'Find employee validation files'
-});
+```text
+/investigate "Find all files related to employee validation in ServiceB and trace the request flow"
 ```
 
-**Pattern: Targeted Search**
-
-```typescript
-// Specific file type in specific service
-Task({
-    subagent_type: 'scout',
-    prompt: 'Find all *CommandHandler.cs files in ServiceA/UseCaseCommands/',
-    description: 'Find ServiceA command handlers'
-});
-```
-
-**Pattern: Relationship Discovery**
-
-```typescript
-// Find related files across boundaries
-Task({
-    subagent_type: 'scout',
-    prompt: 'Find all files that reference EmployeeEntity - include consumers, producers, DTOs, and tests',
-    description: 'Find EmployeeEntity dependencies'
-});
-```
-
-**When to Use Scout vs Direct Tools:**
-
-| Need                 | Use Scout            | Use Direct Tools       |
-| -------------------- | -------------------- | ---------------------- |
-| Find by name pattern | Multiple directories | Single known directory |
-| Find by content      | Cross-service        | Known file             |
-| Understand structure | Yes                  | No                     |
-| Quick lookup         | No                   | Yes                    |
+Use direct search tools for a single known path. Use `/investigate` when the answer requires cross-file relationships, runtime flow, or evidence-backed recommendations.
 
 ---
 
@@ -597,11 +564,8 @@ Task({
 ### Investigation Pipeline
 
 ```typescript
-// 1. Scout finds files
-Task({
-    subagent_type: 'scout',
-    prompt: 'Find all files related to performance review calculation'
-});
+// 1. The main session investigates the code path
+/investigate "Find and trace all files related to performance review calculation"
 
 // 2. Explore understands flow
 Task({
@@ -624,7 +588,7 @@ Task({
 
 ```typescript
 // ❌ Too many agents for simple task
-Task({ subagent_type: "scout", prompt: "Find Button.tsx" })
+Glob({ pattern: "**/Button.tsx" })
 Task({ subagent_type: "Explore", prompt: "Understand Button.tsx" })
 Task({ subagent_type: "planner", prompt: "Plan Button change" })
 
@@ -654,12 +618,12 @@ Task({
 
 ```typescript
 // ❌ Sequential for independent tasks
-const a = await Task({ subagent_type: 'scout', prompt: 'Find A' });
-const b = await Task({ subagent_type: 'scout', prompt: 'Find B' });
+const a = await Task({ subagent_type: 'researcher', prompt: 'Find A' });
+const b = await Task({ subagent_type: 'researcher', prompt: 'Find B' });
 
 // ✅ Parallel in single message
-Task({ subagent_type: 'scout', prompt: 'Find A' });
-Task({ subagent_type: 'scout', prompt: 'Find B' });
+Task({ subagent_type: 'researcher', prompt: 'Find A' });
+Task({ subagent_type: 'researcher', prompt: 'Find B' });
 ```
 
 ---

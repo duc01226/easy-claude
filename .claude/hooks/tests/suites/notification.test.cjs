@@ -231,7 +231,7 @@ const routerExecutionTests = [
         name: '[notification] router skips SubagentStop event (not in whitelist)',
         fn: async () => {
             // WHITELIST: Only Stop and idle_prompt are allowed - SubagentStop is blocked
-            const input = { hook_event_name: 'SubagentStop', cwd: '/test', session_id: 'test', agent_type: 'scout' };
+            const input = { hook_event_name: 'SubagentStop', cwd: '/test', session_id: 'test', agent_type: 'researcher' };
             const result = await runHook(NOTIFY_SCRIPT, input, { timeout: 5000, env: testEnv });
             assertEqual(result.code, 0, 'Should exit cleanly');
             assertContains(result.stderr, 'Skipped', 'Should log that notification was skipped');

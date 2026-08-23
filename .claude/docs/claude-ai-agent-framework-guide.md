@@ -5,7 +5,7 @@
 **Audience:** AI engineers, tech leads, and teams wanting to build reliable AI-assisted development systems.
 **Scope:** What each layer does, why it exists, how the pieces compose, the design principles behind every decision, and which AI agent best practices each addresses.
 
-> **Document Sync Status** — Current local verification (2026-08-12): **16 hook files · 163 skills · 19 workflows · 29 agents** using the ADR-0002 filesystem metrics. Codex mirrors are committed under `.agents/`, `.codex/`, and `AGENTS.md`. Notable mechanisms documented here include multi-AI-tool portability (§13), behavioral-principle injection (§8.21), self-validating review (§8.20), and embedded sequential-thinking.
+> **Document Sync Status** — Current local verification (2026-08-21): **17 top-level hook files · 166 skills · 19 workflows · 27 agents** using the ADR-0002 filesystem metrics. Codex mirrors are committed under `.agents/`, `.codex/`, and `AGENTS.md`. Notable mechanisms documented here include multi-AI-tool portability (§13), behavioral-principle injection (§8.21), self-validating review (§8.20), and embedded sequential-thinking.
 
 ---
 
@@ -45,7 +45,7 @@
 
 ## 1. Executive Summary
 
-This framework wraps Claude Code in a three-pillar execution framework — **16 top-level hook files**, **163 skills**, **19 registered workflows**, and **29 specialized agents** — that transforms a generic LLM into a project-aware, quality-enforced, hallucination-resistant development agent. The framework covers the **entire software development lifecycle** — from idea capture and TDD test specification through implementation, testing, E2E testing, code review, and documentation — with AI as a first-class participant at every stage.
+This framework wraps Claude Code in a three-pillar execution framework — **17 top-level hook files**, **166 skills**, **19 registered workflows**, and **27 specialized agents** — that transforms a generic LLM into a project-aware, quality-enforced, hallucination-resistant development agent. The framework covers the **entire software development lifecycle** — from idea capture and TDD test specification through implementation, testing, E2E testing, code review, and documentation — with AI as a first-class participant at every stage.
 
 It is also **harness- and project-agnostic**: the `.claude/` source compiles to verified OpenAI Codex mirrors (`AGENTS.md`, `.agents/`, `.codex/`), while all project-specific knowledge is factored into `project-config.json` + reference docs — so the same behavior runs on any supported AI tool and ports to any codebase (Section 13).
 
@@ -117,11 +117,11 @@ graph TB
         end
     end
 
-    subgraph "Intelligence Layer — 163 Skills"
+    subgraph "Intelligence Layer — 166 Skills"
         SP[Shared Protocols<br/>5 files]
         IS[Implementation Skills<br/>feature-implement, fix, refactor]
         QS[Quality Skills<br/>code-review, prove-fix]
-        PS[Planning Skills<br/>plan, investigate, scout]
+        PS[Planning Skills<br/>plan, investigate]
     end
 
     subgraph "Orchestration Layer — 18 Workflows"
@@ -168,9 +168,9 @@ sequenceDiagram
     Note over LLM: Workflow catalog + task/edit rules are static in<br/>CLAUDE.md / SKILL.md (always in context, re-read every prompt)
     User->>LLM: Submit prompt
     LLM->>LLM: Auto-select best-matching workflow (model-driven)
-    LLM->>Skill: Activate via start-workflow <workflowId> (step 1 /scout)
+    LLM->>Skill: Activate via start-workflow <workflowId> (step 1 /investigate)
     Skill->>Hook: PreToolUse (Grep/Glob)
-    Hook->>Hook: Safety check (path boundary, privacy, scout)
+    Hook->>Hook: Safety check (path boundary, privacy, scout-block)
     LLM->>LLM: Apply static path→patterns guidance, execute tool
     Hook->>LLM: PostToolUse (graph auto-update on edits)
 
@@ -313,7 +313,7 @@ HOOK SYSTEM (16 top-level .cjs hooks + 1 .js notification helper)
 │   ├── post-edit-prettier.cjs ────── Auto-format after edits
 │   └── graph-auto-update.cjs ─────── Incremental graph update after edits (debounced)
 │
-└── SUPPORT INFRASTRUCTURE (25 lib modules)
+└── SUPPORT INFRASTRUCTURE (26 lib modules)
     ├── State: ck-session-state, workflow-state, todo-state, agent-files-state
     ├── Context: prompt-injections
     ├── Memory: swap-engine (externalize large outputs), temp-file-cleanup
@@ -455,11 +455,11 @@ allowed-tools: Read, Grep, Glob, Bash, Write, TaskCreate
 2. Declare confidence level...
 ```
 
-### 5.2 Skill Categories (163 skills)
+### 5.2 Skill Categories (166 skills)
 
 ```mermaid
 mindmap
-  root((163 Skills))
+  root((166 Skills))
     Quality & Verification
       code-review
       prove-fix
@@ -475,7 +475,6 @@ mindmap
       plan-review
       plan-validate
       investigate
-      scout
       research
     Implementation
       feature-implement
@@ -746,7 +745,6 @@ Workflows are **JSON-defined sequences of skills** stored in `.claude/workflows.
         "name": "Bug Fix",
         "whenToUse": "User reports a bug, error, crash, failure",
         "sequence": [
-            "scout",
             "investigate",
             "debug",
             "plan",
@@ -772,7 +770,7 @@ Workflows are **JSON-defined sequences of skills** stored in `.claude/workflows.
 }
 ```
 
-### 6.2 Workflow Catalog (18 Workflows)
+### 6.2 Workflow Catalog (19 Workflows)
 
 ```
 WORKFLOW CATALOG
@@ -785,8 +783,9 @@ WORKFLOW CATALOG
 ├── REFACTORING (1)
 │   └── workflow-refactor
 │
-├── TESTING (4)
+├── TESTING (5)
 │   ├── workflow-e2e (--source=changes|recording|update-ui)
+│   ├── workflow-integration-test-green
 │   ├── workflow-spec-sync
 │   ├── workflow-seed-test-data
 │   └── workflow-write-integration-test
@@ -841,7 +840,7 @@ sequenceDiagram
 
     Model->>Skill: /start-workflow workflow-bugfix
 
-    Skill->>Todo: Create tasks for ALL steps:<br/>1. [Bugfix] /scout<br/>2. [Bugfix] /investigate<br/>3. [Bugfix] /debug-investigate<br/>4. [Bugfix] /plan<br/>...24 steps total
+    Skill->>Todo: Create tasks for ALL steps:<br/>1. [Bugfix] /investigate<br/>2. [Bugfix] /debug-investigate<br/>3. [Bugfix] /plan<br/>...23 steps total
 
     loop Each workflow step
         Todo->>Skill: Mark step in_progress
@@ -879,7 +878,7 @@ The hook and skill system is **project-agnostic**. All project-specific knowledg
 graph LR
     subgraph "Generic Framework (reusable)"
         H[16 Hook Files]
-        S[163 Skills]
+        S[166 Skills]
         W[18 Workflows]
     end
 
@@ -1077,7 +1076,7 @@ graph TB
 │  AI evaluates: direct edit? single skill? feature workflow?      │
 │                    ↓                                              │
 │  Best match: feature workflow → activates immediately            │
-│  (steps: scout→investigate→spec [mode=tests]→plan→plan-execute→test→docs)│
+│  (steps: investigate→spec [mode=tests]→plan→plan-execute→test→docs)      │
 │                                                                   │
 │  EXCEPTION: explicit invocation — when the user names a          │
 │  workflow or skill (start-workflow X, slash-skill), that exact   │
@@ -1354,8 +1353,8 @@ Dedicated registered workflows and workflow trigger skills support test-driven d
 | Workflow                                           | Sequence                                                                                                           | Use Case                                                                                         |
 | -------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------ |
 | **idea-to-pbi**                                    | `/idea` → `/refine` → `/story` → `/spec [mode=tests]` → `/dor-gate`                                                | Go from raw idea to grooming-ready PBI, stories, and reviewed test specifications                |
-| **feature**                                        | `/scout` → `/investigate` → `/spec` → `/spec [mode=tests]` → `/plan` → `/plan-execute` → `/integration-test` → ... | Spec-driven with tests by default: test specs written and reviewed FIRST, then implement         |
-| **e2e** (`--source=recording\|update-ui\|changes`) | `/scout` → `/e2e-test` → `/test` → `/docs-update` → `/workflow-end` → `/watzup`                                    | Generate from a recording, update screenshot baselines, or sync E2E tests to spec/source changes |
+| **feature**                                        | `/investigate` → `/spec` → `/spec [mode=tests]` → `/plan` → `/plan-execute` → `/integration-test` → ... | Spec-driven with tests by default: test specs written and reviewed FIRST, then implement         |
+| **e2e** (`--source=recording\|update-ui\|changes`) | `/e2e-test` → `/test` → `/docs-update` → `/workflow-end` → `/watzup`                                    | Generate from a recording, update screenshot baselines, or sync E2E tests to spec/source changes |
 
 #### Interactive Idea & Requirement Capture
 
@@ -1554,16 +1553,16 @@ TEST SPECIFICATION ARCHITECTURE
 
 ```
 feature:
-  scout → investigate → spec-discovery → domain-analysis → why-review → spec → spec-clarify →
+  investigate → spec-discovery → domain-analysis → why-review → spec → spec-clarify →
   plan → plan-review → plan-validate → why-review →
   spec [mode=tests] → why-review → artifact-review --type=spec-tests → plan → plan-review →
   plan-execute → seed-test-data → domain-entities-review → spec [mode=tests] → why-review → artifact-review --type=spec-tests →
   spec [mode=sync] → integration-test → integration-test-review →
   integration-test-verify → workflow-review-changes →
-  security-review → changelog → test → docs-update → workflow-end → watzup
+  security-review → changelog → test → scan --target=domain-entities → docs-update → workflow-end → watzup
 ```
 
-**Note:** `feature` includes a second planning round (`plan → plan-review`) that refines the implementation plan with test strategy after specs are written, and two verification points after implementation — `/integration-test-verify` following integration-test generation and the final `/test` regression check before docs.
+**Note:** `feature` includes a second planning round (`plan → plan-review`) that refines the implementation plan with test strategy after specs are written, and two verification points after implementation — `/integration-test-verify` following integration-test generation and the final `/test` regression check. After that test and before `/docs-update`, run `/scan --target=domain-entities` only when the final diff changes an entity/model, DTO/data contract, persistence schema/migration, or entity-sync evidence; otherwise complete the scan task with a cited skip reason.
 
 ---
 
@@ -1688,7 +1687,7 @@ spec-sync: changes-review → spec [mode=tests] → spec [mode=sync] →
 **write-integration-test workflow sequence** (absorbs the former `test-to-integration` use case):
 
 ```
-write-integration-test: scout → investigate → spec [mode=tests] → why-review →
+write-integration-test: investigate → spec [mode=tests] → why-review →
                         artifact-review --type=spec-tests → integration-test →
                         integration-test-review → integration-test-verify →
                         spec [mode=sync] → docs-update → workflow-end → watzup
@@ -1805,7 +1804,7 @@ write-integration-test: scout → investigate → spec [mode=tests] → why-revi
 
 **What happens (test health check):**
 
-1. **Scout** — finds all test files and related specs
+1. **Investigate** — finds all test files and related specs, then traces their coverage
 2. **Review** — audits quality, flags flaky patterns
 3. **Run tests** — executes test suite, collects pass/fail results
 4. **Diagnose** — for any failures, determines root cause (test bug vs code bug)
@@ -1931,9 +1930,9 @@ One parameterized workflow (`e2e --source=…`) covers all E2E testing scenarios
 
 | `--source`    | Sequence                                                                        | Use Case                                             |
 | ------------- | ------------------------------------------------------------------------------- | ---------------------------------------------------- |
-| **recording** | `/scout` → `/e2e-test` → `/test` → `/docs-update` → `/workflow-end` → `/watzup` | Browser recording → generate E2E test                |
-| **update-ui** | `/scout` → `/e2e-test` → `/test` → `/docs-update` → `/workflow-end` → `/watzup` | UI visual changes → update test baselines/assertions |
-| **changes**   | `/scout` → `/e2e-test` → `/test` → `/docs-update` → `/workflow-end` → `/watzup` | Code/spec changes → sync E2E test implementations    |
+| **recording** | `/e2e-test` → `/test` → `/docs-update` → `/workflow-end` → `/watzup` | Browser recording → generate E2E test                |
+| **update-ui** | `/e2e-test` → `/test` → `/docs-update` → `/workflow-end` → `/watzup` | UI visual changes → update test baselines/assertions |
+| **changes**   | `/e2e-test` → `/test` → `/docs-update` → `/workflow-end` → `/watzup` | Code/spec changes → sync E2E test implementations    |
 
 #### Case 10: Recording → E2E Test
 
@@ -2543,7 +2542,7 @@ This section maps **established prompt engineering techniques** to specific fram
 │  1. WORKFLOW SEQUENCES — The entire workflow system IS chain-    │
 │     of-thought at macro scale. Instead of "implement feature,"   │
 │     the AI is forced through:                                    │
-│     scout → investigate → plan → review → validate → plan-execute │
+│     investigate → plan → review → validate → plan-execute         │
 │     Each step produces an intermediate artifact that feeds       │
 │     the next step's reasoning.                                   │
 │                                                                   │
@@ -2926,7 +2925,7 @@ Context engineering is the discipline of **managing what information reaches the
 │  │ patterns             │           │ No: impl state      │        │
 │  └────────────────────┘           └────────────────────┘        │
 │                                                                   │
-│  29 agents × isolated contexts = no cross-contamination          │
+│  27 agents × isolated contexts = no cross-contamination          │
 │  Each agent inherits: CLAUDE.md + lessons (baked into agent .md) │
 │  Each agent ignores: unrelated session state                     │
 │                                                                   │
@@ -2946,7 +2945,7 @@ Context engineering is the discipline of **managing what information reaches the
 | **External memory**            | Swap engine, todo state, workflow state, plan files on disk                   |
 | **Context budget management**  | JIT loading + swap + dedup = 50+ tool call sessions vs 15 without             |
 | **Recovery after amnesia**     | Pre-compact save → post-compact restore → auto re-injection pipeline          |
-| **Context isolation**          | 29 specialized agents with independent context windows                        |
+| **Context isolation**          | 27 specialized agents with independent context windows                        |
 | **Path-based routing**         | project-config.json pathRegexes drive which docs load for which files         |
 | **Tiered injection frequency** | Lessons (every prompt) vs patterns (every edit) vs design tokens (UI only)    |
 | **Output compression**         | Swap engine replaces 500-line outputs with 10-line summaries + disk pointers  |
@@ -3000,7 +2999,7 @@ graph TB
     end
 
     subgraph "Static graph contract (in skills, no inject hook)"
-        SKILL["/code-review, /scout,<br/>/debug-investigate, /production-readiness-review<br/>skill instructions"] --> BR["Run graph-blast-radius"]
+        SKILL["/code-review, /investigate,<br/>/debug-investigate, /production-readiness-review<br/>skill instructions"] --> BR["Run graph-blast-radius"]
         BR --> INJ["Surface in context:<br/>Risk level, impacted files,<br/>untested functions"]
     end
 
@@ -3023,8 +3022,8 @@ sequenceDiagram
     Dev->>WF: Start bugfix workflow
 
     rect rgb(240, 248, 255)
-        Note over WF,DB: /scout step
-        WF->>GH: /scout runs graph CLI
+        Note over WF,DB: /investigate step
+        WF->>GH: /investigate runs graph CLI
         GH->>DB: Structural overview query
         DB-->>GH: 94 files, 875 nodes
         GH-->>WF: Return codebase map
@@ -3060,7 +3059,7 @@ sequenceDiagram
 | **Sync**    | `/graph-build --scope=sync` | Sync graph with git state after pull/checkout                                            |
 | **Batch**   | `/graph-query batch`        | Multi-file deduplicated query                                                            |
 
-Skills that **automatically receive graph context** when graph.db exists: `/code-review`, `/changes-review`, `/architecture-review`, `/scout`, `/debug-investigate`, `/production-readiness-review`, `/investigate`, `/fix`, `/refactoring`, `/security-review`, `/performance-review`, `/code-simplifier`, `/prove-fix`.
+Skills that **automatically receive graph context** when graph.db exists: `/code-review`, `/changes-review`, `/architecture-review`, `/investigate`, `/debug-investigate`, `/production-readiness-review`, `/fix`, `/refactoring`, `/security-review`, `/performance-review`, `/code-simplifier`, `/prove-fix`.
 
 #### Auto-Maintenance
 
@@ -3177,7 +3176,7 @@ NEVER skip, batch-complete, or mark done without invoking the sub-skill.
 
 # Task  Subject                                               Conditional?
   1     Phase 0 — Triage                                      No — always
-  2     Phase 1 — Project docs update                         Yes — arch changes only
+  2     Phase 1 — Project context sync (impact-scoped)        No — unless the impact map is empty
   3     Phase 2 — /spec invocation                            Yes — service files changed
   4     Phase 2.5 — /spec-index [mode=index]                  Yes — Feature Spec changed; bucket has derived index
   5     Phase 3 — /spec [mode=tests] update                   Yes — behavior changed
@@ -3434,7 +3433,7 @@ Run the primary gate with `node .claude/hooks/tests/test-all-hooks.cjs`; the ful
 
 Hooks are the **safety net** for the entire system. A broken hook means:
 
-- Security blocks bypassed (path boundary, privacy, scout)
+- Security blocks bypassed (path boundary, privacy, scout-block)
 - Session/doc init fails (AI loses project knowledge)
 - Commit gate disabled (git commit/push escapes the /commit guard)
 - Doc-sync warning lost (behavioral code ships without a spec update)
@@ -3485,7 +3484,7 @@ flowchart TB
 | **Context injection at decision points**       | Static path→patternsDoc guidance in CLAUDE.md / SKILL.md (was hook-injected)                             | Skills/Config |
 | **Reminder rules prevent forgetting**          | Static SYNC rules + the workflow catalog baked into CLAUDE.md, re-read every prompt                      | Skills/Config |
 | **Generic & configurable via config**          | project-config.json drives path→patternsDoc routing                                                      | Config        |
-| **Prompt engineering quality**                 | 163 skills with YAML frontmatter + behavior protocols                                                    | Skills        |
+| **Prompt engineering quality**                 | 166 skills with YAML frontmatter + behavior protocols                                                    | Skills        |
 | **Auto-select workflow path before acting**    | Model reads the static catalog → direct/skill/workflow/custom path                                       | Workflows     |
 | **Confirm plan with questions**                | /plan-validate asks 3-8 questions before implementation                                                  | Skills        |
 | **Sequential thinking for complex problems**   | /sequential-thinking skill + /debug-investigate skill                                                    | Skills        |
@@ -3529,7 +3528,7 @@ flowchart TB
 ├── .ckignore ─────────── Scout block patterns
 ├── workflows.json ─────── 19 workflow definitions
 ├── workflows/ ──────────── Workflow definitions (primary-workflow.md, etc.)
-├── hooks/ ─────────────── 15 top-level .cjs hooks (+ 1 .js helper) + 25 lib modules
+├── hooks/ ─────────────── 15 top-level .cjs hooks (+ 1 .js helper) + 26 lib modules
 │   ├── session-init.cjs
 │   ├── path-boundary-block.cjs
 │   ├── ...
@@ -3539,11 +3538,11 @@ flowchart TB
 │   │   ├── todo-state.cjs
 │   │   └── ...
 │   └── tests/ ────────── Test suites
-├── skills/ ────────────── 163 skill definitions
+├── skills/ ────────────── 166 skill definitions
 │   ├── {skill-name}/SKILL.md
 │   ├── shared/ ───────── 6 shared reference/protocol files
 │   └── _templates/ ───── Skill scaffolding
-├── agents/ ────────────── 29 agent definitions
+├── agents/ ────────────── 27 agent definitions
 ├── docs/ ─────────────── Framework documentation (co-located)
 └── patterns/ ──────────── Anti-hallucination patterns
 
@@ -3570,7 +3569,7 @@ docs/
 Agents are **Markdown files** (`.claude/agents/*.md`) that define specialized AI subprocesses. Each agent receives a focused system prompt, restricted tool set, and domain-specific instructions. They run as child processes of the main Claude Code session.
 
 ```
-AGENT SYSTEM (29 agents)
+AGENT SYSTEM (27 agents)
 │
 ├── IMPLEMENTATION AGENTS
 │   ├── backend-developer ──── .NET CQRS patterns, entities, events
@@ -3590,8 +3589,6 @@ AGENT SYSTEM (29 agents)
 │   ├── planner ─────────────── Implementation plan creation
 │   ├── architect ───────────── System design & ADR creation
 │   ├── solution-architect ──── Greenfield project inception & design
-│   ├── scout ───────────────── Codebase file discovery
-│   ├── scout-external ──────── External tool-based scouting
 │   └── researcher ──────────── Web research & documentation
 │
 ├── PROJECT MANAGEMENT AGENTS
@@ -3617,7 +3614,7 @@ AGENT SYSTEM (29 agents)
 
 Agents solve two critical problems:
 
-1. **Context isolation** — Each agent gets a focused context window without polluting the main session. A code reviewer doesn't need implementation state; a scout doesn't need review findings.
+1. **Context isolation** — Each agent gets a focused context window without polluting the main session. A code reviewer doesn't need implementation state; a researcher doesn't need review findings.
 
 2. **Parallel execution** — Multiple agents can run simultaneously (e.g., 5 code-reviewer agents reviewing different file categories in parallel: architecture, domain-entities, performance, integration-test-review, and security), dramatically reducing time for large tasks.
 
@@ -3625,7 +3622,7 @@ Agents solve two critical problems:
 
 ### 12.3 Agent Behavioral Rules (NEW)
 
-All 29 agents include two layers of behavioral enforcement:
+All 27 agents include two layers of behavioral enforcement:
 
 **Layer 1 — Domain-specific NEVER/ALWAYS rules** appended to their system prompts:
 
@@ -3859,7 +3856,7 @@ The framework succeeds because it aligns with how LLMs actually fail:
 
 ### The Result
 
-**16 top-level hook files**, **163 skills**, **19 registered workflows**, and **29 specialized agents** working in concert to deliver:
+**17 top-level hook files**, **166 skills**, **19 registered workflows**, and **27 specialized agents** working in concert to deliver:
 
 - **Fewer hallucinations** — Evidence gates and proof traces catch AI fabrications before they reach files
 - **Better code quality** — Pattern injection ensures AI follows project conventions, not generic training data
@@ -3867,7 +3864,7 @@ The framework succeeds because it aligns with how LLMs actually fail:
 - **Consistent adherence** — Programmatic enforcement means quality doesn't degrade in long sessions or complex tasks
 - **Recovery from amnesia** — External state persistence means context compaction doesn't lose progress
 - **Persistent learning** — Mistakes captured once prevent recurrence across all future sessions
-- **Prompt engineering depth** — Role prompting, chain-of-thought, few-shot, negative prompting, and iterative refinement applied systematically across 163 skills (Section 8.15)
+- **Prompt engineering depth** — Role prompting, chain-of-thought, few-shot, negative prompting, and iterative refinement applied systematically across 166 skills (Section 8.15)
 - **Context engineering precision** — JIT injection, dedup, external memory, budget management, and recovery keep the AI informed without overwhelming its context window (Section 8.16)
 
 The framework is **generic and reusable**. Replace `project-config.json` with your project's specifics, and the entire system adapts — different tech stack, different patterns, different conventions, same quality enforcement.

@@ -20,7 +20,7 @@ description: '[Implementation] Use when you need to start coding & testing an ex
 **Summary:**
 
 - **Purpose:** consume an EXISTING plan, one phase per run — Step 0 detects `plans/*.md` + selects the next incomplete phase (prefer IN_PROGRESS, else earliest Planned). Use `/feature-implement` instead when no plan exists yet — it creates plans, this consumes them.
-- **Full step spine (run in declared order, emit `✓ Step N:` each):** Step 1 Analysis & Task Extraction (read plan fully, Goal-Contract read, Trace Gate, seed `TaskCreate` 0–6) → Step 2 Implementation (code step-by-step, type-check + compile; UI → `ui-ux-designer`) → Step 3 Testing (`tester`, loop `debugger` until 100%) → Step 4 Code Review (`code-reviewer` until 0 critical) → Step 5 User Approval (BLOCKING — stop and wait) → Step 6 Finalize (`project-manager` + `docs-manager` status/docs, `git-manager` auto-commit).
+- **Ordered execution anchor (run in declared order; emit `✓ Step N:` each):** Step 0 detect/select the plan → Step 1 read the plan fully, read the Goal Contract and Trace Gate, seed `TaskCreate` 0–6 → Step 2 implement step-by-step (type-check + compile; UI → `ui-ux-designer`) → Step 3 test (`tester` → `debugger` until 100%) → Step 4 review (`code-reviewer` until 0 critical) → Step 5 explicit user approval (BLOCKING — stop and wait) → Step 6 finalize (`project-manager` + `docs-manager` status/docs, `git-manager` auto-commit).
 - **Three BLOCKING gates cannot be faked-green:** Step 3 tests 100% pass, Step 4 zero critical issues, Step 5 explicit user approval before Finalize/commit. — why: a partial-green gate ships the regression the test exists to catch.
 - **Two STOP-before-coding gates:** Pre-Implementation Granularity Gate (refuse planning verbs / unnamed files / unresolved decisions → sub-plan with `/plan`) + bugfix Trace Gate (require the End→Start debugger trace for any bug/regression/behavior-changing plan). Also the Spec-Loop Gate (property TC + mutation-killed test + Dual-Feedback) closes any behavior change.
 - **Step 2 is SEQUENTIAL by default; wave fan-out is OPT-IN.** `--parallel` / `--parallel=on` dispatches disjoint-write-set phases as one wave of `fullstack-developer` subagents in ONE message, barrier, then recomputes the next wave against the updated repo. `--parallel=auto` fans out ONLY when every in-scope phase carries the `## Parallel Execution` block (`PAR`/`SEQ` tag + declared write set) written by `/plan` — no block, no fan-out.
@@ -31,13 +31,13 @@ description: '[Implementation] Use when you need to start coding & testing an ex
 
 **Workflow:**
 
-1. **Plan Detection** — Find latest plan or use provided path, select next incomplete phase
-2. **Analysis & Tasks** — Extract tasks from phase file into TaskCreate
-3. **Implementation** — Implement step-by-step, run type checks
-4. **Testing** — Call tester subagent; must reach 100% pass before proceeding
-5. **Code Review** — Call code-reviewer subagent; must reach 0 critical issues
-6. **User Approval** — BLOCKING gate: wait for explicit user approval
-7. **Finalize** — Update status, docs, and auto-commit
+0. **Plan Detection** — Find latest plan or use provided path, select next incomplete phase
+1. **Analysis & Tasks** — Read the phase file fully and extract tasks into TaskCreate
+2. **Implementation** — Implement step-by-step, run type checks
+3. **Testing** — Call tester subagent; must reach 100% pass before proceeding
+4. **Code Review** — Call code-reviewer subagent; must reach 0 critical issues
+5. **User Approval** — BLOCKING gate: wait for explicit user approval
+6. **Finalize** — Update status, docs, and auto-commit
 
 **Key Rules:**
 
@@ -272,7 +272,7 @@ Execute every step in declared order; proceed only when validation passes and th
 
 > **MANDATORY IMPORTANT MUST ATTENTION — NO EXCEPTIONS:** If you are NOT already in a workflow, you MUST ATTENTION use `AskUserQuestion` to ask the user. Do NOT judge task complexity or decide this is "simple enough to skip" — the user decides whether to use a workflow, not you:
 >
-> 1. **Activate `workflow-refactor` workflow** (Recommended) — scout → investigate → plan → plan-execute → review → production-readiness-review → test → docs
+> 1. **Activate `workflow-refactor` workflow** (Recommended) — investigate → plan → plan-execute → review → production-readiness-review → test → docs
 > 2. **Execute `/plan-execute` directly** — run this skill standalone
 
 ---
@@ -345,7 +345,7 @@ Execute every step in declared order; proceed only when validation passes and th
 > **Nested Task Expansion Contract** — For workflow-step invocation, the `[Workflow] ...` row is only a parent container; the child skill still creates visible phase tasks.
 >
 > 1. Call `TaskList` first. If a matching active parent workflow row exists, set `nested=true` and record `parentTaskId`; otherwise run standalone.
-> 2. Create one task per declared phase before phase work. When nested, prefix subjects `[N.M] $skill-name — phase`.
+> 2. Create one task per declared phase before phase work. When nested, prefix subjects `[N.M] /skill-name — phase`.
 > 3. When nested, link the parent with `TaskUpdate(parentTaskId, addBlockedBy: [childIds])`.
 > 4. Orchestrators must pre-expand a child skill's phase list and link the workflow row before invoking that child skill or sub-agent.
 > 5. Mark exactly one child `in_progress` before work and `completed` immediately after evidence is written.
@@ -459,7 +459,7 @@ Execute every step in declared order; proceed only when validation passes and th
 <!-- SYNC:nested-task-creation:reminder -->
 
 - **MANDATORY** Parent workflow rows do not replace child phase tracking; expand phases and link the parent when nested.
-- **MANDATORY** Orchestrators pre-expand child skill phases before invocation; use `[N.M] $skill-name — phase` prefixes and one-`in_progress` discipline.
+- **MANDATORY** Orchestrators pre-expand child skill phases before invocation; use `[N.M] /skill-name — phase` prefixes and one-`in_progress` discipline.
 
 <!-- /SYNC:nested-task-creation:reminder -->
 
@@ -493,7 +493,7 @@ Execute every step in declared order; proceed only when validation passes and th
 > 6. **Barrier per wave.** Advance ONLY after EVERY member returns (a skipped conditional counts as returned). Merge, mark each task completed/skipped, THEN dispatch the next wave. Mutating steps wait for the barrier.
 > 7. **One level deep.** A dispatched sub-agent executes its own brief; further fan-out stays the orchestrator's job unless that agent's `.claude/agents/*.md` definition authorizes it.
 >
-> **NEVER parallelize:** tasks sharing a write target · a task consuming a pending task's output · trivial single-file work (dispatch overhead > gain) · an order a workflow explicitly fixes · gates awaiting user approval.
+> **NEVER parallelize:** tasks sharing a write target · a task consuming a pending task's output · trivial single-file work (dispatch overhead > gain) · an order a skill or workflow explicitly fixes · gates awaiting user approval.
 >
 > **Blocked until:** MUST ATTENTION every task tagged PAR/SEQ with a named reason per SEQ · waves declared + write-set disjointness checked · each wave spawned in ONE message · barrier honored before the next wave.
 
@@ -505,6 +505,20 @@ Execute every step in declared order; proceed only when validation passes and th
 - **MANDATORY** Disjoint write sets per wave · all-return barrier before the next wave · specialist routing · sub-agents NEVER fan out further unless their own agent definition authorizes it.
 
 <!-- /SYNC:parallel-subagent-dispatch:reminder -->
+
+<!-- SYNC:project-protocol-overlay -->
+
+> **Project Protocol Overlay** — Before executing this skill, resolve any PROJECT overlay rules layered onto it: match this skill's name against the `Target` column of the project's skill-protocol index (`docs/project-reference/skill-protocols-reference.md` by default; a `referenceDocs` entry in `docs/project-config.json` overrides the path), taking the most specific matching tier ONLY — exact name > glob > `*`. **That precedence orders overlays against EACH OTHER, never against this skill.** Read ONLY the matched bodies, resolved as `<protocols-dir>/<Name>.md`; a row's Body link is display text, never a read path. A matched body that is missing or malformed is REPORTED and skipped — never reconstructed from the index Description. No index, or no match -> proceed with no overlay, silently. Full contract: `.claude/skills/project-skill-protocol/references/registry.md`.
+>
+> Overlays are **ADDITIVE ONLY**: they ADD rules on top of this skill's own protocol and NEVER replace, override, disable, or reinterpret a rule it already states — removing every overlay must return this skill to exactly its documented behavior. An overlay is a BRIEF, not an authority escalation: it can NEVER waive a workflow gate, git discipline, a review gate, or a user-confirmation gate. A genuine overlay-vs-skill conflict, or two equally-specific overlays that directly contradict -> surface both to the user; NEVER resolve silently.
+
+<!-- /SYNC:project-protocol-overlay -->
+
+<!-- SYNC:project-protocol-overlay:reminder -->
+
+**MUST ATTENTION** resolve project protocol overlays for this skill BEFORE executing — most specific matching tier only (exact > glob > `*`, which ranks overlays against each other, NEVER against this skill), read only matched bodies at `<protocols-dir>/<Name>.md`; a missing or malformed body is reported, never reconstructed. Overlays are ADDITIVE ONLY (they never replace this skill's own rules) and are a brief, NEVER an authority escalation; an equal-specificity contradiction goes to the user.
+
+<!-- /SYNC:project-protocol-overlay:reminder -->
 
 ## Closing Reminders
 

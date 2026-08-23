@@ -27,8 +27,8 @@ Claude Code uses a **three-pillar architecture** to assist every role:
 
 | Pillar                        | What It Does                                                          | Count                   |
 | ----------------------------- | --------------------------------------------------------------------- | ----------------------- |
-| **Hooks** (Enforcement)       | Enforce quality gates, block unsafe actions, manage session lifecycle | 16 top-level hook files |
-| **Skills** (Intelligence)     | Prompt-engineered protocols loaded on demand via `/skill-name`        | 163 skills              |
+| **Hooks** (Enforcement)       | Enforce quality gates, block unsafe actions, manage session lifecycle | 17 top-level hook files |
+| **Skills** (Intelligence)     | Prompt-engineered protocols loaded on demand via `/skill-name`        | 164 skills              |
 | **Workflows** (Orchestration) | Multi-step sequences of skills with progress tracking                 | 19 workflows            |
 
 ### Workflow Detection
@@ -243,7 +243,6 @@ Project knowledge — backend/frontend patterns, design tokens, code-review rule
 | Skill          | Purpose                    | Example                  |
 | -------------- | -------------------------- | ------------------------ |
 | `/plan`        | Create implementation plan | `/plan {description}`    |
-| `/scout`       | Codebase reconnaissance    | `/scout {area}`          |
 | `/investigate` | Deep code investigation    | `/investigate {feature}` |
 | `/code-review` | Review code quality        | `/code-review`           |
 
@@ -314,7 +313,7 @@ Dev:                             /code-review ──→ Implementation
 
 **Trigger:** "test-first", "TDD", "spec-driven" (the former tdd-feature workflow was merged into `feature`)
 **Roles:** Developer, QA
-**IMPORTANT MANDATORY Steps (abridged):** `/scout` → `/investigate` → `/plan` → `/spec [mode=tests]` → `/feature-implement` → `/integration-test` → `/test` → `/docs-update`
+**IMPORTANT MANDATORY Steps (abridged):** `/investigate` → `/plan` → `/spec [mode=tests]` → `/feature-implement` → `/integration-test` → `/test` → `/docs-update`
 
 Test specs are written **before** implementation, then code is written to satisfy them.
 
@@ -479,7 +478,6 @@ PROCESS
 
 PLANNING
   /plan {description}        Create implementation plan
-  /scout {area}              Codebase reconnaissance
   /investigate {feature}     Deep code investigation
 ```
 

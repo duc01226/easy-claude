@@ -391,12 +391,12 @@ Answer technical and architectural questions.
 
 **When to use**: Technical guidance
 
-### /scout [prompt] [scale]
+### /investigate [prompt] [scale]
 
-Scout directories to respond to requests.
+Investigate directories and code paths to respond to requests.
 
 ```bash
-/scout find authentication code
+/investigate find authentication code
 ```
 
 **When to use**: Code exploration

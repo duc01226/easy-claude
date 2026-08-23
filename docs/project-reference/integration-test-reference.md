@@ -97,7 +97,7 @@ npm run test:suites
 node .claude/hooks/tests/run-all-tests.cjs --filter=security --verbose
 ```
 
-The filter selects suite names and runs every test in each selected suite; a non-matching explicit filter exits `1` to prevent a vacuous green (`.claude/hooks/tests/run-all-tests.cjs:158-164`, `.claude/hooks/tests/run-all-tests.cjs:275-286`). Although `--parallel` is parsed and advertised, the runner currently awaits suites in a sequential loop (`.claude/hooks/tests/run-all-tests.cjs:51-75`, `.claude/hooks/tests/run-all-tests.cjs:295-304`).
+The filter selects suite names and runs every test in each selected suite; a non-matching explicit filter exits `1` to prevent a vacuous green (`.claude/hooks/tests/run-all-tests.cjs:158-164`, `.claude/hooks/tests/run-all-tests.cjs:275-286`). A complete, clean run exits `1` for a second, non-test reason: a post-summary count guard compares the tests it discovered against the aggregate count documented in `.claude/docs/hooks/README.md` and fails the process on drift, so the summary can read `All N tests passed` while the exit code is still `1` (`.claude/hooks/tests/run-all-tests.cjs:333-400`). It keys on the DISCOVERED total (passed + failed + skipped) rather than the pass count, because host-gated tests move the passed/skipped split per machine, and it stays silent under `--filter` or after any failure — neither total is the canonical figure. Although `--parallel` is parsed and advertised, the runner currently awaits suites in a sequential loop (`.claude/hooks/tests/run-all-tests.cjs:51-75`, `.claude/hooks/tests/run-all-tests.cjs:295-304`).
 
 **Repeatability gate:** run `npm test`, then run `npm test` again without deleting temp/global state or resetting the repository. Both consecutive runs **MUST** pass.
 

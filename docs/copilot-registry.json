@@ -214,6 +214,13 @@
       "group": "project-reference"
     },
     {
+      "file": "custom-prompts-reference.md",
+      "title": "Custom Prompts Registry",
+      "summary": "Index of project-specific custom prompts — name, one-line description, and trigger phrases; prompt bodies live in docs/project-prompts/.",
+      "whenToRead": "the user invokes, lists, saves, or updates a custom prompt, or a request may match a saved project procedure",
+      "group": "project-reference"
+    },
+    {
       "file": "design-system/README.md",
       "title": "Design System",
       "summary": "Design-system status for this framework repository and guidance that target projects should define their own UI inventory.",

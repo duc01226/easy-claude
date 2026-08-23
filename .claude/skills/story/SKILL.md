@@ -22,9 +22,12 @@ description: '[Project Management] Use when creating user stories from PBIs, sli
 - **Main steps (the pipeline):** (1) read PBI + active plan, load domain context — module, entities, BR-IDs; (2) identify VERTICAL end-to-end slices; (3) SPIDR-split anything SP >8 (MUST) / >5 (SHOULD) until INVEST-valid; (4) write each story with min 3 GWT scenarios + 1 authorization scenario; (5) estimate bottom-up (Blast-Radius pre-pass → phase-hours → days; SP DERIVED) and emit full estimate frontmatter; (6) emit Story Dependencies table (no orphans); (7) run MANDATORY `AskUserQuestion` validation; (8) save to `team-artifacts/pbis/stories/{YYMMDD}-ba-story-{slug}.md`; (9) suggest `/spec [mode=tests]` next.
 - Slice VERTICALLY (thin end-to-end), NEVER horizontally (backend/frontend split) — apply SPIDR (Spike/Paths/Interfaces/Data/Rules) until each story is INVEST-valid — why: horizontal slices delay deliverable user value.
 - Every story is tech-agnostic + rebuild-from-scratch + demoable (AI-SDD M1-M5 and M7): no framework/class/file names in prose, carry the inherited `FR-`/`BR-` logical ID plus a `[Source: namespace/service/id]` abstract anchor (NEVER `file:line`), and every criterion states an outcome a stakeholder could SEE — reject and rework on any STOP condition.
+- Stories collectively MUST cover the parent PBI's releasable outcome from entry through result and exit; do not turn a PBI into disconnected technical-layer stories. Enabling work stays attached to a vertical outcome slice.
 - Min 3 GIVEN/WHEN/THEN scenarios (happy + edge + error) PLUS a mandatory authorization scenario per story; every criterion has exactly ONE observable interpretation.
 - Estimate bottom-up (phase-hours → days × productivity factor; SP DERIVED, never the driver) with explicit `test_count` and Blast-Radius pass; emit full `man_days_*` / `risk_*` / `blast_radius` / `estimate_reasoning` frontmatter — why: SP-first anchors to a guess, downstream `/prioritize`+`/plan` read these fields.
 - Story Dependencies table is mandatory (no orphan stories) and the `AskUserQuestion` validation interview runs before handoff — NEVER auto-decide slicing/scope/effort.
+- Read `.claude/skills/shared/releasable-pbi-contract.md`; preserve the parent PBI's actor, outcome, non-goals, full-flow pages/views, and applicable UI surface when slicing.
+- Stories inherit the parent PBI/spec's applicability branch. When `isLargeIdea=true`, preserve the owning slice ID and the complete `large_idea_decomposition` context (`outcome_slices`, `dependencies_order`, `non_goals`, `risks_evidence`, `deferred_work_owner`); when all signals are false, do not add roadmap or milestone fields. An explicit roadmap branch may carry its selected milestone; a supplied roadmap is read-only context. Missing or conflicting scope is BLOCKED, not resolved by slicing.
 
 > **MANDATORY IMPORTANT MUST ATTENTION** Plan ToDo Task to READ the following project-specific reference docs:
 >
@@ -44,30 +47,36 @@ description: '[Project Management] Use when creating user stories from PBIs, sli
 
 **Key Rules:**
 
+- Slice VERTICALLY (thin end-to-end); NEVER horizontally (backend/frontend split) — why: a horizontal slice ships no user-visible value on its own.
+- SP >8 MUST ATTENTION be split; >5 SHOULD be split — apply SPIDR until each story is INVEST-valid.
+- Every story MUST ATTENTION carry `story_points`, `complexity`, `man_days_traditional`, `man_days_ai` — plus the `risk_*` / `blast_radius` / `estimate_reasoning` fields `/prioritize` and `/plan` read downstream.
+- SP is DERIVED from bottom-up phase-hours → days × productivity factor — NEVER the driver.
+- Min 3 GIVEN/WHEN/THEN scenarios (happy + edge + error) PLUS a mandatory authorization scenario; each criterion has exactly ONE observable interpretation.
+- Tech-agnostic prose ONLY — no framework/class/file names; anchor with `[Source: namespace/service/id]`, NEVER `file:line`.
+- Story Dependencies table is mandatory — NEVER leave an orphan story.
+- Run the `AskUserQuestion` validation interview before handoff — NEVER auto-decide slicing, scope, or effort.
+
 ### Frontend/UI Context (if applicable)
 
-> When this task involves frontend or UI changes,
+> When the task involves frontend or UI changes, read:
 
 - Component patterns: `docs/project-reference/frontend-patterns-reference.md`
 - Styling/BEM guide: `docs/project-reference/scss-styling-guide.md`
 - Design system tokens: `docs/project-reference/design-system/README.md`
 
-- Stories with SP >8 MUST ATTENTION be split; >5 SHOULD be split (see estimation-framework.md)
-- All stories MUST ATTENTION include `story_points`, `complexity`, `man_days_traditional`, `man_days_ai` fields
-
 ## Greenfield Mode
 
-> **Auto-detected:** If no existing codebase is found (no discovered source directories, no manifest files, no populated `project-config.json`), this skill switches to greenfield mode automatically. Planning artifacts (docs/, plans/, .claude/) don't count — the repository must have actual code directories with content.
+> **Auto-detected:** no existing codebase (no discovered source directories, no manifest files, no populated `project-config.json`) → greenfield mode switches on automatically. Planning artifacts (`docs/`, `plans/`, `.claude/`) do NOT count — the repository needs actual code directories with content.
 
 **When greenfield is detected:**
 
-1. Generate **foundation PBIs** instead of feature stories: infrastructure setup, project scaffold, CI/CD pipeline, first feature vertical slice
-2. Add dependency ordering: infrastructure stories BEFORE feature stories
-3. Skip "MUST ATTENTION READ project-structure-reference.md" (won't exist)
+1. Generate the first **releasable vertical-slice story set**; capture infrastructure setup, project scaffold, CI/CD pipeline, and similar work as enabling/Sprint 0 stories attached to that outcome, not as standalone technical PBIs
+2. Dependency ordering: infrastructure stories BEFORE feature stories
+3. Skip the `project-structure-reference.md` read — it will not exist
 4. Include setup stories: dev environment, build tooling, deployment pipeline, monitoring
 5. Priority order: infra → scaffold → first feature → remaining features
-6. **[CRITICAL] Architecture Scaffolding Story:** FIRST story = "Architecture Scaffolding" — all OOP/SOLID base abstract classes, generic interfaces, infrastructure abstractions per chosen tech stack. AI self-investigates what base classes the project needs. All feature stories depend on this.
-7. Scaffolding acceptance criteria: all base classes compile/type-check, DI/IoC registrations resolve, smoke test passes
+6. **[CRITICAL] Architecture Scaffolding enabling story:** Attach the required OOP/SOLID base abstractions and infrastructure setup to the first releasable vertical-slice outcome as Sprint 0 enabling work; do not emit a standalone technical PBI. AI self-investigates which foundation is truly required; feature stories depend on the enabling work — why: features built on an unreviewed foundation encode the wrong abstractions permanently without pretending the foundation itself is user value.
+7. Scaffolding acceptance criteria: base classes compile/type-check, DI/IoC registrations resolve, smoke test passes
 8. **UI System Foundation Story:** If the project has a frontend, generate a "UI System Foundation" story (Sprint 0) with these sub-stories:
 
     | Sub-Story                                                                 | SP  | Priority  | Depends On               |
@@ -96,8 +105,9 @@ If running within a workflow (big-feature, greenfield-init, etc.):
 1. **Search for active plan** — Glob `plans/*/plan.md` sorted by modification time, or check `TaskList` for plan context
 2. **Read `plan.md`** — understand project scope, architecture decisions, domain model, implementation plan
 3. **Read existing research** — `{plan-dir}/research/*.md` and `{plan-dir}/phase-*.md` for domain model, tech stack, architecture
-4. **Read `docs/project-reference/domain-entities-reference.md`** (if exists) — understand existing domain entities for accurate story scoping
-5. Use plan context to inform story slicing (architecture decisions affect how stories are split)
+4. **Read the parent scope chain** — the PBI/spec, its `large_idea_decomposition` block when present, and any conditional `plans/{plan-id}/scenario-analysis.md`; confirm each story stays inside its owning slice, non-goals, dependencies, and evidence boundary. Read `docs/product-roadmap.md` only when the parent explicitly uses the roadmap branch.
+5. **Read `docs/project-reference/domain-entities-reference.md`** (if exists) — understand existing domain entities for accurate story scoping
+6. Use plan context to inform story slicing (architecture decisions affect how stories are split)
 
 ---
 
@@ -327,7 +337,6 @@ Given {context}
 When {action}
 Then {outcome}
 ```
-````
 
 #### Scenario 2: {Edge case title}
 
@@ -809,6 +818,7 @@ Example for a "Create Invoice" story:
 <!-- /SYNC:ai-mistake-prevention -->
 
 <!-- SYNC:estimation-framework:reminder -->
+
 - **MANDATORY MUST ATTENTION** estimation: bottom-up phase hours drive `man_days_traditional` (`Σh/6 × productivity_factor`); SP DERIVED. UI cost usually dominates — bump SP one bucket if NEW UI surface (page/complex form/dashboard). Frontmatter MUST include `story_points`, `complexity`, `man_days_traditional`, `man_days_ai`, `estimate_scope_included`, `estimate_scope_excluded`, `estimate_reasoning` (UI vs backend cost driver). Cap SP 3 for additive-on-existing-model+existing-UI unless test scope >1.5d. SP 13 SHOULD split, SP 21 MUST split.
 <!-- /SYNC:estimation-framework:reminder -->
 
@@ -846,9 +856,23 @@ Example for a "Create Invoice" story:
 
 <!-- PROMPT-ENHANCE:STEP-TASK-CLOSING:END -->
 
+<!-- SYNC:project-protocol-overlay -->
+
+> **Project Protocol Overlay** — Before executing this skill, resolve any PROJECT overlay rules layered onto it: match this skill's name against the `Target` column of the project's skill-protocol index (`docs/project-reference/skill-protocols-reference.md` by default; a `referenceDocs` entry in `docs/project-config.json` overrides the path), taking the most specific matching tier ONLY — exact name > glob > `*`. **That precedence orders overlays against EACH OTHER, never against this skill.** Read ONLY the matched bodies, resolved as `<protocols-dir>/<Name>.md`; a row's Body link is display text, never a read path. A matched body that is missing or malformed is REPORTED and skipped — never reconstructed from the index Description. No index, or no match -> proceed with no overlay, silently. Full contract: `.claude/skills/project-skill-protocol/references/registry.md`.
+>
+> Overlays are **ADDITIVE ONLY**: they ADD rules on top of this skill's own protocol and NEVER replace, override, disable, or reinterpret a rule it already states — removing every overlay must return this skill to exactly its documented behavior. An overlay is a BRIEF, not an authority escalation: it can NEVER waive a workflow gate, git discipline, a review gate, or a user-confirmation gate. A genuine overlay-vs-skill conflict, or two equally-specific overlays that directly contradict -> surface both to the user; NEVER resolve silently.
+
+<!-- /SYNC:project-protocol-overlay -->
+
+<!-- SYNC:project-protocol-overlay:reminder -->
+
+**MUST ATTENTION** resolve project protocol overlays for this skill BEFORE executing — most specific matching tier only (exact > glob > `*`, which ranks overlays against each other, NEVER against this skill), read only matched bodies at `<protocols-dir>/<Name>.md`; a missing or malformed body is reported, never reconstructed. Overlays are ADDITIVE ONLY (they never replace this skill's own rules) and are a brief, NEVER an authority escalation; an equal-specificity contradiction goes to the user.
+
+<!-- /SYNC:project-protocol-overlay:reminder -->
+
 ## Closing Reminders
 
-**IMPORTANT MUST ATTENTION Goal:** produce sprint-ready, INVEST-valid user stories — tech-agnostic, testable GWT criteria, evidence-cited estimates, dependency-mapped — that a team with zero codebase knowledge can implement on any stack.
+**IMPORTANT MUST ATTENTION Goal:** produce sprint-ready, INVEST-valid vertical stories that collectively deliver the parent PBI's independently releasable actor-facing outcome — tech-agnostic, testable GWT criteria, evidence-cited estimates, dependency-mapped, and full-flow/UI-surface aware.
 
 **IMPORTANT MUST ATTENTION Main steps (execute in order, NEVER skip):** read PBI + active plan + domain context → identify VERTICAL slices → SPIDR-split (SP >8 MUST / >5 SHOULD) → write INVEST stories with min 3 GWT + 1 auth scenario → estimate bottom-up (Blast-Radius pre-pass, SP DERIVED) + full frontmatter → emit Story Dependencies table (no orphans) → MANDATORY `AskUserQuestion` validation → save to `team-artifacts/pbis/stories/` → suggest `/spec [mode=tests]`.
 
@@ -861,6 +885,8 @@ Example for a "Create Invoice" story:
 - **Sequential Thinking:** Multi-step Thought N/M with revision/branch/hypothesis markers; confidence closer.
 - **AI Mistake Prevention:** verify generated content against evidence, trace downstream references, verify all affected outputs, re-read after context loss, surface ambiguity.
 
+**IMPORTANT MUST ATTENTION** preserve the parent PBI's Releasable Outcome Gate: stories MUST collectively cover entry → action → result → exit, and UI stories MUST cover the parent's required views, navigation, components, and states; enabling work is attached to the vertical outcome, never a standalone technical-only PBI/story.
+**IMPORTANT MUST ATTENTION** apply `.claude/skills/shared/releasable-pbi-contract.md`; a story set that cannot demonstrate the parent outcome is BLOCKED for re-slicing.
 **IMPORTANT MUST ATTENTION** every story MUST satisfy AI-SDD mandates M1-M5 and M7 — tech-agnostic prose, `FR-`/`BR-` logical ID + `[Source: namespace/service/id]` abstract anchor (NEVER `file:line` in story prose), testable GWT criteria, rebuild-from-scratch, demoable business outcomes — reject and rework on any STOP condition — why: stories drive implementation on any stack, so a leaked framework/class name breaks portability.
 **IMPORTANT MUST ATTENTION** apply the M7 demo test to every criterion's BODY — _"what would a stakeholder SEE change?"_; no answer → TECHNICAL-ONLY, drop it. FAIL a `WHEN` that is an invocation (handler runs, consumer receives, job fires, data syncs) or a `THEN` asserting schema/type/nullability/call-count; NEVER derive the story/scenario count from an architecture inventory — why: M1 governs vocabulary, M7 governs subject matter — a technical story in tech-free prose passes M1 and still rots the business tree.
 **IMPORTANT MUST ATTENTION** every story set includes a Story Dependencies table with no orphan stories; SP >8 MUST split, >5 SHOULD split via SPIDR — why: ordering feeds `/prioritize` and `/plan` and oversized stories miss the sprint.
@@ -886,9 +912,9 @@ Example for a "Create Invoice" story:
 | "Slicing is obvious, skip validation"     | `AskUserQuestion` validation is MANDATORY, not optional. The user confirms slicing/scope/effort. |
 
 **IMPORTANT MUST ATTENTION** AI-SDD M1-M5/M7 (tech-agnostic + demoable) + dependency table + bottom-up estimate are the three rules this skill must never skip — re-anchored here (recency) and in the Quick Summary (primacy).
-````
+**IMPORTANT MUST ATTENTION** embedded large-idea stories must carry the parent slice ID, preserve the complete decomposition context or a traceable reference to it, and repeat slice non-goals/deferred owners; never grow a story into deferred work. Only an explicit roadmap branch carries roadmap/milestone references.
 
-**MANDATORY IMPORTANT MUST ATTENTION** READ the following files before starting:
+**MANDATORY IMPORTANT MUST ATTENTION** READ the project-reference docs named in the Quick Summary blockquote BEFORE starting — `project-structure-reference.md`, `docs/project-reference/domain-entities-reference.md` (business entities/models), `docs/specs/` (existing TCs for related features) — plus the Frontend/UI Context docs when the PBI touches UI. File not found → search for the project's documentation, coding standards, and architecture docs instead — why: story scoping that guesses at entity names and module structure mis-slices the work.
 
 **[TASK-PLANNING]** Before acting, analyze task scope and systematically break it into small todo tasks and sub-tasks using TaskCreate.
 

@@ -1,6 +1,6 @@
 # Skills Reference
 
-> 163 skills across 15+ domains + 5 shared reference/protocol files for context-aware AI assistance
+> 167 skills across 15+ domains + 7 shared reference/protocol files for context-aware AI assistance
 
 ## Overview
 
@@ -22,7 +22,7 @@ Skills Activated: fix, investigate
 
 ## Skill Domains
 
-> Curated highlights — the full catalog has 163 skills; the tables below list selected skills per domain, not the complete set.
+> Curated highlights — the full catalog has 167 skills; the tables below list selected skills per domain, not the complete set.
 
 | Domain                                            | Skills | Description                                          |
 | ------------------------------------------------- | ------ | ---------------------------------------------------- |
@@ -32,7 +32,7 @@ Skills Activated: fix, investigate
 | [Debugging/Testing](#debuggingtesting)            | 3      | Test generation, test specs                          |
 | [AI/ML Tools](#aiml-tools)                        | 1      | Structured reasoning                                 |
 | [Documentation](#documentation)                   | 6      | Docs, feature docs, changelogs, release notes        |
-| [Git/Workflow](#gitworkflow)                      | 6      | Commits, branches, code review, scout, quality gates |
+| [Git/Workflow](#gitworkflow)                      | 5      | Commits, branches, code review, quality gates        |
 | [Code Quality](#code-quality)                     | 10     | Graph-based code analysis, blast radius, sync        |
 | [Planning/Research](#planningresearch)            | 6      | Plans, research, implementation, investigation       |
 | [Infrastructure/DevOps](#infrastructuredevops)    | 1      | Cloudflare, Docker, GCP                              |
@@ -42,7 +42,7 @@ Skills Activated: fix, investigate
 | [Document Processing](#document-processing)       | 4      | PDF, DOCX, Markdown conversions                      |
 | [Utility](#utility)                               | 2      | Claude Code CLI, skill creation                      |
 
-**Additional:** Shared reference/protocol files (5) -- see [Shared Protocols](#shared-protocols-sync-inline)
+**Additional:** Shared reference/protocol files (7) -- see [Shared Protocols](#shared-protocols-sync-inline)
 
 ---
 
@@ -114,7 +114,6 @@ See `docs/project-reference/frontend-patterns-reference.md` for project-specific
 | `commit`                      | commit, stage, save changes                             | Git commits                                          |
 | `branch-comparison`           | compare branches, git diff                              | Branch analysis                                      |
 | `code-review`                 | review, feedback, PR review                             | Code review                                          |
-| `scout`                       | find files, locate, search codebase                     | Fast codebase file discovery                         |
 | `why-review`                  | why, design rationale, plan validation, alternatives    | Validate design rationale in plan files              |
 | `production-readiness-review` | sre, production, observability, reliability, ops review | Production readiness scoring for service/API changes |
 
@@ -278,7 +277,6 @@ Skills are often activated alongside commands:
 | `/fix`                 | `debug-investigate`                    |
 | `/plan`                | `plan`, `plan-analysis`                |
 | `/review`              | `code-review`                          |
-| `/scout`               | `scout`, `investigate`                 |
 | `/test`                | `spec [mode=tests]`, `webapp-testing`  |
 | `/idea`                | `idea`, `product-owner`                |
 | `/refine`              | `refine`, `business-analyst`           |
@@ -315,4 +313,4 @@ Use `/skill-creator` to create a new skill:
 
 ---
 
-_Source: `.claude/skills/` | 163 skills across 15+ domains + 5 shared reference/protocol files_
+_Source: `.claude/skills/` | 167 skills across 15+ domains + 7 shared reference/protocol files_

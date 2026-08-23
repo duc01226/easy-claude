@@ -268,7 +268,12 @@ Pattern: Grep first → Graph expand → Grep verify. Iterative deepening encour
 > 2. **Right Responsibility:** Logic in LOWEST layer (Entity > Domain Service > Application Service > Controller). Never business logic in controllers.
 > 3. **SOLID:** Single responsibility (one reason to change). Open-closed (extend, don't modify). Liskov (subtypes substitutable). Interface segregation (small interfaces). Dependency inversion (depend on abstractions).
 > 4. **After extraction/move/rename:** Grep ENTIRE scope for dangling references. Zero tolerance.
-> 5. **YAGNI gate:** NEVER recommend patterns unless 3+ occurrences exist. Don't extract for hypothetical future use.
+> 5. **YAGNI gate:** Recommend extraction when 3+ similar patterns exist OR an evidenced consumer boundary/substitution need justifies it; do not create patterns for hypothetical future use.
+> 6. **Purpose-oriented naming protocol:** Name public or cross-layer abstractions by the capability, domain purpose, or contract consumers rely on—not the current provider, SDK, framework, database, or transport. `IStorage`/`Storage` → `AzureBlobStorage`; use `IAzureStorage` only when Azure-specific semantics are intentionally part of the contract. — why: provider-coupled names make an implementation replacement look like a contract change.
+> 7. **Contract-fit check:** Read callers and every implementation before judging a name; narrow an over-broad abstraction (`IObjectStore`, `DocumentStore`) instead of rewarding a generic name that lies about behavior. — why: a name cannot be validated from the declaration alone.
+> 8. **Mechanism/generic-name smell:** Treat `Manager`, `Helper`, `Utils`, `Data`, `Thing`, `Service`, `Interface`, type decorations, and unexplained abbreviations as review signals—not automatic defects; flag them only when they hide purpose, scope, or responsibility. — why: blanket word bans replace judgment with another naming convention.
+> 9. **Concrete implementation names:** Provider, strategy, transport, or test-double names are valid on concrete types when they distinguish real behavior (`AzureBlobStorage`, `InMemoryStorage`, `RetryingStorage`); keep those details out of the caller-facing contract unless the contract promises them. — why: implementation names should explain the selected behavior while callers depend on stable semantics.
+> 10. **Language convention:** Preserve local interface syntax and naming style; `.NET` `I` prefixes and Google TypeScript's unmarked interfaces are both valid local conventions. — why: purpose-oriented naming is universal, marker syntax is ecosystem-specific.
 >
 > **Anti-patterns to flag:** God Object, Copy-Paste inheritance, Circular Dependency, Leaky Abstraction.
 >
@@ -357,7 +362,7 @@ Pattern: Grep first → Graph expand → Grep verify. Iterative deepening encour
 >
 > | Task                | Minimum Graph Action                         |
 > | ------------------- | -------------------------------------------- |
-> | Investigation/Scout | `trace --direction both` on 2-3 entry files  |
+> | Investigation | `trace --direction both` on 2-3 entry files  |
 > | Fix/Debug           | `callers_of` on buggy function + `tests_for` |
 > | Feature/Enhancement | `connections` on files to be modified        |
 > | Code Review         | `tests_for` on changed functions             |
@@ -366,6 +371,51 @@ Pattern: Grep first → Graph expand → Grep verify. Iterative deepening encour
 > **CLI:** `python .claude/scripts/code_graph {command} --json`. Use `--node-mode file` first (10-30x less noise), then `--node-mode function` for detail.
 
 <!-- /SYNC:graph-assisted-investigation -->
+
+<!-- SYNC:domain-entity-change-gate -->
+
+> **Domain Entity Change Gate** — ONE protocol binding every skill or agent that PLANS, IMPLEMENTS, or REVIEWS a change touching a domain entity, value object, or aggregate, so a planner, an implementer, and a reviewer apply the SAME rules to the SAME change. `/domain-entities-review` is the canonical owner of the full A–P checklist; this gate is the shared trigger plus the decision set that must be answered. NEVER re-derive a weaker local copy — why: when planning and review disagree on entity rules, the plan ships a design that review then rejects, and the rework is paid twice.
+>
+> **Trigger — fires when ANY holds:** a new entity / value object / aggregate root is introduced · an existing one gains or loses a field, invariant, relationship, or state transition · an aggregate boundary, repository, or cross-aggregate reference changes · a domain event is added, renamed, or re-payloaded · a concurrency or reconstitution concern on a root changes. State `No domain-entity surface — gate N/A` when none holds.
+>
+> **Step 1 — Detect BEFORE deciding.** Both answers change which rules even apply:
+>
+> - **Paradigm** (per aggregate, from the code — NEVER assumed): OO-mutable · type-driven/immutable · event-sourced. Setter, mutability, and reconstitution rules are written for OO-mutable; applying them to the other two manufactures false findings and false plan tasks.
+> - **Subdomain fit:** core (rich model owed) · supporting (Active Record or light model) · generic (buy, do not model) · CRUD (Transaction Script — a rich entity here is ceremony). NEVER plan or flag a rich model where the subdomain has no invariant beyond required-field.
+>
+> **Step 2 — Answer all 6 decision points.** Each is a decision the change MUST make explicitly:
+>
+> | # | Decision point | Answered when |
+> | - | -------------- | ------------- |
+> | 1 | **Classification** — entity vs value object vs aggregate root | The swap test is applied ("would an identical copy be interchangeable?"); a VO is immutable with structural equality and has no repository |
+> | 2 | **Invariant ownership** — entity owns "can this state exist?", the boundary owns "is this input acceptable?" | Each rule is placed on one side and named; failure signalling (throw vs `Result`) matches the project convention consistently; a DB constraint is a backstop, NEVER the rule |
+> | 3 | **Aggregate boundary + concurrency** | Only true always-consistent invariants share an aggregate; cross-aggregate references are by ID; one aggregate mutates per transaction; the ROOT carries the concurrency token; set-based invariants (uniqueness across instances) name a real enforcing mechanism, never an in-memory check |
+> | 4 | **Construction vs reconstitution** | Creation and load are separate paths; the load path raises NO domain events and re-runs NO creation rules; required data sits in the constructor/factory |
+> | 5 | **Events** | Raised inside the aggregate; dispatched AFTER commit (outbox when crossing a process); internal domain events kept distinct from published integration contracts; handlers idempotent |
+> | 6 | **Test obligation** | Every invariant maps to a universally-quantified property TC PLUS a boundary counter-case — the spec NAMES it and a test GUARDS it (Dual-Feedback); a single happy-path example is NOT coverage |
+>
+> **Step 3 — Apply by context.** Same decisions, different obligation:
+>
+> | Calling context | Obligation |
+> | --------------- | ---------- |
+> | **Planning** (`/plan`) | The plan MUST name the decision and the owning file for every triggered row. An unanswered row is a plan that is not executable — surface it, do NOT let implementation discover it. |
+> | **Plan review** (`/plan-review`) | An unanswered, hand-waved, or deferred-to-implementation row is a FINDING with `file:line` into the plan. Presence of the word "entity" is NEVER an answer. |
+> | **Implementation** (`/plan-execute`, `/fix`, and any implementing agent — e.g. `backend-developer`) | The decisions are INPUTS, not questions to reopen: implement each triggered row as the plan/spec decided it, at the owning file it named. A row that arrives UNANSWERED is a blocker — surface it and get it decided; NEVER settle it silently at the keyboard, and NEVER pick an aggregate boundary from a DB table or UI screen because the plan left it open. Paradigm and subdomain fit still gate which rules apply. |
+> | **Change review** (`/changes-review`) | Route to the owner — **Mode A (default):** read `/domain-entities-review`'s Phase 2 A–P checklist and apply it as review lenses. **Mode B (escalation):** delegate to `/domain-entities-review` when standalone AND the diff carries 3+ entity files. Findings enter the normal finding set with `file:line` + severity. |
+>
+> **Duplication guard — SKIP the gate entirely when ANY row holds.** Record the deferral line, then proceed:
+>
+> | Suppressing context | Deferral line |
+> | ------------------- | ------------- |
+> | The running skill IS `/domain-entities-review` | `Gate is this skill's own body — A–P checklist owns it.` |
+> | Invoked inside `/workflow-review-changes` (its step 5 runs `/domain-entities-review` as a dedicated conditional parallel member) | `Gate deferred to workflow step 5 /domain-entities-review.` |
+> | `/why-review` running in `--validate-findings` terminal mode | `Gate N/A — validate-findings is terminal, no sub-skill calls.` |
+>
+> — why: unguarded, this edge duplicates a review the parent workflow already runs and closes a `changes-review → domain-entities-review → why-review → changes-review` cycle.
+>
+> **BLOCKED until:** trigger evaluated (or `gate N/A` recorded) · paradigm + subdomain fit stated · all 6 triggered decision points answered or raised as findings · guard row checked before any delegation.
+
+<!-- /SYNC:domain-entity-change-gate -->
 
 <!-- SYNC:critical-thinking-mindset:reminder -->
 
@@ -405,6 +455,12 @@ Pattern: Grep first → Graph expand → Grep verify. Iterative deepening encour
 **IMPORTANT MUST ATTENTION** microservices/event-driven: scan producers, consumers, sagas, contracts in task scope. Per touchpoint: owner · message · consumers · risk (NONE/ADDITIVE/BREAKING). Missing consumer = silent regression.
 
 <!-- /SYNC:cross-service-check:reminder -->
+
+<!-- SYNC:domain-entity-change-gate:reminder -->
+
+**MUST ATTENTION** when the change PLANS or REVIEWS a new/updated domain entity, value object, or aggregate, apply the **Domain Entity Change Gate** — `/domain-entities-review` owns the full A–P checklist; detect paradigm + subdomain fit FIRST, then answer all 6 decision points (classification · invariant ownership + failure signalling · aggregate boundary + concurrency · construction vs reconstitution · events · property-TC test obligation). Planning must NAME each decision; plan review treats an unanswered row as a FINDING; change review routes to the owner (Mode A read / Mode B delegate). SKIP under the 3-row duplication guard and record the deferral line. — why: one protocol shared by planner and reviewer is what stops a plan shipping an entity design that review then rejects.
+
+<!-- /SYNC:domain-entity-change-gate:reminder -->
 
 ## Closing Reminders
 

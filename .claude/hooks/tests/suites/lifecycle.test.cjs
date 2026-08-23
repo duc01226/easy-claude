@@ -439,14 +439,14 @@ const stateIsolationTests = [
             const sessionId = 'sess-072-wf-rename';
             try {
                 const ok1 = saveState(sessionId, {
-                    workflowType: 'bugfix', workflowSteps: ['scout', 'fix'], currentStepIndex: 0,
+                    workflowType: 'bugfix', workflowSteps: ['investigate', 'fix'], currentStepIndex: 0,
                     completedSteps: [], activePlan: null, todos: [], metadata: {}
                 });
                 assertTrue(ok1, 'First saveState must succeed');
 
                 const ok2 = saveState(sessionId, {
-                    workflowType: 'bugfix', workflowSteps: ['scout', 'fix'], currentStepIndex: 1,
-                    completedSteps: ['scout'], activePlan: null, todos: [], metadata: {}
+                    workflowType: 'bugfix', workflowSteps: ['investigate', 'fix'], currentStepIndex: 1,
+                    completedSteps: ['investigate'], activePlan: null, todos: [], metadata: {}
                 });
                 assertTrue(ok2, 'Second saveState must succeed (Windows-safe fallback)');
 
