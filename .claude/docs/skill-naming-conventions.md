@@ -40,7 +40,7 @@ Reference guide for naming Claude Code skills consistently in YourProject.
 | `design-spec`                                                                                                                                                                               | noun compound                      | artifact name           | keep — "design spec" is a produced artifact, neither token is the verb |
 | `web-research`, `deep-research`                                                                                                                                                             | modifier+noun                      | `research`              | keep — modifier qualifies the noun, not verb-first                     |
 | `knowledge-synthesis`, `knowledge-review`                                                                                                                                                   | subject-first                      | `knowledge-*`           | keep — subject + action already                                        |
-| `investigate`, `debug-investigate`, `refine`, `fix`, `prove-fix`, `seed-test-data`, `scaffold`, `brainstorm`, `prioritize`, `story`, `idea`, `test`                                | verb-first                         | none (pure action)      | keep (carve-out)                                                       |
+| `investigate`, `debug-investigate`, `refine`, `fix`, `prove-fix`, `seed-test-data`, `scaffold`, `brainstorm`, `prioritize`, `story`, `idea`, `test`                                         | verb-first                         | none (pure action)      | keep (carve-out)                                                       |
 | `domain-analysis`, `tech-stack-research`, `changelog`, `docs-update`, `watzup`, `story`, `pbi-*`, `dor-gate`, `linter-setup`, `harness-setup`, `feature-presentation`, `excalidraw-diagram` | subject-first / noun / carve-out   | various                 | keep                                                                   |
 
 **Result:** exactly 6 breakers — the `review-*` skills. No 7th breaker surfaced.
@@ -53,9 +53,9 @@ Reference guide for naming Claude Code skills consistently in YourProject.
 
 **Characteristics:**
 
-- System-wide impact
-- Cross-cutting concerns
-- Design patterns and decisions
+-   System-wide impact
+-   Cross-cutting concerns
+-   Design patterns and decisions
 
 **Project Examples:**
 | Skill | Purpose |
@@ -67,9 +67,9 @@ Reference guide for naming Claude Code skills consistently in YourProject.
 
 **When to Use:**
 
-- Skill affects multiple services/modules
-- Decisions impact system architecture
-- Analysis requires system-wide view
+-   Skill affects multiple services/modules
+-   Decisions impact system architecture
+-   Analysis requires system-wide view
 
 ### Frontend Patterns (via docs)
 
@@ -77,11 +77,11 @@ Reference guide for naming Claude Code skills consistently in YourProject.
 
 **When to Use:**
 
-- `design` — for UI implementation (`--lane=marketing` creative, `--lane=product` app UIs)
-- `web-design-guidelines` — for UI compliance review
-- Pattern reference docs — auto-injected when editing `.ts` files
-- Implements YourProject frontend patterns
-- Creates Angular-specific code
+-   `design` — for UI implementation (`--lane=marketing` creative, `--lane=product` app UIs)
+-   `web-design-guidelines` — for UI compliance review
+-   Pattern reference docs — auto-injected when editing `.ts` files
+-   Implements YourProject frontend patterns
+-   Creates Angular-specific code
 
 ### No Prefix (General)
 
@@ -89,15 +89,15 @@ Reference guide for naming Claude Code skills consistently in YourProject.
 
 **Project Examples:**
 
-- `debug-investigate` - Systematic debugging (any language)
-- `documentation` - Doc enhancement
-- `code-review` - Interactive code review
+-   `debug-investigate` - Systematic debugging (any language)
+-   `documentation` - Doc enhancement
+-   `code-review` - Interactive code review
 
 **When to Use:**
 
-- Skill is language/framework agnostic
-- Interactive mode is primary use case
-- Skill applies to many contexts
+-   Skill is language/framework agnostic
+-   Interactive mode is primary use case
+-   Skill applies to many contexts
 
 ## Shared Protocol Pattern (SYNC Inline)
 
@@ -123,14 +123,14 @@ Reference guide for naming Claude Code skills consistently in YourProject.
 
 **When to Use:**
 
-- SKILL.md exceeds ~200 lines of detailed content
-- Reference material is only needed for specific sub-tasks
-- Content is supplementary (examples, deep-dives, checklists)
+-   SKILL.md exceeds ~200 lines of detailed content
+-   Reference material is only needed for specific sub-tasks
+-   Content is supplementary (examples, deep-dives, checklists)
 
 **Naming Rules:**
 
-- Files use lowercase-hyphen-case
-- Name describes the topic, not the skill (e.g., `cqrs-patterns.md` not `backend-ref.md`)
+-   Files use lowercase-hyphen-case
+-   Name describes the topic, not the skill (e.g., `cqrs-patterns.md` not `backend-ref.md`)
 
 **Example:**
 
@@ -187,16 +187,16 @@ description: ...
 
 ## Naming Checklist
 
-- [ ] Uses lowercase-hyphen-case
-- [ ] Under 64 characters
-- [ ] Directory name matches `name` field
-- [ ] Appropriate prefix (or none)
-- [ ] Variant cross-references added
-- [ ] Description includes trigger keywords
-- [ ] Has `version` field in frontmatter
-- [ ] Shared module references use correct path format (if applicable)
-- [ ] Large skills use `references/` for progressive disclosure (if >200 lines)
+-   [ ] Uses lowercase-hyphen-case
+-   [ ] Under 64 characters
+-   [ ] Directory name matches `name` field
+-   [ ] Appropriate prefix (or none)
+-   [ ] Variant cross-references added
+-   [ ] Description includes trigger keywords
+-   [ ] Has `version` field in frontmatter
+-   [ ] Shared module references use correct path format (if applicable)
+-   [ ] Large skills use `references/` for progressive disclosure (if >200 lines)
 
 ## Related Documentation
 
-- [Skills Overview](skills/README.md) - Full skills catalog
+-   [Skills Overview](skills/README.md) - Full skills catalog

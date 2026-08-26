@@ -162,17 +162,7 @@
       "preActions": {
         "injectContext": "Role: Documentation Specialist\nBUSINESS FEATURE DOC PROTOCOL:\n⚠️ PROJECT CONTEXT: Read docs/project-config.json → workflowPatterns.featureDocTemplate to find and read the feature doc template — follow its section requirements exactly. Use docs/specs/ for the docs directory.\n- TC-{FEATURE}-{NNN} test case format with GIVEN/WHEN/THEN\n- Evidence field with `[Source: namespace/service/id]` abstract-anchor format (never physical file:line)\n- Cross-reference parent features if sub-feature\n\nMANDATORY UPDATE CHECKLIST (when updating existing docs):\n- ALWAYS update the Test Specifications section when documenting new functionality\n- Plan MUST ATTENTION include all impacted sections identified from diff analysis\n- Plan MUST ATTENTION be validated via /plan-review and /plan-validate before any edits begin\n\nOUTPUT: Complete feature README following template sections.\nUNIVERSAL RULES:\n- Goal-Driven Execution: define success criteria before execution; loop until observable checks pass.\n- Tests Verify Intent: when creating or reviewing specs/tests, name the protected business intent or invariant and ensure the test would fail if that intent breaks."
       },
-      "sequence": [
-        "investigate",
-        "plan",
-        "plan-review",
-        "plan-validate",
-        "why-review",
-        "docs-update",
-        "workflow-review-changes",
-        "workflow-end",
-        "watzup"
-      ],
+      "sequence": ["investigate", "plan", "plan-review", "plan-validate", "why-review", "docs-update", "workflow-review-changes", "workflow-end", "watzup"],
       "whenToUse": "User wants to create or update business feature documentation under the fixed docs/specs Feature Spec root"
     },
     "workflow-greenfield-init": {

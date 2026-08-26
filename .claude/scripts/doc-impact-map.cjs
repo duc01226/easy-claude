@@ -566,7 +566,7 @@ function checkClaims(relDocPath) {
         // `0.5/0.75/1/1.5rem` — a slash-joined value list, not a path. A basename
         // opening with a digit-dot is a number, never a filename in this tree.
         if (/^\d+\./.test(base)) continue;
-        // `bravoTALENTS/Shared.Domain` is a DIRECTORY whose last segment happens to
+        // `Module/Shared.Domain` is a DIRECTORY whose last segment happens to
         // carry a dot. File extensions here are lowercase; a PascalCase suffix is a
         // .NET namespace segment, so treat it as a directory reference, not a file.
         if (!/\.[a-z0-9]{1,6}$/.test(base)) continue;

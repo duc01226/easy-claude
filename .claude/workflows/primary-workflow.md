@@ -16,11 +16,11 @@
 
 **Key Rules:**
 
-- Understand code FIRST before any modification — mandatory, no exceptions
-- Compile-check after every code change
-- Never use fake data or mocks just to pass tests
-- Activate relevant skills from catalog during the process
-- Every claim needs `file:line` evidence, confidence >80% to act
+-   Understand code FIRST before any modification — mandatory, no exceptions
+-   Compile-check after every code change
+-   Never use fake data or mocks just to pass tests
+-   Activate relevant skills from catalog during the process
+-   Every claim needs `file:line` evidence, confidence >80% to act
 
 ---
 
@@ -32,62 +32,62 @@
 > **Understand-Code-First** — Do NOT write code, create plans, or attempt fixes until you READ existing code.
 > Search 3+ similar implementations first. Run graph on key files (MANDATORY when graph.db exists).
 
-- Read existing code before modifying. Validate assumptions with evidence. Search before creating.
+-   Read existing code before modifying. Validate assumptions with evidence. Search before creating.
 
 ## Phase 1: Planning
 
-- Use `/plan` skill to create an implementation plan with tasks in `./plans/`
-- Use `/research` skill for investigating technical topics before planning
-- Validate plan via `/plan-review` (recursive until PASS) and `/plan-validate` (critical questions)
-- **DO NOT** create new enhanced files — update existing files directly
+-   Use `/plan` skill to create an implementation plan with tasks in `./plans/`
+-   Use `/research` skill for investigating technical topics before planning
+-   Validate plan via `/plan-review` (recursive until PASS) and `/plan-validate` (critical questions)
+-   **DO NOT** create new enhanced files — update existing files directly
 
 ## Phase 2: Design Review
 
-- Use `/why-review` to validate design rationale before implementation
-- Use `/spec [mode=tests]` to write test specifications (feature doc Section 8) — CREATE mode before implementation, UPDATE mode after
-- Use `/artifact-review --type=spec-tests` to review test specs for coverage and correctness
-- For features: two planning rounds — PLAN1 (architecture) then PLAN2 (incorporating test strategy)
+-   Use `/why-review` to validate design rationale before implementation
+-   Use `/spec [mode=tests]` to write test specifications (feature doc Section 8) — CREATE mode before implementation, UPDATE mode after
+-   Use `/artifact-review --type=spec-tests` to review test specs for coverage and correctness
+-   For features: two planning rounds — PLAN1 (architecture) then PLAN2 (incorporating test strategy)
 
 ## Phase 3: Implementation
 
-- Use `/feature-implement` or `/plan-execute` skill to implement the plan
-- Write clean, readable, maintainable code
-- Follow established architectural patterns (CQRS, project store, BEM)
-- Handle edge cases and error scenarios
-- **[IMPORTANT]** After creating or modifying code, run compile command to check for errors
+-   Use `/feature-implement` or `/plan-execute` skill to implement the plan
+-   Write clean, readable, maintainable code
+-   Follow established architectural patterns (CQRS, project store, BEM)
+-   Handle edge cases and error scenarios
+-   **[IMPORTANT]** After creating or modifying code, run compile command to check for errors
 
 ## Phase 4: Verification
 
-- Use `/prove-fix` to build code proof traces (confidence scores, stack-trace-style evidence) — MANDATORY for bugfixes
-- Use `/test` skill to run tests and analyze results
-- Use `/integration-test` to generate integration tests from specs
-- Use `/spec [mode=sync]` to sync test spec dashboard
-- **IMPORTANT:** Never use fake data, mocks, cheats, or tricks just to pass the build
-- **IMPORTANT:** Fix failing tests and re-run until all pass
+-   Use `/prove-fix` to build code proof traces (confidence scores, stack-trace-style evidence) — MANDATORY for bugfixes
+-   Use `/test` skill to run tests and analyze results
+-   Use `/integration-test` to generate integration tests from specs
+-   Use `/spec [mode=sync]` to sync test spec dashboard
+-   **IMPORTANT:** Never use fake data, mocks, cheats, or tricks just to pass the build
+-   **IMPORTANT:** Fix failing tests and re-run until all pass
 
 ## Phase 5: Quality
 
-- Use `/workflow-review-changes` for the canonical changes-review workflow (inline changes-review + whole-target why-review in parallel → findings validation → specialist reviewers → code-simplifier → fix/re-review → final whole-target why-review), then continue until clean
-- Alternatively use individual skills: `/code-simplifier`, `/code-review`, `/architecture-review`, `/performance-review`
-- Follow coding standards and conventions
-- Optimize for performance and maintainability
+-   Use `/workflow-review-changes` for the canonical changes-review workflow (inline changes-review + whole-target why-review in parallel → findings validation → specialist reviewers → code-simplifier → fix/re-review → final whole-target why-review), then continue until clean
+-   Alternatively use individual skills: `/code-simplifier`, `/code-review`, `/architecture-review`, `/performance-review`
+-   Follow coding standards and conventions
+-   Optimize for performance and maintainability
 
 ## Phase 6: Ship
 
-- Use `/production-readiness-review` for production readiness (service-layer/API changes)
-- Use `/security-review` for security review
-- Use `/changelog` to update changelog entries
-- Use `/docs-update` to update documentation if needed
-- Use `/watzup` for summary report of all changes
-- Use `/workflow-end` to clear workflow state
+-   Use `/production-readiness-review` for production readiness (service-layer/API changes)
+-   Use `/security-review` for security review
+-   Use `/changelog` to update changelog entries
+-   Use `/docs-update` to update documentation if needed
+-   Use `/watzup` for summary report of all changes
+-   Use `/workflow-end` to clear workflow state
 
 ## Phase 7: Debugging (when issues arise)
 
-- Use `/debug-investigate` skill for systematic debugging when issues are reported
-- For non-trivial bugs, failed verification, or stale/incorrect final outputs, start from the observed end state and trace backward through reader -> storage/projection -> writer -> consumer/job -> producer/origin before proposing a fix
-- Enumerate every feeder path and root-cause hypothesis; a fix is blocked until the owning fix layer and forward convergence proof are written
-- Use `/fix` skill to apply fixes after root cause is identified
-- Re-run tests after every fix to verify no regressions
+-   Use `/debug-investigate` skill for systematic debugging when issues are reported
+-   For non-trivial bugs, failed verification, or stale/incorrect final outputs, start from the observed end state and trace backward through reader -> storage/projection -> writer -> consumer/job -> producer/origin before proposing a fix
+-   Enumerate every feeder path and root-cause hypothesis; a fix is blocked until the owning fix layer and forward convergence proof are written
+-   Use `/fix` skill to apply fixes after root cause is identified
+-   Re-run tests after every fix to verify no regressions
 
 ---
 
@@ -124,12 +124,12 @@ All workflows are defined in `.claude/workflows.json` — the canonical catalog 
 
 ### Test & Data Workflows
 
-| Workflow                                           | Purpose                                                                                                                       |
-| -------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
-| **e2e** (`--source=recording\|update-ui\|changes`) | Recording → Playwright (recording), update screenshot baselines (update-ui), or sync E2E tests to code/spec changes (changes) |
-| **write-integration-test**                         | Spec-first integration test authoring for existing code: specs → test code → review gates → run and verify                    |
+| Workflow                                           | Purpose                                                                                                                                                                                         |
+| -------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **e2e** (`--source=recording\|update-ui\|changes`) | Recording → Playwright (recording), update screenshot baselines (update-ui), or sync E2E tests to code/spec changes (changes)                                                                   |
+| **write-integration-test**                         | Spec-first integration test authoring for existing code: specs → test code → review gates → run and verify                                                                                      |
 | **integration-test-green**                         | Drive an existing integration-test suite to fully green: verify whole system → adjudicate every failure (debug-investigate + integration-test-review) → fix at owning layer → re-verify, looped |
-| **workflow-seed-test-data**                        | Generate/enhance idempotent test-data seeders simulating QC happy-path scenarios                                              |
+| **workflow-seed-test-data**                        | Generate/enhance idempotent test-data seeders simulating QC happy-path scenarios                                                                                                                |
 
 ### Design & Visualization Workflows
 

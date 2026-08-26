@@ -42,8 +42,15 @@ const CK_CRIT_OPEN = '<!-- CK:CRITICAL-THINKING -->';
 const CK_CRIT_CLOSE = '<!-- /CK:CRITICAL-THINKING -->';
 const CK_AIMP_OPEN = '<!-- CK:AI-MISTAKE-PREVENTION -->';
 const CK_AIMP_CLOSE = '<!-- /CK:AI-MISTAKE-PREVENTION -->';
-const CK_CRIT_BLOCK_RE = /<!-- CK:CRITICAL-THINKING -->[\s\S]*?<!-- \/CK:CRITICAL-THINKING -->/g;
-const CK_AIMP_BLOCK_RE = /<!-- CK:AI-MISTAKE-PREVENTION -->[\s\S]*?<!-- \/CK:AI-MISTAKE-PREVENTION -->/g;
+const CK_CRIT_BLOCK_RE = /(?:<!-- prettier-ignore-start -->\s*)?<!-- CK:CRITICAL-THINKING -->[\s\S]*?<!-- \/CK:CRITICAL-THINKING -->(?:\s*<!-- prettier-ignore-end -->)?/g;
+const CK_AIMP_BLOCK_RE = /(?:<!-- prettier-ignore-start -->\s*)?<!-- CK:AI-MISTAKE-PREVENTION -->[\s\S]*?<!-- \/CK:AI-MISTAKE-PREVENTION -->(?:\s*<!-- prettier-ignore-end -->)?/g;
+
+const PRETTIER_IGNORE_START = '<!-- prettier-ignore-start -->';
+const PRETTIER_IGNORE_END = '<!-- prettier-ignore-end -->';
+
+function prettierIgnoredBlock(body) {
+    return `${PRETTIER_IGNORE_START}\n\n${body}\n\n${PRETTIER_IGNORE_END}`;
+}
 
 // Inline fallback keeps the generator portable if the shared file is absent in a partial install.
 const WORKFLOW_GATE_FALLBACK = `${GATE_OPEN}
@@ -140,8 +147,8 @@ function loadFullProtocolBlocks() {
             );
             return '';
         }
-        const critBlock = `${CK_CRIT_OPEN}\n\n${crit}\n\n${CK_CRIT_CLOSE}`;
-        const aimpBlock = `${CK_AIMP_OPEN}\n\n${aimp}\n\n${CK_AIMP_CLOSE}`;
+        const critBlock = prettierIgnoredBlock(`${CK_CRIT_OPEN}\n\n${crit}\n\n${CK_CRIT_CLOSE}`);
+        const aimpBlock = prettierIgnoredBlock(`${CK_AIMP_OPEN}\n\n${aimp}\n\n${CK_AIMP_CLOSE}`);
         return `${critBlock}\n\n${aimpBlock}`;
     } catch (err) {
         console.error(

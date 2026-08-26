@@ -12,7 +12,7 @@
 | ---------------------------------------------------- | ------------------- | ----------------------------------------------------------------------------------------------------------- |
 | **File set** (which `{Component}.md` exist)          | **Deterministic**   | Derived from a grep over the code tree — same code, same set                                                |
 | **Section structure + order + headings**             | **Deterministic**   | The fixed template below. No run may add, drop, or reorder a section                                        |
-| **Anchors + IDs + banner + regenerate line**         | **Deterministic**   | Mechanical: `[Source:]` anchors, TC IDs, `{TestProject}::{TestClass}::{TestMethodName}` links               |
+| **Anchors + IDs + banner + regenerate line**         | **Deterministic**   | Mechanical: `[Source:]` anchors, TC IDs, `{TestProject}::{TestClass}::{TestMethodName}` links; unchanged projections preserve their existing date |
 | **Tables**                                           | **Deterministic**   | Grepped facts in the **declared sort order** below — an undeclared sort is a non-determinism source disguised as a table |
 | **Free-form prose**                                  | **NOT deterministic** | ⚠️ **The residual — which is why there is none. See the rule below**                                       |
 
@@ -212,8 +212,8 @@ Emit exactly these sections, in exactly this order. No run may add, drop, or reo
 
 Report which derived views lag their source. **Never mutates.**
 
-1. For each `{TechRoot}/{Service}/{Component}.md`, read its regenerate date / compare against the mtime or git log of its `[Source:]` anchors.
-2. Emit a stale-list: `{Component}` · regenerate date · newest source change · verdict (FRESH / STALE).
+1. For each `{TechRoot}/{Service}/{Component}.md`, treat its regenerate date as the last material projection-write date, then compare the view content and its `[Source:]` anchors against the mtime or git log of the source. The date alone is not a freshness verdict because a source change can leave the rendered projection unchanged.
+2. Emit a stale-list: `{Component}` · projection-write date · newest source change · content/anchor verdict (FRESH / STALE).
 3. Route: `→ run /tech-spec [mode=generate] --scope={Service}/{Component}` for each STALE row.
 
 > Audit reports staleness; it does not regenerate. A STALE view is not a defect in the view — it is the expected state of a projection whose source moved. **Regenerate; never patch.**

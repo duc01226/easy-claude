@@ -44,7 +44,8 @@
     "test:hooks": "node .claude/hooks/tests/test-all-hooks.cjs",
     "test:suites": "node .claude/hooks/tests/run-all-tests.cjs",
     "verify:all": "node .claude/skills/sync-codex/scripts/run-codex-sync.mjs --only=tests,scripts-tests,hooks-count-drift,hooks-parity,hooks-doc-sync,wf-cycle,sk-proto,residue,sdd,review-validate-coverage,sync-adoption-parity,provenance-markers,sync-divergence",
-    "tech-spec:generate": "node .claude/skills/tech-spec/scripts/generate-tech-specs.mjs"
+    "tech-spec:generate": "node .claude/skills/tech-spec/scripts/generate-tech-specs.mjs",
+    "tech-spec:generate:all": "node .claude/skills/tech-spec/scripts/generate-tech-specs.mjs --all"
   },
   "version": "1.0.0"
 }

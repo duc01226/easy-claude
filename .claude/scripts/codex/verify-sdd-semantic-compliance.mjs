@@ -8,14 +8,11 @@ import { promisify } from "node:util";
 
 const execFileAsync = promisify(execFile);
 
-const PROJECT_RESIDUE_TERMS = [
-  "Br" + "avoSUITE",
-  "Br" + "avoSuite",
-  "br" + "avoTALENTS",
-  "br" + "avoGROWTH",
-  "br" + "avoSURVEYS",
-  "br" + "avoINSIGHTS",
-];
+// Consumer-specific names are configuration, never framework source. A project may declare
+// them under docs/project-config.json → framework.projectResidueTerms; a copied framework with
+// no project profile simply has no consumer-specific residue to police.
+const PROJECT_RESIDUE_TERMS = Object.freeze([]);
+const PROJECT_CONFIG_PATH = "docs/project-config.json";
 
 const STALE_PERFORMANCE_SKIP_TERMS = [
   "PERFORMANCE EXCEPTION routes",
@@ -92,7 +89,6 @@ const SDD022_EXEMPT_FILES = new Set([
 // stakeholder prose. Exempt by suffix since their names vary per bucket.
 const SDD022_EXEMPT_SUFFIXES = [".reimplementation-guide.md"];
 const BANNED_PROSE_TECH_TERMS = [
-  "Easy.Platform",
   ".NET",
   "C#",
   "Angular",
@@ -509,14 +505,14 @@ const CHECKS = [
     code: "SDD009",
     file: ".claude/skills/shared/sdd-artifact-contract.md",
     requireAny: ["docs/project-config.json", "docs/project-reference"],
-    forbidAny: PROJECT_RESIDUE_TERMS,
+    forbidProjectResidue: true,
     message: "Generic SDD contract must route customization through project config/reference docs.",
   },
   {
     code: "SDD010",
     file: ".claude/hooks/session-init-docs.cjs",
     requireAll: ["docs/project-config.json", "docs/project-reference"],
-    forbidAny: PROJECT_RESIDUE_TERMS,
+    forbidProjectResidue: true,
     message: "Session init hook must initialize project config/docs rather than embedding local project rules.",
   },
   {
@@ -645,7 +641,7 @@ const CHECKS = [
       AI_SDD_REFERENCE_ONLY_TEXT,
       AI_SDD_SUPPORTED_TOOL_TEXT,
     ],
-    forbidAny: PROJECT_RESIDUE_TERMS,
+    forbidProjectResidue: true,
     message: "Shared SDD contract must own generic AI-SDD principles and stay project-neutral.",
   },
   {
@@ -657,7 +653,7 @@ const CHECKS = [
       AI_SDD_SUPPORTED_TOOL_TEXT,
       ACTIVE_SDD_CONTRACT_REFERENCE,
     ],
-    forbidAny: PROJECT_RESIDUE_TERMS,
+    forbidProjectResidue: true,
     message: "Shared sync inline versions must carry the portable AI-SDD marker for generated mirrors.",
   },
   {
@@ -673,7 +669,8 @@ const CHECKS = [
       AI_SDD_REFERENCE_ONLY_TEXT,
       AI_SDD_SUPPORTED_TOOL_TEXT,
     ],
-    forbidAny: [...PROJECT_RESIDUE_TERMS, LEGACY_CLAUDE_SDD_CONTRACT_REFERENCE],
+    forbidProjectResidue: true,
+    forbidAny: [LEGACY_CLAUDE_SDD_CONTRACT_REFERENCE],
     message: "Codex generated shared SDD contract must exist in the active skills root and preserve generic AI-SDD gates.",
   },
   {
@@ -685,7 +682,8 @@ const CHECKS = [
       AI_SDD_SUPPORTED_TOOL_TEXT,
       ACTIVE_SDD_CONTRACT_REFERENCE,
     ],
-    forbidAny: [...PROJECT_RESIDUE_TERMS, LEGACY_CLAUDE_SDD_CONTRACT_REFERENCE],
+    forbidProjectResidue: true,
+    forbidAny: [LEGACY_CLAUDE_SDD_CONTRACT_REFERENCE],
     message: "Codex generated shared sync inline versions must preserve the portable AI-SDD marker.",
   },
   {
@@ -744,6 +742,42 @@ function evaluateCheck(check, content) {
   }
 
   return failures;
+}
+
+async function loadProjectResidueTerms(rootDir, options = {}) {
+  const configText = await readFileOrNull(rootDir, PROJECT_CONFIG_PATH, options);
+  if (configText === null) {
+    return [];
+  }
+
+  try {
+    const configured = JSON.parse(configText)?.framework?.projectResidueTerms;
+    if (!Array.isArray(configured)) {
+      return [];
+    }
+
+    return [...new Set(configured.filter((term) => typeof term === "string" && term.trim()).map((term) => term.trim()))];
+  } catch {
+    return [];
+  }
+}
+
+async function resolveChecks(rootDir, checks, options = {}) {
+  const projectResidueTerms = await loadProjectResidueTerms(rootDir, options);
+  if (projectResidueTerms.length === 0) {
+    return checks;
+  }
+
+  return checks.map((check) => {
+    if (!check.forbidProjectResidue) {
+      return check;
+    }
+
+    return {
+      ...check,
+      forbidAny: [...new Set([...(check.forbidAny ?? []), ...projectResidueTerms])],
+    };
+  });
 }
 
 async function readGitIndexFileOrNull(rootDir, relativePath) {
@@ -1182,6 +1216,7 @@ async function loadRoadmapBoundarySurface(rootDir, options = {}) {
 }
 
 async function runChecks(rootDir = process.cwd(), checks = CHECKS, options = {}) {
+  const resolvedChecks = await resolveChecks(rootDir, checks, options);
   const failures = [];
   const metrics = {
     checkedFiles: 0,
@@ -1206,7 +1241,7 @@ async function runChecks(rootDir = process.cwd(), checks = CHECKS, options = {})
   };
   const checkedFiles = new Set();
 
-  for (const check of checks) {
+  for (const check of resolvedChecks) {
     const content = await readFileOrNull(rootDir, check.file, options);
     checkedFiles.add(check.file);
 
@@ -1470,6 +1505,8 @@ if (isEntrypoint) {
 export {
   CHECKS,
   PROJECT_RESIDUE_TERMS,
+  loadProjectResidueTerms,
+  resolveChecks,
   STALE_PERFORMANCE_SKIP_TERMS,
   STALE_TC_PLACEHOLDER_TERMS,
   STALE_TC_EVIDENCE_FORMAT_TERMS,

@@ -443,6 +443,36 @@ Output: regenerated DERIVED docs/specs/{Bucket}/INDEX.md (+ {Bucket}.erd.md if m
 
 ---
 
+## Phase 2.6: Derived Technical View Refresh (OPTIONAL — tech-spec)
+
+> **[SINGLE-HOME]** `docs/tech-specs/**` is generated from code and test annotations by `$tech-spec`; `docs-update` routes the work and verifies the result. It never hand-edits a derived view and never invokes the generator without an explicit scope.
+
+**When to run:** The impact map or source anchors show that a code/test change affects one or more technical views under `specRoots.technical.path`.
+
+**When to skip:** The change is docs/config-only, affects no annotated test or technical source, or the technical view is not stale. Record the skip reason in the Phase 5 report.
+
+### Step 2.6.1: Resolve the Technical Scope
+
+- Map each affected source/test to the unique `{Service}/{Component}` derived by `$tech-spec`; use the source path and the existing `[Source:]` anchor, never a guessed filename.
+- If multiple components are affected, invoke one scoped generation per component. These calls may run in parallel only when their output paths are disjoint; otherwise run them sequentially.
+- A whole-root refresh is an explicit exception: use `--all` only when the request or evidence covers the entire technical root, and record that decision.
+
+### Step 2.6.2: Invoke the Generator
+
+```text
+npm run tech-spec:generate -- --scope={Service}/{Component}
+```
+
+Equivalent direct invocation: `node .claude/skills/tech-spec/scripts/generate-tech-specs.mjs --scope={Service}/{Component}`. For the explicit whole-root exception use `--all`. An unscoped invocation is invalid and must fail closed.
+
+### Step 2.6.3: Verify the Projection
+
+- Confirm every changed/created view has the DERIVED banner, regenerate date, current source anchors, and Prettier-compatible tables; confirm a selected stale target is the only target removed by a scoped run.
+- Invoke the exact same scoped command a second time. If the paths were clean before the first invocation, require `git diff --exit-code -- {scoped paths}` after the second; if pre-existing changes exist, snapshot the scoped bytes before the second invocation and require an identical byte snapshot afterward. Equal file counts are not an idempotency check.
+- Report the explicit scope, output paths, files written/removed/unchanged, and the second-run empty-diff result. A failed oracle blocks the docs update and routes back to `$tech-spec`.
+
+---
+
 ## Phase 3: Test Specifications — Invoke `$spec [mode=tests]`
 
 **When to run:** New business-visible functionality added OR existing business-visible behavior changed. Technical-only changes with no changed user/QC-visible outcome produce no business Section 8 edits; route any technical coverage need to tests and `$tech-spec` for the derived technical view.

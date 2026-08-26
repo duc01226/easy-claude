@@ -34,8 +34,8 @@ two events is counted once per event).
 | `UserPromptSubmit` | Before processing user input | 1     | Warn/route when config, root instructions, docs, or graph need refresh                   |
 | `PreToolUse`       | Before tool execution        | 9     | Block sensitive ops, guard path boundaries, warn on doc⇄code drift, command-syntax guard |
 | `PostToolUse`      | After tool completes         | 2     | Format code, update graph                                                                |
-| `Notification`     | Idle/waiting events          | 1     | System notification (`.claude/hooks/notifications/notify.cjs`)                          |
-| `Stop`             | Response complete            | 1     | System notification (`.claude/hooks/notifications/notify.cjs`)                          |
+| `Notification`     | Idle/waiting events          | 1     | System notification (`.claude/hooks/notifications/notify.cjs`)                           |
+| `Stop`             | Response complete            | 1     | System notification (`.claude/hooks/notifications/notify.cjs`)                           |
 
 > There are **no** `SubagentStart` hooks registered; subagent guidance is static in the
 > agent `.md` files.
@@ -46,14 +46,14 @@ two events is counted once per event).
 
 ### Session Lifecycle
 
-| Hook                       | Event                          | Matcher                                                  | Purpose                                                                                                                                                                                                                          |
-| -------------------------- | ------------------------------ | -------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `verify-install.cjs`       | SessionStart                   | `startup\|resume\|clear\|compact`                        | Install integrity preflight (runs first): detect partial `.claude` copy with missing hook `lib/*.cjs` files, emit one actionable message                                                                                         |
-| `session-init.cjs`         | SessionStart                   | `startup\|resume\|clear\|compact`                        | Initialize session: detect project, write env vars, validate config, cleanup temp files                                                                                                                                          |
-| `npm-auto-install.cjs`     | SessionStart                   | `startup`                                                | Auto-install missing npm packages from root `package.json`                                                                                                                                                                       |
-| `session-init-docs.cjs`    | SessionStart                   | `startup`                                                | Config skeleton + reference doc placeholder creation                                                                                                                                                                             |
-| `graph-session-init.cjs`   | SessionStart                   | `startup\|resume`                                        | Check Python/tree-sitter/graph.db, then `sync` the graph with git HEAD (skips if config not populated). `resume` included so a session resumed after someone else's commits landed still reconciles                              |
-| `session-end.cjs`          | SessionEnd                     | `clear\|exit\|compact`                                   | Clean up tmpclaude temp/swap files and stale snapshots on session end                                                                                                                                                            |
+| Hook                                     | Event                          | Matcher                                                  | Purpose                                                                                                                                                                                                                          |
+| ---------------------------------------- | ------------------------------ | -------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `verify-install.cjs`                     | SessionStart                   | `startup\|resume\|clear\|compact`                        | Install integrity preflight (runs first): detect partial `.claude` copy with missing hook `lib/*.cjs` files, emit one actionable message                                                                                         |
+| `session-init.cjs`                       | SessionStart                   | `startup\|resume\|clear\|compact`                        | Initialize session: detect project, write env vars, validate config, cleanup temp files                                                                                                                                          |
+| `npm-auto-install.cjs`                   | SessionStart                   | `startup`                                                | Auto-install missing npm packages from root `package.json`                                                                                                                                                                       |
+| `session-init-docs.cjs`                  | SessionStart                   | `startup`                                                | Config skeleton + reference doc placeholder creation                                                                                                                                                                             |
+| `graph-session-init.cjs`                 | SessionStart                   | `startup\|resume`                                        | Check Python/tree-sitter/graph.db, then `sync` the graph with git HEAD (skips if config not populated). `resume` included so a session resumed after someone else's commits landed still reconciles                              |
+| `session-end.cjs`                        | SessionEnd                     | `clear\|exit\|compact`                                   | Clean up tmpclaude temp/swap files and stale snapshots on session end                                                                                                                                                            |
 | `.claude/hooks/notifications/notify.cjs` | Stop, PreToolUse, Notification | –, `AskUserQuestion`, `AskUserPrompt\|permission_prompt` | Unified notification router → desktop dialog + optional Telegram/Discord/Slack; fires on task-complete (Stop), question (AskUserQuestion), and input/permission prompts. Single owner — replaces the retired `notify-waiting.js` |
 
 ### Context Management (PreToolUse / UserPromptSubmit)
@@ -148,10 +148,10 @@ Max 50 entries (FIFO trim)
 
 **How to teach:**
 
-- Type `/learn always use the project-specific repository interface` → lesson saved to `docs/project-reference/lessons.md`
-- Type `/learn list` → view current lessons
-- Type `/learn remove 3` → remove lesson #3
-- Say "remember this" or "always do X" → auto-inferred, asks confirmation
+-   Type `/learn always use the project-specific repository interface` → lesson saved to `docs/project-reference/lessons.md`
+-   Type `/learn list` → view current lessons
+-   Type `/learn remove 3` → remove lesson #3
+-   Say "remember this" or "always do X" → auto-inferred, asks confirmation
 
 ---
 
@@ -346,10 +346,10 @@ Run the full aggregate suite: `node .claude/hooks/tests/run-all-tests.cjs`
 
 ## Related Documentation
 
-- [architecture.md](./architecture.md) — Hook runtime contract and layer boundaries
-- [extending-hooks.md](./extending-hooks.md) — Creating custom hooks
-- [../configuration/README.md](../configuration/README.md) — Configuration hierarchy and hooks config
-- [../skills/README.md](../skills/README.md) — Skills catalog
+-   [architecture.md](./architecture.md) — Hook runtime contract and layer boundaries
+-   [extending-hooks.md](./extending-hooks.md) — Creating custom hooks
+-   [../configuration/README.md](../configuration/README.md) — Configuration hierarchy and hooks config
+-   [../skills/README.md](../skills/README.md) — Skills catalog
 
 ---
 

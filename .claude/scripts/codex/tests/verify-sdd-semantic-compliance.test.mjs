@@ -297,6 +297,38 @@ test("evaluateCheck fails project-reference docs duplicating generic SDD princip
   assert.ok(failures.some((failure) => failure.includes("Implementation-Complete Checklist")));
 });
 
+test("runChecks loads project residue terms from project config instead of framework source", async () => {
+  const tempRoot = await fs.mkdtemp(path.join(os.tmpdir(), "codex-verify-sdd-project-profile-"));
+  try {
+    const configPath = path.join(tempRoot, "docs", "project-config.json");
+    const genericFile = path.join(tempRoot, ".claude", "skills", "shared", "example.md");
+    await fs.mkdir(path.dirname(configPath), { recursive: true });
+    await fs.mkdir(path.dirname(genericFile), { recursive: true });
+    await fs.writeFile(
+      configPath,
+      JSON.stringify({ framework: { projectResidueTerms: ["ExampleSuite"] } }),
+      "utf8"
+    );
+    await fs.writeFile(genericFile, "Generic framework contract ExampleSuite\n", "utf8");
+
+    const check = {
+      file: ".claude/skills/shared/example.md",
+      requireAny: ["Generic framework contract"],
+      forbidProjectResidue: true,
+      message: "generic framework surfaces must not contain consumer names",
+    };
+    const configured = await runChecks(tempRoot, [check]);
+    assert.equal(configured.failures.length, 1);
+    assert.match(configured.failures[0].message, /ExampleSuite/);
+
+    await fs.writeFile(configPath, JSON.stringify({ framework: {} }), "utf8");
+    const portable = await runChecks(tempRoot, [check]);
+    assert.deepEqual(portable.failures, []);
+  } finally {
+    await fs.rm(tempRoot, { recursive: true, force: true });
+  }
+});
+
 test("runChecks scans prompt surfaces for stale placeholders and unconfigured artifact roots", async () => {
   const tempRoot = await fs.mkdtemp(path.join(os.tmpdir(), "codex-verify-sdd-stale-scan-"));
   try {
@@ -402,11 +434,11 @@ test("runChecks skips SDD022 carrier lines and documented exempt guide files", a
         "This guide may mention Angular and CQRS while explaining documentation rules.",
       ],
       [
-        "docs/specs/CandidateApp/CandidateApp.reimplementation-guide.md",
+        "docs/specs/ExampleModule/ExampleModule.reimplementation-guide.md",
         "The derived rebuild guide may mention .NET and RabbitMQ by design.",
       ],
       [
-        "docs/specs/CandidateApp/README.CandidateProfileFeature.md",
+        "docs/specs/ExampleModule/README.ExampleFeature.md",
         [
           "---",
           "service: Angular",
@@ -437,12 +469,12 @@ test("runChecks skips SDD022 carrier lines and documented exempt guide files", a
     // Exempt guide (exact path), derived reimplementation guide (suffix), and post-move scan root.
     assert.equal(isSdd022TargetFile("docs/specs/DOCUMENTATION-GUIDE.md"), false);
     assert.equal(
-      isSdd022TargetFile("docs/specs/CandidateApp/CandidateApp.reimplementation-guide.md"),
+      isSdd022TargetFile("docs/specs/ExampleModule/ExampleModule.reimplementation-guide.md"),
       false
     );
     assert.equal(isSdd022TargetFile("docs/business-features/anything.md"), false);
     assert.equal(
-      isSdd022TargetFile("docs/specs/CandidateApp/README.CandidateProfileFeature.md"),
+      isSdd022TargetFile("docs/specs/ExampleModule/README.ExampleFeature.md"),
       true
     );
     assert.deepEqual(findBannedProseTechTerms("Manual OAuth text"), ["OAuth"]);

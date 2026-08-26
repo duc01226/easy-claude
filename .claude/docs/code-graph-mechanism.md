@@ -362,9 +362,9 @@ Tree-sitter captures built-in method calls (e.g., `map`, `push`, `forEach` in JS
 
 After all files are parsed, a batch SQL pass resolves unqualified CALLS targets. For each bare target name (no `::` separator), it queries the global node table:
 
-- **Exact 1 match** → resolve to qualified name (e.g., `BuildCheckInPermissionExpr` → `PermissionService.cs::BuildCheckInPermissionExpr`)
-- **2+ matches** → use IMPORTS_FROM edges from the calling file to disambiguate (import-based resolution)
-- **0 matches** → leave bare (built-in method or external library)
+-   **Exact 1 match** → resolve to qualified name (e.g., `BuildCheckInPermissionExpr` → `PermissionService.cs::BuildCheckInPermissionExpr`)
+-   **2+ matches** → use IMPORTS_FROM edges from the calling file to disambiguate (import-based resolution)
+-   **0 matches** → leave bare (built-in method or external library)
 
 ### 3. Implicit Connectors
 
@@ -374,8 +374,8 @@ Creates behavioral edges (MESSAGE_BUS, TRIGGERS_EVENT, CQRS_DISPATCH, etc.) base
 
 After build, analyzes results and outputs suggestions for projects missing config:
 
-- "No project-config.json found — create one for framework-specific edges"
-- "No implicit connection rules — add for cross-service tracing"
+-   "No project-config.json found — create one for framework-specific edges"
+-   "No implicit connection rules — add for cross-service tracing"
 
 ### Trace Edge Kind Auto-Discovery
 
@@ -403,8 +403,8 @@ The API connector automatically detects frontend and backend frameworks without 
 
 The connector runs automatically:
 
-- After `build`, `update`, `sync` via `_auto_connect()` in `cli.py`
-- On first `trace`, `query`, `connections` via `_ensure_connectors_ran()` (metadata timestamp check, <1ms)
+-   After `build`, `update`, `sync` via `_auto_connect()` in `cli.py`
+-   On first `trace`, `query`, `connections` via `_ensure_connectors_ran()` (metadata timestamp check, <1ms)
 
 ### Trace BFS Connector Edge Bridge
 
@@ -581,13 +581,13 @@ sequenceDiagram
 
 ### Workflow Integration Map
 
-| Workflow          | Steps Where Graph Activates                                                                           | What Graph Provides                                                |
-| ----------------- | ----------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------ |
+| Workflow          | Steps Where Graph Activates                                                                                 | What Graph Provides                                                |
+| ----------------- | ----------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------ |
 | **feature**       | /investigate, /feature-implement (auto-update), /code-review, /changes-review, /production-readiness-review | Structural overview, incremental tracking, blast radius for review |
 | **bugfix**        | /investigate, /debug-investigate, /fix (auto-update), /code-review                                          | Dependency tracing for root cause, impact assessment of fix        |
 | **refactor**      | /investigate, /plan-execute (auto-update), /code-review, /production-readiness-review                       | Ensures refactoring doesn't break callers/dependents               |
 | **hotfix**        | /investigate, /fix (auto-update), /changes-review, /production-readiness-review                             | Fast blast radius to verify minimal production impact              |
-| **investigation** | /investigate                                                                                              | Structural map for understanding code relationships                |
+| **investigation** | /investigate                                                                                                | Structural map for understanding code relationships                |
 
 ### Graph-Powered Skills
 
@@ -872,14 +872,14 @@ It's like a GPS navigator: the map data costs a few KB, but saves hours of drivi
 
 **When exactly is structural context pulled?**
 
-| Phase          | Trigger                                     | What's surfaced                                    | Cost       | Savings                                                 |
-| -------------- | ------------------------------------------- | -------------------------------------------------- | ---------- | ------------------------------------------------------- |
-| Session start  | `graph-session-init.cjs` fires once         | "Graph active. 350 files, 1200 edges" (~30 tokens) | 30 tokens  | Claude knows graph exists, uses queries instead of grep |
-| `/investigate` runs | investigate skill pulls `code_graph` context | Baseline structural overview (~200 tokens)      | 200 tokens | Claude maps code area in seconds vs minutes of grepping |
-| File edited    | `graph-auto-update.cjs` fires silently      | Nothing visible — graph.db updated in background   | 0 tokens   | Graph stays current. No manual rebuild needed           |
-| `/code-review` | code-review skill runs `graph-blast-radius` | Full blast radius report (~300 tokens)             | 300 tokens | Claude reviews 7 files instead of grepping 350          |
-| `/investigate` | Skill RECOMMENDED section                   | Claude runs targeted graph queries (~500 tokens)   | 500 tokens | 4 queries replace reading 47 grep matches               |
-| `/plan-review` | Completeness checklist item                 | `importers_of` per planned file (~200 tokens)      | 200 tokens | Catches missed dependents before implementation         |
+| Phase               | Trigger                                      | What's surfaced                                    | Cost       | Savings                                                 |
+| ------------------- | -------------------------------------------- | -------------------------------------------------- | ---------- | ------------------------------------------------------- |
+| Session start       | `graph-session-init.cjs` fires once          | "Graph active. 350 files, 1200 edges" (~30 tokens) | 30 tokens  | Claude knows graph exists, uses queries instead of grep |
+| `/investigate` runs | investigate skill pulls `code_graph` context | Baseline structural overview (~200 tokens)         | 200 tokens | Claude maps code area in seconds vs minutes of grepping |
+| File edited         | `graph-auto-update.cjs` fires silently       | Nothing visible — graph.db updated in background   | 0 tokens   | Graph stays current. No manual rebuild needed           |
+| `/code-review`      | code-review skill runs `graph-blast-radius`  | Full blast radius report (~300 tokens)             | 300 tokens | Claude reviews 7 files instead of grepping 350          |
+| `/investigate`      | Skill RECOMMENDED section                    | Claude runs targeted graph queries (~500 tokens)   | 500 tokens | 4 queries replace reading 47 grep matches               |
+| `/plan-review`      | Completeness checklist item                  | `importers_of` per planned file (~200 tokens)      | 200 tokens | Catches missed dependents before implementation         |
 
 **How the graph prevents missed updates and stale information:**
 
@@ -941,8 +941,8 @@ Claude traces the full chain in 3 queries: Command → Event Handler → Message
 
 **Token comparison:**
 
-- Without graph: ~25,000 tokens grepping across 3 services for "email", "notification", "user created"
-- With graph: ~2,000 tokens for 3 targeted queries + reading 4 files in the chain
+-   Without graph: ~25,000 tokens grepping across 3 services for "email", "notification", "user created"
+-   With graph: ~2,000 tokens for 3 targeted queries + reading 4 files in the chain
 
 ---
 
@@ -1020,10 +1020,10 @@ Stores "def456" as new last_synced_commit
 
 **Edge cases handled:**
 
-- **First sync (no stored commit):** Scans all files on disk, adds missing ones to graph
-- **Unreachable commit (rebase/force-push):** Falls back to full rebuild automatically
-- **No git in workspace:** Skips sync silently
-- **Large diff after long absence:** Hash-based skip prevents re-parsing unchanged content
+-   **First sync (no stored commit):** Scans all files on disk, adds missing ones to graph
+-   **Unreachable commit (rebase/force-push):** Falls back to full rebuild automatically
+-   **No git in workspace:** Skips sync silently
+-   **Large diff after long absence:** Hash-based skip prevents re-parsing unchanged content
 
 ### 3. Build Stores Git Commit Hash
 

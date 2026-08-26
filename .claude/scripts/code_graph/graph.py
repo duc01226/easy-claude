@@ -124,7 +124,7 @@ class GraphStore:
     _PATH_MARKERS = (
         ".claude/", ".agents/", ".codex/", ".ai/",
         "src/", "docs/", "scripts/", "plans/",
-        "README.md", "CLAUDE.md", "AGENTS.md", "EasyPlatform.README.md",
+        "README.md", "CLAUDE.md", "AGENTS.md",
         "package.json", "package-lock.json", "nx.json",
     )
 

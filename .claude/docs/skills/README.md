@@ -24,23 +24,23 @@ Skills Activated: fix, investigate
 
 > Curated highlights — the full catalog has 167 skills; the tables below list selected skills per domain, not the complete set.
 
-| Domain                                            | Skills | Description                                          |
-| ------------------------------------------------- | ------ | ---------------------------------------------------- |
-| [Development - Backend](#development---backend)   | 0      | Project-specific backend patterns                    |
-| [Development - Frontend](#development---frontend) | 3      | Components, forms, state, styling, design            |
-| [Architecture](#architecture)                     | 3      | Architecture, performance, security                  |
-| [Debugging/Testing](#debuggingtesting)            | 3      | Test generation, test specs                          |
-| [AI/ML Tools](#aiml-tools)                        | 1      | Structured reasoning                                 |
-| [Documentation](#documentation)                   | 6      | Docs, feature docs, changelogs, release notes        |
-| [Git/Workflow](#gitworkflow)                      | 5      | Commits, branches, code review, quality gates        |
-| [Code Quality](#code-quality)                     | 10     | Graph-based code analysis, blast radius, sync        |
-| [Planning/Research](#planningresearch)            | 6      | Plans, research, implementation, investigation       |
-| [Infrastructure/DevOps](#infrastructuredevops)    | 1      | Cloudflare, Docker, GCP                              |
-| [Context/Memory](#contextmemory)                  | 4      | Optimization, persistence, learning                  |
-| [Team Collaboration](#team-collaboration)         | 13     | PO, BA, QA, QC, UX, PM roles, prioritization         |
-| [Web/Frameworks](#webframeworks)                  | 2      | Package updates, markdown                            |
-| [Document Processing](#document-processing)       | 4      | PDF, DOCX, Markdown conversions                      |
-| [Utility](#utility)                               | 2      | Claude Code CLI, skill creation                      |
+| Domain                                            | Skills | Description                                    |
+| ------------------------------------------------- | ------ | ---------------------------------------------- |
+| [Development - Backend](#development---backend)   | 0      | Project-specific backend patterns              |
+| [Development - Frontend](#development---frontend) | 3      | Components, forms, state, styling, design      |
+| [Architecture](#architecture)                     | 3      | Architecture, performance, security            |
+| [Debugging/Testing](#debuggingtesting)            | 3      | Test generation, test specs                    |
+| [AI/ML Tools](#aiml-tools)                        | 1      | Structured reasoning                           |
+| [Documentation](#documentation)                   | 6      | Docs, feature docs, changelogs, release notes  |
+| [Git/Workflow](#gitworkflow)                      | 5      | Commits, branches, code review, quality gates  |
+| [Code Quality](#code-quality)                     | 10     | Graph-based code analysis, blast radius, sync  |
+| [Planning/Research](#planningresearch)            | 6      | Plans, research, implementation, investigation |
+| [Infrastructure/DevOps](#infrastructuredevops)    | 1      | Cloudflare, Docker, GCP                        |
+| [Context/Memory](#contextmemory)                  | 4      | Optimization, persistence, learning            |
+| [Team Collaboration](#team-collaboration)         | 13     | PO, BA, QA, QC, UX, PM roles, prioritization   |
+| [Web/Frameworks](#webframeworks)                  | 2      | Package updates, markdown                      |
+| [Document Processing](#document-processing)       | 4      | PDF, DOCX, Markdown conversions                |
+| [Utility](#utility)                               | 2      | Claude Code CLI, skill creation                |
 
 **Additional:** Shared reference/protocol files (7) -- see [Shared Protocols](#shared-protocols-sync-inline)
 
@@ -305,11 +305,11 @@ Use `/skill-creator` to create a new skill:
 
 ## Related Documentation
 
-- `docs/project-reference/backend-patterns-reference.md` - Backend patterns
-- `docs/project-reference/frontend-patterns-reference.md` - Frontend patterns
-- [../skill-naming-conventions.md](../skill-naming-conventions.md) - Naming conventions & shared module patterns
+-   `docs/project-reference/backend-patterns-reference.md` - Backend patterns
+-   `docs/project-reference/frontend-patterns-reference.md` - Frontend patterns
+-   [../skill-naming-conventions.md](../skill-naming-conventions.md) - Naming conventions & shared module patterns
 
-- [../hooks/README.md](../hooks/README.md) - Hooks overview and lessons system
+-   [../hooks/README.md](../hooks/README.md) - Hooks overview and lessons system
 
 ---
 

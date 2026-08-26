@@ -1115,10 +1115,10 @@ flowchart TB
 
 **The 3-question minimum:** `/plan-validate` asks 3-8 critical questions about the plan before implementation. This catches:
 
-- Scope misunderstandings
-- Missing edge cases
-- Wrong architectural assumptions
-- Unstated dependencies
+-   Scope misunderstandings
+-   Missing edge cases
+-   Wrong architectural assumptions
+-   Unstated dependencies
 
 ### 8.5 Sequential Thinking — Preventing AI Shallow Reasoning
 
@@ -1246,11 +1246,11 @@ flowchart TB
 
 **Properties:**
 
-- Max 50 lessons (FIFO trim — oldest removed when full)
-- Read-lessons contract delivered statically via `CLAUDE.md` / `SKILL.md` (no runtime inject hook)
-- Restored after compaction by the model re-reading the static read-lessons contract
-- Persists across sessions (stored in `docs/project-reference/lessons.md`)
-- Shared with subagents via the lessons read contract baked into the agent `.md` files
+-   Max 50 lessons (FIFO trim — oldest removed when full)
+-   Read-lessons contract delivered statically via `CLAUDE.md` / `SKILL.md` (no runtime inject hook)
+-   Restored after compaction by the model re-reading the static read-lessons contract
+-   Persists across sessions (stored in `docs/project-reference/lessons.md`)
+-   Shared with subagents via the lessons read contract baked into the agent `.md` files
 
 ### 8.9 TDD Workflow & Unified Test Specification System
 
@@ -1350,9 +1350,9 @@ flowchart LR
 
 Dedicated registered workflows and workflow trigger skills support test-driven development:
 
-| Workflow                                           | Sequence                                                                                                           | Use Case                                                                                         |
-| -------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------ |
-| **idea-to-pbi**                                    | `/idea` → `/refine` → `/story` → `/spec [mode=tests]` → `/dor-gate`                                                | Go from raw idea to grooming-ready PBI, stories, and reviewed test specifications                |
+| Workflow                                           | Sequence                                                                                                | Use Case                                                                                         |
+| -------------------------------------------------- | ------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------ |
+| **idea-to-pbi**                                    | `/idea` → `/refine` → `/story` → `/spec [mode=tests]` → `/dor-gate`                                     | Go from raw idea to grooming-ready PBI, stories, and reviewed test specifications                |
 | **feature**                                        | `/investigate` → `/spec` → `/spec [mode=tests]` → `/plan` → `/plan-execute` → `/integration-test` → ... | Spec-driven with tests by default: test specs written and reviewed FIRST, then implement         |
 | **e2e** (`--source=recording\|update-ui\|changes`) | `/e2e-test` → `/test` → `/docs-update` → `/workflow-end` → `/watzup`                                    | Generate from a recording, update screenshot baselines, or sync E2E tests to spec/source changes |
 
@@ -1886,11 +1886,11 @@ The framework includes a comprehensive **end-to-end testing system** that auto-d
 
 The `/e2e-test` skill reads `docs/project-config.json` → `e2eTesting` section to determine:
 
-- **Framework** (Playwright, Selenium+SpecFlow, Cypress, etc.)
-- **Architecture** (POM pattern, BDD, direct tests)
-- **Entry points** (key base classes, config files)
-- **Run commands** (how to execute tests)
-- **Best practices** (project-specific conventions)
+-   **Framework** (Playwright, Selenium+SpecFlow, Cypress, etc.)
+-   **Architecture** (POM pattern, BDD, direct tests)
+-   **Entry points** (key base classes, config files)
+-   **Run commands** (how to execute tests)
+-   **Best practices** (project-specific conventions)
 
 This means the AI agent adapts to whatever E2E stack the project uses — no hardcoded assumptions.
 
@@ -1928,8 +1928,8 @@ This means the AI agent adapts to whatever E2E stack the project uses — no har
 
 One parameterized workflow (`e2e --source=…`) covers all E2E testing scenarios:
 
-| `--source`    | Sequence                                                                        | Use Case                                             |
-| ------------- | ------------------------------------------------------------------------------- | ---------------------------------------------------- |
+| `--source`    | Sequence                                                             | Use Case                                             |
+| ------------- | -------------------------------------------------------------------- | ---------------------------------------------------- |
 | **recording** | `/e2e-test` → `/test` → `/docs-update` → `/workflow-end` → `/watzup` | Browser recording → generate E2E test                |
 | **update-ui** | `/e2e-test` → `/test` → `/docs-update` → `/workflow-end` → `/watzup` | UI visual changes → update test baselines/assertions |
 | **changes**   | `/e2e-test` → `/test` → `/docs-update` → `/workflow-end` → `/watzup` | Code/spec changes → sync E2E test implementations    |
@@ -2476,9 +2476,9 @@ big-feature:
   /scaffold → /architecture-review-full → /plan-validate → …
 ```
 
-- **`/architecture-review-full`** runs immediately after the foundation is scaffolded (both workflows), bundling `architecture-review` + `architecture-scalability-review` + `production-readiness-review` into one consolidated Architecture Health Report — so base abstractions and golden-path example code are _reviewed_ before any feature depends on them.
-- **`greenfield-init`** additionally regenerates its project-reference doc set via four `/scan` passes, turning the freshly-scaffolded conventions into the reference docs that guide every later feature.
-- **`big-feature`** also runs **`/architecture-scalability-review`** right after `/architecture-design`, feeding scalability findings into the very first plan.
+-   **`/architecture-review-full`** runs immediately after the foundation is scaffolded (both workflows), bundling `architecture-review` + `architecture-scalability-review` + `production-readiness-review` into one consolidated Architecture Health Report — so base abstractions and golden-path example code are _reviewed_ before any feature depends on them.
+-   **`greenfield-init`** additionally regenerates its project-reference doc set via four `/scan` passes, turning the freshly-scaffolded conventions into the reference docs that guide every later feature.
+-   **`big-feature`** also runs **`/architecture-scalability-review`** right after `/architecture-design`, feeding scalability findings into the very first plan.
 
 **Net effect:** features never build on an unreviewed or undocumented foundation — the scaffolding-first rule in `CLAUDE.md`'s workflow-routing gate (bullet 7) is enforced by these two workflows' canonical sequences.
 
@@ -3065,9 +3065,9 @@ Skills that **automatically receive graph context** when graph.db exists: `/code
 
 The graph requires **zero manual maintenance** after initial build:
 
-- **Every edit:** `graph-auto-update.cjs` re-parses the edited file (3s debounce, atomic lock)
-- **Every session:** `graph-session-init.cjs` diffs `last_synced_commit` vs HEAD, syncs changed files from git pull/checkout/merge
-- **Implicit connections:** `connect-implicit` runs after build/update when `graphConnectors.implicitConnections[]` is configured, creating edges for entity events, message bus, and loosely coupled patterns
+-   **Every edit:** `graph-auto-update.cjs` re-parses the edited file (3s debounce, atomic lock)
+-   **Every session:** `graph-session-init.cjs` diffs `last_synced_commit` vs HEAD, syncs changed files from git pull/checkout/merge
+-   **Implicit connections:** `connect-implicit` runs after build/update when `graphConnectors.implicitConnections[]` is configured, creating edges for entity events, message bus, and loosely coupled patterns
 
 #### Why This Matters for AI Agents
 
@@ -3152,9 +3152,9 @@ The checklists reference `backend-patterns-reference.md` directly, so agents loo
 
 A subtle failure mode: review sub-agents would sometimes edit feature docs or spec files inline ("while I'm here, I'll update the docs"). This caused:
 
-- Docs updated with potentially incorrect content (reviewer hallucinated API behavior)
-- `/docs-update` step later found docs "already updated" but with wrong content
-- Double-write race conditions when multiple parallel reviewers touched the same doc file
+-   Docs updated with potentially incorrect content (reviewer hallucinated API behavior)
+-   `/docs-update` step later found docs "already updated" but with wrong content
+-   Double-write race conditions when multiple parallel reviewers touched the same doc file
 
 The `workflow-review-changes.injectContext` in `workflows.json` now includes a **DOC SYNC DEFERRAL** block injected into every review sub-agent:
 
@@ -3217,9 +3217,9 @@ The canonical 8-section Feature Spec (`docs/specs/{Bucket}/README.{Feature}.md`)
 
 **Why accuracy matters:** A 2-value answer when the actual code has 3 values causes:
 
-- Incorrect code generation (missing the third enum value in switch cases)
-- Incorrect test assertions (only asserting 2 of 3 variants)
-- Documentation that contradicts the codebase
+-   Incorrect code generation (missing the third enum value in switch cases)
+-   Incorrect test assertions (only asserting 2 of 3 variants)
+-   Documentation that contradicts the codebase
 
 Each Feature Spec carries `last_reviewed` frontmatter. Keeping it current lets `/spec [mode=update]` (canonical) and `/spec-index mode=index` (derived re-generation) treat the spec as a known-good baseline rather than re-deriving from scratch.
 
@@ -3231,8 +3231,8 @@ The Feature Spec's **Section 8 is the cross-referenceable TC registry**. Each TC
 
 The `[Trait("TestSpec", "TC-{FEATURE}-{NNN}")]` annotation in test code provides the bidirectional link:
 
-- Feature doc Section 8 TC ID → test method (forward)
-- Test method `Trait` → TC ID → feature doc §8 entry (reverse)
+-   Feature doc Section 8 TC ID → test method (forward)
+-   Test method `Trait` → TC ID → feature doc §8 entry (reverse)
 
 Both directions are queryable without reading source code, making the spec-driven chain **self-documenting for AI agents**.
 
@@ -3285,10 +3285,10 @@ A naive "review your review" instruction recurses forever — the validation pas
 
 #### Why this matters operationally
 
-- **Self-correction without a second human** — the reviewer demotes its own unprovable findings before they reach the report, so humans review a pre-filtered, proof-backed list instead of triaging noise.
-- **Bounded cost** — at most 3 validation passes per review, then it escalates rather than burning tokens. The cap is the budget guarantee.
-- **Auditable** — every outcome writes a record: `## Findings Validation` (clean), `## Findings Validation Notes` (what changed and why), or `## Findings Validation — Unresolved` (escalated). The reconciliation is never invisible.
-- **Symmetric with the rest of the framework** — it is the Section 8.6 evidence discipline turned back on the review layer: every finding must be correct, proof-backed, reasonable, and best-practice, or it gets dropped or escalated.
+-   **Self-correction without a second human** — the reviewer demotes its own unprovable findings before they reach the report, so humans review a pre-filtered, proof-backed list instead of triaging noise.
+-   **Bounded cost** — at most 3 validation passes per review, then it escalates rather than burning tokens. The cap is the budget guarantee.
+-   **Auditable** — every outcome writes a record: `## Findings Validation` (clean), `## Findings Validation Notes` (what changed and why), or `## Findings Validation — Unresolved` (escalated). The reconciliation is never invisible.
+-   **Symmetric with the rest of the framework** — it is the Section 8.6 evidence discipline turned back on the review layer: every finding must be correct, proof-backed, reasonable, and best-practice, or it gets dropped or escalated.
 
 This closes the last open loop in the quality chain: implementation is evidence-gated, the review is evidence-gated, and now the review's _own findings_ are evidence-gated — by the same standard, with a hard recursion stop and a bounded escape hatch.
 
@@ -3433,10 +3433,10 @@ Run the primary gate with `node .claude/hooks/tests/test-all-hooks.cjs`; the ful
 
 Hooks are the **safety net** for the entire system. A broken hook means:
 
-- Security blocks bypassed (path boundary, privacy, scout-block)
-- Session/doc init fails (AI loses project knowledge)
-- Commit gate disabled (git commit/push escapes the /commit guard)
-- Doc-sync warning lost (behavioral code ships without a spec update)
+-   Security blocks bypassed (path boundary, privacy, scout-block)
+-   Session/doc init fails (AI loses project knowledge)
+-   Commit gate disabled (git commit/push escapes the /commit guard)
+-   Doc-sync warning lost (behavioral code ships without a spec update)
 
 Testing ensures the framework remains reliable as hooks evolve.
 
@@ -3655,9 +3655,9 @@ Each agent definition now inlines two shared protocol blocks from `sync-inline-v
 
 > **AI Mistake Prevention** — Failure modes to avoid on every task:
 >
-> - Check downstream references before deleting...
-> - Verify AI-generated content against actual code...
-> - Holistic-first debugging — resist nearest-attention trap...
+> -   Check downstream references before deleting...
+> -   Verify AI-generated content against actual code...
+> -   Holistic-first debugging — resist nearest-attention trap...
 
 <!-- /SYNC:ai-mistake-prevention -->
 ```
@@ -3858,14 +3858,14 @@ The framework succeeds because it aligns with how LLMs actually fail:
 
 **17 top-level hook files**, **166 skills**, **19 registered workflows**, and **27 specialized agents** working in concert to deliver:
 
-- **Fewer hallucinations** — Evidence gates and proof traces catch AI fabrications before they reach files
-- **Better code quality** — Pattern injection ensures AI follows project conventions, not generic training data
-- **Full lifecycle coverage** — From greenfield inception through idea capture, test specification, implementation, code review, and documentation
-- **Consistent adherence** — Programmatic enforcement means quality doesn't degrade in long sessions or complex tasks
-- **Recovery from amnesia** — External state persistence means context compaction doesn't lose progress
-- **Persistent learning** — Mistakes captured once prevent recurrence across all future sessions
-- **Prompt engineering depth** — Role prompting, chain-of-thought, few-shot, negative prompting, and iterative refinement applied systematically across 166 skills (Section 8.15)
-- **Context engineering precision** — JIT injection, dedup, external memory, budget management, and recovery keep the AI informed without overwhelming its context window (Section 8.16)
+-   **Fewer hallucinations** — Evidence gates and proof traces catch AI fabrications before they reach files
+-   **Better code quality** — Pattern injection ensures AI follows project conventions, not generic training data
+-   **Full lifecycle coverage** — From greenfield inception through idea capture, test specification, implementation, code review, and documentation
+-   **Consistent adherence** — Programmatic enforcement means quality doesn't degrade in long sessions or complex tasks
+-   **Recovery from amnesia** — External state persistence means context compaction doesn't lose progress
+-   **Persistent learning** — Mistakes captured once prevent recurrence across all future sessions
+-   **Prompt engineering depth** — Role prompting, chain-of-thought, few-shot, negative prompting, and iterative refinement applied systematically across 166 skills (Section 8.15)
+-   **Context engineering precision** — JIT injection, dedup, external memory, budget management, and recovery keep the AI informed without overwhelming its context window (Section 8.16)
 
 The framework is **generic and reusable**. Replace `project-config.json` with your project's specifics, and the entire system adapts — different tech stack, different patterns, different conventions, same quality enforcement.
 

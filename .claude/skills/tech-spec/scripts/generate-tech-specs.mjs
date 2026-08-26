@@ -45,6 +45,7 @@ const TECHNICAL_HINTS = [
 ];
 
 const repoRoot = process.cwd();
+const generationRequest = parseArguments(process.argv.slice(2));
 const config = await readJson(path.join(repoRoot, 'docs/project-config.json'));
 const technicalRoot = config?.specRoots?.technical?.path;
 
@@ -73,8 +74,6 @@ assertInsideRepo(outputRoot);
 const sourceRoot = path.resolve(repoRoot, scan.sourceRoot);
 assertInsideRepo(sourceRoot);
 
-await fs.mkdir(outputRoot, { recursive: true });
-
 const entries = await collectTraitEntries(sourceRoot);
 
 // A scan that matched nothing is a configuration failure, not a success. Reporting
@@ -98,21 +97,27 @@ if (entries.length === 0) {
 }
 
 const groups = groupEntries(entries);
+await fs.mkdir(outputRoot, { recursive: true });
+const output = await reconcileTechnicalViews(outputRoot, groups, generationRequest);
 
-await removeGeneratedMarkdown(outputRoot);
-await writeTechnicalViews(outputRoot, groups);
+const outputEntries = generationRequest.scope ? groups.get(generationRequest.scope.key) ?? [] : entries;
 
-const technicalCount = entries.filter((entry) => entry.traitName === 'TechnicalSpec').length;
-const businessJoinCount = entries.filter((entry) => entry.traitName === 'TestSpec').length;
-const candidateCount = entries.filter(isTechnicalCandidate).length;
+const technicalCount = outputEntries.filter((entry) => entry.traitName === 'TechnicalSpec').length;
+const businessJoinCount = outputEntries.filter((entry) => entry.traitName === 'TestSpec').length;
+const candidateCount = outputEntries.filter(isTechnicalCandidate).length;
 
 console.log(
   JSON.stringify(
     {
       status: 'ok',
+      mode: generationRequest.mode,
+      ...(generationRequest.scope ? { scope: generationRequest.scope.key } : {}),
       outputRoot: toPosix(path.relative(repoRoot, outputRoot)),
-      filesWritten: groups.size,
-      annotations: entries.length,
+      filesWritten: output.filesWritten,
+      filesRemoved: output.filesRemoved,
+      filesUnchanged: output.filesUnchanged,
+      annotations: outputEntries.length,
+      scannedAnnotations: entries.length,
       technicalSpecAnnotations: technicalCount,
       testSpecAnnotations: businessJoinCount,
       technicalLookingTestSpecCandidates: candidateCount,
@@ -121,6 +126,88 @@ console.log(
     2,
   ),
 );
+
+function parseArguments(args) {
+  if (args.length === 0) {
+    throw new Error(
+      'A generation scope is required. Use "--scope=Service/Component" for one component or "--all" for the full technical spec root.',
+    );
+  }
+
+  let all = false;
+  let scopeValue = null;
+
+  for (let index = 0; index < args.length; index += 1) {
+    const argument = args[index];
+
+    if (argument === '--all') {
+      if (all) {
+        throw new Error('The --all option may be provided only once.');
+      }
+      all = true;
+      continue;
+    }
+
+    if (argument === '--scope') {
+      if (scopeValue !== null) {
+        throw new Error('The --scope option may be provided only once.');
+      }
+      const next = args[index + 1];
+      if (!next || next.startsWith('--')) {
+        throw new Error('The --scope option requires a value in the form Service/Component.');
+      }
+      scopeValue = next;
+      index += 1;
+      continue;
+    }
+
+    if (argument.startsWith('--scope=')) {
+      if (scopeValue !== null) {
+        throw new Error('The --scope option may be provided only once.');
+      }
+      scopeValue = argument.slice('--scope='.length);
+      continue;
+    }
+
+    throw new Error(
+      `Unknown option "${argument}". Use "--scope=Service/Component" for one component or "--all" for the full technical spec root.`,
+    );
+  }
+
+  if (all && scopeValue !== null) {
+    throw new Error('Choose exactly one generation mode: --scope=Service/Component or --all, not both.');
+  }
+
+  if (!all && scopeValue === null) {
+    throw new Error('Choose exactly one generation mode: --scope=Service/Component or --all.');
+  }
+
+  return all
+    ? { mode: 'all', scope: null }
+    : { mode: 'scope', scope: parseScope(scopeValue) };
+}
+
+function parseScope(value) {
+  const parts = String(value).split('/');
+  if (
+    parts.length !== 2 ||
+    parts.some(
+      (part) =>
+        !part ||
+        part === '.' ||
+        part === '..' ||
+        part.includes('\\') ||
+        sanitizeSegment(part) !== part,
+    )
+  ) {
+    throw new Error(
+      `Invalid scope "${value}". Scope must be exactly Service/Component using safe path segments; traversal and separators are not allowed.`,
+    );
+  }
+
+  const [service, component] = parts;
+  return { service, component, key: `${service}/${component}` };
+}
 
 async function readJson(filePath) {
   return JSON.parse(await fs.readFile(filePath, 'utf8'));
@@ -317,12 +404,10 @@ function normalizeForMatch(value) {
   return value.toLowerCase().replace(/[^a-z0-9]+/g, ' ');
 }
 
-// Deletion is ALL-OR-NOTHING: every file is validated before any file is removed.
-// Validating and deleting in one loop (the previous shape) meant a single hand-edited
-// file aborted the run AFTER the files before it were already gone and BEFORE
-// writeTechnicalViews could regenerate anything — irreversible loss with no output.
-// — why: never destroy what you have not yet proven you can replace.
-async function removeGeneratedMarkdown(rootPath) {
+// Full-root cleanup is ALL-OR-NOTHING: every file is validated before any file is
+// removed. Scoped cleanup validates only the selected target, so unrelated Markdown
+// is outside the mutation set by construction.
+async function validateGeneratedMarkdown(rootPath) {
   const files = await collectFiles(rootPath, { matches: (name) => name.endsWith('.md') });
 
   // Pass 1 — validate every file, collecting ALL offenders. Nothing is deleted here.
@@ -343,21 +428,101 @@ async function removeGeneratedMarkdown(rootPath) {
     );
   }
 
-  // Pass 2 — every file is proven derived; safe to remove.
-  for (const filePath of files) {
-    await fs.rm(filePath);
-  }
+  return files;
 }
 
-async function writeTechnicalViews(rootPath, groups) {
+async function reconcileTechnicalViews(rootPath, groups, request) {
   const today = new Date().toISOString().slice(0, 10);
+
+  if (request.mode === 'scope') {
+    return reconcileScopedView(rootPath, groups, request.scope, today);
+  }
+
+  return reconcileAllViews(rootPath, groups, today);
+}
+
+async function reconcileAllViews(rootPath, groups, today) {
+  const existingFiles = await validateGeneratedMarkdown(rootPath);
+  const expectedFiles = new Set();
+  let filesWritten = 0;
+  let filesUnchanged = 0;
 
   for (const [groupKey, groupEntriesList] of [...groups.entries()].sort(([a], [b]) => compareText(a, b))) {
     const [service, component] = groupKey.split('/');
-    const dir = path.join(rootPath, service);
-    await fs.mkdir(dir, { recursive: true });
-    await fs.writeFile(path.join(dir, `${component}.md`), renderView({ service, component, entries: groupEntriesList, today }), 'utf8');
+    const filePath = path.join(rootPath, service, `${component}.md`);
+    assertInsideRepo(filePath);
+    expectedFiles.add(path.resolve(filePath));
+    const changed = await writeViewIfChanged(filePath, renderView({ service, component, entries: groupEntriesList, today }));
+    if (changed) {
+      filesWritten += 1;
+    } else {
+      filesUnchanged += 1;
+    }
   }
+
+  let filesRemoved = 0;
+  for (const filePath of existingFiles) {
+    if (!expectedFiles.has(path.resolve(filePath))) {
+      await fs.rm(filePath);
+      filesRemoved += 1;
+    }
+  }
+
+  return { filesWritten, filesRemoved, filesUnchanged };
+}
+
+async function reconcileScopedView(rootPath, groups, scope, today) {
+  const filePath = path.join(rootPath, scope.service, `${scope.component}.md`);
+  assertInsideRepo(filePath);
+  const existing = await readOptionalFile(filePath);
+  if (existing !== null && !existing.startsWith(DERIVED_BANNER)) {
+    throw new Error(
+      `Refusing to change scoped output: ${toPosix(path.relative(repoRoot, filePath))} is not derived output. No files were changed.`,
+    );
+  }
+
+  const groupEntriesList = groups.get(scope.key);
+  if (!groupEntriesList) {
+    if (existing !== null) {
+      await fs.rm(filePath);
+      return { filesWritten: 0, filesRemoved: 1, filesUnchanged: 0 };
+    }
+    return { filesWritten: 0, filesRemoved: 0, filesUnchanged: 0 };
+  }
+
+  const changed = await writeViewIfChanged(
+    filePath,
+    renderView({ service: scope.service, component: scope.component, entries: groupEntriesList, today }),
+  );
+  return { filesWritten: changed ? 1 : 0, filesRemoved: 0, filesUnchanged: changed ? 0 : 1 };
+}
+
+async function readOptionalFile(filePath) {
+  try {
+    return await fs.readFile(filePath, 'utf8');
+  } catch (error) {
+    if (error.code === 'ENOENT') {
+      return null;
+    }
+    throw error;
+  }
+}
+
+async function writeViewIfChanged(filePath, content) {
+  const existing = await readOptionalFile(filePath);
+  if (existing !== null && normalizeGeneratedContent(existing) === normalizeGeneratedContent(content)) {
+    return false;
+  }
+
+  await fs.mkdir(path.dirname(filePath), { recursive: true });
+  await fs.writeFile(filePath, content, 'utf8');
+  return true;
+}
+
+// The regenerate date records the last material projection write. It is deliberately
+// ignored for equality so a no-op run stays byte-for-byte stable across calendar days.
+function normalizeGeneratedContent(content) {
+  return content.replace(/\r\n?/g, '\n').replace(/(Regenerated:\s*)\d{4}-\d{2}-\d{2}/g, '$1<projection-date>');
 }
 
 function groupEntries(entries) {
@@ -400,19 +565,48 @@ function renderView({ service, component, entries, today }) {
     .map(([methodKey, methodEntries]) => {
       const first = methodEntries[0];
       const ids = methodEntries.map((entry) => `${entry.traitName}:${entry.id}`).sort(compareText).join('<br>');
-      return `| ${first.operationKind} | \`${escapePipe(methodKey)}\` | ${ids} | [Source: test/${first.service}/${first.component}/${slugify(methodKey)}] |`;
+      return [
+        first.operationKind,
+        `\`${methodKey}\``,
+        ids,
+        `[Source: test/${first.service}/${first.component}/${slugify(methodKey)}]`,
+      ];
     });
 
   const mapRows = sortedEntries.map(
-    (entry) =>
-      `| \`${escapePipe(entry.id)}\` | ${entry.traitName} | \`${escapePipe(`${entry.className}.${entry.methodName}`)}\` | [Source: test/${entry.service}/${entry.component}/${slugify(entry.className)}] |`,
+    (entry) => [
+      `\`${entry.id}\``,
+      entry.traitName,
+      `\`${entry.className}.${entry.methodName}\``,
+      `[Source: test/${entry.service}/${entry.component}/${slugify(entry.className)}]`,
+    ],
   );
 
-  const topologyRows = sortedEntries.filter((entry) => /(Event|Message)/.test(entry.operationKind));
-  const candidateRows = sortedEntries.filter(isTechnicalCandidate).map(
-    (entry) =>
-      `| \`${escapePipe(entry.id)}\` | \`${escapePipe(`${entry.className}.${entry.methodName}`)}\` | technical hint: \`${technicalHint(entry)}\` | Convert to \`TechnicalSpec\` only after review; otherwise keep as business \`TestSpec\`. |`,
-  );
+  const topologyRows = sortedEntries.filter((entry) => /(Event|Message)/.test(entry.operationKind)).map((entry) => [
+    entry.operationKind,
+    `\`${entry.className}.${entry.methodName}\``,
+    'Review source topology if this test changes',
+  ]);
+  const candidateRows = sortedEntries.filter(isTechnicalCandidate).map((entry) => [
+    `\`${entry.id}\``,
+    `\`${entry.className}.${entry.methodName}\``,
+    `technical hint: \`${technicalHint(entry)}\``,
+    'Convert to `TechnicalSpec` only after review; otherwise keep as business `TestSpec`.',
+  ]);
+
+  const boundaryRows = [
+    ['Service', `\`${service}\``],
+    ['Component', `\`${component}\``],
+    ['Annotated tests', sortedEntries.length],
+    ['Business TC joins', idsByTrait.TestSpec.size],
+    ['Technical-only joins', idsByTrait.TechnicalSpec.size],
+  ];
+  const coverageRows = [
+    ['Annotated test methods', testsByMethod.size],
+    ['Business TC join IDs', idsByTrait.TestSpec.size],
+    ['Technical-only IDs', idsByTrait.TechnicalSpec.size],
+    ['Technical-looking business joins for follow-up', candidateRows.length],
+  ];
 
   return `${DERIVED_BANNER} Source of truth: code and tests under [Source: test/${service}/${component}]. Regenerated: ${today}.
 
@@ -420,47 +614,62 @@ function renderView({ service, component, entries, today }) {
 
 ## 1. Component Boundary
 
-| Field | Value |
-| --- | --- |
-| Service | \`${service}\` |
-| Component | \`${component}\` |
-| Annotated tests | ${sortedEntries.length} |
-| Business TC joins | ${idsByTrait.TestSpec.size} |
-| Technical-only joins | ${idsByTrait.TechnicalSpec.size} |
+${formatMarkdownTable(['Field', 'Value'], boundaryRows)}
 
 ## 2. Operation Catalog
 
-| Kind | Test surface | Annotation IDs | Anchor |
-| --- | --- | --- | --- |
-${operationRows.length ? operationRows.join('\n') : '| N/A | No annotated tests found | N/A | N/A |'}
+${formatMarkdownTable(
+  ['Kind', 'Test surface', 'Annotation IDs', 'Anchor'],
+  operationRows.length ? operationRows : [['N/A', 'No annotated tests found', 'N/A', 'N/A']],
+)}
 
 ## 3. TC ↔ Test Map
 
-| ID | Annotation | Test | Anchor |
-| --- | --- | --- | --- |
-${mapRows.length ? mapRows.join('\n') : '| N/A | N/A | No annotated tests found | N/A |'}
+${formatMarkdownTable(
+  ['ID', 'Annotation', 'Test', 'Anchor'],
+  mapRows.length ? mapRows : [['N/A', 'N/A', 'No annotated tests found', 'N/A']],
+)}
 
 ## 4. Cross-Service Topology
 
-| Touchpoint | Evidence | Risk |
-| --- | --- | --- |
-${topologyRows.length ? topologyRows.map((entry) => `| ${entry.operationKind} | \`${escapePipe(`${entry.className}.${entry.methodName}`)}\` | Review source topology if this test changes |`).join('\n') : '| N/A | No event/message annotations detected by this projection | NONE |'}
+${formatMarkdownTable(
+  ['Touchpoint', 'Evidence', 'Risk'],
+  topologyRows.length ? topologyRows : [['N/A', 'No event/message annotations detected by this projection', 'NONE']],
+)}
 
 ## 5. Technical Coverage
 
-| Coverage Slice | Count |
-| --- | ---: |
-| Annotated test methods | ${testsByMethod.size} |
-| Business TC join IDs | ${idsByTrait.TestSpec.size} |
-| Technical-only IDs | ${idsByTrait.TechnicalSpec.size} |
-| Technical-looking business joins for follow-up | ${candidateRows.length} |
+${formatMarkdownTable(['Coverage Slice', 'Count'], coverageRows, ['left', 'right'])}
 
 ## 6. Candidate Follow-Up Report
 
-| ID | Test | Reason | Route |
-| --- | --- | --- | --- |
-${candidateRows.length ? candidateRows.join('\n') : '| N/A | N/A | No technical-looking business joins detected | N/A |'}
+${formatMarkdownTable(
+  ['ID', 'Test', 'Reason', 'Route'],
+  candidateRows.length ? candidateRows : [['N/A', 'N/A', 'No technical-looking business joins detected', 'N/A']],
+)}
 `;
+}
+
+function formatMarkdownTable(headers, rows, alignments = []) {
+  const values = [headers, ...rows].map((row) => row.map((cell) => escapePipe(cell)));
+  const widths = headers.map((_, columnIndex) =>
+    Math.max(3, ...values.map((row) => String(row[columnIndex] ?? '').length)),
+  );
+
+  const formatRow = (row, isSeparator = false) => {
+    const cells = row.map((cell, columnIndex) => {
+      const value = String(cell ?? '');
+      if (isSeparator) {
+        return alignments[columnIndex] === 'right' ? `${'-'.repeat(widths[columnIndex] - 1)}:` : '-'.repeat(widths[columnIndex]);
+      }
+      return alignments[columnIndex] === 'right'
+        ? value.padStart(widths[columnIndex])
+        : value.padEnd(widths[columnIndex]);
+    });
+    return `| ${cells.join(' | ')} |`;
+  };
+
+  return [formatRow(values[0]), formatRow(widths, true), ...values.slice(1).map((row) => formatRow(row))].join('\n');
 }
 
 function sanitizeSegment(value) {

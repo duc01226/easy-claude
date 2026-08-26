@@ -150,7 +150,7 @@ Task({
 
 | Scenario                      | Agent                  | Why                                               |
 | ----------------------------- | ---------------------- | ------------------------------------------------- |
-| Investigate codebase behavior | `/investigate`         | Deep tracing with evidence and graph context     |
+| Investigate codebase behavior | `/investigate`         | Deep tracing with evidence and graph context      |
 | Understand codebase structure | `Explore`              | Comprehensive exploration with context            |
 | Research new technology       | `researcher`           | Web search + documentation synthesis              |
 | Plan feature implementation   | `planner`              | Creates structured implementation plans           |
@@ -364,15 +364,15 @@ Every agent carries the **same role-specific quality protocol** as its twin skil
 | Per-agent block assignment (the manifest) | `.claude/scripts/agent_protocol_matrix.py` (`AGENT_QUALITY_BLOCKS`)                                                                                           |
 | Injector / idempotent maintenance tool    | `.claude/scripts/inject_agent_protocol_blocks.py`                                                                                                             |
 | Canonical block bodies                    | `.claude/skills/shared/sync-inline-versions.md`                                                                                                               |
-| Full agent↔skill map + evaluation         | [`plans/260616-agent-skill-quality-parity/research/agent-skill-mapping.md`](../../../plans/260616-agent-skill-quality-parity/research/agent-skill-mapping.md) |
+| Full agent↔skill map + evaluation        | [`plans/260616-agent-skill-quality-parity/research/agent-skill-mapping.md`](../../../plans/260616-agent-skill-quality-parity/research/agent-skill-mapping.md) |
 
 **Tier model** (enforced by `agent_protocol_matrix.py` `validate()` and the `agent-universal-rules` test suite — `TC-UAR-003..007`):
 
-- **Core-6** universal blocks → all 27 agents.
-- **Code-10** blocks (`understand-code-first`, `evidence-based-reasoning`, `cross-service-check`, `fix-layer-accountability`) → only the 17 code-touching/fixing agents; NEVER a core-only agent (business-analyst, docs-manager, git-manager, journal-writer, knowledge-worker, product-owner, project-manager, quality-gate-review).
-- **Readonly-Code** blocks (`understand-code-first`, `evidence-based-reasoning` only) → the 2 read-only/design agents (`researcher`, `ui-ux-designer`) that locate/read/design code but never fix a layer or cross a service boundary; the two mutation-oriented blocks (`cross-service-check`, `fix-layer-accountability`) are deliberately excluded to save tokens.
-- **Code-standards** (`agent-code-standards`) → the 17 agents that author/review code (a separate axis — `researcher`/`ui-ux-designer` read code but don't author it, so they're excluded).
-- **Additive quality blocks** → per the matrix manifest; 26 agents carry a quality-block row, 3 (git-manager, journal-writer, project-manager) intentionally carry no quality-block ROW. Of those, `git-manager` additionally carries `SYNC:estimation-framework` — hand-added outside the manifest so the commit estimate it stamps derives from the same rules the `commit` skill applies; `journal-writer` and `project-manager` remain Core-6 only.
+-   **Core-6** universal blocks → all 27 agents.
+-   **Code-10** blocks (`understand-code-first`, `evidence-based-reasoning`, `cross-service-check`, `fix-layer-accountability`) → only the 17 code-touching/fixing agents; NEVER a core-only agent (business-analyst, docs-manager, git-manager, journal-writer, knowledge-worker, product-owner, project-manager, quality-gate-review).
+-   **Readonly-Code** blocks (`understand-code-first`, `evidence-based-reasoning` only) → the 2 read-only/design agents (`researcher`, `ui-ux-designer`) that locate/read/design code but never fix a layer or cross a service boundary; the two mutation-oriented blocks (`cross-service-check`, `fix-layer-accountability`) are deliberately excluded to save tokens.
+-   **Code-standards** (`agent-code-standards`) → the 17 agents that author/review code (a separate axis — `researcher`/`ui-ux-designer` read code but don't author it, so they're excluded).
+-   **Additive quality blocks** → per the matrix manifest; 26 agents carry a quality-block row, 3 (git-manager, journal-writer, project-manager) intentionally carry no quality-block ROW. Of those, `git-manager` additionally carries `SYNC:estimation-framework` — hand-added outside the manifest so the commit estimate it stamps derives from the same rules the `commit` skill applies; `journal-writer` and `project-manager` remain Core-6 only.
 
 Partition: 17 Code-10 + 2 Readonly-Code + 8 Core-6 = 27 agents (pairwise disjoint).
 
@@ -380,10 +380,10 @@ Partition: 17 Code-10 + 2 Readonly-Code + 8 Core-6 = 27 agents (pairwise disjoin
 
 ## Related Documentation
 
-- [agent-patterns.md](./agent-patterns.md) - Detailed agent usage patterns
-- [../skills/README.md](../skills/README.md) - Skills that enhance agent capabilities
-- [../hooks/README.md](../hooks/README.md) - Hook lifecycle (no `SubagentStart` hook; sub-agent context is static in `agents/*.md`)
-- [../configuration/README.md](../configuration/README.md) - Agent configuration options
+-   [agent-patterns.md](./agent-patterns.md) - Detailed agent usage patterns
+-   [../skills/README.md](../skills/README.md) - Skills that enhance agent capabilities
+-   [../hooks/README.md](../hooks/README.md) - Hook lifecycle (no `SubagentStart` hook; sub-agent context is static in `agents/*.md`)
+-   [../configuration/README.md](../configuration/README.md) - Agent configuration options
 
 ---
 
