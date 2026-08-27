@@ -29,6 +29,7 @@
     "codex:test:scripts": "node --test .claude/scripts/tests/*.test.mjs",
     "codex:test:tooling": "node --test .claude/scripts/codex/tests/*.test.mjs",
     "codex:verify:all": "npm run verify:all",
+    "codex:verify:feature-registry": "node .claude/scripts/codex/verify-feature-registry.mjs --configured-roots --optional",
     "codex:verify:no-project-residue": "node .claude/scripts/codex/verify-no-project-residue.mjs",
     "codex:verify:provenance-markers": "node .claude/scripts/codex/verify-provenance-markers.mjs",
     "codex:verify:review-validate-coverage": "node .claude/scripts/codex/verify-review-validate-coverage.mjs",
@@ -43,9 +44,11 @@
     "test": "npm run test:hooks && npm run test:suites",
     "test:hooks": "node .claude/hooks/tests/test-all-hooks.cjs",
     "test:suites": "node .claude/hooks/tests/run-all-tests.cjs",
-    "verify:all": "node .claude/skills/sync-codex/scripts/run-codex-sync.mjs --only=tests,scripts-tests,hooks-count-drift,hooks-parity,hooks-doc-sync,wf-cycle,sk-proto,residue,sdd,review-validate-coverage,sync-adoption-parity,provenance-markers,sync-divergence",
+    "codex:verify:tech-spec-freshness": "npm run tech-spec:check",
+    "verify:all": "node .claude/skills/sync-codex/scripts/run-codex-sync.mjs --only=tests,scripts-tests,tech-spec-freshness,feature-registry,hooks-count-drift,hooks-parity,hooks-doc-sync,wf-cycle,sk-proto,residue,sdd,review-validate-coverage,sync-adoption-parity,provenance-markers,sync-divergence",
     "tech-spec:generate": "node .claude/skills/tech-spec/scripts/generate-tech-specs.mjs",
-    "tech-spec:generate:all": "node .claude/skills/tech-spec/scripts/generate-tech-specs.mjs --all"
+    "tech-spec:generate:all": "node .claude/skills/tech-spec/scripts/generate-tech-specs.mjs",
+    "tech-spec:check": "node .claude/skills/tech-spec/scripts/generate-tech-specs.mjs --check --optional"
   },
   "version": "1.0.0"
 }

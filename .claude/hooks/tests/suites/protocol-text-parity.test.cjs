@@ -35,6 +35,7 @@ const injectors = require(path.join(REPO, '.claude', 'hooks', 'lib', 'prompt-inj
 
 const CANONICAL_PATH = path.join(REPO, '.claude', 'skills', 'shared', 'sync-inline-versions.md');
 const CLAUDE_MD_PATH = path.join(REPO, 'CLAUDE.md');
+const HAS_CLAUDE_MD = fs.existsSync(CLAUDE_MD_PATH);
 const SKILLS_DIR = path.join(REPO, '.claude', 'skills');
 
 const canonical = fs.readFileSync(CANONICAL_PATH, 'utf8');
@@ -134,6 +135,7 @@ module.exports = {
         // ── P3 — baked CLAUDE.md TOP blocks identical to canonical :full.
         {
             name: 'TC-CTXP-031 P3: CLAUDE.md TOP CK:CRITICAL-THINKING == canonical :full',
+            skip: !HAS_CLAUDE_MD,
             fn() {
                 const claudeMd = fs.readFileSync(CLAUDE_MD_PATH, 'utf8');
                 const bodies = extractAllCkBodies(claudeMd, 'CRITICAL-THINKING');
@@ -143,6 +145,7 @@ module.exports = {
         },
         {
             name: 'TC-CTXP-031 P3: CLAUDE.md TOP CK:AI-MISTAKE-PREVENTION == canonical :full',
+            skip: !HAS_CLAUDE_MD,
             fn() {
                 const claudeMd = fs.readFileSync(CLAUDE_MD_PATH, 'utf8');
                 const bodies = extractAllCkBodies(claudeMd, 'AI-MISTAKE-PREVENTION');
@@ -154,6 +157,7 @@ module.exports = {
         // ── P4 — primacy/recency anchors: bottom blocks == top blocks (exactly 2 occurrences each).
         {
             name: 'TC-CTXP-032 P4: CLAUDE.md CRITICAL-THINKING bottom==top (2 occurrences)',
+            skip: !HAS_CLAUDE_MD,
             fn() {
                 const claudeMd = fs.readFileSync(CLAUDE_MD_PATH, 'utf8');
                 const bodies = extractAllCkBodies(claudeMd, 'CRITICAL-THINKING');
@@ -163,6 +167,7 @@ module.exports = {
         },
         {
             name: 'TC-CTXP-032 P4: CLAUDE.md AI-MISTAKE-PREVENTION bottom==top (2 occurrences)',
+            skip: !HAS_CLAUDE_MD,
             fn() {
                 const claudeMd = fs.readFileSync(CLAUDE_MD_PATH, 'utf8');
                 const bodies = extractAllCkBodies(claudeMd, 'AI-MISTAKE-PREVENTION');

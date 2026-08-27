@@ -409,31 +409,45 @@ Output: regenerated DERIVED docs/specs/{Bucket}/INDEX.md (+ {Bucket}.erd.md if m
 
 ## Phase 2.6: Derived Technical View Refresh (OPTIONAL — tech-spec)
 
-> **[SINGLE-HOME]** `docs/tech-specs/**` is generated from code and test annotations by `/tech-spec`; `docs-update` routes the work and verifies the result. It never hand-edits a derived view and never invokes the generator without an explicit scope.
+> **[SINGLE-HOME]** The derived technical root comes from `docs/project-config.json` →
+> `specRoots.technical.path`. `/tech-spec` owns that output; `docs-update` routes and verifies it,
+> but never hand-edits a generated view.
 
-**When to run:** The impact map or source anchors show that a code/test change affects one or more technical views under `specRoots.technical.path`.
+**When to run:** The impact map or source anchors show that a code/test change affects the configured
+technical tree. Technical-only framework tooling changes may still need a generator freshness check.
 
-**When to skip:** The change is docs/config-only, affects no annotated test or technical source, or the technical view is not stale. Record the skip reason in the Phase 5 report.
+**When to skip:** The change is docs/config-only, no technical source or annotation is affected, the
+technical scan is not configured for this project, or the derived tree is demonstrably unaffected.
+Record the evidence and skip reason in the Phase 5 report; an absent `techSpecScan` is not a reason to
+invent a project-specific annotation pattern.
 
 ### Step 2.6.1: Resolve the Technical Scope
 
-- Map each affected source/test to the unique `{Service}/{Component}` derived by `/tech-spec`; use the source path and the existing `[Source:]` anchor, never a guessed filename.
-- If multiple components are affected, invoke one scoped generation per component. These calls may run in parallel only when their output paths are disjoint; otherwise run them sequentially.
-- A whole-root refresh is an explicit exception: use `--all` only when the request or evidence covers the entire technical root, and record that decision.
+- Resolve `specRoots.technical.path` and any `techSpecScan` settings from project configuration.
+- The generator's CLI owns a full configured-root generation mode and a read-only `--check` mode.
+  Do not route to unsupported `--scope` or `--all` arguments.
+- If a technical source change affects the derived tree, invoke `/tech-spec` with the component
+  context and let that skill determine its mechanical output. Keep this router's write set empty.
 
-### Step 2.6.2: Invoke the Generator
+### Step 2.6.2: Invoke and Verify
 
 ```text
-npm run tech-spec:generate -- --scope={Service}/{Component}
+npm run tech-spec:generate
 ```
 
-Equivalent direct invocation: `node .claude/skills/tech-spec/scripts/generate-tech-specs.mjs --scope={Service}/{Component}`. For the explicit whole-root exception use `--all`. An unscoped invocation is invalid and must fail closed.
+Equivalent standalone invocation:
 
-### Step 2.6.3: Verify the Projection
+```text
+node .claude/skills/tech-spec/scripts/generate-tech-specs.mjs
+```
 
-- Confirm every changed/created view has the DERIVED banner, regenerate date, current source anchors, and Prettier-compatible tables; confirm a selected stale target is the only target removed by a scoped run.
-- Invoke the exact same scoped command a second time. If the paths were clean before the first invocation, require `git diff --exit-code -- {scoped paths}` after the second; if pre-existing changes exist, snapshot the scoped bytes before the second invocation and require an identical byte snapshot afterward. Equal file counts are not an idempotency check.
-- Report the explicit scope, output paths, files written/removed/unchanged, and the second-run empty-diff result. A failed oracle blocks the docs update and routes back to `/tech-spec`.
+For a read-only gate, use `npm run tech-spec:check` or the direct `--check` command. If the project
+does not declare `techSpecScan`, the sync orchestrator records an explicit `SKIP (not configured)`;
+direct generator invocation remains fail-closed so a malformed declared contract cannot look fresh.
+
+Verify the result through `/tech-spec`: every emitted view has the DERIVED banner, the configured
+technical root contains no retired artifacts, anchors are traceable, and a second unchanged check is
+byte-stable. Report output paths, files written/removed/unchanged, and the freshness verdict.
 
 ---
 

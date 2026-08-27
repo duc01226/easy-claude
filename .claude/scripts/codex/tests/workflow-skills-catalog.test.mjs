@@ -188,8 +188,13 @@ test("TC-WSC-007 the real catalog carries no YAML escape artifacts", () => {
 // TC-WSC-008 — the builder is the source of the static Claude catalog.  Checking only the
 // in-memory builder lets workflow changes reach the live workflow registry while the Tier-1
 // Claude activation catalog keeps an older sequence.
-test("TC-WSC-008 shipped Claude workflow catalog matches the canonical builder", () => {
-  const claudeMd = normalizeEol(fs.readFileSync(path.join(repoRoot, "CLAUDE.md"), "utf8"));
+test("TC-WSC-008 shipped Claude workflow catalog matches the canonical builder", (t) => {
+  const claudeMdPath = path.join(repoRoot, "CLAUDE.md");
+  if (!fs.existsSync(claudeMdPath)) {
+    t.skip("root CLAUDE.md is not part of a .claude-only adopter copy");
+    return;
+  }
+  const claudeMd = normalizeEol(fs.readFileSync(claudeMdPath, "utf8"));
   const from = claudeMd.indexOf(CK_SKILLS_START);
   const to = claudeMd.indexOf(CK_SKILLS_END, from + CK_SKILLS_START.length);
 

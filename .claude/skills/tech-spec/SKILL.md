@@ -18,8 +18,6 @@ triggers: 'tech spec, technical spec, regenerate tech specs, technical spec view
 
 > **Portability:** the technical root is read from `docs/project-config.json` → `specRoots.technical.path` (declared `authorship: "derived"`, `m1Policy: "exempt"`). NEVER hardcode a root. `{TechRoot}/{Service}/{Component}.md` is a **pattern** — `{Service}` and `{Component}` are placeholders resolved from the repo, never literal names.
 
-> **Framework portability:** `.claude/` is project-neutral. Project paths, source roots, annotation syntax, technology choices, product names, and launch commands belong in `docs/project-config.json` or `docs/project-reference/`, not in this skill. The direct Node invocation above is the portable path for a project that has no package-script alias.
-
 **[IMPORTANT] TaskCreate** — Break ALL work into small tasks BEFORE starting (one task per emitted artifact).
 
 **Goal:** Project code and test annotations into a regenerable, single-writer technical view (per-component use-case inventory, TC↔test map, and cross-service topology) without creating a second source of truth; code and tests remain canonical.
@@ -41,17 +39,22 @@ triggers: 'tech spec, technical spec, regenerate tech specs, technical spec view
 
 | Mode       | Trigger                                    | Input                                          | Output                                                                       |
 | ---------- | ------------------------------------------ | ---------------------------------------------- | ---------------------------------------------------------------------------- |
-| `generate` | explicit `--scope=Service/Component` or `--all` | code + test annotations                       | `{TechRoot}/{Service}/{Component}.md`, all DERIVED (`references/author.md`)   |
+| `generate` | default — refresh the derived view          | code + test annotations                         | `{TechRoot}/{Service}/{Component}.md`, all DERIVED (`references/author.md`)   |
 | `audit`    | explicit request — staleness check          | code/test mtimes or git vs derived-view age     | Stale-list report (which views lag their source). Never mutates             |
 | `sync`     | "sync tests" / "reconcile tests" / harvest  | canonical §8 TCs + test code                    | §8/test drift report + route-only `CoveredBy:`/orphan reconciliation (`references/sync.md`) |
 
 **Tooling:**
 
-- `npm run tech-spec:generate -- --scope=Service/Component` — regenerate one derived technical view.
-- `npm run tech-spec:generate -- --all` (or `npm run tech-spec:generate:all`) — explicitly regenerate the full technical root and reconcile stale derived files.
+- `npm run tech-spec:generate` — regenerate the derived technical views from code/test annotations.
   Equivalent direct invocation, for projects that copy `.claude/` without a `package.json`:
-  `node .claude/skills/tech-spec/scripts/generate-tech-specs.mjs --scope=Service/Component` or `node .claude/skills/tech-spec/scripts/generate-tech-specs.mjs --all`.
-  An invocation without `--scope` or `--all` fails closed; this prevents a component update from silently rewriting the whole root.
+  `node .claude/skills/tech-spec/scripts/generate-tech-specs.mjs`
+- `npm run tech-spec:check` — read-only freshness and annotation-occurrence completeness gate; it
+  explicitly skips when this project has no `techSpecScan` contract.
+  Equivalent direct invocation:
+  `node .claude/skills/tech-spec/scripts/generate-tech-specs.mjs --check`
+  The direct command remains fail-closed when a project contract is absent or malformed; use
+  `--optional` only for an orchestration/package entry point that should record an absent contract as
+  a skip.
 
 **Mode resolution (do this before any work):**
 
@@ -64,7 +67,6 @@ triggers: 'tech spec, technical spec, regenerate tech specs, technical spec view
 **Key Rules:**
 
 - **MUST ATTENTION** resolve `specRoots.technical.path` and the mode before reading; never hardcode project roots or component names.
-- **MUST ATTENTION** pass exactly one explicit generation scope: `--scope=Service/Component` for a targeted refresh or `--all` for an intentional full-root reconciliation. Never use an unscoped generator invocation.
 - **NEVER** author business content or emit retired A-E artifacts; code/tests remain the source of truth.
 - **MUST ATTENTION** derive facts mechanically, anchor them to sources, write each artifact immediately, and verify regeneration is idempotent.
 - **NEVER** let the harvest detector gate generation; it reports candidates while C1/C2/C6/C7 remain hard errors.
@@ -82,7 +84,7 @@ This skill is a **generator**, not an author. Every clause below is structural �
 | **C3** | **[BLOCKING]** **Never claims to be a source of truth.** The generated files never assert canonical authority. When the view disagrees with code, **code is right by construction and the view is stale — regenerate it.** | A derived aid that asserts canonical authority corrupts the single-writer contract. |
 | **C4** | **[BLOCKING]** **Write each artifact immediately** after instantiating it; do NOT accumulate large outputs in context. | A `{Service}/{Component}` fan-out is exactly the case that exhausts context mid-run and loses every unwritten artifact. |
 | **C5** | **[BLOCKING]** **Single writer.** This skill is the **sole writer** under `specRoots.technical.path`. Nothing else writes there; it writes nowhere else. | Two writers is how a view becomes a sibling. |
-| **C6** | **[BLOCKING]** **Regeneration is idempotent** — regenerating over unchanged source produces an **empty diff**. The generator preserves an unchanged view's bytes, including its existing regenerate date; that date records the last material projection write, not freshness by itself. | This is the tree's flagship oracle: it proves the artifact can be thrown away and rebuilt from its source. If it cannot, the tree holds content of its own — it claims truth, and it is a rival. |
+| **C6** | **[BLOCKING]** **Regeneration is idempotent** — regenerating over unchanged source produces an **empty diff**. | This is the tree's flagship oracle: it proves the artifact can be thrown away and rebuilt from its source. If it cannot, the tree holds content of its own — it claims truth, and it is a rival. |
 | **C7** | **[BLOCKING]** **A-E filenames are never emitted.** See **Hard Prohibitions**. | An A-E bundle becomes a second source of truth competing with the Feature Spec. |
 
 ### C8 — Mechanical detect + route · never judge · never write business content
@@ -170,7 +172,7 @@ Per `references/author.md`: fixed sections, **declared order**, **pinned table s
 
 ## Step 3 — Stamp & Write
 
-- Every generated file opens with the `> DERIVED — regenerate with the tech-spec skill; do NOT hand-edit` banner + a regenerate date. The date advances only when the rendered projection changes; an unchanged projection preserves its existing bytes/date for cross-day idempotency.
+- Every generated file opens with the `> DERIVED — regenerate with the tech-spec skill; do NOT hand-edit` banner + a regenerate date.
 - Write each file immediately after instantiating it; do NOT accumulate large outputs in context (**C4**).
 
 ---
@@ -183,7 +185,7 @@ Per `references/author.md`: fixed sections, **declared order**, **pinned table s
 - [ ] **No canonical claims** — the derived files never assert they are the source of truth (**C3**).
 - [ ] **Every anchor resolves** — grep the source path; mark `[UNVERIFIED]` rather than guessing.
 - [ ] **No secrets** — zero connection strings, credentials, tokens, internal hostnames, or customer data encountered while reading config/seeders/fixtures.
-- [ ] **Idempotency** — re-running the same explicit `--scope` (or intentional `--all`) over unchanged source produces an empty diff, including across a date boundary (**C6**).
+- [ ] **Idempotency** — re-running over unchanged source produces an empty diff (**C6**).
 
 ---
 

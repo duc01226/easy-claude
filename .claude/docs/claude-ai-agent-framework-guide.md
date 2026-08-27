@@ -3683,7 +3683,7 @@ This is the answer to two questions the rest of the guide raises: _"does this on
 │  .claude/workflows.json · CLAUDE.md (project instructions) ·          │
 │  .claude/skills/shared/sync-inline-versions.md                        │
 └──────────────────────────────────────────────────────────────────────┘
-            │  npm run codex:sync   (9-stage pipeline, fail-fast)
+            │  npm run codex:sync   (18-stage pipeline, fail-fast)
             ▼
 ┌──────────────────────────────────────────────────────────────────────┐
 │  GENERATED MIRRORS  (never hand-edited — sync overwrites them)        │
@@ -3721,13 +3721,13 @@ So the mirror is not a copy — it is a **transform** that converts hook-depende
 | ---------------- | -------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **`sync-codex`** | Full Claude → Codex mirror | `npm run codex:sync` (or the skill without npm). `disable-model-invocation: true` — **user-invoked only, never auto-runs.** Sequential, fail-fast stages. |
 
-**`sync-codex`'s stages** (mutate first, verify-only after, any failure aborts): **migrate** (agents/skills/notifications) → **hooks** (`.codex/hooks.json`) → **context** (`CODEX_CONTEXT.md` + `AGENTS.md`) → **tests** → **scripts-tests** → **wf-cycle** → **sk-proto** → **residue** → **sdd** → **review-validate-coverage** → **sync-divergence**. The sync is not "done" until all six verifiers pass (each runs as its own dedicated verify-only stage; the `tests`/`scripts-tests` stages run those verifiers' unit tests) — a stale or non-portable mirror **fails the pipeline** rather than shipping silently.
+**`sync-codex`'s stages** (mutate first, verify-only after, configured failures abort): **migrate** → **hooks** → **context** → **tests** → **scripts-tests** → **tech-spec-freshness** → **feature-registry** → **hooks-count-drift** → **hooks-parity** → **hooks-doc-sync** → **wf-cycle** → **sk-proto** → **residue** → **sdd** → **review-validate-coverage** → **sync-adoption-parity** → **provenance-markers** → **sync-divergence**. The tech-spec and feature-registry stages are optional capabilities: when their project-config contracts are absent, the runner records an explicit skip; when declared, they fail closed on invalid or stale data. The feature-registry stage reads `specSystem.featureRegistryRoots` from project config and automatically includes continuation parts. The sync is not "done" until every configured read-only gate passes — a stale derived view, invalid adopted registry root, or non-portable mirror **fails the pipeline** rather than shipping silently.
 
 Mirror parity also enables **multi-AI execution**, not just portability: the **`dual-ai`** skill fans a single prompt out to **two fresh parallel sessions** — Claude Code and Codex CLI — each launched at xhigh reasoning effort in full-permission mode, with an `--orchestrate` mode that supervises both runs and collects a result comparison. It also accepts a workflow id, so `dual-ai workflow-review-changes` gives Claude `/workflow-review-changes` and Codex `$workflow-review-changes`, producing two independent reviews of the same working tree — possible only because the verified mirrors guarantee both tools execute the same workflow. The skill is `disable-model-invocation: true` — strictly user-invoked, since it spawns external sessions that consume quota.
 
 ### 13.4 Mirror Parity Is Mechanically Verified
 
-Six verifier scripts (`.claude/scripts/codex/verify-*.mjs`, each with a unit test) turn "keep the mirrors in sync" from a discipline into a **build gate**:
+Nine verifier scripts (`.claude/scripts/codex/verify-*.mjs`, each with a unit test), plus the tech-spec generator's read-only freshness oracle, turn repository consistency from a discipline into a **build gate**:
 
 | Verifier                           | Asserts                                                                                                                                                                                                                                                                                                                                   |
 | ---------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -3737,6 +3737,11 @@ Six verifier scripts (`.claude/scripts/codex/verify-*.mjs`, each with a unit tes
 | `verify-no-project-residue`        | **Portability enforcement** — scans the generic surfaces for the origin project's literal name and a denylist of its framework symbols (configured per-project). A reusable skill that hardcodes a project-specific name **fails the build**.                                                                                             |
 | `verify-sdd-semantic-compliance`   | ~30 semantic assertions on the spec-driven cycle; Codex mirrors reference the _local_ shared-contract path, not the `.claude` source path.                                                                                                                                                                                                |
 | `verify-review-validate-coverage`  | **Self-Review Convergence Loop sensor** — every review-family skill that produces findings carries the `/why-review --validate-findings` route (the ≥85% finding-survival bar lives there), and a validate-only grader never embeds the `double-round-trip-review` fix-loop. A review skill shipped without the gate **fails the build**. |
+| `verify-sync-adoption-parity`      | Verifies every declared SYNC carrier has canonical main and reminder blocks, and rejects undeclared carriers. |
+| `verify-provenance-markers`        | Verifies architecture-knowledge provenance markers and the consumer guards that interpret them. |
+| `verify-feature-registry`          | Verifies canonical TC/BR identity, continuation parts, split limits, relative links, declared ranges, release summaries, and coverage evidence. Normal pipeline scope comes from `specSystem.featureRegistryRoots`; explicit-path and whole-tree audits remain available. |
+
+The `tech-spec-freshness` stage runs `generate-tech-specs.mjs --check`; it compares a fresh in-memory render to committed derived views without rewriting them.
 
 `verify-no-project-residue` is the load-bearing one for "works for any project": it is impossible to merge a generic skill that leaked project-specific names, because the residue scan rejects it. Portability isn't a guideline — it's a gate.
 

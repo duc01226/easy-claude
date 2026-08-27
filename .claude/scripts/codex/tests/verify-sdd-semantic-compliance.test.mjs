@@ -434,11 +434,11 @@ test("runChecks skips SDD022 carrier lines and documented exempt guide files", a
         "This guide may mention Angular and CQRS while explaining documentation rules.",
       ],
       [
-        "docs/specs/ExampleModule/ExampleModule.reimplementation-guide.md",
+        "docs/specs/CandidateApp/CandidateApp.reimplementation-guide.md",
         "The derived rebuild guide may mention .NET and RabbitMQ by design.",
       ],
       [
-        "docs/specs/ExampleModule/README.ExampleFeature.md",
+        "docs/specs/CandidateApp/README.CandidateProfileFeature.md",
         [
           "---",
           "service: Angular",
@@ -469,12 +469,12 @@ test("runChecks skips SDD022 carrier lines and documented exempt guide files", a
     // Exempt guide (exact path), derived reimplementation guide (suffix), and post-move scan root.
     assert.equal(isSdd022TargetFile("docs/specs/DOCUMENTATION-GUIDE.md"), false);
     assert.equal(
-      isSdd022TargetFile("docs/specs/ExampleModule/ExampleModule.reimplementation-guide.md"),
+      isSdd022TargetFile("docs/specs/CandidateApp/CandidateApp.reimplementation-guide.md"),
       false
     );
     assert.equal(isSdd022TargetFile("docs/business-features/anything.md"), false);
     assert.equal(
-      isSdd022TargetFile("docs/specs/ExampleModule/README.ExampleFeature.md"),
+      isSdd022TargetFile("docs/specs/CandidateApp/README.CandidateProfileFeature.md"),
       true
     );
     assert.deepEqual(findBannedProseTechTerms("Manual OAuth text"), ["OAuth"]);
@@ -609,6 +609,33 @@ test("runChecks fails when generated shared SDD contract mirror is missing", asy
     assert.match(result.failures[0].message, /file is missing/);
   } finally {
     await fs.rm(tempRoot, { recursive: true, force: true });
+  }
+});
+
+test("runChecks skips project-profile extension checks for a bare framework but enforces them when configured", async () => {
+  const projectProfileChecks = CHECKS.filter((check) => check.requiresProjectProfile);
+  assert.equal(projectProfileChecks.length, 2);
+
+  const bareRoot = await fs.mkdtemp(path.join(os.tmpdir(), "codex-verify-sdd-bare-framework-"));
+  try {
+    const bareResult = await runChecks(bareRoot, projectProfileChecks);
+    assert.deepEqual(bareResult.failures, []);
+    assert.equal(bareResult.sddMetrics.checkedFiles, 0);
+  } finally {
+    await fs.rm(bareRoot, { recursive: true, force: true });
+  }
+
+  const configuredRoot = await fs.mkdtemp(path.join(os.tmpdir(), "codex-verify-sdd-configured-profile-"));
+  try {
+    await fs.mkdir(path.join(configuredRoot, "docs"), { recursive: true });
+    await fs.writeFile(path.join(configuredRoot, "docs", "project-config.json"), "{}\n");
+    const configuredResult = await runChecks(configuredRoot, projectProfileChecks);
+    assert.deepEqual(
+      configuredResult.failures.map((failure) => failure.file),
+      projectProfileChecks.map((check) => check.file)
+    );
+  } finally {
+    await fs.rm(configuredRoot, { recursive: true, force: true });
   }
 });
 

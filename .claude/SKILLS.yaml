@@ -1,7 +1,7 @@
 metadata:
   title: Skills Catalog
   description: Auto-generated catalog of all available skills in ClaudeKit Engineer
-  last_updated: '2026-08-25'
+  last_updated: '2026-08-27'
   total_skills: 166
   total_by_status:
     active: 165
@@ -961,7 +961,7 @@ skills:
         roadmap deliverable, roadmap update, or milestone selection; handles outcome
         milestones, MVP scope, non-goals, risks, human decisions, and evidence gates.'
       category: other
-      has_scripts: true
+      has_scripts: false
       has_references: true
       status: active
       deprecated_by: null
@@ -1194,7 +1194,7 @@ skills:
         cases for an embedded large-idea slice, explicit roadmap milestone, framework/library
         scope, or isolated change.'
       category: other
-      has_scripts: true
+      has_scripts: false
       has_references: true
       status: active
       deprecated_by: null

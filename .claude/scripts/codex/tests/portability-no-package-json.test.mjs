@@ -25,7 +25,7 @@ import { DEFAULT_FRAMEWORK_PACKAGE_NAME, frameworkPackageName, frameworkPkg, isF
 //     delegate to the in-`.claude` runner and never under-verify relative to it. These read
 //     package.json by design, and are therefore GUARDED by `frameworkPkg()` — an adopting project has
 //     its own package.json (or none), and asserting easy-claude's script names against it aborted the
-//     sync pipeline at stage 4 of 16 in every adopting project, after stages 1-3 had already written
+//     sync pipeline at stage 4 of 18 in every adopting project, after stages 1-3 had already written
 //     `.agents/`, `.codex/` and `AGENTS.md`. Runner-side assertions in this group stay UNCONDITIONAL.
 //   • Guard integrity (PORT-011): the conditional self-checks above can pass by not running, so this
 //     locks the guard to resolve true in this repo. Without it, a package rename silently disables the
@@ -68,8 +68,9 @@ function run(cmd, args, opts = {}) {
 // PORT-007 was no longer checking the export shipped them. That is precisely the enumeration-rot this
 // file's own PORT-010 exists to kill — so the roster is now computed.
 //
-// The runner spawns codex scripts as `path.join(sourceScriptsDir, "<name>.mjs")` and the hook suites
-// via a single `hooksRunner` constant; both shapes are matched below.
+// The runner spawns codex scripts as `path.join(sourceScriptsDir, "<name>.mjs")`, portable skill
+// scripts as `path.join(rootDir, ".claude", ...)`, and hook suites via `hooksRunner`; all shapes are
+// matched below so a newly wired source-owned gate cannot escape the portability closure.
 let pipelineFilesCache = null;
 async function pipelineFiles() {
     if (pipelineFilesCache) return pipelineFilesCache;
@@ -82,8 +83,23 @@ async function pipelineFiles() {
         `expected the runner to spawn >=8 codex scripts, matched ${codexScripts.length} — the extraction shape drifted`);
 
     const files = new Set([runnerRel, ...codexScripts.map(n => `.claude/scripts/codex/${n}`)]);
+    for (const match of src.matchAll(/path\.join\(rootDir,\s*((?:["'][^"']+["']\s*,\s*)*["'][^"']+["'])\)/g)) {
+        const segments = [...match[1].matchAll(/["']([^"']+)["']/g)].map(part => part[1]);
+        const rel = segments.join('/');
+        if (/\.(?:cjs|mjs|js)$/.test(rel)) files.add(rel);
+    }
     for (const m of src.matchAll(/["'](hooks)["'],\s*["'](tests)["'],\s*["']([\w.-]+\.cjs)["']/g)) {
         files.add(`.claude/${m[1]}/${m[2]}/${m[3]}`);
+    }
+
+    // These directories are expanded dynamically by the runner. Include every test carrier in the
+    // portability closure so a newly added suite cannot import an adopter-local dependency while
+    // the runner and export checks continue to inspect only the current hand-written roster.
+    for (const relativeDir of ['.claude/scripts/codex/tests', '.claude/scripts/tests']) {
+        const absoluteDir = path.join(repoRoot, ...relativeDir.split('/'));
+        for (const entry of await fs.readdir(absoluteDir, { withFileTypes: true }).catch(() => [])) {
+            if (entry.isFile() && entry.name.endsWith('.test.mjs')) files.add(`${relativeDir}/${entry.name}`);
+        }
     }
 
     pipelineFilesCache = [...files];
@@ -299,7 +315,7 @@ test('PORT-007 export-claude payload contains the full pipeline and no package.j
 // ── PORT-011 — the framework-repo guard must resolve TRUE here (anti-silent-skip lock) ────────────
 // PORT-003/004/005/008/010 (and TC-MWG-001/002/003, the adoption-parity npm half, TC-PROV-011b) are
 // now conditional on `frameworkPkg()`, because an adopting project supplies its own package.json and
-// an unconditional read aborted the pipeline at stage 4 of 16 in EVERY adopting project.
+// an unconditional read aborted the pipeline at stage 4 of 18 in EVERY adopting project.
 //
 // The cost of a conditional self-check is that it can pass by not running. If this repo's package
 // `name` is ever changed, all of those tests would skip and the suite would still report green — the

@@ -689,6 +689,7 @@ const CHECKS = [
   {
     code: "SDD019",
     file: "docs/project-reference/spec-principles.md",
+    requiresProjectProfile: true,
     requireAll: [
       "Project-specific extension",
       "Do not add reusable AI-SDD principles here",
@@ -701,6 +702,7 @@ const CHECKS = [
   {
     code: "SDD019",
     file: "docs/project-reference/workflow-spec-test-code-cycle-reference.md",
+    requiresProjectProfile: true,
     requireAll: [
       "Project-Specific Workflow Extension",
       "local workflow sequence",
@@ -1217,6 +1219,7 @@ async function loadRoadmapBoundarySurface(rootDir, options = {}) {
 
 async function runChecks(rootDir = process.cwd(), checks = CHECKS, options = {}) {
   const resolvedChecks = await resolveChecks(rootDir, checks, options);
+  const projectProfilePresent = (await readFileOrNull(rootDir, PROJECT_CONFIG_PATH, options)) !== null;
   const failures = [];
   const metrics = {
     checkedFiles: 0,
@@ -1242,6 +1245,9 @@ async function runChecks(rootDir = process.cwd(), checks = CHECKS, options = {})
   const checkedFiles = new Set();
 
   for (const check of resolvedChecks) {
+    if (check.requiresProjectProfile && !projectProfilePresent) {
+      continue;
+    }
     const content = await readFileOrNull(rootDir, check.file, options);
     checkedFiles.add(check.file);
 

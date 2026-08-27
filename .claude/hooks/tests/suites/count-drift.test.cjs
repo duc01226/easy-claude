@@ -100,6 +100,10 @@ function countLibModules() {
         .length;
 }
 
+const PROJECT_REFERENCE_DIR = path.join(REPO_ROOT, 'docs', 'project-reference');
+const DOCS_INDEX_PATH = path.join(PROJECT_REFERENCE_DIR, 'docs-index-reference.md');
+const HAS_PROJECT_REFERENCE_INDEX = fs.existsSync(DOCS_INDEX_PATH);
+
 function countWorkflows() {
     const workflowsFile = path.join(REPO_ROOT, '.claude', 'workflows.json');
     const parsed = JSON.parse(fs.readFileSync(workflowsFile, 'utf8'));
@@ -114,7 +118,6 @@ function countWorkflows() {
 // itemized enumeration, so a doc can be added (count bumps) yet silently dropped
 // from the tree/lookup. These globs close that gap deterministically.
 function listProjectReferenceDocs() {
-    const baseDir = path.join(REPO_ROOT, 'docs', 'project-reference');
     const out = [];
     (function walk(dir) {
         for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
@@ -124,11 +127,9 @@ function listProjectReferenceDocs() {
                 out.push(path.relative(REPO_ROOT, full).split(path.sep).join('/'));
             }
         }
-    })(baseDir);
+    })(PROJECT_REFERENCE_DIR);
     return out.sort();
 }
-
-const DOCS_INDEX_PATH = path.join(REPO_ROOT, 'docs', 'project-reference', 'docs-index-reference.md');
 
 function assertMatches(file, text, pattern, description) {
     if (!pattern.test(text)) {
@@ -139,6 +140,7 @@ function assertMatches(file, text, pattern, description) {
 const tests = [
     ...PILOT_FILES.map((file) => ({
     name: `[count-drift] ${file} markers match filesystem truth`,
+    skip: !fs.existsSync(path.join(REPO_ROOT, file)),
     fn: () => {
         const result = runCheck(file);
         if (result.status !== 0) {
@@ -186,10 +188,10 @@ const tests = [
                 path.join(REPO_ROOT, '.claude', 'docs', 'quick-start.md'),
                 'utf8'
             );
-            const rootReadme = fs.readFileSync(
-                path.join(REPO_ROOT, 'README.md'),
-                'utf8'
-            );
+            const rootReadmePath = path.join(REPO_ROOT, 'README.md');
+            const rootReadme = fs.existsSync(rootReadmePath)
+                ? fs.readFileSync(rootReadmePath, 'utf8')
+                : null;
 
             assertMatches(
                 '.claude/docs/README.md',
@@ -237,19 +239,22 @@ const tests = [
                 new RegExp(`\\*\\*${hookCount} top-level hook files\\*\\*,\\s*\\*\\*${skillCount} skills\\*\\*`),
                 'hook + skill totals'
             );
-            // root README: section header + architecture box "<hooks> Hook Files + <skills> Skills"
-            assertMatches(
-                'README.md',
-                rootReadme,
-                new RegExp(`###\\s+Skills\\s+\\(${skillCount} definitions\\)`),
-                'skill'
-            );
-            assertMatches(
-                'README.md',
-                rootReadme,
-                new RegExp(`${hookCount} Hook Files\\s+\\+\\s+${skillCount} Skills`),
-                'hook + skill'
-            );
+            // Root README is project-owned and is intentionally absent from a `.claude`-only
+            // adopter copy. Keep these assertions when the adopter supplies that document.
+            if (rootReadme) {
+                assertMatches(
+                    'README.md',
+                    rootReadme,
+                    new RegExp(`###\\s+Skills\\s+\\(${skillCount} definitions\\)`),
+                    'skill'
+                );
+                assertMatches(
+                    'README.md',
+                    rootReadme,
+                    new RegExp(`${hookCount} Hook Files\\s+\\+\\s+${skillCount} Skills`),
+                    'hook + skill'
+                );
+            }
         }
     },
     // --- docs-index-reference.md ↔ filesystem enumeration guards ---
@@ -260,6 +265,7 @@ const tests = [
     // These assertions make that class of drift and host-specific shared guidance hard failures.
     {
         name: '[count-drift] docs-index enumerates every on-disk project-reference doc (no silent omission)',
+        skip: !HAS_PROJECT_REFERENCE_INDEX,
         fn: () => {
             const docsIndex = fs.readFileSync(DOCS_INDEX_PATH, 'utf8');
             const docs = listProjectReferenceDocs();
@@ -275,6 +281,7 @@ const tests = [
     },
     {
         name: '[count-drift] docs-index references no non-existent project-reference doc (no stale entry)',
+        skip: !HAS_PROJECT_REFERENCE_INDEX,
         fn: () => {
             const docsIndex = fs.readFileSync(DOCS_INDEX_PATH, 'utf8');
             const referenced = new Set(docsIndex.match(/docs\/project-reference\/[A-Za-z0-9._/-]+\.md/g) || []);
@@ -289,6 +296,7 @@ const tests = [
     },
     {
         name: '[count-drift] docs-index "Project reference" count matches filesystem glob',
+        skip: !HAS_PROJECT_REFERENCE_INDEX,
         fn: () => {
             const docsIndex = fs.readFileSync(DOCS_INDEX_PATH, 'utf8');
             const expected = listProjectReferenceDocs().length;
@@ -313,6 +321,7 @@ const tests = [
     },
     {
         name: '[count-drift] docs-index uses host-neutral skill invocation syntax',
+        skip: !HAS_PROJECT_REFERENCE_INDEX,
         fn: () => {
             const docsIndex = fs.readFileSync(DOCS_INDEX_PATH, 'utf8');
             const hostSpecificCommands = docsIndex.match(/[$/]scan\b/g) || [];

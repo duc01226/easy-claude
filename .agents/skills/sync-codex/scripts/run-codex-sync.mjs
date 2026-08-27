@@ -11,13 +11,14 @@
 // No npm dependency — pure node + spawned subprocesses.
 
 import { spawn } from "node:child_process";
-import { readdir } from "node:fs/promises";
+import { readFile, readdir } from "node:fs/promises";
 import path from "node:path";
 import url from "node:url";
 
 const here = path.dirname(url.fileURLToPath(import.meta.url));
 const rootDir = path.resolve(here, "..", "..", "..", "..");
 const sourceScriptsDir = path.join(rootDir, ".claude", "scripts", "codex");
+const techSpecGenerator = path.join(rootDir, ".claude", "skills", "tech-spec", "scripts", "generate-tech-specs.mjs");
 
 const args = process.argv.slice(2);
 const verbose = args.includes("--verbose") || args.includes("-v");
@@ -40,6 +41,52 @@ async function listTestFiles(dir) {
     } catch {
         return [];
     }
+}
+
+async function readJsonOrNull(filePath) {
+    try {
+        return JSON.parse(await readFile(filePath, "utf8"));
+    } catch (error) {
+        if (error.code === "ENOENT") return null;
+        throw new Error(`Cannot read JSON configuration at ${filePath}: ${error.message}`);
+    }
+}
+
+async function loadProjectConfig() {
+    const ckConfig = await readJsonOrNull(path.join(rootDir, ".claude", ".ck.json"));
+    const configured = ckConfig?.portability?.projectConfigPath;
+    const relativePath = typeof configured === "string" && configured.trim()
+        ? configured.trim()
+        : "docs/project-config.json";
+    const configPath = path.resolve(rootDir, relativePath);
+    const relativeConfigPath = path.relative(rootDir, configPath);
+    if (relativeConfigPath.startsWith("..") || path.isAbsolute(relativeConfigPath)) {
+        throw new Error(`Configured project config must stay inside the repository: ${relativePath}`);
+    }
+    return await readJsonOrNull(configPath);
+}
+
+let projectConfigPromise;
+async function optionalStageSkipReason(stageId) {
+    if (stageId !== "tech-spec-freshness" && stageId !== "feature-registry") return null;
+    projectConfigPromise ??= loadProjectConfig();
+    const config = await projectConfigPromise;
+
+    if (stageId === "tech-spec-freshness") {
+        if (config === null || !Object.prototype.hasOwnProperty.call(config, "techSpecScan")) {
+            return "not configured: project config has no techSpecScan contract";
+        }
+        return null;
+    }
+
+    const roots = config?.specSystem?.featureRegistryRoots;
+    if (config === null || !Object.prototype.hasOwnProperty.call(config, "specSystem") || !Object.prototype.hasOwnProperty.call(config.specSystem ?? {}, "featureRegistryRoots")) {
+        return "not configured: project config has no specSystem.featureRegistryRoots contract";
+    }
+    if (!Array.isArray(roots) || roots.length === 0 || roots.some(root => typeof root !== "string" || !root.trim())) {
+        return null;
+    }
+    return null;
 }
 
 // SYNC stages (1-3, mutate) then VERIFY stages (read-only). This runner's non-mutate stage set IS
@@ -73,6 +120,13 @@ const stages = [
     // Listed via readdir so the stage works without shell glob expansion (PowerShell does not expand
     // globs the way POSIX shells do; the npm script relied on that, the runner does not).
     { id: "scripts-tests", label: "test-scripts", cmd: "node", argsAsync: async () => ["--test", ...await listTestFiles(claudeTestsDir)] },
+    // Live read-only release gates run only after their tooling/fixture tests have passed. The
+    // tech-spec generator's --check mode compares a fresh in-memory render with committed derived
+    // views; the feature registry validates canonical spec identity, links, ranges, and coverage.
+    // Both gates are optional project capabilities: absent configuration is an explicit skip, while
+    // a present but malformed contract still reaches the direct tool and fails closed.
+    { id: "tech-spec-freshness", label: "verify-tech-spec-freshness", cmd: "node", args: [techSpecGenerator, "--check"] },
+    { id: "feature-registry", label: "verify-feature-registry", cmd: "node", args: [path.join(sourceScriptsDir, "verify-feature-registry.mjs"), "--configured-roots"] },
     // Catalog↔source parity: `.claude/SKILLS.yaml` must equal a fresh `generate_catalogs.py --skills`
     // render, and the CLAUDE.md/AGENTS.md COUNT markers must match the real inventory (ADR-0001,
     // ADR-0002). This guard existed and worked, but lived ONLY in the hooks suite — which no pipeline
@@ -144,6 +198,17 @@ async function runStage(stage, index, total) {
     const label = `[${index}/${total}] ${stage.label}`;
     process.stdout.write(`${label} ...`);
     if (verbose) process.stdout.write(`\n  $ ${stage.cmd} ${argv.join(" ")}\n`);
+
+    try {
+        const skipReason = await optionalStageSkipReason(stage.id);
+        if (skipReason) {
+            process.stdout.write(verbose ? `${label} ↷ SKIP (${skipReason})\n` : ` ↷ SKIP (${skipReason})\n`);
+            return { stage: stage.id, code: 0, skipped: true };
+        }
+    } catch (error) {
+        error.stage = stage.id;
+        throw error;
+    }
 
     const startedAt = Date.now();
     return new Promise((resolve, reject) => {
