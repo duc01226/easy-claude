@@ -16,7 +16,7 @@ memory: project
 
 **Summary:**
 
-- Business-first: run Stages 1-5 (discovery, market, domain) before any tech talk — NEVER ask about tech stack upfront; derive it from the business analysis.
+- Business-first: run Stages 1-6 (discovery, market, domain) before any tech talk — NEVER ask about tech stack upfront; derive it from the business analysis.
 - Gate every stage with `AskUserQuestion` before advancing; present 2-4 options with pros/cons matrix and confidence % for each major decision.
 - Save artifacts to the plan directory at EVERY step (never memory-only); use create-only — NEVER the Edit tool.
 
@@ -30,7 +30,7 @@ memory: project
 
 **Key Rules:**
 
-- NEVER ask about tech stack upfront — derive from business analysis (Stages 1-5 first)
+- NEVER ask about tech stack upfront — derive from business analysis (Stages 1-6 first)
 - Every stage MUST end with `AskUserQuestion` before proceeding
 - Save artifacts at EVERY step — never keep findings only in memory
 - All tech recommendations require confidence % and evidence (sources, benchmarks)
@@ -64,15 +64,16 @@ Every stage MUST ATTENTION end with `AskUserQuestion` to validate decisions befo
 | Stage | Action                                                                                                                                                                                                                                                                              | Output Artifact                                                                      |
 | ----- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------ |
 | 1     | **Discovery Interview** — Ask about problem, vision, constraints, team skills, scale. **DO NOT ask about tech stack** — capture team skills as input signal only.                                                                                                                   | `{plan-dir}/research/discovery-interview.md`                                         |
-| 2     | **Market Research** — WebSearch for competitors, market landscape, existing solutions                                                                                                                                                                                               | `{plan-dir}/research/market-research.md`                                             |
+| 2     | **Market Source Discovery** — WebSearch for competitors, market landscape, existing solutions                                                                                                                                                                                               | `{plan-dir}/research/market-research.md`                                             |
 | 3     | **Deep Research** — WebFetch top sources, extract key findings                                                                                                                                                                                                                      | `{plan-dir}/research/deep-research.md`                                               |
-| 4     | **Business Evaluation** — Viability assessment, risk matrix, value proposition                                                                                                                                                                                                      | `{plan-dir}/research/business-evaluation.md`                                         |
-| 5     | **Domain Analysis & ERD** (`/domain-analysis` skill) — Bounded contexts, aggregates, entity map, domain events, Mermaid ERD. Validate every context boundary with user.                                                                                                             | `{plan-dir}/phase-01-domain-model.md` + `{plan-dir}/research/domain-analysis.md`     |
-| 6     | **Tech Stack Research** (`/tech-stack-research` skill) — Derive tech requirements from domain + business analysis, WebSearch top 3 options per stack layer, produce comparison matrix with detailed pros/cons, present report with recommendation + confidence % for user to decide | `{plan-dir}/phase-02-tech-stack.md` + `{plan-dir}/research/tech-stack-comparison.md` |
-| 7     | **Project Structure** — Folder layout, monorepo/polyrepo, CI/CD, dev tooling                                                                                                                                                                                                        | `{plan-dir}/phase-03-project-structure.md`                                           |
-| 8     | **Test Strategy** — Test pyramid, frameworks, spec generation                                                                                                                                                                                                                       | `{plan-dir}/phase-04-test-strategy.md`                                               |
-| 9     | **PBI Generation** — Break into prioritized backlog items with dependencies                                                                                                                                                                                                         | `{plan-dir}/phase-05-backlog.md`                                                     |
-| 10    | **Plan Review** — Full plan review, risk assessment, final approval                                                                                                                                                                                                                 | `{plan-dir}/plan.md` (master plan)                                                   |
+| 4     | **Market Analysis** (`/market-analysis` skill) — Size the market (TAM/SAM/SOM), competitor matrix, trends, SWOT, customer segments. Produces the evidence Stage 5 consumes; Stage 5 MUST NOT re-derive market sizing. Skip only when there is no commercial market to size — log the reason and mark Stage 5 market figures N/A. | `{plan-dir}/research/market-analysis.md`                                             |
+| 5     | **Business Evaluation** — Viability assessment, risk matrix, value proposition                                                                                                                                                                                                      | `{plan-dir}/research/business-evaluation.md`                                         |
+| 6     | **Domain Analysis & ERD** (`/domain-analysis` skill) — Bounded contexts, aggregates, entity map, domain events, Mermaid ERD. Validate every context boundary with user.                                                                                                             | `{plan-dir}/phase-01-domain-model.md` + `{plan-dir}/research/domain-analysis.md`     |
+| 7     | **Tech Stack Research** (`/tech-stack-research` skill) — Derive tech requirements from domain + business analysis, WebSearch top 3 options per stack layer, produce comparison matrix with detailed pros/cons, present report with recommendation + confidence % for user to decide | `{plan-dir}/phase-02-tech-stack.md` + `{plan-dir}/research/tech-stack-comparison.md` |
+| 8     | **Project Structure** — Folder layout, monorepo/polyrepo, CI/CD, dev tooling                                                                                                                                                                                                        | `{plan-dir}/phase-03-project-structure.md`                                           |
+| 9     | **Test Strategy** — Test pyramid, frameworks, spec generation                                                                                                                                                                                                                       | `{plan-dir}/phase-04-test-strategy.md`                                               |
+| 10    | **PBI Generation** — Break into prioritized backlog items with dependencies                                                                                                                                                                                                         | `{plan-dir}/phase-05-backlog.md`                                                     |
+| 11    | **Plan Review** — Full plan review, risk assessment, final approval                                                                                                                                                                                                                 | `{plan-dir}/plan.md` (master plan)                                                   |
 
 ## Key Rules
 
@@ -89,8 +90,8 @@ Every stage MUST ATTENTION end with `AskUserQuestion` to validate decisions befo
 
 **NEVER ask about tech stack upfront.** Correct flow:
 
-1. **Stages 1-5 (Business Analysis):** Focus exclusively on business problem, users, domain, constraints, scale expectations. Capture team skills/preferences as input signals only — NEVER as tech stack decisions.
-2. **Stage 6 (Tech Stack Research):** Only after business analysis completes, use web research to:
+1. **Stages 1-6 (Business Analysis):** Focus exclusively on business problem, users, domain, constraints, scale expectations. Capture team skills/preferences as input signals only — NEVER as tech stack decisions.
+2. **Stage 7 (Tech Stack Research):** Only after business analysis completes, use web research to:
     - Analyze business requirements → derive technical requirements (real-time needs, data volume, integration complexity, compliance)
     - WebSearch current framework/language comparisons, benchmarks, community health, enterprise adoption rates
     - Evaluate 3-4 tech stack options against derived requirements
@@ -101,7 +102,7 @@ Every stage MUST ATTENTION end with `AskUserQuestion` to validate decisions befo
 
 ### Tech Stack Research Methodology
 
-When executing Stage 6, follow this research protocol:
+When executing Stage 7, follow this research protocol:
 
 1. **Derive technical requirements** from business analysis artifacts:
     - Expected user scale → concurrent connections, database load
@@ -687,7 +688,7 @@ After tech stack confirmed, generate starter `CLAUDE.md` containing:
 - **Module Detection:** detect module from keywords, load specs context.
 
 **IMPORTANT MUST ATTENTION** NEVER skip user validation — every stage MUST end with `AskUserQuestion` before proceeding — why: a waterfall stage built on an unvalidated decision corrupts every downstream stage.
-**IMPORTANT MUST ATTENTION** NEVER ask about tech stack upfront — derive it from business analysis (Stages 1-5 first); capture volunteered preferences as constraint signals only — why: tech chosen before the domain is understood fits the tool, not the problem.
+**IMPORTANT MUST ATTENTION** NEVER ask about tech stack upfront — derive it from business analysis (Stages 1-6 first); capture volunteered preferences as constraint signals only — why: tech chosen before the domain is understood fits the tool, not the problem.
 **IMPORTANT MUST ATTENTION** ALWAYS save artifacts to the plan directory at every stage; use create-only — NEVER the Edit tool — why: findings kept only in memory are lost on context cutoff, and Edit risks corrupting existing files.
 **IMPORTANT MUST ATTENTION** NEVER recommend tech without comparing 2-4 alternatives in a pros/cons matrix, each scored with confidence % plus evidence (web sources, benchmarks) — why: a single unbenchmarked recommendation is a guess wearing an architect's hat.
 **IMPORTANT MUST ATTENTION** cite `file:line` proof or traced evidence with confidence % for EVERY claim and finding — >80% to act, 60-80% verify first, <60% DO NOT recommend; "Insufficient evidence" is valid output — why: speculation presented as fact is the root of every hallucinated foundation.

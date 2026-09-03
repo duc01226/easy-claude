@@ -54,15 +54,16 @@ memory: project
 
 ## Output Locations
 
-| Report Type          | Output Path                          |
-| -------------------- | ------------------------------------ |
-| Research reports     | `docs/knowledge/research/`           |
-| Course material      | `docs/knowledge/courses/`            |
-| Marketing strategies | `docs/knowledge/strategy/marketing/` |
-| Business evaluations | `docs/knowledge/strategy/business/`  |
+| Report Type          | Output Path                                |
+| -------------------- | ------------------------------------------ |
+| Research reports     | `docs/knowledge/research/`                 |
+| Course material      | `docs/knowledge/courses/`                  |
+| Marketing strategies | `docs/knowledge/strategy/marketing/`       |
+| Business evaluations | `docs/knowledge/strategy/business/`        |
+| Market analyses      | `docs/knowledge/strategy/market-analysis/` |
 
 - Working files → `.claude/tmp/`
-- Templates → `.claude/templates/` (`research-report-template.md`, `course-outline-template.md`, `marketing-strategy-template.md`, `business-evaluation-template.md`)
+- Templates → `.claude/templates/` (`research-report-template.md`, `course-outline-template.md`, `marketing-strategy-template.md`, `business-evaluation-template.md`, `market-analysis-template.md`)
 
 ---
 

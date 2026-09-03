@@ -127,12 +127,14 @@ For each segment:
 
 ## Output
 
-Market analysis is typically consumed by:
+**MANDATORY IMPORTANT MUST ATTENTION** write the result to `docs/knowledge/strategy/market-analysis/{descriptive-slug}.md` via the enforced `.claude/templates/market-analysis-template.md` — why: downstream skills consume this as EVIDENCE, and evidence with no deterministic location and no known shape cannot be loaded, so an informal "working file or inline" handoff fails silently and leaves the consumer with nothing to cite.
 
+Consumed by:
+
+- `business-evaluation` skill (business viability) — reads Sizing, Competitors, Trends, SWOT, Segments
 - `strategy-builder` skill (marketing strategy)
-- `business-evaluation` skill (business viability)
 
-Write findings to working file or inline with consuming skill's output.
+When invoked inside a workflow that also writes to a plan directory, additionally copy the file to `{plan-dir}/research/market-analysis.md` so the plan artifact set stays self-contained.
 
 ---
 

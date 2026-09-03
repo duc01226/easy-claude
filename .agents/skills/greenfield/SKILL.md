@@ -44,24 +44,25 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 
 **Goal:** Guide greenfield project inception from raw idea to an approved, implementable project plan using a full waterfall process.
 
-**Workflow (16 steps):**
+**Workflow (17 steps):**
 
 1. **Discovery** (`$idea`) — Interview user about problem, vision, constraints, team skills, scale. **DO NOT ask about tech stack** — keep business-focused.
-2. **Market Research** (`$web-research`) — WebSearch for competitors, market landscape, existing solutions
+2. **Market Source Discovery** (`$web-research`) — WebSearch for competitors, market landscape, existing solutions. Source gathering, NOT the sized market.
 3. **Deep Research** (`$deep-research`) — WebFetch top sources, extract key findings
-4. **Business Evaluation** (`$business-evaluation`) — Viability assessment, risk matrix, value proposition
-5. **Domain Analysis & ERD** (`$domain-analysis`) — Bounded contexts, aggregates, entities, ERD diagram, domain events. Validate every context boundary with user.
-6. **Tech Stack Research** (`$tech-stack-research`) — Derive technical requirements from business + domain analysis. Research top 3 options per stack layer (backend, frontend, database, messaging, infra). Detailed pros/cons matrix, team-fit scoring, market analysis. Present comparison report for user to decide.
-7. **Architecture Design** (`$architecture-design`) — Research and compare top 3 architecture styles (Clean, Hexagonal, Vertical Slice, etc.). Evaluate design patterns (CQRS, Repository, Mediator). Audit against SOLID, DRY, KISS, YAGNI. Validate scalability, maintainability, IoC, technical agnosticism. Present comparison with recommendation. **Harness output required:** produce a "Scaffold Handoff — Harness Plan" table in the architecture report: (a) feedforward guides to create (AGENTS.md sections, skill activation rules, pattern catalog), (b) computational feedback sensors to install (linter, formatter, pre-commit, CI), (c) inferential feedback sensors to configure (review skills, AI gates). This table feeds `$scaffold` → `$linter-setup` → `$harness-setup`.
-8. **Implementation Plan** (`$plan`) — Create phased plan using confirmed tech stack + architecture + domain model
-9. **Security Audit** (`$security-review`) — Review plan for OWASP Top 10, auth patterns, data protection concerns
-10. **Performance Audit** (`$performance-review`) — Review plan for performance bottlenecks, scalability, query optimization
-11. **Plan Review** (`$plan-review`) — Full plan review, risk assessment, approval
-12. **Refine to PBI** (`$refine`) — Transform idea + reviewed plan into actionable PBI with acceptance criteria
-13. **User Stories** (`$story`) — Break PBI into implementable user stories
-14. **Plan Validation** (`$plan-validate`) — Interview user with critical questions to validate plan + stories
-15. **Test Strategy** (`$spec [mode=tests]`) — Test pyramid, frameworks, spec outline
-16. **Workflow End** (`$workflow-end`) — Clean up, announce completion
+4. **Market Analysis** (`$market-analysis`) — Size the market (TAM/SAM/SOM), competitor matrix, trends, SWOT, customer segments. **Produces the evidence step 5 consumes** — `$business-evaluation` MUST NOT re-derive market sizing. SKIP only when there is no commercial market to size (internal tool, migration, infrastructure-only); log the reason, and step 5 then marks its market figures N/A rather than inventing them.
+5. **Business Evaluation** (`$business-evaluation`) — Viability assessment, risk matrix, value proposition
+6. **Domain Analysis & ERD** (`$domain-analysis`) — Bounded contexts, aggregates, entities, ERD diagram, domain events. Validate every context boundary with user.
+7. **Tech Stack Research** (`$tech-stack-research`) — Derive technical requirements from business + domain analysis. Research top 3 options per stack layer (backend, frontend, database, messaging, infra). Detailed pros/cons matrix, team-fit scoring, market analysis. Present comparison report for user to decide.
+8. **Architecture Design** (`$architecture-design`) — Research and compare top 3 architecture styles (Clean, Hexagonal, Vertical Slice, etc.). Evaluate design patterns (CQRS, Repository, Mediator). Audit against SOLID, DRY, KISS, YAGNI. Validate scalability, maintainability, IoC, technical agnosticism. Present comparison with recommendation. **Harness output required:** produce a "Scaffold Handoff — Harness Plan" table in the architecture report: (a) feedforward guides to create (AGENTS.md sections, skill activation rules, pattern catalog), (b) computational feedback sensors to install (linter, formatter, pre-commit, CI), (c) inferential feedback sensors to configure (review skills, AI gates). This table feeds `$scaffold` → `$linter-setup` → `$harness-setup`.
+9. **Implementation Plan** (`$plan`) — Create phased plan using confirmed tech stack + architecture + domain model
+10. **Security Audit** (`$security-review`) — Review plan for OWASP Top 10, auth patterns, data protection concerns
+11. **Performance Audit** (`$performance-review`) — Review plan for performance bottlenecks, scalability, query optimization
+12. **Plan Review** (`$plan-review`) — Full plan review, risk assessment, approval
+13. **Refine to PBI** (`$refine`) — Transform idea + reviewed plan into actionable PBI with acceptance criteria
+14. **User Stories** (`$story`) — Break PBI into implementable user stories
+15. **Plan Validation** (`$plan-validate`) — Interview user with critical questions to validate plan + stories
+16. **Test Strategy** (`$spec [mode=tests]`) — Test pyramid, frameworks, spec outline
+17. **Workflow End** (`$workflow-end`) — Clean up, announce completion
 
 **Key Rules:**
 
@@ -107,6 +108,7 @@ plans/{id}/
     discovery-interview.md
     market-research.md
     deep-research.md
+    market-analysis.md
     business-evaluation.md
     domain-analysis.md
     tech-stack-comparison.md

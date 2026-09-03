@@ -136,7 +136,8 @@ Note gaps for the `deep-research` step.
 **MANDATORY IMPORTANT MUST ATTENTION — NO EXCEPTIONS** after completing this skill, you MUST ATTENTION use `AskUserQuestion` to present these options. Do NOT skip because the task seems "simple" or "obvious" — the user decides:
 
 - **"/deep-research (Recommended)"** — Deep-dive into top sources
-- **"/business-evaluation"** — If evaluating business viability
+- **"/market-analysis"** — If sizing the market (TAM/SAM/SOM), competitors, trends — required before `/business-evaluation`
+- **"/business-evaluation"** — If evaluating business viability. **Run `/market-analysis` first** — this skill consumes its sized-market output as evidence and MUST NOT re-derive market sizing.
 - **"Skip, continue manually"** — user decides
 
 > **[IMPORTANT]** Use `TaskCreate` to break ALL work into small tasks BEFORE starting.

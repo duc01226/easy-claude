@@ -161,7 +161,8 @@ Write to `.claude/tmp/_evidence-{slug}.md`:
 
 **MANDATORY IMPORTANT MUST ATTENTION — NO EXCEPTIONS** after completing this skill, you MUST ATTENTION use ask the user directly to present these options. Do NOT skip because the task seems "simple" or "obvious" — the user decides:
 
-- **"$business-evaluation (Recommended)"** — Evaluate business viability from research
+- **"$market-analysis (Recommended)"** — Size the market (TAM/SAM/SOM), competitors, trends, SWOT, segments — the producer `$business-evaluation` consumes
+- **"$business-evaluation"** — Evaluate business viability. **Run `$market-analysis` first** — this skill consumes its sized-market output as evidence and MUST NOT re-derive market sizing. Without it, every market figure must be marked N/A.
 - **"$knowledge-synthesis"** — If synthesizing research report
 - **"Skip, continue manually"** — user decides
 

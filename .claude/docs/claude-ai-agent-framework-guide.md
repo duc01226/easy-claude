@@ -2248,7 +2248,7 @@ The `solution-architect` agent (inherits parent session model) provides domain e
 | Capability            | What It Does                                                   |
 | --------------------- | -------------------------------------------------------------- |
 | Discovery Interview   | Problem statement, vision, constraints, team skills            |
-| Market Research       | WebSearch + WebFetch for competitive landscape                 |
+| Market Source Discovery | WebSearch + WebFetch for competitive landscape               |
 | Tech Stack Evaluation | Comparison matrix with pros/cons, confidence %, recommendation |
 | DDD Domain Modeling   | Bounded contexts, aggregates, entities, domain events          |
 | Project Structure     | Folder layout, monorepo/polyrepo, CI/CD skeleton               |
@@ -2384,7 +2384,7 @@ A key innovation: **long workflows let users deselect irrelevant steps** before 
 │                                                                  │
 │  "Which research steps apply to this feature?"                  │
 │  [x] Discovery Interview (/idea)                                │
-│  [x] Market Research (/web-research)                            │
+│  [x] Market Source Discovery (/web-research)                    │
 │  [ ] Deep Research (/deep-research) ← user deselects           │
 │  [ ] Business Evaluation (/business-evaluation) ← deselected   │
 │  [x] Refine to PBI (/refine)                                   │

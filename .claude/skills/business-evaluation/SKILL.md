@@ -28,7 +28,7 @@ description: '[Content] Use when you need to evaluate business idea viability: B
 **Workflow:**
 
 1. **Capture idea** — Problem, solution, target customer
-2. **Load market analysis** — Market data from market-analysis
+2. **Load market analysis** — Market data from `/market-analysis` at `docs/knowledge/strategy/market-analysis/{slug}.md` (or `{plan-dir}/research/market-analysis.md`). **Absent → do NOT re-derive:** state that `/market-analysis` did not run, mark every market-sizing figure (TAM/SAM/SOM, share, segment size) N/A with that reason, and cap the verdict confidence tier at 60%
 3. **Business Model Canvas** — All 9 blocks with evidence
 4. **Financial projections** — 3-year revenue, costs, break-even
 5. **Risk assessment** — 5+ risks with mitigation
@@ -217,7 +217,7 @@ Write to `docs/knowledge/strategy/business/{descriptive-slug}.md` using enforced
 **IMPORTANT MUST ATTENTION** validate the next route with user via `AskUserQuestion` — NEVER auto-decide domain-analysis/plan — why: this skill judges viability, the human owns the go/no-go.
 
 **MANDATORY IMPORTANT MUST ATTENTION** break work into small todo tasks using `TaskCreate` BEFORE starting; keep one `in_progress`, mark `completed` with evidence; add a final review todo — why: untracked multi-step work loses state on compaction.
-**MANDATORY IMPORTANT MUST ATTENTION** consume market data FROM market-analysis as evidence — NEVER re-derive market sizing here — why: this skill judges viability, it does not research the market; duplicated sizing diverges from the source.
+**MANDATORY IMPORTANT MUST ATTENTION** consume market data FROM market-analysis as evidence — NEVER re-derive market sizing here; if that producer did not run, mark the market figures N/A with the reason and cap verdict confidence at 60% rather than inventing them — why: this skill judges viability, it does not research the market; duplicated sizing diverges from the source.
 **MANDATORY IMPORTANT MUST ATTENTION** all 9 BMC blocks present, each citing proof; every financial number lists its assumption + source in the assumptions table — why: a missing block or bare number is a silent gap the verdict then rests on.
 **MANDATORY IMPORTANT MUST ATTENTION** minimum 5 risks, each with mitigation AND a residual-risk entry across market/execution/financial/competitive/regulatory/technical — why: a risk without residual pretends mitigation is total.
 **MANDATORY IMPORTANT MUST ATTENTION** run ALL 7 steps in order — idea → market-load → 9-block BMC → 3-year financials → 5+ risks → 3-phase execution plan (Validation/Build/Growth milestones) → go-to-market (launch + top-3 channels + pricing rationale) → verdict; NEVER drop financials, execution, or GTM because the idea "feels" decided — why: the verdict is only as sound as the weakest step it rests on.

@@ -567,7 +567,7 @@ ARCHITECTURE AUDIT (READ-ONLY, ONE PASS, PROGRESSIVE SYNTHESIS):
 ### workflow-big-feature — Big Feature (Research + Implement)
 - Description: Research-driven feature development for large, complex, or ambiguous features in an existing project — includes idea refinement, market research, business evaluation, domain analysis, tech stack research, and full implementation
 - When To Use: User wants to implement a large, complex, or ambiguous feature that needs research, market analysis, business evaluation, domain modeling, or tech stack analysis before implementation. Big new module, major enhancement, cross-cutting capability, or feature where scope is unclear
-- Sequence: `idea -> web-research -> deep-research -> business-evaluation -> spec-discovery -> domain-analysis -> why-review -> tech-stack-research -> architecture-design -> architecture-scalability-review -> why-review -> scenario -> plan -> plan-review -> refine -> why-review -> artifact-review --type=pbi -> story -> why-review -> artifact-review --type=story -> pbi-challenge -> dor-gate -> pbi-mockup -> spec -> spec [mode=tests] -> why-review -> artifact-review --type=spec-tests -> spec-clarify -> plan -> plan-review -> scaffold -> architecture-review-full -> plan-validate -> why-review -> plan-execute -> seed-test-data -> domain-entities-review -> integration-test -> integration-test-review -> integration-test-verify -> spec [mode=sync] -> workflow-review-changes -> security-review -> changelog -> test -> scan --target=domain-entities -> docs-update -> workflow-end -> watzup`
+- Sequence: `idea -> web-research -> deep-research -> market-analysis -> business-evaluation -> spec-discovery -> domain-analysis -> why-review -> tech-stack-research -> architecture-design -> architecture-scalability-review -> why-review -> scenario -> plan -> plan-review -> refine -> why-review -> artifact-review --type=pbi -> story -> why-review -> artifact-review --type=story -> pbi-challenge -> dor-gate -> pbi-mockup -> spec -> spec [mode=tests] -> why-review -> artifact-review --type=spec-tests -> spec-clarify -> plan -> plan-review -> scaffold -> architecture-review-full -> plan-validate -> why-review -> plan-execute -> seed-test-data -> domain-entities-review -> integration-test -> integration-test-review -> integration-test-verify -> spec [mode=sync] -> workflow-review-changes -> security-review -> changelog -> test -> scan --target=domain-entities -> docs-update -> workflow-end -> watzup`
 
 Protocol:
 ```text
@@ -589,8 +589,9 @@ MANDATORY IMPORTANT MUST ATTENTION RULES:
 STEP SELECTION GATE:
 After workflow activation, auto-select the applicable steps and skip irrelevant conditional steps. Default step set:
 - [x] Discovery Interview (idea)
-- [x] Market Research (web-research)
+- [x] Market Source Discovery (web-research) — discover + triage candidate market sources; this is source gathering, NOT the sized market
 - [x] Deep Research (deep-research)
+- [x] Market Analysis (market-analysis) — CONDITIONAL: produce the sized market (TAM/SAM/SOM), competitor matrix, trends, SWOT, and customer segments that Business Evaluation consumes as evidence; select it whenever Business Evaluation is selected, because that skill MUST NOT re-derive market sizing itself. SKIP when the addressable market is ALREADY sized for this product and this feature does not change it — cite the existing analysis; or when there is no commercial market to size at all (internal tool, migration, infrastructure-only). Log the reason either way, and Business Evaluation must then mark its market figures N/A rather than invent them
 - [x] Business Evaluation (business-evaluation)
 - [x] Refine to PBI (refine)
 - [x] Spec Discovery (spec-discovery) — investigate existing Feature Specs + related code before domain modeling; surfaces related/overlapping/affected specs + gaps + the invariant landscape, then a scope-decision gate (NEW/EXTEND/SPLIT). CONDITIONAL: short-circuits on an empty corpus
@@ -848,7 +849,7 @@ UNIVERSAL RULES:
 ### workflow-greenfield-init — Greenfield Project Init
 - Description: Full waterfall project inception from idea through implementation with integration testing
 - When To Use: User wants to start a new project from scratch, init a greenfield project, plan a new application, research and plan before coding, bootstrap a new codebase, build something new
-- Sequence: `idea -> web-research -> deep-research -> business-evaluation -> spec-discovery -> domain-analysis -> why-review -> tech-stack-research -> architecture-design -> architecture-scalability-review -> why-review -> scenario -> plan -> plan-review -> security-review -> performance-review -> plan-review -> refine -> why-review -> artifact-review --type=pbi -> story -> why-review -> artifact-review --type=story -> pbi-challenge -> dor-gate -> pbi-mockup -> plan-validate -> why-review -> spec [mode=tests] -> why-review -> artifact-review --type=spec-tests -> spec-clarify -> plan -> plan-review -> scaffold -> linter-setup -> harness-setup -> architecture-review-full -> scan --target=ui-system -> scan --target=backend-patterns -> scan --target=integration-tests -> scan --target=project-structure -> why-review -> plan-execute -> domain-entities-review -> spec [mode=tests] -> why-review -> artifact-review --type=spec-tests -> plan -> plan-review -> integration-test -> integration-test-review -> integration-test-verify -> test -> workflow-review-changes -> security-review -> changelog -> test -> scan --target=domain-entities -> docs-update -> workflow-end -> watzup`
+- Sequence: `idea -> web-research -> deep-research -> market-analysis -> business-evaluation -> spec-discovery -> domain-analysis -> why-review -> tech-stack-research -> architecture-design -> architecture-scalability-review -> why-review -> scenario -> plan -> plan-review -> security-review -> performance-review -> plan-review -> refine -> why-review -> artifact-review --type=pbi -> story -> why-review -> artifact-review --type=story -> pbi-challenge -> dor-gate -> pbi-mockup -> plan-validate -> why-review -> spec [mode=tests] -> why-review -> artifact-review --type=spec-tests -> spec-clarify -> plan -> plan-review -> scaffold -> linter-setup -> harness-setup -> architecture-review-full -> scan --target=ui-system -> scan --target=backend-patterns -> scan --target=integration-tests -> scan --target=project-structure -> why-review -> plan-execute -> domain-entities-review -> spec [mode=tests] -> why-review -> artifact-review --type=spec-tests -> plan -> plan-review -> integration-test -> integration-test-review -> integration-test-verify -> test -> workflow-review-changes -> security-review -> changelog -> test -> scan --target=domain-entities -> docs-update -> workflow-end -> watzup`
 
 Protocol:
 ```text
@@ -875,8 +876,9 @@ MANDATORY IMPORTANT MUST ATTENTION RULES:
 STEP SELECTION GATE:
 After workflow activation, auto-select the applicable steps and skip irrelevant conditional steps. Default step set:
 - [x] Discovery Interview (idea)
-- [x] Market Research (web-research)
+- [x] Market Source Discovery (web-research) — discover + triage candidate market sources; this is source gathering, NOT the sized market
 - [x] Deep Research (deep-research)
+- [x] Market Analysis (market-analysis) — CONDITIONAL: produce the sized market (TAM/SAM/SOM), competitor matrix, trends, SWOT, and customer segments that Business Evaluation consumes as evidence; select it whenever Business Evaluation is selected, because that skill MUST NOT re-derive market sizing itself. SKIP only when the project has no commercial market to size (internal tool, migration, infrastructure-only) — log the reason, and Business Evaluation must then mark its market figures N/A rather than invent them
 - [x] Business Evaluation (business-evaluation)
 - [x] Refine to PBI (refine)
 - [ ] Spec Discovery (spec-discovery) — CONDITIONAL: investigate existing Feature Specs + related code before domain modeling; AUTO-SKIPS at greenfield init (no specs/code yet) — runs only when initializing into a repo that already has specs/code
@@ -1512,7 +1514,7 @@ UNIVERSAL RULES:
 
 Session-start reference derived from `.claude/workflows.json` — use it to pick a route on any prompt: run a standard workflow, compose a custom workflow from the step-skills, invoke a single skill, or execute directly.
 
-### Workflow Skills (61 composable steps)
+### Workflow Skills (62 composable steps)
 
 Distinct step-skills used across the workflows above — compose these into a custom workflow when no standard workflow fits.
 
@@ -1550,6 +1552,7 @@ Distinct step-skills used across the workflows above — compose these into a cu
 | `knowledge-review` | [Research] Use when you need to review knowledge artifacts for completeness, citation quality, confidence accuracy, and template compliance. |
 | `knowledge-synthesis` | [Research] Use when you need to synthesize research findings into structured report using template. |
 | `linter-setup` | [Quality] Use when you need to research and configure code quality tooling for any tech stack — linters, formatters, static analysis, pre-commit hooks, and CI gates. |
+| `market-analysis` | [Research] Use when you need to analyze market landscape: competitors, sizing (TAM/SAM/SOM), trends, SWOT, customer segments. |
 | `pbi-challenge` | [Code Quality] Use when you need an AI-assisted Dev BA PIC review of PBI drafts. |
 | `pbi-mockup` | [Project Management] Use when you need to generate an HTML mockup report from PBI and story artifacts. |
 | `performance-review` | [Debugging] Use when analyzing or optimizing performance bottlenecks: database queries, N+1 fan-out, indexing, API latency, memory/GC, concurrency and pool saturation, algorithmic complexity (O(n²)), network/protocol round trips, frontend rendering and Core Web Vitals, caching, and distributed/resilience paths. Calibration constants and domain laws (latency ladder, Little's Law, utilization knee, CWV thresholds, symptom→cause triage) live in references/performance-knowledge.md. |
