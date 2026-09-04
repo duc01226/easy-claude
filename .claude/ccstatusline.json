@@ -1,5 +1,5 @@
 {
-  "version": 3,
+  "version": 4,
   "lines": [
     [
       {
@@ -101,8 +101,12 @@
   "minimalistMode": false,
   "powerline": {
     "enabled": false,
-    "separators": [""],
-    "separatorInvertBackground": [false],
+    "separators": [
+      ""
+    ],
+    "separatorInvertBackground": [
+      false
+    ],
     "startCaps": [],
     "endCaps": [],
     "autoAlign": false,

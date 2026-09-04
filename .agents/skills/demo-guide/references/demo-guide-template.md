@@ -10,12 +10,21 @@ The structure the `demo-guide` skill writes. Fill from real project evidence; ke
   fails live — in front of the room the guide was written for.
 - **Show, then explain the data.** A demo is credible when the presenter shows the behaviour AND can point
   to the stored/changed data that makes it true. Every case pairs an observable step with a domain explanation.
-- **Steps are live-runnable.** Write action-level steps a presenter follows in the real app/API: who acts,
-  which screen/endpoint, what input, what to click. No vague "verify it works".
+- **Steps are live-runnable.** Write action-level steps a presenter follows in the running app: who acts,
+  which screen, what input, what to click. No vague "verify it works". Endpoints, commands, and queries appear
+  only inside 🔧 technical appendix cases.
 - **Lead with the discriminator.** The expected result should be the value that would be WRONG under the old
   behaviour (the thing worth demoing), not a generic "it succeeds".
 - **Drive real paths.** Preconditions are staged through real user actions / valid seeders — never by faking
   state that a user could not reach.
+- **Demo it in the UI — the reader is a normal user / QC driving the app.** Every main case is staged and
+  observed in the product's front-end (screens, forms, clicks, visible output). A case needing an API client,
+  CLI, script, manual job/queue trigger, DB query, log tail, or config edit is a 🔧 **technical case**: same
+  four-part rigour, but written into the closing `Appendix — Technical demo (non-UI)` — never among the main
+  cases to test. A UI demo whose data can also be checked in the DB/logs stays a UI case; that check goes on
+  its own **Deeper confirmation (optional, non-UI)** line — never into a numbered step, and never onto the
+  proof chain, which carries only `file:line` links. **No front-end in this project?** State the rung in the
+  header and read "front-end" above as the project's primary demo surface (API / CLI / library / background job).
 - **Group by user story, order by demo flow.** Within a story, order cases so the demo tells a story
   (happy path first, then variants, edge cases, and legacy/back-compat last).
 - **Honesty about proof.** Every case sits on exactly one rung of the proof ladder below, and carries the
@@ -46,14 +55,16 @@ a **stated blocker**, never a quiet promotion.
 **Sources:** {spec path(s), test file(s), changed dirs, migration(s)} — {degradation rung landed on, if any}
 **Governing spec / rules:** {spec file + rule IDs, if any}
 **Investigation:** comprehension bar cleared per group — brief at `{path}` · Delegated: {`$investigate` — Story B mechanics | none}
+**Cases:** {n} 🖥️ {main-channel label — `UI`, or the rung's primary surface} · {n} 🔧 technical (appendix) — {`no UI demo path` stories named, if any}
+**Demo surface:** {front-end — or `No front-end in this project — primary demo surface is {API / CLI / library / background job}`}
 **Deferred / not covered:** {named explicitly, or `none`}
 **Audience:** {team / PO / QC / stakeholders}
 
 ## Story-group ledger
 
-| Group | Story | Cases | Status |
-| ----- | ----- | ----- | ------ |
-| G1    | {A}   | {n}   | written / pending |
+| Group | Story | Cases (main / technical) | Status |
+| ----- | ----- | ----------------------- | ------ |
+| G1    | {A}   | {n} / {n}              | written / pending |
 
 ---
 
@@ -62,8 +73,9 @@ a **stated blocker**, never a quiet promotion.
 > *As a {role}, I want {capability} so that {value}.*
 
 **One-time demo setup:** {roles, configuration, seed data, which app/screen — staged via real paths}
+_{`no UI demo path — technical only` — only when this story has no front-end demonstration at all}_
 
-### {A1} — {short case title} · `{REAL-TC-ID(s)}`
+### {A1} — {short case title} · `{REAL-TC-ID(s)}` · 🖥️ {main-channel label}
 - **Setup / preconditions:** {exact state to stage first, via real user paths; accounts by role, secrets `<redacted:…>`}
 - **Demo steps:**
     1. {actor} {action} on {screen/endpoint} with {input}
@@ -75,7 +87,9 @@ a **stated blocker**, never a quiet promotion.
   that consumes it to produce the outcome, and why this storage makes the case correct — edge cases,
   legacy fallback, cross-tier parity}. _(If display-only: state "no storage change" and describe the
   computed representation that solves it.)_
-- **Proof chain:** written `{file:line}` → read `{file:line}` → seen `{screen/endpoint + file:line}`
+- **Proof chain:** written `{file:line}` → read `{file:line}` → seen `{screen + file:line}`
+- **Deeper confirmation (optional, non-UI):** {the DB/log/API check that also confirms this case — a runtime
+  action, never a numbered demo step and never on the proof chain above. Omit the line when there is none.}
 - **Proof:** {✅ ran `id` — `{command}` → {pass/fail} | ⚠️ trace-verified | 📄 spec-only | ❌ no coverage}
 
 ### {A2} — ...
@@ -96,9 +110,27 @@ demo" the team should walk away understanding.}
 
 ## Main test-case quick reference
 
+Main-channel cases only (🖥️) — technical cases are listed inside the appendix, never here.
+
 | Story | Test case | What it proves | Proof rung |
 | ----- | --------- | -------------- | ---------- |
 | {A}   | {REAL TC-ID} | {one line}  | ✅ ran / ⚠️ trace-verified / 📄 spec-only / ❌ no coverage |
+
+## Appendix — Technical demo (non-UI)
+
+_Supporting evidence, not the demo. Every case here needs a surface a normal user/QC does not have (API client,
+CLI, script, manual job trigger, DB query, logs, config). Same four parts and same proof rung as a UI case —
+demoted in order and prominence only. Omit the whole section when every case is UI-demoable._
+
+### {T1} — {short case title} · `{REAL-TC-ID(s)}` · 🔧 technical
+- **Why non-UI:** {the surface it requires, and the story it supports}
+- **Setup / preconditions:** {…, accounts by role, secrets `<redacted:…>`}
+- **Demo steps:** {numbered — the tool/surface, the command shape (no secret values), what to observe}
+- **Expected result:** {the discriminator}
+- **How the domain stores/changes data & solves it:** {`file:line` anchored, same bar as a UI case}
+- **Proof chain / Proof:** {written → read → seen} · {rung}
+  _(No `Deeper confirmation` line here, deliberately: a technical case is already demoed on the non-UI surface,
+  so the confirmation IS the demo. That line exists only to keep a non-UI check out of a UI case's numbered steps.)_
 
 ## Test-execution transparency
 
