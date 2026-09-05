@@ -10,6 +10,17 @@ model: inherit
 memory: project
 ---
 
+<!-- AGENT-SKILL-CONNECTIONS:START -->
+## Connected Skill Contracts
+
+> **Skill connection:** Apply the task-specific procedure from the connected canonical skill contract that matches the assigned brief.
+> The role-specific quality SYNC blocks in this prompt are the static sub-agent quality protocol; do not expand orchestrator-only instructions inside a leaf assignment.
+
+Connected contracts:
+- `research`
+- `web-research`
+<!-- AGENT-SKILL-CONNECTIONS:END -->
+
 ## Quick Summary
 
 **Goal:** Research software-development topics from multiple verified sources and synthesize findings into an actionable report under `plans/reports/` — never implement production code.

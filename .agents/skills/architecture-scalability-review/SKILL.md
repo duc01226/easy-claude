@@ -40,11 +40,21 @@ When coding, planning, debugging, testing, or reviewing, open project docs expli
 Do not read all docs blindly. Start from `docs-index-reference.md`, then open only relevant files for the task.
 <!-- CODEX:PROJECT-REFERENCE-LOADING:END -->
 
+<!-- PROMPT-ENHANCE:STEP-TASK-ANCHOR:START -->
+
+> **[BLOCKING]** Execute skill steps in declared order. NEVER skip, reorder, or merge steps without explicit user approval.
+> **[BLOCKING]** Before each step or sub-skill call, update task tracking: set `in_progress` when step starts, set `completed` when step ends.
+> **[BLOCKING]** Every completed/skipped step MUST include brief evidence or explicit skip reason.
+> **[BLOCKING]** If Task tools are unavailable, create and maintain an equivalent step-by-step plan tracker with the same status transitions.
+
+<!-- PROMPT-ENHANCE:STEP-TASK-ANCHOR:END -->
+
 ## Quick Summary
 
 **Goal:** Grade a project or planned architecture against the full architecture + scalability quality scorecard, routing deep checks to the existing owner skills instead of duplicating them — so the project earns an evidence-backed `/20` verdict (STRONG / NEEDS WORK / HIGH RISK) before scale or delivery hardens the decisions.
 
 **Summary:**
+- **Testability contract:** resolve Unit/Integration/System/E2E applicability from runner/config evidence; record owner/root/data, copy-ready full + focused commands, zero-match behavior, CI/simple-Windows entry, unique run/data identity, and repeat proof; unresolved applicable fields block handoff, while non-applicable tiers require evidence-backed `N/A`.
 
 - This skill is the scorecard OWNER, not the deep owner — it scores 10 areas 0-2 (`/20`), then routes sibling-owned depth (architecture-design/review, domain-analysis, performance-review, production-readiness-review, security-review, linter-setup, scaffold) via the Ownership Matrix; NEVER expand into a sibling's checklist.
 - Scoring is evidence-gated — `file:line`/command/artifact proof or explicit `N/A - reason`, else `0`; then 7 pass/fail gates (G1-G7) overlay the score without changing the `/20` math.
@@ -189,6 +199,17 @@ Run these gates after scoring. Gates are pass/fail overlays and do not change th
 
 Critical/high gate failures require an owner-accepted risk or follow-up plan before reporting STRONG.
 
+### Testability & Verification Contract (TVC — non-scoring gate)
+
+Run this cross-cutting setup gate after G1-G7 and before emitting the report. Consume the architecture-design matrix plus scaffold/harness evidence; do not re-implement their tier-specific test checklists.
+
+1. Verify one row each for Unit, Integration/System, and E2E. Each row is `APPLICABLE` only with runner/framework/configuration/root evidence, or `N/A — {specific evidence}`. An E2E `N/A` must cite the verified absence of a browser runner/configuration/command, never the absence of a preferred tool.
+2. For every applicable row, verify copy-ready full and focused commands, invalid/zero-match non-zero behavior, CI gate, simple/Windows entry point where needed, owner, and exact result fields.
+3. Verify the declared run identity and business-data suffix, supported public setup path, realistic valid data, idempotent/restart-safe reference setup, additive persistent-data policy, mutable-root/parallel-worker isolation, pacing/arrange barrier, and two consecutive no-reset full runs for each applicable persistent-state suite. Missing or placeholder evidence is `BLOCKED`, not a guessed pass.
+4. Emit `TVC: PASS | PARTIAL | BLOCKED` with the matrix, evidence, owner, and follow-up. `PASS` means every tier is resolved and every applicable field is evidenced; `PARTIAL` records the bounded gap without inventing a tier or command.
+
+TVC is a setup/verification status, not an eighth score area: it MUST NOT change any 0-2 grade, the `/20` denominator, score total, verdict band, G1-G7 status, or either advisory matrix. A `BLOCKED` TVC prevents a `setup complete` claim and remains a follow-up in this report; it does not become a score deduction.
+
 ### Step 5: Emit Report
 
 Write:
@@ -215,6 +236,18 @@ Report structure:
 
 | Gate | Status | Evidence | Required follow-up |
 | ---- | ------ | -------- | ------------------ |
+
+## Testability & Verification Contract (non-scoring)
+
+**Status:** `TVC: PASS | PARTIAL | BLOCKED`
+
+| Tier | Applicability + evidence | Owner | Runner/config/root | Data + run identity | Full command | Focused/partial command | Zero-match behavior | CI / simple-Windows entry point | Repeat proof |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| Unit | `APPLICABLE` / `N/A — {evidence}` | {owner} | {runner/config/root} | {identity + fixture policy} | `{command}` | `{filter}` | `{non-zero behavior}` | {CI / command} | {result or planned owner} |
+| Integration/System | `APPLICABLE` / `N/A — {evidence}` | {owner} | {runner/config/root} | {identity + additive/public-path policy} | `{command}` | `{filter}` | `{non-zero behavior}` | {CI / command} | `{two no-reset runs}` |
+| E2E | `APPLICABLE` / `N/A — {evidence}` | {owner} | {runner/config/root} | {identity + reachable-data policy} | `{command}` | `{filter}` | `{non-zero behavior}` | {CI / command} | {result or evidence-backed N/A} |
+
+This section is copied from the owner evidence and remains separate from the scorecard, G1-G7, and advisory outputs; do not infer `PASS` when the child report omits it.
 
 ## Cadence Matrix
 
@@ -255,6 +288,8 @@ List only user-confirmed recommendations or mark `N/A`.
 - All gates have `pass`, `partial`, `fail`, or `N/A - reason`.
 - Cadence matrix maps each area to init/on-demand and every-change homes.
 - Sibling deep checks are routed, not duplicated.
+- TVC has a resolved Unit/Integration/System/E2E matrix with evidence-backed applicability or N/A, commands, owners, data/run policy, and repeat proof.
+- TVC remains non-scoring and does not alter the `/20` score, verdict band, G1-G7, or advisory semantics.
 
 <!-- SYNC:scale-technique-gate -->
 
@@ -335,6 +370,20 @@ List only user-confirmed recommendations or mark `N/A`.
 
 <!-- /SYNC:trade-off-interrogation-gate -->
 
+<!-- SYNC:test-architecture-execution-contract -->
+
+> **Test Architecture & Execution Contract** — Treat testability as a setup/architecture acceptance condition. For every potentially applicable tier — Unit, Integration/System, and E2E — record `APPLICABLE` only with evidence of its runner/framework/configuration; otherwise record `N/A — <evidence>` and never fabricate coverage.
+>
+> 1. **Matrix before implementation:** Record applicability, owner, runner/framework, test root, fixture/data strategy, full command, focused/partial command, zero-match behavior, CI gate, and a simple/Windows entry point (a `.cmd` when the project needs one).
+> 2. **Runnable scopes:** Full and focused commands must be copy-ready, fail on invalid or zero-match selections, report exact counts and exit status, and be safe to repeat. E2E uses only configured browser/service commands.
+> 3. **Fresh valid state:** Each run/test owns a unique run identity and business-data suffix, arranges through supported public paths, and uses realistic valid data. Reference setup is count-before-create, idempotent, and restart-safe. Intentional accumulation is additive, keyed, and integrity-checked; never hide contamination with destructive reset.
+>    Run-scoped cleanup, when supported, is opt-in and idempotent: after evidence capture it may remove only ephemeral resources owned by the current run; it must never delete persistent/additive data or another run's data, reset shared state, or replace no-reset proof.
+> 4. **Isolation and fidelity:** Isolate mutable roots and parallel workers; share only immutable/reference data. Preserve real actor pacing and observable arrange barriers. Do not widen retries or weaken assertions to make a scenario pass.
+> 5. **Evidence gate:** Report command, scope, identity, seed/accumulation mode, exact result, and repeat proof. For each applicable persistent-state suite, require two consecutive no-reset full runs. Treat line coverage as diagnostic only; use meaningful property/invariant, mutation, change, and behavior coverage signals.
+>
+> **Ownership:** Architecture/harness defines the matrix; scaffold/workflow makes it runnable; test writers implement tier-specific cases; reviewers verify the contract; the runner reports; seed-data owners preserve uniqueness, idempotency, realism, and accumulation integrity. Missing required evidence blocks setup completion.
+
+<!-- /SYNC:test-architecture-execution-contract -->
 
 <!-- SYNC:scale-technique-gate:reminder -->
 
@@ -408,8 +457,15 @@ List only user-confirmed recommendations or mark `N/A`.
 
 <!-- /SYNC:project-protocol-overlay:reminder -->
 
+<!-- SYNC:test-architecture-execution-contract:reminder -->
+
+**MUST ATTENTION** Before implementation, record evidence-backed Unit/Integration/System/E2E applicability (or explicit N/A), copy-ready full + focused commands, zero-match behavior, a simple/Windows entry point, unique run identity, realistic valid data, idempotent/restart-safe reference setup, intentional additive accumulation, parallel isolation, exact results, and two no-reset full runs for each applicable persistent-state suite.
+
+<!-- /SYNC:test-architecture-execution-contract:reminder -->
+
 ## Closing Reminders
 
+**IMPORTANT MUST ATTENTION** Testability contract: resolve evidence-backed Unit/Integration/System/E2E rows, copy-ready full/focused commands, zero-match failures, owner/root/data, CI/simple-Windows entry, unique run identity, and repeat proof before claiming setup, review, or test completion.
 **IMPORTANT MUST ATTENTION Goal:** Grade project architecture & scalability quality on the evidence-backed scorecard — build/CI scalability, distributed-monolith risk, module isolation, dependency discipline, loose coupling, horizontal scaling, DRY, abstraction, clean architecture, observability, and delivery — routing sibling-owned depth (security, performance, production-readiness) rather than duplicating it.
 
 **IMPORTANT MUST ATTENTION main steps (run in order):** (1) resolve `mode=init`/`mode=audit` + scope; (2) load project context + evidence; (3) read `references/scorecard.md`; (4) score all 10 areas 0-2 with evidence; (5) run pass/fail gates G1-G7; (6) emit the report under `plans/reports/`.

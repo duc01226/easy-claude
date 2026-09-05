@@ -54,6 +54,7 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 **Goal:** Ensure the review target (changed production code) is covered by tests that protect real business behavior with correct data assertions, infinite repeatability, and spec alignment — verifying every behavior change has test coverage (integration-first, unit fallback) so that specs ↔ tests ↔ code stay aligned (spec-driven development).
 
 **Summary:**
+- **Testability contract:** resolve Unit/Integration/System/E2E applicability from runner/config evidence; record owner/root/data, copy-ready full + focused commands, zero-match behavior, CI/simple-Windows entry, unique run/data identity, and repeat proof; unresolved applicable fields block handoff, while non-applicable tiers require evidence-backed `N/A`.
 
 - **Purpose:** Review target is the CHANGE (collect BOTH changed production code AND changed test files), never just the test files — Gates 1-6 and 8 judge test quality, Gate 7 maps every behavior-changing production file to a covering test (integration-first; unit only with recorded justification) + spec TC. Uncovered changed behavior = HIGH finding minimum.
 - **The 8 Gates (main review steps):** G1 Assertion Value — mutation-score, record the Mutation Probe Ledger (no ledger = FAIL); G2 Data State — assert specific DB fields with async polling; G3 Repeatability — unique IDs, additive-only, 2 consecutive green runs; G4 Domain Logic — read handler, assert ONLY fields it writes; G5 Spec Traceability — `TestSpec` annotation → TC in spec docs (1 TC → many tests is correct); G6 Three-Way Sync — feature-docs > test-spec docs > code > test, escalate conflicts; G7 Change Coverage — every behavior-changing file → covering test + non-stale §8 TC; G8 Scenario Fidelity — the setup's sequence, pacing, and data must be reachable in production; settle barriers in ARRANGE, never widened assertion timeouts.
@@ -123,6 +124,25 @@ Classify BEFORE any gate review. Route wrong → waste all effort.
 **The review target is the CHANGE, not the test files.** Changed test files are reviewed for quality (Gates 1-6 and 8); changed production files are checked for coverage and spec alignment (Gate 7). Both halves are mandatory.
 
 **Search for test reference docs** — NEVER hardcode paths. Grep for `integration-test-reference`, `test-patterns`, `integration-test-guide` near changed test files to discover project-specific conventions before starting gate review.
+
+## Test Architecture Contract Preflight (cross-cutting; before Gate 1)
+
+This is a non-numbered preflight alongside the eight quality gates. Review the matrix and evidence before judging individual assertions, then carry its findings into the same report; it does not replace or renumber Gates 1–8.
+
+| Tier | Applicability evidence | Owner / test root | Runner/framework | Full command | Focused/partial command | Zero-match behavior | Data and repeat evidence | Parallel isolation | Simple/Windows entry point |
+| ---- | ---------------------- | ----------------- | ---------------- | ------------ | ------------------------ | ------------------- | ------------------------ | ------------------ | --------------------------- |
+| Unit | `APPLICABLE` + `{file:line}` or `N/A — {evidence}` | `{owner}` / `{path}` | `{configured runner/framework}` | `{command}` | `{command or N/A + evidence}` | `{documented non-zero behavior}` | `{unique identity + data mode}` | `{worker/root isolation}` | `{entry point or N/A + evidence}` |
+| Integration/System | `APPLICABLE` + `{file:line}` or `N/A — {evidence}` | `{owner}` / `{path}` | `{configured runner/framework}` | `{command}` | `{command or N/A + evidence}` | `{documented non-zero behavior}` | `{unique identity + data mode}` | `{worker/root isolation}` | `{entry point or N/A + evidence}` |
+| E2E | `APPLICABLE` + `{file:line}` or `N/A — {evidence}` | `{owner}` / `{path}` | `{configured runner/framework}` | `{command}` | `{command or N/A + evidence}` | `{documented non-zero behavior}` | `{unique identity + data mode}` | `{worker/root isolation}` | `{entry point or N/A + evidence}` |
+
+Review the contract as a cross-cutting concern alongside the existing gates:
+
+1. **Command validity:** resolve full and focused/partial commands from project config, reference docs, or runner scripts; verify copy-ready syntax, scope, and exit status. A focused selection that matches zero tests must fail or use the runner's documented non-green behavior; never count a zero-match run as green. Missing or unverifiable command evidence is a finding.
+2. **Data and repeatability:** verify a unique run/test identity and data suffix, supported public-path setup, realistic valid data, count-before-create idempotent reference setup, intentional keyed/additive persistence, and no destructive reset or cleanup hiding contamination.
+3. **Parallel isolation:** verify each test/worker owns mutable roots and asserted entities; only immutable reference data may be shared. Flag shared mutable state or a shared parent that cross-cutting consumers can rewrite, even when the reviewed test does not mutate it directly.
+4. **Applicability:** mark a tier `APPLICABLE` only with runner/framework/configuration evidence. Otherwise record `N/A — <evidence>` and do not request fabricated tests or commands. A project E2E N/A is valid when the configured stack is absent.
+
+Missing matrix fields, invalid command behavior, non-unique/additive data evidence, or unsafe parallel sharing are cross-cutting findings and must be reflected in the report without weakening the existing no-smoke, assertion-value, spec/code/test triangulation, or two-run gates.
 
 ---
 
@@ -760,6 +780,7 @@ BLOCKED until: Read target files; Grep 3+ patterns; Graph trace (if graph.db exi
 Write a structured report to plans/reports/{review-type}-round{N}-{date}.md with sections:
 - Status: PASS | FAIL
 - Issue Count: {number}
+- Test Architecture Contract: matrix (tier applicability, owner/root, runner, full/focused commands, zero-match behavior, CI/simple-Windows entry point), command-validity result, unique/additive data result, parallel-isolation result, and exact execution evidence or explicit N/A
 - Critical Issues (with file:line evidence)
 - High Priority Issues (with file:line evidence)
 - Medium / Low Issues
@@ -1187,6 +1208,20 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 
 <!-- /SYNC:trade-off-interrogation-gate -->
 
+<!-- SYNC:test-architecture-execution-contract -->
+
+> **Test Architecture & Execution Contract** — Treat testability as a setup/architecture acceptance condition. For every potentially applicable tier — Unit, Integration/System, and E2E — record `APPLICABLE` only with evidence of its runner/framework/configuration; otherwise record `N/A — <evidence>` and never fabricate coverage.
+>
+> 1. **Matrix before implementation:** Record applicability, owner, runner/framework, test root, fixture/data strategy, full command, focused/partial command, zero-match behavior, CI gate, and a simple/Windows entry point (a `.cmd` when the project needs one).
+> 2. **Runnable scopes:** Full and focused commands must be copy-ready, fail on invalid or zero-match selections, report exact counts and exit status, and be safe to repeat. E2E uses only configured browser/service commands.
+> 3. **Fresh valid state:** Each run/test owns a unique run identity and business-data suffix, arranges through supported public paths, and uses realistic valid data. Reference setup is count-before-create, idempotent, and restart-safe. Intentional accumulation is additive, keyed, and integrity-checked; never hide contamination with destructive reset.
+>    Run-scoped cleanup, when supported, is opt-in and idempotent: after evidence capture it may remove only ephemeral resources owned by the current run; it must never delete persistent/additive data or another run's data, reset shared state, or replace no-reset proof.
+> 4. **Isolation and fidelity:** Isolate mutable roots and parallel workers; share only immutable/reference data. Preserve real actor pacing and observable arrange barriers. Do not widen retries or weaken assertions to make a scenario pass.
+> 5. **Evidence gate:** Report command, scope, identity, seed/accumulation mode, exact result, and repeat proof. For each applicable persistent-state suite, require two consecutive no-reset full runs. Treat line coverage as diagnostic only; use meaningful property/invariant, mutation, change, and behavior coverage signals.
+>
+> **Ownership:** Architecture/harness defines the matrix; scaffold/workflow makes it runnable; test writers implement tier-specific cases; reviewers verify the contract; the runner reports; seed-data owners preserve uniqueness, idempotency, realism, and accumulation integrity. Missing required evidence blocks setup completion.
+
+<!-- /SYNC:test-architecture-execution-contract -->
 
 <!-- SYNC:critical-thinking-mindset:reminder -->
 
@@ -1317,8 +1352,15 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 
 <!-- /SYNC:project-protocol-overlay:reminder -->
 
+<!-- SYNC:test-architecture-execution-contract:reminder -->
+
+**MUST ATTENTION** Before implementation, record evidence-backed Unit/Integration/System/E2E applicability (or explicit N/A), copy-ready full + focused commands, zero-match behavior, a simple/Windows entry point, unique run identity, realistic valid data, idempotent/restart-safe reference setup, intentional additive accumulation, parallel isolation, exact results, and two no-reset full runs for each applicable persistent-state suite.
+
+<!-- /SYNC:test-architecture-execution-contract:reminder -->
+
 ## Closing Reminders (MUST ATTENTION)
 
+**IMPORTANT MUST ATTENTION** Testability contract: resolve evidence-backed Unit/Integration/System/E2E rows, copy-ready full/focused commands, zero-match failures, owner/root/data, CI/simple-Windows entry, unique run identity, and repeat proof before claiming setup, review, or test completion.
 **IMPORTANT MUST ATTENTION Goal:** Ensure the review target (changed production code) is covered by tests that protect real business behavior with correct data assertions, infinite repeatability, and spec alignment — verifying every behavior change has test coverage (integration-first, unit fallback) so that specs ↔ tests ↔ code stay aligned (spec-driven development).
 
 **IMPORTANT MUST ATTENTION 8 Gates (judge every one):** G1 Assertion Value (mutation-score + Mutation Probe Ledger) · G2 Data State (assert DB fields, async-poll) · G3 Repeatability (unique IDs, 2 green runs) · G4 Domain Logic (read handler, assert only fields it writes) · G5 Spec Traceability (TC annotation → spec docs; 1 TC → many tests OK) · G6 Three-Way Sync (feature-docs > test-spec > code > test; escalate conflicts) · G7 Change Coverage (every behavior-changing file → covering test + non-stale §8 TC) · G8 Scenario Fidelity (setup reachable in production; settle barrier in ARRANGE, never a widened assertion timeout).

@@ -18,6 +18,7 @@ description: "[Architecture] Use when auditing the ENTIRE project architecture a
 **Goal:** Audit the WHOLE project's architecture, scalability, and production readiness in ONE pass: orchestrate three deliberately non-overlapping sibling reviewers, dedup intentional cross-references, and synthesize ONE consolidated Architecture Health Report with one combined verdict — this is a THIN orchestrator; NEVER re-implement child reviews.
 
 **Summary:**
+- **Testability contract:** resolve Unit/Integration/System/E2E applicability from runner/config evidence; record owner/root/data, copy-ready full + focused commands, zero-match behavior, CI/simple-Windows entry, unique run/data identity, and repeat proof; unresolved applicable fields block handoff, while non-applicable tiers require evidence-backed `N/A`.
 
 - **Purpose:** resolve scope once, fan three reviewers out as parallel read-only sub-agents behind an all-return barrier, PROGRESSIVELY synthesize + dedup each child's findings into ONE report file (status `IN PROGRESS` → `FINISHED`), run a `/why-review` fix gate that walks each review face, then finalize the combined verdict. Read-only until findings are validated — fixes route to a downstream `/plan` or feature flow.
 - **The three children — deliberately non-overlapping siblings that cross-reference each other, so their findings MUST be deduped:**
@@ -120,6 +121,7 @@ Write to `plans/reports/architecture-full-review-{YYMMDD}-{HHmm}-{slug}.md`.
 - Scalability Scorecard: `X/20` + verdict (STRONG / NEEDS WORK / HIGH RISK)
 - Architecture Compliance: PASS / WARN / BLOCKED
 - SRE Readiness: `X/24` + verdict (PASS / NEEDS WORK / NOT READY)
+- Testability & Verification Contract: `TVC: PASS | PARTIAL | BLOCKED` or `N/A — evidence`, copied from the child contract result; this is non-scoring and not a fourth review face.
 - **Combined Verdict:** `⏳ pending until FINISHED` — computed in Step 6 as the worst-case rollup across the three (any BLOCKED / NOT READY / HIGH RISK dominates). Do NOT assert a combined verdict while status is `IN PROGRESS`.
 
 **Merge each face AS it returns.** All three run behind the Step 3 all-return barrier, so all three summaries are in hand before synthesis — but merge them into the file one face at a time (updating `Faces merged: N/3` each time) so a mid-synthesis context loss leaves the partial report on disk, not in memory. When ≥2 children report the same underlying issue, record it ONCE, citing every source. Dedup on these KNOWN overlap axes (the siblings cross-reference each other here by design):
@@ -134,6 +136,16 @@ Write to `plans/reports/architecture-full-review-{YYMMDD}-{HHmm}-{slug}.md`.
 | Scenario stress (advisory) — big-traffic/big-data/failure/self-heal      | Category 11 INFO scenario-stress matrix               | `architecture-scalability-review` + `production-readiness-review` scenario-stress matrices     |
 | Data / consistency / tenancy — dual write, idempotency, breaking migration, tenant isolation | Category 12 (data, consistency & tenancy boundaries) | `production-readiness-review` {migration safety, rollback}; `security-review` owns authz depth; `performance-review` owns query-plan depth |
 
+**Merged Testability & Verification Contract (non-scoring):** Copy the `TVC` status and evidence from the `architecture-scalability-review` child into the consolidated report, then retain the architecture-design/scaffold/harness owner links rather than re-deriving the contract. Use `UNVERIFIED — child result absent` when the child did not emit it; never infer PASS, especially for E2E.
+
+| Tier | Applicability + evidence | Owner | Runner/config/root | Data + run identity | Full command | Focused/partial command | Zero-match behavior | CI / simple-Windows entry point | Repeat proof |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| Unit | `APPLICABLE` / `N/A — {evidence}` | {owner} | {runner/config/root} | {identity + fixture policy} | `{command}` | `{filter}` | `{non-zero behavior}` | {CI / command} | `{result or planned owner}` |
+| Integration/System | `APPLICABLE` / `N/A — {evidence}` | {owner} | {runner/config/root} | {identity + additive/public-path policy} | `{command}` | `{filter}` | `{non-zero behavior}` | {CI / command} | `{two no-reset runs}` |
+| E2E | `APPLICABLE` / `N/A — {evidence}` | {owner} | {runner/config/root} | {identity + reachable-data policy} | `{command}` | `{filter}` | `{non-zero behavior}` | {CI / command} | `{result or evidence-backed N/A}` |
+
+This roll-up is a status/evidence section only: it is not a fourth sub-score and never changes the three child scores or the combined-verdict calculation. A blocked contract remains an explicit setup follow-up.
+
 For each merged finding: assign ONE severity per `SYNC:severity-rubric` (do not sum severities across duplicate reports), cite each reporting child's `file:line`, and PRESERVE each child's route-to-sibling pointers. — why: undeduped, three intentionally-cross-referencing reviewers inflate severity counts and bury distinct issues.
 
 **Merged advisory Technique Applicability Matrix (does NOT change the combined verdict):** all three children emit a scale-tier Technique Applicability Matrix from `SYNC:scale-technique-gate`; dedup the three views of the same technique onto ONE advisory matrix in the consolidated report. **Pin ONE authoritative scale tier for the merged matrix — `architecture-scalability-review`'s derived tier is canonical (owns scalability grading); if another child's derived tier DIVERGES, record the divergence as a one-line note and key the merged matrix's `tier-warranted?` column to the pinned tier, rather than merging contradictory warranted-sets.** This only SELECTS which already-derived tier the matrix is keyed to — it does NOT re-derive any child's findings (respecting "you do not re-derive them" above). It is **advisory/INFO only** — a `MISSING-WARRANTED` technique is guidance, never a severity, and NEVER feeds the worst-case combined-verdict rollup. This orchestrator adds no own gate marker; the matrix is inherited from the children.
@@ -144,7 +156,7 @@ For each merged finding: assign ONE severity per `SYNC:severity-rubric` (do not 
 
 **Self-audit the merged report (MANDATORY before Step 5):** run the 11 thinking red flags in §20.3 across the merged findings — especially **a recommendation whose SACRIFICE is unnamed**, **"best practice" with no named forces**, and **a scale claim with no evidence**. Any hit is demoted or removed here, not passed to `/why-review` as ground truth. — why: the orchestrator's synthesis is where three children's confirmation biases compound into one authoritative-sounding report.
 
-Step 4 ends only when `Faces merged: 3/3` — all three sub-scores are populated, the §20.2 coverage sweep is recorded, and every finding is on disk.
+Step 4 ends only when `Faces merged: 3/3` — all three sub-scores are populated, the non-scoring TVC status is copied (or explicitly marked `UNVERIFIED`), the §20.2 coverage sweep is recorded, and every finding is on disk.
 
 ## Step 5: Fix-Report-Per-Review `/why-review` Gate (status `VALIDATING`) — MANDATORY when findings exist
 
@@ -162,7 +174,7 @@ Skip ONLY on an unconditional zero-finding PASS across all three children (log t
 The report is now validated — lock it and hand off a stable artifact.
 
 1. Compute the **Combined Verdict** as the worst-case rollup across the three now-validated sub-scores (any BLOCKED / NOT READY / HIGH RISK dominates); write it into the header, replacing the `⏳ pending` placeholder.
-2. Flip the report status from `🔍 VALIDATING` to `✅ FINISHED` and append a `## Finalization` block: the three sub-scores, the combined verdict, the total validated finding count by severity, and the `Faces merged: 3/3` confirmation.
+2. Flip the report status from `🔍 VALIDATING` to `✅ FINISHED` and append a `## Finalization` block: the three sub-scores, the non-scoring TVC status/source, the combined verdict, the total validated finding count by severity, and the `Faces merged: 3/3` confirmation.
 3. This finalized report is the single deliverable the downstream workflow-level `/why-review` step and `docs-update` consume. Do NOT emit a second report file or re-synthesize — one file, finalized once.
 
 > **Two-tier validation (why this skill runs `/why-review` AND the workflow adds a `why-review` step):** Step 5 here is the FINDING-level, per-face fix that also protects standalone use of this skill. The workflow-level `why-review` step that follows is the REPORT-level final gate over the finalized artifact (verdict-rollup correctness, dedup completeness, cross-review severity consistency) and the machine-visible guarantee in the rendered sequence. Distinct altitudes; do not collapse one into the other.
@@ -735,6 +747,20 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 
 <!-- /SYNC:trade-off-interrogation-gate -->
 
+<!-- SYNC:test-architecture-execution-contract -->
+
+> **Test Architecture & Execution Contract** — Treat testability as a setup/architecture acceptance condition. For every potentially applicable tier — Unit, Integration/System, and E2E — record `APPLICABLE` only with evidence of its runner/framework/configuration; otherwise record `N/A — <evidence>` and never fabricate coverage.
+>
+> 1. **Matrix before implementation:** Record applicability, owner, runner/framework, test root, fixture/data strategy, full command, focused/partial command, zero-match behavior, CI gate, and a simple/Windows entry point (a `.cmd` when the project needs one).
+> 2. **Runnable scopes:** Full and focused commands must be copy-ready, fail on invalid or zero-match selections, report exact counts and exit status, and be safe to repeat. E2E uses only configured browser/service commands.
+> 3. **Fresh valid state:** Each run/test owns a unique run identity and business-data suffix, arranges through supported public paths, and uses realistic valid data. Reference setup is count-before-create, idempotent, and restart-safe. Intentional accumulation is additive, keyed, and integrity-checked; never hide contamination with destructive reset.
+>    Run-scoped cleanup, when supported, is opt-in and idempotent: after evidence capture it may remove only ephemeral resources owned by the current run; it must never delete persistent/additive data or another run's data, reset shared state, or replace no-reset proof.
+> 4. **Isolation and fidelity:** Isolate mutable roots and parallel workers; share only immutable/reference data. Preserve real actor pacing and observable arrange barriers. Do not widen retries or weaken assertions to make a scenario pass.
+> 5. **Evidence gate:** Report command, scope, identity, seed/accumulation mode, exact result, and repeat proof. For each applicable persistent-state suite, require two consecutive no-reset full runs. Treat line coverage as diagnostic only; use meaningful property/invariant, mutation, change, and behavior coverage signals.
+>
+> **Ownership:** Architecture/harness defines the matrix; scaffold/workflow makes it runnable; test writers implement tier-specific cases; reviewers verify the contract; the runner reports; seed-data owners preserve uniqueness, idempotency, realism, and accumulation integrity. Missing required evidence blocks setup completion.
+
+<!-- /SYNC:test-architecture-execution-contract -->
 
 <!-- SYNC:double-round-trip-review:reminder -->
 
@@ -878,8 +904,15 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 
 <!-- /SYNC:project-protocol-overlay:reminder -->
 
+<!-- SYNC:test-architecture-execution-contract:reminder -->
+
+**MUST ATTENTION** Before implementation, record evidence-backed Unit/Integration/System/E2E applicability (or explicit N/A), copy-ready full + focused commands, zero-match behavior, a simple/Windows entry point, unique run identity, realistic valid data, idempotent/restart-safe reference setup, intentional additive accumulation, parallel isolation, exact results, and two no-reset full runs for each applicable persistent-state suite.
+
+<!-- /SYNC:test-architecture-execution-contract:reminder -->
+
 ## Closing Reminders
 
+**IMPORTANT MUST ATTENTION** Testability contract: resolve evidence-backed Unit/Integration/System/E2E rows, copy-ready full/focused commands, zero-match failures, owner/root/data, CI/simple-Windows entry, unique run identity, and repeat proof before claiming setup, review, or test completion.
 **IMPORTANT MUST ATTENTION Goal:** Audit the WHOLE project's architecture, scalability, and production readiness in ONE pass: orchestrate three deliberately non-overlapping sibling reviewers, dedup intentional cross-references, and synthesize ONE consolidated Architecture Health Report with one combined verdict — this is a THIN orchestrator; NEVER re-implement child reviews.
 
 **IMPORTANT MUST ATTENTION — Main steps (execute in order, NEVER skip/merge):** (1) Resolve scope (args else `AskUserQuestion`; map to each child's args) → (2) Load project reference docs once → (3) Parallel fan-out of all three read-only sub-agents in ONE message behind an all-return barrier → (4) Progressive synthesis into ONE report at status `IN PROGRESS` — merge + dedup each face AS it returns, never held in memory, then run the §20.2 coverage sweep + §20.3 self-audit over the merged set → (5) Fix-report-per-review `/why-review` gate (one merged pass walking each of the three faces + the dedup, status `VALIDATING`) → (6) Finalize — lock the combined verdict + flip status to `FINISHED` → Next Steps `AskUserQuestion`. The report lifecycle is `IN PROGRESS → VALIDATING → FINISHED` on ONE file, never re-created.

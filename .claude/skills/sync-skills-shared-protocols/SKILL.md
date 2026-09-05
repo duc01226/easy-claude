@@ -85,6 +85,17 @@ Use when a NEW SYNC: block needs tiered propagation. Derive the on-disk target i
 - `ORCHESTRATOR_SKILL_BLOCK_ORDER` extends that base only for skills in `ORCHESTRATOR_SKILLS`.
 - Agent tiers remain independently governed by the injector's explicit agent sets.
 
+#### Agent quality parity and skill connections
+
+When the new block applies to work performed by a sub-agent, update the canonical agent matrix before injection:
+
+1. Add the applicable quality tag(s) to `AGENT_QUALITY_BLOCKS` in `.claude/scripts/agent_protocol_matrix.py`; keep orchestration-only blocks out of leaf agents.
+2. Confirm every agent has a valid `AGENT_SKILL_CONNECTIONS` entry to its canonical task skill(s), and add the carrier owner for any newly propagated review/test protocol.
+3. Run `py -3 .claude/scripts/agent_protocol_matrix.py --validate`, then run both `inject_agent_protocol_blocks.py` and `inject_agent_skill_connections.py` (dry-run first, real run second).
+4. Verify the generated `AGENT-SKILL-CONNECTIONS` sections and the agent-universal-rules suite before regenerating mirrors.
+
+The connection map is explicit routing metadata. It links the agent prompt to the canonical skill procedure while the matrix injects only applicable quality blocks; do not blanket-copy skill bodies into a leaf agent when that would import caller-owned orchestration.
+
 This is a bulk-insert operation, not a content update. Verify the computed target set before writing so orchestration-only rules never leak into every skill.
 
 **When to use:** A new protocol rule is added to `.claude/skills/shared/sync-inline-versions.md` and should appear in static carriers (`CLAUDE.md`, `AGENTS.md`, Codex, skills, and agents).

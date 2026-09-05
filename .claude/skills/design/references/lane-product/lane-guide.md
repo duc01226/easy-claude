@@ -1,8 +1,17 @@
 # Lane Guide — Product UI (`design --lane=product`)
 
 > Absorbed from the former `interface-design` skill. This is the full lane body the `design` dispatcher points to for distinctive, craft-driven product interfaces (dashboards, admin panels, SaaS apps, tools, settings pages, data interfaces). Reference files in this directory carry code examples, validation, and critique protocols.
+>
+> **Canonical knowledge:** the laws, the generated-design tell catalog, the design-plan contract, and the critique protocol are single-sourced in `.claude/docs/design-knowledge.md` and bound as the `DD-1`–`DD-8` clauses of `SYNC:design-distinctiveness-gate` (carried in `design/SKILL.md`). This guide is the LANE PROCEDURE and owns the domain-exploration and mandate-check protocols; it never re-derives a weaker copy of those clauses.
 
 **Goal:** Build distinctive, craft-driven product interfaces that emerge from domain exploration rather than AI defaults.
+
+**Summary:**
+
+- **Five steps, and the gates sit at both ends:** intent → domain exploration (4 required outputs) → propose direction (**the proposal IS the design plan — run the generic test on it BEFORE building**) → build → 5 mandate checks before showing anything.
+- **Adoption outranks invention.** Where the project already has a design system or `interface-system.md`, ADOPT it and record the adoption; re-decide an axis only with a stated reason.
+- **This lane's characteristic failure is the SaaS-card kit (`DD-4` T4) and template chrome (T5)** — identical rounded cards, one radius for every hierarchy level, the same soft grey shadow under each, ALL-CAPS eyebrows, middle-dot meta strings. The tell audit is the 5th mandate check for exactly this reason.
+- **Every choice carries a WHY.** "It's common" is not a reason; a choice that survives swapping the domain was never a choice.
 
 **Workflow:**
 
@@ -10,13 +19,15 @@
 2. **Domain Exploration** — Produce 4 required outputs: domain concepts, color world, signature element, named defaults
 3. **Propose Direction** — Present exploration + direction, get user buy-in
 4. **Build** — Apply craft foundations (layering, tokens, typography, spacing)
-5. **Evaluate** — Run mandate checks (swap, squint, signature, token tests) before showing
+5. **Evaluate** — Run mandate checks (swap, squint, signature, token, tell-audit tests) before showing
 
 **Key Rules:**
 
 - Every design choice must have a WHY — "it's common" is not a reason
 - Produce 4 domain outputs before proposing any direction
-- Run 4 mandate checks before showing output to user
+- **The proposal IS the design plan (`DD-3`)** — color (4–6 named hex values), type (families + roles + scale), layout (prose + ASCII wireframe + alignment), principles. **Run the generic test on it BEFORE building:** work through a similar prompt and see whether you arrive somewhere similar; revise anything that reads like the default for any comparable product and say what you changed
+- Run 5 mandate checks before showing output to user
+- **Where the project already has a design system or `interface-system.md`, ADOPT it and record the adoption** — re-decide an axis only with a stated reason; surface genuine conflicts to the user, never resolve silently
 - Save reusable patterns to `docs/design-system/interface-system.md` when 2+ uses
 - Component patterns: `docs/project-reference/frontend-patterns-reference.md`
 - Styling/BEM guide: `docs/project-reference/scss-styling-guide.md`
@@ -158,6 +169,10 @@ Run these against your output before presenting:
 - **The signature test:** Can you point to five specific elements where your signature appears? Not "the overall feel" — actual components. A signature you can't locate doesn't exist.
 
 - **The token test:** Read your CSS variables out loud. Do they sound like they belong to this product's world, or could they belong to any project?
+
+- **The tell audit (`DD-4`):** Walk the free axes — the ones the brief did NOT pin — against the generated-design tell catalog in `.claude/docs/design-knowledge.md` §4. In this lane the two that bite hardest are **T4, the SaaS-card kit** (content chopped into identical rounded cards, ONE border-radius on everything regardless of hierarchy, the same `rgba(0,0,0,.1)` shadow under each, gradient washes as decoration) and **T5, template chrome** (tracked-out ALL-CAPS eyebrow above every heading, meta strings joined with middle dots, `#0B0B0B` standing in for black, monospace for small data labels, a trailing `→` on link text). Also check the structural tells: numbered markers `01 / 02 / 03` on content that is not actually a sequence, and per-section fade-and-slide-up entrances plus a hover transition on every card.
+
+  **A match is not a defect** — every one of these is right for some brief. It is a flag that you spent a FREE axis on a default. For each match, either name the reason this brief calls for it, or revise it and say what the domain suggested instead.
 
 If any check fails, iterate before showing.
 
@@ -407,6 +422,22 @@ For more detail on specific topics:
 - `validation.md` — Memory management, when to update system.md
 - `critique.md` — Post-build craft critique protocol
 - `example.md` — Worked example
+
+## Closing Reminders
+
+**IMPORTANT MUST ATTENTION Goal:** a product interface that emerges from ITS domain — not the dashboard any generator emits for any product.
+
+**IMPORTANT MUST ATTENTION** run all five steps in order: 1 intent → 2 domain exploration (all 4 outputs: domain concepts, color world, signature element, named defaults) → 3 propose direction and get buy-in → 4 build on the craft foundations → 5 the 5 mandate checks (swap, squint, signature, token, **tell audit**) — why: the exploration outputs and the mandate checks are the only things standing between this lane and the default dashboard.
+
+**IMPORTANT MUST ATTENTION** the proposal IS the design plan (`DD-3`) — colour, type, layout, principles, each with a WHY. Run the generic test on it BEFORE building and state what you changed.
+
+**IMPORTANT MUST ATTENTION** ADOPT an existing project design system or `interface-system.md` and record the adoption; re-decide an axis only with a stated reason and surface genuine conflicts to the user — NEVER resolve them silently.
+
+**IMPORTANT MUST ATTENTION** run the tell audit against `DD-4`, weighting T4 (SaaS-card kit) and T5 (template chrome) — this lane's two most likely defaults. Each match is a question about a free axis, NEVER a verdict.
+
+**IMPORTANT MUST ATTENTION** every design choice carries a WHY; "it's common" is not a reason. Save a reusable pattern to `docs/design-system/interface-system.md` at 2+ uses.
+
+---
 
 ## Related lanes & skills
 

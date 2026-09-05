@@ -362,9 +362,11 @@ Every agent carries the **same role-specific quality protocol** as its twin skil
 | Concern                                   | File                                                                                                                                                          |
 | ----------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Per-agent block assignment (the manifest) | `.claude/scripts/agent_protocol_matrix.py` (`AGENT_QUALITY_BLOCKS`)                                                                                           |
+| Agent-to-skill connection map              | `.claude/scripts/agent_protocol_matrix.py` (`AGENT_SKILL_CONNECTIONS`)                                                                                        |
 | Injector / idempotent maintenance tool    | `.claude/scripts/inject_agent_protocol_blocks.py`                                                                                                             |
+| Connection-block injector                  | `.claude/scripts/inject_agent_skill_connections.py`                                                                                                            |
 | Canonical block bodies                    | `.claude/skills/shared/sync-inline-versions.md`                                                                                                               |
-| Full agent↔skill map + evaluation        | [`plans/260616-agent-skill-quality-parity/research/agent-skill-mapping.md`](../../../plans/260616-agent-skill-quality-parity/research/agent-skill-mapping.md) |
+| Full agent↔skill evaluation                | [`plans/260616-agent-skill-quality-parity/research/agent-skill-mapping.md`](../../../plans/260616-agent-skill-quality-parity/research/agent-skill-mapping.md) |
 
 **Tier model** (enforced by `agent_protocol_matrix.py` `validate()` and the `agent-universal-rules` test suite — `TC-UAR-003..007`):
 
@@ -372,7 +374,7 @@ Every agent carries the **same role-specific quality protocol** as its twin skil
 -   **Code-10** blocks (`understand-code-first`, `evidence-based-reasoning`, `cross-service-check`, `fix-layer-accountability`) → only the 17 code-touching/fixing agents; NEVER a core-only agent (business-analyst, docs-manager, git-manager, journal-writer, knowledge-worker, product-owner, project-manager, quality-gate-review).
 -   **Readonly-Code** blocks (`understand-code-first`, `evidence-based-reasoning` only) → the 2 read-only/design agents (`researcher`, `ui-ux-designer`) that locate/read/design code but never fix a layer or cross a service boundary; the two mutation-oriented blocks (`cross-service-check`, `fix-layer-accountability`) are deliberately excluded to save tokens.
 -   **Code-standards** (`agent-code-standards`) → the 17 agents that author/review code (a separate axis — `researcher`/`ui-ux-designer` read code but don't author it, so they're excluded).
--   **Additive quality blocks** → per the matrix manifest; 26 agents carry a quality-block row, 3 (git-manager, journal-writer, project-manager) intentionally carry no quality-block ROW. Of those, `git-manager` additionally carries `SYNC:estimation-framework` — hand-added outside the manifest so the commit estimate it stamps derives from the same rules the `commit` skill applies; `journal-writer` and `project-manager` remain Core-6 only.
+-   **Additive quality blocks** → per the matrix manifest; all 27 agents carry a quality-block row. Operational agents may have an empty additive row when their connected skill has no role-specific SYNC block; `git-manager` carries `SYNC:estimation-framework` through the manifest. Every agent also carries a generated **Connected Skill Contracts** block from `AGENT_SKILL_CONNECTIONS`, which links the prompt to its canonical task-specific skill procedures without blanket-copying orchestrator-only instructions.
 
 Partition: 17 Code-10 + 2 Readonly-Code + 8 Core-6 = 27 agents (pairwise disjoint).
 

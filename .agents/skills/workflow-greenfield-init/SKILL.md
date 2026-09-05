@@ -41,18 +41,27 @@ When coding, planning, debugging, testing, or reviewing, open project docs expli
 Do not read all docs blindly. Start from `docs-index-reference.md`, then open only relevant files for the task.
 <!-- CODEX:PROJECT-REFERENCE-LOADING:END -->
 
+<!-- PROMPT-ENHANCE:STEP-TASK-ANCHOR:START -->
+
+> **[BLOCKING]** Execute skill steps in declared order. NEVER skip, reorder, or merge steps without explicit user approval.
+> **[BLOCKING]** Before each step or sub-skill call, update task tracking: set `in_progress` when step starts, set `completed` when step ends.
+> **[BLOCKING]** Every completed/skipped step MUST include brief evidence or explicit skip reason.
+> **[BLOCKING]** If Task tools are unavailable, create and maintain an equivalent step-by-step plan tracker with the same status transitions.
+
+<!-- PROMPT-ENHANCE:STEP-TASK-ANCHOR:END -->
+
 ## Quick Summary
 
-**Goal:** [Workflow] Trigger Greenfield Project Init workflow — full waterfall project inception from idea through implementation with integration testing.
+**Goal:** [Workflow] Trigger Greenfield Project Init workflow — full waterfall project inception from idea through implementation with a test architecture contract, integration verification, conditional E2E evaluation, and final full/focused verification.
 
 **Summary:**
 
 - Begin with the shared large-idea classification and embedded decomposition contract; run `$scenario` before the first plan when the outcome slices require adversarial risk analysis. A roadmap artifact is not a default greenfield prerequisite.
 - Research the product, domain, technology, architecture, and foundation in order; scaffold and review the foundation before feature work.
 - Every generated PBI MUST pass the Releasable Outcome Gate: one independently releasable actor-facing outcome with a complete entry-to-result journey; foundation/scaffold/setup work is enabling work attached to that outcome, never a standalone technical PBI. UI PBIs require the full page/view, navigation, component, state, and mock-app flow surface.
-- Preserve the full spec/PBI/story/test chain and finish with implementation, integration verification, synchronized evidence, and handoff.
+- Preserve the full spec/PBI/story/test chain, emit the test architecture contract before implementation planning completes, and finish with implementation, integration verification, conditional E2E evaluation, synchronized evidence, and final full/focused verification.
 
- - **Main steps:** classify/decompose → research → domain/tech/architecture → scenario/plan/review → PBI/story/mock-up/spec gates → scaffold/lint/harness/architecture review → implementation/integration verification → final review/security/test/docs/handoff.
+ - **Main steps:** classify/decompose → research → domain/tech/architecture + test contract → scenario/plan/review → PBI/story/mock-up/spec gates → scaffold/lint/harness/architecture review → implementation/integration verification → conditional E2E → final full/focused verification → final review/security/test/docs/handoff.
 
 **Workflow:**
 
@@ -67,6 +76,8 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 - MUST ATTENTION define success criteria before execution and loop until observable verification passes.
 - MUST ATTENTION when creating/reviewing specs or tests, name `Business Intent / Invariant Guarded` or the protected business intent/invariant and ensure the test would fail if that intent breaks.
 - MUST ATTENTION classify the greenfield idea with `isLargeIdea = multipleIndependentOutcomes || ambiguousOrResearchHeavy || releaseScopeDecomposition || oversizedPbiThatMustSplit` before market research, architecture, specs, PBIs, or plans. When true, require the complete embedded `large_idea_decomposition` block in the owning PBI/spec with `outcome_slices`, `dependencies_order`, `non_goals`, `risks_evidence`, and `deferred_work_owner`, then carry stable slice IDs into stories, mock-ups, and the all-PBI presentation; run `$scenario` only when the selected scope needs adversarial risk analysis, otherwise record the conditional skip with evidence. An explicit roadmap request may use the standalone writer separately.
+- MUST ATTENTION emit and validate the Test Architecture & Execution Contract matrix before the first implementation plan completes; block handoff when any applicable tier lacks a copy-ready full command, focused command, zero-match behavior, or unique run/data identity, and record evidence-backed `N/A` for non-applicable tiers.
+- MUST ATTENTION after `$integration-test-verify`, inspect configured E2E evidence and invoke `$e2e-test` only when a runnable E2E framework/command is configured; otherwise record explicit evidence-backed `N/A`. The final `$test` must report full/focused verification and exact results.
 - NEVER skip mandatory workflow or skill gates.
 
 ## Repeated Steps Disambiguation (CRITICAL for task creation)
@@ -88,8 +99,9 @@ This workflow has steps that appear multiple times. When creating tasks, use the
 | `$spec [mode=tests]`                 | 2nd (pos 47) | TDD-SPEC₂: Post-implementation test spec update                                           |
 | `$artifact-review --type=spec-tests` | 1st (pos 32) | Review TDD-SPEC₁                                                                          |
 | `$artifact-review --type=spec-tests` | 2nd (pos 49) | Review TDD-SPEC₂                                                                          |
-| `$test`                              | 1st (pos 55) | Test after integration tests                                                              |
-| `$test`                              | 2nd (pos 59) | Final test verification                                                                   |
+| `$e2e-test`                          | (conditional, pos 55) | Run after integration-test-verify only when E2E is configured; otherwise record evidence-backed N/A |
+| `$test`                              | 1st (pos 56) | Test after integration tests and conditional E2E evaluation                               |
+| `$test`                              | 2nd (pos 60) | Final full/focused test verification                                                       |
 | `$domain-entities-review`            | 1st (pos 46) | DDD quality review — conditional: skip if no domain entity files in changeset             |
 | `$linter-setup`                      | (new)        | LINTER-SETUP: Install and configure computational feedback sensors                        |
 | `$harness-setup`                     | (new)        | HARNESS-SETUP: Full outer agent harness (feedforward guides + feedback sensors inventory) |
@@ -98,17 +110,21 @@ This workflow has steps that appear multiple times. When creating tasks, use the
 
 ---
 
-**IMPORTANT MANDATORY Steps:** $idea -> $web-research -> $deep-research -> $market-analysis -> $business-evaluation -> $spec-discovery -> $domain-analysis -> $why-review -> $tech-stack-research -> $architecture-design -> $architecture-scalability-review -> $why-review -> $scenario -> $plan -> $plan-review -> $security-review -> $performance-review -> $plan-review -> $refine -> $why-review -> $artifact-review --type=pbi -> $story -> $why-review -> $artifact-review --type=story -> $pbi-challenge -> $dor-gate -> $pbi-mockup -> $plan-validate -> $why-review -> $spec [mode=tests] -> $why-review -> $artifact-review --type=spec-tests -> $spec-clarify -> $plan -> $plan-review -> $scaffold -> $linter-setup -> $harness-setup -> $architecture-review-full -> $scan --target=ui-system -> $scan --target=backend-patterns -> $scan --target=integration-tests -> $scan --target=project-structure -> $why-review -> $plan-execute -> $domain-entities-review -> $spec [mode=tests] -> $why-review -> $artifact-review --type=spec-tests -> $plan -> $plan-review -> $integration-test -> $integration-test-review -> $integration-test-verify -> $test -> $workflow-review-changes -> $security-review -> $changelog -> $test -> $scan --target=domain-entities -> $docs-update -> $workflow-end -> $watzup
+**IMPORTANT MANDATORY Steps:** $idea -> $web-research -> $deep-research -> $market-analysis -> $business-evaluation -> $spec-discovery -> $domain-analysis -> $why-review -> $tech-stack-research -> $architecture-design -> $architecture-scalability-review -> $why-review -> $scenario -> $plan -> $plan-review -> $security-review -> $performance-review -> $plan-review -> $refine -> $why-review -> $artifact-review --type=pbi -> $story -> $why-review -> $artifact-review --type=story -> $pbi-challenge -> $dor-gate -> $pbi-mockup -> $plan-validate -> $why-review -> $spec [mode=tests] -> $why-review -> $artifact-review --type=spec-tests -> $spec-clarify -> $plan -> $plan-review -> $scaffold -> $linter-setup -> $harness-setup -> $architecture-review-full -> $scan --target=ui-system -> $scan --target=backend-patterns -> $scan --target=integration-tests -> $scan --target=project-structure -> $why-review -> $plan-execute -> $domain-entities-review -> $spec [mode=tests] -> $why-review -> $artifact-review --type=spec-tests -> $plan -> $plan-review -> $integration-test -> $integration-test-review -> $integration-test-verify -> $e2e-test -> $test -> $workflow-review-changes -> $security-review -> $changelog -> $test -> $scan --target=domain-entities -> $docs-update -> $workflow-end -> $watzup
 
-**IMPORTANT MANDATORY Steps:** $idea -> $web-research -> $deep-research -> $market-analysis -> $business-evaluation -> $spec-discovery -> $domain-analysis -> $why-review -> $tech-stack-research -> $architecture-design -> $architecture-scalability-review -> $why-review -> $scenario -> $plan -> $plan-review -> $security-review -> $performance-review -> $plan-review -> $refine -> $why-review -> $artifact-review --type=pbi -> $story -> $why-review -> $artifact-review --type=story -> $pbi-challenge -> $dor-gate -> $pbi-mockup -> $plan-validate -> $why-review -> $spec [mode=tests] -> $why-review -> $artifact-review --type=spec-tests -> $spec-clarify -> $plan -> $plan-review -> $scaffold -> $linter-setup -> $harness-setup -> $architecture-review-full -> $scan --target=ui-system -> $scan --target=backend-patterns -> $scan --target=integration-tests -> $scan --target=project-structure -> $why-review -> $plan-execute -> $domain-entities-review -> $spec [mode=tests] -> $why-review -> $artifact-review --type=spec-tests -> $plan -> $plan-review -> $integration-test -> $integration-test-review -> $integration-test-verify -> $test -> $workflow-review-changes -> $security-review -> $changelog -> $test -> $scan --target=domain-entities -> $docs-update -> $workflow-end -> $watzup
+**IMPORTANT MANDATORY Steps:** $idea -> $web-research -> $deep-research -> $market-analysis -> $business-evaluation -> $spec-discovery -> $domain-analysis -> $why-review -> $tech-stack-research -> $architecture-design -> $architecture-scalability-review -> $why-review -> $scenario -> $plan -> $plan-review -> $security-review -> $performance-review -> $plan-review -> $refine -> $why-review -> $artifact-review --type=pbi -> $story -> $why-review -> $artifact-review --type=story -> $pbi-challenge -> $dor-gate -> $pbi-mockup -> $plan-validate -> $why-review -> $spec [mode=tests] -> $why-review -> $artifact-review --type=spec-tests -> $spec-clarify -> $plan -> $plan-review -> $scaffold -> $linter-setup -> $harness-setup -> $architecture-review-full -> $scan --target=ui-system -> $scan --target=backend-patterns -> $scan --target=integration-tests -> $scan --target=project-structure -> $why-review -> $plan-execute -> $domain-entities-review -> $spec [mode=tests] -> $why-review -> $artifact-review --type=spec-tests -> $plan -> $plan-review -> $integration-test -> $integration-test-review -> $integration-test-verify -> $e2e-test -> $test -> $workflow-review-changes -> $security-review -> $changelog -> $test -> $scan --target=domain-entities -> $docs-update -> $workflow-end -> $watzup
 
 > **[BLOCKING]** Each selected step MUST ATTENTION invoke its skill invocation — marking a selected task `completed` without skill invocation is a workflow violation. A declared conditional step such as `$scenario` may be marked skipped only with evidence and an explicit reason; NEVER batch-complete validation gates.
 
 Activate the `workflow-greenfield-init` workflow. Run `$start-workflow workflow-greenfield-init` with the user's prompt as context.
 
-**Steps:** $idea → $web-research → $deep-research → $market-analysis → $business-evaluation → $spec-discovery → $domain-analysis → $why-review → $tech-stack-research → $architecture-design → $architecture-scalability-review → $why-review → $scenario → $plan → $plan-review → $security-review → $performance-review → $plan-review → $refine → $why-review → $artifact-review --type=pbi → $story → $why-review → $artifact-review --type=story → $pbi-challenge → $dor-gate → $pbi-mockup → $plan-validate → $why-review → $spec [mode=tests] → $why-review → $artifact-review --type=spec-tests → $spec-clarify → $plan → $plan-review → $scaffold → $linter-setup → $harness-setup → $architecture-review-full → $scan --target=ui-system → $scan --target=backend-patterns → $scan --target=integration-tests → $scan --target=project-structure → $why-review → $plan-execute → $domain-entities-review → $spec [mode=tests] → $why-review → $artifact-review --type=spec-tests → $plan → $plan-review → $integration-test → $integration-test-review → $integration-test-verify → $test → $workflow-review-changes → $security-review → $changelog → $test → $scan --target=domain-entities → $docs-update → $workflow-end → $watzup
+**Steps:** $idea → $web-research → $deep-research → $market-analysis → $business-evaluation → $spec-discovery → $domain-analysis → $why-review → $tech-stack-research → $architecture-design → $architecture-scalability-review → $why-review → $scenario → $plan → $plan-review → $security-review → $performance-review → $plan-review → $refine → $why-review → $artifact-review --type=pbi → $story → $why-review → $artifact-review --type=story → $pbi-challenge → $dor-gate → $pbi-mockup → $plan-validate → $why-review → $spec [mode=tests] → $why-review → $artifact-review --type=spec-tests → $spec-clarify → $plan → $plan-review → $scaffold → $linter-setup → $harness-setup → $architecture-review-full → $scan --target=ui-system → $scan --target=backend-patterns → $scan --target=integration-tests → $scan --target=project-structure → $why-review → $plan-execute → $domain-entities-review → $spec [mode=tests] → $why-review → $artifact-review --type=spec-tests → $plan → $plan-review → $integration-test → $integration-test-review → $integration-test-verify → $e2e-test → $test → $workflow-review-changes → $security-review → $changelog → $test → $scan --target=domain-entities → $docs-update → $workflow-end → $watzup
 
 > **[CONDITIONAL TERMINAL DOMAIN-ENTITY REFERENCE REFRESH]** After `$test` and before `$docs-update`, run `$scan --target=domain-entities` to refresh the project-reference entity catalog only when the final diff changes an entity/model, DTO/data contract, persistence schema/migration, or entity-sync evidence represented in `docs/project-reference/domain-entities-reference.md`. Otherwise mark the scan step completed with a cited skip reason naming the changed files and why they are outside this scope; this is the explicitly authorized exception to the per-step skill-invocation rule.
+
+> **[BLOCKING TEST ARCHITECTURE HANDOFF GATE]** During `$architecture-design`, emit the Test Architecture & Execution Contract matrix before the first `$plan` completes. Before `$plan-execute` or any feature-implementation handoff, validate every potentially applicable Unit, Integration/System, and E2E row: `APPLICABLE` requires evidence-backed runner/framework/configuration, copy-ready full and focused commands, zero-match behavior, and unique run/data identity; missing any of these blocks handoff. Record `N/A — <evidence>` for every non-applicable tier; never substitute an assumption for missing evidence.
+
+> **[CONDITIONAL E2E GATE]** Immediately after `$integration-test-verify`, inspect `docs/project-config.json` → `e2eTesting` and the matching runnable framework, entry points, and commands. When configured, invoke `$e2e-test`; otherwise complete that conditional step as `N/A — <evidence>` citing the configuration and repository scan, without fabricating browser setup. The following `$test` step performs final full/focused verification and reports exact results and exit status for each applicable tier.
 
 > **Architecture quality gate (`$architecture-scalability-review`, pos 10).** Immediately after `$architecture-design` and before the first `$plan`, greenfield runs the architecture & scalability scorecard (init mode) so its findings and gate items feed the implementation plan. This is the comprehensive project-quality evaluation for greenfield/init — Build & CI scalability, architecture pattern (modular monolith vs. microservices / distributed-monolith avoidance), module isolation, dependency discipline, loose coupling, horizontal scaling, DRY, abstraction/easy-to-change, clean architecture, and observability/DevOps. Brownfield or day-to-day audits invoke the same skill on demand via `$architecture-scalability-review mode=audit`; it is intentionally NOT a member of the every-change `workflow-review-changes` batch — that batch's `architecture-review` step carries the lightweight per-change scalability & coupling regression check instead.
 
@@ -201,6 +217,21 @@ Activate the `workflow-greenfield-init` workflow. Run `$start-workflow workflow-
 
 <!-- /SYNC:subagent-return-contract -->
 
+<!-- SYNC:test-architecture-execution-contract -->
+
+> **Test Architecture & Execution Contract** — Treat testability as a setup/architecture acceptance condition. For every potentially applicable tier — Unit, Integration/System, and E2E — record `APPLICABLE` only with evidence of its runner/framework/configuration; otherwise record `N/A — <evidence>` and never fabricate coverage.
+>
+> 1. **Matrix before implementation:** Record applicability, owner, runner/framework, test root, fixture/data strategy, full command, focused/partial command, zero-match behavior, CI gate, and a simple/Windows entry point (a `.cmd` when the project needs one).
+> 2. **Runnable scopes:** Full and focused commands must be copy-ready, fail on invalid or zero-match selections, report exact counts and exit status, and be safe to repeat. E2E uses only configured browser/service commands.
+> 3. **Fresh valid state:** Each run/test owns a unique run identity and business-data suffix, arranges through supported public paths, and uses realistic valid data. Reference setup is count-before-create, idempotent, and restart-safe. Intentional accumulation is additive, keyed, and integrity-checked; never hide contamination with destructive reset.
+>    Run-scoped cleanup, when supported, is opt-in and idempotent: after evidence capture it may remove only ephemeral resources owned by the current run; it must never delete persistent/additive data or another run's data, reset shared state, or replace no-reset proof.
+> 4. **Isolation and fidelity:** Isolate mutable roots and parallel workers; share only immutable/reference data. Preserve real actor pacing and observable arrange barriers. Do not widen retries or weaken assertions to make a scenario pass.
+> 5. **Evidence gate:** Report command, scope, identity, seed/accumulation mode, exact result, and repeat proof. For each applicable persistent-state suite, require two consecutive no-reset full runs. Treat line coverage as diagnostic only; use meaningful property/invariant, mutation, change, and behavior coverage signals.
+>
+> **Ownership:** Architecture/harness defines the matrix; scaffold/workflow makes it runnable; test writers implement tier-specific cases; reviewers verify the contract; the runner reports; seed-data owners preserve uniqueness, idempotency, realism, and accumulation integrity. Missing required evidence blocks setup completion.
+
+<!-- /SYNC:test-architecture-execution-contract -->
+
 <!-- SYNC:critical-thinking-mindset:reminder -->
 
 **MUST ATTENTION** apply critical + sequential thinking — every claim needs appropriate traced evidence (`file:line` for repo/code claims; source URL or artifact section for research, product, content, and docs claims); confidence >80% to act, <60% DO NOT recommend. Anti-hallucination: never present guess as fact, admit uncertainty freely, cross-reference independently, stay skeptical of own confidence.
@@ -234,10 +265,16 @@ Activate the `workflow-greenfield-init` workflow. Run `$start-workflow workflow-
 
 <!-- /SYNC:project-protocol-overlay:reminder -->
 
+<!-- SYNC:test-architecture-execution-contract:reminder -->
+
+**MUST ATTENTION** Before implementation, record evidence-backed Unit/Integration/System/E2E applicability (or explicit N/A), copy-ready full + focused commands, zero-match behavior, a simple/Windows entry point, unique run identity, realistic valid data, idempotent/restart-safe reference setup, intentional additive accumulation, parallel isolation, exact results, and two no-reset full runs for each applicable persistent-state suite.
+
+<!-- /SYNC:test-architecture-execution-contract:reminder -->
+
 ## Closing Reminders
 
-**IMPORTANT MUST ATTENTION Goal:** Complete greenfield inception from an owner-approved capability boundary—using embedded large-idea decomposition when triggered, or an explicit roadmap only when requested—through a releasable first vertical outcome, reviewed enabling foundation, implementation, tests, full-flow UI evidence when applicable, and handoff without skipping gates.
-**IMPORTANT MUST ATTENTION Main steps:** classify/decompose → research → domain/tech/architecture → scenario/plan/review → PBI/story/mock-up/spec gates → scaffold/lint/harness/architecture review → implementation/integration verification → final review/security/test/docs/handoff.
+**IMPORTANT MUST ATTENTION Goal:** Complete greenfield inception from an owner-approved capability boundary—using embedded large-idea decomposition when triggered, or an explicit roadmap only when requested—through a releasable first vertical outcome, reviewed enabling foundation, test architecture contract, implementation, integration verification, conditional E2E evaluation, final full/focused verification, and handoff without skipping gates.
+**IMPORTANT MUST ATTENTION Main steps:** classify/decompose → research → domain/tech/architecture + test contract → scenario/plan/review → PBI/story/mock-up/spec gates → scaffold/lint/harness/architecture review → implementation/integration verification → conditional E2E → final full/focused verification → final review/security/test/docs/handoff.
 **IMPORTANT MUST ATTENTION** apply `.claude/skills/shared/releasable-pbi-contract.md`: no standalone technical/foundation/setup PBI; UI PBIs must include all required pages/views, navigation, components, states, and a connected mock-app demo.
 
 **Protocols in force (concise digest of the SYNC/shared blocks this skill carries):**

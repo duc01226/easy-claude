@@ -56,6 +56,24 @@ Negative margins undoing a parent's padding. Calc() values that exist only as wo
 
 ---
 
+## See the Defaults
+
+Correct and crafted are both still compatible with *generic*. Run the distinctiveness pass on the BUILT page, not just on the plan you wrote before building it — the gap between intent and output is exactly where defaults reappear.
+
+Re-run the generic test: work through a similar prompt and see whether you would arrive somewhere similar. Anything that would survive that unchanged is a default, not a decision.
+
+Then walk the free axes against the tell catalog in `.claude/docs/design-knowledge.md` §4 — in this lane especially the SaaS-card kit (identical rounded cards, one radius for every hierarchy level, the same soft grey shadow under each, gradient washes as decoration) and template chrome (ALL-CAPS eyebrows above every heading, middle-dot meta strings, tinted near-black for black, monospace small labels, trailing arrows on links). Check the motion too: per-section fade-and-slide-up entrances and a hover transition on every card are the default, not a choice.
+
+Each match is a question, never a verdict: did the brief ask for this, or did you spend a free axis without noticing? Answer it out loud for each one.
+
+## Remove One Accessory
+
+Spend your boldness in one place. One element is the memorable thing; everything around it stays quiet and disciplined.
+
+Now look for the decoration that does not serve the brief — the second accent color, the extra divider, the background texture that arrived because the section felt empty, the animation nobody asked for. Chanel's advice applies literally: before leaving the house, look in the mirror and take one thing off.
+
+If nothing is removable, you either designed with real restraint or you have stopped seeing the page. Assume the second and look again.
+
 ## Again
 
 Look at your output one final time.
@@ -65,3 +83,15 @@ Ask: "If they said this lacks craft, what would they point to?"
 That thing you just thought of — fix it. Then ask again.
 
 The first build was the draft. The critique is the design.
+
+---
+
+## Closing Reminders
+
+**IMPORTANT MUST ATTENTION Goal:** pull the build from *correct* to *crafted* — and confirm it is not merely a correct, crafted TEMPLATE.
+
+**IMPORTANT MUST ATTENTION** run every pass in order on the BUILT page, never on the plan alone: **Composition** (rhythm, proportion, focal point) → **Craft** (spacing grid, type hierarchy, surfaces, interactive states) → **Content** (one coherent story, real strings) → **Structure** (CSS lies — negative margins, workaround `calc()`, absolute positioning) → **Defaults** (re-run the generic test, walk the free axes against the `DD-4` tell catalog) → **Remove One Accessory** → **Again** — why: the passes are the critique; skipping the last three is how a correct page ships generic.
+
+**IMPORTANT MUST ATTENTION** treat each tell match as a question — did the brief ask for this, or was a free axis spent without noticing? — and answer it out loud for each one. NEVER record a match as a verdict.
+
+**IMPORTANT MUST ATTENTION** if nothing seems removable, assume you have stopped seeing the page and look again.

@@ -6,6 +6,16 @@ skills: commit
 memory: project
 ---
 
+<!-- AGENT-SKILL-CONNECTIONS:START -->
+## Connected Skill Contracts
+
+> **Skill connection:** Apply the task-specific procedure from the connected canonical skill contract that matches the assigned brief.
+> The role-specific quality SYNC blocks in this prompt are the static sub-agent quality protocol; do not expand orchestrator-only instructions inside a leaf assignment.
+
+Connected contracts:
+- `commit`
+<!-- AGENT-SKILL-CONNECTIONS:END -->
+
 ## Quick Summary
 
 **Goal:** Stage, commit, and (only on explicit request) push changes in 2-4 tool calls — producing secret-free, conventional-commit history whose every body OPENS with a derived `Estimate:` line, split into logical commits when types/scopes mix.

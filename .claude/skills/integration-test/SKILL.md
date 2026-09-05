@@ -20,6 +20,7 @@ context-budget: high
 **Goal:** Generate/review integration tests using real DI (no mocks) across 5 modes (from-changes · from-prompt · review · diagnose · verify-traceability) that exercise real production paths and assert specific DB field values — so every test protects a traceable business behavior (TC), survives repeated runs without reset, and fails only when the protected intent actually breaks.
 
 **Summary:**
+- **Testability contract:** resolve Unit/Integration/System/E2E applicability from runner/config evidence; record owner/root/data, copy-ready full + focused commands, zero-match behavior, CI/simple-Windows entry, unique run/data identity, and repeat proof; unresolved applicable fields block handoff, while non-applicable tiers require evidence-backed `N/A`.
 
 - Three things make or break a test here: read handler/entity/event source first and assert specific changed fields (never smoke/DI-resolution-only), wrap EVERY DB assertion in async polling (not just async handlers), and drive state through real command/query/seeder paths — never direct repository writes that fabricate invalid state.
 - TC traceability is the spine: each test method carries a `TC-{FEATURE}-{NNN}` test-spec annotation; one business TC maps to MANY tests (1:N, integration + unit), so cover with as many tests as needed — never split a TC to force 1:1, and auto-create a TC in feature-doc Section 8 only for genuinely uncovered business behavior.
@@ -268,6 +269,21 @@ For each planned test, state:
 - **Barrier** — for each gap between actor actions, name the observable that proves the prior step settled (persisted state change, audit/version stamp, queue/worker idle marker, completion event) and poll it in ARRANGE.
 
 Any "no" → fix the SCENARIO before writing the test; NEVER compensate afterwards by widening an assertion timeout. Full contract: `SYNC:real-world-fidelity-testing` below; barrier shape: `references/integration-test-patterns.md` → Pattern 10.
+
+## Test Architecture Contract Preflight (before Step 3)
+
+Before writing test code, complete and preserve this matrix for the target. This is an additive authoring preflight; it does not replace the real-DI, TC traceability, async-polling, or Real-World Fidelity gates.
+
+| Tier | Applicability + evidence | Owner | Runner/framework | Test root | Fixture/data strategy | Full command | Focused/partial command | Zero-match behavior | CI gate | Simple/Windows entry point |
+| ---- | ------------------------- | ----- | ---------------- | --------- | --------------------- | ------------ | ------------------------ | ------------------- | -------- | --------------------------- |
+| Unit | `APPLICABLE` + `{file:line}` or `N/A — {evidence}` | `{owner}` | `{configured runner/framework}` | `{path}` | `{strategy}` | `{copy-ready command}` | `{copy-ready command or N/A + evidence}` | `{non-zero / configured behavior}` | `{gate}` | `{configured entry point or N/A + evidence}` |
+| Integration/System | `APPLICABLE` + `{file:line}` or `N/A — {evidence}` | `{owner}` | `{configured runner/framework}` | `{path}` | `{strategy}` | `{copy-ready command}` | `{copy-ready command or N/A + evidence}` | `{non-zero / configured behavior}` | `{gate}` | `{configured entry point or N/A + evidence}` |
+| E2E | `APPLICABLE` + `{file:line}` or `N/A — {evidence}` | `{owner}` | `{configured runner/framework}` | `{path}` | `{strategy}` | `{copy-ready command}` | `{copy-ready command or N/A + evidence}` | `{non-zero / configured behavior}` | `{gate}` | `{configured entry point or N/A + evidence}` |
+
+- Record the unique run identity format/source and a unique business-data suffix before generation; carry both into the report. Mark a tier `APPLICABLE` only when its runner/framework/configuration is evidenced. Otherwise record `N/A — <file:line evidence>` and do not fabricate tests.
+- Verify every command from project config, reference docs, or an existing runner script. A focused/partial command is required when the project supports that scope; when it does not, record `N/A` with evidence. Invalid or zero-match selections must fail or use the runner's documented non-green behavior; never treat zero matches as a passing run.
+- Record supported public-path setup, valid realistic data, `count-before-create` idempotent reference setup, intentional keyed/additive persistent data, and the per-test/worker isolation strategy. Shared mutable state is not a substitute for a run identity.
+- The completed matrix and run identity are required output evidence even when this mode only generates or reviews tests; execution results belong to `/integration-test-verify`.
 
 ## Step 3: Generate Test File
 
@@ -1026,6 +1042,21 @@ integration-test (you are here)
 
 <!-- /SYNC:task-tracking-external-report -->
 
+<!-- SYNC:test-architecture-execution-contract -->
+
+> **Test Architecture & Execution Contract** — Treat testability as a setup/architecture acceptance condition. For every potentially applicable tier — Unit, Integration/System, and E2E — record `APPLICABLE` only with evidence of its runner/framework/configuration; otherwise record `N/A — <evidence>` and never fabricate coverage.
+>
+> 1. **Matrix before implementation:** Record applicability, owner, runner/framework, test root, fixture/data strategy, full command, focused/partial command, zero-match behavior, CI gate, and a simple/Windows entry point (a `.cmd` when the project needs one).
+> 2. **Runnable scopes:** Full and focused commands must be copy-ready, fail on invalid or zero-match selections, report exact counts and exit status, and be safe to repeat. E2E uses only configured browser/service commands.
+> 3. **Fresh valid state:** Each run/test owns a unique run identity and business-data suffix, arranges through supported public paths, and uses realistic valid data. Reference setup is count-before-create, idempotent, and restart-safe. Intentional accumulation is additive, keyed, and integrity-checked; never hide contamination with destructive reset.
+>    Run-scoped cleanup, when supported, is opt-in and idempotent: after evidence capture it may remove only ephemeral resources owned by the current run; it must never delete persistent/additive data or another run's data, reset shared state, or replace no-reset proof.
+> 4. **Isolation and fidelity:** Isolate mutable roots and parallel workers; share only immutable/reference data. Preserve real actor pacing and observable arrange barriers. Do not widen retries or weaken assertions to make a scenario pass.
+> 5. **Evidence gate:** Report command, scope, identity, seed/accumulation mode, exact result, and repeat proof. For each applicable persistent-state suite, require two consecutive no-reset full runs. Treat line coverage as diagnostic only; use meaningful property/invariant, mutation, change, and behavior coverage signals.
+>
+> **Ownership:** Architecture/harness defines the matrix; scaffold/workflow makes it runnable; test writers implement tier-specific cases; reviewers verify the contract; the runner reports; seed-data owners preserve uniqueness, idempotency, realism, and accumulation integrity. Missing required evidence blocks setup completion.
+
+<!-- /SYNC:test-architecture-execution-contract -->
+
 <!-- SYNC:understand-code-first:reminder -->
 
 - **MANDATORY IMPORTANT MUST ATTENTION** run graph trace when graph.db exists. Grep 3+ patterns, cite `file:line`.
@@ -1135,8 +1166,15 @@ integration-test (you are here)
 
 <!-- /SYNC:project-protocol-overlay:reminder -->
 
+<!-- SYNC:test-architecture-execution-contract:reminder -->
+
+**MUST ATTENTION** Before implementation, record evidence-backed Unit/Integration/System/E2E applicability (or explicit N/A), copy-ready full + focused commands, zero-match behavior, a simple/Windows entry point, unique run identity, realistic valid data, idempotent/restart-safe reference setup, intentional additive accumulation, parallel isolation, exact results, and two no-reset full runs for each applicable persistent-state suite.
+
+<!-- /SYNC:test-architecture-execution-contract:reminder -->
+
 ## Closing Reminders
 
+**IMPORTANT MUST ATTENTION** Testability contract: resolve evidence-backed Unit/Integration/System/E2E rows, copy-ready full/focused commands, zero-match failures, owner/root/data, CI/simple-Windows entry, unique run identity, and repeat proof before claiming setup, review, or test completion.
 **IMPORTANT MUST ATTENTION Goal:** Generate/review integration tests using real DI (no mocks) across 5 modes (from-changes · from-prompt · review · diagnose · verify-traceability) that exercise real production paths and assert specific DB field values — so every test protects a traceable business behavior (TC), survives repeated runs without reset, and fails only when the protected intent actually breaks.
 
 **IMPORTANT MUST ATTENTION** follow the end-to-end path: Detect mode → Find targets → Gather context → verify or upsert TCs → implement annotated tests → run feature-wide integration and unit traceability → invoke review and verify gates → sync specs and docs; preserve real-path setup, async polling, and two-run verification.

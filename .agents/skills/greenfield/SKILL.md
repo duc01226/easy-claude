@@ -40,6 +40,15 @@ When coding, planning, debugging, testing, or reviewing, open project docs expli
 Do not read all docs blindly. Start from `docs-index-reference.md`, then open only relevant files for the task.
 <!-- CODEX:PROJECT-REFERENCE-LOADING:END -->
 
+<!-- PROMPT-ENHANCE:STEP-TASK-ANCHOR:START -->
+
+> **[BLOCKING]** Execute skill steps in declared order. NEVER skip, reorder, or merge steps without explicit user approval.
+> **[BLOCKING]** Before each step or sub-skill call, update task tracking: set `in_progress` when step starts, set `completed` when step ends.
+> **[BLOCKING]** Every completed/skipped step MUST include brief evidence or explicit skip reason.
+> **[BLOCKING]** If Task tools are unavailable, create and maintain an equivalent step-by-step plan tracker with the same status transitions.
+
+<!-- PROMPT-ENHANCE:STEP-TASK-ANCHOR:END -->
+
 ## Quick Summary
 
 **Goal:** Guide greenfield project inception from raw idea to an approved, implementable project plan using a full waterfall process.
@@ -53,7 +62,7 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 5. **Business Evaluation** (`$business-evaluation`) — Viability assessment, risk matrix, value proposition
 6. **Domain Analysis & ERD** (`$domain-analysis`) — Bounded contexts, aggregates, entities, ERD diagram, domain events. Validate every context boundary with user.
 7. **Tech Stack Research** (`$tech-stack-research`) — Derive technical requirements from business + domain analysis. Research top 3 options per stack layer (backend, frontend, database, messaging, infra). Detailed pros/cons matrix, team-fit scoring, market analysis. Present comparison report for user to decide.
-8. **Architecture Design** (`$architecture-design`) — Research and compare top 3 architecture styles (Clean, Hexagonal, Vertical Slice, etc.). Evaluate design patterns (CQRS, Repository, Mediator). Audit against SOLID, DRY, KISS, YAGNI. Validate scalability, maintainability, IoC, technical agnosticism. Present comparison with recommendation. **Harness output required:** produce a "Scaffold Handoff — Harness Plan" table in the architecture report: (a) feedforward guides to create (AGENTS.md sections, skill activation rules, pattern catalog), (b) computational feedback sensors to install (linter, formatter, pre-commit, CI), (c) inferential feedback sensors to configure (review skills, AI gates). This table feeds `$scaffold` → `$linter-setup` → `$harness-setup`.
+8. **Architecture Design** (`$architecture-design`) — Research and compare top 3 architecture styles (Clean, Hexagonal, Vertical Slice, etc.). Evaluate design patterns (CQRS, Repository, Mediator). Audit against SOLID, DRY, KISS, YAGNI. Validate scalability, maintainability, IoC, technical agnosticism. Present comparison with recommendation. **Harness output required:** produce a "Scaffold Handoff — Harness Plan" table in the architecture report: (a) feedforward guides to create (AGENTS.md sections, skill activation rules, pattern catalog), (b) computational feedback sensors to install (linter, formatter, pre-commit, CI), (c) inferential feedback sensors to configure (review skills, AI gates), and (d) a "Test Architecture & Execution Contract" matrix. Emit the matrix before `$plan` (step 9) completes, with one row for each potentially applicable Unit, Integration/System, and E2E tier: `APPLICABLE` only with runner/framework/configuration evidence; otherwise `N/A — <evidence>`; owner; test root; fixture/data strategy; copy-ready full and focused commands; zero-match behavior; CI gate; simple/Windows entry point; and unique run/data identity. Missing required fields block the implementation-plan handoff. This table feeds `$scaffold` → `$linter-setup` → `$harness-setup`.
 9. **Implementation Plan** (`$plan`) — Create phased plan using confirmed tech stack + architecture + domain model
 10. **Security Audit** (`$security-review`) — Review plan for OWASP Top 10, auth patterns, data protection concerns
 11. **Performance Audit** (`$performance-review`) — Review plan for performance bottlenecks, scalability, query optimization
@@ -61,7 +70,7 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 13. **Refine to PBI** (`$refine`) — Transform idea + reviewed plan into actionable PBI with acceptance criteria
 14. **User Stories** (`$story`) — Break PBI into implementable user stories
 15. **Plan Validation** (`$plan-validate`) — Interview user with critical questions to validate plan + stories
-16. **Test Strategy** (`$spec [mode=tests]`) — Test pyramid, frameworks, spec outline
+16. **Test Strategy** (`$spec [mode=tests]`) — Finalize the architecture contract matrix, test pyramid, frameworks, and spec outline; verify every `APPLICABLE` tier has evidence-backed full/focused commands and unique run/data identity, and record evidence-backed `N/A` for every non-applicable tier before implementation handoff.
 17. **Workflow End** (`$workflow-end`) — Clean up, announce completion
 
 **Key Rules:**
@@ -73,6 +82,7 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 - Present 2-4 options for every major decision with confidence %
 - **Business-First Protocol:** Tech stack is NEVER asked upfront. Business analysis (steps 1-5) + domain modeling (step 6) must complete first. Tech stack is derived from requirements through research and presented as a comparison report with options.
 - **MANDATORY IMPORTANT MUST ATTENTION** architecture design MUST produce a "Scaffold Handoff — Harness Plan" table covering: feedforward guides, computational sensors (`$linter-setup` handles install), and inferential sensors (`$harness-setup` configures). The scaffold + linter-setup + harness-setup triad are NON-SKIPPABLE infrastructure — code without a harness accumulates technical debt from day one.
+- **MANDATORY IMPORTANT MUST ATTENTION** architecture design MUST emit the Test Architecture & Execution Contract matrix before the first implementation plan completes; the workflow MUST block implementation handoff when an applicable tier lacks a copy-ready full command, focused command, zero-match behavior, or unique run/data identity, and MUST record evidence-backed `N/A` for non-applicable tiers.
 
 ## Entry Point
 
@@ -161,6 +171,21 @@ After completion, recommend next step: `$feature-implement` to scaffold the proj
 
 <!-- /SYNC:critical-thinking-mindset -->
 
+<!-- SYNC:test-architecture-execution-contract -->
+
+> **Test Architecture & Execution Contract** — Treat testability as a setup/architecture acceptance condition. For every potentially applicable tier — Unit, Integration/System, and E2E — record `APPLICABLE` only with evidence of its runner/framework/configuration; otherwise record `N/A — <evidence>` and never fabricate coverage.
+>
+> 1. **Matrix before implementation:** Record applicability, owner, runner/framework, test root, fixture/data strategy, full command, focused/partial command, zero-match behavior, CI gate, and a simple/Windows entry point (a `.cmd` when the project needs one).
+> 2. **Runnable scopes:** Full and focused commands must be copy-ready, fail on invalid or zero-match selections, report exact counts and exit status, and be safe to repeat. E2E uses only configured browser/service commands.
+> 3. **Fresh valid state:** Each run/test owns a unique run identity and business-data suffix, arranges through supported public paths, and uses realistic valid data. Reference setup is count-before-create, idempotent, and restart-safe. Intentional accumulation is additive, keyed, and integrity-checked; never hide contamination with destructive reset.
+>    Run-scoped cleanup, when supported, is opt-in and idempotent: after evidence capture it may remove only ephemeral resources owned by the current run; it must never delete persistent/additive data or another run's data, reset shared state, or replace no-reset proof.
+> 4. **Isolation and fidelity:** Isolate mutable roots and parallel workers; share only immutable/reference data. Preserve real actor pacing and observable arrange barriers. Do not widen retries or weaken assertions to make a scenario pass.
+> 5. **Evidence gate:** Report command, scope, identity, seed/accumulation mode, exact result, and repeat proof. For each applicable persistent-state suite, require two consecutive no-reset full runs. Treat line coverage as diagnostic only; use meaningful property/invariant, mutation, change, and behavior coverage signals.
+>
+> **Ownership:** Architecture/harness defines the matrix; scaffold/workflow makes it runnable; test writers implement tier-specific cases; reviewers verify the contract; the runner reports; seed-data owners preserve uniqueness, idempotency, realism, and accumulation integrity. Missing required evidence blocks setup completion.
+
+<!-- /SYNC:test-architecture-execution-contract -->
+
 <!-- SYNC:critical-thinking-mindset:reminder -->
 
 **MUST ATTENTION** apply critical + sequential thinking — every claim needs appropriate traced evidence (`file:line` for repo/code claims; source URL or artifact section for research, product, content, and docs claims); confidence >80% to act, <60% DO NOT recommend. Anti-hallucination: never present guess as fact, admit uncertainty freely, cross-reference independently, stay skeptical of own confidence.
@@ -187,12 +212,20 @@ After completion, recommend next step: `$feature-implement` to scaffold the proj
 
 <!-- /SYNC:project-protocol-overlay:reminder -->
 
+<!-- SYNC:test-architecture-execution-contract:reminder -->
+
+**MUST ATTENTION** Before implementation, record evidence-backed Unit/Integration/System/E2E applicability (or explicit N/A), copy-ready full + focused commands, zero-match behavior, a simple/Windows entry point, unique run identity, realistic valid data, idempotent/restart-safe reference setup, intentional additive accumulation, parallel isolation, exact results, and two no-reset full runs for each applicable persistent-state suite.
+
+<!-- /SYNC:test-architecture-execution-contract:reminder -->
+
 ## Closing Reminders
 
 **IMPORTANT MUST ATTENTION** Protocols in force (concise digest of the SYNC/shared blocks this skill carries):
 
 - **AI Mistake Prevention:** verify generated content against evidence, trace downstream references, verify all affected outputs, re-read after context loss, surface ambiguity.
 - **Critical Thinking:** traced `file:line` proof per claim, confidence >80% to act, NEVER guess.
+
+**IMPORTANT MUST ATTENTION** Test Architecture Handoff: emit the Unit/Integration/System/E2E contract matrix during architecture design before the implementation plan completes; missing applicable commands or run/data identity blocks handoff, and non-applicable tiers require evidence-backed `N/A`.
 
 - **MANDATORY IMPORTANT MUST ATTENTION** break work into small todo tasks using task tracking BEFORE starting
 - **MANDATORY IMPORTANT MUST ATTENTION** search codebase for 3+ similar patterns before creating new code

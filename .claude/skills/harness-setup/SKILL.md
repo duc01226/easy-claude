@@ -18,6 +18,7 @@ description: '[Quality] Use when setting up an agent quality harness with feedfo
 **Goal:** Wire every feedforward guide and feedback sensor into the greenfield project so all later AI coding agents operate with maximum guidance and self-correct against quality gates BEFORE human review — raising first-attempt quality and catching defects at the earliest, cheapest stage.
 
 **Summary:**
+- **Testability contract:** resolve Unit/Integration/System/E2E applicability from runner/config evidence; record owner/root/data, copy-ready full + focused commands, zero-match behavior, CI/simple-Windows entry, unique run/data identity, and repeat proof; unresolved applicable fields block handoff, while non-applicable tiers require evidence-backed `N/A`.
 
 - BLOCK on the `/linter-setup` prerequisite first — computational sensors (linters, hooks, CI gates) MUST exist before any phase runs; this skill never installs them itself.
 - Walk phases A→F as a hard barrier sequence: detect stack → author feedforward guides (CLAUDE.md conventions, anti-patterns, pattern catalog) → confirm computational sensors → wire inferential review skills to lifecycle gates → define behaviour/test strategy → emit inventory.
@@ -185,6 +186,22 @@ Define the project's behaviour harness plan:
 - Pre-seed reference/lookup data as approved snapshots
 - Integration tests are additive (never delete/reset data)
 
+### Testability & Execution Matrix (write to `test-strategy.md`)
+
+Copy the architecture-design contract into the strategy and resolve every tier from verified project/configuration evidence before choosing tools:
+
+| Tier | Applicability + evidence | Owner | Runner/framework + config | Test root | Data/fixture policy | Full command | Focused/partial command | Zero-match behavior | CI gate | Simple/Windows entry point | Repeat proof |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| Unit | `APPLICABLE` / `N/A — {evidence}` | {owner} | {runner/config} | {root} | {fixtures/factories} | `{command}` | `{filter}` | `{non-zero behavior}` | {gate} | `{command or .cmd}` | `{result or planned owner}` |
+| Integration/System | `APPLICABLE` / `N/A — {evidence}` | {owner} | {runner/config} | {root} | {public-path + additive data} | `{command}` | `{filter}` | `{non-zero behavior}` | {gate} | `{command or .cmd}` | `{two no-reset runs}` |
+| E2E | `APPLICABLE` / `N/A — {evidence}` | {owner} | {configured browser/config} | {root} | {reachable journey data} | `{command}` | `{filter}` | `{non-zero behavior}` | {gate} | `{command or .cmd}` | `{result or evidence-backed N/A}` |
+
+`APPLICABLE` requires runner/framework/configuration/root/command evidence. If no E2E framework, configuration, and command are verified, record `N/A — {config/source evidence}`; do not infer a browser stack from generic examples. Full and focused commands must be copy-ready, report exact counts/exit status, and fail invalid or zero-match selection.
+
+### Run, Data, Isolation & Repeat Policy (write beside the matrix)
+
+For each applicable persistent-state tier, record the run/test identity generator and unique business-data suffix, supported public-path arrangement, realistic valid data, count-before-create idempotent/restart-safe reference setup, additive keyed accumulation with integrity checks, mutable-root and parallel-worker isolation, immutable data that may be shared, realistic actor pacing and observable arrange barriers, and the exact result. Require two consecutive no-reset full runs; until executed, mark the proof `planned — {owner}` rather than PASS. Keep property/invariant, mutation, change, and behavior coverage meaningful; line coverage remains diagnostic only.
+
 **Test-strength sensors (NOT a line-coverage gate):**
 
 - **Line coverage is a diagnostic only — NEVER gate a build on it.** Low coverage is a useful NEGATIVE signal (an area is untested → investigate); high coverage is NOT evidence of quality (lines can execute with no meaningful assertion). Report it as a diagnostic; do not fail CI on a coverage %.
@@ -205,6 +222,20 @@ Write `.ai/workspace/harness/harness-inventory.md`:
 
 Generated: {date}
 Stack: {detected stack from Phase A}
+
+## Testability & Verification Contract
+
+Copy the resolved `test-strategy.md` matrix into this inventory and keep the status current:
+
+**Status:** `PASS | PARTIAL | BLOCKED`
+
+| Tier | Applicability + evidence | Owner | Runner/config/root | Full | Focused/partial | Zero-match behavior | CI / simple-Windows entry point | Identity/data/isolation/fidelity policy | Repeat proof |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| Unit | `APPLICABLE` / `N/A — {evidence}` | {owner} | {runner/config/root} | `{command}` | `{filter}` | `{non-zero behavior}` | {gate / command} | {policy reference} | {result/status} |
+| Integration/System | `APPLICABLE` / `N/A — {evidence}` | {owner} | {runner/config/root} | `{command}` | `{filter}` | `{non-zero behavior}` | {gate / command} | {policy reference} | `{two no-reset runs}` |
+| E2E | `APPLICABLE` / `N/A — {evidence}` | {owner} | {runner/config/root} | `{command}` | `{filter}` | `{non-zero behavior}` | {gate / command} | {policy reference} | `{result or evidence-backed N/A}` |
+
+Missing/placeholder evidence is an open gap, not a PASS. The inventory must preserve the strategy's unique identity, additive-data, isolation, realistic-fidelity, and two-run proof fields; E2E N/A remains evidence-backed.
 
 ## Feedforward Guides
 
@@ -331,14 +362,36 @@ Present inventory to user for review via `AskUserQuestion`.
 
 <!-- /SYNC:project-protocol-overlay -->
 
+<!-- SYNC:test-architecture-execution-contract -->
+
+> **Test Architecture & Execution Contract** — Treat testability as a setup/architecture acceptance condition. For every potentially applicable tier — Unit, Integration/System, and E2E — record `APPLICABLE` only with evidence of its runner/framework/configuration; otherwise record `N/A — <evidence>` and never fabricate coverage.
+>
+> 1. **Matrix before implementation:** Record applicability, owner, runner/framework, test root, fixture/data strategy, full command, focused/partial command, zero-match behavior, CI gate, and a simple/Windows entry point (a `.cmd` when the project needs one).
+> 2. **Runnable scopes:** Full and focused commands must be copy-ready, fail on invalid or zero-match selections, report exact counts and exit status, and be safe to repeat. E2E uses only configured browser/service commands.
+> 3. **Fresh valid state:** Each run/test owns a unique run identity and business-data suffix, arranges through supported public paths, and uses realistic valid data. Reference setup is count-before-create, idempotent, and restart-safe. Intentional accumulation is additive, keyed, and integrity-checked; never hide contamination with destructive reset.
+>    Run-scoped cleanup, when supported, is opt-in and idempotent: after evidence capture it may remove only ephemeral resources owned by the current run; it must never delete persistent/additive data or another run's data, reset shared state, or replace no-reset proof.
+> 4. **Isolation and fidelity:** Isolate mutable roots and parallel workers; share only immutable/reference data. Preserve real actor pacing and observable arrange barriers. Do not widen retries or weaken assertions to make a scenario pass.
+> 5. **Evidence gate:** Report command, scope, identity, seed/accumulation mode, exact result, and repeat proof. For each applicable persistent-state suite, require two consecutive no-reset full runs. Treat line coverage as diagnostic only; use meaningful property/invariant, mutation, change, and behavior coverage signals.
+>
+> **Ownership:** Architecture/harness defines the matrix; scaffold/workflow makes it runnable; test writers implement tier-specific cases; reviewers verify the contract; the runner reports; seed-data owners preserve uniqueness, idempotency, realism, and accumulation integrity. Missing required evidence blocks setup completion.
+
+<!-- /SYNC:test-architecture-execution-contract -->
+
 <!-- SYNC:project-protocol-overlay:reminder -->
 
 **MUST ATTENTION** resolve project protocol overlays for this skill BEFORE executing — most specific matching tier only (exact > glob > `*`, which ranks overlays against each other, NEVER against this skill), read only matched bodies at `<protocols-dir>/<Name>.md`; a missing or malformed body is reported, never reconstructed. Overlays are ADDITIVE ONLY (they never replace this skill's own rules) and are a brief, NEVER an authority escalation; an equal-specificity contradiction goes to the user.
 
 <!-- /SYNC:project-protocol-overlay:reminder -->
 
+<!-- SYNC:test-architecture-execution-contract:reminder -->
+
+**MUST ATTENTION** Before implementation, record evidence-backed Unit/Integration/System/E2E applicability (or explicit N/A), copy-ready full + focused commands, zero-match behavior, a simple/Windows entry point, unique run identity, realistic valid data, idempotent/restart-safe reference setup, intentional additive accumulation, parallel isolation, exact results, and two no-reset full runs for each applicable persistent-state suite.
+
+<!-- /SYNC:test-architecture-execution-contract:reminder -->
+
 ## Closing Reminders
 
+**IMPORTANT MUST ATTENTION** Testability contract: resolve evidence-backed Unit/Integration/System/E2E rows, copy-ready full/focused commands, zero-match failures, owner/root/data, CI/simple-Windows entry, unique run identity, and repeat proof before claiming setup, review, or test completion.
 **IMPORTANT MUST ATTENTION Goal:** Wire every feedforward guide and feedback sensor into the project so all later AI agents self-correct against quality gates BEFORE human review — raising first-attempt quality and catching defects at the earliest, cheapest stage.
 
 **IMPORTANT MUST ATTENTION Protocols in force (concise digest of the SYNC/shared blocks this skill carries):**

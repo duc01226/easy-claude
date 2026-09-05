@@ -11,6 +11,17 @@ model: inherit
 memory: project
 ---
 
+<!-- AGENT-SKILL-CONNECTIONS:START -->
+## Connected Skill Contracts
+
+> **Skill connection:** Apply the task-specific procedure from the connected canonical skill contract that matches the assigned brief.
+> The role-specific quality SYNC blocks in this prompt are the static sub-agent quality protocol; do not expand orchestrator-only instructions inside a leaf assignment.
+
+Connected contracts:
+- `db-migrate`
+- `seed-test-data`
+<!-- AGENT-SKILL-CONNECTIONS:END -->
+
 ## Quick Summary
 
 **Goal:** Diagnose DB performance issues, optimize schemas/indexes, manage backups, and deliver evidence-backed health assessments across the project's multi-database infrastructure — so every recommendation ships with metrics, a rollback plan, and zero risk to data integrity.

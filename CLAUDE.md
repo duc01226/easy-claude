@@ -7,17 +7,17 @@
 >
 > Classify complexity and risk first, then route it:
 >
-> | Request is about… | Default route |
-> | --- | --- |
-> | A simple, straightforward task with a clear target and low risk | **direct execution** — do it without a workflow |
-> | A simple task that needs a few coordinated steps or skills | **custom simple workflow** — sequence only the necessary skills/steps |
-> | A non-trivial bug, error, crash, regression, or wrong/stale output | **`workflow-bugfix` workflow** — `/start-workflow workflow-bugfix` |
-> | A non-trivial new feature, capability, or enhancement | **`workflow-feature` workflow** — `/start-workflow workflow-feature` (use `workflow-big-feature` when scope is large, ambiguous, or research-heavy) |
-> | A product vision, greenfield app, big/ambiguous capability, or release-scoped idea | **the owning idea/feature workflow** — apply the shared `isLargeIdea` rule and embed decomposition in PBI/spec/story/presentation/mock-up artifacts; do not create a roadmap file by default |
-> | An explicit request for a product roadmap, roadmap update, or milestone selection | **`product-roadmap` skill** — the standalone writer is explicit-only and may create/update `docs/product-roadmap.md` |
-> | A selected roadmap milestone or a large idea whose embedded decomposition needs adversarial failure, replay, state, ownership, recovery, or evidence analysis | **`scenario` skill** — run conditionally for that scope before `/plan`; it does not create a roadmap artifact |
-> | Anything matching a skill's or workflow's "Use" clause | that skill / workflow |
-> | A one-off question, or a truly trivial edit | direct execution |
+> | Request is about…                                                                                                                                             | Default route                                                                                                                                                                                |
+> | ------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+> | A simple, straightforward task with a clear target and low risk                                                                                               | **direct execution** — do it without a workflow                                                                                                                                              |
+> | A simple task that needs a few coordinated steps or skills                                                                                                    | **custom simple workflow** — sequence only the necessary skills/steps                                                                                                                        |
+> | A non-trivial bug, error, crash, regression, or wrong/stale output                                                                                            | **`workflow-bugfix` workflow** — `/start-workflow workflow-bugfix`                                                                                                                           |
+> | A non-trivial new feature, capability, or enhancement                                                                                                         | **`workflow-feature` workflow** — `/start-workflow workflow-feature` (use `workflow-big-feature` when scope is large, ambiguous, or research-heavy)                                          |
+> | A product vision, greenfield app, big/ambiguous capability, or release-scoped idea                                                                            | **the owning idea/feature workflow** — apply the shared `isLargeIdea` rule and embed decomposition in PBI/spec/story/presentation/mock-up artifacts; do not create a roadmap file by default |
+> | An explicit request for a product roadmap, roadmap update, or milestone selection                                                                             | **`product-roadmap` skill** — the standalone writer is explicit-only and may create/update `docs/product-roadmap.md`                                                                         |
+> | A selected roadmap milestone or a large idea whose embedded decomposition needs adversarial failure, replay, state, ownership, recovery, or evidence analysis | **`scenario` skill** — run conditionally for that scope before `/plan`; it does not create a roadmap artifact                                                                                |
+> | Anything matching a skill's or workflow's "Use" clause                                                                                                        | that skill / workflow                                                                                                                                                                        |
+> | A one-off question, or a truly trivial edit                                                                                                                   | direct execution                                                                                                                                                                             |
 >
 > 1. **An explicit `/skill` or `/workflow` in the prompt is the user's choice — execute it directly.** Otherwise auto-select the route yourself; never ask the user which path to take.
 > 2. **Analyze whether the task is simple and straightforward before defaulting to a standard workflow.** If the target is clear, the change is low-risk, and a short direct execution can satisfy it, choose direct execution.
@@ -28,7 +28,7 @@
 >     - **Skill route →** invoke that skill via the `Skill` tool.
 >     - **Custom simple workflow →** create a small task list from the selected skills/steps, then execute them in order.
 >     - **Direct route →** build the task list yourself, then proceed.
->   In every case the route must be activated BEFORE the first edit, sub-agent, or command.
+>       In every case the route must be activated BEFORE the first edit, sub-agent, or command.
 > 6. **Direct execution is a legitimate route** for trivial, one-off, or simple straightforward work — but the declare-route and activate steps still apply.
 > 7. **Scaffolding-first for new foundations.** `workflow-greenfield-init` and `workflow-big-feature` scaffold a REVIEWED (`architecture-review-full`), example-rich, convention-bearing foundation — base abstractions + golden-path example code + a project-reference doc set — BEFORE fanning out feature work; features never build on an unreviewed foundation.
 
@@ -37,6 +37,7 @@
 <!-- prettier-ignore-start -->
 
 <!-- CK:WORKFLOW-SKILLS -->
+
 ## Workflow & Skills Catalog
 
 Session-start reference derived from `.claude/workflows.json` — use it to pick a route on any prompt: run a standard workflow, compose a custom workflow from the step-skills, invoke a single skill, or execute directly.
@@ -52,7 +53,7 @@ Session-start reference derived from `.claude/workflows.json` — use it to pick
 | `workflow-e2e` | generate, update, or maintain e2e/playwright tests from code/spec | investigate → e2e-test → test → docs-update → workflow-end → watzup |
 | `workflow-feature` | implement a well-defined feature, add a component, build a capability | investigate → spec-discovery → domain-analysis → why-review → spec → spec-clarify → scenario → plan → plan-review → plan-validate → why-review → spec [mode=tests] → why-review → artifact-review --type=spec-tests → plan → plan-review → plan-execute → seed-test-data → domain-entities-review → spec [mode=tests] → why-review → artifact-review --type=spec-tests → spec [mode=sync] → integration-test → integration-test-review → integration-test-verify → workflow-review-changes → security-review → changelog → test → scan --target=domain-entities → docs-update → demo-guide → workflow-end → watzup |
 | `workflow-feature-spec` | create or update business feature documentation | investigate → plan → plan-review → plan-validate → why-review → docs-update → workflow-review-changes → workflow-end → watzup |
-| `workflow-greenfield-init` | start a new project from scratch, init a greenfield project, plan a new application | idea → web-research → deep-research → market-analysis → business-evaluation → spec-discovery → domain-analysis → why-review → tech-stack-research → architecture-design → architecture-scalability-review → why-review → scenario → plan → plan-review → security-review → performance-review → plan-review → refine → why-review → artifact-review --type=pbi → story → why-review → artifact-review --type=story → pbi-challenge → dor-gate → pbi-mockup → plan-validate → why-review → spec [mode=tests] → why-review → artifact-review --type=spec-tests → spec-clarify → plan → plan-review → scaffold → linter-setup → harness-setup → architecture-review-full → scan --target=ui-system → scan --target=backend-patterns → scan --target=integration-tests → scan --target=project-structure → why-review → plan-execute → domain-entities-review → spec [mode=tests] → why-review → artifact-review --type=spec-tests → plan → plan-review → integration-test → integration-test-review → integration-test-verify → test → workflow-review-changes → security-review → changelog → test → scan --target=domain-entities → docs-update → workflow-end → watzup |
+| `workflow-greenfield-init` | start a new project from scratch, init a greenfield project, plan a new application | idea → web-research → deep-research → market-analysis → business-evaluation → spec-discovery → domain-analysis → why-review → tech-stack-research → architecture-design → architecture-scalability-review → why-review → scenario → plan → plan-review → security-review → performance-review → plan-review → refine → why-review → artifact-review --type=pbi → story → why-review → artifact-review --type=story → pbi-challenge → dor-gate → pbi-mockup → plan-validate → why-review → spec [mode=tests] → why-review → artifact-review --type=spec-tests → spec-clarify → plan → plan-review → scaffold → linter-setup → harness-setup → architecture-review-full → scan --target=ui-system → scan --target=backend-patterns → scan --target=integration-tests → scan --target=project-structure → why-review → plan-execute → domain-entities-review → spec [mode=tests] → why-review → artifact-review --type=spec-tests → plan → plan-review → integration-test → integration-test-review → integration-test-verify → e2e-test → test → workflow-review-changes → security-review → changelog → test → scan --target=domain-entities → docs-update → workflow-end → watzup |
 | `workflow-idea-to-pbi` | po/ba wants a grooming-ready pbi backlog, user stories, tdd test specifications | web-research → deep-research → brainstorm → idea → spec-discovery → artifact-review → refine → why-review → spec [mode=draft] → spec [mode=tests] → why-review → artifact-review --type=spec-tests → spec-clarify → scenario → domain-analysis → why-review → plan → plan-review → plan-validate → why-review → artifact-review --type=pbi → story → why-review → artifact-review --type=story → pbi-challenge → dor-gate → pbi-mockup → design-spec → prioritize → docs-update → feature-presentation → workflow-end → watzup |
 | `workflow-idea-to-spec` | turn a raw product idea, vision, or problem statement into one canonical | web-research → deep-research → brainstorm → spec-discovery → scenario → domain-analysis → why-review → idea → spec [mode=draft] → spec [mode=tests] → artifact-review --type=spec-tests → artifact-review → design-spec → spec-clarify → why-review → docs-update → feature-presentation → workflow-end → watzup |
 | `workflow-integration-test-green` | make all integration tests pass, fix failing integration tests, drive the integration test suite to | investigate → integration-test-verify-loop → debug-investigate [on-failure] → fix [on-failure] → spec [mode=sync] → scan --target=integration-tests → docs-update → workflow-end → watzup |
@@ -133,6 +134,7 @@ Distinct step-skills used across the workflows above — compose these into a cu
 | `why-review` | [Code Quality] Use when reviewing rationale and change quality for plans, PBIs, commits, diffs, docs, specs, reports, or explicit artifacts. |
 | `workflow-end` | [Process] Use when you need to end the active workflow and clear state. |
 | `workflow-review-changes` | [Workflow] Use when activating the Review Current Changes workflow for review, fix, and re-review recursively until all issues resolved. |
+
 <!-- /CK:WORKFLOW-SKILLS -->
 
 <!-- prettier-ignore-end -->
@@ -261,10 +263,10 @@ Workflow progression is **model-driven** — your responsibility, not a tool/hoo
 
 **Decision Quick-Ref:**
 
-| Task | Pattern |
-|---|---|
-| New API endpoint | Controller + CQRS Command |
-| Business logic | Command Handler (Application layer) |
+| Task             | Pattern                             |
+| ---------------- | ----------------------------------- |
+| New API endpoint | Controller + CQRS Command           |
+| Business logic   | Command Handler (Application layer) |
 
 <!-- /SECTION:decision-quick-ref -->
 
@@ -285,14 +287,16 @@ It is the single source of truth describing THIS repo: modules/paths, framework 
 
 ### Path → Reference Doc (read BEFORE editing the matched path)
 
-| Edited path                                 | Read first                                                                                      |
-| ------------------------------------------- | ----------------------------------------------------------------------------------------------- |
-| Backend / `.cs` (commands, handlers, repos) | `docs/project-reference/backend-patterns-reference.md` — CQRS, validation, entity events        |
-| Frontend / UI components, stores            | `docs/project-reference/frontend-patterns-reference.md` — base classes, store, reactive effects |
-| Integration tests                           | `docs/project-reference/integration-test-reference.md` — subcutaneous CQRS, real DI, no mocks   |
-| E2E tests                                   | `docs/project-reference/e2e-test-reference.md` — Page Object, BDD conventions                   |
-| Feature specs / `docs/specs/**`             | `feature-spec-reference.md` + `spec-system-reference.md` + `spec-principles.md`                 |
-| SCSS / style files                          | SCSS guide — BEM on all elements, no magic numbers, max 3 nesting levels                        |
+| Edited path                                    | Read first                                                                                                                                                                                                      |
+| ---------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Backend / `.cs` (commands, handlers, repos)    | `docs/project-reference/backend-patterns-reference.md` — CQRS, validation, entity events                                                                                                                        |
+| Frontend / UI components, stores               | `docs/project-reference/frontend-patterns-reference.md` — base classes, store, reactive effects                                                                                                                 |
+| Integration tests                              | `docs/project-reference/integration-test-reference.md` — subcutaneous CQRS, real DI, no mocks                                                                                                                   |
+| E2E tests                                      | `docs/project-reference/e2e-test-reference.md` — Page Object, BDD conventions                                                                                                                                   |
+| Feature specs / `docs/specs/**`                | `feature-spec-reference.md` + `spec-system-reference.md` + `spec-principles.md`                                                                                                                                 |
+| SCSS / style files                             | SCSS guide — BEM on all elements, no magic numbers, max 3 nesting levels                                                                                                                                        |
+| Any user-facing UI surface (new or reshaped)   | `.claude/docs/design-knowledge.md` — `DD-1`–`DD-8`: subject grounding, design plan + generic test, the generated-design tell catalog, typography/structure/motion, restraint & critique                         |
+| Reviewing / planning / building front-end work | `.claude/docs/design-review-checklist.md` — `CL-1`–`CL-6` + the `A1`…`Q` catalog: context gate, evidence rules, `P0`–`P4` severity, §A–§N sweep (§F/§G/§H, §L conditional), §O report shape, §P 10-check triage |
 
 > **[ROOT-CAUSE-FIX]** Fix at the correct layer (Entity > Service > Handler) — never patch symptoms.
 
@@ -468,15 +472,28 @@ python .claude/scripts/code_graph search <keyword> --kind Function --json       
 
 When editing files matching these path patterns, pre-read the listed context first:
 
-| Path Pattern | Skill / Auto-Context | Pre-Read Files |
-|---|---|---|
-| `/\.claude/hooks/.*\.cjs$**` | _(auto-context)_ | `.claude/docs/hooks/README.md` |
-| `/\.claude/skills/.*SKILL\.md$**` | _(auto-context)_ | `.claude/docs/skills/README.md` |
-| `/\.claude/agents/.*\.md$**` | _(auto-context)_ | `.claude/docs/agents/README.md` |
+| Path Pattern                      | Skill / Auto-Context | Pre-Read Files                  |
+| --------------------------------- | -------------------- | ------------------------------- |
+| `/\.claude/hooks/.*\.cjs$**`      | _(auto-context)_     | `.claude/docs/hooks/README.md`  |
+| `/\.claude/skills/.*SKILL\.md$**` | _(auto-context)_     | `.claude/docs/skills/README.md` |
+| `/\.claude/agents/.*\.md$**`      | _(auto-context)_     | `.claude/docs/agents/README.md` |
 
 <!-- /SECTION:skill-activation -->
 
 **Design routing:** SCSS / style files → ui-review / design skill (BEM conventions live there). UI / HTML / CSS files → design skill (canonical design-system doc: tokens, components, BEM).
+
+> **[DESIGN-GATE] — binds Claude, Codex and Copilot equally, with or without hooks.** Any task that CREATES or RESHAPES a user-facing visual surface — a plan phase, a mockup, a design spec, a scaffolded frontend example, an implemented component, a UI review — is governed by **two independent rule sets, and both bind**:
+>
+> 1. **`UI-1.1`–`UI-9.4`** (`SYNC:ui-ux-design-principles`) — the usability/accessibility FLOOR: measurable, pass/fail.
+> 2. **`DD-1`–`DD-8`** (`SYNC:design-distinctiveness-gate`; catalog: `.claude/docs/design-knowledge.md`) — visual IDENTITY: is this THIS product's interface, or the one any generator emits for any brief? A surface can pass all 40 clauses and still be a template.
+>
+> **Before any UI code:** name the subject/audience/job (`DD-1`) → write the four-part **Design Plan** (colour 4–6 named hex · type families+roles+scale · layout concept+ASCII+alignment · principles), each part with a WHY traced to the subject → run the **BLOCKING generic test** (`DD-3`): work through a similar prompt, and revise every part that reads like the default for any comparable page, stating what changed. Only then build the REVISED plan, then critique the BUILT page and remove one accessory (`DD-8`).
+>
+> **Precedence:** the brief's stated visual direction WINS outright → then the project's design-system / SCSS / frontend-pattern docs and ADRs (an established house style IS an intentional identity — a repo-wide convention is never a distinctiveness finding) → then these clauses. Genuine conflicts go to the user with both sides, NEVER resolved silently. **Skip ONLY** for changes with no user-facing visual surface, stated explicitly.
+>
+> **Reviewing, planning, or building front-end work also runs the CHECKLIST** (`CL-1`–`CL-6`; catalog: `.claude/docs/design-review-checklist.md`) — the review PROCEDURE, not a third set of taste rules: establish context first, cite a location for every finding and NEVER invent a measurement (unmeasurable → `NOT VERIFIABLE`), rank `P0`–`P4`, sweep §A–§N with §F/§G/§H and §L applied only when the platform/product matches, and report in the §O shape. Short on time → the 10-check §P triage. In a PLAN it binds the UI phases' acceptance criteria (platform, conditional sections, the eight screen states, the a11y floor). Report a defect ONCE across `UI-*` / `DD-*` / `CL-*`.
+>
+> **Sub-agents inherit nothing from this conversation** — any UI-bearing sub-agent brief carries the Design Plan verbatim plus the design-system doc paths, or the leaf supplies its own defaults.
 
 ---
 
@@ -508,14 +525,14 @@ docs/templates/  (1 files)
 
 <!-- SECTION:doc-lookup -->
 
-| If user prompt mentions... | Read first |
-|---|---|
-| Feature specs, capability behavior, business rules, test cases | `docs/specs/` + `docs/project-reference/feature-spec-reference.md` |
-| Spec paths, TC format, canonical vs derived spec artifacts | `docs/project-reference/spec-system-reference.md` |
-| Spec quality, AI-implementability, tech-agnostic prose | `docs/project-reference/spec-principles.md` |
-| Behavior or public contract changes, spec-test-code sync | `docs/project-reference/workflow-spec-test-code-cycle-reference.md` |
-| Backend patterns, CQRS, validation | `docs/project-reference/backend-patterns-reference.md` |
-| Frontend patterns, components, stores | `docs/project-reference/frontend-patterns-reference.md` |
+| If user prompt mentions...                                     | Read first                                                          |
+| -------------------------------------------------------------- | ------------------------------------------------------------------- |
+| Feature specs, capability behavior, business rules, test cases | `docs/specs/` + `docs/project-reference/feature-spec-reference.md`  |
+| Spec paths, TC format, canonical vs derived spec artifacts     | `docs/project-reference/spec-system-reference.md`                   |
+| Spec quality, AI-implementability, tech-agnostic prose         | `docs/project-reference/spec-principles.md`                         |
+| Behavior or public contract changes, spec-test-code sync       | `docs/project-reference/workflow-spec-test-code-cycle-reference.md` |
+| Backend patterns, CQRS, validation                             | `docs/project-reference/backend-patterns-reference.md`              |
+| Frontend patterns, components, stores                          | `docs/project-reference/frontend-patterns-reference.md`             |
 
 <!-- /SECTION:doc-lookup -->
 

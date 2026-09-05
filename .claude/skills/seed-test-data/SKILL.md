@@ -19,6 +19,7 @@ allowed-tools: Read, Write, Edit, Bash, Grep, Glob, TaskCreate, Agent
 **Goal:** Build configurable, local-development-only (default-enabled) seeders that exercise each feature's happy-path scenarios through public entry-point commands like a real user/QC tester (NEVER direct domain DB writes), repeat a configurable small-default count for case coverage and realistic data volume, remain idempotent and restart-safe, and ALWAYS follow the project's existing seed-data convention FIRST.
 
 **Summary:**
+- **Testability contract:** resolve Unit/Integration/System/E2E applicability from runner/config evidence; record owner/root/data, copy-ready full + focused commands, zero-match behavior, CI/simple-Windows entry, unique run/data identity, and repeat proof; unresolved applicable fields block handoff, while non-applicable tiers require evidence-backed `N/A`.
 
 - **Find the existing convention FIRST.** Before designing anything, discover the project's seeder base class, env-gate key, count config key, and registration with `file:line` evidence (Step 1) — match it exactly; never invent a parallel mechanism.
 - Seeders orchestrate the real app pipeline like a real user: invoke the **public entry-point application commands** (which own validation, domain logic, and event side-effects) — never repo/DB inserts for domain entities, never duplicate command logic in the seeder.
@@ -96,6 +97,19 @@ rg "{Feature}Seeder|{Feature}SeedData|{Feature}TestData" {configured-source-root
 6. **Restart-Safe (resume from last count)** — Supports stop/start/restart any number of times: the loop runs from `existing_count` to `target_count`, so if the target is X and only 50% of X is currently seeded, it continues until X is reached — never restarting from 0.
 7. **Real-World Reachable State (seed only what the app could produce)** — Every seeded entity MUST represent a state the application itself could have produced. This is the deeper reason Rule 2 exists: an application-level operation can only ever leave reachable state behind. Where a direct store write is genuinely unavoidable, it MUST carry a comment stating WHY that state is legitimate (bootstrapping legacy/migrated data, an externally-owned record, a deliberately corrupt fixture for repair testing) — unexplained, it is a defect, not a fixture. Seeded entities MUST also carry **plausible relative timing**: stagger creation/update/activity stamps across a realistic span instead of stamping every record with one shared instant. — why: a corpus the application could never produce makes every test over it prove nothing, and a corpus where everything happened in the same millisecond hides ordering defects and makes time-window, sort, and pagination behaviour untestable.
 8. **Spec-Consistent (Spec-Loop Discipline — tailored)** — Seeders are orchestration, NOT business logic, so property/metamorphic generation and the MUTATION-SCORE gate are **N/A here** — do not force them. Apply the dual-feedback half: every seeded scenario MUST stay consistent with the **§5 invariants** (commands own validation; a seeder that produces state violating an invariant is a bug, not a fixture). If a seeder encodes a **domain rule** — a required precondition, a status/relationship the scenario assumes, a business default — that rule belongs in the **spec**, not silently in the seeder: feed it into BOTH the spec (the rule) AND, where it is testable, the tests — never a seeder-only fix.
+
+## Persistent Seed Run Contract
+
+For every persistent-data run, record this contract before Step 3 and carry it into the seeder's verification report:
+
+- **Public-path setup:** arrange prerequisites and domain data through supported public application commands/queries like a real user or QC tester. Direct repository/DB writes are not an ordinary seed path; any documented impossible-state exception remains labelled and justified.
+- **Unique run identity:** create one unique, non-sensitive `runIdentity` per invocation and include it in synthetic business keys/values. A restart of the same run reuses that identity; an additive restart never mints a new batch.
+- **Count-before-seed idempotency:** query `existing_count` by the deterministic seeder marker before creating anything, calculate the remainder, and no-op at/above the target. The target-mode loop starts at `existing_count`, never zero.
+- **Restart safety:** after interruption, reuse the marker/run identity and create only missing keyed records; do not reset or delete persistent data to recover.
+- **Realistic valid data:** every input must be valid and reachable through normal application behavior, with realistic relative timestamps/pacing rather than one shared synthetic instant.
+- **Explicit additive accumulation:** declare `target` or `additive` mode. `target` converges to the configured count; `additive` is allowed only when explicitly required, preserves prior runs, appends new deterministic keys, and count-checks the current run batch for restart safety.
+- **Integrity checks:** report `before`, `created`, `after`, the expected count equation, marker/key uniqueness, command success, and domain/reference invariants; any mismatch blocks completion.
+- **Redaction:** reports and logs contain only counts/status and a safe opaque run identity; redact credentials, tokens, authorization headers, connection strings, PII, and full fixture payloads.
 
 ## Protocol _(Generate mode)_
 
@@ -188,6 +202,7 @@ MUST ATTENTION verify all before complete:
 - MUST ATTENTION scoped DI per iteration — shared scope = DbContext/session corruption
 - MUST ATTENTION every seeded state is one the application could actually produce; any unavoidable direct store write carries a comment justifying WHY that state is legitimate — `file:line` evidence
 - MUST ATTENTION seeded entities carry plausible relative timing (staggered stamps), NEVER one shared instant
+- MUST ATTENTION run identity, public-path setup, explicit target/additive mode, before/created/after integrity checks, and redacted evidence are present
 
 ## Sub-Agent Routing
 
@@ -279,6 +294,9 @@ MUST ATTENTION read, in full, before forming ANY verdict:
 - [ ] **Scoped DI per iteration** — fresh scope per loop iteration; no shared DbContext/session.
 - [ ] **Real-world reachable state** — every seeded entity is a state the application itself could produce; any direct store write fabricating an otherwise-unreachable state carries a comment justifying WHY it is legitimate; seeded entities carry plausible relative timing, not one shared instant.
 - [ ] **Spec-consistency** — every seeded scenario satisfies the §5 invariants; any encoded domain rule (precondition / status / default) is reflected in the spec (and tests where testable), not seeder-only.
+- [ ] **Run identity and public-path setup** — every run has a unique reusable identity, keyed synthetic values, and supported application-path arrangement.
+- [ ] **Accumulation and integrity** — `target` vs explicit `additive` mode is declared; additive runs preserve prior data and prove before/created/after counts, unique keys, command success, and invariant/reference integrity.
+- [ ] **Redacted evidence** — reports/logs expose only safe identifiers and exact counts/status; credentials, tokens, headers, connection strings, PII, and full payloads are redacted.
 
 **Project-specific conventions (from the reference doc):**
 
@@ -399,6 +417,21 @@ Per item: **PASS / FAIL / N/A** with `file:line` evidence and confidence (>80% r
 
 <!-- /SYNC:real-world-fidelity-testing -->
 
+<!-- SYNC:test-architecture-execution-contract -->
+
+> **Test Architecture & Execution Contract** — Treat testability as a setup/architecture acceptance condition. For every potentially applicable tier — Unit, Integration/System, and E2E — record `APPLICABLE` only with evidence of its runner/framework/configuration; otherwise record `N/A — <evidence>` and never fabricate coverage.
+>
+> 1. **Matrix before implementation:** Record applicability, owner, runner/framework, test root, fixture/data strategy, full command, focused/partial command, zero-match behavior, CI gate, and a simple/Windows entry point (a `.cmd` when the project needs one).
+> 2. **Runnable scopes:** Full and focused commands must be copy-ready, fail on invalid or zero-match selections, report exact counts and exit status, and be safe to repeat. E2E uses only configured browser/service commands.
+> 3. **Fresh valid state:** Each run/test owns a unique run identity and business-data suffix, arranges through supported public paths, and uses realistic valid data. Reference setup is count-before-create, idempotent, and restart-safe. Intentional accumulation is additive, keyed, and integrity-checked; never hide contamination with destructive reset.
+>    Run-scoped cleanup, when supported, is opt-in and idempotent: after evidence capture it may remove only ephemeral resources owned by the current run; it must never delete persistent/additive data or another run's data, reset shared state, or replace no-reset proof.
+> 4. **Isolation and fidelity:** Isolate mutable roots and parallel workers; share only immutable/reference data. Preserve real actor pacing and observable arrange barriers. Do not widen retries or weaken assertions to make a scenario pass.
+> 5. **Evidence gate:** Report command, scope, identity, seed/accumulation mode, exact result, and repeat proof. For each applicable persistent-state suite, require two consecutive no-reset full runs. Treat line coverage as diagnostic only; use meaningful property/invariant, mutation, change, and behavior coverage signals.
+>
+> **Ownership:** Architecture/harness defines the matrix; scaffold/workflow makes it runnable; test writers implement tier-specific cases; reviewers verify the contract; the runner reports; seed-data owners preserve uniqueness, idempotency, realism, and accumulation integrity. Missing required evidence blocks setup completion.
+
+<!-- /SYNC:test-architecture-execution-contract -->
+
 <!-- SYNC:understand-code-first:reminder -->
 
 **IMPORTANT MUST ATTENTION** search 3+ existing patterns and read code BEFORE writing any seeder.
@@ -473,8 +506,15 @@ Per item: **PASS / FAIL / N/A** with `file:line` evidence and confidence (>80% r
 
 <!-- /SYNC:project-protocol-overlay:reminder -->
 
+<!-- SYNC:test-architecture-execution-contract:reminder -->
+
+**MUST ATTENTION** Before implementation, record evidence-backed Unit/Integration/System/E2E applicability (or explicit N/A), copy-ready full + focused commands, zero-match behavior, a simple/Windows entry point, unique run identity, realistic valid data, idempotent/restart-safe reference setup, intentional additive accumulation, parallel isolation, exact results, and two no-reset full runs for each applicable persistent-state suite.
+
+<!-- /SYNC:test-architecture-execution-contract:reminder -->
+
 ## Closing Reminders
 
+**IMPORTANT MUST ATTENTION** Testability contract: resolve evidence-backed Unit/Integration/System/E2E rows, copy-ready full/focused commands, zero-match failures, owner/root/data, CI/simple-Windows entry, unique run identity, and repeat proof before claiming setup, review, or test completion.
 **IMPORTANT MUST ATTENTION Goal:** Build configurable, local-development-only (default-enabled) seeders that exercise each feature's happy-path scenarios through public entry-point commands like a real user/QC tester (NEVER direct domain DB writes), repeat a configurable small-default count for case coverage and realistic data volume, remain idempotent and restart-safe, and ALWAYS follow the project's existing seed-data convention FIRST.
 
 **IMPORTANT MUST ATTENTION — Main steps (execute in order, NEVER skip/merge):** (1) Route `--mode=review` to the read-only audit or default to Generate → (2) detect new/enhance/fix task type → (3) discover the project's seeder base, env gate, count key, marker, registration, and dev-config keys → (4) analyze feature scope, public commands, dependencies, scenarios, and target count → (5) find/create the seeder → (6) implement env gate first, configurable count, idempotency, restart-safe loop, public commands, and scoped DI → (7) validate every universal/project rule with `file:line` evidence → (8) run the `--mode=review` self-audit → (9) run a fresh zero-memory review and `/changes-review`; if findings exist, validate before fixing and full-re-review after fixes → (10) persist lessons and unresolved gaps.

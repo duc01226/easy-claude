@@ -5,11 +5,21 @@ description: '[Workflow] Use when activating the Write Integration Tests workflo
 disable-model-invocation: false
 ---
 
+<!-- PROMPT-ENHANCE:STEP-TASK-ANCHOR:START -->
+
+> **[BLOCKING]** Execute skill steps in declared order. NEVER skip, reorder, or merge steps without explicit user approval.
+> **[BLOCKING]** Before each step or sub-skill call, update task tracking: set `in_progress` when step starts, set `completed` when step ends.
+> **[BLOCKING]** Every completed/skipped step MUST include brief evidence or explicit skip reason.
+> **[BLOCKING]** If Task tools are unavailable, create and maintain an equivalent step-by-step plan tracker with the same status transitions.
+
+<!-- PROMPT-ENHANCE:STEP-TASK-ANCHOR:END -->
+
 ## Quick Summary
 
 **Goal:** Write or update spec-first integration tests from canonical TCs, review them through seven quality gates, and prove the relevant suite passes twice consecutively without DB reset.
 
 **Summary:** Investigate domain logic → author/update Section 8 TCs → generate real-use-case integration tests → review seven gates → verify the whole relevant suite twice without DB reset → sync docs and close. **MUST ATTENTION** use real domain paths and runner output.
+- **Testability contract:** resolve Unit/Integration/System/E2E applicability from runner/config evidence; record owner/root/data, copy-ready full + focused commands, zero-match behavior, CI/simple-Windows entry, unique run/data identity, and repeat proof; unresolved applicable fields block handoff, while non-applicable tiers require evidence-backed `N/A`.
 
 **Absorbed use cases:** converting existing TC specs into integration test code (former test-to-integration — specs already exist, so `/spec [mode=tests]` runs in UPDATE/verify mode instead of authoring from scratch) and stability verification of existing suites (former test-verify — the `/integration-test-verify` step's 2-consecutive-run gate). For spec-only authoring with no test code, use the `/spec [mode=tests]` skill directly.
 
@@ -43,6 +53,18 @@ disable-model-invocation: false
 Activate the `workflow-write-integration-test` workflow. Run `/start-workflow workflow-write-integration-test` with the user's prompt as context.
 
 **Steps:** /investigate → /spec [mode=tests] → /why-review → /artifact-review --type=spec-tests → /integration-test → /integration-test-review → /integration-test-verify → /spec [mode=sync] → /docs-update → /workflow-end → /watzup
+
+## Test Architecture Contract Handoff
+
+Before `/integration-test`, `/investigate` must emit one evidence-backed contract record for the test scope and pass it unchanged through the existing delegated order:
+
+- `applicability`: record Unit/Integration/System/E2E as `APPLICABLE` only with runner/configuration evidence; otherwise record `N/A — <evidence>`.
+- `owner`: identify the delegated setup, writer, reviewer, verifier, and documentation owner for each applicable tier; do not duplicate their gates in the wrapper.
+- `fullCommand` and `focusedCommand`: copy-ready configured commands, their zero-match/invalid-selection non-zero behavior, CI gate, and simple/Windows entry point when required.
+- `runIdentity` and `dataStrategy`: unique run identity and business-data suffix, valid public-use-case setup, explicit target/additive seed mode, and isolated mutable data for parallel workers.
+- `repeatProof`: exact counts and exit status for the focused run, repeat/parallel evidence, and two consecutive no-reset full runs for every applicable persistent-state suite.
+
+`/integration-test` consumes the setup and command fields; `/integration-test-review` verifies command validity, data identity/accumulation, and isolation alongside its existing quality gates; `/integration-test-verify` executes the configured scopes and returns the exact evidence for `/spec [mode=sync]` and `/docs-update`. This handoff adds data to the route and does not duplicate, reverse, or weaken any existing review, approval, or verification gate.
 
 > **[STEP PURPOSES]** Every step has a distinct purpose — NEVER deduplicate or batch:
 >
@@ -185,6 +207,21 @@ Activate the `workflow-write-integration-test` workflow. Run `/start-workflow wo
 
 <!-- /SYNC:subagent-return-contract -->
 
+<!-- SYNC:test-architecture-execution-contract -->
+
+> **Test Architecture & Execution Contract** — Treat testability as a setup/architecture acceptance condition. For every potentially applicable tier — Unit, Integration/System, and E2E — record `APPLICABLE` only with evidence of its runner/framework/configuration; otherwise record `N/A — <evidence>` and never fabricate coverage.
+>
+> 1. **Matrix before implementation:** Record applicability, owner, runner/framework, test root, fixture/data strategy, full command, focused/partial command, zero-match behavior, CI gate, and a simple/Windows entry point (a `.cmd` when the project needs one).
+> 2. **Runnable scopes:** Full and focused commands must be copy-ready, fail on invalid or zero-match selections, report exact counts and exit status, and be safe to repeat. E2E uses only configured browser/service commands.
+> 3. **Fresh valid state:** Each run/test owns a unique run identity and business-data suffix, arranges through supported public paths, and uses realistic valid data. Reference setup is count-before-create, idempotent, and restart-safe. Intentional accumulation is additive, keyed, and integrity-checked; never hide contamination with destructive reset.
+>    Run-scoped cleanup, when supported, is opt-in and idempotent: after evidence capture it may remove only ephemeral resources owned by the current run; it must never delete persistent/additive data or another run's data, reset shared state, or replace no-reset proof.
+> 4. **Isolation and fidelity:** Isolate mutable roots and parallel workers; share only immutable/reference data. Preserve real actor pacing and observable arrange barriers. Do not widen retries or weaken assertions to make a scenario pass.
+> 5. **Evidence gate:** Report command, scope, identity, seed/accumulation mode, exact result, and repeat proof. For each applicable persistent-state suite, require two consecutive no-reset full runs. Treat line coverage as diagnostic only; use meaningful property/invariant, mutation, change, and behavior coverage signals.
+>
+> **Ownership:** Architecture/harness defines the matrix; scaffold/workflow makes it runnable; test writers implement tier-specific cases; reviewers verify the contract; the runner reports; seed-data owners preserve uniqueness, idempotency, realism, and accumulation integrity. Missing required evidence blocks setup completion.
+
+<!-- /SYNC:test-architecture-execution-contract -->
+
 <!-- SYNC:critical-thinking-mindset:reminder -->
 
 **MUST ATTENTION** apply critical + sequential thinking — every claim needs appropriate traced evidence (`file:line` for repo/code claims; source URL or artifact section for research, product, content, and docs claims); confidence >80% to act, <60% DO NOT recommend. Anti-hallucination: never present guess as fact, admit uncertainty freely, cross-reference independently, stay skeptical of own confidence.
@@ -240,8 +277,15 @@ Activate the `workflow-write-integration-test` workflow. Run `/start-workflow wo
 
 <!-- /SYNC:project-protocol-overlay:reminder -->
 
+<!-- SYNC:test-architecture-execution-contract:reminder -->
+
+**MUST ATTENTION** Before implementation, record evidence-backed Unit/Integration/System/E2E applicability (or explicit N/A), copy-ready full + focused commands, zero-match behavior, a simple/Windows entry point, unique run identity, realistic valid data, idempotent/restart-safe reference setup, intentional additive accumulation, parallel isolation, exact results, and two no-reset full runs for each applicable persistent-state suite.
+
+<!-- /SYNC:test-architecture-execution-contract:reminder -->
+
 ## Closing Reminders
 
+**IMPORTANT MUST ATTENTION** Testability contract: resolve evidence-backed Unit/Integration/System/E2E rows, copy-ready full/focused commands, zero-match failures, owner/root/data, CI/simple-Windows entry, unique run identity, and repeat proof before claiming setup, review, or test completion.
 **IMPORTANT MUST ATTENTION Goal:** Write or update spec-first integration tests from canonical TCs, review them through seven quality gates, and prove the relevant suite passes twice consecutively without DB reset.
 
 **IMPORTANT MUST ATTENTION Main steps:** `/investigate` (read domain source first) → `/spec [mode=tests]` → `/why-review` → `/artifact-review --type=spec-tests` → `/integration-test` → `/integration-test-review` → `/integration-test-verify` (whole relevant suite, two runs, no DB reset) → `/spec [mode=sync]` → `/docs-update` → `/workflow-end` → `/watzup`. **NEVER** write smoke-only tests, bypass real-use-case setup, or declare verification without runner output.

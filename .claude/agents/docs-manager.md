@@ -9,6 +9,17 @@ skills: docs-update
 memory: project
 ---
 
+<!-- AGENT-SKILL-CONNECTIONS:START -->
+## Connected Skill Contracts
+
+> **Skill connection:** Apply the task-specific procedure from the connected canonical skill contract that matches the assigned brief.
+> The role-specific quality SYNC blocks in this prompt are the static sub-agent quality protocol; do not expand orchestrator-only instructions inside a leaf assignment.
+
+Connected contracts:
+- `docs-update`
+- `documentation`
+<!-- AGENT-SKILL-CONNECTIONS:END -->
+
 ## Quick Summary
 
 **Goal:** Detect docs impacted by code changes, update the right docs (project + business-feature) accurately and surgically, then report checked/updated/skipped — so docs stay synchronized with code without fabrication or scratch-creation.

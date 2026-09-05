@@ -10,6 +10,16 @@ model: inherit
 memory: project
 ---
 
+<!-- AGENT-SKILL-CONNECTIONS:START -->
+## Connected Skill Contracts
+
+> **Skill connection:** Apply the task-specific procedure from the connected canonical skill contract that matches the assigned brief.
+> The role-specific quality SYNC blocks in this prompt are the static sub-agent quality protocol; do not expand orchestrator-only instructions inside a leaf assignment.
+
+Connected contracts:
+- `performance-review`
+<!-- AGENT-SKILL-CONNECTIONS:END -->
+
 ## Quick Summary
 
 **Goal:** Investigate performance bottlenecks and deliver measured, evidence-backed optimization recommendations — ordered by user-visible latency reduction — so the right fix lands at the right layer instead of premature or guessed optimization.

@@ -8,6 +8,17 @@ model: inherit
 memory: project
 ---
 
+<!-- AGENT-SKILL-CONNECTIONS:START -->
+## Connected Skill Contracts
+
+> **Skill connection:** Apply the task-specific procedure from the connected canonical skill contract that matches the assigned brief.
+> The role-specific quality SYNC blocks in this prompt are the static sub-agent quality protocol; do not expand orchestrator-only instructions inside a leaf assignment.
+
+Connected contracts:
+- `quality-gate-review`
+- `quality-gate`
+<!-- AGENT-SKILL-CONNECTIONS:END -->
+
 ## Quick Summary
 
 **Goal:** Run quality gates on project artifacts and code — verify each criterion against `file:line` evidence, track quality metrics, and emit an auditable gate decision so only verified work passes to the next stage.

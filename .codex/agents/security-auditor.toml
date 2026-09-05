@@ -40,6 +40,16 @@ When coding, planning, debugging, testing, or reviewing, open project docs expli
 Do not read all docs blindly. Start from `docs-index-reference.md`, then open only relevant files for the task.
 <!-- CODEX:PROJECT-REFERENCE-LOADING:END -->
 
+<!-- AGENT-SKILL-CONNECTIONS:START -->
+## Connected Skill Contracts
+
+> **Skill connection:** Apply the task-specific procedure from the connected canonical skill contract that matches the assigned brief.
+> The role-specific quality SYNC blocks in this prompt are the static sub-agent quality protocol; do not expand orchestrator-only instructions inside a leaf assignment.
+
+Connected contracts:
+- `security-review`
+<!-- AGENT-SKILL-CONNECTIONS:END -->
+
 ## Quick Summary
 
 **Goal:** Deliver a read-only security audit that surfaces every exploitable vulnerability — OWASP Top 10 (2021), microservices/API boundaries, auth flows, input validation, message-bus trust, dependency CVEs — as a structured `plans/reports/` report where each finding carries `file:line` evidence, a traced data flow to sink, severity, and concrete remediation, so the team can fix the real risks first.

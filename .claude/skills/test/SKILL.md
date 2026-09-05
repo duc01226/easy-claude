@@ -18,6 +18,7 @@ description: '[Testing] Use when you need to run tests locally and analyze the s
 **Goal:** Deliver an accurate, read-only pass/fail verdict — by running tests locally via the `tester` subagent and analyzing the summary report — with exact counts, failing-test names, report path, and Goal Contract evidence, so the user knows the true test state without any fix applied.
 
 **Summary:**
+- **Testability contract:** resolve Unit/Integration/System/E2E applicability from runner/config evidence; record owner/root/data, copy-ready full + focused commands, zero-match behavior, CI/simple-Windows entry, unique run/data identity, and repeat proof; unresolved applicable fields block handoff, while non-applicable tiers require evidence-backed `N/A`.
 
 - **Purpose:** give the user the TRUE test state — accurate pass/fail verdict, exact counts, failing-test names, report path — without applying any fix.
 - **Main steps (run in order):** (1) **Delegate** — launch the `tester` subagent with the test scope from arguments; NEVER invoke test commands directly. (2) **Analyze** — review the subagent's summary report; identify failures and patterns. (3) **Report** — summarize pass/fail counts, highlight failing tests, cite the report path. (4) **Goal evidence** — resolve the active Goal Contract, append verification evidence, update the Goal Satisfaction matrix.
@@ -45,6 +46,15 @@ Use the `tester` subagent to run tests locally and analyze the summary report.
 **IMPORTANT:** Analyze the skills catalog and activate the skills that are needed for the task during the process.
 
 **Goal Contract evidence (after test run):** Resolve the active Goal Contract per the goal-contract-satisfaction-loop protocol (active plan `goal.md` → `plans/goals/{YYMMDD-HHmm}-{slug}/goal.md`). When one exists, append the verification evidence to the goal file's Iteration Log — test command, exact pass/fail counts, report path — mapped to the saved success criteria the run verifies, and update the Goal Satisfaction matrix rows for those criteria (PASS/FAIL/BLOCKED). Record `No active goal — evidence reported inline only.` when none exists. Never copy raw sensitive fixture data into the goal file.
+
+## Exact-Result Reporting Contract (Read-Only)
+
+The `tester` subagent receives the resolved contract matrix and executes only configured commands; this skill never invents a fallback runner or invokes commands directly.
+
+- Select the configured `fullCommand` or `focusedCommand` for the requested scope and report the command verbatim, scope, and any simple/Windows entry point used. If the tier has no configured command, report evidence-backed `N/A` or `BLOCKED` rather than substituting another command.
+- Return exact `exitStatus`, `discovered`, `passed`, `failed`, and `skipped` counts, failing-test names, `runIdentity`, seed/accumulation mode, and repeat/parallel evidence. For applicable persistent-state suites, include two consecutive no-reset full-run results.
+- A zero-match or invalid selection is non-pass even when no test throws; a non-zero exit is non-pass even when text says all tests passed. Never infer counts from a summary or silently pass an empty filter.
+- Remain read-only: do not edit tests or production code, seed or reset data, delete fixtures, or widen retries/timeouts to make a result green.
 
 ---
 
@@ -175,6 +185,21 @@ below — if a downstream rule would raise change cost, this principle wins.
 
 <!-- /SYNC:ai-mistake-prevention -->
 
+<!-- SYNC:test-architecture-execution-contract -->
+
+> **Test Architecture & Execution Contract** — Treat testability as a setup/architecture acceptance condition. For every potentially applicable tier — Unit, Integration/System, and E2E — record `APPLICABLE` only with evidence of its runner/framework/configuration; otherwise record `N/A — <evidence>` and never fabricate coverage.
+>
+> 1. **Matrix before implementation:** Record applicability, owner, runner/framework, test root, fixture/data strategy, full command, focused/partial command, zero-match behavior, CI gate, and a simple/Windows entry point (a `.cmd` when the project needs one).
+> 2. **Runnable scopes:** Full and focused commands must be copy-ready, fail on invalid or zero-match selections, report exact counts and exit status, and be safe to repeat. E2E uses only configured browser/service commands.
+> 3. **Fresh valid state:** Each run/test owns a unique run identity and business-data suffix, arranges through supported public paths, and uses realistic valid data. Reference setup is count-before-create, idempotent, and restart-safe. Intentional accumulation is additive, keyed, and integrity-checked; never hide contamination with destructive reset.
+>    Run-scoped cleanup, when supported, is opt-in and idempotent: after evidence capture it may remove only ephemeral resources owned by the current run; it must never delete persistent/additive data or another run's data, reset shared state, or replace no-reset proof.
+> 4. **Isolation and fidelity:** Isolate mutable roots and parallel workers; share only immutable/reference data. Preserve real actor pacing and observable arrange barriers. Do not widen retries or weaken assertions to make a scenario pass.
+> 5. **Evidence gate:** Report command, scope, identity, seed/accumulation mode, exact result, and repeat proof. For each applicable persistent-state suite, require two consecutive no-reset full runs. Treat line coverage as diagnostic only; use meaningful property/invariant, mutation, change, and behavior coverage signals.
+>
+> **Ownership:** Architecture/harness defines the matrix; scaffold/workflow makes it runnable; test writers implement tier-specific cases; reviewers verify the contract; the runner reports; seed-data owners preserve uniqueness, idempotency, realism, and accumulation integrity. Missing required evidence blocks setup completion.
+
+<!-- /SYNC:test-architecture-execution-contract -->
+
 <!-- SYNC:evidence-based-reasoning:reminder -->
 
 **IMPORTANT MUST ATTENTION** cite `file:line` evidence for every claim (confidence >80% to act). NEVER speculate without proof.
@@ -248,8 +273,15 @@ below — if a downstream rule would raise change cost, this principle wins.
 
 <!-- /SYNC:project-protocol-overlay:reminder -->
 
+<!-- SYNC:test-architecture-execution-contract:reminder -->
+
+**MUST ATTENTION** Before implementation, record evidence-backed Unit/Integration/System/E2E applicability (or explicit N/A), copy-ready full + focused commands, zero-match behavior, a simple/Windows entry point, unique run identity, realistic valid data, idempotent/restart-safe reference setup, intentional additive accumulation, parallel isolation, exact results, and two no-reset full runs for each applicable persistent-state suite.
+
+<!-- /SYNC:test-architecture-execution-contract:reminder -->
+
 ## Closing Reminders
 
+**IMPORTANT MUST ATTENTION** Testability contract: resolve evidence-backed Unit/Integration/System/E2E rows, copy-ready full/focused commands, zero-match failures, owner/root/data, CI/simple-Windows entry, unique run identity, and repeat proof before claiming setup, review, or test completion.
 **IMPORTANT MUST ATTENTION Goal:** deliver an accurate, read-only pass/fail verdict — run tests via the `tester` subagent, analyze its summary report — with exact counts, failing-test names, report path, and Goal Contract evidence, so the user knows the true test state without any fix applied.
 
 **Protocols in force (concise digest of the SYNC/shared blocks this skill carries):**

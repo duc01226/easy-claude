@@ -12,6 +12,18 @@ model: inherit
 memory: project
 ---
 
+<!-- AGENT-SKILL-CONNECTIONS:START -->
+## Connected Skill Contracts
+
+> **Skill connection:** Apply the task-specific procedure from the connected canonical skill contract that matches the assigned brief.
+> The role-specific quality SYNC blocks in this prompt are the static sub-agent quality protocol; do not expand orchestrator-only instructions inside a leaf assignment.
+
+Connected contracts:
+- `custom-agent`
+- `skill-creator`
+- `sync-skills-shared-protocols`
+<!-- AGENT-SKILL-CONNECTIONS:END -->
+
 ## Quick Summary
 
 **Goal:** Maintain the portable `.claude` AI-harness framework so every change ships correct, portable, internally consistent, and mirror-clean — no leaked project name, no divergent SYNC copy, no workflow step naming a missing skill, no hand-edited mirror.

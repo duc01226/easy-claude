@@ -17,6 +17,7 @@ description: '[Testing] Use when generating, updating, or maintaining E2E tests 
 **Goal:** Produce maintainable, spec-traceable E2E tests (`TC-{MODULE}-E2E-{NNN}`) from recordings, specs, or code changes with the project's configured framework (Playwright, Selenium, Cypress, or another), protecting business behavior so cosmetic UI changes do not break tests and intended behavior breaks do.
 
 **Summary:**
+- **Testability contract:** resolve Unit/Integration/System/E2E applicability from runner/config evidence; record owner/root/data, copy-ready full + focused commands, zero-match behavior, CI/simple-Windows entry, unique run/data identity, and repeat proof; unresolved applicable fields block handoff, while non-applicable tiers require evidence-backed `N/A`.
 
 - **Purpose:** turn recordings/specs/code changes into maintainable, spec-traceable E2E tests that break ONLY when intended business behavior breaks — never on cosmetic UI churn.
 - **Main steps (in order):** (1) detect the E2E framework from project files; (2) read `docs/project-reference/e2e-test-reference.md` + the `e2eTesting` block of `docs/project-config.json` FIRST — never assume a stack or invent a TC-annotation marker; (3) load `TC-{MODULE}-E2E-{NNN}` specs from `docs/specs/`; (4) pass the Real-World Fidelity Gate BEFORE writing test code — can this flow, timing, and data actually occur in production?; (5) generate/update tests via Page Object Model (spawn the `e2e-runner` sub-agent); (6) run tests with the project's configured command; (7) update `e2e-test-reference.md` with learnings.
@@ -78,6 +79,20 @@ rg --files | rg "(playwright|cypress|webdriver|selenium|e2e|test).*config|manife
 | Framework                 | Config Source               | Test Naming             | Run Command                    |
 | ------------------------- | --------------------------- | ----------------------- | ------------------------------ |
 | Configured E2E framework  | project config/reference docs | existing local examples | configured test command        |
+
+## E2E Applicability and Contract Preflight (before generation)
+
+Record E2E as `APPLICABLE` only when the project config/reference docs, an actual framework configuration, and a runnable command all provide evidence. Otherwise record `N/A — <file:line evidence>` and stop E2E generation for that project; never infer a browser project from skill-local examples. If the current repository has no runnable E2E stack, record that project-specific evidence-backed N/A in the report; do not fabricate a browser stack, page object, or E2E command.
+
+When E2E is applicable, add the following fields to the test plan/report before generating code:
+
+| Applicability evidence | Owner / test root | Runner/framework | Full command | Focused/partial command | Zero-match behavior | Run identity / data mode | Parallel isolation | Simple/Windows entry point |
+| ---------------------- | ----------------- | ---------------- | ------------ | ------------------------ | ------------------- | ------------------------ | ------------------ | --------------------------- |
+| `{file:line}` | `{owner}` / `{path}` | `{configured stack}` | `{copy-ready command}` | `{copy-ready command or N/A + evidence}` | `{documented non-zero behavior}` | `{unique identity; reference/additive mode}` | `{worker/root strategy}` | `{entry point or N/A + evidence}` |
+
+- Use only configured browser/service commands. A focused selection must be copy-ready and invalid or zero-match selections must fail or follow the runner's documented non-green behavior; never report zero matches as a passing scope.
+- Generate unique self-sufficient data through supported public paths. Reference data is count-before-create, idempotent, and restart-safe; intentional persistent data is keyed and additive. Preserve realistic actor pacing and arrange barriers, and isolate mutable data across parallel workers.
+- If the configured stack has persistent state, capture exact Passed/Failed/Skipped counts and exit status for each applicable focused/full scope and require two consecutive no-reset full runs. If no runnable E2E stack exists, report the evidence-backed N/A instead of substituting generic browser tooling.
 
 ---
 
@@ -181,7 +196,11 @@ Report:
 
 - Files created/modified
 - TC codes covered
-- Run command to execute tests
+- Run command to execute tests (configured full command)
+- E2E applicability and evidence (`APPLICABLE` or `N/A — <file:line evidence>`)
+- Full and focused/partial commands, zero-match behavior, and simple/Windows entry point (or evidence-backed N/A)
+- Run identity, reference/additive data mode, parallel-isolation strategy, and exact Passed/Failed/Skipped counts + exit status for each executed scope
+- Repeat evidence: two consecutive no-reset full runs when persistent state is applicable
 - Any preconditions or setup needed
 
 ---
@@ -292,6 +311,21 @@ Generate and maintain E2E tests using project's configured testing framework.
 
 <!-- /SYNC:critical-thinking-mindset -->
 
+<!-- SYNC:test-architecture-execution-contract -->
+
+> **Test Architecture & Execution Contract** — Treat testability as a setup/architecture acceptance condition. For every potentially applicable tier — Unit, Integration/System, and E2E — record `APPLICABLE` only with evidence of its runner/framework/configuration; otherwise record `N/A — <evidence>` and never fabricate coverage.
+>
+> 1. **Matrix before implementation:** Record applicability, owner, runner/framework, test root, fixture/data strategy, full command, focused/partial command, zero-match behavior, CI gate, and a simple/Windows entry point (a `.cmd` when the project needs one).
+> 2. **Runnable scopes:** Full and focused commands must be copy-ready, fail on invalid or zero-match selections, report exact counts and exit status, and be safe to repeat. E2E uses only configured browser/service commands.
+> 3. **Fresh valid state:** Each run/test owns a unique run identity and business-data suffix, arranges through supported public paths, and uses realistic valid data. Reference setup is count-before-create, idempotent, and restart-safe. Intentional accumulation is additive, keyed, and integrity-checked; never hide contamination with destructive reset.
+>    Run-scoped cleanup, when supported, is opt-in and idempotent: after evidence capture it may remove only ephemeral resources owned by the current run; it must never delete persistent/additive data or another run's data, reset shared state, or replace no-reset proof.
+> 4. **Isolation and fidelity:** Isolate mutable roots and parallel workers; share only immutable/reference data. Preserve real actor pacing and observable arrange barriers. Do not widen retries or weaken assertions to make a scenario pass.
+> 5. **Evidence gate:** Report command, scope, identity, seed/accumulation mode, exact result, and repeat proof. For each applicable persistent-state suite, require two consecutive no-reset full runs. Treat line coverage as diagnostic only; use meaningful property/invariant, mutation, change, and behavior coverage signals.
+>
+> **Ownership:** Architecture/harness defines the matrix; scaffold/workflow makes it runnable; test writers implement tier-specific cases; reviewers verify the contract; the runner reports; seed-data owners preserve uniqueness, idempotency, realism, and accumulation integrity. Missing required evidence blocks setup completion.
+
+<!-- /SYNC:test-architecture-execution-contract -->
+
 <!-- SYNC:critical-thinking-mindset:reminder -->
 
 **MUST ATTENTION** apply critical + sequential thinking — every claim needs appropriate traced evidence (`file:line` for repo/code claims; source URL or artifact section for research, product, content, and docs claims); confidence >80% to act, <60% DO NOT recommend. Anti-hallucination: never present guess as fact, admit uncertainty freely, cross-reference independently, stay skeptical of own confidence.
@@ -354,8 +388,15 @@ Generate and maintain E2E tests using project's configured testing framework.
 
 <!-- /SYNC:project-protocol-overlay:reminder -->
 
+<!-- SYNC:test-architecture-execution-contract:reminder -->
+
+**MUST ATTENTION** Before implementation, record evidence-backed Unit/Integration/System/E2E applicability (or explicit N/A), copy-ready full + focused commands, zero-match behavior, a simple/Windows entry point, unique run identity, realistic valid data, idempotent/restart-safe reference setup, intentional additive accumulation, parallel isolation, exact results, and two no-reset full runs for each applicable persistent-state suite.
+
+<!-- /SYNC:test-architecture-execution-contract:reminder -->
+
 ## Closing Reminders
 
+**IMPORTANT MUST ATTENTION** Testability contract: resolve evidence-backed Unit/Integration/System/E2E rows, copy-ready full/focused commands, zero-match failures, owner/root/data, CI/simple-Windows entry, unique run identity, and repeat proof before claiming setup, review, or test completion.
 **IMPORTANT MUST ATTENTION Goal:** Produce maintainable, spec-traceable E2E tests (`TC-{MODULE}-E2E-{NNN}`) from recordings, specs, or code changes with the project's configured framework (Playwright, Selenium, Cypress, or another), protecting business behavior so cosmetic UI changes do not break tests and intended behavior breaks do.
 
 **IMPORTANT MUST ATTENTION — Protocols in force (concise digest of the SYNC/shared blocks this skill carries):**

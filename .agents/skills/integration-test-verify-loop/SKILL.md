@@ -54,6 +54,7 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 **Goal:** Drive an integration-test suite to **fully green** by pairing `$integration-test-verify` with a combined fault-adjudication + `$fix` half in a recursive loop — each round runs a FRESH full `$integration-test-verify` over `{scope}` (**the WHOLE system by default**, or the target named in the prompt), and on ANY failure runs `$debug-investigate` **and** `$integration-test-review` (report-only) together to decide _who is at fault_, then `$fix` at the owning layer — stopping only when a fresh full verify passes its **2-consecutive-green-runs-without-DB-reset** gate with **zero failed tests**, proven by actual runner output.
 
 **Summary:**
+- **Testability contract:** resolve Unit/Integration/System/E2E applicability from runner/config evidence; record owner/root/data, copy-ready full + focused commands, zero-match behavior, CI/simple-Windows entry, unique run/data identity, and repeat proof; unresolved applicable fields block handoff, while non-applicable tiers require evidence-backed `N/A`.
 
 - **Each round = verify (find) + adjudicate (diagnose) + `$fix` (resolve) + `$changes-review` (prove the fix is sound).** `$integration-test-verify` reports pass/fail but must not own the fix; the adjudication pair decides _test-wrong vs test-not-optimal vs source-wrong_; `$fix` lands the change; `$changes-review` code-reviews that change before the next round. A round is incomplete until all four have run (or the verify returned zero failures).
 - **Steps (in order):** (0) resolve `{scope}` + Goal Contract → (0b) bind the convergence loop (protocol loop primary + optional `/goal` accelerator) → (1) round loop { snapshot → run `$integration-test-verify` INLINE over `{scope}` → **on failure:** `$debug-investigate` + `$integration-test-review` report-only → emit ONE Fault Verdict per failure → `$fix` at the owning layer → **CONDITIONAL `$changes-review` on the round's fix diff when any fix landed** → Round Integrity Check → log iteration } → (2) converge on a zero-failure fresh verify OR escalate → (3) terminal spec/doc sync + recap.
@@ -111,6 +112,20 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 
    Record in **Constraints**: `{scope}` (the project list), the round cap (default 3), the baseline executed/skipped test counts once round 1 reports them, and `quickRunCommand`.
 
+### Test Architecture Contract Preflight (before Round 1)
+
+Carry the same tier contract into the loop before the first round. Record Unit, Integration/System, and E2E as `APPLICABLE` only with runner/framework/configuration evidence; otherwise record `N/A — <evidence>` and do not fabricate a project or command.
+
+| Tier | Full command | Focused/partial command | Zero-match behavior | Run identity / data mode | Parallel isolation | Simple/Windows entry point |
+| ---- | ------------ | ------------------------ | ------------------- | ------------------------ | ------------------ | --------------------------- |
+| Unit | `{copy-ready command or N/A + evidence}` | `{copy-ready command or N/A + evidence}` | `{documented non-zero behavior}` | `{unique identity; reference/additive mode}` | `{worker/root strategy}` | `{entry point or N/A + evidence}` |
+| Integration/System | `{copy-ready command}` | `{copy-ready command or N/A + evidence}` | `{documented non-zero behavior}` | `{unique identity; reference/additive mode}` | `{worker/root strategy}` | `{entry point or N/A + evidence}` |
+| E2E | `{configured command or N/A + evidence}` | `{configured command or N/A + evidence}` | `{documented non-zero behavior}` | `{unique identity; reference/additive mode}` | `{worker/root strategy}` | `{entry point or N/A + evidence}` |
+
+- Use only config/reference/script-backed commands. When a focused/partial scope is applicable, the inner verifier must execute it and return exact Passed/Failed/Skipped counts and exit status; an invalid or zero-match selection must fail or follow documented non-green behavior and can never count as green.
+- Preserve supported public-path setup, realistic pacing/barriers, idempotent count-before-create reference data, intentional keyed/additive persistence, and isolated mutable roots across every round. A focused result is evidence, not a substitute for the fixed full scope.
+- Append the matrix, command/scope, run identity, seed/accumulation mode, exact focused result, exact full-run results, and repeat proof to the Goal Contract Iteration Log; missing contract evidence blocks convergence.
+
 ## Step 0b — Bind the Convergence Loop (protocol-first; `/goal` is an optional accelerator)
 
 The convergence loop is bound by TWO layers. The **protocol loop (Steps 1–2) is the BINDING mechanism** and MUST be self-driven by you, the running agent, on every host — with or without any command or hook. The **`/goal` command is an OPTIONAL accelerator** layered on top; it is never the primary mechanism, and its absence NEVER weakens the loop. This mirrors the project rule that hooks/trackers are accelerators only — correctness must not depend on them.
@@ -138,8 +153,8 @@ The `/goal` Stop hook blocks stopping until the condition holds and auto-clears 
 Each round couples four halves — **verify to find, adjudicate to diagnose, fix to resolve, `$changes-review` to prove the fix itself is sound.** For each round `R` (starting at 1), do ALL of:
 
 1. **Snapshot before:** record the working-tree fingerprint — `git status --porcelain` + `git diff --stat`. This is the fixes-applied baseline for the round and the objective backstop for convergence detection (Step 2).
-2. **Run `$integration-test-verify` INLINE** via the skill invocation (NEVER the `spawn_agent` tool), passing `{scope}` **explicitly** so it skips its own scope derivation. It runs its full contract: system check → the named projects → the **2-consecutive-green-runs-without-DB-reset** gate → a report with real Passed/Failed/Skipped counts and failing test names. Let it fan out its own `integration-tester` sub-agents per isolated project (its design, `integration-test-verify/SKILL.md:188-206`) — that fan-out is bounded and correct. **Tell it explicitly that this run IS a round of this loop**, so it returns its counts + failing names to this loop instead of recommending `$workflow-integration-test-green` as a next step — why: that recommendation is correct for a standalone verify but circular here, and would restart the loop that is already running.
-3. **Record the round's counts:** executed, passed, failed, skipped — per project and total, from **actual runner output**. These feed the Round Integrity Check (1.8) and the shrinking-failures gate (Step 2). No output = no counts = no claim.
+2. **Run `$integration-test-verify` INLINE** via the skill invocation (NEVER the `spawn_agent` tool), passing `{scope}` **explicitly** so it skips its own scope derivation. It runs its full contract: system check → the named projects → an applicable focused/partial scope with exact counts and exit status → the **2-consecutive-green-runs-without-DB-reset** full gate → a report with real Passed/Failed/Skipped counts and failing test names. Let it fan out its own `integration-tester` sub-agents per isolated project (its design, `integration-test-verify/SKILL.md:188-206`) — that fan-out is bounded and correct. **Tell it explicitly that this run IS a round of this loop**, so it returns its focused/full counts + failing names to this loop instead of recommending `$workflow-integration-test-green` as a next step — why: that recommendation is correct for a standalone verify but circular here, and would restart the loop that is already running.
+3. **Record the round's counts:** focused/partial scope and command/exit status when applicable, then executed, passed, failed, skipped — per project and total — from **actual runner output**. Also record the run identity and seed/accumulation mode. These feed the Round Integrity Check (1.8) and the shrinking-failures gate (Step 2). No output = no counts = no claim.
 4. **If failures = 0** and the 2-run gate was green → this round converged; go to Step 2 (no adjudication or fix half needed).
 5. **If failures > 0 — ADJUDICATE (the combined half). Run BOTH, INLINE, in this order, per failure or per failure cluster:**
 
@@ -184,7 +199,7 @@ Each round couples four halves — **verify to find, adjudicate to diagnose, fix
 
    — why: unlike a review loop, a test loop has a cheap fake exit — remove what fails. This check is the only thing standing between "converged" and "quietly deleted the hard tests".
 
-9. **Append an Iteration Log entry** to the Goal Contract: round number, per-project executed/passed/failed/skipped counts, the failing test names, each Fault Verdict with its `file:line` evidence and confidence, the fixes applied (`file:line`), the `$changes-review` verdict for the round's fix diff (or the explicit skip reason when no fix landed), the Round Integrity Check result, and remaining gaps.
+9. **Append an Iteration Log entry** to the Goal Contract: round number, full and focused/partial commands/scopes with exit status when applicable, run identity and seed/accumulation mode, per-project executed/passed/failed/skipped counts, the failing test names, each Fault Verdict with its `file:line` evidence and confidence, the fixes applied (`file:line`), the `$changes-review` verdict for the round's fix diff (or the explicit skip reason when no fix landed), the Round Integrity Check result, and remaining gaps.
 
 ## Step 2 — Convergence & Escalation Gate
 
@@ -423,6 +438,21 @@ When failures remain but cannot be fixed (product decision, unclear intent, envi
 
 <!-- /SYNC:project-reference-docs-guide -->
 
+<!-- SYNC:test-architecture-execution-contract -->
+
+> **Test Architecture & Execution Contract** — Treat testability as a setup/architecture acceptance condition. For every potentially applicable tier — Unit, Integration/System, and E2E — record `APPLICABLE` only with evidence of its runner/framework/configuration; otherwise record `N/A — <evidence>` and never fabricate coverage.
+>
+> 1. **Matrix before implementation:** Record applicability, owner, runner/framework, test root, fixture/data strategy, full command, focused/partial command, zero-match behavior, CI gate, and a simple/Windows entry point (a `.cmd` when the project needs one).
+> 2. **Runnable scopes:** Full and focused commands must be copy-ready, fail on invalid or zero-match selections, report exact counts and exit status, and be safe to repeat. E2E uses only configured browser/service commands.
+> 3. **Fresh valid state:** Each run/test owns a unique run identity and business-data suffix, arranges through supported public paths, and uses realistic valid data. Reference setup is count-before-create, idempotent, and restart-safe. Intentional accumulation is additive, keyed, and integrity-checked; never hide contamination with destructive reset.
+>    Run-scoped cleanup, when supported, is opt-in and idempotent: after evidence capture it may remove only ephemeral resources owned by the current run; it must never delete persistent/additive data or another run's data, reset shared state, or replace no-reset proof.
+> 4. **Isolation and fidelity:** Isolate mutable roots and parallel workers; share only immutable/reference data. Preserve real actor pacing and observable arrange barriers. Do not widen retries or weaken assertions to make a scenario pass.
+> 5. **Evidence gate:** Report command, scope, identity, seed/accumulation mode, exact result, and repeat proof. For each applicable persistent-state suite, require two consecutive no-reset full runs. Treat line coverage as diagnostic only; use meaningful property/invariant, mutation, change, and behavior coverage signals.
+>
+> **Ownership:** Architecture/harness defines the matrix; scaffold/workflow makes it runnable; test writers implement tier-specific cases; reviewers verify the contract; the runner reports; seed-data owners preserve uniqueness, idempotency, realism, and accumulation integrity. Missing required evidence blocks setup completion.
+
+<!-- /SYNC:test-architecture-execution-contract -->
+
 <!-- SYNC:critical-thinking-mindset:reminder -->
 
 **MUST ATTENTION** apply critical + sequential thinking — every claim needs appropriate traced evidence (`file:line` for repo/code claims; source URL or artifact section for research, product, content, and docs claims); confidence >80% to act, <60% DO NOT recommend. Anti-hallucination: never present guess as fact, admit uncertainty freely, cross-reference independently, stay skeptical of own confidence.
@@ -497,8 +527,15 @@ When failures remain but cannot be fixed (product decision, unclear intent, envi
 
 <!-- /SYNC:project-protocol-overlay:reminder -->
 
+<!-- SYNC:test-architecture-execution-contract:reminder -->
+
+**MUST ATTENTION** Before implementation, record evidence-backed Unit/Integration/System/E2E applicability (or explicit N/A), copy-ready full + focused commands, zero-match behavior, a simple/Windows entry point, unique run identity, realistic valid data, idempotent/restart-safe reference setup, intentional additive accumulation, parallel isolation, exact results, and two no-reset full runs for each applicable persistent-state suite.
+
+<!-- /SYNC:test-architecture-execution-contract:reminder -->
+
 ## Closing Reminders
 
+**IMPORTANT MUST ATTENTION** Testability contract: resolve evidence-backed Unit/Integration/System/E2E rows, copy-ready full/focused commands, zero-match failures, owner/root/data, CI/simple-Windows entry, unique run identity, and repeat proof before claiming setup, review, or test completion.
 **IMPORTANT MUST ATTENTION Goal:** Drive an integration-test suite to fully green — each round runs a FRESH full `$integration-test-verify` over `{scope}` (WHOLE SYSTEM by default), adjudicates every failure with `$debug-investigate` + `$integration-test-review` (report-only) into ONE Fault Verdict, fixes at the owning layer via `$fix`, and re-verifies — until zero failures across 2 consecutive runs without a DB reset, with no test lost, skipped, or weakened.
 
 **IMPORTANT MUST ATTENTION main steps (in order):** (0) resolve `{scope}` + Goal Contract → (0b) bind the convergence loop (protocol loop primary + optional `/goal` accelerator) → (1) round loop: snapshot → `$integration-test-verify` INLINE → record real counts → on failure `$debug-investigate` + `$integration-test-review` report-only → ONE Fault Verdict per failure → `$fix` at the owning layer → CONDITIONAL `$changes-review` on the round's fix diff when any fix landed → Round Integrity Check → append Iteration Log → (2) converge on a zero-failure 2/2-green fresh verify / escalate on non-progress, blocked environment, or lost coverage → (3) terminal `$spec [mode=sync]` + `$docs-update` (standalone only) + recap.

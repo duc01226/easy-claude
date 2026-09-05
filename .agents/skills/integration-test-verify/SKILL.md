@@ -54,6 +54,7 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 **Goal:** Prove reviewed integration tests pass repeatably: run each relevant suite twice without DB reset using project-configured commands, after harvesting and verifying doc-declared environment preconditions; back every result with actual runner output, never assumptions.
 
 **Summary:** read-this-if-nothing-else digest of the 5 main steps —
+- **Testability contract:** resolve Unit/Integration/System/E2E applicability from runner/config evidence; record owner/root/data, copy-ready full + focused commands, zero-match behavior, CI/simple-Windows entry, unique run/data identity, and repeat proof; unresolved applicable fields block handoff, while non-applicable tiers require evidence-backed `N/A`.
 
 - **Step 1 — Read config + reference docs FIRST, then HARVEST preconditions:** load `docs/project-config.json` → `integrationTestVerify` and obey its `quickRunCommand`; READ every `referenceDocs` file (else the project's integration-test reference doc) and harvest from it an explicit **Environment Precondition Checklist** — whatever that doc actually declares (services/containers, DB + migration/seed state, env vars, ports, credentials, startup script, isolation rules). Language-agnostic, so NEVER hardcode `dotnet test`; missing section → Fallback Mode. — why: reading the doc without extracting its preconditions changes nothing — the run still starts blind.
 - **Step 2 — Gate on a healthy system AND every harvested precondition:** run `systemCheckCommand` AND verify each checklist item against real evidence; any unmet → STOP, mark ENVIRONMENT-BLOCKED, name the precondition + the doc line declaring it, point user at `startupScript`. — why: `systemCheckCommand` covers only what the config author thought to encode, so a doc-declared precondition it misses becomes a red suite blamed on the tests.
@@ -232,13 +233,27 @@ If auto-detect finds nothing (no uncommitted test changes), ask user: "No change
 
 **Filter rule:** Only run projects relevant to the current change. If user explicitly asks to run all → run all discovered/configured projects.
 
+### Step 3b: Test Architecture Contract Scope (before Step 4)
+
+Before the first test command, record the applicable tier matrix and the execution evidence the report must carry:
+
+| Tier | Applicability + evidence | Full command | Focused/partial command | Zero-match behavior | Run identity / data mode | Parallel isolation |
+| ---- | ------------------------- | ------------ | ------------------------ | ------------------- | ------------------------ | ------------------ |
+| Unit | `APPLICABLE` + `{file:line}` or `N/A — {evidence}` | `{copy-ready command or N/A + evidence}` | `{copy-ready command or N/A + evidence}` | `{documented non-zero behavior}` | `{unique identity; reference/additive mode}` | `{worker/root strategy}` |
+| Integration/System | `APPLICABLE` + `{file:line}` or `N/A — {evidence}` | `{copy-ready command}` | `{copy-ready command or N/A + evidence}` | `{documented non-zero behavior}` | `{unique identity; reference/additive mode}` | `{worker/root strategy}` |
+| E2E | `APPLICABLE` + `{file:line}` or `N/A — {evidence}` | `{configured command or N/A + evidence}` | `{configured command or N/A + evidence}` | `{documented non-zero behavior}` | `{unique identity; reference/additive mode}` | `{worker/root strategy}` |
+
+- Use only commands discoverable in `docs/project-config.json`, the named reference docs, or existing runner scripts. If a focused/partial command or simple/Windows entry point is not configured, record `N/A — <evidence>`; do not invent a filter, browser stack, or `.cmd` wrapper.
+- When a focused/partial scope is applicable, execute it and capture its exact Passed/Failed/Skipped counts and process exit status. Verify that an invalid or zero-match selection fails or follows the runner's documented non-green behavior; a zero-match run is never a passing result.
+- Record the unique run identity/data suffix, supported public-path setup, realistic data, idempotent count-before-create reference setup, intentional keyed/additive persistence, and the isolation boundary for parallel workers. These fields supplement—not replace—the environment checklist and real-DI/use-case gates.
+
 ---
 
 ## Step 4: Run Tests
 
 Run this step only after Step 2 passed — system healthy AND every harvested precondition settled `MET` — or the config/reference docs explicitly state no external system is required.
 
-Execute using `quickRunCommand` from config. Run each relevant suite/project 2 consecutive times without resetting data.
+Execute using `quickRunCommand` from config. When a focused/partial scope is applicable, run it first and record its exact result; it is diagnostic and never substitutes for the full scope. Then run each relevant suite/project 2 consecutive times without resetting data.
 
 **Two-run idempotency gate:** If any run fails, verification fails. Fix the root cause, then restart the 2-run sequence from run 1. If a test is red in one run and green in the other, it is INTERMITTENT — adjudicate the cause per [Intermittent (flaky) failure adjudication](#intermittent-flaky-failure-adjudication--verdict-before-any-change) and record the verdict BEFORE changing anything.
 
@@ -257,7 +272,7 @@ Or run all at once using the solution filter if supported:
 {quickRunCommand} --filter "Category=integration"
 ```
 
-**Capture output for every run**: count Passed, Failed, Skipped. Note: skipped tests marked with the configured framework's skip annotation are expected and not a failure.
+**Capture output for every run**: record the scope, command, process exit status, and exact Passed, Failed, and Skipped counts, plus failing names. Note: skipped tests marked with the configured framework's skip annotation are expected and not a failure.
 
 ### Parallel execution across multiple test projects (sub-agent fan-out)
 
@@ -290,6 +305,7 @@ After all tests complete, report:
 
 **Run command:** {quickRunCommand}
 **Projects tested:** {N}
+**Focused/partial scope:** {scope and command, exact counts + exit status, or `N/A — evidence`}
 **Repeatability gate:** 2 consecutive runs without DB reset
 **Environment preconditions:** {M} harvested from {referenceDoc} — all MET (or: none declared)
 
@@ -568,6 +584,21 @@ A test that is red in one run of the 2-run gate and green in another has NOT tol
 
 <!-- /SYNC:project-reference-docs-guide -->
 
+<!-- SYNC:test-architecture-execution-contract -->
+
+> **Test Architecture & Execution Contract** — Treat testability as a setup/architecture acceptance condition. For every potentially applicable tier — Unit, Integration/System, and E2E — record `APPLICABLE` only with evidence of its runner/framework/configuration; otherwise record `N/A — <evidence>` and never fabricate coverage.
+>
+> 1. **Matrix before implementation:** Record applicability, owner, runner/framework, test root, fixture/data strategy, full command, focused/partial command, zero-match behavior, CI gate, and a simple/Windows entry point (a `.cmd` when the project needs one).
+> 2. **Runnable scopes:** Full and focused commands must be copy-ready, fail on invalid or zero-match selections, report exact counts and exit status, and be safe to repeat. E2E uses only configured browser/service commands.
+> 3. **Fresh valid state:** Each run/test owns a unique run identity and business-data suffix, arranges through supported public paths, and uses realistic valid data. Reference setup is count-before-create, idempotent, and restart-safe. Intentional accumulation is additive, keyed, and integrity-checked; never hide contamination with destructive reset.
+>    Run-scoped cleanup, when supported, is opt-in and idempotent: after evidence capture it may remove only ephemeral resources owned by the current run; it must never delete persistent/additive data or another run's data, reset shared state, or replace no-reset proof.
+> 4. **Isolation and fidelity:** Isolate mutable roots and parallel workers; share only immutable/reference data. Preserve real actor pacing and observable arrange barriers. Do not widen retries or weaken assertions to make a scenario pass.
+> 5. **Evidence gate:** Report command, scope, identity, seed/accumulation mode, exact result, and repeat proof. For each applicable persistent-state suite, require two consecutive no-reset full runs. Treat line coverage as diagnostic only; use meaningful property/invariant, mutation, change, and behavior coverage signals.
+>
+> **Ownership:** Architecture/harness defines the matrix; scaffold/workflow makes it runnable; test writers implement tier-specific cases; reviewers verify the contract; the runner reports; seed-data owners preserve uniqueness, idempotency, realism, and accumulation integrity. Missing required evidence blocks setup completion.
+
+<!-- /SYNC:test-architecture-execution-contract -->
+
 <!-- SYNC:critical-thinking-mindset:reminder -->
 
 **MUST ATTENTION** apply critical + sequential thinking — every claim needs appropriate traced evidence (`file:line` for repo/code claims; source URL or artifact section for research, product, content, and docs claims); confidence >80% to act, <60% DO NOT recommend. Anti-hallucination: never present guess as fact, admit uncertainty freely, cross-reference independently, stay skeptical of own confidence.
@@ -634,8 +665,15 @@ A test that is red in one run of the 2-run gate and green in another has NOT tol
 
 <!-- /SYNC:project-protocol-overlay:reminder -->
 
+<!-- SYNC:test-architecture-execution-contract:reminder -->
+
+**MUST ATTENTION** Before implementation, record evidence-backed Unit/Integration/System/E2E applicability (or explicit N/A), copy-ready full + focused commands, zero-match behavior, a simple/Windows entry point, unique run identity, realistic valid data, idempotent/restart-safe reference setup, intentional additive accumulation, parallel isolation, exact results, and two no-reset full runs for each applicable persistent-state suite.
+
+<!-- /SYNC:test-architecture-execution-contract:reminder -->
+
 ## Closing Reminders
 
+**IMPORTANT MUST ATTENTION** Testability contract: resolve evidence-backed Unit/Integration/System/E2E rows, copy-ready full/focused commands, zero-match failures, owner/root/data, CI/simple-Windows entry, unique run identity, and repeat proof before claiming setup, review, or test completion.
 **IMPORTANT MUST ATTENTION Goal:** Prove reviewed integration tests pass repeatably: run each relevant suite twice without DB reset using project-configured commands, after harvesting and verifying doc-declared environment preconditions; back every result with actual runner output, never assumptions.
 
 **IMPORTANT MUST ATTENTION — Main steps:** read config/reference docs → harvest a cited environment checklist → run the system and precondition gates → determine touched test projects → run two consecutive no-reset suites (parallel only when isolated) → report actual pass/fail/skip counts and names → adjudicate failures at the owning layer and route the convergence loop when needed.

@@ -54,7 +54,11 @@ and a real run inserts zero.
 
 ``validate()`` check (c) warns on the inverse condition: a declared block MISSING
 from its agent, meaning the manifest moved ahead of the agent files and the
-injector has not been run.
+injector has not been run. The skill-connection manifest below is a second,
+explicit link: it tells every agent which canonical skill contract owns the
+role-specific behavior. It is rendered into each agent prompt by
+``inject_agent_skill_connections.py`` so the connection survives Claude/Codex
+mirror generation without blanket-injecting orchestrator instructions.
 
 SPAWN-CAPABILITY GUARD (/why-review F-WR2)
 ------------------------------------------
@@ -205,6 +209,17 @@ AGENT_QUALITY_BLOCKS = {
         "integration-test-sync-check",
         # wave 3 (twin: changes-review Phase 3.8 -- domain entity gate)
         "domain-entity-change-gate",
+        # The front-end review PROCEDURE (twin: changes-review / ui-review). changes-review routes
+        # an arbitrary diff here, and a sub-agent inherits nothing but its own .md -- so without
+        # this row a frontend diff reviewed by this agent gets no screen-state or a11y pass at all.
+        # Procedure only: the DD-* taste clauses stay off this agent deliberately, because a
+        # general code reviewer adjudicating visual identity produces noise, not defects. The body
+        # is self-gating on "has a user-facing front-end surface", so a backend diff costs one line.
+        "design-review-checklist",
+        # Test-architecture review is a production-quality concern too: this
+        # agent is the production face of architecture-review-full and the
+        # review owner for seed-test-data.
+        "test-architecture-execution-contract",
     ],
     "security-auditor": [
         "severity-rubric", "systematic-review-batching", "category-review-thinking",
@@ -269,6 +284,7 @@ AGENT_QUALITY_BLOCKS = {
         # NOT source-test-drift-check: an explicit off-role trim for architect
         # (TC-UAR-016, commit 698195a5). Deliberate non-parity; do NOT "fix".
         "trade-off-interrogation-gate", "scale-technique-gate", "scenario-stress-eval",
+        "test-architecture-execution-contract",
     ],
     "solution-architect": [
         "design-patterns-quality", "scaffold-production-readiness",
@@ -276,6 +292,7 @@ AGENT_QUALITY_BLOCKS = {
         # wave 2 -- already carries the companion `scenario-stress-eval`; the base
         # gate it explicitly pairs with was missing (twin: tech-stack-research)
         "scale-technique-gate",
+        "test-architecture-execution-contract",
     ],
     "business-analyst": [
         "estimation-framework", "refinement-dor-checklist", "ba-team-decision-model",
@@ -296,17 +313,20 @@ AGENT_QUALITY_BLOCKS = {
         "integration-test-execution-discipline", "spec-tests-code-triangulation",
         "spec-drift-adjudication", "test-data-isolation",
         "real-world-fidelity-testing",
+        "test-architecture-execution-contract",
     ],
     "tester": [
         "source-test-drift-check", "repeatable-test-principle",
         "test-spec-verification", "red-flag-stop-conditions",
         # wave 2 (twin: test)
         "test-failure-fault-adjudication", "real-world-fidelity-testing",
+        "test-architecture-execution-contract",
     ],
     "e2e-runner": [
         "source-test-drift-check", "repeatable-test-principle",
         # wave 2 (twin: e2e-test)
         "test-failure-fault-adjudication", "real-world-fidelity-testing",
+        "test-architecture-execution-contract",
     ],
     "database-admin": [
         "graph-impact-analysis",
@@ -324,6 +344,10 @@ AGENT_QUALITY_BLOCKS = {
         "trade-off-interrogation-gate", "ui-intent-layer", "existing-ui-research",
         # UI/UX design principles -- 40 clauses (twin: ui-review / design / design-spec)
         "ui-ux-design-principles",
+        # Visual IDENTITY, the question the 40 usability clauses do not ask (twin: design /
+        # design-spec / ui-review). This agent AUTHORS the direction, so it owns both the
+        # design plan + generic test (DD-3) and the interface voice.
+        "design-distinctiveness-gate", "ui-copywriting", "design-review-checklist",
     ],
     "code-simplifier": [
         "complexity-prevention", "design-patterns-quality", "severity-rubric",
@@ -358,6 +382,10 @@ AGENT_QUALITY_BLOCKS = {
         "source-test-drift-check", "graph-assisted-investigation", "ui-system-context",
         # UI/UX design principles -- 40 clauses; the implementer gate for user-facing surfaces
         "ui-ux-design-principles",
+        # The implementer is where a design plan silently stops being followed -- raw hex, a
+        # borrowed card kit, a per-section entrance animation. DD-* binds it to the plan it
+        # was handed; ui-copywriting binds the strings it types into templates.
+        "design-distinctiveness-gate", "ui-copywriting", "design-review-checklist",
     ],
     "fullstack-developer": [
         "design-patterns-quality", "complexity-prevention",
@@ -365,7 +393,86 @@ AGENT_QUALITY_BLOCKS = {
         "source-test-drift-check", "graph-assisted-investigation", "ui-system-context",
         # UI/UX design principles -- 40 clauses; binds FRONTEND phases only (backend-only: N/A)
         "ui-ux-design-principles",
+        # Same implementer rationale as frontend-developer; both blocks carry their own
+        # "skip when there is no user-facing surface" clause, so a backend-only phase costs
+        # one stated line rather than a wrong gate.
+        "design-distinctiveness-gate", "ui-copywriting", "design-review-checklist",
     ],
+
+    # --- operations family ------------------------------------------------
+    # These agents still receive Core-6 and have an explicit skill connection.
+    # Empty additive rows are valid when the twin skill has no role-specific
+    # SYNC block; keeping the row makes the all-agent matrix complete and
+    # prevents silent tier drift when a new block is introduced.
+    "git-manager": ["estimation-framework"],
+    "journal-writer": [],
+    "project-manager": [],
+}
+
+# ---------------------------------------------------------------------------
+# Agent -> canonical skill-contract connections
+# ---------------------------------------------------------------------------
+# This is routing/evidence metadata, not a request to auto-expand every skill
+# into a leaf agent. Full skill expansion would also copy orchestrator-only
+# instructions; the role-specific quality subset remains controlled by
+# AGENT_QUALITY_BLOCKS. The connection block is rendered into every canonical
+# agent prompt and therefore remains visible in Claude and Codex mirrors.
+AGENT_SKILL_CONNECTIONS = {
+    "architect": [
+        "architecture-design", "architecture-review", "architecture-scalability-review",
+        "architecture-review-full", "security-review", "performance-review",
+    ],
+    "backend-developer": ["feature-implement", "fix"],
+    "business-analyst": ["business-analyst", "refine", "story"],
+    "code-reviewer": [
+        "code-review", "changes-review", "architecture-review-full", "seed-test-data", "ui-review",
+    ],
+    "code-simplifier": ["code-simplifier"],
+    "database-admin": ["db-migrate", "seed-test-data"],
+    "debugger": ["debug-investigate", "investigate"],
+    "docs-manager": ["docs-update", "documentation"],
+    "e2e-runner": ["e2e-test", "workflow-e2e"],
+    "framework-maintainer": ["custom-agent", "skill-creator", "sync-skills-shared-protocols"],
+    "frontend-developer": ["feature-implement", "design"],
+    "fullstack-developer": ["feature-implement"],
+    "git-manager": ["commit"],
+    "integration-tester": [
+        "integration-test", "integration-test-review", "integration-test-verify",
+        "integration-test-verify-loop", "workflow-write-integration-test",
+        "workflow-integration-test-green",
+    ],
+    "journal-writer": ["journal"],
+    "knowledge-worker": ["knowledge-review", "knowledge-synthesis"],
+    "performance-optimizer": ["performance-review"],
+    "planner": ["plan", "plan-review"],
+    "product-owner": ["product-owner", "prioritize", "product-roadmap"],
+    "project-manager": ["project-manager"],
+    "quality-gate-review": ["quality-gate-review", "quality-gate"],
+    "researcher": ["research", "web-research"],
+    "security-auditor": ["security-review"],
+    "solution-architect": [
+        "architecture-design", "scaffold", "harness-setup", "greenfield",
+        "workflow-greenfield-init", "tech-stack-research",
+    ],
+    "spec-compliance-reviewer": ["artifact-review", "spec", "spec-clarify"],
+    "tester": ["test"],
+    "ui-ux-designer": ["design", "design-spec", "ui-review", "ui-ux-pro-max"],
+}
+
+# The test-architecture contract is intentionally connected across the full
+# setup -> author -> verify -> review path. Keep this reverse-coverage set
+# explicit so a future skill addition cannot silently become skill-only.
+TEST_ARCHITECTURE_SKILLS = {
+    "architecture-design", "architecture-scalability-review", "architecture-review-full",
+    "scaffold", "harness-setup", "greenfield", "workflow-greenfield-init",
+    "integration-test", "integration-test-review", "integration-test-verify",
+    "integration-test-verify-loop", "e2e-test", "workflow-e2e",
+    "workflow-write-integration-test", "workflow-integration-test-green", "test",
+    "seed-test-data",
+}
+TEST_ARCHITECTURE_AGENTS = {
+    "architect", "code-reviewer", "e2e-runner", "integration-tester",
+    "solution-architect", "tester",
 }
 
 # ---------------------------------------------------------------------------
@@ -392,10 +499,13 @@ FAMILIES = {
     "implementer": [
         "backend-developer", "frontend-developer", "fullstack-developer",
     ],
+    "operations": [
+        "git-manager", "journal-writer", "project-manager",
+    ],
 }
 
-# Agents intentionally OUT of scope (ops agents already at parity for their role).
-EXCLUDED_AGENTS = {"git-manager", "journal-writer", "project-manager"}
+AGENT_SKILL_CONNECTIONS_OPEN = "<!-- AGENT-SKILL-CONNECTIONS:START -->"
+AGENT_SKILL_CONNECTIONS_CLOSE = "<!-- AGENT-SKILL-CONNECTIONS:END -->"
 
 
 # ---------------------------------------------------------------------------
@@ -453,6 +563,52 @@ def agent_tools(agent: str) -> str | None:
     return tm.group(1).strip() if tm else None
 
 
+def disk_agent_names() -> set[str]:
+    """Return canonical agent basenames currently present on disk."""
+    return {p.stem for p in AGENTS_DIR.glob("*.md")}
+
+
+def skill_names() -> set[str]:
+    """Return canonical skill directories that expose a SKILL.md entry point."""
+    return {
+        p.name for p in AGENTS_DIR.parent.joinpath("skills").iterdir()
+        if p.is_dir() and p.joinpath("SKILL.md").exists()
+    }
+
+
+def frontmatter_skills(agent: str) -> list[str]:
+    """Read an optional native ``skills:`` list from one agent frontmatter."""
+    f = AGENTS_DIR / f"{agent}.md"
+    if not f.exists():
+        return []
+    text = f.read_text(encoding="utf-8")
+    m = re.match(r"^---\s*\n(.*?)\n---\s*\n", text, flags=re.DOTALL)
+    frontmatter = m.group(1) if m else ""
+    sm = re.search(r"^skills:\s*(.+)$", frontmatter, flags=re.MULTILINE)
+    if not sm:
+        return []
+    raw = sm.group(1).strip()
+    if raw in {"", "[]"}:
+        return []
+    return [item.strip().strip("'\"") for item in raw.split(",") if item.strip()]
+
+
+def connection_marker_skills(agent: str) -> list[str]:
+    """Read the generated skill names from an agent's explicit connection block."""
+    f = AGENTS_DIR / f"{agent}.md"
+    if not f.exists():
+        return []
+    text = f.read_text(encoding="utf-8")
+    pattern = (
+        rf"{re.escape(AGENT_SKILL_CONNECTIONS_OPEN)}"
+        rf"(.*?){re.escape(AGENT_SKILL_CONNECTIONS_CLOSE)}"
+    )
+    match = re.search(pattern, text, flags=re.DOTALL)
+    if not match:
+        return []
+    return re.findall(r"^- `([a-z0-9-]+)`", match.group(1), flags=re.MULTILINE)
+
+
 def _has_spawn_capability(agent: str) -> bool:
     """True if the agent can spawn Agent/Task sub-agents (all-tools or explicit)."""
     raw = agent_tools(agent)
@@ -504,9 +660,58 @@ def validate() -> tuple[list[str], list[str]]:
             errors.append(f"(partition) agents in matrix but no family: {missing}")
         if extra:
             errors.append(f"(partition) agents in a family but no matrix row: {extra}")
-    overlap = keys & EXCLUDED_AGENTS
-    if overlap:
-        errors.append(f"(partition) excluded ops agent(s) wrongly enhanced: {sorted(overlap)}")
+    on_disk = disk_agent_names()
+
+    # (connection) every canonical agent has an explicit, valid skill link and
+    # every native frontmatter link is represented by that connection. The
+    # marker is generated from this manifest so Codex receives the same link.
+    connection_keys = set(AGENT_SKILL_CONNECTIONS)
+    if connection_keys != on_disk:
+        missing = sorted(on_disk - connection_keys)
+        ghosts = sorted(connection_keys - on_disk)
+        if missing:
+            errors.append(f"(connection) agent(s) on disk missing skill connection(s): {missing}")
+        if ghosts:
+            errors.append(f"(connection) skill connection(s) target missing agent file(s): {ghosts}")
+    known_skills = skill_names()
+    for agent, connected in AGENT_SKILL_CONNECTIONS.items():
+        if not connected:
+            errors.append(f"(connection) agent '{agent}' has no connected skill contract")
+        duplicates = sorted({skill for skill in connected if connected.count(skill) > 1})
+        if duplicates:
+            errors.append(f"(connection) agent '{agent}' repeats skill contract(s): {duplicates}")
+        unknown = sorted(set(connected) - known_skills)
+        if unknown:
+            errors.append(f"(connection) agent '{agent}' links unknown skill(s): {unknown}")
+        marker = connection_marker_skills(agent)
+        if marker != connected:
+            errors.append(
+                f"(connection) agent '{agent}' marker does not match manifest "
+                f"(expected {connected}, found {marker}); run inject_agent_skill_connections.py"
+            )
+        native = frontmatter_skills(agent)
+        native_unknown = sorted(set(native) - known_skills)
+        if native_unknown:
+            errors.append(f"(connection) agent '{agent}' frontmatter links unknown skill(s): {native_unknown}")
+        native_unconnected = sorted(set(native) - set(connected))
+        if native_unconnected:
+            errors.append(
+                f"(connection) agent '{agent}' frontmatter skill(s) not in connection manifest: "
+                f"{native_unconnected}"
+            )
+
+    for skill in sorted(TEST_ARCHITECTURE_SKILLS):
+        owners = sorted(agent for agent, links in AGENT_SKILL_CONNECTIONS.items() if skill in links)
+        if not owners:
+            errors.append(f"(test-architecture) skill '{skill}' has no connected agent owner")
+    for agent in sorted(TEST_ARCHITECTURE_AGENTS):
+        if agent not in AGENT_QUALITY_BLOCKS:
+            errors.append(f"(test-architecture) owner agent '{agent}' has no quality matrix row")
+        elif "test-architecture-execution-contract" not in AGENT_QUALITY_BLOCKS[agent]:
+            errors.append(
+                f"(test-architecture) owner agent '{agent}' lacks "
+                "test-architecture-execution-contract"
+            )
 
     # (c) target-set drift -- WARN ONCE when agent files trail the manifest.
     # Presence is the EXPECTED steady state under the TARGET-SET INVARIANT (the
@@ -607,7 +812,7 @@ def _main(argv: list[str]) -> int:
         f"{n_pending} pending insert(s), "
         f"{len(FAMILIES)} families. All tags canonical; no orchestration leak; "
         f"partition clean; spawn-capability guard clear; tier policy clear; "
-        "review-cycle relevance clear."
+        "review-cycle relevance clear; all-agent skill connections clear."
         + (f" ({len(warnings)} drift warning(s))" if warnings else "")
     )
     return 0

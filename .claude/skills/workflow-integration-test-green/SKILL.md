@@ -5,11 +5,21 @@ description: "[Workflow] Use when activating the Integration Test Green workflow
 disable-model-invocation: false
 ---
 
+<!-- PROMPT-ENHANCE:STEP-TASK-ANCHOR:START -->
+
+> **[BLOCKING]** Execute skill steps in declared order. NEVER skip, reorder, or merge steps without explicit user approval.
+> **[BLOCKING]** Before each step or sub-skill call, update task tracking: set `in_progress` when step starts, set `completed` when step ends.
+> **[BLOCKING]** Every completed/skipped step MUST include brief evidence or explicit skip reason.
+> **[BLOCKING]** If Task tools are unavailable, create and maintain an equivalent step-by-step plan tracker with the same status transitions.
+
+<!-- PROMPT-ENHANCE:STEP-TASK-ANCHOR:END -->
+
 ## Quick Summary
 
 **Goal:** [Workflow] Trigger the Integration Test Green workflow — run the WHOLE integration-test suite (or the named target), adjudicate every failure into a written Fault Verdict before any edit, fix at the owning layer, loop until a fresh full verify is green twice in a row with zero failures, then leave the spec TCs, the integration-test reference doc, and the feature docs in sync with the suite that actually exists.
 
 **Summary:** Set the Goal Contract and explicit verification scope (WHOLE SYSTEM by default), then run `/investigate` → `/integration-test-verify-loop` → conditional `/debug-investigate`/`/fix` → `/spec [mode=sync]` → `/scan --target=integration-tests` → `/docs-update` → `/workflow-end` → `/watzup`; every failing round requires a written Fault Verdict, owning-layer fix, inline `/changes-review`, Round Integrity Check, and fresh full re-verification until two consecutive zero-failure runs or bounded escalation.
+- **Testability contract:** resolve Unit/Integration/System/E2E applicability from runner/config evidence; record owner/root/data, copy-ready full + focused commands, zero-match behavior, CI/simple-Windows entry, unique run/data identity, and repeat proof; unresolved applicable fields block handoff, while non-applicable tiers require evidence-backed `N/A`.
 
 **When to use:** "make all integration tests pass", "fix the failing integration tests", "the suite is red after my change", "loop until all integration tests are green", "diagnose this flaky integration test". For AUTHORING new tests from specs use `/workflow-write-integration-test`; this workflow is for driving an EXISTING suite to green.
 
@@ -80,6 +90,18 @@ disable-model-invocation: false
 > **Goal Contract propagation (workflow-owned):** At workflow start — BEFORE round 1 — resolve the active Goal Contract per `SYNC:goal-contract-satisfaction-loop` (active plan `goal.md` → `plans/goals/{YYMMDD-HHmm}-{slug}/goal.md` → create from the request). Its single required Success Criterion: _a fresh full `/integration-test-verify` over the resolved scope reports ZERO failed tests across 2 consecutive runs without a DB reset, with no test deleted, skipped, or weakened to get there._ Record the scope string, the round cap (default 3), and the baseline executed/skipped counts in **Constraints**. After every round, append the per-project counts, Fault Verdicts, and fixes to the Iteration Log; emit the Goal Satisfaction matrix (PASS/FAIL/BLOCKED) before `/workflow-end`.
 
 Activate the `workflow-integration-test-green` workflow. Run `/start-workflow workflow-integration-test-green` with the user's prompt as context.
+
+## Test Architecture Contract Handoff
+
+Before round 1, `/investigate` locks one evidence-backed contract record that `/integration-test-verify-loop` reuses on every round:
+
+- `applicability`: mark the integration/system tier `APPLICABLE` only with verified runner/configuration evidence; record other tiers as `N/A — <evidence>` unless their configured owner is explicitly in scope.
+- `owner`: keep `/integration-test-verify-loop` as convergence owner and name the existing conditional owners for diagnosis, review, fixing, and fix review.
+- `fullCommand` and `focusedCommand`: bind the full command to the resolved whole-system scope and the focused command to an explicitly named target; both must be configured, copy-ready, fail invalid or zero-match selections, and expose a simple/Windows entry point when required.
+- `runIdentity` and `dataStrategy`: use a unique non-sensitive run identity, valid public-use-case setup, explicit target/additive seed mode, and isolated mutable data for parallel workers.
+- `repeatProof` and `result`: retain exact per-round counts, failing names, exit status, scope, and repeat/parallel evidence; a persistent-state scope needs two consecutive no-reset full runs.
+
+The loop owns this handoff and the Round Integrity Check: `/integration-test-verify` receives the fixed scope and commands, while `/debug-investigate`, `/integration-test-review`, `/fix`, and `/changes-review` retain their existing conditional ownership and gates. The existing delegated order remains the only route; no fallback runner, narrowed scope, or destructive reset may replace missing evidence.
 
 **Steps:** /investigate → /integration-test-verify-loop → /debug-investigate [on-failure] → /fix [on-failure] → /spec [mode=sync] → /scan --target=integration-tests → /docs-update → /workflow-end → /watzup
 
@@ -263,6 +285,21 @@ Activate the `workflow-integration-test-green` workflow. Run `/start-workflow wo
 
 <!-- /SYNC:subagent-return-contract -->
 
+<!-- SYNC:test-architecture-execution-contract -->
+
+> **Test Architecture & Execution Contract** — Treat testability as a setup/architecture acceptance condition. For every potentially applicable tier — Unit, Integration/System, and E2E — record `APPLICABLE` only with evidence of its runner/framework/configuration; otherwise record `N/A — <evidence>` and never fabricate coverage.
+>
+> 1. **Matrix before implementation:** Record applicability, owner, runner/framework, test root, fixture/data strategy, full command, focused/partial command, zero-match behavior, CI gate, and a simple/Windows entry point (a `.cmd` when the project needs one).
+> 2. **Runnable scopes:** Full and focused commands must be copy-ready, fail on invalid or zero-match selections, report exact counts and exit status, and be safe to repeat. E2E uses only configured browser/service commands.
+> 3. **Fresh valid state:** Each run/test owns a unique run identity and business-data suffix, arranges through supported public paths, and uses realistic valid data. Reference setup is count-before-create, idempotent, and restart-safe. Intentional accumulation is additive, keyed, and integrity-checked; never hide contamination with destructive reset.
+>    Run-scoped cleanup, when supported, is opt-in and idempotent: after evidence capture it may remove only ephemeral resources owned by the current run; it must never delete persistent/additive data or another run's data, reset shared state, or replace no-reset proof.
+> 4. **Isolation and fidelity:** Isolate mutable roots and parallel workers; share only immutable/reference data. Preserve real actor pacing and observable arrange barriers. Do not widen retries or weaken assertions to make a scenario pass.
+> 5. **Evidence gate:** Report command, scope, identity, seed/accumulation mode, exact result, and repeat proof. For each applicable persistent-state suite, require two consecutive no-reset full runs. Treat line coverage as diagnostic only; use meaningful property/invariant, mutation, change, and behavior coverage signals.
+>
+> **Ownership:** Architecture/harness defines the matrix; scaffold/workflow makes it runnable; test writers implement tier-specific cases; reviewers verify the contract; the runner reports; seed-data owners preserve uniqueness, idempotency, realism, and accumulation integrity. Missing required evidence blocks setup completion.
+
+<!-- /SYNC:test-architecture-execution-contract -->
+
 <!-- SYNC:critical-thinking-mindset:reminder -->
 
 **MUST ATTENTION** apply critical + sequential thinking — every claim needs appropriate traced evidence (`file:line` for repo/code claims; source URL or artifact section for research, product, content, and docs claims); confidence >80% to act, <60% DO NOT recommend. Anti-hallucination: never present guess as fact, admit uncertainty freely, cross-reference independently, stay skeptical of own confidence.
@@ -318,8 +355,15 @@ Activate the `workflow-integration-test-green` workflow. Run `/start-workflow wo
 
 <!-- /SYNC:project-protocol-overlay:reminder -->
 
+<!-- SYNC:test-architecture-execution-contract:reminder -->
+
+**MUST ATTENTION** Before implementation, record evidence-backed Unit/Integration/System/E2E applicability (or explicit N/A), copy-ready full + focused commands, zero-match behavior, a simple/Windows entry point, unique run identity, realistic valid data, idempotent/restart-safe reference setup, intentional additive accumulation, parallel isolation, exact results, and two no-reset full runs for each applicable persistent-state suite.
+
+<!-- /SYNC:test-architecture-execution-contract:reminder -->
+
 ## Closing Reminders
 
+**IMPORTANT MUST ATTENTION** Testability contract: resolve evidence-backed Unit/Integration/System/E2E rows, copy-ready full/focused commands, zero-match failures, owner/root/data, CI/simple-Windows entry, unique run identity, and repeat proof before claiming setup, review, or test completion.
 **IMPORTANT MUST ATTENTION Goal:** [Workflow] Trigger the Integration Test Green workflow — run the WHOLE integration-test suite (or the named target), adjudicate every failure into a written Fault Verdict before any edit, fix at the owning layer, loop until a fresh full verify is green twice in a row with zero failures, then leave the spec TCs, the integration-test reference doc, and the feature docs in sync with the suite that actually exists.
 
 **IMPORTANT MUST ATTENTION Workflow:** Set the Goal Contract and explicit whole-system scope → `/investigate` → `/integration-test-verify-loop` → on failure `/debug-investigate` + `/integration-test-review` → written Fault Verdict → owning-layer `/fix` → inline `/changes-review` → Round Integrity Check → fresh full re-verify until two consecutive zero-failure runs → `/spec [mode=sync]` → `/scan --target=integration-tests` → `/docs-update` → `/workflow-end` → `/watzup`; NEVER weaken tests, narrow scope, lose coverage, or skip evidence, and bounded-escalate on the round cap or blocked environment.

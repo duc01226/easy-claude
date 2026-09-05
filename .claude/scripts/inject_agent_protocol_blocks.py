@@ -31,7 +31,7 @@ Usage:
     python inject_agent_protocol_blocks.py [--dry-run]
         [--family=review,test] [--agents=code-reviewer,debugger]
 
-No selector  -> all 26 matrix agents (family order). Selectors union together.
+No selector  -> all matrix agents (family order). Selectors union together.
 """
 from __future__ import annotations
 

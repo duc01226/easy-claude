@@ -455,7 +455,7 @@ UNIVERSAL RULES:
 ### workflow-greenfield-init — Greenfield Project Init
 - Description: Full waterfall project inception from idea through implementation with integration testing
 - When To Use: User wants to start a new project from scratch, init a greenfield project, plan a new application, research and plan before coding, bootstrap a new codebase, build something new
-- Sequence: `idea -> web-research -> deep-research -> market-analysis -> business-evaluation -> spec-discovery -> domain-analysis -> why-review -> tech-stack-research -> architecture-design -> architecture-scalability-review -> why-review -> scenario -> plan -> plan-review -> security-review -> performance-review -> plan-review -> refine -> why-review -> artifact-review --type=pbi -> story -> why-review -> artifact-review --type=story -> pbi-challenge -> dor-gate -> pbi-mockup -> plan-validate -> why-review -> spec [mode=tests] -> why-review -> artifact-review --type=spec-tests -> spec-clarify -> plan -> plan-review -> scaffold -> linter-setup -> harness-setup -> architecture-review-full -> scan --target=ui-system -> scan --target=backend-patterns -> scan --target=integration-tests -> scan --target=project-structure -> why-review -> plan-execute -> domain-entities-review -> spec [mode=tests] -> why-review -> artifact-review --type=spec-tests -> plan -> plan-review -> integration-test -> integration-test-review -> integration-test-verify -> test -> workflow-review-changes -> security-review -> changelog -> test -> scan --target=domain-entities -> docs-update -> workflow-end -> watzup`
+- Sequence: `idea -> web-research -> deep-research -> market-analysis -> business-evaluation -> spec-discovery -> domain-analysis -> why-review -> tech-stack-research -> architecture-design -> architecture-scalability-review -> why-review -> scenario -> plan -> plan-review -> security-review -> performance-review -> plan-review -> refine -> why-review -> artifact-review --type=pbi -> story -> why-review -> artifact-review --type=story -> pbi-challenge -> dor-gate -> pbi-mockup -> plan-validate -> why-review -> spec [mode=tests] -> why-review -> artifact-review --type=spec-tests -> spec-clarify -> plan -> plan-review -> scaffold -> linter-setup -> harness-setup -> architecture-review-full -> scan --target=ui-system -> scan --target=backend-patterns -> scan --target=integration-tests -> scan --target=project-structure -> why-review -> plan-execute -> domain-entities-review -> spec [mode=tests] -> why-review -> artifact-review --type=spec-tests -> plan -> plan-review -> integration-test -> integration-test-review -> integration-test-verify -> e2e-test -> test -> workflow-review-changes -> security-review -> changelog -> test -> scan --target=domain-entities -> docs-update -> workflow-end -> watzup`
 
 Protocol:
 ```text
@@ -479,6 +479,11 @@ MANDATORY IMPORTANT MUST ATTENTION RULES:
 8. Domain analysis produces ERD + bounded contexts BEFORE tech stack research
 9. Tech stack research compares top 3 options per layer with detailed pros/cons
 
+TEST ARCHITECTURE & EXECUTION CONTRACT GATE (BLOCKING):
+- During $architecture-design, emit the Test Architecture & Execution Contract matrix before the first $plan completes. Each potentially applicable Unit, Integration/System, and E2E tier gets a row. Mark APPLICABLE only with evidence-backed runner/framework/configuration; otherwise mark N/A — <evidence>.
+- Before $plan-execute or any feature-implementation handoff, require every APPLICABLE row to contain owner, test root, fixture/data strategy, copy-ready full command, focused command, zero-match behavior, CI gate, simple/Windows entry point, and unique run/data identity. Missing any required field BLOCKS handoff; never substitute assumptions for missing evidence.
+- After $integration-test-verify, inspect docs/project-config.json → e2eTesting and matching runnable framework, entry points, and commands. Run $e2e-test only when configured; otherwise record N/A — <evidence> citing the configuration and repository scan. The following $test step runs final full/focused verification and reports exact results and exit status.
+
 STEP SELECTION GATE:
 After workflow activation, auto-select the applicable steps and skip irrelevant conditional steps. Default step set:
 - [x] Discovery Interview (idea)
@@ -498,6 +503,7 @@ After workflow activation, auto-select the applicable steps and skip irrelevant 
 - [x] Final Review (plan-review)
 - [x] Foundation Review (architecture-review-full) — post-scaffold gate: grade the built foundation (architecture + scalability + production-readiness) and fix BLOCKED/WARN findings BEFORE $plan-execute
 - [x] Reference Doc Set (scan --target=ui-system|backend-patterns|integration-tests|project-structure) — after Foundation Review, before $plan-execute: DERIVE the project-reference doc set from the reviewed foundation + golden-path examples; scaffold already seeded ui-review-principles.md. CONDITIONAL: skip scan --target=ui-system when no UI stack (log reason); the other three always apply
+- [x] E2E Evaluation (e2e-test) — CONDITIONAL: run immediately after integration-test-verify only when docs/project-config.json → e2eTesting has a runnable framework, entry point, and command; otherwise record explicit evidence-backed N/A
 
 Auto-skip steps that are irrelevant to the prompt; mark skipped steps as completed with a short reason.
 
@@ -530,10 +536,13 @@ After scaffolding, the workflow continues with full implementation and integrati
 6. $artifact-review --type=spec-tests validates spec coverage and correctness
 7. Third $plan + $plan-review cycle plans integration test architecture
 8. $integration-test generates integration tests from specs
-9. $test runs all tests to verify TCs pass
-10. $workflow-review-changes for quality (use the canonical changes-review workflow sequence from .claude/workflows.json: changes-review, why-review findings validation, parallel review batch, code-simplifier, verification, plan/plan-review/why-review/plan-execute, and full re-review restart)
-11. $security-review for production readiness
-12. $changelog + final $test + $docs-update + $watzup to close
+9. $integration-test-review reviews integration coverage
+10. $integration-test-verify verifies the configured integration command
+11. $e2e-test runs only when docs/project-config.json → e2eTesting is configured; otherwise records evidence-backed N/A
+12. $test runs final full/focused verification and reports exact results and exit status
+13. $workflow-review-changes for quality (use the canonical changes-review workflow sequence from .claude/workflows.json: changes-review, why-review findings validation, parallel review batch, code-simplifier, verification, plan/plan-review/why-review/plan-execute, and full re-review restart)
+14. $security-review for production readiness
+15. $changelog + final $test + $docs-update + $watzup to close
 This ensures greenfield projects ship with integration test coverage from day one.
 SCALE-TECHNIQUE GATE (advisory): during the tech-stack-research, architecture-design, architecture-scalability-review, and production-readiness-review steps, apply SYNC:scale-technique-gate — derive the target scale tier from evidence (T0 internal / T1 <10k / T2 10k–1M / T3 millions+), judge which system-design techniques (rate limiting, caching, load balancing, queues, sharding, autoscaling, CI/CD, observability, DR, etc.) that tier WARRANTS, and record the Technique Applicability Matrix (each warranted technique judged PRESENT / MISSING-WARRANTED / N/A-by-scale / OVER-ENGINEERED). Advise on warranted-but-missing gaps AND advise AGAINST over-provisioning below tier (do NOT add Kubernetes/sharding/multi-region for a small system). Advisory guidance only — it never changes a score or verdict. Full catalog: .claude/docs/scale-technique-catalog.md.
 SCENARIO-STRESS EVAL (advisory): complementing the scale-technique gate top-down, during the tech-stack-research, architecture-design, architecture-scalability-review, production-readiness-review, and performance-review steps (and whenever solution-architect authors resilience posture), apply SYNC:scenario-stress-eval — REUSE the scale tier already derived by SYNC:scale-technique-gate, derive the orthogonal business-criticality tier (B0 non-critical / B1 important / B2 business-critical / B3 mission-critical or regulated) from evidence, then stress-test the design against concrete scenarios (traffic spike, sustained + data-volume growth, dependency down/slow, node/zone/region loss, data loss/corruption, poison-message/retry storm, cascading/backpressure, cold start, clock skew/duplicate delivery). Record a Scenario Stress Matrix judging each IN-SCOPE scenario WITHSTANDS / DEGRADES-GRACEFULLY / FAILS-HARD / N/A-by-business / OVER-HARDENED with self-heal + trade-off notes. Apply the criticality-signal floor: regulated / PII / financial / health data, money movement, authentication/identity, or legal-compliance scope floors B at B2+ even absent SLA/SLO docs. Right-size in BOTH directions — advise on FAILS-HARD gaps the business warrants AND advise AGAINST OVER-HARDENED resilience a lean B0/B1 system does not need. Advisory guidance only — it never changes a score or verdict. Full catalog: .claude/docs/scenario-stress-catalog.md.

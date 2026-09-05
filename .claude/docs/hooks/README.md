@@ -328,12 +328,12 @@ Hooks are registered in `settings.json` under `hooks.{EventName}[].hooks[]`. Eac
 
 ## Testing
 
-Primary hook test status: `test-all-hooks.cjs` passes with 224 tests, 0 failures (live run 2026-08-19; the in-suite count guard confirms docs agree at 224). The aggregate runner `run-all-tests.cjs` discovers 403 tests across all discoverable suites and passes every one it runs (live run 2026-08-19); its own post-summary count guard asserts that discovered total against both figures here. The guard keys on the DISCOVERED count, not a pass count, because a few tests gate on host capability (`git`) and on repo state, so the passed/skipped split varies per machine while 403 does not.
+Primary hook test status: `test-all-hooks.cjs` passes with 224 tests, 0 failures (live run 2026-08-19; the in-suite count guard confirms docs agree at 224). The aggregate runner `run-all-tests.cjs` discovers 404 tests across all discoverable suites and passes every one it runs (live run 2026-09-05); its own post-summary count guard asserts that discovered total against both figures here. The guard keys on the DISCOVERED count, not a pass count, because a few tests gate on host capability (`git`) and on repo state, so the passed/skipped split varies per machine while 404 does not.
 
 | Test Surface          | Count | File/Location                                                     |
 | --------------------- | ----- | ----------------------------------------------------------------- |
 | Primary hook runner   | 224   | `.claude/hooks/tests/test-all-hooks.cjs`                          |
-| Aggregate runner      | 403   | `.claude/hooks/tests/run-all-tests.cjs` (all suites, discovered)  |
+| Aggregate runner      | 404   | `.claude/hooks/tests/run-all-tests.cjs` (all suites, discovered)  |
 | Standalone test files | TODO  | `tests/test-*.cjs/.js` excluding runner (re-verify before citing) |
 | Scout-block tests     | TODO  | `scout-block/tests/test-*.js` (re-verify before citing)           |
 | Lib unit tests        | TODO  | `lib/__tests__/*.test.cjs` (re-verify before citing)              |

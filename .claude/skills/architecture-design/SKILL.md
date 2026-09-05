@@ -18,6 +18,7 @@ description: '[Architecture] Use when designing solution architecture across bac
 **Goal:** As solution architect, deliver a complete, evidence-backed, user-validated architecture decision report covering ALL concerns (backend, frontend, design patterns, library ecosystem, testing, CI/CD, deployment, monitoring, code quality, dependency management) — every concern researched with 3+ options, every recommendation carrying confidence % + cited evidence, every decision user-confirmed — so implementation proceeds on sound, owned architectural choices.
 
 **Summary:**
+- **Testability contract:** resolve Unit/Integration/System/E2E applicability from runner/config evidence; record owner/root/data, copy-ready full + focused commands, zero-match behavior, CI/simple-Windows entry, unique run/data identity, and repeat proof; unresolved applicable fields block handoff, while non-applicable tiers require evidence-backed `N/A`.
 
 - Decide mode FIRST (Step 1): greenfield researches every concern from scratch; brownfield reads reference docs + accepted ADRs, constrains research to existing stack — NEVER re-litigate a settled ADR-recorded decision without superseding-ADR rationale.
 - **Rank every decision by REVERSIBILITY first (Step 2): one-way door (data model, tenancy, consistency model, service boundaries, public contracts, sync-vs-async) → ADR + user validation MANDATORY; two-way door → decide and move.** — why: architecture IS the set of decisions expensive to reverse; treating a one-way door as reversible is the costliest error this skill can make.
@@ -506,6 +507,21 @@ Research best testing tools, strategy for confirmed tech stack:
 - Gate: mutation score ({tool}) in CI pipeline — fail build on surviving mutants / mutation-score regression, not on a line-coverage %
 ```
 
+### Testability & Execution Contract (required architecture output)
+
+Complete this owner-owned matrix in the architecture report before leaving Step 6. Use confirmed stack/configuration evidence; candidate tools in the research table are options, not proof.
+
+| Tier | Applicability + evidence | Owner | Runner/framework + config | Test root | Data/fixture policy | Full command | Focused/partial command | Zero-match behavior | CI gate | Simple/Windows entry point | Repeat proof |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| Unit | `APPLICABLE` / `N/A — {evidence}` | {owner} | {runner + config path} | {root} | {fixture/factory policy} | `{copy-ready command}` | `{copy-ready filter}` | `{invalid/zero-match exit}` | {gate} | `{simple command or .cmd}` | `{two-run evidence or planned owner}` |
+| Integration/System | `APPLICABLE` / `N/A — {evidence}` | {owner} | {runner + config path} | {root} | {public-path setup + data policy} | `{copy-ready command}` | `{copy-ready filter}` | `{invalid/zero-match exit}` | {gate} | `{simple command or .cmd}` | `{two no-reset runs}` |
+| E2E | `APPLICABLE` / `N/A — {config/source evidence}` | {owner} | {configured browser runner + config} | {root} | {reachable journey data} | `{configured command}` | `{configured filter}` | `{invalid/zero-match exit}` | {gate} | `{simple command or .cmd}` | `{two-run evidence or N/A}` |
+
+- `APPLICABLE` requires a verified runner, framework, configuration, root, and command. For E2E, use `N/A — {evidence}` when no browser framework/configuration/command is verified; never turn the candidate list above into an invented stack.
+- Record full and focused commands as copy-ready commands with explicit scope/filter and non-zero behavior for invalid or zero-match selection. Under the data/fixture and repeat columns, name the unique run/test identity and business suffix, supported public setup path, realistic valid data, count-before-create idempotent/restart-safe reference setup, additive persistent-data policy, mutable-root/worker isolation, real pacing/arrange barrier, exact result, and two consecutive no-reset full runs for each applicable persistent-state suite. If implementation is downstream, mark repeat proof `planned` with its owner rather than claiming PASS.
+
+The completed matrix is the testability decision that downstream scaffold and harness setup consume; do not defer a missing tier decision to implementation.
+
 ---
 
 ## Step 7: CI/CD & Deployment
@@ -645,6 +661,10 @@ After code-quality research, produce this handoff table in the architecture repo
 ```
 
 Every example carries the `GOLDEN-PATH EXAMPLE — copy into src/ …; NOT compiled into the production build` header, contains NO secrets/real endpoints (placeholders only: `EXAMPLE_API_KEY`, `example.invalid`), and compiles/lints under the CI (non-production) target. — why: empty base abstractions are unverified skeletons; one worked example per pattern turns each into demonstrated, reviewable, copy-me usage.
+
+### Scaffold Handoff — Testability Contract
+
+The handoff MUST carry the completed Step-6 matrix unchanged so `/scaffold` and `/harness-setup` can execute it without re-deciding confirmed choices. For every tier, resolve `APPLICABLE` with runner/config/root evidence or record `N/A — {evidence}`; an E2E `N/A` must cite the missing/verified configuration or command. The handoff also names the example/documentation path, full and focused commands, zero-match failure behavior, CI gate, simple/Windows entry point, run identity and data/accumulation policy, and repeat-proof owner/status. Unresolved material choices still use the existing user-confirmation gate.
 
 ---
 
@@ -910,6 +930,21 @@ Run the 11 thinking red flags in `.claude/docs/architecture-knowledge.md` §20.3
 
 <!-- /SYNC:scenario-stress-eval -->
 
+<!-- SYNC:test-architecture-execution-contract -->
+
+> **Test Architecture & Execution Contract** — Treat testability as a setup/architecture acceptance condition. For every potentially applicable tier — Unit, Integration/System, and E2E — record `APPLICABLE` only with evidence of its runner/framework/configuration; otherwise record `N/A — <evidence>` and never fabricate coverage.
+>
+> 1. **Matrix before implementation:** Record applicability, owner, runner/framework, test root, fixture/data strategy, full command, focused/partial command, zero-match behavior, CI gate, and a simple/Windows entry point (a `.cmd` when the project needs one).
+> 2. **Runnable scopes:** Full and focused commands must be copy-ready, fail on invalid or zero-match selections, report exact counts and exit status, and be safe to repeat. E2E uses only configured browser/service commands.
+> 3. **Fresh valid state:** Each run/test owns a unique run identity and business-data suffix, arranges through supported public paths, and uses realistic valid data. Reference setup is count-before-create, idempotent, and restart-safe. Intentional accumulation is additive, keyed, and integrity-checked; never hide contamination with destructive reset.
+>    Run-scoped cleanup, when supported, is opt-in and idempotent: after evidence capture it may remove only ephemeral resources owned by the current run; it must never delete persistent/additive data or another run's data, reset shared state, or replace no-reset proof.
+> 4. **Isolation and fidelity:** Isolate mutable roots and parallel workers; share only immutable/reference data. Preserve real actor pacing and observable arrange barriers. Do not widen retries or weaken assertions to make a scenario pass.
+> 5. **Evidence gate:** Report command, scope, identity, seed/accumulation mode, exact result, and repeat proof. For each applicable persistent-state suite, require two consecutive no-reset full runs. Treat line coverage as diagnostic only; use meaningful property/invariant, mutation, change, and behavior coverage signals.
+>
+> **Ownership:** Architecture/harness defines the matrix; scaffold/workflow makes it runnable; test writers implement tier-specific cases; reviewers verify the contract; the runner reports; seed-data owners preserve uniqueness, idempotency, realism, and accumulation integrity. Missing required evidence blocks setup completion.
+
+<!-- /SYNC:test-architecture-execution-contract -->
+
 <!-- SYNC:scale-technique-gate:reminder -->
 
 **IMPORTANT MUST ATTENTION** scale-technique gate: derive the scale tier from evidence FIRST (T0 internal · T1 <10k · T2 10k–1M · T3 millions+), then judge each warranted technique `PRESENT`/`MISSING-WARRANTED`/`N/A-by-scale`/`OVER-ENGINEERED`. Advise on warranted-but-missing gaps AND advise AGAINST unwarranted heavyweight techniques (anti-over-engineering). **ADVICE-ONLY — emit the Technique Applicability Matrix as guidance; NEVER mutate any score, verdict band, or gate pass/fail.** Full catalog → `.claude/docs/scale-technique-catalog.md` (authoritative for tier thresholds & per-technique warranting tiers — on any change update the catalog FIRST, then re-run `inject_scale_technique_gate.py`).
@@ -970,8 +1005,15 @@ Run the 11 thinking red flags in `.claude/docs/architecture-knowledge.md` §20.3
 
 <!-- /SYNC:project-protocol-overlay:reminder -->
 
+<!-- SYNC:test-architecture-execution-contract:reminder -->
+
+**MUST ATTENTION** Before implementation, record evidence-backed Unit/Integration/System/E2E applicability (or explicit N/A), copy-ready full + focused commands, zero-match behavior, a simple/Windows entry point, unique run identity, realistic valid data, idempotent/restart-safe reference setup, intentional additive accumulation, parallel isolation, exact results, and two no-reset full runs for each applicable persistent-state suite.
+
+<!-- /SYNC:test-architecture-execution-contract:reminder -->
+
 ## Closing Reminders
 
+**IMPORTANT MUST ATTENTION** Testability contract: resolve evidence-backed Unit/Integration/System/E2E rows, copy-ready full/focused commands, zero-match failures, owner/root/data, CI/simple-Windows entry, unique run identity, and repeat proof before claiming setup, review, or test completion.
 **IMPORTANT MUST ATTENTION Goal:** Deliver a complete, evidence-backed, user-validated architecture decision report — every concern researched with 3+ options, every recommendation carrying confidence % + cited evidence, every decision confirmed by the user — so implementation proceeds on sound, owned architectural choices.
 
 **IMPORTANT MUST ATTENTION — Protocols in force (concise digest of the SYNC/shared blocks this skill carries):**

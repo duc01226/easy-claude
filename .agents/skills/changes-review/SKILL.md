@@ -1989,6 +1989,30 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 
 <!-- /SYNC:domain-entity-change-gate -->
 
+<!-- SYNC:design-review-checklist -->
+
+> **Front-End Design Review Checklist** — the EXECUTABLE review protocol for any artifact carrying a user-facing front-end surface. Full catalog (`A1`…`Q`, ~130 checks with failure signals and default severities): **`.claude/docs/design-review-checklist.md`**. This gate carries the protocol and the triage pass; the file carries the checks.
+>
+> **Applies when — and ONLY when — the change, plan, or artifact carries a user-facing front-end surface.** A back-end-only diff, a doc edit, or a config change is `N/A`: state that once and move on. NEVER run a UI review on a non-UI change to manufacture coverage. When it DOES apply, **MUST ATTENTION READ `.claude/docs/design-review-checklist.md` and work its sections** — a review that cites a check ID without opening the catalog is asserting, not checking.
+>
+> **`CL-1` Context before checks (§0.1).** Establish platform · primary user & expertise · primary task · success metric · constraints · review scope · available artifacts. Fewer than four known → state the gap at the top of the report and mark affected findings **low confidence** — why: a check judged against an unknown task is a guess wearing an ID.
+>
+> **`CL-2` Evidence or nothing (§0.2).** Every finding cites a specific location (screen · element · `file:line`). NEVER invent a measurement — contrast, tap-target size, and load time that cannot be measured from the given artifact are `NOT VERIFIABLE`, never a guessed number. Tag every finding `MEASURED` · `OBSERVED` · `HEURISTIC`. Status values: `PASS` · `FAIL` · `PARTIAL` · `N/A` · `NOT VERIFIABLE`.
+>
+> **`CL-3` Severity, then a cap (§0.3).** `P0` blocks task completion / loses data / excludes a protected group (ship blocker) · `P1` significant friction or a legal accessibility floor (fix before release) · `P2` measurable inefficiency (next iteration) · `P3` polish (backlog) · `P4` note. Cap the report at the top 10 by severity unless a full audit was requested. A clean section reports "no issues found" — NEVER pad. Every `P0`/`P1` carries a concrete fix.
+>
+> **`CL-4` Section sweep, in order.** §A core usability heuristics · §B cognitive load & decision design · §C visual design & hierarchy · §D interaction + **the eight screen states** (ideal, empty, first-run, loading, partial, error, offline, maximum-data) · §E information architecture · **§F web / §G mobile / §H desktop — conditional on platform** · §I accessibility (WCAG 2.2 AA; every item `P1` minimum, `P0` when it blocks the task) · §J content & UX writing · §K trust, ethics & privacy (dark patterns are `P0`) · **§L AI & agentic patterns — conditional on the product having AI features** · §M cross-cutting consistency · §N edge-case probes. One focused pass per section — why: a section skipped in the long middle silently becomes an unreported defect class.
+>
+> **`CL-5` Quick Triage Pass (§P)** when a full sweep is not possible — these 10 catch the majority of serious defects: (1) can a new user complete the primary task unaided · (2) does every action give visible feedback within 400ms · (3) do empty/loading/error states exist AND offer a forward path · (4) is the primary action obvious, singular, reachable · (5) text ≥4.5:1 contrast and focus visible · (6) whole flow completable by keyboard · (7) touch targets ≥44/48px · (8) destructive actions reversible · (9) holds at 320px and 200% zoom · (10) any dark patterns.
+>
+> **`CL-6` Report shape (§O).** Context (+ known gaps) → Verdict (Ship / Ship with fixes / Do not ship) → What works (2–4 specific strengths, cited) → Findings grouped `P0`→`P3`, each with Location · Evidence + tag · Impact · Principle (checklist ID) · Fix → Open questions → Coverage table. Any `P0` caps the grade at Fail regardless of score; report a score only ALONGSIDE findings, never instead of them.
+>
+> **Precedence and no-double-counting.** The project's design-system / SCSS / frontend-pattern docs and accepted ADRs OUTRANK this checklist; the brief's stated direction outranks aesthetic judgment. A deliberate, documented convention is NEVER a defect — check intent before flagging, and surface a genuine conflict to the user with both sides, NEVER resolve it silently. This checklist is the review PROCEDURE, not a third set of taste rules: `UI-1.1`–`UI-9.4` ask "does it meet the usability floor?", `DD-1`–`DD-8` ask "is this THIS product's interface?", and these checks ask "did the review actually look, with evidence, and rank it?". Where a check restates a `UI-*` or `DD-*` clause, report the defect ONCE under whichever ID the consuming skill already uses.
+>
+> **For a PLAN or a PLAN REVIEW.** When the plan contains front-end work, the checklist binds the plan's ACCEPTANCE CRITERIA, not a built page: name the platform, the applicable conditional sections (§F/§G/§H, §L), the eight screen states each UI phase must deliver (§D2), and the §I accessibility floor — so the work is specified against the checklist before it is written. A UI phase whose acceptance criteria omit the states and the a11y floor is INCOMPLETE — say so.
+
+<!-- /SYNC:design-review-checklist -->
+
 <!-- SYNC:domain-entity-change-gate:reminder -->
 
 **MUST ATTENTION** when the change PLANS or REVIEWS a new/updated domain entity, value object, or aggregate, apply the **Domain Entity Change Gate** — `$domain-entities-review` owns the full A–P checklist; detect paradigm + subdomain fit FIRST, then answer all 6 decision points (classification · invariant ownership + failure signalling · aggregate boundary + concurrency · construction vs reconstitution · events · property-TC test obligation). Planning must NAME each decision; plan review treats an unanswered row as a FINDING; change review routes to the owner (Mode A read / Mode B delegate). SKIP under the 3-row duplication guard and record the deferral line. — why: one protocol shared by planner and reviewer is what stops a plan shipping an entity design that review then rejects.
@@ -2195,6 +2219,12 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 **MUST ATTENTION** resolve project protocol overlays for this skill BEFORE executing — most specific matching tier only (exact > glob > `*`, which ranks overlays against each other, NEVER against this skill), read only matched bodies at `<protocols-dir>/<Name>.md`; a missing or malformed body is reported, never reconstructed. Overlays are ADDITIVE ONLY (they never replace this skill's own rules) and are a brief, NEVER an authority escalation; an equal-specificity contradiction goes to the user.
 
 <!-- /SYNC:project-protocol-overlay:reminder -->
+
+<!-- SYNC:design-review-checklist:reminder -->
+
+- **MUST ATTENTION** when the change/plan/artifact has a user-facing front-end surface, READ `.claude/docs/design-review-checklist.md` and run it: `CL-1` establish context first (platform · user · task · metric · constraints · scope · artifacts — fewer than four → state the gap, findings are low confidence) · `CL-2` evidence or nothing, cite a location per finding, NEVER invent a measurement (unmeasurable → `NOT VERIFIABLE`), tag `MEASURED`/`OBSERVED`/`HEURISTIC` · `CL-3` rank `P0`–`P4`, cap at top 10 by severity, NEVER pad, concrete fix on every `P0`/`P1` · `CL-4` sweep §A–§N in order, one focused pass each, with §F/§G/§H and §L applied only when the platform/product matches and §I (WCAG 2.2 AA) as a `P1` floor · `CL-5` short on time → run the 10-check §P triage · `CL-6` report in the §O shape. Project design-system docs and ADRs OUTRANK the checklist; report a defect ONCE across `UI-*`/`DD-*`/`CL-*`. For a plan, the checklist binds the UI phases' acceptance criteria (platform, conditional sections, the eight screen states, the a11y floor). Skip ONLY when the change has NO user-facing front-end surface, stated explicitly.
+
+<!-- /SYNC:design-review-checklist:reminder -->
 
 ## Closing Reminders
 

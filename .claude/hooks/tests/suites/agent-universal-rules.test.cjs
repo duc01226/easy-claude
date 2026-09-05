@@ -73,6 +73,10 @@
  *                    in AGENT_ADOPTION_EXEMPT. Catches the drift class where a
  *                    new protocol propagates to every skill but no agent, so
  *                    agents silently run weaker protocols than their twin skills.
+ *   P (TC-UAR-018) — every canonical agent exposes a valid generated skill
+ *                    connection, native frontmatter links resolve and are
+ *                    connected, and every test-architecture carrier has an
+ *                    agent owner. Prevents skill/agent routing drift.
  */
 
 const fs = require('fs');
@@ -141,6 +145,16 @@ const AGENT_ADOPTION_EXEMPT = new Set([
     'goal-contract-satisfaction-loop', // session goal file + convergence loop + user escalation
     'project-protocol-overlay',    // overlay resolution is performed by whoever INVOKES the skill; a headless leaf sub-agent receives one already-scoped brief whose overlay the dispatching orchestrator already resolved
 ]);
+const AGENT_SKILL_CONNECTIONS_OPEN = '<!-- AGENT-SKILL-CONNECTIONS:START -->';
+const AGENT_SKILL_CONNECTIONS_CLOSE = '<!-- AGENT-SKILL-CONNECTIONS:END -->';
+const TEST_ARCHITECTURE_SKILLS = [
+    'architecture-design', 'architecture-scalability-review', 'architecture-review-full',
+    'scaffold', 'harness-setup', 'greenfield', 'workflow-greenfield-init',
+    'integration-test', 'integration-test-review', 'integration-test-verify',
+    'integration-test-verify-loop', 'e2e-test', 'workflow-e2e',
+    'workflow-write-integration-test', 'workflow-integration-test-green', 'test',
+    'seed-test-data',
+];
 // agent-code-standards audience — SEPARATE axis (mirror sync-hooks-to-skills.py
 // CODE_STANDARDS_AGENTS verbatim). NOT the same set as CODE_AGENTS.
 const CODE_STANDARDS_AGENTS = new Set([
@@ -224,6 +238,22 @@ const fenceBalance = body => ({
     opens: (body.match(/^<!-- SYNC:/gm) || []).length,
     closes: (body.match(/^<!-- \/SYNC:/gm) || []).length,
 });
+
+const connectedSkills = body => {
+    const escapedOpen = AGENT_SKILL_CONNECTIONS_OPEN.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const escapedClose = AGENT_SKILL_CONNECTIONS_CLOSE.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const match = new RegExp(`${escapedOpen}([\\s\\S]*?)${escapedClose}`).exec(body);
+    if (!match) return null;
+    return [...match[1].matchAll(/^- `([^`]+)`\s*$/gm)].map(m => m[1]);
+};
+
+const nativeFrontmatterSkills = body => {
+    const frontmatter = /^---\s*\n([\s\S]*?)\n---\s*\n/.exec(body);
+    if (!frontmatter) return [];
+    const match = /^skills:\s*(.+)$/m.exec(frontmatter[1]);
+    if (!match || match[1].trim() === '[]') return [];
+    return match[1].split(',').map(skill => skill.trim().replace(/^['"]|['"]$/g, '')).filter(Boolean);
+};
 
 module.exports = {
     name: 'agent-universal-rules',
@@ -549,6 +579,45 @@ module.exports = {
                         + ' inject_agent_protocol_blocks.py), OR — if it is orchestration a headless'
                         + ' leaf sub-agent structurally cannot act on — adding it to that file\'s'
                         + ' EXCLUDED_ORCHESTRATION and to AGENT_ADOPTION_EXEMPT here, with a reason.',
+                );
+            },
+        },
+        {
+            name: '[agent-universal-rules] TC-UAR-018 every agent has valid connected skill contracts and test architecture carriers have owners',
+            fn: () => {
+                const problems = [];
+                const ownersBySkill = new Map(TEST_ARCHITECTURE_SKILLS.map(skill => [skill, []]));
+                const knownSkills = new Set(skillNames);
+
+                for (const name of diskAgents) {
+                    const body = read(name);
+                    const connected = connectedSkills(body);
+                    if (!connected || connected.length === 0) {
+                        problems.push(`${name}: missing or empty AGENT-SKILL-CONNECTIONS block`);
+                        continue;
+                    }
+
+                    const duplicates = connected.filter((skill, index) => connected.indexOf(skill) !== index);
+                    if (duplicates.length > 0) problems.push(`${name}: duplicate connected skill(s) ${[...new Set(duplicates)].join(', ')}`);
+                    for (const skill of connected) {
+                        if (!knownSkills.has(skill)) problems.push(`${name}: unknown connected skill ${skill}`);
+                        if (ownersBySkill.has(skill)) ownersBySkill.get(skill).push(name);
+                    }
+
+                    for (const skill of nativeFrontmatterSkills(body)) {
+                        if (!knownSkills.has(skill)) problems.push(`${name}: unknown frontmatter skill ${skill}`);
+                        if (!connected.includes(skill)) problems.push(`${name}: frontmatter skill ${skill} is not in its connection block`);
+                    }
+                }
+
+                for (const [skill, owners] of ownersBySkill) {
+                    if (owners.length === 0) problems.push(`${skill}: no connected agent owner`);
+                }
+
+                assertEqual(
+                    problems.length,
+                    0,
+                    `agent-to-skill connection violations:\n  ${problems.join('\n  ')}`,
                 );
             },
         },
