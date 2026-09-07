@@ -14,7 +14,7 @@
  * (the SYNC:project-protocol-overlay reminder in every SKILL.md) FULLY functional on BOTH hosts.
  * Any future change that makes another plane depend on this hook is a DEFECT.
  * — why: CLAUDE.md states "Hooks/trackers are accelerators only. Correctness MUST NOT depend on it."
- *   Codex has no hook system at all, so a hook-dependent design is Claude-only by construction.
+ *   Claude and Codex may both expose hooks, but a hook-dependent design is invalid by construction.
  *
  * Coverage is deliberately PARTIAL: UserPromptSubmit fires on the raw prompt before Claude picks
  * any tool, so this can only see a user-TYPED `/name` — never a model-auto-invoked skill.

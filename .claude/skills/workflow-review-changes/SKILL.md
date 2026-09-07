@@ -1,7 +1,7 @@
 ---
 name: workflow-review-changes
-version: 4.2.0
-description: '[Workflow] Use when activating the Review Current Changes workflow for review, fix, and re-review recursively until all issues resolved.'
+version: 4.3.0
+description: '[Workflow] Use when activating the Review Current Changes workflow for review, fix, and re-review recursively until the current severity bar is clear; round-2+ LOW findings are recorded and deferred.'
 ---
 
 <!-- PROMPT-ENHANCE:STEP-TASK-ANCHOR:START -->
@@ -15,19 +15,20 @@ description: '[Workflow] Use when activating the Review Current Changes workflow
 
 ## Quick Summary
 
-**Goal:** Ensure changed work reaches clean review through an initial whole-target adversarial pass run in parallel with dimensional review, validated findings, verified fixes, full re-review, and synchronized docs/tests — review all uncommitted changes, fix only validated findings, then repeat the plan→plan-execute→changes-review loop until a complete pass is clean.
+**Goal:** Ensure changed work reaches a defensible review pass through an initial whole-target adversarial pass run in parallel with dimensional review, validated findings, verified fixes, full re-review, and synchronized docs/tests — review all uncommitted changes, fix only validated blocking findings, then repeat the plan→plan-execute→changes-review loop until the current severity bar is clear (round 1: zero findings; round 2+: zero CRITICAL/HIGH/MEDIUM, with LOWs recorded as deferred).
 
 **Summary:**
 
-- **Step 0 (FIRST ACTION, pre-sequence):** bind the self-recursive review loop — an always-on protocol loop you self-drive (the BINDING mechanism, hook/command-independent) PLUS, when available, a `/goal` Stop-hook gate as an optional accelerator — so the review→self-fix→whole-diff-re-review loop is unabandonable until it converges to a clean pass at that round's bar (zero findings in rounds 1-2; zero CRITICAL/HIGH/MEDIUM from round 3) — why: a soft "loop until clean" directive gets rationalized away after one fix cycle, and the protocol loop holds even where `/goal` is absent. Session-level wrapper, NOT one of the 20 canonical steps. ALWAYS runs — including as a step inside a parent workflow — because this workflow always runs INLINE in the main session (never a sub-agent), so it owns the loop directly in every case.
+- **Step 0 (FIRST ACTION, pre-sequence):** bind the self-recursive review loop — an always-on protocol loop you self-drive (the BINDING mechanism, hook/command-independent) PLUS, when available, a `/goal` Stop-hook gate as an optional accelerator — so the review→self-fix→whole-diff-re-review loop is unabandonable until it clears the current round's bar (round 1: zero findings; round 2+: zero CRITICAL/HIGH/MEDIUM, with LOWs deferred) — why: a soft "loop until clean" directive gets rationalized away after one fix cycle, and the protocol loop holds even where `/goal` is absent. Session-level wrapper, NOT one of the 21 canonical steps. ALWAYS runs — including as a step inside a parent workflow — because this workflow always runs INLINE in the main session (never a sub-agent), so it owns the loop directly in every case.
 - **Initial parallel phase (steps 1–2, all-return barrier):** launch step 2 `/why-review --target=whole-review-target` as a fresh read-only `code-reviewer` sub-agent, then immediately run step 1 `/changes-review` INLINE while it is active. Step 1 owns the dimensional baseline (surface analysis, integration-test/translation/spec-drift gaps, internal UI review); step 2 independently reviews the WHOLE review target + current changes in FULL mode. Neither consumes the other's output. Advance only after BOTH return, then consolidate both reports.
 - Step 3 `/why-review` validates the step-1 `/changes-review` findings to drop false positives BEFORE the specialist batch fires. The initial whole-target step 2 already validates its own findings through `/why-review`'s full-mode closing gate.
 - Steps 4–10 (`/architecture-review`, `/domain-entities-review` [if entity files], `/performance-review`, `/integration-test-review`, `/security-review`, `/production-readiness-review`, `/ui-review` [if frontend files]) are read-only sub-agents: spawn ALL in ONE message and advance ONLY after every member returns (all-return barrier); the mutating `/code-simplifier` (step 11) waits until the barrier clears and self-reviews its own changes via `/code-review`. (`/ui-review` runs here as a DEDICATED conditional batch member AND still runs internally inside step 1's `/changes-review` — both by design; see the UI-review note below.)
-- Fix cycle (steps 12–15 `/plan`→`/plan-review`→`/plan-execute`→`/changes-review`) runs ONLY when validated findings exist; the step-15 re-review runs ONLY if `/plan-execute` changed files, re-reading the full diff from scratch INLINE to counter orchestrator confirmation bias, and loops until the round's exit bar is clear — **zero findings in rounds 1-2, zero CRITICAL/HIGH/MEDIUM from round 3 (a LOW-only round ENDS the loop, deferred not fixed)** — bounded at **3 rounds MAX** (escalate via `AskUserQuestion` at whichever trips first: 2 no-progress repeats of the same blocker, or round 3 completing with CRITICAL/HIGH/MEDIUM still open — cap exhaustion escalates, never PASSes).
-- **Step 16 `/why-review` (ALWAYS runs, FULL mode, standalone)** — near-final HOLISTIC review of the settled WHOLE target + current changes as ONE artifact. It remains mandatory even though step 2 uses the same lens at startup: step 2 finds whole-package risks early; step 16 proves the final post-fix state. On findings → re-enter `/plan`→`/plan-execute`→`/changes-review`, then re-run step 16 until a full-mode pass finds zero new findings (bounded by `/why-review`'s own review loop: max 2 re-dos / 3-repeat-blocker → escalate).
-- `/docs-update` (step 18) ALWAYS runs and triages internally; SPEC-STALE drift verdicts from step 1 flow here to update the Feature Spec first — the workflow is NOT clean while any behavior-vs-spec divergence stays unadjudicated (green tests do not normalize drift).
+- Fix cycle (steps 12–15 `/plan`→`/plan-review`→`/plan-execute`→`/changes-review`) runs ONLY when validated findings exist; the step-15 re-review runs ONLY if `/plan-execute` changed files, re-reading the full diff from scratch INLINE to counter orchestrator confirmation bias, and loops until the round's exit bar is clear — **zero findings in round 1, zero CRITICAL/HIGH/MEDIUM from round 2 (a LOW-only round ENDS the loop, deferred not fixed)** — bounded at **3 rounds MAX** (escalate via `AskUserQuestion` at whichever trips first: 2 no-progress repeats of the same blocker, or round 3 completing with CRITICAL/HIGH/MEDIUM still open — cap exhaustion escalates, never PASSes).
+- **Step 16 `/why-review` (ALWAYS runs, FULL mode, standalone)** — near-final HOLISTIC review of the settled WHOLE target + current changes as ONE artifact. It remains mandatory even though step 2 uses the same lens at startup: step 2 finds whole-package risks early; step 16 proves the final post-fix state. On blocking findings → re-enter `/plan`→`/plan-execute`→`/changes-review`, then re-run step 16 until the current round bar is clear (round 1: zero findings; round 2+: zero CRITICAL/HIGH/MEDIUM, with LOWs deferred; bounded by `/why-review`'s own review loop: max 2 re-dos / 3-repeat-blocker → escalate).
+- **Step 17 `/experience-review` (CONDITIONAL, INLINE)** — when the changed target includes a configured or likely observable surface, exercise the running/observable feature, inspect evidence, classify the result, and leave a candidate or accepted expectation record. It is skipped only with an evidence-backed `NOT-APPLICABLE` reason; a relevant surface that cannot run or be inspected is `ENVIRONMENT-BLOCKED`, and no expectation is rewritten automatically. **This step MAY LAND FIXES** — it runs a bounded remediation loop (`--rounds=N`, default 3) in which each round adjudicates the BLOCKING defects, fixes at the owning layer, `/changes-review`s that round's own fix diff, and re-exercises from scratch. Its internal per-round `/changes-review` is what keeps this workflow's convergence guarantee intact after step 16; any fix it lands is therefore already code-reviewed. Only objectively-checkable defects open a round — ADVISORY/taste findings are recorded, never looped on — and it converges to `AGENT-RECOMMENDED-ACCEPT`/`ACCEPTANCE-PENDING`, never to a signed acceptance. Cap reached, defect count not shrinking, count rising, or `ENVIRONMENT-BLOCKED` → `NOT-CONVERGED` + escalate, never a partial pass. Pass `--rounds=0` to keep the step report-only.
+- `/docs-update` (step 19) ALWAYS runs and triages internally; SPEC-STALE drift verdicts from step 1 flow here to update the Feature Spec first — the workflow is NOT clean while any behavior-vs-spec divergence stays unadjudicated (green tests do not normalize drift).
 
-**Sequence:** *(Step 0 pre-sequence: bind self-recursive review loop — protocol loop always, `/goal` accelerator when available)* → **[initial parallel phase]** /changes-review (INLINE; owns dimensional/UI baseline) + `/why-review --target=whole-review-target` (fresh read-only sub-agent; FULL mode over the whole target) → /why-review (validate step-1 findings) → **[specialist parallel batch]** /architecture-review + /domain-entities-review (if entity changes) + /performance-review + /integration-test-review + /security-review + /production-readiness-review + /ui-review (if frontend changes) → /code-simplifier → /plan → /plan-review → /plan-execute → **`/changes-review` (conditional inline re-review)** → **`/why-review` (final HOLISTIC full-mode review of the settled WHOLE target)** → /scan --target=domain-entities → /docs-update → /workflow-end → /watzup
+**Sequence:** *(Step 0 pre-sequence: bind self-recursive review loop — protocol loop always, `/goal` accelerator when available)* → **[initial parallel phase]** /changes-review (INLINE; owns dimensional/UI baseline) + `/why-review --target=whole-review-target` (fresh read-only sub-agent; FULL mode over the whole target) → /why-review (validate step-1 findings) → **[specialist parallel batch]** /architecture-review + /domain-entities-review (if entity changes) + /performance-review + /integration-test-review + /security-review + /production-readiness-review + /ui-review (if frontend changes) → /code-simplifier → /plan → /plan-review → /plan-execute → **`/changes-review` (conditional inline re-review)** → **`/why-review` (final HOLISTIC full-mode review of the settled WHOLE target)** → **`/experience-review` (conditional inline exercise/inspection and acceptance handoff)** → /scan --target=domain-entities → /docs-update → /workflow-end → /watzup
 
 **Key Rules:**
 
@@ -67,7 +68,7 @@ below — if a downstream rule would raise change cost, this principle wins.
 
 ## Step 0 — Bind the Self-Recursive Review Loop (FIRST ACTION — pre-sequence; protocol-first, `/goal` optional)
 
-> **MUST ATTENTION:** Before creating the 20 step tasks below, the VERY FIRST action is to BIND the self-recursive review loop so the session cannot end until the whole workflow loop converges to a clean zero-finding pass. Binding has TWO layers: (1) an **always-on protocol loop** you self-drive — the BINDING mechanism, hook/command-independent, in force on every host; and (2) an **optional `/goal` accelerator** — a mechanical Stop-hook block installed only WHEN the command is available. This is a session-level enforcement WRAPPER — NOT one of the 20 canonical `workflows.json` sequence steps, so it does NOT change the step count or the sequence; it makes the existing loop unabandonable.
+> **MUST ATTENTION:** Before creating the 21 step tasks below, the VERY FIRST action is to BIND the self-recursive review loop so the session cannot end until the whole workflow loop converges to a clean zero-finding pass. Binding has TWO layers: (1) an **always-on protocol loop** you self-drive — the BINDING mechanism, hook/command-independent, in force on every host; and (2) an **optional `/goal` accelerator** — a mechanical Stop-hook block installed only WHEN the command is available. This is a session-level enforcement WRAPPER — NOT one of the 21 canonical `workflows.json` sequence steps, so it does NOT change the step count or the sequence; it makes the existing loop unabandonable.
 
 **Entry gate:**
 
@@ -77,12 +78,12 @@ below — if a downstream rule would raise change cost, this principle wins.
 
 **1. Protocol loop — ALWAYS binding (hook/command-independent).** This is the mechanism that actually holds the loop shut; it binds Claude, Codex, and Copilot equally, whether or not `/goal` exists. You yourself MUST NOT stop until the condition below holds:
 
-> Run the initial parallel phase (`/changes-review` INLINE + `/why-review --target=whole-review-target` in a fresh sub-agent) to its all-return barrier → validate step-1 findings → run the specialist parallel reviewers + `/code-simplifier` → if validated findings exist, `/plan` → `/plan-execute` SELF-FIXES them → re-run `/changes-review` INLINE over the WHOLE current diff → loop until one complete pass clears the round's bar (rounds 1-2: zero findings; round 3+: zero CRITICAL/HIGH/MEDIUM, LOW-only ENDS the loop with the LOWs deferred) → run the final full-mode `/why-review` over the settled whole target → only then `/docs-update` → `/workflow-end`. Stop only when all required review passes are clean (or the same blocker repeats 3× with no progress → escalate via `AskUserQuestion`).
+> Run the initial parallel phase (`/changes-review` INLINE + `/why-review --target=whole-review-target` in a fresh sub-agent) to its all-return barrier → validate step-1 findings → run the specialist parallel reviewers + `/code-simplifier` → if validated findings exist, `/plan` → `/plan-execute` SELF-FIXES them → re-run `/changes-review` INLINE over the WHOLE current diff → loop until one complete pass clears the round's bar (round 1: zero findings; round 2+: zero CRITICAL/HIGH/MEDIUM, LOW-only ENDS the loop with the LOWs deferred) → run the final full-mode `/why-review` over the settled whole target → run conditional `/experience-review` to exercise/inspect any configured or likely observable surface and preserve explicit acceptance state → only then `/docs-update` → `/workflow-end`. Stop only when all required review passes are clean (or the same blocker repeats for 2 full invocations with no progress → escalate via `AskUserQuestion`).
 
 **2. `/goal` command — invoke as an accelerator WHEN AVAILABLE.** If `/goal` is registered and permitted on this host, invoke it (the actual built-in command) with the same condition to add a mechanical Stop-hook block on top of the protocol loop:
 
 ```
-/goal workflow-review-changes self-recursive loop: run the initial parallel phase (/changes-review INLINE + /why-review --target=whole-review-target in a fresh sub-agent) to its all-return barrier → validate step-1 findings → run the specialist parallel reviewers + /code-simplifier → if validated findings exist, /plan → /plan-execute SELF-FIXES them → re-run /changes-review INLINE over the WHOLE current diff → loop until one complete pass clears the round's bar (rounds 1-2: zero findings; round 3+: zero CRITICAL/HIGH/MEDIUM, a LOW-only round ENDS the loop with the LOWs recorded as deferred) → run the final full-mode /why-review over the settled whole target → only then /docs-update → /workflow-end. Stop only when all required review passes are clean (or the same blocker repeats 3× with no progress → escalate via AskUserQuestion).
+/goal workflow-review-changes self-recursive loop: run the initial parallel phase (/changes-review INLINE + /why-review --target=whole-review-target in a fresh sub-agent) to its all-return barrier → validate step-1 findings → run the specialist parallel reviewers + /code-simplifier → if validated findings exist, /plan → /plan-execute SELF-FIXES them → re-run /changes-review INLINE over the WHOLE current diff → loop until one complete pass clears the round's bar (round 1: zero findings; round 2+: zero CRITICAL/HIGH/MEDIUM, a LOW-only round ENDS the loop with the LOWs recorded as deferred) → run the final full-mode /why-review over the settled whole target → only then /docs-update → /workflow-end. Stop only when all required review passes are clean (or the same blocker repeats for 2 full invocations with no progress → escalate via AskUserQuestion).
 ```
 
 The `/goal` Stop hook then blocks stopping until the condition holds and auto-clears when met — do not tell the user to clear it.
@@ -93,15 +94,15 @@ The `/goal` Stop hook then blocks stopping until the condition holds and auto-cl
 /goal accelerator unavailable — review loop bound by protocol (Step 0 step 1)
 ```
 
-3. Then proceed to create the 20 step tasks below and run the sequence.
+3. Then proceed to create the 21 step tasks below and run the sequence.
 
-> **Why bind the loop on top of the loop prose:** the conditional re-review (step 15) and the "loop until clean" rules are soft directives an orchestrator can rationalize away after one fix cycle. The protocol loop converts them into a self-enforced invariant on every host; the optional `/goal` Stop hook adds a mechanical block, but correctness never depends on it.
+> **Why bind the loop on top of the loop prose:** the conditional re-review (step 15) and the round-bar rules are soft directives an orchestrator can rationalize away after one fix cycle. The protocol loop converts them into a self-enforced invariant on every host; the optional `/goal` Stop hook adds a mechanical block, but correctness never depends on it.
 
 ## Mandatory Task Creation (ZERO TOLERANCE)
 
 > **Step 0 first:** bind the Step 0 self-recursive review loop (above — protocol loop always, `/goal` accelerator when available) BEFORE creating these tasks — always, including when this workflow is a step inside a parent workflow, since it always runs inline in the main session and owns the loop directly.
 
-Create one task per row in the table below — source of truth is `workflows.json` → `workflow-review-changes.sequence` (currently 20 steps; verify count matches if you suspect drift). The Step 0 loop binding is a pre-sequence wrapper and is NOT counted among these 20:
+Create one task per row in the table below — source of truth is `workflows.json` → `workflow-review-changes.sequence` (currently 21 steps; verify count matches if you suspect drift). The Step 0 loop binding is a pre-sequence wrapper and is NOT counted among these 21:
 
 | #   | Task Subject                                                                                                                                                                   | Conditional?                                                                                   |
 | --- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------- |
@@ -119,24 +120,25 @@ Create one task per row in the table below — source of truth is `workflows.jso
 | 12  | `[Workflow] /plan — Consolidate validated review findings into fix plan` | Conditional — only when validated findings exist |
 | 13  | `[Workflow] /plan-review — Review the fix plan and its rationale` | Conditional — only when a fix plan exists |
 | 14  | `[Workflow] /plan-execute — Implement validated fixes from plan` | Conditional — only when validated findings exist |
-| 15  | `[Workflow] /changes-review — Conditional inline re-review after /plan-execute; loop until clean` | Skip if all reviews pass or `/plan-execute` changed no files |
+| 15  | `[Workflow] /changes-review — Conditional inline re-review after /plan-execute; loop until the current bar is clear` | Skip if all reviews pass or `/plan-execute` changed no files |
 | 16  | `[Workflow] /why-review — Final HOLISTIC full-mode review of the settled WHOLE target + changes` | Always run — preserves post-fix convergence; on findings re-enter steps 12–15, then re-run step 16 |
-| 17  | `[Workflow] /scan --target=domain-entities — Refresh the domain-entity reference catalog` | Conditional — run only when the final diff changes an entity/model, DTO/data contract, persistence schema/migration, or entity-sync evidence; otherwise complete with a cited skip reason |
-| 18  | `[Workflow] /docs-update — Update impacted documentation` | Always run — triages internally |
-| 19  | `[Workflow] /workflow-end — End workflow state` | No |
-| 20  | `[Workflow] /watzup — Post-workflow summary and final /understand handoff` | No |
+| 17  | `[Workflow] /experience-review — Exercise and inspect affected observable experience; converge BLOCKING defects in a bounded loop; record acceptance state` | Conditional — run for a configured or likely observable surface; skip only with evidence-backed `NOT-APPLICABLE`, and record `ENVIRONMENT-BLOCKED` when a relevant surface cannot run or be inspected. MAY land fixes (`--rounds=N`, default 3); each round self-reviews its own fix diff, so convergence survives step 16 |
+| 18  | `[Workflow] /scan --target=domain-entities — Refresh the domain-entity reference catalog` | Conditional — run only when the final diff changes an entity/model, DTO/data contract, persistence schema/migration, or entity-sync evidence; otherwise complete with a cited skip reason |
+| 19  | `[Workflow] /docs-update — Update impacted documentation` | Always run — triages internally |
+| 20  | `[Workflow] /workflow-end — End workflow state` | No |
+| 21  | `[Workflow] /watzup — Post-workflow summary and final /understand handoff` | No |
 
 > **UI review runs in TWO places by design (keep both).** `/ui-review` runs BOTH (a) INTERNALLY inside step 1 (`/changes-review` invokes it as its UI dimension) AND (b) as a DEDICATED conditional specialist-batch member (step 10, `ui-ux-designer` sub-agent). Both are gated on the same trigger — frontend/UI files in the diff — so both are skipped when no frontend files changed. Create the step-10 `[Workflow] /ui-review` task (conditional) AND keep step 1's internal UI dimension; do NOT collapse them into one.
 
-NEVER consolidate, rename, or omit steps. If reviews PASS, mark conditional tasks `completed` with note "Skipped — all reviews passed".
+NEVER consolidate, rename, or omit steps. If reviews PASS, mark conditional tasks `completed` only with each occurrence's evidence-backed applicability/skip result; never use a generic "Skipped — all reviews passed" note. For `/experience-review`, that result is `NOT-APPLICABLE` only when the inspected project evidence shows no applicable surface; a relevant but unusable surface is `ENVIRONMENT-BLOCKED`.
 
 > **Integration Test Sync:** The `/changes-review` skill (task #1) includes a **mandatory** integration test coverage check for changed command/query/handler files. When gaps are found, the skill uses `AskUserQuestion` to surface them — NOT purely advisory. The user must explicitly choose to run `/integration-test` or confirm tests are already written. No silent skip.
 
 > **Translation Sync:** The `/changes-review` skill (task #1) includes a **mandatory** multilingual UI translation-sync check. When UI text changes in multilingual projects without locale updates, the skill uses `AskUserQuestion` for an explicit user decision — NOT purely advisory.
 
-> **Docs Update:** `/docs-update` (step 18) MUST run after EVERY review — it performs Phase 0 triage and fast-exits automatically when only non-business-code files changed (`.claude/**`, config). When business code is in the changeset, it WILL invoke: Phase 2 `/spec` (business feature doc update), Phase 2.5 `/spec-index [mode=index]` (derived bucket INDEX/ERD refresh — if `docs/specs/` bucket maintains a derived index; note: dirs may be app buckets or flat system folders — probe `ls docs/specs/{name}/` to find a specific service), Phase 2.6 `/tech-spec` when the derived technical view is affected, Phase 3 `/spec [mode=tests]` (test spec sync), Phase 4 `/spec [mode=sync]` (§8 TCs ↔ executing test code). Never skip based on review PASS status alone.
+> **Docs Update:** `/docs-update` (step 19) MUST run after EVERY review — it performs Phase 0 triage and fast-exits automatically when only non-business-code files changed (`.claude/**`, config). When business code is in the changeset, it WILL invoke: Phase 2 `/spec` (business feature doc update), Phase 2.5 `/spec-index [mode=index]` (derived bucket INDEX/ERD refresh — if `docs/specs/` bucket maintains a derived index; note: dirs may be app buckets or flat system folders — probe `ls docs/specs/{name}/` to find a specific service), Phase 2.6 `/tech-spec` when the derived technical view is affected, Phase 3 `/spec [mode=tests]` (test spec sync), Phase 4 `/spec [mode=sync]` (§8 TCs ↔ executing test code). Never skip based on review PASS status alone.
 
-> **Spec Drift Adjudication:** The `/changes-review` skill (task #1) runs a **mandatory** spec-drift adjudication (`SYNC:spec-drift-adjudication`, per `shared/sdd-artifact-contract.md` → Drift Gates) for every behavior-changing file: it classifies each divergence between changed behavior and the canonical Feature Spec as **CODE-WRONG** (BLOCKING — fix the code/test against intended behavior), **SPEC-STALE** (the change is the new intent — the spec documents the old behavior), or **AMBIGUOUS** (escalate). The reviewer never silently picks a side. A **SPEC-STALE** verdict flows downstream: `/docs-update` (step 18) updates the Feature Spec FIRST via `/spec [update]`, then re-syncs `/spec [mode=tests]`. The workflow is NOT clean while any behavior-vs-spec divergence remains unadjudicated — green tests do not normalize drift (green can encode the drift itself).
+> **Spec Drift Adjudication:** The `/changes-review` skill (task #1) runs a **mandatory** spec-drift adjudication (`SYNC:spec-drift-adjudication`, per `shared/sdd-artifact-contract.md` → Drift Gates) for every behavior-changing file: it classifies each divergence between changed behavior and the canonical Feature Spec as **CODE-WRONG** (BLOCKING — fix the code/test against intended behavior), **SPEC-STALE** (the change is the new intent — the spec documents the old behavior), or **AMBIGUOUS** (escalate). The reviewer never silently picks a side. A **SPEC-STALE** verdict flows downstream: `/docs-update` (step 19) updates the Feature Spec FIRST via `/spec [update]`, then re-syncs `/spec [mode=tests]`. The workflow is NOT clean while any behavior-vs-spec divergence remains unadjudicated — green tests do not normalize drift (green can encode the drift itself).
 
 > **Spec enrichment per cycle (MANDATORY — closes the feedback loop):** Every confirmed finding fixed in the loop (steps 12–15) that changed observable behavior MUST produce a new or updated §8 regression/preservation TC via `/spec [mode=tests]` before the workflow is clean — a code-only fix with no covering §8 TC is an INCOMPLETE cycle, not a clean pass. This applies to EVERY confirmed behavior-changing fix, not only SPEC-STALE drift verdicts or bugfix-workflow paths: a CODE-WRONG fix owes a regression TC describing the now-correct behavior; a behavior change owes a preservation/regression TC guarding the new behavior. So each recursive cycle ENRICHES the spec rather than only mutating code — the inline re-review (step 15) and the `/workflow-end` spec ↔ TDD-test sync gate both treat a behavior-changing fix that left no §8 TC as an open finding.
 
@@ -260,24 +262,24 @@ All four (plus the UI-dimension `/ui-review` findings when frontend files change
 
 ```
 Reviews (steps 1-11) → ALL PASS (no findings)?
-  YES → skip steps 12-15 (/plan → /plan-review → /plan-execute → /changes-review), proceed to final /why-review HOLISTIC full-mode pass (step 16) → /scan --target=domain-entities (step 17, conditional — run on entity/DTO/schema changes, else complete with a cited skip reason) → /docs-update (step 18) → /workflow-end → /watzup → DONE
-  NO (findings exist) → /plan → /plan-review → /plan-execute → (if /plan-execute changed files) /changes-review INLINE re-review (step 15) → loop until clean at the round's bar (rounds 1-2: zero findings; round 3+: zero CRITICAL/HIGH/MEDIUM) → final /why-review HOLISTIC full-mode pass (step 16)
-Step 16 (ALWAYS): /why-review FULL mode over the settled WHOLE target + changes. If it finds new BLOCKING findings → re-enter /plan → /plan-execute → /changes-review, then re-run step 16; loop until clean at the round's bar (round 3+ ignores LOW-only) → /scan --target=domain-entities (step 17, conditional) → /docs-update (step 18).
+  YES → skip steps 12-15 (/plan → /plan-review → /plan-execute → /changes-review), proceed to final /why-review HOLISTIC full-mode pass (step 16) → conditional /experience-review (step 17) → /scan --target=domain-entities (step 18, conditional — run on entity/DTO/schema changes, else complete with a cited skip reason) → /docs-update (step 19) → /workflow-end → /watzup → DONE
+  NO (findings exist) → /plan → /plan-review → /plan-execute → (if /plan-execute changed files) /changes-review INLINE re-review (step 15) → loop until clean at the round's bar (round 1: zero findings; round 2+: zero CRITICAL/HIGH/MEDIUM) → final /why-review HOLISTIC full-mode pass (step 16)
+Step 16 (ALWAYS): /why-review FULL mode over the settled WHOLE target + changes. If it finds new BLOCKING findings → re-enter /plan → /plan-execute → /changes-review, then re-run step 16; loop until the current round bar is clear (round 1: zero findings; round 2+: zero CRITICAL/HIGH/MEDIUM, with LOWs deferred) → conditional /experience-review (step 17) → /scan --target=domain-entities (step 18, conditional) → /docs-update (step 19).
 Note: /code-simplifier (step 11) self-reviews the code it changes via /code-review before returning.
 Note: /why-review has three workflow occurrences: step 2 FULL mode on the whole starting target in parallel with step 1; step 3 `--validate-findings` mode over step-1 findings; step 16 FULL mode over the settled post-fix target. Steps 2 and 16 share a lens but observe different states, while step 3 is a terminal findings-validation gate.
 ```
 
 ### Conditional Inline Re-Review Gate (Step 15) — After `/plan-execute` Applies Fixes
 
-1. **CONDITION (run only if /plan-execute changed files):** Step 15 runs ONLY when `/plan-execute` actually modified files. If `/plan-execute` made no file changes, SKIP step 15 and proceed to the step-16 holistic `/why-review`, then `/docs-update`.
+1. **CONDITION (run only if /plan-execute changed files):** Step 15 runs ONLY when `/plan-execute` actually modified files. If `/plan-execute` made no file changes, SKIP step 15 and proceed to the step-16 holistic `/why-review`, then the conditional step-17 `/experience-review`, then `/docs-update`.
 2. **DO** re-run the `/changes-review` protocol **INLINE in the main session** over the current full diff. Create a fresh task breakdown, rerun blast radius, risk detection, surface categorization, diff collection, dimensional reviews, synthesis, and validation gates. (Inline by design for this workflow — cheaper than spawning a fresh sub-agent; accept the mild orchestrator-confirmation-bias tradeoff, and counter it by re-reading the diff from scratch.)
 3. **DO** track re-review invocation count and repeated blockers in conversation context
 4. **DO** integrate the inline `/changes-review` findings — MUST NOT filter, reinterpret, or override
-5. **IF** the inline re-review clears the round's bar — PASS with zero findings (rounds 1-2), or zero CRITICAL/HIGH/MEDIUM with only LOW findings left (round 3+, recorded as deferred) → confirm every behavior-changing fix has its required §8 regression/preservation TC, then proceed to the step-16 holistic `/why-review`; after it is clean, continue to `/docs-update` → `/workflow-end` → `/watzup`.
-6. **IF** the inline re-review returns FAIL on a BLOCKING finding (any severity in rounds 1-2; CRITICAL/HIGH/MEDIUM from round 3) and the same blocker has not repeated 3 times → validate findings, run `/plan` + `/plan-execute` again, then re-run `/changes-review` (step 15)
+5. **IF** the inline re-review clears the round's bar — PASS with zero findings (round 1), or zero CRITICAL/HIGH/MEDIUM with only LOW findings left (round 2+, recorded as deferred) → confirm every behavior-changing fix has its required §8 regression/preservation TC, then proceed to the step-16 holistic `/why-review`; after it is clean, run conditional step 17 `/experience-review`, then continue to `/docs-update` → `/workflow-end` → `/watzup`.
+6. **IF** the inline re-review returns FAIL on a BLOCKING finding (any severity in round 1; CRITICAL/HIGH/MEDIUM from round 2) and the same blocker has not repeated 3 times → validate findings, run `/plan` + `/plan-execute` again, then re-run `/changes-review` (step 15)
 7. **IF** the same validated blocker repeats across 3 invocations with no observable progress → STOP and escalate via `AskUserQuestion` — do NOT silently loop or fall back to any prior protocol
 
-> **Loop-binding tie-in:** the Step 0 protocol loop (and the `/goal` gate when available) stays OPEN until this loop reaches a clean zero-finding pass (or a 3-repeat blocker escalates). The session cannot stop with a validated finding still unfixed by `/plan-execute` or a non-clean re-review outstanding — this binds on every host, whether or not `/goal` is installed. Each re-review reviews the WHOLE current diff from the first phase combined with ALL prior fixes — never just the previous cycle's fix in isolation. (This applies in every case — including when this workflow is a step inside a parent workflow — because it always runs inline in the main session and owns the loop directly.)
+> **Loop-binding tie-in:** the Step 0 protocol loop (and the `/goal` gate when available) stays OPEN until this loop clears the current round's exit bar (round 1: zero findings; round 2+: zero CRITICAL/HIGH/MEDIUM, with LOWs recorded as deferred) or a 3-repeat blocker escalates. The session cannot stop with a validated blocking finding still unfixed by `/plan-execute` or a non-clean re-review outstanding; round-2+ LOWs are not blocking but are never silently dropped. This binds on every host, whether or not `/goal` is installed. Each re-review reviews the WHOLE current diff from the first phase combined with ALL prior fixes — never just the previous cycle's fix in isolation. (This applies in every case — including when this workflow is a step inside a parent workflow — because it always runs inline in the main session and owns the loop directly.)
 
 > **Specialist finding re-entry (steps 4–10) — DEFAULT is re-run the raising specialist, NOT holistic-only.** The step-15 inline `/changes-review` re-runs only its own BE/FE/SCSS/UI dimensions; it does NOT re-run the specialist reviewers that ran once at steps 4–10. A specialist finding fixed in this cycle MUST therefore receive a scoped re-run of the specialist that raised it. The final step-16 `/why-review` alone may substitute only with explicit written justification. A step-10 UI finding may close on step 15's internal UI dimension because that lens is intentionally duplicated.
 
@@ -288,19 +290,19 @@ Note: /why-review has three workflow occurrences: step 2 FULL mode on the whole 
 1. **CONDITION:** ALWAYS run after the step-15 `/changes-review` loop converges or is skipped because no fixes were needed.
 2. **MODE:** Invoke `/why-review` in **FULL mode** — pass the review target + the current changes as the target (e.g. `/why-review the whole <feature/diff/target> combined with the current changes`). MUST NOT use `--validate-findings` here (that mode is terminal and only re-checks an existing findings list — it would NOT perform the holistic review this step requires).
 3. **SCOPE:** "the whole review target combined with current changes" = the complete changeset AND the surrounding code/spec/docs it touches, reviewed as ONE artifact — not a per-file or per-finding pass. `/why-review` runs its full Validation Checklist + both Adversarial Rounds + Easy-to-Change gate, then validates its own findings via its internal closing gate.
-4. **LOOP (run → fix → run until no findings):** If step 16 surfaces ANY new finding, validate it, re-enter `/plan` → `/plan-execute` → `/changes-review` (step 15 loop), then RE-RUN step 16 until a complete pass finds zero new findings.
-5. **INLINE INSIDE A PARENT WORKFLOW:** step 16 runs in the main session as part of this 20-step workflow; only the distinct step-2 initial whole-target occurrence is delegated as a sub-agent.
-6. **ONLY THEN** proceed to the conditional `/scan --target=domain-entities` (step 17), then `/docs-update` (step 18).
+4. **LOOP (run → fix → run until the current bar is clear):** If step 16 surfaces ANY new finding, validate it; fix/re-review CRITICAL/HIGH/MEDIUM findings (and round-1 LOWs) through `/plan` → `/plan-execute` → `/changes-review` (step 15 loop), then RE-RUN step 16 until a complete pass clears its current round's bar. From round 2 onward, a LOW-only step-16 result ends the loop with those LOWs recorded as deferred; do not open another fix/review cycle for LOW alone.
+5. **INLINE INSIDE A PARENT WORKFLOW:** step 16 runs in the main session as part of this 21-step workflow; only the distinct step-2 initial whole-target occurrence is delegated as a sub-agent.
+6. **ONLY THEN** run conditional `/experience-review` (step 17), proceed to conditional `/scan --target=domain-entities` (step 18), then `/docs-update` (step 19).
 
-### Iteration Tracking (Conversation-Scoped)
+### Iteration Tracking (Durable Run-Scoped)
 
-Iteration count is tracked **in conversation context only** — no persistent files. Each new conversation starts fresh at round 0.
+Track iteration count in the durable `review-policy.cjs` run record. Resume the same run after conversation changes; resume preserves completed rounds and findings. A changed target invalidates prior evidence and acceptance but must preserve the spent round budget. Never reset the run to round 0 merely because context was lost.
 
 **Rules:**
 
 - **Repeated blocker cap** — if the same validated finding repeats for 2 full invocations with no progress, STOP and escalate via `AskUserQuestion` (manual review required)
-- **PASS = done** — if no fix cycle happened, initial clean reviews/tests are enough; if a fix cycle happened, PASS requires a complete inline `/changes-review` re-review pass clearing the round's bar: zero findings (rounds 1-2) or zero CRITICAL/HIGH/MEDIUM with deferred LOWs listed (round 3+)
-- **Severity floor — from round 3, LOW stops blocking.** Rounds 1-2 of the fix loop converge on a **zero-finding** pass at any severity. **From round 3 the bar is zero validated CRITICAL/HIGH/MEDIUM — a re-review round whose validated findings are ALL LOW ENDS the loop.** Do NOT open another `/plan`→`/plan-execute`→`/changes-review` round for LOW findings alone: record every remaining LOW under `## Deferred LOW Findings (severity floor, round ≥3)` in the report and proceed to step 16. NEVER re-tier a real CRITICAL/HIGH/MEDIUM down to LOW to reach the exit, and NEVER apply the floor to a binary gate (a failing test is a failure, not a LOW finding). Severity tiers per `SYNC:severity-rubric`.
+- **PASS = done** — if no fix cycle happened, initial clean reviews/tests are enough; if a fix cycle happened, PASS requires a complete inline `/changes-review` re-review pass clearing the round's bar: zero findings (round 1) or zero CRITICAL/HIGH/MEDIUM with deferred LOWs listed (round 2+)
+- **Severity floor — from round 2, LOW stops blocking.** Round 1 of the fix loop converge on a **zero-finding** pass at any severity. **From round 2 the bar is zero validated CRITICAL/HIGH/MEDIUM — a re-review round whose validated findings are ALL LOW ENDS the loop.** Do NOT open another `/plan`→`/plan-execute`→`/changes-review` round for LOW findings alone: record every remaining LOW under `## Deferred LOW Findings (severity floor, round ≥2)` in the report and proceed to step 16. NEVER re-tier a real CRITICAL/HIGH/MEDIUM down to LOW to reach the exit, and NEVER apply the floor to a binary gate (a failing test is a failure, not a LOW finding). Severity tiers per `SYNC:severity-rubric`.
 - **Issue count increasing** — if round N finds MORE issues than round N-1, STOP and escalate via `AskUserQuestion`
 - **Goal Satisfaction FAIL = findings exist** — a required saved criterion at FAIL in the Goal Satisfaction matrix enters the SAME loop as a code finding: validate the gap is real → `/plan` → `/plan-execute` → inline re-review of the affected criteria only. Workflow end requires every required criterion PASS or BLOCKED with a user-facing escalation reason; mark criteria BLOCKED (never silently drop them) when two consecutive iterations show no criterion progress.
 
@@ -329,34 +331,47 @@ Main Session: Validate findings → Specialist batch → Plan → Fix → /chang
 
 ---
 
-**IMPORTANT MANDATORY Steps:** /changes-review -> /why-review --target=whole-review-target -> /why-review -> /architecture-review -> /domain-entities-review -> /performance-review -> /integration-test-review -> /security-review -> /production-readiness-review -> /ui-review -> /code-simplifier -> /plan -> /plan-review -> /plan-execute -> /changes-review -> /why-review -> /scan --target=domain-entities -> /docs-update -> /workflow-end -> /watzup
+**IMPORTANT MANDATORY Steps:** /changes-review -> /why-review --target=whole-review-target -> /why-review -> /architecture-review -> /domain-entities-review -> /performance-review -> /integration-test-review -> /security-review -> /production-readiness-review -> /ui-review -> /code-simplifier -> /plan -> /plan-review -> /plan-execute -> /changes-review -> /why-review -> /experience-review -> /scan --target=domain-entities -> /docs-update -> /workflow-end -> /watzup
 
 > **[STEP CONDITIONS]** Not every step always runs — the bare list above is the canonical order; these are the run-conditions:
-> - **Step 0 loop binding (pre-sequence)** — ALWAYS bind the self-recursive review loop. Not one of the 20 counted steps.
+> - **Step 0 loop binding (pre-sequence)** — ALWAYS bind the self-recursive review loop. Not one of the 21 counted steps.
 > - **Steps 1–2 initial phase** — always run together behind one all-return barrier; step 1 is inline, step 2 is a fresh read-only sub-agent in FULL mode over the whole review target.
 > - **Step 5 `/domain-entities-review`** — only if domain entity files are in the diff.
 > - **Step 10 `/ui-review`** — only if frontend/UI files are in the diff; it also runs internally inside step 1.
 > - **Steps 12–14 `/plan` → `/plan-review` → `/plan-execute`** — only if validated findings require fixes. Skip all three when steps 1–11 PASS clean.
-> - **Step 15 `/changes-review` (re-review)** — only if `/plan-execute` changed files; loops until clean within the existing bounds.
+> - **Step 15 `/changes-review` (re-review)** — only if `/plan-execute` changed files; loops until the current severity bar is clear within the existing bounds (Round 2+ LOW-only findings are deferred and do not reopen the loop).
 > - **Step 16 `/why-review` (HOLISTIC, FULL mode)** — ALWAYS runs over the settled whole target after step 15 converges or is skipped.
-> - **Step 17 `/scan --target=domain-entities`** — only if the final diff changes an entity/model, DTO/data contract, persistence schema/migration, or entity-sync evidence; otherwise complete it with a cited skip reason.
-> - **Steps 1–4, 6–9, 11, 16, 18–20** — always run.
+> - **Step 17 `/experience-review`** — conditional: run when a configured or likely observable surface is affected; otherwise complete it with a cited `NOT-APPLICABLE` reason. A relevant but unusable surface is `ENVIRONMENT-BLOCKED`, never PASS. It MAY land fixes through its own bounded remediation loop (`--rounds=N`, default 3), each round `/changes-review`ing its own fix diff; an unconverged result is `NOT-CONVERGED` + escalation, never a partial pass. Use `--rounds=0` to keep it report-only.
+> - **Step 18 `/scan --target=domain-entities`** — only if the final diff changes an entity/model, DTO/data contract, persistence schema/migration, or entity-sync evidence; otherwise complete it with a cited skip reason.
+> - **Steps 1–4, 6–9, 11, 16, 19–21** — always run.
 
-> **[BLOCKING SEQUENCING]** Launch step 2 `/why-review --target=whole-review-target` as a fresh `code-reviewer` sub-agent, then immediately run step 1 `/changes-review` inline; advance only after both return. Step 3 validates step-1 findings. Steps 4–10 form the specialist parallel batch. Step 11 `/code-simplifier` waits for that barrier. Steps 12–15 are the sequential fix/re-review cycle. Step 16 is the final FULL-mode whole-target gate, followed by the conditional step 17 `/scan --target=domain-entities` and step 18 `/docs-update`.
+> **[BLOCKING SEQUENCING]** Launch step 2 `/why-review --target=whole-review-target` as a fresh `code-reviewer` sub-agent, then immediately run step 1 `/changes-review` inline; advance only after both return. Step 3 validates step-1 findings. Steps 4–10 form the specialist parallel batch. Step 11 `/code-simplifier` waits for that barrier. Steps 12–15 are the sequential fix/re-review cycle. Step 16 is the final FULL-mode whole-target gate, followed by conditional step 17 `/experience-review`, then conditional step 18 `/scan --target=domain-entities` and step 19 `/docs-update`.
 
-> **[WORKFLOW-IN-WORKFLOW: MUST RUN INLINE IN THE MAIN SESSION — never as a sub-agent]** This skill activates the full `workflow-review-changes` workflow (20 steps). When invoked inside a parent workflow, the orchestrator stays INLINE in the main session. Its step-2 whole-target reviewer is still a child sub-agent, as declared by the initial parallel phase.
+> **[WORKFLOW-IN-WORKFLOW: MUST RUN INLINE IN THE MAIN SESSION — never as a sub-agent]** This skill activates the full `workflow-review-changes` workflow (21 steps). When invoked inside a parent workflow, the orchestrator stays INLINE in the main session. Its step-2 whole-target reviewer is still a child sub-agent, as declared by the initial parallel phase.
 >
 > **Why inline, never a sub-agent:** the workflow orchestrator owns Step 0's session loop and the step-15 live-working-tree re-review. Delegating the orchestrator would lose those guarantees. Context remains bounded because the initial step-2 whole-target reviewer and steps 4–10 specialists are child sub-agents writing full reports to `plans/reports/`.
 >
 > **Standalone invocation** (not inside a workflow): inline in the main session, identically — no sub-agent.
 
 > **[BLOCKING]** Each step MUST invoke its `Skill` tool — marking a task `completed` without skill invocation is a workflow violation. NEVER batch-complete validation gates.
-> **[CONDITIONAL INLINE RE-REVIEW]** After validated fixes in `/plan-execute` — and ONLY if files changed — re-run `/changes-review` INLINE (step 15). Either way, step 16 `/why-review` ALWAYS runs next over the settled whole target before `/docs-update`.
-> **[REPEATED BLOCKER CAP]** Track re-review invocations in conversation context, not persistent files. After a fix cycle, PASS = a complete inline `/changes-review` re-review pass finds zero findings without more fixes; stop after the same blocker repeats 3 times with no progress.
+> **[CONDITIONAL INLINE RE-REVIEW]** After validated fixes in `/plan-execute` — and ONLY if files changed — re-run `/changes-review` INLINE (step 15). Either way, step 16 `/why-review` ALWAYS runs next over the settled whole target, followed by conditional step 17 `/experience-review`, before `/docs-update`.
+> **[REPEATED BLOCKER CAP]** Record re-review invocations and repeated-blocker evidence in the durable run record and report. After a fix cycle, PASS requires a complete inline `/changes-review` re-review clearing the applicable severity bar and every binary gate. Stop after the same validated finding repeats for 2 full invocations with no progress, after 3 rounds MAX without clearance, or if issues increase; escalate without resetting completed rounds.
 
 Activate the `workflow-review-changes` workflow. Run `/start-workflow workflow-review-changes` with the user's prompt as context.
 
 > **Applicability in this workflow:** step 15 applies fresh-context re-review principles INLINE by re-reading the full diff from scratch. The isolated-sub-agent form governs the initial step-2 whole-target reviewer and steps 4–10 specialists; the workflow orchestrator itself always remains inline.
+
+<!-- SYNC:review-policy -->
+
+> **Executable review policy — one predicate, one durable transition model.** Review skills and their tooling MUST use the canonical helper `.claude/scripts/lib/review-policy.cjs` (policy version 2) for round eligibility. The helper's `blockingFindings(round, findings, hardGates)` predicate returns every validated finding in round 1, and only CRITICAL/HIGH/MEDIUM findings in rounds 2–3; `NOT VERIFIABLE` is a separate unresolved-evidence state that remains blocking at every round. Failed binary gates are synthetic blocking findings at every round. `evaluateRound` retains round-2+ LOWs in `deferredLow` and never treats a LOW-only round as blocked after the floor applies. Severity is assigned before the predicate and never changed to obtain a PASS.
+>
+> **Round and minimum rules.** `MAX_ROUNDS` is 3 and is a ceiling, never a target. A clean review ends once `round >= minRounds`; the default minimum is 1. A caller may declare `minRounds` explicitly (for example, 2) when an independent second pass is a real requirement; the declaration is persisted and cannot be inferred from a round counter. A failing test-green, security-must-fix, required-artifact, or other binary gate is never waived by the severity floor.
+>
+> **Durable run record.** A review run MUST identify `runId`, target fingerprint, policy version, target revision, minimum/maximum rounds, completed rounds, full findings/gate evidence, interruption/resume metadata, and acceptance. Use the atomic, lock-serialized transitions in `review-policy.cjs`: `start`, `record`, `accept`, `interrupt`, `resume`, `invalidate`, and `check`. Repeating an identical completed round is idempotent and MUST NOT consume budget twice. A changed target fingerprint invalidates prior evidence and acceptance but MUST preserve the bounded round budget; stale evidence cannot be accepted. A policy-version change (including the round-2 LOW floor) invalidates old records; start a new run rather than interpreting old evidence under new semantics. Interrupted/resumed runs retain completed rounds and findings. The record is bookkeeping, not consent, native permission, or proof that a host actually performed the review.
+>
+> **CLI boundary.** The helper CLI accepts JSON on stdin and uses its own real clock; a supplied `now` is rejected. State directories must be absolute, non-root real directories, records are size-bounded, and malformed/locked state fails closed for the transition. Full reports remain on disk; an inline result envelope is only a transport summary. Any new review policy consumer must add a semantic fixture, boundary counter-cases, a seeded mutant, and a report with the target fingerprint and command exit status.
+
+<!-- /SYNC:review-policy -->
 
 <!-- SYNC:parallel-phase-advancement -->
 
@@ -367,7 +382,7 @@ Activate the `workflow-review-changes` workflow. Run `/start-workflow workflow-r
 > 3. **Barrier — advance ONLY after EVERY member returns.** A member is "returned" when its work completes inline OR its sub-agent returns; a conditional member whose trigger is absent counts as returned. Do NOT advance, and do NOT start the next step, until the whole group has returned.
 > 4. **A sub-agent return advances the step identically to an inline call.** Advancement is YOUR judgment against the task list — never wait for a hook or tool event. Mark each member `completed` (or "Skipped — <reason>") as the batch resolves.
 > 5. **Mutating steps wait for the barrier.** Never start a code-mutating step (e.g. `code-simplifier`) until the full batch has returned — it must act on the complete review snapshot, not a partial one.
-> 6. **Hooks are accelerators only.** Any step-tracking hook may emit a "next step" hint as an optimization; correctness MUST NOT depend on it. Codex runs with no hooks and advances entirely by this rule.
+> 6. **Hooks are accelerators only.** Any step-tracking hook may emit a "next step" hint as an optimization; correctness MUST NOT depend on it. Claude and Codex both advance from this static rule when hooks are absent, disabled, or stale.
 >
 > **Blocked until:** `- [ ]` all members spawned in one message `- [ ]` every member returned (incl. skipped conditional) `- [ ]` each member marked completed/skipped `- [ ]` mutating step deferred until after the barrier.
 
@@ -392,11 +407,11 @@ Activate the `workflow-review-changes` workflow. Run `/start-workflow workflow-r
 
 <!-- SYNC:fresh-context-review -->
 
-> **Fresh Context Re-Review** — Eliminate orchestrator confirmation bias after fixes by restarting the full review with isolated sub-agents where applicable.
+> **Fresh Context Re-Review** — Eliminate orchestrator confirmation bias after fixes by restarting the full review with isolated sub-agents where applicable. A report-only/read-only reviewer never edits source, generated output, or user data: it validates and records the finding/repair handoff, then returns to the caller, which owns the fix and any re-review.
 >
 > **Why:** The main agent knows what it (or `/feature-implement`) just fixed and rationalizes findings accordingly. A fresh sub-agent has ZERO memory, re-reads from scratch, and catches what the main agent dismissed. Sub-agent bias is mitigated by (1) fresh context, (2) verbatim protocol injection, (3) main agent not filtering the report.
 >
-> **When:** ONLY after a validated-finding fix cycle. A review round that finds zero issues ENDS the loop — do NOT spawn a confirmation sub-agent. A review round that finds issues triggers: validate findings → fix → full review restart from the first phase.
+> **When:** After a validated-finding fix cycle, or to satisfy an explicitly declared independent-pass `minRounds`. A review round that finds zero issues ENDS the loop once that persisted minimum is met — do NOT invent a confirmation sub-agent. A review round that finds issues triggers: validate findings → fix → full review restart from the first phase.
 >
 > **How:**
 >
@@ -408,11 +423,11 @@ Activate the `workflow-review-changes` workflow. Run `/start-workflow workflow-r
 >
 > **Rules:**
 >
-> - SKIP fresh sub-agent when the prior full review found zero issues (no fixes = nothing new to verify)
+> - SKIP fresh sub-agent when the prior full review found zero issues AND the persisted `minRounds` is met (no fixes or required independent pass = nothing new to verify)
 > - NEVER skip the full review restart after a fix cycle — every fix invalidates the prior verdict
 > - NEVER reuse a sub-agent across rounds — every fresh round spawns a NEW `Agent` call
-> - Continue until a complete full review pass clears that round's exit bar per `SYNC:double-round-trip-review`: **rounds 1-2** → zero findings at any severity; **round 3+** → zero CRITICAL/HIGH/MEDIUM, so a round whose validated findings are ALL LOW ENDS the loop (list those LOWs as deferred instead of spawning another round). If the same blocker repeats 3 times with no progress, escalate via `AskUserQuestion`
-> - Track iteration count and repeated blockers in conversation context (session-scoped, no persistent files)
+> - Continue until a complete full review pass clears that round's exit bar per `SYNC:double-round-trip-review`: **round 1** → zero findings at any severity; **round 2+** → zero CRITICAL/HIGH/MEDIUM, so a round whose validated findings are ALL LOW ENDS the loop once the persisted minimum is met (list those LOWs as deferred instead of spawning another round). If the same validated blocker repeats across 2 full invocations with no progress, escalate via `AskUserQuestion`. **Read-only/report-only role boundary:** when this block is carried by a security auditor or another report-only role, “fix” means return the validated repair proposal to the parent; do not modify source, generated carriers, or user data and do not restart the review locally.
+> - Persist completed rounds, repeated blockers, findings and the explicit minimum in the owning run's `review-policy.cjs` record. Resume that record after interruption; target changes invalidate evidence and acceptance but preserve the bounded round budget. In-flight attempt IDs may be session-local; they do not replace or reset completed-round state
 
 <!-- /SYNC:fresh-context-review -->
 
@@ -420,12 +435,14 @@ Activate the `workflow-review-changes` workflow. Run `/start-workflow workflow-r
 
 > **Incremental Result Persistence** — MANDATORY for all sub-agents or heavy inline steps processing >3 files.
 >
-> 1. **Before starting:** Create report file `plans/reports/{skill}-{date}-{slug}.md`
-> 2. **After each file/section reviewed:** Append findings to report immediately — never hold in memory
-> 3. **Return to main agent:** Summary only (per SYNC:subagent-return-contract) with `Full report:` path
-> 4. **Main agent:** Reads report file only when resolving specific blockers
+> 1. **Before starting:** Create report file `plans/reports/{skill}-{date}-{slug}.md` and record Run ID, Task ID, Attempt ID, target scope, and target fingerprint.
+> 2. **After each file/section reviewed:** Append findings, evidence, changed paths, and gaps immediately — never hold them in memory.
+> 3. **Delegated return:** A sub-agent emits only the structured `SYNC:subagent-return-contract` envelope with exact totals, salient Critical/High findings (maximum ten), current attempt, and `Full report:` path. **Inline user-facing output:** Preserve the skill's requested explanation or teaching, with links to the persisted evidence; the delegated transport limit does not replace that deliverable. Do not paste a full review report into an envelope.
+> 4. **Parent synthesis:** The main agent reads the full report for synthesis, acceptance, deduplication, and repair planning — not only when a named blocker exists. It preserves all severities beyond the transport cap.
+> 5. **Read-only boundary:** A read-only leaf may write its report/repair proposal but MUST NOT edit source, generated output, or user data; the parent/owner performs repairs after acceptance.
+> 6. **Advancement gate:** The parent records `ACCEPTED` for the current Attempt ID only after reconciling target, totals, gaps, and changed paths; stale or late attempts cannot advance dependent work.
 >
-> **Why:** Context cutoff mid-execution loses ALL in-memory findings. Each disk write survives compaction. Partial results are better than no results.
+> **Why:** Context cutoff mid-execution loses ALL in-memory findings. Each disk write survives compaction. Partial results are better than no results, while explicit identity prevents a late result from being mistaken for the current run.
 >
 > **Report naming:** `plans/reports/{skill-name}-{YYMMDD}-{HHmm}-{slug}.md`
 
@@ -433,17 +450,28 @@ Activate the `workflow-review-changes` workflow. Run `/start-workflow workflow-r
 
 <!-- SYNC:subagent-return-contract -->
 
-> **Sub-Agent Return Contract** — When this skill spawns a sub-agent, the sub-agent MUST return ONLY this structure. Main agent reads only this summary — NEVER requests full sub-agent output inline.
+> **Sub-Agent Return Contract** — When this skill spawns a sub-agent, the sub-agent MUST return ONLY the structured envelope below. Main agent reads the envelope first, then opens the referenced report for synthesis, acceptance, deduplication, or repair planning; a full report is never pasted inline.
 >
 > ```markdown
 > ## Sub-Agent Result: [skill-name]
 >
 > Status: ✅ PASS | ⚠️ PARTIAL | ❌ FAIL
 > Confidence: [0-100]%
+> Run ID: [stable run identifier]
+> Task ID: [parent task or phase identifier]
+> Attempt ID: [monotonic attempt/revision identifier]
+> Target: [exact files/paths or scope] @ [target fingerprint/commit]
+> Changed paths: [none | exact paths]
+> Finding totals: Critical=[n] | High=[n] | Medium=[n] | Low=[n]
+> Acceptance: PENDING | ACCEPTED | REJECTED — parent records the decision
 >
-> ### Findings (Critical/High only — max 10 bullets)
+> ### Findings (Critical/High surfaced — max 10 bullets)
 >
 > - [severity] [file:line] [finding]
+>
+> ### Gaps / Unverified
+>
+> - [missing host, runtime, coverage, or evidence limitation]
 >
 > ### Actions Taken
 >
@@ -451,15 +479,14 @@ Activate the `workflow-review-changes` workflow. Run `/start-workflow workflow-r
 >
 > ### Blockers (if any)
 >
-> - [blocker description]
+> - [blocker description, or `none`]
 >
 > Full report: plans/reports/[skill-name]-[date]-[slug].md
 > ```
 >
-> Main agent reads `Full report` file ONLY when: (a) resolving a specific blocker, or (b) building a fix plan.
-> Sub-agent writes full report incrementally (per SYNC:incremental-persistence) — not held in memory.
+> The ten-bullet limit is a transport limit, not a visibility limit: the full report may contain more than ten Medium/Low findings when no named blocker exists, and the parent MUST read it when synthesizing or deduplicating. The parent MUST reject a stale, duplicate, or superseded `Attempt ID` and MUST accept the current attempt before advancing a dependent step. Read-only leaves write repair proposals/reports only; they do not edit source, generated carriers, or user files.
 >
-> **Context budget** — the return payload is a SUMMARY, not a transcript: ≤10 finding bullets, no raw file contents / full diffs / verbatim logs inline, no re-pasted source. Everything beyond the summary lives in the `Full report` on disk. A sub-agent that would exceed the summary shape MUST write the detail to its report and return only the pointer — the orchestrator's context is the scarce resource the whole map-reduce protects.
+> **Context budget** — the return payload is a SUMMARY, not a transcript: no raw file contents / full diffs / verbatim logs inline, no re-pasted source. Everything beyond the envelope lives in the incrementally-written report. A sub-agent that would exceed the summary shape MUST persist the detail and return only the pointer; bounded transport must never become bounded visibility.
 
 <!-- /SYNC:subagent-return-contract -->
 
@@ -517,12 +544,12 @@ Activate the `workflow-review-changes` workflow. Run `/start-workflow workflow-r
 
 <!-- SYNC:project-reference-docs-guide -->
 
-> **Project Reference Docs Gate** — Run after task-tracking bootstrap and before target/source file reads, grep, edits, or analysis. Project docs override generic framework assumptions.
+> **Project Reference Docs Gate (static JIT)** — Run after task-tracking bootstrap and immediately before target/source file reads, grep, edits, tests, or analysis. Project docs override generic framework assumptions; hooks may remind or accelerate this gate, but never prove that it ran.
 >
 > 1. Identify scope: file types, domain area, and operation.
 > 2. **Read `docs/project-config.json` first — the project's machine-readable map.** It is the single source of truth for THIS repo (modules/paths, framework + search keywords, test/E2E/integration run-commands, design system, architecture rules, workflow patterns); ground exact paths, run-commands, and conventions on it **before investigating, planning, or coding** — never assume framework defaults (`CLAUDE.md` + reference docs are derived from it). If it — or the docs index, `lessons.md`, `CLAUDE.md`, `AGENTS.md`, or any required reference doc — is missing or stale, auto-run `/project-init` or the narrow route (`/project-config`, `/docs-init`, `/scan-all`, `/scan --target=<key>`, `/claude-md-init`) first; if Codex mirrors or `AGENTS.md` are stale, ask the user to run `/sync-codex` (never auto-run it).
 > 3. Required docs by trigger: always `docs/project-reference/lessons.md`; doc lookup `docs-index-reference.md`; review `code-review-rules.md`; backend/CQRS/API `backend-patterns-reference.md`; domain/entity `domain-entities-reference.md`; frontend/UI `frontend-patterns-reference.md`; styles/design `scss-styling-guide.md` + `design-system/design-system-canonical.md`; integration tests `integration-test-reference.md`; E2E `e2e-test-reference.md`; feature docs/specs `feature-spec-reference.md` + `spec-system-reference.md` + `spec-principles.md`; behavior/public-contract/spec-test-code sync `workflow-spec-test-code-cycle-reference.md`; derived spec index/ERD/reimplementation guides `spec-system-reference.md` + source Feature Specs under `docs/specs/`; architecture/new area `project-structure-reference.md`.
-> 4. Read every required doc, then before target work state: `Reference docs read: ... | Not applicable: ...`.
+> 4. Read every required doc, then before target work state: `Reference docs read: ... | Not applicable: ...`. After compaction, resume, delegation, or a material context change, repeat the route and restate the set; prior conversation and hook output are not proof of current loading.
 >
 > **Ready when:** scope evaluated, `docs/project-config.json` consulted, required docs checked/read or setup route completed, `lessons.md` confirmed, citation emitted.
 
@@ -568,6 +595,69 @@ Activate the `workflow-review-changes` workflow. Run `/start-workflow workflow-r
 
 <!-- /SYNC:trade-off-interrogation-gate -->
 
+<!-- SYNC:parallel-subagent-dispatch -->
+
+> **Parallel Sub-Agent Dispatch** — Plan parallelism the moment a task breakdown exists, BEFORE executing it — running provably independent tasks sequentially wastes wall-clock. Applies to every multi-step job: workflow steps, planning, batch updates, investigation, research, scans, reviews, doc sync. **Plan execution is metadata-gated, NEVER default-parallel** — fan-out follows ONLY what the plan declares (`PAR`/`SEQ` tags + per-phase write set); an untagged plan runs sequentially — why: a derived write set cannot see cascade or generated writes.
+>
+> 1. **Tag every task `PAR` or `SEQ`.** `PAR` = inputs exclude every pending task's output AND write set disjoint from every other `PAR`. Else `SEQ` — MUST ATTENTION name the dependency forcing it.
+> 2. **Group `PAR` into waves.** No edge between members. Two writers of one file NEVER share a wave. Read-only work (search, investigation, review, research) parallelizes freely.
+> 3. **Declare before dispatch:** `Parallel plan: wave 1 = [...] · wave 2 = [...] · SEQ = [...] (reason)`.
+> 4. **Spawn each wave in ONE message** — every `Agent` call in one response, NEVER dripped per turn. Route each task to its specialist (`.claude/skills/shared/sub-agent-selection-guide.md`); NEVER `code-reviewer` as catch-all.
+> 5. **Brief each sub-agent self-contained:** goal · scope + owned files · reference docs · return contract (summary + `Full report:` path, per SYNC:subagent-return-contract) · incremental persistence to `plans/reports/` (per SYNC:incremental-persistence).
+> 6. **Barrier per wave.** Advance ONLY after EVERY member returns (a skipped conditional counts as returned). Merge, mark each task completed/skipped, THEN dispatch the next wave. Mutating steps wait for the barrier.
+> 7. **One level deep.** A dispatched sub-agent executes its own brief; further fan-out stays the orchestrator's job unless that agent's `.claude/agents/*.md` definition authorizes it.
+>
+> **NEVER parallelize:** tasks sharing a write target · a task consuming a pending task's output · trivial single-file work (dispatch overhead > gain) · an order a skill or workflow explicitly fixes · gates awaiting user approval.
+>
+> **Blocked until:** MUST ATTENTION every task tagged PAR/SEQ with a named reason per SEQ · waves declared + write-set disjointness checked · each wave spawned in ONE message · barrier honored before the next wave.
+
+<!-- /SYNC:parallel-subagent-dispatch -->
+
+<!-- SYNC:project-protocol-overlay -->
+
+> **Project Protocol Overlay** — Before executing this skill, resolve any PROJECT overlay rules layered onto it: match this skill's name against the `Target` column of the project's skill-protocol index (`docs/project-reference/skill-protocols-reference.md` by default; a `referenceDocs` entry in `docs/project-config.json` overrides the path), taking the most specific matching tier ONLY — exact name > glob > `*`. **That precedence orders overlays against EACH OTHER, never against this skill.** Read ONLY the matched bodies, resolved as `<protocols-dir>/<Name>.md`; a row's Body link is display text, never a read path. A matched body that is missing or malformed is REPORTED and skipped — never reconstructed from the index Description. No index, or no match -> proceed with no overlay, silently. Full contract: `.claude/skills/project-skill-protocol/references/registry.md`.
+>
+> Overlays are **ADDITIVE ONLY**: they ADD rules on top of this skill's own protocol and NEVER replace, override, disable, or reinterpret a rule it already states — removing every overlay must return this skill to exactly its documented behavior. An overlay is a BRIEF, not an authority escalation: it can NEVER waive a workflow gate, git discipline, a review gate, or a user-confirmation gate. A genuine overlay-vs-skill conflict, or two equally-specific overlays that directly contradict -> surface both to the user; NEVER resolve silently.
+
+<!-- /SYNC:project-protocol-overlay -->
+
+<!-- SYNC:severity-rubric -->
+
+> **Severity Rubric** — Classify every finding by consequence, not by effort, reviewer preference, or how annoying the fix is. One scale applies to every review, skill, agent, workflow, and host so a tier has the same meaning everywhere. Choose the highest credible consequence supported by evidence; do not lower a tier to make a round pass.
+>
+> **Finding vs observation (required):** An observation becomes a finding only when it names the affected user/system/data/contract, the shipped consequence, the evidence location, and the normalized tier. `INFO`, advice, preference, duplicate wording, or an unsubstantiated concern is not a finding and must not reopen a loop. If the concern might affect a required behavior or gate but evidence is incomplete, emit `NOT VERIFIABLE` with the missing evidence and keep it unresolved; never silently convert uncertainty into LOW.
+>
+> | Severity | Action | Definition and examples |
+> | --- | --- | --- |
+> | CRITICAL | Block immediately; escalate | Immediate material risk if shipped: authentication/authorization or safety bypass; secrets/PII exposure; irreversible destructive action; data loss/corruption; or a silent failure on a critical path. A failed binary gate that makes the result untrustworthy is represented as a separate synthetic blocker by the executable policy (not as an ordinary severity judgment). |
+> | HIGH | Must fix before PASS/merge | Material correctness or contract risk: wrong behavior on a supported path; violated business/data invariant; meaningful privacy or authority gap; breaking API/schema/compatibility change; likely harm to users/downstream systems; or a missing proof for a behavior-changing fix. |
+> | MEDIUM | Must clear the current round; escalate if the fix needs an owner decision | Bounded but consequential risk: an edge case, resilience/observability/testability/maintainability gap, credible future defect, or local architectural drift whose impact is real but not immediate material loss. An explicit follow-up records the escalation/residual risk; it does not make an open MEDIUM a clean pass. |
+> | LOW | Record and defer; never open another fix/re-review round from round 2 onward | Non-blocking polish with no credible present correctness, security, privacy, authority, availability, or data-integrity impact: wording/formatting, minor documentation or convention drift, optional defensive cleanup, or a cosmetic/refinement suggestion. |
+>
+> **Consequence decision tree (apply in order):** (1) Is a binary gate failed? Keep it as a separate hard blocker (the executable helper represents it as synthetic CRITICAL); do not use the ordinary severity label to hide what failed. Otherwise, would shipping permit immediate material security/safety/authority harm, irreversible destruction, data loss/corruption, or a critical-path silent failure? → **CRITICAL**. (2) Otherwise, does a supported path, invariant, public contract, privacy/authority boundary, compatibility promise, or behavior-changing proof fail with material user/downstream impact? → **HIGH**. (3) Otherwise, is there a bounded but consequential edge, resilience, observability, testability, maintainability, or architectural gap with a credible impact? → **MEDIUM**. (4) Otherwise, is the evidence sufficient to show only non-blocking polish with no credible present material impact? → **LOW**. (5) If the evidence needed to choose between steps 1–4 is missing, → **NOT VERIFIABLE**, not LOW. When multiple tiers fit, select the highest credible consequence; effort, implementation cost, reviewer discomfort, frequency alone, and proximity to the round cap never decide the tier.
+>
+> **Boundary examples (normalize before applying the round predicate):** an auth bypass, exposed secret/PII, destructive command without an authority gate, or failed required test/generation/parity gate is **CRITICAL**; a wrong supported response, broken invariant/API/schema, meaningful privacy/authority defect, or unproven behavior-changing fix is **HIGH**; a bounded retry/timeout/alert/testability gap or credible maintainability drift is **MEDIUM**; a typo, formatting inconsistency, optional cleanup, or cosmetic suggestion proven not to affect present behavior is **LOW**. A missing fact about any of those boundaries is **NOT VERIFIABLE** until evidence or an explicitly documented residual-risk decision exists.
+>
+> **Classification procedure (required for every finding):** (1) state the affected user, system, data, contract, or gate; (2) assess consequence if the issue ships; (3) assess exposure/likelihood and reversibility/detectability; (4) select the highest tier justified by those facts; (5) cite `file:line` or equivalent evidence and a confidence percentage. Effort, implementation cost, reviewer discomfort, and proximity to the round cap are never severity inputs. `NOT VERIFIABLE` is a pending evidence state, not one of the four tiers and never a LOW escape hatch: if the unresolved claim could affect required behavior, security, privacy, authority, availability, data integrity, or a binary gate, it remains an open evidence blocker until resolved or explicitly owner-accepted with documented residual risk. Classify an item LOW only when evidence supports the absence of credible present material impact.
+>
+> **Hard-gate rule:** Binary gates (tests, required artifacts, security must-fix checks, generated parity, policy compliance) are not ordinary severity-rated findings. The executable helper records a failed gate as a synthetic CRITICAL blocker solely so one predicate can carry it; the report must still name the gate and failure evidence. A failed gate blocks at every round, including when all ordinary findings are LOW; never disguise a failed gate as LOW.
+>
+> **Score-based skills** map their numeric scale onto these tiers — do not invent a parallel vocabulary:
+>
+> - **0-2 criterion scoring** (e.g. production-readiness-review): `0` = CRITICAL/HIGH (criterion unmet, blocks readiness), `1` = MEDIUM (partial, consequential gap), `2` = pass (no finding). If the criterion is only polish, use LOW rather than forcing a `0`.
+> - **Two-axis scoring** (e.g. performance-review, impact × likelihood): high impact + high exposure → CRITICAL/HIGH; material impact with bounded exposure → HIGH/MEDIUM; low impact and low exposure → LOW. Record the axes and why the selected tier is the highest credible consequence.
+> - **Scorecards / `/20` grades** (e.g. architecture-scalability-review): the aggregate score and verdict band are separate from finding severity. A sub-80 area is evidence to investigate, not an automatic CRITICAL/HIGH/MEDIUM/LOW label; classify each underlying gap by the consequence decision tree and keep advisory score deductions separate from blocking findings.
+>
+> **Domain-vocabulary normalization (mandatory):** Specialized skills may keep a local reporting vocabulary, but it MUST feed this same four-tier round predicate — never a second severity system:
+>
+> - `BLOCKED`, `HARD FAIL`, or `FAIL` is a blocking local verdict, not an automatic CRITICAL label. Classify the underlying consequence as CRITICAL when it is an immediate material risk or failed binary gate; otherwise classify it as HIGH or MEDIUM with evidence, while preserving the local block until the owning gate is satisfied.
+> - `WARN` is not permission to ignore a finding. Map it to MEDIUM when the gap is consequential, to LOW only when evidence supports no credible present material impact, or upward to HIGH/CRITICAL when the consequence warrants it. `PASS`/compliant is not a finding.
+> - UI `P0`/`P1`/`P2`/`P3`/`P4` map to CRITICAL/HIGH/MEDIUM/LOW/LOW respectively as a starting point; override upward only when the evidence shows a higher shipped consequence. A P0/P1 accessibility or task-completion floor remains a blocking gate even when a local UI report calls it a priority rather than a severity.
+> - Numeric SRE/readiness or impact/likelihood scores are evidence inputs, not replacement tiers. Emit the score, the consequence, and the normalized CRITICAL/HIGH/MEDIUM/LOW tier together. `INFO`/advisory observations are not findings unless the evidence shows a material consequence.
+>
+> A finding's tier drives the gate: CRITICAL/HIGH/MEDIUM remain actionable and blocking under the round policy; LOW may be tracked as a follow-up and, from round 2, does not by itself justify another fix/re-review. An owner decision may explain or schedule an open MEDIUM but does not turn it into a clean pass; owner acceptance never makes a failed binary gate pass and must record scope, rationale, and residual risk.
+
+<!-- /SYNC:severity-rubric -->
 
 <!-- SYNC:critical-thinking-mindset:reminder -->
 
@@ -591,8 +681,9 @@ Activate the `workflow-review-changes` workflow. Run `/start-workflow workflow-r
 <!-- SYNC:project-reference-docs-guide:reminder -->
 
 - **MANDATORY** Before investigating, planning, or coding, read `docs/project-config.json` (the project map: modules/paths, run-commands, conventions, architecture/workflow rules) + the required project-reference docs, and cite `Reference docs read: ...`.
+- **MANDATORY** Load detail just in time immediately before the first target read/grep/edit/test; hooks may provide a pointer, but a hook event or prior turn is never evidence that the current files were read.
 - **MANDATORY** Always include `lessons.md`; project config + conventions override generic framework defaults.
-- **MANDATORY** If project config, root instruction files, or any required reference doc is missing or stale, auto-run `/project-init` or the narrow lower-level route before ordinary project-specific work.
+- **MANDATORY** If project config, root instruction files, or any required reference doc is missing or stale, auto-run `/project-init` or the narrow lower-level route before ordinary project-specific work. On compaction, resume, delegation, or a context change, re-read the required docs and restate the route before continuing.
 
 <!-- /SYNC:project-reference-docs-guide:reminder -->
 
@@ -616,6 +707,27 @@ Activate the `workflow-review-changes` workflow. Run `/start-workflow workflow-r
 
 <!-- /SYNC:goal-contract-satisfaction-loop:reminder -->
 
+<!-- SYNC:trade-off-interrogation-gate:reminder -->
+
+- **MANDATORY MUST ATTENTION ALWAYS ASK THE 3 TRADE-OFF QUESTIONS** — on the thing under review AND on every recommendation you make: (1) **is there any trade-off?** name what it SACRIFICES (change cost · complexity · perf · coupling · reversibility · migration · ops load · blast radius · security · testability · delivery time · UX) — "none"/"pure win" is an unfinished analysis, so state the dimensions checked; (2) **is it worth it?** gain (with a metric) vs cost, WHO pays, WHEN → emit **WORTH IT / NOT WORTH IT / UNCLEAR**; NOT WORTH IT → withdraw or replace it; (3) **is it material enough to confirm with the user?** irreversible/one-way door · cost shifted onto another team/ops/maintainer/user · one quality attribute traded for another · a tier/service/event/library boundary crossed · auth/money/data-integrity/breaking-change/High-or-Medium-risk path · verdict UNCLEAR → **STOP and confirm via `AskUserQuestion` BEFORE the verdict**.
+- **MANDATORY** A MATERIAL trade-off with no user confirmation can NEVER be PASS; NEVER bury one as a Low-severity note, NEVER decide it silently, and NEVER let delivery or convergence pressure authorize a one-way door. — why: an un-walked-back one-way door is the user's call to make, not the reviewer's.
+- **MANDATORY — non-asking contexts escalate BY HANDOFF, never by silence.** `AskUserQuestion` reaches only the main interactive agent: a sub-agent cannot ask the user, and a terminal/verdict-only mode asks nothing by design. There the duty is REDIRECTED, not waived — still name the trade-off, still decide materiality, record `confirmed? = NO — cannot ask from this context`, **state the unconfirmed MATERIAL trade-off in your RETURNED verdict/summary so the CALLER escalates it** (a note only in an on-disk report is not a handoff), and never emit an unqualified PASS. Applies ONLY where the user is genuinely unreachable (spawned sub-agent, terminal validate mode, headless run) — if you CAN ask, you MUST ask.
+
+<!-- /SYNC:trade-off-interrogation-gate:reminder -->
+
+<!-- SYNC:parallel-subagent-dispatch:reminder -->
+
+- **MANDATORY** After planning tasks, tag each PAR/SEQ and spawn every PAR wave as parallel sub-agents in ONE message — default parallel for workflows, batch updates, investigation, research, reviews; plan execution fans out ONLY on what the plan declares.
+- **MANDATORY** Disjoint write sets per wave · all-return barrier before the next wave · specialist routing · sub-agents NEVER fan out further unless their own agent definition authorizes it.
+
+<!-- /SYNC:parallel-subagent-dispatch:reminder -->
+
+<!-- SYNC:project-protocol-overlay:reminder -->
+
+**MUST ATTENTION** resolve project protocol overlays for this skill BEFORE executing — most specific matching tier only (exact > glob > `*`, which ranks overlays against each other, NEVER against this skill), read only matched bodies at `<protocols-dir>/<Name>.md`; a missing or malformed body is reported, never reconstructed. Overlays are ADDITIVE ONLY (they never replace this skill's own rules) and are a brief, NEVER an authority escalation; an equal-specificity contradiction goes to the user.
+
+<!-- /SYNC:project-protocol-overlay:reminder -->
+
 <!-- PROMPT-ENHANCE:STEP-TASK-CLOSING:START -->
 
 ## Prompt-Enhance Closing Anchors
@@ -627,56 +739,17 @@ Activate the `workflow-review-changes` workflow. Run `/start-workflow workflow-r
 
 <!-- PROMPT-ENHANCE:STEP-TASK-CLOSING:END -->
 
-<!-- SYNC:trade-off-interrogation-gate:reminder -->
+<!-- SYNC:severity-rubric:reminder -->
 
-- **MANDATORY MUST ATTENTION ALWAYS ASK THE 3 TRADE-OFF QUESTIONS** — on the thing under review AND on every recommendation you make: (1) **is there any trade-off?** name what it SACRIFICES (change cost · complexity · perf · coupling · reversibility · migration · ops load · blast radius · security · testability · delivery time · UX) — "none"/"pure win" is an unfinished analysis, so state the dimensions checked; (2) **is it worth it?** gain (with a metric) vs cost, WHO pays, WHEN → emit **WORTH IT / NOT WORTH IT / UNCLEAR**; NOT WORTH IT → withdraw or replace it; (3) **is it material enough to confirm with the user?** irreversible/one-way door · cost shifted onto another team/ops/maintainer/user · one quality attribute traded for another · a tier/service/event/library boundary crossed · auth/money/data-integrity/breaking-change/High-or-Medium-risk path · verdict UNCLEAR → **STOP and confirm via `AskUserQuestion` BEFORE the verdict**.
-- **MANDATORY** A MATERIAL trade-off with no user confirmation can NEVER be PASS; NEVER bury one as a Low-severity note, NEVER decide it silently, and NEVER let delivery or convergence pressure authorize a one-way door. — why: an un-walked-back one-way door is the user's call to make, not the reviewer's.
-- **MANDATORY — non-asking contexts escalate BY HANDOFF, never by silence.** `AskUserQuestion` reaches only the main interactive agent: a sub-agent cannot ask the user, and a terminal/verdict-only mode asks nothing by design. There the duty is REDIRECTED, not waived — still name the trade-off, still decide materiality, record `confirmed? = NO — cannot ask from this context`, **state the unconfirmed MATERIAL trade-off in your RETURNED verdict/summary so the CALLER escalates it** (a note only in an on-disk report is not a handoff), and never emit an unqualified PASS. Applies ONLY where the user is genuinely unreachable (spawned sub-agent, terminal validate mode, headless run) — if you CAN ask, you MUST ask.
+- **MANDATORY** Classify every finding Critical/High/Medium/Low by consequence using the affected asset, shipped impact, exposure, reversibility, evidence location, and confidence; Critical/High/MEDIUM remain actionable under the round bar, while LOW is recorded/deferred from round 2 onward.
+- **MANDATORY** Keep binary gates separate from severity: a failed test, security must-fix, required artifact, or parity check blocks at every round and is never relabeled LOW.
+- **MANDATORY** Score-based skills (sre 0-2, perf two-axis) map onto the same four tiers — no parallel severity vocabulary.
 
-<!-- /SYNC:trade-off-interrogation-gate:reminder -->
-
-<!-- SYNC:parallel-subagent-dispatch -->
-
-> **Parallel Sub-Agent Dispatch** — Plan parallelism the moment a task breakdown exists, BEFORE executing it — running provably independent tasks sequentially wastes wall-clock. Applies to every multi-step job: workflow steps, planning, batch updates, investigation, research, scans, reviews, doc sync. **Plan execution is metadata-gated, NEVER default-parallel** — fan-out follows ONLY what the plan declares (`PAR`/`SEQ` tags + per-phase write set); an untagged plan runs sequentially — why: a derived write set cannot see cascade or generated writes.
->
-> 1. **Tag every task `PAR` or `SEQ`.** `PAR` = inputs exclude every pending task's output AND write set disjoint from every other `PAR`. Else `SEQ` — MUST ATTENTION name the dependency forcing it.
-> 2. **Group `PAR` into waves.** No edge between members. Two writers of one file NEVER share a wave. Read-only work (search, investigation, review, research) parallelizes freely.
-> 3. **Declare before dispatch:** `Parallel plan: wave 1 = [...] · wave 2 = [...] · SEQ = [...] (reason)`.
-> 4. **Spawn each wave in ONE message** — every `Agent` call in one response, NEVER dripped per turn. Route each task to its specialist (`.claude/skills/shared/sub-agent-selection-guide.md`); NEVER `code-reviewer` as catch-all.
-> 5. **Brief each sub-agent self-contained:** goal · scope + owned files · reference docs · return contract (summary + `Full report:` path, per SYNC:subagent-return-contract) · incremental persistence to `plans/reports/` (per SYNC:incremental-persistence).
-> 6. **Barrier per wave.** Advance ONLY after EVERY member returns (a skipped conditional counts as returned). Merge, mark each task completed/skipped, THEN dispatch the next wave. Mutating steps wait for the barrier.
-> 7. **One level deep.** A dispatched sub-agent executes its own brief; further fan-out stays the orchestrator's job unless that agent's `.claude/agents/*.md` definition authorizes it.
->
-> **NEVER parallelize:** tasks sharing a write target · a task consuming a pending task's output · trivial single-file work (dispatch overhead > gain) · an order a skill or workflow explicitly fixes · gates awaiting user approval.
->
-> **Blocked until:** MUST ATTENTION every task tagged PAR/SEQ with a named reason per SEQ · waves declared + write-set disjointness checked · each wave spawned in ONE message · barrier honored before the next wave.
-
-<!-- /SYNC:parallel-subagent-dispatch -->
-
-<!-- SYNC:parallel-subagent-dispatch:reminder -->
-
-- **MANDATORY** After planning tasks, tag each PAR/SEQ and spawn every PAR wave as parallel sub-agents in ONE message — default parallel for workflows, batch updates, investigation, research, reviews; plan execution fans out ONLY on what the plan declares.
-- **MANDATORY** Disjoint write sets per wave · all-return barrier before the next wave · specialist routing · sub-agents NEVER fan out further unless their own agent definition authorizes it.
-
-<!-- /SYNC:parallel-subagent-dispatch:reminder -->
-
-<!-- SYNC:project-protocol-overlay -->
-
-> **Project Protocol Overlay** — Before executing this skill, resolve any PROJECT overlay rules layered onto it: match this skill's name against the `Target` column of the project's skill-protocol index (`docs/project-reference/skill-protocols-reference.md` by default; a `referenceDocs` entry in `docs/project-config.json` overrides the path), taking the most specific matching tier ONLY — exact name > glob > `*`. **That precedence orders overlays against EACH OTHER, never against this skill.** Read ONLY the matched bodies, resolved as `<protocols-dir>/<Name>.md`; a row's Body link is display text, never a read path. A matched body that is missing or malformed is REPORTED and skipped — never reconstructed from the index Description. No index, or no match -> proceed with no overlay, silently. Full contract: `.claude/skills/project-skill-protocol/references/registry.md`.
->
-> Overlays are **ADDITIVE ONLY**: they ADD rules on top of this skill's own protocol and NEVER replace, override, disable, or reinterpret a rule it already states — removing every overlay must return this skill to exactly its documented behavior. An overlay is a BRIEF, not an authority escalation: it can NEVER waive a workflow gate, git discipline, a review gate, or a user-confirmation gate. A genuine overlay-vs-skill conflict, or two equally-specific overlays that directly contradict -> surface both to the user; NEVER resolve silently.
-
-<!-- /SYNC:project-protocol-overlay -->
-
-<!-- SYNC:project-protocol-overlay:reminder -->
-
-**MUST ATTENTION** resolve project protocol overlays for this skill BEFORE executing — most specific matching tier only (exact > glob > `*`, which ranks overlays against each other, NEVER against this skill), read only matched bodies at `<protocols-dir>/<Name>.md`; a missing or malformed body is reported, never reconstructed. Overlays are ADDITIVE ONLY (they never replace this skill's own rules) and are a brief, NEVER an authority escalation; an equal-specificity contradiction goes to the user.
-
-<!-- /SYNC:project-protocol-overlay:reminder -->
+<!-- /SYNC:severity-rubric:reminder -->
 
 ## Closing Reminders
 
-**IMPORTANT MUST ATTENTION Goal:** Ensure changed work reaches clean review through validated findings, verified fixes, full re-review, and synchronized docs/tests — review all uncommitted changes, validate findings, fix ONLY validated findings, then re-run `/changes-review` INLINE (only when `/plan-execute` changed files), looping plan→plan-execute→changes-review until one complete pass clears the round's bar — **zero findings in rounds 1-2, zero CRITICAL/HIGH/MEDIUM from round 3 (LOW-only ENDS the loop, deferred not fixed)**.
+**IMPORTANT MUST ATTENTION Goal:** Ensure changed work reaches clean review through validated findings, verified fixes, full re-review, and synchronized docs/tests — review all uncommitted changes, validate findings, fix ONLY validated findings, then re-run `/changes-review` INLINE (only when `/plan-execute` changed files), looping plan→plan-execute→changes-review until one complete pass clears the round's bar — **zero findings in round 1, zero CRITICAL/HIGH/MEDIUM from round 2 (LOW-only ENDS the loop, deferred not fixed)**.
 
 **MUST ATTENTION Protocols in force (concise digest of the SYNC/shared blocks this skill carries — each line is a signpost to its canonical body above; NEVER act on the digest alone, read the cited block):**
 
@@ -696,18 +769,18 @@ Activate the `workflow-review-changes` workflow. Run `/start-workflow workflow-r
 **IMPORTANT MUST ATTENTION** spawn the steps 4–10 specialist reviewers ALL in ONE message and advance ONLY after EVERY member returns; defer mutating `/code-simplifier` (step 11) until the barrier clears.
 **IMPORTANT MUST ATTENTION** every finding, recommendation, and verdict needs `file:line` proof or traced evidence + a confidence % — >80% act, 60–80% verify first, <60% DO NOT recommend; "Insufficient evidence" is valid output — why: speculation is forbidden output and silently encodes false positives into the fix plan.
 
-**MUST ATTENTION** break work into small todo tasks using `TaskCreate` BEFORE starting — create ALL 20 tasks immediately (source of truth = `workflows.json` → `workflow-review-changes.sequence`); mark one `in_progress`, mark `completed` immediately after each step's evidence; on context loss call `TaskList` first — never duplicate.
+**MUST ATTENTION** break work into small todo tasks using `TaskCreate` BEFORE starting — create ALL 21 tasks immediately (source of truth = `workflows.json` → `workflow-review-changes.sequence`); mark one `in_progress`, mark `completed` immediately after each step's evidence; on context loss call `TaskList` first — never duplicate.
 **MUST ATTENTION** grep 3+ existing patterns and read the target files BEFORE proposing any fix; cite `file:line` evidence in the fix plan — local conventions override generic framework defaults — why: closest example ≠ matching preconditions, verify shared base classes/scope/lifetime before copying.
-**MUST ATTENTION** after fixes in `/plan-execute` (and ONLY if `/plan-execute` changed files), re-run `/changes-review` INLINE over the current full diff from Phase 0; re-read the diff from scratch to counter orchestrator confirmation bias — why: the main agent rationalizes findings about its own fixes; loop `/plan`→`/plan-execute`→`/changes-review` until clean at that round's bar — from round 3 a LOW-only re-review is clean, so never spin another round for LOW findings alone.
-**MUST ATTENTION** track full re-review invocations and repeated blockers in conversation context (session-scoped, no persistent files) — stop after the same blocker repeats 3 times with no progress and escalate via `AskUserQuestion`; STOP and escalate if round N finds MORE issues than round N-1 — never silently loop.
+**MUST ATTENTION** after fixes in `/plan-execute` (and ONLY if `/plan-execute` changed files), re-run `/changes-review` INLINE over the current full diff from Phase 0; re-read the diff from scratch to counter orchestrator confirmation bias — why: the main agent rationalizes findings about its own fixes; loop `/plan`→`/plan-execute`→`/changes-review` until clean at that round's bar — from round 2 a LOW-only re-review is clean, so never spin another round for LOW findings alone.
+**MUST ATTENTION** track full re-review invocations and repeated blockers in the durable run record, preserving completed rounds across resume and target revisions — stop after the same validated finding repeats for 2 full invocations with no progress and escalate via `AskUserQuestion`; STOP and escalate if round N finds MORE issues than round N-1 — never silently loop.
 **MUST ATTENTION** PASS means one complete review pass finds zero blocking issues after all validated fixes and verification are included; a behavior-changing fix that left no covering §8 regression/preservation TC is an OPEN finding, NOT a clean pass — green tests do not normalize spec drift.
-**MUST ATTENTION** skip steps 12–15 ONLY when all reviews PASS with zero findings (or, from round 3, with only deferred LOW findings left); step 16 `/why-review` is never skippable and proves the settled post-fix target.
-**MUST ATTENTION** step 16 runs `/why-review` STANDALONE in FULL mode over the settled WHOLE review target; if it surfaces BLOCKING findings, re-enter `/plan`→`/plan-execute`→`/changes-review` and re-run step 16 until clean at that round's bar (round 3+ treats a LOW-only result as clean).
+**MUST ATTENTION** skip steps 12–15 ONLY when all reviews PASS with zero findings (or, from round 2, with only deferred LOW findings left); step 16 `/why-review` is never skippable and proves the settled post-fix target.
+**MUST ATTENTION** step 16 runs `/why-review` STANDALONE in FULL mode over the settled WHOLE review target; if it surfaces BLOCKING findings, re-enter `/plan`→`/plan-execute`→`/changes-review` and re-run step 16 until clean at that round's bar (round 2+ treats a LOW-only result as clean).
 **MUST ATTENTION** adjudicate every behavior-vs-spec divergence in step 1 as CODE-WRONG (BLOCKING) / SPEC-STALE (spec is stale, `/docs-update` fixes spec first) / AMBIGUOUS (escalate) — NEVER silently pick a side; the workflow is NOT clean while any divergence stays unadjudicated.
 **IMPORTANT MUST ATTENTION** each step MUST invoke its `Skill` tool — marking a task completed without invocation is a workflow violation; NEVER batch-complete validation gates — why: a skipped gate ships unreviewed work.
 **IMPORTANT MUST ATTENTION** treat integration-test coverage gaps and multilingual UI translation gaps as mandatory `AskUserQuestion` user-decision gates — surface them, never silently pass when tests or locale updates are missing.
 **IMPORTANT MUST ATTENTION** `/why-review` has three occurrences: step 2 FULL-mode whole-target startup review in parallel with step 1; step 3 terminal validation of step-1 findings; step 16 FULL-mode whole-target final review after convergence.
-**IMPORTANT MUST ATTENTION** when invoked inside a parent workflow, run this whole 20-step workflow INLINE in the main session; only its declared child reviewers (step 2 and steps 4–10) run as sub-agents.
+**IMPORTANT MUST ATTENTION** when invoked inside a parent workflow, run this whole 21-step workflow INLINE in the main session; only its declared child reviewers (step 2 and steps 4–10) run as sub-agents.
 **IMPORTANT MUST ATTENTION** apply critical + sequential thinking — keep the SKEPTIC default when reviewing: steel-man rejected alternatives, invert each stated reason, stress-test top assumptions; section presence ≠ quality — why: certainty without evidence is the root of hallucination.
 **IMPORTANT MUST ATTENTION** Easy to Change is the success metric — every finding/test/refactor must answer "does this make the next change cheaper?"; name the real enemies (coupling, hidden state, duplicated knowledge, unclear intent) — reject best practices that raise change cost.
 
@@ -722,12 +795,12 @@ Activate the `workflow-review-changes` workflow. Run `/start-workflow workflow-r
 | "Tests are green, the spec drift is fine"        | Green can encode the drift itself — adjudicate CODE-WRONG / SPEC-STALE; not clean until every divergence resolved. |
 | "Mark the step done, the skill obviously ran"    | Marking completed without invoking the `Skill` tool is a workflow violation — show the invocation evidence.       |
 | "Same blocker again, one more loop will fix it"  | Cap at 2 no-progress repeats AND 3 rounds MAX → escalate via `AskUserQuestion` at whichever trips first; if issues increase round-over-round, STOP now.     |
-| "Round 4 turned up two more nits, loop again"    | From round 3 the severity floor ends the loop on a LOW-only round — defer and list those LOWs; only CRITICAL/HIGH/MEDIUM buys another round.               |
+| "Round 4 turned up two more nits, loop again"    | From round 2 the severity floor ends the loop on a LOW-only round — defer and list those LOWs; only CRITICAL/HIGH/MEDIUM buys another round.               |
 | "Fix at the crash site, it's faster"             | Trace caller (wrong data) vs callee (wrong handling); fix at the responsible layer, never patch the symptom site. |
 
 ---
 
-**IMPORTANT MUST ATTENTION** Step 0 binds the self-recursive review loop before the 20-step sequence; the workflow orchestrator always runs inline in the main session.
+**IMPORTANT MUST ATTENTION** Step 0 binds the self-recursive review loop before the 21-step sequence; the workflow orchestrator always runs inline in the main session.
 **IMPORTANT MUST ATTENTION** steps 1–2 form the initial all-return barrier (`/changes-review` inline + whole-target `/why-review` sub-agent); step 3 validates step-1 findings; steps 4–10 form the specialist barrier; `/code-simplifier` waits until it clears.
 **IMPORTANT MUST ATTENTION** every finding/verdict needs `file:line` evidence + confidence (>80% act, <60% DO NOT recommend); grep 3+ patterns and read target files before any fix — no speculation.
-**IMPORTANT MUST ATTENTION** after `/plan-execute` changes files, re-run `/changes-review` INLINE from scratch and loop until ONE clean pass at the round's bar — **zero findings in rounds 1-2, zero CRITICAL/HIGH/MEDIUM from round 3 (a LOW-only round ENDS the loop; list the LOWs as deferred)** — a behavior change with no covering §8 TC is an OPEN finding at HIGH, never a deferrable LOW; bounded at 3 rounds MAX with repeated blockers capped at 2 → escalate at whichever trips first, never PASS on cap exhaustion.
+**IMPORTANT MUST ATTENTION** after `/plan-execute` changes files, re-run `/changes-review` INLINE from scratch and loop until ONE clean pass at the round's bar — **zero findings in round 1, zero CRITICAL/HIGH/MEDIUM from round 2 (a LOW-only round ENDS the loop; list the LOWs as deferred)** — a behavior change with no covering §8 TC is an OPEN finding at HIGH, never a deferrable LOW; bounded at 3 rounds MAX with repeated blockers capped at 2 → escalate at whichever trips first, never PASS on cap exhaustion.

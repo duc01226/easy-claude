@@ -15,9 +15,9 @@ disable-model-invocation: false
 > - For workflow skills, execute each listed child-skill step explicitly and report step-by-step evidence.
 > - If a required step/tool cannot run in this environment, stop and ask the user before adapting.
 <!-- CODEX:PROJECT-REFERENCE-LOADING:START -->
-## Codex Project-Reference Loading (No Hooks)
+## Codex Project-Reference Loading (Hook-Independent)
 
-Codex uses static project-reference loading instead of runtime-injected project docs.
+Claude and Codex use static project-reference loading as the authority; hooks may accelerate discovery but never replace the explicit read.
 When coding, planning, debugging, testing, or reviewing, open project docs explicitly using this routing.
 
 **Always read:**
@@ -48,12 +48,12 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 **Workflow:**
 
 1. **Capture** -- Record the event, context, and impact
-2. **Write** -- Create structured journal entry in plans/reports/
+2. **Write** -- Create structured journal entry in `./docs/journals/`
 
 **Key Rules:**
 
 - Use for significant events: bugs found, architectural decisions, incidents
-- Follow report naming convention from plan context
+- Use the dated-slug filename defined by **Journal output** below
 - Break work into todo tasks; add final self-review task
 
 **Be skeptical. Apply critical thinking, sequential thinking. Every claim needs traced proof, confidence percentages (Idea should be more than 80%).**
@@ -61,6 +61,9 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 Use the `journal-writer` subagent to explore the memories and recent code changes, and write some journal entries.
 Journal entries should be concise and focused on the most important events, key changes, impacts, and decisions.
 Keep journal entries in the `./docs/journals/` directory.
+
+**Journal output:** `./docs/journals/{date}-{slug}.md`. Use the date format from the active plan context and a concise event slug.
+Keep intermediate assessments in `plans/reports/`; durable journal entries belong in `./docs/journals/` — why: assessments support the work, journals preserve the event and its lessons.
 
 ---
 
@@ -119,6 +122,8 @@ Keep journal entries in the `./docs/journals/` directory.
 
 **IMPORTANT MUST ATTENTION Goal:** Write journal entries documenting significant technical events, decisions, or incidents in `./docs/journals/` — concise, focused on key changes, impacts, and decisions.
 
+**IMPORTANT MUST ATTENTION** Use the dated-slug **Journal output** contract above; keep intermediate assessments in `plans/reports/` and durable journal entries in `./docs/journals/`.
+
 **Protocols in force (concise digest of the SYNC/shared blocks this skill carries):**
 
 - **AI Mistake Prevention:** verify generated content against evidence, trace downstream references, verify all affected outputs, re-read after context loss, surface ambiguity.
@@ -132,13 +137,13 @@ Keep journal entries in the `./docs/journals/` directory.
 **[TASK-PLANNING]** Before acting, analyze task scope and systematically break it into small todo tasks and sub-tasks using task tracking.
 
 <!-- CODEX:SYNC-PROMPT-PROTOCOLS:START -->
-## Hookless Prompt Protocol Mirror (Auto-Synced)
+## Static Prompt Protocol Mirror (Auto-Synced)
 
-Source: `.claude/.ck.json` + `.claude/skills/shared/sync-inline-versions.md` (`:full` blocks) + `.claude/scripts/lib/hookless-prompt-protocol.cjs`
+Source: `.claude/.ck.json` + `.claude/skills/shared/sync-inline-versions.md` (`:full` blocks) + `.claude/scripts/lib/hookless-prompt-protocol.cjs` (legacy filename; static protocol composer)
 
 ## [WORKFLOW-EXECUTION-PROTOCOL] [BLOCKING] Workflow Execution Protocol — MANDATORY IMPORTANT MUST CRITICAL. Do not skip for any reason.
 
-**Generic portability boundary:** Reusable skills and protocol text stay project-neutral; project-specific conventions are discovered from docs/project-config.json and docs/project-reference/. Apply shared AI-SDD from `shared/sdd-artifact-contract.md`. Read `docs/project-config.json` and `docs/project-reference/docs-index-reference.md`, then open the project reference docs named there. For spec, test-case, behavior-change, public-contract, or `docs/specs/` work, route through the local spec docs named by the docs index: `feature-spec-reference.md`, `spec-system-reference.md`, `spec-principles.md`, and `workflow-spec-test-code-cycle-reference.md` when specs/tests/code must stay synchronized. If either file or a required reference doc is missing or stale, auto-run `$project-init` (or the narrow lower-level route such as `$project-config`, `$docs-init`, `$scan-all`, or `$scan --target=<key>`) before ordinary project-specific work. Any supported AI tool may execute when this shared context and local docs are available.
+**Generic portability boundary:** Reusable skills and protocol text stay project-neutral; project-specific conventions are discovered from docs/project-config.json and docs/project-reference/. Apply shared AI-SDD from `shared/sdd-artifact-contract.md`. Read `docs/project-config.json` and `docs/project-reference/docs-index-reference.md`, then open the project reference docs named there immediately before the first target read, grep, edit, test, or analysis. For spec, test-case, behavior-change, public-contract, or `docs/specs/` work, route through the local spec docs named by the docs index: `feature-spec-reference.md`, `spec-system-reference.md`, `spec-principles.md`, and `workflow-spec-test-code-cycle-reference.md` when specs/tests/code must stay synchronized. If either file or a required reference doc is missing or stale, auto-run `$project-init` (or the narrow lower-level route such as `$project-config`, `$docs-init`, `$scan-all`, or `$scan --target=<key>`) before ordinary project-specific work. After compaction, resume, delegation, or a material context change, re-read the required docs and state `Reference docs read: ... | Not applicable: ...`; a hook reminder or prior conversation is not proof that the files are loaded. Any supported AI tool may execute when this shared context and local docs are available.
 
 1. **DETECT:** If the prompt starts with an explicit slash skill/workflow command, execute it directly. Otherwise match the prompt against the workflow catalog and skill list.
 2. **ANALYZE:** Choose the best option: execute directly, invoke a skill, activate a standard workflow, or compose a custom step combination.

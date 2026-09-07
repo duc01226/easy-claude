@@ -54,8 +54,8 @@
  * missed detection costs almost nothing while a wrong block costs real work. Every rule below is
  * therefore biased toward allowing, and the whole check is skipped on any command containing `<<`.
  *
- * Fails OPEN (exit 0) on any internal error, and records the failure to a log file so a guard that
- * silently stops guarding is still discoverable.
+ * Fails OPEN (exit 0) on any internal error, but the shared hook runner always
+ * exposes the failure on stderr and in opt-in hook diagnostics.
  *
  * Tests: .claude/hooks/tests/suites/bash-shell-guard.test.cjs  (node .claude/hooks/tests/run-all-tests.cjs)
  *
@@ -63,9 +63,7 @@
  * @matcher Bash
  */
 
-const fs = require('fs');
-const os = require('os');
-const path = require('path');
+const { runPreToolHookSync } = require('./lib/hook-runner.cjs');
 
 /**
  * Detects a PowerShell here-string: an opener line ENDING in `@'` or `@"` (the idiomatic form is
@@ -91,29 +89,30 @@ const path = require('path');
  * @returns {{reason: string, detail: string, fix: string}|null} null when nothing is detected
  */
 const HERE_STRING_OPENER = /(?:^|[\s(,=])@(['"])$/;
+const MAX_GUARD_INPUT_LENGTH = 65536;
 
 function findPowerShellConstruct(command) {
+    if (typeof command !== 'string' || command.length > MAX_GUARD_INPUT_LENGTH) return null;
     if (command.includes('<<')) return null; // heredoc present — bias to allow (see narrowing 2)
 
     const lines = command.split('\n');
+    const openers = { "'": [], '"': [] };
     for (let i = 0; i < lines.length; i++) {
-        const match = lines[i].trimEnd().match(HERE_STRING_OPENER);
-        if (!match) continue;
-
-        const quote = match[1];
-        const opener = `@${quote}`;
-        const closer = `${quote}@`;
-        for (let j = i + 1; j < lines.length; j++) {
-            if (lines[j].trim() !== closer) continue;
+        const closer = lines[i].trim();
+        if ((closer === "'@" || closer === '"@') && openers[closer[0]].length > 0) {
+            const openerLine = openers[closer[0]].shift();
             return {
-                reason: `PowerShell here-string (${opener} … ${closer})`,
+                reason: `PowerShell here-string (@${closer[0]} … ${closer})`,
                 detail:
-                    `Line ${i + 1} opens a PowerShell here-string and line ${j + 1} closes it. ` +
+                    `Line ${openerLine + 1} opens a PowerShell here-string and line ${i + 1} closes it. ` +
                     'Git Bash has no such syntax — it tries to run `@` as a command and reports ' +
                     '"@: command not found" (exit 127), which does not name the real problem.',
                 fix: "Use a POSIX heredoc instead:\n```\ncat <<'EOF'\n…your text…\nEOF\n```"
             };
         }
+        const match = lines[i].trimEnd().match(HERE_STRING_OPENER);
+        if (!match) continue;
+        openers[match[1]].push(i);
     }
     return null;
 }
@@ -124,7 +123,6 @@ function findPowerShellConstruct(command) {
  * @returns {string}
  */
 function formatBlock(command, problem) {
-    const preview = command.length > 300 ? `${command.slice(0, 300)}\n… (truncated)` : command;
     return [
         '## ⛔ PowerShell syntax in a Git Bash command',
         '',
@@ -136,56 +134,32 @@ function formatBlock(command, problem) {
         problem.fix,
         '',
         '### Command as received',
-        '```',
-        preview,
-        '```',
+        '_The command body is omitted from diagnostics so secrets and file contents are not copied into the hook transcript._',
         '',
         '_Guard: `.claude/hooks/bash-shell-guard.cjs`. Claude Code runs commands through Git Bash',
         '(MINGW64), never PowerShell or CMD._'
     ].join('\n');
 }
 
-/**
- * Records an internal failure without blocking. stderr from an exit-0 hook is not reliably
- * surfaced, so the log file is what makes a silently-broken guard discoverable after the fact.
- *
- * @param {Error} error
- */
-function recordGuardFailure(error) {
-    const message = `bash-shell-guard error (command allowed): ${error && error.message}`;
-    console.error(message);
-    try {
-        const logPath = path.join(os.tmpdir(), 'claude-bash-shell-guard-errors.log');
-        fs.appendFileSync(logPath, `${new Date().toISOString()} ${message}\n${error && error.stack}\n\n`);
-    } catch {
-        // Logging must never be the reason a command is blocked.
+function evaluate(input) {
+    if (!input || input.tool_name !== 'Bash') return undefined;
+
+    const command = input.tool_input?.command;
+    if (typeof command !== 'string' || !command.trim()) return undefined;
+
+    const problem = findPowerShellConstruct(command);
+    if (problem) {
+        return { code: 2, stderr: `${formatBlock(command, problem)}\n`, decision: 'block' };
     }
-}
 
-function main() {
-    try {
-        const input = JSON.parse(fs.readFileSync(process.stdin.fd, 'utf-8'));
-        if (input.tool_name !== 'Bash') process.exit(0);
-
-        const command = input.tool_input?.command || '';
-        if (!command.trim()) process.exit(0);
-
-        const problem = findPowerShellConstruct(command);
-        if (problem) {
-            console.error(formatBlock(command, problem));
-            process.exit(2);
-        }
-
-        process.exit(0);
-    } catch (error) {
-        // Fail open — a guard that blocks legitimate work is worse than the mistake it prevents.
-        recordGuardFailure(error);
-        process.exit(0);
-    }
+    return undefined;
 }
 
 if (require.main === module) {
-    main();
+    runPreToolHookSync('bash-shell-guard', evaluate, {
+        inputErrorCode: 0,
+        errorExitCode: 0
+    });
 }
 
-module.exports = { findPowerShellConstruct, formatBlock };
+module.exports = { findPowerShellConstruct, formatBlock, evaluate };

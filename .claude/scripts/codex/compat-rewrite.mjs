@@ -62,11 +62,11 @@ export function rewriteClaudeToolTermsForCodex(text) {
   return text
     .replace(
       /\(content auto-injected by hooks?[^)]*\)/gi,
-      "(Codex has no hook injection — open this file directly before proceeding)"
+      "(Hooks may point to this file; every host must open it directly before proceeding)"
     )
     .replaceAll(
       "(content auto-injected by hook — check for [Injected: ...] header before reading)",
-      "(Codex has no hook injection — open this file directly before proceeding)"
+      "(Hooks may point to this file; every host must open it directly before proceeding)"
     )
     .replaceAll(
       "(content auto-injected by hooks).",

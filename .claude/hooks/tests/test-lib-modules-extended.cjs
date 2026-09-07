@@ -459,11 +459,46 @@ logSection('V2 Schema Validation');
 logSection('V2 Loader Helpers');
 
 {
-    const { getModules, getContextGroup, getModuleForPath, resolveSection, getLocalizationConfig, isMultilingualProject } = require('../lib/project-config-loader.cjs');
-    const { generateTestFixtures } = require('../lib/test-fixture-generator.cjs');
-    const f = generateTestFixtures();
+    // Test V2 matching against a declared config, not fallback C#/TS paths
+    // paired with an unrelated adopter's real context groups. Only config IO
+    // is substituted; the actual loader/helper source runs in isolation.
+    const helperConfig = {
+        modules: [
+            { name: 'fixture-service', kind: 'backend-service', pathRegex: '^fixture/backend/' },
+            { name: 'fixture-ui', kind: 'frontend-app', pathRegex: '^fixture/frontend/' }
+        ],
+        contextGroups: [
+            { name: 'Fixture Backend', pathRegexes: ['^fixture/backend/'], fileExtensions: ['.cs'] },
+            { name: 'Fixture Frontend', pathRegexes: ['^fixture/frontend/'], fileExtensions: ['.ts'] }
+        ],
+        styling: {}
+    };
+    const loaderPath = path.resolve(__dirname, '../lib/project-config-loader.cjs');
+    const loaderRequire = require('node:module').createRequire(loaderPath);
+    const isolated = { exports: {} };
+    require('node:vm').runInNewContext(fs.readFileSync(loaderPath, 'utf8'), {
+        module: isolated, exports: isolated.exports, process, console,
+        __dirname: path.dirname(loaderPath), __filename: loaderPath,
+        require(id) {
+            if (id === './ck-config-loader.cjs') return {
+                loadConfig: () => ({ portability: { projectConfigPath: 'fixture-project-config.json' } }),
+                DEFAULT_PORTABILITY: { projectConfigPath: 'fixture-project-config.json' }
+            };
+            if (id === 'fs') return { ...fs, readFileSync(file, ...args) {
+                return path.basename(String(file)) === 'fixture-project-config.json'
+                    ? JSON.stringify(helperConfig) : fs.readFileSync(file, ...args);
+            } };
+            return loaderRequire(id);
+        }
+    }, { filename: loaderPath });
+    const { getModules, getContextGroup, getModuleForPath, resolveSection, getLocalizationConfig, isMultilingualProject } = isolated.exports;
+    const f = {
+        backendServiceCs: 'fixture/backend/Application/SaveCommand.cs',
+        backendEntityCs: 'fixture/backend/Domain/Entity.cs',
+        modernAppTs: 'fixture/frontend/app.component.ts'
+    };
 
-    // getModules — returns array (from real config with 2 placeholder modules or v1 fallback)
+    // Separate real-config validation remains above and below this unit seam.
     const allModules = getModules();
     logResult('getModules returns array', Array.isArray(allModules));
     logResult('getModules non-empty', allModules.length > 0);
@@ -472,7 +507,7 @@ logSection('V2 Loader Helpers');
     const backendModules = getModules('backend-service');
     logResult(
         'getModules backend filter works',
-        backendModules.every(m => m.kind === 'backend-service')
+        backendModules.length === 1 && backendModules.every(m => m.kind === 'backend-service')
     );
 
     // getContextGroup matches .cs file (config-driven path)
@@ -486,11 +521,14 @@ logSection('V2 Loader Helpers');
 
     // getContextGroup no match for .md
     const mdGroup = getContextGroup('docs/README.md');
-    logResult('getContextGroup no match for .md', mdGroup === null);
+    logResult('getContextGroup no match for .md', mdGroup === null &&
+        getContextGroup('fixture/backend/README.md') === null &&
+        getContextGroup('outside/Entity.cs') === null);
 
     // getModuleForPath (config-driven path)
     const mod = getModuleForPath(f.backendEntityCs);
-    logResult('getModuleForPath finds module', mod !== null);
+    logResult('getModuleForPath finds module', mod !== null && mod.name === 'fixture-service' &&
+        getModuleForPath('outside/Entity.cs') === null);
 
     // resolveSection returns scss as fallback for styling
     const styling = resolveSection('styling', 'scss');

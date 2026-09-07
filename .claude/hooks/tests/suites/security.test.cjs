@@ -370,16 +370,13 @@ const pathTraversalTests = [
     }
   },
   {
-    name: '[privacy-block] handles quoted path in command (limitation)',
+    name: '[privacy-block] blocks quoted sensitive path in command',
     fn: async () => {
-      // NOTE: Current implementation doesn't parse quotes in bash commands
-      // This documents actual behavior - quoted .env is not detected
       const input = createPreToolUseInput('Bash', {
         command: 'cat ".env"'
       });
       const result = await runHook(PRIVACY_BLOCK, input);
-      // Current behavior: doesn't parse quotes, so this passes through
-      assertAllowed(result.code, 'Currently does not parse quotes in commands');
+      assertBlocked(result.code, 'Quoted sensitive operand must be blocked');
     }
   },
   {
@@ -427,33 +424,37 @@ const pathTraversalTests = [
 
 const inputValidationTests = [
   {
-    name: '[privacy-block] handles empty JSON object',
+    name: '[privacy-block] denies empty JSON object with a visible diagnostic',
     fn: async () => {
       const result = await runHook(PRIVACY_BLOCK, {});
-      assertAllowed(result.code, 'Should not crash on empty object');
+      assertEqual(result.code, 2, 'Malformed PreToolUse input must fail closed');
+      assertTrue(result.stderr.length > 0, 'Malformed input must be diagnosable');
     }
   },
   {
-    name: '[privacy-block] handles null input',
+    name: '[privacy-block] denies null input with a visible diagnostic',
     fn: async () => {
       const result = await runHook(PRIVACY_BLOCK, null);
-      assertAllowed(result.code, 'Should not crash on null');
+      assertEqual(result.code, 2, 'Null PreToolUse input must fail closed');
+      assertTrue(result.stderr.length > 0, 'Null input must be diagnosable');
     }
   },
   {
-    name: '[privacy-block] handles missing tool_input',
+    name: '[privacy-block] denies missing tool_input with a diagnostic',
     fn: async () => {
       const input = { event: 'PreToolUse', tool_name: 'Read' };
       const result = await runHook(PRIVACY_BLOCK, input);
-      assertAllowed(result.code, 'Should handle missing tool_input');
+      assertEqual(result.code, 2, 'Missing tool_input is an evaluation failure');
+      assertTrue(result.stderr.length > 0, 'Evaluation failure must be visible');
     }
   },
   {
-    name: '[privacy-block] handles wrong type for file_path',
+    name: '[privacy-block] denies wrong type for file_path with a diagnostic',
     fn: async () => {
       const input = createPreToolUseInput('Read', { file_path: 123 });
       const result = await runHook(PRIVACY_BLOCK, input);
-      assertAllowed(result.code, 'Should handle number as file_path');
+      assertEqual(result.code, 2, 'Invalid file_path is an evaluation failure');
+      assertTrue(result.stderr.length > 0, 'Evaluation failure must be visible');
     }
   },
   {

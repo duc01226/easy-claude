@@ -14,158 +14,177 @@
 
 const path = require('path');
 const fs = require('fs');
-
-const APPROVED_PREFIX = 'APPROVED:';
-
-// Safe file patterns - exempt from privacy checks (documentation/template files)
-const SAFE_PATTERNS = [
-  /\.example$/i,   // .env.example, config.example
-  /\.sample$/i,    // .env.sample
-  /\.template$/i,  // .env.template
-];
-
-// Privacy-sensitive patterns
-const PRIVACY_PATTERNS = [
-  /^\.env$/,              // .env
-  /^\.env\./,             // .env.local, .env.production, etc.
-  /\.env$/,               // path/to/.env
-  /\/\.env\./,            // path/to/.env.local
-  /credentials/i,         // credentials.json, etc.
-  /secrets?\.ya?ml$/i,    // secrets.yaml, secret.yml
-  /\.pem$/,               // Private keys
-  /\.key$/,               // Private keys
-  /id_rsa/,               // SSH keys
-  /id_ed25519/,           // SSH keys
-];
+const { resolveProjectRoot } = require('./lib/project-root.cjs');
+const { runPreToolHookSync } = require('./lib/hook-runner.cjs');
+const { inspectCommand } = require('./lib/command-inspection.cjs');
+const { collectFileOperands, collectGitDiffOperands, unwrapCommand } = require('./lib/path-boundary-policy.cjs');
+const { reportHookInternalError } = require('./lib/debug-log.cjs');
+const {
+  APPROVED_PREFIX,
+  isSafeFile,
+  isPrivacySensitive,
+  hasApprovalPrefix,
+  stripApprovalPrefix,
+  classifySensitivePath
+} = require('./lib/sensitive-path-policy.cjs');
 
 /**
  * Load .ck.json config to check if privacy block is disabled
  * @returns {boolean} true if privacy block should be skipped
  */
 function isPrivacyBlockDisabled() {
+  const resolution = resolveProjectRoot({ cwd: process.cwd(), scriptPath: __filename, env: process.env });
+  if (resolution.source === 'invalid-env-fallback') {
+    throw new Error(`Unable to resolve project root: ${resolution.error}`);
+  }
+  const projectRoot = resolution.rootDir;
+  const configPath = path.join(projectRoot, '.claude', '.ck.json');
   try {
-    const configPath = path.join(process.cwd(), '.claude', '.ck.json');
     const config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
     return config.privacyBlock === false;
-  } catch {
-    return false; // Default to enabled on error (file not found or invalid JSON)
+  } catch (error) {
+    if (error.code === 'ENOENT') return false; // Missing config means enabled.
+    throw new Error(`Unable to evaluate privacy configuration at ${configPath}: ${error.message}`);
   }
 }
 
-/**
- * Check if path is a safe file (example/sample/template)
- * @param {string} testPath - Path to check
- * @returns {boolean} true if file matches safe patterns
- */
-function isSafeFile(testPath) {
-  if (!testPath) return false;
-  const basename = path.basename(testPath);
-  return SAFE_PATTERNS.some(p => p.test(basename));
+const SHELL_WRAPPERS = new Set([
+  'env', 'command', 'builtin', 'exec', 'sudo', 'bash', 'sh', 'zsh', 'dash', 'ksh',
+  'pwsh', 'powershell', 'cmd'
+]);
+const SHELL_BODY_OPTIONS = new Set(['-c', '-command', '/c', '/command', '-e']);
+
+function commandName(statement) {
+  const raw = statement?.command?.value;
+  return typeof raw === 'string' ? raw.replace(/^.*[\\/]/, '').toLowerCase().replace(/\.exe$/, '') : '';
 }
 
-/**
- * Check if path has APPROVED: prefix
- * @param {string} testPath - Path to check
- * @returns {boolean} true if path starts with APPROVED:
- */
-function hasApprovalPrefix(testPath) {
-  return testPath && testPath.startsWith(APPROVED_PREFIX);
-}
-
-/**
- * Strip APPROVED: prefix from path, warn on suspicious paths
- * @param {string} testPath - Path to process
- * @returns {string} Path without APPROVED: prefix
- */
-function stripApprovalPrefix(testPath) {
-  if (hasApprovalPrefix(testPath)) {
-    const stripped = testPath.slice(APPROVED_PREFIX.length);
-
-    // Warn on suspicious paths (path traversal or absolute)
-    if (stripped.includes('..') || path.isAbsolute(stripped)) {
-      console.error('\x1b[33mWARN:\x1b[0m Approved path is outside project:', stripped);
-    }
-
-    return stripped;
-  }
-  return testPath;
-}
-
-/**
- * Check if path matches privacy patterns
- * @param {string} testPath - Path to check
- * @returns {boolean} true if path matches privacy-sensitive patterns
- */
-function isPrivacySensitive(testPath) {
-  if (!testPath) return false;
-
-  // Strip prefix for pattern matching
-  const cleanPath = stripApprovalPrefix(testPath);
-  let normalized = cleanPath.replace(/\\/g, '/');
-
-  // Decode URI components to catch obfuscated paths (%2e = '.')
+function inspectPrivacyCommand(command) {
   try {
-    normalized = decodeURIComponent(normalized);
-  } catch (e) {
-    // Invalid encoding, use as-is
+    return inspectCommand(command);
+  } catch (error) {
+    reportHookInternalError('privacy-block', 'command inspection failed', error);
+    throw error;
   }
+}
 
-  // Check safe patterns first - exempt example/sample/template files
-  if (isSafeFile(normalized)) {
-    return false;
-  }
-
-  const basename = path.basename(normalized);
-
-  for (const pattern of PRIVACY_PATTERNS) {
-    if (pattern.test(basename) || pattern.test(normalized)) {
-      return true;
+function commandOperands(statement) {
+  const candidates = [];
+  const add = (token, field = 'command', valueOverride) => {
+    const value = valueOverride ?? token?.value;
+    if (typeof value === 'string' && value.length > 0) {
+      candidates.push({ value, field, token, statement, unknown: token?.static === false });
+    } else if (token?.static === false) {
+      candidates.push({ value: '<unresolved>', field, token, statement, unknown: true });
     }
+  };
+  for (const assignment of statement?.assignments || []) add(assignment, 'assignment', assignment.assignmentValue);
+  for (const redirect of statement?.redirects || []) add(redirect.target, 'redirect');
+  const git = collectGitDiffOperands(statement);
+  const collected = git.protected ? git : collectFileOperands(statement, { privacy: true });
+  for (const entry of collected.paths) {
+    add(entry.token, entry.role, entry.value);
+    for (const directory of entry.cwdChanges || []) add(null, 'git-cwd', directory);
   }
-  return false;
+  if (collected.unknown) candidates.push({ value: '<unresolved>', field: 'command', statement, unknown: true });
+  return candidates;
+}
+
+function unknownNested(statement, field = 'command-wrapper') {
+  return [{
+    value: '<unresolved>',
+    field,
+    token: statement?.command || null,
+    statement,
+    unknown: true
+  }];
+}
+
+function nestedCommandOperands(statement, depth = 0) {
+  if (depth > 3) return unknownNested(statement, 'command-wrapper-depth');
+  const command = commandName(statement);
+  if (!SHELL_WRAPPERS.has(command)) return [];
+  const argv = Array.isArray(statement?.argv) ? statement.argv.slice(1) : [];
+
+  if (['bash', 'sh', 'zsh', 'dash', 'ksh', 'pwsh', 'powershell', 'cmd'].includes(command)) {
+    let bodyIndex = -1;
+    for (let index = 0; index < argv.length; index++) {
+      const value = argv[index]?.value;
+      if (typeof value !== 'string') return unknownNested(statement, 'shell-body');
+      if (SHELL_BODY_OPTIONS.has(value.toLowerCase())) {
+        bodyIndex = index + 1;
+        break;
+      }
+    }
+    if (bodyIndex < 0 || !argv[bodyIndex] || argv[bodyIndex].static === false) {
+      return unknownNested(statement, 'shell-body');
+    }
+    const inspected = inspectPrivacyCommand(argv[bodyIndex].value);
+    if (inspected.status === 'UNKNOWN' && inspected.diagnostics.some(item => item.code === 'INPUT_LIMIT')) {
+      return unknownNested(statement, 'shell-body');
+    }
+    const entries = [];
+    for (const nested of inspected.statements || []) {
+      entries.push(...commandOperands(nested));
+      entries.push(...nestedCommandOperands(nested, depth + 1));
+    }
+    return entries.length > 0 ? entries : (inspected.status === 'UNKNOWN' ? unknownNested(statement, 'shell-body') : []);
+  }
+
+  const wrapper = unwrapCommand(statement);
+  if (!wrapper || wrapper.unknown) return unknownNested(statement, 'wrapped-command');
+  const directories = wrapper.cwdChanges.map(value => ({ value, field: 'wrapper-cwd', statement }));
+  return [...directories, ...commandOperands(wrapper.inner), ...nestedCommandOperands(wrapper.inner, depth + 1)];
 }
 
 /**
- * Extract paths from tool input
- * @param {Object} toolInput - Tool input object with file_path, path, pattern, or command
- * @returns {Array<{value: string, field: string}>} Array of extracted paths with field names
+ * Extract only static file operands. This deliberately does not regex-scan
+ * arbitrary command text, so `echo "cat .env"` remains data. Direct fields
+ * and assignments are still checked by the same classifier.
  */
 function extractPaths(toolInput) {
   const paths = [];
-  if (!toolInput) return paths;
-
-  if (toolInput.file_path) paths.push({ value: toolInput.file_path, field: 'file_path' });
-  if (toolInput.path) paths.push({ value: toolInput.path, field: 'path' });
-  if (toolInput.pattern) paths.push({ value: toolInput.pattern, field: 'pattern' });
-
-  // Check bash commands for file paths
-  if (toolInput.command) {
-    // Look for APPROVED:.env or .env patterns
-    const approvedMatch = toolInput.command.match(/APPROVED:[^\s]+/g) || [];
-    approvedMatch.forEach(p => paths.push({ value: p, field: 'command' }));
-
-    // Only look for .env if no APPROVED: version found
-    if (approvedMatch.length === 0) {
-      const envMatch = toolInput.command.match(/\.env[^\s]*/g) || [];
-      envMatch.forEach(p => paths.push({ value: p, field: 'command' }));
-
-      // Also check bash variable assignments (FILE=.env, ENV_FILE=.env.local)
-      const varAssignments = toolInput.command.match(/\w+=[^\s]*\.env[^\s]*/g) || [];
-      varAssignments.forEach(a => {
-        const value = a.split('=')[1];
-        if (value) paths.push({ value, field: 'command' });
-      });
-
-      // Check command substitution containing sensitive patterns - extract .env from inside
-      const cmdSubst = toolInput.command.match(/\$\([^)]*?(\.env[^\s)]*)[^)]*\)/g) || [];
-      for (const subst of cmdSubst) {
-        const inner = subst.match(/\.env[^\s)]*/);
-        if (inner) paths.push({ value: inner[0], field: 'command' });
+  if (!toolInput || typeof toolInput !== 'object') return paths;
+  for (const field of ['file_path', 'path', 'pattern']) {
+    if (typeof toolInput[field] === 'string' && toolInput[field].length > 0) {
+      paths.push({ value: toolInput[field], field });
+    }
+  }
+  if (typeof toolInput.command === 'string') {
+    const inspected = inspectPrivacyCommand(toolInput.command);
+    if (inspected.diagnostics.some(item => item.code === 'INPUT_LIMIT')) {
+      paths.push({ value: '<unresolved>', field: 'command-limit', unknown: true });
+    }
+    for (const statement of inspected.statements) {
+      paths.push(...commandOperands(statement));
+      paths.push(...nestedCommandOperands(statement));
+    }
+    // For an unsupported statement, preserve a bounded evidence fallback for
+    // an explicit sensitive-looking token only. It is never treated as an
+    // approval and cannot suppress a separately parsed operand.
+    if (inspected.status === 'UNKNOWN') {
+      for (const statement of inspected.statements) {
+        for (const token of statement.tokens || []) {
+          if (!token.static && typeof token.value === 'string' && isPrivacySensitive(token.value)) {
+            paths.push({ value: token.value, field: 'command-unknown', statement });
+            continue;
+          }
+          if (!token.static && typeof token.value === 'string') {
+            // Opaque expansions such as `$(cat .env)` are intentionally not
+            // shell-parsed here. Split only on syntax delimiters and classify
+            // each bounded fragment so the sensitive operand remains covered
+            // without returning to regex-scanning ordinary command text.
+            for (const fragment of token.value.split(/[\s()[\]{};|&"'`<>]+/).filter(Boolean)) {
+              if (isPrivacySensitive(fragment)) {
+                paths.push({ value: fragment, field: 'command-unknown-fragment', statement });
+              }
+            }
+          }
+        }
       }
     }
   }
-
-  return paths.filter(p => p.value);
+  return paths.filter(entry => typeof entry.value === 'string' && entry.value.length > 0);
 }
 
 /**
@@ -201,48 +220,71 @@ function formatApprovalNotice(filePath) {
   return `\x1b[32m✓\x1b[0m Privacy: User-approved access to ${path.basename(filePath)}`;
 }
 
-// Main
-async function main() {
-  // Check if privacy block is disabled via .ck.json
-  if (isPrivacyBlockDisabled()) {
-    process.exit(0); // Disabled, allow all
+function evaluationError(message) {
+  return {
+    code: 2,
+    stderr: `[privacy-block] Unable to evaluate tool input: ${message}\n`,
+    decision: 'error-block'
+  };
+}
+
+function evaluate(input) {
+  // Standalone/unit callers sometimes omit the envelope fields. Such input is
+  // not a tool decision, but it is still reported by the shared runner when it
+  // is malformed. A real scoped tool event must have an object payload.
+  if (!input || typeof input !== 'object') return undefined;
+  if (!Object.prototype.hasOwnProperty.call(input, 'tool_input') || input.tool_input == null) {
+    return input.tool_name ? evaluationError('tool_input is missing') : undefined;
+  }
+  const toolInput = input.tool_input;
+  if (typeof toolInput !== 'object' || Array.isArray(toolInput)) {
+    return input.tool_name ? evaluationError('tool_input is missing or not an object') : undefined;
+  }
+  if (input.tool_name === 'Bash' && typeof toolInput.command !== 'string') {
+    return evaluationError('Bash command is missing or not a string');
+  }
+  for (const field of ['file_path', 'path', 'pattern', 'notebook_path']) {
+    if (toolInput[field] !== undefined && typeof toolInput[field] !== 'string') {
+      return input.tool_name ? evaluationError(`${field} must be a string`) : undefined;
+    }
   }
 
-  let input = '';
-  for await (const chunk of process.stdin) {
-    input += chunk;
-  }
+  // Check if privacy block is disabled via .ck.json. Invalid configuration is
+  // an evaluation failure and the shared runner maps it to a visible block.
+  if (isPrivacyBlockDisabled()) return undefined;
 
-  let hookData;
-  try {
-    hookData = JSON.parse(input);
-  } catch (e) {
-    process.exit(0); // Invalid JSON, allow
-  }
-
-  const { tool_input: toolInput } = hookData;
   const paths = extractPaths(toolInput);
+  const approvalNotices = [];
 
   // Check each path
-  for (const { value: testPath } of paths) {
-    if (!isPrivacySensitive(testPath)) continue;
+  for (const entry of paths) {
+    if (entry.unknown) return evaluationError(`Unable to resolve ${entry.field || 'command'} operand safely`);
+    const testPath = entry.value;
+    const classification = classifySensitivePath(testPath);
+    if (!classification.sensitive) continue;
 
     // Check for approval prefix
-    if (hasApprovalPrefix(testPath)) {
+    if (hasApprovalPrefix(testPath) && classification.valid) {
       // User approved - allow with notice
-      console.error(formatApprovalNotice(testPath));
+      approvalNotices.push(formatApprovalNotice(testPath));
       continue; // Check other paths
     }
 
     // No approval - block
-    console.error(formatBlockMessage(testPath));
-    process.exit(2); // Block
+    return { code: 2, stderr: `${formatBlockMessage(testPath)}\n`, decision: 'block' };
   }
 
-  process.exit(0); // Allow
+  return approvalNotices.length > 0
+    ? { stderr: `${approvalNotices.join('\n')}\n`, decision: 'approval' }
+    : undefined;
 }
 
-main().catch(() => process.exit(0));
+if (require.main === module) {
+  runPreToolHookSync('privacy-block', evaluate, {
+    inputErrorCode: 2,
+    errorExitCode: 2
+  });
+}
 
 // Export functions for unit testing
 if (typeof module !== 'undefined') {
@@ -250,8 +292,10 @@ if (typeof module !== 'undefined') {
     isSafeFile,
     isPrivacyBlockDisabled,
     isPrivacySensitive,
+    classifySensitivePath,
     hasApprovalPrefix,
     stripApprovalPrefix,
     extractPaths,
+    evaluate,
   };
 }

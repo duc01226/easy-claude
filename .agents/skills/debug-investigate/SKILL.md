@@ -14,9 +14,9 @@ description: '[Fix & Debug] Use when investigating a bug''s root cause — repro
 > - For workflow skills, execute each listed child-skill step explicitly and report step-by-step evidence.
 > - If a required step/tool cannot run in this environment, stop and ask the user before adapting.
 <!-- CODEX:PROJECT-REFERENCE-LOADING:START -->
-## Codex Project-Reference Loading (No Hooks)
+## Codex Project-Reference Loading (Hook-Independent)
 
-Codex uses static project-reference loading instead of runtime-injected project docs.
+Claude and Codex use static project-reference loading as the authority; hooks may accelerate discovery but never replace the explicit read.
 When coding, planning, debugging, testing, or reviewing, open project docs explicitly using this routing.
 
 **Always read:**
@@ -305,12 +305,14 @@ After `$fix` applies changes, `$prove-fix` MUST be run — builds code proof tra
 
 > **Incremental Result Persistence** — MANDATORY for all sub-agents or heavy inline steps processing >3 files.
 >
-> 1. **Before starting:** Create report file `plans/reports/{skill}-{date}-{slug}.md`
-> 2. **After each file/section reviewed:** Append findings to report immediately — never hold in memory
-> 3. **Return to main agent:** Summary only (per SYNC:subagent-return-contract) with `Full report:` path
-> 4. **Main agent:** Reads report file only when resolving specific blockers
+> 1. **Before starting:** Create report file `plans/reports/{skill}-{date}-{slug}.md` and record Run ID, Task ID, Attempt ID, target scope, and target fingerprint.
+> 2. **After each file/section reviewed:** Append findings, evidence, changed paths, and gaps immediately — never hold them in memory.
+> 3. **Delegated return:** A sub-agent emits only the structured `SYNC:subagent-return-contract` envelope with exact totals, salient Critical/High findings (maximum ten), current attempt, and `Full report:` path. **Inline user-facing output:** Preserve the skill's requested explanation or teaching, with links to the persisted evidence; the delegated transport limit does not replace that deliverable. Do not paste a full review report into an envelope.
+> 4. **Parent synthesis:** The main agent reads the full report for synthesis, acceptance, deduplication, and repair planning — not only when a named blocker exists. It preserves all severities beyond the transport cap.
+> 5. **Read-only boundary:** A read-only leaf may write its report/repair proposal but MUST NOT edit source, generated output, or user data; the parent/owner performs repairs after acceptance.
+> 6. **Advancement gate:** The parent records `ACCEPTED` for the current Attempt ID only after reconciling target, totals, gaps, and changed paths; stale or late attempts cannot advance dependent work.
 >
-> **Why:** Context cutoff mid-execution loses ALL in-memory findings. Each disk write survives compaction. Partial results are better than no results.
+> **Why:** Context cutoff mid-execution loses ALL in-memory findings. Each disk write survives compaction. Partial results are better than no results, while explicit identity prevents a late result from being mistaken for the current run.
 >
 > **Report naming:** `plans/reports/{skill-name}-{YYMMDD}-{HHmm}-{slug}.md`
 
@@ -318,17 +320,28 @@ After `$fix` applies changes, `$prove-fix` MUST be run — builds code proof tra
 
 <!-- SYNC:subagent-return-contract -->
 
-> **Sub-Agent Return Contract** — When this skill spawns a sub-agent, the sub-agent MUST return ONLY this structure. Main agent reads only this summary — NEVER requests full sub-agent output inline.
+> **Sub-Agent Return Contract** — When this skill spawns a sub-agent, the sub-agent MUST return ONLY the structured envelope below. Main agent reads the envelope first, then opens the referenced report for synthesis, acceptance, deduplication, or repair planning; a full report is never pasted inline.
 >
 > ```markdown
 > ## Sub-Agent Result: [skill-name]
 >
 > Status: ✅ PASS | ⚠️ PARTIAL | ❌ FAIL
 > Confidence: [0-100]%
+> Run ID: [stable run identifier]
+> Task ID: [parent task or phase identifier]
+> Attempt ID: [monotonic attempt/revision identifier]
+> Target: [exact files/paths or scope] @ [target fingerprint/commit]
+> Changed paths: [none | exact paths]
+> Finding totals: Critical=[n] | High=[n] | Medium=[n] | Low=[n]
+> Acceptance: PENDING | ACCEPTED | REJECTED — parent records the decision
 >
-> ### Findings (Critical/High only — max 10 bullets)
+> ### Findings (Critical/High surfaced — max 10 bullets)
 >
 > - [severity] [file:line] [finding]
+>
+> ### Gaps / Unverified
+>
+> - [missing host, runtime, coverage, or evidence limitation]
 >
 > ### Actions Taken
 >
@@ -336,15 +349,14 @@ After `$fix` applies changes, `$prove-fix` MUST be run — builds code proof tra
 >
 > ### Blockers (if any)
 >
-> - [blocker description]
+> - [blocker description, or `none`]
 >
 > Full report: plans/reports/[skill-name]-[date]-[slug].md
 > ```
 >
-> Main agent reads `Full report` file ONLY when: (a) resolving a specific blocker, or (b) building a fix plan.
-> Sub-agent writes full report incrementally (per SYNC:incremental-persistence) — not held in memory.
+> The ten-bullet limit is a transport limit, not a visibility limit: the full report may contain more than ten Medium/Low findings when no named blocker exists, and the parent MUST read it when synthesizing or deduplicating. The parent MUST reject a stale, duplicate, or superseded `Attempt ID` and MUST accept the current attempt before advancing a dependent step. Read-only leaves write repair proposals/reports only; they do not edit source, generated carriers, or user files.
 >
-> **Context budget** — the return payload is a SUMMARY, not a transcript: ≤10 finding bullets, no raw file contents / full diffs / verbatim logs inline, no re-pasted source. Everything beyond the summary lives in the `Full report` on disk. A sub-agent that would exceed the summary shape MUST write the detail to its report and return only the pointer — the orchestrator's context is the scarce resource the whole map-reduce protects.
+> **Context budget** — the return payload is a SUMMARY, not a transcript: no raw file contents / full diffs / verbatim logs inline, no re-pasted source. Everything beyond the envelope lives in the incrementally-written report. A sub-agent that would exceed the summary shape MUST persist the detail and return only the pointer; bounded transport must never become bounded visibility.
 
 <!-- /SYNC:subagent-return-contract -->
 
@@ -406,12 +418,12 @@ After `$fix` applies changes, `$prove-fix` MUST be run — builds code proof tra
 
 <!-- SYNC:project-reference-docs-guide -->
 
-> **Project Reference Docs Gate** — Run after task-tracking bootstrap and before target/source file reads, grep, edits, or analysis. Project docs override generic framework assumptions.
+> **Project Reference Docs Gate (static JIT)** — Run after task-tracking bootstrap and immediately before target/source file reads, grep, edits, tests, or analysis. Project docs override generic framework assumptions; hooks may remind or accelerate this gate, but never prove that it ran.
 >
 > 1. Identify scope: file types, domain area, and operation.
 > 2. **Read `docs/project-config.json` first — the project's machine-readable map.** It is the single source of truth for THIS repo (modules/paths, framework + search keywords, test/E2E/integration run-commands, design system, architecture rules, workflow patterns); ground exact paths, run-commands, and conventions on it **before investigating, planning, or coding** — never assume framework defaults (`CLAUDE.md` + reference docs are derived from it). If it — or the docs index, `lessons.md`, `CLAUDE.md`, `AGENTS.md`, or any required reference doc — is missing or stale, auto-run `$project-init` or the narrow route (`$project-config`, `$docs-init`, `$scan-all`, `$scan --target=<key>`, `$claude-md-init`) first; if Codex mirrors or `AGENTS.md` are stale, ask the user to run `$sync-codex` (never auto-run it).
 > 3. Required docs by trigger: always `docs/project-reference/lessons.md`; doc lookup `docs-index-reference.md`; review `code-review-rules.md`; backend/CQRS/API `backend-patterns-reference.md`; domain/entity `domain-entities-reference.md`; frontend/UI `frontend-patterns-reference.md`; styles/design `scss-styling-guide.md` + `design-system/design-system-canonical.md`; integration tests `integration-test-reference.md`; E2E `e2e-test-reference.md`; feature docs/specs `feature-spec-reference.md` + `spec-system-reference.md` + `spec-principles.md`; behavior/public-contract/spec-test-code sync `workflow-spec-test-code-cycle-reference.md`; derived spec index/ERD/reimplementation guides `spec-system-reference.md` + source Feature Specs under `docs/specs/`; architecture/new area `project-structure-reference.md`.
-> 4. Read every required doc, then before target work state: `Reference docs read: ... | Not applicable: ...`.
+> 4. Read every required doc, then before target work state: `Reference docs read: ... | Not applicable: ...`. After compaction, resume, delegation, or a material context change, repeat the route and restate the set; prior conversation and hook output are not proof of current loading.
 >
 > **Ready when:** scope evaluated, `docs/project-config.json` consulted, required docs checked/read or setup route completed, `lessons.md` confirmed, citation emitted.
 
@@ -869,13 +881,13 @@ After `$fix` applies changes, `$prove-fix` MUST be run — builds code proof tra
 **[TASK-PLANNING]** Before acting, analyze task scope and systematically break it into small todo tasks and sub-tasks using task tracking.
 
 <!-- CODEX:SYNC-PROMPT-PROTOCOLS:START -->
-## Hookless Prompt Protocol Mirror (Auto-Synced)
+## Static Prompt Protocol Mirror (Auto-Synced)
 
-Source: `.claude/.ck.json` + `.claude/skills/shared/sync-inline-versions.md` (`:full` blocks) + `.claude/scripts/lib/hookless-prompt-protocol.cjs`
+Source: `.claude/.ck.json` + `.claude/skills/shared/sync-inline-versions.md` (`:full` blocks) + `.claude/scripts/lib/hookless-prompt-protocol.cjs` (legacy filename; static protocol composer)
 
 ## [WORKFLOW-EXECUTION-PROTOCOL] [BLOCKING] Workflow Execution Protocol — MANDATORY IMPORTANT MUST CRITICAL. Do not skip for any reason.
 
-**Generic portability boundary:** Reusable skills and protocol text stay project-neutral; project-specific conventions are discovered from docs/project-config.json and docs/project-reference/. Apply shared AI-SDD from `shared/sdd-artifact-contract.md`. Read `docs/project-config.json` and `docs/project-reference/docs-index-reference.md`, then open the project reference docs named there. For spec, test-case, behavior-change, public-contract, or `docs/specs/` work, route through the local spec docs named by the docs index: `feature-spec-reference.md`, `spec-system-reference.md`, `spec-principles.md`, and `workflow-spec-test-code-cycle-reference.md` when specs/tests/code must stay synchronized. If either file or a required reference doc is missing or stale, auto-run `$project-init` (or the narrow lower-level route such as `$project-config`, `$docs-init`, `$scan-all`, or `$scan --target=<key>`) before ordinary project-specific work. Any supported AI tool may execute when this shared context and local docs are available.
+**Generic portability boundary:** Reusable skills and protocol text stay project-neutral; project-specific conventions are discovered from docs/project-config.json and docs/project-reference/. Apply shared AI-SDD from `shared/sdd-artifact-contract.md`. Read `docs/project-config.json` and `docs/project-reference/docs-index-reference.md`, then open the project reference docs named there immediately before the first target read, grep, edit, test, or analysis. For spec, test-case, behavior-change, public-contract, or `docs/specs/` work, route through the local spec docs named by the docs index: `feature-spec-reference.md`, `spec-system-reference.md`, `spec-principles.md`, and `workflow-spec-test-code-cycle-reference.md` when specs/tests/code must stay synchronized. If either file or a required reference doc is missing or stale, auto-run `$project-init` (or the narrow lower-level route such as `$project-config`, `$docs-init`, `$scan-all`, or `$scan --target=<key>`) before ordinary project-specific work. After compaction, resume, delegation, or a material context change, re-read the required docs and state `Reference docs read: ... | Not applicable: ...`; a hook reminder or prior conversation is not proof that the files are loaded. Any supported AI tool may execute when this shared context and local docs are available.
 
 1. **DETECT:** If the prompt starts with an explicit slash skill/workflow command, execute it directly. Otherwise match the prompt against the workflow catalog and skill list.
 2. **ANALYZE:** Choose the best option: execute directly, invoke a skill, activate a standard workflow, or compose a custom step combination.

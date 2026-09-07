@@ -1,6 +1,6 @@
 ---
 name: project-init
-description: '[Utilities] Use when initializing or re-evaluating portable project context: project-config, project-reference docs, CLAUDE.md, AGENTS.md, universal agent rules, hookless setup. Triggers on: project init, init project, missing project-config, missing project docs, missing CLAUDE.md, missing AGENTS.md.'
+description: '[Utilities] Use when initializing or re-evaluating portable project context: project-config, project-reference docs, CLAUDE.md, AGENTS.md, universal agent rules, static-context setup. Triggers on: project init, init project, missing project-config, missing project docs, missing CLAUDE.md, missing AGENTS.md.'
 disable-model-invocation: false
 ---
 
@@ -44,7 +44,8 @@ disable-model-invocation: false
 
 | Concern | Primary route |
 | --- | --- |
-| Project config | `/project-config`, then post-config parallel group: `/scan-all` + `/workflow-code-to-spec` |
+| Project config | `/project-config`, including the optional `experienceVerification` surface matrix, then post-config parallel group: `/scan-all` + `/workflow-code-to-spec` |
+| User/downstream experience | `/experience-review` after a runnable outcome exists; during setup, configure the matrix or record evidence-backed `NOT-APPLICABLE`/`ENVIRONMENT-BLOCKED` |
 | Project reference docs | `/scan-all` after config initialization; `/docs-init` or `/scan --target=<key>` only for stubs/focused repairs |
 | Root Claude instructions | `/claude-md-init` |
 | Codex mirror, `AGENTS.md`, `.agents`, `.codex` | Ask the user to run `/sync-codex` or its standalone node runner |
@@ -69,13 +70,14 @@ Minimum required task rows:
 7. Wait at a barrier until both post-config parallel tasks are completed, blocked, or evidence-deferred.
 8. Run required root-instruction route (`/claude-md-init`) or mark skipped with evidence.
 9. Resolve Codex mirror route by asking for `/sync-codex` when required.
-10. Call `/changes-review` after the scan/spec barrier.
-11. Call `/why-review` after `/changes-review`.
-12. Run verification commands.
-13. Spawn a background sub-agent task named `Spawn background /graph-build sub-agent` after setup/review/verification is otherwise done.
-14. Record the background `/graph-build` sub-agent outcome or explicit blocker.
-15. Report files changed, routes invoked, scan/spec outcomes, review outcomes, background graph outcome, verification output, and remaining manual actions.
-16. Analyze AI mistakes and reusable lessons.
+10. Resolve `experienceVerification`: configure project-observable surfaces and their evidence/baseline roots, or record evidence-backed `NOT-APPLICABLE`/`ENVIRONMENT-BLOCKED`; do not claim live review before a runnable outcome exists.
+11. Call `/changes-review` after the scan/spec barrier.
+12. Call `/why-review` after `/changes-review`.
+13. Run verification commands.
+14. Spawn a background sub-agent task named `Spawn background /graph-build sub-agent` after setup/review/verification is otherwise done.
+15. Record the background `/graph-build` sub-agent outcome or explicit blocker.
+16. Report files changed, routes invoked, scan/spec outcomes, experience-matrix outcome, review outcomes, background graph outcome, verification output, and remaining manual actions.
+17. Analyze AI mistakes and reusable lessons.
 
 Keep exactly one row `in_progress`. Mark each row `completed` immediately after its evidence is recorded.
 
@@ -92,6 +94,7 @@ node -e "const a=require('./.claude/hooks/lib/agent-files-state.cjs'); console.l
 Also check:
 
 - Config path: `node -e "console.log(require('./.claude/hooks/lib/project-config-loader.cjs').getConfiguredProjectConfigPath())"`
+- Experience path: inspect `experienceVerification` in the configured project config; it is optional, and its `enabled`/surface entries never substitute for live evidence.
 - Docs index path: `node -e "console.log(require('./.claude/hooks/lib/project-config-loader.cjs').getConfiguredDocsIndexPath())"`
 - Feature docs path: `node -e "console.log('docs/specs/')"`
 - Placeholder docs: use `isPlaceholderFile()` from `.claude/hooks/lib/session-init-helpers.cjs`.
@@ -106,6 +109,8 @@ Also check:
 | Empty folder, no real project content | Do not deep-scan. Create minimal portable context stubs only when the user explicitly requested project initialization; otherwise report that there is no project content yet and continue with generic guidance. Create the post-config parallel tasks but mark `/scan-all` skipped and `/workflow-code-to-spec` deferred only with evidence: `No project content or accepted capability scope`; next trigger is `/workflow-idea-to-spec` or `/greenfield`, then `/workflow-code-to-spec init-full`. Still create final rows for `/changes-review` and `/why-review`; mark them skipped only with this evidence-backed deferral. |
 | Greenfield project with manifests/code scaffold | Run `/project-config`, then start the post-config parallel group. `/scan-all` may be limited to relevant detected stack/docs. `/workflow-code-to-spec` runs when product/capability scope or real code exists; otherwise defer with exact missing scope. Still keep `/changes-review` and `/why-review` as final task rows. |
 | Existing project, config missing or skeleton | Run `/project-config` first. Then immediately start the post-config parallel group (`/scan-all` + `/workflow-code-to-spec`) before nonessential setup work. |
+| Config exists and `experienceVerification` is empty/disabled | Preserve existing project testing practices. Record evidence-backed `NOT-APPLICABLE` only when no observable surface exists; otherwise configure the surface and defer live `/experience-review` until its entry point and inspection capability are available. |
+| Configured observable surface is relevant but cannot run or be inspected | Record `ENVIRONMENT-BLOCKED` with the missing capability and evidence. Do not substitute a screenshot, source review, or passing automated test for the missing exercise. |
 | Config populated, reference docs missing/placeholders | Run `/scan-all` after config initialization. Use `/docs-init` or targeted `/scan --target=<key>` only as follow-up repair if `/scan-all` identifies missing/stub files. |
 | Config present but `referenceDocs` drifted (legacy filenames, missing canonical entries, or wrong order per the Phase 0 normalize probe) | Run **Reference-doc normalization** (Phase 2 step 1a) BEFORE the scan/spec barrier: rewrite `config.referenceDocs` to `normalizeReferenceDocs(...).normalized`, `git mv` each `renames[]` legacy file to its canonical name (or `git rm` a stale duplicate), migrate downstream textual refs, then let the SessionStart hook / `/scan --target=<key>` create the `added[]` docs. Re-run the probe until `changed:false`. |
 | Config/docs populated, `CLAUDE.md` missing | Run `/claude-md-init --mode init` after the scan/spec barrier is resolved or explicitly blocked/deferred. |
@@ -121,6 +126,7 @@ Also check:
 Run phases sequentially except the explicit post-config parallel group. After each phase, re-run Phase 0 checks.
 
 1. **Config** - `/project-config` when config is missing, skeleton, invalid, or stale relative to the workspace.
+1b. **Experience applicability matrix** - inspect `experienceVerification` after config exists. For a new project with no runnable surface yet, configure the intended surface shape without claiming execution. For an existing project, invoke `/experience-review` when a configured/observed surface is relevant; otherwise record the exact `NOT-APPLICABLE` or `ENVIRONMENT-BLOCKED` evidence. Never create an expected baseline during setup merely from the current implementation.
 1a. **Reference-doc normalization — canonical floor (MANDATORY when Phase 0 probe reports `changed:true`)** - repair reference-doc drift BEFORE the scan/spec barrier so every project converges to the framework floor regardless of starting state (no docs / partial / legacy names / wrong standard):
    - Rewrite `config.referenceDocs` to `normalizeReferenceDocs(config.referenceDocs).normalized` (canonical order, legacy names resolved via the alias map, canonical `templatePath`s preserved, genuine project-specific extras kept). Never delete or rename a canonical entry.
    - For each `renames[]` `{from,to}`: `git mv docs/project-reference/<from> docs/project-reference/<to>` when `<to>` is absent; if `<to>` already exists, `<from>` is a stale duplicate → confirm `<to>` holds the canonical content, then `git rm docs/project-reference/<from>`. Migrate every downstream textual reference (`docs-index-reference.md`, `project-structure-reference.md`) `<from>` → `<to>`, then ask the user to re-run `/sync-codex` so the regenerated mirrors match.
@@ -169,7 +175,7 @@ If either skill cannot run because the environment lacks the required tool, stop
 
 ## Phase 3: Hookless Agent Rule
 
-For Codex or any environment without Claude hooks:
+For Codex or any environment where the Claude-specific hook set is unavailable:
 
 - If `docs/project-config.json`, the docs index, `lessons.md`, `CLAUDE.md`, `AGENTS.md`, or a task-required reference doc is missing or stale, invoke `/project-init` before ordinary task work.
 - If `/project-init` cannot run because required tools are absent, report the missing tool and the exact lower-level route that remains.
@@ -188,6 +194,7 @@ node .claude/skills/skill-creator/scripts/validate-skills.cjs --path .claude/ski
 
 Spec workflow verification before declaring setup complete:
 
+- Confirm the `experienceVerification` section is either disabled/empty with an evidence-backed `NOT-APPLICABLE` reason, or has a surface applicability matrix; configuration alone is not live-review evidence. A relevant but unusable surface is `ENVIRONMENT-BLOCKED`, and a first-run expectation remains `ACCEPTANCE-PENDING`.
 - Confirm the task list contains a post-config parallel group with `Call /scan-all` and `Call /workflow-code-to-spec`.
 - Confirm `Call /scan-all` ran after `/project-config`, or was skipped only with empty/no-content evidence.
 - Confirm the task list contains `Call /changes-review` and `Call /why-review` as the final review skill-call rows after the scan/spec barrier.
@@ -226,6 +233,7 @@ Report:
 - Files created/updated/skipped: project config, reference docs, `CLAUDE.md`, `AGENTS.md`, mirrors.
 - Lower-level skills/scripts invoked.
 - Post-config parallel skill calls: `/scan-all` and `/workflow-code-to-spec`, each with outcome and evidence.
+- Experience applicability matrix: each configured or observed surface, intended outcome, exercise/inspection capability, evidence status, acceptance state, and limitation/`NOT-APPLICABLE`/`ENVIRONMENT-BLOCKED` reason.
 - Final review skill calls: `/changes-review`, `/why-review`, each with outcome and evidence.
 - Final background graph call: `/graph-build` sub-agent outcome, scope/build type, and blocker if any.
 - Spec workflow finalization: invoked mode (`init-full`, `audit`, `update`), user-confirmation blocker, or exact deferral reason and next trigger.

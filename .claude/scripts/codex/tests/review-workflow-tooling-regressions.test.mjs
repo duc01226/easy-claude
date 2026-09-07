@@ -142,7 +142,11 @@ test('TC-WFADV-022: whole-target why-review starts in parallel with changes-revi
     );
 
     assert.deepEqual(
-        workflow.sequence.slice(0, 3),
+        workflow.sequence.slice(0, 3).map((occurrence) =>
+            typeof occurrence === 'string'
+                ? occurrence
+                : `${occurrence.skill}${occurrence.args ? ` ${occurrence.args}` : ''}`
+        ),
         ['changes-review', 'why-review --target=whole-review-target', 'why-review'],
         'initial whole-target review must be a distinct sequence occurrence before findings validation'
     );
@@ -150,21 +154,25 @@ test('TC-WFADV-022: whole-target why-review starts in parallel with changes-revi
         workflow.parallelGroups.find(group => group.id === 'initial-reviews'),
         {
             id: 'initial-reviews',
-            members: ['changes-review', 'why-review --target=whole-review-target'],
+            members: ['initial-changes-review', 'why-review --target=whole-review-target'],
             conditionalMembers: [],
             barrier: true
         },
         'changes-review and whole-target why-review must share an unconditional all-return barrier'
     );
     assert.deepEqual(
-        workflow.stepMeta['why-review --target=whole-review-target'],
-        { executionMode: 'subagent', contextBudget: 'high' },
-        'whole-target why-review must run out-of-band so changes-review can remain inline'
+        workflow.stepMeta['initial-changes-review'],
+        { executionMode: 'inline' },
+        'the initial changes-review occurrence remains inline while whole-target why-review runs out-of-band'
     );
     assert.deepEqual(
-        workflow.sequence.slice(-6),
-        ['changes-review', 'why-review', 'scan --target=domain-entities', 'docs-update', 'workflow-end', 'watzup'],
-        'the settled-state final holistic why-review must remain after the conditional re-review and before terminal documentation sync'
+        workflow.sequence.slice(-7).map((occurrence) =>
+            typeof occurrence === 'string'
+                ? occurrence
+                : `${occurrence.skill}${occurrence.args ? ` ${occurrence.args}` : ''}`
+        ),
+        ['changes-review', 'why-review', 'experience-review', 'scan --target=domain-entities', 'docs-update', 'workflow-end', 'watzup'],
+        'the settled-state final holistic why-review must remain after the conditional re-review and before optional experience evidence and terminal documentation sync'
     );
     assert.match(skillText, /Initial Parallel Phase \(Steps 1[–-]2\)/);
     assert.match(skillText, /fresh `code-reviewer` sub-agent[^\n]*FULL mode/);
@@ -172,8 +180,8 @@ test('TC-WFADV-022: whole-target why-review starts in parallel with changes-revi
     assert.match(skillText, /step 16[^\n]*settled[^\n]*whole target/i);
     assert.match(
         codexContextText,
-        /plan-execute -> changes-review -> why-review -> scan --target=domain-entities -> docs-update/,
-        'generated guidance must preserve the later conditional changes-review occurrence'
+        /plan-execute -> changes-review -> why-review -> experience-review -> scan --target=domain-entities -> docs-update/,
+        'generated guidance must preserve the later conditional changes-review occurrence and optional experience evidence'
     );
     assert.match(loopSkillText, /full 20-step sequence/);
     assert.doesNotMatch(loopSkillText, /full 19-step sequence/);
@@ -231,5 +239,25 @@ test('TC-WFADV-021: parallelGroups structural guards reject malformed barrier co
     assert.ok(
         dupId.some(f => /duplicate group id/.test(f)),
         'duplicate group id must be flagged'
+    );
+});
+
+test('TC-HARNESS-006: review consumers name the executable canonical policy', async () => {
+    const shared = normalizeEol(await fs.readFile(
+        path.join(repoRoot, '.claude', 'skills', 'shared', 'sync-inline-versions.md'), 'utf8'
+    ));
+    const policy = await import(pathToFileURL(path.join(repoRoot, '.claude', 'scripts', 'lib', 'review-policy.cjs')).href);
+    assert.match(shared, /## SYNC:review-policy/);
+    assert.match(shared, /blockingFindings\(round, findings, hardGates\)/);
+    assert.equal(policy.MAX_ROUNDS, 3);
+    assert.deepEqual(
+        policy.blockingFindings(3, [{ id: 'low', severity: 'LOW' }]),
+        [],
+        'round-three LOW floor must be executable, not merely prose'
+    );
+    assert.equal(
+        policy.blockingFindings(3, [], [{ id: 'tests', status: 'FAIL' }]).length,
+        1,
+        'binary gates remain blocking at the LOW floor'
     );
 });

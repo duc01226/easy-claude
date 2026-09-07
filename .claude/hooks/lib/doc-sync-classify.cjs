@@ -22,8 +22,10 @@
 const fs = require('fs');
 const path = require('path');
 const { loadProjectConfig } = require('./project-config-loader.cjs');
+const { resolveProjectRoot } = require('./project-root.cjs');
+const { reportHookInternalError } = require('./debug-log.cjs');
 
-const PROJECT_DIR = process.env.CLAUDE_PROJECT_DIR || process.cwd();
+const PROJECT_DIR = resolveProjectRoot({ cwd: process.cwd(), scriptPath: __filename, env: process.env }).rootDir;
 const CONFIG_PATH = path.join(PROJECT_DIR, '.claude', 'hooks', 'config', 'doc-sync-gate.json');
 const FEATURE_SPEC_ROOT = 'docs/specs/';
 
@@ -62,7 +64,10 @@ function loadConfig() {
     cfg.fastExit.pathContains = Array.isArray(cfg.fastExit.pathContains) ? cfg.fastExit.pathContains : [];
     cfg.fastExit.extensions = Array.isArray(cfg.fastExit.extensions) ? cfg.fastExit.extensions : [];
     return cfg;
-  } catch {
+  } catch (error) {
+    if (error.code !== 'ENOENT') {
+      reportHookInternalError('doc-sync-gate', `configuration read failed at ${CONFIG_PATH}`, error);
+    }
     return { enabled: false };
   }
 }

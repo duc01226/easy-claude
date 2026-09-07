@@ -14,9 +14,9 @@ description: '[Git] Use when asked to "commit", "stage and commit", "save change
 > - For workflow skills, execute each listed child-skill step explicitly and report step-by-step evidence.
 > - If a required step/tool cannot run in this environment, stop and ask the user before adapting.
 <!-- CODEX:PROJECT-REFERENCE-LOADING:START -->
-## Codex Project-Reference Loading (No Hooks)
+## Codex Project-Reference Loading (Hook-Independent)
 
-Codex uses static project-reference loading instead of runtime-injected project docs.
+Claude and Codex use static project-reference loading as the authority; hooks may accelerate discovery but never replace the explicit read.
 When coding, planning, debugging, testing, or reviewing, open project docs explicitly using this routing.
 
 **Always read:**
@@ -47,7 +47,7 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 **Summary:** (read-this-if-nothing-else digest — purpose + ALL main steps + gates)
 
 - **PURPOSE** — produce a commit whose message a future reader can act on WITHOUT opening the diff: conventional subject, an `Estimate:` first body line, a purpose→what→how body, and a per-area Reviewers block. Three things are computed BEFORE the message exists (reviewers, estimate, doc triage) because they must live INSIDE it.
-- **STEP 0 — BYPASS MARKER.** Create `tmp/claude-temp/.commit-skill-active` before any `git add`/`git commit`, and **ALWAYS remove it afterwards** — success or failure.
+- **STEP 0 — EXPLICIT INTENT + LEASE.** After validating the user's literal Git request and resolving the exact repository, issue a short, session-scoped lease for only the requested operation(s). A lease is bounded bookkeeping, never user consent or native permission; revoke every issued lease in a `finally` path.
 - **STEP 1-2 — ANALYZE + STAGE.** `git status` / `git diff --cached` / `git diff` / `git log --oneline -5`, then stage.
 - **STEP 2.5 — DOCS TRIAGE.** Staged files matching doc-impact patterns → run `$docs-update`, re-stage the doc changes.
 - **STEP 2.7 — IDENTIFY REVIEWERS** (pre-commit, read-only): last author per staged file vs `HEAD`, commit author EXCLUDED, grouped BY AREA with the focus each owns.
@@ -87,19 +87,36 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 
 Stage changes and create well-structured git commits following Conventional Commits format.
 
-## IMPORTANT: Bypass git-commit-block Hook
+## IMPORTANT: Scoped Git authority
 
-Before running any `git add` or `git commit` commands, create the marker file to bypass the `git-commit-block` hook:
+The `git-commit-block` hook does not have a bypass marker. Before the first
+mutating Git statement, obtain the user's literal operation authority through
+this skill's Git Request Contract, resolve the canonical project/repository,
+and issue a short lease for the exact session and operation(s). Use the lease
+CLI with structured JSON on stdin; do not interpolate untrusted command text
+into a shell expression:
 
 ```bash
-PROJ=$(git rev-parse --show-toplevel) && mkdir -p "$PROJ/tmp/claude-temp" && touch "$PROJ/tmp/claude-temp/.commit-skill-active"
+printf '%s' '{"projectDir":"<canonical-project>","repository":"<canonical-repository>","sessionId":"<session-id>","operations":["add","commit"],"sourceRequest":"<bounded description of the user request>"}' \
+  | node .claude/hooks/lib/git-operation-lease.cjs issue
 ```
 
-After committing (success or failure), **always** clean up the marker:
+Store the returned `leaseId` without exposing it in the commit message or
+logs. Include `push` only when the user explicitly requested push (for
+example, `--push` / “commit and push”); a commit or implementation approval
+never implies push. Revoke each issued lease in a `finally` path, including
+when staging, verification, hooks, or the commit fails:
 
 ```bash
-rm -f "$(git rev-parse --show-toplevel)/tmp/claude-temp/.commit-skill-active"
+printf '%s' '{"projectDir":"<canonical-project>","repository":"<canonical-repository>","sessionId":"<session-id>","leaseId":"<lease-id>"}' \
+  | node .claude/hooks/lib/git-operation-lease.cjs revoke
 ```
+
+SessionEnd revokes any remaining records for the ending session on `clear` or
+`exit`; `compact` never refreshes or revokes leases. Missing, expired,
+malformed, foreign, or mismatched records deny protected Git operations. The
+lease is not a substitute for the user's request, native host permissions, or
+the test-verify gate.
 
 ## Workflow
 
@@ -122,11 +139,8 @@ git log --oneline -5
 ### Step 2: Stage Changes
 
 ```bash
-# Stage all changes
-git add .
-
-# Or stage specific files
-git add <file-path>
+# Stage only paths covered by the user's explicit scope.
+git add -- <authorized-file> [<authorized-file> ...]
 ```
 
 ### Step 2.5: Docs-Update Triage
@@ -316,23 +330,23 @@ Rules:
 
 ### Step 4: Commit
 
-Use HEREDOC for proper formatting:
+Use a structured message file/stdin so the mandatory body fields cannot be
+silently dropped:
 
 ```bash
-git commit -m "$(cat <<'EOF'
-type(scope): subject
-
-Estimate: 3 SP | man_days_ai: 0.65d | man_days_traditional: 2d
-
-- summarize key change 1 with intent
-- summarize key change 2 with impact
-
-Reviewers:
-- <area>: Reviewer Name <reviewer@email> — focus on <what they own>
-
-Generated by AI
-EOF
-)"
+printf '%s\n' \
+  'type(scope): subject' \
+  '' \
+  'Estimate: 3 SP | man_days_ai: 0.65d | man_days_traditional: 2d' \
+  '' \
+  '- summarize key change 1 with intent' \
+  '- summarize key change 2 with impact' \
+  '' \
+  'Reviewers:' \
+  '- <area>: Reviewer Name <reviewer@email> — focus on <what they own>' \
+  '' \
+  'Generated with [Claude Code]' \
+  | git commit -F -
 ```
 
 > The **Estimate** line comes from Step 2.9 — re-derived after Step 3.5 if that gate changed the staged set — and is ALWAYS the first line of the body.
@@ -397,14 +411,14 @@ Generated by AI
 
 ## Critical Rules
 
-- **ALWAYS stage all unstaged changes** before committing — run `git add .` (or specific files) so nothing is left behind
+- **Stage only the user-authorized paths** before committing — never use a repository-wide `git add .` when unrelated work may be present; preserve other owners' index/worktree changes
 - **Test-Verify Gate (Step 3.5):** when staged changes include code that might need tests, ask the user to verify via `$workflow-integration-test-green` (default — it converges the suite to green), confirm already-verified, or explicitly skip; only an explicit **Yes** or user-chosen **Skip** commits without verifying, and the agent NEVER picks skip itself. Bypass the gate entirely only when the staged set is docs/specs/config with no source-code change
 - **Estimate line is MANDATORY and comes FIRST in the body** — `Estimate: <n> SP | man_days_ai: <x>d | man_days_traditional: <y>d`, derived bottom-up per the carried `SYNC:estimation-framework` against the STAGED diff (Step 2.9), or reused from the implemented plan/PBI/story frontmatter with `(source: <path>)`. Story points and AI man-days are required; discount generated/lockfile/docs churn before estimating
 - **Stop after the commit; push** to remote only when the user explicitly requests it
 - **Refresh the code graph after committing (Step 6)** — when `.code-graph/` exists, fire `$graph-build --scope=sync` in the BACKGROUND (`run_in_background: true`) so the commit that moved HEAD is re-parsed and `last_synced_commit` advances with it; skip silently when the dir is absent. Non-blocking by design: it NEVER gates, delays, or fails the commit
 - **Review staged changes** before committing
 - **Never commit** secrets, credentials, or .env files
-- **Never use** `git commit --amend` unless explicitly requested AND the commit was created in this session AND not yet pushed
+- **Never use** `git commit --amend` — the Git authority hook blocks it unconditionally; create a new commit
 - **Never skip** hooks with `--no-verify` unless explicitly requested
 - Commit message MUST include a Conventional Commit title AND a detailed body — **purpose/kind → what changed → how it works**. As detailed as the change needs (wrap ~72 chars); title-only commit FORBIDDEN for non-trivial changes
 - Optimize body for the next human reading `git log` / `git blame` — surface the non-obvious (key logic, invariants, edge cases, why-this-over-that), not just a list of touched files
@@ -687,7 +701,7 @@ Spawn `git-manager` after committing when the user says "push", "create PR", or 
 
 **IMPORTANT MUST ATTENTION Goal:** Stage changes and create well-structured Conventional-Commits commits — and, when code changed, gate the commit on a user decision to verify (via `$workflow-integration-test-green`, which drives the suite to green), confirm already-verified, or explicitly skip (default: verify first). Every commit message body OPENS with a mandatory `Estimate:` line carrying the derived story points and AI man-days for that staged diff.
 
-**IMPORTANT MUST ATTENTION main steps — execute in order, the skill AI keeps forgetting:** (0) CREATE the `tmp/claude-temp/.commit-skill-active` bypass marker, and ALWAYS remove it afterwards; (1-2) ANALYZE + STAGE; (2.5) DOCS TRIAGE → `$docs-update` + re-stage; (2.7) IDENTIFY REVIEWERS — last author per staged file vs `HEAD`, author excluded, grouped BY AREA; (2.9) DERIVE THE ESTIMATE from the STAGED diff per the carried `SYNC:estimation-framework`, discounting generated/lockfile/docs churn first; (3) GENERATE MESSAGE — subject, then Estimate as the FIRST body line, then purpose → what → how, then Reviewers; (3.5) TEST-VERIFY GATE — ask the user directly, default verify, and **re-stage AND re-derive** if the gate mutated the staged set; (4) COMMIT via HEREDOC; (5) VERIFY the first body line IS the Estimate line, then re-present reviewers; (6) REFRESH THE CODE GRAPH in the BACKGROUND via `$graph-build --scope=sync` when `.code-graph/` exists. **STOP after the commit unless `--push`.** — why: three of these steps (2.7, 2.9, 2.5) must run BEFORE the message exists, so skipping one cannot be repaired afterwards without amending — which is forbidden.
+**IMPORTANT MUST ATTENTION main steps — execute in order, the skill AI keeps forgetting:** (0) VALIDATE explicit Git intent, resolve the canonical target, issue exact session-scoped lease(s), and record a `finally` revocation path; (1-2) ANALYZE + STAGE; (2.5) DOCS TRIAGE → `$docs-update` + re-stage; (2.7) IDENTIFY REVIEWERS — last author per staged file vs `HEAD`, author excluded, grouped BY AREA; (2.9) DERIVE THE ESTIMATE from the STAGED diff per the carried `SYNC:estimation-framework`, discounting generated/lockfile/docs churn first; (3) GENERATE MESSAGE — subject, then Estimate as the FIRST body line, then purpose → what → how, then Reviewers; (3.5) TEST-VERIFY GATE — ask the user directly, default verify, and **re-stage AND re-derive** if the gate mutated the staged set; (4) COMMIT via HEREDOC; (5) VERIFY the first body line IS the Estimate line, then re-present reviewers; (6) REFRESH THE CODE GRAPH in the BACKGROUND via `$graph-build --scope=sync` when `.code-graph/` exists; finally revoke every issued lease. **STOP after the commit unless `--push`.** — why: three of these steps (2.7, 2.9, 2.5) must run BEFORE the message exists, so skipping one cannot be repaired afterwards without amending — which is forbidden.
 
 **Protocols in force (concise digest of the SYNC/shared blocks this skill carries):**
 
@@ -725,13 +739,13 @@ Spawn `git-manager` after committing when the user says "push", "create PR", or 
 **[TASK-PLANNING]** Before acting, analyze task scope and systematically break it into small todo tasks and sub-tasks using task tracking.
 
 <!-- CODEX:SYNC-PROMPT-PROTOCOLS:START -->
-## Hookless Prompt Protocol Mirror (Auto-Synced)
+## Static Prompt Protocol Mirror (Auto-Synced)
 
-Source: `.claude/.ck.json` + `.claude/skills/shared/sync-inline-versions.md` (`:full` blocks) + `.claude/scripts/lib/hookless-prompt-protocol.cjs`
+Source: `.claude/.ck.json` + `.claude/skills/shared/sync-inline-versions.md` (`:full` blocks) + `.claude/scripts/lib/hookless-prompt-protocol.cjs` (legacy filename; static protocol composer)
 
 ## [WORKFLOW-EXECUTION-PROTOCOL] [BLOCKING] Workflow Execution Protocol — MANDATORY IMPORTANT MUST CRITICAL. Do not skip for any reason.
 
-**Generic portability boundary:** Reusable skills and protocol text stay project-neutral; project-specific conventions are discovered from docs/project-config.json and docs/project-reference/. Apply shared AI-SDD from `shared/sdd-artifact-contract.md`. Read `docs/project-config.json` and `docs/project-reference/docs-index-reference.md`, then open the project reference docs named there. For spec, test-case, behavior-change, public-contract, or `docs/specs/` work, route through the local spec docs named by the docs index: `feature-spec-reference.md`, `spec-system-reference.md`, `spec-principles.md`, and `workflow-spec-test-code-cycle-reference.md` when specs/tests/code must stay synchronized. If either file or a required reference doc is missing or stale, auto-run `$project-init` (or the narrow lower-level route such as `$project-config`, `$docs-init`, `$scan-all`, or `$scan --target=<key>`) before ordinary project-specific work. Any supported AI tool may execute when this shared context and local docs are available.
+**Generic portability boundary:** Reusable skills and protocol text stay project-neutral; project-specific conventions are discovered from docs/project-config.json and docs/project-reference/. Apply shared AI-SDD from `shared/sdd-artifact-contract.md`. Read `docs/project-config.json` and `docs/project-reference/docs-index-reference.md`, then open the project reference docs named there immediately before the first target read, grep, edit, test, or analysis. For spec, test-case, behavior-change, public-contract, or `docs/specs/` work, route through the local spec docs named by the docs index: `feature-spec-reference.md`, `spec-system-reference.md`, `spec-principles.md`, and `workflow-spec-test-code-cycle-reference.md` when specs/tests/code must stay synchronized. If either file or a required reference doc is missing or stale, auto-run `$project-init` (or the narrow lower-level route such as `$project-config`, `$docs-init`, `$scan-all`, or `$scan --target=<key>`) before ordinary project-specific work. After compaction, resume, delegation, or a material context change, re-read the required docs and state `Reference docs read: ... | Not applicable: ...`; a hook reminder or prior conversation is not proof that the files are loaded. Any supported AI tool may execute when this shared context and local docs are available.
 
 1. **DETECT:** If the prompt starts with an explicit slash skill/workflow command, execute it directly. Otherwise match the prompt against the workflow catalog and skill list.
 2. **ANALYZE:** Choose the best option: execute directly, invoke a skill, activate a standard workflow, or compose a custom step combination.

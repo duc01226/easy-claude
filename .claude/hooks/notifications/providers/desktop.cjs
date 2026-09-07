@@ -11,9 +11,17 @@
  */
 'use strict';
 
-const { exec } = require('child_process');
+const { execFile } = require('child_process');
 const os = require('os');
 const path = require('path');
+
+function runNotification(file, args, options) {
+    return new Promise(resolve => {
+        execFile(file, args, { shell: false, ...options }, err => {
+            resolve({ success: !err, error: err?.message });
+        });
+    });
+}
 
 // Notification titles by event type
 const TITLES = {
@@ -82,18 +90,13 @@ function getNotificationContent(input) {
  * @returns {Promise<{success: boolean, error?: string}>}
  */
 function notifyWindows(title, message, showDialog) {
-    return new Promise(resolve => {
-        // Path to PowerShell script (relative to this file's parent directory)
-        const scriptPath = path.resolve(__dirname, '..', '..', 'lib', 'notify-windows.ps1');
-        const dialogFlag = showDialog ? ' -ShowDialog' : '';
+    const scriptPath = path.resolve(__dirname, '..', '..', 'lib', 'notify-windows.ps1');
+    const args = ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-WindowStyle', 'Hidden', '-File', scriptPath,
+        '-Title', title, '-Message', message];
+    if (showDialog) args.push('-ShowDialog');
 
-        const cmd = `powershell -NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File "${scriptPath}" -Title "${title}" -Message "${message}"${dialogFlag}`;
-
-        // Wait for completion - dialogs block until user clicks, toasts complete quickly
-        exec(cmd, { windowsHide: true, timeout: showDialog ? 60000 : 5000 }, err => {
-            resolve({ success: !err, error: err?.message });
-        });
-    });
+    // Wait for completion - dialogs block until user clicks, toasts complete quickly
+    return runNotification('powershell', args, { windowsHide: true, timeout: showDialog ? 60000 : 5000 });
 }
 
 /**
@@ -101,22 +104,15 @@ function notifyWindows(title, message, showDialog) {
  * @param {string} title - Notification title
  * @param {string} message - Notification message
  * @param {boolean} showDialog - Whether to show blocking dialog
- * @returns {{success: boolean, error?: string}}
+ * @returns {Promise<{success: boolean, error?: string}>}
  */
 function notifyMacOS(title, message, showDialog) {
-    // Escape for osascript
-    const escapedTitle = title.replace(/"/g, '\\"');
-    const escapedMessage = message.replace(/"/g, '\\"');
+    // Fixed program source receives notification content only through argv.
+    const script = showDialog
+        ? 'on run argv\ndisplay dialog (item 2 of argv) with title (item 1 of argv) buttons {"OK"} default button "OK"\nend run'
+        : 'on run argv\ndisplay notification (item 2 of argv) with title (item 1 of argv)\nend run';
 
-    if (showDialog) {
-        // Use display dialog for blocking modal
-        exec(`osascript -e 'display dialog "${escapedMessage}" with title "${escapedTitle}" buttons {"OK"} default button "OK"'`, { timeout: 30000 });
-    } else {
-        // Use display notification for non-blocking toast
-        exec(`osascript -e 'display notification "${escapedMessage}" with title "${escapedTitle}"'`, { timeout: 3000 });
-    }
-
-    return { success: true };
+    return runNotification('osascript', ['-e', script, '--', title, message], { timeout: showDialog ? 30000 : 3000 });
 }
 
 /**
@@ -124,25 +120,20 @@ function notifyMacOS(title, message, showDialog) {
  * @param {string} title - Notification title
  * @param {string} message - Notification message
  * @param {boolean} showDialog - Whether to show blocking dialog
- * @returns {{success: boolean, error?: string}}
+ * @returns {Promise<{success: boolean, error?: string}>}
  */
-function notifyLinux(title, message, showDialog) {
-    // Escape for shell
-    const escapedTitle = title.replace(/"/g, '\\"');
-    const escapedMessage = message.replace(/"/g, '\\"');
-
+async function notifyLinux(title, message, showDialog) {
     if (showDialog) {
         // Try zenity first (GTK), then kdialog (KDE)
-        exec(
-            `zenity --info --title="${escapedTitle}" --text="${escapedMessage}" 2>/dev/null || kdialog --msgbox "${escapedMessage}" --title "${escapedTitle}" 2>/dev/null`,
-            { timeout: 30000 }
-        );
-    } else {
-        // Use notify-send for non-blocking toast
-        exec(`notify-send "${escapedTitle}" "${escapedMessage}" --urgency=normal --expire-time=5000`, { timeout: 3000 });
+        const deadline = Date.now() + 30000;
+        const result = await runNotification('zenity', ['--info', `--title=${title}`, `--text=${message}`], { timeout: 30000 });
+        if (result.success) return result;
+        const remaining = deadline - Date.now();
+        if (remaining <= 0) return result;
+        return runNotification('kdialog', ['--msgbox', message, '--title', title], { timeout: remaining });
     }
 
-    return { success: true };
+    return runNotification('notify-send', ['--urgency=normal', '--expire-time=5000', '--', title, message], { timeout: 3000 });
 }
 
 /**

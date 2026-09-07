@@ -25,7 +25,7 @@
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
-const { execFileSync } = require('child_process');
+const { execFileSync, spawnSync } = require('child_process');
 const { assertEqual, assertTrue, assertContains } = require('../lib/assertions.cjs');
 
 const REPO_ROOT = path.resolve(__dirname, '../../../..');
@@ -106,7 +106,6 @@ function runSyncCase(lastSynced, fakeHead) {
 }
 
 const skipSync = noPython || noHistory;
-const hasGraphDb = fs.existsSync(path.join(REPO_ROOT, '.code-graph', 'graph.db'));
 
 // ---------------------------------------------------------------------------
 // Python-side: the graph-ahead guard
@@ -170,17 +169,55 @@ const guardTests = [
 // Hook-side: the per-prompt HEAD-change gate
 // ---------------------------------------------------------------------------
 
-function runPromptHook() {
-    const event = JSON.stringify({ hook_event_name: 'UserPromptSubmit', prompt: 'test', cwd: REPO_ROOT });
-    const started = Date.now();
-    const result = execFileSync('node', [HOOK], {
-        input: event,
-        encoding: 'utf-8',
-        timeout: 120000,
-        cwd: REPO_ROOT,
-        stdio: ['pipe', 'pipe', 'pipe']
-    });
-    return { ms: Date.now() - started, stdout: result };
+function runPromptHook({ unchanged = false, available = true, locked = false, result = { reason: 'synced' } } = {}) {
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), 'ckgraph-prompt-'));
+    const head = 'a'.repeat(40);
+    const initial = unchanged ? head : '0'.repeat(40);
+    const marker = path.join(root, '.last-seen-head');
+    const calls = path.join(root, 'calls.jsonl');
+    try {
+        fs.writeFileSync(marker, initial);
+        fs.writeFileSync(calls, '');
+        fs.writeFileSync(path.join(root, 'graph.db'), 'isolated existence sentinel');
+        // Only external graph/config dependencies are controlled. The real hook,
+        // stdin parser and runner execute in a fresh process for every case.
+        const script = `
+            const fs = require('node:fs');
+            const path = require('node:path');
+            const root = process.cwd();
+            const record = value => fs.appendFileSync(path.join(root, 'calls.jsonl'), JSON.stringify(value) + '\\n');
+            require.cache[${JSON.stringify(UTILS)}] = { exports: {
+                getGraphDbPath: () => path.join(root, 'graph.db'),
+                getGitHead: () => ${JSON.stringify(head)},
+                readLastSeenHead: () => fs.readFileSync(path.join(root, '.last-seen-head'), 'utf8'),
+                writeLastSeenHead: value => { record(['write', value]); fs.writeFileSync(path.join(root, '.last-seen-head'), value); },
+                isGraphAvailable: () => { record(['available']); return { available: ${available} }; },
+                acquireUpdateLock: () => { record(['acquire']); return ${!locked}; },
+                releaseUpdateLock: () => record(['release']),
+                invokeGraph: (...args) => { record(['sync', ...args]); return ${JSON.stringify(result)}; }
+            } };
+            require.cache[${JSON.stringify(path.join(path.dirname(UTILS), 'project-config-loader.cjs'))}] = {
+                exports: { isConfigPopulated: () => true }
+            };
+            require(${JSON.stringify(HOOK)});
+        `;
+        const child = spawnSync(process.execPath, ['-e', script], {
+            input: JSON.stringify({ hook_event_name: 'UserPromptSubmit', prompt: 'test', cwd: root }),
+            encoding: 'utf8', timeout: 10000, cwd: root, windowsHide: true,
+            env: { ...process.env, CLAUDE_PROJECT_DIR: root, CK_DEBUG: '0', CLAUDE_HOOK_DEBUG: '0', NODE_OPTIONS: '' },
+            stdio: ['pipe', 'pipe', 'pipe']
+        });
+        assertEqual(child.error, undefined, `hook child must complete: ${child.error?.message}; ${child.stderr}`);
+        assertEqual(child.status, 0, `hook must remain non-blocking: ${child.stderr}`);
+        assertEqual(child.stdout, '', 'graph-prompt-sync must never inject into the prompt');
+        assertEqual(child.stderr, '', 'controlled graph outcomes must not report runtime errors');
+        return {
+            head, initial, marker: fs.readFileSync(marker, 'utf8'),
+            calls: fs.readFileSync(calls, 'utf8').split('\n').filter(Boolean).map(line => JSON.parse(line))
+        };
+    } finally {
+        fs.rmSync(root, { recursive: true, force: true });
+    }
 }
 
 const hookTests = [
@@ -195,44 +232,31 @@ const hookTests = [
     },
     {
         name: 'TC-GRAPHHEAD-011: gate path (HEAD unchanged) is silent and skips Python',
-        skip: hasGraphDb ? false : 'no .code-graph/graph.db on this host',
         fn() {
-            // Marker primed explicitly: this test asserts the GATE path, so it must not
-            // depend on whichever HEAD a previously-run test happened to leave behind.
-            const utils = require(UTILS);
-            const head = utils.getGitHead();
-            assertTrue(head !== null, 'test requires a git repo');
-            utils.writeLastSeenHead(head);
-
-            const { ms, stdout } = runPromptHook();
-
-            // A UserPromptSubmit hook that emits output injects it into the prompt.
-            // Graph freshness is an accelerator and must stay invisible.
-            assertEqual(stdout, '', 'graph-prompt-sync must stay silent on the prompt path');
-            // A Python graph sync costs >1s; the pure-node gate path is a few hundred ms.
-            assertTrue(ms < 1000, `gate path must not spawn Python (took ${ms}ms — did the HEAD check regress?)`);
-            assertEqual(utils.readLastSeenHead(), head, 'marker must still record the evaluated HEAD');
+            const r = runPromptHook({ unchanged: true });
+            assertEqual(JSON.stringify(r.calls), '[]', 'unchanged HEAD must skip dependency probes, locks and Python sync');
+            assertEqual(r.marker, r.head, 'marker must still record the evaluated HEAD');
         }
     },
     {
         name: 'TC-GRAPHHEAD-012: sync path (HEAD moved) is silent and records the new HEAD',
-        skip: hasGraphDb ? false : 'no .code-graph/graph.db on this host',
         fn() {
-            // Simulate "HEAD moved since the last prompt" by parking a stale marker —
-            // the same state a `git pull` leaves behind.
-            const utils = require(UTILS);
-            const head = utils.getGitHead();
-            assertTrue(head !== null, 'test requires a git repo');
-            utils.writeLastSeenHead('0'.repeat(40));
-
-            const { stdout } = runPromptHook();
-
-            assertEqual(stdout, '', 'the sync path must stay silent too — it must never inject into the prompt');
-            assertEqual(
-                utils.readLastSeenHead(),
-                head,
-                'after evaluating a moved HEAD the marker must advance, or every later prompt re-spawns Python'
-            );
+            for (const reason of ['synced', 'graph_ahead_skipped']) {
+                const r = runPromptHook({ result: { reason } });
+                assertEqual(r.marker, r.head, `${reason}: a decided sync must record the evaluated HEAD`);
+                assertEqual(JSON.stringify(r.calls), JSON.stringify([
+                    ['available'], ['acquire'], ['sync', 'sync', [], 15000], ['write', r.head], ['release']
+                ]), `${reason}: sync must hold its lock, write once and release`);
+            }
+            for (const scenario of [
+                { options: { available: false }, calls: [['available']], label: 'unavailable dependencies' },
+                { options: { locked: true }, calls: [['available'], ['acquire']], label: 'held lock' },
+                { options: { result: null }, calls: [['available'], ['acquire'], ['sync', 'sync', [], 15000], ['release']], label: 'failed sync' }
+            ]) {
+                const r = runPromptHook(scenario.options);
+                assertEqual(r.marker, r.initial, `${scenario.label}: retain stale marker so the next prompt can retry`);
+                assertEqual(JSON.stringify(r.calls), JSON.stringify(scenario.calls), `${scenario.label}: no forbidden sync/write/unlock`);
+            }
         }
     },
     {

@@ -11,6 +11,28 @@ const { execSync } = require('child_process');
 const path = require('path');
 
 const testCases = [
+    ...['\n', ';', '&&', '||', '|'].flatMap(separator => [
+        {
+            name: `[AP-01] ${JSON.stringify(separator)} filesystem tail is blocked`,
+            input: { tool_name: 'Bash', tool_input: { command: `npm run build ${separator} cat "build"` } },
+            expected: 'BLOCKED'
+        },
+        {
+            name: `[AP-01] ${JSON.stringify(separator)} independent build operations stay allowed`,
+            input: { tool_name: 'Bash', tool_input: { command: `npm run "build" ${separator} npm run "build"` } },
+            expected: 'ALLOWED'
+        }
+    ]),
+    ...['npm run "build"', './gradlew build', 'npm run build'].map(command => ({
+        name: `[R07] build operation: ${command}`,
+        input: { tool_name: 'Bash', tool_input: { command } },
+        expected: 'ALLOWED'
+    })),
+    ...['npm run "build";cat node_modules/a.js', './gradlew build && cat "dist/a.js"', 'cat "build"'].map(command => ({
+        name: `[R07] build exemption stays local: ${command}`,
+        input: { tool_name: 'Bash', tool_input: { command } },
+        expected: 'BLOCKED'
+    })),
     // Directory access - should be BLOCKED
     {
         name: 'Bash: ls node_modules',
@@ -95,6 +117,16 @@ const testCases = [
             tool_input: { command: 'pnpm --filter web run build 2>&1 | tail -100' }
         },
         expected: 'ALLOWED'
+    },
+    {
+        name: '[SECURITY] build command cannot bypass a later blocked compound segment',
+        input: { tool_name: 'Bash', tool_input: { command: 'npm run build && ls node_modules' } },
+        expected: 'BLOCKED'
+    },
+    {
+        name: '[SECURITY] build command cannot hide a blocked path operand',
+        input: { tool_name: 'Bash', tool_input: { command: 'dotnet build node_modules/app.csproj' } },
+        expected: 'BLOCKED'
     },
     {
         name: 'Bash: npm install',

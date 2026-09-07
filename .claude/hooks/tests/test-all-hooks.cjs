@@ -351,6 +351,12 @@ async function testGraphSessionInit() {
     }
 }
 
+function createMarkedTestProject() {
+    const tmpDir = createTempDir();
+    fs.mkdirSync(path.join(tmpDir, '.claude'));
+    return tmpDir;
+}
+
 async function testProjectConfigInit() {
     logSection('SessionStart: session-init-docs.cjs (config init)');
 
@@ -366,7 +372,7 @@ async function testProjectConfigInit() {
 
     // Test 2: When config is missing, should create skeleton and suggest /project-config
     {
-        const tmpDir = createTempDir();
+        const tmpDir = createMarkedTestProject();
         try {
             const docsDir = path.join(tmpDir, 'docs');
             fs.mkdirSync(docsDir, { recursive: true });
@@ -404,7 +410,7 @@ async function testProjectConfigInit() {
 
     // Test 3: Creates docs/ directory if missing (requires content dir for guard)
     {
-        const tmpDir = createTempDir();
+        const tmpDir = createMarkedTestProject();
         // Add a content directory so hasProjectContent() guard passes
         fs.mkdirSync(path.join(tmpDir, 'src'), { recursive: true });
         try {
@@ -431,7 +437,7 @@ async function testProjectConfigInit() {
 
     // Test 5: Persistent — second run STILL suggests when skeleton is unpopulated
     {
-        const tmpDir = createTempDir();
+        const tmpDir = createMarkedTestProject();
         try {
             const docsDir = path.join(tmpDir, 'docs');
             fs.mkdirSync(docsDir, { recursive: true });
@@ -463,7 +469,7 @@ async function testProjectConfigInit() {
 
     // Test 6: No suggestion when config is populated with real values
     {
-        const tmpDir = createTempDir();
+        const tmpDir = createMarkedTestProject();
         try {
             const docsDir = path.join(tmpDir, 'docs');
             fs.mkdirSync(docsDir, { recursive: true });
@@ -627,7 +633,7 @@ async function testInitPromptGate() {
 
     // Test 1: Populated config → exit 0 (silent pass-through)
     {
-        const tmpDir = createTempDir();
+        const tmpDir = createMarkedTestProject();
         try {
             const docsDir = path.join(tmpDir, 'docs');
             const srcDir = path.join(tmpDir, 'src');
@@ -656,7 +662,7 @@ async function testInitPromptGate() {
 
     // Test 2: Unpopulated config → exit 0 with setup guidance
     {
-        const tmpDir = createTempDir();
+        const tmpDir = createMarkedTestProject();
         try {
             const docsDir = path.join(tmpDir, 'docs');
             const srcDir = path.join(tmpDir, 'src');
@@ -690,7 +696,7 @@ async function testInitPromptGate() {
 
     // Test 3: Unpopulated config BUT /project-config prompt → exit 0 (allowlisted)
     {
-        const tmpDir = createTempDir();
+        const tmpDir = createMarkedTestProject();
         try {
             const docsDir = path.join(tmpDir, 'docs');
             fs.mkdirSync(docsDir, { recursive: true });
@@ -716,7 +722,7 @@ async function testInitPromptGate() {
 
     // Test 4: Unpopulated config BUT /scan --target=backend-patterns → exit 0 (allowlisted)
     {
-        const tmpDir = createTempDir();
+        const tmpDir = createMarkedTestProject();
         try {
             const docsDir = path.join(tmpDir, 'docs');
             fs.mkdirSync(docsDir, { recursive: true });
@@ -742,7 +748,7 @@ async function testInitPromptGate() {
 
     // Test 5: "skip init" → writes dismiss flag + exit 0
     {
-        const tmpDir = createTempDir();
+        const tmpDir = createMarkedTestProject();
         try {
             const docsDir = path.join(tmpDir, 'docs');
             const claudeDir = path.join(tmpDir, '.claude');
@@ -772,7 +778,7 @@ async function testInitPromptGate() {
 
     // Test 6: Active dismiss flag → exit 0 even with unpopulated config
     {
-        const tmpDir = createTempDir();
+        const tmpDir = createMarkedTestProject();
         try {
             const docsDir = path.join(tmpDir, 'docs');
             const claudeDir = path.join(tmpDir, '.claude');
@@ -804,7 +810,7 @@ async function testInitPromptGate() {
 
     // Test 7: Expired dismiss flag (>1 day old) → exit 2
     {
-        const tmpDir = createTempDir();
+        const tmpDir = createMarkedTestProject();
         try {
             const docsDir = path.join(tmpDir, 'docs');
             const claudeDir = path.join(tmpDir, '.claude');
@@ -839,7 +845,7 @@ async function testInitPromptGate() {
 
     // Test 8: Missing config file entirely → exit 0 with setup guidance
     {
-        const tmpDir = createTempDir();
+        const tmpDir = createMarkedTestProject();
         try {
             fs.mkdirSync(path.join(tmpDir, 'docs'), { recursive: true });
             fs.mkdirSync(path.join(tmpDir, 'src'), { recursive: true });
@@ -873,7 +879,7 @@ async function testInitPromptGate() {
 
     // Test 10: "skip scan" writes a 7-day dismiss flag under tmp/claude-temp
     {
-        const tmpDir = createTempDir();
+        const tmpDir = createMarkedTestProject();
         try {
             const tmpClaudeDir = setupPopulatedPromptGateProject(tmpDir);
             writeScanStaleFlag(tmpClaudeDir);
@@ -892,7 +898,7 @@ async function testInitPromptGate() {
 
     // Test 11: 6-day-old scan dismiss flag still suppresses stale-doc output
     {
-        const tmpDir = createTempDir();
+        const tmpDir = createMarkedTestProject();
         try {
             const tmpClaudeDir = setupPopulatedPromptGateProject(tmpDir);
             writeScanStaleFlag(tmpClaudeDir);
@@ -911,7 +917,7 @@ async function testInitPromptGate() {
 
     // Test 12: 8-day-old scan dismiss flag expires and stale-doc output returns
     {
-        const tmpDir = createTempDir();
+        const tmpDir = createMarkedTestProject();
         try {
             const tmpClaudeDir = setupPopulatedPromptGateProject(tmpDir);
             writeScanStaleFlag(tmpClaudeDir);
@@ -933,7 +939,7 @@ async function testInitPromptGate() {
 
     // Test 13: Config populated + no graph.db + no dismiss → exit 0 with graph guidance
     {
-        const tmpDir = createTempDir();
+        const tmpDir = createMarkedTestProject();
         try {
             const docsDir = path.join(tmpDir, 'docs');
             const srcDir = path.join(tmpDir, 'src');
@@ -961,7 +967,7 @@ async function testInitPromptGate() {
 
     // Test 14: Config NOT populated + no graph.db → exit 0 with config guidance (NOT graph)
     {
-        const tmpDir = createTempDir();
+        const tmpDir = createMarkedTestProject();
         try {
             const docsDir = path.join(tmpDir, 'docs');
             const srcDir = path.join(tmpDir, 'src');
@@ -978,7 +984,7 @@ async function testInitPromptGate() {
 
     // Test 15: Config populated + graph.db exists → exit 0 (both gates pass)
     {
-        const tmpDir = createTempDir();
+        const tmpDir = createMarkedTestProject();
         try {
             const docsDir = path.join(tmpDir, 'docs');
             const srcDir = path.join(tmpDir, 'src');
@@ -1006,7 +1012,7 @@ async function testInitPromptGate() {
 
     // Test 16: "skip graph" dismiss → exit 0
     {
-        const tmpDir = createTempDir();
+        const tmpDir = createMarkedTestProject();
         try {
             const docsDir = path.join(tmpDir, 'docs');
             const srcDir = path.join(tmpDir, 'src');
@@ -1194,7 +1200,9 @@ async function testWindowsCommandDetector() {
         try {
             parsed = JSON.parse(output);
         } catch {}
-        logResult('updatedInput has fixed command', parsed.updatedInput?.command === 'node -e "console.log(!true)"');
+        logResult('updatedInput fixes command without auto-approval',
+            parsed.hookSpecificOutput?.updatedInput?.command === 'node -e "console.log(!true)"'
+            && !Object.hasOwn(parsed.hookSpecificOutput, 'permissionDecision'));
     }
     {
         // Should rewrite: node -e with \! in if statement
@@ -1206,7 +1214,7 @@ async function testWindowsCommandDetector() {
         try {
             parsed = JSON.parse(result.stdout.trim());
         } catch {}
-        logResult('node -e "if(\\!x)" rewrites', parsed.updatedInput?.command === 'node -e "if(!x) {}"');
+        logResult('node -e "if(\\!x)" rewrites', parsed.hookSpecificOutput?.updatedInput?.command === 'node -e "if(!x) {}"');
     }
     {
         // Should rewrite: node with flags before -e
@@ -1220,7 +1228,7 @@ async function testWindowsCommandDetector() {
         try {
             parsed = JSON.parse(result.stdout.trim());
         } catch {}
-        logResult('node --flag -e "\\!" rewrites', parsed.updatedInput?.command === 'node --experimental-vm-modules -e "arr.filter(x => !x.done)"');
+        logResult('node --flag -e "\\!" rewrites', parsed.hookSpecificOutput?.updatedInput?.command === 'node --experimental-vm-modules -e "arr.filter(x => !x.done)"');
     }
     {
         // Should NOT rewrite: single-quoted node -e (no \! issue)
@@ -1248,7 +1256,7 @@ async function testWindowsCommandDetector() {
         try {
             parsed = JSON.parse(result.stdout.trim());
         } catch {}
-        logResult('multiple \\! all replaced', parsed.updatedInput?.command === 'node -e "if(!a && !b) {}"');
+        logResult('multiple \\! all replaced', parsed.hookSpecificOutput?.updatedInput?.command === 'node -e "if(!a && !b) {}"');
     }
 
     // Edge cases
@@ -1395,6 +1403,7 @@ async function testPrivacyBlock() {
 
     for (const filePath of privacyPatterns) {
         const result = await runHook('privacy-block.cjs', {
+            tool_name: 'Read',
             tool_input: { file_path: filePath }
         });
         logResult(`${filePath} blocked`, result.code === 2);
@@ -1413,6 +1422,7 @@ async function testPrivacyBlock() {
 
     for (const filePath of exemptPatterns) {
         const result = await runHook('privacy-block.cjs', {
+            tool_name: 'Read',
             tool_input: { file_path: filePath }
         });
         logResult(`${filePath} allowed`, result.code === 0);
@@ -1424,6 +1434,7 @@ async function testPrivacyBlock() {
 
     for (const filePath of regularFiles) {
         const result = await runHook('privacy-block.cjs', {
+            tool_name: 'Read',
             tool_input: { file_path: filePath }
         });
         logResult(`${filePath} allowed`, result.code === 0);
@@ -1433,18 +1444,21 @@ async function testPrivacyBlock() {
     logSubsection('Bash Privacy Commands');
     {
         const result = await runHook('privacy-block.cjs', {
+            tool_name: 'Bash',
             tool_input: { command: 'cat .env' }
         });
         logResult('cat .env blocked', result.code === 2);
     }
     {
         const result = await runHook('privacy-block.cjs', {
+            tool_name: 'Bash',
             tool_input: { command: 'grep password .env' }
         });
         logResult('grep .env blocked', result.code === 2);
     }
     {
         const result = await runHook('privacy-block.cjs', {
+            tool_name: 'Bash',
             tool_input: { command: 'cat config.json' }
         });
         logResult('cat config.json allowed', result.code === 0);
@@ -1624,18 +1638,24 @@ async function testEdgeCases() {
 
     for (const hook of hooksToTest) {
         const result = await runHook(hook, 'not valid json');
-        logResult(`${hook} handles malformed JSON`, result.code === 0);
+        const expectedCode = hook === 'privacy-block.cjs' ? 2 : 0;
+        logResult(`${hook} handles malformed JSON`, result.code === expectedCode);
+        logOutputValidation(`${hook} reports malformed JSON`, result.stderr.length > 0);
     }
 
     // Empty/null inputs
     logSubsection('Empty/Null Inputs');
     for (const hook of hooksToTest) {
         const result = await runHook(hook, null);
-        logResult(`${hook} handles null input`, result.code === 0);
+        const expectedCode = hook === 'privacy-block.cjs' ? 2 : 0;
+        logResult(`${hook} handles null input`, result.code === expectedCode);
+        if (hook === 'privacy-block.cjs') logOutputValidation(`${hook} reports empty input`, result.stderr.length > 0);
     }
     for (const hook of hooksToTest) {
         const result = await runHook(hook, {});
-        logResult(`${hook} handles empty object`, result.code === 0);
+        const expectedCode = hook === 'privacy-block.cjs' ? 2 : 0;
+        logResult(`${hook} handles empty object`, result.code === expectedCode);
+        if (hook === 'privacy-block.cjs') logOutputValidation(`${hook} reports empty object`, result.stderr.length > 0);
     }
 
     // Unicode and special characters

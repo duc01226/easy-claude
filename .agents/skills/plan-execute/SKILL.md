@@ -1,6 +1,6 @@
 ---
 name: plan-execute
-description: '[Implementation] Use when you need to start coding & testing an existing plan. Flags: --approval=off (auto/trust mode, no approval gate), --tests=off (skip the test step), --parallel={auto|on|off} (default off — sequential; --parallel/=on opts in to parallel sub-agent waves; =auto fans out only when the plan declares PAR/SEQ tags and write sets).'
+description: '[Implementation] Use when you need to start coding & testing an existing plan. Flags: --approval=off (skip implementation approval; never grants Git authority), --tests=off (skip the test step), --parallel={auto|on|off} (default off — sequential; --parallel/=on opts in to parallel sub-agent waves; =auto fans out only when the plan declares PAR/SEQ tags and write sets).'
 ---
 
 > Codex compatibility note:
@@ -14,9 +14,9 @@ description: '[Implementation] Use when you need to start coding & testing an ex
 > - For workflow skills, execute each listed child-skill step explicitly and report step-by-step evidence.
 > - If a required step/tool cannot run in this environment, stop and ask the user before adapting.
 <!-- CODEX:PROJECT-REFERENCE-LOADING:START -->
-## Codex Project-Reference Loading (No Hooks)
+## Codex Project-Reference Loading (Hook-Independent)
 
-Codex uses static project-reference loading instead of runtime-injected project docs.
+Claude and Codex use static project-reference loading as the authority; hooks may accelerate discovery but never replace the explicit read.
 When coding, planning, debugging, testing, or reviewing, open project docs explicitly using this routing.
 
 **Always read:**
@@ -51,13 +51,13 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 
 ## Quick Summary
 
-**Goal:** Land the selected plan phase as working, fully-tested, reviewed, user-approved code — executing it phase-by-phase through testing, code review, and approval gates — committed only after every quality gate (100% tests, 0 critical issues, explicit approval) passes — NEVER bypass a gate to declare done.
+**Goal:** Complete the selected plan phase as working, fully-tested, reviewed, user-approved code through its testing, code review, and approval gates. Git operations are optional and require an explicit user request — NEVER bypass a quality or authority gate to declare done.
 
 **Summary:**
 
 - **Purpose:** consume an EXISTING plan, one phase per run — Step 0 detects `plans/*.md` + selects the next incomplete phase (prefer IN_PROGRESS, else earliest Planned). Use `$feature-implement` instead when no plan exists yet — it creates plans, this consumes them.
-- **Ordered execution anchor (run in declared order; emit `✓ Step N:` each):** Step 0 detect/select the plan → Step 1 read the plan fully, read the Goal Contract and Trace Gate, seed task tracking 0–6 → Step 2 implement step-by-step (type-check + compile; UI → `ui-ux-designer`) → Step 3 test (`tester` → `debugger` until 100%) → Step 4 review (`code-reviewer` until 0 critical) → Step 5 explicit user approval (BLOCKING — stop and wait) → Step 6 finalize (`project-manager` + `docs-manager` status/docs, `git-manager` auto-commit).
-- **Three BLOCKING gates cannot be faked-green:** Step 3 tests 100% pass, Step 4 zero critical issues, Step 5 explicit user approval before Finalize/commit. — why: a partial-green gate ships the regression the test exists to catch.
+- **Ordered execution anchor (run in declared order; emit `✓ Step N:` each):** Step 0 detect/select the plan → Step 1 read the plan fully, read the Goal Contract and Trace Gate, seed task tracking 0–6 → Step 2 implement step-by-step (type-check + compile; UI → `ui-ux-designer`) → Step 3 test (`tester` → `debugger` until 100%) → Step 4 review (`code-reviewer` until the current severity bar is clear: round 1 zero findings, round 2+ zero CRITICAL/HIGH/MEDIUM with LOW deferred) → Step 5 explicit user approval (BLOCKING — stop and wait) → Step 6 finalize (`project-manager` + `docs-manager` status/docs; optional `git-manager` only for an explicit user request).
+- **Three BLOCKING gates cannot be faked-green:** Step 3 tests 100% pass, Step 4 has no blocking finding under the current round bar (round 1: no finding; round 2+: no CRITICAL/HIGH/MEDIUM; failed binary gates always block), Step 5 explicit user approval before Finalize. These gates never grant Git authority. — why: quality acceptance and operation authority protect different boundaries.
 - **Two STOP-before-coding gates:** Pre-Implementation Granularity Gate (refuse planning verbs / unnamed files / unresolved decisions → sub-plan with `$plan`) + bugfix Trace Gate (require the End→Start debugger trace for any bug/regression/behavior-changing plan). Also the Spec-Loop Gate (property TC + mutation-killed test + Dual-Feedback) closes any behavior change.
 - **Step 2 is SEQUENTIAL by default; wave fan-out is OPT-IN.** `--parallel` / `--parallel=on` dispatches disjoint-write-set phases as one wave of `fullstack-developer` subagents in ONE message, barrier, then recomputes the next wave against the updated repo. `--parallel=auto` fans out ONLY when every in-scope phase carries the `## Parallel Execution` block (`PAR`/`SEQ` tag + declared write set) written by `$plan` — no block, no fan-out.
 - **Mode flags** add/remove ONE step, never relax a running gate: `--approval=off` (auto/trust, skip Step 5, optional `$ALL_PHASES` loop over every incomplete phase), `--tests=off` (skip Step 3), `--parallel={auto|on|off}` (`off` default = sequential; bare `--parallel`/`on` opts in to wave dispatch; `auto` fans out only on plan-declared `PAR`/`SEQ` metadata). No flags = full 7-step spine, run sequentially.
@@ -71,15 +71,16 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 1. **Analysis & Tasks** — Read the phase file fully and extract tasks into task tracking
 2. **Implementation** — Implement step-by-step, run type checks
 3. **Testing** — Call tester subagent; must reach 100% pass before proceeding
-4. **Code Review** — Call code-reviewer subagent; must reach 0 critical issues
+4. **Code Review** — Call code-reviewer subagent; must clear the current severity bar: Round 1 has zero validated findings of any severity; Round 2+ has zero validated CRITICAL/HIGH/MEDIUM findings, with LOW findings recorded/deferred. Failed binary gates always block.
 5. **User Approval** — BLOCKING gate: wait for explicit user approval
-6. **Finalize** — Update status, docs, and auto-commit
+6. **Finalize** — Update status/docs, report implementation complete; optionally handle an explicit Git request
 
 **Key Rules:**
 
 - Tests must be 100% passing (Step 3 gate)
-- Critical issues must be 0 (Step 4 gate)
+- No blocking findings under the current Step 4 review bar (Round 1: all severities; Round 2+: CRITICAL/HIGH/MEDIUM; binary gates always block)
 - User must explicitly approve before finalize (Step 5 gate)
+- Implementation completion, review approval, and `--approval=off` never authorize staging, committing, or pushing. Dispatch Git only with `operation`, `scope`, and `sourceRequest` from an explicit user request; NEVER `git commit --amend`.
 - One plan phase per command run — a multi-phase run requires `--approval=off` with `$ALL_PHASES=Yes`
 - Phases run sequentially unless fan-out is explicitly opted in; even then, two phases writing the same file NEVER share a wave
 - **Mode flags** (see [Mode Flags](#mode-flags)): `--approval=off` (auto/trust, no approval gate + optional all-phases loop), `--tests=off` (skip the test step), `--parallel={auto|on|off}` (default `off` = sequential; `on` = opt in to wave dispatch; `auto` = fan out only when the plan declares `PAR`/`SEQ` tags + write sets). No flags = full 7-step spine below, run sequentially.
@@ -92,7 +93,7 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 
 ---
 
-> **plan-execute vs feature-implement:** `plan-execute` **executes an EXISTING plan** phase-by-phase (Step 0 detects `plans/*.md`) and owns the back of the pipeline — phase gates, auto-commit, and the `--parallel`/`--approval`/`--tests` flags. Use `$feature-implement` instead when you have only a feature description and need research + planning done first. feature-implement creates plans; plan-execute consumes them.
+> **plan-execute vs feature-implement:** `plan-execute` **executes an EXISTING plan** phase-by-phase (Step 0 detects `plans/*.md`) and owns the back of the pipeline — phase gates, completion reporting, optional explicitly requested Git operations, and the `--parallel`/`--approval`/`--tests` flags. Use `$feature-implement` instead when you have only a feature description and need research + planning done first. feature-implement creates plans; plan-execute consumes them.
 
 ## Standalone Mode Pipeline (skip entirely if invoked inside a workflow)
 
@@ -101,7 +102,7 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 > Create these as task tracking tasks up front, in order, then execute them:
 >
 > 1. **`$plan`** — if Step 0 finds no plan for the request, author one first. If a plan already exists, record that and skip to step 2.
-> 2. **`$plan-review`** — recursively review/validate the plan; fix validated findings before proceeding.
+> 2. **`$plan-review`** — recursively review/validate the plan; fix validated findings that block the current severity bar before proceeding.
 > 3. **Proceed** — run the core spine (Steps 0-6) against the approved plan.
 > 4. **`$changes-review`** — review the diff before commit (the post-gate; see *Standalone Review Gate* below).
 > 5. **`$why-review`** — review rationale and change quality of the implementation.
@@ -114,7 +115,7 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 
 | Flag | Default | Effect |
 | ---- | ------- | ------ |
-| `--approval={on\|off}` | `on` | `off` = **trust/auto mode**: skip the Step 5 user-approval blocking gate and finalize without waiting. Pair with `$ALL_PHASES` to run every incomplete phase in one pass. |
+| `--approval={on\|off}` | `on` | `off` = **trust/auto mode**: skip the Step 5 implementation-approval blocking gate and finalize without waiting; never grants Git authority. Pair with `$ALL_PHASES` to run every incomplete phase in one pass. |
 | `--tests={on\|off}` | `on` | `off` = skip the Step 3 Testing gate entirely (Implementation → Code Review → Approval → Finalize only). Use ONLY when the plan explicitly defers tests. |
 | `--parallel={auto\|on\|off}` | `off` | `off` = **default**: implement every phase sequentially in the main agent. `on` (also bare `--parallel`) = **explicit opt-in**: Step 2 groups disjoint-write-set phases into waves of `fullstack-developer` subagents with strict file-ownership boundaries; the user has accepted the risk, and YOU must still name every phase's write set — including its cascade/generated writes — before grouping. `auto` = **metadata-gated**: fan out only when every in-scope phase carries a `## Parallel Execution` block (`PAR`/`SEQ` tag + declared write set) written by `$plan`; absent that block, fall back to sequential — NEVER derive write sets optimistically. |
 
@@ -126,7 +127,7 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 - **`--parallel` / `--parallel=on` → Step 2:** the explicit opt-in — dispatch waves even when the plan declares no `PAR`/`SEQ` tags or `## Execution Waves` line. You MUST first derive each phase's write set yourself from its `Related Code Files` / Implementation Steps **and** from the generated/mirrored artifacts those edits cascade into; a phase whose write set you cannot name stays out of the wave. Colliding phases still go in different waves — opting in never authorizes co-scheduling two writers of one file.
 - **`--parallel=off` (DEFAULT) → Step 2:** no wave dispatch; implement every phase sequentially in the main agent. This is the normal path and needs no justification — no flag is required to stay sequential. All gates and quality bars unchanged.
 - **`--tests=off` → Step 3 (Testing):** Skip entirely. Proceed Implementation → Code Review. The Source/test drift check still applies to any tests that already exist. Keep existing tests real and genuinely passing — NEVER comment out tests, weaken assertions, or use fake data to make them pass — why: faked green hides the regression the test exists to catch.
-- **`--approval=off` → Step 5 (User Approval):** Skip the blocking gate. Finalize (status, docs, auto-commit) runs once Steps 1-4 pass. When `$ALL_PHASES=Yes`, loop back to Step 0 for the next incomplete phase; on the last phase, generate the summary report and ask about `/preview`.
+- **`--approval=off` → Step 5 (User Approval):** Skip the implementation-approval blocking gate. Finalize (status, docs, completion report) runs once Steps 1-4 pass; this flag never grants Git authority. When `$ALL_PHASES=Yes`, loop back to Step 0 for the next incomplete phase; on the last phase, generate the summary report and ask about `/preview`.
 
 > **Behavior preserved:** the debugger-trace gate, granularity gate, testing/review quality bars, and all SYNC blocks apply in EVERY mode. Flags change *which gates run*, never *how rigorously a running gate is enforced*.
 
@@ -225,11 +226,13 @@ Call `tester` subagent. ANY tests fail → STOP, call `debugger` subagent, fix, 
 
 ## Step 4: Code Review
 
-Call `code-reviewer` subagent. Critical issues found → STOP, fix, re-run `tester`, re-run `code-reviewer`. Repeat until no critical issues.
+Call `code-reviewer` subagent. If the current round has validated blocking findings, stop and fix them at the owning layer, re-run `tester`, and run a fresh full `code-reviewer` pass. Round 1 blocks on every validated severity; Round 2+ blocks only CRITICAL/HIGH/MEDIUM, so LOW-only findings are recorded/deferred and do not reopen the cycle. Failed binary gates always block.
 
-**Output:** `✓ Step 4: Code reviewed - [0] critical issues`
+**Output:** `✓ Step 4: Code reviewed - blocking findings: Critical=[n] | High=[n] | Medium=[n] | Low deferred=[n] | binary gates=[n]`
 
-**Validation:** If critical issues > 0, Step 4 INCOMPLETE - do not proceed.
+**Validation:** Apply `.claude/scripts/lib/review-policy.cjs` before deciding whether to proceed. If the current round has any blocking finding, or any failed binary gate, Step 4 is INCOMPLETE — do not proceed. A Round 2+ LOW-only result is complete only when the LOWs are listed as deferred; it does not reopen the fix/review cycle.
+
+> **Severity classification (canonical `SYNC:severity-rubric`):** CRITICAL is immediate material security/safety/authority/data-loss risk or a failed binary gate; HIGH is material correctness, contract, privacy, or authority risk; MEDIUM is a bounded but consequential edge/resilience/maintainability gap; LOW is evidenced non-blocking polish with no credible present material impact. `NOT VERIFIABLE` is unresolved evidence, not LOW; if it could affect required behavior or a binary gate it remains blocking until proved or explicitly owner-accepted with residual risk. Classify by consequence and cite `file:line`, never by effort or proximity to the round cap.
 
 ---
 
@@ -247,6 +250,8 @@ Present summary (3-5 bullets): what implemented (name the waves when Step 2 fann
 
 **Ask user explicitly:** "Phase implementation complete. All tests pass, code reviewed. Approve changes?"
 
+This approval accepts the implementation; it does not authorize staging, committing, or pushing. A separate explicit Git request may already exist in the conversation; retain its exact operation and scope without asking for it again.
+
 **Stop and wait** - do not proceed until user responds.
 
 **Output:** `✓ Step 5: User approved - Ready to complete`
@@ -255,15 +260,17 @@ Present summary (3-5 bullets): what implemented (name the waves when Step 2 fann
 
 ## Step 6: Finalize
 
-**Prerequisites:** User approved in Step 5.
+**Prerequisites:** Running quality gates passed; user approved in Step 5 or `--approval=off` explicitly skips that implementation-approval gate.
 
 1. **STATUS UPDATE (one wave — PAR):** spawn `project-manager` (plan status file) and `docs-manager` (documentation) together in ONE message — disjoint write sets — and barrier on both returns before continuing.
 
 2. **ONBOARDING CHECK:** Detect onboarding requirements + generate summary.
 
-3. **AUTO-COMMIT (SEQ — after the barrier):** Call `git-manager` subagent; it stages the merged result of BOTH updates, so it never shares the wave above. Run only if Steps 1-2 successful + User approved + Tests passed.
+3. **COMPLETION REPORT:** Report implementation status, validation and docs outcomes independently of Git. Ordinary finalization writes no grant file and does not stage, commit, or push.
 
-**Output:** `✓ Step 6: Finalize - Status updated - Git committed`
+4. **OPTIONAL GIT REQUEST (SEQ — after the barrier and all required reviews):** Dispatch `git-manager` only when the user explicitly requested the operation. Pass `operation`, `scope`, and `sourceRequest` (the actual user message/quote authorizing that operation and scope); apply the agent's Git Request Contract. Scope names the repository and authorized files, or the remote/branch for push. Generic implementation/review approval never grants this authority. Commit permits necessary staging of those files and a new commit; push requires its own explicit request and never follows commit implicitly. Stage-only and push-only requests retain those limits. If the request is absent, skip Git and finish; if scope or sourceRequest is missing/ambiguous, report the missing input and ask only about that Git operation. Required standalone/workflow reviews still precede any requested Git operation. NEVER `git commit --amend`.
+
+**Output:** `✓ Step 6: Finalize - Implementation complete - Status/docs updated - No Git request (skipped)`; when Git was explicitly requested, replace the last field with the observed operation result (including blocked/failed), never a presumed commit. A blocked Git operation does not erase completed implementation work.
 
 ---
 
@@ -294,12 +301,14 @@ below — if a downstream rule would raise change cost, this principle wins.
 
 **task tracking tracking required:** Initialize at Step 0, mark each step complete before next.
 
-**Mandatory subagent calls:** Step 3: `tester` | Step 4: `code-reviewer` | Step 6: `project-manager` AND `docs-manager` AND `git-manager`
+**Mandatory subagent calls:** Step 3: `tester` | Step 4: `code-reviewer` | Step 6: `project-manager` AND `docs-manager`
+
+**Conditional subagent call:** Step 6: `git-manager` only for an explicit user request with operation/scope/sourceRequest. No request means implementation can finish without Git.
 
 **Blocking gates:**
 
 - Step 3: Tests must be 100% passing
-- Step 4: Critical issues must be 0
+- Step 4: No blocking findings under the current review round bar (Round 1: all severities; Round 2+: CRITICAL/HIGH/MEDIUM; binary gates always block)
 - Step 5: User must explicitly approve
 
 Execute every step in declared order; proceed only when validation passes and the user has approved; run one plan phase per command. Do not skip steps, proceed on failed validation, or assume approval without a user response.
@@ -395,12 +404,12 @@ Execute every step in declared order; proceed only when validation passes and th
 
 <!-- SYNC:project-reference-docs-guide -->
 
-> **Project Reference Docs Gate** — Run after task-tracking bootstrap and before target/source file reads, grep, edits, or analysis. Project docs override generic framework assumptions.
+> **Project Reference Docs Gate (static JIT)** — Run after task-tracking bootstrap and immediately before target/source file reads, grep, edits, tests, or analysis. Project docs override generic framework assumptions; hooks may remind or accelerate this gate, but never prove that it ran.
 >
 > 1. Identify scope: file types, domain area, and operation.
 > 2. **Read `docs/project-config.json` first — the project's machine-readable map.** It is the single source of truth for THIS repo (modules/paths, framework + search keywords, test/E2E/integration run-commands, design system, architecture rules, workflow patterns); ground exact paths, run-commands, and conventions on it **before investigating, planning, or coding** — never assume framework defaults (`CLAUDE.md` + reference docs are derived from it). If it — or the docs index, `lessons.md`, `CLAUDE.md`, `AGENTS.md`, or any required reference doc — is missing or stale, auto-run `$project-init` or the narrow route (`$project-config`, `$docs-init`, `$scan-all`, `$scan --target=<key>`, `$claude-md-init`) first; if Codex mirrors or `AGENTS.md` are stale, ask the user to run `$sync-codex` (never auto-run it).
 > 3. Required docs by trigger: always `docs/project-reference/lessons.md`; doc lookup `docs-index-reference.md`; review `code-review-rules.md`; backend/CQRS/API `backend-patterns-reference.md`; domain/entity `domain-entities-reference.md`; frontend/UI `frontend-patterns-reference.md`; styles/design `scss-styling-guide.md` + `design-system/design-system-canonical.md`; integration tests `integration-test-reference.md`; E2E `e2e-test-reference.md`; feature docs/specs `feature-spec-reference.md` + `spec-system-reference.md` + `spec-principles.md`; behavior/public-contract/spec-test-code sync `workflow-spec-test-code-cycle-reference.md`; derived spec index/ERD/reimplementation guides `spec-system-reference.md` + source Feature Specs under `docs/specs/`; architecture/new area `project-structure-reference.md`.
-> 4. Read every required doc, then before target work state: `Reference docs read: ... | Not applicable: ...`.
+> 4. Read every required doc, then before target work state: `Reference docs read: ... | Not applicable: ...`. After compaction, resume, delegation, or a material context change, repeat the route and restate the set; prior conversation and hook output are not proof of current loading.
 >
 > **Ready when:** scope evaluated, `docs/project-config.json` consulted, required docs checked/read or setup route completed, `lessons.md` confirmed, citation emitted.
 
@@ -514,6 +523,44 @@ Execute every step in declared order; proceed only when validation passes and th
 > **For a PLAN or a PLAN REVIEW.** When the plan contains front-end work, the checklist binds the plan's ACCEPTANCE CRITERIA, not a built page: name the platform, the applicable conditional sections (§F/§G/§H, §L), the eight screen states each UI phase must deliver (§D2), and the §I accessibility floor — so the work is specified against the checklist before it is written. A UI phase whose acceptance criteria omit the states and the a11y floor is INCOMPLETE — say so.
 
 <!-- /SYNC:design-review-checklist -->
+
+<!-- SYNC:severity-rubric -->
+
+> **Severity Rubric** — Classify every finding by consequence, not by effort, reviewer preference, or how annoying the fix is. One scale applies to every review, skill, agent, workflow, and host so a tier has the same meaning everywhere. Choose the highest credible consequence supported by evidence; do not lower a tier to make a round pass.
+>
+> **Finding vs observation (required):** An observation becomes a finding only when it names the affected user/system/data/contract, the shipped consequence, the evidence location, and the normalized tier. `INFO`, advice, preference, duplicate wording, or an unsubstantiated concern is not a finding and must not reopen a loop. If the concern might affect a required behavior or gate but evidence is incomplete, emit `NOT VERIFIABLE` with the missing evidence and keep it unresolved; never silently convert uncertainty into LOW.
+>
+> | Severity | Action | Definition and examples |
+> | --- | --- | --- |
+> | CRITICAL | Block immediately; escalate | Immediate material risk if shipped: authentication/authorization or safety bypass; secrets/PII exposure; irreversible destructive action; data loss/corruption; or a silent failure on a critical path. A failed binary gate that makes the result untrustworthy is represented as a separate synthetic blocker by the executable policy (not as an ordinary severity judgment). |
+> | HIGH | Must fix before PASS/merge | Material correctness or contract risk: wrong behavior on a supported path; violated business/data invariant; meaningful privacy or authority gap; breaking API/schema/compatibility change; likely harm to users/downstream systems; or a missing proof for a behavior-changing fix. |
+> | MEDIUM | Must clear the current round; escalate if the fix needs an owner decision | Bounded but consequential risk: an edge case, resilience/observability/testability/maintainability gap, credible future defect, or local architectural drift whose impact is real but not immediate material loss. An explicit follow-up records the escalation/residual risk; it does not make an open MEDIUM a clean pass. |
+> | LOW | Record and defer; never open another fix/re-review round from round 2 onward | Non-blocking polish with no credible present correctness, security, privacy, authority, availability, or data-integrity impact: wording/formatting, minor documentation or convention drift, optional defensive cleanup, or a cosmetic/refinement suggestion. |
+>
+> **Consequence decision tree (apply in order):** (1) Is a binary gate failed? Keep it as a separate hard blocker (the executable helper represents it as synthetic CRITICAL); do not use the ordinary severity label to hide what failed. Otherwise, would shipping permit immediate material security/safety/authority harm, irreversible destruction, data loss/corruption, or a critical-path silent failure? → **CRITICAL**. (2) Otherwise, does a supported path, invariant, public contract, privacy/authority boundary, compatibility promise, or behavior-changing proof fail with material user/downstream impact? → **HIGH**. (3) Otherwise, is there a bounded but consequential edge, resilience, observability, testability, maintainability, or architectural gap with a credible impact? → **MEDIUM**. (4) Otherwise, is the evidence sufficient to show only non-blocking polish with no credible present material impact? → **LOW**. (5) If the evidence needed to choose between steps 1–4 is missing, → **NOT VERIFIABLE**, not LOW. When multiple tiers fit, select the highest credible consequence; effort, implementation cost, reviewer discomfort, frequency alone, and proximity to the round cap never decide the tier.
+>
+> **Boundary examples (normalize before applying the round predicate):** an auth bypass, exposed secret/PII, destructive command without an authority gate, or failed required test/generation/parity gate is **CRITICAL**; a wrong supported response, broken invariant/API/schema, meaningful privacy/authority defect, or unproven behavior-changing fix is **HIGH**; a bounded retry/timeout/alert/testability gap or credible maintainability drift is **MEDIUM**; a typo, formatting inconsistency, optional cleanup, or cosmetic suggestion proven not to affect present behavior is **LOW**. A missing fact about any of those boundaries is **NOT VERIFIABLE** until evidence or an explicitly documented residual-risk decision exists.
+>
+> **Classification procedure (required for every finding):** (1) state the affected user, system, data, contract, or gate; (2) assess consequence if the issue ships; (3) assess exposure/likelihood and reversibility/detectability; (4) select the highest tier justified by those facts; (5) cite `file:line` or equivalent evidence and a confidence percentage. Effort, implementation cost, reviewer discomfort, and proximity to the round cap are never severity inputs. `NOT VERIFIABLE` is a pending evidence state, not one of the four tiers and never a LOW escape hatch: if the unresolved claim could affect required behavior, security, privacy, authority, availability, data integrity, or a binary gate, it remains an open evidence blocker until resolved or explicitly owner-accepted with documented residual risk. Classify an item LOW only when evidence supports the absence of credible present material impact.
+>
+> **Hard-gate rule:** Binary gates (tests, required artifacts, security must-fix checks, generated parity, policy compliance) are not ordinary severity-rated findings. The executable helper records a failed gate as a synthetic CRITICAL blocker solely so one predicate can carry it; the report must still name the gate and failure evidence. A failed gate blocks at every round, including when all ordinary findings are LOW; never disguise a failed gate as LOW.
+>
+> **Score-based skills** map their numeric scale onto these tiers — do not invent a parallel vocabulary:
+>
+> - **0-2 criterion scoring** (e.g. production-readiness-review): `0` = CRITICAL/HIGH (criterion unmet, blocks readiness), `1` = MEDIUM (partial, consequential gap), `2` = pass (no finding). If the criterion is only polish, use LOW rather than forcing a `0`.
+> - **Two-axis scoring** (e.g. performance-review, impact × likelihood): high impact + high exposure → CRITICAL/HIGH; material impact with bounded exposure → HIGH/MEDIUM; low impact and low exposure → LOW. Record the axes and why the selected tier is the highest credible consequence.
+> - **Scorecards / `/20` grades** (e.g. architecture-scalability-review): the aggregate score and verdict band are separate from finding severity. A sub-80 area is evidence to investigate, not an automatic CRITICAL/HIGH/MEDIUM/LOW label; classify each underlying gap by the consequence decision tree and keep advisory score deductions separate from blocking findings.
+>
+> **Domain-vocabulary normalization (mandatory):** Specialized skills may keep a local reporting vocabulary, but it MUST feed this same four-tier round predicate — never a second severity system:
+>
+> - `BLOCKED`, `HARD FAIL`, or `FAIL` is a blocking local verdict, not an automatic CRITICAL label. Classify the underlying consequence as CRITICAL when it is an immediate material risk or failed binary gate; otherwise classify it as HIGH or MEDIUM with evidence, while preserving the local block until the owning gate is satisfied.
+> - `WARN` is not permission to ignore a finding. Map it to MEDIUM when the gap is consequential, to LOW only when evidence supports no credible present material impact, or upward to HIGH/CRITICAL when the consequence warrants it. `PASS`/compliant is not a finding.
+> - UI `P0`/`P1`/`P2`/`P3`/`P4` map to CRITICAL/HIGH/MEDIUM/LOW/LOW respectively as a starting point; override upward only when the evidence shows a higher shipped consequence. A P0/P1 accessibility or task-completion floor remains a blocking gate even when a local UI report calls it a priority rather than a severity.
+> - Numeric SRE/readiness or impact/likelihood scores are evidence inputs, not replacement tiers. Emit the score, the consequence, and the normalized CRITICAL/HIGH/MEDIUM/LOW tier together. `INFO`/advisory observations are not findings unless the evidence shows a material consequence.
+>
+> A finding's tier drives the gate: CRITICAL/HIGH/MEDIUM remain actionable and blocking under the round policy; LOW may be tracked as a follow-up and, from round 2, does not by itself justify another fix/re-review. An owner decision may explain or schedule an open MEDIUM but does not turn it into a clean pass; owner acceptance never makes a failed binary gate pass and must record scope, rationale, and residual risk.
+
+<!-- /SYNC:severity-rubric -->
 
 <!-- SYNC:plan-granularity:reminder -->
 
@@ -640,9 +687,17 @@ Execute every step in declared order; proceed only when validation passes and th
 
 <!-- /SYNC:design-review-checklist:reminder -->
 
+<!-- SYNC:severity-rubric:reminder -->
+
+- **MANDATORY** Classify every finding Critical/High/Medium/Low by consequence using the affected asset, shipped impact, exposure, reversibility, evidence location, and confidence; Critical/High/MEDIUM remain actionable under the round bar, while LOW is recorded/deferred from round 2 onward.
+- **MANDATORY** Keep binary gates separate from severity: a failed test, security must-fix, required artifact, or parity check blocks at every round and is never relabeled LOW.
+- **MANDATORY** Score-based skills (sre 0-2, perf two-axis) map onto the same four tiers — no parallel severity vocabulary.
+
+<!-- /SYNC:severity-rubric:reminder -->
+
 ## Closing Reminders
 
-**IMPORTANT MUST ATTENTION Goal:** Land the selected plan phase as working, fully-tested, reviewed, user-approved code — executing it phase-by-phase through testing, code review, and approval gates — committed only after every quality gate (100% tests, 0 critical issues, explicit approval) passes — NEVER bypass a gate to declare done.
+**IMPORTANT MUST ATTENTION Goal:** Complete the selected plan phase as working, fully-tested, reviewed, user-approved code through its testing, code review, and approval gates. Git operations are optional and require an explicit user request — NEVER bypass a quality or authority gate to declare done.
 
 **Protocols in force (concise digest of the SYNC/shared blocks this skill carries):**
 
@@ -656,8 +711,8 @@ Execute every step in declared order; proceed only when validation passes and th
 - **AI Mistake Prevention:** verify generated content against evidence, trace downstream references, verify all affected outputs, re-read after context loss, surface ambiguity.
 - **Parallel Sub-Agent Dispatch:** Tag tasks PAR/SEQ, group PAR into disjoint-write-set waves, spawn each wave in ONE message, barrier before advancing.
 
-**IMPORTANT MUST ATTENTION** run the full step spine in declared order, emit `✓ Step N:` each: Step 0 detect plan + select next incomplete phase → Step 1 Analysis & Task Extraction (read plan, Goal-Contract read, Trace Gate, seed task tracking) → Step 2 Implementation (code + type-check/compile; UI → `ui-ux-designer`) → Step 3 Testing (`tester`→`debugger` until 100%) → Step 4 Code Review (`code-reviewer` until 0 critical) → Step 5 User Approval (BLOCKING, wait) → Step 6 Finalize (`project-manager` + `docs-manager` + `git-manager`).
-**IMPORTANT MUST ATTENTION** execute Steps 0-6 in declared order; the three BLOCKING gates — tests 100% (Step 3), critical issues 0 (Step 4), explicit user approval (Step 5) — cannot be faked-green: NEVER skip a step, proceed on failed validation, or assume approval — why: a faked-green gate ships the regression the test exists to catch.
+**IMPORTANT MUST ATTENTION** run the full step spine in declared order, emit `✓ Step N:` each: Step 0 detect plan + select next incomplete phase → Step 1 Analysis & Task Extraction (read plan, Goal-Contract read, Trace Gate, seed task tracking) → Step 2 Implementation (code + type-check/compile; UI → `ui-ux-designer`) → Step 3 Testing (`tester`→`debugger` until 100%) → Step 4 Code Review (`code-reviewer` until the current severity bar is clear: round 1 zero findings, round 2+ zero CRITICAL/HIGH/MEDIUM with LOW deferred) → Step 5 User Approval (BLOCKING, wait) → Step 6 Finalize (`project-manager` + `docs-manager`; optional `git-manager` only for an explicit user request).
+**IMPORTANT MUST ATTENTION** execute Steps 0-6 in declared order; the three BLOCKING gates — tests 100% (Step 3), no blocking findings under the current severity bar (Step 4), explicit user approval (Step 5) — cannot be faked-green: NEVER skip a step, proceed on failed validation, or assume approval — why: a faked-green gate ships the regression the test exists to catch.
 **IMPORTANT MUST ATTENTION** cite `file:line` evidence for every claim, finding, and recommendation with confidence % — >80% to act, <80% verify first, <60% do NOT recommend — why: speculation passed as fact is the root of every hallucinated fix.
 **IMPORTANT MUST ATTENTION** break work into small task tracking todos BEFORE the first read/edit, keep exactly one `in_progress`, mark `completed` immediately after each step's evidence, add a final review todo — on context loss call the current task list first, never duplicate — why: long files exhaust context and silently lose findings.
 
@@ -679,7 +734,7 @@ Execute every step in declared order; proceed only when validation passes and th
 | Evasion                                          | Rebuttal                                                                                          |
 | ------------------------------------------------ | ------------------------------------------------------------------------------------------------- |
 | "Tests are basically passing"                    | 100% or Step 3 is INCOMPLETE — loop `tester`→`debugger` until X/X — partial green ships the bug.  |
-| "Code review found only minor issues"            | 0 critical or Step 4 is INCOMPLETE — fix, re-run `tester`, re-run `code-reviewer`.                 |
+| "Code review found only minor issues"            | Apply the current round bar: Round 1 fixes every validated severity; Round 2+ defers LOW-only findings but still blocks on CRITICAL/HIGH/MEDIUM and failed binary gates. |
 | "Obviously approved / they'll approve"           | Step 5 is BLOCKING — stop and wait for an explicit user response, never assume approval.           |
 | "Phase is clear enough to start"                 | Run the Granularity Gate — planning verbs / unnamed files / open decisions → sub-plan, don't code. |
 | "It's a quick fix, skip the trace"               | Bug/regression plan needs the End→Start trace + hypothesis matrix BEFORE the fix.                  |
@@ -692,18 +747,19 @@ Execute every step in declared order; proceed only when validation passes and th
 
 ---
 
-**IMPORTANT MUST ATTENTION** the three BLOCKING gates (tests 100% · 0 critical · explicit approval) cannot be faked-green — NEVER bypass a gate to declare done.
+**IMPORTANT MUST ATTENTION** the three BLOCKING gates (tests 100% · no blocking findings under the current review bar · explicit approval) cannot be faked-green — Round 1 blocks every validated severity, Round 2+ defers LOW-only findings but still blocks CRITICAL/HIGH/MEDIUM and failed binary gates; NEVER bypass a gate to declare done.
+**IMPORTANT MUST ATTENTION** implementation completion, review approval and `--approval=off` never authorize Git: require explicit user operation/scope/sourceRequest, report completion independently, and NEVER `git commit --amend`.
 **IMPORTANT MUST ATTENTION** cite `file:line` + confidence % for every claim; search 3+ patterns and read code before writing.
 **IMPORTANT MUST ATTENTION** break work into small task tracking todos BEFORE starting; add a final review todo; on context loss call the current task list first.
 
 <!-- CODEX:SYNC-PROMPT-PROTOCOLS:START -->
-## Hookless Prompt Protocol Mirror (Auto-Synced)
+## Static Prompt Protocol Mirror (Auto-Synced)
 
-Source: `.claude/.ck.json` + `.claude/skills/shared/sync-inline-versions.md` (`:full` blocks) + `.claude/scripts/lib/hookless-prompt-protocol.cjs`
+Source: `.claude/.ck.json` + `.claude/skills/shared/sync-inline-versions.md` (`:full` blocks) + `.claude/scripts/lib/hookless-prompt-protocol.cjs` (legacy filename; static protocol composer)
 
 ## [WORKFLOW-EXECUTION-PROTOCOL] [BLOCKING] Workflow Execution Protocol — MANDATORY IMPORTANT MUST CRITICAL. Do not skip for any reason.
 
-**Generic portability boundary:** Reusable skills and protocol text stay project-neutral; project-specific conventions are discovered from docs/project-config.json and docs/project-reference/. Apply shared AI-SDD from `shared/sdd-artifact-contract.md`. Read `docs/project-config.json` and `docs/project-reference/docs-index-reference.md`, then open the project reference docs named there. For spec, test-case, behavior-change, public-contract, or `docs/specs/` work, route through the local spec docs named by the docs index: `feature-spec-reference.md`, `spec-system-reference.md`, `spec-principles.md`, and `workflow-spec-test-code-cycle-reference.md` when specs/tests/code must stay synchronized. If either file or a required reference doc is missing or stale, auto-run `$project-init` (or the narrow lower-level route such as `$project-config`, `$docs-init`, `$scan-all`, or `$scan --target=<key>`) before ordinary project-specific work. Any supported AI tool may execute when this shared context and local docs are available.
+**Generic portability boundary:** Reusable skills and protocol text stay project-neutral; project-specific conventions are discovered from docs/project-config.json and docs/project-reference/. Apply shared AI-SDD from `shared/sdd-artifact-contract.md`. Read `docs/project-config.json` and `docs/project-reference/docs-index-reference.md`, then open the project reference docs named there immediately before the first target read, grep, edit, test, or analysis. For spec, test-case, behavior-change, public-contract, or `docs/specs/` work, route through the local spec docs named by the docs index: `feature-spec-reference.md`, `spec-system-reference.md`, `spec-principles.md`, and `workflow-spec-test-code-cycle-reference.md` when specs/tests/code must stay synchronized. If either file or a required reference doc is missing or stale, auto-run `$project-init` (or the narrow lower-level route such as `$project-config`, `$docs-init`, `$scan-all`, or `$scan --target=<key>`) before ordinary project-specific work. After compaction, resume, delegation, or a material context change, re-read the required docs and state `Reference docs read: ... | Not applicable: ...`; a hook reminder or prior conversation is not proof that the files are loaded. Any supported AI tool may execute when this shared context and local docs are available.
 
 1. **DETECT:** If the prompt starts with an explicit slash skill/workflow command, execute it directly. Otherwise match the prompt against the workflow catalog and skill list.
 2. **ANALYZE:** Choose the best option: execute directly, invoke a skill, activate a standard workflow, or compose a custom step combination.

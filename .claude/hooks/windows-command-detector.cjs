@@ -10,7 +10,8 @@
  * @matcher Bash
  */
 
-const fs = require('fs');
+const { runPreToolHookSync } = require('./lib/hook-runner.cjs');
+const { inspectCommand } = require('./lib/command-inspection.cjs');
 
 // Windows commands that fail in Git Bash with their Unix equivalents
 const WINDOWS_COMMAND_PATTERNS = [
@@ -104,13 +105,13 @@ const WINDOWS_COMMAND_PATTERNS = [
  * Formats a block warning message for detected Windows command
  */
 function formatBlockWarning(command, match) {
-    const truncatedCmd = command.length > 80 ? `${command.substring(0, 80)}...` : command;
-
     return [
         `## ⚠️ Windows CMD Syntax Detected`,
         '',
         `**Command:** \`${match.name}\``,
-        `**Detected:** \`${truncatedCmd}\``,
+        `**Detected:** \`${match.name}\``,
+        '',
+        '_The command body is omitted from diagnostics so secrets and file contents are not copied into the hook transcript._',
         '',
         `### Why This Fails`,
         match.reason,
@@ -124,41 +125,77 @@ function formatBlockWarning(command, match) {
     ].join('\n');
 }
 
-function main() {
-    try {
-        const input = JSON.parse(fs.readFileSync(process.stdin.fd, 'utf-8'));
+// Only model value-free Node options here. Unknown options may consume -e as
+// their value, so the advisory rewrite leaves those invocations untouched.
+const NODE_VALUE_FREE_OPTIONS = new Set(['--experimental-vm-modules', '--no-warnings', '--trace-warnings']);
 
-        // Only process Bash tool calls
-        if (input.tool_name !== 'Bash') {
-            process.exit(0);
-        }
-
-        const command = input.tool_input?.command || '';
-
-        // Fix \! escaping in node -e double-quoted commands
-        // Claude escapes ! for bash history safety, but Node.js treats \! as invalid unicode escape
-        const NODE_E_BACKSLASH_BANG = /node\s+(?:-[^\s]*\s+)*-e\s+"[^"]*\\!/;
-        if (NODE_E_BACKSLASH_BANG.test(command)) {
-            const fixed = command.replace(/\\!/g, '!');
-            console.log(JSON.stringify({ updatedInput: { command: fixed } }));
-            process.exit(0);
-        }
-
-        // Find matching Windows command pattern
-        const match = WINDOWS_COMMAND_PATTERNS.find(p => p.pattern.test(command));
-
-        if (match) {
-            // Block: output reason to stderr, exit code 2
-            console.error(formatBlockWarning(command, match));
-            process.exit(2);
-        }
-
-        // Allow
-        process.exit(0);
-    } catch (error) {
-        console.error(`windows-command-detector error: ${error.message}`);
-        process.exit(0); // Fail-open
+// Returns every eligible argument, in source order. Each statement is modeled
+// independently, so a compound command must not be left half repaired: stopping at
+// the first match leaves later invocations with the invalid escape intact.
+function findNodeEvalArguments(command) {
+    const inspected = inspectCommand(command);
+    // Node is intentionally opaque to the general inspector; all other
+    // diagnostics (expansion, incomplete syntax, heredocs, limits) forbid edits.
+    if (inspected.diagnostics.some(item => item.code !== 'UNSUPPORTED_COMMAND')) return [];
+    const found = [];
+    for (const statement of inspected.statements) {
+        const [executable, ...args] = statement.argv;
+        if (!executable?.static || !/^(?:.*[\\/])?node(?:\.exe)?$/.test(executable.value)) continue;
+        let index = 0;
+        while (args[index]?.static && NODE_VALUE_FREE_OPTIONS.has(args[index].value)) index++;
+        if (!args[index]?.static || args[index].value !== '-e') continue;
+        const argument = args[index + 1];
+        if (!argument?.static || argument.parts.length !== 1 || argument.parts[0].quote !== 'double') continue;
+        if (argument.raw.includes('\\!')) found.push(argument);
     }
+    return found;
 }
 
-main();
+function evaluate(input) {
+    // Only process Bash tool calls.
+    if (!input || input.tool_name !== 'Bash') return undefined;
+
+    const toolInput = input.tool_input && typeof input.tool_input === 'object' && !Array.isArray(input.tool_input)
+        ? input.tool_input
+        : {};
+    const rawCommand = typeof toolInput.command === 'string' ? toolInput.command : '';
+    const command = rawCommand.trimStart();
+
+    // Fix \! escaping in node -e double-quoted commands.
+    // Claude escapes ! for bash history safety, but Node.js treats \! as invalid unicode escape.
+    // Rewrite last-first: each replacement shifts only the bytes after its own span,
+    // so descending order keeps every remaining start/end offset valid.
+    const nodeArguments = findNodeEvalArguments(rawCommand);
+    if (nodeArguments.length > 0) {
+        const fixed = [...nodeArguments].reverse().reduce(
+            (text, argument) => `${text.slice(0, argument.start)}${argument.raw.replace(/\\!/g, '!')}${text.slice(argument.end)}`,
+            rawCommand);
+        return {
+            stdout: `${JSON.stringify({
+                hookSpecificOutput: {
+                    hookEventName: 'PreToolUse',
+                    // updatedInput replaces the complete tool_input object;
+                    // preserve every field and leave permission evaluation to the host.
+                    updatedInput: { ...toolInput, command: fixed }
+                }
+            })}\n`,
+            decision: 'rewrite'
+        };
+    }
+
+    const match = WINDOWS_COMMAND_PATTERNS.find(p => p.pattern.test(command));
+    if (match) {
+        return { code: 2, stderr: `${formatBlockWarning(command, match)}\n`, decision: 'block' };
+    }
+
+    return undefined;
+}
+
+if (require.main === module) {
+    runPreToolHookSync('windows-command-detector', evaluate, {
+        inputErrorCode: 0,
+        errorExitCode: 0
+    });
+}
+
+module.exports = { formatBlockWarning, evaluate };

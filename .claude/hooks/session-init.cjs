@@ -26,6 +26,10 @@ const {
   loadState: loadWorkflowState,
   clearState: clearWorkflowState,
 } = require("./lib/workflow-state.cjs");
+const { resolveProjectRoot } = require("./lib/project-root.cjs");
+
+const rootResolution = resolveProjectRoot({ cwd: process.cwd(), scriptPath: __filename, env: process.env });
+const PROJECT_DIR = rootResolution.rootDir;
 
 /**
  * Safely execute shell command with optional timeout
@@ -313,9 +317,13 @@ function getCodingLevelStyleName(level) {
  * Main hook execution
  */
 async function main() {
+  if (rootResolution.error) {
+    console.error(`[session-init] Skipped: ${rootResolution.error}`);
+    return;
+  }
   try {
     // Clean up temp files from previous sessions (project root + .claude/ recursively)
-    cleanupAll();
+    cleanupAll(PROJECT_DIR);
 
     const stdin = fs.readFileSync(0, "utf-8").trim();
     const data = stdin ? JSON.parse(stdin) : {};
@@ -350,7 +358,7 @@ async function main() {
     // This prevents stale plan pollution on fresh sessions
     if (sessionId) {
       writeSessionState(sessionId, {
-        sessionOrigin: process.cwd(),
+        sessionOrigin: PROJECT_DIR,
         // Only session-resolved plans are truly "active"
         activePlan: resolved.resolvedBy === "session" ? resolved.path : null,
         // Track suggested plan separately (for UI hints, not for report paths)
@@ -417,7 +425,7 @@ async function main() {
       // Paths
       writeEnv(envFile, "CK_DOCS_PATH", config.paths.docs);
       writeEnv(envFile, "CK_PLANS_PATH", config.paths.plans);
-      writeEnv(envFile, "CK_PROJECT_ROOT", process.cwd());
+      writeEnv(envFile, "CK_PROJECT_ROOT", PROJECT_DIR);
 
       // Project detection
       writeEnv(envFile, "CK_PROJECT_TYPE", detections.type || "");

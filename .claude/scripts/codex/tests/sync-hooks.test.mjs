@@ -12,9 +12,35 @@ const thisDir = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(thisDir, "..", "..", "..", "..");
 const syncHooksScript = path.join(repoRoot, ".claude", "scripts", "codex", "sync-hooks.mjs");
 
+function runSync(cwd, ambient = process.env) {
+  return execFileAsync(process.execPath, [syncHooksScript], { cwd, env: { ...ambient, CLAUDE_PROJECT_DIR: cwd } });
+}
+
+test('sync-hooks fixture overrides a competing ambient root without touching it', async () => {
+  const owner = await fs.mkdtemp(path.join(os.tmpdir(), 'sync-hooks-isolation-'));
+  const target = path.join(owner, 'target');
+  const foreign = path.join(owner, 'foreign');
+  try {
+    for (const dir of [target, foreign]) {
+      await fs.mkdir(path.join(dir, '.claude'), { recursive: true });
+      await fs.writeFile(path.join(dir, '.claude/settings.json'), JSON.stringify({ hooks: {} }));
+    }
+    await fs.mkdir(path.join(foreign, '.codex'));
+    await fs.writeFile(path.join(foreign, '.codex/hooks.json'), 'foreign-sentinel');
+    await runSync(target, { ...process.env, CLAUDE_PROJECT_DIR: foreign });
+    assert.deepEqual(JSON.parse(await fs.readFile(path.join(target, '.codex/hooks.json'), 'utf8')), { hooks: {} });
+    assert.equal(await fs.readFile(path.join(foreign, '.codex/hooks.json'), 'utf8'), 'foreign-sentinel');
+    assert.deepEqual(await fs.readdir(path.join(foreign, '.codex')), ['hooks.json']);
+  } finally {
+    await fs.rm(owner, { recursive: true, force: true });
+  }
+});
+
 function runCommand(command, cwd) {
   return new Promise((resolve, reject) => {
-    const child = spawn(command, { cwd, shell: true, windowsHide: true });
+    const env = { ...process.env };
+    delete env.CLAUDE_PROJECT_DIR;
+    const child = spawn(command, { cwd, env, shell: true, windowsHide: true });
     let stdout = "";
     let stderr = "";
     child.stdout.on("data", (data) => { stdout += data; });
@@ -64,7 +90,7 @@ test("sync-hooks preserves non-bash and prompt-event matchers", async () => {
       "utf8"
     );
 
-    await execFileAsync(process.execPath, [syncHooksScript], { cwd: tempRoot });
+    await runSync(tempRoot);
 
     const rawHooks = await fs.readFile(path.join(tempRoot, ".codex", "hooks.json"), "utf8");
     const hooksConfig = JSON.parse(rawHooks);
@@ -133,7 +159,7 @@ test("sync-hooks launches project-root Node hooks from Git and bare .claude root
       "utf8"
     );
 
-    await execFileAsync(process.execPath, [syncHooksScript], { cwd: tempRoot });
+    await runSync(tempRoot);
 
     const rawHooks = await fs.readFile(path.join(tempRoot, ".codex", "hooks.json"), "utf8");
     const hooksConfig = JSON.parse(rawHooks);
@@ -206,7 +232,7 @@ test("sync-hooks omits Claude SessionStart hooks and writes a skip report", asyn
       "utf8"
     );
 
-    await execFileAsync(process.execPath, [syncHooksScript], { cwd: tempRoot });
+    await runSync(tempRoot);
 
     const rawHooks = await fs.readFile(path.join(tempRoot, ".codex", "hooks.json"), "utf8");
     const hooksConfig = JSON.parse(rawHooks);
@@ -221,7 +247,7 @@ test("sync-hooks omits Claude SessionStart hooks and writes a skip report", asyn
       report.skipped_events.some(
         (event) =>
           event.event === "SessionStart" &&
-          event.reason === "disabled-for-codex-hookless-startup-context"
+          event.reason === "static-startup-context-authoritative"
       )
     );
   } finally {

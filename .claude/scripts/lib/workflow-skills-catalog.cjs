@@ -2,7 +2,7 @@
 
 /**
  * Shared builder for the concise Workflow & Skills catalog baked into every AI
- * session-start context (CLAUDE.md, Codex CODEX_CONTEXT.md/AGENTS.md). Hookless
+ * session-start context (CLAUDE.md, Codex CODEX_CONTEXT.md/AGENTS.md). Hook-independent
  * tools (Codex) learn the available workflows and composable step-skills ONLY from
  * this statically-baked block — without it they cannot compose a custom workflow
  * because they don't know what skills exist.
@@ -20,6 +20,7 @@
 
 const fs = require("fs");
 const path = require("path");
+const { resolveAllWorkflowManifests } = require("./workflow-manifest.cjs");
 
 const CK_SKILLS_START = "<!-- CK:WORKFLOW-SKILLS -->";
 const CK_SKILLS_END = "<!-- /CK:WORKFLOW-SKILLS -->";
@@ -121,6 +122,32 @@ function readWorkflowsDoc(rootDir) {
   return JSON.parse(fs.readFileSync(p, "utf8"));
 }
 
+// The static catalog is a route-selection aid, but it must not hide the
+// complete selected-mode task list. Resolve explicit variants through the
+// same canonical manifest helper used by activation; legacy entries retain
+// their compatibility sequence until they are migrated.
+function resolvedModeSequences(rootDir, workflowId, workflow) {
+  const document = readWorkflowsDoc(rootDir);
+  const declared = [];
+  if (Array.isArray(workflow && workflow.sequence)) declared.push(...workflow.sequence);
+  if (workflow && workflow.variants && typeof workflow.variants === "object") {
+    for (const variant of Object.values(workflow.variants)) {
+      if (Array.isArray(variant && variant.sequence)) declared.push(...variant.sequence);
+    }
+  }
+  // Catalog generation intentionally tolerates pseudo-steps whose skill directories are absent so
+  // adopters can preview a workflow.  The resolver still validates mode/occurrence/barrier shape;
+  // supplying the declared skill set only disables its filesystem-existence check for this
+  // presentation surface (activation performs the real skill-file check).
+  const availableSkills = new Set(
+    declared
+      .map((step) => (typeof step === "string" ? step.trim().split(/\s+/, 1)[0] : step && step.skill))
+      .filter((skill) => typeof skill === "string" && skill.length > 0)
+  );
+  return resolveAllWorkflowManifests(document, workflowId, { rootDir, availableSkills })
+    .map((manifest) => ({ mode: manifest.mode, sequence: manifest.sequence }));
+}
+
 function resolveSkillDescription(rootDir, skill, cache) {
   if (cache.has(skill)) return cache.get(skill);
   let desc = "";
@@ -158,12 +185,14 @@ function renderRoutingSection() {
   ].join("\n");
 }
 
-function renderWorkflowsSection(entries) {
+function renderWorkflowsSection(entries, rootDir) {
   const rows = entries.map(([id, wf]) => {
     const hint = condenseWhenToUse(wf && wf.whenToUse) || safeCell((wf && wf.name) || id);
-    const steps = Array.isArray(wf && wf.sequence)
-      ? wf.sequence.map((s) => safeCell(s)).join(" → ")
-      : "";
+    const modes = resolvedModeSequences(rootDir, id, wf);
+    const steps = modes.map(({ mode, sequence }) => {
+      const rendered = sequence.map((s) => safeCell(s)).join(" → ");
+      return modes.length > 1 ? `${safeCell(mode)}: ${rendered}` : rendered;
+    }).join("; ");
     return `| \`${id}\` | ${hint} | ${steps} |`;
   });
   return [
@@ -217,8 +246,10 @@ function buildWorkflowSkillsCatalog(opts = {}) {
   }
 
   const skillSet = new Set();
-  for (const [, wf] of entries) {
-    for (const step of (wf && wf.sequence) || []) skillSet.add(baseSkill(step));
+  for (const [workflowId, wf] of entries) {
+    for (const { sequence } of resolvedModeSequences(rootDir, workflowId, wf)) {
+      for (const step of sequence) skillSet.add(baseSkill(step));
+    }
   }
   const skills = [...skillSet].sort((a, b) => a.localeCompare(b));
 
@@ -231,7 +262,7 @@ function buildWorkflowSkillsCatalog(opts = {}) {
 
   for (const section of sections) {
     if (section === "routing") blocks.push(renderRoutingSection(), "");
-    else if (section === "workflows") blocks.push(renderWorkflowsSection(entries), "");
+    else if (section === "workflows") blocks.push(renderWorkflowsSection(entries, rootDir), "");
     else if (section === "skills")
       blocks.push(renderSkillsSection(skills, rootDir, cache), "");
   }
@@ -243,6 +274,7 @@ module.exports = {
   buildWorkflowSkillsCatalog,
   condenseWhenToUse,
   baseSkill,
+  resolvedModeSequences,
   CK_SKILLS_START,
   CK_SKILLS_END,
 };

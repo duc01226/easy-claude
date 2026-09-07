@@ -1,13 +1,46 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { createHash } from 'node:crypto';
 import path from 'node:path';
+import fs from 'node:fs/promises';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
 const thisDir = path.dirname(fileURLToPath(import.meta.url));
 const verifierPath = path.resolve(thisDir, '..', 'verify-skill-protocol-compliance.mjs');
-const { checkDebuggerTraceCoverage, checkOrphanHeadings, formatMirrorRemediation, countOccurrences } = await import(pathToFileURL(verifierPath).href);
+const {
+    checkDebuggerTraceCoverage,
+    checkOrphanHeadings,
+    formatMirrorRemediation,
+    countOccurrences,
+    checkCompactAgentsProjection
+} = await import(pathToFileURL(verifierPath).href);
 
 const joinLines = (...lines) => lines.join('\n');
+
+test('TC-CTXP-035d: deleting malformed-marker rejection is killed by the ordered-pair assertion', async () => {
+    const source = await fs.readFile(verifierPath, 'utf8');
+    const guard = "failures.push('AGENTS.md managed context mirror markers must form an ordered pair');";
+    assert.equal(source.split(guard).length, 2, 'mutation anchor must be unique');
+    const mutated = source.replace(guard, '').replaceAll('import.meta.url', JSON.stringify(pathToFileURL(verifierPath).href));
+    const verifier = await import(`data:text/javascript;base64,${Buffer.from(mutated).toString('base64')}`);
+    const agents = joinLines('<!-- CK:CODEX-ROOT-PROJECTION -->', '<!-- /CK:CODEX-ROOT-PROJECTION -->',
+        '<!-- CODEX-CONTEXT-MIRROR:END -->', '<!-- CODEX-CONTEXT-MIRROR:START -->');
+    const oracle = fn => assert.deepEqual(fn(agents, 'context'), ['AGENTS.md managed context mirror markers must form an ordered pair']);
+    oracle(checkCompactAgentsProjection);
+    assert.throws(() => oracle(verifier.checkCompactAgentsProjection), assert.AssertionError);
+});
+
+test('TC-CTXP-035c: reversed context markers cannot bypass pointer and fingerprint checks', () => {
+    const agents = joinLines(
+        '<!-- CK:CODEX-ROOT-PROJECTION -->',
+        '<!-- /CK:CODEX-ROOT-PROJECTION -->',
+        '<!-- CODEX-CONTEXT-MIRROR:END -->',
+        '<!-- CODEX-CONTEXT-MIRROR:START -->'
+    );
+    assert.deepEqual(checkCompactAgentsProjection(agents, 'context'), [
+        'AGENTS.md managed context mirror markers must form an ordered pair'
+    ]);
+});
 
 // TC-SKILLFIX-001 — orphan: heading immediately followed by a SAME-level heading, no body.
 // This is the exact class removed from plan-review/why-review (`## X` -> `## Your mission`).
@@ -164,4 +197,39 @@ test('TC-CTXP-034b: countOccurrences is non-overlapping and empty-needle safe', 
     // Empty / nullish needle must be 0, never throw (defensive: a stale-signature config slips through).
     assert.equal(countOccurrences('anything', ''), 0);
     assert.equal(countOccurrences('anything', undefined), 0);
+});
+
+// TC-CTXP-035 — AGENTS.md is a bounded pointer/projection, while the full protocol remains in
+// CODEX_CONTEXT.md. This prevents a host-size optimisation from silently accepting a truncated
+// second copy or a pointer whose context content has changed since generation.
+test('TC-CTXP-035: compact AGENTS projection passes with a matching target and fingerprint', () => {
+    const context = '## Full static context\n\n[CRITICAL-THINKING-MINDSET]\n';
+    const fingerprint = createHash('sha256').update(context.trim(), 'utf8').digest('hex');
+    const agents = joinLines(
+        '# Codex Project Instructions',
+        '<!-- CK:CODEX-ROOT-PROJECTION -->',
+        '## Claude Instructions Mirror (Compact Auto-Synced Projection)',
+        '<!-- /CK:CODEX-ROOT-PROJECTION -->',
+        '<!-- CODEX-CONTEXT-MIRROR:START -->',
+        '## Codex Context Mirror (Auto-Synced)',
+        'Read `.codex/CODEX_CONTEXT.md` before non-trivial work.',
+        `Context fingerprint (SHA-256): ${fingerprint}`,
+        '<!-- CODEX-CONTEXT-MIRROR:END -->'
+    );
+    assert.deepEqual(checkCompactAgentsProjection(agents, context), []);
+});
+
+test('TC-CTXP-035b: compact AGENTS projection rejects stale fingerprints, missing markers and overflow', () => {
+    const context = 'full context';
+    const agents = joinLines(
+        '<!-- CODEX-CONTEXT-MIRROR:START -->',
+        'Read `.codex/CODEX_CONTEXT.md`.',
+        'Context fingerprint (SHA-256): 0000000000000000000000000000000000000000000000000000000000000000',
+        '<!-- CODEX-CONTEXT-MIRROR:END -->',
+        'x'.repeat(32769)
+    );
+    const failures = checkCompactAgentsProjection(agents, context);
+    assert.ok(failures.some((failure) => /above the 32768-byte/.test(failure)));
+    assert.ok(failures.some((failure) => /bounded root projection markers/.test(failure)));
+    assert.ok(failures.some((failure) => /fingerprint does not match/.test(failure)));
 });

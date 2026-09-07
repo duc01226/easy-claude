@@ -23,7 +23,7 @@ description: '[DDD Quality] Use when you need to review domain entities and valu
 - **Phase 1:** create the report, run the mandatory high-signal grep patterns (hidden `validate()` overrides, leaked persistence/business logic, missing identity markers) BEFORE reading individual files, write every grep result immediately, categorize files (root/entity/VO/unknown).
 - **Phase 2:** per-file checklist **A–P** — A–L (entity-vs-VO classification, base-class compliance, VO immutability/structural equality, anemic-model detection, domain invariants, invariant→property-TC Dual-Feedback, aggregate-by-ID, navigation serialization safety, domain events, query expressions, ubiquitous language, OOP) plus **M** invariant-vs-validation ownership + failure signalling, **N** construction-vs-reconstitution, **O** event dispatch timing/outbox/domain-vs-integration contract, **P** aggregate concurrency + transaction boundary — append findings per file, NEVER batch.
 - **Phase 3 → 4:** holistic cross-entity synthesis in the current pass, including **3.1 model-level dimensions** (bounded-context sharing; subdomain fit — judge whether a rich model is warranted BEFORE reporting anemia), then final report with health score (`100 − (CRIT×25 + HIGH×10 + MED×3 + LOW×1)`); 10+ entity files → switch to parallel `code-reviewer` sub-agents automatically.
-- **Phase 5 (validation-first loop):** validate via `/why-review` gate before any fix, fix only validated findings, then restart the FULL review; a clean pass ENDS the review. Every finding needs `file:line` at confidence >80%. Close with `AskUserQuestion` next-steps.
+- **Phase 5 (validation-first loop):** validate via `/why-review` gate before any fix, fix only validated findings that block the current round, then restart the FULL review; Round 1 requires zero findings, while Round 2+ requires zero CRITICAL/HIGH/MEDIUM and records LOW-only findings as deferred without another cycle. Every finding needs `file:line` at confidence >80%. Close with `AskUserQuestion` next-steps.
 
 **Workflow:**
 
@@ -32,14 +32,14 @@ description: '[DDD Quality] Use when you need to review domain entities and valu
 3. **Phase 2** — Entity-by-entity DDD review (per-file checklist **A–P** + project-specific rules); append per file, never batch
 4. **Phase 3** — Holistic cross-entity synthesis in the current pass, incl. **3.1 model-level dimensions** (bounded-context sharing, subdomain fit); fresh-context sub-agent only after validated fixes or explicit high-risk trigger
 5. **Phase 4** — Final report: critical issues, health score, refactoring priority, recommendations
-6. **Phase 5** — Why-Review self-validation gate (MANDATORY when findings exist) → validate → fix validated → restart full review until clean → `AskUserQuestion` next-steps
+6. **Phase 5** — Why-Review self-validation gate (MANDATORY when findings exist) → validate → fix current-round blocking findings → restart full review until the severity bar is clear (Round 1: zero findings; Round 2+: zero CRITICAL/HIGH/MEDIUM, LOW deferred) → `AskUserQuestion` next-steps
 7. **Scale rule** — 10+ entity files → parallel `code-reviewer` sub-agents, then consolidate
 
 **Key Rules:**
 
 - MUST ATTENTION discover project base classes in Phase 0 — NEVER assume generic patterns apply — why: wrong base classes = wrong checklist.
 - MUST ATTENTION run mandatory grep patterns in Phase 1 BEFORE reading individual files — why: highest-signal violations surface fastest and seed the report.
-- MUST ATTENTION validate findings via the Phase 5 `/why-review` gate before any fix, then restart the full review after validated fixes — a clean pass ENDS the review — why: every fix invalidates the prior verdict and AI reports inherit confirmation bias.
+- MUST ATTENTION validate findings via the Phase 5 `/why-review` gate before any fix, then restart the full review after validated fixes — a pass clearing the current severity bar ENDS the review (Round 1: zero findings; Round 2+: zero CRITICAL/HIGH/MEDIUM, LOW deferred) — why: every fix invalidates the prior verdict and AI reports inherit confirmation bias.
 - NEVER report a finding without `file:line` evidence at confidence >80% — why: unproven findings inflate severity downstream.
 - MUST ATTENTION append findings per file and persist to `plans/reports/` incrementally; 10+ entity files → parallel sub-agents — why: batched writes vanish on context/budget cutoff.
 - MUST ATTENTION detect the modelling paradigm (0.4) before applying any setter/mutability rule, and judge subdomain fit (3.1) before reporting anemic model — NEVER flag a paradigm-appropriate or appropriately-simple design as a violation — why: uniform tactical DDD over CRUD is itself an anti-pattern, and rules written for mutable OO are meaningless against an immutable or event-sourced model.
@@ -729,7 +729,7 @@ Report: plans/reports/domain-entities-review-{date}-{slug}.md
 
 MUST ATTENTION use `AskUserQuestion` after completing to present:
 
-- **`/fix` (Recommended if FAIL)** — Fix critical and high-priority issues
+- **`/fix` (Recommended if FAIL)** — Fix validated findings that block the current round (Round 1: all severities; Round 2+: CRITICAL/HIGH/MEDIUM; LOW-only is deferred)
 - **`/scan --target=domain-entities`** — Update domain-entities-reference.md (scan mode)
 - **`/integration-test`** — Add integration tests for newly-enforced invariants
 - **`/docs-update`** — Update feature docs if entity contracts changed
@@ -739,7 +739,7 @@ MUST ATTENTION use `AskUserQuestion` after completing to present:
 
 > **[IMPORTANT]** `TaskCreate` for ALL phases BEFORE starting. Mark each completed immediately.
 
-> **CRITICAL RULES** — (1) MUST ATTENTION run Phase 0 project discovery FIRST — discovered conventions override ALL generic rules. (2) Validate findings before fixes; after validated fixes, restart a full review before declaring PASS. A clean review pass ENDS the review. (3) NEVER report a finding without `file:line` evidence.
+> **CRITICAL RULES** — (1) MUST ATTENTION run Phase 0 project discovery FIRST — discovered conventions override ALL generic rules. (2) Validate findings before fixes; after validated fixes, restart a full review before declaring PASS. The current severity bar ends the review: Round 1 requires zero findings; Round 2+ requires zero CRITICAL/HIGH/MEDIUM, with LOW-only findings deferred. (3) NEVER report a finding without `file:line` evidence.
 
 ---
 
@@ -814,12 +814,12 @@ If no domain entity files match in changes mode → announce "No domain entity c
 
 <!-- SYNC:project-reference-docs-guide -->
 
-> **Project Reference Docs Gate** — Run after task-tracking bootstrap and before target/source file reads, grep, edits, or analysis. Project docs override generic framework assumptions.
+> **Project Reference Docs Gate (static JIT)** — Run after task-tracking bootstrap and immediately before target/source file reads, grep, edits, tests, or analysis. Project docs override generic framework assumptions; hooks may remind or accelerate this gate, but never prove that it ran.
 >
 > 1. Identify scope: file types, domain area, and operation.
 > 2. **Read `docs/project-config.json` first — the project's machine-readable map.** It is the single source of truth for THIS repo (modules/paths, framework + search keywords, test/E2E/integration run-commands, design system, architecture rules, workflow patterns); ground exact paths, run-commands, and conventions on it **before investigating, planning, or coding** — never assume framework defaults (`CLAUDE.md` + reference docs are derived from it). If it — or the docs index, `lessons.md`, `CLAUDE.md`, `AGENTS.md`, or any required reference doc — is missing or stale, auto-run `/project-init` or the narrow route (`/project-config`, `/docs-init`, `/scan-all`, `/scan --target=<key>`, `/claude-md-init`) first; if Codex mirrors or `AGENTS.md` are stale, ask the user to run `/sync-codex` (never auto-run it).
 > 3. Required docs by trigger: always `docs/project-reference/lessons.md`; doc lookup `docs-index-reference.md`; review `code-review-rules.md`; backend/CQRS/API `backend-patterns-reference.md`; domain/entity `domain-entities-reference.md`; frontend/UI `frontend-patterns-reference.md`; styles/design `scss-styling-guide.md` + `design-system/design-system-canonical.md`; integration tests `integration-test-reference.md`; E2E `e2e-test-reference.md`; feature docs/specs `feature-spec-reference.md` + `spec-system-reference.md` + `spec-principles.md`; behavior/public-contract/spec-test-code sync `workflow-spec-test-code-cycle-reference.md`; derived spec index/ERD/reimplementation guides `spec-system-reference.md` + source Feature Specs under `docs/specs/`; architecture/new area `project-structure-reference.md`.
-> 4. Read every required doc, then before target work state: `Reference docs read: ... | Not applicable: ...`.
+> 4. Read every required doc, then before target work state: `Reference docs read: ... | Not applicable: ...`. After compaction, resume, delegation, or a material context change, repeat the route and restate the set; prior conversation and hook output are not proof of current loading.
 >
 > **Ready when:** scope evaluated, `docs/project-config.json` consulted, required docs checked/read or setup route completed, `lessons.md` confirmed, citation emitted.
 
@@ -884,26 +884,26 @@ If no domain entity files match in changes mode → announce "No domain entity c
 
 <!-- SYNC:double-round-trip-review -->
 
-> **Validated-Finding Fix + Full Re-Review Loop** — Re-review is triggered by a validated finding fix cycle, not by a round number. Review purpose: `review → validate findings → fix validated findings → full re-review` until a complete review pass clears the round's exit bar (see **Severity floor** below). **A clean review ENDS the loop — no further rounds required.**
+> **Validated-Finding Fix + Full Re-Review Loop** — Re-review is triggered by a validated finding fix cycle or an explicitly declared independent-pass minimum, not by a round number alone. Review purpose: `review → validate findings → fix validated findings that block the current round → full re-review` until a complete review pass clears the round's exit bar (see **Severity floor** below). **A clean review ENDS the loop once the persisted `minRounds` is met (default 1); an explicitly declared minimum such as 2 still requires that independent pass.**
 >
-> _aka **Self-Review Convergence Loop**._ The name is historical — there is **NO 2-round cap**; "double-round-trip" only means a validated-finding fix cycle forces at least one fresh re-review. It runs until a clean pass, bounded by the **3-round ceiling** below.
+> _aka **Self-Review Convergence Loop**._ The name is historical — there is **NO 2-round cap**; "double-round-trip" only means a validated-finding fix cycle forces at least one fresh re-review. It runs until the current round's exit bar is clear (round 1: zero findings; round 2+: zero CRITICAL/HIGH/MEDIUM, LOW deferred), bounded by the **3-round ceiling** below.
 >
-> **Round cap — 3 rounds MAX (a ceiling, NEVER a target).** A clean pass ENDS the loop immediately at ANY round — round 1 included; the cap never obliges you to keep spinning. Hitting round 3 with blocking findings still open (severity floor applied) → **STOP and escalate via `AskUserQuestion`** with the still-open findings listed; NEVER emit a silent "good enough" PASS on cap exhaustion, and NEVER let the cap substitute for the clean-review requirement. The 2-repeated-no-progress blocker rule stays an EARLIER exit — escalate at whichever trips first.
+> **Round cap — 3 rounds MAX (a ceiling, NEVER a target).** A clean pass ENDS the loop at ANY round once `round >= minRounds` — round 1 included with the default minimum; the cap never obliges extra rounds. Hitting round 3 with blocking findings still open (severity floor applied) → **STOP and escalate via `AskUserQuestion`** with the still-open findings listed; NEVER emit a silent "good enough" PASS on cap exhaustion, and NEVER let the cap substitute for the clean-review requirement. The 2-repeated-no-progress blocker rule stays an EARLIER exit — escalate at whichever trips first.
 >
-> **Severity floor — from round 3, LOW stops blocking.** The exit bar tightens by round, so the loop converges on consequence instead of spinning on polish:
+> **Severity floor — from round 2, LOW stops blocking.** The exit bar tightens after the first review pass, so the loop converges on consequence instead of spinning on polish:
 
-> Define one predicate everywhere: `blocking_findings(round, findings)` returns all validated findings in rounds 1–2 and only validated CRITICAL/HIGH/MEDIUM findings in round 3+. A binary gate (test-green, security must-fix, required artifact) is exempt only when its owning invariant explicitly says so.
+> Define one predicate everywhere: `blocking_findings(round, findings)` returns all validated findings in round 1 and only validated CRITICAL/HIGH/MEDIUM findings in rounds 2–3. A binary gate (test-green, security must-fix, required artifact) is exempt only when its owning invariant explicitly says so; in practice binary gates always remain blocking when they fail.
 >
 > | Round | Exit bar — loop ENDS when the fresh full review has… | Must be fixed to continue |
 > | --- | --- | --- |
-> | 1-2 | zero validated findings at ANY severity | CRITICAL · HIGH · MEDIUM · LOW |
-> | 3+ | zero validated CRITICAL / HIGH / MEDIUM findings — **LOW-only is a PASS** | CRITICAL · HIGH · MEDIUM only |
+> | 1 | zero validated findings at ANY severity | CRITICAL · HIGH · MEDIUM · LOW |
+> | 2–3 | zero validated CRITICAL / HIGH / MEDIUM findings — **LOW-only clears the severity bar** | CRITICAL · HIGH · MEDIUM only |
 >
-> From round 3 onward LOW findings are **NOT required to be fixed**: a round whose validated findings are ALL LOW **ENDS the loop immediately** — do not open another round for them. Severity tiers are `SYNC:severity-rubric` (CRITICAL block-merge · HIGH must-fix · MEDIUM should-fix · LOW nice-to-fix); rounds 1-2 are unchanged, so an easy LOW still gets fixed early when it is cheap.
+> From round 2 onward LOW findings are **NOT required to be fixed**: a round whose validated findings are ALL LOW **ENDS the loop once the persisted minimum is met** — do not open another fix/re-review round for them. Severity tiers are `SYNC:severity-rubric` (CRITICAL block-merge · HIGH must-fix · MEDIUM must clear the current round · LOW record/defer); round 1 remains strict, so a LOW found initially is still validated and fixed when warranted before the floor can apply.
 >
 > **Severity-floor rules:**
 >
-> - **Never silently drop a deferred LOW.** Every unfixed LOW is listed in the final report under `## Deferred LOW Findings (severity floor, round ≥3)` with file, line, and description, so the owner can schedule it. Dropping it from the report is a protocol violation, not a clean pass.
+> - **Never silently drop a deferred LOW.** Every unfixed LOW is listed in the final report under `## Deferred LOW Findings (severity floor, round ≥2)` with file, line, and description, so the owner can schedule it. Dropping it from the report is a protocol violation, not a clean pass.
 > - **Never re-tier a finding to trigger the exit.** Downgrading a real CRITICAL/HIGH/MEDIUM to LOW so the loop can end is a FALSE PASS. Severity is set by consequence per `SYNC:severity-rubric` before the round bar is applied — never after, and never with the exit in view. — why: a floor that can be reached by relabeling is not a floor.
 > - **The floor bounds the loop, not the standard.** It ends *iteration*; it never authorizes shipping a known CRITICAL/HIGH/MEDIUM, and it never lowers the finding-survival bar that admits a finding in the first place.
 > - **The floor never applies to a hard gate.** Test-green gates (a suite must actually pass), security must-fix gates, and any gate whose criterion is binary rather than severity-rated are unaffected — a failing test is a failure, not a LOW finding.
@@ -916,8 +916,8 @@ If no domain entity files match in changes mode → announce "No domain entity c
 >
 > **Decision after Round 1:**
 >
-> - **No issues found (PASS, zero findings)** → review ENDS. Do NOT spawn a fresh sub-agent for confirmation.
-> - **`blocking_findings(round, findings)` is non-empty** → run the active review skill's findings-validation gate first; for review skills the default gate is `/why-review --validate-findings <report-path>`. Fix only validated findings, then restart the full review protocol from the beginning with a fresh task breakdown.
+> - **No issues found (PASS, zero findings)** → review ENDS if `round >= minRounds`; otherwise perform the explicitly required independent pass. Do NOT invent a confirmation pass.
+> - **`blocking_findings(round, findings)` is non-empty** → run the active review skill's findings-validation gate first; for review skills the default gate is `/why-review --validate-findings <report-path>`. Fix only validated findings that block the current round, then restart the full review protocol from the beginning with a fresh task breakdown.
 >
 > **Fresh full re-review after every fix cycle:** Re-run the whole review protocol over the current full target. When sub-agents are part of that protocol, spawn NEW `Agent` calls — never reuse prior agents. Reviewers re-read ALL files from scratch with ZERO memory of prior rounds. See `SYNC:fresh-context-review` for the spawn mechanism and `SYNC:review-protocol-injection` for the canonical Agent prompt template. Each fresh full review must catch:
 >
@@ -928,35 +928,35 @@ If no domain entity files match in changes mode → announce "No domain entity c
 > - Subtle edge cases the prior round rationalized away
 > - Regressions introduced by the fixes themselves
 >
-> **Loop termination:** After each full re-review, repeat the same decision against **that round's exit bar**: bar cleared → END; blocking findings remain → validate findings → fix → restart from the first review phase. Rounds 1-2 clear on zero findings at any severity; **from round 3 the bar is zero CRITICAL/HIGH/MEDIUM, so a LOW-only round ENDS the loop** (deferred LOWs go in the report). Capped at **3 rounds**. Escalate via `AskUserQuestion` at whichever comes first: the same validated finding repeats for 2 full invocations with no progress · a fix requires product/owner input · round 3 completes with CRITICAL/HIGH/MEDIUM still open. NEVER loop past 3 rounds, and NEVER convert cap exhaustion into a PASS.
+> **Loop termination:** After each full re-review, repeat the same decision against **that round's exit bar**: bar cleared and persisted minimum met → END; blocking findings remain → validate findings → fix → restart from the first review phase. Round 1 clears only on zero findings at any severity; **from round 2 the bar is zero CRITICAL/HIGH/MEDIUM, so a LOW-only round ENDS the loop once the persisted minimum is met** (deferred LOWs go in the report). Capped at **3 rounds**. Escalate via `AskUserQuestion` at whichever comes first: the same validated finding repeats for 2 full invocations with no progress · a fix requires product/owner input · round 3 completes with CRITICAL/HIGH/MEDIUM still open. NEVER loop past 3 rounds, and NEVER convert cap exhaustion into a PASS.
 >
 > **Rules:**
 >
-> - A clean Round 1 ENDS the review — no mandatory Round 2
-> - From round 3 on, a round whose validated findings are ALL LOW ENDS the loop — never open round N+1 to fix LOW alone; list those LOWs as deferred instead
-> - NEVER re-tier a CRITICAL/HIGH/MEDIUM down to LOW to reach the round-3 exit — severity is assigned by consequence before the bar is applied
+> - A clean Round 1 ENDS the review when `minRounds=1`; an explicitly declared `minRounds=2` requires the independent second pass
+> - From round 2 on, a round whose validated findings are ALL LOW ENDS the loop once the persisted minimum is met — never open round N+1 to fix LOW alone; list those LOWs as deferred instead
+> - NEVER re-tier a CRITICAL/HIGH/MEDIUM down to LOW to reach the round-2 exit — severity is assigned by consequence before the bar is applied
 > - NEVER fix unvalidated findings; validate first using the caller's validation gate
 > - Every surviving finding must additionally clear the **finding-survival bar** defined in why-review's Findings Validation Routine (a deliberately higher bar than the generic act-gate — "keep this finding?" is a stricter question than "act on this evidence?"); a finding below the bar is demoted or dropped, not kept
 > - NEVER skip the full re-review after a fix cycle (every fix invalidates the prior verdict)
 > - NEVER reuse a sub-agent across rounds — every iteration that uses sub-agents spawns NEW Agent calls
 > - Main agent READS sub-agent reports but MUST NOT filter, reinterpret, or override findings
-> - The 3-round cap NEVER replaces the clean-review requirement — it bounds runaway looping, it does not authorize shipping an un-clean review; a clean pass ends the loop early at any round, and cap exhaustion escalates rather than passes
+> - The 3-round cap NEVER replaces the clean-review requirement — it bounds runaway looping, it does not authorize shipping an un-clean review; a clean pass ends the loop early once the persisted minimum is met, and cap exhaustion escalates rather than passes
 > - Enforce the round cap of 3 alongside the 2 repeated-no-progress blocker rule; both are escalation triggers, neither is a completion criterion
-> - Track recursive invocation count and repeated blockers in conversation context (session-scoped)
+> - Persist completed rounds, repeated blockers, findings and the explicit minimum in the owning run's `review-policy.cjs` record. Resume that record after interruption; target changes invalidate evidence and acceptance but preserve the bounded round budget. In-flight attempt IDs may be session-local; they do not replace or reset completed-round state
 > - Final verdict must incorporate ALL rounds executed
 >
-> **Report must include `## Round N Findings (Fresh Sub-Agent)` for every round N≥2 that was executed, plus `## Deferred LOW Findings (severity floor, round ≥3)` whenever the loop ended on the round-3+ bar with LOWs still open.**
+> **Report must include `## Round N Findings (Fresh Sub-Agent)` for every round N≥2 that was executed, plus `## Deferred LOW Findings (severity floor, round ≥2)` whenever the loop ended on the round-2+ bar with LOWs still open.**
 
 <!-- /SYNC:double-round-trip-review -->
 
 
 <!-- SYNC:fresh-context-review -->
 
-> **Fresh Context Re-Review** — Eliminate orchestrator confirmation bias after fixes by restarting the full review with isolated sub-agents where applicable.
+> **Fresh Context Re-Review** — Eliminate orchestrator confirmation bias after fixes by restarting the full review with isolated sub-agents where applicable. A report-only/read-only reviewer never edits source, generated output, or user data: it validates and records the finding/repair handoff, then returns to the caller, which owns the fix and any re-review.
 >
 > **Why:** The main agent knows what it (or `/feature-implement`) just fixed and rationalizes findings accordingly. A fresh sub-agent has ZERO memory, re-reads from scratch, and catches what the main agent dismissed. Sub-agent bias is mitigated by (1) fresh context, (2) verbatim protocol injection, (3) main agent not filtering the report.
 >
-> **When:** ONLY after a validated-finding fix cycle. A review round that finds zero issues ENDS the loop — do NOT spawn a confirmation sub-agent. A review round that finds issues triggers: validate findings → fix → full review restart from the first phase.
+> **When:** After a validated-finding fix cycle, or to satisfy an explicitly declared independent-pass `minRounds`. A review round that finds zero issues ENDS the loop once that persisted minimum is met — do NOT invent a confirmation sub-agent. A review round that finds issues triggers: validate findings → fix → full review restart from the first phase.
 >
 > **How:**
 >
@@ -968,11 +968,11 @@ If no domain entity files match in changes mode → announce "No domain entity c
 >
 > **Rules:**
 >
-> - SKIP fresh sub-agent when the prior full review found zero issues (no fixes = nothing new to verify)
+> - SKIP fresh sub-agent when the prior full review found zero issues AND the persisted `minRounds` is met (no fixes or required independent pass = nothing new to verify)
 > - NEVER skip the full review restart after a fix cycle — every fix invalidates the prior verdict
 > - NEVER reuse a sub-agent across rounds — every fresh round spawns a NEW `Agent` call
-> - Continue until a complete full review pass clears that round's exit bar per `SYNC:double-round-trip-review`: **rounds 1-2** → zero findings at any severity; **round 3+** → zero CRITICAL/HIGH/MEDIUM, so a round whose validated findings are ALL LOW ENDS the loop (list those LOWs as deferred instead of spawning another round). If the same blocker repeats 3 times with no progress, escalate via `AskUserQuestion`
-> - Track iteration count and repeated blockers in conversation context (session-scoped, no persistent files)
+> - Continue until a complete full review pass clears that round's exit bar per `SYNC:double-round-trip-review`: **round 1** → zero findings at any severity; **round 2+** → zero CRITICAL/HIGH/MEDIUM, so a round whose validated findings are ALL LOW ENDS the loop once the persisted minimum is met (list those LOWs as deferred instead of spawning another round). If the same validated blocker repeats across 2 full invocations with no progress, escalate via `AskUserQuestion`. **Read-only/report-only role boundary:** when this block is carried by a security auditor or another report-only role, “fix” means return the validated repair proposal to the parent; do not modify source, generated carriers, or user data and do not restart the review locally.
+> - Persist completed rounds, repeated blockers, findings and the explicit minimum in the owning run's `review-policy.cjs` record. Resume that record after interruption; target changes invalidate evidence and acceptance but preserve the bounded round budget. In-flight attempt IDs may be session-local; they do not replace or reset completed-round state
 
 <!-- /SYNC:fresh-context-review -->
 
@@ -1025,23 +1025,42 @@ If no domain entity files match in changes mode → announce "No domain entity c
 
 <!-- SYNC:severity-rubric -->
 
-> **Severity Rubric** — Classify every finding by consequence, not by how easy it is to fix. One scale across all reviews so a "High" means the same thing everywhere.
+> **Severity Rubric** — Classify every finding by consequence, not by effort, reviewer preference, or how annoying the fix is. One scale applies to every review, skill, agent, workflow, and host so a tier has the same meaning everywhere. Choose the highest credible consequence supported by evidence; do not lower a tier to make a round pass.
 >
-> | Severity | Action | Definition |
+> **Finding vs observation (required):** An observation becomes a finding only when it names the affected user/system/data/contract, the shipped consequence, the evidence location, and the normalized tier. `INFO`, advice, preference, duplicate wording, or an unsubstantiated concern is not a finding and must not reopen a loop. If the concern might affect a required behavior or gate but evidence is incomplete, emit `NOT VERIFIABLE` with the missing evidence and keep it unresolved; never silently convert uncertainty into LOW.
+>
+> | Severity | Action | Definition and examples |
 > | --- | --- | --- |
-> | CRITICAL | Block merge | Silent runtime failure, data corruption, validation bypass, security hole |
-> | HIGH | Must fix | Incorrect behavior, invariant gap, architectural violation |
-> | MEDIUM | Should fix | Design debt, maintainability, likely future bug |
-> | LOW | Nice to fix | Convention, documentation, minor clarity |
+> | CRITICAL | Block immediately; escalate | Immediate material risk if shipped: authentication/authorization or safety bypass; secrets/PII exposure; irreversible destructive action; data loss/corruption; or a silent failure on a critical path. A failed binary gate that makes the result untrustworthy is represented as a separate synthetic blocker by the executable policy (not as an ordinary severity judgment). |
+> | HIGH | Must fix before PASS/merge | Material correctness or contract risk: wrong behavior on a supported path; violated business/data invariant; meaningful privacy or authority gap; breaking API/schema/compatibility change; likely harm to users/downstream systems; or a missing proof for a behavior-changing fix. |
+> | MEDIUM | Must clear the current round; escalate if the fix needs an owner decision | Bounded but consequential risk: an edge case, resilience/observability/testability/maintainability gap, credible future defect, or local architectural drift whose impact is real but not immediate material loss. An explicit follow-up records the escalation/residual risk; it does not make an open MEDIUM a clean pass. |
+> | LOW | Record and defer; never open another fix/re-review round from round 2 onward | Non-blocking polish with no credible present correctness, security, privacy, authority, availability, or data-integrity impact: wording/formatting, minor documentation or convention drift, optional defensive cleanup, or a cosmetic/refinement suggestion. |
+>
+> **Consequence decision tree (apply in order):** (1) Is a binary gate failed? Keep it as a separate hard blocker (the executable helper represents it as synthetic CRITICAL); do not use the ordinary severity label to hide what failed. Otherwise, would shipping permit immediate material security/safety/authority harm, irreversible destruction, data loss/corruption, or a critical-path silent failure? → **CRITICAL**. (2) Otherwise, does a supported path, invariant, public contract, privacy/authority boundary, compatibility promise, or behavior-changing proof fail with material user/downstream impact? → **HIGH**. (3) Otherwise, is there a bounded but consequential edge, resilience, observability, testability, maintainability, or architectural gap with a credible impact? → **MEDIUM**. (4) Otherwise, is the evidence sufficient to show only non-blocking polish with no credible present material impact? → **LOW**. (5) If the evidence needed to choose between steps 1–4 is missing, → **NOT VERIFIABLE**, not LOW. When multiple tiers fit, select the highest credible consequence; effort, implementation cost, reviewer discomfort, frequency alone, and proximity to the round cap never decide the tier.
+>
+> **Boundary examples (normalize before applying the round predicate):** an auth bypass, exposed secret/PII, destructive command without an authority gate, or failed required test/generation/parity gate is **CRITICAL**; a wrong supported response, broken invariant/API/schema, meaningful privacy/authority defect, or unproven behavior-changing fix is **HIGH**; a bounded retry/timeout/alert/testability gap or credible maintainability drift is **MEDIUM**; a typo, formatting inconsistency, optional cleanup, or cosmetic suggestion proven not to affect present behavior is **LOW**. A missing fact about any of those boundaries is **NOT VERIFIABLE** until evidence or an explicitly documented residual-risk decision exists.
+>
+> **Classification procedure (required for every finding):** (1) state the affected user, system, data, contract, or gate; (2) assess consequence if the issue ships; (3) assess exposure/likelihood and reversibility/detectability; (4) select the highest tier justified by those facts; (5) cite `file:line` or equivalent evidence and a confidence percentage. Effort, implementation cost, reviewer discomfort, and proximity to the round cap are never severity inputs. `NOT VERIFIABLE` is a pending evidence state, not one of the four tiers and never a LOW escape hatch: if the unresolved claim could affect required behavior, security, privacy, authority, availability, data integrity, or a binary gate, it remains an open evidence blocker until resolved or explicitly owner-accepted with documented residual risk. Classify an item LOW only when evidence supports the absence of credible present material impact.
+>
+> **Hard-gate rule:** Binary gates (tests, required artifacts, security must-fix checks, generated parity, policy compliance) are not ordinary severity-rated findings. The executable helper records a failed gate as a synthetic CRITICAL blocker solely so one predicate can carry it; the report must still name the gate and failure evidence. A failed gate blocks at every round, including when all ordinary findings are LOW; never disguise a failed gate as LOW.
 >
 > **Score-based skills** map their numeric scale onto these tiers — do not invent a parallel vocabulary:
 >
-> - **0-2 criterion scoring** (e.g. production-readiness-review): `0` = CRITICAL/HIGH (criterion unmet, blocks production readiness), `1` = MEDIUM (partial, should fix), `2` = pass (no finding).
-> - **Two-axis scoring** (e.g. performance-review, impact × likelihood): map the resulting cell to the nearest tier — high-impact + high-likelihood → CRITICAL/HIGH; low-impact OR low-likelihood → MEDIUM/LOW.
+> - **0-2 criterion scoring** (e.g. production-readiness-review): `0` = CRITICAL/HIGH (criterion unmet, blocks readiness), `1` = MEDIUM (partial, consequential gap), `2` = pass (no finding). If the criterion is only polish, use LOW rather than forcing a `0`.
+> - **Two-axis scoring** (e.g. performance-review, impact × likelihood): high impact + high exposure → CRITICAL/HIGH; material impact with bounded exposure → HIGH/MEDIUM; low impact and low exposure → LOW. Record the axes and why the selected tier is the highest credible consequence.
+> - **Scorecards / `/20` grades** (e.g. architecture-scalability-review): the aggregate score and verdict band are separate from finding severity. A sub-80 area is evidence to investigate, not an automatic CRITICAL/HIGH/MEDIUM/LOW label; classify each underlying gap by the consequence decision tree and keep advisory score deductions separate from blocking findings.
 >
-> A finding's tier drives the gate: CRITICAL/HIGH must be resolved or explicitly accepted by the owner before PASS; MEDIUM/LOW may ship with a tracked follow-up.
+> **Domain-vocabulary normalization (mandatory):** Specialized skills may keep a local reporting vocabulary, but it MUST feed this same four-tier round predicate — never a second severity system:
+>
+> - `BLOCKED`, `HARD FAIL`, or `FAIL` is a blocking local verdict, not an automatic CRITICAL label. Classify the underlying consequence as CRITICAL when it is an immediate material risk or failed binary gate; otherwise classify it as HIGH or MEDIUM with evidence, while preserving the local block until the owning gate is satisfied.
+> - `WARN` is not permission to ignore a finding. Map it to MEDIUM when the gap is consequential, to LOW only when evidence supports no credible present material impact, or upward to HIGH/CRITICAL when the consequence warrants it. `PASS`/compliant is not a finding.
+> - UI `P0`/`P1`/`P2`/`P3`/`P4` map to CRITICAL/HIGH/MEDIUM/LOW/LOW respectively as a starting point; override upward only when the evidence shows a higher shipped consequence. A P0/P1 accessibility or task-completion floor remains a blocking gate even when a local UI report calls it a priority rather than a severity.
+> - Numeric SRE/readiness or impact/likelihood scores are evidence inputs, not replacement tiers. Emit the score, the consequence, and the normalized CRITICAL/HIGH/MEDIUM/LOW tier together. `INFO`/advisory observations are not findings unless the evidence shows a material consequence.
+>
+> A finding's tier drives the gate: CRITICAL/HIGH/MEDIUM remain actionable and blocking under the round policy; LOW may be tracked as a follow-up and, from round 2, does not by itself justify another fix/re-review. An owner decision may explain or schedule an open MEDIUM but does not turn it into a clean pass; owner acceptance never makes a failed binary gate pass and must record scope, rationale, and residual risk.
 
 <!-- /SYNC:severity-rubric -->
+
 
 <!-- SYNC:category-review-thinking -->
 
@@ -1160,8 +1179,9 @@ If no domain entity files match in changes mode → announce "No domain entity c
 <!-- SYNC:project-reference-docs-guide:reminder -->
 
 - **MANDATORY** Before investigating, planning, or coding, read `docs/project-config.json` (the project map: modules/paths, run-commands, conventions, architecture/workflow rules) + the required project-reference docs, and cite `Reference docs read: ...`.
+- **MANDATORY** Load detail just in time immediately before the first target read/grep/edit/test; hooks may provide a pointer, but a hook event or prior turn is never evidence that the current files were read.
 - **MANDATORY** Always include `lessons.md`; project config + conventions override generic framework defaults.
-- **MANDATORY** If project config, root instruction files, or any required reference doc is missing or stale, auto-run `/project-init` or the narrow lower-level route before ordinary project-specific work.
+- **MANDATORY** If project config, root instruction files, or any required reference doc is missing or stale, auto-run `/project-init` or the narrow lower-level route before ordinary project-specific work. On compaction, resume, delegation, or a context change, re-read the required docs and restate the route before continuing.
 
 <!-- /SYNC:project-reference-docs-guide:reminder -->
 
@@ -1181,10 +1201,12 @@ If no domain entity files match in changes mode → announce "No domain entity c
 
 <!-- SYNC:severity-rubric:reminder -->
 
-- **MANDATORY** Classify findings Critical/High/Medium/Low by consequence; Critical/High block PASS until fixed or owner-accepted.
+- **MANDATORY** Classify every finding Critical/High/Medium/Low by consequence using the affected asset, shipped impact, exposure, reversibility, evidence location, and confidence; Critical/High/MEDIUM remain actionable under the round bar, while LOW is recorded/deferred from round 2 onward.
+- **MANDATORY** Keep binary gates separate from severity: a failed test, security must-fix, required artifact, or parity check blocks at every round and is never relabeled LOW.
 - **MANDATORY** Score-based skills (sre 0-2, perf two-axis) map onto the same four tiers — no parallel severity vocabulary.
 
 <!-- /SYNC:severity-rubric:reminder -->
+
 
 <!-- SYNC:category-review-thinking:reminder -->
 
@@ -1206,11 +1228,13 @@ If no domain entity files match in changes mode → announce "No domain entity c
 
 <!-- SYNC:double-round-trip-review:reminder -->
 
-- **MANDATORY IMPORTANT MUST ATTENTION** execute the review loop (aka **Self-Review Convergence Loop**): review → validate findings → fix validated findings → full re-review. A complete review pass with zero findings ENDS the review. Any newly produced output/judgment gets ≥1 self-review; any new judgment gets ≥1 `/why-review --validate-findings` pass before it is treated as final.
-- **MANDATORY** apply the **severity floor**: rounds 1-2 exit on zero findings at any severity; **from round 3 the bar is zero CRITICAL/HIGH/MEDIUM — LOW findings are no longer required to be fixed, so a LOW-only round ENDS the loop.** List every deferred LOW in the report; NEVER re-tier a real CRITICAL/HIGH/MEDIUM down to LOW to reach the exit, and NEVER apply the floor to a binary gate (test-green, security must-fix).
-- **MANDATORY** enforce the **round cap of 3 — a ceiling, NEVER a target**: a clean pass ends the loop immediately at any round (round 1 included), and round 3 completing with CRITICAL/HIGH/MEDIUM still open → **STOP & escalate via `AskUserQuestion`**, never a silent PASS. The 2-repeated-no-progress blocker rule is an earlier exit — escalate at whichever trips first. NEVER loop open-ended.
+- **MANDATORY IMPORTANT MUST ATTENTION** execute the review loop (aka **Self-Review Convergence Loop**): review → validate findings → fix validated blocking findings → full re-review. Round 1 ends only with zero findings and the persisted `minRounds` met; from round 2 onward, zero CRITICAL/HIGH/MEDIUM ends the loop once the persisted minimum is met and LOW findings are recorded as deferred. Any newly produced output/judgment gets ≥1 self-review; any new judgment gets ≥1 `/why-review --validate-findings` pass before it is treated as final.
+- **MANDATORY** apply the **severity floor**: round 1 exits on zero findings at any severity; **from round 2 the bar is zero CRITICAL/HIGH/MEDIUM — LOW findings are no longer required to be fixed, so a LOW-only round ENDS the loop once the persisted minimum is met.** List every deferred LOW in the report; NEVER re-tier a real CRITICAL/HIGH/MEDIUM down to LOW to reach the exit, and NEVER apply the floor to a binary gate (test-green, security must-fix).
+- **MANDATORY** enforce the **round cap of 3 — a ceiling, NEVER a target**: a clean pass ends the loop once the persisted `minRounds` is met (default 1; explicit 2 requires an independent pass), and round 3 completing with CRITICAL/HIGH/MEDIUM still open → **STOP & escalate via `AskUserQuestion`**, never a silent PASS. The 2-repeated-no-progress blocker rule is an earlier exit — escalate at whichever trips first. NEVER loop open-ended.
 
 <!-- /SYNC:double-round-trip-review:reminder -->
+
+
 
 
 <!-- SYNC:goal-contract-satisfaction-loop:reminder -->
@@ -1271,7 +1295,7 @@ If no domain entity files match in changes mode → announce "No domain entity c
 
 **IMPORTANT MUST ATTENTION Goal:** Detect DDD design quality violations in domain entities and value objects across any technology stack — adapting to project-specific patterns via config/reference docs discovery — so domain entities and value objects preserve invariants, aggregate boundaries, and discovered DDD conventions.
 
-**IMPORTANT MUST ATTENTION** follow the declared path: Phase 0 discover conventions, paradigm, and blast radius → Phase 1 create the report, run mandatory greps, and categorize files → Phase 2 review each entity/VO with checklist A–P and append findings → Phase 3 synthesize holistic model concerns and subdomain fit → Phase 4 produce the final report and health score → Phase 5 validate findings, fix only validated findings, and restart the full review until clean → ask next steps; scale 10+ entity files through parallel batches and consolidation.
+**IMPORTANT MUST ATTENTION** follow the declared path: Phase 0 discover conventions, paradigm, and blast radius → Phase 1 create the report, run mandatory greps, and categorize files → Phase 2 review each entity/VO with checklist A–P and append findings → Phase 3 synthesize holistic model concerns and subdomain fit → Phase 4 produce the final report and health score → Phase 5 validate findings, fix only current-round blocking findings, and restart the full review until the severity bar is clear (Round 1: zero findings; Round 2+: zero CRITICAL/HIGH/MEDIUM, LOW deferred) → ask next steps; scale 10+ entity files through parallel batches and consolidation.
 
 **Protocols in force — MUST ATTENTION (concise digest of the SYNC/shared blocks this skill carries):**
 
@@ -1283,10 +1307,10 @@ If no domain entity files match in changes mode → announce "No domain entity c
 - **Critical Thinking Mindset:** Traced `file:line` proof per claim; confidence >80% to act.
 - **Understand Code First:** Discover conventions and grep 3+ patterns before applying checklist.
 - **Graph-Assisted Investigation:** Run a graph trace on key entity files when graph.db exists.
-- **Double Round-Trip Review:** Validate findings, fix, restart full re-review; clean pass ENDS loop.
+- **Double Round-Trip Review:** Validate findings, fix only current-round blocking findings, restart full re-review, and end when the round severity bar is clear (Round 1: zero findings; Round 2+: zero CRITICAL/HIGH/MEDIUM, LOW deferred; binary gates always block).
 - **Fresh Context Review:** Spawn fresh zero-memory sub-agent only after a validated-fix cycle.
 - **Systematic Review Batching:** 10+ files → size-capped parallel batches, then reduce.
-- **Severity Rubric:** Classify by consequence; Critical/High block PASS until resolved.
+- **Severity Rubric:** Classify by consequence using `SYNC:severity-rubric`; round 1 blocks on every validated finding, rounds 2–3 block only CRITICAL/HIGH/MEDIUM, LOW is recorded/deferred, and failed binary gates always block.
 - **Category Review Thinking:** Derive each category's concerns from first principles — NEVER a fixed checklist.
 - **Parallel Sub-Agent Dispatch:** Tag tasks PAR/SEQ, group PAR into disjoint-write-set waves, spawn each wave in ONE message, barrier before advancing.
 
@@ -1294,7 +1318,7 @@ If no domain entity files match in changes mode → announce "No domain entity c
 
 - **MANDATORY MUST ATTENTION** Phase 0 project discovery FIRST — discovered base classes / validation API / domain exception type override ALL generic rules. NEVER apply generic DDD patterns without verifying the project's real entity/VO base classes — why: wrong base classes = wrong checklist, every downstream finding is then noise.
 - **MANDATORY MUST ATTENTION** NEVER report any finding without `file:line` evidence — confidence >80% to report, 60-80% verify first, <60% DO NOT recommend — why: AI sub-agent reports inherit confirmation bias; unproven findings inflate severity downstream.
-- **MANDATORY MUST ATTENTION** validate findings before fixing (Phase 5 why-review gate); after validated fixes restart the FULL review before declaring PASS — a clean review pass ENDS the review — why: every fix invalidates the prior verdict.
+- **MANDATORY MUST ATTENTION** validate findings before fixing (Phase 5 why-review gate); after validated fixes restart the FULL review before declaring PASS — a pass clearing the current severity bar ends the review (Round 1: zero findings; Round 2+: zero CRITICAL/HIGH/MEDIUM, LOW deferred) — why: every fix invalidates the prior verdict.
 
 **Evidence + process gates:**
 
@@ -1313,7 +1337,7 @@ If no domain entity files match in changes mode → announce "No domain entity c
 - **MANDATORY MUST ATTENTION** NEVER give a child entity its own repository and NEVER reference another aggregate by object — ID only — why: only the aggregate root owns its consistency boundary; object references create implicit transaction coupling.
 - **MANDATORY MUST ATTENTION** map every verified §5 invariant to a universally-quantified property TC + boundary counter-case (Dual-Feedback) — spec NAMES it AND a test GUARDS it — why: an enforced invariant with no property test is one refactor from silent regression.
 - **MANDATORY MUST ATTENTION** treat 2+ violations of the same kind as a structural/architectural finding, not isolated style notes — why: repeated leaks reveal a missing pattern, not individual slips.
-- **MANDATORY MUST ATTENTION** classify by consequence not fix-effort (CRITICAL/HIGH block PASS); 10+ entity files → switch to parallel `code-reviewer` sub-agents automatically — why: one "High" must mean the same everywhere, and serial review of many files exhausts context.
+- **MANDATORY MUST ATTENTION** classify by consequence not fix-effort using `SYNC:severity-rubric` (round 1 blocks every validated tier; rounds 2–3 block CRITICAL/HIGH/MEDIUM, LOW deferred; failed binary gates always block); 10+ entity files → switch to parallel `code-reviewer` sub-agents automatically — why: one "High" must mean the same everywhere, and serial review of many files exhausts context.
 - **MANDATORY MUST ATTENTION** detect the modelling paradigm per aggregate (0.4) BEFORE applying any setter/mutability/reconstitution rule, and record which sections were adapted or marked N/A — NEVER flag a paradigm-appropriate pattern against a rule written for another paradigm — why: "no public setters" is a real finding in OO code and meaningless in a model that has none by construction.
 - **MANDATORY MUST ATTENTION** judge subdomain fit (3.1) BEFORE reporting anemic model, and state the judgment with evidence — a rich model is owed in a CORE subdomain and is ceremony in CRUD — why: "anemic" and "appropriately simple" look identical in a diff, and uniform tactical DDD over CRUD is itself an anti-pattern.
 - **MANDATORY MUST ATTENTION** separate invariant (entity owns "can this state exist?") from validation (boundary owns "is this input acceptable?"); a business rule living ONLY in a validator/handler is a HIGH invariant gap, and input-shape/UX checks inside the entity are MEDIUM wrong-layer — NEVER accept a DB constraint or trigger as the invariant's enforcement, it is a backstop — why: any other entry point reaches invalid state, and an opaque SQL error is not a domain contract.
@@ -1333,7 +1357,7 @@ If no domain entity files match in changes mode → announce "No domain entity c
 | ------- | -------- |
 | "Generic DDD rule fits, skip Phase 0" | Discovered base classes override generic rules — verify the project's real entity/VO base FIRST or every finding is noise. |
 | "Finding is obvious, skip evidence" | No `file:line` proof = no finding. Confidence <60% → DO NOT recommend. |
-| "Clean enough, skip the re-review after fixes" | Every fix invalidates the prior verdict — restart the full review until a clean pass ENDS it. |
+| "Clean enough, skip the re-review after fixes" | Every fix invalidates the prior verdict — restart the full review until the current round's exit bar is clear (round 1: zero findings; round 2+: zero CRITICAL/HIGH/MEDIUM, LOW deferred). |
 | "Looks anemic, flag it" | Inspect callers + base class first — pattern fit, not pattern resemblance, decides anemic vs. correct delegation. |
 | "Invariant enforced in code, that's coverage" | Dual-Feedback: spec must NAME it AND a property TC must GUARD it — code-only is INCOMPLETE. |
 | "Many entities, review them inline" | 10+ files → parallel sub-agents; persist per-file findings to `plans/reports/` or they vanish on budget cutoff. |
@@ -1343,4 +1367,4 @@ If no domain entity files match in changes mode → announce "No domain entity c
 | "Events are raised correctly, done" | Raising is Section H. Section O owns WHEN they dispatch — in-transaction dispatch and publish-before-commit are CRITICAL regardless of how cleanly they were raised. |
 | "Single-threaded tests pass, concurrency is fine" | A set-based invariant checked in memory passes every single-threaded test and races in production. Verify the enforcing mechanism, not the test result. |
 
-**IMPORTANT MUST ATTENTION** Phase 0 discovery FIRST (base classes override generic rules) · NEVER report a finding without `file:line` evidence at confidence >80% · validate findings before fixing, then restart the full review — a clean pass ENDS it.
+**IMPORTANT MUST ATTENTION** Phase 0 discovery FIRST (base classes override generic rules) · NEVER report a finding without `file:line` evidence at confidence >80% · validate findings before fixing, then restart the full review — a clean pass ENDS it once the persisted `minRounds` is met.

@@ -19,11 +19,12 @@ const { createTempDir, cleanupTempDir } = require('../lib/test-utils.cjs');
 const HOOK_PATH = getHookPath('session-init-docs.cjs');
 
 /**
- * Helper: create a temp dir that passes hasProjectContent() guard.
- * Creates a dummy 'src/' directory so the hook doesn't exit early.
+ * Helper: create a marked project that passes root and hasProjectContent() guards.
+ * Creates '.claude/' and a dummy 'src/' directory so the hook reaches doc initialization.
  */
 function createTempProjectDir() {
     const tmpDir = createTempDir();
+    fs.mkdirSync(path.join(tmpDir, '.claude'));
     fs.mkdirSync(path.join(tmpDir, 'src'), { recursive: true });
     return tmpDir;
 }
@@ -795,6 +796,7 @@ const integrationTests = [
         fn: async () => {
             const tmpDir = createTempDir();
             try {
+                fs.mkdirSync(path.join(tmpDir, '.claude'));
                 const result = await runHook(HOOK_PATH, '', {
                     cwd: tmpDir,
                     env: { CLAUDE_PROJECT_DIR: tmpDir }
@@ -810,6 +812,7 @@ const integrationTests = [
         fn: async () => {
             const tmpDir = createTempDir(); // No src/ — empty project
             try {
+                fs.mkdirSync(path.join(tmpDir, '.claude'));
                 const input = createUserPromptInput('hello');
                 const result = await runHook(HOOK_PATH, input, {
                     cwd: tmpDir,

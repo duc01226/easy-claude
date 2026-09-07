@@ -1,4 +1,4 @@
-<!-- Last scanned: 2026-08-17 -->
+<!-- Last scanned: 2026-09-07 -->
 
 # Documentation Index Reference
 
@@ -8,7 +8,15 @@
 
 ## Quick Summary
 
-- 377 unique authored/tracked markdown files are indexed across 11 whitelist categories.
+**Goal:** Route agents to every documented project surface with fresh, reproducible paths and counts, so context selection is complete and evidence-backed.
+
+**Summary:**
+
+- Recompute the root, `docs/`, framework-doc, and skill-markdown scopes from globs.
+- Diff the broad `docs/**/*.md` set against the category union and expose every remainder.
+- Keep relationships and lookup paths real, unique, and traceable to the current tree.
+
+- 386 unique authored/tracked markdown files are indexed across 11 whitelist categories.
 - `docs/` contains 22 markdown files; the whitelist union leaves 0 uncategorized.
 - Design System is a one-file subset of Project Reference and is counted once in the unique total.
 
@@ -26,7 +34,7 @@
 
 ## Documentation System
 
-377 unique authored/tracked markdown files across 11 indexed categories. Last scanned: 2026-08-17.
+386 unique authored/tracked markdown files across 11 indexed categories. Last scanned: 2026-09-07.
 
 | Category               | Verified count | Reproducible scope                                                                    |
 | ---------------------- | -------------: | ------------------------------------------------------------------------------------- |
@@ -39,8 +47,8 @@
 | Architecture Decisions |              2 | `docs/adr/**/*.md`                                                                    |
 | Templates              |              1 | `docs/templates/**/*.md`                                                              |
 | Release Notes          |              1 | `docs/release/**/*.md`                                                                |
-| Framework Docs         |             32 | `.claude/docs/**/*.md`                                                                |
-| Skill Markdown         |            320 | `rg --files .claude/skills -g '*.md'`                                                 |
+| Framework Docs         |             35 | `.claude/docs/**/*.md`                                                                |
+| Skill Markdown         |            326 | `rg --files .claude/skills -g '*.md'`                                                 |
 
 The unique total is the normalized union returned by `rg --files` for Root-Level Docs, all `docs/**/*.md`, Framework Docs, and Skill Markdown. Design System is nested inside Project Reference, so its count is informative rather than additive. Ignored dependency artifacts such as skill-local `.venv/` files are excluded.
 
@@ -76,14 +84,14 @@ easy-claude/
 │   │   └── design-system/README.md                # Design System subset
 │   ├── release/                                   # 1 release-note archive
 │   └── templates/                                 # 1 Feature Spec template
-├── .claude/docs/                                  # 32 framework docs
-│   ├── 15 direct framework guides
+├── .claude/docs/                                  # 35 framework docs
+│   ├── 17 direct framework guides
 │   ├── agents/                                    # 2
-│   ├── configuration/                             # 4
+│   ├── configuration/                             # 5
 │   ├── hooks/                                     # 3
 │   ├── skills/                                    # 2
 │   └── team-artifacts/templates/                  # 6
-└── .claude/skills/                                # 320 authored/tracked markdown assets
+└── .claude/skills/                                # 326 authored/tracked markdown assets
 ```
 
 Absent whitelist branches: Operations, Feature Specs, and Spec Catalogs.
@@ -111,7 +119,7 @@ CLAUDE.md
 ├── quick-start.md
 ├── skills/README.md
 ├── hooks/{README,extending-hooks}.md
-├── configuration/{README,output-styles}.md
+├── configuration/{README,output-styles,experience-verification}.md
 ├── team-collaboration-guide.md
 ├── code-graph-{mechanism,setup}.md
 └── troubleshooting.md
@@ -158,6 +166,8 @@ Evidence: `README.md:395-401`, `CLAUDE.md:264-267`, `CLAUDE.md:357`, `CLAUDE.md:
 None. A fresh broad `docs/**/*.md` scan returned 22 paths; the normalized union of Project Reference, Operations, Design System, Feature Specs, Spec Catalogs, Architecture Decisions, Templates, and Release Notes covered all 22.
 
 ## Closing Reminders
+
+**IMPORTANT MUST ATTENTION Goal:** Route agents to every documented project surface with fresh, reproducible paths and counts, so context selection is complete and evidence-backed.
 
 - **MUST** rerun all category globs before changing any count.
 - **MUST** preserve an explicit Uncategorized Files result.

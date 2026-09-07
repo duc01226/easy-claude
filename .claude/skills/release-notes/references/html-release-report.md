@@ -1,0 +1,355 @@
+# HTML Release Report — Canonical Procedure (R1–R9)
+
+The **single source of truth** for the rich, standalone HTML release presentation. Owned by `release-notes` (Step 6, default-on). Never duplicate this procedure into a skill body — link to it.
+
+**What this produces:** ONE self-contained, offline, professional HTML file that shows a reader **what's new** and **what changed** in a release, and — when the release touched a user-facing surface — **renders faithful mock-ups of the real screens** using the project's real design tokens, real component patterns, and real domain field names.
+
+**Non-negotiable order:** comprehend the whole change set (R1) → investigate each feature end-to-end (R2) → correlate specs (R3) → detect + inventory UI (R4) → **write the temp analysis report (R5)** → assemble HTML from that report (R6) → save (R7) → gates (R8) → auto-open (R9).
+
+> **[BLOCKING] R5 before R6.** The HTML is assembled **from the temp report**, never straight from a diff or from memory. An HTML file produced without a written temp report is a protocol failure — regenerate. — why: the report is external memory; a large diff overflows context and the deck silently degrades into invented claims.
+
+---
+
+## R0. Preconditions
+
+| Input                     | Where it comes from                                                                                              |
+| ------------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| **Changes target**        | the scope resolved in Step 0 — refs, `--range`, or a `--days`/`--since` time window                              |
+| **Git artifacts on disk** | Step 0b dumps (`git-log-*.txt`, `diff-file-status-*.txt`, `diff-stat-*.txt`, `git-diff-*-full.txt`)              |
+| **Categorized changes**   | Step 2 `categorize-commits.cjs` JSON · Step 3b thematic area map                                                  |
+| **Canonical specs**       | `docs/specs/**` when the project has them                                                                         |
+| **Design context**        | design-system docs discovered per R4.2                                                                            |
+
+If the git artifacts are not yet on disk, STOP and run the owning skill's dump step first. **Never read a full range diff into context.**
+
+Create one `TaskCreate` todo per R-stage plus one per **release highlight** identified in R1.4, so each highlight is investigated (R2), written to the temp report (R5), rendered (R6), and verified (R8) individually.
+
+---
+
+## R1. Comprehend the WHOLE change set first (breadth before depth)
+
+> **[BLOCKING] Do not open a single feature until the whole change set is mapped.** Diving into the first interesting commit is the nearest-attention trap; it produces a release doc that over-reports one area and silently omits the rest.
+
+1. **Read the file-status artifact end to end** — `diff-file-status-{PERIOD}.txt`. Every `A`/`M`/`D`/`R` line is in scope until you have consciously excluded it. Record the exclusions.
+2. **Read the commit log artifact** — `git-log-{PERIOD}.txt`. Extract per commit: hash · type/scope · subject · `BREAKING CHANGE` marker · body rationale.
+3. **Build the change map** — one row per changed area:
+
+    | Area / module | Files (A/M/D) | Net lines | Owning commits | Surface (UI · API · CLI · data · docs · internal) | User-visible? |
+    | ------------- | ------------- | --------- | -------------- | ------------------------------------------------- | ------------- |
+
+    Reuse the Step 3b thematic area map when one was built; otherwise derive `Area` from `docs/project-config.json` modules — never from guesswork, and never as a second divergent grouping.
+
+4. **Rank into release highlights** — select the changes a reader actually cares about, in this order: **breaking changes → new user-facing capability → changed user-facing behavior → notable fixes → performance → internal/tooling**. A highlight is a *user-meaningful outcome*, not a commit. Merge N commits that deliver one outcome into ONE highlight; split one commit that delivers two unrelated outcomes into two.
+5. **Cross-check coverage** — every `A`/`D` file and every `BREAKING CHANGE` commit maps to a highlight or to a written exclusion reason. An unmapped added file is a missed feature.
+
+**R1 exit bar:** change map complete · highlights ranked · coverage cross-check written · zero unmapped `A`/`D`/breaking entries.
+
+---
+
+## R2. Investigate each highlight END-TO-END (depth, one highlight at a time)
+
+> **[BLOCKING] A release claim you cannot trace is a hallucination.** For each highlight, understand the feature as a whole — not only the lines the diff touched. The diff shows *what moved*; the release doc must explain *what the feature now does*.
+
+For every highlight from R1.4:
+
+1. **Read the actual diff for its files** — `git show {hash}` per commit, or `git diff {base}..{head} -- {path}` per file. Read the *code*, never infer from the commit subject.
+2. **Trace the feature end to end, in both directions** — entry point (route · command · handler · UI action) → domain/business logic → persistence/state → the observable result the user sees. Then trace backward from that observable result to confirm the path is real.
+    - When `.code-graph/graph.db` exists this is a HARD-GATE: run `python .claude/scripts/code_graph trace <file> --direction both --json` on the highlight's key files, plus `connections` / `callers_of` to find consumers the diff did not touch.
+    - Otherwise grep the changed symbol names across the repo to find every consumer.
+3. **Establish before → after** — state what the behavior was BEFORE and what it is AFTER, each with `file:line` evidence. "Before" usually lives on the diff's `-` side or in the parent commit; read it, do not assume it.
+4. **Find the blast radius** — downstream consumers, cross-tier seams (client↔server route/DTO/field/type/nullability), cross-service events, migrations, config/env additions. Classify each seam `NONE` / `ADDITIVE` / `BREAKING`.
+5. **Find the tests that prove it** — the integration/E2E/unit tests covering the highlight (`tests_for` on the graph, or grep). A highlight with no covering test is reported as such — never claimed as verified.
+6. **Extract the user-facing narrative** — in the reader's words, not the codebase's: who benefits, what they can now do that they could not before, what they must do differently (migration/action-required), what stays the same.
+
+**Confidence discipline (per highlight):** record a confidence % with its evidence. **>80%** → state it as fact. **60–80%** → state it with the caveat named. **<60%** → do NOT put it in the HTML; list it under "Needs confirmation" in the temp report.
+
+**R2 exit bar per highlight:** before→after with `file:line` · end-to-end trace · blast radius classified · covering tests named or absence stated · user-facing narrative written · confidence recorded.
+
+---
+
+## R3. Correlate SPEC changes (canonical behavior, not just code)
+
+Code says what happens; the spec says what was *intended*. A release doc built on code alone reports accidents as features.
+
+1. **Detect spec churn** — filter the file-status artifact for the project's spec root (`docs/specs/**` by default; `docs/project-config.json` may relocate it). Read the diff of every changed spec.
+2. **Map each highlight to its governing spec** — the Feature Spec section that owns the behavior. Extract: the business rule / invariant that changed (§4/§5) and the test cases added or amended (§8 `TC-{FEATURE}-{NNN}`).
+3. **Adjudicate spec ↔ code drift** — for each highlight, one verdict:
+    - `ALIGNED` — spec and code agree → report the behavior with confidence.
+    - `SPEC-AHEAD` — spec changed, code did not → this is **not** a shipped feature; exclude it from "What's New" or label it explicitly as specified-not-yet-shipped.
+    - `CODE-AHEAD` — code changed, spec did not → report the behavior from code, and record a follow-up ("spec not yet updated"). Never invent spec text.
+    - `CONFLICT` — spec and code disagree → **do not resolve it silently.** Record it as a blocking finding and surface it to the user; a release doc must never paper over a contradiction.
+4. **Harvest reader-facing material from specs** — business-language descriptions, acceptance criteria, and states/edge cases. Spec prose is tech-agnostic by construction, which makes it the best source for the HTML's narrative sections.
+
+**If the project has no `docs/specs/**`:** record `Spec correlation: N/A — no canonical spec tree` and source the narrative from R2.6 instead. Do not fabricate a spec.
+
+---
+
+## R4. Detect UI change + [BLOCKING] inventory the REAL existing UI
+
+### R4.1 Decide whether the release has a visual surface
+
+Classify each highlight:
+
+| Verdict          | Trigger                                                                                                         | Mock-up? |
+| ---------------- | --------------------------------------------------------------------------------------------------------------- | -------- |
+| `NEW-UI`         | A new page/screen/view/component was added                                                                      | Yes      |
+| `CHANGED-UI`     | An existing screen/component changed layout, states, copy, or interaction                                       | Yes      |
+| `BEHIND-UI`      | Backend/API change whose *effect* is visible on an existing screen (new field, new status, changed validation)   | Yes — render the affected existing screen showing the new effect |
+| `NO-UI`          | Purely internal: tooling, refactor, infra, docs, tests                                                          | No       |
+
+Detect by intersecting the changed-file list with the project's frontend roots and file types (`.tsx/.jsx/.vue/.svelte/.html/.scss/.css/.razor/…`) from `docs/project-config.json`, AND by checking each `BEHIND-UI` candidate's consumers found in R2.4.
+
+**If every highlight is `NO-UI`:** state `UI surface: none — release is internal/backend only` in the report and the HTML, SKIP R4.2–R4.4 and the mock-up sections, and still produce the full HTML doc (narrative + change tables + evidence). A release doc without UI is still a release doc — never skip the HTML because there is no screen.
+
+### R4.2 Load the project's design context
+
+Same discovery ladder as `pbi-mockup` / `feature-presentation` — do not invent a third one:
+
+1. **Baseline:** `docs/project-reference/design-system/README.md` and `docs/project-reference/design-system/design-system-canonical.md`.
+2. **Primary:** top-level `designSystem` in `docs/project-config.json` — use `designSystem.docsPath` + `designSystem.canonicalDoc`, then match the touched app/module against `designSystem.appMappings[]` for the per-app doc.
+3. **Fallback:** `Glob("docs/project-reference/design-system/*.md")` → case-insensitive substring match on the module name.
+4. **Default:** `docs/project-reference/design-system/README.md`.
+5. **None of the above exist:** derive tokens by reading the project's actual theme/variables file (`_variables.scss`, `theme.ts`, `tailwind.config.*`, CSS custom properties) — real values from real files. Record where they came from.
+
+Extract: **colors** (primary/secondary/accent/surface/background/text/semantic) · **typography** (families, sizes, weights, line-heights) · **spacing scale** · **border-radius** · **shadows/elevation** · **breakpoints**. These become the HTML's CSS variables — copy real values, never approximate.
+
+Also read `docs/project-reference/scss-styling-guide.md` (first ~100 lines) for the project's class-naming methodology (BEM or otherwise).
+
+### R4.3 [BLOCKING] Inventory the real existing UI
+
+> **[BLOCKING] Understand the existing UI before you render anything** — canonical rule: `SYNC:existing-ui-research` (source of truth: `.claude/skills/shared/sync-inline-versions.md`). Inventory the existing related UI, map the connected flows in and out, reuse before you invent, and record what matched — so the render faithfully matches the current UI system rather than generic HTML. **Skip ONLY** when the release is backend-only (no UI) — state that explicitly.
+
+Concretely, for each `NEW-UI` / `CHANGED-UI` / `BEHIND-UI` highlight:
+
+1. Read `docs/project-reference/frontend-patterns-reference.md` (first ~200 lines) — base component classes, form/table/dialog/navigation patterns.
+2. **Open the actual component/template files the diff touched** and 2–3 sibling components of the same tier. Copy their real markup structure and real class names — the mock-up must be a faithful reproduction of the project's UI, not a generic card grid.
+3. Record, per highlight: the **real route/URL**, the **real page shell** (nav/header/sidebar the screen sits inside), the **real component names** used, and the **connected flows** in and out.
+4. Read `docs/project-reference/domain-entities-reference.md` (or the real entity/model files) for **real field names, types, and enum values**.
+
+### R4.4 Plan the render inventory
+
+Per UI highlight, enumerate before writing any HTML:
+
+- **Views** — every screen needed to show the change in context (the changed screen plus its entry point and result view when the change spans a flow).
+- **Components** — which real components appear, at which tier (shell / shared / page).
+- **States** — default · loading · empty · error · success, plus permission/validation states the change introduces. Record `N/A` with a reason for states the change does not touch.
+- **Before / After pair** — for `CHANGED-UI` and `BEHIND-UI`, plan BOTH the previous rendering and the new one; a side-by-side is the single most valuable element in a release doc.
+
+---
+
+## R5. [BLOCKING] Write the temp analysis report — BEFORE any HTML
+
+> **[BLOCKING] This file is the deliverable of R1–R4 and the ONLY input to R6.** Write it to disk before opening the HTML. It is external memory: large releases overflow context, and a deck assembled from memory invents facts.
+
+**Path:** `docs/release-notes/tmp/{PERIOD}-release-analysis.md` (create the dir; `{PERIOD}` matches the artifact naming already used by the owning skill).
+Projects that keep scratch elsewhere may use the session scratchpad instead — but the file MUST exist on disk and MUST be named in the final report.
+
+**Write it incrementally — one highlight per append, not one final batch.** A long investigation that batches its write loses everything on a context cutoff.
+
+### Required structure
+
+```markdown
+# Release Analysis (TEMP) — {Project} — {PERIOD}
+
+Status: temp working artifact. Input to the HTML release doc. Not for publication.
+Range: {BASE}..{HEAD} | Commits: {N} | Files: {N} | +{N}/−{N}
+
+## 1. Change Map (R1.3)
+
+| Area | Files (A/M/D) | Net lines | Commits | Surface | User-visible |
+
+Excluded from highlights: {area — reason} …
+
+## 2. Release Highlights (ranked, R1.4)
+
+| # | Highlight (user outcome) | Kind (breaking/new/changed/fix/perf/internal) | Owning commits | UI verdict (NEW/CHANGED/BEHIND/NO-UI) |
+
+## 3. Per-Highlight Deep Dive (R2 + R3)
+
+### H{n} — {user-facing title}
+
+- **What a reader gets:** {plain language, reader's words}
+- **Before:** {behavior} — `file:line`
+- **After:** {behavior} — `file:line`
+- **End-to-end path:** {entry → logic → persistence → observable result}, evidence per hop
+- **Blast radius / seams:** {consumer} — NONE | ADDITIVE | BREAKING
+- **Spec verdict:** ALIGNED | SPEC-AHEAD | CODE-AHEAD | CONFLICT — {spec path §section, TC ids}
+- **Tests proving it:** `path::test_name` — or `NONE FOUND`
+- **Action required by users:** {migration/config/none}
+- **Confidence:** {N}% — {what is verified, what is not}
+
+## 4. UI Inventory & Render Plan (R4)
+
+- Design tokens (real values + source file)
+- Per UI highlight: real route · page shell · real components · real entity fields · connected flows
+- Views / components / states to render; before-after pairs
+- `UI surface: none` when the release is internal — with the reason
+
+## 5. Statistics (from the diff-stat artifact, not estimated)
+
+## 6. Needs Confirmation (confidence <60%, spec CONFLICT, unresolved questions)
+```
+
+**R5 exit bar:** file exists on disk · every R1 highlight has a §3 entry · every claim carries evidence · every UI highlight has a §4 render plan · §6 lists everything unproven. **Only now may the HTML be written.**
+
+---
+
+## R6. Assemble the standalone HTML release document
+
+Build ONE self-contained file **from the temp report**. Re-read the temp report as you write each section — do not work from memory.
+
+### R6.1 Hard constraints
+
+- **Single file, fully offline.** Inline `<style>` and `<script>`. No external `<script src>` / `<link rel=stylesheet>` except the Google Fonts stylesheet. No CDN frameworks.
+- **No network at runtime** — no `fetch`, no analytics, no remote images. Embed images/icons as inline SVG or `data:` URIs.
+- **Real design tokens** as CSS variables, copied from R4.2 with a light/dark pair.
+- **Responsive** — readable at 1440px and at 375px; wide tables/diffs scroll inside their own `overflow-x:auto` container, the page body never scrolls horizontally.
+- **Accessible floor** — semantic landmarks, one `h1`, ordered heading levels, 4.5:1 text contrast, visible focus ring, `≥44×44` touch targets, `prefers-reduced-motion` honoured.
+- **Print-friendly** — a `@media print` block so the page exports to PDF cleanly.
+
+### R6.2 Required sections (in order)
+
+| # | Section                    | Content                                                                                                                                                     |
+| - | -------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1 | **Header / hero**          | Project · version or period · date · commit/file/line stats · `Status: Draft` badge                                                                          |
+| 2 | **At a glance**            | 3–6 highlight cards, ranked as in R1.4 — each an outcome in the reader's words, not a commit subject                                                          |
+| 3 | **⚠ Action required**      | Breaking changes + migrations, with before→after and the concrete step. Rendered FIRST and visually distinct. Omit the section entirely when there are none. |
+| 4 | **What's New**             | One block per new-capability highlight: narrative · **UI mock-up when applicable** · evidence chips                                                          |
+| 5 | **What Changed**           | One block per changed-behavior highlight: **before → after**, side-by-side render for UI changes                                                              |
+| 6 | **Fixes & Improvements**   | Grouped, each with the user-visible symptom that is now gone                                                                                                 |
+| 7 | **Under the Hood**         | Internal/tooling/refactor changes, collapsed by default (`<details>`)                                                                                         |
+| 8 | **Spec & Test Coverage**   | Per highlight: spec verdict + governing §/TC ids + covering tests (or the honest gap)                                                                        |
+| 9 | **Technical Appendix**     | Commit table (hash · type · subject) · file-change table by area · statistics — collapsed by default                                                          |
+| 10| **Footer**                 | Generated date · branch · range `{OLD}..{HEAD}` · **paths of the temp report and git artifacts**                                                              |
+
+Every claim in sections 3–8 carries an **evidence chip** — a small inline `commit • file:line` marker. A section with no chip is unsourced and must be removed or sourced.
+
+### R6.3 Rendering the mock-ups (the part that must look real)
+
+For every `NEW-UI` / `CHANGED-UI` / `BEHIND-UI` highlight, render a **faithful HTML reproduction of the real screen** inside the doc.
+
+**Fidelity rules — these are what separate a real release doc from a generic template:**
+
+1. **Reproduce the project's actual markup structure and class names** taken from the real component files read in R4.3 — the same shell, the same nav, the same card/table/form composition. Never a generic invented layout.
+2. **Use the real design tokens** from R4.2 — real hex values, real font families, real spacing scale, real radii and shadows.
+3. **Use real domain field names, real enum values, and realistic sample data** from R4.3.4 — never `Lorem ipsum`, never `Item 1 / Item 2`, never `foo@bar.com`.
+4. **Show the change in its real context** — the changed component inside its real page shell, at its real route, not floating on a blank canvas. Label the route.
+5. **Before → after, side by side** for `CHANGED-UI` / `BEHIND-UI`, with the delta visibly marked (a highlight ring plus a text label — colour alone must never carry the meaning).
+6. **Render the states the change introduces** — default plus any new loading/empty/error/validation/permission state, as toggleable panels or stacked labelled frames.
+7. **Static or lightly interactive is enough.** A release doc reports; it does not need a clickable prototype. Any interactivity is **simulated only** — canned state toggles, zero `fetch`, zero auth, zero persistence.
+8. **Label every render `⚠ Illustrative mock-up — not a live screenshot`.** A reader must never mistake a reconstruction for a screenshot of the running app. This label is mandatory and non-removable.
+9. **Isolate each render** so the doc's own CSS and the reproduced app CSS cannot bleed into each other — scope the mock-up styles under a wrapper class, or embed via `<iframe srcdoc="…">`. When using `srcdoc`, apply the entity-escaping rule from `.claude/skills/feature-presentation/references/deck-template.md` §3 (`&`-first, escape once, unconditionally).
+10. **Reuse, never regenerate.** If a `team-artifacts/pbis/*-mockup.html` already exists for the shipped feature, embed it via `<iframe srcdoc>` instead of rebuilding the screen.
+
+**Design gates bind here.** The mock-ups are a user-facing visual surface, so the `UI-1.1`–`UI-9.4` usability floor and the `DD-1`–`DD-8` distinctiveness gate both apply — with one precedence note specific to this skill: **the project's real design system WINS outright over distinctiveness.** The mock-up's job is to look exactly like the existing app; matching an established house style is the goal, never a `DD` finding. `DD` applies only to the *release document's own* chrome (its header, cards, typography, and layout), which should look like a considered document for THIS project — not the default report template any generator emits. Cite `.claude/docs/design-knowledge.md` for `DD`, `.claude/docs/design-review-checklist.md` for the review sweep.
+
+### R6.4 Tone
+
+Write for a reader who did not follow the work: business/observable language in all prose ("the record list now shows delivery status"), not framework or class names. The rendered HTML may use real class names internally — that is implementation, not prose.
+
+---
+
+## R7. Save
+
+| Output           | Path                                                                                    |
+| ---------------- | ----------------------------------------------------------------------------------------- |
+| Markdown doc     | the skill's own markdown output, unchanged (`docs/release-notes/{PERIOD}.md`, or the `--output` path)       |
+| HTML release doc | **the markdown doc's path with the `.html` extension** — same directory, same stem        |
+| Temp report      | `docs/release-notes/tmp/{PERIOD}-release-analysis.md`                                            |
+
+Deriving the HTML path from the markdown stem keeps the pair together and makes `--output` work for both with one flag. The HTML **complements** the markdown release doc — it never replaces it. Both are produced.
+
+---
+
+## R8. [BLOCKING] Gates — run BOTH before reporting done
+
+### R8.1 Accuracy gate
+
+- [ ] Every highlight in the HTML traces to a §3 entry in the temp report
+- [ ] Every §3 highlight with confidence >80% appears in the HTML; every one below is absent from it and present in §6
+- [ ] Every claim in sections 3–8 carries an evidence chip that resolves to a real commit/file
+- [ ] Statistics match the `diff-stat` artifact exactly — computed, not estimated
+- [ ] Breaking changes: every `BREAKING CHANGE` commit from R1.2 appears in §3 "Action required"
+- [ ] New/deleted files cross-checked — nothing added or removed in the range is silently unreported
+- [ ] Spec `CONFLICT` verdicts are surfaced to the user, not smoothed over
+- [ ] No `TODO`, no unfilled placeholder, no invented API/class/method name
+
+Record: `Release accuracy: PASS | FAIL`.
+
+### R8.2 Fidelity & presentation gate
+
+- [ ] Each mock-up matches the R4.3 inventory — real tokens, real component structure, real class names, real route, real page shell
+- [ ] Real domain field names and realistic data throughout — zero Lorem ipsum, zero `Item 1`
+- [ ] Every `CHANGED-UI` / `BEHIND-UI` highlight shows a before→after pair with the delta marked by more than colour
+- [ ] Every new state introduced by the change is rendered
+- [ ] `⚠ Illustrative mock-up` label present on every render
+- [ ] Single file, opens offline with the network disabled, no console errors, no external requests
+- [ ] Responsive at 1440px and 375px; no horizontal body scroll; wide blocks scroll in their own container
+- [ ] Contrast 4.5:1, one `h1`, ordered headings, visible focus ring, reduced-motion honoured
+- [ ] `NO-UI` release: `UI surface: none` stated and no empty/broken mock-up frame rendered
+
+Record: `Release fidelity: PASS | FAIL`.
+
+**On FAIL:** fix and re-run the gate. Never hand over a FAIL, and never downgrade a check to force a pass.
+
+---
+
+## R9. Auto-open the HTML
+
+Open the saved file in the default browser as the final action, then report its path.
+
+```bash
+# Windows (PowerShell) — preferred; contains no slash-prefixed flags, so a
+# path-boundary hook that rejects `cmd /c start` will still allow this form
+pwsh -NoProfile -Command "Start-Process 'docs/release-notes/{PERIOD}.html'"
+
+# macOS
+open docs/release-notes/{PERIOD}.html
+
+# Linux
+xdg-open docs/release-notes/{PERIOD}.html
+```
+
+Rules:
+
+- **Never block on it.** Opening a browser is a convenience, not a deliverable — a non-zero exit, a sandbox, a headless CI runner, or a hook refusal is a **warning, not a failure**. Report `Auto-open: skipped ({reason})` and print the absolute path so the user can open it themselves.
+- **Skip silently when non-interactive** — CI, a headless environment, or a sub-agent context. Print the path instead.
+- **Honour an opt-out** — `--no-open` suppresses the launch; the path is still printed.
+- **Open only the file just generated**, by its exact saved path. Never open anything else.
+
+---
+
+## R10. Report to the user
+
+```
+HTML release doc: docs/release-notes/{PERIOD}.html   (opened in browser)
+Markdown release doc: docs/release-notes/{PERIOD}.md
+Temp analysis:    docs/release-notes/tmp/{PERIOD}-release-analysis.md
+Git artifacts:    docs/release-notes/tmp/git-log-{PERIOD}.txt, docs/release-notes/tmp/diff-file-status-{PERIOD}.txt
+
+Range: {BASE}..{HEAD} | {N} commits | {N} files | +{N}/−{N}
+Highlights: {N} ({N} breaking, {N} new, {N} changed, {N} fixes)
+UI surface: {N} screens rendered ({N} before/after pairs) | or: none — internal release
+Spec correlation: {N} aligned, {N} code-ahead, {N} spec-ahead, {N} conflict
+Release accuracy: PASS | FAIL
+Release fidelity: PASS | FAIL
+Needs confirmation: {N} items (see temp report §6)
+Auto-open: opened | skipped ({reason})
+```
+
+---
+
+## Anti-patterns — each one fails a gate
+
+| Anti-pattern                                              | Why it fails                                                                            |
+| --------------------------------------------------------- | ----------------------------------------------------------------------------------------- |
+| Writing the HTML straight from the diff, no temp report   | R5 is BLOCKING — context overflows and the doc invents claims                             |
+| Reading one commit deeply and calling the release covered | R1 breadth-first exists precisely to prevent this                                         |
+| A generic card/dashboard mock-up                          | Fails R8.2 — it must reproduce the project's real screen                                  |
+| Lorem ipsum / `Item 1` / `foo@bar.com`                    | Fails R8.2 — real domain fields and realistic data only                                   |
+| A render with no `⚠ Illustrative mock-up` label           | A reconstruction presented as a screenshot misleads the reader                            |
+| Restating commit subjects as "What's New"                 | A highlight is a user outcome, not a commit                                               |
+| Claiming a behavior with no `file:line`                   | Fails R8.1 — every claim carries an evidence chip                                         |
+| Smoothing over a spec↔code conflict                       | R3.3 requires surfacing it; a release doc must not hide a contradiction                   |
+| Failing the run because the browser did not open          | R9 — auto-open is best-effort, never a blocker                                            |
+| Skipping the HTML because the release has no UI           | R4.1 — a `NO-UI` release still gets the full HTML doc, minus the mock-up sections          |

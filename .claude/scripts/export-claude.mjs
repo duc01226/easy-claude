@@ -7,15 +7,17 @@
  * .venv) and frequently aborts mid-copy on the deep trees, producing a PARTIAL
  * copy that is missing hook `lib/*.cjs` files. Missing libs make every startup
  * hook throw `Cannot find module` (node:internal/modules/cjs/loader). This script
- * copies ONLY the git-tracked .claude payload — complete, junk-free, deterministic.
+ * copies the git-tracked .claude payload by default. Working-tree exports must
+ * explicitly opt in to untracked-but-not-ignored files.
  *
  * Usage:
- *   node .claude/scripts/export-claude.mjs <targetProjectDir> [--force]
+ *   node .claude/scripts/export-claude.mjs <targetProjectDir> [--force] [--include-untracked]
  *
  * Behavior:
  *   - Source = the repo containing this script (resolved from __dirname, not cwd).
- *   - Files  = `git ls-files .claude` (tracked only). Falls back to a filtered
- *              filesystem walk if git is unavailable, excluding heavy/ignored dirs.
+ *   - Files = Git-tracked files; --include-untracked adds non-ignored untracked files.
+ *     Without Git, only that explicit opt-in permits the filtered filesystem walk
+ *     (which excludes heavy directories but cannot evaluate Git ignore rules).
  *   - Writes <targetProjectDir>/.claude/** preserving structure.
  *   - Refuses to overwrite a non-empty target/.claude unless --force.
  *
@@ -39,20 +41,20 @@ function fail(msg) {
 function parseArgs(argv) {
   const args = argv.slice(2);
   const force = args.includes("--force");
+  const includeUntracked = args.includes("--include-untracked");
   const target = args.find((a) => !a.startsWith("--"));
-  return { target, force };
+  return { target, force, includeUntracked };
 }
 
-/** Tracked .claude file list via git; null if git not usable. */
-function gitTrackedFiles() {
-  try {
-    const out = execFileSync("git", ["ls-files", ".claude"], {
+/** Git is authoritative for the default tracked-only export boundary. */
+function gitPayloadFiles(includeUntracked) {
+    try {
+    const out = execFileSync("git", ["ls-files", "-z", "--cached", ...(includeUntracked ? ["--others", "--exclude-standard"] : []), "--", ".claude"], {
       cwd: repoRoot,
       encoding: "utf8",
       stdio: ["ignore", "pipe", "ignore"],
     });
-    const files = out.split("\n").map((l) => l.trim()).filter(Boolean);
-    return files.length > 0 ? files : null;
+    return [...new Set(out.split("\0").filter(Boolean))];
   } catch {
     return null;
   }
@@ -85,10 +87,10 @@ function walkClaude() {
 }
 
 function main() {
-  const { target, force } = parseArgs(process.argv);
+  const { target, force, includeUntracked } = parseArgs(process.argv);
 
   if (!target) {
-    fail("missing target. Usage: node .claude/scripts/export-claude.mjs <targetProjectDir> [--force]");
+    fail("missing target. Usage: node .claude/scripts/export-claude.mjs <targetProjectDir> [--force] [--include-untracked]");
   }
   if (!fs.existsSync(path.join(repoRoot, ".claude"))) {
     fail(`source .claude not found under ${repoRoot}`);
@@ -104,9 +106,13 @@ function main() {
     fail(`${targetClaude} exists and is not empty. Re-run with --force to overwrite.`);
   }
 
-  let files = gitTrackedFiles();
-  const source = files ? "git-tracked" : "filesystem-walk (git unavailable)";
-  if (!files) files = walkClaude();
+  let files = gitPayloadFiles(includeUntracked);
+  const source = files ? (includeUntracked ? "git-tracked+unignored" : "git-tracked") : "filesystem-walk (git unavailable)";
+  if (!files) {
+    if (!includeUntracked) fail("cannot establish tracked files without Git; --include-untracked explicitly permits a filtered filesystem export.");
+    process.stderr.write("[export-claude] WARNING: filesystem fallback cannot evaluate Git ignore rules.\n");
+    files = walkClaude();
+  }
 
   if (files.length === 0) fail("no files to export.");
 

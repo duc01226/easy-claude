@@ -387,8 +387,8 @@ ORCHESTRATOR_SKILLS = {
 PRUNABLE_BLOCKS = {"parallel-subagent-dispatch"}
 
 # Core: every agent. (critical-thinking + ai-mistake already present in agents.)
-# agent-bootstrap (Phase 03): self-contained subagent startup contract for hookless
-# harnesses (Codex has no SubagentStart hook). Regenerated from canonical
+# agent-bootstrap (Phase 03): self-contained subagent startup contract for hosts whose
+# SubagentStart hook is unavailable. Regenerated from canonical
 # via sync-update-blocks.py agent-bootstrap.
 CORE_BLOCK_ORDER = [
     "critical-thinking-mindset",

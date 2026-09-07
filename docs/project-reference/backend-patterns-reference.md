@@ -53,7 +53,7 @@ Traditional CQRS, command/query handlers, controllers, pagination, projection, a
 
 ## Validation Patterns
 
-Reusable validator contract: `{ allowed, message? }`; rejection writes stderr and exits `2`, while success/error/timeout remains fail-open `0` (`.claude/hooks/lib/hook-runner.cjs:135-175`). Registered security gates currently own raw parsing/exit behavior directly (`.claude/settings.json:64-130`).
+Reusable validator contract: `{ allowed, message? }`; `runBlockingHook` rejection writes stderr and sets exit code `2`, then returns so queued output drains. Its success/error/timeout contract remains fail-open `0` (`.claude/hooks/lib/hook-runner.cjs:345-384`). Registered security gates may own an explicitly tested deny-closed transport policy, but command-bearing consumers use the pure bounded inspection/policy helpers before applying an exit decision (`.claude/hooks/lib/command-inspection.cjs`, `.claude/hooks/git-commit-block.cjs`, `.claude/hooks/privacy-block.cjs`). The rejection branch inside the runner is:
 
 ```js
 if (result && result.allowed === false) {
@@ -61,11 +61,12 @@ if (result && result.allowed === false) {
         process.stderr.write(result.message);
     }
     debug(name, "Hook blocked execution");
-    process.exit(2);
+    process.exitCode = 2;
+    return;
 }
 ```
 
-Source: `.claude/hooks/lib/hook-runner.cjs:161-168`.
+Source: `.claude/hooks/lib/hook-runner.cjs:367-374`. Do not replace the drained return with immediate `process.exit(2)` after writing a diagnostic.
 
 ## Entity Patterns
 
@@ -97,7 +98,7 @@ Scheduler/recurring job framework: **N/A**. Hooks run only for registered lifecy
 
 ## Authorization
 
-No identity/role/policy layer. Operation authorization lives at `PreToolUse` matcher boundaries, static permissions, per-request approval/commit markers, and resolved project path boundaries (`.claude/settings.json:64-130`, `.claude/settings.json:212-265`, `.claude/hooks/privacy-block.cjs:226-239`, `.claude/hooks/git-commit-block.cjs:139-160`, `.claude/hooks/path-boundary-block.cjs:409-444`).
+No identity/role/policy layer. Operation authorization lives at `PreToolUse` matcher boundaries, static permissions, exact session-scoped Git leases, operand-local privacy approval, and resolved project/path boundaries (`.claude/settings.json:64-130`, `.claude/settings.json:212-265`, `.claude/hooks/privacy-block.cjs`, `.claude/hooks/lib/git-operation-lease.cjs`, `.claude/hooks/git-commit-block.cjs`, `.claude/hooks/path-boundary-block.cjs`). A lease is bounded bookkeeping rather than user consent or native host permission; missing, expired, foreign, malformed, or mismatched records do not authorize protected Git operations.
 
 ## Anti-Patterns
 

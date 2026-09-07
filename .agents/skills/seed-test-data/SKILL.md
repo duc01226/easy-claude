@@ -14,9 +14,9 @@ description: '[Dev Data] Use when you need to implement or enhance test data see
 > - For workflow skills, execute each listed child-skill step explicitly and report step-by-step evidence.
 > - If a required step/tool cannot run in this environment, stop and ask the user before adapting.
 <!-- CODEX:PROJECT-REFERENCE-LOADING:START -->
-## Codex Project-Reference Loading (No Hooks)
+## Codex Project-Reference Loading (Hook-Independent)
 
-Codex uses static project-reference loading instead of runtime-injected project docs.
+Claude and Codex use static project-reference loading as the authority; hooks may accelerate discovery but never replace the explicit read.
 When coding, planning, debugging, testing, or reviewing, open project docs explicitly using this routing.
 
 **Always read:**
@@ -285,7 +285,7 @@ Review seeder at [file:path]. Verify with file:line evidence for each:
 Report: PASS or FAIL with file:line for each finding.
 ```
 
-**Fix loop:** If FAIL → validate findings → fix validated findings → restart full review from first phase. When restarted review uses sub-agents, NEVER reuse them across rounds. If same blocker repeats across 2 full invocations with no progress, escalate to user.
+**Fix loop:** If FAIL → validate findings → fix validated findings that block the current round → restart full review from first phase. Round 1 treats every validated finding as blocking; from round 2 onward, a LOW-only result ends the loop with LOWs recorded under `## Deferred LOW Findings (severity floor, round ≥2)`, while CRITICAL/HIGH/MEDIUM and failed binary gates remain blocking. When restarted review uses sub-agents, NEVER reuse them across rounds. If the same blocker repeats across 2 full invocations with no progress, escalate to user.
 NEVER fix unvalidated findings. Do not spawn a fresh sub-agent only to re-review known findings before validation/fix.
 
 ---
@@ -364,7 +364,7 @@ Per item: **PASS / FAIL / N/A** with `file:line` evidence and confidence (>80% r
 
 > **MUST ATTENTION — NOT IN WORKFLOW YET:** Use ask the user directly:
 >
-> 1. **Activate `workflow-seed-test-data`** (Recommended) — investigate → seed-test-data → changes-review → code-simplifier → docs-update
+> 1. **Activate `workflow-seed-test-data`** (Recommended) — investigate → seed-test-data → experience-review (conditional) → changes-review → code-simplifier → docs-update
 > 2. **Execute `$seed-test-data` directly** — run this skill standalone
 
 ---
@@ -578,7 +578,7 @@ Per item: **PASS / FAIL / N/A** with `file:line` evidence and confidence (>80% r
 **IMPORTANT MUST ATTENTION** search 3+ existing seeder patterns and READ them before writing — match the discovered base class / env-gate / count-key conventions exactly; verify the copied pattern shares the same preconditions (base class, scope, lifetime) before reuse
 **IMPORTANT MUST ATTENTION** read `docs/project-reference/seed-test-data-reference.md` + `docs/project-config.json` (`Data Seeders` group) BEFORE any seeder change — project conventions override generic defaults
 **IMPORTANT MUST ATTENTION** task tracking — break all work into tasks BEFORE starting; transition one task at a time, evidence per completed step
-**IMPORTANT MUST ATTENTION** close with a fresh zero-memory `code-reviewer` round; full re-review is required ONLY after a validated fix cycle — a clean review pass ENDS the review; NEVER fix unvalidated findings
+**IMPORTANT MUST ATTENTION** close with a fresh zero-memory `code-reviewer` round; full re-review is required after a validated fix cycle or an explicitly declared independent-pass minimum — a clean review pass ENDS the review once the persisted `minRounds` is met; NEVER fix unvalidated findings
 **IMPORTANT MUST ATTENTION Modes:** default = **Generate** (implement/enhance/fix); `--mode=review` = READ-ONLY convention audit (resolve target: prompt → current changes → work-context; read the reference doc + Universal Rules FIRST; grade every rule with `file:line`; route fixes back to Generate — NEVER edit in review mode)
 **IMPORTANT MUST ATTENTION** the Generate-mode task plan MUST end with a `--mode=review` self-audit over the changed seeder code, and that self-audit MUST run BEFORE the `$changes-review` hand-off — `$changes-review` stays the final step
 
@@ -602,13 +602,13 @@ Per item: **PASS / FAIL / N/A** with `file:line` evidence and confidence (>80% r
 **IMPORTANT MUST ATTENTION** Convention-first · local-dev default-enabled (env-gate FIRST, never prod) · seed via PUBLIC commands like a real user/QC · configurable count with SMALL default (cases + volume) · idempotent + restart-safe (resume to target X, never re-seed) · NEVER direct repo/DB writes · `file:line` evidence per gate (confidence >80%).
 
 <!-- CODEX:SYNC-PROMPT-PROTOCOLS:START -->
-## Hookless Prompt Protocol Mirror (Auto-Synced)
+## Static Prompt Protocol Mirror (Auto-Synced)
 
-Source: `.claude/.ck.json` + `.claude/skills/shared/sync-inline-versions.md` (`:full` blocks) + `.claude/scripts/lib/hookless-prompt-protocol.cjs`
+Source: `.claude/.ck.json` + `.claude/skills/shared/sync-inline-versions.md` (`:full` blocks) + `.claude/scripts/lib/hookless-prompt-protocol.cjs` (legacy filename; static protocol composer)
 
 ## [WORKFLOW-EXECUTION-PROTOCOL] [BLOCKING] Workflow Execution Protocol — MANDATORY IMPORTANT MUST CRITICAL. Do not skip for any reason.
 
-**Generic portability boundary:** Reusable skills and protocol text stay project-neutral; project-specific conventions are discovered from docs/project-config.json and docs/project-reference/. Apply shared AI-SDD from `shared/sdd-artifact-contract.md`. Read `docs/project-config.json` and `docs/project-reference/docs-index-reference.md`, then open the project reference docs named there. For spec, test-case, behavior-change, public-contract, or `docs/specs/` work, route through the local spec docs named by the docs index: `feature-spec-reference.md`, `spec-system-reference.md`, `spec-principles.md`, and `workflow-spec-test-code-cycle-reference.md` when specs/tests/code must stay synchronized. If either file or a required reference doc is missing or stale, auto-run `$project-init` (or the narrow lower-level route such as `$project-config`, `$docs-init`, `$scan-all`, or `$scan --target=<key>`) before ordinary project-specific work. Any supported AI tool may execute when this shared context and local docs are available.
+**Generic portability boundary:** Reusable skills and protocol text stay project-neutral; project-specific conventions are discovered from docs/project-config.json and docs/project-reference/. Apply shared AI-SDD from `shared/sdd-artifact-contract.md`. Read `docs/project-config.json` and `docs/project-reference/docs-index-reference.md`, then open the project reference docs named there immediately before the first target read, grep, edit, test, or analysis. For spec, test-case, behavior-change, public-contract, or `docs/specs/` work, route through the local spec docs named by the docs index: `feature-spec-reference.md`, `spec-system-reference.md`, `spec-principles.md`, and `workflow-spec-test-code-cycle-reference.md` when specs/tests/code must stay synchronized. If either file or a required reference doc is missing or stale, auto-run `$project-init` (or the narrow lower-level route such as `$project-config`, `$docs-init`, `$scan-all`, or `$scan --target=<key>`) before ordinary project-specific work. After compaction, resume, delegation, or a material context change, re-read the required docs and state `Reference docs read: ... | Not applicable: ...`; a hook reminder or prior conversation is not proof that the files are loaded. Any supported AI tool may execute when this shared context and local docs are available.
 
 1. **DETECT:** If the prompt starts with an explicit slash skill/workflow command, execute it directly. Otherwise match the prompt against the workflow catalog and skill list.
 2. **ANALYZE:** Choose the best option: execute directly, invoke a skill, activate a standard workflow, or compose a custom step combination.

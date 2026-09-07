@@ -16,7 +16,7 @@
 const fs = require('fs');
 const path = require('path');
 const { assertEqual, assertTrue, assertNullish, assertNotNullish, assertContains } = require('../lib/assertions.cjs');
-const { runHookSync, getHookPath, createPreToolUseInput } = require('../lib/hook-runner.cjs');
+const { runHook, runHookSync, getHookPath, createPreToolUseInput } = require('../lib/hook-runner.cjs');
 const { findPowerShellConstruct, formatBlock } = require('../../bash-shell-guard.cjs');
 
 const HOOK_PATH = getHookPath('bash-shell-guard.cjs');
@@ -27,17 +27,18 @@ function blocks(command) {
   return findPowerShellConstruct(command) !== null;
 }
 
-/** Recursively collect .md files under a directory. Missing directories yield nothing. */
-function collectMarkdown(dir, out = []) {
+/** Recursively collect .md files under a directory and report traversal errors. */
+function collectMarkdown(dir, out = [], errors = []) {
   let entries;
   try {
     entries = fs.readdirSync(dir, { withFileTypes: true });
-  } catch {
+  } catch (error) {
+    errors.push(`${dir}: ${error.message}`);
     return out;
   }
   for (const entry of entries) {
     const full = path.join(dir, entry.name);
-    if (entry.isDirectory()) collectMarkdown(full, out);
+    if (entry.isDirectory()) collectMarkdown(full, out, errors);
     else if (entry.name.endsWith('.md')) out.push(full);
   }
   return out;
@@ -68,6 +69,21 @@ function fencedBlocks(text) {
 module.exports = {
   name: 'bash-shell-guard',
   tests: [
+    {
+      name: 'TC-BSG-022: exact size boundary retains fail-open behavior for oversized and non-string inputs',
+      fn() {
+        for (const length of [65535, 65536, 65537]) {
+          const command = `@'\n${'x'.repeat(length - 6)}\n'@`;
+          assertEqual(command.length, length);
+          if (length <= 65536) assertNotNullish(findPowerShellConstruct(command), 'Within-limit paired construct must be detected');
+          else assertNullish(findPowerShellConstruct(command), 'Oversized construct must stay fail-open');
+        }
+        for (const value of [undefined, null, 42, {}, [], true]) {
+          assertNullish(findPowerShellConstruct(value), 'Non-string input must stay fail-open');
+        }
+        assertNullish(findPowerShellConstruct("cat <<'EOF'\n@'\nbody\n'@\nEOF"), 'Complete POSIX heredoc carries PowerShell text as data');
+      }
+    },
     // ---------------------------------------------------------------- detection (true positives)
     {
       name: "TC-BSG-001: blocks a PowerShell single-quoted here-string (@' … '@)",
@@ -171,23 +187,23 @@ module.exports = {
 
     // ------------------------------------------------------------------------------ message shape
     {
-      name: 'TC-BSG-015: the block message names the problem, the fix, and the offending command',
+      name: 'TC-BSG-015: the block message names the problem and fix without echoing command data',
       fn() {
-        const command = "$t = @'\nbody\n'@";
+        const command = "$t = @'\nSECRET_SHOULD_NOT_BE_ECHOED\n'@";
         const message = formatBlock(command, findPowerShellConstruct(command));
         assertContains(message, 'here-string', 'names the construct');
         assertContains(message, 'cat <<', 'gives the POSIX replacement');
-        assertContains(message, 'body', 'echoes the command back');
+        assertTrue(!message.includes('SECRET_SHOULD_NOT_BE_ECHOED'), 'Block messages must not echo command data');
         assertContains(message, 'Git Bash', 'explains which shell actually runs');
       }
     },
     {
-      name: 'TC-BSG-016: long commands are truncated in the echo-back',
+      name: 'TC-BSG-016: long commands omit command data from the diagnostic',
       fn() {
-        const command = `@'\n${'x'.repeat(500)}\n'@`;
+        const command = `@'\n${'SECRET_'.repeat(500)}\n'@`;
         const message = formatBlock(command, findPowerShellConstruct(command));
-        assertContains(message, 'truncated');
-        assertTrue(message.length < command.length + 900, 'Message should not embed the full command');
+        assertTrue(!message.includes('SECRET_'), 'Long diagnostics must not embed the command');
+        assertTrue(message.length < command.length, 'Diagnostic should remain bounded independently of command length');
       }
     },
 
@@ -216,19 +232,11 @@ module.exports = {
       }
     },
     {
-      name: 'TC-BSG-020: fails OPEN on malformed stdin, and records the failure to a log file',
-      fn() {
-        const logPath = path.join(require('os').tmpdir(), 'claude-bash-shell-guard-errors.log');
-        const sizeBefore = fs.existsSync(logPath) ? fs.statSync(logPath).size : 0;
-
-        const result = runHookSync(HOOK_PATH, undefined); // empty stdin -> JSON.parse throws
+      name: 'TC-BSG-020: fails OPEN on malformed stdin, and reports the failure on stderr',
+      async fn() {
+        const result = await runHook(HOOK_PATH, undefined); // empty stdin -> JSON.parse throws
         assertEqual(result.code, 0, 'A broken guard must never block a command');
-
-        assertTrue(fs.existsSync(logPath), 'Guard failure must be recorded to a log file');
-        assertTrue(
-          fs.statSync(logPath).size > sizeBefore,
-          'Guard failure must APPEND to the log — an exit-0 stderr message alone is not reliably surfaced'
-        );
+        assertContains(result.stderr, 'bash-shell-guard', 'Guard failure must be visible on stderr');
       }
     },
 
@@ -238,13 +246,17 @@ module.exports = {
       fn() {
         const roots = ['skills', 'agents', 'docs'].map((d) => path.join(CLAUDE_DIR, d));
         const offenders = [];
+        const collectionErrors = [];
+        const blocksByRoot = new Map();
         let blockCount = 0;
 
         for (const root of roots) {
-          for (const file of collectMarkdown(root)) {
+          blocksByRoot.set(root, 0);
+          for (const file of collectMarkdown(root, [], collectionErrors)) {
             const text = fs.readFileSync(file, 'utf-8');
             for (const block of fencedBlocks(text)) {
               blockCount++;
+              blocksByRoot.set(root, blocksByRoot.get(root) + 1);
               const problem = findPowerShellConstruct(block.body);
               if (problem) {
                 offenders.push(`${path.relative(CLAUDE_DIR, file)}:${block.startLine} — ${problem.reason}`);
@@ -253,7 +265,11 @@ module.exports = {
           }
         }
 
-        assertTrue(blockCount > 100, `Corpus sweep found only ${blockCount} blocks — the walk is broken, not the guard`);
+        assertEqual(collectionErrors.length, 0, `Corpus collection failed:\n  ${collectionErrors.join('\n  ')}`);
+        assertTrue(blockCount > 100 && blockCount < 10000, `Corpus sweep found ${blockCount} blocks — expected a bounded complete walk`);
+        for (const [root, count] of blocksByRoot) {
+          assertTrue(count > 0, `Corpus sweep found no fenced blocks under ${path.relative(CLAUDE_DIR, root)}`);
+        }
         assertEqual(
           offenders.length,
           0,

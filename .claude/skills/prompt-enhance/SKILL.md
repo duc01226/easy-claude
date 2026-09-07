@@ -98,6 +98,18 @@ Verify (expand): no semantic loss (all facts/numbers/paths present), rule densit
 
 Target `.claude/skills/**/*.md` (any `SKILL.md`)? Apply **Universal Skill-Building Principles** AFTER caveman compression, BEFORE writing enhanced output.
 
+**Risk-profile gate (blocking):** Enhancement preserves the target skill's job,
+input/output, mutation authority, delegation boundary, and terminal states.
+Classify the target as `content`, `analysis`, `conversion`, `implementation`,
+`orchestration`, or `security/authority` before applying the checklist. Fresh
+agent review, specialist routing, inline sub-agent protocols, and recursive
+loops are mandatory only for `implementation`, `orchestration`, or
+`security/authority` targets (or when the target already owns an equivalent
+gate). For `content`, `analysis`, and `conversion` skills, record those rows as
+`N/A — not required by the target contract`; never add review machinery merely
+because this enhancer can add it. A change that widens mutation or delegation
+authority must be surfaced as a contract change, not silently introduced.
+
 ### Skill Enhancement Checklist
 
 After caveman compression, evaluate skill against each principle, add missing structure:
@@ -107,12 +119,12 @@ After caveman compression, evaluate skill against each principle, add missing st
 | Detect Before Act            | Phase 0 / classification step present?   | Add artifact-type detection before Phase 1             |
 | Derive, Don't Enumerate      | Thinking framework vs. fixed checklist?  | Replace checklist with "understand → derive → execute" |
 | Evidence Gates               | Every claim requires `file:line`?        | Add evidence requirement to all review steps           |
-| Fresh Eyes Protocol          | Multi-round sub-agent review defined?    | Add Round 2 fresh sub-agent protocol                   |
-| Specialize by Type           | Sub-agent routing table present?         | Add `security-auditor`/`performance-optimizer` options |
-| Embed Protocols Verbatim     | Protocols inline in sub-agent prompts?   | Move protocol bodies inline, remove file references    |
+| Fresh Eyes Protocol          | Required by risk profile and target contract? | Add Round 2 fresh sub-agent protocol only when required; otherwise record N/A |
+| Specialize by Type           | Required by risk profile and target contract? | Add specialist routing only when required; otherwise record N/A |
+| Embed Protocols Verbatim     | A sub-agent prompt is actually emitted? | Inline the needed protocol body at that call site; do not add delegation to a non-delegating target |
 | Search-Based Discovery       | Any hardcoded paths/formats/IDs?         | Replace with search instructions                       |
 | Dimensions > Checklists      | Named dimensions with `Think:` prompts?  | Convert checklist to dimension framework               |
-| Recursive Quality Loop       | Fix → re-review → max 3 rounds defined?  | Add recursive review loop                              |
+| Recursive Quality Loop       | Required by risk profile and target contract? | Add the bounded loop only when required; otherwise record N/A and preserve the target's terminal state |
 | Anti-Rationalization Anchors | Closing reminders include evasion table? | Add evasion → rebuttal table                           |
 
 ### Anti-Forget Anchoring (task/purpose targets)
@@ -342,9 +354,9 @@ For each `.claude/` protocol reference:
 > 2. **Derive, Don't Enumerate** — Teach AI HOW to reason about a domain, not WHAT items to tick. Replace "check X, Y, Z" with "understand role → read conventions → derive concerns from first principles → execute with evidence." Fixed checklist = ceiling. Thinking framework = floor.
 >    Test: Can this skill run on a Python/Go project without modification? If not → it's enumerating, not teaching.
 > 3. **Evidence Gates** — Every claim, finding, recommendation requires `file:line` proof or traced call chain. Confidence thresholds: >80% act freely, 60-80% verify first, <60% DO NOT recommend. "Insufficient evidence" is valid output. Speculation is forbidden output.
-> 4. **Fresh Eyes Protocol** — Round 1 in main session. Round 2+ with fresh sub-agent (zero memory of Round 1). Main agent reads report but NEVER filters or overrides findings. Max 3 rounds, then escalate to user. Never declare PASS after Round 1 alone.
+> 4. **Fresh Eyes Protocol** — For implementation, orchestration, and security/authority targets, Round 1 is in the main session and Round 2+ uses a fresh sub-agent (zero memory of Round 1); the main agent reads the report but NEVER filters or overrides findings. Max 3 rounds, then escalate to the user. For content, analysis, and conversion targets, apply only when the target contract explicitly requires an independent review; otherwise record N/A and preserve the target's simpler terminal state.
 >    Why: main agent rationalizes its own mistakes. Zero-memory sub-agent catches what main agent dismissed.
-> 5. **Specialize by Type** — Route to specialized sub-agents based on detected artifact type:
+> 5. **Specialize by Type** — When the risk profile requires delegation, route to specialized sub-agents based on detected artifact type:
 >
 >     | Artifact type                | Sub-agent               |
 >     | ---------------------------- | ----------------------- |
@@ -353,7 +365,7 @@ For each `.claude/` protocol reference:
 >     | Performance-critical changes | `performance-optimizer` |
 >     | Plans / docs / specs         | `general-purpose`       |
 >
-> 6. **Embed Protocols Verbatim, Never Reference** — Shared protocols MUST be copied inline into every sub-agent prompt — never referenced by file path or tag name. AI compliance drops significantly behind file-read indirection. Maintain canonical source; embed body at every call site.
+> 6. **Embed Protocols Verbatim, Never Reference** — When a target actually emits a sub-agent prompt, shared protocols MUST be copied inline into that prompt — never referenced by file path or tag name. Do not create a sub-agent prompt merely to satisfy this principle. Maintain canonical source; embed the needed body at each real call site.
 > 7. **Search-Based Discovery** — Never hardcode project-specific paths, formats, or identifiers. Teach skill to discover them:
 >     - "Search for `coding-standards`, `style-guide`, `contributing`" not "read `docs/X/code-review-rules.md`"
 >     - "Find the project's test format near changed files" not "look for `TC-{FEATURE}-{NNN}` in `docs/specs/`"
@@ -361,7 +373,7 @@ For each `.claude/` protocol reference:
 > 8. **Dimensions > Checklists** — Structure review/analysis as named thinking dimensions, each with a `Think:` prompt that forces first-principles reasoning: (1) state dimension's role, (2) derive what could go wrong if weak, (3) apply to artifact with evidence. Produces targeted, evidence-backed findings — not generic "add more detail" suggestions.
 >    **Serial attention:** When applying a dimension-based framework, NEVER scan all dimensions simultaneously. One focused pass per dimension. AI misses violations when attention is split across concurrent concerns. Pattern: identify applicable dimensions → sequential focused passes → aggregate.
 >    **Threshold invariant:** 3+ similar patterns in any dimension pass = MANDATORY extraction. 2+ violations of same kind = structural/architectural finding, not individual instance.
-> 9. **Recursive Quality Loop** — Fix → Re-review → Fix → Re-review. Each round uses a NEW fresh sub-agent. Continue until PASS or 3 rounds max, then escalate. Never declare success after Round 1 alone. Never reuse a sub-agent across rounds.
+> 9. **Recursive Quality Loop** — For targets whose contract includes review/fix convergence, use Fix → Re-review → Fix → Re-review; each round uses a NEW fresh sub-agent and stops at 3 rounds with escalation. For other targets, do not invent a loop: preserve their declared terminal state and record this principle as N/A.
 > 10. **Anti-Rationalization Anchors** — Explicitly name and embed the evasion patterns AI uses to skip steps in the skill's closing reminders:
 >
 >     | Evasion               | Rebuttal                                                   |
@@ -417,7 +429,7 @@ For each `.claude/` protocol reference:
 > **Scope rules:**
 >
 > - `.claude/` protocol files → always add an inline summary (stable, belongs to framework)
-> - `docs/project-reference/` files → NO inline summary (project-specific). Add: `(Claude may inject this via hooks; Codex must open this file directly using docs-index routing)`
+> - `docs/project-reference/` files → NO inline summary (project-specific). Add: `(Hooks may point to this file, but every host must open it directly using docs-index routing when the context is needed)`
 >
 > ### Transform 2: Top Summary Section
 >

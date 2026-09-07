@@ -5,7 +5,7 @@
 **Audience:** AI engineers, tech leads, and teams wanting to build reliable AI-assisted development systems.
 **Scope:** What each layer does, why it exists, how the pieces compose, the design principles behind every decision, and which AI agent best practices each addresses.
 
-> **Document Sync Status** — Current local verification (2026-08-21): **17 top-level hook files · 166 skills · 19 workflows · 27 agents** using the ADR-0002 filesystem metrics. Codex mirrors are committed under `.agents/`, `.codex/`, and `AGENTS.md`. Notable mechanisms documented here include multi-AI-tool portability (§13), behavioral-principle injection (§8.21), self-validating review (§8.20), and embedded sequential-thinking.
+> **Document Sync Status** — Current local verification (2026-09-07): **17 top-level hook files · 167 skills · 19 workflows · 27 agents** using the ADR-0002 filesystem metrics. Codex mirrors are committed under `.agents/`, `.codex/`, and `AGENTS.md`. Notable mechanisms documented here include multi-AI-tool portability (§13), behavioral-principle injection (§8.21), self-validating review (§8.20), and embedded sequential-thinking.
 
 ---
 
@@ -45,7 +45,7 @@
 
 ## 1. Executive Summary
 
-This framework wraps Claude Code in a three-pillar execution framework — **17 top-level hook files**, **166 skills**, **19 registered workflows**, and **27 specialized agents** — that transforms a generic LLM into a project-aware, quality-enforced, hallucination-resistant development agent. The framework covers the **entire software development lifecycle** — from idea capture and TDD test specification through implementation, testing, E2E testing, code review, and documentation — with AI as a first-class participant at every stage.
+This framework wraps Claude Code in a three-pillar execution framework — **17 top-level hook files**, **167 skills**, **19 registered workflows**, and **27 specialized agents** — that transforms a generic LLM into a project-aware, quality-enforced, hallucination-resistant development agent. The framework covers the **entire software development lifecycle** — from idea capture and TDD test specification through implementation, testing, E2E testing, code review, and documentation — with AI as a first-class participant at every stage.
 
 It is also **harness- and project-agnostic**: the `.claude/` source compiles to verified OpenAI Codex mirrors (`AGENTS.md`, `.agents/`, `.codex/`), while all project-specific knowledge is factored into `project-config.json` + reference docs — so the same behavior runs on any supported AI tool and ports to any codebase (Section 13).
 
@@ -117,7 +117,7 @@ graph TB
         end
     end
 
-    subgraph "Intelligence Layer — 166 Skills"
+    subgraph "Intelligence Layer — 167 Skills"
         SP[Shared Protocols<br/>5 files]
         IS[Implementation Skills<br/>feature-implement, fix, refactor]
         QS[Quality Skills<br/>code-review, prove-fix]
@@ -277,7 +277,7 @@ graph LR
 > **Static guidance layer (current architecture).** This harness has no runtime
 > per-context PreToolUse "inject" layer. Path-scoped guidance, mindset principles, and
 > sub-agent context live **statically** in `CLAUDE.md`, agent `.md` files, and skill
-> `SKILL.md` files, so a hookless harness (Codex) reads identical instructions.
+> `SKILL.md` files, so Claude and Codex read identical instructions whether hooks are enabled or not.
 > The tree below lists only hooks that map to a real registration in
 > `.claude/settings.json`.
 
@@ -455,11 +455,11 @@ allowed-tools: Read, Grep, Glob, Bash, Write, TaskCreate
 2. Declare confidence level...
 ```
 
-### 5.2 Skill Categories (166 skills)
+### 5.2 Skill Categories (167 skills)
 
 ```mermaid
 mindmap
-  root((166 Skills))
+  root((167 Skills))
     Quality & Verification
       code-review
       prove-fix
@@ -878,7 +878,7 @@ The hook and skill system is **project-agnostic**. All project-specific knowledg
 graph LR
     subgraph "Generic Framework (reusable)"
         H[16 Hook Files]
-        S[166 Skills]
+        S[167 Skills]
         W[18 Workflows]
     end
 
@@ -2723,7 +2723,7 @@ This section maps **established prompt engineering techniques** to specific fram
 
 Context engineering is the discipline of **managing what information reaches the LLM, when, and how** — treating the context window as a scarce computational resource. This framework implements context engineering as a first-class architectural concern.
 
-> **Note — delivery is static.** The principles below (just-in-time context, path-based routing, dedup) are authored statically in `CLAUDE.md`, agent `.md`, and skill `SKILL.md` content and read identically by Claude Code and Codex; no runtime hook emits context — recovery after compaction is the model re-reading those same static files. The principles below describe the design intent the static layout realizes; earlier architectures realized some of them with runtime injection/recovery hooks since retired.
+> **Note — delivery is static-first.** The principles below (just-in-time context, path-based routing, dedup) are authored statically in `CLAUDE.md`, agent `.md`, and skill `SKILL.md` content and read identically by Claude Code and Codex. Hooks may emit a bounded pointer or reminder as an accelerator, but recovery after compaction remains the model re-reading those same static files. The principles below describe the design intent the static layout realizes; earlier architectures realized some of them with runtime injection/recovery hooks since retired.
 
 #### The Context Engineering Problem
 
@@ -3333,7 +3333,7 @@ Re-injecting on every prompt would have flooded the context, so the historical r
 
 #### Embedded over external — the sequential-thinking migration
 
-A concrete portability/reliability win: sequential-thinking was originally a **runtime MCP server**. It was removed from `.mcp.json` and replaced with an embedded `SYNC:sequential-thinking-protocol` markdown block inlined into 28 planning/review/debug skill files (27 `SKILL.md` + the lowercase-named `why-review/skill.md`; introduced in commit `5f01f44f34e`). The rationale generalizes the framework's stance: a methodology that can be expressed as a protocol should not depend on an external server that might be unavailable — and inlining means **sub-agents and hookless tools inherit it automatically** rather than needing the MCP connection. The protocol defines explicit thought markers (`Thought N/M`, `[REVISION]`, `[HYPOTHESIS]`/`[VERIFICATION]`), mandatory closers (confidence %, assumptions, open questions), and stop conditions (confidence <80% → escalate; ≥3 revisions → re-frame). Fewer runtime dependencies, more portability — the same principle that drives the whole mirror architecture.
+A concrete portability/reliability win: sequential-thinking was originally a **runtime MCP server**. It was removed from `.mcp.json` and replaced with an embedded `SYNC:sequential-thinking-protocol` markdown block inlined into 28 planning/review/debug skill files (27 `SKILL.md` + the lowercase-named `why-review/skill.md`; introduced in commit `5f01f44f34e`). The rationale generalizes the framework's stance: a methodology that can be expressed as a protocol should not depend on an external server that might be unavailable — and inlining means **sub-agents and either host inherit it automatically** rather than needing the MCP connection. The protocol defines explicit thought markers (`Thought N/M`, `[REVISION]`, `[HYPOTHESIS]`/`[VERIFICATION]`), mandatory closers (confidence %, assumptions, open questions), and stop conditions (confidence <80% → escalate; ≥3 revisions → re-frame). Fewer runtime dependencies, more portability — the same principle that drives the whole mirror architecture.
 
 ---
 
@@ -3484,7 +3484,7 @@ flowchart TB
 | **Context injection at decision points**       | Static path→patternsDoc guidance in CLAUDE.md / SKILL.md (was hook-injected)                             | Skills/Config |
 | **Reminder rules prevent forgetting**          | Static SYNC rules + the workflow catalog baked into CLAUDE.md, re-read every prompt                      | Skills/Config |
 | **Generic & configurable via config**          | project-config.json drives path→patternsDoc routing                                                      | Config        |
-| **Prompt engineering quality**                 | 166 skills with YAML frontmatter + behavior protocols                                                    | Skills        |
+| **Prompt engineering quality**                 | 167 skills with YAML frontmatter + behavior protocols                                                    | Skills        |
 | **Auto-select workflow path before acting**    | Model reads the static catalog → direct/skill/workflow/custom path                                       | Workflows     |
 | **Confirm plan with questions**                | /plan-validate asks 3-8 questions before implementation                                                  | Skills        |
 | **Sequential thinking for complex problems**   | /sequential-thinking skill + /debug-investigate skill                                                    | Skills        |
@@ -3538,7 +3538,7 @@ flowchart TB
 │   │   ├── todo-state.cjs
 │   │   └── ...
 │   └── tests/ ────────── Test suites
-├── skills/ ────────────── 166 skill definitions
+├── skills/ ────────────── 167 skill definitions
 │   ├── {skill-name}/SKILL.md
 │   ├── shared/ ───────── 6 shared reference/protocol files
 │   └── _templates/ ───── Skill scaffolding
@@ -3692,7 +3692,7 @@ This is the answer to two questions the rest of the guide raises: _"does this on
 │       ├── .codex/CODEX_CONTEXT.md      prompt-protocols + workflow     │
 │       │                                 catalog + AI-SDD markers       │
 │       ├── .codex/agents/*.toml         agent mirror                    │
-│       ├── .codex/hooks.json            hookless-parity declaration     │
+│       ├── .codex/hooks.json            optional hook parity declaration│
 │       └── AGENTS.md (root)             full CLAUDE.md mirror +         │
 │                                         managed Codex-context block    │
 └──────────────────────────────────────────────────────────────────────┘
@@ -3700,20 +3700,20 @@ This is the answer to two questions the rest of the guide raises: _"does this on
 
 Every generated file **self-declares** as a mirror. `AGENTS.md`: _"This block is auto-generated from `CLAUDE.md` by `npm run codex:sync:context`. Do not edit manually; update `CLAUDE.md` and re-sync."_ The authoring rule is absolute: **edit `.claude/` source, run sync, never touch a mirror** — because the next sync overwrites direct mirror edits.
 
-### 13.2 Why Mirrors at All? The Hookless-Parity Problem
+### 13.2 Why Mirrors at All? The Cross-Host Static-Parity Problem
 
-Claude Code's power in this framework comes substantially from **hooks** plus a large body of **static standing instructions** that re-anchor principles and gate routing inside the model's control loop. Path-scoped guidance and mindset principles are carried statically in `CLAUDE.md` / `SKILL.md` (see Section 4). Codex **has no hook system at all**. A naive port would lose every automatic injection that any remaining hook performs.
+Claude Code's power in this framework comes from **static standing instructions**, with hooks as optional accelerators that can re-anchor principles or gate tool calls inside the model's control loop. Path-scoped guidance and mindset principles are carried statically in `CLAUDE.md` / `SKILL.md` (see Section 4), and the same contract is projected into Codex. A host-specific hook can improve timing, but a port must never lose correctness when that hook is unavailable; static loading is the fallback and authority.
 
 The mirror compensates by **baking what hooks deliver (and what Claude carries statically) into the mirror artifacts**:
 
-| Behavior on Claude Code                                   | How the mirror delivers it to a hookless tool                                                                    |
+| Behavior on Claude Code                                   | How the mirror delivers it to another host (hooks optional)                                                      |
 | --------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
 | The workflow catalog is baked statically into `CLAUDE.md` | Catalog written into `.codex/CODEX_CONTEXT.md` as static text                                                    |
 | Static `lessons.md` read contract                         | Replaced by an explicit `CODEX:PROJECT-REFERENCE-LOADING` gate telling Codex to open the reference docs itself   |
 | Static project-config + reference-doc read contract       | A loading gate instructs the tool to read `docs/project-config.json` + `docs/project-reference/**` at task start |
 | `/skill` slash invocation                                 | Rewritten to Codex's `$skill` invocation syntax; `Agent(...)` → `spawn_agent`, `subagent_type` → `agent_type`    |
 
-So the mirror is not a copy — it is a **transform** that converts hook-dependent automation into self-service instructions the hookless tool can follow. Frontmatter is sanitized (Claude-only keys like `version` stripped; `disable-model-invocation` preserved) so each tool reads only what it understands.
+So the mirror is not a copy — it is a **transform** that converts host-specific automation into self-service static instructions any supported host can follow. Frontmatter is sanitized (Claude-only keys like `version` stripped; `disable-model-invocation` preserved) so each tool reads only what it understands, while optional hooks remain compatible accelerators.
 
 ### 13.3 The Sync Skills
 
@@ -3861,7 +3861,7 @@ The framework succeeds because it aligns with how LLMs actually fail:
 
 ### The Result
 
-**17 top-level hook files**, **166 skills**, **19 registered workflows**, and **27 specialized agents** working in concert to deliver:
+**17 top-level hook files**, **167 skills**, **19 registered workflows**, and **27 specialized agents** working in concert to deliver:
 
 -   **Fewer hallucinations** — Evidence gates and proof traces catch AI fabrications before they reach files
 -   **Better code quality** — Pattern injection ensures AI follows project conventions, not generic training data
@@ -3869,7 +3869,7 @@ The framework succeeds because it aligns with how LLMs actually fail:
 -   **Consistent adherence** — Programmatic enforcement means quality doesn't degrade in long sessions or complex tasks
 -   **Recovery from amnesia** — External state persistence means context compaction doesn't lose progress
 -   **Persistent learning** — Mistakes captured once prevent recurrence across all future sessions
--   **Prompt engineering depth** — Role prompting, chain-of-thought, few-shot, negative prompting, and iterative refinement applied systematically across 166 skills (Section 8.15)
+-   **Prompt engineering depth** — Role prompting, chain-of-thought, few-shot, negative prompting, and iterative refinement applied systematically across 167 skills (Section 8.15)
 -   **Context engineering precision** — JIT injection, dedup, external memory, budget management, and recovery keep the AI informed without overwhelming its context window (Section 8.16)
 
 The framework is **generic and reusable**. Replace `project-config.json` with your project's specifics, and the entire system adapts — different tech stack, different patterns, different conventions, same quality enforcement.

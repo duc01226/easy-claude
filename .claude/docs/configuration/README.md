@@ -91,6 +91,15 @@ CLAUDE.md                # Project instructions at repo root (read by Claude)
 
 **See:** [output-styles.md](./output-styles.md) for coding levels 0-5.
 
+### Experience verification
+
+Project-specific user/downstream experience review is configured in
+`docs/project-config.json` under `experienceVerification`. It supports
+web/mobile/desktop/terminal/API/library/background/generated surfaces without
+assuming a particular runner. See
+[experience-verification.md](./experience-verification.md) for the evidence,
+baseline, and explicit-acceptance lifecycle.
+
 #### Code Review Configuration
 
 The `codeReview` section records which project-specific review-rule doc the review skills/agents read (rules are read on demand via the project-reference-docs gate in `CLAUDE.md`):

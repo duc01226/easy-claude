@@ -146,6 +146,15 @@
       "bddFramework": "none"
     }
   },
+  "experienceVerification": {
+    "enabled": false,
+    "evidenceRoot": "plans/reports/experience",
+    "baselineRoot": "tests/experience-baselines",
+    "acceptancePolicy": "manual-acceptance-required",
+    "reviewOn": ["new-surface", "changed-surface", "bugfix", "baseline-mismatch"],
+    "surfaces": [],
+    "notApplicableReason": "easy-claude is a framework repository with no user-facing application surface; adopters configure their own observable surfaces."
+  },
   "databases": {},
   "messaging": {},
   "api": {},

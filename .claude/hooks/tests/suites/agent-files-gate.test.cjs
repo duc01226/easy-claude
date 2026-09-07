@@ -56,9 +56,25 @@ const CURRENT_SENTINEL = '<!-- CK:UNIVERSAL-GUIDES v6 -->';
 const PROTOCOL_CK_MARKERS = ['<!-- CK:CRITICAL-THINKING -->', 'body', '<!-- /CK:CRITICAL-THINKING -->', '<!-- CK:AI-MISTAKE-PREVENTION -->', 'body', '<!-- /CK:AI-MISTAKE-PREVENTION -->'].join('\n');
 const PROTOCOL_CANONICAL = ['**[CRITICAL-THINKING-MINDSET]** ...', '## Common AI Mistake Prevention (System Lessons)', '- ...'].join('\n');
 const PROTOCOL_BOTH = `${PROTOCOL_CK_MARKERS}\n\n${PROTOCOL_CANONICAL}`;
+// AGENTS.md's surface form is the bounded context POINTER, never the protocol body inline —
+// its 32 KiB projection bound cannot fit the body (see agent-files-state.cjs contract note).
+// A complete AGENTS.md fixture therefore needs the pointer plus a seeded context file.
+const PROTOCOL_POINTER = [
+    '<!-- CODEX-CONTEXT-MIRROR:START -->',
+    'Read `.codex/CODEX_CONTEXT.md` before any non-trivial workflow or skill.',
+    `Context fingerprint (SHA-256): ${'0'.repeat(64)}`,
+    '<!-- CODEX-CONTEXT-MIRROR:END -->'
+].join('\n');
+function seedCodexContext(dir, body = PROTOCOL_CANONICAL) {
+    const contextDir = path.join(dir, '.codex');
+    fs.mkdirSync(contextDir, { recursive: true });
+    fs.writeFileSync(path.join(contextDir, 'CODEX_CONTEXT.md'), `# Codex context\n\n${body}\n`);
+}
 // Minimal complete file: current sentinel (hasUniversalGuides → true) PLUS the shared protocol
 // in both surface forms (getAgentFileIssues completeness now also requires the protocol).
 const COMPLETE_FILE = `${CURRENT_SENTINEL}\n# Project\n\n${PROTOCOL_BOTH}\n`;
+// Complete AGENTS.md: sentinel + context pointer (pair with seedCodexContext(tmpDir)).
+const COMPLETE_AGENTS_FILE = `${CURRENT_SENTINEL}\n# Project\n\n${PROTOCOL_POINTER}\n`;
 // Legacy complete file: no sentinel, but every required anchor heading present + the protocol.
 const LEGACY_COMPLETE_FILE = [
     '# Project',
@@ -95,6 +111,7 @@ function writeOptOutConfig(tmpDir) {
 /** Temp project that passes hasProjectContent() (needs a content dir like src/). */
 function createTempProjectDir() {
     const tmpDir = createTempDir();
+    fs.mkdirSync(path.join(tmpDir, '.claude'));
     fs.mkdirSync(path.join(tmpDir, 'src'), { recursive: true });
     return tmpDir;
 }
@@ -139,8 +156,11 @@ const libTests = [
             try {
                 // Complete fixtures (carry the sentinel): both present AND not incomplete,
                 // so hasMissingAgentFiles() — which now also flags incomplete — stays false.
+                // Each file gets ITS OWN surface form: CLAUDE.md inlines the protocol, AGENTS.md
+                // points at the context file that carries it.
                 fs.writeFileSync(path.join(tmpDir, 'CLAUDE.md'), COMPLETE_FILE);
-                fs.writeFileSync(path.join(tmpDir, 'AGENTS.md'), COMPLETE_FILE);
+                fs.writeFileSync(path.join(tmpDir, 'AGENTS.md'), COMPLETE_AGENTS_FILE);
+                seedCodexContext(tmpDir);
                 withEnv(tmpDir, () => {
                     const { getMissingAgentFiles, hasMissingAgentFiles } = freshState(tmpDir);
                     assertEqual(getMissingAgentFiles().length, 0, 'No missing files');
@@ -175,6 +195,7 @@ const libTests = [
         fn: async () => {
             const tmpDir = createTempDir();
             try {
+                fs.mkdirSync(path.join(tmpDir, '.claude'));
                 withEnv(tmpDir, () => {
                     const state = freshState(tmpDir);
                     assertTrue(!state.isAgentFilesDismissed(), 'Not dismissed before flag written');
@@ -196,6 +217,7 @@ const libTests = [
         fn: async () => {
             const tmpDir = createTempDir();
             try {
+                fs.mkdirSync(path.join(tmpDir, '.claude'));
                 withEnv(tmpDir, () => {
                     const state = freshState(tmpDir);
                     state.writeAgentFilesDismissFlag();
@@ -457,32 +479,69 @@ const universalGuidesTests = [
                 fs.writeFileSync(path.join(tmpDir, 'CLAUDE.md'), SENTINEL_NO_PROTOCOL_FILE);
                 fs.writeFileSync(path.join(tmpDir, 'AGENTS.md'), SENTINEL_NO_PROTOCOL_FILE);
                 withEnv(tmpDir, () => {
-                    const { getAgentFileIssues, hasUniversalGuides } = freshState(tmpDir);
+                    const { getAgentFileIssues, hasUniversalGuides, buildOfferMessage } = freshState(tmpDir);
                     // Guides alone read complete — proves the new requirement is the protocol, not the sentinel.
                     assertTrue(hasUniversalGuides(SENTINEL_NO_PROTOCOL_FILE), 'sentinel branch alone reads complete');
                     const issues = getAgentFileIssues();
                     assertEqual(issues.length, 2, 'Both flagged despite the current sentinel');
                     assertTrue(issues.every(i => i.reason === 'incomplete' && i.mode === 'update'), 'routed to update to re-bake protocol');
+                    // The message must name the half that actually failed. Reporting a
+                    // protocol-only failure as "missing the universal portable guides" sends the
+                    // reader hunting for guides that are demonstrably present (asserted above).
+                    assertTrue(issues.every(i => i.missing === 'protocol'), 'protocol-only failure is labelled protocol');
+                    const msg = buildOfferMessage(issues);
+                    assertContains(msg, 'the always-on shared protocol', 'message names the protocol, not the guides');
+                    assertTrue(!/missing the universal portable guides/.test(msg), 'does not misreport a protocol failure as a guides failure');
                 });
             } finally { cleanupTempDir(tmpDir); }
         }
     },
     {
         // Per-file probe correctness: CLAUDE.md is satisfied by CK: markers; AGENTS.md by the
-        // canonical `:full` phrase. A file carrying ONLY the OTHER surface's form must still be
-        // flagged for its own file so the two generators' outputs are each validated correctly.
-        name: '[agent-files-gate] protocol probes are per-file (CK markers vs canonical phrase)',
+        // context POINTER resolving to a context file that carries the canonical body. AGENTS.md
+        // is a bounded 32 KiB projection whose contract forbids duplicating that body inline, so
+        // requiring the phrases in AGENTS.md itself was unsatisfiable — this repo's blocks are
+        // 11 758 bytes against 3 992 bytes of headroom. Each generator's real output is validated.
+        name: '[agent-files-gate] protocol probes are per-file (CK markers vs context pointer)',
         fn: async () => {
             const tmpDir = createTempDir();
             try {
+                seedCodexContext(tmpDir);
                 withEnv(tmpDir, () => {
                     const { hasClaudeProtocol, hasAgentsProtocol } = freshState(tmpDir);
                     const ckOnly = '<!-- CK:CRITICAL-THINKING -->\nx\n<!-- /CK:CRITICAL-THINKING -->\n<!-- CK:AI-MISTAKE-PREVENTION -->\ny\n<!-- /CK:AI-MISTAKE-PREVENTION -->';
                     const canonicalOnly = '**[CRITICAL-THINKING-MINDSET]** x\n## Common AI Mistake Prevention (System Lessons)\n- y';
                     assertTrue(hasClaudeProtocol(ckOnly), 'CLAUDE.md probe matches CK: markers');
                     assertTrue(!hasClaudeProtocol(canonicalOnly), 'CLAUDE.md probe rejects canonical-only (no CK: markers)');
-                    assertTrue(hasAgentsProtocol(canonicalOnly), 'AGENTS.md probe matches canonical phrase');
-                    assertTrue(!hasAgentsProtocol(ckOnly), 'AGENTS.md probe rejects CK-only (no canonical phrase)');
+                    assertTrue(hasAgentsProtocol(PROTOCOL_POINTER), 'AGENTS.md probe matches the context pointer');
+                    assertTrue(!hasAgentsProtocol(ckOnly), 'AGENTS.md probe rejects CK-only (no context pointer)');
+                    // The old contract: body inline, no pointer. Must NOT satisfy the probe —
+                    // that shape is exactly what the 32 KiB bound makes impossible to generate.
+                    assertTrue(!hasAgentsProtocol(canonicalOnly), 'AGENTS.md probe rejects inline body without the pointer');
+                });
+            } finally { cleanupTempDir(tmpDir); }
+        }
+    },
+    {
+        // A pointer is only as good as what it points at: a dangling pointer, or a context file
+        // that lost the protocol bake, is genuinely incomplete and must route to the sync.
+        name: '[agent-files-gate] AGENTS.md probe follows the pointer (dangling / protocol-less context fails)',
+        fn: async () => {
+            const tmpDir = createTempDir();
+            try {
+                withEnv(tmpDir, () => {
+                    const { hasAgentsProtocol } = freshState(tmpDir);
+                    assertTrue(!hasAgentsProtocol(PROTOCOL_POINTER), 'pointer with no context file → incomplete');
+                });
+                seedCodexContext(tmpDir, '# no protocol baked here');
+                withEnv(tmpDir, () => {
+                    const { hasAgentsProtocol } = freshState(tmpDir);
+                    assertTrue(!hasAgentsProtocol(PROTOCOL_POINTER), 'context file missing the protocol body → incomplete');
+                });
+                seedCodexContext(tmpDir);
+                withEnv(tmpDir, () => {
+                    const { hasAgentsProtocol } = freshState(tmpDir);
+                    assertTrue(hasAgentsProtocol(PROTOCOL_POINTER), 'pointer + protocol-carrying context → complete');
                 });
             } finally { cleanupTempDir(tmpDir); }
         }

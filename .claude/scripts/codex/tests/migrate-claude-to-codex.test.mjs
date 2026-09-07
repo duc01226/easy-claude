@@ -170,7 +170,7 @@ test('migrate-claude-to-codex mirrors skills and injects protocol block', async 
         const codexNotifyScript = await fs.readFile(path.join(tempRoot, '.codex', 'scripts', 'codex', 'codex-notify.mjs'), 'utf8');
 
         assert.match(mirroredSkill, /CODEX:SYNC-PROMPT-PROTOCOLS:START/);
-        assert.match(mirroredSkill, /Hookless Prompt Protocol Mirror/);
+        assert.match(mirroredSkill, /Static Prompt Protocol Mirror/);
         assert.match(mirroredSkill, /Custom portable rule from local config\./);
         assert.match(mirroredSkill, /custom\/project-config\.json/);
         assert.match(mirroredSkill, /custom\/docs-index\.md/);

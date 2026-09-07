@@ -14,9 +14,11 @@ const path = require("path");
 const os = require("os");
 const { sanitizePath } = require("./ck-path-utils.cjs");
 const { validateCkConfig } = require("./ck-config-schema.cjs");
+const { resolveProjectRoot } = require("./project-root.cjs");
 
-const LOCAL_CONFIG_PATH = ".claude/.ck.json";
-const LOCAL_OVERRIDE_PATH = ".claude/.ck.local.json";
+const PROJECT_ROOT = resolveProjectRoot({ cwd: process.cwd(), scriptPath: __filename, env: process.env }).rootDir;
+const LOCAL_CONFIG_PATH = path.join(PROJECT_ROOT, ".claude", ".ck.json");
+const LOCAL_OVERRIDE_PATH = path.join(PROJECT_ROOT, ".claude", ".ck.local.json");
 const GLOBAL_CONFIG_PATH = path.join(os.homedir(), ".claude", ".ck.json");
 
 // Legacy export for backward compatibility
@@ -244,7 +246,7 @@ function loadConfig(options = {}) {
     includeAssertions = true,
     includeLocale = true,
   } = options;
-  const projectRoot = process.cwd();
+  const projectRoot = PROJECT_ROOT;
 
   // Load configs from all locations
   const globalConfig = loadConfigFromPath(GLOBAL_CONFIG_PATH);

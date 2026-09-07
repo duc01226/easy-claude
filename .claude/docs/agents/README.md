@@ -189,10 +189,10 @@ Task({
 
 ### Subagent Context (no SubagentStart hook)
 
-> There is **no** `SubagentStart` hook. Each agent's context contract — project rules,
+> There is **no** portable `SubagentStart` contract shared by every host. Each agent's context contract — project rules,
 > reports path, naming, and the development-rules / lessons read contract — is baked
 > statically into the agent's `.md` system prompt and the shared SYNC blocks it inlines,
-> so a hookless tool (Codex) gets identical guidance. Each agent's `.md`
+> so Claude and Codex get identical guidance whether a host hook is available or not. Each agent's `.md`
 > carries, in effect:
 
 ```

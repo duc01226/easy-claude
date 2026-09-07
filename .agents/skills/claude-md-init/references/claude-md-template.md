@@ -1,330 +1,95 @@
 <!-- CK:UNIVERSAL-GUIDES v6 -->
 
-<!-- The hook-independent Workflow-First Gate (CK:WORKFLOW-GATE block) AND the Workflow & Skills
-     Catalog (CK:WORKFLOW-SKILLS block — Workflows Index + composable step-skills, derived from
-     .claude/workflows.json) are stamped here automatically by generate-claude-md.cjs `stampHeader()`,
-     sourced from .claude/skills/shared/workflow-first-gate.md + .claude/scripts/lib/workflow-skills-catalog.cjs,
-     on every init/update — intentionally NOT inlined in this template to avoid drift. The catalog is
-     baked statically so a hookless read of CLAUDE.md can still pick the right workflow.
-
-     The FULL always-on protocol — critical-thinking (CK:CRITICAL-THINKING block) and AI-mistake-prevention
-     (CK:AI-MISTAKE-PREVENTION block) — is likewise STAMPED, not inlined: `stampHeader()` bakes it right
-     after the catalog (primacy) and `stampFooter()` re-bakes it at EOF (recency), both read from the
-     canonical .claude/skills/shared/sync-inline-versions.md `:full` sections via
-     .claude/scripts/lib/extract-sync-block.cjs. This gives CLAUDE.md, AGENTS.md, and Codex
-     the same hookless static protocol. Do not inline these blocks here — they would drift from canonical. -->
-
 # {project-name} - Code Instructions
 
 <!-- SECTION:tldr -->
-
 > **Project:** {project-name} — {project-description}
->
-> **Tech Stack:** {tech-stack-summary}
->
-> **Apps/Services:** {app-list}
-
 <!-- /SECTION:tldr -->
 
-**Sections:** [TL;DR](#tldr--what-you-must-know-before-writing-any-code) | [Search First](#search-existing-code-first) | [Workflow Advancement](#workflow-step-advancement--parallel-phases) | [Task Planning](#task-planning-rules) | [Code Hierarchy](#code-responsibility-hierarchy) | [Naming](#naming-conventions) | [Key Locations](#key-file-locations) | [Dev Commands](#development-commands) | [Evidence](#evidence-based-reasoning--investigation) | [Graph Intelligence](#graph-intelligence-when-code-graphgraphdb-exists) | [Skill Activation](#automatic-skill-activation)
+## First Action Decision
 
----
-
-## TL;DR — What You Must Know Before Writing Any Code
-
-<!-- SECTION:golden-rules -->
-
-**Golden Rules (memorize these):**
-
-1. {rule-1}
-2. {rule-2}
-3. {rule-3}
-
-<!-- /SECTION:golden-rules -->
-
-**Architecture Hierarchy** — Place logic in LOWEST layer: `Entity/Model > Service > Component/Handler`
-
-**First Principles (Code Quality in AI Era):**
-
-1. **Understanding > Output** — Never ship code you can't explain. AI generates candidates; humans validate intent.
-2. **Design Before Mechanics** — Document WHY before WHAT. A 3-sentence rationale prevents 3-day debugging sessions.
-3. **Own Your Abstractions** — Every dependency, framework, and runtime/provider decision is YOUR responsibility.
-4. **Operational Awareness** — Code that works but can't be debugged, monitored, or rolled back is technical debt in disguise.
-5. **Depth Over Breadth** — One well-understood solution beats ten AI-generated variants.
-
-<!-- The skeptic / critical-thinking callout that used to sit here is now STAMPED as the
-     CK:CRITICAL-THINKING block (top after the catalog + bottom at EOF) from canonical
-     sync-inline-versions.md `:full` — removed from this template to avoid a partial duplicate. -->
-
-<!-- SECTION:decision-quick-ref -->
-
-**Decision Quick-Ref:**
-
-| Task     | Pattern     |
-| -------- | ----------- |
-| {task-1} | {pattern-1} |
-
-<!-- /SECTION:decision-quick-ref -->
-
-## Search Existing Code First
-
-Before writing code, you MUST grep/glob for 3+ similar examples and follow the local pattern over generic framework docs. Cite `file:line` evidence in the plan.
-
-1. Grep/Glob for similar patterns (find 3+ examples).
-2. Follow the codebase pattern; don't default to framework docs.
-3. Provide `file:line` evidence in the plan.
-
-**Why:** projects have local conventions that differ from framework defaults.
-**Enforced by:** Feature/Bugfix/Refactor workflows (investigate steps).
+Apply the single CK:WORKFLOW-GATE above. A skill named as a noun is not an invocation; explicit execution requests win. Mixed research/modification intent follows the modification route. Route choice grants no operation authority.
 
 ## Project Reference Loading
 
-**Read `docs/project-config.json` first — the project's machine-readable map.** It is the single source of truth describing THIS repo: modules/paths, framework + search keywords, test/E2E/integration run-commands, design system, architecture rules, and workflow patterns. Consult its content to ground exact paths, run-commands, conventions, and rules **before investigating, planning, or coding** — never assume framework defaults. (`docs/project-config.json` + the reference docs below are what `CLAUDE.md` is generated from; read the config directly whenever you need precise paths, commands, or rules. If it is missing or still a skeleton, run `$project-init` or the narrow setup route first.)
+Read `docs/project-config.json` first, then `docs/project-reference/docs-index-reference.md` and `docs/project-reference/lessons.md` before investigating, planning, or coding. Config owns project paths, commands, modules, design-system mappings and conventions; local references override generic defaults. Classify the target and operation, then open only the matching context-group and index-routed detail immediately before the first target read/grep/edit/test; do not treat a hook reminder or prior conversation as proof that a document is loaded. State `Reference docs read: ... | Not applicable: ...`; after compaction, resume, delegation, or a context change, re-read the required docs and restate the set.
 
-Then route by changed path and read only the relevant docs:
-
-| Path → Reference Doc | Read first |
+| Task | Required detail under `docs/project-reference/` unless config overrides |
 | --- | --- |
-| Project structure, architecture, tech stack, deployment, or setup (any layer) | `docs/project-reference/project-structure-reference.md` |
-| Backend / CQRS / API / domain changes | `docs/project-reference/backend-patterns-reference.md` |
-| Frontend / Angular / state changes | `docs/project-reference/frontend-patterns-reference.md` |
-| Integration tests | `docs/project-reference/integration-test-reference.md` |
-| E2E tests | `docs/project-reference/e2e-test-reference.md` |
-| Specs / test cases / behavior contracts | `docs/project-reference/spec-system-reference.md`, `docs/project-reference/feature-spec-reference.md` |
-| SCSS / CSS / templates / design system | `docs/project-reference/design-system/design-system-canonical.md` |
+| Structure, architecture, stack, deployment, setup | `project-structure-reference.md` |
+| Backend/CQRS/API/domain/entity | `backend-patterns-reference.md`, `domain-entities-reference.md` |
+| Frontend/UI/style/design | `frontend-patterns-reference.md`, `scss-styling-guide.md`, `design-system/README.md` and its applicable canonical design-system doc |
+| Integration / E2E tests | `integration-test-reference.md` / `e2e-test-reference.md` |
+| Specs, TC authoring, derived indexes | `feature-spec-reference.md`, `spec-system-reference.md`, `spec-principles.md`; source Feature Specs under `docs/specs/` for derived artifacts |
+| Behavior/public contract or spec-test-code sync | Spec docs above plus `workflow-spec-test-code-cycle-reference.md` |
+| Review/audit | `code-review-rules.md` plus applicable domain docs |
 
-If the routing table is stale or a required doc is missing, run `$project-init` or the narrow setup route before coding.
-
----
-
-## First Action Decision (before any tool call)
-
-1. Explicit slash command — the message starts with `/command-name` as the first token (e.g. `$plan do X`). Execute that skill/workflow directly. Skill names referenced as nouns (e.g. "update /skill-a") are NOT slash commands; workflow detection still required.
-2. For ordinary prompts, evaluate the best path: execute directly, invoke a skill, activate a standard workflow, or compose a custom workflow. Auto-select the best option yourself; do not ask the user to choose the execution path.
-3. If the selected path is a workflow, call `$start-workflow <workflowId>`; if it is a skill, invoke that skill; if it is custom, sequence the steps manually; if direct is best, answer or implement directly.
-4. Create task tracking for multi-step selected paths before execution and keep it synchronized.
-
-**Modification beats research.** When a prompt mixes research and modification intent, treat it as modification (investigation is a substep of `$plan`).
-
----
-
-## Workflow Step Advancement & Parallel Phases
-
-<!-- Universal portable rule shipped by claude-md-init into every project — model-driven workflow progression, identical across Claude and Codex (AGENTS.md whole-file mirror), neither of which depends on a hook. The runtime workflow-protocol injector and any step-tracker hook are accelerators only. -->
-
-Workflow progression is **model-driven** — your responsibility, not a tool/hook/harness signal:
-
-1. **Advancement.** A step is complete when its work returns — whether run **inline** (a skill/step call) OR dispatched as a **sub-agent** (Agent / Task tool). A sub-agent completion advances the step **identically** to an inline call. Do not wait for any hook or tool event to advance; advance by judgment and your task list.
-2. **Parallel phase = all-return barrier.** When steps are declared a parallel-phase group, spawn **ALL** members together (one message), then advance **only after EVERY member returns**. Never start the next step — and never start any code-mutating step (e.g. `code-simplifier`) — until the whole group has returned. A conditional member whose trigger is absent counts as "returned."
-3. **Workflow-in-workflow → sub-agent (one exception).** A step that itself activates a multi-step workflow MUST run as a sub-agent; it returns only a summary and writes full findings to `plans/reports/`. This preserves context containment. **EXCEPTION — `workflow-review-changes`:** when it appears as a step inside ANY parent workflow (`workflow-feature`, `workflow-bugfix`, `workflow-refactor`, etc.) it MUST run INLINE in the main current session agent, NEVER as a sub-agent — its Step 0 `/goal` gate binds the session Stop hook and its step-15 re-review is inline by design; a sub-agent cannot own the Stop hook, so delegating it silently breaks the unabandonable review→fix→re-review loop. Its own step 2 and steps 4–10 reviewers stay sub-agents, so context stays bounded.
-4. **Hooks/trackers are accelerators only.** Any step-tracking hook is an optimization that may emit "next step" hints; correctness MUST NOT depend on it. Claude and Codex both run without a step-tracking hook and advance entirely by this rule.
-5. **Parallel sub-agent dispatch — plan it the moment a task list exists, before executing it.** Sequential-by-default is a **defect** when tasks are genuinely independent. Tag every task `PAR` (its inputs do not include another pending task's output AND its write set is disjoint from every other `PAR` task) or `SEQ` (name the specific dependency that forces it); group `PAR` tasks into **waves with disjoint write sets** (two writers of the same file never share a wave); declare it — `Parallel plan: wave 1 = [...] · wave 2 = [...] · SEQ = [...] (reason)`; spawn each wave's sub-agents in **ONE message** (never dripped one per turn), routed to their specialists; then honour the **all-return barrier** per wave — merge, mark each task completed/skipped, and only then dispatch the next wave. **Fan-out stays one level deep** — a dispatched sub-agent executes its own brief; further fan-out stays the orchestrator's job unless that agent's `.claude/agents/*.md` definition authorizes it. Applies to workflow steps, batch/bulk updates, investigation, research, scans, reviews, and doc sync. **Plan execution is metadata-gated, not default-parallel** — its phases fan out ONLY on what the plan explicitly declares (`PAR`/`SEQ` tags plus a declared per-phase write set); an untagged plan runs sequentially. **Do NOT parallelize:** tasks sharing a write target · a task consuming a pending task's output · trivial single-file work (dispatch overhead > gain) · an order a workflow explicitly fixes · gates awaiting user approval.
-
----
+If config, root instructions or required docs are missing or stale, run `$project-init` or the narrow `$project-config`, `$docs-init`, `$scan-all`, `$scan --target=<key>`, `$claude-md-init` setup route before ordinary work. If Codex mirrors or `AGENTS.md` are missing/stale, ask the user to run `$sync-codex`; never auto-run it. If required detail remains unavailable, stop and report its exact path; never invent rules or completion.
 
 ## Task Planning Rules
 
-1. Before editing files, MUST create a task tracking item per change.
-2. Break work into small todos; add a final review todo.
-3. Mark todos `completed` immediately after each one finishes. Keep exactly one `in_progress`.
-4. On context loss or compaction, call the current task list first — resume existing tasks, don't duplicate.
-5. Recommendations need traced evidence (`file:line`, grep, graph). No speculation.
-6. Recommendations that could break behavior require validation before proposing.
+Create a small task per change before edits; keep exactly one `in_progress`, complete it immediately after evidence, and include final consistency review. For non-trivial work resolve the active goal contract and observable acceptance criteria; persist findings incrementally to `plans/reports/`. On compaction inspect existing tasks/state and re-read files before continuing. Required quality gates and native host permissions cannot be waived by routing, overlays, delegation or completion pressure.
 
----
+## Workflow Step Advancement & Parallel Phases
+
+Advance by verified results and task state, never by waiting for a hook. Execute the selected canonical sequence without skipping or reordering gates. Inline and delegated returns use the same acceptance criteria; a return alone is not proof of completion.
+
+Tag independent disjoint-write tasks `PAR`; otherwise `SEQ` with the dependency. Declare waves before work; dispatch all members together and enforce the all-return barrier before the next step or mutation. Record absent conditional triggers as skipped. Never parallelize shared writers, dependent tasks, trivial work, fixed sequence gates or pending approvals. Plan execution fans out only with explicit PAR/SEQ metadata and per-phase write sets; untagged plans run sequentially.
+
+Nested workflows use a sub-agent with incremental report, except `workflow-review-changes` runs INLINE in the main session to own its goal and re-review loop. Its individual reviewers remain delegated. Fan-out is one level unless the agent definition authorizes more. Give each agent its concrete scope, owned files, required context and evidence obligations; verify actual outputs before acceptance.
+
+## Search Existing Code First
+
+Before writing, read target code and `.claude/docs/development-rules.md`; grep 3+ similar patterns and cite `file:line`. Verify matching preconditions before copying conventions. Trace dependencies and downstream consumers before renames/deletions; update affected source-derived docs. Naming and detailed implementation conventions come from applicable project references.
+
+<!-- SECTION:golden-rules -->
+<!-- /SECTION:golden-rules -->
 
 ## Code Responsibility Hierarchy
 
-Place logic in the lowest appropriate layer to enable reuse and prevent duplication.
-
-```
-Entity/Model (Lowest)  >  Service  >  Component/Handler (Highest)
-```
-
-| Layer            | Contains                                                                |
-| ---------------- | ----------------------------------------------------------------------- |
-| **Entity/Model** | Business logic, display helpers, static factory methods, default values |
-| **Service**      | API calls, command factories, data transformation                       |
-| **Component**    | UI event handling only — delegates all logic to lower layers            |
-
-**Anti-pattern:** logic in a component/handler that belongs in the entity → leads to duplicated code.
-
----
-
-## Naming Conventions
-
-| Type        | Convention       | Example                                |
-| ----------- | ---------------- | -------------------------------------- |
-| Constants   | UPPER_SNAKE_CASE | `MAX_RETRY_COUNT`                      |
-| Booleans    | Prefix with verb | `isActive`, `hasPermission`, `canEdit` |
-| Collections | Plural           | `users`, `items`, `orders`             |
-
----
-
-<!-- SECTION:key-locations -->
-
-## Key File Locations
-
-```
-{key-locations-tree}
-```
-
-<!-- /SECTION:key-locations -->
-
-<!-- SECTION:dev-commands -->
-
-## Development Commands
-
-```bash
-{dev-commands}
-```
-
-<!-- /SECTION:dev-commands -->
-
-<!-- SECTION:infra-ports -->
-
-## Infrastructure Ports
-
-| Service   | Port   | Credentials   |
-| --------- | ------ | ------------- |
-| {service} | {port} | {credentials} |
-
-<!-- /SECTION:infra-ports -->
-
-<!-- SECTION:api-ports -->
-
-## API Service Ports
-
-| API Service | Port   |
-| ----------- | ------ |
-| {service}   | {port} |
-
-<!-- /SECTION:api-ports -->
-
-<!-- SECTION:integration-testing -->
-
-## Integration Testing
-
-{integration-testing-summary}
-
-<!-- /SECTION:integration-testing -->
-
-<!-- SECTION:e2e-testing -->
-
-## E2E Testing
-
-{e2e-testing-summary}
-
-<!-- /SECTION:e2e-testing -->
-
----
+Place logic at the lowest invariant owner: Entity/Model > Service > Component/Handler. Mapping/constants/display rules belong to their model/DTO owner; services handle APIs/transformations; UI/handlers delegate. Trace origin → failing consumer and bypass paths before fixing. Protect all consumers at one authoritative layer; never scatter symptom patches. Keep generic framework surfaces project-neutral. Apply YAGNI/KISS/DRY, justify abstractions and operational tradeoffs, and ship only code you can explain.
 
 ## Evidence-Based Reasoning & Investigation
 
-Don't speculate. Every claim about code behavior — and every recommendation for changes — must be backed by evidence.
+Cite traced evidence for claims; distinguish observations from inference. State confidence: >80% to act, 60–80% verify first, <60% do not recommend. Verify behavior-changing recommendations before proposing. For microservices/events scan producers, consumers, sagas, sync calls, shared contracts and data ownership; name owners and additive/breaking risks. Never invent APIs, commands, counts or validation success. Run relevant tests and required reviews; retain failures and investigate their cause without weakening assertions to get green. Verify every affected output against the goal before claiming completion.
 
-### Core Rules
+## Graph Intelligence
 
-1. **Evidence before conclusion** — cite `file:line`, grep results, or framework docs. Don't use "obviously…", "I think…" without proof.
-2. **State your confidence** — every recommendation lists its confidence level and the evidence it rests on.
-3. **Inference alone isn't enough** — upgrade to code evidence when possible. When unsure, say _"I don't have enough evidence yet."_
-4. **Cross-service validation** — check all services before recommending architectural changes.
-5. **Graph trace before conclusion** — when investigating code flow, run a graph trace on key files.
-
-### Confidence Levels
-
-| Level       | Meaning                                         | Action                 |
-| ----------- | ----------------------------------------------- | ---------------------- |
-| **95-100%** | Full trace, all items verified                  | Recommend freely       |
-| **80-94%**  | Main paths verified, some edge cases unverified | Recommend with caveats |
-| **60-79%**  | Implementation found, usage partially traced    | Recommend cautiously   |
-| **<60%**    | Insufficient evidence                           | **DO NOT RECOMMEND**   |
-
----
-
-## Continuous Improvement — Lesson Extraction Gate
-
-> **[BLOCKING] Self-improvement loop — runs at the end of every non-trivial task.** This is the static, hook-independent home of the `$learn` gate: it binds Claude and Codex equally, with or without any hook firing.
-
-Add a final task — "Analyze AI mistakes & lessons learned" — to every non-trivial task list (see [Task Planning Rules](#task-planning-rules)). At task end, extract lessons by **ROOT CAUSE, not symptom**:
-
-Before project-specific work, read `docs/project-reference/lessons.md` when it exists; it is the static, hookless carrier for learned guardrails that used to be surfaced by prompt hooks.
-
-1. Name the **failure mode** (the reasoning/assumption failure), not the symptom — "assumed an API existed without reading the source", not "used the wrong enum value".
-2. **Generality test:** does this failure mode apply to ≥3 contexts/codebases? If not, abstract one level up.
-3. Write it as a **universal rule** — strip project-specific names/paths/classes so it is useful on any codebase.
-4. **Consolidate:** multiple mistakes sharing one failure mode → ONE lesson.
-5. **Recurrence gate:** "Would this recur in a future session WITHOUT this reminder?" — No → skip `$learn`.
-6. **Auto-fix gate:** "Could `$code-review` / `$code-simplifier` / `$security-review` / `$lint` catch this mechanically?" — Yes → improve that review skill instead of writing a lesson.
-7. **Both gates pass → ask the user to run `$learn`** to capture the lesson durably. Never silently self-edit instruction files.
-
----
+When `.code-graph/graph.db` exists, run at least one graph command on key files before concluding investigation, planning or verification. Use `trace <file> --direction both --json` through `.claude/scripts/code_graph` with the configured Python invocation; follow with connections/callers and source checks. Skip only when the graph database is absent.
 
 ## Git & Version-Control Discipline
 
-> **[BLOCKING] Hook-independent guardrail — binds Claude and Codex equally.** Where hooks run, `git-commit-block.cjs` enforces this as a hard PreToolUse block; on a hookless host (Codex) or an un-wired project this section is the ONLY guardrail — obey it without the block.
+- Never commit, push, or stage (`git add`) unless the user explicitly asks for that operation. Implementation approval, a workflow or delegated role grants none of these operations.
+- Never `git commit --amend`. Create a new commit only when authorized.
+- Branch before committing on the default branch (`main`/`master`).
+- Read-only inspection needs no permission. Index/worktree/history mutations and external publication must stay within actual user authority; never infer it from a read-only request.
+- Preserve unrelated/user work, custom content and existing backups. Never reset, overwrite or delete user data to satisfy a gate. Resolve exact destructive targets and obtain required authority; never access secrets or spend externally without authorization.
 
-1. **Never commit, push, or stage (`git add`) unless the user explicitly asks for it.** "Implement X" / "fix the bug" is NOT permission to commit — finish the work, report what changed, and wait. Only an explicit "commit"/"push" (or an invoked commit skill / git-manager) authorizes it.
-2. **Never `git commit --amend`.** Amending rewrites history and can corrupt commits once HEAD has moved — always create a NEW commit. No bypass.
-3. **Branch before committing on the default branch.** If asked to commit while on `main`/`master`, create a feature branch first.
-4. **Read-only git needs no permission** — `status`, `diff`, `log`, `show`, `branch`, `fetch`, `restore`, `reset HEAD` are always allowed.
+## Canonical Ownership
 
-**Why:** auto-committing/pushing unprompted publishes unreviewed work and can rewrite shared history — the highest-blast-radius irreversible action an agent can take — so it stays gated on explicit human intent on every host, not only where a hook fires.
+Edit framework source `.claude/**` and root source `CLAUDE.md`. Never hand-edit generated `.agents/`, `.codex/` or `AGENTS.md`; fix their source. Never auto-run `$sync-codex`; after source changes name stale mirrors and instruct the user to run it. Shared SYNC protocols remain inline: change `sync-inline-versions.md` first, propagate every consumer and verify exact bodies/fences. Regenerate affected catalogs and validate every output; no project-specific names in portable surfaces. Root regeneration preserves unmanaged prose or reports overflow explicitly; it never truncates it.
 
----
+## Project Protocol Overlays
 
-## Graph Intelligence (when .code-graph/graph.db exists)
+Before each skill, resolve the config-selected skill-protocol index (default `docs/project-reference/skill-protocols-reference.md`). Exact name > glob > `*`; only the winning specificity tier applies. Read matched bare-slug bodies under the configured protocols directory (default `docs/project-protocols/`), never the table Body-link path. Skip malformed names/escaping paths unread; absent registry/no match means no overlay. Overlays add rules; they never override skill obligations, authority, review or confirmation gates. Refuse and report conflicting lines; surface equal-specificity contradictions to the user.
 
-<HARD-GATE>
-You MUST run at least one graph command on key files before concluding any investigation, plan, or fix verification. Skip only when `.code-graph/graph.db` is absent.
-</HARD-GATE>
+## Design Gate
 
-### Quick CLI Reference
+For user-facing UI creation/reshaping apply BOTH usability/accessibility `UI-1.1`–`UI-9.4` and identity `DD-1`–`DD-8`; read `.claude/docs/design-knowledge.md` and `.claude/docs/design-review-checklist.md` first. Name subject/audience/job; write a reasoned colour/type/layout/principles Design Plan, run the blocking similar-prompt generic test and revise defaults before building. Critique the built page and remove one accessory. Explicit brief wins, then established project design system/ADRs; surface genuine conflicts. Carry the plan and design-system paths into UI agent briefs. State N/A only when no visual surface changes.
 
-```bash
-python .claude/scripts/code_graph trace <file> --direction both --json                    # Full system flow
-python .claude/scripts/code_graph trace <file> --direction both --node-mode file --json   # File-level overview
-python .claude/scripts/code_graph connections <file> --json                               # Structural relationships
-python .claude/scripts/code_graph query callers_of <function> --json                      # All callers
-python .claude/scripts/code_graph query tests_for <function> --json                       # Test coverage
-python .claude/scripts/code_graph batch-query <f1> <f2> <f3> --json                       # Multiple files at once
-python .claude/scripts/code_graph search <keyword> --kind Function --json                 # Find by keyword
-```
+UI planning/review/building also applies checklist `CL-1`–`CL-6`: establish platform/context, cite findings, never invent measurements (`NOT VERIFIABLE` when unavailable), rank P0–P4, sweep A–N with F/G/H/L conditional, report in O shape (P triage when constrained). Plans carry platform applicability, eight screen states and accessibility acceptance criteria. Report each defect once across UI/DD/CL.
 
-**Pattern:** Grep finds files > trace reveals system flow > grep verifies details.
+## Continuous Improvement — Lesson Extraction Gate
 
----
+Add `Analyze AI mistakes & lessons learned` to non-trivial tasks. Extract the root reasoning failure, generalize to at least three contexts, remove project specifics and consolidate duplicates. Skip nonrecurring lessons; improve the review skill when mechanical review can catch the failure. If recurring and not mechanically catchable, ask the user to run `$learn`; never silently self-edit instructions.
 
-## Automatic Skill Activation
+<!-- SECTION:dev-commands -->
+<!-- /SECTION:dev-commands -->
 
 <!-- SECTION:skill-activation -->
-
-When editing files matching these path patterns, pre-read the listed context first:
-
-| Path Pattern   | Skill / Auto-Context | Pre-Read Files   |
-| -------------- | -------------------- | ---------------- |
-| {path-pattern} | {skill}              | {pre-read-files} |
-
 <!-- /SECTION:skill-activation -->
 
-**Spec-driven docs routing:** before writing or reviewing Feature Specs, test cases, derived spec indexes, or behavior-changing work, read `docs/project-config.json` and `docs/project-reference/docs-index-reference.md`, then open the local spec docs: `feature-spec-reference.md`, `spec-system-reference.md`, `spec-principles.md`, and `workflow-spec-test-code-cycle-reference.md` when specs/tests/code must stay synchronized. Use fixed spec root `docs/specs/`.
-
----
-
-<!-- SECTION:doc-index -->
-
-## Documentation Index
-
-{doc-index-tree}
-
-<!-- /SECTION:doc-index -->
-
 <!-- SECTION:doc-lookup -->
-
-### Doc Lookup Guide
-
-| If user prompt mentions... | Read first |
-| -------------------------- | ---------- |
-| {topic}                    | {doc-path} |
-
 <!-- /SECTION:doc-lookup -->
+
+Critical reminders: operate only within user authority; preserve user work and canonical ownership; verify evidence and every required gate before completion.

@@ -38,7 +38,7 @@
 
 -   Use `/plan` skill to create an implementation plan with tasks in `./plans/`
 -   Use `/research` skill for investigating technical topics before planning
--   Validate plan via `/plan-review` (recursive until PASS) and `/plan-validate` (critical questions)
+-   Validate plan via `/plan-review` (recursive until its current severity bar is clear) and `/plan-validate` (critical questions)
 -   **DO NOT** create new enhanced files — update existing files directly
 
 ## Phase 2: Design Review
@@ -67,7 +67,7 @@
 
 ## Phase 5: Quality
 
--   Use `/workflow-review-changes` for the canonical changes-review workflow (inline changes-review + whole-target why-review in parallel → findings validation → specialist reviewers → code-simplifier → fix/re-review → final whole-target why-review), then continue until clean
+-   Use `/workflow-review-changes` for the canonical changes-review workflow (inline changes-review + whole-target why-review in parallel → findings validation → specialist reviewers → code-simplifier → fix/re-review → final whole-target why-review), then continue until the current severity bar is clear (Round 2+ LOW-only findings are deferred)
 -   Alternatively use individual skills: `/code-simplifier`, `/code-review`, `/architecture-review`, `/performance-review`
 -   Follow coding standards and conventions
 -   Optimize for performance and maintainability

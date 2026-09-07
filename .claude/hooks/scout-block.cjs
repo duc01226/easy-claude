@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+'use strict';
 /**
  * scout-block.cjs - Cross-platform hook for blocking directory access
  *
@@ -20,8 +21,8 @@
  * - 2: Command blocked
  */
 
-const fs = require("fs");
 const path = require("path");
+const { runPreToolHookSync } = require('./lib/hook-runner.cjs');
 
 // Broad-pattern-detector loaded eagerly (used before build-command check for Glob tool)
 const {
@@ -93,97 +94,63 @@ function isBuildCommand(command) {
   return false;
 }
 
-try {
-  // Read stdin synchronously
-  const hookInput = fs.readFileSync(0, "utf-8");
-
-  // Validate input not empty
-  if (!hookInput || hookInput.trim().length === 0) {
-    // Without a payload there is no path to evaluate, so preserve the hook's
-    // fail-open policy for malformed or incomplete delivery.
-    console.error("WARN: Empty input, allowing operation");
-    process.exit(0);
-  }
-
-  // Parse JSON
-  let data;
-  try {
-    data = JSON.parse(hookInput);
-  } catch (parseError) {
-    // Fail-open for unparseable input
-    console.error("WARN: JSON parse failed, allowing operation");
-    process.exit(0);
-  }
-
-  // Validate structure
-  if (!data.tool_input || typeof data.tool_input !== "object") {
-    // Fail-open for invalid structure
-    console.error("WARN: Invalid JSON structure, allowing operation");
-    process.exit(0);
+function evaluate(data) {
+  if (!data || typeof data !== 'object') return undefined;
+  if (!Object.prototype.hasOwnProperty.call(data, 'tool_input') || !data.tool_input || typeof data.tool_input !== 'object' || Array.isArray(data.tool_input)) {
+    return {
+      stderr: 'WARN: Invalid PreToolUse structure, allowing operation\n',
+      decision: 'input-warning'
+    };
   }
 
   const toolInput = data.tool_input;
-  const toolName = data.tool_name || "unknown";
+  const toolName = data.tool_name || 'unknown';
 
-  // Check if it's a build command (allowed regardless of paths)
-  if (toolInput.command && isBuildCommand(toolInput.command)) {
-    process.exit(0);
-  }
-
-  // Check for overly broad glob patterns (Glob tool)
-  // This prevents LLMs from filling context with **/*.ts at project root
-  if (toolName === "Glob" || toolInput.pattern) {
+  // Check for overly broad glob patterns (Glob tool).
+  if (toolName === 'Glob' || toolInput.pattern) {
     const broadResult = detectBroadPatternIssue(toolInput);
     if (broadResult.blocked) {
       const errorMsg = formatBroadPatternError(
         broadResult,
         path.dirname(__dirname),
       );
-      console.error(errorMsg);
-      process.exit(2);
+      return { code: 2, stderr: `${errorMsg}\n`, decision: 'block' };
     }
   }
 
-  // Lazy-load heavy modules (pattern-matcher loads vendored 'ignore' package)
+  // Lazy-load heavy modules (pattern-matcher loads vendored 'ignore' package).
   const { loadPatterns, createMatcher, matchPath } = getPatternMatcher();
   const { extractFromToolInput } = getPathExtractor();
   const { formatBlockedError } = getErrorFormatter();
 
-  // Load patterns from .ckignore
   const scriptDir = __dirname;
-  const claudeDir = path.dirname(scriptDir); // Go up from hooks/ to .claude/
-  const ckignorePath = path.join(claudeDir, ".ckignore");
+  const claudeDir = path.dirname(scriptDir);
+  const ckignorePath = path.join(claudeDir, '.ckignore');
   const patterns = loadPatterns(ckignorePath);
   const matcher = createMatcher(patterns);
-
-  // Extract paths from tool input (pass toolName so Grep pattern is skipped)
   const extractedPaths = extractFromToolInput(toolInput, toolName);
 
-  // If no paths extracted, allow operation
-  if (extractedPaths.length === 0) {
-    process.exit(0);
-  }
-
-  // Check each path against patterns
   for (const extractedPath of extractedPaths) {
     const result = matchPath(matcher, extractedPath);
     if (result.blocked) {
-      // Output rich error message
       const errorMsg = formatBlockedError({
         path: extractedPath,
         pattern: result.pattern,
         tool: toolName,
-        claudeDir: claudeDir,
+        claudeDir,
       });
-      console.error(errorMsg);
-      process.exit(2);
+      return { code: 2, stderr: `${errorMsg}\n`, decision: 'block' };
     }
   }
 
-  // All paths allowed
-  process.exit(0);
-} catch (error) {
-  // Fail-open for unexpected errors
-  console.error("WARN: Hook error, allowing operation -", error.message);
-  process.exit(0);
+  return undefined;
 }
+
+if (require.main === module) {
+  runPreToolHookSync('scout-block', evaluate, {
+    inputErrorCode: 0,
+    errorExitCode: 0
+  });
+}
+
+module.exports = { isBuildCommand, evaluate };

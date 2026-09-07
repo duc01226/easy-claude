@@ -437,11 +437,13 @@ const desktopBehaviorTests = [
     },
     {
         name: '[notification] desktop Windows uses PowerShell script',
-        fn: () => {
-            const content = fs.readFileSync(DESKTOP_PROVIDER, 'utf8');
-            // Windows uses external PowerShell script for notifications
-            assertContains(content, 'notify-windows.ps1', 'Should reference Windows PowerShell script');
-            assertContains(content, '-WindowStyle Hidden', 'Should hide PowerShell window');
+        fn: async () => {
+            // Exercise the captured process boundary, not the old command-string spelling.
+            // This oracle mocks subprocesses and verifies script path, literal flags and windowsHide.
+            const windowsOracle = require('./desktop-argv.test.cjs').tests.find(test =>
+                test.name === '[TC-HARNESS-003] win32: bounded literal argv property and benign controls');
+            assertTrue(Boolean(windowsOracle), 'Windows executable-argv oracle must exist');
+            await windowsOracle.fn();
         }
     },
     {

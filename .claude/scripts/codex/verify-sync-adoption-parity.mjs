@@ -31,9 +31,16 @@
 
 import fs from 'node:fs/promises';
 import path from 'node:path';
+import { createRequire } from 'node:module';
 import { fileURLToPath } from 'node:url';
 
-const rootDir = process.cwd();
+const require = createRequire(import.meta.url);
+const { resolveProjectRoot } = require('../lib/project-root.cjs');
+const rootDir = resolveProjectRoot({
+    cwd: process.cwd(),
+    scriptPath: fileURLToPath(import.meta.url),
+    env: process.env,
+}).rootDir;
 const TAG = '[codex-verify-sync-adoption-parity]';
 
 const INJECTOR = path.join(rootDir, '.claude', 'scripts', 'inject_review_skill_blocks.py');

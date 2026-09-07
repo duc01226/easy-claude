@@ -17,14 +17,78 @@
 const fs = require('fs');
 const path = require('path');
 
+// The validator is also a portable release artifact: users may copy this
+// script (and a skills tree) without the rest of this repository.  Prefer the
+// project's shared root resolver when it is available, but never make that
+// repository-only helper a hard runtime dependency.
+let resolveProjectRoot;
+try {
+  ({ resolveProjectRoot } = require('../../../scripts/lib/project-root.cjs'));
+} catch (_) {
+  resolveProjectRoot = null;
+}
+
+function fallbackProjectRoot({ cwd, env, mutation = false }) {
+  const explicit = env && typeof env.CLAUDE_PROJECT_DIR === 'string'
+    ? env.CLAUDE_PROJECT_DIR.trim()
+    : '';
+  if (explicit && mutation) {
+    if (!path.isAbsolute(explicit)) throw new Error('CLAUDE_PROJECT_DIR must be an absolute path');
+    let exists = false;
+    try { exists = fs.statSync(explicit).isDirectory(); } catch (_) {}
+    if (!exists) throw new Error('CLAUDE_PROJECT_DIR must name an existing directory');
+  }
+  if (explicit && path.isAbsolute(explicit)) return path.resolve(explicit);
+
+  let current = path.resolve(cwd || process.cwd());
+  while (true) {
+    if (fs.existsSync(path.join(current, '.claude'))) return current;
+    const parent = path.dirname(current);
+    if (parent === current) break;
+    current = parent;
+  }
+  return path.resolve(cwd || process.cwd());
+}
+
 // --- Configuration ---
-const PROJECT_ROOT = process.env.CLAUDE_PROJECT_DIR || process.cwd();
 const args = process.argv.slice(2);
 const FIX_MODE = args.includes('--fix');
+let PROJECT_ROOT;
+try {
+  if (resolveProjectRoot) {
+    const resolution = resolveProjectRoot({ cwd: process.cwd(), scriptPath: __filename, env: process.env });
+    if (FIX_MODE && resolution.error) throw new Error(resolution.error);
+    PROJECT_ROOT = resolution.rootDir;
+  } else {
+    PROJECT_ROOT = fallbackProjectRoot({ cwd: process.cwd(), env: process.env, mutation: FIX_MODE });
+  }
+} catch (error) {
+  if (FIX_MODE) {
+    console.error(`Refusing to fix skills: ${error.message}`);
+    process.exit(2);
+  }
+  PROJECT_ROOT = fallbackProjectRoot({ cwd: process.cwd(), env: process.env });
+}
 const pathArg = args.indexOf('--path');
-const SCAN_DIR = pathArg !== -1 && args[pathArg + 1]
+const requestedScan = pathArg !== -1 && args[pathArg + 1]
   ? path.resolve(PROJECT_ROOT, args[pathArg + 1])
   : path.resolve(PROJECT_ROOT, '.claude/skills');
+
+function canonicalIfPresent(target) {
+  try { return fs.realpathSync.native(target); } catch (_) { return path.resolve(target); }
+}
+
+function isWithin(root, target) {
+  const relative = path.relative(root, target);
+  return relative === '' || (relative !== '..' && !relative.startsWith(`..${path.sep}`) && !path.isAbsolute(relative));
+}
+
+const PROJECT_ROOT_CANONICAL = canonicalIfPresent(PROJECT_ROOT);
+const SCAN_DIR = canonicalIfPresent(requestedScan);
+if (!isWithin(PROJECT_ROOT_CANONICAL, SCAN_DIR)) {
+  console.error(`Refusing to scan outside project root: ${requestedScan}`);
+  process.exit(2);
+}
 
 // Official Claude Code SKILL.md frontmatter fields
 // Source: https://code.claude.com/docs/en/skills
@@ -60,7 +124,14 @@ const VALID_FIELDS = new Set([
 // `infer` is a deprecated Claude field; `tools` is the canonical typo for `allowed-tools`.
 const DEFAULT_REMOVABLE_FIELDS = ['infer'];
 const DEFAULT_FIELD_FIXES = { 'tools': 'allowed-tools' };
-// Convention fields are intentionally EMPTY by default — fully project-driven.
+// Lifecycle metadata is consumed by the portable catalog/GC tooling itself,
+// so it is a framework convention rather than an unknown vendor field. The
+// validator still validates its values below; accepting the names must not
+// turn malformed lifecycle state into a silent pass.
+const DEFAULT_LIFECYCLE_FIELDS = ['status', 'deprecated_by', 'deprecated_since', 'removal_after'];
+const LIFECYCLE_STATUSES = new Set(['active', 'deprecated', 'experimental']);
+const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
+// Other convention fields remain fully project-driven.
 const DEFAULT_CONVENTION_FIELDS = [];
 
 /**
@@ -87,7 +158,7 @@ function loadSkillConventions() {
   const fixes = (sc.fieldFixes && typeof sc.fieldFixes === 'object') ? sc.fieldFixes : {};
 
   return {
-    conventionFields: new Set([...DEFAULT_CONVENTION_FIELDS, ...convention]),
+    conventionFields: new Set([...DEFAULT_CONVENTION_FIELDS, ...DEFAULT_LIFECYCLE_FIELDS, ...convention]),
     removableFields: new Set([...DEFAULT_REMOVABLE_FIELDS, ...removable]),
     fieldFixes: { ...DEFAULT_FIELD_FIXES, ...fixes },
     configPath,
@@ -157,7 +228,10 @@ function findSkillFiles(dir) {
   for (const entry of entries) {
     const fullPath = path.join(dir, entry.name);
     if (entry.isDirectory()) {
-      if (entry.name === 'node_modules' || entry.name.startsWith('.')) continue;
+      // `_templates/template-skill` is a scaffolding source, not a runnable
+      // skill. The catalog and scan_skills.py exclude it, so the validator must
+      // share that inventory boundary instead of reporting a phantom skill.
+      if (entry.name === 'node_modules' || entry.name.startsWith('.') || entry.name === 'template-skill') continue;
       results.push(...findSkillFiles(fullPath));
     } else if (entry.name === 'SKILL.md') {
       results.push(fullPath);
@@ -175,6 +249,116 @@ function isMultilineDescription(fm) {
   return desc.lines.length > 1;
 }
 
+function scalarFieldValue(fm, field) {
+  const entry = fm.fields.get(field);
+  if (!entry) return null;
+  const value = String(entry.value || '').trim();
+  if (!value || /^null$/i.test(value) || /^~$/.test(value)) return null;
+  return value.replace(/^(['"])(.*)\1$/, '$2');
+}
+
+function isIsoCalendarDate(value) {
+  if (!ISO_DATE.test(value)) return false;
+  const date = new Date(`${value}T00:00:00.000Z`);
+  return Number.isFinite(date.getTime()) && date.toISOString().slice(0, 10) === value;
+}
+
+/**
+ * Validate the lifecycle metadata consumed by generate_catalogs.py/scan_skills.py.
+ * These fields are framework conventions, but malformed lifecycle state must
+ * fail rather than silently changing catalog inclusion or deprecation timing.
+ */
+function validateLifecycle(fm, result) {
+  const status = scalarFieldValue(fm, 'status') || 'active';
+  if (!LIFECYCLE_STATUSES.has(status)) {
+    result.issues.push({
+      severity: 'error', field: 'status',
+      message: `Unknown lifecycle status "${status}" — expected active, deprecated, or experimental`,
+    });
+  }
+
+  const deprecatedBy = scalarFieldValue(fm, 'deprecated_by');
+  const deprecatedSince = scalarFieldValue(fm, 'deprecated_since');
+  const removalAfter = scalarFieldValue(fm, 'removal_after');
+
+  if (status === 'deprecated' && !deprecatedBy) {
+    result.issues.push({ severity: 'error', field: 'deprecated_by', message: 'Deprecated skills must name a replacement in deprecated_by' });
+  }
+  if (status !== 'deprecated' && (deprecatedBy || deprecatedSince || removalAfter)) {
+    result.issues.push({
+      severity: 'error', field: 'status',
+      message: 'deprecated_by, deprecated_since, and removal_after require status: deprecated',
+    });
+  }
+
+  for (const [field, value] of [['deprecated_since', deprecatedSince], ['removal_after', removalAfter]]) {
+    if (value && !isIsoCalendarDate(value)) {
+      result.issues.push({ severity: 'error', field, message: `Lifecycle field "${field}" must use ISO date YYYY-MM-DD` });
+    }
+  }
+  if (deprecatedSince && removalAfter && isIsoCalendarDate(deprecatedSince) && isIsoCalendarDate(removalAfter) && removalAfter < deprecatedSince) {
+    result.issues.push({ severity: 'error', field: 'removal_after', message: 'removal_after must not precede deprecated_since' });
+  }
+}
+
+/**
+ * Report structural body issues without adding destructive auto-fixes.
+ */
+function validateBody(fm, result) {
+  const summaryIndex = fm.allLines.findIndex((line, index) =>
+    index > fm.endLine && /^## Quick Summary\s*$/.test(line));
+  if (summaryIndex === -1 || summaryIndex >= 30) {
+    result.issues.push({
+      severity: 'warn', field: null,
+      message: `Quick Summary must appear in the first 30 lines (${summaryIndex === -1 ? 'missing' : `found at line ${summaryIndex + 1}`})`,
+    });
+  }
+
+  const stack = [];
+  let fence = null;
+  for (let index = fm.endLine + 1; index < fm.allLines.length; index++) {
+    const sourceLine = fm.allLines[index];
+    const trimmedLine = sourceLine.trimStart();
+    let fenceLength = 0;
+    if (trimmedLine.startsWith('```') || trimmedLine.startsWith('~~~')) {
+      const marker = trimmedLine[0];
+      while (trimmedLine[fenceLength] === marker) fenceLength++;
+      if (fenceLength >= 3 && !fence) fence = { marker, length: fenceLength };
+      else if (fence && fence.marker === marker && fenceLength >= fence.length) fence = null;
+      continue;
+    }
+    if (fence) continue;
+
+    // Standalone fences only: inline examples and fenced code samples are
+    // prose/data, not live protocol carriers.
+    const match = fm.allLines[index].match(/^<!--\s*(\/?)SYNC:([^\s<>]+)\s*-->\s*$/);
+    if (!match) continue;
+
+    const [, closing, tag] = match;
+    const line = index + 1;
+    if (!closing) {
+      stack.push({ tag, line });
+      continue;
+    }
+
+    const expected = stack[stack.length - 1];
+    if (!expected) {
+      result.issues.push({ severity: 'error', field: null, message: `Unexpected SYNC close "${tag}" at line ${line}` });
+    } else if (expected.tag !== tag) {
+      result.issues.push({
+        severity: 'error', field: null,
+        message: `Mismatched SYNC close "${tag}" at line ${line}; expected "${expected.tag}" opened at line ${expected.line}`,
+      });
+    } else {
+      stack.pop();
+    }
+  }
+
+  for (const { tag, line } of stack) {
+    result.issues.push({ severity: 'error', field: null, message: `Unclosed SYNC tag "${tag}" opened at line ${line}` });
+  }
+}
+
 /**
  * Validate a single SKILL.md file.
  * Returns { path, issues[], fixes[] }
@@ -189,6 +373,9 @@ function validateSkill(filePath) {
     result.issues.push({ severity: 'error', field: null, message: 'No YAML frontmatter found' });
     return result;
   }
+
+  validateBody(fm, result);
+  validateLifecycle(fm, result);
 
   // Missing description
   if (!fm.fields.has('description')) {

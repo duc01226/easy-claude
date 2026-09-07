@@ -5,6 +5,7 @@
  * Extracts file_path, path, pattern params and parses Bash commands
  * to find all path-like arguments.
  */
+const { inspectCommand } = require('../lib/command-inspection.cjs');
 
 /**
  * Extract all paths from a tool_input object
@@ -57,24 +58,27 @@ function extractFromCommand(command) {
 
   const paths = [];
 
-  // First, extract quoted strings (preserve spaces in paths)
-  const quotedPattern = /["']([^"']+)["']/g;
-  let match;
-  while ((match = quotedPattern.exec(command)) !== null) {
-    if (looksLikePath(match[1])) {
-      paths.push(normalizeExtractedPath(match[1]));
-    }
-  }
+  // Keep quoted words in their argument position. Separate quote scanning
+  // loses whether "build" is npm's operation or a later filesystem operand.
+  const inspected = inspectCommand(command);
+  const tokens = inspected.diagnostics.some(item => item.code === 'INPUT_LIMIT')
+    ? (command.match(/"[^"]*"|'[^']*'|[^\s]+/g) || []).map(normalizeExtractedPath)
+    : inspected.statements.flatMap(statement => [
+    ...statement.tokens.map(token => token.static ? token.value : token.raw),
+    ...(statement.separator ? [statement.separator.value] : [])
+  ]);
 
-  // Remove quoted strings for unquoted path extraction
-  const withoutQuotes = command.replace(/["'][^"']*["']/g, " ");
-
-  // Split on whitespace and extract path-like tokens
-  const tokens = withoutQuotes.split(/\s+/).filter(Boolean);
-
-  for (const token of tokens) {
+  for (let index = 0; index < tokens.length; index++) {
+    const token = tokens[index];
     // Skip flags and shell operators
     if (isSkippableToken(token)) continue;
+
+    // A build/test/lint word is an operation when it follows a recognized
+    // build tool or an explicit package-manager verb. It is not a filesystem
+    // operand in that position. Do not use this as a command-wide bypass:
+    // paths in the same command and every later compound segment are still
+    // extracted and matched against .ckignore.
+    if (isBuildOperationToken(tokens, index)) continue;
 
     // Priority check: if token IS a blocked directory name exactly, include it
     // This handles cases like "cd build" where "build" is both a command word
@@ -94,6 +98,34 @@ function extractFromCommand(command) {
   }
 
   return paths;
+}
+
+const BUILD_TOOLS = new Set([
+  'npm', 'pnpm', 'yarn', 'bun', 'npx', 'pnpx', 'bunx', 'tsc', 'esbuild', 'vite',
+  'webpack', 'rollup', 'turbo', 'nx', 'jest', 'vitest', 'mocha', 'eslint',
+  'prettier', 'go', 'cargo', 'make', 'mvn', 'mvnw', 'gradle', 'gradlew', 'dotnet',
+  'docker', 'podman', 'kubectl', 'helm', 'terraform', 'ansible', 'bazel', 'cmake',
+  'sbt', 'flutter', 'swift', 'ant', 'ninja', 'meson', 'python', 'python3', 'pip', 'pipx'
+]);
+const BUILD_OPERATIONS = new Set(['build', 'test', 'lint', 'dev', 'start', 'install', 'ci', 'exec', 'run']);
+
+function isBuildOperationToken(tokens, index) {
+  const token = String(tokens[index] || '').toLowerCase();
+  if (!BUILD_OPERATIONS.has(token)) return false;
+  let segmentStart = index;
+  // Match the scanner's supported separators, including a physical newline.
+  while (segmentStart > 0 && !['&&', '||', ';', '|', '\n'].includes(tokens[segmentStart - 1])) segmentStart--;
+  const segment = tokens.slice(segmentStart, index + 1).filter(value => !isSkippableToken(value));
+  const executable = String(segment[0] || '').replace(/^.*[\\/]/, '').toLowerCase().replace(/\.exe$/, '');
+  if (segment.length === 0 || !BUILD_TOOLS.has(executable)) return false;
+  const previous = String(tokens[index - 1] || '').toLowerCase();
+  if (previous === 'run' || previous === 'exec' || previous === 'workspace') return true;
+  // Tool invocations may place a script/project path between the tool and
+  // its operation (for example `python .claude/scripts/code_graph build`).
+  // Treat the operation token as a command word, while still extracting every
+  // other operand in the segment so a blocked path cannot hide behind the
+  // build exemption (for example `dotnet build node_modules/app.csproj`).
+  return segment.length >= 2 && BUILD_TOOLS.has(executable);
 }
 
 // Common blocked directory names that should be extracted even if they

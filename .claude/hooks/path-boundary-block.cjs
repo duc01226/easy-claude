@@ -12,6 +12,20 @@
 
 const path = require('path');
 const fs = require('fs');
+const { resolveProjectRoot } = require('./lib/project-root.cjs');
+const { evaluateBoundary } = require('./lib/path-boundary-policy.cjs');
+const { inspectCommand } = require('./lib/command-inspection.cjs');
+const { runPreToolHookSync } = require('./lib/hook-runner.cjs');
+const { reportHookInternalError } = require('./lib/debug-log.cjs');
+
+function inspectBoundaryCommand(command) {
+    try {
+        return inspectCommand(command);
+    } catch (error) {
+        reportHookInternalError('path-boundary-block', 'command inspection failed', error);
+        throw error;
+    }
+}
 
 // Lazy-load ck-path-utils (deferred until after isBoundaryCheckDisabled early exit)
 let _ckPathUtils;
@@ -24,7 +38,11 @@ function getCkPathUtils() {
  * @returns {string} Normalized project root path
  */
 function getProjectRoot() {
-    const root = process.env.CLAUDE_PROJECT_DIR || process.cwd();
+    const resolution = resolveProjectRoot({ cwd: process.cwd(), scriptPath: __filename, env: process.env });
+    if (resolution.source === 'invalid-env-fallback') {
+        throw new Error(`Unable to resolve project root: ${resolution.error}`);
+    }
+    const root = resolution.rootDir;
     return getCkPathUtils().normalizePathForComparison(root);
 }
 
@@ -37,8 +55,9 @@ function decodePath(p) {
     if (!p) return '';
     try {
         return decodeURIComponent(p);
-    } catch {
-        return p; // Return as-is if invalid encoding
+    } catch (error) {
+        reportHookInternalError('path-boundary-block', 'invalid URI-encoded path', error);
+        throw new Error(`Unable to decode path safely: ${error.message}`);
     }
 }
 
@@ -48,7 +67,7 @@ function decodePath(p) {
  * @param {string} projectRoot - Project root for relative path resolution
  * @returns {string} Absolute resolved path
  */
-function resolveRealPath(p, projectRoot) {
+function resolveRealPath(p, projectRoot, options = {}) {
     if (!p) return '';
 
     // Decode URI components first
@@ -76,8 +95,16 @@ function resolveRealPath(p, projectRoot) {
     // Try to resolve symlinks (fail gracefully if file doesn't exist)
     try {
         resolved = fs.realpathSync(resolved);
-    } catch {
-        // File may not exist yet (Write operation), use resolved path
+    } catch (error) {
+        if (error?.code !== 'ENOENT' && error?.code !== 'ENOTDIR') {
+            reportHookInternalError('path-boundary-block', 'realpath resolution failed', error);
+            throw new Error(`Unable to resolve path safely: ${error.message}`);
+        }
+        const verificationRoot = options.projectRoot || projectRoot;
+        if (options.requiresExisting && fs.existsSync(verificationRoot)) {
+            throw new Error(`Path does not exist and cannot be verified safely: ${decoded}`);
+        }
+        // File may not exist yet (Write operation), use resolved path.
     }
 
     return getCkPathUtils().normalizePathForComparison(resolved);
@@ -97,13 +124,8 @@ function buildAllowlist() {
  * @returns {string[]} Array value or empty array
  */
 function getConfigArray(key) {
-    try {
-        const configPath = path.join(process.cwd(), '.claude', '.ck.json');
-        const config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
-        return Array.isArray(config[key]) ? config[key] : [];
-    } catch {
-        return [];
-    }
+    const config = readBoundaryConfig();
+    return Array.isArray(config[key]) ? config[key] : [];
 }
 
 /**
@@ -120,12 +142,16 @@ function isBoundaryCheckDisabled() {
  * @returns {*} Config value or undefined
  */
 function getConfigValue(key) {
+    return readBoundaryConfig()[key];
+}
+
+function readBoundaryConfig() {
+    const configPath = path.join(getProjectRoot(), '.claude', '.ck.json');
     try {
-        const configPath = path.join(process.cwd(), '.claude', '.ck.json');
-        const config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
-        return config[key];
-    } catch {
-        return undefined;
+        return JSON.parse(fs.readFileSync(configPath, 'utf8'));
+    } catch (error) {
+        if (error.code === 'ENOENT') return {};
+        throw new Error(`Unable to evaluate path-boundary configuration at ${configPath}: ${error.message}`);
     }
 }
 
@@ -400,48 +426,79 @@ function formatBlockMessage(blockedPath, projectRoot) {
 }
 
 // Main execution
-async function main() {
-    // Check if boundary check is disabled
-    if (isBoundaryCheckDisabled()) {
-        process.exit(0);
+function evaluationError(message) {
+    return {
+        code: 2,
+        stderr: `[path-boundary-block] Unable to evaluate tool input: ${message}\n`,
+        decision: 'error-block'
+    };
+}
+
+function evaluate(input) {
+    // Preserve the legacy standalone-test envelope: a payload with no tool
+    // input is not an access request. A real tool event with a malformed
+    // payload is denied closed and reported by the shared runner.
+    if (!input || typeof input !== 'object') return undefined;
+    const { tool_input: toolInput, tool_name: toolName } = input;
+    if (!Object.prototype.hasOwnProperty.call(input, 'tool_input') || toolInput == null) {
+        return toolName ? evaluationError('tool_input is missing') : undefined;
+    }
+    if (typeof toolInput !== 'object' || Array.isArray(toolInput)) {
+        return toolName ? evaluationError('tool_input is not an object') : undefined;
     }
 
-    // Read stdin
-    let input = '';
-    for await (const chunk of process.stdin) {
-        input += chunk;
-    }
+    // Check if boundary check is disabled. Invalid configuration throws and
+    // becomes a visible exit-2 error through the shared runner.
+    if (isBoundaryCheckDisabled()) return undefined;
 
-    // Parse hook data
-    let hookData;
-    try {
-        hookData = JSON.parse(input);
-    } catch {
-        process.exit(0); // Invalid JSON, allow (fail-open for parse errors)
-    }
-
-    const { tool_input: toolInput, tool_name: toolName } = hookData;
-
-    // Get project root and build allowlist
     const projectRoot = getProjectRoot();
     const allowlist = buildAllowlist();
+    const eventCwd = Object.prototype.hasOwnProperty.call(input, 'cwd')
+        ? input.cwd
+        : (Object.prototype.hasOwnProperty.call(toolInput, 'cwd') ? toolInput.cwd : process.cwd());
+    const policy = evaluateBoundary({
+        toolName,
+        toolInput,
+        eventCwd,
+        projectRoot,
+        allowlist,
+        inspect: inspectBoundaryCommand,
+        resolver: {
+            resolve(value, base, metadata = {}) {
+                return resolveRealPath(value, base || projectRoot, { ...metadata, projectRoot });
+            }
+        }
+    });
 
-    // Extract and validate all paths
+    if (policy.status === 'BLOCK' || policy.status === 'UNKNOWN') {
+        const first = policy.paths.find(item => item.outcome === 'OUTSIDE' || item.outcome === 'UNKNOWN');
+        const display = first?.resolved || first?.source || policy.diagnostics[0]?.code || 'ambiguous protected command';
+        return { code: 2, stderr: `${formatBlockMessage(display, projectRoot)}\n`, decision: 'block' };
+    }
+
+    // The structured policy is authoritative for commands it understands. The
+    // legacy regex extractor remains a compatibility fallback for opaque
+    // commands only; re-running it over covered commands would turn quoted
+    // data, Windows flags, and parser-safe paths into false boundary blocks.
+    if (typeof toolInput.command === 'string' && policy.covered) return undefined;
+
     const paths = extractPaths(toolInput, toolName);
-
     for (const { value: rawPath } of paths) {
         const resolvedPath = resolveRealPath(rawPath, projectRoot);
-
         if (isOutsideProject(resolvedPath, projectRoot, allowlist)) {
-            console.error(formatBlockMessage(rawPath, projectRoot));
-            process.exit(2); // Block
+            return { code: 2, stderr: `${formatBlockMessage(rawPath, projectRoot)}\n`, decision: 'block' };
         }
     }
 
-    process.exit(0); // Allow
+    return undefined;
 }
 
-main().catch(() => process.exit(0));
+if (require.main === module) {
+    runPreToolHookSync('path-boundary-block', evaluate, {
+        inputErrorCode: 2,
+        errorExitCode: 2
+    });
+}
 
 // Export for testing
 module.exports = {
@@ -452,6 +509,7 @@ module.exports = {
     decodePath,
     resolveRealPath,
     buildAllowlist,
+    evaluate,
     isBoundaryCheckDisabled,
     isOutsideProject,
     isWithinDir,

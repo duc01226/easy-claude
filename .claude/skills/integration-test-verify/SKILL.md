@@ -536,12 +536,12 @@ A test that is red in one run of the 2-run gate and green in another has NOT tol
 
 <!-- SYNC:project-reference-docs-guide -->
 
-> **Project Reference Docs Gate** — Run after task-tracking bootstrap and before target/source file reads, grep, edits, or analysis. Project docs override generic framework assumptions.
+> **Project Reference Docs Gate (static JIT)** — Run after task-tracking bootstrap and immediately before target/source file reads, grep, edits, tests, or analysis. Project docs override generic framework assumptions; hooks may remind or accelerate this gate, but never prove that it ran.
 >
 > 1. Identify scope: file types, domain area, and operation.
 > 2. **Read `docs/project-config.json` first — the project's machine-readable map.** It is the single source of truth for THIS repo (modules/paths, framework + search keywords, test/E2E/integration run-commands, design system, architecture rules, workflow patterns); ground exact paths, run-commands, and conventions on it **before investigating, planning, or coding** — never assume framework defaults (`CLAUDE.md` + reference docs are derived from it). If it — or the docs index, `lessons.md`, `CLAUDE.md`, `AGENTS.md`, or any required reference doc — is missing or stale, auto-run `/project-init` or the narrow route (`/project-config`, `/docs-init`, `/scan-all`, `/scan --target=<key>`, `/claude-md-init`) first; if Codex mirrors or `AGENTS.md` are stale, ask the user to run `/sync-codex` (never auto-run it).
 > 3. Required docs by trigger: always `docs/project-reference/lessons.md`; doc lookup `docs-index-reference.md`; review `code-review-rules.md`; backend/CQRS/API `backend-patterns-reference.md`; domain/entity `domain-entities-reference.md`; frontend/UI `frontend-patterns-reference.md`; styles/design `scss-styling-guide.md` + `design-system/design-system-canonical.md`; integration tests `integration-test-reference.md`; E2E `e2e-test-reference.md`; feature docs/specs `feature-spec-reference.md` + `spec-system-reference.md` + `spec-principles.md`; behavior/public-contract/spec-test-code sync `workflow-spec-test-code-cycle-reference.md`; derived spec index/ERD/reimplementation guides `spec-system-reference.md` + source Feature Specs under `docs/specs/`; architecture/new area `project-structure-reference.md`.
-> 4. Read every required doc, then before target work state: `Reference docs read: ... | Not applicable: ...`.
+> 4. Read every required doc, then before target work state: `Reference docs read: ... | Not applicable: ...`. After compaction, resume, delegation, or a material context change, repeat the route and restate the set; prior conversation and hook output are not proof of current loading.
 >
 > **Ready when:** scope evaluated, `docs/project-config.json` consulted, required docs checked/read or setup route completed, `lessons.md` confirmed, citation emitted.
 
@@ -584,8 +584,9 @@ A test that is red in one run of the 2-run gate and green in another has NOT tol
 <!-- SYNC:project-reference-docs-guide:reminder -->
 
 - **MANDATORY** Before investigating, planning, or coding, read `docs/project-config.json` (the project map: modules/paths, run-commands, conventions, architecture/workflow rules) + the required project-reference docs, and cite `Reference docs read: ...`.
+- **MANDATORY** Load detail just in time immediately before the first target read/grep/edit/test; hooks may provide a pointer, but a hook event or prior turn is never evidence that the current files were read.
 - **MANDATORY** Always include `lessons.md`; project config + conventions override generic framework defaults.
-- **MANDATORY** If project config, root instruction files, or any required reference doc is missing or stale, auto-run `/project-init` or the narrow lower-level route before ordinary project-specific work.
+- **MANDATORY** If project config, root instruction files, or any required reference doc is missing or stale, auto-run `/project-init` or the narrow lower-level route before ordinary project-specific work. On compaction, resume, delegation, or a context change, re-read the required docs and restate the route before continuing.
 
 <!-- /SYNC:project-reference-docs-guide:reminder -->
 
@@ -655,7 +656,7 @@ A test that is red in one run of the 2-run gate and green in another has NOT tol
 
 **IMPORTANT MUST ATTENTION** read `docs/project-config.json` → `integrationTestVerify` FIRST — project-specific guidance overrides defaults; missing section → Fallback Mode — why: hardcoded assumptions about the runner break on any non-default stack.
 **IMPORTANT MUST ATTENTION** use `quickRunCommand` from config — NEVER hardcode `dotnet test` or any language-specific command — why: this skill is language-agnostic and one repo's runner is another's wrong tool.
-**IMPORTANT MUST ATTENTION** read project-specific integration-test reference docs/scripts named by `referenceDocs` before any test command — Codex has no hook injection, so it must open these files directly.
+**IMPORTANT MUST ATTENTION** read project-specific integration-test reference docs/scripts named by `referenceDocs` before any test command — hooks may point to context, but Claude and Codex must open these files directly when the gate requires them.
 **IMPORTANT MUST ATTENTION** harvest an Environment Precondition Checklist from those docs (Step 1b) BEFORE any command — derive every item from what the doc declares with a `file:line` citation, NEVER from a fixed list and NEVER invented; no declared prerequisites → record that explicitly — why: reading the doc without extracting its preconditions leaves the run just as blind as not reading it.
 **IMPORTANT MUST ATTENTION** gate on a healthy system before running — run `systemCheckCommand`, and STOP (point user at `startupScript`) when infrastructure/services aren't ready — why: an unreliable system produces unreliable green/red results that prove nothing.
 **IMPORTANT MUST ATTENTION** settle EVERY harvested precondition against real evidence before the first test command — any `UNMET` → STOP, report `ENVIRONMENT-BLOCKED` naming the precondition + its doc line + the setup step, and NEVER run the suite anyway or repair an environment gap by editing tests — why: a half-ready environment reports infrastructure faults as failing tests, which then get "fixed" in the test code.

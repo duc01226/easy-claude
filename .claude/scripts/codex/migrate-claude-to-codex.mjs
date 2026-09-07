@@ -7,8 +7,14 @@ import { buildSkillReferenceMap, prependCodexCompatibilityNote, rewriteClaudeToo
 import { fileURLToPath } from 'node:url';
 
 const args = new Set(process.argv.slice(2));
-const rootDir = process.cwd();
 const require = createRequire(import.meta.url);
+const { resolveMutationProjectRoot } = require('../lib/project-root.cjs');
+const rootResolution = resolveMutationProjectRoot({
+    cwd: process.cwd(),
+    scriptPath: fileURLToPath(import.meta.url),
+    env: process.env
+});
+const rootDir = rootResolution.rootDir;
 
 function loadHooklessPromptProtocol() {
     const scriptDir = path.dirname(fileURLToPath(import.meta.url));
@@ -21,7 +27,7 @@ function loadHooklessPromptProtocol() {
             return require(candidate);
         } catch {}
     }
-    throw new Error('hookless prompt protocol builder is missing');
+    throw new Error('static prompt protocol builder is missing');
 }
 
 const {
@@ -302,9 +308,9 @@ function deriveSkillDescription(body, skillName) {
 function buildCodexProjectReferenceBlock() {
     return [
         CODEX_PROJECT_REFERENCE_START,
-        '## Codex Project-Reference Loading (No Hooks)',
+        '## Codex Project-Reference Loading (Hook-Independent)',
         '',
-        'Codex uses static project-reference loading instead of runtime-injected project docs.',
+        'Claude and Codex use static project-reference loading as the authority; hooks may accelerate discovery but never replace the explicit read.',
         'When coding, planning, debugging, testing, or reviewing, open project docs explicitly using this routing.',
         '',
         '**Always read:**',

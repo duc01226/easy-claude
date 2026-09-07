@@ -20,8 +20,10 @@ const {
     getConfiguredDocsIndexPath
 } = require('./project-config-loader.cjs');
 const { SCAN_STALE_PATH, ensureProjectTmpDir } = require('./ck-paths.cjs');
+const { resolveProjectRoot } = require('./project-root.cjs');
 
-const PROJECT_DIR = process.env.CLAUDE_PROJECT_DIR || process.cwd();
+const rootResolution = resolveProjectRoot({ cwd: process.cwd(), scriptPath: __filename, env: process.env });
+const PROJECT_DIR = rootResolution.rootDir;
 const CONFIG_PATH = getConfiguredProjectConfigPath();
 const DOCS_INDEX_PATH = getConfiguredDocsIndexPath();
 const REFERENCE_DOCS_DIR = path.dirname(DOCS_INDEX_PATH);
@@ -69,6 +71,15 @@ const SKELETON = {
         layerClassification: {}
     },
     testing: { frameworks: [], filePatterns: {}, commands: {} },
+    experienceVerification: {
+        enabled: false,
+        evidenceRoot: 'plans/reports/experience',
+        baselineRoot: 'tests/experience-baselines',
+        acceptancePolicy: 'manual-acceptance-required',
+        reviewOn: ['new-surface', 'changed-surface', 'bugfix', 'baseline-mismatch'],
+        surfaces: [],
+        notApplicableReason: 'Configure observable surfaces when the project has them; otherwise retain an evidence-backed NOT-APPLICABLE record.'
+    },
     databases: {},
     messaging: {},
     api: {},
@@ -565,6 +576,7 @@ function generatePlaceholderContent(doc) {
  * @returns {string[]} List of created file descriptions
  */
 function initDesignSystemAppDocs() {
+    if (rootResolution.error) return [];
     const created = [];
     try {
         const config = loadProjectConfig();
@@ -794,6 +806,7 @@ function getStaleReferenceDocs(staleDays) {
  * @param {number} [staleDays=60] - Age threshold in days
  */
 function refreshScanStaleFlag(staleDays = 60) {
+    if (rootResolution.error) return;
     const flagPath = SCAN_STALE_PATH;
     try {
         const stale = getStaleReferenceDocs(staleDays);

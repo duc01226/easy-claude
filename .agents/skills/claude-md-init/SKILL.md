@@ -14,9 +14,9 @@ description: '[Documentation] Use when you need initialize, update, or refactor 
 > - For workflow skills, execute each listed child-skill step explicitly and report step-by-step evidence.
 > - If a required step/tool cannot run in this environment, stop and ask the user before adapting.
 <!-- CODEX:PROJECT-REFERENCE-LOADING:START -->
-## Codex Project-Reference Loading (No Hooks)
+## Codex Project-Reference Loading (Hook-Independent)
 
-Codex uses static project-reference loading instead of runtime-injected project docs.
+Claude and Codex use static project-reference loading as the authority; hooks may accelerate discovery but never replace the explicit read.
 When coding, planning, debugging, testing, or reviewing, open project docs explicitly using this routing.
 
 **Always read:**
@@ -50,7 +50,7 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 2. **Run Generator** — `node .claude/skills/claude-md-init/scripts/generate-claude-md.cjs --mode <mode>`
 3. **AI Fill** — Review output, fill creative sections (project description, golden rules inference)
 4. **Verify** — Confirm output is valid, no project-specific leaks from template
-5. **Sync Mirrors** — After CLAUDE.md is written (init/update/refactor), call `$sync-codex` to regenerate the stale `AGENTS.md` + Codex mirror surfaces from the new CLAUDE.md
+5. **Prepare Mirror Handoff** — After CLAUDE.md changes (init/update/refactor), name the stale `AGENTS.md` + Codex mirror surfaces and instruct the user to run `$sync-codex`; this skill never authorizes or auto-runs it.
 
 **Key Rules:**
 
@@ -85,7 +85,7 @@ code hierarchy, naming, evidence/confidence rules) and stamps the sentinel at th
 recognizes it as complete. It also stamps the hook-independent **Workflow-First Gate** (from
 `.claude/skills/shared/workflow-first-gate.md`, via `stampHeader()`) immediately after the sentinel —
 the primacy-anchor routing rule (bug→`workflow-bugfix` workflow, feature/enhancement→`workflow-feature` workflow) that
-mirrors into `AGENTS.md` and survives with no hooks.
+mirrors into `AGENTS.md` and survives when hooks are absent, disabled, or stale.
 
 **Opt-out** — to keep a project-only `CLAUDE.md`/`AGENTS.md` (your custom knowledge, none of the
 universal guides), set `portability.requireUniversalGuides: false` in `docs/project-config.json`
@@ -165,19 +165,19 @@ After the script generates the mechanical parts, AI reviews and fills:
 - [ ] No `.claude/skills/claude-md-init/` references leak into output (self-reference)
 - [ ] Conditional sections with no data are omitted (not empty stubs)
 
-## Phase 5: Sync Mirrors (after CLAUDE.md is written)
+## Phase 5: Prepare Mirror Handoff (after CLAUDE.md is written)
 
 Writing/updating CLAUDE.md leaves the generated mirror surfaces stale — `AGENTS.md` (Codex), the
 `.codex/` mirrors, and other downstream surfaces are derived FROM CLAUDE.md and
 do not update on their own.
 
-**MUST add a final todo task — "Sync Codex mirrors from updated CLAUDE.md" — and run it after
-init/update/refactor completes**, by invoking the `$sync-codex` skill (the full cross-surface
-migrate → hooks → context → verify pipeline, which regenerates `AGENTS.md`). Create this as
-the LAST task tracking item so it always follows the verify step:
+**MUST add a final todo task — "Report stale Codex mirrors and request $sync-codex" — after
+init/update/refactor completes.** Name the stale generated surfaces and instruct the user to
+run `$sync-codex`. Normal source generation is not sync authorization: NEVER auto-run the
+mutating pipeline. Create this as the LAST task tracking item after verification:
 
 ```text
-Task tracking: "Sync Codex mirrors from updated CLAUDE.md → invoke $sync-codex"
+Task tracking: "Report stale Codex mirrors → instruct user to run $sync-codex"
 ```
 
 Skip only when no CLAUDE.md content actually changed (e.g. generator reported all sections preserved /
@@ -327,13 +327,13 @@ node .claude/hooks/tests/run-all-tests.cjs --filter=agent-files
 **[TASK-PLANNING]** Before acting, analyze task scope and systematically break it into small todo tasks and sub-tasks using task tracking.
 
 <!-- CODEX:SYNC-PROMPT-PROTOCOLS:START -->
-## Hookless Prompt Protocol Mirror (Auto-Synced)
+## Static Prompt Protocol Mirror (Auto-Synced)
 
-Source: `.claude/.ck.json` + `.claude/skills/shared/sync-inline-versions.md` (`:full` blocks) + `.claude/scripts/lib/hookless-prompt-protocol.cjs`
+Source: `.claude/.ck.json` + `.claude/skills/shared/sync-inline-versions.md` (`:full` blocks) + `.claude/scripts/lib/hookless-prompt-protocol.cjs` (legacy filename; static protocol composer)
 
 ## [WORKFLOW-EXECUTION-PROTOCOL] [BLOCKING] Workflow Execution Protocol — MANDATORY IMPORTANT MUST CRITICAL. Do not skip for any reason.
 
-**Generic portability boundary:** Reusable skills and protocol text stay project-neutral; project-specific conventions are discovered from docs/project-config.json and docs/project-reference/. Apply shared AI-SDD from `shared/sdd-artifact-contract.md`. Read `docs/project-config.json` and `docs/project-reference/docs-index-reference.md`, then open the project reference docs named there. For spec, test-case, behavior-change, public-contract, or `docs/specs/` work, route through the local spec docs named by the docs index: `feature-spec-reference.md`, `spec-system-reference.md`, `spec-principles.md`, and `workflow-spec-test-code-cycle-reference.md` when specs/tests/code must stay synchronized. If either file or a required reference doc is missing or stale, auto-run `$project-init` (or the narrow lower-level route such as `$project-config`, `$docs-init`, `$scan-all`, or `$scan --target=<key>`) before ordinary project-specific work. Any supported AI tool may execute when this shared context and local docs are available.
+**Generic portability boundary:** Reusable skills and protocol text stay project-neutral; project-specific conventions are discovered from docs/project-config.json and docs/project-reference/. Apply shared AI-SDD from `shared/sdd-artifact-contract.md`. Read `docs/project-config.json` and `docs/project-reference/docs-index-reference.md`, then open the project reference docs named there immediately before the first target read, grep, edit, test, or analysis. For spec, test-case, behavior-change, public-contract, or `docs/specs/` work, route through the local spec docs named by the docs index: `feature-spec-reference.md`, `spec-system-reference.md`, `spec-principles.md`, and `workflow-spec-test-code-cycle-reference.md` when specs/tests/code must stay synchronized. If either file or a required reference doc is missing or stale, auto-run `$project-init` (or the narrow lower-level route such as `$project-config`, `$docs-init`, `$scan-all`, or `$scan --target=<key>`) before ordinary project-specific work. After compaction, resume, delegation, or a material context change, re-read the required docs and state `Reference docs read: ... | Not applicable: ...`; a hook reminder or prior conversation is not proof that the files are loaded. Any supported AI tool may execute when this shared context and local docs are available.
 
 1. **DETECT:** If the prompt starts with an explicit slash skill/workflow command, execute it directly. Otherwise match the prompt against the workflow catalog and skill list.
 2. **ANALYZE:** Choose the best option: execute directly, invoke a skill, activate a standard workflow, or compose a custom step combination.

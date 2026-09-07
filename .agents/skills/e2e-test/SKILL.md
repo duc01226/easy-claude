@@ -14,9 +14,9 @@ description: '[Testing] Use when generating, updating, or maintaining E2E tests 
 > - For workflow skills, execute each listed child-skill step explicitly and report step-by-step evidence.
 > - If a required step/tool cannot run in this environment, stop and ask the user before adapting.
 <!-- CODEX:PROJECT-REFERENCE-LOADING:START -->
-## Codex Project-Reference Loading (No Hooks)
+## Codex Project-Reference Loading (Hook-Independent)
 
-Codex uses static project-reference loading instead of runtime-injected project docs.
+Claude and Codex use static project-reference loading as the authority; hooks may accelerate discovery but never replace the explicit read.
 When coding, planning, debugging, testing, or reviewing, open project docs explicitly using this routing.
 
 **Always read:**
@@ -138,9 +138,23 @@ When E2E is applicable, add the following fields to the test plan/report before 
 | Mode             | Input                      | Output                       |
 | ---------------- | -------------------------- | ---------------------------- |
 | `from-recording` | Recording JSON + feature   | Test spec + page object      |
-| `update-ui`      | Git diff of UI changes     | Updated screenshot baselines |
+| `update-ui`      | Git diff of UI changes     | Candidate evidence plus an explicit acceptance decision; accepted baseline changes only after approval |
 | `from-changes`   | Changed test specs or code | Updated test implementations |
 | `from-spec`      | TC codes from test specs   | New tests matching specs     |
+
+---
+
+## Visual Expectation Transition Gate
+
+For `update-ui`, screenshot or visual output is candidate evidence until it has
+been opened, inspected, compared with the intended purpose, and linked to an
+explicit `HUMAN-ACCEPTED` record through `$experience-review`. Do not call
+`--update-snapshots`, replace visual fixtures, or rewrite another expected
+output merely because the new run passes or the generated evidence looks
+plausible. Preserve the previous accepted expectation and classify a mismatch
+as a potential regression, intended change pending acceptance, invalid test
+condition, environment block, unverified, or ambiguous. Full contract:
+`SYNC:experience-acceptance-contract`.
 
 ---
 
@@ -244,13 +258,13 @@ Report:
 
 ## Sub-Agent Type Override
 
-> **MANDATORY:** E2E test generation and baseline updates spawn `e2e-runner` sub-agent (`agent_type: "e2e-runner"`), NOT the main agent directly.
+> **MANDATORY:** E2E test generation and accepted baseline updates spawn `e2e-runner` sub-agent (`agent_type: "e2e-runner"`), NOT the main agent directly. Baseline updates remain forbidden until the experience-acceptance gate is satisfied.
 > **Rationale:** `e2e-runner` auto-detects the project's E2E stack, maintains test-to-spec TC traceability, and handles visual baseline updates across Playwright, Selenium, Cypress, and other frameworks.
 
 Spawn `e2e-runner` sub-agent for:
 
 - Generating new E2E tests from recordings or TC codes from specs
-- Updating visual screenshot baselines after UI changes
+- Updating visual screenshot baselines after UI changes, but only after an explicit accepted experience record
 - Maintaining TC code traceability (`TC-{MODULE}-E2E-{NNN}`) in test implementations
 
 ---
@@ -457,7 +471,7 @@ Generate and maintain E2E tests using project's configured testing framework.
 **MANDATORY IMPORTANT MUST ATTENTION** selector priority semantic/BEM > data-testid > ARIA/role > visible text; NEVER use generated classes (`.ng-star-inserted`, `.MuiButton-root`), positional selectors (`:nth-child`), or XPath — why: generated/positional selectors break on unrelated markup churn.
 **MANDATORY IMPORTANT MUST ATTENTION** keep locators/actions in the Page Object class, assertions in the test file — why: encapsulation keeps the next UI change a one-place edit.
 **MANDATORY IMPORTANT MUST ATTENTION** generate unique self-sufficient data (GUID/timestamp); NEVER depend on specific pre-existing DB state and NEVER tear down seeded data — why: teardown across shared/parallel runs creates side effects.
-**IMPORTANT MUST ATTENTION** spawn the `e2e-runner` sub-agent (`agent_type: "e2e-runner"`) for E2E generation and visual baseline updates — NEVER drive them from the main agent — why: `e2e-runner` carries the stack auto-detection and TC-traceability knowledge.
+**IMPORTANT MUST ATTENTION** spawn the `e2e-runner` sub-agent (`agent_type: "e2e-runner"`) for E2E generation and accepted visual baseline updates — NEVER drive them from the main agent — why: `e2e-runner` carries the stack auto-detection and TC-traceability knowledge; `experience-review` must inspect and obtain explicit acceptance before the update.
 **IMPORTANT MUST ATTENTION** any coverage gap (a §8 behavior with no scenario, or a flow guarding no documented behavior) feeds BOTH the spec AND the tests — NEVER a test-only fix; property/metamorphic generation and MUTATION-SCORE gates are scoped to unit/integration, N/A at the E2E tier.
 **IMPORTANT MUST ATTENTION** update `docs/project-reference/e2e-test-reference.md` with learnings when investigating/fixing E2E failures.
 **MANDATORY IMPORTANT MUST ATTENTION** add a final review todo task to verify work quality.
@@ -483,16 +497,16 @@ Generate and maintain E2E tests using project's configured testing framework.
 
 **IMPORTANT MUST ATTENTION** read `e2eTesting` config + `e2e-test-reference.md` FIRST and detect the framework — NEVER assume a stack.
 **IMPORTANT MUST ATTENTION** every test carries its `TC-{MODULE}-E2E-{NNN}` code traced to the §8 behavior it guards; selector priority semantic > data-attr > ARIA > text — NEVER generated/positional/XPath.
-**IMPORTANT MUST ATTENTION** generate unique self-sufficient data, NEVER tear down seeded data; spawn `e2e-runner` for generation and baseline updates.
+**IMPORTANT MUST ATTENTION** generate unique self-sufficient data, NEVER tear down seeded data; spawn `e2e-runner` for generation and only explicitly accepted baseline updates.
 
 <!-- CODEX:SYNC-PROMPT-PROTOCOLS:START -->
-## Hookless Prompt Protocol Mirror (Auto-Synced)
+## Static Prompt Protocol Mirror (Auto-Synced)
 
-Source: `.claude/.ck.json` + `.claude/skills/shared/sync-inline-versions.md` (`:full` blocks) + `.claude/scripts/lib/hookless-prompt-protocol.cjs`
+Source: `.claude/.ck.json` + `.claude/skills/shared/sync-inline-versions.md` (`:full` blocks) + `.claude/scripts/lib/hookless-prompt-protocol.cjs` (legacy filename; static protocol composer)
 
 ## [WORKFLOW-EXECUTION-PROTOCOL] [BLOCKING] Workflow Execution Protocol — MANDATORY IMPORTANT MUST CRITICAL. Do not skip for any reason.
 
-**Generic portability boundary:** Reusable skills and protocol text stay project-neutral; project-specific conventions are discovered from docs/project-config.json and docs/project-reference/. Apply shared AI-SDD from `shared/sdd-artifact-contract.md`. Read `docs/project-config.json` and `docs/project-reference/docs-index-reference.md`, then open the project reference docs named there. For spec, test-case, behavior-change, public-contract, or `docs/specs/` work, route through the local spec docs named by the docs index: `feature-spec-reference.md`, `spec-system-reference.md`, `spec-principles.md`, and `workflow-spec-test-code-cycle-reference.md` when specs/tests/code must stay synchronized. If either file or a required reference doc is missing or stale, auto-run `$project-init` (or the narrow lower-level route such as `$project-config`, `$docs-init`, `$scan-all`, or `$scan --target=<key>`) before ordinary project-specific work. Any supported AI tool may execute when this shared context and local docs are available.
+**Generic portability boundary:** Reusable skills and protocol text stay project-neutral; project-specific conventions are discovered from docs/project-config.json and docs/project-reference/. Apply shared AI-SDD from `shared/sdd-artifact-contract.md`. Read `docs/project-config.json` and `docs/project-reference/docs-index-reference.md`, then open the project reference docs named there immediately before the first target read, grep, edit, test, or analysis. For spec, test-case, behavior-change, public-contract, or `docs/specs/` work, route through the local spec docs named by the docs index: `feature-spec-reference.md`, `spec-system-reference.md`, `spec-principles.md`, and `workflow-spec-test-code-cycle-reference.md` when specs/tests/code must stay synchronized. If either file or a required reference doc is missing or stale, auto-run `$project-init` (or the narrow lower-level route such as `$project-config`, `$docs-init`, `$scan-all`, or `$scan --target=<key>`) before ordinary project-specific work. After compaction, resume, delegation, or a material context change, re-read the required docs and state `Reference docs read: ... | Not applicable: ...`; a hook reminder or prior conversation is not proof that the files are loaded. Any supported AI tool may execute when this shared context and local docs are available.
 
 1. **DETECT:** If the prompt starts with an explicit slash skill/workflow command, execute it directly. Otherwise match the prompt against the workflow catalog and skill list.
 2. **ANALYZE:** Choose the best option: execute directly, invoke a skill, activate a standard workflow, or compose a custom step combination.

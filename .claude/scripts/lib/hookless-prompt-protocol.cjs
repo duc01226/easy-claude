@@ -5,8 +5,10 @@ const path = require('path');
 const { extractSyncBlock, extractSyncBody } = require('./extract-sync-block.cjs');
 
 const DEFAULT_SHARED_AI_SDD_SYNC_TAGS = ['ai-sdd-artifact-contract', 'ai-sdd-artifact-contract:reminder'];
+// The filename is retained for portable-consumer compatibility. The protocol itself is
+// static and hook-independent: hooks may accelerate loading, but are never authoritative.
 const DEFAULT_SOURCE_LINE =
-    'Source: `.claude/.ck.json` + `.claude/skills/shared/sync-inline-versions.md` (`:full` blocks) + `.claude/scripts/lib/hookless-prompt-protocol.cjs`';
+    'Source: `.claude/.ck.json` + `.claude/skills/shared/sync-inline-versions.md` (`:full` blocks) + `.claude/scripts/lib/hookless-prompt-protocol.cjs` (legacy filename; static protocol composer)';
 
 function normalizePromptProtocolText(text) {
     if (!text || typeof text !== 'string') return null;
@@ -38,7 +40,7 @@ function buildPortabilityBoundary(portability = {}) {
         portability.rule ||
         'Reusable skills and protocol text stay project-neutral; project-specific conventions are discovered from docs/project-config.json and docs/project-reference/.';
 
-    return `**Generic portability boundary:** ${rule} Apply shared AI-SDD from \`shared/sdd-artifact-contract.md\`. Read \`${projectConfigPath}\` and \`${docsIndexPath}\`, then open the project reference docs named there. For spec, test-case, behavior-change, public-contract, or \`docs/specs/\` work, route through the local spec docs named by the docs index: \`feature-spec-reference.md\`, \`spec-system-reference.md\`, \`spec-principles.md\`, and \`workflow-spec-test-code-cycle-reference.md\` when specs/tests/code must stay synchronized. If either file or a required reference doc is missing or stale, auto-run \`$project-init\` (or the narrow lower-level route such as \`$project-config\`, \`$docs-init\`, \`$scan-all\`, or \`$scan --target=<key>\`) before ordinary project-specific work. Any supported AI tool may execute when this shared context and local docs are available.`;
+    return `**Generic portability boundary:** ${rule} Apply shared AI-SDD from \`shared/sdd-artifact-contract.md\`. Read \`${projectConfigPath}\` and \`${docsIndexPath}\`, then open the project reference docs named there immediately before the first target read, grep, edit, test, or analysis. For spec, test-case, behavior-change, public-contract, or \`docs/specs/\` work, route through the local spec docs named by the docs index: \`feature-spec-reference.md\`, \`spec-system-reference.md\`, \`spec-principles.md\`, and \`workflow-spec-test-code-cycle-reference.md\` when specs/tests/code must stay synchronized. If either file or a required reference doc is missing or stale, auto-run \`$project-init\` (or the narrow lower-level route such as \`$project-config\`, \`$docs-init\`, \`$scan-all\`, or \`$scan --target=<key>\`) before ordinary project-specific work. After compaction, resume, delegation, or a material context change, re-read the required docs and state \`Reference docs read: ... | Not applicable: ...\`; a hook reminder or prior conversation is not proof that the files are loaded. Any supported AI tool may execute when this shared context and local docs are available.`;
 }
 
 function buildWorkflowProtocolText(portability = {}) {
@@ -134,7 +136,7 @@ function buildCodexPromptProtocolBlock(rootDir, options = {}) {
     const endMarker = options.endMarker || '<!-- CODEX:SYNC-PROMPT-PROTOCOLS:END -->';
     const section = buildPromptProtocolMirrorSection(rootDir, {
         ...options,
-        heading: options.heading || 'Hookless Prompt Protocol Mirror (Auto-Synced)',
+        heading: options.heading || 'Static Prompt Protocol Mirror (Auto-Synced)',
         includeLessonReminder: options.includeLessonReminder ?? true
     });
 

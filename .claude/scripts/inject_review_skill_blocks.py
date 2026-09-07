@@ -2,7 +2,7 @@
 
 Tags propagated (each with its `:reminder` sibling):
   - SYNC:systematic-review-batching     -> 10 multi-file / diff reviewers
-  - SYNC:severity-rubric                -> 16 finding-emitting reviewers
+  - SYNC:severity-rubric                -> finding-emitting reviewers, scorecard/build gates, and review/fix loop orchestrators
   - SYNC:category-review-thinking        -> same 10 as batching (co-paired:
         the batching block names it as each batch agent's primary thinking model,
         so it must resolve wherever batching is adopted)
@@ -65,6 +65,16 @@ SEVERITY = [
     "performance-review", "production-readiness-review", "knowledge-review", "artifact-review",
     "spec-clarify",
     "plan-review", "why-review", "code-simplifier", "architecture-review-full",
+    "architecture-scalability-review", "feature-implement", "plan-execute", "fix", "quality-gate-review",
+    # Outer review/fix loops classify the findings they decide whether to fix, so they must
+    # carry the same consequence rubric instead of relying on a cross-file reference alone.
+    "changes-review-loop", "why-review-loop", "workflow-review-changes-loop",
+    # The main review workflow also emits and routes findings; keep its local
+    # round summaries pinned to the same canonical rubric as its child skills.
+    "workflow-review-changes",
+    # Workflow owners that summarize and route review findings must carry the same rubric as
+    # their child skills; otherwise their local round summaries can silently drift.
+    "workflow-bugfix", "workflow-feature", "workflow-write-integration-test",
 ]
 CATEGORY = list(BATCHING)  # co-paired with batching
 

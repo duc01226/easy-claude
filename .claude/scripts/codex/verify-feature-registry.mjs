@@ -3,7 +3,11 @@
 import fsSync from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { createRequire } from 'node:module';
 import { MAX_TEST_CASES_PER_SPEC_PART, loadFeatureRegistry, serializeFeatureRegistry } from './feature-registry.mjs';
+
+const require = createRequire(import.meta.url);
+const { resolveProjectRoot } = require('../lib/project-root.cjs');
 
 const normalizePath = filePath => filePath.split(path.sep).join('/').replace(/^\.\//, '');
 
@@ -237,8 +241,11 @@ function loadConfiguredRoots(rootDir, { optional = false } = {}) {
     return [...new Set(roots.map(root => root.trim()))];
 }
 
-async function main() {
+async function main(resolvedRoot) {
     const options = parseCliArgs(process.argv.slice(2));
+    if (!process.argv.slice(2).some(argument => argument.startsWith('--root=')) && resolvedRoot) {
+        options.rootDir = resolvedRoot;
+    }
     if (options.configuredRoots && options.specPaths.length > 0) {
         throw new Error('--configured-roots cannot be combined with explicit spec paths.');
     }
@@ -279,7 +286,11 @@ async function main() {
 }
 
 if (process.argv[1] && fileURLToPath(import.meta.url) === path.resolve(process.argv[1])) {
-    await main();
+    await main(resolveProjectRoot({
+        cwd: process.cwd(),
+        scriptPath: fileURLToPath(import.meta.url),
+        env: process.env,
+    }).rootDir);
 }
 
 export { serializeFeatureRegistry };

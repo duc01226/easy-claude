@@ -293,6 +293,36 @@ const SCHEMA = {
             entryPoints: { type: 'array', required: false }
         }
     },
+    experienceVerification: {
+        type: 'object',
+        required: false,
+        describe: 'Optional evidence contract for user-facing or externally observable surfaces. Configure only what the project can actually run and inspect; missing capability is recorded as ENVIRONMENT-BLOCKED, never as a successful check.',
+        properties: {
+            enabled: { type: 'boolean', required: true, describe: 'Enable conditional experience-review routing for configured surfaces.' },
+            evidenceRoot: { type: 'string', required: true, describe: 'Versioned report/candidate-evidence root, relative to the project.' },
+            baselineRoot: { type: 'string', required: true, describe: 'Expected-baseline root, changed only through explicit acceptance outside automatic comparison.' },
+            acceptancePolicy: { type: 'string', required: true, describe: 'Keep manual-acceptance-required unless the project documents a stricter named owner process.' },
+            reviewOn: { type: 'array', required: false, itemType: 'string', describe: 'Impact triggers such as new-surface, changed-surface, bugfix, or baseline-mismatch.' },
+            surfaces: {
+                type: 'arrayOf',
+                required: true,
+                itemSchema: {
+                    id: { type: 'string', required: true },
+                    kind: { type: 'string', required: true },
+                    runner: { type: 'string', required: true },
+                    entryPoints: { type: 'array', required: true },
+                    changeTriggers: { type: 'array', required: false },
+                    fullCommand: { type: 'string', required: false },
+                    focusedCommand: { type: 'string', required: false },
+                    evidenceRoot: { type: 'string', required: false },
+                    baselineRoot: { type: 'string', required: false },
+                    states: { type: 'array', required: false },
+                    notes: { type: 'string', required: false }
+                }
+            },
+            notApplicableReason: { type: 'string', required: false, describe: 'Evidence-backed reason when this repository has no applicable observable surface or the block is intentionally disabled.' }
+        }
+    },
     databases: { type: 'object', required: false, freeform: true },
     messaging: {
         type: 'object',
@@ -643,7 +673,7 @@ function validateField(value, fieldSchema, path, errors, warnings) {
             }
             if (fieldSchema.itemSchema) {
                 value.forEach((item, i) => {
-                    if (typeof item !== 'object' || Array.isArray(item)) {
+                    if (item === null || typeof item !== 'object' || Array.isArray(item)) {
                         errors.push(`${path}[${i}]: expected object item`);
                         return;
                     }
@@ -656,6 +686,33 @@ function validateField(value, fieldSchema, path, errors, warnings) {
 
         default:
             warnings.push(`${path}: unknown schema type "${fieldSchema.type}"`);
+    }
+}
+
+/**
+ * Validate cross-field semantics that cannot be expressed by the structural
+ * schema alone. In particular, an empty experience contract must explain why
+ * it is disabled; otherwise setup reports can accidentally look like a live
+ * verification decision.
+ */
+function validateExperienceVerificationSemantics(config, errors, warnings) {
+    const experience = config.experienceVerification;
+    if (experience === undefined || experience === null ||
+        typeof experience !== 'object' || Array.isArray(experience)) return;
+
+    if (typeof experience.enabled !== 'boolean' || !Array.isArray(experience.surfaces)) return;
+
+    if (experience.enabled && experience.surfaces.length === 0) {
+        errors.push('experienceVerification.surfaces: at least one observable surface is required when experienceVerification.enabled is true; disable it with an evidence-backed notApplicableReason until a surface exists');
+    }
+
+    if (!experience.enabled && experience.surfaces.length === 0 &&
+        (typeof experience.notApplicableReason !== 'string' || experience.notApplicableReason.trim().length === 0)) {
+        errors.push('experienceVerification.notApplicableReason: required when experienceVerification is disabled with no surfaces; provide an evidence-backed NOT-APPLICABLE or pending-capability reason');
+    }
+
+    if (!experience.enabled && experience.surfaces.length > 0) {
+        warnings.push('experienceVerification: surfaces are configured while the contract is disabled; conditional experience review routing is off until enabled');
     }
 }
 
@@ -680,6 +737,8 @@ function validateConfig(config) {
     for (const [key, fieldSchema] of Object.entries(SCHEMA)) {
         validateField(config[key], fieldSchema, key, errors, warnings);
     }
+
+    validateExperienceVerificationSemantics(config, errors, warnings);
 
     // Check for unknown top-level keys
     const knownKeys = new Set(Object.keys(SCHEMA));

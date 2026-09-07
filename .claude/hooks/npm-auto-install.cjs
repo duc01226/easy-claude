@@ -14,12 +14,18 @@
 const fs = require('fs');
 const path = require('path');
 const { execSync } = require('child_process');
-
-const projectDir = process.env.CLAUDE_PROJECT_DIR || process.cwd();
-const pkgPath = path.join(projectDir, 'package.json');
-const nodeModulesPath = path.join(projectDir, 'node_modules');
+const { resolveProjectRoot } = require('./lib/project-root.cjs');
 
 function main() {
+  const resolution = resolveProjectRoot({ cwd: process.cwd(), scriptPath: __filename, env: process.env });
+  if (resolution.error) {
+    console.error(`[npm-auto-install] Skipped: ${resolution.error}`);
+    return;
+  }
+  const projectDir = resolution.rootDir;
+  const pkgPath = path.join(projectDir, 'package.json');
+  const nodeModulesPath = path.join(projectDir, 'node_modules');
+
   // Skip if no root package.json
   if (!fs.existsSync(pkgPath)) return;
 

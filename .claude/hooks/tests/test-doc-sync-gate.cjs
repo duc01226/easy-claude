@@ -190,7 +190,7 @@ async function testCommitWarnStale() {
     g(['add', '-A']);
     const r = await runHook(commitInput(), { CLAUDE_PROJECT_DIR: dir }, dir);
     logResult('TC-DOCSYS-041 allows with warning (exit 0)', r.code === 0, `exit ${r.code}`);
-    logResult('TC-DOCSYS-041 message actionable', r.stdout.includes('[doc-sync]') && r.stdout.includes('Feature Spec'));
+    logResult('TC-DOCSYS-041 message actionable', r.stderr.includes('[doc-sync]') && r.stderr.includes('Feature Spec'));
   } finally {
     rimraf(dir);
   }
@@ -295,7 +295,7 @@ async function testEditWarnNonBlocking() {
     g(['commit', '-qm', 'baseline (code changed after 2000-01-01)']);
     const r = await runHook(editInput(codeAbs), { CLAUDE_PROJECT_DIR: dir }, dir);
     logResult('TC-DOCSYS-047 never blocks (exit 0)', r.code === 0, `exit ${r.code}`);
-    logResult('TC-DOCSYS-047 emits [doc-sync] warning', r.stdout.includes('[doc-sync]'), r.stdout.slice(0, 80));
+    logResult('TC-DOCSYS-047 emits [doc-sync] warning', r.stderr.includes('[doc-sync]'), r.stderr.slice(0, 80));
   } finally {
     rimraf(dir);
   }

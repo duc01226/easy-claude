@@ -19,6 +19,7 @@
 
 const fs = require('fs');
 const path = require('path');
+const { resolveProjectRoot } = require('./lib/project-root.cjs');
 const { isConfigPopulated: _isConfigPopulated, getConfiguredProjectConfigPath } = require('./lib/project-config-loader.cjs');
 const { hasProjectContent } = require('./lib/session-init-helpers.cjs');
 const {
@@ -40,7 +41,8 @@ const {
     ensureProjectTmpDir
 } = require('./lib/ck-paths.cjs');
 
-const PROJECT_DIR = process.env.CLAUDE_PROJECT_DIR || process.cwd();
+const rootResolution = resolveProjectRoot({ cwd: process.cwd(), scriptPath: __filename, env: process.env });
+const PROJECT_DIR = rootResolution.rootDir;
 // Honor the configured portability.projectConfigPath (fail-open to docs/project-config.json).
 // Must match where session-init creates the config, else a custom-path project blocks every prompt.
 const CONFIG_PATH = getConfiguredProjectConfigPath();
@@ -126,6 +128,7 @@ function isDismissed() {
  * Write the dismiss flag file with current timestamp.
  */
 function writeDismissFlag() {
+    if (rootResolution.error) return;
     try {
         ensureProjectTmpDir();
         fs.writeFileSync(DISMISS_FLAG, new Date().toISOString() + '\n', 'utf-8');
@@ -189,6 +192,7 @@ function isScanDismissed() {
  * Write the scan-stale dismiss flag.
  */
 function writeScanDismissFlag() {
+    if (rootResolution.error) return;
     try {
         ensureProjectTmpDir();
         const dismissedAt = new Date();
@@ -332,6 +336,7 @@ function isGraphDismissed() {
  * Write the graph dismiss flag.
  */
 function writeGraphDismissFlag() {
+    if (rootResolution.error) return;
     try {
         ensureProjectTmpDir();
         fs.writeFileSync(GRAPH_DISMISS_FLAG, new Date().toISOString() + '\n', 'utf-8');
@@ -443,6 +448,10 @@ function handleProtocolOverlayGate(userPrompt) {
 // ═══════════════════════════════════════════════════════════════════════════
 
 function main() {
+    if (rootResolution.error) {
+        console.error(`[init-prompt-gate] Skipped: ${rootResolution.error}`);
+        return;
+    }
     try {
         const stdin = fs.readFileSync(0, 'utf-8').trim();
         if (!stdin) process.exit(0);

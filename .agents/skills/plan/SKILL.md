@@ -15,9 +15,9 @@ disable-model-invocation: false
 > - For workflow skills, execute each listed child-skill step explicitly and report step-by-step evidence.
 > - If a required step/tool cannot run in this environment, stop and ask the user before adapting.
 <!-- CODEX:PROJECT-REFERENCE-LOADING:START -->
-## Codex Project-Reference Loading (No Hooks)
+## Codex Project-Reference Loading (Hook-Independent)
 
-Codex uses static project-reference loading instead of runtime-injected project docs.
+Claude and Codex use static project-reference loading as the authority; hooks may accelerate discovery but never replace the explicit read.
 When coding, planning, debugging, testing, or reviewing, open project docs explicitly using this routing.
 
 **Always read:**
@@ -397,7 +397,7 @@ After plan creation, offer validation interview to confirm decisions before impl
 - **MANDATORY FINAL TASKS:** After all planning todos, ALWAYS add these final tasks:
     1. **Task: "Write test specifications for each phase"** — Add `## Test Specifications` with TC-{FEATURE}-{NNN} IDs to every phase file. Use `$spec [mode=tests]` if feature docs exist; `Evidence: TBD` for TDD-first mode.
     2. **Task: "Run $plan-validate"** — `$plan-validate` skill interviews user with critical questions, validates plan assumptions.
-    3. **Task: "Run $plan-review"** — `$plan-review` skill, convergence loop (review → validate findings → fix → fresh full re-review) bounded by a **3-round ceiling, NEVER a target**: a clean pass ENDS the loop at ANY round, round 1 included; round 3 completing with CRITICAL/HIGH/MEDIUM still open escalates by asking the user directly, never a silent PASS. SP raises the RIGOR of each round, never a round floor: ≤3 → checklist + code-proof trace; 4-8 → + adversarial simulation; >8 → code-proof trace mandatory in every round.
+    3. **Task: "Run $plan-review"** — `$plan-review` skill, convergence loop (review → validate findings → fix → fresh full re-review) bounded by a **3-round ceiling, NEVER a target**: a clean pass ENDS the loop at ANY round once the persisted `minRounds` is met; round 3 completing with CRITICAL/HIGH/MEDIUM still open escalates by asking the user directly, never a silent PASS. SP raises the RIGOR of each round, never a round floor: ≤3 → checklist + code-proof trace; 4-8 → + adversarial simulation; >8 → code-proof trace mandatory in every round.
     4. **Task: "Run $why-review (standalone only)"** — If NOT inside a workflow, `$why-review` validates design rationale, alternatives considered, risk assessment. Skip if a workflow already includes `$why-review`.
     5. **Task: "Re-evaluate estimation against finalized plan"** — Pre-completion estimates anchor on scope guesses; finalized phases reveal true cost. After phases/TCs/decisions locked: (a) re-derive `bottom_up_hours = Σ phase_hours` from finalized phase files; (b) recompute `likely_days`, `risk_margin_pct`, `min-max range` per `SYNC:estimation-framework`; (c) compare to current frontmatter `man_days_traditional` / `story_points`. If `|delta| > 20%` → UPDATE frontmatter, add `reestimate_delta_pct: <signed>` + 1-line `reestimate_reason`. If `|delta| > 50%` → flag `SHOULD-RESCOPE` and surface to user by asking the user directly before implementation.
 
@@ -490,12 +490,12 @@ After creating all phase files, run **recursive decomposition loop**:
 
 <!-- SYNC:project-reference-docs-guide -->
 
-> **Project Reference Docs Gate** — Run after task-tracking bootstrap and before target/source file reads, grep, edits, or analysis. Project docs override generic framework assumptions.
+> **Project Reference Docs Gate (static JIT)** — Run after task-tracking bootstrap and immediately before target/source file reads, grep, edits, tests, or analysis. Project docs override generic framework assumptions; hooks may remind or accelerate this gate, but never prove that it ran.
 >
 > 1. Identify scope: file types, domain area, and operation.
 > 2. **Read `docs/project-config.json` first — the project's machine-readable map.** It is the single source of truth for THIS repo (modules/paths, framework + search keywords, test/E2E/integration run-commands, design system, architecture rules, workflow patterns); ground exact paths, run-commands, and conventions on it **before investigating, planning, or coding** — never assume framework defaults (`CLAUDE.md` + reference docs are derived from it). If it — or the docs index, `lessons.md`, `CLAUDE.md`, `AGENTS.md`, or any required reference doc — is missing or stale, auto-run `$project-init` or the narrow route (`$project-config`, `$docs-init`, `$scan-all`, `$scan --target=<key>`, `$claude-md-init`) first; if Codex mirrors or `AGENTS.md` are stale, ask the user to run `$sync-codex` (never auto-run it).
 > 3. Required docs by trigger: always `docs/project-reference/lessons.md`; doc lookup `docs-index-reference.md`; review `code-review-rules.md`; backend/CQRS/API `backend-patterns-reference.md`; domain/entity `domain-entities-reference.md`; frontend/UI `frontend-patterns-reference.md`; styles/design `scss-styling-guide.md` + `design-system/design-system-canonical.md`; integration tests `integration-test-reference.md`; E2E `e2e-test-reference.md`; feature docs/specs `feature-spec-reference.md` + `spec-system-reference.md` + `spec-principles.md`; behavior/public-contract/spec-test-code sync `workflow-spec-test-code-cycle-reference.md`; derived spec index/ERD/reimplementation guides `spec-system-reference.md` + source Feature Specs under `docs/specs/`; architecture/new area `project-structure-reference.md`.
-> 4. Read every required doc, then before target work state: `Reference docs read: ... | Not applicable: ...`.
+> 4. Read every required doc, then before target work state: `Reference docs read: ... | Not applicable: ...`. After compaction, resume, delegation, or a material context change, repeat the route and restate the set; prior conversation and hook output are not proof of current loading.
 >
 > **Ready when:** scope evaluated, `docs/project-config.json` consulted, required docs checked/read or setup route completed, `lessons.md` confirmed, citation emitted.
 
@@ -776,7 +776,7 @@ After creating all phase files, run **recursive decomposition loop**:
 > - Follows cycle: plan → implement → review → fix → verify
 > - Start Phase N+1 only after Phase N passes VERIFY — why: building on an unverified phase compounds errors downstream
 >
-> **Phase success = all TCs pass + code-reviewer agent approves + no CRITICAL findings.**
+> **Phase success = all TCs pass + code-reviewer agent approves + no blocking findings under the current review bar.** Round 1 requires zero validated findings at any severity; round 2+ requires zero validated CRITICAL/HIGH/MEDIUM findings, with LOW findings recorded as deferred. Failed binary gates remain blocking at every round.
 
 <!-- /SYNC:iterative-phase-quality -->
 
@@ -1104,7 +1104,7 @@ After creating all phase files, run **recursive decomposition loop**:
 **MANDATORY IMPORTANT MUST ATTENTION** run the full main pipeline in order — pre-check plan → bootstrap `goal.md` → ONE research wave (`researcher` + `investigate` in one message) → barrier → codebase + conditional pattern-doc analysis → convention matrix → `planner` writes `plan.md` + `phase-XX` → parallelism pass (PAR/SEQ + write sets + `## Execution Waves`) → granularity self-check → mandatory final tasks; NEVER skip a triggered pattern doc or silently require a nonexistent example-code file — why: the skipped reference or invented convention is the one AI silently drops.
 **MANDATORY IMPORTANT MUST ATTENTION** dispatch the research threads as ONE wave in ONE message (declare `Parallel plan:` first, one report path per agent) and synthesize only after EVERY member returns — why: dripping researchers one per turn serializes the cheapest-to-parallelize half of planning.
 **MANDATORY IMPORTANT MUST ATTENTION** the emitted plan MUST carry parallelism metadata — every phase tagged `PAR`/`SEQ`, its write set declared, every `SEQ` naming the exact artifact it waits on, and `## Execution Waves` in `plan.md` — why: `$plan-execute` fans out only on what the plan declares, so an untagged plan silently forces sequential execution.
-**MANDATORY IMPORTANT MUST ATTENTION** queue the final-task block on EVERY plan — Test Specs per phase → `$plan-validate` → `$plan-review` (convergence loop, 3-round ceiling — a clean pass ends it at any round) → `$why-review` (standalone only) → re-estimate vs finalized phases (flag `SHOULD-RESCOPE` when delta >50%).
+**MANDATORY IMPORTANT MUST ATTENTION** queue the final-task block on EVERY plan — Test Specs per phase → `$plan-validate` → `$plan-review` (convergence loop, 3-round ceiling — a clean pass ends it once the persisted `minRounds` is met) → `$why-review` (standalone only) → re-estimate vs finalized phases (flag `SHOULD-RESCOPE` when delta >50%).
 **IMPORTANT MUST ATTENTION** `--mode={ci|cro}` only ADDS a domain reference load (`references/mode-ci.md` / `mode-cro.md`) + intake on top of the SAME engine, gate, and `planner` agent — default (no flag) runs the standard flow byte-for-byte; NEVER let a mode replace the engine or skip `$plan-review`.
 
 **Anti-Rationalization:**
@@ -1136,13 +1136,13 @@ After creating all phase files, run **recursive decomposition loop**:
 > unclear intent are the real enemies — call them out by name.
 
 <!-- CODEX:SYNC-PROMPT-PROTOCOLS:START -->
-## Hookless Prompt Protocol Mirror (Auto-Synced)
+## Static Prompt Protocol Mirror (Auto-Synced)
 
-Source: `.claude/.ck.json` + `.claude/skills/shared/sync-inline-versions.md` (`:full` blocks) + `.claude/scripts/lib/hookless-prompt-protocol.cjs`
+Source: `.claude/.ck.json` + `.claude/skills/shared/sync-inline-versions.md` (`:full` blocks) + `.claude/scripts/lib/hookless-prompt-protocol.cjs` (legacy filename; static protocol composer)
 
 ## [WORKFLOW-EXECUTION-PROTOCOL] [BLOCKING] Workflow Execution Protocol — MANDATORY IMPORTANT MUST CRITICAL. Do not skip for any reason.
 
-**Generic portability boundary:** Reusable skills and protocol text stay project-neutral; project-specific conventions are discovered from docs/project-config.json and docs/project-reference/. Apply shared AI-SDD from `shared/sdd-artifact-contract.md`. Read `docs/project-config.json` and `docs/project-reference/docs-index-reference.md`, then open the project reference docs named there. For spec, test-case, behavior-change, public-contract, or `docs/specs/` work, route through the local spec docs named by the docs index: `feature-spec-reference.md`, `spec-system-reference.md`, `spec-principles.md`, and `workflow-spec-test-code-cycle-reference.md` when specs/tests/code must stay synchronized. If either file or a required reference doc is missing or stale, auto-run `$project-init` (or the narrow lower-level route such as `$project-config`, `$docs-init`, `$scan-all`, or `$scan --target=<key>`) before ordinary project-specific work. Any supported AI tool may execute when this shared context and local docs are available.
+**Generic portability boundary:** Reusable skills and protocol text stay project-neutral; project-specific conventions are discovered from docs/project-config.json and docs/project-reference/. Apply shared AI-SDD from `shared/sdd-artifact-contract.md`. Read `docs/project-config.json` and `docs/project-reference/docs-index-reference.md`, then open the project reference docs named there immediately before the first target read, grep, edit, test, or analysis. For spec, test-case, behavior-change, public-contract, or `docs/specs/` work, route through the local spec docs named by the docs index: `feature-spec-reference.md`, `spec-system-reference.md`, `spec-principles.md`, and `workflow-spec-test-code-cycle-reference.md` when specs/tests/code must stay synchronized. If either file or a required reference doc is missing or stale, auto-run `$project-init` (or the narrow lower-level route such as `$project-config`, `$docs-init`, `$scan-all`, or `$scan --target=<key>`) before ordinary project-specific work. After compaction, resume, delegation, or a material context change, re-read the required docs and state `Reference docs read: ... | Not applicable: ...`; a hook reminder or prior conversation is not proof that the files are loaded. Any supported AI tool may execute when this shared context and local docs are available.
 
 1. **DETECT:** If the prompt starts with an explicit slash skill/workflow command, execute it directly. Otherwise match the prompt against the workflow catalog and skill list.
 2. **ANALYZE:** Choose the best option: execute directly, invoke a skill, activate a standard workflow, or compose a custom step combination.

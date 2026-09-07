@@ -35,6 +35,11 @@
 import { spawn } from 'node:child_process';
 import { readFileSync, writeFileSync, renameSync, appendFileSync, createWriteStream, statSync, existsSync } from 'node:fs';
 import { basename, join, isAbsolute, relative, resolve } from 'node:path';
+import { createRequire } from 'node:module';
+import { fileURLToPath } from 'node:url';
+
+const require = createRequire(import.meta.url);
+const { resolveProjectRoot } = require('../../../scripts/lib/project-root.cjs');
 
 const argv = process.argv.slice(2);
 function argValue(flag, fallback) {
@@ -61,7 +66,16 @@ function positiveSeconds(value, fallback, label) {
 }
 
 const pollSec = positiveSeconds(argValue('--poll-sec'), 5, '--poll-sec');
-const PROJECT_DIR = process.env.CLAUDE_PROJECT_DIR || process.cwd();
+const rootResolution = resolveProjectRoot({
+  cwd: process.cwd(),
+  scriptPath: fileURLToPath(import.meta.url),
+  env: process.env,
+});
+if (rootResolution.error) {
+    console.error(`[runner] ${rootResolution.error}`);
+    process.exit(2);
+}
+const PROJECT_DIR = rootResolution.rootDir;
 const MAX_AGENTS = 2;
 const DEFAULT_MAX_OUTPUT_BYTES = 25 * 1024 * 1024;
 const STDERR_TAIL_BYTES = 2000;

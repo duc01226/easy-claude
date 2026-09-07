@@ -36,10 +36,11 @@ async function listTestFiles(dir) {
     try {
         const entries = await readdir(dir);
         return entries
-            .filter(e => e.endsWith(".test.mjs"))
+            .filter(e => /\.test\.(?:mjs|cjs)$/.test(e))
+            .sort()
             .map(e => path.join(dir, e));
-    } catch {
-        return [];
+    } catch (error) {
+        throw new Error(`Cannot discover tests in ${dir}: ${error.message}`);
     }
 }
 
@@ -116,7 +117,7 @@ const stages = [
     { id: "hooks",    label: "sync-hooks",       cmd: "node", mutate: true, args: [path.join(sourceScriptsDir, "sync-hooks.mjs")] },
     { id: "context",  label: "sync-context",     cmd: "node", mutate: true, args: [path.join(sourceScriptsDir, "sync-context-workflows.mjs")] },
     { id: "tests",    label: "test-codex",       cmd: "node", argsAsync: async () => ["--test", ...await listTestFiles(codexTestsDir)] },
-    // General .claude tooling unit tests (.claude/scripts/tests/*.test.mjs) — e.g. the statusline tests.
+    // General .claude tooling unit tests (*.test.mjs and *.test.cjs).
     // Listed via readdir so the stage works without shell glob expansion (PowerShell does not expand
     // globs the way POSIX shells do; the npm script relied on that, the runner does not).
     { id: "scripts-tests", label: "test-scripts", cmd: "node", argsAsync: async () => ["--test", ...await listTestFiles(claudeTestsDir)] },
@@ -190,11 +191,33 @@ function validateStageSelectors() {
     }
 }
 
+// Same fail-fast reasoning one level up, for the FLAG rather than the stage id. An
+// unrecognized flag used to be ignored, which silently degraded to "no filter" — so a
+// plausible-looking `--help`, or the `--mode update` an advisory elsewhere suggested, ran
+// all 18 stages INCLUDING the three mutating ones (migrate, sync-hooks, sync-context)
+// instead of doing the narrow thing the reader asked for. A runner that can rewrite the
+// tree must never treat "I did not understand you" as "run everything".
+const KNOWN_FLAGS = ["--verbose", "-v", "--copy-skills"];
+const KNOWN_LIST_FLAGS = ["--only", "--skip"];
+function validateFlags() {
+    const unknown = args.filter(arg =>
+        !KNOWN_FLAGS.includes(arg) && !KNOWN_LIST_FLAGS.some(flag => arg.startsWith(`${flag}=`)));
+    if (unknown.length > 0) {
+        console.error(`[codex-sync] unknown flag(s): ${unknown.join(", ")}`);
+        console.error(`[codex-sync] valid flags: ${[...KNOWN_FLAGS, ...KNOWN_LIST_FLAGS.map(f => `${f}=<ids>`)].join(", ")}`);
+        console.error(`[codex-sync] valid stage ids: ${stages.map(s => s.id).join(", ")}`);
+        process.exit(1);
+    }
+}
+
 async function runStage(stage, index, total) {
     // Resolve async argv OUTSIDE the Promise executor: a throw here must reject
     // runStage's promise, not vanish into a discarded async-executor promise
     // (which would leave the orchestrator awaiting a Promise that never settles).
     const argv = stage.argsAsync ? await stage.argsAsync() : stage.args;
+    if (stage.argsAsync && argv.length === 1 && argv[0] === "--test") {
+        throw Object.assign(new Error(`No tests discovered for ${stage.id}`), { stage: stage.id });
+    }
     const label = `[${index}/${total}] ${stage.label}`;
     process.stdout.write(`${label} ...`);
     if (verbose) process.stdout.write(`\n  $ ${stage.cmd} ${argv.join(" ")}\n`);
@@ -224,7 +247,12 @@ async function runStage(stage, index, total) {
             child.stderr.on("data", d => { stderrBuf += d.toString(); });
         }
 
-        child.on("error", reject);
+        // A spawn failure (missing executable, EACCES) yields a bare Error with no stage
+        // and no exit code, which the orchestrator would report as stage 'undefined'.
+        child.on("error", error => {
+            error.stage = stage.id;
+            reject(error);
+        });
         child.on("close", code => {
             const ms = Date.now() - startedAt;
             if (code === 0) {
@@ -243,6 +271,7 @@ async function runStage(stage, index, total) {
 }
 
 async function main() {
+    validateFlags();
     validateStageSelectors();
     const active = stages.filter(s => shouldRun(s.id));
     if (active.length === 0) {

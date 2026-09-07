@@ -2,6 +2,11 @@
 import { promises as fs } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
+import { createRequire } from 'node:module';
+import { fileURLToPath } from 'node:url';
+
+const require = createRequire(import.meta.url);
+const { resolveMutationProjectRoot } = require('../../../scripts/lib/project-root.cjs');
 
 const DERIVED_BANNER = '> DERIVED — regenerate with the tech-spec skill; do NOT hand-edit.';
 // The two trait names the renderer understands. A config-supplied annotationPattern
@@ -53,7 +58,12 @@ const TECHNICAL_HINTS = [
   'table',
 ];
 
-const repoRoot = process.cwd();
+const repoRoot = resolveMutationProjectRoot({
+  cwd: process.cwd(),
+  scriptPath: fileURLToPath(import.meta.url),
+  env: process.env,
+  preferCwdFallback: true,
+}).rootDir;
 const args = process.argv.slice(2);
 const isCheck = args.includes('--check');
 const isOptional = args.includes('--optional');

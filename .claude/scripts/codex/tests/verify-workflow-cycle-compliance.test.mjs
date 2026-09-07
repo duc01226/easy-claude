@@ -31,6 +31,8 @@ const {
   checkReviewChangesInlineExecutionPolicy,
   checkStartWorkflowPreActionPolicy,
   checkWorkflowInjectContextCoverage,
+  resolveWorkflowManifestsForVerification,
+  checkResolvedParallelGroupsStructure,
 } = await import(pathToFileURL(verifyScript).href);
 
 const workflowIds = [
@@ -40,6 +42,39 @@ const workflowIds = [
   "full-feature-lifecycle",
   "spec-sync",
 ];
+
+test('missing step skills require an explicit fixture override', async () => {
+  const rootDir = await fs.mkdtemp(path.join(os.tmpdir(), 'cycle-missing-skills-'));
+  const doc = { workflows: { fixture: { sequence: ['inspect'], preActions: { injectContext: 'fixture' } } } };
+  try {
+    assert.throws(() => resolveWorkflowManifestsForVerification(doc, 'fixture', { rootDir }), /Missing skill.*inspect/);
+    assert.throws(() => resolveWorkflowManifestsForVerification(doc, 'fixture', { rootDir, availableSkills: [] }), /Missing skill.*inspect/);
+    assert.equal(resolveWorkflowManifestsForVerification(doc, 'fixture', { rootDir, availableSkills: ['inspect'] })[0].occurrences[0].skill, 'inspect');
+    await fs.mkdir(path.join(rootDir, '.claude', 'skills', 'inspect'), { recursive: true });
+    await fs.writeFile(path.join(rootDir, '.claude', 'skills', 'inspect', 'SKILL.md'), '# Inspect');
+    assert.equal(resolveWorkflowManifestsForVerification(doc, 'fixture', { rootDir })[0].occurrences[0].skill, 'inspect');
+  } finally {
+    await fs.rm(rootDir, { recursive: true, force: true });
+  }
+});
+
+test('implicit declared-skill override mutation fails the missing-skill oracle', async () => {
+  const source = await fs.readFile(verifyScript, 'utf8');
+  const guard = '...(availableSkills !== undefined ? { availableSkills: new Set(availableSkills) } : {})';
+  assert.equal(source.split(guard).length, 2, 'mutation anchor must be unique');
+  const mutated = source.replace(guard, '...{ availableSkills: new Set(availableSkills ?? ["inspect"]) }')
+    .replaceAll('import.meta.url', JSON.stringify(pathToFileURL(verifyScript).href));
+  const verifier = await import(`data:text/javascript;base64,${Buffer.from(mutated).toString('base64')}`);
+  const rootDir = await fs.mkdtemp(path.join(os.tmpdir(), 'cycle-implicit-mutant-'));
+  const doc = { workflows: { fixture: { sequence: ['inspect'], preActions: { injectContext: 'fixture' } } } };
+  try {
+    const oracle = resolve => assert.throws(() => resolve(doc, 'fixture', { rootDir }), /Missing skill.*inspect/);
+    oracle(resolveWorkflowManifestsForVerification);
+    assert.throws(() => oracle(verifier.resolveWorkflowManifestsForVerification), assert.AssertionError);
+  } finally {
+    await fs.rm(rootDir, { recursive: true, force: true });
+  }
+});
 const DOMAIN_ENTITY_REFERENCE_REFRESH_CONTEXT = [
   "DOMAIN-ENTITY REFERENCE REFRESH (CONDITIONAL TERMINAL STEP):",
   "After /test and before /docs-update, run /scan --target=domain-entities when the final diff changes an entity/model, DTO/data contract, persistence schema/migration, or entity-sync evidence represented in docs/project-reference/domain-entities-reference.md.",
@@ -215,6 +250,18 @@ function buildDisplaySteps(steps, { agents = false } = {}) {
 }
 
 async function writeSkillFile(root, workflowId, stepsLine, options = {}) {
+  // Process fixtures must materialize their step skills just like a real checkout.
+  for (const step of sequenceByWorkflow[workflowId] ?? []) {
+    const skill = step.split(/\s+/, 1)[0];
+    const skillDir = path.join(root, skill);
+    await fs.mkdir(skillDir, { recursive: true });
+    await fs.writeFile(path.join(skillDir, 'SKILL.md'), [
+      '---', `name: ${skill}`, 'description: fixture', '---',
+      '<!-- SYNC:goal-contract-satisfaction-loop:reminder -->',
+      'Resolve the active Goal Contract before work. Emit the Goal Satisfaction matrix before PASS.',
+      '[WORKFLOW-IN-WORKFLOW: MUST RUN INLINE IN THE MAIN SESSION — never as a sub-agent]',
+    ].join('\n'), 'utf8');
+  }
   const {
     taskTableSteps = null,
     closingTaskCount = null,
@@ -819,6 +866,72 @@ test("checkWorkflowInjectContextCoverage requires context for every executable w
   });
   assert.equal(failures.length, 2);
   assert.ok(failures.every((failure) => /required non-empty preActions\.injectContext/.test(failure)));
+});
+
+test("cycle verifier resolves every declared mode into stable occurrences and barriers", () => {
+  const doc = {
+    version: "fixture-1",
+    workflows: {
+      "workflow-variant": {
+        name: "Variant fixture",
+        preActions: { injectContext: "Canonical fixture context." },
+        defaultMode: "update",
+        variants: {
+          update: {
+            sequence: [
+              { id: "inspect", skill: "inspect" },
+              { id: "review", skill: "review", args: "--mode=all", applicability: { when: "target exists", skipReason: "No target" } },
+              { id: "finish", skill: "workflow-end" },
+            ],
+            parallelGroups: [
+              { id: "reviews", members: ["inspect", "review"], conditionalMembers: ["review"], barrier: true },
+            ],
+          },
+          audit: {
+            sequence: [
+              { id: "audit", skill: "inspect", args: "--audit" },
+              { id: "finish-audit", skill: "workflow-end" },
+            ],
+          },
+        },
+      },
+    },
+  };
+  const manifests = resolveWorkflowManifestsForVerification(doc, "workflow-variant", {
+    availableSkills: ["inspect", "review", "workflow-end"],
+  });
+  assert.deepEqual(manifests.map((manifest) => manifest.mode), ["update", "audit"]);
+  assert.deepEqual(manifests[0].occurrences.map((occurrence) => occurrence.id), ["inspect", "review", "finish"]);
+  assert.equal(manifests[0].fingerprint.length, 64);
+  assert.deepEqual(checkResolvedParallelGroupsStructure("workflow-variant", manifests[0], [], { mode: "update" }), []);
+  assert.throws(
+    () => resolveWorkflowManifestsForVerification(doc, "workflow-variant", { mode: "ghost", availableSkills: ["inspect", "review", "workflow-end"] }),
+    /Unknown workflow mode/
+  );
+});
+
+test("cycle verifier rejects repeated explicit occurrence IDs instead of collapsing tasks", () => {
+  const doc = {
+    version: "fixture-duplicate",
+    workflows: {
+      "workflow-variant": {
+        preActions: { injectContext: "Canonical fixture context." },
+        defaultMode: "default",
+        variants: {
+          default: {
+            sequence: [
+              { id: "same", skill: "inspect" },
+              { id: "same", skill: "review" },
+            ],
+          },
+        },
+      },
+    },
+  };
+  assert.throws(
+    () => resolveWorkflowManifestsForVerification(doc, "workflow-variant", { availableSkills: ["inspect", "review"] }),
+    /Duplicate occurrence ID/
+  );
 });
 
 test("read-workflow-entry returns the complete Big Feature entry through its terminal refresh", async () => {

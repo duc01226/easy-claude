@@ -27,8 +27,16 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { createRequire } from 'node:module';
 
-const rootDir = process.cwd();
+const require = createRequire(import.meta.url);
+const { resolveProjectRoot } = require('../lib/project-root.cjs');
+const rootResolution = resolveProjectRoot({
+    cwd: process.cwd(),
+    scriptPath: fileURLToPath(import.meta.url),
+    env: process.env,
+});
+const rootDir = rootResolution.rootDir;
 
 // SC3 review-family allow-list — the 14 finding-producing review skills. The scan is scoped to
 // these names ONLY (never a repo-wide glob) so a non-review skill using "finding"/"Severity" is

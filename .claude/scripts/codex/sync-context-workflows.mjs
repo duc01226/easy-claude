@@ -1,6 +1,8 @@
 #!/usr/bin/env node
 
 import fs from "node:fs/promises";
+import fsSync from "node:fs";
+import { createHash } from "node:crypto";
 import path from "node:path";
 import { createRequire } from "node:module";
 import { fileURLToPath } from "node:url";
@@ -11,8 +13,30 @@ import {
   rewriteSkillMentionsForCodex,
 } from "./compat-rewrite.mjs";
 
-const rootDir = process.cwd();
 const require = createRequire(import.meta.url);
+const { resolveMutationProjectRoot } = require("../lib/project-root.cjs");
+const rootResolution = resolveMutationProjectRoot({
+  cwd: process.cwd(),
+  scriptPath: fileURLToPath(import.meta.url),
+  env: process.env,
+});
+const rootDir = rootResolution.rootDir;
+
+function loadWorkflowManifestResolver() {
+  const scriptDir = path.dirname(fileURLToPath(import.meta.url));
+  const candidates = [
+    path.join(rootDir, ".claude", "scripts", "lib", "workflow-manifest.cjs"),
+    path.join(scriptDir, "..", "lib", "workflow-manifest.cjs"),
+  ];
+  for (const candidate of candidates) {
+    try {
+      return require(candidate);
+    } catch {}
+  }
+  return null;
+}
+
+const workflowManifestResolver = loadWorkflowManifestResolver();
 
 function loadHooklessPromptProtocol() {
   const scriptDir = path.dirname(fileURLToPath(import.meta.url));
@@ -25,7 +49,7 @@ function loadHooklessPromptProtocol() {
       return require(candidate);
     } catch {}
   }
-  throw new Error("hookless prompt protocol builder is missing");
+  throw new Error("static prompt protocol builder is missing");
 }
 
 const {
@@ -97,7 +121,24 @@ const AGENTS_CONTEXT_MIRROR_START = "<!-- CODEX-CONTEXT-MIRROR:START -->";
 const AGENTS_CONTEXT_MIRROR_END = "<!-- CODEX-CONTEXT-MIRROR:END -->";
 const LEGACY_AGENTS_CLAUDE_MERGE_START = "<!-- CLAUDE-MERGE:START -->";
 const LEGACY_AGENTS_CLAUDE_MERGE_END = "<!-- CLAUDE-MERGE:END -->";
-const PROJECT_REFERENCE_GATE_HEADING = "## Codex Hookless Project Reference Gate";
+const AGENTS_ROOT_PROJECTION_START = "<!-- CK:CODEX-ROOT-PROJECTION -->";
+const AGENTS_ROOT_PROJECTION_END = "<!-- /CK:CODEX-ROOT-PROJECTION -->";
+const AGENTS_ROOT_LIMIT_BYTES = 32768;
+const AGENTS_PROJECTION_HEADINGS = [
+  /^## Workflow Step Advancement & Parallel Phases$/m,
+  /^## TL;DR — What You Must Know Before Writing Any Code$/m,
+  /^## Search Existing Code First$/m,
+  /^## Project Reference Loading$/m,
+  /^## Task Planning Rules$/m,
+  /^## Code Responsibility Hierarchy$/m,
+  /^## Evidence-Based Reasoning & Investigation$/m,
+  /^## Continuous Improvement — Lesson Extraction Gate$/m,
+  /^## Git & Version-Control Discipline$/m,
+  /^## Graph Intelligence \(when \.code-graph\/graph\.db exists\)$/m,
+  /^## Automatic Skill Activation$/m,
+];
+const PROJECT_REFERENCE_GATE_HEADING = "## Codex Project Reference Gate (Hook-Independent)";
+const LEGACY_PROJECT_REFERENCE_GATE_HEADINGS = ["## Codex Hookless Project Reference Gate"];
 const PROJECT_REFERENCE_GATE_BODY_LINES = [
   "Codex uses static project-reference loading instead of runtime-injected project docs. Before coding, planning, debugging, testing, or reviewing:",
   "",
@@ -107,9 +148,11 @@ const PROJECT_REFERENCE_GATE_BODY_LINES = [
   "- For spec, test-case, `docs/specs/`, behavior-change, or public-contract work, read the spec routing set named by the docs index: `feature-spec-reference.md`, `spec-system-reference.md`, `spec-principles.md`, and `workflow-spec-test-code-cycle-reference.md` when specs/tests/code must stay synchronized.",
   "- If `docs/project-config.json`, the docs index, `lessons.md`, `CLAUDE.md`, `AGENTS.md`, or any task-required reference doc is missing or stale, auto-run `$project-init` or the narrow setup route (`$project-config`, `$docs-init`, `$scan-all`, `$scan --target=<key>`, `$claude-md-init`) before ordinary project-specific work. If Codex mirrors or `AGENTS.md` are missing/stale, ask the user to run `$sync-codex`; do not auto-run it.",
   "- For situation-specific work, open the referenced project doc directly; do not rely on prior conversation text as proof that the doc is loaded.",
+  "- Load context just in time: classify the target and operation, open only the matching reference docs immediately before the first target read/grep/edit/test, and after compaction, resume, delegation, or a context change re-read them and restate `Reference docs read: ... | Not applicable: ...`.",
 ];
 const PROJECT_REFERENCE_GATE_BODY_START = PROJECT_REFERENCE_GATE_BODY_LINES[0];
 const PROJECT_REFERENCE_GATE_BODY_END = PROJECT_REFERENCE_GATE_BODY_LINES.at(-1);
+const LEGACY_PROJECT_REFERENCE_GATE_BODY_END = "- For situation-specific work, open the referenced project doc directly; do not rely on prior conversation text as proof that the doc is loaded.";
 
 function escapeRegExp(value) {
   return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -129,28 +172,98 @@ function stripManagedBlock(text, startMarker, endMarker) {
   return text.replace(pattern, "").trimEnd();
 }
 
+function extractManagedBlock(text, startMarker, endMarker) {
+  const pattern = buildManagedBlockPattern(startMarker, endMarker, "m");
+  return String(text || "").match(pattern)?.[0] ?? null;
+}
+
 function buildAgentsContextMirrorBlock(contextMd) {
+  const normalized = String(contextMd || "").replace(/\r\n?/g, "\n").trim();
+  const sha256 = createHash("sha256").update(normalized, "utf8").digest("hex");
   return [
     AGENTS_CONTEXT_MIRROR_START,
     "## Codex Context Mirror (Auto-Synced)",
     "",
-    "This block is auto-generated from `.codex/CODEX_CONTEXT.md` by `npm run codex:sync:context`.",
-    "Do not edit manually; update Claude sources and re-sync.",
+    "This compact pointer is auto-generated from `.codex/CODEX_CONTEXT.md` by `npm run codex:sync:context`.",
+    "Read `.codex/CODEX_CONTEXT.md` before any non-trivial workflow or skill; it carries the full static catalog and protocol detail.",
+    `Context fingerprint (SHA-256): ${sha256}`,
+    "Do not edit this pointer manually; update canonical Claude sources and re-sync.",
     "",
-    contextMd.trim(),
+    buildProjectReferenceGateSection(),
+    "",
+    "[WORKFLOW-EXECUTION-PROTOCOL] Claude and Codex may run hooks, but the static protocol is authoritative: auto-select the route, resolve the canonical workflow manifest, and stop when required context is missing or stale. The full protocol and workflow catalog are in `.codex/CODEX_CONTEXT.md`.",
+    "",
+    "If the referenced context is missing or its fingerprint is stale, stop and run `$sync-codex` (or the standalone sync runner) before proceeding.",
     AGENTS_CONTEXT_MIRROR_END,
   ].join("\n");
 }
 
+function extractHeadingSection(markdown, headingPattern) {
+  const text = String(markdown || "").replace(/\r\n?/g, "\n");
+  const match = text.match(headingPattern);
+  if (!match || match.index === undefined) return null;
+  const rest = text.slice(match.index);
+  const next = rest.slice(match[0].length).search(/^##\s+/m);
+  return (next === -1 ? rest : rest.slice(0, match[0].length + next)).trim();
+}
+
+function buildCompactClaudeProjection(claudeMd) {
+  const text = String(claudeMd || "").replace(/\r\n?/g, "\n");
+  const blocks = [];
+  const sentinel = text.match(/^<!-- CK:UNIVERSAL-GUIDES v\d+ -->$/m)?.[0];
+  if (sentinel) blocks.push(sentinel);
+  // Preserve a small unmanaged Claude preface (project title/identity) so compacting the Codex
+  // root does not silently erase custom context. Large prose stays in CLAUDE.md and is explicitly
+  // routed there; it is never truncated into a misleading half-section.
+  let preface = text;
+  for (const marker of [
+    ["<!-- CK:WORKFLOW-GATE -->", "<!-- /CK:WORKFLOW-GATE -->"],
+    ["<!-- CK:PROJECT-PROTOCOLS -->", "<!-- /CK:PROJECT-PROTOCOLS -->"],
+  ]) preface = stripManagedBlock(preface, marker[0], marker[1]);
+  const firstHeading = preface.search(/^##\s+/m);
+  preface = (firstHeading === -1 ? preface : preface.slice(0, firstHeading))
+    .replace(/^<!-- CK:UNIVERSAL-GUIDES v\d+ -->\s*/m, "")
+    .trim();
+  if (preface && Buffer.byteLength(preface, "utf8") <= 4096) blocks.push(preface);
+  for (const marker of [
+    ["<!-- CK:WORKFLOW-GATE -->", "<!-- /CK:WORKFLOW-GATE -->"],
+    ["<!-- CK:PROJECT-PROTOCOLS -->", "<!-- /CK:PROJECT-PROTOCOLS -->"],
+  ]) {
+    const block = extractManagedBlock(text, marker[0], marker[1]);
+    if (block) blocks.push(block.trim());
+  }
+  for (const heading of AGENTS_PROJECTION_HEADINGS) {
+    const section = extractHeadingSection(text, heading);
+    if (section) blocks.push(section);
+  }
+  blocks.push(
+    "## Codex Host Parity",
+    "",
+    "This root is a bounded operational projection. The canonical Claude instructions remain in `CLAUDE.md`; the complete Codex static context remains in `.codex/CODEX_CONTEXT.md`.",
+    "",
+    "Claude and Codex must resolve the same `.claude/workflows.json` mode, occurrence IDs, applicability and barriers. Host syntax (`/skill` vs `$skill`) is the only intentional dialect difference.",
+    "",
+    "Before a standard workflow: read the static catalog, resolve the complete selected manifest, capture the owned baseline, create one task per occurrence, and preserve the manifest fingerprint for resume.",
+    "",
+    "PERFORMANCE-SDD ROUTE: For performance-related work, run `$performance-review` with SLA/benchmark evidence and retain functional no-regression checks; behavior, public-contract, SLA, and spec-boundary changes still require the normal spec/test/docs synchronization.",
+    "",
+    "Apply the shared AI-SDD contract from `shared/sdd-artifact-contract.md` and `SYNC:ai-sdd-artifact-contract`; code-to-spec extraction is reference-only until accepted. Any supported AI tool may execute when this shared context and local docs are available.",
+  );
+  return blocks.filter(Boolean).join("\n\n").trim();
+}
+
 function buildAgentsClaudeMirrorBlock(claudeMd) {
+  const projection = buildCompactClaudeProjection(claudeMd);
   return [
     AGENTS_CLAUDE_MIRROR_START,
-    "## Claude Instructions Mirror (Auto-Synced)",
+    AGENTS_ROOT_PROJECTION_START,
+    "## Claude Instructions Mirror (Compact Auto-Synced Projection)",
     "",
-    "This block is auto-generated from `CLAUDE.md` by `npm run codex:sync:context`.",
-    "Do not edit manually; update `CLAUDE.md` and re-sync.",
+    "This bounded projection is generated from `CLAUDE.md` by `npm run codex:sync:context`; it keeps critical routing, ownership, evidence and task rules in the Codex root.",
+    "For full canonical detail, read `CLAUDE.md` and `.codex/CODEX_CONTEXT.md` directly. Do not edit generated mirrors.",
     "",
-    claudeMd.trim(),
+    projection,
+    AGENTS_ROOT_PROJECTION_END,
     AGENTS_CLAUDE_MIRROR_END,
   ].join("\n");
 }
@@ -163,11 +276,19 @@ function buildProjectReferenceGateSection() {
   ].join("\n");
 }
 
+function reportAgentsRootSize(content) {
+  const bytes = Buffer.byteLength(String(content || ""), "utf8");
+  if (bytes > AGENTS_ROOT_LIMIT_BYTES) {
+    console.warn(`[codex-context-sync] ROOT_OVERFLOW: AGENTS.md projection is ${bytes} bytes (limit ${AGENTS_ROOT_LIMIT_BYTES}); content was preserved without truncation. Reduce unmanaged preface or projection inputs before relying on the host budget.`);
+  }
+  return bytes;
+}
+
 // Legacy orphan: pre-refactor CODEX_CONTEXT.md / AGENTS.md carried a free-standing
 // `# Codex Context (Hookless Parity)` section between PROMPT-PROTOCOLS:END and WORKFLOWS:START.
 // It re-inlined the SAME critical-thinking + ai-mistake-prevention + Lessons content the managed
 // Prompt Protocol Mirror block already carries (canonical `:full` sourced), plus a duplicate of the
-// managed Codex Hookless Project Reference Gate — so every regen produced two full copies of each.
+// managed Codex Project Reference Gate — so every regen produced two full copies of each.
 // The block is NOT wrapped in any managed marker, so the strip-and-restamp of the marker blocks never
 // removed it; it persisted across syncs undetected (verify-sync-divergence only checks .agents/skills,
 // not CODEX_CONTEXT.md/AGENTS.md). Strip it on every run so the protocol + gate live in exactly one
@@ -185,19 +306,20 @@ function stripLegacyHooklessParityBlock(contextMd) {
 
 function stripProjectReferenceGateSection(contextMd) {
   let nextText = contextMd.replace(/\r\n?/g, "\n");
-  const pattern = new RegExp(
-    `(?:^|\\n)${escapeRegExp(PROJECT_REFERENCE_GATE_HEADING)}\\n[\\s\\S]*?(?=\\n(?:## |<!-- [A-Z-]+:START -->)|$)`,
-    "g"
-  );
-
-  while (nextText.includes(PROJECT_REFERENCE_GATE_HEADING)) {
-    const strippedText = nextText.replace(pattern, "");
-    if (strippedText === nextText) break;
-    nextText = strippedText;
+  for (const heading of [PROJECT_REFERENCE_GATE_HEADING, ...LEGACY_PROJECT_REFERENCE_GATE_HEADINGS]) {
+    const pattern = new RegExp(
+      `(?:^|\\n)${escapeRegExp(heading)}\\n[\\s\\S]*?(?=\\n(?:## |<!-- [A-Z-]+:START -->)|$)`,
+      "g"
+    );
+    while (nextText.includes(heading)) {
+      const strippedText = nextText.replace(pattern, "");
+      if (strippedText === nextText) break;
+      nextText = strippedText;
+    }
   }
 
   const orphanBodyPattern = new RegExp(
-    `(?:^|\\n)${escapeRegExp(PROJECT_REFERENCE_GATE_BODY_START)}\\n[\\s\\S]*?${escapeRegExp(PROJECT_REFERENCE_GATE_BODY_END)}(?=\\n(?:## |<!-- [A-Z-]+:START -->)|\\n\\n(?:## |<!-- [A-Z-]+:START -->)|$)`,
+    `(?:^|\\n)${escapeRegExp(PROJECT_REFERENCE_GATE_BODY_START)}\\n[\\s\\S]*?(?:${escapeRegExp(PROJECT_REFERENCE_GATE_BODY_END)}|${escapeRegExp(LEGACY_PROJECT_REFERENCE_GATE_BODY_END)})(?=\\n(?:## |<!-- [A-Z-]+:START -->)|\\n\\n(?:## |<!-- [A-Z-]+:START -->)|$)`,
     "g"
   );
   nextText = nextText.replace(orphanBodyPattern, "");
@@ -210,7 +332,7 @@ function upsertProjectReferenceGateSection(contextMd) {
   const gateSection = buildProjectReferenceGateSection();
 
   // Anchor before a standalone `## Critical Thinking Mindset` heading when one survives (legacy
-  // contexts that still carry it outside the now-stripped Hookless-Parity block, and the
+  // contexts that still carry it outside the now-stripped legacy static-parity block, and the
   // gate-replacement regression fixture). Kept as the primary anchor for backward compatibility.
   const criticalThinkingHeading = "\n## Critical Thinking Mindset";
   if (contextWithoutGate.includes(criticalThinkingHeading)) {
@@ -290,6 +412,7 @@ async function upsertContextIntoAgents(contextMd, claudeMd, writePath = agentsPa
     agentsMd = `${agentsMd.trimEnd()}\n\n${mirrorBlock}\n`;
   }
 
+  reportAgentsRootSize(agentsMd);
   await fs.writeFile(writePath, agentsMd, "utf8");
 }
 
@@ -352,13 +475,13 @@ function toWorkflowEntries(workflows) {
   return Object.entries(workflows);
 }
 
-function buildWorkflowSection(workflowEntries) {
+function buildWorkflowSection(workflowEntries, projectRoot = rootDir) {
   const sorted = [...workflowEntries].sort((a, b) => a[0].localeCompare(b[0]));
   const lines = [];
 
-  lines.push("## Workflow Protocol (Hookless)");
+  lines.push("## Workflow Protocol (Hook-Independent)");
   lines.push("");
-  lines.push("Use this protocol for workflow execution in Codex (no hook dependency):");
+  lines.push("Use this protocol for workflow execution on Claude or Codex (hooks are optional accelerators):");
   lines.push("1. Detect: execute explicit `$skill`, `$workflow-*`, or `$start-workflow <id>` prompts directly; otherwise match request against workflow catalog and skill list.");
   lines.push("2. Analyze: choose the best path: direct execution, skill, standard workflow, or custom step combination.");
   lines.push("3. Auto-select: pick the best path yourself without asking the user to choose between direct/skill/workflow/custom options.");
@@ -397,7 +520,6 @@ function buildWorkflowSection(workflowEntries) {
     const name = safeLine(workflow?.name) || workflowId;
     const description = safeLine(resolvePortabilityTokens(workflow?.description));
     const whenToUse = safeLine(workflow?.whenToUse);
-    const sequence = Array.isArray(workflow?.sequence) ? workflow.sequence : [];
     const protocol = resolvePortabilityTokens(workflow?.preActions?.injectContext);
 
     if (typeof protocol !== "string" || protocol.trim().length === 0) {
@@ -406,14 +528,24 @@ function buildWorkflowSection(workflowEntries) {
       );
     }
 
-    const parallelGroups = Array.isArray(workflow?.parallelGroups) ? workflow.parallelGroups : [];
+    const manifests = resolveWorkflowModes(projectRoot, workflowId, workflow);
+    const sequenceText = manifests
+      .map((manifest) => {
+        const rendered = renderResolvedSequence(manifest);
+        const modePrefix = manifests.length > 1 ? `${safeLine(manifest.mode)}: ` : "";
+        return `${modePrefix}${rendered || "_none_"}`;
+      })
+      .join("; ");
 
     lines.push(`### ${workflowId} — ${name}`);
     if (description) lines.push(`- Description: ${description}`);
     if (whenToUse) lines.push(`- When To Use: ${whenToUse}`);
-    lines.push(`- Sequence: ${sequence.length > 0 ? `\`${renderSequenceWithBarriers(sequence, parallelGroups, " -> ", (s) => s)}\`` : "_none_"}`);
-    if (parallelGroups.length > 0) {
-      lines.push(`- Parallel phase = all-return barrier: spawn ALL members together (one message); advance only after EVERY member returns (a skipped conditional member, marked \`*\`, counts as returned). A sub-agent completion advances the step identically to an inline call.`);
+    lines.push(`- Sequence: ${sequenceText.includes("_none_") && manifests.length === 1 ? sequenceText : `\`${sequenceText}\``}`);
+    for (const manifest of manifests) {
+      if (manifests.length > 1) lines.push(`- ${safeLine(manifest.mode)} occurrence IDs: \`${manifest.occurrences.map((record) => record.id).join(", ")}\``);
+      if (manifest.parallelGroups.length > 0) {
+        lines.push(`- ${manifests.length > 1 ? `${safeLine(manifest.mode)} ` : ""}Parallel phase = all-return barrier: spawn ALL members together (one message); advance only after EVERY member returns (a skipped conditional member, marked \`*\`, counts as returned). A sub-agent completion advances the step identically to an inline call.`);
+      }
     }
     lines.push("");
     lines.push("Protocol:");
@@ -436,6 +568,61 @@ function buildWorkflowSection(workflowEntries) {
   }
 
   return lines.join("\n");
+}
+
+// Resolve every declared mode through the same canonical manifest used by activation and the
+// Claude catalog builder.  A missing resolver is a hard error for variant-bearing entries: a
+// Codex mirror must never silently fall back to the default sequence while Claude sees variants.
+function resolveWorkflowModes(projectRoot, workflowId, workflow) {
+  if (!workflowManifestResolver) {
+    if (workflow?.variants) throw new Error(`Canonical workflow manifest resolver is missing for ${workflowId}`);
+    return [{
+      mode: "default",
+      occurrences: (Array.isArray(workflow?.sequence) ? workflow.sequence : []).map((step, index) => ({ id: `legacy-${index + 1}`, skill: String(step).split(/\s+/, 1)[0], args: String(step).split(/\s+/).slice(1).join(" ") })),
+      parallelGroups: Array.isArray(workflow?.parallelGroups) ? workflow.parallelGroups : [],
+    }];
+  }
+  const document = JSON.parse(fsSync.readFileSync(path.join(projectRoot, ".claude", "workflows.json"), "utf8"));
+  const declared = [];
+  if (Array.isArray(workflow?.sequence)) declared.push(...workflow.sequence);
+  for (const variant of Object.values(workflow?.variants || {})) {
+    if (Array.isArray(variant?.sequence)) declared.push(...variant.sequence);
+  }
+  const availableSkills = new Set(
+    declared
+      .map((step) => typeof step === "string" ? step.trim().split(/\s+/, 1)[0] : step?.skill)
+      .filter(Boolean)
+  );
+  return workflowManifestResolver
+    .resolveAllWorkflowManifests(document, workflowId, { rootDir: projectRoot, availableSkills });
+}
+
+function renderResolvedSequence(manifest) {
+  const groups = Array.isArray(manifest.parallelGroups) ? manifest.parallelGroups : [];
+  if (groups.length === 0) {
+    return manifest.occurrences.map(renderOccurrence).join(" -> ");
+  }
+  const memberToGroup = new Map();
+  for (const group of groups) for (const member of group.members) memberToGroup.set(member, group);
+  const emitted = new Set();
+  const parts = [];
+  for (const occurrence of manifest.occurrences) {
+    const group = memberToGroup.get(occurrence.id);
+    if (!group) {
+      parts.push(renderOccurrence(occurrence));
+      continue;
+    }
+    if (emitted.has(group.id)) continue;
+    emitted.add(group.id);
+    parts.push(renderBarrierToken(group));
+  }
+  return parts.join(" -> ");
+}
+
+function renderOccurrence(occurrence) {
+  const skill = safeLine(occurrence?.skill);
+  const args = safeLine(occurrence?.args);
+  return args ? `${skill} ${args}` : skill;
 }
 
 // TWIN: keep byte-identical with the inline twin renderExpectedBarrierToken in
@@ -608,7 +795,7 @@ export async function runContextSync({ outRootDir = rootDir } = {}) {
   const skillReferenceMap = buildSkillReferenceMap(skillNames);
   const generatedSection = prependCodexCompatibilityNote(
     rewriteClaudeToolTermsForCodex(
-      rewriteSkillMentionsForCodex(buildWorkflowSection(workflowEntries), skillReferenceMap)
+      rewriteSkillMentionsForCodex(buildWorkflowSection(workflowEntries, rootDir), skillReferenceMap)
     )
   );
   const topPromptProtocolSection = prependCodexCompatibilityNote(
@@ -628,7 +815,7 @@ export async function runContextSync({ outRootDir = rootDir } = {}) {
   // Keep one mirrored prompt protocol block at top; strip legacy bottom block if present.
   contextMd = stripManagedBlock(contextMd, PROMPT_PROTOCOLS_START, PROMPT_PROTOCOLS_END);
   contextMd = stripManagedBlock(contextMd, PROMPT_PROTOCOLS_BOTTOM_START, PROMPT_PROTOCOLS_BOTTOM_END);
-  // Strip the unmanaged legacy Hookless-Parity duplicate before re-stamping; the managed Prompt
+  // Strip the unmanaged legacy static-parity duplicate before re-stamping; the managed Prompt
   // Protocol Mirror + Project Reference Gate below are the single home for that content.
   contextMd = stripLegacyHooklessParityBlock(contextMd);
   contextMd = `${promptProtocolTopBlock}\n\n${contextMd.trimStart()}`;

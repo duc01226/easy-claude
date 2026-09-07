@@ -287,9 +287,9 @@ When implementation and tests disagree, classify the mismatch before changing ei
 
 ## Pre-commit/Push Rules
 
-**Consent & safety (BLOCKING — binds Claude and Codex equally; on a hookless host this is the ONLY guardrail):**
+**Consent & safety (BLOCKING — binds Claude and Codex equally; static rule, with hooks as optional accelerators):**
 
-- **Never commit, push, or stage (`git add`) unless the user explicitly asks.** "Implement X" / "fix the bug" is NOT permission to commit — finish the work, report what changed, and wait. Only an explicit "commit"/"push" (or an invoked commit skill / git-manager) authorizes it. Where Claude hooks run, `git-commit-block.cjs` enforces this; on a hookless host (Codex) obey it without the block.
+- **Never commit, push, or stage (`git add`) unless the user explicitly asks.** "Implement X" / "fix the bug" is NOT permission to commit — finish the work, report what changed, and wait. Only an explicit "commit"/"push" (or an invoked commit skill / git-manager) authorizes it. Where hooks run, `git-commit-block.cjs` accelerates enforcement; every host must obey the static rule even when hooks are absent or stale.
 - **Never `git commit --amend`.** Amending rewrites history and can corrupt commits once HEAD has moved — always create a NEW commit. No bypass.
 - **Branch before committing on the default branch.** If asked to commit while on `main`/`master`, create a feature branch first.
 - Read-only git (`status`, `diff`, `log`, `show`, `branch`, `fetch`, `restore`, `reset HEAD`) needs no permission.

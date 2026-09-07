@@ -44,7 +44,7 @@ You never need to memorize workflow names — just describe your intent.
 
 ### Project Knowledge (Static Embedding)
 
-Project knowledge — backend/frontend patterns, design tokens, code-review rules, learned lessons — lives **statically** in `CLAUDE.md`, the agent definitions, and the skills, plus the reference docs under `docs/project-reference/`. Skills and agents read the relevant doc on demand. Because the guidance is embedded rather than injected at runtime, every harness — Claude, Codex — sees identical instructions with no hook dependency.
+Project knowledge — backend/frontend patterns, design tokens, code-review rules, learned lessons — lives **statically** in `CLAUDE.md`, the agent definitions, and the skills, plus the reference docs under `docs/project-reference/`. Skills and agents read the relevant doc on demand. Because the guidance is embedded rather than requiring runtime injection, every harness — Claude, Codex — sees identical instructions even when hooks are disabled; hooks may accelerate discovery but do not change the contract.
 
 ---
 

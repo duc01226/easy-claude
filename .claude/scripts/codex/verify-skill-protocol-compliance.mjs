@@ -1,10 +1,19 @@
 #!/usr/bin/env node
 
 import fs from 'node:fs/promises';
+import { createHash } from 'node:crypto';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { createRequire } from 'node:module';
 
-const rootDir = process.cwd();
+const require = createRequire(import.meta.url);
+const { resolveProjectRoot } = require('../lib/project-root.cjs');
+const rootResolution = resolveProjectRoot({
+    cwd: process.cwd(),
+    scriptPath: fileURLToPath(import.meta.url),
+    env: process.env,
+});
+const rootDir = rootResolution.rootDir;
 const claudeSkillsRoot = path.join(rootDir, '.claude', 'skills');
 const skillsRoot = path.join(rootDir, '.agents', 'skills');
 const claudeAgentsRoot = path.join(rootDir, '.claude', 'agents');
@@ -20,6 +29,9 @@ const WORKFLOWS_START_MARKER = 'WORKFLOWS:START';
 const WORKFLOWS_END_MARKER = 'WORKFLOWS:END';
 const AGENTS_CONTEXT_MIRROR_START = 'CODEX-CONTEXT-MIRROR:START';
 const AGENTS_CONTEXT_MIRROR_END = 'CODEX-CONTEXT-MIRROR:END';
+const AGENTS_ROOT_PROJECTION_START = 'CK:CODEX-ROOT-PROJECTION';
+const AGENTS_ROOT_PROJECTION_END = '/CK:CODEX-ROOT-PROJECTION';
+const AGENTS_ROOT_LIMIT_BYTES = 32768;
 const DEBUGGER_TRACE_MARKER = '<!-- SYNC:end-to-start-debugger-trace -->';
 const DEBUGGER_TRACE_REQUIRED_SNIPPETS = [
     'End-to-Start Debugger Trace',
@@ -61,13 +73,12 @@ const REQUIRED_CONTRACT_SNIPPETS = [
     'If a required step/tool cannot run in this environment, stop and ask the user before adapting.'
 ];
 
-// P6 — canonical protocol-body parity in the auto-loaded mirror (AGENTS.md = Codex project
-// context). The mirror term-rewrites tool nouns (Agent->spawn_agent, "Skill tool"->lowercased,
-// etc.), so byte-equality vs the raw canonical :full block is INVALID and would false-fail.
-// Instead anchor on each block's
-// rewrite-invariant signature (a line that contains no tool term) and assert it appears EXACTLY
-// ONCE — proving the protocol is both PRESENT (reachability) and DEDUPED (the CK-marked CLAUDE.md
-// copies were stripped during mirroring; the body is baked once via the prompt-protocol section).
+// P6 — canonical protocol-body parity in the full static context. The mirror term-rewrites tool
+// nouns (Agent->spawn_agent, "Skill tool"->lowercased, etc.), so byte-equality vs the raw canonical
+// :full block is INVALID and would false-fail. Instead anchor on each block's rewrite-invariant
+// signature and assert it appears EXACTLY ONCE in `.codex/CODEX_CONTEXT.md`. `AGENTS.md` is a bounded
+// projection and pointer; it must not duplicate the full protocol body. Hooks may accelerate loading
+// on either host, but these static carriers remain authoritative.
 const PROTOCOL_BODY_SIGNATURES = [
     { tag: 'critical-thinking-mindset:full', signature: '[CRITICAL-THINKING-MINDSET]' },
     { tag: 'ai-mistake-prevention:full', signature: '## Common AI Mistake Prevention (System Lessons)' }
@@ -371,9 +382,53 @@ export function countOccurrences(haystack, needle) {
     return count;
 }
 
-// P6 (AGENTS.md): each canonical :full block's rewrite-invariant signature must appear EXACTLY ONCE
-// in the auto-loaded mirror. Fail-closed at every gap — a missing canonical source, missing mirror,
-// stale signature, or wrong occurrence count is a FAILURE, never a skip.
+// Compact-root contract. `AGENTS.md` is intentionally a small, static projection that points to
+// the complete context file. Keep this predicate pure so both the verifier and focused tests can
+// prove the size, marker, target and fingerprint invariants without invoking a host runtime.
+export function checkCompactAgentsProjection(agentsText, contextText, {
+    limitBytes = AGENTS_ROOT_LIMIT_BYTES,
+    contextRelativePath = '.codex/CODEX_CONTEXT.md'
+} = {}) {
+    const failures = [];
+    const agents = String(agentsText ?? '');
+    const context = String(contextText ?? '');
+    const bytes = Buffer.byteLength(agents, 'utf8');
+    if (bytes > limitBytes) {
+        failures.push(`AGENTS.md is ${bytes} bytes, above the ${limitBytes}-byte bounded projection limit`);
+    }
+    if (!hasStandaloneMarker(agents, AGENTS_ROOT_PROJECTION_START) ||
+        !hasStandaloneMarker(agents, AGENTS_ROOT_PROJECTION_END)) {
+        failures.push(`AGENTS.md missing bounded root projection markers (${AGENTS_ROOT_PROJECTION_START}/${AGENTS_ROOT_PROJECTION_END})`);
+    }
+    if (!hasStandaloneMarker(agents, AGENTS_CONTEXT_MIRROR_START) ||
+        !hasStandaloneMarker(agents, AGENTS_CONTEXT_MIRROR_END)) {
+        failures.push(`AGENTS.md missing managed context mirror markers (${AGENTS_CONTEXT_MIRROR_START}/${AGENTS_CONTEXT_MIRROR_END})`);
+        return failures;
+    }
+    const mirroredBlock = extractManagedBlock(agents, AGENTS_CONTEXT_MIRROR_START, AGENTS_CONTEXT_MIRROR_END);
+    if (!mirroredBlock) {
+        failures.push('AGENTS.md managed context mirror markers must form an ordered pair');
+        return failures;
+    }
+    const normalizedMirrorBlock = mirroredBlock.replace(/\r\n/g, '\n');
+    if (!normalizedMirrorBlock.includes(contextRelativePath)) {
+        failures.push(`AGENTS.md context mirror does not point to ${contextRelativePath}`);
+    }
+    const fingerprint = normalizedMirrorBlock.match(/Context fingerprint \(SHA-256\):\s*([a-f0-9]{64})/i)?.[1]?.toLowerCase();
+    const expectedFingerprint = createHash('sha256')
+        .update(normalizeForCompare(context), 'utf8')
+        .digest('hex');
+    if (!fingerprint) {
+        failures.push('AGENTS.md context mirror is missing its SHA-256 fingerprint');
+    } else if (fingerprint !== expectedFingerprint) {
+        failures.push(`AGENTS.md context fingerprint does not match ${contextRelativePath}`);
+    }
+    return failures;
+}
+
+// P6 (CODEX_CONTEXT.md): each canonical :full block's rewrite-invariant signature must appear
+// EXACTLY ONCE in the full static context. Fail-closed at every gap — a missing canonical source,
+// missing context, stale signature, or wrong occurrence count is a FAILURE, never a skip.
 async function checkCanonicalProtocolBodySignatures(failures) {
     if (!(await exists(canonicalSyncPath))) {
         failures.push(`Missing canonical protocol source: ${path.relative(rootDir, canonicalSyncPath)} (cannot verify mirror protocol-body parity)`);
@@ -389,19 +444,26 @@ async function checkCanonicalProtocolBodySignatures(failures) {
         }
     }
 
-    const targets = [
-        { label: 'AGENTS.md', filePath: projectAgentsPath } // P6 — Codex project context
-    ];
-    for (const { label, filePath } of targets) {
-        if (!(await exists(filePath))) {
-            failures.push(`Missing protocol mirror ${label}: ${path.relative(rootDir, filePath)} (fail-closed — protocol reachability unverifiable)`);
-            continue;
+    if (!(await exists(contextPath))) {
+        failures.push(`Missing protocol mirror .codex/CODEX_CONTEXT.md: ${path.relative(rootDir, contextPath)} (fail-closed — protocol reachability unverifiable)`);
+        return;
+    }
+    const contextText = await fs.readFile(contextPath, 'utf8');
+    for (const { tag, signature } of PROTOCOL_BODY_SIGNATURES) {
+        const n = countOccurrences(contextText, signature);
+        if (n !== 1) {
+            failures.push(`.codex/CODEX_CONTEXT.md: canonical SYNC:${tag} body signature "${signature}" found ${n}× (expected exactly 1 — a single deduped copy of the :full block)`);
         }
-        const content = await fs.readFile(filePath, 'utf8');
+    }
+
+    // The bounded root must point at the full context rather than silently carrying a second,
+    // truncated protocol copy. A zero count is intentional for signatures in AGENTS.md.
+    if (await exists(projectAgentsPath)) {
+        const agentsText = await fs.readFile(projectAgentsPath, 'utf8');
         for (const { tag, signature } of PROTOCOL_BODY_SIGNATURES) {
-            const n = countOccurrences(content, signature);
-            if (n !== 1) {
-                failures.push(`${label}: canonical SYNC:${tag} body signature "${signature}" found ${n}× (expected exactly 1 — a single deduped copy of the :full block)`);
+            const n = countOccurrences(agentsText, signature);
+            if (n !== 0) {
+                failures.push(`AGENTS.md: canonical SYNC:${tag} body signature "${signature}" found ${n}× (expected 0 in the bounded projection; read .codex/CODEX_CONTEXT.md)`);
             }
         }
     }
@@ -605,25 +667,7 @@ async function main() {
             failures.push(`Missing AGENTS.md file: ${path.relative(rootDir, projectAgentsPath)}`);
         } else {
             const agentsText = await fs.readFile(projectAgentsPath, 'utf8');
-            if (!hasStandaloneMarker(agentsText, AGENTS_CONTEXT_MIRROR_START)) {
-                failures.push(`${path.relative(rootDir, projectAgentsPath)} missing managed context mirror start marker (${AGENTS_CONTEXT_MIRROR_START})`);
-            }
-            if (!hasStandaloneMarker(agentsText, AGENTS_CONTEXT_MIRROR_END)) {
-                failures.push(`${path.relative(rootDir, projectAgentsPath)} missing managed context mirror end marker (${AGENTS_CONTEXT_MIRROR_END})`);
-            }
-            const mirroredBlock = extractManagedBlock(agentsText, AGENTS_CONTEXT_MIRROR_START, AGENTS_CONTEXT_MIRROR_END);
-            if (mirroredBlock) {
-                // Compare the mirrored payload, stripping wrapper text from AGENTS managed block.
-                const normalizedMirrorBlock = mirroredBlock.replace(/\r\n/g, '\n');
-                const mirroredPayload = normalizedMirrorBlock
-                    .replace(`<!-- ${AGENTS_CONTEXT_MIRROR_START} -->`, '')
-                    .replace(`<!-- ${AGENTS_CONTEXT_MIRROR_END} -->`, '')
-                    .replace(/^## Codex Context Mirror \(Auto-Synced\)\n\nThis block is auto-generated[\s\S]*?\n\n/m, '')
-                    .trim();
-                if (normalizeForCompare(mirroredPayload) !== normalizeForCompare(contextText)) {
-                    failures.push(`${path.relative(rootDir, projectAgentsPath)} context mirror content drifted from ${path.relative(rootDir, contextPath)}`);
-                }
-            }
+            failures.push(...checkCompactAgentsProjection(agentsText, contextText));
         }
     }
 

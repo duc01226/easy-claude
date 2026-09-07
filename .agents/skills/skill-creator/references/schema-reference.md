@@ -70,7 +70,21 @@ Universal defaults (`infer` removable, `tools`→`allowed-tools`) apply even wit
 | Removable field          | `infer` — ignored by runtime (`--fix` removes) | Warning  |
 | Field typo               | `tools` → `allowed-tools` (`--fix` renames)    | Warning  |
 | Description has category | Should start with `[Category]`                 | Info     |
-| Quick Summary exists     | `## Quick Summary` in first 30 lines           | Warning  |
-| SYNC tag balance         | Every open tag has a matching close tag        | Error    |
+| Quick Summary exists     | Standalone `## Quick Summary` after frontmatter, within physical lines 1–30 (inclusive) | Warning |
+| SYNC tag balance         | Standalone fences must close in reverse opening order with exactly matching full tags | Error |
 
 `--fix` auto-applies removable/renamable fixes only; structural issues are reported for manual repair.
+
+Missing or late Quick Summary headings produce a warning; warnings alone retain exit code 0. SYNC errors produce exit code 1 and identify the tag and physical line. Inline tag mentions in prose are not fences. Fences begin at column 1 and occupy their own line; body validation starts after the closing frontmatter delimiter.
+
+Nested fences and reminder suffixes are valid when the complete tags match:
+
+```markdown
+<!-- SYNC:example -->
+<!-- SYNC:example:reminder -->
+Reminder content.
+<!-- /SYNC:example:reminder -->
+<!-- /SYNC:example -->
+```
+
+An unclosed opener, stray closer, different closing tag, or crossed pair is an error. The validator reports these issues without inserting, removing, or reordering body content, including in `--fix` mode. The script runs directly from an exported skill directory using Node builtins; no root package or hooks loader is required.

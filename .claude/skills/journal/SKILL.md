@@ -12,12 +12,12 @@ disable-model-invocation: false
 **Workflow:**
 
 1. **Capture** -- Record the event, context, and impact
-2. **Write** -- Create structured journal entry in plans/reports/
+2. **Write** -- Create structured journal entry in `./docs/journals/`
 
 **Key Rules:**
 
 - Use for significant events: bugs found, architectural decisions, incidents
-- Follow report naming convention from plan context
+- Use the dated-slug filename defined by **Journal output** below
 - Break work into todo tasks; add final self-review task
 
 **Be skeptical. Apply critical thinking, sequential thinking. Every claim needs traced proof, confidence percentages (Idea should be more than 80%).**
@@ -25,6 +25,9 @@ disable-model-invocation: false
 Use the `journal-writer` subagent to explore the memories and recent code changes, and write some journal entries.
 Journal entries should be concise and focused on the most important events, key changes, impacts, and decisions.
 Keep journal entries in the `./docs/journals/` directory.
+
+**Journal output:** `./docs/journals/{date}-{slug}.md`. Use the date format from the active plan context and a concise event slug.
+Keep intermediate assessments in `plans/reports/`; durable journal entries belong in `./docs/journals/` — why: assessments support the work, journals preserve the event and its lessons.
 
 ---
 
@@ -82,6 +85,8 @@ Keep journal entries in the `./docs/journals/` directory.
 ## Closing Reminders
 
 **IMPORTANT MUST ATTENTION Goal:** Write journal entries documenting significant technical events, decisions, or incidents in `./docs/journals/` — concise, focused on key changes, impacts, and decisions.
+
+**IMPORTANT MUST ATTENTION** Use the dated-slug **Journal output** contract above; keep intermediate assessments in `plans/reports/` and durable journal entries in `./docs/journals/`.
 
 **Protocols in force (concise digest of the SYNC/shared blocks this skill carries):**
 

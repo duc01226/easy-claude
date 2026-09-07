@@ -7,6 +7,7 @@
 -   [Start with context and setup](#start-with-context-and-setup)
 -   [Skills or workflows not discovered](#skills-or-workflows-not-discovered)
 -   [Hooks not running](#hooks-not-running)
+-   [Bash goes silent](#bash-goes-silent)
 -   [Configuration not applied](#configuration-not-applied)
 -   [An edit or command is blocked](#an-edit-or-command-is-blocked)
 -   [Tests or tooling fail](#tests-or-tooling-fail)
@@ -122,6 +123,74 @@ printf '%s\n' '{"hook_event_name":"SessionStart"}' | node .claude/hooks/session-
 ```
 
 Read [hooks/README.md](./hooks/README.md) for the event table, registration rules, safety gates, and test-runner details.
+
+## Bash Goes Silent
+
+If every Bash call suddenly returns no output and exit 0, while a deliberately failing probe such as
+`exit 7` also reports 0, treat that as a hook/dispatcher incident—not as a successful command. The
+framework cannot reproduce or repair a private Claude Code dispatcher process from inside the project,
+but the Bash hook chain can now identify its own decision and failure paths.
+
+1. Start a fresh session first. Hook and shell state is process/session scoped; a fresh Claude Code
+   session reinitializes the Bash process. If the symptom returns, continue the checks below.
+2. Enable the opt-in trace for that session:
+
+    ```powershell
+    $env:CLAUDE_HOOK_DEBUG = '1'
+    $env:CLAUDE_PROJECT_DIR = (Get-Location).Path
+    ```
+
+    The trace is one JSON record per Bash-path hook at the platform temp path
+    `ck/debug/bash-hooks.log` (override it with `CLAUDE_HOOK_DEBUG_LOG`). It records hook, decision,
+    exit code, duration, and error classification, but never command/path contents.
+3. Bisect the seven registrations in `.claude/settings.json` by feeding the same benign payload to each
+   hook. A normal result is exit 0 with empty stdout/stderr. Run the following from PowerShell:
+
+    ```powershell
+    $payload = '{"hook_event_name":"PreToolUse","tool_name":"Bash","tool_input":{"command":"echo hi"}}'
+    $payload | node .claude/hooks/windows-command-detector.cjs
+    $LASTEXITCODE
+    ```
+
+    Repeat for `bash-shell-guard.cjs`, `git-commit-block.cjs`, `doc-sync-gate.cjs`, `scout-block.cjs`,
+    `privacy-block.cjs`, and `path-boundary-block.cjs`. An error must be visible; Git/privacy/path
+    evaluation errors intentionally exit 2. From a POSIX shell, use the same payload with:
+
+    ```bash
+    payload='{"hook_event_name":"PreToolUse","tool_name":"Bash","tool_input":{"command":"echo hi"}}'
+    printf '%s\n' "$payload" | node .claude/hooks/windows-command-detector.cjs
+    printf 'exit=%s\n' "$?"
+    ```
+
+4. If the hook probes are healthy but Claude Bash is still silent, temporarily disable only the Bash
+   registrations. First make a recoverable backup, then edit `.claude/settings.json` as follows:
+
+    ```powershell
+    Copy-Item .claude/settings.json .claude/settings.json.bash-silent-backup -Force
+    ```
+
+   Remove the one PreToolUse group whose matcher is exactly `Bash` (it contains four hooks), and remove
+   `Bash|` from the two combined matchers so they retain their non-Bash tools. Do not remove the
+   `AskUserQuestion` notification group, delete non-Bash registrations, or set privacy/boundary policy
+   flags to false. Restore the backup immediately after the incident:
+
+    ```powershell
+    Copy-Item .claude/settings.json.bash-silent-backup .claude/settings.json -Force
+    ```
+
+   Restart Claude Code after either edit; hook settings are loaded at session start. A fresh session also
+   recreates the session-scoped Bash/dispatcher path and is the normal recovery when the failure is
+   external to the framework.
+
+The regression suite for this path is:
+
+```text
+node .claude/hooks/tests/run-all-tests.cjs --filter=bash-hook-contract --verbose
+```
+
+If a fresh session restores Bash, preserve the debug log and report the first hook decision/error plus
+the Claude Code version. If no hook emits a block/error, include the exact `exit 7` probe and session
+boundary in the report—the framework hooks cannot account for a dispatcher-level silent success.
 
 ## Configuration Not Applied
 

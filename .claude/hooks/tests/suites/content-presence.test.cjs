@@ -3,7 +3,7 @@
  *
  * Re-homes the parity guarantees that USED to be enforced by the now-deleted
  * context-injection hooks. Those hooks injected guidance at runtime; the guidance
- * now lives statically in CLAUDE.md / agent .md so a hookless harness (Codex)
+ * now lives statically in CLAUDE.md / agent .md so any host
  * reads identical instructions. These are GENUINE presence asserts — each FAILS
  * if the relocated guidance goes missing. No tautologies (we assert specific
  * load-bearing phrases, not "file is non-empty").
@@ -13,7 +13,7 @@
  *               path→reference-doc pointer table (backend/frontend/integration/
  *               e2e/spec/scss rows). Replaces the deleted workflow-router injection.
  *   TC-CP-008 — CLAUDE.md carries the full workflow SELECTION catalog (Workflows Index
- *               listing every workflow id from workflows.json) so a hookless read picks
+ *               listing every workflow id from workflows.json) so a static read picks
  *               the right workflow WITHOUT the workflow-router.cjs hook. This is the
  *               static-bake half of "Claude has no hooks"; the mirrors (AGENTS.md)
  *               bake the same catalog from the same source.
@@ -55,7 +55,7 @@
  * The 4 per-context inject hooks (design-system-canonical-guide / figma-context-extractor /
  * ba-refinement-context / graph-grep-suggester) are now presence-asserted by TC-CP-004..007
  * against the verbatim load-bearing phrases their guidance relocated to. A future skill edit
- * that drops a relocated block fails the matching TC, restoring hookless (Codex) parity.
+ * that drops a relocated block fails the matching TC, restoring cross-host parity.
  */
 
 const fs = require('fs');
@@ -72,7 +72,7 @@ const readSkill = name => readFile(path.join(SKILLS_DIR, name, 'SKILL.md'));
 
 // Assert a relocated inject-hook's guidance survives in its target skill. Each phrase is a
 // verbatim load-bearing fragment of the deleted hook's output — NOT a tautology. Fails loudly
-// (naming the deleted hook) if the relocation is dropped, so hookless parity can't silently rot.
+// (naming the deleted hook) if the relocation is dropped, so static parity can't silently rot.
 const assertRelocated = (deletedHook, skill, phrases) => {
     const body = readSkill(skill);
     const missing = phrases.filter(p => !body.includes(p));

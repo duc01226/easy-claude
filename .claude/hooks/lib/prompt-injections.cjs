@@ -26,8 +26,9 @@ const {
     buildPortabilityBoundary,
     buildWorkflowProtocolText
 } = require('../../scripts/lib/hookless-prompt-protocol.cjs');
+const { resolveProjectRoot } = require('./project-root.cjs');
 
-const PROJECT_DIR = process.env.CLAUDE_PROJECT_DIR || process.cwd();
+const PROJECT_DIR = resolveProjectRoot({ cwd: process.cwd(), scriptPath: __filename, env: process.env }).rootDir;
 const LESSONS_PATH = path.join(PROJECT_DIR, 'docs', 'project-reference', 'lessons.md');
 
 function wasMarkerRecentlyInjected(transcriptPath, marker, bottomLines, topLines = TOP_DEDUP_LINES, preloadedLines = null) {

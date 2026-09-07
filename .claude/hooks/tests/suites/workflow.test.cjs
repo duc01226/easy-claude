@@ -253,7 +253,14 @@ const renameFixGuardTests = [
             // Guard A: every step is invoked as /<step>, so it must resolve to a real skill.
             // Assert each sequence step (base skill, sans arg/flag suffix) is a real
             // skill dir, so /<step> always points at an existing skill.
-            const baseSkill = step => step.split(/[\s[]/)[0];
+            const baseSkill = step => {
+                // Variant-aware workflow sequences may carry an identity wrapper
+                // (`{ id, skill }`) while legacy/default sequences remain strings.
+                // Validate the resolved skill name uniformly instead of crashing
+                // the guard on a valid structured step.
+                const raw = typeof step === 'string' ? step : step?.skill;
+                return typeof raw === 'string' ? raw.split(/[\s[]/)[0] : '';
+            };
             for (const [wfId, wf] of Object.entries(config.workflows)) {
                 for (const step of wf.sequence) {
                     const skillDir = path.join(PROJECT_ROOT, '.claude', 'skills', baseSkill(step), 'SKILL.md');

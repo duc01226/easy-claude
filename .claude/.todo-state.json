@@ -1,26 +1,61 @@
 {
   "hasTodos": true,
-  "taskCount": 3,
+  "taskCount": 8,
   "pendingCount": 0,
-  "completedCount": 3,
+  "completedCount": 8,
   "inProgressCount": 0,
+  "workflowRun": "codex-260907-quality-acceptance-1",
+  "plan": "plans/260907-harness-enhancement/experience-acceptance-addendum.md",
   "lastTodos": [
     {
-      "content": "Update refine command to add Step 8 validation workflow",
+      "id": "EA-01",
+      "content": "Define canonical experience acceptance contract and deterministic validator",
       "status": "completed",
-      "activeForm": "Updating refine command with validation step"
+      "activeForm": "Defining canonical experience acceptance contract and validator"
     },
     {
-      "content": "Update refine skill to add validation step in workflow",
+      "id": "EA-02",
+      "content": "Create and validate the experience-review skill",
       "status": "completed",
-      "activeForm": "Updating refine skill with validation step"
+      "activeForm": "Creating and validating the experience-review skill"
     },
     {
-      "content": "Review changes for consistency and completeness",
+      "id": "EA-03",
+      "content": "Add portable experienceVerification configuration and initialization guidance",
       "status": "completed",
-      "activeForm": "Reviewing changes for consistency"
+      "activeForm": "Adding portable experienceVerification configuration and guidance"
+    },
+    {
+      "id": "EA-04",
+      "content": "Wire the conditional review into feature, bugfix, refactor, and greenfield workflows",
+      "status": "completed",
+      "activeForm": "Wiring conditional experience review into workflows"
+    },
+    {
+      "id": "EA-05",
+      "content": "Synchronize canonical sources and regenerate required mirrors and catalogs",
+      "status": "completed",
+      "activeForm": "Synchronizing canonical sources and generated carriers"
+    },
+    {
+      "id": "EA-06",
+      "content": "Run focused, schema, workflow, graph, diff, and aggregate verification",
+      "status": "completed",
+      "activeForm": "Running focused and repository verification"
+    },
+    {
+      "id": "EA-07",
+      "content": "Final review of portability, authority, acceptance, and generated-output drift",
+      "status": "completed",
+      "activeForm": "Reviewing portability, authority, acceptance, and generated outputs"
+    },
+    {
+      "id": "EA-08",
+      "content": "Analyze AI mistakes & lessons learned",
+      "status": "completed",
+      "activeForm": "Analyzing AI mistakes and lessons learned"
     }
   ],
-  "lastUpdated": "2026-01-21T03:34:59.392Z",
-  "restoredFrom": "2026-01-19T23:36:47.209Z"
+  "lastUpdated": "2026-09-07T00:00:00.000Z",
+  "restoredFrom": "2026-09-07T00:00:00.000Z"
 }

@@ -12,7 +12,7 @@ const CK_CONFIG_PATH = path.join(__dirname, '..', '.ck.json');
 
 async function runHook(hookData, cwd = undefined) {
   return new Promise((resolve) => {
-    const options = cwd ? { cwd } : {};
+    const options = { ...(cwd ? { cwd } : {}), env: { ...process.env, CLAUDE_PROJECT_DIR: cwd || path.resolve(__dirname, '../../..') } };
     const proc = spawn('node', [HOOK_PATH], options);
     let stderr = '';
 
@@ -24,7 +24,20 @@ async function runHook(hookData, cwd = undefined) {
       resolve({ code, stderr });
     });
 
-    proc.stdin.write(JSON.stringify(hookData));
+    // The PreToolUse runner validates the real host envelope. Keep this
+    // legacy standalone suite useful by supplying the same envelope when an
+    // older fixture only provides tool_input; malformed-envelope behavior is
+    // covered explicitly by the aggregate security suite.
+    const input = hookData && typeof hookData === 'object' && !Array.isArray(hookData)
+      ? (hookData.tool_name
+        ? hookData
+        : {
+            event: 'PreToolUse',
+            tool_name: hookData.tool_input?.command ? 'Bash' : 'Read',
+            tool_input: hookData.tool_input || {}
+          })
+      : hookData;
+    proc.stdin.write(JSON.stringify(input));
     proc.stdin.end();
   });
 }

@@ -14,9 +14,9 @@ description: '[Process] Use when you need to end the active workflow and clear s
 > - For workflow skills, execute each listed child-skill step explicitly and report step-by-step evidence.
 > - If a required step/tool cannot run in this environment, stop and ask the user before adapting.
 <!-- CODEX:PROJECT-REFERENCE-LOADING:START -->
-## Codex Project-Reference Loading (No Hooks)
+## Codex Project-Reference Loading (Hook-Independent)
 
-Codex uses static project-reference loading instead of runtime-injected project docs.
+Claude and Codex use static project-reference loading as the authority; hooks may accelerate discovery but never replace the explicit read.
 When coding, planning, debugging, testing, or reviewing, open project docs explicitly using this routing.
 
 **Always read:**
@@ -56,9 +56,9 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 **Summary:**
 
 - **Purpose:** penultimate state-closure step (runs before `$watzup`) — close the active workflow cleanly so the next prompt gets fresh detection, AND leave the developer understanding what changed without re-reading the diff.
-- **Main steps (ordered):** (1) integration-test coverage check on changed business-logic files; (2) spec ↔ TDD-test sync gate (`spec-tdd-test-sync-gate`) BEFORE task-completion verification; (3) sync knowledge graph if `.code-graph/` exists; (4) mark this task `completed`; (5) print the diff-gated one-way comprehension recap (what / purpose / how / why); (6) announce `Workflow [name] completed`; (7) confirm state cleared.
+- **Main steps (ordered):** (1) integration-test coverage check on changed business-logic files; (2) spec ↔ TDD-test sync gate (`spec-tdd-test-sync-gate`) BEFORE task-completion verification; (3) sync knowledge graph if `.code-graph/` exists; (4) verify the workflow-owned baseline and classify unowned/ambiguous changes; (5) verify all preceding tasks completed; (6) print the diff-gated one-way comprehension recap (what / purpose / how / why); (7) close only the recorded owned baseline run and verify deletion results; (8) announce `Workflow [name] completed`; (9) confirm state cleared.
 - **Blocking gates:** coverage gap (changed handler/command/service/controller with no matching test) OR unadjudicated spec-vs-code drift → MUST surface by asking the user directly, NEVER silent-skip; workflow MUST NOT report `completed` while drift is unadjudicated.
-- **Model-driven close:** completes once ALL the current task list items done AND the sync gate recorded synced-or-accepted-as-is; NO hook clears state (residual `.ck-workflow-state.json` cleared only by `session-init` on explicit `/clear`).
+- **Model-driven close:** completes once ALL the current task list items done, the sync gate recorded synced-or-accepted-as-is, and the exact owned baseline run closed successfully or was explicitly not applicable. NO hook clears residual `.ck-workflow-state.json`; `session-init` clears it only on explicit `/clear`.
 - **Recap depth** throttled by `codingLevel` (`CK_CODING_LEVEL` → `.claude/.ck.json` → default 3); skip recap ONLY when there is no diff. The recap never quizzes and never blocks — deeper explanation is the standalone `$understand` skill.
 
 **Workflow:**
@@ -73,6 +73,7 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 - MUST ATTENTION when the workflow produced a diff, print the comprehension recap (what changed / purpose / how it works / why) — depth throttled by `codingLevel`, but NEVER fully skip when changes exist.
 - MUST ATTENTION the recap is one-way — NO quiz, NO teach-back, NEVER blocks. Deeper comprehension is handled by the standalone `$understand` skill, which `$watzup` invokes as its final handoff and which the developer can also invoke directly for any target.
 - MUST ATTENTION run the spec ↔ TDD-test sync gate (`spec-tdd-test-sync-gate`) BEFORE task-completion verification when behavior-changing files are in the diff — the workflow MUST NOT report completed while a behavior-vs-spec divergence is unadjudicated; surface unsynced drift by asking the user directly, never silent-close.
+- MUST ATTENTION close the workflow-owned baseline before announcing completion: run the bounded `workflow-baseline.cjs report` for the recorded run ID, classify owned versus unowned changes, and report `AMBIGUOUS` for unowned paths, endpoint-only ownership, or intermediate commits. Persist the final report and print the recap before running `workflow-baseline.cjs close` for that exact run; verify `closed` and `deletionFailures`, preserve any parent run, and never use broad cleanup. Never replace this with `git diff` attribution, claim every dirty file, restore user work, or read expired/sensitive snapshots.
 - MUST ATTENTION keep claims evidence-based (`file:line`) with confidence >80% to act.
 - MUST ATTENTION keep task tracking updated as each step starts/completes.
 - MUST ATTENTION define success criteria before execution and loop until observable verification passes.
@@ -114,9 +115,15 @@ This skill is the **workflow state-closure step**. In workflows including `$watz
     if [ -d ".code-graph" ]; then python .claude/scripts/code_graph sync --json && python .claude/scripts/code_graph update --json; fi
     ```
     Report results briefly.
-4. Mark this task as `completed` via `TaskUpdate`
+4. **Verify workflow ownership baseline** (when `$start-workflow` recorded a run):
+   - Run `node .claude/scripts/lib/workflow-baseline.cjs report` with the run ID and project root.
+   - Treat `QUALIFIED` as “no observed unowned path changes,” not proof that every hunk was authored by this run.
+   - Treat `AMBIGUOUS` as a blocking closure finding until the user accepts the cited reason; include owned paths, unowned paths, intermediate-commit status, and the residual A→B→C shared-file TOCTOU ambiguity.
+   - If the record is age ≥24h, report `EXPIRED` and do not read/recover snapshots. Close/cancel performs best-effort deletion of the exact run files; deletion failure never restores eligibility.
 
-5. **Explain the changes — developer comprehension recap** (the final teaching step; runs after everything else is done):
+5. Verify all preceding workflow tasks are completed or explicitly skipped with evidence. Keep this closure task in progress until its report, recap and owned-run close have finished.
+
+6. **Explain the changes — developer comprehension recap** (the final teaching step; runs after everything else is done):
 
     Scope what this workflow changed:
 
@@ -144,8 +151,13 @@ This skill is the **workflow state-closure step**. In workflows including `$watz
     3. **How it works** — mechanism, key logic, invariants relied on, edge cases preserved; focus the **non-obvious**.
     4. **Why this way** — rationale and trade-offs; why over the obvious alternative.
 
-6. Announce to the user: "Workflow **[name]** completed. Next prompt will trigger fresh workflow detection."
-7. Workflow end is model-driven — it completes once this skill's the current task list items are all marked done, AND the spec ↔ TDD-test sync gate (step 2) recorded synced-or-accepted-as-is. No hook clears persisted state on completion; any residual `.claude/.ck-workflow-state.json` is cleared by `session-init` on an explicit `/clear`.
+7. **Close only the workflow-owned baseline run** after the final report is persisted and the recap printed:
+   - When `$start-workflow` recorded a run, invoke `node .claude/scripts/lib/workflow-baseline.cjs close` with JSON stdin containing the recorded `rootDir`, `runId`, and `storeDir` when one was recorded. Use the exact same identity as step 4; never guess a replacement run or directory.
+   - Inspect the command exit status AND JSON result: require `closed === true` and an empty `deletionFailures` array. A zero exit alone is not proof of cleanup. On error or deletion failure, retain the closure task as incomplete and report each failure without claiming state cleared; retry only that exact run when safe. Do not restore expired eligibility.
+   - Nested closure closes only the child run; preserve the parent run and all sibling runs. Never call `cleanup-expired` or delete a store directory as part of this step.
+   - If no baseline run was recorded, explicitly mark only this step `N/A — no recorded baseline run`; do not discover or remove another run.
+8. Mark this task `completed` and announce to the user: "Workflow **[name]** completed. Next prompt will trigger fresh workflow detection."
+9. Workflow end is model-driven — it completes once this skill's the current task list items are all marked done, the spec ↔ TDD-test sync gate (step 2) recorded synced-or-accepted-as-is, the owned-baseline report (step 4) recorded qualified or user-accepted ambiguity, and the exact owned-run close (step 7) succeeded or was explicitly not applicable. No hook clears persisted workflow tracking on completion; any residual `.claude/.ck-workflow-state.json` is cleared by `session-init` on an explicit `/clear`. Do not describe residual persisted tracking as deleted.
 
 ---
 
@@ -157,9 +169,9 @@ This skill is the **workflow state-closure step**. In workflows including `$watz
 
 ---
 
-**IMPORTANT MANDATORY Steps:** integration-test-coverage-check -> spec-tdd-test-sync-gate -> verify-task-completion -> verify-workflow-state -> explain-changes-recap -> announce-workflow-completion -> clear-workflow-state
+**IMPORTANT MANDATORY Steps:** integration-test-coverage-check -> spec-tdd-test-sync-gate -> sync-knowledge-graph -> verify-owned-baseline -> verify-task-completion -> explain-changes-recap -> close-owned-baseline -> announce-workflow-completion -> clear-workflow-state
 
-**IMPORTANT MANDATORY Steps:** integration-test-coverage-check -> spec-tdd-test-sync-gate -> verify-task-completion -> verify-workflow-state -> explain-changes-recap -> announce-workflow-completion -> clear-workflow-state
+**IMPORTANT MANDATORY Steps:** integration-test-coverage-check -> spec-tdd-test-sync-gate -> sync-knowledge-graph -> verify-owned-baseline -> verify-task-completion -> explain-changes-recap -> close-owned-baseline -> announce-workflow-completion -> clear-workflow-state
 
 **Be skeptical. Apply critical thinking, sequential thinking. Every claim needs traced proof, confidence percentages (Idea should be more than 80%).**
 
@@ -194,12 +206,12 @@ Finalize and close the active workflow, clearing state so the next user prompt t
 
 <!-- SYNC:project-reference-docs-guide -->
 
-> **Project Reference Docs Gate** — Run after task-tracking bootstrap and before target/source file reads, grep, edits, or analysis. Project docs override generic framework assumptions.
+> **Project Reference Docs Gate (static JIT)** — Run after task-tracking bootstrap and immediately before target/source file reads, grep, edits, tests, or analysis. Project docs override generic framework assumptions; hooks may remind or accelerate this gate, but never prove that it ran.
 >
 > 1. Identify scope: file types, domain area, and operation.
 > 2. **Read `docs/project-config.json` first — the project's machine-readable map.** It is the single source of truth for THIS repo (modules/paths, framework + search keywords, test/E2E/integration run-commands, design system, architecture rules, workflow patterns); ground exact paths, run-commands, and conventions on it **before investigating, planning, or coding** — never assume framework defaults (`CLAUDE.md` + reference docs are derived from it). If it — or the docs index, `lessons.md`, `CLAUDE.md`, `AGENTS.md`, or any required reference doc — is missing or stale, auto-run `$project-init` or the narrow route (`$project-config`, `$docs-init`, `$scan-all`, `$scan --target=<key>`, `$claude-md-init`) first; if Codex mirrors or `AGENTS.md` are stale, ask the user to run `$sync-codex` (never auto-run it).
 > 3. Required docs by trigger: always `docs/project-reference/lessons.md`; doc lookup `docs-index-reference.md`; review `code-review-rules.md`; backend/CQRS/API `backend-patterns-reference.md`; domain/entity `domain-entities-reference.md`; frontend/UI `frontend-patterns-reference.md`; styles/design `scss-styling-guide.md` + `design-system/design-system-canonical.md`; integration tests `integration-test-reference.md`; E2E `e2e-test-reference.md`; feature docs/specs `feature-spec-reference.md` + `spec-system-reference.md` + `spec-principles.md`; behavior/public-contract/spec-test-code sync `workflow-spec-test-code-cycle-reference.md`; derived spec index/ERD/reimplementation guides `spec-system-reference.md` + source Feature Specs under `docs/specs/`; architecture/new area `project-structure-reference.md`.
-> 4. Read every required doc, then before target work state: `Reference docs read: ... | Not applicable: ...`.
+> 4. Read every required doc, then before target work state: `Reference docs read: ... | Not applicable: ...`. After compaction, resume, delegation, or a material context change, repeat the route and restate the set; prior conversation and hook output are not proof of current loading.
 >
 > **Ready when:** scope evaluated, `docs/project-config.json` consulted, required docs checked/read or setup route completed, `lessons.md` confirmed, citation emitted.
 
@@ -260,7 +272,7 @@ Finalize and close the active workflow, clearing state so the next user prompt t
 - **Critical Thinking:** MUST ATTENTION traced `file:line` proof per claim; confidence >80% to act; NEVER guess as fact.
 - **Project Reference Docs Guide:** MUST ATTENTION read required project-reference docs (ALWAYS `lessons.md`) before target work.
 
-**IMPORTANT MUST ATTENTION Main steps (run in order, NEVER skip/merge):** (1) integration-test coverage check → (2) spec ↔ TDD-test sync gate BEFORE task-completion verification → (3) sync knowledge graph if `.code-graph/` exists → (4) mark this task `completed` → (5) diff-gated comprehension recap → (6) announce `Workflow [name] completed` → (7) confirm state cleared — why: AI keeps forgetting the skill's own steps; surfacing the ordered list prevents silent step-loss under long context.
+**IMPORTANT MUST ATTENTION Main steps (run in order, NEVER skip/merge):** (1) integration-test coverage check → (2) spec ↔ TDD-test sync gate BEFORE task-completion verification → (3) sync knowledge graph if `.code-graph/` exists → (4) verify owned baseline and persist final report → (5) verify preceding tasks → (6) diff-gated comprehension recap → (7) close only the recorded owned baseline run, check `closed` and `deletionFailures`, preserve parent/sibling runs → (8) mark this task completed and announce `Workflow [name] completed` → (9) confirm closure evidence without claiming residual tracking was deleted — why: AI keeps forgetting the skill's own steps; surfacing the ordered list prevents silent step-loss under long context.
 **IMPORTANT MUST ATTENTION** when the workflow changed code (diff present), print the comprehension recap — what changed / purpose / how it works / why — grouped by behaviour not file, optimized for easiest learning; depth throttled by `codingLevel` (`CK_CODING_LEVEL` → `.claude/.ck.json` → default 3), NEVER fully skip when changes exist — why: the developer must understand the work without re-reading the diff
 **IMPORTANT MUST ATTENTION** the spec ↔ TDD-test sync gate runs BEFORE task-completion verification — NEVER report the workflow `completed` while a behavior-vs-spec divergence is unadjudicated; reconcile via `$spec [mode=sync]` or capture an explicit accept-as-is reason — why: green tests do not normalize spec drift; the feedback half of the loop closes here
 **IMPORTANT MUST ATTENTION** run the integration-test coverage check on changed business-logic files (handlers/commands/queries/services/controllers/resolvers/event processors) — if ANY lacks a matching test, surface by asking the user directly; NEVER silent-skip — why: business-logic change without coverage ships an unguarded regression path
@@ -289,13 +301,13 @@ Finalize and close the active workflow, clearing state so the next user prompt t
 > **[IMPORTANT]** Analyze how big the task is and break it into many small todo tasks systematically before starting — this is very important.
 
 <!-- CODEX:SYNC-PROMPT-PROTOCOLS:START -->
-## Hookless Prompt Protocol Mirror (Auto-Synced)
+## Static Prompt Protocol Mirror (Auto-Synced)
 
-Source: `.claude/.ck.json` + `.claude/skills/shared/sync-inline-versions.md` (`:full` blocks) + `.claude/scripts/lib/hookless-prompt-protocol.cjs`
+Source: `.claude/.ck.json` + `.claude/skills/shared/sync-inline-versions.md` (`:full` blocks) + `.claude/scripts/lib/hookless-prompt-protocol.cjs` (legacy filename; static protocol composer)
 
 ## [WORKFLOW-EXECUTION-PROTOCOL] [BLOCKING] Workflow Execution Protocol — MANDATORY IMPORTANT MUST CRITICAL. Do not skip for any reason.
 
-**Generic portability boundary:** Reusable skills and protocol text stay project-neutral; project-specific conventions are discovered from docs/project-config.json and docs/project-reference/. Apply shared AI-SDD from `shared/sdd-artifact-contract.md`. Read `docs/project-config.json` and `docs/project-reference/docs-index-reference.md`, then open the project reference docs named there. For spec, test-case, behavior-change, public-contract, or `docs/specs/` work, route through the local spec docs named by the docs index: `feature-spec-reference.md`, `spec-system-reference.md`, `spec-principles.md`, and `workflow-spec-test-code-cycle-reference.md` when specs/tests/code must stay synchronized. If either file or a required reference doc is missing or stale, auto-run `$project-init` (or the narrow lower-level route such as `$project-config`, `$docs-init`, `$scan-all`, or `$scan --target=<key>`) before ordinary project-specific work. Any supported AI tool may execute when this shared context and local docs are available.
+**Generic portability boundary:** Reusable skills and protocol text stay project-neutral; project-specific conventions are discovered from docs/project-config.json and docs/project-reference/. Apply shared AI-SDD from `shared/sdd-artifact-contract.md`. Read `docs/project-config.json` and `docs/project-reference/docs-index-reference.md`, then open the project reference docs named there immediately before the first target read, grep, edit, test, or analysis. For spec, test-case, behavior-change, public-contract, or `docs/specs/` work, route through the local spec docs named by the docs index: `feature-spec-reference.md`, `spec-system-reference.md`, `spec-principles.md`, and `workflow-spec-test-code-cycle-reference.md` when specs/tests/code must stay synchronized. If either file or a required reference doc is missing or stale, auto-run `$project-init` (or the narrow lower-level route such as `$project-config`, `$docs-init`, `$scan-all`, or `$scan --target=<key>`) before ordinary project-specific work. After compaction, resume, delegation, or a material context change, re-read the required docs and state `Reference docs read: ... | Not applicable: ...`; a hook reminder or prior conversation is not proof that the files are loaded. Any supported AI tool may execute when this shared context and local docs are available.
 
 1. **DETECT:** If the prompt starts with an explicit slash skill/workflow command, execute it directly. Otherwise match the prompt against the workflow catalog and skill list.
 2. **ANALYZE:** Choose the best option: execute directly, invoke a skill, activate a standard workflow, or compose a custom step combination.

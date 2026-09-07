@@ -33,7 +33,7 @@ The framework registers hook events across `SessionStart`, `UserPromptSubmit`, `
 
 ## Context Injection
 
-Per-edit/per-prompt context-injection guidance lives statically in `CLAUDE.md`, `.claude/agents/*.md`, and skill `SKILL.md` files so a hookless harness (Codex) reads identical instructions; there are no runtime context-injection hooks. Any hook that still emits context (e.g. `session-init.cjs` / `graph-session-init.cjs` status guidance) should inject only the guidance needed for the current event, prefer a read-on-demand pointer over whole files for large references, and use stable dedup markers from `.claude/hooks/lib/dedup-constants.cjs` when a hook can fire repeatedly in one session.
+Per-edit/per-prompt context guidance lives statically in `CLAUDE.md`, `.claude/agents/*.md`, and skill `SKILL.md` files so Claude and Codex read identical instructions. Runtime context hooks are optional accelerators, not an authority boundary. Any hook that emits context (e.g. `session-init.cjs` / `graph-session-init.cjs` status guidance) should inject only the guidance needed for the current event, prefer a read-on-demand pointer over whole files for large references, and use stable dedup markers from `.claude/hooks/lib/dedup-constants.cjs` when a hook can fire repeatedly in one session.
 
 ## Safety And Privacy
 

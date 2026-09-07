@@ -98,7 +98,7 @@ async function pipelineFiles() {
     for (const relativeDir of ['.claude/scripts/codex/tests', '.claude/scripts/tests']) {
         const absoluteDir = path.join(repoRoot, ...relativeDir.split('/'));
         for (const entry of await fs.readdir(absoluteDir, { withFileTypes: true }).catch(() => [])) {
-            if (entry.isFile() && entry.name.endsWith('.test.mjs')) files.add(`${relativeDir}/${entry.name}`);
+            if (entry.isFile() && /\.test\.(?:mjs|cjs)$/.test(entry.name)) files.add(`${relativeDir}/${entry.name}`);
         }
     }
 
@@ -134,7 +134,7 @@ function bareSpecifiers(source) {
 // ── PORT-001 — zero node_modules dependency in the pipeline ──────────────────────────────────────
 // The whole portability story rests on this: a bare `.claude` copy has no node_modules, so every
 // script the runner spawns must import only `node:` built-ins + relative files.
-test('PORT-001 sync/verify pipeline scripts import only node: built-ins and relative files', async () => {
+async function assertPortableDependencies(read = readRel) {
     const offenders = [];
     const scanList = [...await pipelineFiles()];
     // Include the shared lib closure (the workflow-skills catalog builder the generators require).
@@ -145,11 +145,11 @@ test('PORT-001 sync/verify pipeline scripts import only node: built-ins and rela
         }
     }
     for (const rel of scanList) {
-        const bare = bareSpecifiers(await readRel(rel));
+        const bare = bareSpecifiers(await read(rel));
         if (bare.length) offenders.push(`${rel}: ${bare.join(', ')}`);
     }
     assert.deepEqual(offenders, [], `pipeline scripts must not depend on node_modules:\n${offenders.join('\n')}`);
-});
+}
 
 // ── PORT-002 — npm-auto-install is a safe no-op without package.json ─────────────────────────────
 test('PORT-002 npm-auto-install hook no-ops cleanly when no package.json is present', async () => {
@@ -302,7 +302,7 @@ test('PORT-007 export-claude payload contains the full pipeline and no package.j
     const target = await fs.mkdtemp(path.join(os.tmpdir(), 'port-export-'));
     createdDirs.push(target);
     const exporter = path.join(repoRoot, '.claude', 'scripts', 'export-claude.mjs');
-    const { code, stdout, stderr } = await run(process.execPath, [exporter, target], { cwd: repoRoot });
+    const { code, stdout, stderr } = await run(process.execPath, [exporter, target, '--include-untracked'], { cwd: repoRoot });
     assert.equal(code, 0, `export-claude must succeed: ${stderr || stdout}`);
 
     assert.ok(await exists(path.join(target, ...runnerRel.split('/'))), 'exported payload must include the standalone runner');
@@ -310,6 +310,69 @@ test('PORT-007 export-claude payload contains the full pipeline and no package.j
         assert.ok(await exists(path.join(target, ...rel.split('/'))), `exported payload missing pipeline script: ${rel}`);
     }
     assert.ok(!(await exists(path.join(target, 'package.json'))), 'export must copy only .claude — no root package.json');
+});
+
+test('PORT-001 sync/verify pipeline scripts import only node: built-ins and relative files', async () => {
+    await assertPortableDependencies();
+});
+
+test('PORT-014 executed CJS suites cannot escape the dependency closure', async () => {
+    const candidates = (await fs.readdir(path.join(repoRoot, '.claude/scripts/tests')))
+        .filter(name => name.endsWith('.test.cjs'));
+    assert.ok(candidates.length > 0, 'real scripts stage must have CJS fixtures');
+    const closure = await pipelineFiles();
+    for (const name of candidates) assert.ok(closure.includes(`.claude/scripts/tests/${name}`), `CJS test omitted: ${name}`);
+    const victim = `.claude/scripts/tests/${candidates[0]}`;
+    await assert.rejects(assertPortableDependencies(async rel => {
+        const source = await readRel(rel);
+        return rel === victim ? `${source}\nrequire('synthetic-adopter-local-dependency');\n` : source;
+    }), /synthetic-adopter-local-dependency/);
+});
+
+// ── PORT-013 — a relocated .claude + generated .codex bundle remains root-relative ─────────────
+// This is the user-facing portability contract: export the framework into one project, generate
+// its Codex surfaces, copy those directories to a second project, and run from a nested cwd. No
+// module may retain an absolute path to this checkout or require the source repository's package.
+test('PORT-013 relocated .claude and .codex bundles resolve from the consuming project root', async () => {
+    const exported = await fs.mkdtemp(path.join(os.tmpdir(), 'port-relocated-export-'));
+    const relocated = await fs.mkdtemp(path.join(os.tmpdir(), 'port-relocated-copy-'));
+    createdDirs.push(exported, relocated);
+    const exporter = path.join(repoRoot, '.claude', 'scripts', 'export-claude.mjs');
+    const { code: exportCode, stderr: exportErr } = await run(process.execPath, [exporter, exported, '--include-untracked'], { cwd: repoRoot });
+    assert.equal(exportCode, 0, `export-claude must succeed: ${exportErr}`);
+
+    await fs.mkdir(path.join(exported, 'docs'), { recursive: true });
+    await fs.mkdir(path.join(exported, 'nested', 'work'), { recursive: true });
+    await fs.writeFile(path.join(exported, 'CLAUDE.md'), '# Portable project\n', 'utf8');
+    await fs.writeFile(path.join(exported, 'docs', 'project-config.json'), '{}\n', 'utf8');
+
+    const exportedRunner = path.join(exported, '.claude', 'skills', 'sync-codex', 'scripts', 'run-codex-sync.mjs');
+    const first = await run(process.execPath, [exportedRunner, '--only=migrate,hooks,context'], {
+        cwd: path.join(exported, 'nested', 'work')
+    });
+    assert.equal(first.code, 0, `exported bundle must sync from a nested cwd: ${first.stderr || first.stdout}`);
+
+    for (const name of ['.claude', '.codex', '.agents']) {
+        await fs.cp(path.join(exported, name), path.join(relocated, name), { recursive: true });
+    }
+    for (const name of ['CLAUDE.md', 'AGENTS.md']) {
+        await fs.copyFile(path.join(exported, name), path.join(relocated, name));
+    }
+    await fs.cp(path.join(exported, 'docs'), path.join(relocated, 'docs'), { recursive: true });
+    await fs.mkdir(path.join(relocated, 'nested', 'work'), { recursive: true });
+
+    const relocatedRunner = path.join(relocated, '.claude', 'skills', 'sync-codex', 'scripts', 'run-codex-sync.mjs');
+    const second = await run(process.execPath, [relocatedRunner, '--only=context'], {
+        cwd: path.join(relocated, 'nested', 'work')
+    });
+    assert.equal(second.code, 0, `relocated bundle must sync from a nested cwd: ${second.stderr || second.stdout}`);
+    const context = await fs.readFile(path.join(relocated, '.codex', 'CODEX_CONTEXT.md'), 'utf8');
+    const agents = await fs.readFile(path.join(relocated, 'AGENTS.md'), 'utf8');
+    assert.match(context, /Workflow Protocol \(Hook-Independent\)/);
+    assert.match(agents, /\.codex\/CODEX_CONTEXT\.md/);
+    assert.ok(Buffer.byteLength(agents, 'utf8') <= 32768, 'relocated root projection must remain bounded');
+    assert.doesNotMatch(context, new RegExp(exported.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
+    assert.doesNotMatch(agents, new RegExp(exported.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
 });
 
 // ── PORT-011 — the framework-repo guard must resolve TRUE here (anti-silent-skip lock) ────────────

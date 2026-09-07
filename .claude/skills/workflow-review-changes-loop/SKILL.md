@@ -15,14 +15,14 @@ description: '[Workflow] Use when you need to run /workflow-review-changes repea
 
 ## Quick Summary
 
-**Goal:** Converge a review scope to a **clean no-op pass** by re-running the ENTIRE `/workflow-review-changes` workflow INLINE, round after round, over a fixed scope combined with the fixes accumulated so far — stopping when a complete round applies **zero fixes**. **From round 3 the severity floor applies: LOW findings are no longer fixed, so a round that surfaces only LOW findings is a zero-fix round and ENDS the loop.**
+**Goal:** Converge a review scope to a **clean no-op pass** by re-running the ENTIRE `/workflow-review-changes` workflow INLINE, round after round, over a fixed scope combined with the fixes accumulated so far — stopping when a complete round applies **zero fixes**. **From round 2 the severity floor applies: LOW findings are no longer fixed, so a round that surfaces only LOW findings is a zero-fix round and ENDS the loop.**
 
 **Summary:**
 
 - **Steps (in order):** (0) resolve scope + Goal Contract → (0b) bind the convergence loop (protocol loop primary + optional `/goal` accelerator) → (1) round loop { run `/workflow-review-changes` INLINE → detect fixes-applied → log iteration } → (2) converge on a zero-fix round OR escalate on non-progress → (3) recap.
 - **Convergence:** stop ONLY when a whole round applies **zero fixes** (its fix cycle skipped, working tree unchanged, reviews clean) — not merely one clean review.
 - **Inline invariant:** run `/workflow-review-changes` via the `Skill` tool, NEVER the `Agent` tool — it self-binds its own review-loop obligation (owning the session Stop hook for its `/goal` gate WHEN available), which a sub-agent cannot own or carry back to this loop.
-- **Severity floor — from round 3, LOW stops blocking.** Rounds 1-2 fix every validated severity. **From round 3 tell the inner `/workflow-review-changes` to fix only CRITICAL/HIGH/MEDIUM and to defer LOW findings** — a round whose validated findings are ALL LOW therefore applies zero fixes and CONVERGES. Carry every deferred LOW into the recap and Goal Contract; NEVER re-tier a real CRITICAL/HIGH/MEDIUM down to LOW to reach the exit. Severity tiers per `SYNC:severity-rubric`.
+- **Severity floor — from round 2, LOW stops blocking.** Round 1 fix every validated severity. **From round 2 tell the inner `/workflow-review-changes` to fix only CRITICAL/HIGH/MEDIUM and to defer LOW findings** — a round whose validated findings are ALL LOW therefore applies zero fixes and CONVERGES. Carry every deferred LOW into the recap and Goal Contract; NEVER re-tier a real CRITICAL/HIGH/MEDIUM down to LOW to reach the exit. Severity tiers per `SYNC:severity-rubric`.
 - **Bounded:** round cap default 3; blocking findings not shrinking across 2 rounds, or cap hit with CRITICAL/HIGH/MEDIUM fixes still landing → **STOP & escalate** via `AskUserQuestion`.
 
 **Why this skill exists (READ FIRST — it is the whole justification):** `/workflow-review-changes` already converges *internally* to a clean pass, BUT its inner loop does **NOT** re-run the 7 specialist reviewers from scratch. Per the `Conditional Inline Re-Review Protocol` in `.claude/skills/workflow-review-changes/SKILL.md`, the step-15 inline re-review re-runs only `/changes-review`'s own BE/FE/SCSS/UI dimensions plus *scoped* re-runs of the specific specialist that raised a finding — `/architecture-review`, `/performance-review`, `/security-review`, `/integration-test-review`, `/production-readiness-review`, `/domain-entities-review`, and `/ui-review` fire ONCE (steps 4–10). Only a **fresh full re-invocation** re-runs ALL specialists over the now-fixed code — catching **second-order defects the fixes themselves introduced** and killing whole-workflow confirmation bias. Without this outer loop those regressions ship unreviewed.
@@ -55,8 +55,8 @@ description: '[Workflow] Use when you need to run /workflow-review-changes repea
    - **Scope string (recompute each round):** `{branch-diff base} ∪ {current uncommitted changes}`. The base commit is fixed for the whole loop; the uncommitted set legitimately grows as fixes land.
    - If the prompt names no branch diff (pure "current changes" review), the scope is just the working-tree changes — the loop still applies.
 2. **Resolve/create the Goal Contract** per `SYNC:goal-contract-satisfaction-loop` (`plans/goals/{YYMMDD-HHmm}-{slug}/goal.md`, template `.claude/templates/goal-contract-template.md`). Its single **required** Success Criterion:
-   > *A complete `/workflow-review-changes` run over `{scope}` applies **zero fixes** (a clean no-op pass — no `/plan-execute` file changes; **rounds 1-2** no validated findings of any severity, **round 3+** no validated CRITICAL/HIGH/MEDIUM, with remaining LOW findings deferred rather than fixed).*
-   Record the round cap (default 3), the severity floor (LOW non-blocking from round 3), and the scope string in **Constraints**.
+   > *A complete `/workflow-review-changes` run over `{scope}` applies **zero fixes** (a clean no-op pass — no `/plan-execute` file changes; **round 1** no validated findings of any severity, **round 2+** no validated CRITICAL/HIGH/MEDIUM, with remaining LOW findings deferred rather than fixed).*
+   Record the round cap (default 3), the severity floor (LOW non-blocking from round 2), and the scope string in **Constraints**.
 
 ## Step 0b — Bind the Convergence Loop (protocol-first; `/goal` is an optional accelerator)
 
@@ -64,14 +64,14 @@ The convergence loop is bound by TWO layers. The **protocol loop (Steps 1–2) i
 
 **1. Protocol loop — ALWAYS binding (hook/command-independent).** You are personally responsible for not stopping until the loop converges or bounded-escalates. This binds Claude, Codex, and Copilot equally, whether or not `/goal` exists:
 
-> Repeatedly run `/workflow-review-changes` INLINE over `{scope}` (branch-diff base ∪ current uncommitted changes, recomputed each round). After each round, detect whether it applied any fix. From round 3 on, instruct the inner workflow to fix only CRITICAL/HIGH/MEDIUM validated findings and to defer LOW ones. Do NOT stop while the last round still applied fixes. Converge when a full round applies ZERO fixes (reviews clean, `/plan-execute` changed no files) — which from round 3 includes a round whose only validated findings were LOW. Cap at `{N=5}` rounds; if blocking findings do not shrink across 2 consecutive rounds, or the cap is hit with CRITICAL/HIGH/MEDIUM fixes still landing → STOP and escalate via `AskUserQuestion`. Never loop open-ended.
+> Repeatedly run `/workflow-review-changes` INLINE over `{scope}` (branch-diff base ∪ current uncommitted changes, recomputed each round). After each round, detect whether it applied any fix. From round 2 on, instruct the inner workflow to fix only CRITICAL/HIGH/MEDIUM validated findings and to defer LOW ones. Do NOT stop while the last round still applied fixes. Converge when a full round applies ZERO fixes (reviews clean, `/plan-execute` changed no files) — which from round 2 includes a round whose only validated findings were LOW. Cap at `{N=3}` rounds; if blocking findings do not shrink across 2 consecutive rounds, or the cap is hit with CRITICAL/HIGH/MEDIUM fixes still landing → STOP and escalate via `AskUserQuestion`. Never loop open-ended.
 
 Treat this as a standing obligation you re-read at every Step 2 checkpoint — NOT a one-time note you can rationalize away after the first round. The Goal Contract's required Success Criterion (Step 0) is its durable, host-independent record.
 
 **2. `/goal` command — invoke as an accelerator WHEN AVAILABLE.** If a `/goal` command exists and you are permitted to run it in this environment, ALSO invoke it (a real tool/command call, NOT a paraphrase, NOT a Goal Contract file substituted for it) with the SAME condition, so a session Stop hook mechanically enforces the loop:
 
 ```
-/goal review-changes convergence loop: repeatedly run /workflow-review-changes INLINE over {scope} (branch-diff base ∪ current uncommitted changes, recomputed each round). After each round, detect whether it applied any fix; if fixes>0 → run another round; if a full round applied ZERO fixes (reviews clean, /plan-execute changed no files) → CONVERGED, clear the gate. From round 3 on, the inner workflow fixes only CRITICAL/HIGH/MEDIUM and defers LOW, so a LOW-only round is a zero-fix round and CONVERGES. Do NOT stop while the last round still applied fixes. Cap at {N=5} rounds; if blocking findings do not shrink across 2 consecutive rounds, or the round cap is hit with CRITICAL/HIGH/MEDIUM fixes still landing → STOP and escalate via AskUserQuestion. Never loop open-ended.
+/goal review-changes convergence loop: repeatedly run /workflow-review-changes INLINE over {scope} (branch-diff base ∪ current uncommitted changes, recomputed each round). After each round, detect whether it applied any fix; if fixes>0 → run another round; if a full round applied ZERO fixes (reviews clean, /plan-execute changed no files) → CONVERGED, clear the gate. From round 2 on, the inner workflow fixes only CRITICAL/HIGH/MEDIUM and defers LOW, so a LOW-only round is a zero-fix round and CONVERGES. Do NOT stop while the last round still applied fixes. Cap at {N=3} rounds; if blocking findings do not shrink across 2 consecutive rounds, or the round cap is hit with CRITICAL/HIGH/MEDIUM fixes still landing → STOP and escalate via AskUserQuestion. Never loop open-ended.
 ```
 
 The `/goal` Stop hook blocks stopping until the condition holds and auto-clears when met — do not tell the user to clear it.
@@ -88,7 +88,7 @@ For each round `R` (starting at 1), do ALL of:
 2. **Run the workflow INLINE:** invoke `/workflow-review-changes` via the `Skill` tool (NEVER the `Agent` tool) with the recomputed `{scope}` as its prompt. Let it run its full 20-step sequence including its own internal fix→re-review loop.
 3. **Detect fixes-applied (objective):** compare the working tree after the round to the before-snapshot AND read the workflow's own result:
    - **Fixes applied (>0)** if the working tree changed during the round OR the workflow reported its fix cycle (steps 12–15) ran / `/plan-execute` modified files.
-   - **Zero fixes** if the working tree is byte-identical to the before-snapshot AND the workflow reported either no validated findings, or (round 3+) validated findings that are ALL LOW with the fix phase explicitly skipped.
+   - **Zero fixes** if the working tree is byte-identical to the before-snapshot AND the workflow reported either no validated findings, or (round 2+) validated findings that are ALL LOW with the fix phase explicitly skipped.
    - If a claimed LOW-only exit has a changed fingerprint, re-review; it is not a no-op convergence pass.
 4. **Append an Iteration Log entry** to the Goal Contract: round number, files changed this round (`file:line`), fixes-applied count, the review verdict, and remaining gaps.
 
@@ -101,7 +101,7 @@ Evaluate after every round:
 | Round applied **ZERO fixes** (clean no-op pass) | **CONVERGED** → mark the required criterion PASS in the Goal Satisfaction matrix → clear the `/goal` gate → go to Step 3. |
 | Round applied fixes AND round `< N` AND findings shrank vs prior round | Recompute `{scope}`, run round `R+1`. |
 | Findings did **not shrink** across 2 consecutive rounds (same/increasing count) | **STOP & escalate** via `AskUserQuestion` — a non-converging loop is a signal, not a reason to spin. |
-| Round `R ≥ 3` whose validated findings are **ALL LOW** (zero CRITICAL/HIGH/MEDIUM, so zero fixes applied) | **CONVERGED on the severity floor** → do NOT run another round for LOW alone → record every remaining LOW as a deferred finding in the recap + Goal Contract → mark the required criterion PASS → go to Step 3. |
+| Round `R ≥ 2` whose validated findings are **ALL LOW** (zero CRITICAL/HIGH/MEDIUM, so zero fixes applied) | **CONVERGED on the severity floor** → do NOT run another round for LOW alone → record every remaining LOW as a deferred finding in the recap + Goal Contract → mark the required criterion PASS → go to Step 3. |
 | Round cap `N` hit with CRITICAL/HIGH/MEDIUM fixes still landing | **STOP & escalate** via `AskUserQuestion` — report the still-open findings; do not silently continue. (LOW-only at the cap converges via the severity-floor row above.) |
 
 > **Increasing findings = STOP.** If round `R` surfaces MORE findings than round `R-1`, the fixes are regressing the code — STOP and escalate immediately (mirrors the **Issue count increasing** rule under **Iteration Tracking (Conversation-Scoped)** in `workflow-review-changes/SKILL.md`). Never trade one fix for two new findings across rounds.
@@ -114,7 +114,7 @@ Emit a concise convergence recap: rounds run, total fixes applied per round (the
 
 ## Convergence Detection — Why Two Conditions
 
-A round counts as converged ONLY when **both** hold: (a) the working tree is unchanged by the round, AND (b) the reviews reported clean at that round's bar — no validated findings in rounds 1-2, no validated CRITICAL/HIGH/MEDIUM from round 3 (deferred LOWs listed, not fixed). Both are required because:
+A round counts as converged ONLY when **both** hold: (a) the working tree is unchanged by the round, AND (b) the reviews reported clean at that round's bar — no validated findings in round 1, no validated CRITICAL/HIGH/MEDIUM from round 2 (deferred LOWs listed, not fixed). Both are required because:
 
 - Working-tree-unchanged alone is ambiguous — a round can make no changes because a finding was **unfixable/escalated**, not because it was clean. That is escalation, not convergence.
 - Reviews-clean alone is insufficient — an orchestrator can rationalize a "clean" verdict; the objective `git`-diff comparison is the backstop that proves no fix actually landed.
@@ -124,6 +124,18 @@ When (a) is true but (b) is false → **escalate** (a real finding the loop cann
 ---
 
 **IMPORTANT MANDATORY sequence:** Step 0 (scope + Goal Contract) → Step 0b (bind the convergence loop: protocol loop primary + optional `/goal` accelerator) → Step 1 (round loop: run `/workflow-review-changes` INLINE → detect fixes → log) → Step 2 (converge on zero-fix round / escalate on non-progress) → Step 3 (recap).
+
+<!-- SYNC:review-policy -->
+
+> **Executable review policy — one predicate, one durable transition model.** Review skills and their tooling MUST use the canonical helper `.claude/scripts/lib/review-policy.cjs` (policy version 2) for round eligibility. The helper's `blockingFindings(round, findings, hardGates)` predicate returns every validated finding in round 1, and only CRITICAL/HIGH/MEDIUM findings in rounds 2–3; `NOT VERIFIABLE` is a separate unresolved-evidence state that remains blocking at every round. Failed binary gates are synthetic blocking findings at every round. `evaluateRound` retains round-2+ LOWs in `deferredLow` and never treats a LOW-only round as blocked after the floor applies. Severity is assigned before the predicate and never changed to obtain a PASS.
+>
+> **Round and minimum rules.** `MAX_ROUNDS` is 3 and is a ceiling, never a target. A clean review ends once `round >= minRounds`; the default minimum is 1. A caller may declare `minRounds` explicitly (for example, 2) when an independent second pass is a real requirement; the declaration is persisted and cannot be inferred from a round counter. A failing test-green, security-must-fix, required-artifact, or other binary gate is never waived by the severity floor.
+>
+> **Durable run record.** A review run MUST identify `runId`, target fingerprint, policy version, target revision, minimum/maximum rounds, completed rounds, full findings/gate evidence, interruption/resume metadata, and acceptance. Use the atomic, lock-serialized transitions in `review-policy.cjs`: `start`, `record`, `accept`, `interrupt`, `resume`, `invalidate`, and `check`. Repeating an identical completed round is idempotent and MUST NOT consume budget twice. A changed target fingerprint invalidates prior evidence and acceptance but MUST preserve the bounded round budget; stale evidence cannot be accepted. A policy-version change (including the round-2 LOW floor) invalidates old records; start a new run rather than interpreting old evidence under new semantics. Interrupted/resumed runs retain completed rounds and findings. The record is bookkeeping, not consent, native permission, or proof that a host actually performed the review.
+>
+> **CLI boundary.** The helper CLI accepts JSON on stdin and uses its own real clock; a supplied `now` is rejected. State directories must be absolute, non-root real directories, records are size-bounded, and malformed/locked state fails closed for the transition. Full reports remain on disk; an inline result envelope is only a transport summary. Any new review policy consumer must add a semantic fixture, boundary counter-cases, a seeded mutant, and a report with the target fingerprint and command exit status.
+
+<!-- /SYNC:review-policy -->
 
 <!-- SYNC:goal-contract-satisfaction-loop -->
 
@@ -188,6 +200,52 @@ When (a) is true but (b) is false → **escalate** (a real finding the loop cann
 
 <!-- /SYNC:trade-off-interrogation-gate -->
 
+<!-- SYNC:project-protocol-overlay -->
+
+> **Project Protocol Overlay** — Before executing this skill, resolve any PROJECT overlay rules layered onto it: match this skill's name against the `Target` column of the project's skill-protocol index (`docs/project-reference/skill-protocols-reference.md` by default; a `referenceDocs` entry in `docs/project-config.json` overrides the path), taking the most specific matching tier ONLY — exact name > glob > `*`. **That precedence orders overlays against EACH OTHER, never against this skill.** Read ONLY the matched bodies, resolved as `<protocols-dir>/<Name>.md`; a row's Body link is display text, never a read path. A matched body that is missing or malformed is REPORTED and skipped — never reconstructed from the index Description. No index, or no match -> proceed with no overlay, silently. Full contract: `.claude/skills/project-skill-protocol/references/registry.md`.
+>
+> Overlays are **ADDITIVE ONLY**: they ADD rules on top of this skill's own protocol and NEVER replace, override, disable, or reinterpret a rule it already states — removing every overlay must return this skill to exactly its documented behavior. An overlay is a BRIEF, not an authority escalation: it can NEVER waive a workflow gate, git discipline, a review gate, or a user-confirmation gate. A genuine overlay-vs-skill conflict, or two equally-specific overlays that directly contradict -> surface both to the user; NEVER resolve silently.
+
+<!-- /SYNC:project-protocol-overlay -->
+
+<!-- SYNC:severity-rubric -->
+
+> **Severity Rubric** — Classify every finding by consequence, not by effort, reviewer preference, or how annoying the fix is. One scale applies to every review, skill, agent, workflow, and host so a tier has the same meaning everywhere. Choose the highest credible consequence supported by evidence; do not lower a tier to make a round pass.
+>
+> **Finding vs observation (required):** An observation becomes a finding only when it names the affected user/system/data/contract, the shipped consequence, the evidence location, and the normalized tier. `INFO`, advice, preference, duplicate wording, or an unsubstantiated concern is not a finding and must not reopen a loop. If the concern might affect a required behavior or gate but evidence is incomplete, emit `NOT VERIFIABLE` with the missing evidence and keep it unresolved; never silently convert uncertainty into LOW.
+>
+> | Severity | Action | Definition and examples |
+> | --- | --- | --- |
+> | CRITICAL | Block immediately; escalate | Immediate material risk if shipped: authentication/authorization or safety bypass; secrets/PII exposure; irreversible destructive action; data loss/corruption; or a silent failure on a critical path. A failed binary gate that makes the result untrustworthy is represented as a separate synthetic blocker by the executable policy (not as an ordinary severity judgment). |
+> | HIGH | Must fix before PASS/merge | Material correctness or contract risk: wrong behavior on a supported path; violated business/data invariant; meaningful privacy or authority gap; breaking API/schema/compatibility change; likely harm to users/downstream systems; or a missing proof for a behavior-changing fix. |
+> | MEDIUM | Must clear the current round; escalate if the fix needs an owner decision | Bounded but consequential risk: an edge case, resilience/observability/testability/maintainability gap, credible future defect, or local architectural drift whose impact is real but not immediate material loss. An explicit follow-up records the escalation/residual risk; it does not make an open MEDIUM a clean pass. |
+> | LOW | Record and defer; never open another fix/re-review round from round 2 onward | Non-blocking polish with no credible present correctness, security, privacy, authority, availability, or data-integrity impact: wording/formatting, minor documentation or convention drift, optional defensive cleanup, or a cosmetic/refinement suggestion. |
+>
+> **Consequence decision tree (apply in order):** (1) Is a binary gate failed? Keep it as a separate hard blocker (the executable helper represents it as synthetic CRITICAL); do not use the ordinary severity label to hide what failed. Otherwise, would shipping permit immediate material security/safety/authority harm, irreversible destruction, data loss/corruption, or a critical-path silent failure? → **CRITICAL**. (2) Otherwise, does a supported path, invariant, public contract, privacy/authority boundary, compatibility promise, or behavior-changing proof fail with material user/downstream impact? → **HIGH**. (3) Otherwise, is there a bounded but consequential edge, resilience, observability, testability, maintainability, or architectural gap with a credible impact? → **MEDIUM**. (4) Otherwise, is the evidence sufficient to show only non-blocking polish with no credible present material impact? → **LOW**. (5) If the evidence needed to choose between steps 1–4 is missing, → **NOT VERIFIABLE**, not LOW. When multiple tiers fit, select the highest credible consequence; effort, implementation cost, reviewer discomfort, frequency alone, and proximity to the round cap never decide the tier.
+>
+> **Boundary examples (normalize before applying the round predicate):** an auth bypass, exposed secret/PII, destructive command without an authority gate, or failed required test/generation/parity gate is **CRITICAL**; a wrong supported response, broken invariant/API/schema, meaningful privacy/authority defect, or unproven behavior-changing fix is **HIGH**; a bounded retry/timeout/alert/testability gap or credible maintainability drift is **MEDIUM**; a typo, formatting inconsistency, optional cleanup, or cosmetic suggestion proven not to affect present behavior is **LOW**. A missing fact about any of those boundaries is **NOT VERIFIABLE** until evidence or an explicitly documented residual-risk decision exists.
+>
+> **Classification procedure (required for every finding):** (1) state the affected user, system, data, contract, or gate; (2) assess consequence if the issue ships; (3) assess exposure/likelihood and reversibility/detectability; (4) select the highest tier justified by those facts; (5) cite `file:line` or equivalent evidence and a confidence percentage. Effort, implementation cost, reviewer discomfort, and proximity to the round cap are never severity inputs. `NOT VERIFIABLE` is a pending evidence state, not one of the four tiers and never a LOW escape hatch: if the unresolved claim could affect required behavior, security, privacy, authority, availability, data integrity, or a binary gate, it remains an open evidence blocker until resolved or explicitly owner-accepted with documented residual risk. Classify an item LOW only when evidence supports the absence of credible present material impact.
+>
+> **Hard-gate rule:** Binary gates (tests, required artifacts, security must-fix checks, generated parity, policy compliance) are not ordinary severity-rated findings. The executable helper records a failed gate as a synthetic CRITICAL blocker solely so one predicate can carry it; the report must still name the gate and failure evidence. A failed gate blocks at every round, including when all ordinary findings are LOW; never disguise a failed gate as LOW.
+>
+> **Score-based skills** map their numeric scale onto these tiers — do not invent a parallel vocabulary:
+>
+> - **0-2 criterion scoring** (e.g. production-readiness-review): `0` = CRITICAL/HIGH (criterion unmet, blocks readiness), `1` = MEDIUM (partial, consequential gap), `2` = pass (no finding). If the criterion is only polish, use LOW rather than forcing a `0`.
+> - **Two-axis scoring** (e.g. performance-review, impact × likelihood): high impact + high exposure → CRITICAL/HIGH; material impact with bounded exposure → HIGH/MEDIUM; low impact and low exposure → LOW. Record the axes and why the selected tier is the highest credible consequence.
+> - **Scorecards / `/20` grades** (e.g. architecture-scalability-review): the aggregate score and verdict band are separate from finding severity. A sub-80 area is evidence to investigate, not an automatic CRITICAL/HIGH/MEDIUM/LOW label; classify each underlying gap by the consequence decision tree and keep advisory score deductions separate from blocking findings.
+>
+> **Domain-vocabulary normalization (mandatory):** Specialized skills may keep a local reporting vocabulary, but it MUST feed this same four-tier round predicate — never a second severity system:
+>
+> - `BLOCKED`, `HARD FAIL`, or `FAIL` is a blocking local verdict, not an automatic CRITICAL label. Classify the underlying consequence as CRITICAL when it is an immediate material risk or failed binary gate; otherwise classify it as HIGH or MEDIUM with evidence, while preserving the local block until the owning gate is satisfied.
+> - `WARN` is not permission to ignore a finding. Map it to MEDIUM when the gap is consequential, to LOW only when evidence supports no credible present material impact, or upward to HIGH/CRITICAL when the consequence warrants it. `PASS`/compliant is not a finding.
+> - UI `P0`/`P1`/`P2`/`P3`/`P4` map to CRITICAL/HIGH/MEDIUM/LOW/LOW respectively as a starting point; override upward only when the evidence shows a higher shipped consequence. A P0/P1 accessibility or task-completion floor remains a blocking gate even when a local UI report calls it a priority rather than a severity.
+> - Numeric SRE/readiness or impact/likelihood scores are evidence inputs, not replacement tiers. Emit the score, the consequence, and the normalized CRITICAL/HIGH/MEDIUM/LOW tier together. `INFO`/advisory observations are not findings unless the evidence shows a material consequence.
+>
+> A finding's tier drives the gate: CRITICAL/HIGH/MEDIUM remain actionable and blocking under the round policy; LOW may be tracked as a follow-up and, from round 2, does not by itself justify another fix/re-review. An owner decision may explain or schedule an open MEDIUM but does not turn it into a clean pass; owner acceptance never makes a failed binary gate pass and must record scope, rationale, and residual risk.
+
+<!-- /SYNC:severity-rubric -->
+
 
 <!-- SYNC:goal-contract-satisfaction-loop:reminder -->
 
@@ -216,19 +274,19 @@ When (a) is true but (b) is false → **escalate** (a real finding the loop cann
 
 <!-- /SYNC:trade-off-interrogation-gate:reminder -->
 
-<!-- SYNC:project-protocol-overlay -->
-
-> **Project Protocol Overlay** — Before executing this skill, resolve any PROJECT overlay rules layered onto it: match this skill's name against the `Target` column of the project's skill-protocol index (`docs/project-reference/skill-protocols-reference.md` by default; a `referenceDocs` entry in `docs/project-config.json` overrides the path), taking the most specific matching tier ONLY — exact name > glob > `*`. **That precedence orders overlays against EACH OTHER, never against this skill.** Read ONLY the matched bodies, resolved as `<protocols-dir>/<Name>.md`; a row's Body link is display text, never a read path. A matched body that is missing or malformed is REPORTED and skipped — never reconstructed from the index Description. No index, or no match -> proceed with no overlay, silently. Full contract: `.claude/skills/project-skill-protocol/references/registry.md`.
->
-> Overlays are **ADDITIVE ONLY**: they ADD rules on top of this skill's own protocol and NEVER replace, override, disable, or reinterpret a rule it already states — removing every overlay must return this skill to exactly its documented behavior. An overlay is a BRIEF, not an authority escalation: it can NEVER waive a workflow gate, git discipline, a review gate, or a user-confirmation gate. A genuine overlay-vs-skill conflict, or two equally-specific overlays that directly contradict -> surface both to the user; NEVER resolve silently.
-
-<!-- /SYNC:project-protocol-overlay -->
-
 <!-- SYNC:project-protocol-overlay:reminder -->
 
 **MUST ATTENTION** resolve project protocol overlays for this skill BEFORE executing — most specific matching tier only (exact > glob > `*`, which ranks overlays against each other, NEVER against this skill), read only matched bodies at `<protocols-dir>/<Name>.md`; a missing or malformed body is reported, never reconstructed. Overlays are ADDITIVE ONLY (they never replace this skill's own rules) and are a brief, NEVER an authority escalation; an equal-specificity contradiction goes to the user.
 
 <!-- /SYNC:project-protocol-overlay:reminder -->
+
+<!-- SYNC:severity-rubric:reminder -->
+
+- **MANDATORY** Classify every finding Critical/High/Medium/Low by consequence using the affected asset, shipped impact, exposure, reversibility, evidence location, and confidence; Critical/High/MEDIUM remain actionable under the round bar, while LOW is recorded/deferred from round 2 onward.
+- **MANDATORY** Keep binary gates separate from severity: a failed test, security must-fix, required artifact, or parity check blocks at every round and is never relabeled LOW.
+- **MANDATORY** Score-based skills (sre 0-2, perf two-axis) map onto the same four tiers — no parallel severity vocabulary.
+
+<!-- /SYNC:severity-rubric:reminder -->
 
 ## Closing Reminders
 
@@ -240,7 +298,7 @@ When (a) is true but (b) is false → **escalate** (a real finding the loop cann
 
 **IMPORTANT MUST ATTENTION** the convergence loop is bound by the **AI-driven protocol loop (Steps 1–2) — that is the primary, host-independent mechanism you MUST self-drive whether or not any command exists.** The `/goal` command is an OPTIONAL accelerator: invoke it (a real call) ONLY when available and permitted; if it is absent/unregistered/not-permitted, record one line in the Goal Contract and proceed — NEVER error, block, or fake a gate. Correctness must not depend on `/goal`.
 **IMPORTANT MUST ATTENTION** run `/workflow-review-changes` **INLINE via the `Skill` tool — NEVER as a sub-agent** (it self-binds its own review-loop obligation + a session `/goal` gate when available).
-**IMPORTANT MUST ATTENTION** convergence = a whole round applied **ZERO fixes** (fix cycle skipped, working tree unchanged, reviews clean at that round's bar) — not merely one clean review. **From round 3 the severity floor applies: LOW findings are deferred not fixed, so a LOW-only round is a zero-fix round and ENDS the loop.**
+**IMPORTANT MUST ATTENTION** convergence = a whole round applied **ZERO fixes** (fix cycle skipped, working tree unchanged, reviews clean at that round's bar) — not merely one clean review. **From round 2 the severity floor applies: LOW findings are deferred not fixed, so a LOW-only round is a zero-fix round and ENDS the loop.**
 **IMPORTANT MUST ATTENTION** the outer loop's value is the **fresh full specialist sweep** the inner loop never re-runs (see the **Conditional Inline Re-Review Protocol** in `workflow-review-changes/SKILL.md`) — that is why this skill exists.
 **IMPORTANT MUST ATTENTION** keep the diff **base fixed** across rounds; recompute `{scope}` = branch-diff base ∪ current uncommitted changes each round.
 **IMPORTANT MUST ATTENTION** enforce the **round cap (default 3)**; blocking findings not shrinking across 2 rounds, or cap hit with CRITICAL/HIGH/MEDIUM fixes still landing → **STOP & escalate** via `AskUserQuestion`. NEVER loop open-ended.

@@ -149,7 +149,7 @@ Why one wave: all seven are read-only, share no mutable state, and none consumes
 | -------- | ------------------------------------------- | ----------------------------------------------------- | ---------------------- |
 | Round 1  | Proactive analysis or main-session analysis | Domain-specific agent (e.g., `performance-optimizer`) | —                      |
 | Round 2  | Challenge / fresh eyes                      | NEW fresh domain-specific agent                       | ZERO memory of Round 1 |
-| Round 3+ | Post-fix re-verification                    | NEW fresh domain-specific agent each time             | ZERO memory            |
+| Round 2+ | Post-fix re-verification                    | NEW fresh domain-specific agent each time             | ZERO memory            |
 | Max      | 3 rounds                                    | Then escalate to user via `AskUserQuestion`           | —                      |
 
 **Key rules:**

@@ -21,7 +21,7 @@ context-budget: critical
 **Summary:** (read-this-if-nothing-else digest — purpose + every main step)
 
 - **Purpose — skeptical-first MUTATOR, not a suggester:** grep all usages + trace consumers (graph downstream when graph.db exists) and cite `file:line` BEFORE touching anything; apply a simplification ONLY when certain it preserves behavior, never when unsure. — why: an unverified "safe" rewrite silently breaks a downstream consumer.
-- **Main steps, run in order:** (1) **Phase 0 Detect** artifact type (backend/frontend/test/config) + scope; (2) **Identify Targets** — recent git changes or named files, HARD-SKIP generated/migration/vendor; (3) **Analyze** via the 5 Simplification Dimensions; (4) **Apply** one refactoring type at a time (KISS/DRY/YAGNI, behavior-preserving); (5) **Verify** related tests after EACH change; (6) **Self-Recursive Loop** (analyze→simplify→verify) until zero findings or a no-progress/unsafe/owner-decision stop hits — do NOT spawn a fresh-context reviewer for your own findings; (7) **Self-Review Gate**.
+- **Main steps, run in order:** (1) **Phase 0 Detect** artifact type (backend/frontend/test/config) + scope; (2) **Identify Targets** — recent git changes or named files, HARD-SKIP generated/migration/vendor; (3) **Analyze** via the 5 Simplification Dimensions; (4) **Apply** one refactoring type at a time (KISS/DRY/YAGNI, behavior-preserving); (5) **Verify** related tests after EACH change; (6) **Self-Recursive Loop** (analyze→simplify→verify) until the current round's exit bar is clear (round 1: zero findings; round 2+: zero CRITICAL/HIGH/MEDIUM, LOW deferred) or a no-progress/unsafe/owner-decision stop hits — do NOT spawn a fresh-context reviewer for your own findings; (7) **Self-Review Gate**.
 - **The 5 Simplification Dimensions (step 3):** readability · DRY/abstraction (≥3 occurrences, YAGNI gate) · right-responsibility-lowest-layer (Entity > Domain Service > App Service > Controller) · complexity reduction (flatten nesting, extract >20-line methods) · DB paging+indexes — every technique answers ONE test: does this make the next change cheaper?
 - **Self-Review Gate (step 7) — this skill owns review of its own output:** when it changed any file, self-invoke `/code-review` scoped to ONLY those changed files (recursion-safe leaf — NEVER `/changes-review`); skip + log the reason when nothing changed. — why: the simplifier rewrites code after the main review batch, so its output ships unreviewed without this gate.
 - **Read FIRST:** `docs/project-reference/code-review-rules.md` (anti-patterns/checklists) then `project-structure-reference.md` — before any modification.
@@ -40,7 +40,7 @@ context-budget: critical
 3. **Analyze** — Apply simplification dimensions (see below)
 4. **Apply** — One refactoring type at a time following KISS/DRY/YAGNI
 5. **Verify** — Run related tests, confirm no behavior changes
-6. **Self-Recursive Check** — Re-run this skill's simplification analysis until no simplification findings remain
+6. **Self-Recursive Check** — Re-run this skill's simplification analysis until the current round's exit bar is clear: Round 1 requires zero validated findings at any severity; from Round 2 onward only validated CRITICAL/HIGH/MEDIUM findings reopen the loop, while LOW findings are recorded as deferred and do not justify another cycle. Failed binary gates always block.
 7. **Self-Review Gate (MANDATORY when code changed)** — If this skill modified any files, self-invoke `/code-review` scoped to ONLY those changed files; skip + log if nothing changed
 
 **Key Rules:**
@@ -222,7 +222,7 @@ function getData() {
 
 ## Self-Recursive Verification (MANDATORY after simplifications)
 
-After simplifications applied, verification requires a **self-recursive simplification pass** over the updated diff. Do NOT spawn fresh-context reviewer to re-review this skill's own findings. Repeat analyze → simplify → verify until this skill finds no further simplification opportunities, or stop on unsafe/no-progress/user-decision blocker.
+After simplifications are applied, verification requires a **self-recursive simplification pass** over the updated diff. Do NOT spawn a fresh-context reviewer to re-review this skill's own findings. Round 1 treats every validated simplification finding as blocking; from round 2 onward, repeat analyze → simplify → verify only while validated CRITICAL/HIGH/MEDIUM findings remain. A LOW-only round ends the loop, with each LOW recorded as deferred; do not spend another fix/review cycle on LOW polish alone. Stop on an unsafe/no-progress/user-decision blocker.
 
 ## Self-Review Gate (MANDATORY when this skill changed code)
 
@@ -289,7 +289,7 @@ Loop:
 2. Apply only behavior-preserving simplifications that satisfy the evidence gate.
 3. Run targeted verification after each change set.
 4. Re-read the updated diff and re-run this skill's simplification dimensions.
-5. Repeat until this skill finds zero simplification findings.
+5. Repeat until this skill's current round bar is clear: round 1 has zero validated simplification findings; rounds 2+ have zero validated CRITICAL/HIGH/MEDIUM findings, with LOWs recorded as deferred.
 
 Stop conditions:
 
@@ -301,22 +301,33 @@ Rules:
 
 - Do not spawn a fresh-context reviewer just because simplifications were applied.
 - Do not re-review known findings in a fresh context before fixing them.
-- Do not hand off as clean until the self-recursive pass finds zero simplification findings.
+- Do not hand off until the self-recursive pass clears the current round bar; never silently discard deferred LOWs.
 - After the self-recursive loop is clean, run the **Self-Review Gate** — if any files were changed, self-invoke `/code-review` scoped to those files (recursion-safe leaf skill); skip + log if nothing changed.
 
 <!-- SYNC:subagent-return-contract -->
 
-> **Sub-Agent Return Contract** — When this skill spawns a sub-agent, the sub-agent MUST return ONLY this structure. Main agent reads only this summary — NEVER requests full sub-agent output inline.
+> **Sub-Agent Return Contract** — When this skill spawns a sub-agent, the sub-agent MUST return ONLY the structured envelope below. Main agent reads the envelope first, then opens the referenced report for synthesis, acceptance, deduplication, or repair planning; a full report is never pasted inline.
 >
 > ```markdown
 > ## Sub-Agent Result: [skill-name]
 >
 > Status: ✅ PASS | ⚠️ PARTIAL | ❌ FAIL
 > Confidence: [0-100]%
+> Run ID: [stable run identifier]
+> Task ID: [parent task or phase identifier]
+> Attempt ID: [monotonic attempt/revision identifier]
+> Target: [exact files/paths or scope] @ [target fingerprint/commit]
+> Changed paths: [none | exact paths]
+> Finding totals: Critical=[n] | High=[n] | Medium=[n] | Low=[n]
+> Acceptance: PENDING | ACCEPTED | REJECTED — parent records the decision
 >
-> ### Findings (Critical/High only — max 10 bullets)
+> ### Findings (Critical/High surfaced — max 10 bullets)
 >
 > - [severity] [file:line] [finding]
+>
+> ### Gaps / Unverified
+>
+> - [missing host, runtime, coverage, or evidence limitation]
 >
 > ### Actions Taken
 >
@@ -324,15 +335,14 @@ Rules:
 >
 > ### Blockers (if any)
 >
-> - [blocker description]
+> - [blocker description, or `none`]
 >
 > Full report: plans/reports/[skill-name]-[date]-[slug].md
 > ```
 >
-> Main agent reads `Full report` file ONLY when: (a) resolving a specific blocker, or (b) building a fix plan.
-> Sub-agent writes full report incrementally (per SYNC:incremental-persistence) — not held in memory.
+> The ten-bullet limit is a transport limit, not a visibility limit: the full report may contain more than ten Medium/Low findings when no named blocker exists, and the parent MUST read it when synthesizing or deduplicating. The parent MUST reject a stale, duplicate, or superseded `Attempt ID` and MUST accept the current attempt before advancing a dependent step. Read-only leaves write repair proposals/reports only; they do not edit source, generated carriers, or user files.
 >
-> **Context budget** — the return payload is a SUMMARY, not a transcript: ≤10 finding bullets, no raw file contents / full diffs / verbatim logs inline, no re-pasted source. Everything beyond the summary lives in the `Full report` on disk. A sub-agent that would exceed the summary shape MUST write the detail to its report and return only the pointer — the orchestrator's context is the scarce resource the whole map-reduce protects.
+> **Context budget** — the return payload is a SUMMARY, not a transcript: no raw file contents / full diffs / verbatim logs inline, no re-pasted source. Everything beyond the envelope lives in the incrementally-written report. A sub-agent that would exceed the summary shape MUST persist the detail and return only the pointer; bounded transport must never become bounded visibility.
 
 <!-- /SYNC:subagent-return-contract -->
 
@@ -489,23 +499,42 @@ Rules:
 
 <!-- SYNC:severity-rubric -->
 
-> **Severity Rubric** — Classify every finding by consequence, not by how easy it is to fix. One scale across all reviews so a "High" means the same thing everywhere.
+> **Severity Rubric** — Classify every finding by consequence, not by effort, reviewer preference, or how annoying the fix is. One scale applies to every review, skill, agent, workflow, and host so a tier has the same meaning everywhere. Choose the highest credible consequence supported by evidence; do not lower a tier to make a round pass.
 >
-> | Severity | Action | Definition |
+> **Finding vs observation (required):** An observation becomes a finding only when it names the affected user/system/data/contract, the shipped consequence, the evidence location, and the normalized tier. `INFO`, advice, preference, duplicate wording, or an unsubstantiated concern is not a finding and must not reopen a loop. If the concern might affect a required behavior or gate but evidence is incomplete, emit `NOT VERIFIABLE` with the missing evidence and keep it unresolved; never silently convert uncertainty into LOW.
+>
+> | Severity | Action | Definition and examples |
 > | --- | --- | --- |
-> | CRITICAL | Block merge | Silent runtime failure, data corruption, validation bypass, security hole |
-> | HIGH | Must fix | Incorrect behavior, invariant gap, architectural violation |
-> | MEDIUM | Should fix | Design debt, maintainability, likely future bug |
-> | LOW | Nice to fix | Convention, documentation, minor clarity |
+> | CRITICAL | Block immediately; escalate | Immediate material risk if shipped: authentication/authorization or safety bypass; secrets/PII exposure; irreversible destructive action; data loss/corruption; or a silent failure on a critical path. A failed binary gate that makes the result untrustworthy is represented as a separate synthetic blocker by the executable policy (not as an ordinary severity judgment). |
+> | HIGH | Must fix before PASS/merge | Material correctness or contract risk: wrong behavior on a supported path; violated business/data invariant; meaningful privacy or authority gap; breaking API/schema/compatibility change; likely harm to users/downstream systems; or a missing proof for a behavior-changing fix. |
+> | MEDIUM | Must clear the current round; escalate if the fix needs an owner decision | Bounded but consequential risk: an edge case, resilience/observability/testability/maintainability gap, credible future defect, or local architectural drift whose impact is real but not immediate material loss. An explicit follow-up records the escalation/residual risk; it does not make an open MEDIUM a clean pass. |
+> | LOW | Record and defer; never open another fix/re-review round from round 2 onward | Non-blocking polish with no credible present correctness, security, privacy, authority, availability, or data-integrity impact: wording/formatting, minor documentation or convention drift, optional defensive cleanup, or a cosmetic/refinement suggestion. |
+>
+> **Consequence decision tree (apply in order):** (1) Is a binary gate failed? Keep it as a separate hard blocker (the executable helper represents it as synthetic CRITICAL); do not use the ordinary severity label to hide what failed. Otherwise, would shipping permit immediate material security/safety/authority harm, irreversible destruction, data loss/corruption, or a critical-path silent failure? → **CRITICAL**. (2) Otherwise, does a supported path, invariant, public contract, privacy/authority boundary, compatibility promise, or behavior-changing proof fail with material user/downstream impact? → **HIGH**. (3) Otherwise, is there a bounded but consequential edge, resilience, observability, testability, maintainability, or architectural gap with a credible impact? → **MEDIUM**. (4) Otherwise, is the evidence sufficient to show only non-blocking polish with no credible present material impact? → **LOW**. (5) If the evidence needed to choose between steps 1–4 is missing, → **NOT VERIFIABLE**, not LOW. When multiple tiers fit, select the highest credible consequence; effort, implementation cost, reviewer discomfort, frequency alone, and proximity to the round cap never decide the tier.
+>
+> **Boundary examples (normalize before applying the round predicate):** an auth bypass, exposed secret/PII, destructive command without an authority gate, or failed required test/generation/parity gate is **CRITICAL**; a wrong supported response, broken invariant/API/schema, meaningful privacy/authority defect, or unproven behavior-changing fix is **HIGH**; a bounded retry/timeout/alert/testability gap or credible maintainability drift is **MEDIUM**; a typo, formatting inconsistency, optional cleanup, or cosmetic suggestion proven not to affect present behavior is **LOW**. A missing fact about any of those boundaries is **NOT VERIFIABLE** until evidence or an explicitly documented residual-risk decision exists.
+>
+> **Classification procedure (required for every finding):** (1) state the affected user, system, data, contract, or gate; (2) assess consequence if the issue ships; (3) assess exposure/likelihood and reversibility/detectability; (4) select the highest tier justified by those facts; (5) cite `file:line` or equivalent evidence and a confidence percentage. Effort, implementation cost, reviewer discomfort, and proximity to the round cap are never severity inputs. `NOT VERIFIABLE` is a pending evidence state, not one of the four tiers and never a LOW escape hatch: if the unresolved claim could affect required behavior, security, privacy, authority, availability, data integrity, or a binary gate, it remains an open evidence blocker until resolved or explicitly owner-accepted with documented residual risk. Classify an item LOW only when evidence supports the absence of credible present material impact.
+>
+> **Hard-gate rule:** Binary gates (tests, required artifacts, security must-fix checks, generated parity, policy compliance) are not ordinary severity-rated findings. The executable helper records a failed gate as a synthetic CRITICAL blocker solely so one predicate can carry it; the report must still name the gate and failure evidence. A failed gate blocks at every round, including when all ordinary findings are LOW; never disguise a failed gate as LOW.
 >
 > **Score-based skills** map their numeric scale onto these tiers — do not invent a parallel vocabulary:
 >
-> - **0-2 criterion scoring** (e.g. production-readiness-review): `0` = CRITICAL/HIGH (criterion unmet, blocks production readiness), `1` = MEDIUM (partial, should fix), `2` = pass (no finding).
-> - **Two-axis scoring** (e.g. performance-review, impact × likelihood): map the resulting cell to the nearest tier — high-impact + high-likelihood → CRITICAL/HIGH; low-impact OR low-likelihood → MEDIUM/LOW.
+> - **0-2 criterion scoring** (e.g. production-readiness-review): `0` = CRITICAL/HIGH (criterion unmet, blocks readiness), `1` = MEDIUM (partial, consequential gap), `2` = pass (no finding). If the criterion is only polish, use LOW rather than forcing a `0`.
+> - **Two-axis scoring** (e.g. performance-review, impact × likelihood): high impact + high exposure → CRITICAL/HIGH; material impact with bounded exposure → HIGH/MEDIUM; low impact and low exposure → LOW. Record the axes and why the selected tier is the highest credible consequence.
+> - **Scorecards / `/20` grades** (e.g. architecture-scalability-review): the aggregate score and verdict band are separate from finding severity. A sub-80 area is evidence to investigate, not an automatic CRITICAL/HIGH/MEDIUM/LOW label; classify each underlying gap by the consequence decision tree and keep advisory score deductions separate from blocking findings.
 >
-> A finding's tier drives the gate: CRITICAL/HIGH must be resolved or explicitly accepted by the owner before PASS; MEDIUM/LOW may ship with a tracked follow-up.
+> **Domain-vocabulary normalization (mandatory):** Specialized skills may keep a local reporting vocabulary, but it MUST feed this same four-tier round predicate — never a second severity system:
+>
+> - `BLOCKED`, `HARD FAIL`, or `FAIL` is a blocking local verdict, not an automatic CRITICAL label. Classify the underlying consequence as CRITICAL when it is an immediate material risk or failed binary gate; otherwise classify it as HIGH or MEDIUM with evidence, while preserving the local block until the owning gate is satisfied.
+> - `WARN` is not permission to ignore a finding. Map it to MEDIUM when the gap is consequential, to LOW only when evidence supports no credible present material impact, or upward to HIGH/CRITICAL when the consequence warrants it. `PASS`/compliant is not a finding.
+> - UI `P0`/`P1`/`P2`/`P3`/`P4` map to CRITICAL/HIGH/MEDIUM/LOW/LOW respectively as a starting point; override upward only when the evidence shows a higher shipped consequence. A P0/P1 accessibility or task-completion floor remains a blocking gate even when a local UI report calls it a priority rather than a severity.
+> - Numeric SRE/readiness or impact/likelihood scores are evidence inputs, not replacement tiers. Emit the score, the consequence, and the normalized CRITICAL/HIGH/MEDIUM/LOW tier together. `INFO`/advisory observations are not findings unless the evidence shows a material consequence.
+>
+> A finding's tier drives the gate: CRITICAL/HIGH/MEDIUM remain actionable and blocking under the round policy; LOW may be tracked as a follow-up and, from round 2, does not by itself justify another fix/re-review. An owner decision may explain or schedule an open MEDIUM but does not turn it into a clean pass; owner acceptance never makes a failed binary gate pass and must record scope, rationale, and residual risk.
 
 <!-- /SYNC:severity-rubric -->
+
 
 <!-- SYNC:evidence-based-reasoning:reminder -->
 
@@ -532,10 +561,12 @@ Rules:
 
 <!-- SYNC:severity-rubric:reminder -->
 
-- **MANDATORY** Classify findings Critical/High/Medium/Low by consequence; Critical/High block PASS until fixed or owner-accepted.
+- **MANDATORY** Classify every finding Critical/High/Medium/Low by consequence using the affected asset, shipped impact, exposure, reversibility, evidence location, and confidence; Critical/High/MEDIUM remain actionable under the round bar, while LOW is recorded/deferred from round 2 onward.
+- **MANDATORY** Keep binary gates separate from severity: a failed test, security must-fix, required artifact, or parity check blocks at every round and is never relabeled LOW.
 - **MANDATORY** Score-based skills (sre 0-2, perf two-axis) map onto the same four tiers — no parallel severity vocabulary.
 
 <!-- /SYNC:severity-rubric:reminder -->
+
 
 <!-- PROMPT-ENHANCE:STEP-TASK-CLOSING:START -->
 
@@ -591,7 +622,7 @@ Rules:
 
 **IMPORTANT MUST ATTENTION Goal:** lower the cost of the next change — cut coupling, hidden state, duplicated knowledge, unclear intent — by simplifying and refining code for clarity, consistency, maintainability WITHOUT altering any observable behavior. — why: every simplification serves future change cost, not aesthetics.
 
-**IMPORTANT MUST ATTENTION Main steps (run in declared order, never skip/merge):** (1) Phase 0 Detect artifact type + scope → (2) Identify Targets (skip generated/migration/vendor) → (3) Analyze via the 5 Dimensions → (4) Apply one refactoring type at a time → (5) Verify tests after EACH change → (6) Self-Recursive Loop until zero findings → (7) Self-Review Gate (`/code-review` on changed files). — why: AI keeps forgetting the skill's own steps; surfacing them here is the recency anchor.
+**IMPORTANT MUST ATTENTION Main steps (run in declared order, never skip/merge):** (1) Phase 0 Detect artifact type + scope → (2) Identify Targets (skip generated/migration/vendor) → (3) Analyze via the 5 Dimensions → (4) Apply one refactoring type at a time → (5) Verify tests after EACH change → (6) Self-Recursive Loop until the current round's exit bar is clear (round 1: zero findings; round 2+: zero CRITICAL/HIGH/MEDIUM, LOW deferred) → (7) Self-Review Gate (`/code-review` on changed files). — why: AI keeps forgetting the skill's own steps; surfacing them here is the recency anchor.
 
 **Protocols in force (concise digest of the SYNC/shared blocks this skill carries):**
 
@@ -604,12 +635,12 @@ Rules:
 - **Understand Code First:** read target + grep 3+ patterns + graph trace before writing or fixing.
 - **Design Patterns Quality:** DRY via OOP, lowest-layer responsibility, SOLID, one serial pass per dimension.
 - **Complexity Prevention:** one business change = one code change; flag change amplification and wrong-layer logic.
-- **Severity Rubric:** classify findings Critical/High/Medium/Low by consequence; Critical/High block PASS.
+- **Severity Rubric:** classify findings Critical/High/Medium/Low by consequence using `SYNC:severity-rubric`; round 1 blocks on every validated finding, rounds 2–3 block only CRITICAL/HIGH/MEDIUM, and LOW is recorded/deferred. Failed binary gates always block.
 - **Parallel Sub-Agent Dispatch:** Tag tasks PAR/SEQ, group PAR into disjoint-write-set waves, spawn each wave in ONE message, barrier before advancing.
 
 **IMPORTANT MUST ATTENTION** apply a simplification ONLY when certain it preserves behavior — grep all usages + trace consumers (graph downstream when graph.db exists) and cite `file:line` BEFORE touching anything; if unsure → DO NOT apply. — why: an unverified "safe" rewrite silently breaks a downstream consumer.
 **IMPORTANT MUST ATTENTION** NEVER simplify generated, migration, or vendor files — HARD-SKIP them in Phase 0. — why: regenerated output overwrites edits and migrations are one-time execution paths, not core logic.
-**IMPORTANT MUST ATTENTION** run the Self-Recursive Loop (analyze → simplify → verify) until ZERO simplification findings remain; do NOT spawn a fresh-context reviewer for this skill's own findings. — why: re-reviewing your own findings in fresh context burns tokens the convergence loop already owns.
+**IMPORTANT MUST ATTENTION** run the Self-Recursive Loop (analyze → simplify → verify) until the current round's exit bar is clear (round 1: zero findings; round 2+: zero CRITICAL/HIGH/MEDIUM, LOW deferred); do NOT spawn a fresh-context reviewer for this skill's own findings. — why: re-reviewing your own findings in fresh context burns tokens the convergence loop already owns.
 
 - **MANDATORY** Evidence Gate — every finding/recommendation needs `file:line` proof or a traced call chain; confidence >80% to act, 60-80% verify first, <60% DO NOT recommend. NEVER use "obviously"/"I think"/"should be" without proof.
 - **MANDATORY** break work into small todo tasks via `TaskCreate` BEFORE starting (one task per file read); keep exactly one `in_progress`; mark `completed` immediately; add a final review task. On context loss, `TaskList` first — resume, never duplicate.
@@ -634,7 +665,7 @@ Rules:
 | "Best practice says abstract it" | Abstract only when it lowers future change cost; pass-through indirection is complexity, not simplification.                            |
 | "This pattern is everywhere"     | Pattern fit ≠ pattern presence. Verify same scope/lifetime/base-class/constraints before copying.                                     |
 | "Tests still pass, ship it"      | Did you weaken the bar? A relaxed property/mutation test passing is not a pass. Keep the SAME invariant bar.                            |
-| "Skip recursive check after fixing" | Every simplification changes the diff. Re-run this skill's own simplification analysis until it finds zero simplification findings. |
+| "Skip recursive check after fixing" | Every simplification changes the diff. Re-run this skill's own simplification analysis until the current round bar is clear; after round 1, LOW-only findings are recorded/deferred rather than causing another cycle. |
 | "Generated file is messy too"    | NEVER touch generated/migration/vendor — HARD-SKIP. Regeneration overwrites you.                                                       |
 
 **[TASK-PLANNING]** Before acting, analyze task scope and systematically break into small todo tasks using TaskCreate.

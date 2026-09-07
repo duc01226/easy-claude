@@ -34,7 +34,7 @@ Also bootstraps team-wide Codex completion notifications by copying the portable
   optional tech-spec freshness and feature-registry validation, 3 hook-suite gates, the other Codex
   verifiers, and the cross-surface divergence oracle)
 - Stage 1 upserts `[tui].status_line` to show model+reasoning, current directory, project root, context used, five-hour limit, and weekly limit by default
-- Stage 3 mirrors full `CLAUDE.md` into `AGENTS.md`, then appends the generated Codex hook/context mirror and shared AI-SDD markers so Codex has both source instructions and hookless parity context
+- Stage 3 generates the bounded `AGENTS.md` projection and full `.codex/CODEX_CONTEXT.md` static mirror, while hook configuration remains a separate optional accelerator; both Claude and Codex must still follow the same canonical protocol when hooks are absent
 - Stage 1 must not inline `docs/project-reference/lessons.md` content into `.agents/skills/**`; generated skill mirrors reference the project-reference loading gate instead
 - The `SYNC:ai-sdd-artifact-contract` marker must appear after sync in `.codex/CODEX_CONTEXT.md` and `AGENTS.md`
 - No npm dependency — pure `node` + spawned subprocesses
@@ -43,9 +43,10 @@ Also bootstraps team-wide Codex completion notifications by copying the portable
 ## Bootstrap Gate (when AGENTS.md is missing or incomplete)
 
 This skill is the route the agent-files bootstrap gate offers for a missing — **or incomplete** —
-root `AGENTS.md`, the generated Codex mirror of `CLAUDE.md`. Because Codex has no hooks, the universal
-session-start guides must be embedded in `AGENTS.md` directly; stage 3 produces that mirror (full
-`CLAUDE.md` copy, so the `<!-- CK:UNIVERSAL-GUIDES v1 -->` sentinel propagates) + hookless-parity context.
+root `AGENTS.md`, the generated Codex mirror of `CLAUDE.md`. Claude and Codex may both support hooks,
+but the universal session-start and workflow guides must remain available statically; stage 3 produces
+the bounded root projection (with the `<!-- CK:UNIVERSAL-GUIDES v1 -->` sentinel when present) plus the
+full static-parity context. Hooks may accelerate loading, but they never replace the generated files.
 
 "Incomplete" means the file exists but lacks the universal guides — same three-state detection as the
 CLAUDE.md route (`missing` → init, `incomplete` → update smart-merge preserving project content, `ok`
@@ -69,8 +70,8 @@ continues; if declared but malformed, their direct verifier fails closed:
 | 1   | migrate         | `.claude/scripts/codex/migrate-claude-to-codex.mjs`          | Migrate Claude agents → `.codex/agents/`; mirror skills → `.agents/skills/`; setup Codex notifications |
 | 2   | hooks           | `.claude/scripts/codex/sync-hooks.mjs`                       | Generate `.codex/hooks.json` + sync report                                                           |
 | 3   | context         | `.claude/scripts/codex/sync-context-workflows.mjs`           | Regenerate `.codex/CODEX_CONTEXT.md` + `AGENTS.md` with workflow context and shared AI-SDD markers   |
-| 4   | tests           | `node --test .claude/scripts/codex/tests/*.test.mjs`         | Run codex tooling unit tests                                                                         |
-| 5   | scripts-tests   | `node --test .claude/scripts/tests/*.test.mjs`              | Run repo-script unit tests (statusline widgets, etc.)                                                |
+| 4   | tests           | Runner discovers `.claude/scripts/codex/tests/*.test.{mjs,cjs}` | Run Codex tooling tests; missing or empty discovery fails |
+| 5   | scripts-tests   | Runner discovers `.claude/scripts/tests/*.test.{mjs,cjs}` | Run repo-script tests, including review and experience policies; missing or empty discovery fails |
 | 6   | tech-spec-freshness | `.claude/skills/tech-spec/scripts/generate-tech-specs.mjs --check` | Verify configured derived technical views; explicit skip when `techSpecScan` is absent |
 | 7   | feature-registry | `.claude/scripts/codex/verify-feature-registry.mjs --configured-roots` | Verify configured canonical TC/BR identity, continuation parts, split limits, links, ranges, summaries, and coverage; explicit skip when `specSystem.featureRegistryRoots` is absent |
 | 8   | hooks-count-drift | `.claude/hooks/tests/run-all-tests.cjs --filter=count-drift` | Verify the `<!-- COUNT:… -->` inventory markers have not drifted from the real skill/hook/agent/workflow counts |

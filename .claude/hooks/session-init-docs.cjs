@@ -47,6 +47,7 @@ const {
     getConfiguredDocsIndexPath,
     loadProjectConfig
 } = require('./lib/project-config-loader.cjs');
+const { resolveProjectRoot } = require('./lib/project-root.cjs');
 
 // Generic source for the feature-doc template (relocated to .claude as the
 // portable source-of-truth). Bootstrapped into the configured featureDocTemplate
@@ -55,7 +56,8 @@ const {
 const FEATURE_DOC_TEMPLATE_SOURCE = '.claude/templates/detailed-feature-spec-template.md';
 const DEFAULT_FEATURE_DOC_TEMPLATE_DEST = 'docs/templates/detailed-feature-spec-template.md';
 
-const PROJECT_DIR = process.env.CLAUDE_PROJECT_DIR || process.cwd();
+const rootResolution = resolveProjectRoot({ cwd: process.cwd(), scriptPath: __filename, env: process.env });
+const PROJECT_DIR = rootResolution.rootDir;
 const CONFIG_PATH = getConfiguredProjectConfigPath();
 const CONFIG_DIR = path.dirname(CONFIG_PATH);
 const CONFIG_DISPLAY_PATH = path.relative(PROJECT_DIR, CONFIG_PATH).replace(/\\/g, '/') || path.basename(CONFIG_PATH);
@@ -71,6 +73,10 @@ function writeSessionStartNotice(_message) {
 // =============================================================================
 
 function main() {
+    if (rootResolution.error) {
+        console.error(`[session-init-docs] Skipped: ${rootResolution.error}`);
+        return;
+    }
     try {
         const stdin = fs.readFileSync(0, 'utf-8').trim();
         if (!stdin) process.exit(0);

@@ -20,9 +20,9 @@ disable-model-invocation: false
 
 **Goal:** Keep one canonical, tech-free 8-section Feature Spec synchronized with implementation, tests, and project docs through the correct init-full/update/audit workflow; derive indexes only, never a parallel engineering tree.
 
-**Summary:** Confirm mode and scope, then investigate, size/plan, author or update the Feature Spec and §8 tests, review artifacts, synchronize docs/derived aids, and close with coverage evidence.
+**Summary:** Confirm mode and scope, resolve `init-full|update|audit` to the complete canonical workflow manifest before creating tasks, then investigate, author/update/audit the Feature Spec and §8 tests, review artifacts, synchronize docs/derived aids, and close with coverage evidence.
 
-**Workflow:** Confirm mode/capability → select `init-full`, `update`, or `audit` → trace the full vertical chain → create tasks/ledger → run the declared spec/test/review/docs gates → report coverage and close. **MUST ATTENTION** keep steps ordered and evidence-backed.
+**Workflow:** Confirm mode/capability → resolve the selected `init-full`, `update`, or `audit` manifest (fingerprint + occurrence IDs) → trace the full vertical chain → create tasks/ledger → invoke exactly the declared spec/test/review/docs gates → report coverage and close. **MUST ATTENTION** keep steps ordered and evidence-backed.
 
 > **[SINGLE HOME]** There is ONE canonical artifact — the tech-free 8-section Feature Spec authored by `spec` at `docs/specs/{Bucket}/`. There is no parallel A-E "Engineering Spec" bundle and no separate Business Feature Docs tree; `spec-index` only regenerates a DERIVED index/ERD over the Feature Specs. Authority: [`docs/project-reference/spec-system-reference.md`](../../../docs/project-reference/spec-system-reference.md).
 
@@ -209,7 +209,7 @@ TaskCreate: "size-evaluation — classify scope breadth, count capabilities, bui
     - §8 every TC has Business Intent, abstract `[Source: ns/service/id]` anchor, CoveredBy field, Status
     - YAML frontmatter present; no line-count cap applied
   → PASS criteria: zero [UNVERIFIED] without exclusion reason + zero tech terms in §1-7
-  → Gap found → validate findings → fix validated gaps → restart full artifact-review pass from the first check
+  → Gap found → validate findings → fix only validated gaps that block the current round → restart full artifact-review pass from the first check; Round 2+ LOW-only gaps are recorded as deferred and do not trigger another cycle, while binary gates remain blocking
 
 /docs-update
   → Near-final synchronization sweep across project docs, the Feature Spec(s), and Section 8
@@ -475,12 +475,14 @@ The Feature Spec stays in sync on every feature/bugfix/refactor workflow.
 
 > **Incremental Result Persistence** — MANDATORY for all sub-agents or heavy inline steps processing >3 files.
 >
-> 1. **Before starting:** Create report file `plans/reports/{skill}-{date}-{slug}.md`
-> 2. **After each file/section reviewed:** Append findings to report immediately — never hold in memory
-> 3. **Return to main agent:** Summary only (per SYNC:subagent-return-contract) with `Full report:` path
-> 4. **Main agent:** Reads report file only when resolving specific blockers
+> 1. **Before starting:** Create report file `plans/reports/{skill}-{date}-{slug}.md` and record Run ID, Task ID, Attempt ID, target scope, and target fingerprint.
+> 2. **After each file/section reviewed:** Append findings, evidence, changed paths, and gaps immediately — never hold them in memory.
+> 3. **Delegated return:** A sub-agent emits only the structured `SYNC:subagent-return-contract` envelope with exact totals, salient Critical/High findings (maximum ten), current attempt, and `Full report:` path. **Inline user-facing output:** Preserve the skill's requested explanation or teaching, with links to the persisted evidence; the delegated transport limit does not replace that deliverable. Do not paste a full review report into an envelope.
+> 4. **Parent synthesis:** The main agent reads the full report for synthesis, acceptance, deduplication, and repair planning — not only when a named blocker exists. It preserves all severities beyond the transport cap.
+> 5. **Read-only boundary:** A read-only leaf may write its report/repair proposal but MUST NOT edit source, generated output, or user data; the parent/owner performs repairs after acceptance.
+> 6. **Advancement gate:** The parent records `ACCEPTED` for the current Attempt ID only after reconciling target, totals, gaps, and changed paths; stale or late attempts cannot advance dependent work.
 >
-> **Why:** Context cutoff mid-execution loses ALL in-memory findings. Each disk write survives compaction. Partial results are better than no results.
+> **Why:** Context cutoff mid-execution loses ALL in-memory findings. Each disk write survives compaction. Partial results are better than no results, while explicit identity prevents a late result from being mistaken for the current run.
 >
 > **Report naming:** `plans/reports/{skill-name}-{YYMMDD}-{HHmm}-{slug}.md`
 
@@ -488,17 +490,28 @@ The Feature Spec stays in sync on every feature/bugfix/refactor workflow.
 
 <!-- SYNC:subagent-return-contract -->
 
-> **Sub-Agent Return Contract** — When this skill spawns a sub-agent, the sub-agent MUST return ONLY this structure. Main agent reads only this summary — NEVER requests full sub-agent output inline.
+> **Sub-Agent Return Contract** — When this skill spawns a sub-agent, the sub-agent MUST return ONLY the structured envelope below. Main agent reads the envelope first, then opens the referenced report for synthesis, acceptance, deduplication, or repair planning; a full report is never pasted inline.
 >
 > ```markdown
 > ## Sub-Agent Result: [skill-name]
 >
 > Status: ✅ PASS | ⚠️ PARTIAL | ❌ FAIL
 > Confidence: [0-100]%
+> Run ID: [stable run identifier]
+> Task ID: [parent task or phase identifier]
+> Attempt ID: [monotonic attempt/revision identifier]
+> Target: [exact files/paths or scope] @ [target fingerprint/commit]
+> Changed paths: [none | exact paths]
+> Finding totals: Critical=[n] | High=[n] | Medium=[n] | Low=[n]
+> Acceptance: PENDING | ACCEPTED | REJECTED — parent records the decision
 >
-> ### Findings (Critical/High only — max 10 bullets)
+> ### Findings (Critical/High surfaced — max 10 bullets)
 >
 > - [severity] [file:line] [finding]
+>
+> ### Gaps / Unverified
+>
+> - [missing host, runtime, coverage, or evidence limitation]
 >
 > ### Actions Taken
 >
@@ -506,15 +519,14 @@ The Feature Spec stays in sync on every feature/bugfix/refactor workflow.
 >
 > ### Blockers (if any)
 >
-> - [blocker description]
+> - [blocker description, or `none`]
 >
 > Full report: plans/reports/[skill-name]-[date]-[slug].md
 > ```
 >
-> Main agent reads `Full report` file ONLY when: (a) resolving a specific blocker, or (b) building a fix plan.
-> Sub-agent writes full report incrementally (per SYNC:incremental-persistence) — not held in memory.
+> The ten-bullet limit is a transport limit, not a visibility limit: the full report may contain more than ten Medium/Low findings when no named blocker exists, and the parent MUST read it when synthesizing or deduplicating. The parent MUST reject a stale, duplicate, or superseded `Attempt ID` and MUST accept the current attempt before advancing a dependent step. Read-only leaves write repair proposals/reports only; they do not edit source, generated carriers, or user files.
 >
-> **Context budget** — the return payload is a SUMMARY, not a transcript: ≤10 finding bullets, no raw file contents / full diffs / verbatim logs inline, no re-pasted source. Everything beyond the summary lives in the `Full report` on disk. A sub-agent that would exceed the summary shape MUST write the detail to its report and return only the pointer — the orchestrator's context is the scarce resource the whole map-reduce protects.
+> **Context budget** — the return payload is a SUMMARY, not a transcript: no raw file contents / full diffs / verbatim logs inline, no re-pasted source. Everything beyond the envelope lives in the incrementally-written report. A sub-agent that would exceed the summary shape MUST persist the detail and return only the pointer; bounded transport must never become bounded visibility.
 
 <!-- /SYNC:subagent-return-contract -->
 
@@ -608,7 +620,7 @@ The Feature Spec stays in sync on every feature/bugfix/refactor workflow.
 
 **IMPORTANT MUST ATTENTION Goal:** Keep one canonical, tech-free 8-section Feature Spec synchronized with implementation, tests, and project docs through the correct init-full/update/audit workflow; derive indexes only, never a parallel engineering tree.
 
-**IMPORTANT MUST ATTENTION Main steps:** Step 0 confirm mode → `init-full`: investigate → size/ledger → plan → plan-review → plan-validate → spec init → spec tests → artifact-review (TCs) → artifact-review → docs-update → workflow-end → watzup; `update`: workflow-review-changes → spec update/tests → TC review → spec sync → changes-review → docs-update → workflow-end → watzup; `audit`: investigate → spec audit → artifact-review → docs-update → workflow-end → watzup. **NEVER** skip gates, vertical-chain reconciliation, or coverage closure.
+**IMPORTANT MUST ATTENTION Main steps:** Step 0 confirm mode → resolve the selected manifest → invoke its exact occurrence list: `init-full` (investigate → plan → plan-review → plan-validate → spec init → spec tests → artifact reviews → docs-update → workflow-end → watzup), `update` (workflow-review-changes → spec update/tests → TC review → spec sync → changes-review → docs-update → workflow-end → watzup), or `audit` (investigate → spec audit → artifact-review → docs-update → workflow-end → watzup). **NEVER** skip gates, vertical-chain reconciliation, or coverage closure; record the resolver fingerprint and every returned occurrence.
 
 **Protocols in force (concise digest of the SYNC/shared blocks this skill carries):**
 
@@ -631,7 +643,7 @@ The Feature Spec stays in sync on every feature/bugfix/refactor workflow.
 - **[REQUIRED]** §1-7 STRICTLY tech-free (no framework names, no language constructs, no class names in prose); identifiers live only in §8 evidence carriers, `[Source: ns/service/id]`, and ` ```mermaid ``` ` blocks — mark `[UNVERIFIED]` not blank
 - **[REQUIRED]** Each sub-agent prompt MUST include: capability name, output path, tech-agnostic contract, SYNC protocols (critical-thinking, evidence-based, incremental-persistence, cross-scope boundary)
 - **[BLOCKING]** Context compaction / session resume → `TaskList` first, re-glob existing Feature Specs, skip done capabilities — NEVER re-run investigate or plan
-- **[BLOCKING]** artifact-review: PASS = zero `[UNVERIFIED]` without exclusion reason + zero tech terms in §1-7; gap found → validate findings → fix validated gaps → restart the full artifact-review pass from the first check
+- **[BLOCKING]** artifact-review: PASS = zero `[UNVERIFIED]` without exclusion reason + zero tech terms in §1-7; gap found → validate findings → fix only validated gaps that block the current round → restart the full artifact-review pass from the first check; Round 2+ LOW-only findings are recorded as deferred and do not trigger another cycle, while binary gates remain blocking
 - **[BLOCKING]** Verify TaskList count ≥ capability_count before any authoring begins — this is the plan completeness gate
 - **[REQUIRED]** Apply critical thinking — every claim needs traced proof, confidence >80% to act. Anti-hallucination: never present guess as fact.
 - **[REQUIRED]** Apply AI mistake prevention — holistic-first debugging, fix at responsible layer, surface ambiguity before coding, re-read files after compaction.

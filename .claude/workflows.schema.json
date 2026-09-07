@@ -3,10 +3,47 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "additionalProperties": false,
   "definitions": {
+    "Applicability": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["when", "skipReason"],
+      "properties": {
+        "when": { "type": "string", "pattern": "\\S" },
+        "skipReason": { "type": "string", "pattern": "\\S" }
+      },
+      "description": "Model-evaluated condition and required reason when skipped; the occurrence remains in the task list."
+    },
+    "Occurrence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "skill"],
+      "properties": {
+        "id": { "type": "string", "pattern": "^[a-z][a-z0-9-]*$" },
+        "skill": { "type": "string", "pattern": "^[a-z][a-z0-9-]*$" },
+        "args": { "type": "string" },
+        "applicability": { "$ref": "#/definitions/Applicability" }
+      }
+    },
+    "Variant": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["sequence"],
+      "properties": {
+        "sequence": { "type": "array", "minItems": 1, "items": { "$ref": "#/definitions/Occurrence" } },
+        "parallelGroups": { "$ref": "#/definitions/WorkflowEntry/properties/parallelGroups" },
+        "stepMeta": { "$ref": "#/definitions/WorkflowEntry/properties/stepMeta" }
+      },
+      "description": "Complete ordered mode; no inheritance of base sequence, parallel groups or step metadata. Group members and stepMeta keys reference occurrence IDs."
+    },
     "PreActions": {
       "additionalProperties": false,
       "description": "Actions to perform before starting the workflow sequence. Used to inject context or pre-read files.",
       "properties": {
+        "domainEntityReferenceRefresh": {
+          "description": "Conditional instruction to refresh domain-entity reference documentation from the final change set, or record an evidence-backed skip reason.",
+          "pattern": "\\S",
+          "type": "string"
+        },
         "injectContext": {
           "description": "Context text to inject into the agent's prompt before workflow execution. Typically contains workflow-specific instructions or checklists.",
           "minLength": 1,
@@ -70,8 +107,16 @@
     },
     "WorkflowEntry": {
       "additionalProperties": false,
+      "dependencies": { "variants": ["defaultMode"], "defaultMode": ["variants"] },
       "description": "Defines a workflow selected by AI-native intent detection. Contains natural language descriptions for when to use/not use, an ordered sequence of commands, and optional pre-actions.",
       "properties": {
+        "defaultMode": { "type": "string", "pattern": "^[a-z][a-z0-9-]*$" },
+        "variants": {
+          "type": "object",
+          "minProperties": 1,
+          "propertyNames": { "pattern": "^[a-z][a-z0-9-]*$" },
+          "additionalProperties": { "$ref": "#/definitions/Variant" }
+        },
         "description": {
           "description": "Detailed description of what this workflow does and when it is triggered.",
           "minLength": 1,
@@ -86,7 +131,7 @@
           "type": "string"
         },
         "parallelGroups": {
-          "description": "Optional declaration of parallel-phase barrier groups within `sequence`. Each group's members run concurrently as ONE all-return barrier: spawn ALL members together (one message), then advance past the group ONLY after EVERY member returns (a skipped conditional member counts as returned). This is the portable, machine-visible complement to the prose advancement rule — the sync renderer collapses a group's members into a single `[parallel ⇉ all-return barrier: ...]` token in the Codex context mirrors, so the barrier is visible to hookless tools that read only the rendered sequence. Every member MUST be a value present in this workflow's `sequence`, members SHOULD be contiguous in `sequence`, and a member MUST NOT appear in more than one group.",
+          "description": "All-return barrier groups: spawn every member together and advance only after every member returns or records a conditional skip. Members MUST form a contiguous sequence segment and MUST NOT belong to multiple groups. Legacy members reference unique command strings; explicit occurrences and variants reference semantic occurrence IDs. Ambiguous repeated legacy commands are rejected by the resolver.",
           "items": {
             "additionalProperties": false,
             "properties": {
@@ -103,6 +148,7 @@
                   "type": "string"
                 },
                 "title": "Conditional Members",
+                "uniqueItems": true,
                 "type": "array"
               },
               "id": {
@@ -112,12 +158,13 @@
                 "type": "string"
               },
               "members": {
-                "description": "Command keys that form the barrier. Each MUST exist in this workflow's `sequence`. Order is not significant for execution — all members are spawned together — but determines left-to-right order inside the rendered barrier token.",
+                "description": "Occurrence IDs (or unique legacy command keys) forming the barrier. Every member MUST exist in the selected sequence. Listed order is not execution order; all members run together.",
                 "items": {
                   "minLength": 1,
                   "type": "string"
                 },
                 "minItems": 2,
+                "uniqueItems": true,
                 "title": "Group Members",
                 "type": "array"
               }
@@ -133,10 +180,12 @@
           "$ref": "#/definitions/PreActions"
         },
         "sequence": {
-          "description": "Ordered list of step-skill names to execute. Each step resolves to the slash command /<step>. Steps run in sequence from first to last.",
+          "description": "Ordered legacy command strings or explicit occurrences. With variants, this base sequence remains a compatibility projection; execution uses the complete selected variant.",
           "items": {
-            "minLength": 1,
-            "type": "string"
+            "oneOf": [
+              { "type": "string", "pattern": "\\S" },
+              { "$ref": "#/definitions/Occurrence" }
+            ]
           },
           "minItems": 1,
           "title": "Command Sequence",
@@ -146,7 +195,7 @@
           "additionalProperties": {
             "$ref": "#/definitions/StepMeta"
           },
-          "description": "Optional per-step metadata overrides keyed by command key (must match a value in sequence). Overrides execution-mode or context-budget from the skill's SKILL.md front matter. The model reads this when advancing workflow steps.",
+          "description": "Metadata keyed by occurrence ID, or by legacy command string (applies to every matching legacy occurrence). Keys must resolve in the selected sequence. Variants own their metadata without inheriting base overrides.",
           "title": "Step Metadata Overrides",
           "type": "object"
         },

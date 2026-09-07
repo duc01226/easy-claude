@@ -44,8 +44,16 @@ import fs from 'node:fs/promises';
 import fsSync from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { createRequire } from 'node:module';
 
-const rootDir = process.cwd();
+const require = createRequire(import.meta.url);
+const { resolveProjectRoot } = require('../lib/project-root.cjs');
+const rootResolution = resolveProjectRoot({
+  cwd: process.cwd(),
+  scriptPath: fileURLToPath(import.meta.url),
+  env: process.env,
+});
+const rootDir = rootResolution.rootDir;
 
 const CATALOG_PATH = path.join('.claude', 'docs', 'architecture-knowledge.md');
 

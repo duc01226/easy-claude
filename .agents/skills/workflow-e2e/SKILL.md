@@ -15,9 +15,9 @@ disable-model-invocation: false
 > - For workflow skills, execute each listed child-skill step explicitly and report step-by-step evidence.
 > - If a required step/tool cannot run in this environment, stop and ask the user before adapting.
 <!-- CODEX:PROJECT-REFERENCE-LOADING:START -->
-## Codex Project-Reference Loading (No Hooks)
+## Codex Project-Reference Loading (Hook-Independent)
 
-Codex uses static project-reference loading instead of runtime-injected project docs.
+Claude and Codex use static project-reference loading as the authority; hooks may accelerate discovery but never replace the explicit read.
 When coding, planning, debugging, testing, or reviewing, open project docs explicitly using this routing.
 
 **Always read:**
@@ -52,9 +52,9 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 
 ## Quick Summary
 
-**Goal:** [Workflow] Trigger the E2E testing workflow — one parameterized entry covering all three E2E sources. `--source` selects the protocol; the sequence is identical for every source.
+**Goal:** [Workflow] Trigger the E2E testing workflow — one parameterized entry covering all three E2E sources. `--source` selects the protocol; every source prepares tests, conditionally reviews the affected observable experience, and only then runs regression verification.
 
-**Summary:** Resolve `--source={changes|recording|update-ui}` (infer and state it when omitted), then run `$investigate` → `$e2e-test` → `$test` → `$docs-update` → `$workflow-end` → `$watzup`; the `e2e-test` leaf applies the selected source protocol, and every step records evidence, task transitions, and observable verification.
+**Summary:** Resolve `--source={changes|recording|update-ui}` (infer and state it when omitted), then run `$investigate` → `$e2e-test` → conditional `$experience-review` → `$test` → `$docs-update` → `$workflow-end` → `$watzup`; the `e2e-test` leaf applies the selected source protocol, and every step records evidence, task transitions, and observable verification.
 - **Testability contract:** resolve Unit/Integration/System/E2E applicability from runner/config evidence; record owner/root/data, copy-ready full + focused commands, zero-match behavior, CI/simple-Windows entry, unique run/data identity, and repeat proof; unresolved applicable fields block handoff, while non-applicable tiers require evidence-backed `N/A`.
 
 **Workflow:**
@@ -71,7 +71,7 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 - MUST ATTENTION when creating/reviewing specs or tests, name `Business Intent / Invariant Guarded` or the protected business intent/invariant and ensure the test would fail if that intent breaks.
 - NEVER skip mandatory workflow or skill gates.
 
-**IMPORTANT MANDATORY Steps:** $investigate -> $e2e-test -> $test -> $docs-update -> $workflow-end -> $watzup
+**IMPORTANT MANDATORY Steps:** $investigate -> $e2e-test -> $experience-review -> $test -> $docs-update -> $workflow-end -> $watzup
 
 > **[BLOCKING]** Each step MUST ATTENTION invoke its skill invocation — marking a task `completed` without skill invocation is a workflow violation. NEVER batch-complete validation gates.
 
@@ -85,7 +85,7 @@ Resolve `--source` from the invocation. If omitted, infer from the request (reco
 | `recording` | A Chrome DevTools recording JSON exists and a Playwright test is wanted. | Updating existing tests, writing from scratch, running existing tests. |
 | `update-ui` | UI changed and E2E screenshot baselines need updating.                   | Generating new tests, fixing test logic, non-visual changes.           |
 
-All three sources run the same sequence: `$investigate → $e2e-test → $test → $docs-update → $workflow-end → $watzup`. The downstream `e2e-test` leaf is mode-aware and performs the per-source work; this wrapper only injects the matching protocol and triggers the workflow.
+All three sources run the same sequence: `$investigate → $e2e-test → $experience-review (conditional) → $test → $docs-update → $workflow-end → $watzup`. The downstream `e2e-test` leaf is mode-aware and performs the per-source work; `experience-review` classifies and inspects relevant observable evidence before any expectation promotion; this wrapper injects the matching protocol and triggers the workflow.
 
 ### `--source=changes` — E2E from Changes
 
@@ -125,11 +125,10 @@ E2E UPDATE UI PROTOCOL:
 1. Identify visual changes from git diff (SCSS, HTML, TS)
 2. Map changed files to affected page objects
 3. Find E2E specs using those page objects
-4. Run affected tests to generate new screenshots
-5. Update screenshot baselines with --update-snapshots
-6. Visual review: diff old vs new baselines
-7. Confirm changes are intentional with user
-8. Report updated files and visual changes
+4. Run affected tests to collect candidate screenshots/evidence without changing accepted expectations
+5. Run $experience-review to exercise the intended journey, open and inspect the candidate evidence, and classify observed/judged/acceptance state
+6. Update only the affected snapshots/baselines after an explicit acceptance record; otherwise preserve the previous accepted expectation and report ACCEPTANCE-PENDING, ENVIRONMENT-BLOCKED, or the applicable mismatch decision
+7. Report updated files, evidence references, decision, and any remaining limitation
 ```
 
 **UNIVERSAL RULES (all sources):**
@@ -139,7 +138,17 @@ E2E UPDATE UI PROTOCOL:
 
 Activate the `workflow-e2e` workflow. Run `$start-workflow workflow-e2e` with the user's prompt as context and the resolved `--source` protocol above.
 
-**Steps:** $investigate → $e2e-test → $test → $docs-update → $workflow-end → $watzup
+**Steps:** $investigate → $e2e-test → $experience-review → $test → $docs-update → $workflow-end → $watzup
+
+## Experience Acceptance Handoff
+
+When the E2E source touches a configured or likely observable surface, carry the `experience-review` record through the workflow:
+
+- Exercise the actual configured entry point and inspect the resulting screenshot, transcript, response, or artifact; generated evidence that was not opened and assessed is not verification.
+- A first run creates candidate evidence only. Do not pass `--update-snapshots`, rewrite fixtures, or replace an expectation until the record has an explicit named acceptance decision.
+- On mismatch, preserve the prior accepted expectation and classify the result before choosing source fix, test fix, intended-change acceptance, invalid condition, environment block, or escalation.
+- `$experience-review` runs a BOUNDED remediation loop (`--rounds=N`, default 3): each round adjudicates the BLOCKING defects, fixes at the owning layer via `$fix`, `$changes-review`s that round's fix diff, and re-exercises from scratch. Only objectively-checkable defects open a round — ADVISORY/taste findings are recorded, never looped on. Pass `--rounds=0` when this workflow must audit without changing the product. Cap reached, count not shrinking, count rising, or `ENVIRONMENT-BLOCKED` → `NOT-CONVERGED` + escalation, never a partial pass.
+- A skipped occurrence needs an evidence-backed `NOT-APPLICABLE` reason; a relevant but unavailable runner/device/inspection capability is `ENVIRONMENT-BLOCKED`, never a green result.
 
 ## Test Architecture Contract Handoff
 
@@ -153,11 +162,11 @@ Before `$e2e-test`, resolve and carry one evidence-backed contract record throug
 | `runIdentity` / `dataStrategy` | Provide a unique non-sensitive run identity and business-data suffix, valid public-path setup, declared seed/accumulation mode, and parallel-worker isolation. |
 | `repeatProof` / `result` | Carry exact counts, failing names, and exit status, plus repeat/parallel evidence and two consecutive no-reset full runs for each applicable persistent-state suite. |
 
-`$investigate` resolves applicability and scope; `$e2e-test` owns E2E setup and configured commands; `$test` receives the command/scope/data record and reports exact results read-only; `$docs-update` receives the final evidence. If E2E is not configured, `$e2e-test` records the evidence-backed `N/A` and does not substitute an invented runner; the delegated order and `update-ui` user-confirmation gate remain unchanged.
+`$investigate` resolves applicability and scope; `$e2e-test` owns E2E setup and configured commands; `$test` receives the command/scope/data record and reports exact results read-only; `$docs-update` receives the final evidence. If E2E is not configured, `$e2e-test` records the evidence-backed `N/A` and does not substitute an invented runner; the delegated order and explicit acceptance gate remain unchanged.
 
 ---
 
-**IMPORTANT MANDATORY Steps:** $investigate -> $e2e-test -> $test -> $docs-update -> $workflow-end -> $watzup
+**IMPORTANT MANDATORY Steps:** $investigate -> $e2e-test -> $experience-review -> $test -> $docs-update -> $workflow-end -> $watzup
 
 <!-- SYNC:ai-mistake-prevention -->
 
@@ -201,12 +210,14 @@ Before `$e2e-test`, resolve and carry one evidence-backed contract record throug
 
 > **Incremental Result Persistence** — MANDATORY for all sub-agents or heavy inline steps processing >3 files.
 >
-> 1. **Before starting:** Create report file `plans/reports/{skill}-{date}-{slug}.md`
-> 2. **After each file/section reviewed:** Append findings to report immediately — never hold in memory
-> 3. **Return to main agent:** Summary only (per SYNC:subagent-return-contract) with `Full report:` path
-> 4. **Main agent:** Reads report file only when resolving specific blockers
+> 1. **Before starting:** Create report file `plans/reports/{skill}-{date}-{slug}.md` and record Run ID, Task ID, Attempt ID, target scope, and target fingerprint.
+> 2. **After each file/section reviewed:** Append findings, evidence, changed paths, and gaps immediately — never hold them in memory.
+> 3. **Delegated return:** A sub-agent emits only the structured `SYNC:subagent-return-contract` envelope with exact totals, salient Critical/High findings (maximum ten), current attempt, and `Full report:` path. **Inline user-facing output:** Preserve the skill's requested explanation or teaching, with links to the persisted evidence; the delegated transport limit does not replace that deliverable. Do not paste a full review report into an envelope.
+> 4. **Parent synthesis:** The main agent reads the full report for synthesis, acceptance, deduplication, and repair planning — not only when a named blocker exists. It preserves all severities beyond the transport cap.
+> 5. **Read-only boundary:** A read-only leaf may write its report/repair proposal but MUST NOT edit source, generated output, or user data; the parent/owner performs repairs after acceptance.
+> 6. **Advancement gate:** The parent records `ACCEPTED` for the current Attempt ID only after reconciling target, totals, gaps, and changed paths; stale or late attempts cannot advance dependent work.
 >
-> **Why:** Context cutoff mid-execution loses ALL in-memory findings. Each disk write survives compaction. Partial results are better than no results.
+> **Why:** Context cutoff mid-execution loses ALL in-memory findings. Each disk write survives compaction. Partial results are better than no results, while explicit identity prevents a late result from being mistaken for the current run.
 >
 > **Report naming:** `plans/reports/{skill-name}-{YYMMDD}-{HHmm}-{slug}.md`
 
@@ -214,17 +225,28 @@ Before `$e2e-test`, resolve and carry one evidence-backed contract record throug
 
 <!-- SYNC:subagent-return-contract -->
 
-> **Sub-Agent Return Contract** — When this skill spawns a sub-agent, the sub-agent MUST return ONLY this structure. Main agent reads only this summary — NEVER requests full sub-agent output inline.
+> **Sub-Agent Return Contract** — When this skill spawns a sub-agent, the sub-agent MUST return ONLY the structured envelope below. Main agent reads the envelope first, then opens the referenced report for synthesis, acceptance, deduplication, or repair planning; a full report is never pasted inline.
 >
 > ```markdown
 > ## Sub-Agent Result: [skill-name]
 >
 > Status: ✅ PASS | ⚠️ PARTIAL | ❌ FAIL
 > Confidence: [0-100]%
+> Run ID: [stable run identifier]
+> Task ID: [parent task or phase identifier]
+> Attempt ID: [monotonic attempt/revision identifier]
+> Target: [exact files/paths or scope] @ [target fingerprint/commit]
+> Changed paths: [none | exact paths]
+> Finding totals: Critical=[n] | High=[n] | Medium=[n] | Low=[n]
+> Acceptance: PENDING | ACCEPTED | REJECTED — parent records the decision
 >
-> ### Findings (Critical/High only — max 10 bullets)
+> ### Findings (Critical/High surfaced — max 10 bullets)
 >
 > - [severity] [file:line] [finding]
+>
+> ### Gaps / Unverified
+>
+> - [missing host, runtime, coverage, or evidence limitation]
 >
 > ### Actions Taken
 >
@@ -232,15 +254,14 @@ Before `$e2e-test`, resolve and carry one evidence-backed contract record throug
 >
 > ### Blockers (if any)
 >
-> - [blocker description]
+> - [blocker description, or `none`]
 >
 > Full report: plans/reports/[skill-name]-[date]-[slug].md
 > ```
 >
-> Main agent reads `Full report` file ONLY when: (a) resolving a specific blocker, or (b) building a fix plan.
-> Sub-agent writes full report incrementally (per SYNC:incremental-persistence) — not held in memory.
+> The ten-bullet limit is a transport limit, not a visibility limit: the full report may contain more than ten Medium/Low findings when no named blocker exists, and the parent MUST read it when synthesizing or deduplicating. The parent MUST reject a stale, duplicate, or superseded `Attempt ID` and MUST accept the current attempt before advancing a dependent step. Read-only leaves write repair proposals/reports only; they do not edit source, generated carriers, or user files.
 >
-> **Context budget** — the return payload is a SUMMARY, not a transcript: ≤10 finding bullets, no raw file contents / full diffs / verbatim logs inline, no re-pasted source. Everything beyond the summary lives in the `Full report` on disk. A sub-agent that would exceed the summary shape MUST write the detail to its report and return only the pointer — the orchestrator's context is the scarce resource the whole map-reduce protects.
+> **Context budget** — the return payload is a SUMMARY, not a transcript: no raw file contents / full diffs / verbatim logs inline, no re-pasted source. Everything beyond the envelope lives in the incrementally-written report. A sub-agent that would exceed the summary shape MUST persist the detail and return only the pointer; bounded transport must never become bounded visibility.
 
 <!-- /SYNC:subagent-return-contract -->
 
@@ -301,9 +322,9 @@ Before `$e2e-test`, resolve and carry one evidence-backed contract record throug
 ## Closing Reminders
 
 **IMPORTANT MUST ATTENTION** Testability contract: resolve evidence-backed Unit/Integration/System/E2E rows, copy-ready full/focused commands, zero-match failures, owner/root/data, CI/simple-Windows entry, unique run identity, and repeat proof before claiming setup, review, or test completion.
-**IMPORTANT MUST ATTENTION Goal:** [Workflow] Trigger the E2E testing workflow — one parameterized entry covering all three E2E sources. `--source` selects the protocol; the sequence is identical for every source.
+**IMPORTANT MUST ATTENTION Goal:** [Workflow] Trigger the E2E testing workflow — one parameterized entry covering all three E2E sources. `--source` selects the protocol; every source conditionally reviews relevant observable experience before expectation promotion and regression verification.
 
-**IMPORTANT MUST ATTENTION Workflow:** Resolve and state `--source={changes|recording|update-ui}`; apply its source-specific protocol through `$investigate` → `$e2e-test` → `$test` → `$docs-update` → `$workflow-end` → `$watzup`; preserve intent-named test assertions, evidence-backed task transitions, and explicit verification of generated/updated E2E artifacts.
+**IMPORTANT MUST ATTENTION Workflow:** Resolve and state `--source={changes|recording|update-ui}`; apply its source-specific protocol through `$investigate` → `$e2e-test` → conditional `$experience-review` → `$test` → `$docs-update` → `$workflow-end` → `$watzup`; preserve intent-named test assertions, evidence-backed task transitions, and explicit verification of generated/updated E2E artifacts.
 
 **IMPORTANT MUST ATTENTION — Protocols in force (concise digest of the SYNC/shared blocks this skill carries):**
 
@@ -323,13 +344,13 @@ Before `$e2e-test`, resolve and carry one evidence-backed contract record throug
 > **[IMPORTANT]** Analyze how big the task is and break it into many small todo tasks systematically before starting — this is very important.
 
 <!-- CODEX:SYNC-PROMPT-PROTOCOLS:START -->
-## Hookless Prompt Protocol Mirror (Auto-Synced)
+## Static Prompt Protocol Mirror (Auto-Synced)
 
-Source: `.claude/.ck.json` + `.claude/skills/shared/sync-inline-versions.md` (`:full` blocks) + `.claude/scripts/lib/hookless-prompt-protocol.cjs`
+Source: `.claude/.ck.json` + `.claude/skills/shared/sync-inline-versions.md` (`:full` blocks) + `.claude/scripts/lib/hookless-prompt-protocol.cjs` (legacy filename; static protocol composer)
 
 ## [WORKFLOW-EXECUTION-PROTOCOL] [BLOCKING] Workflow Execution Protocol — MANDATORY IMPORTANT MUST CRITICAL. Do not skip for any reason.
 
-**Generic portability boundary:** Reusable skills and protocol text stay project-neutral; project-specific conventions are discovered from docs/project-config.json and docs/project-reference/. Apply shared AI-SDD from `shared/sdd-artifact-contract.md`. Read `docs/project-config.json` and `docs/project-reference/docs-index-reference.md`, then open the project reference docs named there. For spec, test-case, behavior-change, public-contract, or `docs/specs/` work, route through the local spec docs named by the docs index: `feature-spec-reference.md`, `spec-system-reference.md`, `spec-principles.md`, and `workflow-spec-test-code-cycle-reference.md` when specs/tests/code must stay synchronized. If either file or a required reference doc is missing or stale, auto-run `$project-init` (or the narrow lower-level route such as `$project-config`, `$docs-init`, `$scan-all`, or `$scan --target=<key>`) before ordinary project-specific work. Any supported AI tool may execute when this shared context and local docs are available.
+**Generic portability boundary:** Reusable skills and protocol text stay project-neutral; project-specific conventions are discovered from docs/project-config.json and docs/project-reference/. Apply shared AI-SDD from `shared/sdd-artifact-contract.md`. Read `docs/project-config.json` and `docs/project-reference/docs-index-reference.md`, then open the project reference docs named there immediately before the first target read, grep, edit, test, or analysis. For spec, test-case, behavior-change, public-contract, or `docs/specs/` work, route through the local spec docs named by the docs index: `feature-spec-reference.md`, `spec-system-reference.md`, `spec-principles.md`, and `workflow-spec-test-code-cycle-reference.md` when specs/tests/code must stay synchronized. If either file or a required reference doc is missing or stale, auto-run `$project-init` (or the narrow lower-level route such as `$project-config`, `$docs-init`, `$scan-all`, or `$scan --target=<key>`) before ordinary project-specific work. After compaction, resume, delegation, or a material context change, re-read the required docs and state `Reference docs read: ... | Not applicable: ...`; a hook reminder or prior conversation is not proof that the files are loaded. Any supported AI tool may execute when this shared context and local docs are available.
 
 1. **DETECT:** If the prompt starts with an explicit slash skill/workflow command, execute it directly. Otherwise match the prompt against the workflow catalog and skill list.
 2. **ANALYZE:** Choose the best option: execute directly, invoke a skill, activate a standard workflow, or compose a custom step combination.

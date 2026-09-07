@@ -13,6 +13,7 @@ const {
   buildWorkflowSkillsCatalog,
   condenseWhenToUse,
   baseSkill,
+  resolvedModeSequences,
   CK_SKILLS_START,
   CK_SKILLS_END,
 } = require(path.join(repoRoot, ".claude", "scripts", "lib", "workflow-skills-catalog.cjs"));
@@ -37,12 +38,33 @@ test("TC-WSC-001 lists every workflow from workflows.json", () => {
   }
 });
 
+// TC-WSC-001b — every declared variant is rendered from the same resolved manifest producer used
+// by activation; explicit occurrence objects must never leak as `[object Object]`.
+test("TC-WSC-001b renders every workflow mode and resolved occurrence sequence", () => {
+  const out = buildWorkflowSkillsCatalog({ rootDir: repoRoot, sections: ["workflows"] });
+  assert.ok(!out.includes("[object Object]"), "catalog must render occurrence commands, not objects");
+  for (const [workflowId, workflow] of Object.entries(workflowsDoc.workflows)) {
+    const row = out.split("\n").find((line) => line.startsWith(`| \`${workflowId}\` |`));
+    assert.ok(row, `missing workflow row: ${workflowId}`);
+    for (const { mode, sequence } of resolvedModeSequences(repoRoot, workflowId, workflow)) {
+      if (workflow.variants) assert.ok(row.includes(`${mode}:`), `missing mode label ${workflowId}/${mode}`);
+      for (const step of sequence) assert.ok(row.includes(step), `missing resolved step ${workflowId}/${mode}: ${step}`);
+    }
+  }
+});
+
 // TC-WSC-002 — every distinct step-skill has a non-empty description
 test("TC-WSC-002 lists every distinct step-skill with a non-empty description", () => {
   const out = buildWorkflowSkillsCatalog({ rootDir: repoRoot, sections: ["skills"] });
   const distinct = new Set();
   for (const wf of Object.values(workflowsDoc.workflows)) {
-    for (const step of wf.sequence || []) distinct.add(baseSkill(step));
+    const sequences = wf.variants
+      ? Object.values(wf.variants).flatMap((variant) => variant.sequence || [])
+      : wf.sequence || [];
+    for (const step of sequences) {
+      const token = typeof step === "string" ? step : `${step.skill} ${step.args || ""}`;
+      distinct.add(baseSkill(token));
+    }
   }
   assert.match(out, new RegExp(`### Workflow Skills \\(${distinct.size} composable steps\\)`));
   for (const skill of distinct) {

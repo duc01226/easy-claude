@@ -250,7 +250,7 @@ Review seeder at [file:path]. Verify with file:line evidence for each:
 Report: PASS or FAIL with file:line for each finding.
 ```
 
-**Fix loop:** If FAIL → validate findings → fix validated findings → restart full review from first phase. When restarted review uses sub-agents, NEVER reuse them across rounds. If same blocker repeats across 2 full invocations with no progress, escalate to user.
+**Fix loop:** If FAIL → validate findings → fix validated findings that block the current round → restart full review from first phase. Round 1 treats every validated finding as blocking; from round 2 onward, a LOW-only result ends the loop with LOWs recorded under `## Deferred LOW Findings (severity floor, round ≥2)`, while CRITICAL/HIGH/MEDIUM and failed binary gates remain blocking. When restarted review uses sub-agents, NEVER reuse them across rounds. If the same blocker repeats across 2 full invocations with no progress, escalate to user.
 NEVER fix unvalidated findings. Do not spawn a fresh sub-agent only to re-review known findings before validation/fix.
 
 ---
@@ -329,7 +329,7 @@ Per item: **PASS / FAIL / N/A** with `file:line` evidence and confidence (>80% r
 
 > **MUST ATTENTION — NOT IN WORKFLOW YET:** Use `AskUserQuestion`:
 >
-> 1. **Activate `workflow-seed-test-data`** (Recommended) — investigate → seed-test-data → changes-review → code-simplifier → docs-update
+> 1. **Activate `workflow-seed-test-data`** (Recommended) — investigate → seed-test-data → experience-review (conditional) → changes-review → code-simplifier → docs-update
 > 2. **Execute `/seed-test-data` directly** — run this skill standalone
 
 ---
@@ -543,7 +543,7 @@ Per item: **PASS / FAIL / N/A** with `file:line` evidence and confidence (>80% r
 **IMPORTANT MUST ATTENTION** search 3+ existing seeder patterns and READ them before writing — match the discovered base class / env-gate / count-key conventions exactly; verify the copied pattern shares the same preconditions (base class, scope, lifetime) before reuse
 **IMPORTANT MUST ATTENTION** read `docs/project-reference/seed-test-data-reference.md` + `docs/project-config.json` (`Data Seeders` group) BEFORE any seeder change — project conventions override generic defaults
 **IMPORTANT MUST ATTENTION** `TaskCreate` — break all work into tasks BEFORE starting; transition one task at a time, evidence per completed step
-**IMPORTANT MUST ATTENTION** close with a fresh zero-memory `code-reviewer` round; full re-review is required ONLY after a validated fix cycle — a clean review pass ENDS the review; NEVER fix unvalidated findings
+**IMPORTANT MUST ATTENTION** close with a fresh zero-memory `code-reviewer` round; full re-review is required after a validated fix cycle or an explicitly declared independent-pass minimum — a clean review pass ENDS the review once the persisted `minRounds` is met; NEVER fix unvalidated findings
 **IMPORTANT MUST ATTENTION Modes:** default = **Generate** (implement/enhance/fix); `--mode=review` = READ-ONLY convention audit (resolve target: prompt → current changes → work-context; read the reference doc + Universal Rules FIRST; grade every rule with `file:line`; route fixes back to Generate — NEVER edit in review mode)
 **IMPORTANT MUST ATTENTION** the Generate-mode task plan MUST end with a `--mode=review` self-audit over the changed seeder code, and that self-audit MUST run BEFORE the `/changes-review` hand-off — `/changes-review` stays the final step
 

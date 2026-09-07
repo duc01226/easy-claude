@@ -24,8 +24,10 @@ const fs = require('fs');
 const path = require('path');
 const { AGENT_FILES_DISMISSED_PATH, ensureProjectTmpDir } = require('./ck-paths.cjs');
 const { getConfiguredProjectConfigPath } = require('./project-config-loader.cjs');
+const { resolveProjectRoot } = require('./project-root.cjs');
 
-const PROJECT_DIR = process.env.CLAUDE_PROJECT_DIR || process.cwd();
+const rootResolution = resolveProjectRoot({ cwd: process.cwd(), scriptPath: __filename, env: process.env });
+const PROJECT_DIR = rootResolution.rootDir;
 const DISMISS_TTL_MS = 24 * 60 * 60 * 1000; // 1 day — matches the other init gates
 
 // ── Universal-guides content contract ──────────────────────────────────────
@@ -58,8 +60,9 @@ const REQUIRED_ANCHORS = [
 // file must still route to `update` so it self-heals. Detection covers BOTH surface
 // representations because the two generators emit different markup for the same body:
 //   - CLAUDE.md (generate-claude-md.cjs): wraps each block in CK: HTML markers.
-//   - AGENTS.md (sync-context-workflows.mjs): bakes the canonical `:full` body without
-//     CK: markers — so probe the stable heading/phrase the canonical text emits.
+//   - AGENTS.md (sync-context-workflows.mjs): bakes the canonical `:full` body into
+//     `.codex/CODEX_CONTEXT.md` and leaves AGENTS.md a bounded pointer to it — so probe
+//     the pointer and follow it, never the body inline (see the contract note below).
 // The probes are file-specific so a CLAUDE.md never passes on AGENTS.md-only markup
 // and vice-versa; getAgentFileIssues() selects the probe via the AGENT_FILES entry.
 const CK_PROTOCOL_MARKERS = [/<!--\s*CK:CRITICAL-THINKING\s*-->/i, /<!--\s*CK:AI-MISTAKE-PREVENTION\s*-->/i];
@@ -67,6 +70,23 @@ const CK_PROTOCOL_MARKERS = [/<!--\s*CK:CRITICAL-THINKING\s*-->/i, /<!--\s*CK:AI
 // sync-inline-versions.md `critical-thinking-mindset:full` + `ai-mistake-prevention:full`).
 // Stable across the Codex tool-term rewrite (neither phrase contains a rewritten token).
 const CANONICAL_PROTOCOL_PHRASES = [/\[CRITICAL-THINKING-MINDSET\]/, /Common AI Mistake Prevention \(System Lessons\)/i];
+// AGENTS.md does NOT carry those phrases inline, and must not: it is a bounded 32 KiB root
+// projection whose contract (verify-skill-protocol-compliance.mjs) states the protocol body
+// appears EXACTLY ONCE in `.codex/CODEX_CONTEXT.md` and that "AGENTS.md is a bounded
+// projection and pointer; it must not duplicate the full protocol body". Requiring the body
+// inline here was unsatisfiable, not merely inconsistent: this repo's two blocks measure
+// 11 758 bytes against 3 992 bytes of headroom, so a "fixed" AGENTS.md would be 40 534 bytes
+// and fail the 32 768-byte bound asserted by verify-skill-protocol-compliance.mjs,
+// compact-root-contract, generate-claude-md-content-guard and portability-no-package-json.
+// The gate therefore fired on every prompt while its own remedy (re-run the sync) regenerated
+// the same compliant file — the "incomplete forever" dead end. The sanctioned AGENTS.md
+// surface form is the context pointer, so probe THAT, then follow it to the body.
+const CODEX_CONTEXT_RELATIVE = path.join('.codex', 'CODEX_CONTEXT.md');
+const AGENTS_CONTEXT_POINTER = [
+    /<!--\s*CODEX-CONTEXT-MIRROR:START\s*-->/i,
+    /<!--\s*CODEX-CONTEXT-MIRROR:END\s*-->/i,
+    /Context fingerprint \(SHA-256\):\s*[0-9a-f]{64}/i
+];
 
 /**
  * Does this CLAUDE.md content carry the marker-wrapped shared protocol blocks?
@@ -79,25 +99,45 @@ function hasClaudeProtocol(content) {
 }
 
 /**
- * Does this AGENTS.md content carry the canonical shared-protocol body (no CK: markers)?
+ * Does this AGENTS.md content reach the canonical shared-protocol body?
+ * AGENTS.md is a bounded projection, so completeness = it carries the context pointer AND
+ * the pointed-to `.codex/CODEX_CONTEXT.md` actually carries the protocol body. A pointer to
+ * a missing or protocol-less context file is genuinely incomplete and correctly routes to the
+ * sync, which regenerates that context file. Enforcing that AGENTS.md does not ALSO duplicate
+ * the body is verify-skill-protocol-compliance.mjs's job, not this gate's.
  * @param {string} content
  * @returns {boolean}
  */
 function hasAgentsProtocol(content) {
     const text = content || '';
-    return CANONICAL_PROTOCOL_PHRASES.every(re => re.test(text));
+    if (!AGENTS_CONTEXT_POINTER.every(re => re.test(text))) return false;
+    const contextPath = path.join(PROJECT_DIR, CODEX_CONTEXT_RELATIVE);
+    let context;
+    try {
+        if (!fs.existsSync(contextPath)) return false; // pointer to nothing → sync must regenerate
+        context = fs.readFileSync(contextPath, 'utf-8');
+    } catch {
+        return true; // fail-open: an unreadable context file must not nag on every prompt
+    }
+    return CANONICAL_PROTOCOL_PHRASES.every(re => re.test(context));
 }
 
 /**
  * Canonical root agent files and the skill that (re)generates each.
  * `aiRunnable` distinguishes routes Claude can invoke itself (/claude-md-init) from
  * routes that may need a standalone script fallback.
+ * `updateArgs` is the smart-merge argument for THAT file's runner, and must stay per-file:
+ * `--mode update` is a flag of generate-claude-md.cjs only. run-codex-sync.mjs does not
+ * parse it — an unrecognized flag there is silently ignored and the full 18-stage mutating
+ * pipeline runs instead, so advertising it on the AGENTS.md route told the reader to run
+ * something other than what they would get.
  */
 const AGENT_FILES = [
     {
         file: 'CLAUDE.md',
         route: '/claude-md-init',
         aiRunnable: true,
+        updateArgs: '--mode update',
         why: 'Claude Code root instructions — generated from docs/project-config.json + template.',
         // Per-file shared-protocol probe (CK: HTML markers — the CLAUDE.md surface form).
         hasProtocol: hasClaudeProtocol
@@ -107,6 +147,8 @@ const AGENT_FILES = [
         route: '/sync-codex',
         aiRunnable: false,
         fallbackCommand: 'node .claude/skills/sync-codex/scripts/run-codex-sync.mjs',
+        // No flag: the sync regenerates AGENTS.md from canonical CLAUDE.md on a plain run.
+        updateArgs: '',
         why: 'Codex/cross-tool root instructions — generated mirror of CLAUDE.md.',
         // Per-file shared-protocol probe (canonical `:full` body — AGENTS.md emits no CK: markers).
         hasProtocol: hasAgentsProtocol
@@ -177,8 +219,13 @@ function getAgentFileIssues() {
         // sentinel/anchors but WITHOUT the protocol bake (the stale-CLAUDE.md defect) is
         // incomplete → routed to `update` so the generator re-bakes the protocol and self-heals.
         const protocolPresent = typeof entry.hasProtocol === 'function' ? entry.hasProtocol(content) : true;
-        if (!hasUniversalGuides(content) || !protocolPresent) {
-            issues.push({ ...entry, reason: 'incomplete', mode: 'update' });
+        const guidesPresent = hasUniversalGuides(content);
+        if (!guidesPresent || !protocolPresent) {
+            // Name WHICH half failed. Reporting every incomplete file as "missing the universal
+            // portable guides" misdiagnoses a protocol-only failure and sends the reader looking
+            // for absent guides that are in fact present.
+            const missing = !guidesPresent && !protocolPresent ? 'both' : (guidesPresent ? 'protocol' : 'guides');
+            issues.push({ ...entry, reason: 'incomplete', mode: 'update', missing });
         }
     }
     return issues;
@@ -225,6 +272,7 @@ function isAgentFilesDismissed() {
  * Write the dismiss flag with current timestamp.
  */
 function writeAgentFilesDismissFlag() {
+    if (rootResolution.error) return;
     try {
         ensureProjectTmpDir();
         fs.writeFileSync(AGENT_FILES_DISMISSED_PATH, new Date().toISOString() + '\n', 'utf-8');
@@ -255,7 +303,11 @@ function buildOfferMessage(issues) {
         const fallback = m.fallbackCommand ? ` or \`${m.fallbackCommand}\`` : '';
         const runner = m.aiRunnable ? `run ${m.route}${fallback}` : `ask the user to run ${m.route}${fallback}`;
         if (m.reason === 'incomplete') {
-            return `  - ${m.file} present but missing the universal portable guides → ${runner} --mode update (smart-merge — preserves your project content)`;
+            const updateArgs = m.updateArgs ? ` ${m.updateArgs}` : '';
+            const what = m.missing === 'protocol' ? 'the always-on shared protocol'
+                : m.missing === 'both' ? 'the universal portable guides and the shared protocol'
+                    : 'the universal portable guides';
+            return `  - ${m.file} present but missing ${what} → ${runner}${updateArgs} (smart-merge — preserves your project content)`;
         }
         return `  - ${m.file} missing → ${runner}`;
     });

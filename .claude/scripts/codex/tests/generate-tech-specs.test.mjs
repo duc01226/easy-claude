@@ -87,6 +87,7 @@ public class OperationKindsTests
 
 async function makeProject({ technicalPath = 'out', sourceRoot = 'src', configPath = 'docs/project-config.json', withSource = true, source = ANNOTATED_SOURCE } = {}) {
     const root = await fs.mkdtemp(path.join(os.tmpdir(), 'tech-spec-gen-'));
+    await fs.mkdir(path.join(root, '.claude'));
     const projectConfigPath = path.join(root, ...configPath.split('/'));
     await fs.mkdir(path.dirname(projectConfigPath), { recursive: true });
     await fs.writeFile(
@@ -114,9 +115,26 @@ async function makeProject({ technicalPath = 'out', sourceRoot = 'src', configPa
     return root;
 }
 
-function runGenerator(cwd, args = []) {
-    return spawnSync(process.execPath, [SCRIPT, ...args], { cwd, encoding: 'utf8' });
+function runGenerator(cwd, args = [], ambient = process.env) {
+    return spawnSync(process.execPath, [SCRIPT, ...args], { cwd, encoding: 'utf8', env: { ...ambient, CLAUDE_PROJECT_DIR: cwd } });
 }
+
+test('tech-spec fixture overrides a competing ambient root and preserves its output', async () => {
+    const target = await makeProject();
+    const foreign = await makeProject();
+    try {
+        await fs.mkdir(path.join(foreign, 'out'));
+        await fs.writeFile(path.join(foreign, 'out/sentinel.md'), `${DERIVED_BANNER}\nforeign-sentinel`);
+        const before = await readMarkdownMap(path.join(foreign, 'out'));
+        const result = runGenerator(target, [], { ...process.env, CLAUDE_PROJECT_DIR: foreign });
+        assert.equal(result.status, 0, result.stderr);
+        assert.ok((await generatedMarkdownPath(target)).endsWith('.md'));
+        assert.deepEqual(await readMarkdownMap(path.join(foreign, 'out')), before);
+    } finally {
+        await fs.rm(target, { recursive: true, force: true });
+        await fs.rm(foreign, { recursive: true, force: true });
+    }
+});
 
 async function listFiles(dir) {
     const out = [];
@@ -397,6 +415,7 @@ test('generate-tech-specs rejects a bad annotationPattern BEFORE deleting anythi
         ['extra capture group', '\\[Trait\\("(TestSpec)"\\s*,\\s*"([^"]+)"(\\s*)\\)\\]']
     ]) {
         const root = await fs.mkdtemp(path.join(os.tmpdir(), 'tech-spec-badpattern-'));
+        await fs.mkdir(path.join(root, '.claude'));
         await fs.mkdir(path.join(root, 'docs'), { recursive: true });
         await fs.writeFile(
             path.join(root, 'docs', 'project-config.json'),
@@ -428,6 +447,7 @@ test('generate-tech-specs rejects a bad annotationPattern BEFORE deleting anythi
 
 test('generate-tech-specs fails loudly when techSpecScan is absent (TC-TSPEC-006)', async () => {
     const root = await fs.mkdtemp(path.join(os.tmpdir(), 'tech-spec-noscan-'));
+    await fs.mkdir(path.join(root, '.claude'));
     await fs.mkdir(path.join(root, 'docs'), { recursive: true });
     await fs.writeFile(path.join(root, 'docs', 'project-config.json'), JSON.stringify({ specRoots: { technical: { path: 'out' } } }), 'utf8');
 
@@ -439,6 +459,7 @@ test('generate-tech-specs fails loudly when techSpecScan is absent (TC-TSPEC-006
 
 test('generate-tech-specs --optional skips when techSpecScan is absent (TC-TSPEC-012)', async () => {
     const root = await fs.mkdtemp(path.join(os.tmpdir(), 'tech-spec-optional-'));
+    await fs.mkdir(path.join(root, '.claude'));
     await fs.mkdir(path.join(root, 'docs'), { recursive: true });
     await fs.writeFile(path.join(root, 'docs', 'project-config.json'), JSON.stringify({}), 'utf8');
 

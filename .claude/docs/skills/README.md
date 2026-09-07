@@ -1,6 +1,6 @@
 # Skills Reference
 
-> 167 skills across 15+ domains + 7 shared reference/protocol files for context-aware AI assistance
+> 167 runnable skills across 15+ domains + 7 shared reference/protocol files for context-aware AI assistance (`_templates/template-skill` is a source template, not a runnable skill)
 
 ## Overview
 
@@ -22,7 +22,7 @@ Skills Activated: fix, investigate
 
 ## Skill Domains
 
-> Curated highlights — the full catalog has 167 skills; the tables below list selected skills per domain, not the complete set.
+> Curated highlights — the full catalog has 167 runnable skills; the tables below list selected skills per domain, not the complete set.
 
 | Domain                                            | Skills | Description                                    |
 | ------------------------------------------------- | ------ | ---------------------------------------------- |
@@ -80,6 +80,7 @@ See `docs/project-reference/frontend-patterns-reference.md` for project-specific
 | Skill                     | Triggers                                                              | Description                                                                                                                             |
 | ------------------------- | --------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
 | `webapp-testing`          | E2E, Playwright, Cypress                                              | End-to-end testing                                                                                                                      |
+| `experience-review`       | user experience, acceptance, baseline                                 | Exercise and inspect applicable observable output; preserve expectations until explicit acceptance                                    |
 | `spec [mode=tests]`       | test specification, QA spec, test strategy, TC-IDs, test cases        | Unified test case writer — generates TC-{FEATURE}-{NNN} specs from PBIs and feature docs                                                |
 | `spec [mode=sync]`        | sync test specs, update dashboard, reverse sync, sync to feature docs | Dashboard sync mode — syncs TCs from feature docs Section 8 to `docs/specs/` (sync mode retires when dashboards are removed in Phase 7) |
 | `integration-test-review` | integration test review, assertion quality, test gate review, TC gate | Review integration tests against 5 quality gates (assertion value, data state, repeatability, domain logic, TC)                         |
@@ -313,4 +314,4 @@ Use `/skill-creator` to create a new skill:
 
 ---
 
-_Source: `.claude/skills/` | 167 skills across 15+ domains + 7 shared reference/protocol files_
+_Source: `.claude/skills/` | 167 runnable skills across 15+ domains + 7 shared reference/protocol files (the `_templates/template-skill` source is excluded from runtime discovery)_

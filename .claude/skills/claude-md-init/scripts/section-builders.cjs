@@ -20,6 +20,35 @@ function isInfraBackingService(mod) {
     return mod?.kind === 'infrastructure' && mod?.meta?.port != null;
 }
 
+const REDACTED_CREDENTIAL = '[REDACTED — use a secret-manager reference]';
+const SECRET_VALUE_PATTERN = /\b(?:password|passwd|passphrase|pwd?|pass|token|secret|api[\s_-]*key|private[\s_-]*key|client[\s_-]*secret|access[\s_-]*key|credential)\b["']?\s*[:=]/i;
+const SECRET_URI_PATTERN = /^[a-z][a-z\d+.-]*:\/\/[^/\s:@]+:[^@\s]+@/i;
+const PRIVATE_KEY_PATTERN = /-----BEGIN [^-]*PRIVATE KEY-----/i;
+const TOKEN_PATTERN = /\b(?:sk|pk|ghp|github_pat|xox[baprs]-|AKIA)[A-Za-z0-9_-]{8,}\b/;
+
+function renderCredentialReference(value) {
+    if (value === undefined || value === null || value === '') return '—';
+    // JSON text follows the same structural policy as config objects, including
+    // escaped keys. Never serialize arbitrary fields in a credentials container.
+    if (typeof value === 'string' && /^[\[{]/.test(value.trim())) {
+        try { value = JSON.parse(value); } catch (_) { return REDACTED_CREDENTIAL; }
+    }
+    if (typeof value !== 'string') {
+        if (!value || Array.isArray(value) || typeof value !== 'object' ||
+            Object.keys(value).length !== 1 || !Object.hasOwn(value, 'reference') ||
+            typeof value.reference !== 'string' ||
+            !/^(?:vault|op):\/\/[^\s@?#]+$/i.test(value.reference)) return REDACTED_CREDENTIAL;
+        value = value.reference;
+    }
+    const text = value.trim();
+    if (!text) return '—';
+    if (SECRET_VALUE_PATTERN.test(text) || SECRET_URI_PATTERN.test(text) ||
+        PRIVATE_KEY_PATTERN.test(text) || TOKEN_PATTERN.test(text)) return REDACTED_CREDENTIAL;
+    // Keep references readable in a table while preventing config text from
+    // injecting rows or arbitrary Markdown into the generated root.
+    return text.replace(/[|\r\n]/g, char => char === '|' ? '\\|' : ' ');
+}
+
 function buildTldr(config) {
     const name = config.project?.name || 'Project';
     const desc = config.project?.description || '';
@@ -56,9 +85,9 @@ function buildDecisionQuickRef(config) {
     if (modules.length === 0) return null;
 
     const rows = [];
-    // Add framework-level patterns
-    if (config.framework?.name) {
-        rows.push(`| New API endpoint | Controller + CQRS Command |`, `| Business logic | Command Handler (Application layer) |`);
+    // Framework identity alone does not establish an application architecture.
+    if (config.framework?.backendPatternsDoc) {
+        rows.push(`| Backend conventions | Read \`${config.framework.backendPatternsDoc}\` |`);
     }
     if (config.databases?.primary) {
         rows.push(`| Data access | Service-specific repository |`);
@@ -130,7 +159,7 @@ function buildInfraPorts(config) {
             infra.push({
                 service: mod.name,
                 port: String(mod.meta.port),
-                credentials: mod.meta.credentials || '—'
+                credentials: renderCredentialReference(mod.meta.credentials)
             });
         }
     }
@@ -200,7 +229,7 @@ function buildSkillActivation(config) {
         .map(g => {
             const patterns = g.pathRegexes?.map(r => r.replace(/\[\\\\\/\]/g, '/').replace(/\\\\/g, '') + '**') || [];
             const doc = g.patternsDoc || g.guideDoc || '';
-            return `| \`${patterns[0] || g.name}\` | _(auto-context)_ | \`${doc}\` |`;
+            return `| ${patterns.length ? patterns.map(p => `\`${p}\``).join(', ') : g.name} | _(auto-context)_ | \`${doc}\` |`;
         });
 
     if (rows.length === 0) return null;
@@ -256,6 +285,8 @@ function buildDocLookup(config) {
 
 module.exports = {
     buildTldr,
+    REDACTED_CREDENTIAL,
+    renderCredentialReference,
     buildGoldenRules,
     buildDecisionQuickRef,
     buildKeyLocations,

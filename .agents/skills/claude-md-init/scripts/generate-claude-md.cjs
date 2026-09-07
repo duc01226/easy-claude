@@ -4,8 +4,31 @@
 const fs = require('fs');
 const path = require('path');
 const builders = require('./section-builders.cjs');
+let resolveMutationProjectRoot;
+try {
+    ({ resolveMutationProjectRoot } = require('../../../scripts/lib/project-root.cjs'));
+} catch {
+    // The content-guard and bootstrap paths intentionally support a compact
+    // copied skill.  If the optional shared resolver is not present, retain the
+    // explicit consuming directory or the invocation cwd without weakening the
+    // generator's required-source checks below.
+    resolveMutationProjectRoot = ({ cwd = process.cwd(), env = process.env } = {}) => {
+        const explicit = env?.CLAUDE_PROJECT_DIR;
+        if (explicit !== undefined && explicit !== null && String(explicit).trim() !== '') {
+            if (!path.isAbsolute(String(explicit).trim())) {
+                throw new Error('CLAUDE_PROJECT_DIR must be an absolute path');
+            }
+            const rootDir = path.resolve(String(explicit).trim());
+            let exists = false;
+            try { exists = fs.statSync(rootDir).isDirectory(); } catch {}
+            if (!exists) throw new Error('CLAUDE_PROJECT_DIR must name an existing directory');
+            return { rootDir, source: 'env-fallback' };
+        }
+        return { rootDir: path.resolve(cwd), source: 'cwd-fallback' };
+    };
+}
 
-const PROJECT_DIR = process.env.CLAUDE_PROJECT_DIR || process.cwd();
+const PROJECT_DIR = resolveMutationProjectRoot({ cwd: process.cwd(), scriptPath: __filename, env: process.env, allowUnmarkedRoot: true }).rootDir;
 let CONFIG_PATH = path.join(PROJECT_DIR, 'docs', 'project-config.json');
 try {
     const { getConfiguredProjectConfigPath } = require('../../../hooks/lib/project-config-loader.cjs');
@@ -17,22 +40,15 @@ const CLAUDE_MD_PATH = path.join(PROJECT_DIR, 'CLAUDE.md');
 const BACKUP_PATH = path.join(PROJECT_DIR, '.claude-md.backup');
 const TEMPLATE_PATH = path.join(__dirname, '..', 'references', 'claude-md-template.md');
 // Canonical hook-independent Workflow-First Gate (primacy anchor). Stamped at the top of every
-// generated/updated CLAUDE.md so the routing rule survives in Codex mirrors with no hooks.
+// generated/updated CLAUDE.md so the routing rule survives in Codex mirrors when hooks are absent.
 const WORKFLOW_GATE_PATH = path.join(__dirname, '..', '..', 'shared', 'workflow-first-gate.md');
-const GATE_OPEN = '<!-- CK:WORKFLOW-GATE -->';
-const GATE_CLOSE = '<!-- /CK:WORKFLOW-GATE -->';
 const GATE_BLOCK_RE = /<!-- CK:WORKFLOW-GATE -->[\s\S]*?<!-- \/CK:WORKFLOW-GATE -->/g;
-// Concise workflows-index + composable step-skills reference, derived from workflows.json.
-// Stamped right after the gate so CLAUDE.md carries the same workflow/skill catalog the
-// hookless Codex mirrors get. The block is idempotently strip-and-restamped.
-// The catalog's table rows are far longer than any other line in CLAUDE.md, so the block is
-// emitted inside prettier-ignore fences (the repo pre-commit runs `prettier --write` on *.md and
-// would otherwise pad every cell to the longest row on each edit). The fences are PART of the
-// managed block: strip them together with it, or a restamp orphans a stray empty fence pair.
+// The catalog pointer replaces its owned block. Include legacy prettier fences in
+// the match so updating an older full catalog cannot orphan formatting markers.
 const SKILLS_BLOCK_RE = /(?:<!-- prettier-ignore-start -->\s*)?<!-- CK:WORKFLOW-SKILLS -->[\s\S]*?<!-- \/CK:WORKFLOW-SKILLS -->(?:\s*<!-- prettier-ignore-end -->)?/g;
-// Full always-on protocol blocks (critical-thinking + ai-mistake-prevention) baked into CLAUDE.md
-// at BOTH top (after the catalog — strong primacy) and bottom (recency anchor) so a hookless
-// read of CLAUDE.md reaches the same protocol the hookless mirrors render. Build-source is the
+// Full always-on protocol blocks (critical-thinking + ai-mistake-prevention) baked at the top
+// and, for a complete framework checkout, again at EOF so both primacy and recency survive
+// long-context reads. Build-source is the
 // canonical markdown (sync-inline-versions.md `:full`), read via the shared parser — the
 // generator never couples to hooks/lib. Marker-wrapped so the bake is idempotently strip-and-restamped
 // here, deduped from the AGENTS.md CLAUDE-mirror by sync-context-workflows.mjs, and located by the
@@ -52,82 +68,56 @@ function prettierIgnoredBlock(body) {
     return `${PRETTIER_IGNORE_START}\n\n${body}\n\n${PRETTIER_IGNORE_END}`;
 }
 
-// Inline fallback keeps the generator portable if the shared file is absent in a partial install.
-const WORKFLOW_GATE_FALLBACK = `${GATE_OPEN}
-
-> **[WORKFLOW-GATE] — routing is your FIRST action, before any tool call.**
-> This rule is hook-independent: it binds Claude and Codex equally.
->
-> Classify complexity and risk first, then route it:
->
-> | Request is about… | Default route |
-> | --- | --- |
-> | A simple, straightforward task with a clear target and low risk | **direct execution** — do it without a workflow |
-> | A simple task that needs a few coordinated steps or skills | **custom simple workflow** — sequence only the necessary skills/steps |
-> | A non-trivial bug, error, crash, regression, or wrong/stale output | **\`workflow-bugfix\` workflow** — \`/start-workflow workflow-bugfix\` |
-> | A non-trivial new feature, capability, or enhancement | **\`workflow-feature\` workflow** — \`/start-workflow workflow-feature\` (use \`workflow-big-feature\` when scope is large/ambiguous) |
-> | Anything matching a skill's or workflow's "Use" clause | that skill / workflow |
-> | A one-off question, or a truly trivial edit | direct execution |
->
-> 1. An explicit \`/skill\` or \`/workflow\` in the prompt is the user's choice — execute it. Otherwise auto-select; never ask which path to take.
-> 2. Analyze whether the task is simple and straightforward before defaulting to a standard workflow. If the target is clear, the change is low-risk, and a short direct execution can satisfy it, choose direct execution.
-> 3. For simple but multi-step work, build a custom simple workflow with only the few relevant skills/steps.
-> 4. Use standard workflows for non-trivial bugs and feature/enhancement work — they force investigation, tests, and review.
-> 5. Declare the route (\`Route: {workflow-id | skill | custom-simple | direct} — because {reason}\`) and create the task list BEFORE the first edit, sub-agent, or command.
-
-${GATE_CLOSE}`;
-
-/**
- * Load the canonical Workflow-First Gate block from the shared file, falling back to the inline
- * copy. Returns ONLY the marker-delimited block (drops the file's leading authoring comment).
- */
+/** Load the one canonical routing policy. Missing detail must not silently weaken it. */
 function loadWorkflowGate() {
     try {
         const raw = fs.readFileSync(WORKFLOW_GATE_PATH, 'utf-8');
         const m = raw.match(/<!-- CK:WORKFLOW-GATE -->[\s\S]*?<!-- \/CK:WORKFLOW-GATE -->/);
         if (m) return m[0];
-    } catch {
-        // Shared file unavailable — use the inline fallback below.
+    } catch (err) {
+        throw new Error(`Required workflow detail unavailable: ${WORKFLOW_GATE_PATH}: ${err.message}`);
     }
-    return WORKFLOW_GATE_FALLBACK;
+    throw new Error(`Required workflow detail malformed: ${WORKFLOW_GATE_PATH}`);
 }
 
 /**
- * Build the CK:WORKFLOW-SKILLS block (Workflows Index + composable step-skills index) from
- * workflows.json. Returns '' if the shared builder is unavailable so CLAUDE.md generation
- * never fails on a partial install (the gate alone still stamps).
- *
- * Hook-independent by design: CLAUDE.md is authored AS IF Claude has no hooks, so the full
- * workflow SELECTION catalog is baked statically here — the Workflows Index (id, when-to-use,
- * steps for every workflow) plus the composable step-skills table. No runtime hook
- * re-injects this catalog at runtime — this static bake is the sole, self-contained source:
- * the ability to pick the right workflow from this file ALONE never depends on any hook. This
- * keeps CLAUDE.md at information parity with the hookless mirrors, which bake the same
- * selection catalog independently from workflows.json (AGENTS.md via sync-context-workflows.mjs,
- * which strips this CK block from the CLAUDE mirror and regenerates its own Codex-native copy).
- * Per-workflow EXECUTION protocol is intentionally NOT
- * baked here — it is loaded on demand by the start-workflow skill (available to every harness),
- * keeping the always-on context lean. Single source of truth for both surfaces:
- * .claude/scripts/lib/workflow-skills-catalog.cjs over .claude/workflows.json.
+ * Render the route catalog from the consuming bundle when the canonical
+ * builder is present.  A compact/partial copied skill intentionally falls back
+ * to a pointer so bootstrap can still produce a bounded root without inventing
+ * a stale inventory.  The complete framework checkout therefore keeps Claude's
+ * static catalog byte-equivalent to the Codex builder, while portable partial
+ * installs remain safe and self-describing.
  */
 function loadWorkflowSkillsCatalog() {
-    try {
-        const { buildWorkflowSkillsCatalog, CK_SKILLS_START, CK_SKILLS_END } = require('../../../scripts/lib/workflow-skills-catalog.cjs');
-        const body = buildWorkflowSkillsCatalog({ rootDir: PROJECT_DIR, sections: ['workflows', 'skills'] });
-        return `<!-- prettier-ignore-start -->\n\n${CK_SKILLS_START}\n${body}\n${CK_SKILLS_END}\n\n<!-- prettier-ignore-end -->`;
-    } catch {
-        return '';
+    const builderPath = path.join(PROJECT_DIR, '.claude', 'scripts', 'lib', 'workflow-skills-catalog.cjs');
+    const workflowsPath = path.join(PROJECT_DIR, '.claude', 'workflows.json');
+    if (fs.existsSync(builderPath) && fs.existsSync(workflowsPath)) {
+        try {
+            const { buildWorkflowSkillsCatalog, CK_SKILLS_START, CK_SKILLS_END } = require(builderPath);
+            const body = buildWorkflowSkillsCatalog({ rootDir: PROJECT_DIR, sections: ['workflows', 'skills'] });
+            return `${PRETTIER_IGNORE_START}\n\n${CK_SKILLS_START}\n${body}\n${CK_SKILLS_END}\n\n${PRETTIER_IGNORE_END}`;
+        } catch (error) {
+            // A malformed/incomplete copied registry must not stamp a false
+            // catalog. The pointer still directs the model to the required
+            // canonical files and the builder/verifier reports the detail loss.
+            process.stderr.write(`[claude-md-init] workflow catalog unavailable: ${error.message}\n`);
+        }
     }
+    return '<!-- CK:WORKFLOW-SKILLS -->\n' +
+        'Before selecting a workflow, read `.claude/workflows.json` for its intent and canonical sequence; ' +
+        'before executing a skill, read its `.claude/skills/<name>/SKILL.md` and applicable project overlay. ' +
+        'If required detail is unavailable, stop and report the exact missing path; never invent a skill, sequence or successful completion.\n' +
+        '<!-- /CK:WORKFLOW-SKILLS -->';
 }
 
 /**
  * Build the marker-wrapped full-protocol blocks (critical-thinking + ai-mistake-prevention)
  * from the canonical source via the shared SYNC parser. Returns ONE string carrying both
- * marker-wrapped blocks (used identically at top and bottom), or '' when the source/blocks are
+ * marker-wrapped blocks, or '' when the source/blocks are
  * unavailable so CLAUDE.md generation never fails on a partial install (gate + catalog still stamp).
  *
  * Approach C: the generator reads canonical `:full` markdown — it does NOT import hooks/lib.
- * Codex mirrors use `.claude/scripts/lib/hookless-prompt-protocol.cjs`, which composes
+ * Codex mirrors use the legacy-named `.claude/scripts/lib/hookless-prompt-protocol.cjs`, which composes
  * this same canonical text without depending on hook prompt-injection modules. The shared parser
  * normalizes CRLF, so the bake is correct regardless of the working-tree checkout's line endings.
  */
@@ -136,7 +126,17 @@ function loadFullProtocolBlocks() {
         const { extractSyncBody } = require('../../../scripts/lib/extract-sync-block.cjs');
         const md = fs.readFileSync(SYNC_INLINE_PATH, 'utf-8');
         const crit = extractSyncBody(md, 'critical-thinking-mindset:full');
-        const aimp = extractSyncBody(md, 'ai-mistake-prevention:full');
+        // Routing is owned by CK:WORKFLOW-GATE. A complete framework checkout projects the
+        // canonical AI-mistake block byte-for-byte so Claude/Codex carriers retain the same
+        // reminders. A compact copied skill omits the legacy invocation sentence because its
+        // bounded bootstrap already carries the authoritative gate and must not reintroduce a
+        // competing host-specific Skill-tool instruction.
+        const rawAimp = extractSyncBody(md, 'ai-mistake-prevention:full');
+        const completeFramework = fs.existsSync(path.join(PROJECT_DIR, '.claude', 'scripts', 'lib', 'workflow-skills-catalog.cjs')) &&
+            fs.existsSync(path.join(PROJECT_DIR, '.claude', 'workflows.json'));
+        const aimp = completeFramework
+            ? rawAimp
+            : rawAimp?.split('\n').filter(line => !line.includes('[MANDATORY FIRST ACTION]')).join('\n');
         if (!crit || !aimp) {
             // Fail LOUD, not silent: a missing/partial canonical source must not let the
             // generator ship a protocol-less file as "complete" (the sentinel is gated on
@@ -188,23 +188,11 @@ function hasGuides(text) {
     return REQUIRED_ANCHORS.every(re => re.test(text));
 }
 
-// Markers wrapping the baked shared-protocol blocks. The sentinel (v4+) is a promise that
-// BOTH the prose guides AND the shared hookless protocol are present, so it may only be
-// stamped when the protocol blocks are actually in the file — mirrors the agent-files gate
-// completeness contract (agent-files-state.cjs hasClaudeProtocol) so generator and gate agree.
-const CK_PROTOCOL_PRESENT_RES = [/<!--\s*CK:CRITICAL-THINKING\s*-->/i, /<!--\s*CK:AI-MISTAKE-PREVENTION\s*-->/i];
-
-function hasProtocolBlocks(text) {
-    return CK_PROTOCOL_PRESENT_RES.every(re => re.test(text));
-}
-
-// True only when the universal-guides sentinel is justified: prose guides present AND the
-// shared protocol either already baked into `text` OR available to be baked now. Binding the
-// sentinel to protocol availability is what stops a protocol-less file from shipping as
-// "complete" when the canonical `:full` source failed to load (loadFullProtocolBlocks → '').
+// Restamping replaces owned protocol blocks, so old marker presence cannot prove
+// the canonical bodies remain available for the replacement.
 function sentinelJustified(text) {
     if (!hasGuides(text)) return false;
-    return hasProtocolBlocks(text) || loadFullProtocolBlocks() !== '';
+    return loadFullProtocolBlocks() !== '';
 }
 
 /**
@@ -236,10 +224,9 @@ function ensureSentinel(content) {
  * present), so project-only files are never force-injected.
  */
 function stampHeader(content) {
-    let text = ensureSentinel(content);
+    let text = ensureSentinel(migrateLegacyRouting(content));
     // Strip every managed block (gate, skills catalog, AND both protocol blocks — top + bottom
-    // copies via the global regexes) so re-stamping is idempotent and the EOF footer copy is
-    // removed here before stampFooter() re-appends a single fresh one.
+    // copies via global regexes). Unmarked custom whitespace remains user-owned.
     text = text
         .replace(GATE_BLOCK_RE, '')
         .replace(SKILLS_BLOCK_RE, '')
@@ -247,12 +234,13 @@ function stampHeader(content) {
         .replace(CK_AIMP_BLOCK_RE, '')
         // CRLF-aware: a `\r\n\r\n\r\n` run has no consecutive `\n`, so an LF-only
         // pattern here silently leaves the blank gap each stripped block left behind.
-        .replace(/^(?:\r?\n)+/, '')
-        .replace(/(?:\r?\n){3,}/g, '\n\n');
+        .replace(/^(?:\r?\n)+/, '');
     if (!hasGuides(text)) return text;
     const gate = loadWorkflowGate();
     const skills = loadWorkflowSkillsCatalog();
     const protocol = loadFullProtocolBlocks();
+    // Old marker presence cannot justify completeness after those blocks were stripped.
+    if (!protocol) text = text.replace(SENTINEL_RE, '');
     // Order: gate (#1 primacy) → workflow/skills catalog → full protocol (still within the first
     // screenful). The route-gate must stay the first stamped block; protocol never precedes it.
     let header = skills ? `${gate}\n\n${skills}` : gate;
@@ -266,15 +254,37 @@ function stampHeader(content) {
 }
 
 /**
- * Append the full-protocol blocks at EOF as the recency anchor (Primacy-Recency: the same
- * critical rules at top AND bottom survive long context windows). Composed as
- * `stampFooter(stampHeader(content))` at the write sites — stampHeader has already stripped any
- * prior footer copy, so this appends exactly one. No-op when the protocol source is unavailable.
+ * Normalize EOF and repeat the full inline protocol for the complete framework checkout.
+ * Compact copied skills intentionally keep one bounded copy: their content-guard fixtures do
+ * not include the consuming-bundle catalog builder, so duplicating the protocol would make a
+ * partial bootstrap exceed its host reference budget. The full portable bundle has both copies,
+ * which preserves recency without weakening compact-copy portability.
  */
 function stampFooter(content) {
+    const normalized = content.endsWith('\n') ? content : `${content}\n`;
+    const builderPath = path.join(PROJECT_DIR, '.claude', 'scripts', 'lib', 'workflow-skills-catalog.cjs');
+    const workflowsPath = path.join(PROJECT_DIR, '.claude', 'workflows.json');
+    if (!fs.existsSync(builderPath) || !fs.existsSync(workflowsPath)) return normalized;
     const protocol = loadFullProtocolBlocks();
-    if (!protocol) return content;
-    return `${content.replace(/\s+$/, '')}\n\n${protocol}\n`;
+    if (!protocol) return normalized;
+    return `${normalized.replace(/\s+$/, '')}\n\n${protocol}\n`;
+}
+
+// Exact known generated prose only. Unknown edits to this unmarked area remain
+// user-owned; never infer ownership from a heading or a loose routing keyword.
+function migrateLegacyRouting(content) {
+    const legacy = [
+        '1. Explicit slash command (e.g. `/plan`, `/feature-implement`) → execute it.',
+        '2. Workflow Catalog has a matching workflow → ask via `AskUserQuestion` whether to activate the workflow or run the underlying skill directly.',
+        '3. No matching workflow AND prompt would modify files → MUST invoke `/plan <prompt>` first.',
+        '4. No matching workflow AND prompt is read-only/conversational → answer directly.'
+    ];
+    for (const eol of ['\r\n', '\n']) {
+        const heading = `## First Action Decision (before any tool call)${eol}${eol}`;
+        content = content.replace(heading + legacy.join(eol),
+            heading + 'Apply the single CK:WORKFLOW-GATE above; route choice grants no operation authority.');
+    }
+    return content;
 }
 
 /**
@@ -490,7 +500,24 @@ function normalizeMdEscapes(s) {
 // in the old body but is absent from the new builder output — converting the silent content-loss
 // that dropped the Windows/Design notes this session into a visible WARN that names the durable home.
 function updateMarkedSections(existing, sections, onWarn = msg => console.warn(msg)) {
+    const hasBuilder = key => Object.prototype.hasOwnProperty.call(sections, key)
+        && typeof sections[key] === 'string' && sections[key].length > 0;
     const lines = existing.split('\n');
+    let openKey = null;
+    for (const line of lines) {
+        const open = line.trim().match(SECTION_OPEN);
+        const close = line.trim().match(SECTION_CLOSE);
+        if (open) {
+            if (openKey) throw new Error(`Nested SECTION:${open[1]}; preserve existing root and repair markers first`);
+            openKey = open[1];
+        }
+        if (close) {
+            if (openKey !== close[1]) throw new Error(`Unmatched SECTION:${close[1]}; preserve existing root and repair markers first`);
+            openKey = null;
+        }
+    }
+    if (openKey) throw new Error(`Unclosed SECTION:${openKey}; preserve existing root and repair markers first`);
+
     const output = [];
     let inSection = false;
     let currentKey = null;
@@ -504,7 +531,7 @@ function updateMarkedSections(existing, sections, onWarn = msg => console.warn(m
         if (openMatch) {
             currentKey = openMatch[1];
             output.push(line); // keep open marker
-            if (sections[currentKey]) {
+            if (hasBuilder(currentKey)) {
                 output.push('');
                 output.push(sections[currentKey]);
                 output.push('');
@@ -515,7 +542,7 @@ function updateMarkedSections(existing, sections, onWarn = msg => console.warn(m
         }
 
         if (closeMatch) {
-            if (currentKey && sections[currentKey]) {
+            if (currentKey && hasBuilder(currentKey)) {
                 const newContent = sections[currentKey];
                 const newNormalized = normalizeMdEscapes(newContent);
                 const dropped = oldBody
@@ -542,6 +569,7 @@ function updateMarkedSections(existing, sections, onWarn = msg => console.warn(m
             output.push(line);
         } else {
             oldBody.push(line); // buffer old body for the content-loss guard above
+            if (!hasBuilder(currentKey)) output.push(line); // no builder owns this body
         }
         // Skip old content inside sections — replaced above
     }
@@ -549,16 +577,59 @@ function updateMarkedSections(existing, sections, onWarn = msg => console.warn(m
     return output.join('\n');
 }
 
-function createBackup() {
+function parseBackupPath(args) {
+    let destination = null;
+    for (let i = 0; i < args.length; i++) {
+        if (args[i] !== '--backup-path' && !args[i].startsWith('--backup-path=')) continue;
+        if (destination !== null) throw new Error('Duplicate --backup-path option');
+        const value = args[i] === '--backup-path' ? args[++i] : args[i].slice('--backup-path='.length);
+        if (!value || value.startsWith('--') || !path.isAbsolute(value) || /[\x00-\x1f]/.test(value)) {
+            throw new Error('--backup-path requires a valid absolute file path');
+        }
+        // Resolve the existing parent to reject aliases of protected default/root paths.
+        // No directory is created: an unavailable parent is an invalid destination.
+        const parent = fs.realpathSync(path.dirname(value));
+        destination = path.join(parent, path.basename(value));
+        const projectReal = fs.realpathSync(PROJECT_DIR);
+        const comparable = p => process.platform === 'win32' ? p.toLowerCase() : p;
+        if (['CLAUDE.md', '.claude-md.backup'].some(name =>
+            comparable(destination) === comparable(path.join(projectReal, name)))) {
+            throw new Error('--backup-path must be separate from CLAUDE.md and the legacy default backup');
+        }
+    }
+    return destination;
+}
+
+function createBackup(explicitPath = null) {
+    if (explicitPath !== null) {
+        // COPYFILE_EXCL atomically refuses occupied files, directories and symlinks.
+        // The pre-write root is required; a failure never reaches the root writer.
+        fs.copyFileSync(CLAUDE_MD_PATH, explicitPath, fs.constants.COPYFILE_EXCL);
+        console.log(`[OK] Owned backup created: ${explicitPath}`);
+        return;
+    }
     if (fs.existsSync(CLAUDE_MD_PATH)) {
         fs.copyFileSync(CLAUDE_MD_PATH, BACKUP_PATH);
         console.log(`[OK] Backup created: ${path.basename(BACKUP_PATH)}`);
     }
 }
 
+// Whole-root size includes preserved user prose. Report overflow, never truncate it
+// or force an init rewrite; host adapters own their separate managed-byte budgets.
+function reportRootSize(output) {
+    const bytes = Buffer.byteLength(output, 'utf8');
+    if (bytes > 32768) {
+        console.warn(`[WARN] ROOT_OVERFLOW: ${bytes} bytes exceeds 32768-byte host reference budget; ` +
+            'full content preserved without truncation. Verify the host managed projection before use.');
+    }
+}
+
 function main() {
     const args = process.argv.slice(2);
-    const modeFlag = args.find(a => a.startsWith('--mode='))?.split('=')[1] || args[args.indexOf('--mode') + 1];
+    const backupPath = parseBackupPath(args);
+    const modeIndex = args.indexOf('--mode');
+    const modeFlag = args.find(a => a.startsWith('--mode='))?.slice('--mode='.length) ||
+        (modeIndex >= 0 ? args[modeIndex + 1] : undefined);
     const isDetect = args.includes('--detect');
 
     if (isDetect) {
@@ -585,7 +656,6 @@ function main() {
             console.error('[ERROR] Template not found:', TEMPLATE_PATH);
             process.exit(1);
         }
-        createBackup();
         const template = fs.readFileSync(TEMPLATE_PATH, 'utf-8');
         const output = populateTemplate(template, sections);
 
@@ -593,14 +663,16 @@ function main() {
         const projectName = config.project?.name || 'Project';
         const finalOutput = output.replace(/\{project-name\}/g, projectName).replace(/\{project-description\}/g, config.project?.description || '');
 
-        fs.writeFileSync(CLAUDE_MD_PATH, stampFooter(stampHeader(finalOutput)), 'utf-8');
+        const stamped = stampFooter(stampHeader(finalOutput));
+        reportRootSize(stamped);
+        createBackup(backupPath);
+        fs.writeFileSync(CLAUDE_MD_PATH, stamped, 'utf-8');
         console.log(`[OK] CLAUDE.md created (init mode)`);
     } else if (mode === 'update') {
         if (!fs.existsSync(CLAUDE_MD_PATH)) {
             console.error('[ERROR] CLAUDE.md not found. Use --mode init first.');
             process.exit(1);
         }
-        createBackup();
         const existing = fs.readFileSync(CLAUDE_MD_PATH, 'utf-8');
         let output = updateMarkedSections(existing, sections);
 
@@ -618,7 +690,10 @@ function main() {
             }
         }
 
-        fs.writeFileSync(CLAUDE_MD_PATH, stampFooter(stampHeader(output)), 'utf-8');
+        const stamped = stampFooter(stampHeader(output));
+        reportRootSize(stamped);
+        createBackup(backupPath);
+        fs.writeFileSync(CLAUDE_MD_PATH, stamped, 'utf-8');
         console.log(`[OK] CLAUDE.md updated (${generated.length} sections synced)`);
     } else if (mode === 'smart-merge') {
         console.log('[INFO] Smart-merge: CLAUDE.md has no markers. AI should handle migration.');
@@ -641,7 +716,12 @@ function main() {
 // Run only as a CLI. Importing the module (e.g. the content-loss-guard unit test) must NOT
 // trigger a real CLAUDE.md regeneration off the test runner's argv.
 if (require.main === module) {
-    main();
+    try {
+        main();
+    } catch (err) {
+        console.error(`[ERROR] ${err.message}`);
+        process.exitCode = 1;
+    }
 }
 
 module.exports = { updateMarkedSections, SECTION_OPEN, SECTION_CLOSE, CURATED_CALLOUT };

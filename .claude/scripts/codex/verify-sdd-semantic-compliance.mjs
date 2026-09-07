@@ -5,8 +5,21 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
+import { createRequire } from "node:module";
 
 const execFileAsync = promisify(execFile);
+const require = createRequire(import.meta.url);
+let resolveProjectRoot;
+try {
+  ({ resolveProjectRoot } = require("../lib/project-root.cjs"));
+} catch {
+  // The semantic policy is also mutation-tested as a standalone copied file.
+  // Keep the evaluator importable without the optional project bundle around it.
+  resolveProjectRoot = ({ cwd = process.cwd() } = {}) => ({
+    rootDir: path.resolve(cwd),
+    source: "cwd-fallback",
+  });
+}
 
 // Consumer-specific names are configuration, never framework source. A project may declare
 // them under docs/project-config.json → framework.projectResidueTerms; a copied framework with
@@ -1447,14 +1460,19 @@ function buildRunOptions({ enforceChanged, staged, changedFiles = [] }) {
 }
 
 async function main() {
+  const rootDir = resolveProjectRoot({
+    cwd: process.cwd(),
+    scriptPath: fileURLToPath(import.meta.url),
+    env: process.env,
+  }).rootDir;
   const enforceChanged = process.argv.includes("--enforce-changed");
   const staged = process.argv.includes("--staged");
   const changedFiles = enforceChanged
-    ? await getChangedFiles(process.cwd(), { enforceChanged, staged })
+    ? await getChangedFiles(rootDir, { enforceChanged, staged })
     : [];
   const options = buildRunOptions({ enforceChanged, staged, changedFiles });
 
-  const result = await runChecks(process.cwd(), CHECKS, options);
+  const result = await runChecks(rootDir, CHECKS, options);
 
   const hardFailures = result.failures.filter((failure) => failure.severity !== "warn");
   const warnFindings = result.failures.filter((failure) => failure.severity === "warn");

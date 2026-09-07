@@ -7,8 +7,9 @@
 | Goal                         | Document                                                                                        |
 | ---------------------------- | ----------------------------------------------------------------------------------------------- |
 | **New to Claude Code?**      | [quick-start.md](./quick-start.md) - 5-minute onboarding                                        |
-| **Need a skill?**            | [skills/README.md](./skills/README.md) - 166 skills catalog                                     |
+| **Need a skill?**            | [skills/README.md](./skills/README.md) - 167 skills catalog                                     |
 | **Building a feature?**      | [skills/README.md](./skills/README.md) + `docs/project-reference/` patterns                     |
+| **Verifying user experience?** | [configuration/experience-verification.md](./configuration/experience-verification.md) - portable evidence and acceptance contract |
 | **Understanding hooks?**     | [hooks/README.md](./hooks/README.md) - 17 top-level hook files deep-dive                        |
 | **Understanding workflows?** | `CLAUDE.md` workflow catalog (project root) - 19 workflows                                      |
 | **Configuring Claude?**      | [configuration/README.md](./configuration/README.md)                                            |
@@ -23,11 +24,11 @@
 |-- README.md                 <- You are here (Navigation hub)
 |-- quick-start.md            5-minute onboarding guide
 |
-|-- skills/                   166 skills across 15+ domains
+|-- skills/                   167 skills across 15+ domains
 |   |-- README.md             Skills overview + full catalog
 |   +-- (patterns)           → docs/project-reference/
 |
-|-- hooks/                    17 top-level hook files, 26 lib modules
+|-- hooks/                    17 top-level hook files, 30 lib modules
 |   |-- README.md             Hooks overview, lessons system, session lifecycle
 |   +-- extending-hooks.md    How to create custom hooks
 |
@@ -43,7 +44,8 @@
 |-- configuration/            All configuration files
 |   |-- README.md             Config overview
 |   |-- settings-reference.md settings.json reference
-|   +-- output-styles.md      Coding levels 0-5
+|   |-- output-styles.md      Coding levels 0-5
+|   +-- experience-verification.md  Observable-surface evidence and acceptance
 |
 +-- troubleshooting.md        Consolidated troubleshooting guide
 ```
@@ -143,7 +145,7 @@
 
 | Category               | Count |
 | ---------------------- | ----- |
-| Skills                 | 166   |
+| Skills                 | 167   |
 | Hook files (top-level) | 17    |
 | Lib Modules            | 25    |
 | Hook Events            | 8     |

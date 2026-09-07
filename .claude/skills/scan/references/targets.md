@@ -177,7 +177,7 @@ Phase 1 — from detected framework derive: repository interface naming, handler
 
 **Agent 4: Anti-Pattern Detection** (run AFTER Agents 1-3)
 - **Think:** Where has the team violated the conventions found by Agents 1-3? Look for the 8 most common backend anti-patterns: wrong repo type, wrong logic layer, exception-based validation, cross-service DB access, handler-owned DTO mapping, uncleaned async scopes, unnamed bus contracts, hardcoded config.
-- Checklist: generic repository where service-specific required; business logic in handlers/components belonging in entities/models; validation via exceptions instead of validation-result type; direct DB access across service boundaries; DTO mapping in handlers instead of DTO-owned; bus-message naming without ownership prefix; hard-coded config that should be injected. For each violation: record `file:line`, classify severity (CRITICAL/MAJOR/MINOR), suggest fix.
+- Checklist: generic repository where service-specific required; business logic in handlers/components belonging in entities/models; validation via exceptions instead of validation-result type; direct DB access across service boundaries; DTO mapping in handlers instead of DTO-owned; bus-message naming without ownership prefix; hard-coded config that should be injected. For each violation: record `file:line`, classify with the canonical consequence rubric (`CRITICAL`/`HIGH`/`MEDIUM`/`LOW`; use `NOT VERIFIABLE` when evidence is incomplete), and suggest a fix.
 
 ### Target Sections
 

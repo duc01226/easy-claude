@@ -2,42 +2,30 @@
 
 <!-- CK:WORKFLOW-GATE -->
 
-> **[WORKFLOW-GATE] — routing is your FIRST action, before any tool call.**
-> This rule is hook-independent: it binds Claude and Codex equally. Do not wait for any injected reminder to apply it.
+> **[WORKFLOW-GATE] — routing is your FIRST action, before any tool call.** This gate is hook-independent and is the single intent router.
 >
-> Classify complexity and risk first, then route it:
+> Honor an explicit request to execute a skill/workflow first. Otherwise auto-select by complexity and risk; never ask the user to choose the execution path.
 >
-> | Request is about…                                                                                                                                             | Default route                                                                                                                                                                                |
-> | ------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-> | A simple, straightforward task with a clear target and low risk                                                                                               | **direct execution** — do it without a workflow                                                                                                                                              |
-> | A simple task that needs a few coordinated steps or skills                                                                                                    | **custom simple workflow** — sequence only the necessary skills/steps                                                                                                                        |
-> | A non-trivial bug, error, crash, regression, or wrong/stale output                                                                                            | **`workflow-bugfix` workflow** — `/start-workflow workflow-bugfix`                                                                                                                           |
-> | A non-trivial new feature, capability, or enhancement                                                                                                         | **`workflow-feature` workflow** — `/start-workflow workflow-feature` (use `workflow-big-feature` when scope is large, ambiguous, or research-heavy)                                          |
-> | A product vision, greenfield app, big/ambiguous capability, or release-scoped idea                                                                            | **the owning idea/feature workflow** — apply the shared `isLargeIdea` rule and embed decomposition in PBI/spec/story/presentation/mock-up artifacts; do not create a roadmap file by default |
-> | An explicit request for a product roadmap, roadmap update, or milestone selection                                                                             | **`product-roadmap` skill** — the standalone writer is explicit-only and may create/update `docs/product-roadmap.md`                                                                         |
-> | A selected roadmap milestone or a large idea whose embedded decomposition needs adversarial failure, replay, state, ownership, recovery, or evidence analysis | **`scenario` skill** — run conditionally for that scope before `/plan`; it does not create a roadmap artifact                                                                                |
-> | Anything matching a skill's or workflow's "Use" clause                                                                                                        | that skill / workflow                                                                                                                                                                        |
-> | A one-off question, or a truly trivial edit                                                                                                                   | direct execution                                                                                                                                                                             |
+> | Intent | Route |
+> | --- | --- |
+> | Clear, low-risk task or one-off question | direct |
+> | Simple coordinated steps | custom-simple: only the necessary skills/steps |
+> | Non-trivial bug/regression/stale output | `workflow-bugfix` |
+> | Non-trivial feature/enhancement | `workflow-feature`; large/ambiguous/research-heavy scope uses `workflow-big-feature` |
+> | Product vision, greenfield or release-scoped idea | owning idea/feature workflow; apply shared `isLargeIdea` and embed decomposition in its artifacts |
+> | Explicit roadmap/update/milestone-selection request | `product-roadmap`; only this explicit intent may write `docs/product-roadmap.md` |
+> | Milestone/large-idea scope needing adversarial failure, replay, state, ownership, recovery or evidence analysis | conditional `scenario` before `/plan`; no roadmap artifact |
+> | Other matching skill/workflow Use clause | that skill/workflow, verified from its canonical definition |
 >
-> 1. **An explicit `/skill` or `/workflow` in the prompt is the user's choice — execute it directly.** Otherwise auto-select the route yourself; never ask the user which path to take.
-> 2. **Analyze whether the task is simple and straightforward before defaulting to a standard workflow.** If the target is clear, the change is low-risk, and a short direct execution can satisfy it, choose direct execution.
-> 3. **For simple but multi-step work, build a custom simple workflow with only the few relevant skills/steps.** Do not expand to a full standard workflow when a small custom sequence is enough.
-> 4. **Use standard workflows for non-trivial bugs and feature/enhancement work** — they force the investigation, tests, and review that risky or broad changes need.
-> 5. **Declare the route, then ACTIVATE it — declaring is not activating.** State `Route: {workflow-id | skill | custom-simple | direct} — because {reason}`, then:
->     - **Workflow route →** invoke `/start-workflow <id>` as a tool call. That skill loads the workflow's canonical step `sequence` and creates the task list **1:1** from it. You MUST NOT hand-author your own task list for a workflow route — the canonical `sequence` is the only source of truth. Writing `Route: …` in prose and then improvising a few tasks is the failure this gate exists to prevent.
->     - **Skill route →** invoke that skill via the `Skill` tool.
->     - **Custom simple workflow →** create a small task list from the selected skills/steps, then execute them in order.
->     - **Direct route →** build the task list yourself, then proceed.
->       In every case the route must be activated BEFORE the first edit, sub-agent, or command.
-> 6. **Direct execution is a legitimate route** for trivial, one-off, or simple straightforward work — but the declare-route and activate steps still apply.
-> 7. **Scaffolding-first for new foundations.** `workflow-greenfield-init` and `workflow-big-feature` scaffold a REVIEWED (`architecture-review-full`), example-rich, convention-bearing foundation — base abstractions + golden-path example code + a project-reference doc set — BEFORE fanning out feature work; features never build on an unreviewed foundation.
+> Declare `Route: {workflow-id | skill | custom-simple | direct} — because {reason}`, then ACTIVATE before edits, agents or commands. Workflow: execute `/start-workflow <id>` and use its canonical sequence for tasks 1:1; never improvise that list. Skill: read and execute its SKILL.md through the host's supported mechanism. Custom/direct: create a small task list and execute it. Missing required tools/details: stop and report; never fabricate invocation.
+>
+> Ordinary large-idea routes do not create a roadmap by default. New foundations in `workflow-greenfield-init`/`workflow-big-feature` require an `architecture-review-full` reviewed scaffold, golden-path examples and project references BEFORE feature fan-out. Routing preserves operation authority, user data and all required quality gates.
 
 <!-- /CK:WORKFLOW-GATE -->
 
 <!-- prettier-ignore-start -->
 
 <!-- CK:WORKFLOW-SKILLS -->
-
 ## Workflow & Skills Catalog
 
 Session-start reference derived from `.claude/workflows.json` — use it to pick a route on any prompt: run a standard workflow, compose a custom workflow from the step-skills, invoke a single skill, or execute directly.
@@ -49,8 +37,8 @@ Session-start reference derived from `.claude/workflows.json` — use it to pick
 | `workflow-architecture-audit` | review my project architecture, run an architecture health check, check is this production ready | investigate → architecture-review-full → why-review → docs-update → workflow-end → watzup |
 | `workflow-big-feature` | implement a large, complex, or ambiguous feature that needs research | idea → web-research → deep-research → market-analysis → business-evaluation → spec-discovery → domain-analysis → why-review → tech-stack-research → architecture-design → architecture-scalability-review → why-review → scenario → plan → plan-review → refine → why-review → artifact-review --type=pbi → story → why-review → artifact-review --type=story → pbi-challenge → dor-gate → pbi-mockup → spec → spec [mode=tests] → why-review → artifact-review --type=spec-tests → spec-clarify → plan → plan-review → scaffold → architecture-review-full → plan-validate → why-review → plan-execute → seed-test-data → domain-entities-review → integration-test → integration-test-review → integration-test-verify → spec [mode=sync] → workflow-review-changes → security-review → changelog → test → scan --target=domain-entities → docs-update → workflow-end → watzup |
 | `workflow-bugfix` | a bug, error, crash | investigate → debug-investigate → spec [mode=amend] → plan → plan-review → plan-validate → why-review → spec [mode=tests] → why-review → artifact-review --type=spec-tests → integration-test → fix → prove-fix → integration-test → integration-test-review → integration-test-verify → spec [mode=sync] → workflow-review-changes → changelog → test → scan --target=domain-entities → docs-update → demo-guide → workflow-end → watzup |
-| `workflow-code-to-spec` | initial feature spec generation from zero, maintaining spec sync after code changes, quarterly spec health audits | investigate → plan → plan-review → plan-validate → spec → spec [mode=tests] → artifact-review --type=spec-tests → artifact-review → docs-update → workflow-end → watzup |
-| `workflow-e2e` | generate, update, or maintain e2e/playwright tests from code/spec | investigate → e2e-test → test → docs-update → workflow-end → watzup |
+| `workflow-code-to-spec` | initial feature spec generation from zero, maintaining spec sync after code changes, quarterly spec health audits | init-full: investigate → plan → plan-review → plan-validate → spec [mode=init] → spec [mode=tests] → artifact-review --type=spec-tests → artifact-review → docs-update → workflow-end → watzup; update: workflow-review-changes → spec [mode=update] → spec [mode=tests] → artifact-review --type=spec-tests → spec [mode=sync] → changes-review → docs-update → workflow-end → watzup; audit: investigate → spec [mode=audit] → artifact-review → docs-update → workflow-end → watzup |
+| `workflow-e2e` | generate, update, or maintain e2e/playwright tests from code/spec | investigate → e2e-test → experience-review → test → docs-update → workflow-end → watzup |
 | `workflow-feature` | implement a well-defined feature, add a component, build a capability | investigate → spec-discovery → domain-analysis → why-review → spec → spec-clarify → scenario → plan → plan-review → plan-validate → why-review → spec [mode=tests] → why-review → artifact-review --type=spec-tests → plan → plan-review → plan-execute → seed-test-data → domain-entities-review → spec [mode=tests] → why-review → artifact-review --type=spec-tests → spec [mode=sync] → integration-test → integration-test-review → integration-test-verify → workflow-review-changes → security-review → changelog → test → scan --target=domain-entities → docs-update → demo-guide → workflow-end → watzup |
 | `workflow-feature-spec` | create or update business feature documentation | investigate → plan → plan-review → plan-validate → why-review → docs-update → workflow-review-changes → workflow-end → watzup |
 | `workflow-greenfield-init` | start a new project from scratch, init a greenfield project, plan a new application | idea → web-research → deep-research → market-analysis → business-evaluation → spec-discovery → domain-analysis → why-review → tech-stack-research → architecture-design → architecture-scalability-review → why-review → scenario → plan → plan-review → security-review → performance-review → plan-review → refine → why-review → artifact-review --type=pbi → story → why-review → artifact-review --type=story → pbi-challenge → dor-gate → pbi-mockup → plan-validate → why-review → spec [mode=tests] → why-review → artifact-review --type=spec-tests → spec-clarify → plan → plan-review → scaffold → linter-setup → harness-setup → architecture-review-full → scan --target=ui-system → scan --target=backend-patterns → scan --target=integration-tests → scan --target=project-structure → why-review → plan-execute → domain-entities-review → spec [mode=tests] → why-review → artifact-review --type=spec-tests → plan → plan-review → integration-test → integration-test-review → integration-test-verify → e2e-test → test → workflow-review-changes → security-review → changelog → test → scan --target=domain-entities → docs-update → workflow-end → watzup |
@@ -58,15 +46,15 @@ Session-start reference derived from `.claude/workflows.json` — use it to pick
 | `workflow-idea-to-spec` | turn a raw product idea, vision, or problem statement into one canonical | web-research → deep-research → brainstorm → spec-discovery → scenario → domain-analysis → why-review → idea → spec [mode=draft] → spec [mode=tests] → artifact-review --type=spec-tests → artifact-review → design-spec → spec-clarify → why-review → docs-update → feature-presentation → workflow-end → watzup |
 | `workflow-integration-test-green` | make all integration tests pass, fix failing integration tests, drive the integration test suite to | investigate → integration-test-verify-loop → debug-investigate [on-failure] → fix [on-failure] → spec [mode=sync] → scan --target=integration-tests → docs-update → workflow-end → watzup |
 | `workflow-refactor` | restructure, reorganize, clean up | investigate → plan → plan-review → plan-validate → why-review → plan-execute → spec [mode=tests] → why-review → artifact-review --type=spec-tests → spec [mode=sync] → integration-test → integration-test-review → integration-test-verify → workflow-review-changes → changelog → test → scan --target=domain-entities → docs-update → workflow-end → watzup |
-| `workflow-research` | research a topic from web sources, a business/market viability evaluation, a marketing strategy | web-research → deep-research → knowledge-synthesis → knowledge-review → workflow-end |
-| `workflow-review-changes` | review current uncommitted, staged, or unstaged changes before committing | changes-review → why-review --target=whole-review-target → why-review → architecture-review → domain-entities-review → performance-review → integration-test-review → security-review → production-readiness-review → ui-review → code-simplifier → plan → plan-review → plan-execute → changes-review → why-review → scan --target=domain-entities → docs-update → workflow-end → watzup |
-| `workflow-seed-test-data` | seed test data, implement data seeders, realistic development environment data | investigate → seed-test-data → changes-review → code-simplifier → docs-update → workflow-end → watzup |
+| `workflow-research` | research a topic from web sources, a business/market viability evaluation, a marketing strategy | synthesis: web-research → deep-research → knowledge-synthesis → knowledge-review → workflow-end; business-eval: web-research → deep-research → market-analysis → business-evaluation → knowledge-review → workflow-end; marketing: web-research → deep-research → market-analysis → strategy-builder → knowledge-review → workflow-end; course: web-research → deep-research → course-builder → knowledge-review → workflow-end |
+| `workflow-review-changes` | review current uncommitted, staged, or unstaged changes before committing | changes-review → why-review --target=whole-review-target → why-review → architecture-review → domain-entities-review → performance-review → integration-test-review → security-review → production-readiness-review → ui-review → code-simplifier → plan → plan-review → plan-execute → changes-review → why-review → experience-review → scan --target=domain-entities → docs-update → workflow-end → watzup |
+| `workflow-seed-test-data` | seed test data, implement data seeders, realistic development environment data | investigate → seed-test-data → experience-review → changes-review → code-simplifier → docs-update → workflow-end → watzup |
 | `workflow-spec-sync` | fixing a bug update test specs, code changes update test specs, pr review update test specs | workflow-review-changes → spec [mode=tests] → why-review → artifact-review --type=spec-tests → spec [mode=sync] → integration-test → integration-test-review → integration-test-verify → test → docs-update → workflow-end |
 | `workflow-spec-to-pbi` | create all pbis from an existing, convert a large feature spec into, dependent pbis from docs/specs | investigate → spec-index → domain-analysis → why-review → spec-clarify → scenario → plan → plan-review → plan-validate → why-review → refine → why-review → artifact-review --type=pbi → story → why-review → artifact-review --type=story → pbi-challenge → dor-gate → pbi-mockup → design-spec → prioritize → docs-update → feature-presentation → workflow-end → watzup |
-| `workflow-visualize` | visualize, diagram, draw | investigate → excalidraw-diagram → workflow-end |
+| `workflow-visualize` | visualize, diagram, draw | codebase: investigate → excalidraw-diagram → workflow-end; knowledge: web-research → deep-research → excalidraw-diagram → workflow-end |
 | `workflow-write-integration-test` | write integration tests for a specific, add test coverage to an untested, update integration tests after code changes | investigate → spec [mode=tests] → why-review → artifact-review --type=spec-tests → integration-test → integration-test-review → integration-test-verify → spec [mode=sync] → docs-update → workflow-end → watzup |
 
-### Workflow Skills (62 composable steps)
+### Workflow Skills (65 composable steps)
 
 Distinct step-skills used across the workflows above — compose these into a custom workflow when no standard workflow fits.
 
@@ -82,6 +70,7 @@ Distinct step-skills used across the workflows above — compose these into a cu
 | `changelog` | [Documentation] Use when you need to generate or update changelog entries. |
 | `changes-review` | [Code Quality] Use when reviewing current changes, staged or unstaged diffs, or branch-to-branch diffs. |
 | `code-simplifier` | [Code Quality] Use when you need to simplify and refine code for clarity, consistency, and maintainability while preserving all functionality. |
+| `course-builder` | [Content] Use when you need to build structured learning/teaching course material with Bloom taxonomy objectives, modules, lessons, exercises, and assessments. |
 | `debug-investigate` | [Fix & Debug] Use when investigating a bug's root cause — reproduce the symptom, trace it end-to-start through the code, form and test hypotheses, and pinpoint the defect before any fix. |
 | `deep-research` | [Research] Use when deeply researching top sources from web-research. |
 | `demo-guide` | [Documentation] Use when you need to generate a step-by-step demo guide (demo script / walkthrough) covering all main user stories and their test cases — scope from a named feature, else the current working context, else confirm with the user — explaining for each case how the domain data is stored/changed and how the domain solves the feature. Triggers: demo guide, generate demo guide, demo script, demo walkthrough, how to demo, prepare demo, sprint demo, user story demo. |
@@ -92,6 +81,7 @@ Distinct step-skills used across the workflows above — compose these into a cu
 | `dor-gate` | [Code Quality] Use when you need to validate a PBI against Definition of Ready before grooming. |
 | `e2e-test` | [Testing] Use when generating, updating, or maintaining E2E tests from recordings, specs, or code changes. |
 | `excalidraw-diagram` | [Utilities] Use when the user wants to visualize workflows, architectures, or concepts as Excalidraw diagram JSON files. |
+| `experience-review` | [Testing] Use when reviewing a running user experience or externally observable output, establishing a deliberate baseline, or adjudicating a regression across UI, API, CLI, library, service, or generated-output surfaces. Flag: --rounds=N (default 3) bounds the remediation loop — exercise, inspect, route BLOCKING defects to /fix at the owning layer, re-exercise from scratch — converging on zero defects plus an agent-recommended acceptance a human still signs; --rounds=0 is the single-pass report-only review. |
 | `feature-presentation` | [Documentation] Use when you need to synthesize all generated specs, PBIs, ideas and mockups into one standalone HTML slide presentation for stakeholders (PO/BA/Dev/QC). |
 | `fix` | [Implementation] Use when you need to analyze and fix issues [INTELLIGENT ROUTING]. Flag: --target={ci\|issue\|logs\|test\|types\|ui} scopes the fix; --target=types resolves TypeScript errors inline. |
 | `harness-setup` | [Quality] Use when setting up an agent quality harness with feedforward guides and feedback sensors. |
@@ -109,8 +99,8 @@ Distinct step-skills used across the workflows above — compose these into a cu
 | `pbi-mockup` | [Project Management] Use when you need to generate an HTML mockup report from PBI and story artifacts. |
 | `performance-review` | [Debugging] Use when analyzing or optimizing performance bottlenecks: database queries, N+1 fan-out, indexing, API latency, memory/GC, concurrency and pool saturation, algorithmic complexity (O(n²)), network/protocol round trips, frontend rendering and Core Web Vitals, caching, and distributed/resilience paths. Calibration constants and domain laws (latency ladder, Little's Law, utilization knee, CWV thresholds, symptom→cause triage) live in references/performance-knowledge.md. |
 | `plan` | [Planning] Use when you need intelligent plan creation with prompt enhancement. Flag: --mode={ci\|cro} (default none — standard planning); --mode=ci plans a fix from a GitHub Actions CI run/log, --mode=cro plans conversion-rate optimization (25-item CRO framework). |
-| `plan-execute` | [Implementation] Use when you need to start coding & testing an existing plan. Flags: --approval=off (auto/trust mode, no approval gate), --tests=off (skip the test step), --parallel={auto\|on\|off} (default off — sequential; --parallel/=on opts in to parallel sub-agent waves; =auto fans out only when the plan declares PAR/SEQ tags and write sets). |
-| `plan-review` | [Planning] Use when you need to auto-review a plan for validity, correctness, and best practices — recursive: review, validate findings with why-review, fix validated findings, full re-review until no findings. |
+| `plan-execute` | [Implementation] Use when you need to start coding & testing an existing plan. Flags: --approval=off (skip implementation approval; never grants Git authority), --tests=off (skip the test step), --parallel={auto\|on\|off} (default off — sequential; --parallel/=on opts in to parallel sub-agent waves; =auto fans out only when the plan declares PAR/SEQ tags and write sets). |
+| `plan-review` | [Planning] Use when you need to auto-review a plan for validity, correctness, and best practices — recursive: review, validate findings with why-review, fix validated blocking findings, and full re-review until the current severity exit bar is clear. |
 | `plan-validate` | [Planning] Use when you need to validate a plan with critical questions interview. |
 | `prioritize` | [Project Management] Use when you need to prioritize backlog items using RICE, MoSCoW, or Value-Effort frameworks. |
 | `production-readiness-review` | [Code Quality] Use when reviewing service-layer and API changes for production readiness. |
@@ -126,6 +116,7 @@ Distinct step-skills used across the workflows above — compose these into a cu
 | `spec-discovery` | [Investigation] Use when about to author a new Feature Spec from an idea — investigate all existing Feature Specs AND related code logic first to surface related/overlapping/affected specs, missing features, missing test cases/user stories, system unknowns, and the invariant landscape, before any spec is drafted. |
 | `spec-index` | [General] Use when you need to (re)generate a DERIVED navigation index, cross-capability ERD, or reimplementation guide assembled FROM the canonical Feature Specs under docs/specs/**. Never extracts a separate A-E engineering tree. |
 | `story` | [Project Management] Use when creating user stories from PBIs, slicing features, or breaking down requirements. |
+| `strategy-builder` | [Content] Use when you need to build marketing strategy: positioning, channels, messaging, campaigns, budget, KPIs. |
 | `tech-stack-research` | [Architecture] Use when you need to research, analyze, and compare tech stack options as a solution architect. |
 | `test` | [Testing] Use when you need to run tests locally and analyze the summary report. |
 | `ui-review` | [Code Quality] Use when reviewing UI/frontend changes for long-content overflow, responsive multi-screen layout (flex-wrap / row-to-column on small devices), flex-vs-fixed sizing, z-index discipline, SCSS/BEM styling quality, and async UI states & feedback (loading indicator, error surface, empty state). |
@@ -133,11 +124,12 @@ Distinct step-skills used across the workflows above — compose these into a cu
 | `web-research` | [Research] Use when starting a web research task — discover, gather, and triage candidate sources on a topic to feed deeper investigation. |
 | `why-review` | [Code Quality] Use when reviewing rationale and change quality for plans, PBIs, commits, diffs, docs, specs, reports, or explicit artifacts. |
 | `workflow-end` | [Process] Use when you need to end the active workflow and clear state. |
-| `workflow-review-changes` | [Workflow] Use when activating the Review Current Changes workflow for review, fix, and re-review recursively until all issues resolved. |
-
+| `workflow-review-changes` | [Workflow] Use when activating the Review Current Changes workflow for review, fix, and re-review recursively until the current severity bar is clear; round-2+ LOW findings are recorded and deferred. |
 <!-- /CK:WORKFLOW-SKILLS -->
 
 <!-- prettier-ignore-end -->
+
+<!-- prettier-ignore-start -->
 
 <!-- CK:CRITICAL-THINKING -->
 
@@ -148,6 +140,10 @@ Distinct step-skills used across the workflows above — compose these into a cu
 **Tests verify intent:** Tests must protect business rules/invariants and fail when the protected intent breaks, not only mirror current behavior.
 
 <!-- /CK:CRITICAL-THINKING -->
+
+<!-- prettier-ignore-end -->
+
+<!-- prettier-ignore-start -->
 
 <!-- CK:AI-MISTAKE-PREVENTION -->
 
@@ -184,6 +180,48 @@ Distinct step-skills used across the workflows above — compose these into a cu
 - **Keep domain concepts out of generic/shared/infrastructure layers.** Reusable layer (shared library, framework, infra module) must reference NO consumer-specific domain concept — tenant/customer/product IDs, business entities, feature rules. Leak compiles + runs → passes review silently while coupling the "reusable" layer to one consumer. Keep shared type domain-free; push domain fields/logic down into the consumer via subclass/composition. — why: a layer coupled to one consumer's domain is no longer reusable.
 
 <!-- /CK:AI-MISTAKE-PREVENTION -->
+
+<!-- prettier-ignore-end -->
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 <!-- CK:PROJECT-PROTOCOLS -->
 
@@ -263,10 +301,9 @@ Workflow progression is **model-driven** — your responsibility, not a tool/hoo
 
 **Decision Quick-Ref:**
 
-| Task             | Pattern                             |
-| ---------------- | ----------------------------------- |
-| New API endpoint | Controller + CQRS Command           |
-| Business logic   | Command Handler (Application layer) |
+| Task | Pattern |
+|---|---|
+| Backend conventions | Read `docs/project-reference/backend-patterns-reference.md` |
 
 <!-- /SECTION:decision-quick-ref -->
 
@@ -304,10 +341,7 @@ It is the single source of truth describing THIS repo: modules/paths, framework 
 
 ## First Action Decision (before any tool call)
 
-1. Explicit slash command (e.g. `/plan`, `/feature-implement`) → execute it.
-2. Workflow Catalog has a matching workflow → ask via `AskUserQuestion` whether to activate the workflow or run the underlying skill directly.
-3. No matching workflow AND prompt would modify files → MUST invoke `/plan <prompt>` first.
-4. No matching workflow AND prompt is read-only/conversational → answer directly.
+Apply the single CK:WORKFLOW-GATE above; route choice grants no operation authority.
 
 **Modification beats research.** When a prompt mixes research and modification intent, treat it as modification (investigation is a substep of `/plan`).
 
@@ -472,11 +506,11 @@ python .claude/scripts/code_graph search <keyword> --kind Function --json       
 
 When editing files matching these path patterns, pre-read the listed context first:
 
-| Path Pattern                      | Skill / Auto-Context | Pre-Read Files                  |
-| --------------------------------- | -------------------- | ------------------------------- |
-| `/\.claude/hooks/.*\.cjs$**`      | _(auto-context)_     | `.claude/docs/hooks/README.md`  |
-| `/\.claude/skills/.*SKILL\.md$**` | _(auto-context)_     | `.claude/docs/skills/README.md` |
-| `/\.claude/agents/.*\.md$**`      | _(auto-context)_     | `.claude/docs/agents/README.md` |
+| Path Pattern | Skill / Auto-Context | Pre-Read Files |
+|---|---|---|
+| `/\.claude/hooks/.*\.cjs$**` | _(auto-context)_ | `.claude/docs/hooks/README.md` |
+| `/\.claude/skills/.*SKILL\.md$**` | _(auto-context)_ | `.claude/docs/skills/README.md` |
+| `/\.claude/agents/.*\.md$**` | _(auto-context)_ | `.claude/docs/agents/README.md` |
 
 <!-- /SECTION:skill-activation -->
 
@@ -503,12 +537,12 @@ When editing files matching these path patterns, pre-read the listed context fir
 
 | Kind        | Count                                       |
 | ----------- | ------------------------------------------- |
-| Skills      | <!-- COUNT:skills -->166<!-- /COUNT -->     |
+| Skills      | <!-- COUNT:skills -->167<!-- /COUNT -->     |
 | Hooks       | <!-- COUNT:hooks -->17<!-- /COUNT -->       |
 | Agents      | <!-- COUNT:agents -->27<!-- /COUNT -->      |
 | Workflows   | <!-- COUNT:workflows -->19<!-- /COUNT -->   |
 | Shared      | <!-- COUNT:shared -->8<!-- /COUNT -->       |
-| Lib modules | <!-- COUNT:lib-modules -->26<!-- /COUNT --> |
+| Lib modules | <!-- COUNT:lib-modules -->31<!-- /COUNT --> |
 
 ---
 
@@ -525,16 +559,18 @@ docs/templates/  (1 files)
 
 <!-- SECTION:doc-lookup -->
 
-| If user prompt mentions...                                     | Read first                                                          |
-| -------------------------------------------------------------- | ------------------------------------------------------------------- |
-| Feature specs, capability behavior, business rules, test cases | `docs/specs/` + `docs/project-reference/feature-spec-reference.md`  |
-| Spec paths, TC format, canonical vs derived spec artifacts     | `docs/project-reference/spec-system-reference.md`                   |
-| Spec quality, AI-implementability, tech-agnostic prose         | `docs/project-reference/spec-principles.md`                         |
-| Behavior or public contract changes, spec-test-code sync       | `docs/project-reference/workflow-spec-test-code-cycle-reference.md` |
-| Backend patterns, CQRS, validation                             | `docs/project-reference/backend-patterns-reference.md`              |
-| Frontend patterns, components, stores                          | `docs/project-reference/frontend-patterns-reference.md`             |
+| If user prompt mentions... | Read first |
+|---|---|
+| Feature specs, capability behavior, business rules, test cases | `docs/specs/` + `docs/project-reference/feature-spec-reference.md` |
+| Spec paths, TC format, canonical vs derived spec artifacts | `docs/project-reference/spec-system-reference.md` |
+| Spec quality, AI-implementability, tech-agnostic prose | `docs/project-reference/spec-principles.md` |
+| Behavior or public contract changes, spec-test-code sync | `docs/project-reference/workflow-spec-test-code-cycle-reference.md` |
+| Backend patterns, CQRS, validation | `docs/project-reference/backend-patterns-reference.md` |
+| Frontend patterns, components, stores | `docs/project-reference/frontend-patterns-reference.md` |
 
 <!-- /SECTION:doc-lookup -->
+
+<!-- prettier-ignore-start -->
 
 <!-- CK:CRITICAL-THINKING -->
 
@@ -545,6 +581,10 @@ docs/templates/  (1 files)
 **Tests verify intent:** Tests must protect business rules/invariants and fail when the protected intent breaks, not only mirror current behavior.
 
 <!-- /CK:CRITICAL-THINKING -->
+
+<!-- prettier-ignore-end -->
+
+<!-- prettier-ignore-start -->
 
 <!-- CK:AI-MISTAKE-PREVENTION -->
 
@@ -581,3 +621,5 @@ docs/templates/  (1 files)
 - **Keep domain concepts out of generic/shared/infrastructure layers.** Reusable layer (shared library, framework, infra module) must reference NO consumer-specific domain concept — tenant/customer/product IDs, business entities, feature rules. Leak compiles + runs → passes review silently while coupling the "reusable" layer to one consumer. Keep shared type domain-free; push domain fields/logic down into the consumer via subclass/composition. — why: a layer coupled to one consumer's domain is no longer reusable.
 
 <!-- /CK:AI-MISTAKE-PREVENTION -->
+
+<!-- prettier-ignore-end -->

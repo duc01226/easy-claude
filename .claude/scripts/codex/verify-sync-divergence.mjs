@@ -16,8 +16,8 @@
 // etc.) are reproduced for free because they ARE the real transform.
 //
 // Why the CONTEXT check lives HERE rather than in a new standalone file: a new pipeline
-// script would itself have to be git-tracked to ship in the portable export (export-claude
-// ships `git ls-files .claude`) — adding a fresh untracked-until-staged portability gap to
+// script would have to be present in the portable export (export-claude ships tracked and
+// unignored working-tree `.claude` files) — adding a fresh unexported gap to
 // close the very gap it fixes. Folding it into this already-tracked, already-wired oracle
 // keeps the framework export self-contained with zero new pipeline files.
 //
@@ -30,9 +30,18 @@ import fs from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { createRequire } from 'node:module';
 import { buildSkillReferenceMap } from './compat-rewrite.mjs';
 import { materializeSkillMirror, claudeSkillsDir, agentsSkillsDir } from './migrate-claude-to-codex.mjs';
 import { runContextSync, contextPath, agentsPath } from './sync-context-workflows.mjs';
+
+const require = createRequire(import.meta.url);
+const { resolveProjectRoot } = require('../lib/project-root.cjs');
+const rootResolution = resolveProjectRoot({
+    cwd: process.cwd(),
+    scriptPath: fileURLToPath(import.meta.url),
+    env: process.env,
+});
 
 // Files present in the committed mirror but NOT produced by materializeSkillMirror.
 // The sentinel is written separately by the writer (writeAgentsSkillsMirrorSentinel);
@@ -217,7 +226,7 @@ async function checkSkillsMirror() {
 }
 
 async function main() {
-    const rootDir = process.cwd();
+    const rootDir = rootResolution.rootDir;
     let failed = false;
 
     const skills = await checkSkillsMirror();

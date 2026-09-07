@@ -66,7 +66,7 @@ removal_after: '2026-09-12'
 - [ ] All tests passing (unit + integration)
 - [ ] Code review complete
 - [ ] CHANGELOG.md up-to-date
-- [ ] No critical/major open bugs
+- [ ] No open CRITICAL/HIGH/MEDIUM findings under the current review bar; any deferred LOW findings are recorded
 - [ ] Documentation up-to-date
 - [ ] Rollback strategy defined
 

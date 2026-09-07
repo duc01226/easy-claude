@@ -1,6 +1,6 @@
 ---
 name: release-notes
-description: '[Git] Use when creating release notes from git history.'
+description: '[Git] Use when creating release notes or a release document from git history — any scope (tag-to-tag, branch-to-branch, or a time range like the last 30 days), producing categorized markdown notes PLUS a rich standalone HTML release presentation with real-UI mock-ups, auto-opened at the end.'
 ---
 
 > Codex compatibility note:
@@ -14,9 +14,9 @@ description: '[Git] Use when creating release notes from git history.'
 > - For workflow skills, execute each listed child-skill step explicitly and report step-by-step evidence.
 > - If a required step/tool cannot run in this environment, stop and ask the user before adapting.
 <!-- CODEX:PROJECT-REFERENCE-LOADING:START -->
-## Codex Project-Reference Loading (No Hooks)
+## Codex Project-Reference Loading (Hook-Independent)
 
-Codex uses static project-reference loading instead of runtime-injected project docs.
+Claude and Codex use static project-reference loading as the authority; hooks may accelerate discovery but never replace the explicit read.
 When coding, planning, debugging, testing, or reviewing, open project docs explicitly using this routing.
 
 **Always read:**
@@ -42,45 +42,130 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 
 ## Quick Summary
 
-**Goal:** Generate professional release notes from git commits with automated categorization, service detection, and validation.
+**Goal:** Generate a professional release document from git history at **any scope** — tag-to-tag, branch-to-branch, or a time range ("last 30 days") — with automated categorization, thematic AI analysis, service detection, and validation, **plus a rich standalone HTML release presentation** that renders faithful mock-ups of the project's REAL screens for any UI change and auto-opens in the browser. Both outputs are produced by default.
+
+> **This is the single release skill.** It absorbed `$release-doc` (2026-09-08), which is now a deprecated alias. Use `$release-notes` for every release-summary need; `$changelog` remains separate for per-feature changelog entries.
 
 **Workflow:**
 
+0. **Resolve Scope** — refs (`base head`), a range (`--range`), or a time window (`--days N` / `--since DATE`); `--focus` deepens one area
+0b. **[BLOCKING] Dump Git Artifacts** — write log, file-status, diff-stat, and full diff to disk BEFORE analyzing anything
 1. **Parse Commits** — `parse-commits.cjs <base> <head>` extracts structured data from git
-2. **Categorize** — Pipe through `categorize-commits.cjs` for user-facing vs internal sections
-3. **Render** — `render-template.cjs --version vX.Y.Z` generates markdown with Summary, What's New, Improvements, Bug Fixes, Breaking Changes, Technical Details
+2. **Categorize** — `categorize-commits.cjs` for user-facing vs internal sections; add the thematic area map for time-range scopes
+3. **Analyze Key Diffs** — read the most significant changes per category via `git show` / `git diff`
+4. **Render** — `render-template.cjs --version vX.Y.Z` generates markdown with Summary, What's New, Improvements, Bug Fixes, Breaking Changes, Technical Details
+5. **Validate** — `validate-notes.cjs` scores against quality rules (100 points)
+6. **[BLOCKING] HTML Presentation (R1–R9, default-on)** — run the canonical procedure in `references/html-release-report.md`: comprehend the whole change set → investigate each highlight end-to-end → correlate spec changes → inventory the real existing UI → **write the temp analysis report** → assemble ONE standalone HTML doc with real-UI mock-ups → save → accuracy + fidelity gates → **auto-open**
 
 **Key Rules:**
 
-- **Pipeline**: parse → categorize → render → validate → transform
+- **Pipeline**: resolve scope → dump → parse → categorize → analyze → render → validate → present
+- **Scope is inferred, never asked twice** — refs given → tag/branch comparison; `--days`/`--since` → time range; neither → default to the last tag..HEAD
+- **Dump first, read second** — NEVER analyze a diff you haven't saved to a file first; large ranges overflow context
 - **Advanced**: Service detection, breaking change analysis, PR metadata, contributor stats, version bumping
 - **Human Review**: Generated notes are Draft status, require review/enhance/approve before publish
 - **Validation**: `validate-notes.cjs` scores against quality rules (100 points)
+- **The HTML presentation is DEFAULT-ON** — Step 6 always runs; `--no-html` is the explicit opt-out. Never ask the user to request it and never treat it as optional polish.
+- **The HTML stage is model work, not a script** — the scripted pipeline (steps 1–5) produces the markdown; the HTML presentation requires reading the actual diffs, tracing each feature end-to-end, and reproducing real UI, so it is executed by following `references/html-release-report.md`, NOT by piping another `lib/*.cjs`
+- **Breadth before depth** — map the WHOLE change set before opening any single feature (R1); diving into the first interesting commit under-reports the rest
+- **[BLOCKING] Temp report before HTML** — the HTML is assembled FROM the temp analysis report, never straight from a diff or from memory (R5)
+- **Mock-ups reproduce the REAL UI** — real design tokens, real component structure and class names, real route and page shell, real domain field names; never Lorem ipsum, never a generic card layout (R6.3)
+- **`NO-UI` release still gets the full HTML** — state `UI surface: none` and omit only the mock-up sections
+- **Auto-open is best-effort** — a failed browser launch is a warning with the printed path, NEVER a failed run; `--no-open` opts out
 
 **Be skeptical. Apply critical thinking, sequential thinking. Every claim needs traced proof, confidence percentages (Idea should be more than 80%).**
 
-# Release Notes Generation Skill
+# Release Notes & Release Document Skill
 
-Generate professional release notes from git commits between two refs with automated categorization.
+Generate a professional release document from git history at any scope — tag-to-tag, branch-to-branch, or a time range — with automated categorization plus a rich standalone HTML presentation.
 
 ## Invocation
 
 ```
-$release-notes [base] [head] [--version vX.Y.Z] [--output path]
+$release-notes [base] [head] [--version vX.Y.Z] [--days N] [--since DATE] [--range base..head]
+               [--focus "custom prompt"] [--output path] [--no-html] [--no-open]
 ```
 
 **Examples:**
 
 ```bash
-# Generate release notes for commits since last tag
+# Tag-to-tag — markdown notes + rich standalone HTML presentation, auto-opened
 $release-notes v1.0.0 HEAD --version v1.1.0
 
 # Compare branches
 $release-notes main feature/new-auth --version v2.0.0-beta
 
-# Output to specific file
+# Time range — "what changed in the last 30 days" (absorbed from $release-doc)
+$release-notes --days 30
+
+# Since a specific date
+$release-notes --since 2026-03-15
+
+# Explicit range form
+$release-notes --range v1.0.0..HEAD
+
+# With a custom focus area, analyzed more deeply and given its own section
+$release-notes --days 30 --focus "what changed in hooks and workflow enforcement"
+
+# Output to specific file (the HTML sibling takes the same stem with .html)
 $release-notes v1.0.0 HEAD --version v1.1.0 --output docs/release-notes/250111-v1.1.0.md
+
+# HTML but no browser launch (CI, headless, remote shell)
+$release-notes v1.0.0 HEAD --version v1.1.0 --no-open
+
+# Markdown only — skip the HTML presentation stage
+$release-notes v1.0.0 HEAD --version v1.1.0 --no-html
 ```
+
+**Flags:**
+
+| Flag        | Default | Effect                                                                                                       |
+| ----------- | ------- | -------------------------------------------------------------------------------------------------------------- |
+| `--days N`  | —       | Time-range scope: the last N days. Mutually exclusive with positional refs.                                   |
+| `--since D` | —       | Time-range scope: everything since ISO date `D`.                                                              |
+| `--range`   | —       | Explicit `base..head` form, equivalent to the positional refs.                                                |
+| `--focus`   | —       | Analyze the named area more deeply and give it a dedicated top-level section.                                 |
+| `--version` | —       | Version label for the notes header; drives `bump-version.cjs` when used.                                      |
+| `--no-html` | off     | Skip Step 6. **The HTML presentation is on by default** — never ask the user to opt in.                        |
+| `--no-open` | off     | Generate the HTML but do not launch a browser. Auto-implied in CI / headless / sub-agent contexts.             |
+
+## Choosing a Scope (Step 0)
+
+One skill, three scope shapes. Infer the shape from what the user gave; never ask twice.
+
+| User said                                  | Scope shape        | How to resolve                                                        |
+| ------------------------------------------ | ------------------ | ----------------------------------------------------------------------- |
+| Two refs / `--range` / "since v1.2"        | Tag or branch      | `base..head` directly                                                  |
+| "last 30 days" / `--days` / `--since`      | Time range         | Compute `SINCE_DATE`, then `OLDEST = git log --since=... --format=%H \| tail -1`, `HEAD` as head |
+| Nothing                                    | Default            | Last tag → `HEAD`; if the repo has no tags, fall back to the last 30 days |
+
+```bash
+# Time-based → boundary commits
+SINCE_DATE=$(date -d "-30 days" +%Y-%m-%d)   # Linux ( macOS: date -v-30d +%Y-%m-%d )
+git log --since="$SINCE_DATE" --oneline --format="%H %ad %s" --date=short
+OLDEST=$(git log --since="$SINCE_DATE" --format="%H" | tail -1)
+```
+
+`{PERIOD}` — the artifact/output naming token — is the version (`v1.1.0`) for ref scopes, or a readable window (`30d`, `2026-03-15-to-2026-04-14`) for time scopes.
+
+## Step 0b: [BLOCKING] Dump Git Artifacts BEFORE Analyzing
+
+> **[BLOCKING] Run ALL dumps before reading ANY diff content.** A multi-week range will not fit in context; the files are external memory for Steps 3 and 6.
+
+```bash
+mkdir -p docs/release-notes/tmp
+
+# 1. Full log with bodies
+git log {SCOPE} --format="%H %ad %s%n%b" --date=short > docs/release-notes/tmp/git-log-{PERIOD}.txt
+# 2. File-level status (A/M/D) — the R1 change-map input
+git diff {BASE}..{HEAD} --name-status  > docs/release-notes/tmp/diff-file-status-{PERIOD}.txt
+# 3. Stat summary — the source of truth for reported statistics
+git diff {BASE}..{HEAD} --stat         > docs/release-notes/tmp/diff-stat-{PERIOD}.txt
+# 4. Full consolidated diff (may be large — never read it whole)
+git diff {BASE}..{HEAD}                > docs/release-notes/tmp/git-diff-{PERIOD}-full.txt
+```
+
+Verify every artifact exists and is non-empty before proceeding.
 
 ## Workflow
 
@@ -135,6 +220,82 @@ node .claude/skills/release-notes/lib/parse-commits.cjs <base> <head> | \
 node .claude/skills/release-notes/lib/categorize-commits.cjs | \
 node .claude/skills/release-notes/lib/render-template.cjs --version v1.1.0 --output docs/release-notes/250111-v1.1.0.md
 ```
+
+### Step 3b: Thematic Analysis (time-range scopes, and any scope with `--focus`)
+
+Conventional-commit categories answer "what TYPE of change"; a release document also needs "what AREA of the system". For a time range — or any scope where commit messages are non-conventional — group the changed files by area as well.
+
+Read `docs/release-notes/tmp/diff-file-status-{PERIOD}.txt` and map each path to an area. Derive the map from `docs/project-config.json` modules or the discovered source roots. For the portable `.claude` harness itself:
+
+| File path pattern                    | Area                    |
+| ------------------------------------ | ----------------------- |
+| `.claude/hooks/**`                   | Hook Enhancements       |
+| `.claude/hooks/lib/**`               | Hook Library            |
+| `.claude/skills/**`                  | Skills                  |
+| `.claude/agents/**`                  | Agent Definitions       |
+| `.claude/workflows/**`               | Workflow Orchestration  |
+| `.claude/docs/**`                    | Framework Documentation |
+| `.claude/scripts/**`                 | Tooling & Scripts       |
+| `docs/project-reference/**`          | Project Reference Docs  |
+| `CLAUDE.md`                          | Principles & Core Rules |
+| `.claude/.ck.json` / `settings.json` | Configuration           |
+
+Then, per area with significant change (>5 files or >200 lines), read representative diffs (`git show {hash} --stat`, `git diff {BASE}..{HEAD} -- {path}`) and answer: what the behavior was BEFORE vs AFTER, and who is affected. **Record `{commit_hash}:{file_path}` as the source of every claim.**
+
+**With `--focus "..."`:** grep the changed files for the focus keywords, read their FULL diffs (not just stat), give the focus area a dedicated top-level section in the output, and cross-reference related changes elsewhere (e.g. a new skill + its hook + its workflow entry).
+
+Category-map and output overrides live in `docs/project-config.json`:
+
+```json
+{
+    "releaseNotes": {
+        "categoryMap": {
+            "{api-source-root}/**": "API Layer",
+            "{ui-source-root}/**": "Frontend",
+            "migrations/**": "Database Schema"
+        },
+        "outputDir": "docs/release-notes",
+        "htmlReport": { "enabled": true, "autoOpen": true, "tempDir": "docs/release-notes/tmp" }
+    }
+}
+```
+
+`htmlReport.enabled: false` makes `--no-html` the default; `htmlReport.autoOpen: false` makes `--no-open` the default. An explicit flag on the invocation always wins over config.
+
+### Step 6: [BLOCKING] Rich HTML Release Presentation (default-on)
+
+> **[BLOCKING] Runs on every invocation unless the user passed `--no-html`.** Do not ask whether to generate it, and do not treat it as optional polish — the markdown notes alone are an incomplete deliverable.
+
+The markdown from Steps 3–5 is a categorized change summary. This step adds the **reader-facing release presentation**: one standalone, offline, professional HTML file that shows what's new and what changed, and renders faithful mock-ups of the project's **real** screens for any UI change.
+
+**Execute the canonical procedure in `references/html-release-report.md` (R1–R9), in order.** That file is the single source of truth — read it and follow it; do not improvise the sequence, and do not restate it here.
+
+| Stage  | Purpose                                                                                                             |
+| ------ | --------------------------------------------------------------------------------------------------------------------- |
+| **R1** | Comprehend the WHOLE change set — change map over every changed file, then rank into user-meaningful highlights       |
+| **R2** | Investigate each highlight END-TO-END — entry → logic → persistence → observable result; before→after; blast radius; covering tests; confidence % |
+| **R3** | Correlate spec changes — verdict `ALIGNED` / `SPEC-AHEAD` / `CODE-AHEAD` / `CONFLICT` per highlight                   |
+| **R4** | Detect the UI surface and **[BLOCKING] inventory the real existing UI** — design tokens, real components, real routes, real entity fields |
+| **R5** | **[BLOCKING] Write the temp analysis report** — the HTML is assembled FROM it, never from a diff or from memory        |
+| **R6** | Assemble ONE standalone HTML file — 10 required sections, evidence chips, real-UI mock-ups with before→after pairs     |
+| **R7** | Save beside the markdown notes, same stem with `.html`                                                                |
+| **R8** | **[BLOCKING] Accuracy + fidelity gates** — record `Release accuracy: PASS\|FAIL`, `Release fidelity: PASS\|FAIL`       |
+| **R9** | **Auto-open** in the default browser (best-effort; `--no-open` opts out), then report the path                        |
+
+**R0 is already satisfied** — Step 0b dumped the git artifacts and Steps 2–3b categorized the changes. Optionally add the structured commit JSON as extra R1 input:
+
+```bash
+node .claude/skills/release-notes/lib/parse-commits.cjs <base> <head> --with-files \
+  > docs/release-notes/tmp/commits-{PERIOD}.json
+```
+
+Run R1–R9 with the temp report at `docs/release-notes/tmp/{PERIOD}-release-analysis.md`.
+
+**Three rules specific to invoking it from here:**
+
+1. **This stage is model work, not another pipe.** The `lib/*.cjs` scripts categorize commits; they cannot trace a feature end-to-end or reproduce a real screen. Do not attempt to satisfy Step 6 by adding a renderer to the pipeline.
+2. **`categorize-commits.cjs` output is an input to R1, not a substitute for it.** Its type-based buckets are a starting point; R1.4 still re-ranks into *user outcomes* (merging N commits that ship one outcome, splitting one commit that ships two) and R1.5 still cross-checks that every added/deleted file and every breaking change is accounted for.
+3. **Step 3b's area map feeds R1.3.** When a thematic map was built, reuse it as the change map's `Area` column rather than deriving a second, divergent grouping.
 
 ## Complete Pipeline
 
@@ -405,6 +566,9 @@ Generated release notes are **Draft** status by default:
 - **`$commit`** - After generating notes, commit them
 - **`/git-manager`** - Create PR for release notes review
 - **`$docs-update`** - Update CHANGELOG.md with new release
+- **`$release-doc`** - **Deprecated alias of this skill** (superseded 2026-09-08). It resolves here; do not route work to it. Its time-range scope, artifact dumping, thematic analysis, `--focus`, and HTML presentation all live here now.
+- **`$changelog`** - Still separate: per-feature changelog entries. This skill is for multi-commit release summaries.
+- **`$pbi-mockup`** - When a shipped feature already has a `team-artifacts/pbis/*-mockup.html`, R6.3 REUSES it via `<iframe srcdoc>` instead of rebuilding the screen.
 
 ## Troubleshooting
 
@@ -424,9 +588,21 @@ Commits not following `type(scope): description` format go to "other" category. 
 
 Add scope mappings to `config.yaml` → `services` section for better context labels.
 
+### HTML mock-ups look generic, not like the project
+
+The R4.3 UI inventory was skipped or done shallowly. The mock-up must be built from the **actual component/template files the diff touched** plus 2–3 real siblings — copying their markup structure and class names — and from **real design tokens**. Re-run R4.3–R4.4, then R6.3, then the R8.2 fidelity gate.
+
+### The HTML doc is full of commit subjects
+
+R1.4 was skipped: `categorize-commits.cjs` buckets were used verbatim as highlights. A highlight is a *user outcome*, not a commit — merge the commits that ship one outcome and re-rank breaking → new → changed → fixes → perf → internal.
+
+### Browser did not open
+
+Auto-open is best-effort by design (R9). A sandbox, headless runner, hook refusal, or non-zero exit is reported as `Auto-open: skipped ({reason})` with the absolute path printed — the run still succeeds. On Windows prefer `pwsh -NoProfile -Command "Start-Process '<path>'"`: it contains no slash-prefixed flags, so a path-boundary hook that rejects `cmd /c start` still allows it.
+
 ---
 
-> **[IMPORTANT]** Use task tracking to break ALL work into small tasks BEFORE starting — including tasks for each file read. This prevents context loss from long files. For simple tasks, AI MUST ATTENTION ask user whether to skip.
+> **[IMPORTANT]** Use task tracking to break ALL work into small tasks BEFORE starting — including tasks for each file read, plus one per Step 4 R-stage and one per release highlight found in R1.4. This prevents context loss from long files. For simple tasks, AI MUST ATTENTION ask user whether to skip.
 
 <!-- SYNC:ai-mistake-prevention -->
 
@@ -487,18 +663,22 @@ Add scope mappings to `config.yaml` → `services` section for better context la
 **IMPORTANT MUST ATTENTION** break work into small todo tasks using task tracking BEFORE starting
 **IMPORTANT MUST ATTENTION** search codebase for 3+ similar patterns before creating new code
 **IMPORTANT MUST ATTENTION** cite `file:line` evidence for every claim (confidence >80% to act)
+**IMPORTANT MUST ATTENTION** Step 6 (HTML presentation) is DEFAULT-ON: follow `references/html-release-report.md` R1–R9 verbatim — never restate or improvise that procedure
+**IMPORTANT MUST ATTENTION** Step 6 (HTML presentation) is DEFAULT-ON: comprehend the whole change set and trace each highlight end-to-end BEFORE writing; write the temp analysis report (R5) BEFORE the HTML
+**IMPORTANT MUST ATTENTION** Step 6 (HTML presentation) is DEFAULT-ON: mock-ups reproduce the project's REAL UI (real tokens, components, routes, domain fields) and carry the `⚠ Illustrative mock-up` label — never Lorem ipsum, never a generic layout
+**IMPORTANT MUST ATTENTION** Step 6 (HTML presentation) is DEFAULT-ON: record `Release accuracy: PASS|FAIL` + `Release fidelity: PASS|FAIL` (R8) and auto-open best-effort (R9) before reporting done
 **IMPORTANT MUST ATTENTION** add a final review todo task to verify work quality
 
 **[TASK-PLANNING]** Before acting, analyze task scope and systematically break it into small todo tasks and sub-tasks using task tracking.
 
 <!-- CODEX:SYNC-PROMPT-PROTOCOLS:START -->
-## Hookless Prompt Protocol Mirror (Auto-Synced)
+## Static Prompt Protocol Mirror (Auto-Synced)
 
-Source: `.claude/.ck.json` + `.claude/skills/shared/sync-inline-versions.md` (`:full` blocks) + `.claude/scripts/lib/hookless-prompt-protocol.cjs`
+Source: `.claude/.ck.json` + `.claude/skills/shared/sync-inline-versions.md` (`:full` blocks) + `.claude/scripts/lib/hookless-prompt-protocol.cjs` (legacy filename; static protocol composer)
 
 ## [WORKFLOW-EXECUTION-PROTOCOL] [BLOCKING] Workflow Execution Protocol — MANDATORY IMPORTANT MUST CRITICAL. Do not skip for any reason.
 
-**Generic portability boundary:** Reusable skills and protocol text stay project-neutral; project-specific conventions are discovered from docs/project-config.json and docs/project-reference/. Apply shared AI-SDD from `shared/sdd-artifact-contract.md`. Read `docs/project-config.json` and `docs/project-reference/docs-index-reference.md`, then open the project reference docs named there. For spec, test-case, behavior-change, public-contract, or `docs/specs/` work, route through the local spec docs named by the docs index: `feature-spec-reference.md`, `spec-system-reference.md`, `spec-principles.md`, and `workflow-spec-test-code-cycle-reference.md` when specs/tests/code must stay synchronized. If either file or a required reference doc is missing or stale, auto-run `$project-init` (or the narrow lower-level route such as `$project-config`, `$docs-init`, `$scan-all`, or `$scan --target=<key>`) before ordinary project-specific work. Any supported AI tool may execute when this shared context and local docs are available.
+**Generic portability boundary:** Reusable skills and protocol text stay project-neutral; project-specific conventions are discovered from docs/project-config.json and docs/project-reference/. Apply shared AI-SDD from `shared/sdd-artifact-contract.md`. Read `docs/project-config.json` and `docs/project-reference/docs-index-reference.md`, then open the project reference docs named there immediately before the first target read, grep, edit, test, or analysis. For spec, test-case, behavior-change, public-contract, or `docs/specs/` work, route through the local spec docs named by the docs index: `feature-spec-reference.md`, `spec-system-reference.md`, `spec-principles.md`, and `workflow-spec-test-code-cycle-reference.md` when specs/tests/code must stay synchronized. If either file or a required reference doc is missing or stale, auto-run `$project-init` (or the narrow lower-level route such as `$project-config`, `$docs-init`, `$scan-all`, or `$scan --target=<key>`) before ordinary project-specific work. After compaction, resume, delegation, or a material context change, re-read the required docs and state `Reference docs read: ... | Not applicable: ...`; a hook reminder or prior conversation is not proof that the files are loaded. Any supported AI tool may execute when this shared context and local docs are available.
 
 1. **DETECT:** If the prompt starts with an explicit slash skill/workflow command, execute it directly. Otherwise match the prompt against the workflow catalog and skill list.
 2. **ANALYZE:** Choose the best option: execute directly, invoke a skill, activate a standard workflow, or compose a custom step combination.

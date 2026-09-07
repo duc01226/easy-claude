@@ -338,7 +338,7 @@ Lessons and pattern references are read statically, per the project-reference-do
 - `docs/project-reference/lessons.md` — read on **every** task (the gate always includes it).
 - Pattern/rule references (`backend-patterns-reference.md`, `code-review-rules.md`, etc.) — read by their matching trigger (see the Reference Doc Catalog table above).
 
-Because the routing is static prose, hookless harnesses (Codex) load the same lessons and patterns as Claude Code.
+Because the routing is static prose, Claude and Codex load the same lessons and patterns whether their hooks are enabled, unavailable, or stale.
 
 ## Prompt Enhancement (MANDATORY final step)
 

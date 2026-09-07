@@ -62,6 +62,18 @@ const toolInputTests = [
 ];
 
 const commandTests = [
+    ...['\n', ';', '&&', '||', '|'].flatMap(separator => [
+        {
+            cmd: `npm run build ${separator} cat "build"`,
+            exact: ['build'],
+            desc: `[AP-01] ${JSON.stringify(separator)} preserves the filesystem tail`
+        },
+        {
+            cmd: `npm run "build" ${separator} npm run "build"`,
+            exact: [],
+            desc: `[AP-01] ${JSON.stringify(separator)} preserves independent build operations`
+        }
+    ]),
     {
         cmd: 'ls packages/web/node_modules',
         hasPath: 'packages/web/node_modules',
@@ -89,15 +101,18 @@ const commandTests = [
     },
     { cmd: 'cp -r dist/ backup/', hasPath: 'dist', desc: 'cp with flags' },
 
-    // Note: Build commands may extract 'build' as a blocked dir name, but this is handled
-    // at the dispatcher level (build commands bypass path checking entirely).
-    // The path extractor correctly identifies blocked dir names like 'build'.
+    // Only the build-operation token is exempt; other operands/siblings remain paths.
     {
         cmd: 'npm run build',
-        hasPath: 'build',
-        desc: 'npm run build (extracts build)'
+        hasPath: null,
+        desc: 'npm run build (operation, not path)'
     },
-    { cmd: 'pnpm build', hasPath: 'build', desc: 'pnpm build (extracts build)' },
+    { cmd: 'pnpm build', hasPath: null, desc: 'pnpm build (operation, not path)' },
+    { cmd: 'npm run "build"', hasPath: null, desc: 'quoted build operation retains argument position' },
+    { cmd: './gradlew build', hasPath: null, desc: 'local build executable retains operation role' },
+    { cmd: 'npm run "build";cat node_modules/a.js', hasPath: 'node_modules/a.js', desc: 'compound tail remains visible' },
+    { cmd: 'cat "build"', hasPath: 'build', desc: 'quoted file operand remains visible' },
+    { cmd: ' '.repeat(65536) + 'cat node_modules/a.js', hasPath: 'node_modules/a.js', desc: 'oversized scanner input retains heuristic path extraction' },
     { cmd: 'cd build', hasPath: 'build', desc: 'cd build (extracts build)' },
     { cmd: 'yarn test', hasPath: null, desc: 'yarn test (no blocked paths)' },
     { cmd: 'npm install', hasPath: null, desc: 'npm install (no blocked paths)' }
@@ -153,7 +168,9 @@ for (const test of commandTests) {
     const result = extractFromCommand(test.cmd);
     let success;
 
-    if (test.hasPath === null) {
+    if (test.exact) {
+        success = JSON.stringify(result) === JSON.stringify(test.exact);
+    } else if (test.hasPath === null) {
         // Build commands should extract few/no blocked-related paths
         success = result.length === 0 || !result.some(p => p.includes('node_modules') || p.includes('dist') || p.includes('build'));
     } else {
@@ -164,7 +181,8 @@ for (const test of commandTests) {
         console.log(`\x1b[32m✓\x1b[0m ${test.desc}: ${JSON.stringify(result)}`);
         passed++;
     } else {
-        console.log(`\x1b[31m✗\x1b[0m ${test.desc}: expected path containing '${test.hasPath}', got ${JSON.stringify(result)}`);
+        const expected = test.exact ? JSON.stringify(test.exact) : `path containing '${test.hasPath}'`;
+        console.log(`\x1b[31m✗\x1b[0m ${test.desc}: expected ${expected}, got ${JSON.stringify(result)}`);
         failed++;
     }
 }

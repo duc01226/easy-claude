@@ -199,7 +199,7 @@ OFF_ROLE_TRIMS = {
 AGENT_QUALITY_BLOCKS = {
     # --- review family ---------------------------------------------------
     "code-reviewer": [
-        "severity-rubric", "systematic-review-batching", "category-review-thinking",
+        "severity-rubric", "review-policy", "systematic-review-batching", "category-review-thinking",
         "fresh-context-review", "double-round-trip-review", "logic-and-intention-review",
         "review-protocol-injection", "bug-detection", "complexity-prevention",
         "design-patterns-quality", "rationalization-prevention",
@@ -242,7 +242,7 @@ AGENT_QUALITY_BLOCKS = {
         "trade-off-interrogation-gate", "spec-tests-code-triangulation", "ui-intent-layer",
     ],
     "quality-gate-review": [
-        "severity-rubric", "double-round-trip-review", "fresh-context-review",
+        "severity-rubric", "review-policy", "double-round-trip-review", "fresh-context-review",
         "review-protocol-injection", "refinement-dor-checklist", "estimation-framework",
         # wave 2 (twin: quality-gate-review / quality-gate)
         "trade-off-interrogation-gate", "source-test-drift-check",
@@ -269,7 +269,7 @@ AGENT_QUALITY_BLOCKS = {
     "planner": [
         "estimation-framework", "plan-quality", "plan-granularity",
         "iterative-phase-quality", "preservation-inventory", "behavioral-delta-matrix",
-        "severity-rubric", "fresh-context-review", "double-round-trip-review",
+        "severity-rubric", "review-policy", "fresh-context-review", "double-round-trip-review",
         "graph-assisted-investigation", "review-protocol-injection",
         # wave 2 (twin: plan-review)
         "trade-off-interrogation-gate",
@@ -661,6 +661,17 @@ def validate() -> tuple[list[str], list[str]]:
         if extra:
             errors.append(f"(partition) agents in a family but no matrix row: {extra}")
     on_disk = disk_agent_names()
+
+    # (i) stale-orchestration guard -- HARD FAIL. The injector can reconcile
+    # exact fenced blocks, but a validation run must make the stale carrier
+    # visible instead of allowing an excluded orchestration contract to linger.
+    for agent in sorted(on_disk & set(AGENT_QUALITY_BLOCKS)):
+        stale = sorted((agent_present_tags(agent) & EXCLUDED_ORCHESTRATION) - ORCHESTRATION_WHITELIST.get(agent, set()))
+        if stale:
+            errors.append(
+                f"(i) agent '{agent}' still carries excluded-orchestration block(s) {stale}; "
+                "run inject_agent_protocol_blocks.py to reconcile exact fences"
+            )
 
     # (connection) every canonical agent has an explicit, valid skill link and
     # every native frontmatter link is represented by that connection. The

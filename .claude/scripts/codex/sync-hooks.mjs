@@ -2,15 +2,24 @@
 
 import fs from "node:fs/promises";
 import path from "node:path";
+import { createRequire } from "node:module";
+import { fileURLToPath } from "node:url";
 
-const rootDir = process.cwd();
+const require = createRequire(import.meta.url);
+const { resolveMutationProjectRoot } = require("../lib/project-root.cjs");
+const rootResolution = resolveMutationProjectRoot({
+  cwd: process.cwd(),
+  scriptPath: fileURLToPath(import.meta.url),
+  env: process.env,
+});
+const rootDir = rootResolution.rootDir;
 const claudeSettingsPath = path.join(rootDir, ".claude", "settings.json");
 const codexDir = path.join(rootDir, ".codex");
 const codexHooksPath = path.join(codexDir, "hooks.json");
 const reportPath = path.join(codexDir, "hooks.sync.report.json");
 
 const disabledCodexEvents = new Map([
-  ["SessionStart", "disabled-for-codex-hookless-startup-context"],
+  ["SessionStart", "static-startup-context-authoritative"],
 ]);
 
 const supportedEvents = new Set([
@@ -93,7 +102,7 @@ async function main() {
       "Generated Node hook commands resolve from the nearest .claude parent, so the tracked mirror works in worktrees, session subdirectories, and bare framework copies.",
       "Tool matcher capabilities may vary by Codex runtime; source matchers are preserved when possible.",
       "UserPromptSubmit and Stop now preserve source matcher filters when present.",
-      "Claude SessionStart hooks are intentionally omitted; Codex startup context comes from AGENTS.md and generated static context files.",
+      "SessionStart hooks are intentionally omitted from the generated Codex config so startup context is not duplicated; both hosts load the same static files, and an adopter may add a local startup hook as an optional accelerator.",
     ],
     converted_events: [],
     skipped_events: [],

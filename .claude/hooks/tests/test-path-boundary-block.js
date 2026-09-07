@@ -43,7 +43,10 @@ async function runHook(hookData, options = {}) {
             resolve({ code, stderr });
         });
 
-        proc.stdin.write(JSON.stringify(hookData));
+        const payload = hookData && typeof hookData === 'object' && !hookData.tool_name
+            ? { tool_name: 'Bash', ...hookData }
+            : hookData;
+        proc.stdin.write(JSON.stringify(payload));
         proc.stdin.end();
     });
 }
@@ -298,13 +301,13 @@ const winFlagAllowTests = [
         expectBlock: false
     },
     {
-        name: 'cd /d + dir /b /s chained - should allow (regression: real user report)',
+        name: 'cd /d + dir /b /s chained relative access - should block (cwd cannot be re-scoped)',
         input: {
             tool_input: {
                 command: 'cd /d D:\\GitSources\\SampleRepo && dir /b /s src\\Services\\Dockerfile & dir /b Sample-DevStarts\\StartDocker'
             }
         },
-        expectBlock: false
+        expectBlock: true
     },
     {
         name: 'del /q /f - should allow',
@@ -467,17 +470,18 @@ const inlineCodeTests = [
     }
 ];
 
-// Tests for sed/awk pattern false positives (should ALLOW)
+// Static sed/awk patterns are data; unmodeled child execution fails closed.
 const sedAwkTests = [
     {
-        name: 'sed substitution with path-like pattern - should allow',
+        name: 'find -exec child scope is unmodeled - should block',
         input: {
             tool_input: {
                 command:
-                    'find "MyProject-DevStarts/StartDocker/" -name "*.cmd" -exec sed -i \'s/docker compose --ansi always \\(.*\\) build /docker compose \\1/\' {} \\;'
+                    'find . -name "*.cmd" -exec sed -i \'s/docker compose --ansi always \\(.*\\) build /docker compose \\1/\' {} \\;'
             }
         },
-        expectBlock: false
+        // Strict scoped guards cannot infer a child command's file effects.
+        expectBlock: true
     },
     {
         name: 'sed -i with slash-heavy substitution - should allow',
@@ -496,7 +500,7 @@ const sedAwkTests = [
     },
     {
         name: 'awk -v before comma regex - should allow',
-        input: { tool_input: { command: "awk -v ws=plans/report.md '/,/{print $0}' plans/report.md" } },
+        input: { tool_input: { command: "awk -v ws=CLAUDE.md '/,/{print $0}' CLAUDE.md" } },
         expectBlock: false
     },
     {
@@ -547,23 +551,23 @@ const sedAwkTests = [
 // Tests for grep/ripgrep pattern false positives (should ALLOW)
 const grepTests = [
     {
-        name: 'grep quoted pattern with SYNC marker - should allow',
+        name: 'grep quoted pattern cannot authorize a dynamic file - should block',
         input: { tool_input: { command: 'grep -c "<!-- /SYNC:" "$f" 2>/dev/null' } },
-        expectBlock: false
+        expectBlock: true
     },
     {
-        name: 'grep single-quoted SYNC pattern - should allow',
+        name: 'grep single-quoted pattern cannot authorize a dynamic file - should block',
         input: { tool_input: { command: 'grep -c \'<!-- /SYNC:\' "$f"' } },
-        expectBlock: false
+        expectBlock: true
     },
     {
         name: 'rg with API route pattern - should allow',
-        input: { tool_input: { command: 'rg -l "/api/v2/users" src/' } },
+        input: { tool_input: { command: 'rg -l "/api/v2/users" docs/' } },
         expectBlock: false
     },
     {
         name: 'rg --type with space-separated value - should allow',
-        input: { tool_input: { command: 'rg --type js "/api/v2/users" src/' } },
+        input: { tool_input: { command: 'rg --type js "/api/v2/users" docs/' } },
         expectBlock: false
     },
     {
@@ -789,19 +793,19 @@ const edgeCaseTests = [
         expectBlock: false
     },
     {
-        name: 'null input - should allow',
+        name: 'null tool input - should fail closed with a diagnostic',
         input: { tool_input: null },
-        expectBlock: false
+        expectBlock: true
     },
     {
-        name: 'missing tool_input - should allow',
+        name: 'missing tool_input - should fail closed with a diagnostic',
         input: {},
-        expectBlock: false
+        expectBlock: true
     },
     {
-        name: 'invalid JSON - should allow (fail-open)',
+        name: 'invalid JSON - should block with a visible diagnostic (fail-closed)',
         rawInput: 'not json',
-        expectBlock: false
+        expectBlock: true
     }
 ];
 
@@ -818,7 +822,10 @@ async function runWithConfig(input, config) {
     fs.mkdirSync(tmpClaudeDir, { recursive: true });
     fs.writeFileSync(path.join(tmpClaudeDir, '.ck.json'), JSON.stringify(config));
 
-    const result = await runHook(input, { cwd: tmpDir, projectDir: PROJECT_ROOT });
+    // The synthetic project owns both the event cwd and the explicit project
+    // root.  Pointing the hook at the real checkout while writing config under
+    // tmpDir silently tested the wrong config and could mutate a shared marker.
+    const result = await runHook(input, { cwd: tmpDir, projectDir: tmpDir });
     fs.rmSync(tmpDir, { recursive: true, force: true });
     return result;
 }

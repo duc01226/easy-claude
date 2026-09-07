@@ -5,7 +5,7 @@
 // invariant, using only Node + the existing extractor lib (no new tooling).
 //
 // PROPERTY (universal quantification over the WHOLE domain, not one sampled point):
-//   ∀ canonical `## SYNC:<tag>` block (excluding `:reminder` variants — see below)
+//   ∀ canonical `## SYNC:<tag>` block (base AND `:reminder` variants — see below)
 //   and ∀ carrier file under .claude/skills/*/SKILL.md or .claude/agents/*.md that
 //   embeds `<!-- SYNC:<tag> -->…<!-- /SYNC:<tag> -->`, the carrier body EQUALS the
 //   canonical body (after CRLF/whitespace normalization).
@@ -26,10 +26,17 @@
 // next `\n## SYNC:` — NOT the stricter `\n---\n\n## SYNC:` of extract-sync-block.cjs,
 // so a block separated without a blank line cannot over-capture and false-fail.
 //
-// EXCLUDED (no silent cap): `:reminder` variant tags. `sync-update-blocks.py` skips
-// them by design (they are not body-synced), so they may legitimately differ from
-// canonical; including them would produce false positives. The exclusion is asserted
-// loudly (the tag list is reported), never hidden.
+// `:reminder` VARIANTS ARE IN SCOPE. They were excluded here on the theory that
+// `sync-update-blocks.py` does not body-sync them, so they "may legitimately differ from
+// canonical" and including them would produce false positives. Both halves were wrong, and
+// the exclusion cost a real regression: a canonical `:reminder` body was extended while all
+// 63 of its carriers kept the old text, and every gate stayed green because this property
+// was the only thing that could have seen it. The tool DOES address them
+// (`sync-update-blocks.py` docstring; its fence regex deliberately makes a plain tag not
+// match its `:reminder` variant so the two are separately targetable), and the corpus keeps
+// them equal in practice — measured at the time of this change, 28 canonical reminder tags
+// across 1,111 tag x carrier pairs were byte-exact once that one tag was cascaded. A
+// reminder that legitimately needs to differ belongs in OVERRIDE, which has its own guard.
 //
 // OVERRIDE-SUBSTANCE GUARD (separate property): `<!-- OVERRIDE:<tag> -->` blocks are an
 // INTENTIONAL divergence — three review skills copy the review-protocol-injection template
@@ -69,10 +76,10 @@ const norm = (s) =>
 
 const escapeRe = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
-// Every canonical `## SYNC:<tag>` base+variant header, EXCLUDING `:reminder`.
+// Every canonical `## SYNC:<tag>` base+variant header, INCLUDING `:reminder` variants.
 function canonicalTags() {
     const tags = [...canonical.matchAll(/^## SYNC:([A-Za-z0-9:_-]+)\s*$/gm)].map((m) => m[1]);
-    return [...new Set(tags)].filter((t) => !t.endsWith(':reminder'));
+    return [...new Set(tags)];
 }
 
 // Canonical body for a tag, mirroring sync-update-blocks.py read_canonical_block:

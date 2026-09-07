@@ -11,11 +11,11 @@
 > - If a required step/tool cannot run in this environment, stop and ask the user before adapting.
 ## Prompt Protocol Mirror (Auto-Synced, Primacy Anchor)
 
-Source: `.claude/.ck.json` + `.claude/skills/shared/sync-inline-versions.md` (`:full` blocks) + `.claude/scripts/lib/hookless-prompt-protocol.cjs`
+Source: `.claude/.ck.json` + `.claude/skills/shared/sync-inline-versions.md` (`:full` blocks) + `.claude/scripts/lib/hookless-prompt-protocol.cjs` (legacy filename; static protocol composer)
 
 ## [WORKFLOW-EXECUTION-PROTOCOL] [BLOCKING] Workflow Execution Protocol — MANDATORY IMPORTANT MUST CRITICAL. Do not skip for any reason.
 
-**Generic portability boundary:** Reusable skills and protocol text stay project-neutral; project-specific conventions are discovered from docs/project-config.json and docs/project-reference/. Apply shared AI-SDD from `shared/sdd-artifact-contract.md`. Read `docs/project-config.json` and `docs/project-reference/docs-index-reference.md`, then open the project reference docs named there. For spec, test-case, behavior-change, public-contract, or `docs/specs/` work, route through the local spec docs named by the docs index: `feature-spec-reference.md`, `spec-system-reference.md`, `spec-principles.md`, and `workflow-spec-test-code-cycle-reference.md` when specs/tests/code must stay synchronized. If either file or a required reference doc is missing or stale, auto-run `$project-init` (or the narrow lower-level route such as `$project-config`, `$docs-init`, `$scan-all`, or `$scan --target=<key>`) before ordinary project-specific work. Any supported AI tool may execute when this shared context and local docs are available.
+**Generic portability boundary:** Reusable skills and protocol text stay project-neutral; project-specific conventions are discovered from docs/project-config.json and docs/project-reference/. Apply shared AI-SDD from `shared/sdd-artifact-contract.md`. Read `docs/project-config.json` and `docs/project-reference/docs-index-reference.md`, then open the project reference docs named there immediately before the first target read, grep, edit, test, or analysis. For spec, test-case, behavior-change, public-contract, or `docs/specs/` work, route through the local spec docs named by the docs index: `feature-spec-reference.md`, `spec-system-reference.md`, `spec-principles.md`, and `workflow-spec-test-code-cycle-reference.md` when specs/tests/code must stay synchronized. If either file or a required reference doc is missing or stale, auto-run `$project-init` (or the narrow lower-level route such as `$project-config`, `$docs-init`, `$scan-all`, or `$scan --target=<key>`) before ordinary project-specific work. After compaction, resume, delegation, or a material context change, re-read the required docs and state `Reference docs read: ... | Not applicable: ...`; a hook reminder or prior conversation is not proof that the files are loaded. Any supported AI tool may execute when this shared context and local docs are available.
 
 1. **DETECT:** If the prompt starts with an explicit slash skill/workflow command, execute it directly. Otherwise match the prompt against the workflow catalog and skill list.
 2. **ANALYZE:** Choose the best option: execute directly, invoke a skill, activate a standard workflow, or compose a custom step combination.
@@ -89,7 +89,7 @@ Source: `.claude/skills/shared/sync-inline-versions.md`
 - **Keep domain concepts out of generic/shared/infrastructure layers.** Reusable layer (shared library, framework, infra module) must reference NO consumer-specific domain concept — tenant/customer/product IDs, business entities, feature rules. Leak compiles + runs → passes review silently while coupling the "reusable" layer to one consumer. Keep shared type domain-free; push domain fields/logic down into the consumer via subclass/composition. — why: a layer coupled to one consumer's domain is no longer reusable.
 <!-- PROMPT-PROTOCOLS:END -->
 
-## Codex Hookless Project Reference Gate
+## Codex Project Reference Gate (Hook-Independent)
 
 Codex uses static project-reference loading instead of runtime-injected project docs. Before coding, planning, debugging, testing, or reviewing:
 
@@ -99,6 +99,7 @@ Codex uses static project-reference loading instead of runtime-injected project 
 - For spec, test-case, `docs/specs/`, behavior-change, or public-contract work, read the spec routing set named by the docs index: `feature-spec-reference.md`, `spec-system-reference.md`, `spec-principles.md`, and `workflow-spec-test-code-cycle-reference.md` when specs/tests/code must stay synchronized.
 - If `docs/project-config.json`, the docs index, `lessons.md`, `CLAUDE.md`, `AGENTS.md`, or any task-required reference doc is missing or stale, auto-run `$project-init` or the narrow setup route (`$project-config`, `$docs-init`, `$scan-all`, `$scan --target=<key>`, `$claude-md-init`) before ordinary project-specific work. If Codex mirrors or `AGENTS.md` are missing/stale, ask the user to run `$sync-codex`; do not auto-run it.
 - For situation-specific work, open the referenced project doc directly; do not rely on prior conversation text as proof that the doc is loaded.
+- Load context just in time: classify the target and operation, open only the matching reference docs immediately before the first target read/grep/edit/test, and after compaction, resume, delegation, or a context change re-read them and restate `Reference docs read: ... | Not applicable: ...`.
 
 <!-- WORKFLOWS:START -->
 > Codex compatibility note:
@@ -111,9 +112,9 @@ Codex uses static project-reference loading instead of runtime-injected project 
 > - Do not skip, reorder, or merge protocol steps unless the user explicitly approves the deviation first.
 > - For workflow skills, execute each listed child-skill step explicitly and report step-by-step evidence.
 > - If a required step/tool cannot run in this environment, stop and ask the user before adapting.
-## Workflow Protocol (Hookless)
+## Workflow Protocol (Hook-Independent)
 
-Use this protocol for workflow execution in Codex (no hook dependency):
+Use this protocol for workflow execution on Claude or Codex (hooks are optional accelerators):
 1. Detect: execute explicit `$skill`, `$workflow-*`, or `$start-workflow <id>` prompts directly; otherwise match request against workflow catalog and skill list.
 2. Analyze: choose the best path: direct execution, skill, standard workflow, or custom step combination.
 3. Auto-select: pick the best path yourself without asking the user to choose between direct/skill/workflow/custom options.
@@ -325,7 +326,10 @@ DOMAIN-ENTITY REFERENCE REFRESH (CONDITIONAL TERMINAL STEP):
 ### workflow-code-to-spec — Code to Feature Spec
 - Description: Code-to-spec — authors and maintains ONE canonical artifact per capability FROM existing code: the tech-free 8-section Feature Spec at docs/specs/{Bucket}/README.{Feature}.md (code is the technical source of truth; derived bucket INDEX/ERD are regenerable aids). Modes: init-full (zero → Feature Specs), update (incremental sync from code changes), audit (staleness check). For idea→spec (no code yet) use workflow-idea-to-spec.
 - When To Use: Initial Feature Spec generation from zero docs, maintaining spec sync after code changes, quarterly spec health audits, before tech migrations, after major features land — authors + three-way-syncs the canonical Feature Spec. Use spec-index instead when only regenerating derived indexes/ERDs.
-- Sequence: `investigate -> plan -> plan-review -> plan-validate -> spec -> spec [mode=tests] -> artifact-review --type=spec-tests -> artifact-review -> docs-update -> workflow-end -> watzup`
+- Sequence: `init-full: investigate -> plan -> plan-review -> plan-validate -> spec [mode=init] -> spec [mode=tests] -> artifact-review --type=spec-tests -> artifact-review -> docs-update -> workflow-end -> watzup; update: workflow-review-changes -> spec [mode=update] -> spec [mode=tests] -> artifact-review --type=spec-tests -> spec [mode=sync] -> changes-review -> docs-update -> workflow-end -> watzup; audit: investigate -> spec [mode=audit] -> artifact-review -> docs-update -> workflow-end -> watzup`
+- init-full occurrence IDs: `init-investigate, init-plan, init-plan-review, init-plan-validate, init-spec, init-spec-tests, init-review-spec-tests, init-review, init-docs, init-end, init-watzup`
+- update occurrence IDs: `update-review, update-spec, update-spec-tests, update-review-spec-tests, update-spec-sync, update-changes-review, update-docs, update-end, update-watzup`
+- audit occurrence IDs: `audit-investigate, audit-spec, audit-review, audit-docs, audit-end, audit-watzup`
 
 Protocol:
 ```text
@@ -349,9 +353,9 @@ UNIVERSAL RULES:
 ```
 
 ### workflow-e2e — E2E Testing
-- Description: Generate, update, or maintain E2E/Playwright tests — source-parameterized (changes | recording | update-ui)
+- Description: Generate, update, or maintain E2E/Playwright tests and deliberately review affected observable experience — source-parameterized (changes | recording | update-ui)
 - When To Use: User wants to generate, update, or maintain E2E/Playwright tests from code/spec changes (--source=changes), a Chrome DevTools recording (--source=recording), or for UI screenshot baselines (--source=update-ui)
-- Sequence: `investigate -> e2e-test -> test -> docs-update -> workflow-end -> watzup`
+- Sequence: `investigate -> e2e-test -> experience-review -> test -> docs-update -> workflow-end -> watzup`
 
 Protocol:
 ```text
@@ -359,7 +363,7 @@ E2E WORKFLOW (source-parameterized):
 Resolve --source={changes|recording|update-ui} and follow the matching protocol block in .claude/skills/workflow-e2e/SKILL.md:
 - changes: detect change type from git diff (spec/code/API) -> load affected TC-{FEATURE}-{NNN} -> update/generate test implementations -> ensure each TC has a corresponding test -> run tests -> report coverage.
 - recording: validate recording JSON -> identify app/feature -> run convert-recording.ts -> map TCs to recording steps -> apply project CSS conventions (docs/project-config.json → workflowPatterns.cssMethodology) -> add screenshot assertions -> Page Object if complex -> run + report.
-- update-ui: identify visual diff (SCSS/HTML/TS) -> map to page objects -> find affected specs -> regenerate screenshots (--update-snapshots) -> visual review old vs new -> confirm intentional with user -> report.
+- update-ui: identify visual diff (SCSS/HTML/TS) -> map to page objects -> find affected specs -> collect candidate evidence without changing accepted expectations -> run experience-review -> only after explicit acceptance update the affected snapshots/baselines -> report.
 UNIVERSAL RULES:
 - Goal-Driven Execution: define success criteria before execution; loop until observable checks pass.
 - Tests Verify Intent: when creating or reviewing specs/tests, name the protected business intent or invariant and ensure the test would fail if that intent breaks.
@@ -880,7 +884,11 @@ UNIVERSAL RULES:
 ### workflow-research — Research & Synthesis
 - Description: Research & Synthesis: gather web sources on a topic, then synthesize into one of four artifacts selected by --output — cited knowledge report (synthesis), business/market viability evaluation (business-eval), marketing strategy (marketing), or structured course material (course)
 - When To Use: User wants to research a topic from web sources and synthesize the findings into a deliverable — a cited knowledge report, a business/market viability evaluation, a marketing strategy, or structured course material
-- Sequence: `web-research -> deep-research -> knowledge-synthesis -> knowledge-review -> workflow-end`
+- Sequence: `synthesis: web-research -> deep-research -> knowledge-synthesis -> knowledge-review -> workflow-end; business-eval: web-research -> deep-research -> market-analysis -> business-evaluation -> knowledge-review -> workflow-end; marketing: web-research -> deep-research -> market-analysis -> strategy-builder -> knowledge-review -> workflow-end; course: web-research -> deep-research -> course-builder -> knowledge-review -> workflow-end`
+- synthesis occurrence IDs: `synthesis-web-research, synthesis-deep-research, synthesis-knowledge, synthesis-review, synthesis-end`
+- business-eval occurrence IDs: `business-web-research, business-deep-research, business-market-analysis, business-evaluation, business-review, business-end`
+- marketing occurrence IDs: `marketing-web-research, marketing-deep-research, marketing-market-analysis, marketing-strategy, marketing-review, marketing-end`
+- course occurrence IDs: `course-web-research, course-deep-research, course-builder, course-review, course-end`
 
 Protocol:
 ```text
@@ -905,14 +913,20 @@ UNIVERSAL RULES:
 ```
 
 ### workflow-review-changes — Review Current Changes
-- Description: Review uncommitted changes, plan and fix issues, then re-review recursively until clean
+- Description: Review uncommitted changes, conditionally exercise affected observable surfaces, plan and fix blocking findings, then re-review recursively until the current severity bar is clear
 - When To Use: User wants to review current uncommitted, staged, or unstaged changes before committing
-- Sequence: `[parallel ⇉ all-return barrier: changes-review, why-review --target=whole-review-target] -> why-review -> [parallel ⇉ all-return barrier: architecture-review, domain-entities-review*, performance-review, integration-test-review, security-review, production-readiness-review, ui-review*] -> code-simplifier -> plan -> plan-review -> plan-execute -> changes-review -> why-review -> scan --target=domain-entities -> docs-update -> workflow-end -> watzup`
+- Sequence: `[parallel ⇉ all-return barrier: initial-changes-review, legacy-2.4.0-ae1a75fb7e4d5f6a-2] -> why-review -> [parallel ⇉ all-return barrier: legacy-2.4.0-ae1a75fb7e4d5f6a-4, legacy-2.4.0-ae1a75fb7e4d5f6a-5*, legacy-2.4.0-ae1a75fb7e4d5f6a-6, legacy-2.4.0-ae1a75fb7e4d5f6a-7, legacy-2.4.0-ae1a75fb7e4d5f6a-8, legacy-2.4.0-ae1a75fb7e4d5f6a-9, legacy-2.4.0-ae1a75fb7e4d5f6a-10*] -> code-simplifier -> plan -> plan-review -> plan-execute -> changes-review -> why-review -> experience-review -> scan --target=domain-entities -> docs-update -> workflow-end -> watzup`
 - Parallel phase = all-return barrier: spawn ALL members together (one message); advance only after EVERY member returns (a skipped conditional member, marked `*`, counts as returned). A sub-agent completion advances the step identically to an inline call.
 
 Protocol:
 ```text
 PRE-COMMIT REVIEW (RECURSIVE):
+
+SEVERITY + ROUND-BAR POLICY (MANDATORY):
+- Classify each validated finding by shipped consequence, not effort: CRITICAL = immediate material risk (security/authority bypass, secrets or PII exposure, irreversible destructive action, data loss/corruption, silent critical-path failure, or failed binary gate); HIGH = material supported-path correctness, contract, invariant, privacy, authority, compatibility, or likely-harm risk; MEDIUM = bounded consequential edge/resilience/observability/testability/maintainability or local architecture gap; LOW = polish or minor documentation/convention/defensive cleanup with no credible present correctness, security, privacy, authority, availability, or data-integrity impact.
+- Round 1 blocks on every validated severity. Rounds 2-3 block only on validated CRITICAL/HIGH/MEDIUM; LOW-only rounds end immediately and list LOWs as deferred. Never re-tier a finding to obtain a pass.
+- Binary gates (tests, security must-fix, required artifacts, generated parity, policy compliance) remain blocking at every round and are never relabeled LOW. Cite file:line evidence, consequence, exposure, reversibility/detectability, and confidence for every finding.
+- For each finding, record the affected asset/user/data/contract/gate, shipped consequence, exposure/likelihood, reversibility/detectability, evidence location, and confidence before applying the round predicate. `NOT VERIFIABLE` is pending evidence, not a severity and never a LOW escape hatch; unresolved material behavior, security, privacy, authority, availability, data-integrity, or binary-gate claims remain open until resolved or explicitly owner-accepted with residual risk.
 
 [BLOCKING] INITIAL PARALLEL PHASE — launch `why-review --target=whole-review-target` (step 2) as a fresh read-only `code-reviewer` sub-agent, then immediately run `changes-review` (step 1) INLINE while it is active. Advance only after BOTH return.
 - Step 1 (`changes-review`) establishes the dimensional baseline: surface analysis (BE/FE/SCSS file counts), review mode, integration-test sync gaps, multilingual translation gaps, spec drift, and internal UI review.
@@ -932,10 +946,10 @@ PRE-COMMIT REVIEW (RECURSIVE):
 - DOMAIN ENTITY REVIEW: If domain entity files in changeset (Domain/, Entities/, ValueObjects/ directories), run $domain-entities-review to check DDD quality (anemic model, VO immutability, invariant enforcement). Skip entirely if no entity files changed.
 - UI/FRONTEND REVIEW: Runs in TWO places (keep both) when the changeset contains files matching the project's configured frontend/UI file patterns: (a) INTERNALLY — step 1 (`changes-review`) invokes $ui-review as its UI dimension; AND (b) as a DEDICATED CONDITIONAL parallel-batch member (`ui-review` via the ui-ux-designer sub-agent). Both check long-content overflow (wrap vs ellipsis+tooltip), responsive multi-screen via flex, flex-vs-fixed sizing (prefer min/max + flex-grow over fixed px), z-index scale discipline (no raw numbers, no !important), SCSS/BEM quality, and async UI states (loading/error/empty). Skip both entirely if no frontend files changed.
 - Report findings with file:line references
-- Output: PASS (safe to commit) or ISSUES FOUND (with list)
-- If ISSUES FOUND: validate findings, plan fixes for validated findings, review and sanity-check the fix plan, implement fixes, then re-run changes-review (step 15)
-- RECURSIVE (CONDITIONAL, INLINE): Step 15 re-runs `changes-review` INLINE in the main session — but ONLY if `plan-execute` actually changed files. If `plan-execute` applied no file changes, skip step 15 and go straight to the step 16 holistic why-review. When it runs, loop plan -> plan-execute -> changes-review until one complete review pass has zero findings; stop only when the same validated blocker repeats 3 full invocations with no progress.
-- HOLISTIC WHY-REVIEW (step 16, ALWAYS, FULL MODE, INLINE): after the step-15 changes-review loop converges clean, run `why-review` STANDALONE in FULL mode (NOT --validate-findings) over the WHOLE review target combined with the current changes — the complete changeset and the surrounding code/spec/docs it touches reviewed as one artifact, with the full adversarial rationale gate. This is a DIFFERENT lens from the step-3 findings-validation gate and the dimensional reviewers: it catches design-rationale, hidden-coupling, easy-to-change and whole-package gaps the per-file/per-dimension passes miss. If it surfaces findings, re-enter the plan -> plan-execute -> changes-review fix loop, then re-run step 16, looping run -> fix -> run until a complete full-mode why-review pass finds zero new findings (max re-do / 3-repeat-blocker escalation per why-review's own goal gate). Only then proceed to docs-update (step 17). This step is the reason the workflow now catches what a standalone why-review of the target would catch but the dimensional batch alone did not.
+- Output: PASS at the current round bar (safe to continue) or ISSUES FOUND (with validated severity, evidence, and deferred LOW list)
+- If ISSUES FOUND: validate findings, classify each by the active severity policy, plan fixes only for validated blocking findings (CRITICAL/HIGH/MEDIUM, plus every round-1 LOW), review and sanity-check the fix plan, implement fixes, then re-run changes-review (step 15)
+- RECURSIVE (CONDITIONAL, INLINE): Step 15 re-runs `changes-review` INLINE in the main session — but ONLY if `plan-execute` actually changed files. If `plan-execute` applied no file changes, skip step 15 and go straight to the step 16 holistic why-review. When it runs, loop plan -> plan-execute -> changes-review until one complete review pass clears the current round bar (round 1: zero findings; round 2+: zero CRITICAL/HIGH/MEDIUM, with LOWs deferred); stop only when the same validated blocker repeats 3 full invocations with no progress.
+- HOLISTIC WHY-REVIEW (step 16, ALWAYS, FULL MODE, INLINE): after the step-15 changes-review loop converges clean, run `why-review` STANDALONE in FULL mode (NOT --validate-findings) over the WHOLE review target combined with the current changes — the complete changeset and the surrounding code/spec/docs it touches reviewed as one artifact, with the full adversarial rationale gate. This is a DIFFERENT lens from the step-3 findings-validation gate and the dimensional reviewers: it catches design-rationale, hidden-coupling, easy-to-change and whole-package gaps the per-file/per-dimension passes miss. If it surfaces findings, re-enter the plan -> plan-execute -> changes-review fix loop, then re-run step 16, looping run -> fix -> run until a complete full-mode why-review pass clears the current round bar (round 1: zero findings; round 2+: zero CRITICAL/HIGH/MEDIUM, with LOWs deferred; max re-do / 3-repeat-blocker escalation per why-review's own goal gate). Only then proceed to docs-update (step 17). This step is the reason the workflow now catches what a standalone why-review of the target would catch but the dimensional batch alone did not.
 - LOGIC REVIEW: Verify changes match their stated intention. Trace business logic paths. Clean code can be wrong code.
 - BUG DETECTION: Check for null safety, boundary conditions, resource leaks, concurrency issues per bug-detection-protocol.
 - TEST SPEC VERIFICATION: Cross-reference changes against TC-{FEATURE}-{NNN} test specifications. Flag untested code paths.
@@ -956,7 +970,7 @@ UNIVERSAL RULES:
 ### workflow-seed-test-data — Seed Test Data
 - Description: Generate or enhance test data seeders that simulate QC happy-path scenarios for a feature area. Investigates existing patterns, implements idempotent command-based seeders, reviews compliance, simplifies.
 - When To Use: User wants to seed test data, implement data seeders, generate realistic development environment data, add happy-path scenarios for a feature, create dummy data for manual QC testing, fill dev database with realistic test cases
-- Sequence: `investigate -> seed-test-data -> changes-review -> code-simplifier -> docs-update -> workflow-end -> watzup`
+- Sequence: `investigate -> seed-test-data -> experience-review -> changes-review -> code-simplifier -> docs-update -> workflow-end -> watzup`
 
 Protocol:
 ```text
@@ -1060,7 +1074,9 @@ UNIVERSAL RULES:
 ### workflow-visualize — Visual Diagram
 - Description: Create visual Excalidraw diagrams from codebase investigation or web research
 - When To Use: User wants to visualize, diagram, draw, or create visual representation of workflows, architectures, concepts, systems, or research findings
-- Sequence: `investigate -> excalidraw-diagram -> workflow-end`
+- Sequence: `codebase: investigate -> excalidraw-diagram -> workflow-end; knowledge: web-research -> deep-research -> excalidraw-diagram -> workflow-end`
+- codebase occurrence IDs: `codebase-investigate, codebase-diagram, codebase-end`
+- knowledge occurrence IDs: `knowledge-web-research, knowledge-deep-research, knowledge-diagram, knowledge-end`
 
 Protocol:
 ```text
@@ -1107,7 +1123,7 @@ WRITE INTEGRATION TEST PROTOCOL:
    - ALL string data uses project unique-data helper
    - Each test method has TC spec annotation linking to TC-{FEATURE}-{NNN}
    - Minimum 3 tests per command: happy path + validation failure + DB state check
-6. Integration Test Review: 7-gate quality check (assertion value, data state, repeatability, domain logic, traceability, three-way sync, change coverage). Gate 7: every behavior-changing production file in the change set maps to a covering test (integration-first; unit fallback needs justification) AND a spec TC. Validate findings, fix only validated issues, then restart the full integration-test review after fixes. NEVER proceed with CRITICAL/HIGH issues outstanding.
+6. Integration Test Review: 7-gate quality check (assertion value, data state, repeatability, domain logic, traceability, three-way sync, change coverage). Gate 7: every behavior-changing production file in the change set maps to a covering test (integration-first; unit fallback needs justification) AND a spec TC. Validate findings; Round 1 fixes every validated severity; Round 2+ fixes only validated CRITICAL/HIGH/MEDIUM; Round 2+ LOW-only findings are deferred and do not trigger another cycle. Failed binary gates remain blocking; NEVER proceed with a blocking finding outstanding.
 7. Integration Test Verify: Run tests via quickRunCommand from docs/project-config.json → integrationTestVerify. Report exact pass/fail counts with test runner output. NEVER mark complete without real output.
 8. Test Specs Docs: Sync cross-module spec dashboard. Update CoveredBy fields with {File}::{MethodName} traceability links.
 9. Docs Update: Update feature doc evidence fields and version history if test coverage changed materially.
@@ -1129,7 +1145,7 @@ UNIVERSAL RULES:
 
 Session-start reference derived from `.claude/workflows.json` — use it to pick a route on any prompt: run a standard workflow, compose a custom workflow from the step-skills, invoke a single skill, or execute directly.
 
-### Workflow Skills (62 composable steps)
+### Workflow Skills (65 composable steps)
 
 Distinct step-skills used across the workflows above — compose these into a custom workflow when no standard workflow fits.
 
@@ -1145,6 +1161,7 @@ Distinct step-skills used across the workflows above — compose these into a cu
 | `changelog` | [Documentation] Use when you need to generate or update changelog entries. |
 | `changes-review` | [Code Quality] Use when reviewing current changes, staged or unstaged diffs, or branch-to-branch diffs. |
 | `code-simplifier` | [Code Quality] Use when you need to simplify and refine code for clarity, consistency, and maintainability while preserving all functionality. |
+| `course-builder` | [Content] Use when you need to build structured learning/teaching course material with Bloom taxonomy objectives, modules, lessons, exercises, and assessments. |
 | `debug-investigate` | [Fix & Debug] Use when investigating a bug's root cause — reproduce the symptom, trace it end-to-start through the code, form and test hypotheses, and pinpoint the defect before any fix. |
 | `deep-research` | [Research] Use when deeply researching top sources from web-research. |
 | `demo-guide` | [Documentation] Use when you need to generate a step-by-step demo guide (demo script / walkthrough) covering all main user stories and their test cases — scope from a named feature, else the current working context, else confirm with the user — explaining for each case how the domain data is stored/changed and how the domain solves the feature. Triggers: demo guide, generate demo guide, demo script, demo walkthrough, how to demo, prepare demo, sprint demo, user story demo. |
@@ -1155,6 +1172,7 @@ Distinct step-skills used across the workflows above — compose these into a cu
 | `dor-gate` | [Code Quality] Use when you need to validate a PBI against Definition of Ready before grooming. |
 | `e2e-test` | [Testing] Use when generating, updating, or maintaining E2E tests from recordings, specs, or code changes. |
 | `excalidraw-diagram` | [Utilities] Use when the user wants to visualize workflows, architectures, or concepts as Excalidraw diagram JSON files. |
+| `experience-review` | [Testing] Use when reviewing a running user experience or externally observable output, establishing a deliberate baseline, or adjudicating a regression across UI, API, CLI, library, service, or generated-output surfaces. Flag: --rounds=N (default 3) bounds the remediation loop — exercise, inspect, route BLOCKING defects to $fix at the owning layer, re-exercise from scratch — converging on zero defects plus an agent-recommended acceptance a human still signs; --rounds=0 is the single-pass report-only review. |
 | `feature-presentation` | [Documentation] Use when you need to synthesize all generated specs, PBIs, ideas and mockups into one standalone HTML slide presentation for stakeholders (PO/BA/Dev/QC). |
 | `fix` | [Implementation] Use when you need to analyze and fix issues [INTELLIGENT ROUTING]. Flag: --target={ci\|issue\|logs\|test\|types\|ui} scopes the fix; --target=types resolves TypeScript errors inline. |
 | `harness-setup` | [Quality] Use when setting up an agent quality harness with feedforward guides and feedback sensors. |
@@ -1172,8 +1190,8 @@ Distinct step-skills used across the workflows above — compose these into a cu
 | `pbi-mockup` | [Project Management] Use when you need to generate an HTML mockup report from PBI and story artifacts. |
 | `performance-review` | [Debugging] Use when analyzing or optimizing performance bottlenecks: database queries, N+1 fan-out, indexing, API latency, memory/GC, concurrency and pool saturation, algorithmic complexity (O(n²)), network/protocol round trips, frontend rendering and Core Web Vitals, caching, and distributed/resilience paths. Calibration constants and domain laws (latency ladder, Little's Law, utilization knee, CWV thresholds, symptom→cause triage) live in references/performance-knowledge.md. |
 | `plan` | [Planning] Use when you need intelligent plan creation with prompt enhancement. Flag: --mode={ci\|cro} (default none — standard planning); --mode=ci plans a fix from a GitHub Actions CI run/log, --mode=cro plans conversion-rate optimization (25-item CRO framework). |
-| `plan-execute` | [Implementation] Use when you need to start coding & testing an existing plan. Flags: --approval=off (auto/trust mode, no approval gate), --tests=off (skip the test step), --parallel={auto\|on\|off} (default off — sequential; --parallel/=on opts in to parallel sub-agent waves; =auto fans out only when the plan declares PAR/SEQ tags and write sets). |
-| `plan-review` | [Planning] Use when you need to auto-review a plan for validity, correctness, and best practices — recursive: review, validate findings with why-review, fix validated findings, full re-review until no findings. |
+| `plan-execute` | [Implementation] Use when you need to start coding & testing an existing plan. Flags: --approval=off (skip implementation approval; never grants Git authority), --tests=off (skip the test step), --parallel={auto\|on\|off} (default off — sequential; --parallel/=on opts in to parallel sub-agent waves; =auto fans out only when the plan declares PAR/SEQ tags and write sets). |
+| `plan-review` | [Planning] Use when you need to auto-review a plan for validity, correctness, and best practices — recursive: review, validate findings with why-review, fix validated blocking findings, and full re-review until the current severity exit bar is clear. |
 | `plan-validate` | [Planning] Use when you need to validate a plan with critical questions interview. |
 | `prioritize` | [Project Management] Use when you need to prioritize backlog items using RICE, MoSCoW, or Value-Effort frameworks. |
 | `production-readiness-review` | [Code Quality] Use when reviewing service-layer and API changes for production readiness. |
@@ -1189,6 +1207,7 @@ Distinct step-skills used across the workflows above — compose these into a cu
 | `spec-discovery` | [Investigation] Use when about to author a new Feature Spec from an idea — investigate all existing Feature Specs AND related code logic first to surface related/overlapping/affected specs, missing features, missing test cases/user stories, system unknowns, and the invariant landscape, before any spec is drafted. |
 | `spec-index` | [General] Use when you need to (re)generate a DERIVED navigation index, cross-capability ERD, or reimplementation guide assembled FROM the canonical Feature Specs under docs/specs/**. Never extracts a separate A-E engineering tree. |
 | `story` | [Project Management] Use when creating user stories from PBIs, slicing features, or breaking down requirements. |
+| `strategy-builder` | [Content] Use when you need to build marketing strategy: positioning, channels, messaging, campaigns, budget, KPIs. |
 | `tech-stack-research` | [Architecture] Use when you need to research, analyze, and compare tech stack options as a solution architect. |
 | `test` | [Testing] Use when you need to run tests locally and analyze the summary report. |
 | `ui-review` | [Code Quality] Use when reviewing UI/frontend changes for long-content overflow, responsive multi-screen layout (flex-wrap / row-to-column on small devices), flex-vs-fixed sizing, z-index discipline, SCSS/BEM styling quality, and async UI states & feedback (loading indicator, error surface, empty state). |
@@ -1196,7 +1215,7 @@ Distinct step-skills used across the workflows above — compose these into a cu
 | `web-research` | [Research] Use when starting a web research task — discover, gather, and triage candidate sources on a topic to feed deeper investigation. |
 | `why-review` | [Code Quality] Use when reviewing rationale and change quality for plans, PBIs, commits, diffs, docs, specs, reports, or explicit artifacts. |
 | `workflow-end` | [Process] Use when you need to end the active workflow and clear state. |
-| `workflow-review-changes` | [Workflow] Use when activating the Review Current Changes workflow for review, fix, and re-review recursively until all issues resolved. |
+| `workflow-review-changes` | [Workflow] Use when activating the Review Current Changes workflow for review, fix, and re-review recursively until the current severity bar is clear; round-2+ LOW findings are recorded and deferred. |
 <!-- /CK:WORKFLOW-SKILLS -->
 
 <!-- WORKFLOWS:END -->

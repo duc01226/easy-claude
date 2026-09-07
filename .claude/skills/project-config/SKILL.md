@@ -110,6 +110,7 @@ docs/project-config.json
 ├── framework — { name, backendPatternsDoc, frontendPatternsDoc, codeReviewDoc, integrationTestDoc, searchPatternKeywords[] }
 ├── testing — { frameworks[], filePatterns{}, commands{}, coverageTool, guideDoc, integrationRules[] }
 ├── e2eTesting — { framework, language, configFile, testsPath, pageObjectsPath, fixturesPath, ... }
+├── experienceVerification — { enabled, evidenceRoot, baselineRoot, acceptancePolicy, reviewOn[], surfaces[] }
 ├── databases{}, messaging{ broker, patterns[], consumerConvention }, api{ style, docsFormat, docsPath, authPattern }
 ├── infrastructure — { containerization, orchestration, cicd{ tool, configPath } }
 ├── graphConnectors — apiEndpoints{ enabled, frontend{ framework, paths[] }, backend{ framework, paths[], routePrefix } }
@@ -249,6 +250,13 @@ Rules MUST ATTENTION be specific: "Use the service-specific repository (e.g. `Or
 - `e2eTesting { framework, language, configFile, testsPath, pageObjectsPath, fixturesPath, runCommands{}, tcCodeFormat, entryPoints[] }`
 - `integrationTestVerify { guidance, referenceDocs[], runScript, startupScript, quickRunCommand, systemCheckCommand, testProjectPattern, testProjects[] }`
 - `integrationTestVerify.referenceDocs[]` MUST contain project-specific docs that explain setup prerequisites before a verifier runs `systemCheckCommand` or test commands.
+
+### 2j. Experience verification
+
+- `experienceVerification` is optional and project-neutral. Configure only user-facing or externally observable surfaces that the project can actually exercise and inspect: web, mobile, desktop, terminal, API, library, background service, generated output, or another evidence-backed kind.
+- Each `surfaces[]` row records the project runner/tool, entry points, optional full/focused commands, impact triggers, evidence root, baseline root, and relevant states. Configuration is a routing contract, not proof that the environment can run it.
+- Keep `acceptancePolicy` at `manual-acceptance-required` unless the project documents a named owner process. First-run evidence is candidate evidence; never promote a generated screenshot or current output automatically.
+- If no applicable surface exists, use `enabled:false`, `surfaces:[]`, and an evidence-backed reason. If a relevant surface cannot run or be inspected, `/experience-review` records `ENVIRONMENT-BLOCKED`; it is not N/A or PASS.
 
 ### 2k–2n. Databases, Messaging, API, Infrastructure
 

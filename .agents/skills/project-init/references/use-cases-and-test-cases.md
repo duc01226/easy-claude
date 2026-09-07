@@ -17,7 +17,7 @@ Use this matrix when planning, implementing, or reviewing portable project initi
 | UC-PI-009 | `CLAUDE.md` missing | Root instruction gate | Run `$claude-md-init --mode init`. |
 | UC-PI-010 | `CLAUDE.md` marker-managed but missing universal guides | Root instruction gate | Run `$claude-md-init --mode update`; verify sentinel and anchors. |
 | UC-PI-011 | `CLAUDE.md` markerless/project-only | Root instruction gate | Preserve content, merge universal guide blocks, then update. |
-| UC-PI-012 | `AGENTS.md` missing | Codex/hookless agent setup | Ask the user to run `$sync-codex` or its standalone node runner. |
+| UC-PI-012 | `AGENTS.md` missing | Codex static-context setup | Ask the user to run `$sync-codex` or its standalone node runner. |
 | UC-PI-013 | `AGENTS.md` stale/incomplete | Codex setup or re-evaluation | Regenerate mirror from current `CLAUDE.md` and Codex context. |
 | UC-PI-014 | Custom `.claude/.ck.json` portability paths | `$project-init` | Use configured project-config and docs-index paths, not hardcoded defaults. |
 | UC-PI-015 | Already initialized project | Re-run `$project-init` | No destructive edits; verify and report idempotent status. |
@@ -36,6 +36,8 @@ Use this matrix when planning, implementing, or reviewing portable project initi
 | UC-PI-028 | Config `referenceDocs` missing canonical entries (partial set) | `$project-init` | Merge restores the full canonical floor; SessionStart `session-init-docs.cjs` creates the missing docs from `DEFAULT_REFERENCE_DOCS` + `templatePath`; a partial config never suppresses a canonical doc. |
 | UC-PI-029 | Wrong-standard / non-canonical extra docs present in config | `$project-init` | Canonical floor enforced first (canonical order); genuine project-specific extras preserved as appended entries; canonical entries are never deleted or renamed by normalization. |
 | UC-PI-030 | Already-canonical config re-run (idempotency) | Re-run `$project-init` | Phase 0 normalize probe reports `changed:false` with empty `renames`/`added`/`removedLegacy`; no `git mv`/rewrite churn. |
+| UC-PI-031 | New or changed observable surface has no accepted expectation | `$project-init` or feature workflow | Configure the surface and record intended states/capabilities, but keep first-run evidence candidate-only; never promote the current output into a baseline automatically. |
+| UC-PI-032 | Relevant observable surface exists but runner/device/inspection capability is unavailable | `$project-init` or review workflow | Record `ENVIRONMENT-BLOCKED` with the missing capability and evidence; do not downgrade it to `NOT-APPLICABLE` or report a successful review. |
 
 ## Test Cases
 
@@ -78,6 +80,9 @@ Use this matrix when planning, implementing, or reviewing portable project initi
 | TC-PI-035 | Large grown project split | investigate finds >10 capabilities | Spec finalization requires grouped `$workflow-code-to-spec init-full` runs; 4-10 capabilities require sub-agents. |
 | TC-PI-036 | Post-config parallel context build | Content-bearing temp project after `$project-config` init | Task plan includes sibling `Call $scan-all` and `Call $workflow-code-to-spec`; `$project-init` does not proceed to root/mirror/final review until both have outcomes. |
 | TC-PI-037 | Final background graph task | Any `$project-init` run after final review/verification | Task plan includes `Spawn background $graph-build sub-agent`; `$graph-build` is invoked in a background sub-agent and its outcome or blocker appears in the report. |
+| TC-PI-038 | Experience config portability | Temp project declares a terminal/API/library/background/generated surface | Schema accepts the project-neutral surface kind and does not require a browser, screenshot, or web runner. |
+| TC-PI-039 | First-run expectation protection | Configured surface has no accepted baseline | Initialization/review report retains candidate evidence with `ACCEPTANCE-PENDING`; no snapshot, fixture, or expected output is rewritten automatically. |
+| TC-PI-040 | Mismatch adjudication | Existing accepted expectation differs from current observed result | Prior accepted evidence remains intact and the report classifies potential regression, intended change pending acceptance, invalid condition, environment block, unverified, or ambiguous. |
 | TC-PI-038 | Canonical-floor merge enforced | Drifted config: extras + legacy alias, missing canonical entries | `mergeReferenceDocs()` returns all canonical docs first (canonical order, canonical `templatePath` preserved) then extras; legacy alias absorbed; override `purpose`/`sections` honored without dropping the canonical entry. |
 | TC-PI-039 | Legacy alias rename report | Config has `feature-docs-reference.md` | `normalizeReferenceDocs()` reports `renames:[{from:'feature-docs-reference.md',to:'feature-spec-reference.md'}]` and `removedLegacy` includes the legacy name. |
 | TC-PI-040 | Missing-canonical additions report | Partial config missing canonical docs (e.g. `seed-test-data-reference.md`) | `normalizeReferenceDocs().added` lists each missing canonical filename; the merged set still includes them. |

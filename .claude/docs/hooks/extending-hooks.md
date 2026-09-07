@@ -51,7 +51,10 @@ runHook(
 
 ### Blocking Hook Template
 
-For hooks that need to block operations (like safety checks):
+`runBlockingHook` uses an allow-on-error contract: it blocks an explicit
+`allowed: false` result, but permits ordinary runtime errors and timeouts after
+reporting them. Use it only when that failure policy is intended; for a
+deny-closed security boundary, use the explicit pre-tool policy below.
 
 ```javascript
 const { runBlockingHook } = require('./lib/hook-runner.cjs');
@@ -135,7 +138,47 @@ Hooks communicate with Claude Code via event-specific stdout contracts plus the 
 | stderr text | `2`       | Operation is blocked; stderr message is shown (and visible to Claude) |
 | no output   | `0`       | Silent no-op                                                          |
 
-`runBlockingHook` implements the blocking channel for you: return `{ allowed: false, message }` and it writes `message` to stderr and exits 2 (`hook-runner.cjs:161-168`).
+`runBlockingHook` implements the blocking channel for you: return `{ allowed: false, message }` and it writes `message` to stderr, sets exit code 2, and returns to drain output (`hook-runner.cjs:345-384`). Errors and timeouts retain its generic allow-on-error policy.
+
+### Bash PreToolUse hooks
+
+For hooks registered on `Bash`, use the stream-safe pre-tool wrapper:
+
+```javascript
+const { runPreToolHookSync } = require('./lib/hook-runner.cjs');
+
+function evaluate(input) {
+    if (input.tool_name !== 'Bash') return undefined;
+    if (shouldBlock(input.tool_input?.command)) {
+        return { code: 2, stderr: 'BLOCKED: explain the safe alternative\n' };
+    }
+    return undefined; // exit 0, empty stdout
+}
+
+runPreToolHookSync('my-bash-hook', evaluate, {
+    inputErrorCode: 2, // use 0 only for a deliberately advisory heuristic
+    errorExitCode: 2
+});
+```
+
+The wrapper reports malformed input and handler errors, writes output before setting `process.exitCode`,
+and records a decision/duration when `CLAUDE_HOOK_DEBUG=1`. Never call `process.exit()` immediately
+after writing stdout or stderr. If a hook rewrites Bash input, return the complete documented envelope:
+
+```javascript
+return {
+    stdout: `${JSON.stringify({
+        hookSpecificOutput: {
+            hookEventName: 'PreToolUse',
+            updatedInput: { ...input.tool_input, command: rewrittenCommand }
+        }
+    })}\n`
+};
+```
+
+`updatedInput` replaces the complete `tool_input` object, so preserve fields that are not being changed.
+A syntax-only rewrite must omit `permissionDecision`: correcting syntax does not authorize the command
+or its unrelated compound tail. Permission evaluation belongs to the host and separately authorized policy hooks.
 
 **SessionStart contract:** setup hooks may create files, refresh state, or run checks, but must emit no stdout. Claude/Codex startup context is carried by static files, not runtime hook output.
 
@@ -274,7 +317,10 @@ const config = loadConfig();
 
 ## Example: Custom Safety Hook
 
-Complete example blocking access to test fixtures:
+Complete best-effort example blocking modifications to test fixtures. It uses
+the generic `runBlockingHook` allow-on-error contract, so it is an accidental-edit
+guard, not a deny-closed authorization boundary. Use an explicit pre-tool policy
+if fixture protection must also reject failed evaluation:
 
 ```javascript
 #!/usr/bin/env node
@@ -413,6 +459,10 @@ echo $?
 # Enable debug logging
 export CK_DEBUG=1
 echo '{"hook_event_name":"PreToolUse","tool_name":"Edit","tool_input":{"file_path":"test.ts"}}' | node .claude/hooks/my-hook.cjs
+
+# Trace every Bash-path hook decision and duration
+export CLAUDE_HOOK_DEBUG=1
+echo '{"hook_event_name":"PreToolUse","tool_name":"Bash","tool_input":{"command":"echo hi"}}' | node .claude/hooks/my-hook.cjs
 ```
 
 ### Unit Testing Pattern
@@ -443,23 +493,33 @@ export CK_DEBUG=1
 Debug logs are written to stderr and appear in:
 
 - Terminal output during Claude Code execution
-- `.claude/logs/hooks-debug.log` (if configured)
+- stderr when `CLAUDE_HOOK_DEBUG=1` is enabled
+
+For the Bash PreToolUse chain, `CLAUDE_HOOK_DEBUG=1` writes one JSON record per invocation to the
+platform temp directory at `ck/debug/bash-hooks.log` (override with `CLAUDE_HOOK_DEBUG_LOG`). Records
+contain the hook, decision, exit code, and duration, but not command/path contents. The sink is bounded
+and rotates once; a sink failure is emitted on stderr.
 
 ---
 
 ## Best Practices
 
-### 1. Fail-Open Design
+### 1. Fail-Loud Error Design
 
-Always default to allowing operations on errors:
+Never hide a hook error. Distinguish policy uncertainty from ordinary runtime errors:
+an unsupported or ambiguous operation in a deny-closed security policy must be
+returned as an explicit rejection, not treated as permission. Generic `runBlockingHook`
+retains allow-on-error compatibility for runtime errors and timeouts; its examples
+do not promise deny-closed authorization. For a security boundary that must also
+deny malformed input and handler failures, select and test the explicit pre-tool
+error policy below. Advisory heuristics may deliberately select code 0, with visible
+diagnostics. Do not change a generic helper's failure contract to implement one consumer's policy.
 
 ```javascript
-try {
-    // Hook logic
-} catch (error) {
-    debugError('my-hook', error);
-    process.exit(0); // Allow operation on error
-}
+runPreToolHookSync('my-hook', evaluate, {
+    inputErrorCode: 2,
+    errorExitCode: 2
+});
 ```
 
 ### 2. Minimize Context Injection
@@ -528,17 +588,22 @@ export CK_DEBUG=1
 ### Debug Log Location
 
 ```
-.claude/logs/hooks-debug.log
+%TEMP%/ck/debug/bash-hooks.log       # Windows
+$TMPDIR/ck/debug/bash-hooks.log      # POSIX (or the platform temp directory)
 ```
+
+Set `CLAUDE_HOOK_DEBUG_LOG` to choose a different file for a test or incident. The Bash trace rotates
+once at 1 MiB, records the hook/decision/exit code/duration and error classification, and never stores
+command or path contents. A sink failure is reported on stderr and does not change the hook decision.
 
 ### Common Issues
 
 | Issue                          | Cause                                  | Solution                                               |
 | ------------------------------ | -------------------------------------- | ------------------------------------------------------ |
 | Hook not executing             | Not registered in settings.json        | Add to appropriate event in hooks config               |
-| Hook blocking unexpectedly     | Exit code != 0                         | Ensure `process.exit(0)` on success/error              |
+| Hook blocking unexpectedly     | Exit code != 0                         | Return an explicit outcome and let the wrapper set `process.exitCode` |
 | Unexpected SessionStart output | Hook writes stdout or enables output   | Remove stdout output; move guidance to static carriers |
-| JSON parse errors              | Malformed stdin                        | Use `parseStdinSync` with `defaultValue`               |
+| JSON parse errors              | Malformed stdin                        | Use the pre-tool wrapper so the failure is visible and policy-specific |
 
 ---
 

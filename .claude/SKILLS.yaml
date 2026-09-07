@@ -1,11 +1,11 @@
 metadata:
   title: Skills Catalog
   description: Auto-generated catalog of all available skills in ClaudeKit Engineer
-  last_updated: '2026-08-27'
-  total_skills: 166
+  last_updated: '2026-09-08'
+  total_skills: 167
   total_by_status:
     active: 165
-    deprecated: 1
+    deprecated: 2
     experimental: 0
 categories:
   ai-ml: AI & Machine Learning
@@ -177,7 +177,7 @@ skills:
         /fix in a recursive loop — each round runs /changes-review (report-only) to
         surface validated findings over a fixed diff scope, then /fix to resolve them,
         then loops again with a FRESH full /changes-review over the CHANGED diff until
-        one complete pass produces zero validated findings (nothing left to fix).'
+        one complete pass clears the current round severity bar.'
       category: other
       has_scripts: false
       has_references: false
@@ -497,6 +497,22 @@ skills:
         or concepts as Excalidraw diagram JSON files.'
       category: other
       has_scripts: false
+      has_references: true
+      status: active
+      deprecated_by: null
+      deprecated_since: null
+      removal_after: null
+    - name: experience-review
+      path: experience-review/SKILL.md
+      description: '[Testing] Use when reviewing a running user experience or externally
+        observable output, establishing a deliberate baseline, or adjudicating a regression
+        across UI, API, CLI, library, service, or generated-output surfaces. Flag:
+        --rounds=N (default 3) bounds the remediation loop — exercise, inspect, route
+        BLOCKING defects to /fix at the owning layer, re-exercise from scratch — converging
+        on zero defects plus an agent-recommended acceptance a human still signs;
+        --rounds=0 is the single-pass report-only review.'
+      category: other
+      has_scripts: true
       has_references: true
       status: active
       deprecated_by: null
@@ -993,8 +1009,8 @@ skills:
       path: project-init/SKILL.md
       description: '[Utilities] Use when initializing or re-evaluating portable project
         context: project-config, project-reference docs, CLAUDE.md, AGENTS.md, universal
-        agent rules, hookless setup. Triggers on: project init, init project, missing
-        project-config, missing project docs, missing CLAUDE.md, missing AGENTS.md.'
+        agent rules, static-context setup. Triggers on: project init, init project,
+        missing project-config, missing project docs, missing CLAUDE.md, missing AGENTS.md.'
       category: other
       has_scripts: false
       has_references: true
@@ -1105,23 +1121,15 @@ skills:
       deprecated_by: null
       deprecated_since: null
       removal_after: null
-    - name: release-doc
-      path: release-doc/SKILL.md
-      description: '[Documentation] Use when you need to generate a detailed, AI-analyzed
-        release document from git history over a time range or custom prompt.'
-      category: other
-      has_scripts: false
-      has_references: false
-      status: active
-      deprecated_by: null
-      deprecated_since: null
-      removal_after: null
     - name: release-notes
       path: release-notes/SKILL.md
-      description: '[Git] Use when creating release notes from git history.'
+      description: '[Git] Use when creating release notes or a release document from
+        git history — any scope (tag-to-tag, branch-to-branch, or a time range like
+        the last 30 days), producing categorized markdown notes PLUS a rich standalone
+        HTML release presentation with real-UI mock-ups, auto-opened at the end.'
       category: other
       has_scripts: false
-      has_references: false
+      has_references: true
       status: active
       deprecated_by: null
       deprecated_since: null
@@ -1428,7 +1436,7 @@ skills:
       description: '[Code Quality] Use when you need to combine /why-review + /fix
         in a recursive loop — each round runs /why-review to find validated findings
         then /fix to resolve them, then loops again over the CHANGED target until
-        a fresh full /why-review produces zero findings (nothing left to fix).'
+        a fresh full /why-review clears the current round severity bar.'
       category: other
       has_scripts: false
       has_references: false
@@ -1595,7 +1603,8 @@ skills:
     - name: workflow-review-changes
       path: workflow-review-changes/SKILL.md
       description: '[Workflow] Use when activating the Review Current Changes workflow
-        for review, fix, and re-review recursively until all issues resolved.'
+        for review, fix, and re-review recursively until the current severity bar
+        is clear; round-2+ LOW findings are recorded and deferred.'
       category: other
       has_scripts: false
       has_references: false
@@ -1796,10 +1805,10 @@ skills:
     - name: plan-execute
       path: plan-execute/SKILL.md
       description: '[Implementation] Use when you need to start coding & testing an
-        existing plan. Flags: --approval=off (auto/trust mode, no approval gate),
-        --tests=off (skip the test step), --parallel={auto|on|off} (default off —
-        sequential; --parallel/=on opts in to parallel sub-agent waves; =auto fans
-        out only when the plan declares PAR/SEQ tags and write sets).'
+        existing plan. Flags: --approval=off (skip implementation approval; never
+        grants Git authority), --tests=off (skip the test step), --parallel={auto|on|off}
+        (default off — sequential; --parallel/=on opts in to parallel sub-agent waves;
+        =auto fans out only when the plan declares PAR/SEQ tags and write sets).'
       category: utilities
       has_scripts: false
       has_references: false
@@ -1811,7 +1820,8 @@ skills:
       path: plan-review/SKILL.md
       description: '[Planning] Use when you need to auto-review a plan for validity,
         correctness, and best practices — recursive: review, validate findings with
-        why-review, fix validated findings, full re-review until no findings.'
+        why-review, fix validated blocking findings, and full re-review until the
+        current severity exit bar is clear.'
       category: utilities
       has_scripts: false
       has_references: false
@@ -2005,4 +2015,16 @@ skills:
       deprecated_by: quality-gate-review
       deprecated_since: '2026-06-14'
       removal_after: '2026-09-12'
+    - name: release-doc
+      path: release-doc/SKILL.md
+      description: '[Documentation] DEPRECATED — merged into `release-notes`. Use
+        `/release-notes` for every release document or release notes need, at any
+        scope (tag-to-tag, branch-to-branch, or a time range like the last 30 days).'
+      category: other
+      has_scripts: false
+      has_references: false
+      status: deprecated
+      deprecated_by: release-notes
+      deprecated_since: '2026-09-08'
+      removal_after: '2026-12-07'
   experimental: {}

@@ -30,8 +30,9 @@
 const fs = require('fs');
 const path = require('path');
 const { execFileSync } = require('child_process');
+const { resolveProjectRoot } = require('./lib/project-root.cjs');
 
-const PROJECT_DIR = process.env.CLAUDE_PROJECT_DIR || process.cwd();
+const PROJECT_DIR = resolveProjectRoot({ cwd: process.cwd(), scriptPath: __filename, env: process.env }).rootDir;
 
 // ---------------------------------------------------------------------------
 // Framework wiring (fail-open: fall back to literals if the lib moves)

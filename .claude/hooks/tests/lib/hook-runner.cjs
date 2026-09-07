@@ -10,6 +10,15 @@ const path = require('path');
 const DEFAULT_TIMEOUT = 10000;
 
 /**
+ * A test cwd is an explicit fixture boundary.  Do not walk above it looking for
+ * a user-level `.claude` directory: that would make a copied-hook test mutate
+ * the host repository instead of the fixture under test.
+ */
+function fixtureProjectRoot(cwd) {
+  return path.resolve(cwd);
+}
+
+/**
  * Run a hook asynchronously with JSON input via stdin
  * @param {string} hookPath - Path to the hook script
  * @param {object} input - Input object to pass as JSON via stdin
@@ -23,9 +32,19 @@ async function runHook(hookPath, input, options = {}) {
   const timeout = options.timeout || DEFAULT_TIMEOUT;
 
   return new Promise((resolve) => {
-    const env = { ...process.env, ...options.env };
+    // A suite may execute a copied hook with `cwd` set to an isolated fixture
+    // while the runner process itself has a framework-level CLAUDE_PROJECT_DIR.
+    // The explicit fixture boundary wins; never inherit or discover a user-level
+    // `.claude` ancestor, otherwise cleanup tests mutate the host repository.
+    const cwd = options.cwd || process.cwd();
+    const fixtureRoot = fixtureProjectRoot(cwd);
+    const env = {
+      ...process.env,
+      ...(options.cwd ? { CLAUDE_PROJECT_DIR: fixtureRoot } : {}),
+      ...options.env
+    };
     const proc = spawn('node', [hookPath], {
-      cwd: options.cwd || process.cwd(),
+      cwd,
       env,
       stdio: ['pipe', 'pipe', 'pipe']
     });
@@ -101,7 +120,11 @@ function runHookSync(hookPath, input, options = {}) {
   try {
     const stdout = execSync(`node "${hookPath}"`, {
       cwd: options.cwd || process.cwd(),
-      env: { ...process.env, ...options.env },
+      env: {
+        ...process.env,
+        ...(options.cwd ? { CLAUDE_PROJECT_DIR: fixtureProjectRoot(options.cwd) } : {}),
+        ...options.env
+      },
       input: inputJson,
       timeout,
       encoding: 'utf8',

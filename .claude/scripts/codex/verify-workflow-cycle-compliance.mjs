@@ -3,6 +3,11 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { createRequire } from "node:module";
+
+const require = createRequire(import.meta.url);
+const { resolveWorkflowManifest, resolveAllWorkflowManifests } = require("../lib/workflow-manifest.cjs");
+const { resolveProjectRoot } = require("../lib/project-root.cjs");
 
 // Prose-only semantic anchor for the advancement+barrier rule, shared (case-insensitively) by
 // every wording across static carriers (Codex context note):
@@ -14,10 +19,12 @@ import { fileURLToPath } from "node:url";
 const ADVANCEMENT_CLAUSE_PATTERN = /advance only after (?:all|every) member/i;
 const ADVANCEMENT_CLAUSE_LABEL = 'advance only after ALL/EVERY member(s) return';
 
-// Optional generated mirror surfaces that carry the rendered barrier token. Absent file ⇒
-// that tool's mirror is not enabled in this project (skip, do not fail) — keeps the verifier
-// portable across single-tool checkouts of the framework.
-const CODEX_CARRIER = "AGENTS.md";
+// The bounded AGENTS.md root intentionally carries only the routing/ownership projection; the
+// complete rendered workflow barriers live in CODEX_CONTEXT.md and are loaded JIT before a
+// non-trivial workflow. Check the full static Codex carrier for barrier-token parity while the
+// advancement prose remains independently checked in AGENTS.md by the context mirror verifier.
+// Absent file ⇒ the Codex mirror is not enabled in this project (skip, do not fail).
+const CODEX_CARRIER = path.join(".codex", "CODEX_CONTEXT.md");
 
 const TARGET_WORKFLOW_IDS = [
   "workflow-big-feature",
@@ -300,7 +307,15 @@ export function checkStartWorkflowPreActionPolicy(rel, content) {
 export function checkWorkflowInjectContextCoverage(workflows) {
   const failures = [];
   for (const [workflowId, workflow] of Object.entries(workflows ?? {})) {
-    if (!Array.isArray(workflow?.sequence) || workflow.sequence.length === 0) {
+    const hasLegacySequence = Array.isArray(workflow?.sequence) && workflow.sequence.length > 0;
+    const hasVariantSequence =
+      workflow?.variants &&
+      typeof workflow.variants === "object" &&
+      !Array.isArray(workflow.variants) &&
+      Object.values(workflow.variants).some(
+        (variant) => Array.isArray(variant?.sequence) && variant.sequence.length > 0
+      );
+    if (!hasLegacySequence && !hasVariantSequence) {
       failures.push(`Workflow ${workflowId} has no executable sequence`);
       continue;
     }
@@ -312,6 +327,50 @@ export function checkWorkflowInjectContextCoverage(workflows) {
     }
   }
   return failures;
+}
+
+/**
+ * Resolve every executable workflow mode for the cycle verifier.  The verifier deliberately
+ * consumes the same manifest producer as activation and the static catalog; it never re-parses
+ * variant objects or invents a default when a mode is unknown. Isolated fixtures may supply an
+ * explicit availableSkills override; otherwise every declared skill must exist on disk.
+ */
+export function resolveWorkflowManifestsForVerification(
+  workflowsDoc,
+  workflowId,
+  { rootDir = process.cwd(), mode, availableSkills } = {}
+) {
+  const registry = workflowsDoc?.workflows ?? {};
+  if (!Object.hasOwn(registry, workflowId)) throw new Error(`Unknown workflow ID: ${workflowId}`);
+  const resolverOptions = {
+    rootDir,
+    ...(availableSkills !== undefined ? { availableSkills: new Set(availableSkills) } : {}),
+  };
+  if (mode !== undefined) {
+    return [resolveWorkflowManifest(workflowsDoc, workflowId, { ...resolverOptions, mode })];
+  }
+  return resolveAllWorkflowManifests(workflowsDoc, workflowId, resolverOptions);
+}
+
+// Variant-bearing entries may retain a legacy `sequence` preview for older wrapper text.  The
+// canonical resolver intentionally rejects string steps when `variants` is present, so resolve
+// that compatibility preview through an isolated legacy projection instead of interpreting it a
+// second time in the verifier.  This keeps wrapper parity backwards-compatible while all selected
+// variants continue to use the real manifest above.
+function resolveCompatibilityWorkflowManifest(workflowsDoc, workflowId, rootDir) {
+  const workflow = workflowsDoc.workflows[workflowId];
+  if (!Array.isArray(workflow?.sequence) || workflow.sequence.length === 0) return null;
+  if (!workflow.variants) {
+    return resolveWorkflowManifestsForVerification(workflowsDoc, workflowId, { rootDir })[0] ?? null;
+  }
+  const legacyEntry = { ...workflow };
+  delete legacyEntry.variants;
+  delete legacyEntry.defaultMode;
+  const legacyDoc = {
+    ...workflowsDoc,
+    workflows: { ...workflowsDoc.workflows, [workflowId]: legacyEntry },
+  };
+  return resolveWorkflowManifestsForVerification(legacyDoc, workflowId, { rootDir })[0] ?? null;
 }
 
 async function checkStartWorkflowPreActionCoverage(rootDir, failures) {
@@ -463,9 +522,17 @@ function parseStepsFromSkill(content) {
     .find(Boolean);
   if (!matchedLine) return [];
 
-  return matchedLine
+  // Variant-aware wrappers often explain the resolver before showing the default sequence, e.g.
+  // "resolve ... (default: /investigate -> /excalidraw-diagram -> /workflow-end)".  Extract the
+  // parenthesized/default list before splitting arrows so prose and trailing punctuation cannot
+  // become synthetic step IDs.  Plain legacy lines continue through unchanged.
+  const defaultList = matchedLine.match(/\bdefault\s*:\s*([^)]*)\)?\s*\.?\s*$/i)?.[1];
+  const source = defaultList || matchedLine;
+
+  return source
     .split(/\s*->\s*/)
     .map((token) => normalizeSkillStepToken(token))
+    .map((token) => token.replace(/[).,;:]+$/g, "").trim())
     .filter(Boolean);
 }
 
@@ -772,14 +839,90 @@ function checkParallelGroupsStructure(workflowId, workflow, rawSequence, failure
   }
 }
 
+// W5(a) for a resolved manifest.  The resolver has already normalized barrier members to stable
+// occurrence IDs; this second, consumer-side oracle proves the cycle checker actually consumes
+// those IDs (rather than silently falling back to a legacy command string) and that every declared
+// group remains a contiguous all-return wave in the selected mode.
+export function checkResolvedParallelGroupsStructure(workflowId, manifest, failures, { mode } = {}) {
+  const label = mode ? `${workflowId}/${mode}` : workflowId;
+  const occurrences = Array.isArray(manifest?.occurrences) ? manifest.occurrences : [];
+  const sequenceIds = occurrences.map((occurrence) => occurrence?.id);
+  const sequenceIndex = new Map(sequenceIds.map((id, index) => [id, index]));
+  const groups = Array.isArray(manifest?.parallelGroups) ? manifest.parallelGroups : [];
+  const owners = new Map();
+  const groupIds = new Set();
+
+  for (const group of groups) {
+    const groupId = group?.id ?? "(unnamed)";
+    if (typeof group?.id !== "string" || group.id.trim() === "") {
+      failures.push(`resolved parallelGroups violation (${label}/${groupId}): group needs a non-empty id`);
+    } else if (groupIds.has(group.id)) {
+      failures.push(`resolved parallelGroups violation (${label}/${groupId}): duplicate group id`);
+    } else {
+      groupIds.add(group.id);
+    }
+    if (group?.barrier !== true) {
+      failures.push(`resolved parallelGroups violation (${label}/${groupId}): barrier must be true`);
+    }
+    const members = Array.isArray(group?.members) ? group.members : [];
+    if (members.length < 2) {
+      failures.push(`resolved parallelGroups violation (${label}/${groupId}): a group needs >=2 occurrence IDs`);
+    }
+    const positions = [];
+    for (const member of members) {
+      if (!sequenceIndex.has(member)) {
+        failures.push(`resolved parallelGroups violation (${label}/${groupId}): unknown occurrence '${member}'`);
+        continue;
+      }
+      if (owners.has(member)) {
+        failures.push(
+          `resolved parallelGroups violation (${label}/${groupId}): occurrence '${member}' already belongs to '${owners.get(member)}'`
+        );
+      } else {
+        owners.set(member, groupId);
+      }
+      positions.push(sequenceIndex.get(member));
+      const occurrence = occurrences[sequenceIndex.get(member)];
+      if (occurrence?.barrier !== groupId) {
+        failures.push(
+          `resolved parallelGroups violation (${label}/${groupId}): occurrence '${member}' does not carry its barrier owner`
+        );
+      }
+    }
+    const sorted = positions.slice().sort((a, b) => a - b);
+    if (sorted.some((position, index) => position !== sorted[0] + index)) {
+      failures.push(`resolved parallelGroups violation (${label}/${groupId}): members must be contiguous`);
+    }
+    const conditional = Array.isArray(group?.conditionalMembers) ? group.conditionalMembers : [];
+    for (const member of conditional) {
+      if (!members.includes(member)) {
+        failures.push(
+          `resolved parallelGroups violation (${label}/${groupId}): conditional occurrence '${member}' is outside members`
+        );
+      }
+      if (!sequenceIndex.has(member)) {
+        failures.push(
+          `resolved parallelGroups violation (${label}/${groupId}): conditional occurrence '${member}' is unknown`
+        );
+      }
+    }
+  }
+  return failures;
+}
+
 // W5(b)+(c) — cross-mirror proof. (b) the expected barrier token is present in the rendered Codex
 // mirror; (c) the advancement clause reached the enabled static carrier. Reads the carrier once.
 // Mirror file is optional (portability).
-async function checkParallelGroupsMirrorParity(workflows, rootDir, failures) {
+async function checkParallelGroupsMirrorParity(workflows, rootDir, failures, resolvedByWorkflow = []) {
   const grouped = Object.entries(workflows).filter(
     ([, wf]) => Array.isArray(wf?.parallelGroups) && wf.parallelGroups.length > 0
   );
-  if (grouped.length === 0) return;
+  const resolvedGrouped = (resolvedByWorkflow ?? []).flatMap(({ workflowId, manifests }) =>
+    (manifests ?? [])
+      .filter((manifest) => Array.isArray(manifest?.parallelGroups) && manifest.parallelGroups.length > 0)
+      .map((manifest) => ({ workflowId, manifest }))
+  );
+  if (grouped.length === 0 && resolvedGrouped.length === 0) return;
 
   const codexPath = path.join(rootDir, CODEX_CARRIER);
   const codexText = (await exists(codexPath)) ? await fs.readFile(codexPath, "utf8") : null;
@@ -797,14 +940,18 @@ async function checkParallelGroupsMirrorParity(workflows, rootDir, failures) {
   const tokenMirrors = [
     { label: `Codex (${CODEX_CARRIER})`, text: codexText },
   ];
-  for (const [workflowId, workflow] of grouped) {
-    for (const group of workflow.parallelGroups) {
+  // The renderer emits the resolved manifest's occurrence IDs. The resolved manifest loop below
+  // is therefore the single token oracle; checking `workflow.parallelGroups` here as well would
+  // demand raw legacy member strings that the renderer is intentionally not allowed to emit and
+  // would make compact/variant Codex contexts fail despite carrying the correct barriers.
+  for (const { workflowId, manifest } of resolvedGrouped) {
+    for (const group of manifest.parallelGroups) {
       const expected = renderExpectedBarrierToken(group);
       for (const mirror of tokenMirrors) {
         if (mirror.text === null) continue;
         if (!mirror.text.includes(expected)) {
           failures.push(
-            `parallelGroups parity (${workflowId}/${group?.id ?? "(unnamed)"}): expected barrier token absent from ${mirror.label} — regenerate mirrors (npm run codex:sync). Expected: ${expected}`
+            `parallelGroups parity (${workflowId}/${manifest.mode}/${group?.id ?? "(unnamed)"}): expected barrier token absent from ${mirror.label} — regenerate mirrors (npm run codex:sync). Expected: ${expected}`
           );
         }
       }
@@ -813,7 +960,11 @@ async function checkParallelGroupsMirrorParity(workflows, rootDir, failures) {
 }
 
 async function main() {
-  const rootDir = process.cwd();
+  const rootDir = resolveProjectRoot({
+    cwd: process.cwd(),
+    scriptPath: fileURLToPath(import.meta.url),
+    env: process.env,
+  }).rootDir;
   const workflowsPath = path.join(rootDir, ".claude", "workflows.json");
   const skillRoots = [
     { label: ".claude", path: path.join(rootDir, ".claude", "skills") },
@@ -831,6 +982,7 @@ async function main() {
   const stepAliases = STEP_ALIASES;
 
   const workflowIds = Object.keys(workflows).sort();
+  const resolvedByWorkflow = [];
 
   failures.push(...checkWorkflowInjectContextCoverage(workflows));
 
@@ -841,18 +993,38 @@ async function main() {
       continue;
     }
 
-    const workflowSequence = Array.isArray(workflow.sequence) ? workflow.sequence : [];
+    let manifests;
+    try {
+      manifests = resolveWorkflowManifestsForVerification(workflowsDoc, workflowId, { rootDir });
+    } catch (error) {
+      failures.push(`Workflow manifest violation (${workflowId}): ${error.message}`);
+      continue;
+    }
+    resolvedByWorkflow.push({ workflowId, workflow, manifests });
+
+    // A legacy `sequence` remains the compatibility preview consumed by existing wrapper prose;
+    // when a workflow is variant-only, use its selected default mode as that preview.  Every mode
+    // is still resolved and structurally checked below, so the preview can never hide a malformed
+    // or duplicate variant occurrence.
+    const compatibilityManifest =
+      resolveCompatibilityWorkflowManifest(workflowsDoc, workflowId, rootDir) ?? manifests[0];
+    const workflowSequence = compatibilityManifest?.sequence ?? [];
     if (workflowSequence.length === 0) {
       failures.push(`Workflow has empty sequence: ${workflowId}`);
       continue;
     }
 
     const expectedSteps = normalizeSequence(workflowSequence, stepAliases);
-    if (TARGET_WORKFLOW_IDS.includes(workflowId)) {
-      ensureWorkflowPolicy(workflowId, workflow, expectedSteps, failures);
+    // Run policy checks for every resolved mode.  This is intentionally independent of wrapper
+    // text: a mode-specific sequence can add/remove gates, and a default-only check would miss the
+    // defect.  Legacy workflows have one `default` manifest and preserve the prior behavior.
+    for (const manifest of manifests) {
+      const modeSteps = normalizeSequence(manifest.sequence, stepAliases);
+      if (TARGET_WORKFLOW_IDS.includes(workflowId)) {
+        ensureWorkflowPolicy(workflowId, workflow, modeSteps, failures);
+      }
+      checkResolvedParallelGroupsStructure(workflowId, manifest, failures, { mode: manifest.mode });
     }
-
-    checkParallelGroupsStructure(workflowId, workflow, workflowSequence, failures);
 
     const workflowSkillName = getWorkflowSkillName(workflowId);
     for (const skillRoot of skillRoots) {
@@ -931,7 +1103,7 @@ async function main() {
     }
   }
 
-  await checkParallelGroupsMirrorParity(workflows, rootDir, failures);
+  await checkParallelGroupsMirrorParity(workflows, rootDir, failures, resolvedByWorkflow);
 
   const goalContractCheckedCount = await checkGoalContractSkillCoverage(rootDir, failures);
 

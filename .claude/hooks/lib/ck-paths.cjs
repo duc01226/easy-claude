@@ -20,6 +20,7 @@
 const path = require('path');
 const os = require('os');
 const fs = require('fs');
+const { resolveProjectRoot } = require('./project-root.cjs');
 
 // Root directory for all ClaudeKit temp files (OS temp — session-scoped)
 const CK_TMP_DIR = path.join(os.tmpdir(), 'ck');
@@ -29,7 +30,11 @@ const CK_TMP_DIR = path.join(os.tmpdir(), 'ck');
 const SESSION_ID_DEFAULT = 'default';
 
 // Project-scoped runtime data (ephemeral flags, markers — NOT in .claude/ to keep it portable)
-const PROJECT_DIR = process.env.CLAUDE_PROJECT_DIR || process.cwd();
+const PROJECT_DIR = resolveProjectRoot({
+    cwd: process.cwd(),
+    scriptPath: __filename,
+    env: process.env,
+}).rootDir;
 const PROJECT_TMP_DIR = path.join(PROJECT_DIR, 'tmp', 'claude-temp');
 
 // Project-scoped runtime file paths (dismiss flags, markers, warnings)
@@ -38,7 +43,6 @@ const AGENT_FILES_DISMISSED_PATH = path.join(PROJECT_TMP_DIR, '.agent-files-dism
 const SCAN_STALE_DISMISSED_PATH = path.join(PROJECT_TMP_DIR, '.scan-stale-dismissed');
 const GRAPH_DISMISSED_PATH = path.join(PROJECT_TMP_DIR, '.graph-dismissed');
 const SCAN_STALE_PATH = path.join(PROJECT_TMP_DIR, '.scan-stale');
-const COMMIT_SKILL_MARKER_PATH = path.join(PROJECT_TMP_DIR, '.commit-skill-active');
 
 // Session-specific marker files (per-session, no race conditions)
 const MARKERS_DIR = path.join(CK_TMP_DIR, 'markers');
@@ -183,7 +187,6 @@ module.exports = {
     SCAN_STALE_DISMISSED_PATH,
     GRAPH_DISMISSED_PATH,
     SCAN_STALE_PATH,
-    COMMIT_SKILL_MARKER_PATH,
 
     // Helpers
     ensureDir,

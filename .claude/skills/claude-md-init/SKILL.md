@@ -14,7 +14,7 @@ description: '[Documentation] Use when you need initialize, update, or refactor 
 2. **Run Generator** — `node .claude/skills/claude-md-init/scripts/generate-claude-md.cjs --mode <mode>`
 3. **AI Fill** — Review output, fill creative sections (project description, golden rules inference)
 4. **Verify** — Confirm output is valid, no project-specific leaks from template
-5. **Sync Mirrors** — After CLAUDE.md is written (init/update/refactor), call `/sync-codex` to regenerate the stale `AGENTS.md` + Codex mirror surfaces from the new CLAUDE.md
+5. **Prepare Mirror Handoff** — After CLAUDE.md changes (init/update/refactor), name the stale `AGENTS.md` + Codex mirror surfaces and instruct the user to run `/sync-codex`; this skill never authorizes or auto-runs it.
 
 **Key Rules:**
 
@@ -49,7 +49,7 @@ code hierarchy, naming, evidence/confidence rules) and stamps the sentinel at th
 recognizes it as complete. It also stamps the hook-independent **Workflow-First Gate** (from
 `.claude/skills/shared/workflow-first-gate.md`, via `stampHeader()`) immediately after the sentinel —
 the primacy-anchor routing rule (bug→`workflow-bugfix` workflow, feature/enhancement→`workflow-feature` workflow) that
-mirrors into `AGENTS.md` and survives with no hooks.
+mirrors into `AGENTS.md` and survives when hooks are absent, disabled, or stale.
 
 **Opt-out** — to keep a project-only `CLAUDE.md`/`AGENTS.md` (your custom knowledge, none of the
 universal guides), set `portability.requireUniversalGuides: false` in `docs/project-config.json`
@@ -129,19 +129,19 @@ After the script generates the mechanical parts, AI reviews and fills:
 - [ ] No `.claude/skills/claude-md-init/` references leak into output (self-reference)
 - [ ] Conditional sections with no data are omitted (not empty stubs)
 
-## Phase 5: Sync Mirrors (after CLAUDE.md is written)
+## Phase 5: Prepare Mirror Handoff (after CLAUDE.md is written)
 
 Writing/updating CLAUDE.md leaves the generated mirror surfaces stale — `AGENTS.md` (Codex), the
 `.codex/` mirrors, and other downstream surfaces are derived FROM CLAUDE.md and
 do not update on their own.
 
-**MUST add a final todo task — "Sync Codex mirrors from updated CLAUDE.md" — and run it after
-init/update/refactor completes**, by invoking the `/sync-codex` skill (the full cross-surface
-migrate → hooks → context → verify pipeline, which regenerates `AGENTS.md`). Create this as
-the LAST `TaskCreate` item so it always follows the verify step:
+**MUST add a final todo task — "Report stale Codex mirrors and request /sync-codex" — after
+init/update/refactor completes.** Name the stale generated surfaces and instruct the user to
+run `/sync-codex`. Normal source generation is not sync authorization: NEVER auto-run the
+mutating pipeline. Create this as the LAST `TaskCreate` item after verification:
 
 ```text
-TaskCreate: "Sync Codex mirrors from updated CLAUDE.md → invoke /sync-codex"
+TaskCreate: "Report stale Codex mirrors → instruct user to run /sync-codex"
 ```
 
 Skip only when no CLAUDE.md content actually changed (e.g. generator reported all sections preserved /

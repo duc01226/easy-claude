@@ -16,8 +16,13 @@
 const fs = require('fs');
 const path = require('path');
 const { loadConfig, DEFAULT_PORTABILITY } = require('./ck-config-loader.cjs');
+const { resolveProjectRoot } = require('./project-root.cjs');
 
-const PROJECT_DIR = process.env.CLAUDE_PROJECT_DIR || process.cwd();
+// Resolve from the nearest portable bundle, not the caller's current directory.
+// This keeps Claude hooks and Codex entrypoints equivalent when invoked from a
+// nested worktree or a copied bundle.  Explicit CLAUDE_PROJECT_DIR remains the
+// highest-priority override for test fixtures and host integrations.
+const PROJECT_DIR = resolveProjectRoot({ cwd: process.cwd(), scriptPath: __filename, env: process.env }).rootDir;
 
 function resolveConfiguredPath(configuredPath, fallbackPath) {
     const rawPath = configuredPath || fallbackPath;

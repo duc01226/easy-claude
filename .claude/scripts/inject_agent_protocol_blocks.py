@@ -39,7 +39,13 @@ import re
 import sys
 
 from sync_blocks import SYNC_SOURCE, find_sync_region_start, load_wrapped_sync_block
-from agent_protocol_matrix import AGENT_QUALITY_BLOCKS, AGENTS_DIR, FAMILIES
+from agent_protocol_matrix import (
+    AGENT_QUALITY_BLOCKS,
+    AGENTS_DIR,
+    EXCLUDED_ORCHESTRATION,
+    FAMILIES,
+    ORCHESTRATION_WHITELIST,
+)
 
 CLOSING_RE = re.compile(r"^## Closing Reminders\b.*$", re.MULTILINE)
 
@@ -60,6 +66,36 @@ def canonical_reminder_tags() -> set[str]:
 
 
 _REMINDER_TAGS = canonical_reminder_tags()
+
+
+def reconcile_excluded_blocks(text: str, agent: str) -> tuple[str, list[str]]:
+    """Remove stale excluded-orchestration SYNC blocks, preserving role prose.
+
+    Older agent files may still carry a block that the current matrix deliberately
+    excludes (for example an orchestrator-only return or parallel-dispatch block).
+    Reconciliation is limited to exact fenced SYNC blocks and their optional
+    reminders; it never edits surrounding role-authored text. The whitelist keeps
+    legitimate framework-maintainer subject-matter blocks intact.
+    """
+    allowed = ORCHESTRATION_WHITELIST.get(agent, set())
+    removed: list[str] = []
+    for tag in sorted(EXCLUDED_ORCHESTRATION - allowed):
+        for full_tag in (f"SYNC:{tag}", f"SYNC:{tag}:reminder"):
+            # Tempered span: an orphaned OPEN fence (close fence lost by an earlier partial
+            # edit) must not let the match run on to the NEXT block's close fence, which would
+            # silently delete every role-authored line between them. Refusing to cross another
+            # open fence leaves the orphan visible instead of eating the prose around it.
+            open_fence = f"<!-- {full_tag} -->"
+            pattern = re.compile(
+                rf"\n?{re.escape(open_fence)}"
+                rf"(?:(?!{re.escape(open_fence)}).)*?"
+                rf"<!-- /{re.escape(full_tag)} -->\n?",
+                re.DOTALL,
+            )
+            text, count = pattern.subn("\n", text)
+            if count:
+                removed.extend([full_tag] * count)
+    return text, removed
 
 
 def inject_tag(text: str, tag: str) -> tuple[str, dict]:
@@ -160,7 +196,7 @@ def main() -> int:
             results.append((agent, "MISSING", {}))
             continue
         original = path.read_text(encoding="utf-8")
-        text = original
+        text, reconciled = reconcile_excluded_blocks(original, agent)
         per_tag = {}
         for tag in tags:
             text, st = inject_tag(text, tag)
@@ -174,6 +210,8 @@ def main() -> int:
             continue
         if not dry_run:
             path.write_text(text, encoding="utf-8")
+        if reconciled:
+            per_tag["reconciled-excluded"] = {"removed": reconciled}
         results.append((agent, "DRY-RUN" if dry_run else "UPDATED", per_tag))
 
     print(f"{'AGENT':<26} {'STATUS':<13} TAG=top/reminder")
@@ -182,7 +220,12 @@ def main() -> int:
         if not per_tag:
             print(f"{agent:<26} {kind:<13}")
             continue
-        parts = [f"{t}={s['top']}/{s['reminder']}" for t, s in per_tag.items()]
+        parts = []
+        for tag, status in per_tag.items():
+            if "top" in status:
+                parts.append(f"{tag}={status['top']}/{status['reminder']}")
+            else:
+                parts.append(f"{tag}={status.get('removed', [])}")
         print(f"{agent:<26} {kind:<13} " + "  ".join(parts))
     changed = sum(1 for _, k, _ in results if k in ("UPDATED", "DRY-RUN"))
     verb = "would change" if dry_run else "changed"

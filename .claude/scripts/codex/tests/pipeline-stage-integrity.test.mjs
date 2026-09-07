@@ -24,6 +24,7 @@ const thisDir = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(thisDir, '..', '..', '..', '..');
 const hooksRunnerRel = '.claude/hooks/tests/run-all-tests.cjs';
 const hooksRunnerAbs = path.join(repoRoot, ...hooksRunnerRel.split('/'));
+const syncRunnerRel = '.claude/skills/sync-codex/scripts/run-codex-sync.mjs';
 
 const createdDirs = [];
 after(async () => {
@@ -32,7 +33,11 @@ after(async () => {
 
 function run(cmd, args, opts = {}) {
     return new Promise((resolve, reject) => {
-        const child = spawn(cmd, args, { cwd: repoRoot, stdio: ['ignore', 'pipe', 'pipe'], ...opts });
+        const env = { ...process.env };
+        // A nested Node test runner must execute independently, not inherit the
+        // parent runner's internal sentinel and silently skip its files.
+        delete env.NODE_TEST_CONTEXT;
+        const child = spawn(cmd, args, { cwd: repoRoot, env, stdio: ['ignore', 'pipe', 'pipe'], ...opts });
         let stdout = '';
         let stderr = '';
         child.stdout.on('data', d => { stdout += d.toString(); });
@@ -41,6 +46,53 @@ function run(cmd, args, opts = {}) {
         child.on('close', code => resolve({ code, stdout, stderr }));
     });
 }
+
+test('STAGE-003 scripts stage executes both CJS and MJS and propagates either failure', async () => {
+    const tmp = await fs.mkdtemp(path.join(os.tmpdir(), 'stage-formats-'));
+    createdDirs.push(tmp);
+    const runner = path.join(tmp, syncRunnerRel);
+    const tests = path.join(tmp, '.claude/scripts/tests');
+    await fs.mkdir(path.dirname(runner), { recursive: true });
+    await fs.mkdir(tests, { recursive: true });
+    await fs.copyFile(path.join(repoRoot, syncRunnerRel), runner);
+    const cjs = path.join(tests, 'cjs.test.cjs');
+    const mjs = path.join(tests, 'mjs.test.mjs');
+    for (const failing of ['cjs', 'mjs', null]) {
+        await fs.writeFile(cjs, `require('node:test')('CJS-SENTINEL', () => { if (${failing === 'cjs'}) throw new Error('CJS failure'); });`);
+        await fs.writeFile(mjs, `import test from 'node:test'; test('MJS-SENTINEL', () => { if (${failing === 'mjs'}) throw new Error('MJS failure'); });`);
+        const result = await run(process.execPath, [runner, '--only=scripts-tests', '--verbose'], { cwd: tmp });
+        assert.equal(result.code, failing ? 1 : 0, JSON.stringify(result));
+        assert.match(result.stdout, /CJS-SENTINEL/);
+        assert.match(result.stdout, /MJS-SENTINEL/);
+    }
+    await fs.unlink(cjs);
+    await fs.unlink(mjs);
+    const empty = await run(process.execPath, [runner, '--only=scripts-tests'], { cwd: tmp });
+    assert.equal(empty.code, 1, 'empty discovery must not invoke unscoped node --test');
+});
+
+// ── STAGE-004 — every abort must name the stage that failed, including a spawn failure ──
+// Each stage spawns 'node' through PATH, so an unresolvable PATH is the realistic way this
+// happens (a stripped environment, a Node install removed mid-run). That error arrives as a
+// bare Error with neither stage nor exit code, and the abort line printed 'undefined'.
+test('STAGE-004 a spawn failure names the failing stage, not stage "undefined"', async () => {
+    const tmp = await fs.mkdtemp(path.join(os.tmpdir(), 'stage-spawn-'));
+    createdDirs.push(tmp);
+    const runner = path.join(tmp, syncRunnerRel);
+    await fs.mkdir(path.dirname(runner), { recursive: true });
+    await fs.copyFile(path.join(repoRoot, syncRunnerRel), runner);
+    const emptyPath = path.join(tmp, 'empty-path');
+    await fs.mkdir(emptyPath, { recursive: true });
+    // Windows resolves PATH case-insensitively; drop every spelling before setting our own.
+    const env = { ...process.env };
+    delete env.NODE_TEST_CONTEXT;
+    for (const key of Object.keys(env)) if (/^path$/i.test(key)) delete env[key];
+    env.PATH = emptyPath;
+    const result = await run(process.execPath, [runner, '--only=residue'], { cwd: tmp, env });
+    assert.equal(result.code, 1, JSON.stringify(result));
+    assert.match(result.stderr, /aborted at stage 'residue'/);
+    assert.doesNotMatch(result.stderr, /stage 'undefined'/);
+});
 
 // ── STAGE-001 — a zero-match explicit --filter must FAIL; a genuinely empty suites dir must PASS ──
 // Two halves of one contract. Conflating them would either let the vacuous case through (the bug) or

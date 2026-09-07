@@ -10,10 +10,12 @@ const fs = require('fs');
 const path = require('path');
 const { execFileSync } = require('child_process');
 const { debug, debugError } = require('./debug-log.cjs');
+const { resolveProjectRoot } = require('./project-root.cjs');
 
 const TAG = 'graph-utils';
 const DEBOUNCE_MS = 3000;
-const PROJECT_DIR = process.env.CLAUDE_PROJECT_DIR || process.cwd();
+const rootResolution = resolveProjectRoot({ cwd: process.cwd(), scriptPath: __filename, env: process.env });
+const PROJECT_DIR = rootResolution.rootDir;
 const VENV_DIR = path.join(PROJECT_DIR, 'tmp', 'claude-temp', '.venv');
 const REQUIREMENTS_FILE = path.join(PROJECT_DIR, '.claude', 'scripts', 'code_graph', 'requirements.txt');
 const DEPS_IMPORT_CHECK = 'import tree_sitter; import tree_sitter_language_pack; import networkx';
@@ -88,6 +90,7 @@ function findSystemPython() {
  * @returns {string|null} Python binary path/name or null
  */
 function findPython() {
+    if (rootResolution.error) return null;
     if (_pythonBin !== undefined) return _pythonBin;
 
     // 1. Prefer venv Python if it exists
@@ -130,6 +133,7 @@ function findPython() {
  * @returns {{ ok: boolean, message: string }} Result with status and user-facing message
  */
 function ensurePythonDeps() {
+    if (rootResolution.error) return { ok: false, message: `[code-graph] Skipped: ${rootResolution.error}` };
     // Already confirmed this session
     if (_depsInstalled) return { ok: true, message: 'Dependencies already verified this session.' };
 
@@ -297,6 +301,7 @@ function getScriptPath() {
  * @returns {boolean} True if recently updated or update in progress (should skip)
  */
 function wasRecentlyUpdated() {
+    if (rootResolution.error) return true;
     // Check lock dir first — another process may be updating right now
     const lockDir = path.join(PROJECT_DIR, '.code-graph', '.update-lock');
     try {
@@ -326,6 +331,7 @@ function wasRecentlyUpdated() {
  * @returns {boolean} True if lock acquired, false if another process holds it
  */
 function acquireUpdateLock() {
+    if (rootResolution.error) return false;
     const lockDir = path.join(PROJECT_DIR, '.code-graph', '.update-lock');
     try {
         fs.mkdirSync(lockDir); // Atomic on all OS — fails if exists
@@ -354,6 +360,7 @@ function acquireUpdateLock() {
  * Release the update lock.
  */
 function releaseUpdateLock() {
+    if (rootResolution.error) return;
     const lockDir = path.join(PROJECT_DIR, '.code-graph', '.update-lock');
     try {
         fs.rmdirSync(lockDir);
@@ -416,6 +423,7 @@ function readLastSeenHead() {
  * @param {string} head - Commit hash
  */
 function writeLastSeenHead(head) {
+    if (rootResolution.error) return;
     try {
         fs.writeFileSync(getLastSeenHeadPath(), head, 'utf-8');
     } catch {

@@ -178,6 +178,7 @@ const tmpclaudeCleanupTests = [
         fn: async () => {
             const tmpDir = createTempDir();
             try {
+                fs.mkdirSync(path.join(tmpDir, '.claude'));
                 // Create .git directory with a tmpclaude-like file
                 const gitDir = path.join(tmpDir, '.git', 'objects');
                 fs.mkdirSync(gitDir, { recursive: true });
@@ -199,6 +200,7 @@ const tmpclaudeCleanupTests = [
         fn: async () => {
             const tmpDir = createTempDir();
             try {
+                fs.mkdirSync(path.join(tmpDir, '.claude'));
                 // Create tmpclaude file at project root (hex: [a-f0-9]+)
                 const tmpFile = path.join(tmpDir, 'tmpclaude-a00bf11e-cwd');
                 fs.writeFileSync(tmpFile, 'test content');
@@ -245,6 +247,7 @@ const tmpclaudeSessionEndTests = [
         fn: async () => {
             const tmpDir = createTempDir();
             try {
+                fs.mkdirSync(path.join(tmpDir, '.claude'));
                 // Create tmpclaude file at project root
                 const tmpFile = path.join(tmpDir, 'tmpclaude-aabb1122-cwd');
                 fs.writeFileSync(tmpFile, '/some/path');
@@ -266,6 +269,7 @@ const tmpclaudeSessionEndTests = [
         fn: async () => {
             const tmpDir = createTempDir();
             try {
+                fs.mkdirSync(path.join(tmpDir, '.claude'));
                 const tmpFile = path.join(tmpDir, 'tmpclaude-ccdd3344-cwd');
                 fs.writeFileSync(tmpFile, '/some/path');
 

@@ -32,8 +32,9 @@
 const fs = require('fs');
 const path = require('path');
 const os = require('os');
+const { resolveProjectRoot } = require('./project-root.cjs');
 
-const PROJECT_DIR = process.env.CLAUDE_PROJECT_DIR || process.cwd();
+const PROJECT_DIR = resolveProjectRoot({ cwd: process.cwd(), scriptPath: __filename, env: process.env }).rootDir;
 
 // =============================================================================
 // DYNAMIC DEDUP CALCULATION
