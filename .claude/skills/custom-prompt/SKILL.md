@@ -1,7 +1,7 @@
 ---
 name: custom-prompt
 version: 1.0.0
-description: '[Utilities] Use when the user invokes, lists, saves, updates, or deletes a PROJECT-SPECIFIC saved prompt — a named, reusable procedure stored with the project rather than in the portable framework. `/custom-prompt list` prints every defined prompt with its description; `/custom-prompt <free-text request>` matches the request to the closest saved prompt and executes it only after a confirmation gate; `/custom-prompt save|update|delete ...` maintains the registry — save never stores raw wording, it drafts the best version of the prompt and confirms the name, description, inferred goal, and steps with the user first. Triggers: custom prompt, custom prompts, list custom prompts, save this prompt, save this prompt task, update this prompt, my saved prompt, project prompt, playbook, recipe, runbook.'
+description: '[Utilities] Use when invoking, listing, saving, updating, or deleting a PROJECT-SPECIFIC saved prompt (playbook / recipe / runbook). Subcommands: list | <free-text> | save | update | delete.'
 ---
 
 ## Quick Summary

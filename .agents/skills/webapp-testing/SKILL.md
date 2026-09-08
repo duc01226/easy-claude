@@ -1,6 +1,6 @@
 ---
 name: webapp-testing
-description: '[Testing] Use when you need individual page/component testing with Python Playwright scripts.'
+description: '[Testing] Use when testing an individual page or component with Python Playwright scripts.'
 ---
 
 > Codex compatibility note:

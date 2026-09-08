@@ -1,6 +1,6 @@
 ---
 name: ui-ux-pro-max
-description: '[Frontend] Use when designing beautiful or aesthetic interfaces with curated UI styles, palettes, fonts, charts, and stacks.'
+description: '[Frontend] Use when designing aesthetic interfaces with curated UI styles, palettes, fonts, charts, and stacks.'
 ---
 
 > Codex compatibility note:

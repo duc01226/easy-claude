@@ -1,7 +1,7 @@
 ---
 name: workflow-review-changes-loop
 version: 1.0.0
-description: '[Workflow] Use when you need to run /workflow-review-changes repeatedly in an outer convergence loop until a complete whole-workflow run applies zero fixes — recursive re-review of a fixed scope (branch-diff + current changes) until a clean no-op pass.'
+description: '[Workflow] Use when running /workflow-review-changes repeatedly until a complete pass applies zero fixes.'
 ---
 
 <!-- PROMPT-ENHANCE:STEP-TASK-ANCHOR:START -->

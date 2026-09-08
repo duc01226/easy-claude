@@ -1,6 +1,6 @@
 ---
 name: workflow-bugfix
-description: '[Workflow] Use when activating the Bug Fix workflow for systematic debugging with root cause investigation, fix, and verification.'
+description: '[Workflow] Use when fixing a bug, error, or crash — root-cause investigation, fix, verification.'
 disable-model-invocation: false
 ---
 

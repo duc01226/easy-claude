@@ -1,6 +1,6 @@
 ---
 name: graph-trace
-description: '[Code Intelligence] Use when investigating what happens when code executes, understanding blast radius, or tracing frontend-to-backend flows.'
+description: '[Code Intelligence] Use when tracing what happens as code executes, blast radius, or frontend-to-backend flows.'
 ---
 
 > Codex compatibility note:

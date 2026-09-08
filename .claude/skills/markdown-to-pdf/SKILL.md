@@ -1,7 +1,7 @@
 ---
 name: markdown-to-pdf
 version: 1.0.0
-description: '[Document Processing] Use when you need to convert markdown files to PDF with syntax highlighting and custom CSS support.'
+description: '[Document Processing] Use when converting Markdown to PDF with syntax highlighting and custom CSS.'
 disable-model-invocation: false
 ---
 

@@ -1,6 +1,6 @@
 ---
 name: threejs
-description: '[General] Use when building 3D web apps with ThreeJS and related WebGL or WebGPU examples.'
+description: '[General] Use when building 3D web apps with ThreeJS, WebGL, or WebGPU.'
 ---
 
 > Codex compatibility note:

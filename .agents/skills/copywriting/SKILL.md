@@ -1,6 +1,6 @@
 ---
 name: copywriting
-description: '[Content] Use when you need to create high-converting copy for marketing materials, social media, landing pages, email campaigns, and product descriptions.'
+description: '[Content] Use when writing high-converting copy for marketing, social, landing pages, email, or product descriptions.'
 ---
 
 > Codex compatibility note:

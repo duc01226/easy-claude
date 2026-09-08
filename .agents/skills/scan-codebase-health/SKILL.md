@@ -1,6 +1,6 @@
 ---
 name: scan-codebase-health
-description: '[Documentation] Use when you need to detect codebase health issues: unused exports, doc count-drift, orphan files, stale config references.'
+description: '[Documentation] Use when detecting codebase health issues — unused exports, doc count-drift, orphan files, stale config references.'
 ---
 
 > Codex compatibility note:

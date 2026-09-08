@@ -1,7 +1,7 @@
 ---
 name: refactoring
 version: 2.2.0
-description: '[Code Quality] Use when you need restructure code without changing behavior using extract method, extract class, rename, move, and inline patterns.'
+description: '[Code Quality] Use when restructuring code without changing behavior — extract method/class, rename, move, inline.'
 ---
 
 ## Quick Summary

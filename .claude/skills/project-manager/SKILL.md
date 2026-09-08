@@ -1,7 +1,7 @@
 ---
 name: project-manager
 version: 1.1.0
-description: '[Project Management] Use when you need to generate project status reports, track dependencies, manage risk registers, and facilitate team sync meetings.'
+description: '[Project Management] Use when generating project status reports, tracking dependencies, managing risk registers, or facilitating team syncs.'
 ---
 
 ## Quick Summary

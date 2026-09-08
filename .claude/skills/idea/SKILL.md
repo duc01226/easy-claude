@@ -1,7 +1,7 @@
 ---
 name: idea
 version: 1.1.0
-description: '[Project Management] Use when capturing new ideas, feature requests, or concepts for future refinement.'
+description: '[Project Management] Use when capturing new ideas, feature requests, or concepts for later refinement.'
 ---
 
 <!-- PROMPT-ENHANCE:STEP-TASK-ANCHOR:START -->

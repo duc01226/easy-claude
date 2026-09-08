@@ -1,6 +1,6 @@
 ---
 name: investigate
-description: '[Fix & Debug] Use when you need to investigate and explain how existing features or logic work. Flag: --mode=explain produces a one-way developer-narrative explanation (Purpose → How → Why → Impact) tuned by coding level; use /understand for the standalone prompt-driven explainer.'
+description: '[Fix & Debug] Use when investigating and explaining how existing features or logic work. Flag: --mode=explain gives a developer-narrative walkthrough.'
 version: 2.2.1
 ---
 

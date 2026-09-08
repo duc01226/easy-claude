@@ -1,6 +1,6 @@
 ---
 name: package-upgrade
-description: '[Code Quality] Use when the user asks to analyze package upgrades, check for outdated dependencies, plan npm/NuGet updates, or assess breaking changes in package updates.'
+description: '[Code Quality] Use when analyzing package upgrades, outdated dependencies, npm/NuGet update plans, or breaking changes.'
 ---
 
 > Codex compatibility note:

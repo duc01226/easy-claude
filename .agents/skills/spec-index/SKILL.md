@@ -1,6 +1,6 @@
 ---
 name: spec-index
-description: '[General] Use when you need to (re)generate a DERIVED navigation index, cross-capability ERD, or reimplementation guide assembled FROM the canonical Feature Specs under docs/specs/**. Never extracts a separate A-E engineering tree.'
+description: '[General] Use when (re)generating a DERIVED navigation index, cross-capability ERD, or reimplementation guide FROM canonical Feature Specs.'
 ---
 
 > Codex compatibility note:

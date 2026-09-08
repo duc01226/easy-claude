@@ -1,6 +1,6 @@
 ---
 name: fix
-description: '[Implementation] Use when you need to analyze and fix issues [INTELLIGENT ROUTING]. Flag: --target={ci|issue|logs|test|types|ui} scopes the fix; --target=types resolves TypeScript errors inline.'
+description: '[Implementation] Use when analyzing and fixing issues. Flag: --target={ci|issue|logs|test|types|ui} scopes the fix.'
 disable-model-invocation: false
 ---
 

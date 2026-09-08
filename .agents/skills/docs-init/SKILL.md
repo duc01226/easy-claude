@@ -1,6 +1,6 @@
 ---
 name: docs-init
-description: '[Documentation] Use when you need to initialize project reference docs via hook + scan skills.'
+description: '[Documentation] Use when initializing project reference docs via hook + scan skills.'
 disable-model-invocation: false
 ---
 

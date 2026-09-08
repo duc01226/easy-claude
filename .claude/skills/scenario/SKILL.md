@@ -1,7 +1,7 @@
 ---
 name: scenario
 version: 1.0.0
-description: '[Planning] Use when enumerating adversarial scenarios, failure modes, data-integrity risks, state boundaries, access risks, or pre-plan edge cases for an embedded large-idea slice, explicit roadmap milestone, framework/library scope, or isolated change.'
+description: '[Planning] Use when enumerating adversarial scenarios, failure modes, data-integrity risks, state boundaries, access risks, or pre-plan edge cases.'
 argument-hint: '[owning artifact, scope brief, or explicit milestone]'
 disable-model-invocation: false
 ---

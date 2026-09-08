@@ -1,6 +1,6 @@
 ---
 name: workflow-spec-sync
-description: '[Workflow] Use when activating the Test Spec Update (Post-Change) workflow for update test specs and feature docs after code changes, bug fixes, or pr reviews.'
+description: '[Workflow] Use when updating test specs and feature docs after code changes, bug fixes, or PR reviews.'
 disable-model-invocation: false
 ---
 

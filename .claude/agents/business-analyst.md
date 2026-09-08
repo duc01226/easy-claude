@@ -1,9 +1,9 @@
 ---
 name: business-analyst
 description: >-
-    Use this agent when refining requirements, writing user stories,
-    creating acceptance criteria, analyzing business processes, or
-    bridging technical and non-technical stakeholders.
+    Use when refining requirements, writing user stories or acceptance
+    criteria, analyzing business processes, or bridging technical and
+    non-technical stakeholders.
 model: inherit
 memory: project
 ---

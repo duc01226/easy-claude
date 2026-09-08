@@ -1,7 +1,7 @@
 ---
 name: tech-spec
 version: 1.0.0
-description: '[Documentation] Use when (re)generating the DERIVED technical spec view over code + tests, or reporting canonical §8 TC/test-code drift. A GENERATOR — it projects code + tests into a regenerable per-component view and NEVER authors business content. Modes generate|audit|sync. Per-mode procedure lives in references/{author,sync}.md.'
+description: '[Documentation] Use when (re)generating the DERIVED technical spec view over code and tests, or reporting §8 TC drift. A generator — never authors business content. Modes: generate|audit|sync.'
 triggers: 'tech spec, technical spec, regenerate tech specs, technical spec view, derived technical spec, component technical spec, use case inventory, TC to test map, test coverage map, sync test specs, sync tests, reconcile tests, reverse sync, full sync, harvest invariants, cross-service topology, event consumer inventory'
 ---
 

@@ -52,7 +52,21 @@ const SHELL_WRAPPERS = new Set([
   'env', 'command', 'builtin', 'exec', 'sudo', 'bash', 'sh', 'zsh', 'dash', 'ksh',
   'pwsh', 'powershell', 'cmd'
 ]);
+const POSIX_SHELL_WRAPPERS = new Set(['bash', 'sh', 'zsh', 'dash', 'ksh', 'cmd']);
+const POWERSHELL_WRAPPERS = new Set(['pwsh', 'powershell']);
 const SHELL_BODY_OPTIONS = new Set(['-c', '-command', '/c', '/command', '-e']);
+// PowerShell resolves any unambiguous PREFIX of a parameter name, so `-c`,
+// `-com` and `-Command` all select the same parameter. Match by prefix; a fixed
+// spelling list lets an abbreviation walk straight past the body check.
+const POWERSHELL_PARAMETERS = [
+  { name: 'command', kind: 'body' },
+  { name: 'encodedcommand', kind: 'opaque' },
+  { name: 'file', kind: 'file' }
+];
+// A body that is nothing but one variable reference exposes no operand at all,
+// exactly like `bash -c "$SCRIPT"`. The anchors exclude `$env:PATH` and `$_`,
+// so ordinary PowerShell is not caught by this.
+const POWERSHELL_OPAQUE_BODY = /^\$[A-Za-z_][A-Za-z0-9_]*$/;
 
 function commandName(statement) {
   const raw = statement?.command?.value;
@@ -100,13 +114,104 @@ function unknownNested(statement, field = 'command-wrapper') {
   }];
 }
 
+/**
+ * Split only on syntax delimiters and classify each bounded fragment, so a
+ * sensitive operand stays covered without regex-scanning ordinary command text.
+ */
+function sensitiveFragments(text, statement, field) {
+  const entries = [];
+  if (typeof text !== 'string') return entries;
+  for (const fragment of text.split(/[\s()[\]{};|&"'`<>]+/).filter(Boolean)) {
+    if (isPrivacySensitive(fragment)) entries.push({ value: fragment, field, statement });
+  }
+  return entries;
+}
+
+function powershellParameter(value) {
+  const match = /^[-/]([A-Za-z]+)$/.exec(value);
+  if (!match) return null;
+  const name = match[1].toLowerCase();
+  const candidates = POWERSHELL_PARAMETERS.filter(parameter => parameter.name.startsWith(name));
+  if (candidates.length === 0) return null;
+  // PowerShell itself rejects an ambiguous abbreviation; never guess which one.
+  return candidates.length === 1 ? candidates[0] : { kind: 'ambiguous' };
+}
+
+/**
+ * PowerShell is not POSIX sh, so the shared inspector reports every PowerShell
+ * body UNKNOWN by construction — `command-inspection.cjs` flags the interpreter
+ * AND every `Verb-Noun` cmdlet as `UNSUPPORTED_COMMAND`. Escalating that to an
+ * unresolved operand blocked essentially every PowerShell command while proving
+ * nothing. A PowerShell body is instead handled the way an unsupported TOP-LEVEL
+ * statement already is (see `extractPaths`): keep the operands the POSIX pass can
+ * still see, and scan the body with the same bounded sensitive-fragment pass. A
+ * sensitive path stays blocked; an ordinary cmdlet does not.
+ *
+ * Trade-off, deliberately taken: an operand hidden behind a variable
+ * (`Get-Content $secret`) is no longer deny-closed, because `$` is pervasive in
+ * PowerShell (`$env:PATH`, `$_`) and treating it as unresolvable is precisely
+ * what made the interpreter unusable. A body that is ONLY a variable reference
+ * is still deny-closed, keeping parity with `bash -c "$SCRIPT"`.
+ */
+function powershellOperands(statement, argv, depth) {
+  const entries = [];
+  for (let index = 0; index < argv.length; index++) {
+    const token = argv[index];
+    if (typeof token?.value !== 'string') return unknownNested(statement, 'powershell-argument');
+    const parameter = powershellParameter(token.value);
+    if (parameter?.kind === 'ambiguous') return unknownNested(statement, 'powershell-parameter');
+    // `-EncodedCommand` carries a base64 body that cannot be inspected at all.
+    if (parameter?.kind === 'opaque') return unknownNested(statement, 'powershell-encoded-command');
+    if (parameter?.kind === 'file') {
+      const target = argv[++index];
+      if (typeof target?.value !== 'string') return unknownNested(statement, 'powershell-script-file');
+      entries.push({ value: target.value, field: 'powershell-file', token: target, statement });
+      continue;
+    }
+    if (parameter?.kind === 'body') {
+      const body = argv[index + 1];
+      if (typeof body?.value !== 'string') return unknownNested(statement, 'powershell-body');
+      if (POWERSHELL_OPAQUE_BODY.test(body.value.trim())) return unknownNested(statement, 'powershell-body');
+      return [...entries, ...powershellBodyOperands(body.value, statement, depth)];
+    }
+    // A bare positional ahead of any parameter is the implicit `-File` script.
+    if (!/^[-/]/.test(token.value) && entries.length === 0) {
+      entries.push({ value: token.value, field: 'powershell-file', token, statement });
+    }
+  }
+  return entries;
+}
+
+function powershellBodyOperands(body, statement, depth) {
+  const inspected = inspectPrivacyCommand(body);
+  if (inspected.diagnostics.some(item => item.code === 'INPUT_LIMIT')) {
+    return unknownNested(statement, 'powershell-body');
+  }
+  const entries = [];
+  for (const nested of inspected.statements || []) {
+    entries.push(...commandOperands(nested), ...nestedCommandOperands(nested, depth + 1));
+  }
+  return [
+    // Drop the POSIX pass's bare `<unresolved>` markers — they only report that a
+    // POSIX parse of a non-POSIX language was incomplete, which is expected here
+    // and is not evidence. An operand that carries a real value is still
+    // classified, so `Get-Content $HOME/.env` remains covered.
+    ...entries
+      .filter(entry => entry.value !== '<unresolved>')
+      .map(entry => (entry.unknown ? { ...entry, unknown: false } : entry)),
+    ...sensitiveFragments(body, statement, 'powershell-body-fragment')
+  ];
+}
+
 function nestedCommandOperands(statement, depth = 0) {
   if (depth > 3) return unknownNested(statement, 'command-wrapper-depth');
   const command = commandName(statement);
   if (!SHELL_WRAPPERS.has(command)) return [];
   const argv = Array.isArray(statement?.argv) ? statement.argv.slice(1) : [];
 
-  if (['bash', 'sh', 'zsh', 'dash', 'ksh', 'pwsh', 'powershell', 'cmd'].includes(command)) {
+  if (POWERSHELL_WRAPPERS.has(command)) return powershellOperands(statement, argv, depth);
+
+  if (POSIX_SHELL_WRAPPERS.has(command)) {
     let bodyIndex = -1;
     for (let index = 0; index < argv.length; index++) {
       const value = argv[index]?.value;
@@ -171,14 +276,9 @@ function extractPaths(toolInput) {
           }
           if (!token.static && typeof token.value === 'string') {
             // Opaque expansions such as `$(cat .env)` are intentionally not
-            // shell-parsed here. Split only on syntax delimiters and classify
-            // each bounded fragment so the sensitive operand remains covered
-            // without returning to regex-scanning ordinary command text.
-            for (const fragment of token.value.split(/[\s()[\]{};|&"'`<>]+/).filter(Boolean)) {
-              if (isPrivacySensitive(fragment)) {
-                paths.push({ value: fragment, field: 'command-unknown-fragment', statement });
-              }
-            }
+            // shell-parsed here; the shared bounded fragment pass keeps the
+            // sensitive operand covered instead.
+            paths.push(...sensitiveFragments(token.value, statement, 'command-unknown-fragment'));
           }
         }
       }

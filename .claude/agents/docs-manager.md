@@ -1,9 +1,9 @@
 ---
 name: docs-manager
 description: >-
-    Use this agent to manage technical documentation -- detect impacted docs from
-    code changes, update project and business feature docs, maintain doc-code
-    synchronization, and produce documentation summary reports.
+    Use when managing technical documentation — detect docs impacted by code
+    changes, update project and feature docs, and keep docs synchronized with
+    code.
 model: inherit
 skills: docs-update
 memory: project

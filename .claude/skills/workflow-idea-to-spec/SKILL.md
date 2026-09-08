@@ -1,7 +1,7 @@
 ---
 name: workflow-idea-to-spec
 version: 2.0.0
-description: '[Workflow] Use when activating the Idea-to-Spec workflow — turn a raw idea/vision/problem into ONE canonical (provisional) Feature Spec. STOPS at the reviewed spec; chain workflow-spec-to-pbi for a backlog. For code→spec use workflow-code-to-spec.'
+description: '[Workflow] Use when turning a raw idea, vision, or problem into ONE canonical Feature Spec. Stops at the reviewed spec; chain workflow-spec-to-pbi for a backlog.'
 disable-model-invocation: false
 ---
 

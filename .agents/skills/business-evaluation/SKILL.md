@@ -1,6 +1,6 @@
 ---
 name: business-evaluation
-description: '[Content] Use when you need to evaluate business idea viability: Business Model Canvas, financial projections, risk matrix, go-to-market, execution plan.'
+description: '[Content] Use when evaluating business idea viability — Business Model Canvas, financial projections, risk matrix, go-to-market, execution plan.'
 ---
 
 > Codex compatibility note:

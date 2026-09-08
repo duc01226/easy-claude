@@ -1,9 +1,9 @@
 ---
 name: debugger
 description: >-
-    Use this agent to investigate issues, diagnose errors, analyze system behavior,
-    examine logs and CI/CD pipelines, debug test failures, or identify performance
-    bottlenecks. Produces diagnostic reports with root cause analysis.
+    Use when investigating issues, diagnosing errors, examining logs or CI/CD
+    pipelines, debugging test failures, or finding performance bottlenecks —
+    produces a root-cause report.
 model: inherit
 memory: project
 ---

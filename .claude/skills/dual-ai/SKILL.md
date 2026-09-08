@@ -1,7 +1,7 @@
 ---
 name: dual-ai
 version: 1.3.0
-description: '[User-Invoked] Use ONLY when the user explicitly types /dual-ai or /dual-ai <workflow-id> — fans out one prompt, or one workflow invocation per tool, to two fresh parallel AI sessions (Claude Code + Codex CLI), both pre-set to xhigh reasoning effort and full-permission mode before the prompt executes. NEVER auto-activate.'
+description: '[User-Invoked] Use ONLY when the user explicitly types /dual-ai — fans one prompt or workflow out to parallel Claude Code + Codex CLI sessions. NEVER auto-activate.'
 disable-model-invocation: false
 ---
 

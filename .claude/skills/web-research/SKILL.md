@@ -1,7 +1,7 @@
 ---
 name: web-research
 version: 1.0.0
-description: '[Research] Use when starting a web research task — discover, gather, and triage candidate sources on a topic to feed deeper investigation.'
+description: '[Research] Use when starting web research — discover, gather, and triage candidate sources to feed deeper investigation.'
 ---
 
 <!-- PROMPT-ENHANCE:STEP-TASK-ANCHOR:START -->

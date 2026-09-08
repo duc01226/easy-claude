@@ -1,7 +1,7 @@
 ---
 name: ck-help
 version: 1.0.0
-description: '[Utilities] Use when you need claudeKit usage guide - just type naturally.'
+description: '[Utilities] Use when asking for the claudeKit usage guide.'
 disable-model-invocation: false
 ---
 

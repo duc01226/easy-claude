@@ -1,9 +1,9 @@
 ---
 name: code-simplifier
 description: >-
-    Simplifies and refines code for clarity, consistency, and maintainability
-    while preserving all functionality. Focuses on recently modified code unless
-    instructed otherwise. Use after implementing features or fixes to clean up code.
+    Use when cleaning up code after a feature or fix — simplifies for clarity
+    and maintainability while preserving all functionality. Targets recently
+    modified code by default.
 model: inherit
 skills: code-simplifier
 memory: project

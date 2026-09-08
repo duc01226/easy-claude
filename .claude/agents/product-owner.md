@@ -1,9 +1,9 @@
 ---
 name: product-owner
 description: >-
-    Use this agent when working with product ideas, backlog management,
-    prioritization decisions, sprint planning, or stakeholder communication.
-    Specializes in value-driven decision making and requirement clarification.
+    Use when working with product ideas, backlog management, prioritization,
+    sprint planning, or stakeholder communication — value-driven decisions and
+    requirement clarification.
 model: inherit
 memory: project
 ---

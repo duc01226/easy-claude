@@ -1,12 +1,9 @@
 ---
 name: database-admin
 description: >-
-    Use this agent when you need to work with database systems, including querying
-    for data analysis, diagnosing performance bottlenecks, optimizing database
-    structures, managing indexes, implementing backup and restore strategies,
-    setting up replication, configuring monitoring, managing user permissions,
-    or when you need comprehensive database health assessments and optimization
-    recommendations.
+    Use when querying data, diagnosing database performance, optimizing
+    schemas or indexes, managing backups, replication, monitoring,
+    permissions, or running a database health assessment.
 model: inherit
 memory: project
 ---

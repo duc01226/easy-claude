@@ -1,6 +1,6 @@
 ---
 name: coding-level
-description: '[Utilities] Use when you need to set coding experience level for tailored explanations.'
+description: '[Utilities] Use when setting the coding experience level that tailors explanations.'
 disable-model-invocation: false
 ---
 

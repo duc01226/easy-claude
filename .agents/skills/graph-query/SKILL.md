@@ -1,6 +1,6 @@
 ---
 name: graph-query
-description: '[Code Intelligence] Use when you need to query code relationships and connections using the structural knowledge graph.'
+description: '[Code Intelligence] Use when querying code relationships and connections via the knowledge graph.'
 ---
 
 > Codex compatibility note:

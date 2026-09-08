@@ -1,6 +1,6 @@
 ---
 name: git-developer-performance
-description: '[Git] Use when generating developer KPI, performance, contribution value, story point, man-day, or code-quality reports from local git commit history.'
+description: '[Git] Use when generating developer KPI, contribution, story-point, man-day, or code-quality reports from git history.'
 ---
 
 > Codex compatibility note:

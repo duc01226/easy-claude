@@ -1,6 +1,6 @@
 ---
 name: code-review
-description: '[Code Quality] Use when evaluating review feedback, requesting targeted code-quality review, or verifying completion claims.'
+description: '[Code Quality] Use when evaluating review feedback, requesting a targeted code-quality review, or verifying completion claims.'
 ---
 
 > Codex compatibility note:

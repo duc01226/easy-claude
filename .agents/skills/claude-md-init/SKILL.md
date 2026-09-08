@@ -1,6 +1,6 @@
 ---
 name: claude-md-init
-description: '[Documentation] Use when you need initialize, update, or refactor CLAUDE markdown from project-config JSON and codebase scan results.'
+description: '[Documentation] Use when initializing, updating, or refactoring CLAUDE.md from project-config and codebase scans.'
 ---
 
 > Codex compatibility note:

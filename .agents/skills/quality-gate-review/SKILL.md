@@ -1,6 +1,6 @@
 ---
 name: quality-gate-review
-description: '[Project Management] Use when you need to enforce quality gates, verify compliance with standards, track quality metrics, and generate audit trails.'
+description: '[Project Management] Use when enforcing quality gates, verifying standards compliance, tracking metrics, or generating audit trails.'
 ---
 
 > Codex compatibility note:

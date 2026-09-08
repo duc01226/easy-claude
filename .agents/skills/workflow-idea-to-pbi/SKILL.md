@@ -1,6 +1,6 @@
 ---
 name: workflow-idea-to-pbi
-description: '[Workflow] Use when activating the Idea to PBI workflow for turning an idea — or a raw product vision/problem — into prioritized PBIs and stories (single-PBI deep mode, or multi-opportunity discovery mode).'
+description: '[Workflow] Use when turning an idea or product vision into prioritized PBIs and stories (single-PBI deep mode or multi-opportunity discovery).'
 disable-model-invocation: false
 ---
 

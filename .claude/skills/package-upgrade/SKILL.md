@@ -1,7 +1,7 @@
 ---
 name: package-upgrade
 version: 1.0.1
-description: '[Code Quality] Use when the user asks to analyze package upgrades, check for outdated dependencies, plan npm/NuGet updates, or assess breaking changes in package updates.'
+description: '[Code Quality] Use when analyzing package upgrades, outdated dependencies, npm/NuGet update plans, or breaking changes.'
 ---
 
 ## Quick Summary

@@ -298,6 +298,10 @@ AGENT_QUALITY_BLOCKS = {
         # (TC-UAR-016, commit 698195a5). Deliberate non-parity; do NOT "fix".
         "trade-off-interrogation-gate", "scale-technique-gate", "scenario-stress-eval",
         "test-architecture-execution-contract",
+        # wave 3 -- the third gate in the family: the companions judge the running
+        # system's DESIGN, this one judges the project's engineering FOUNDATION
+        # (build/run/test/change). Twin: architecture-design / architecture-review-full.
+        "engineering-foundation-gate",
     ],
     "solution-architect": [
         "design-patterns-quality", "scaffold-production-readiness",
@@ -306,6 +310,9 @@ AGENT_QUALITY_BLOCKS = {
         # gate it explicitly pairs with was missing (twin: tech-stack-research)
         "scale-technique-gate",
         "test-architecture-execution-contract",
+        # wave 3 -- greenfield inception CREATES the foundation, so this gate is in
+        # its blocking mode here, not its advisory mode (twin: scaffold).
+        "engineering-foundation-gate",
     ],
     "business-analyst": [
         "estimation-framework", "refinement-dor-checklist", "ba-team-decision-model",

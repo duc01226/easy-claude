@@ -1,6 +1,6 @@
 ---
 name: pbi-challenge
-description: '[Code Quality] Use when you need an AI-assisted Dev BA PIC review of PBI drafts.'
+description: '[Code Quality] Use when running an AI-assisted Dev BA PIC review of PBI drafts.'
 ---
 
 > Codex compatibility note:

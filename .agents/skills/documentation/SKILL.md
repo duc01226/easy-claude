@@ -1,6 +1,6 @@
 ---
 name: documentation
-description: '[Code Quality] Use when the user asks to enhance documentation, add code comments, create API docs, improve technical documentation, document code, or update README files.'
+description: '[Code Quality] Use when enhancing documentation, adding code comments, creating API docs, or updating READMEs.'
 ---
 
 > Codex compatibility note:

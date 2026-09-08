@@ -1,6 +1,6 @@
 ---
 name: excalidraw-diagram
-description: '[Utilities] Use when the user wants to visualize workflows, architectures, or concepts as Excalidraw diagram JSON files.'
+description: '[Utilities] Use when visualizing workflows, architectures, or concepts as Excalidraw diagram JSON.'
 ---
 
 <!-- PROMPT-ENHANCE:STEP-TASK-ANCHOR:START -->

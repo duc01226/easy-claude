@@ -1,7 +1,7 @@
 ---
 name: refine
 version: 2.3.1
-description: '[Project Management] Use when converting ideas to PBIs, validating problem hypotheses, adding acceptance criteria, or refining requirements.'
+description: '[Project Management] Use when converting ideas to PBIs, validating problem hypotheses, or adding acceptance criteria.'
 ---
 
 <!-- PROMPT-ENHANCE:STEP-TASK-ANCHOR:START -->

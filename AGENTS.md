@@ -419,7 +419,7 @@ Apply the shared AI-SDD contract from `shared/sdd-artifact-contract.md` and `SYN
 
 This compact pointer is auto-generated from `.codex/CODEX_CONTEXT.md` by `npm run codex:sync:context`.
 Read `.codex/CODEX_CONTEXT.md` before any non-trivial workflow or skill; it carries the full static catalog and protocol detail.
-Context fingerprint (SHA-256): f9742232cc6ddfe32196b8d62b8fa27363391b78c38b887868b961142ce7910d
+Context fingerprint (SHA-256): 06b6296b575356ce3a89fb3eefdabc1d63cd4c8db674b493482737b88c71c5eb
 Do not edit this pointer manually; update canonical Claude sources and re-sync.
 
 ## Codex Project Reference Gate (Hook-Independent)

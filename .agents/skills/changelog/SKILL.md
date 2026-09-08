@@ -1,6 +1,6 @@
 ---
 name: changelog
-description: '[Documentation] Use when you need to generate or update changelog entries.'
+description: '[Documentation] Use when generating or updating changelog entries.'
 ---
 
 > Codex compatibility note:

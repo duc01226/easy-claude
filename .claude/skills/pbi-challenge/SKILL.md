@@ -1,7 +1,7 @@
 ---
 name: pbi-challenge
 version: 1.0.0
-description: '[Code Quality] Use when you need an AI-assisted Dev BA PIC review of PBI drafts.'
+description: '[Code Quality] Use when running an AI-assisted Dev BA PIC review of PBI drafts.'
 ---
 
 <!-- PROMPT-ENHANCE:STEP-TASK-ANCHOR:START -->

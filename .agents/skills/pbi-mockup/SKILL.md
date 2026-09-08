@@ -1,6 +1,6 @@
 ---
 name: pbi-mockup
-description: '[Project Management] Use when you need to generate an HTML mockup report from PBI and story artifacts.'
+description: '[Project Management] Use when generating an HTML mockup report from PBI and story artifacts.'
 ---
 
 > Codex compatibility note:

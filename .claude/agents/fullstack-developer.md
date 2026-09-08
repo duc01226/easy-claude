@@ -1,10 +1,9 @@
 ---
 name: fullstack-developer
 description: >-
-    Execute implementation phases from parallel plans. Handles backend and frontend
-    tasks using project-specific patterns. Designed for parallel execution with
-    strict file ownership boundaries. Use when implementing a specific phase from
-    /plan output.
+    Use when executing a specific implementation phase from a /plan, across
+    backend and frontend, with strict file-ownership boundaries for parallel
+    execution.
 model: inherit
 skills: feature-implement
 memory: project

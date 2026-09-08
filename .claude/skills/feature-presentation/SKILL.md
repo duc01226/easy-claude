@@ -1,7 +1,7 @@
 ---
 name: feature-presentation
 version: 1.0.0
-description: '[Documentation] Use when you need to synthesize all generated specs, PBIs, ideas and mockups into one standalone HTML slide presentation for stakeholders (PO/BA/Dev/QC).'
+description: '[Documentation] Use when synthesizing specs, PBIs, ideas, and mockups into one standalone HTML slide deck for stakeholders.'
 ---
 
 <!-- PROMPT-ENHANCE:STEP-TASK-ANCHOR:START -->

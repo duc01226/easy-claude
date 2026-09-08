@@ -1,6 +1,6 @@
 ---
 name: workflow-seed-test-data
-description: '[Workflow] Use when activating the Seed Test Data workflow for idempotent QC happy-path seeders.'
+description: '[Workflow] Use when seeding test data or implementing idempotent QC happy-path seeders.'
 disable-model-invocation: false
 ---
 

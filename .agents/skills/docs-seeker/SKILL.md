@@ -1,6 +1,6 @@
 ---
 name: docs-seeker
-description: '[Documentation] Use when finding technical documentation for libraries, frameworks, repositories, or implementation topics.'
+description: '[Documentation] Use when finding technical documentation for a library, framework, repository, or implementation topic.'
 ---
 
 > Codex compatibility note:

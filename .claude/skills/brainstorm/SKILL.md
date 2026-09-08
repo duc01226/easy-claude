@@ -1,7 +1,7 @@
 ---
 name: brainstorm
 version: 2.0.0
-description: '[Content] Use when you need to brainstorm as a PO/BA — structured ideation for problem-solving, new product creation, feature enhancement, or outcome-roadmap framing. Flag: --mode={roadmap|scope}.'
+description: '[Content] Use when brainstorming as a PO/BA — ideation for problem-solving, new products, feature enhancement, or outcome-roadmap framing. Flag: --mode={roadmap|scope}.'
 disable-model-invocation: false
 ---
 

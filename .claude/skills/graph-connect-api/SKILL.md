@@ -1,6 +1,6 @@
 ---
 name: graph-connect-api
-description: '[Code Intelligence] Use when you need to detect frontend-to-backend API connections using the knowledge graph.'
+description: '[Code Intelligence] Use when detecting frontend-to-backend API connections via the knowledge graph.'
 version: 2.0.0
 ---
 

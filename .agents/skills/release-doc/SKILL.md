@@ -1,6 +1,6 @@
 ---
 name: release-doc
-description: '[Documentation] DEPRECATED — merged into `release-notes`. Use `/release-notes` for every release document or release notes need, at any scope (tag-to-tag, branch-to-branch, or a time range like the last 30 days).'
+description: '[Documentation] DEPRECATED — use /release-notes instead for any release document or release notes, at any scope.'
 ---
 
 > Codex compatibility note:

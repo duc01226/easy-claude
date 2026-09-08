@@ -1,7 +1,7 @@
 ---
 name: workflow-feature-spec
 version: 1.0.0
-description: '[Workflow] Use when activating the Business Feature Documentation workflow for 8-section tech-free feature docs.'
+description: '[Workflow] Use when creating or updating 8-section tech-free business feature documentation.'
 disable-model-invocation: false
 ---
 

@@ -1,7 +1,7 @@
 ---
 name: workflow-big-feature
 version: 1.0.0
-description: '[Workflow] Use when activating the Big Feature workflow for large or ambiguous research-driven feature work.'
+description: '[Workflow] Use when implementing a large, ambiguous, or research-driven feature.'
 disable-model-invocation: false
 ---
 

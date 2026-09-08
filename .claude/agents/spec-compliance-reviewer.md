@@ -1,9 +1,9 @@
 ---
 name: spec-compliance-reviewer
 description: >-
-    Use this agent to verify an implementation matches its specification — nothing
-    more, nothing less. Dispatched BEFORE code-reviewer. Catches spec drift,
-    missing requirements, extra features, and misunderstandings.
+    Use when verifying an implementation matches its spec — nothing more,
+    nothing less. Catches spec drift, missing requirements, and extra
+    features. Dispatch BEFORE code-reviewer.
 model: inherit
 memory: project
 ---

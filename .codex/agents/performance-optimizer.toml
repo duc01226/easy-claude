@@ -1,5 +1,5 @@
 name = "performance-optimizer"
-description = "Performance analysis and optimization agent. Use when investigating slow queries, N+1 patterns, bundle size issues, lazy loading opportunities, memory leaks, or API latency bottlenecks. Covers backend (database queries, API latency, memory) and frontend (bundle size, render perf, subscription leaks) — adapts to the project's detected stack via project-reference docs."
+description = "Use when investigating slow queries, N+1 patterns, memory leaks, API latency, bundle size, lazy loading, or render performance — adapts to the project's detected stack."
 developer_instructions = """
 Source: .claude/agents/performance-optimizer.md
 

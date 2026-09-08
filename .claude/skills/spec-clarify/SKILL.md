@@ -1,7 +1,7 @@
 ---
 name: spec-clarify
 version: 2.0.0
-description: '[Code Quality] Use to validate a spec artifact''s decisions with the user across three contexts — a freshly-authored Feature Spec (idea-to-spec), an existing canonical spec before PBI decomposition (spec-to-pbi), or a refined idea + §8 test-specs (idea-to-pbi deep mode). Detects the context, walks every applicable validation category, and runs an exhaustive but budget-bounded blocking clarification gate so every non-obvious or conflicting decision is confirmed before the artifact drives downstream work.'
+description: '[Code Quality] Use when validating a spec artifact''s decisions with the user — a fresh Feature Spec, a canonical spec before PBI decomposition, or a refined idea plus §8 test specs. Blocking clarification gate.'
 context-budget: medium
 ---
 

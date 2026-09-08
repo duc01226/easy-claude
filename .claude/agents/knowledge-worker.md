@@ -1,9 +1,9 @@
 ---
 name: knowledge-worker
 description: >-
-    General-purpose agent for web research, knowledge synthesis, and
-    structured report generation. Use for research tasks, course material
-    creation, marketing analysis, and business evaluation.
+    Use when doing web research, knowledge synthesis, course material
+    creation, marketing analysis, or business evaluation — produces structured
+    reports.
 model: inherit
 memory: project
 ---

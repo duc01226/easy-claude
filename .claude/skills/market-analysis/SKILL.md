@@ -1,7 +1,7 @@
 ---
 name: market-analysis
 version: 1.0.0
-description: '[Research] Use when you need to analyze market landscape: competitors, sizing (TAM/SAM/SOM), trends, SWOT, customer segments.'
+description: '[Research] Use when analyzing the market landscape — competitors, TAM/SAM/SOM sizing, trends, SWOT, customer segments.'
 ---
 
 ## Quick Summary

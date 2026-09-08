@@ -1,6 +1,6 @@
 ---
 name: project-init
-description: '[Utilities] Use when initializing or re-evaluating portable project context: project-config, project-reference docs, CLAUDE.md, AGENTS.md, universal agent rules, static-context setup. Triggers on: project init, init project, missing project-config, missing project docs, missing CLAUDE.md, missing AGENTS.md.'
+description: '[Utilities] Use when initializing or re-evaluating portable project context — project-config, reference docs, CLAUDE.md, AGENTS.md, static-context setup.'
 disable-model-invocation: false
 ---
 

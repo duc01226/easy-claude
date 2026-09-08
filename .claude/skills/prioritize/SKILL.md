@@ -1,7 +1,7 @@
 ---
 name: prioritize
 version: 2.0.0
-description: '[Project Management] Use when you need to prioritize backlog items using RICE, MoSCoW, or Value-Effort frameworks.'
+description: '[Project Management] Use when prioritizing backlog items with RICE, MoSCoW, or Value-Effort.'
 ---
 
 <!-- PROMPT-ENHANCE:STEP-TASK-ANCHOR:START -->

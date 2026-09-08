@@ -1,7 +1,7 @@
 ---
 name: spec-discovery
 version: 1.0.0
-description: '[Investigation] Use when about to author a new Feature Spec from an idea — investigate all existing Feature Specs AND related code logic first to surface related/overlapping/affected specs, missing features, missing test cases/user stories, system unknowns, and the invariant landscape, before any spec is drafted.'
+description: '[Investigation] Use when about to author a new Feature Spec — surface related, overlapping, or affected specs, missing test cases, and the invariant landscape first.'
 context-budget: medium
 ---
 

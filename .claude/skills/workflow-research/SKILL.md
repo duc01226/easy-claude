@@ -1,7 +1,7 @@
 ---
 name: workflow-research
 version: 1.0.0
-description: '[Workflow] Use when activating the Research & Synthesis workflow — research a topic via web sources, then synthesize per --output={synthesis|business-eval|marketing|course} (knowledge report, business evaluation, marketing strategy, or course material).'
+description: '[Workflow] Use when researching a topic from web sources then synthesizing. Flag: --output={synthesis|business-eval|marketing|course}.'
 disable-model-invocation: false
 ---
 

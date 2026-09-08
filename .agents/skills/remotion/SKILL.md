@@ -1,6 +1,6 @@
 ---
 name: remotion
-description: '[User-Invoked] Use when you need create, update, or preview Remotion videos.'
+description: '[User-Invoked] Use when creating, updating, or previewing Remotion videos.'
 ---
 
 > Codex compatibility note:

@@ -1,7 +1,7 @@
 ---
 name: performance-review
 version: 3.5.0
-description: '[Debugging] Use when analyzing or optimizing performance bottlenecks: database queries, N+1 fan-out, indexing, API latency, memory/GC, concurrency and pool saturation, algorithmic complexity (O(n²)), network/protocol round trips, frontend rendering and Core Web Vitals, caching, and distributed/resilience paths. Calibration constants and domain laws (latency ladder, Little''s Law, utilization knee, CWV thresholds, symptom→cause triage) live in references/performance-knowledge.md.'
+description: '[Debugging] Use when analyzing or optimizing performance — slow queries, N+1, indexing, API latency, memory/GC, concurrency, algorithmic complexity, caching, frontend rendering and Core Web Vitals.'
 ---
 
 ## Quick Summary
@@ -208,7 +208,7 @@ MANDATORY calibration + measurement rigor on EVERY baseline (`references/perform
 - ALWAYS state which anchor the number violates (ladder rung, utilization knee, CWV threshold, hit-ratio target) — a raw number with no anchor cannot carry a severity.
 - ALWAYS report distributions, never means: p50/p90/p99/p99.9 + max, segmented by endpoint/tenant/region. NEVER average percentiles across instances or windows — aggregate histograms instead.
 - ALWAYS name the load model behind any throughput/latency number: open-model (arrival-rate) exposes queueing collapse, closed-model (fixed VUs) HIDES it; flag suspected **coordinated omission** when a tool reports an implausibly clean tail.
-- ALWAYS state data volume and cache state of the measurement — a benchmark on toy data or a warm-only cache is fiction; soak/endurance is the only shape that surfaces leaks, fragmentation, and bloat.
+- ALWAYS state data volume and cache state of the measurement — a benchmark on toy data or a warm-only cache is fiction; soak/endurance is the only shape that surfaces leaks, fragmentation, and bloat. **Produce that volume with the project's seeder** — `seed-test-data` exposes a configurable count built for exactly this (self-test the cases AND enrich volume); measure at ≥2 volumes ~10× apart so a super-linear curve is visible, and demand realistic **shape** (distribution, cardinality, skew), since uniform rows hide the skew that breaks real hot paths.
 - ALWAYS warm up (JIT + caches), measure steady state, repeat, and name the environment before comparing to a baseline; NEVER present a microbenchmark as system behavior.
 - NEVER quote an anchor from the reference as a project requirement — local SLA/spec/config wins; the anchor calibrates, it does not govern.
 

@@ -1,7 +1,7 @@
 ---
 name: quality-gate
 version: 1.0.0
-description: '[Code Quality] Use when you need to run quality gate checklist.'
+description: '[Code Quality] Use when running the quality gate checklist.'
 status: deprecated
 deprecated_by: quality-gate-review
 deprecated_since: '2026-06-14'

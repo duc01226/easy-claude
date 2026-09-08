@@ -1,10 +1,9 @@
 ---
 name: project-manager
 description: >-
-    Use this agent when you need comprehensive project oversight and coordination,
-    including tracking progress against implementation plans, consolidating reports
-    from multiple agents, analyzing task completeness, and providing detailed status
-    summaries of achievements and next steps.
+    Use when tracking progress against an implementation plan, consolidating
+    multi-agent reports, analyzing task completeness, or summarizing status
+    and next steps.
 model: inherit
 memory: project
 ---

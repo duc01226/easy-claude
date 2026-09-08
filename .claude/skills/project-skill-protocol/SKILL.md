@@ -1,7 +1,7 @@
 ---
 name: project-skill-protocol
 version: 1.0.0
-description: '[Utilities] Use when a project needs to add, change, list, or remove its OWN protocol rules layered on top of a framework skill — a named overlay of extra project rules that applies whenever the targeted skill runs, stored with the project rather than in the portable framework. `/project-skill-protocol list` prints every overlay with its target and description; `add` drafts a new overlay and confirms it before writing; `update` applies a surgical change; `delete` removes it. Overlays are ADDITIVE ONLY — they never replace, override, or waive anything the skill already does. Triggers: skill protocol, project protocol, custom protocol for skill, extend a skill, overlay rules, add rules to a skill, project rules for skills, skill protocol overlay.'
+description: '[Utilities] Use when a project adds, changes, lists, or removes its OWN protocol rules layered over a framework skill. Overlays are ADDITIVE ONLY. Subcommands: list | add | update | delete.'
 ---
 
 ## Quick Summary

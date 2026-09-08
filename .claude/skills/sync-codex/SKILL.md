@@ -1,6 +1,6 @@
 ---
 name: sync-codex
-description: '[Codex] Use when you need to run the full Codex mirror sync + verify pipeline (migrate → hooks → context → verify) standalone, no npm/package JSON needed.'
+description: '[Codex] Use when running the full Codex mirror sync and verify pipeline (migrate, hooks, context, verify).'
 disable-model-invocation: false
 ---
 

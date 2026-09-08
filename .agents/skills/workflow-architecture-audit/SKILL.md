@@ -1,6 +1,6 @@
 ---
 name: workflow-architecture-audit
-description: '[Workflow] Use when activating the Architecture Audit workflow to review the whole project''s architecture, run an architecture health check, or check production readiness/scalability in one pass — read-only, produces one consolidated Architecture Health Report.'
+description: '[Workflow] Use when auditing the whole project''s architecture, running an architecture health check, or checking production readiness — read-only, one consolidated health report.'
 disable-model-invocation: false
 ---
 

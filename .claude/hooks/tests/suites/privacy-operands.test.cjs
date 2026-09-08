@@ -125,6 +125,42 @@ const tests = [
     }
   },
   {
+    // A PowerShell body is UNKNOWN to the POSIX inspector by construction
+    // (`command-inspection.cjs` flags every `Verb-Noun` cmdlet), so treating
+    // that as an unresolved operand blocked every PowerShell command while
+    // proving nothing. Sensitive operands must still be caught.
+    name: '[TC-HARNESS-002] a PowerShell body is inspected, not rejected for being PowerShell',
+    fn: async () => {
+      for (const command of [
+        'powershell -Command Get-Date',
+        'pwsh -Command "$env:PATH"',
+        'pwsh -NoProfile -Command "Get-Date"',
+        'powershell -NoProfile -ExecutionPolicy Bypass -Command "Get-Process | Where-Object {$_.CPU -gt 10}"',
+        'pwsh -Command "if ($true) { Write-Output 1 }"',
+        'pwsh -File script.ps1',
+        'pwsh script.ps1',
+        'pwsh.exe -Command "Get-Date"',
+        'pwsh -Com "Get-Content README.md"'
+      ]) {
+        assert.equal(await code('Bash', { command }), 0, command);
+      }
+      for (const command of [
+        'pwsh -Command "Get-Content .env"',
+        'pwsh -Command "Get-Content .\\.env"',
+        'pwsh -Com "Get-Content .env"',
+        'powershell -Command "cat id_rsa"',
+        'pwsh -Command "Get-Content secrets.yaml"',
+        'pwsh -File .env',
+        'pwsh .env',
+        'pwsh -Command "$SCRIPT"',
+        'pwsh -EncodedCommand Y2F0IC5lbnY=',
+        'pwsh -e Y2F0IC5lbnY='
+      ]) {
+        assert.equal(await code('Bash', { command }), 2, command);
+      }
+    }
+  },
+  {
     name: '[TC-HARNESS-002] data-only command text is not mistaken for an operand',
     fn: async () => {
       assert.equal(await code('Bash', { command: 'echo "cat .env"' }), 0);

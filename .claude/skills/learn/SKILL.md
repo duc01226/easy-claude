@@ -1,7 +1,7 @@
 ---
 name: learn
 version: 4.0.0
-description: '[Utilities] Use when you need to teach Claude lessons that persist across sessions.'
+description: '[Utilities] Use when teaching Claude a lesson that persists across sessions.'
 disable-model-invocation: false
 ---
 

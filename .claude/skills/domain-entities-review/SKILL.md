@@ -1,7 +1,7 @@
 ---
 name: domain-entities-review
 version: 2.0.0
-description: '[DDD Quality] Use when you need to review domain entities and value objects for DDD design quality.'
+description: '[DDD Quality] Use when reviewing domain entities and value objects for DDD design quality.'
 ---
 
 <!-- PROMPT-ENHANCE:STEP-TASK-ANCHOR:START -->

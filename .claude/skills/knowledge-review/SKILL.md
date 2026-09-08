@@ -1,7 +1,7 @@
 ---
 name: knowledge-review
 version: 1.1.0
-description: '[Research] Use when you need to review knowledge artifacts for completeness, citation quality, confidence accuracy, and template compliance.'
+description: '[Research] Use when reviewing knowledge artifacts for completeness, citation quality, confidence accuracy, and template compliance.'
 ---
 
 ## Quick Summary

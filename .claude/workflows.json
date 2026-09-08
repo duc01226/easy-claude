@@ -219,6 +219,7 @@
         "scan --target=project-structure",
         "why-review",
         "plan-execute",
+        "seed-test-data",
         "domain-entities-review",
         "spec [mode=tests]",
         "why-review",

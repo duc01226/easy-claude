@@ -1,6 +1,6 @@
 ---
 name: changes-review-loop
-description: '[Code Quality] Use when you need to combine /changes-review + /fix in a recursive loop — each round runs /changes-review (report-only) to surface validated findings over a fixed diff scope, then /fix to resolve them, then loops again with a FRESH full /changes-review over the CHANGED diff until one complete pass clears the current round severity bar.'
+description: '[Code Quality] Use when looping /changes-review + /fix recursively over a fixed diff scope until one full pass clears the severity bar.'
 ---
 
 > Codex compatibility note:

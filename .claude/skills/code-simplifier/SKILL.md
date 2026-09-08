@@ -1,7 +1,7 @@
 ---
 name: code-simplifier
 version: 2.3.0
-description: '[Code Quality] Use when you need to simplify and refine code for clarity, consistency, and maintainability while preserving all functionality.'
+description: '[Code Quality] Use when simplifying code for clarity, consistency, and maintainability while preserving behavior.'
 context-budget: critical
 ---
 

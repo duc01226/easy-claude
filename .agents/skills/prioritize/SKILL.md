@@ -1,6 +1,6 @@
 ---
 name: prioritize
-description: '[Project Management] Use when you need to prioritize backlog items using RICE, MoSCoW, or Value-Effort frameworks.'
+description: '[Project Management] Use when prioritizing backlog items with RICE, MoSCoW, or Value-Effort.'
 ---
 
 > Codex compatibility note:

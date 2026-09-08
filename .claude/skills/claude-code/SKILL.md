@@ -1,7 +1,7 @@
 ---
 name: claude-code
 version: 2.0.0
-description: '[Utilities] Use when you need Claude Code CLI setup, configuration, troubleshooting, and feature guidance.'
+description: '[Utilities] Use when setting up, configuring, or troubleshooting the Claude Code CLI and its features.'
 ---
 
 ## Quick Summary

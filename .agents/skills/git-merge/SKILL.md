@@ -1,6 +1,6 @@
 ---
 name: git-merge
-description: '[Git] Use when you need ⚠️ Merge code from one branch to another.'
+description: '[Git] Use when merging code from one branch to another.'
 disable-model-invocation: false
 ---
 

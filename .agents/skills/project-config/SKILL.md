@@ -1,6 +1,6 @@
 ---
 name: project-config
-description: '[Utilities] Use when you need to scan workspace and update docs/project-config JSON to match current project structure.'
+description: '[Utilities] Use when scanning the workspace to update docs/project-config.json to match current structure.'
 disable-model-invocation: false
 ---
 

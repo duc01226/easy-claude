@@ -1,9 +1,8 @@
 ---
 name: quality-gate-review
 description: >-
-    Use this agent when running quality gates, verifying compliance with
-    standards, creating audit trails, tracking quality metrics, or
-    generating review checklists.
+    Use when running quality gates, verifying standards compliance, creating
+    audit trails, tracking quality metrics, or generating review checklists.
 model: inherit
 memory: project
 ---

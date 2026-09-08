@@ -1,6 +1,6 @@
 ---
 name: graph-blast-radius
-description: '[Code Intelligence] Use when you need to analyze the blast radius of current code changes using the structural knowledge graph.'
+description: '[Code Intelligence] Use when analyzing the blast radius of current code changes via the knowledge graph.'
 version: 1.0.0
 ---
 

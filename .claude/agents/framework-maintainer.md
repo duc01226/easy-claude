@@ -1,12 +1,9 @@
 ---
 name: framework-maintainer
 description: >-
-    Use this agent for any work on the portable .claude AI-harness framework ITSELF —
-    creating, editing, auditing, or refactoring skills, agents, workflows, hooks,
-    project-config, SYNC protocols, framework docs, and the Codex mirrors.
-    Use proactively whenever a request would modify files under .claude/ (or the
-    generated .agents/, .codex/, AGENTS.md mirrors). NOT for
-    application/product code — only the framework that governs the AI.
+    Use when creating, editing, auditing, or refactoring the portable .claude
+    framework itself — skills, agents, workflows, hooks, project-config,
+    framework docs, Codex mirrors. NOT for application code.
 tools: Read, Write, Edit, MultiEdit, Grep, Glob, Bash, TaskCreate, TaskUpdate, AskUserQuestion
 model: inherit
 memory: project

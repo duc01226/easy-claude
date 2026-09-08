@@ -1,6 +1,6 @@
 ---
 name: domain-entities-review
-description: '[DDD Quality] Use when you need to review domain entities and value objects for DDD design quality.'
+description: '[DDD Quality] Use when reviewing domain entities and value objects for DDD design quality.'
 ---
 
 > Codex compatibility note:

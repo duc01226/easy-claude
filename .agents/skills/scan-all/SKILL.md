@@ -1,6 +1,6 @@
 ---
 name: scan-all
-description: '[Documentation] Use when you need orchestrate all reference doc scans in parallel.'
+description: '[Documentation] Use when orchestrating all reference doc scans in parallel.'
 ---
 
 > Codex compatibility note:

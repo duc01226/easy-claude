@@ -1,6 +1,6 @@
 ---
 name: product-owner
-description: '[Project Management] Use when you need to capture ideas, manage product backlogs, apply prioritization frameworks (RICE, MoSCoW), and facilitate stakeholder communication.'
+description: '[Project Management] Use when capturing ideas, managing backlogs, applying prioritization frameworks, or facilitating stakeholder communication.'
 ---
 
 > Codex compatibility note:

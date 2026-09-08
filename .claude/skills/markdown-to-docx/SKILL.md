@@ -1,7 +1,7 @@
 ---
 name: markdown-to-docx
 version: 1.0.0
-description: '[Document Processing] Use when you need to convert markdown files to Microsoft Word ( DOCX) format with GFM support and math rendering.'
+description: '[Document Processing] Use when converting Markdown to Word DOCX with GFM and math rendering.'
 disable-model-invocation: false
 ---
 

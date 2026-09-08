@@ -1,7 +1,7 @@
 ---
 name: skill-creator
 version: 4.0.0
-description: '[Skill Management] Use when creating a new Claude Code skill, adding reference files or scripts to an existing skill, scanning/fixing invalid skill headers, or optimizing/packaging skills. Triggers on: create skill, new skill, add skill reference, add skill script, fix skill, validate skill, package skill.'
+description: '[Skill Management] Use when creating a skill, adding skill references or scripts, fixing invalid skill headers, or packaging skills.'
 license: Complete terms in LICENSE.txt
 disable-model-invocation: false
 ---

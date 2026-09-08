@@ -1,6 +1,9 @@
 ---
 name: git-manager
-description: Perform scoped Git operations only when the user explicitly requests stage, commit, push, or PR creation. Require operation, scope, and sourceRequest; implementation or review approval never grants Git authority.
+description: >-
+    Use when the user explicitly requests stage, commit, push, or PR creation.
+    Requires operation, scope, and sourceRequest; implementation or review
+    approval never grants Git authority.
 model: inherit
 skills: commit
 memory: project

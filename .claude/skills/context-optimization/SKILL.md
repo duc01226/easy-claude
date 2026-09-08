@@ -1,7 +1,7 @@
 ---
 name: context-optimization
 version: 1.0.0
-description: '[Utilities] Use when managing context window usage, compressing long sessions, or optimizing token usage.'
+description: '[Utilities] Use when managing context window usage, compressing long sessions, or optimizing tokens.'
 disable-model-invocation: false
 ---
 

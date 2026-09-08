@@ -1,7 +1,7 @@
 ---
 name: debug-investigate
 version: 2.0.0
-description: '[Fix & Debug] Use when investigating a bug''s root cause — reproduce the symptom, trace it end-to-start through the code, form and test hypotheses, and pinpoint the defect before any fix.'
+description: '[Fix & Debug] Use when finding a bug''s root cause — reproduce, trace end-to-start, test hypotheses, pinpoint the defect before any fix.'
 ---
 
 <!-- PROMPT-ENHANCE:STEP-TASK-ANCHOR:START -->

@@ -1,6 +1,6 @@
 ---
 name: idea
-description: '[Project Management] Use when capturing new ideas, feature requests, or concepts for future refinement.'
+description: '[Project Management] Use when capturing new ideas, feature requests, or concepts for later refinement.'
 ---
 
 > Codex compatibility note:

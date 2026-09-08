@@ -1,6 +1,6 @@
 ---
 name: integration-test
-description: '[Testing] Use when you need to generate or review integration tests.'
+description: '[Testing] Use when generating or reviewing integration tests.'
 ---
 
 > Codex compatibility note:
@@ -350,6 +350,8 @@ public class {CommandName}IntegrationTests : {Service}ServiceIntegrationTestBase
 | **Owns a [HARD] §4 rule or §5 invariant** (orthogonal to the rows above — applies to the same command/query) | **+ Pattern 9 property/metamorphic test** tied to a §8 Invariant/Property TC: the example tests above guard fixed points; the property test guards the rule across its whole input domain (see `references/integration-test-patterns.md` → Pattern 9). FORCED, not optional — a `>`/`>=` flip on the invariant line must fail an assertion. |
 
 > **[FORCED BRANCH — property apparatus]** Pattern 9 is not a "nice-to-have reference". For ANY command/query whose handler enforces a `[HARD]` §4 business rule or a §5 entity invariant, the example-based rows are NOT sufficient on their own — generate the Pattern 9 property test alongside them, carrying the `TestSpec` annotation of the §8 Invariant/Property TC (decade `071–079`). This is the test-side mirror of the spec-side invariant-coverage gate (`spec [mode=tests]` → property TC count ≥ count([HARD] BR) + count(§5 invariants)). Skipping it = a fakeable, over-fitted suite that passes while the rule can be broken across the unenumerated space.
+
+> **[REVIEW-BAR ALIGNMENT — write to the wider bar]** The property apparatus above is scoped to `[HARD]` §4 rules and §5 invariants, but the bar this suite is GRADED against is wider: `integration-test-review` **Gate 1** requires a killing assertion for **every changed core-logic line** and records a *Mutation Probe Ledger* with a `KILLED`/`SURVIVOR` verdict per line — no ledger, no PASS. So for each core-logic line the handler changes, ask now *"if I deleted or inverted this, which assertion fails?"* and add the missing assertion, rather than discovering the survivor in review. — why: authoring to a narrower bar than the reviewer grades guarantees a rework round on every change.
 
 ## Step 4: Verify
 
@@ -1092,14 +1094,15 @@ integration-test (you are here)
 
 <!-- SYNC:test-architecture-execution-contract -->
 
-> **Test Architecture & Execution Contract** — Treat testability as a setup/architecture acceptance condition. For every potentially applicable tier — Unit, Integration/System, and E2E — record `APPLICABLE` only with evidence of its runner/framework/configuration; otherwise record `N/A — <evidence>` and never fabricate coverage.
+> **Test Architecture & Execution Contract** — Treat testability as a setup/architecture acceptance condition. For every potentially applicable tier — Unit, Integration/System, E2E, and Performance/Scale (warranted at `T1+`/`B2+`) — record `APPLICABLE` only with evidence of its runner/framework/configuration; otherwise record `N/A — <evidence>` and never fabricate coverage.
 >
-> 1. **Matrix before implementation:** Record applicability, owner, runner/framework, test root, fixture/data strategy, full command, focused/partial command, zero-match behavior, CI gate, and a simple/Windows entry point (a `.cmd` when the project needs one).
+> 1. **Matrix before implementation:** Record applicability, owner, runner/framework, test root, fixture/data strategy, full command, focused/partial command, zero-match behavior, CI gate, a simple/Windows entry point (a `.cmd` when the project needs one), the **host-mode AND container-mode commands** where the project supports both, and the **environment reach** (which of local / CI / production-shaped this tier can target).
 > 2. **Runnable scopes:** Full and focused commands must be copy-ready, fail on invalid or zero-match selections, report exact counts and exit status, and be safe to repeat. E2E uses only configured browser/service commands.
 > 3. **Fresh valid state:** Each run/test owns a unique run identity and business-data suffix, arranges through supported public paths, and uses realistic valid data. Reference setup is count-before-create, idempotent, and restart-safe. Intentional accumulation is additive, keyed, and integrity-checked; never hide contamination with destructive reset.
 >    Run-scoped cleanup, when supported, is opt-in and idempotent: after evidence capture it may remove only ephemeral resources owned by the current run; it must never delete persistent/additive data or another run's data, reset shared state, or replace no-reset proof.
 > 4. **Isolation and fidelity:** Isolate mutable roots and parallel workers; share only immutable/reference data. Preserve real actor pacing and observable arrange barriers. Do not widen retries or weaken assertions to make a scenario pass.
 > 5. **Evidence gate:** Report command, scope, identity, seed/accumulation mode, exact result, and repeat proof. For each applicable persistent-state suite, require two consecutive no-reset full runs. Treat line coverage as diagnostic only; use meaningful property/invariant, mutation, change, and behavior coverage signals.
+> 6. **Execution modes and environment reach:** A tier claiming two run modes must have **BOTH exercised** — the bare-host command and the fully-containerized command, driven from ONE source of truth for config and topology; record which mode CI exercises, because an unexercised mode rots silently and a claimed-but-rotten mode is worse than one never claimed. The SAME suite must reach local, CI and (where warranted) a production-shaped target, **parameterized by configuration, never by forked test code** — only one fork ever stays maintained, so forking guarantees divergence. A target lacking a required capability reports `ENVIRONMENT-BLOCKED`, never a silent pass. Tests unsafe against production are excluded by an **ENFORCED** mechanism whose absence fails loudly, not by a convention someone must remember; *"runs in prod"* means a safe, declared, **NON-MUTATING** subset. Reproducibility underwrites all of it — pinned toolchain, locked dependencies, declared external prerequisites — which is the difference between a suite that passes anywhere and one that passes on its author's machine. Depth → `SYNC:engineering-foundation-gate` **F1/F2/F3**.
 >
 > **Ownership:** Architecture/harness defines the matrix; scaffold/workflow makes it runnable; test writers implement tier-specific cases; reviewers verify the contract; the runner reports; seed-data owners preserve uniqueness, idempotency, realism, and accumulation integrity. Missing required evidence blocks setup completion.
 
@@ -1217,7 +1220,7 @@ integration-test (you are here)
 
 <!-- SYNC:test-architecture-execution-contract:reminder -->
 
-**MUST ATTENTION** Before implementation, record evidence-backed Unit/Integration/System/E2E applicability (or explicit N/A), copy-ready full + focused commands, zero-match behavior, a simple/Windows entry point, unique run identity, realistic valid data, idempotent/restart-safe reference setup, intentional additive accumulation, parallel isolation, exact results, and two no-reset full runs for each applicable persistent-state suite.
+**MUST ATTENTION** Before implementation, record evidence-backed Unit/Integration/System/E2E **and Performance/Scale** (`T1+`/`B2+`) applicability (or explicit N/A), copy-ready full + focused commands, zero-match behavior, a simple/Windows entry point, **the host-mode AND container-mode commands where both are supported, plus each tier's environment reach (local / CI / production-shaped)**, unique run identity, realistic valid data, idempotent/restart-safe reference setup, intentional additive accumulation, parallel isolation, exact results, and two no-reset full runs for each applicable persistent-state suite. **Both claimed run modes must be EXERCISED** (an unexercised mode rots; a claimed-but-rotten mode is worse than one never claimed), the same suite reaches every target **parameterized by config, never by forked test code**, a missing capability reports `ENVIRONMENT-BLOCKED` rather than passing silently, and *"runs in prod"* means a safe, declared, **NON-MUTATING** subset excluded by an enforced mechanism, not by convention.
 
 <!-- /SYNC:test-architecture-execution-contract:reminder -->
 

@@ -1,6 +1,6 @@
 ---
 name: workflow-visualize
-description: '[Workflow] Use when activating the Visual Diagram workflow for create visual excalidraw diagrams from codebase investigation or web research.'
+description: '[Workflow] Use when creating Excalidraw diagrams from codebase investigation or web research.'
 disable-model-invocation: false
 ---
 

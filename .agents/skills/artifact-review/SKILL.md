@@ -1,6 +1,6 @@
 ---
 name: artifact-review
-description: '[Code Quality] Use when you need to review artifact quality (PBI, user story, test spec, design spec) before handoff. Supports --type={pbi|story|spec-tests|design}.'
+description: '[Code Quality] Use when reviewing artifact quality before handoff. Flag: --type={pbi|story|spec-tests|design}.'
 ---
 
 > Codex compatibility note:

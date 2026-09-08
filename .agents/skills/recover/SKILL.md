@@ -1,6 +1,6 @@
 ---
 name: recover
-description: '[Utilities] Use when you need to restore workflow context from checkpoint after session loss.'
+description: '[Utilities] Use when restoring workflow context from a checkpoint after session loss.'
 disable-model-invocation: false
 ---
 

@@ -1,7 +1,7 @@
 ---
 name: dependency
 version: 2.0.0
-description: '[Project Management] Use when you need to map and visualize feature dependencies between modules, services, and work items.'
+description: '[Project Management] Use when mapping or visualizing feature dependencies between modules, services, and work items.'
 ---
 
 ## Quick Summary

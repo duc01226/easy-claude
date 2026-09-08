@@ -1,6 +1,6 @@
 ---
 name: design-spec
-description: '[Project Management] Use when you need to create UI/UX design specifications from requirements, PBIs, or user stories. Use --mode=wireframe to convert hand-drawn/digital wireframes or UI sketches into structured specs.'
+description: '[Project Management] Use when creating UI/UX design specs from requirements, PBIs, or stories. Flag: --mode=wireframe converts sketches into structured specs.'
 ---
 
 > Codex compatibility note:

@@ -1,6 +1,6 @@
 ---
 name: deep-research
-description: '[Research] Use when deeply researching top sources from web-research.'
+description: '[Research] Use when deeply researching the top sources surfaced by web-research.'
 ---
 
 > Codex compatibility note:

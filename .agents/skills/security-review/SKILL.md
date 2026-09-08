@@ -1,6 +1,6 @@
 ---
 name: security-review
-description: '[Code Quality] Use when you need to perform a security review or audit on any scope — application code (OWASP Top 10 2025), secrets exposure, dependency/supply-chain malware, third-party repository vetting before install, infrastructure/config, CI/CD pipeline, AI-agent risks, and host/VPS compromise detection.'
+description: '[Code Quality] Use when performing a security review or audit — OWASP Top 10, secrets exposure, dependency/supply-chain malware, infrastructure, CI/CD, AI-agent risks, host compromise.'
 disable-model-invocation: false
 ---
 

@@ -1,7 +1,7 @@
 ---
 name: domain-analysis
 version: 2.1.0
-description: '[Architecture] Use when you need to analyze business domain: bounded contexts, aggregates, entities, ERD, domain events, and cross-context integration.'
+description: '[Architecture] Use when analyzing the business domain — bounded contexts, aggregates, entities, ERD, domain events, cross-context integration.'
 ---
 
 <!-- PROMPT-ENHANCE:STEP-TASK-ANCHOR:START -->

@@ -1,7 +1,7 @@
 ---
 name: journal
 version: 1.0.0
-description: '[Utilities] Use when recording an engineering journal entry — capture decisions, blockers, lessons, or progress notes during work.'
+description: '[Utilities] Use when recording an engineering journal entry — decisions, blockers, lessons, progress notes.'
 disable-model-invocation: false
 ---
 

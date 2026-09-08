@@ -1,6 +1,6 @@
 ---
 name: llm-council
-description: '[Decision Support] Use when pressure-testing irreversible, high-stakes decisions with adversarial AI advisors.'
+description: '[Decision Support] Use when pressure-testing an irreversible, high-stakes decision with adversarial AI advisors.'
 ---
 
 > Codex compatibility note:

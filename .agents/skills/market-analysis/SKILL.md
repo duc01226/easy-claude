@@ -1,6 +1,6 @@
 ---
 name: market-analysis
-description: '[Research] Use when you need to analyze market landscape: competitors, sizing (TAM/SAM/SOM), trends, SWOT, customer segments.'
+description: '[Research] Use when analyzing the market landscape — competitors, TAM/SAM/SOM sizing, trends, SWOT, customer segments.'
 ---
 
 > Codex compatibility note:

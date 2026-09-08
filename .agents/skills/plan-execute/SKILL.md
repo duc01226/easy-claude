@@ -1,6 +1,6 @@
 ---
 name: plan-execute
-description: '[Implementation] Use when you need to start coding & testing an existing plan. Flags: --approval=off (skip implementation approval; never grants Git authority), --tests=off (skip the test step), --parallel={auto|on|off} (default off — sequential; --parallel/=on opts in to parallel sub-agent waves; =auto fans out only when the plan declares PAR/SEQ tags and write sets).'
+description: '[Implementation] Use when coding and testing an existing plan. Flags: --approval=off, --tests=off, --parallel={auto|on|off} (default off).'
 ---
 
 > Codex compatibility note:

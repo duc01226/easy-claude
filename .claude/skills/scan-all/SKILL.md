@@ -1,7 +1,7 @@
 ---
 name: scan-all
 version: 1.0.0
-description: '[Documentation] Use when you need orchestrate all reference doc scans in parallel.'
+description: '[Documentation] Use when orchestrating all reference doc scans in parallel.'
 ---
 
 ## Quick Summary

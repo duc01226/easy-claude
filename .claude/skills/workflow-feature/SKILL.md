@@ -1,7 +1,7 @@
 ---
 name: workflow-feature
 version: 1.0.0
-description: '[Workflow] Use when activating the Feature Implementation workflow for implement a well-defined feature with investigation, planning, implementation, and review. Also covers TDD/test-first development and spec-driven feature implementation with test specs written before code.'
+description: '[Workflow] Use when implementing a well-defined feature, adding a component, or building a capability — including TDD and spec-driven test-first work.'
 disable-model-invocation: false
 ---
 

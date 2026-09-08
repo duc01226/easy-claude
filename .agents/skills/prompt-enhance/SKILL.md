@@ -1,6 +1,6 @@
 ---
 name: prompt-enhance
-description: '[Skill Management] Use when enhancing, compressing, or expanding prompts, docs, or skills with attention anchoring [INTELLIGENT ROUTING]. Flag: --op={compress|expand|enhance} (default enhance); --op=compress strips token bloat, --op=expand reconstructs compressed text.'
+description: '[Skill Management] Use when enhancing, compressing, or expanding prompts, docs, or skills. Flag: --op={compress|expand|enhance} (default enhance).'
 ---
 
 > Codex compatibility note:

@@ -1,6 +1,6 @@
 ---
 name: estimate-actual
-description: '[Planning] Use when calibrating estimates from actual code, diff, PR scope, and developer time.'
+description: '[Planning] Use when calibrating estimates against actual code, diff, PR scope, and developer time.'
 disable-model-invocation: false
 ---
 

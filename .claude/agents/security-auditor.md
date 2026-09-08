@@ -1,11 +1,9 @@
 ---
 name: security-auditor
 description: >-
-    Security review agent. Use when reviewing authentication flows,
-    authorization patterns, secret management, API input validation, dependency
-    vulnerabilities, OWASP compliance, or microservices boundary security.
-    Read-only analysis — structured findings with severity, file:line evidence,
-    reproduction steps, and remediation guidance.
+    Use when reviewing authentication, authorization, secret management, input
+    validation, dependency vulnerabilities, OWASP compliance, or service
+    boundary security. Read-only, evidence-backed findings.
 model: inherit
 memory: project
 ---

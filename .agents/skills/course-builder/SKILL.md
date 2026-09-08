@@ -1,6 +1,6 @@
 ---
 name: course-builder
-description: '[Content] Use when you need to build structured learning/teaching course material with Bloom taxonomy objectives, modules, lessons, exercises, and assessments.'
+description: '[Content] Use when building course material — Bloom objectives, modules, lessons, exercises, assessments.'
 ---
 
 > Codex compatibility note:

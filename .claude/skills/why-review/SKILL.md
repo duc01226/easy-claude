@@ -1,7 +1,7 @@
 ---
 name: why-review
 version: 1.5.0
-description: '[Code Quality] Use when reviewing rationale and change quality for plans, PBIs, commits, diffs, docs, specs, reports, or explicit artifacts.'
+description: '[Code Quality] Use when reviewing rationale and change quality for plans, PBIs, commits, diffs, docs, specs, or reports.'
 ---
 
 > **[GOAL REMINDER — MUST ATTENTION CRITICAL]**

@@ -1,6 +1,6 @@
 ---
 name: refine
-description: '[Project Management] Use when converting ideas to PBIs, validating problem hypotheses, adding acceptance criteria, or refining requirements.'
+description: '[Project Management] Use when converting ideas to PBIs, validating problem hypotheses, or adding acceptance criteria.'
 ---
 
 > Codex compatibility note:

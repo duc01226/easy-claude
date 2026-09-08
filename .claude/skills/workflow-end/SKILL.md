@@ -1,7 +1,7 @@
 ---
 name: workflow-end
 version: 1.0.0
-description: '[Process] Use when you need to end the active workflow and clear state.'
+description: '[Process] Use when ending the active workflow and clearing its state.'
 ---
 
 <!-- PROMPT-ENHANCE:STEP-TASK-ANCHOR:START -->

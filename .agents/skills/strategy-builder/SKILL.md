@@ -1,6 +1,6 @@
 ---
 name: strategy-builder
-description: '[Content] Use when you need to build marketing strategy: positioning, channels, messaging, campaigns, budget, KPIs.'
+description: '[Content] Use when building a marketing strategy — positioning, channels, messaging, campaigns, budget, KPIs.'
 ---
 
 > Codex compatibility note:

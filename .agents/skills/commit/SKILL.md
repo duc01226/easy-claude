@@ -1,6 +1,6 @@
 ---
 name: commit
-description: '[Git] Use when asked to "commit", "stage and commit", "save changes", or after completing implementation tasks. Flag: --push (a.k.a. "commit and push") stages + commits + pushes to remote in one shot.'
+description: '[Git] Use when asked to commit, stage and commit, or save changes. Flag: --push also pushes to remote.'
 ---
 
 > Codex compatibility note:

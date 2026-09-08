@@ -1,6 +1,6 @@
 ---
 name: feature-presentation
-description: '[Documentation] Use when you need to synthesize all generated specs, PBIs, ideas and mockups into one standalone HTML slide presentation for stakeholders (PO/BA/Dev/QC).'
+description: '[Documentation] Use when synthesizing specs, PBIs, ideas, and mockups into one standalone HTML slide deck for stakeholders.'
 ---
 
 > Codex compatibility note:

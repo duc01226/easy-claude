@@ -1,7 +1,7 @@
 ---
 name: db-migrate
 version: 1.0.0
-description: '[DevOps] Use when you need to run or create database migrations.'
+description: '[DevOps] Use when running or creating database migrations.'
 disable-model-invocation: false
 ---
 

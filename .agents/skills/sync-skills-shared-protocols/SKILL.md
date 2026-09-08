@@ -1,6 +1,6 @@
 ---
 name: sync-skills-shared-protocols
-description: '[Skill Management] Use when shared protocol checklists change and need propagation across skills.'
+description: '[Skill Management] Use when shared protocol checklists change and need propagating across skills.'
 ---
 
 > Codex compatibility note:

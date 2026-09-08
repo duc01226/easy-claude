@@ -1,6 +1,6 @@
 ---
 name: product-roadmap
-description: '[Planning] Use only when the user explicitly requests a product roadmap deliverable, roadmap update, or milestone selection; handles outcome milestones, MVP scope, non-goals, risks, human decisions, and evidence gates.'
+description: '[Planning] Use ONLY when the user explicitly requests a product roadmap, roadmap update, or milestone selection — outcome milestones, MVP scope, non-goals, risks, evidence gates.'
 disable-model-invocation: true
 ---
 

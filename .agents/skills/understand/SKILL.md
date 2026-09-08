@@ -1,6 +1,6 @@
 ---
 name: understand
-description: '[Process] Use when developers need to understand or review code, plans, decisions, bugs, or concepts—covering behavior, rationale, trade-offs, review path, and testing.'
+description: '[Process] Use when a developer needs to understand code, plans, decisions, bugs, or concepts — behavior, rationale, trade-offs, testing.'
 disable-model-invocation: false
 ---
 

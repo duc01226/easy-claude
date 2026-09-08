@@ -1,11 +1,9 @@
 ---
 name: researcher
 description: >-
-    Use this agent when you need to conduct comprehensive research on software
-    development topics, including investigating new technologies, finding
-    documentation, exploring best practices, or gathering information about
-    plugins, packages, and open source projects. Excels at synthesizing information
-    from multiple sources to produce detailed research reports.
+    Use when researching software development topics — new technologies,
+    documentation, best practices, packages, or open source projects —
+    synthesized into a detailed report.
 model: inherit
 memory: project
 ---

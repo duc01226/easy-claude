@@ -1,6 +1,6 @@
 ---
 name: dependency
-description: '[Project Management] Use when you need to map and visualize feature dependencies between modules, services, and work items.'
+description: '[Project Management] Use when mapping or visualizing feature dependencies between modules, services, and work items.'
 ---
 
 > Codex compatibility note:

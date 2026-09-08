@@ -1,7 +1,7 @@
 ---
 name: release-notes
 version: 2.0.0
-description: '[Git] Use when creating release notes or a release document from git history — any scope (tag-to-tag, branch-to-branch, or a time range like the last 30 days), producing categorized markdown notes PLUS a rich standalone HTML release presentation with real-UI mock-ups, auto-opened at the end.'
+description: '[Git] Use when creating release notes or a release document from git history at any scope (tag-to-tag, branch-to-branch, time range), producing markdown plus a standalone HTML presentation.'
 triggers:
     - release notes
     - release doc

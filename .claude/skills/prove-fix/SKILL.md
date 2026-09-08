@@ -1,7 +1,7 @@
 ---
 name: prove-fix
 version: 1.2.0
-description: '[Code Quality] Use when you need to prove fix correctness with adversarial code proof traces — a skeptic tries to DISPROVE the fix and trace all related paths first, with confidence scoring and stack-trace-style evidence chains, so confidence is earned by surviving attack, not by confirming it works.'
+description: '[Code Quality] Use when proving a fix is correct via adversarial proof traces — a skeptic tries to DISPROVE it first, with confidence scoring and evidence chains.'
 ---
 
 <!-- PROMPT-ENHANCE:STEP-TASK-ANCHOR:START -->

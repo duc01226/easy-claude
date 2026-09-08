@@ -1,6 +1,6 @@
 ---
 name: experience-review
-description: '[Testing] Use when reviewing a running user experience or externally observable output, establishing a deliberate baseline, or adjudicating a regression across UI, API, CLI, library, service, or generated-output surfaces. Flag: --rounds=N (default 3) bounds the remediation loop — exercise, inspect, route BLOCKING defects to /fix at the owning layer, re-exercise from scratch — converging on zero defects plus an agent-recommended acceptance a human still signs; --rounds=0 is the single-pass report-only review.'
+description: '[Testing] Use when reviewing a running user experience or observable output (UI, API, CLI, service), setting a baseline, or adjudicating a regression. Flag: --rounds=N (default 3; 0 = report-only).'
 ---
 
 > Codex compatibility note:

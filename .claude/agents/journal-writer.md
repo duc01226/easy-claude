@@ -1,12 +1,9 @@
 ---
 name: journal-writer
 description: >-
-    Use this agent when significant technical difficulties occur: test suites fail
-    repeatedly despite fix attempts, critical bugs found in production, implementation
-    approaches prove flawed requiring redesign, external dependencies cause blocking
-    issues, performance bottlenecks significantly impact UX, security vulnerabilities
-    are identified, database migrations fail, CI/CD pipelines break unexpectedly,
-    integration conflicts arise, or architectural decisions prove problematic.
+    Use when a significant technical difficulty occurs — repeated test
+    failures, production bugs, flawed approaches needing redesign, blocking
+    dependencies, security findings, failed migrations, broken pipelines.
 model: inherit
 memory: project
 ---

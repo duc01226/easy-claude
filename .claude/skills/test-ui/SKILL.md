@@ -1,7 +1,7 @@
 ---
 name: test-ui
 version: 1.0.0
-description: '[Testing] Use when you need full-site QA audit (accessibility, performance, security, SEO) with visual reports.'
+description: '[Testing] Use when running a full-site QA audit (accessibility, performance, security, SEO) with visual reports.'
 disable-model-invocation: false
 ---
 

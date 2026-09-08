@@ -1,6 +1,6 @@
 ---
 name: context
-description: '[Utilities] Use when you need to load project context for current session.'
+description: '[Utilities] Use when loading project context for the current session.'
 disable-model-invocation: false
 ---
 

@@ -1,11 +1,9 @@
 ---
 name: frontend-developer
 description: >-
-    Frontend specialist. Use when creating or modifying frontend components,
-    stores, forms, services, or templates. Adapts to the project's detected
-    UI stack (Angular, React, Vue, Svelte, etc.) via project-reference docs —
-    enforces project base classes, state-management conventions, styling
-    methodology, and subscription/effect lifecycle teardown.
+    Use when creating or modifying frontend components, stores, forms,
+    services, or templates — enforces the project's detected UI stack, base
+    classes, styling, and lifecycle teardown.
 model: inherit
 memory: project
 ---

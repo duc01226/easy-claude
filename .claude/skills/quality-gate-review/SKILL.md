@@ -1,7 +1,7 @@
 ---
 name: quality-gate-review
 version: 1.1.1
-description: '[Project Management] Use when you need to enforce quality gates, verify compliance with standards, track quality metrics, and generate audit trails.'
+description: '[Project Management] Use when enforcing quality gates, verifying standards compliance, tracking metrics, or generating audit trails.'
 ---
 
 ## Quick Summary

@@ -1,6 +1,6 @@
 ---
 name: ask
-description: '[Utilities] Use when you need to answer technical and architectural questions.'
+description: '[Utilities] Use when answering a technical or architectural question.'
 ---
 
 > Codex compatibility note:

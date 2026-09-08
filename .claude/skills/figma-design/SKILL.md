@@ -1,7 +1,7 @@
 ---
 name: figma-design
 version: 1.0.0
-description: '[Frontend] Use when you need to extract design context from Figma URLs via MCP, REST API, or screenshot fallback.'
+description: '[Frontend] Use when extracting design context from Figma URLs via MCP, REST API, or screenshot fallback.'
 ---
 
 ## Quick Summary

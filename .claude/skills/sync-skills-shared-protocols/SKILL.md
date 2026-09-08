@@ -1,7 +1,7 @@
 ---
 name: sync-skills-shared-protocols
 version: 1.0.0
-description: '[Skill Management] Use when shared protocol checklists change and need propagation across skills.'
+description: '[Skill Management] Use when shared protocol checklists change and need propagating across skills.'
 ---
 
 ## Quick Summary

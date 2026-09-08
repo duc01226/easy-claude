@@ -1,7 +1,7 @@
 ---
 name: architecture-review
 version: 2.3.0
-description: '[Code Quality] Use when reviewing architecture compliance for layers, messaging, service boundaries, CQRS, repos, entity events, and data/consistency/tenancy boundaries. Universal architecture laws, coupling taxonomy and the anti-pattern catalog live in `.claude/docs/architecture-knowledge.md` (project docs always outrank it).'
+description: '[Code Quality] Use when reviewing architecture compliance — layers, messaging, service boundaries, CQRS, repos, entity events, data/consistency/tenancy boundaries.'
 ---
 
 <!-- PROMPT-ENHANCE:STEP-TASK-ANCHOR:START -->
@@ -195,6 +195,7 @@ MUST ATTENTION review serially. Per applicable category: read docs/source eviden
 | Multi-tenant isolation | Test asserting a cross-tenant query returns zero rows (see Category 12) |
 | Resilience | "Every outbound call has a timeout" lint or test |
 | Performance / bundle budget | Latency-or-size assertion in the pipeline |
+| Test strength / no vacuous assertions | Mutation-or-fault-injection gate scoped to CHANGED code; where no tool exists, a recorded defect-seeding drill (break a top invariant → record which named test went red → restore). Line coverage % is a diagnostic, NEVER the gate |
 
 - **WARN** when a recorded architectural rule has NO machine check and relies on review discipline alone. **BLOCKED** when this change REMOVES or disables an existing architecture/boundary check, or introduces a new enforced-by-prose-only boundary while the project already has a fitness-function mechanism available.
 - Existing violation backlog is fine if it is a RATCHET (new violations blocked, count only decrements) — a "cleanup later" comment with no gate is WARN.

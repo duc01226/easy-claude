@@ -1,6 +1,6 @@
 ---
 name: tech-spec
-description: '[Documentation] Use when (re)generating the DERIVED technical spec view over code + tests, or reporting canonical §8 TC/test-code drift. A GENERATOR — it projects code + tests into a regenerable per-component view and NEVER authors business content. Modes generate|audit|sync. Per-mode procedure lives in references/{author,sync}.md.'
+description: '[Documentation] Use when (re)generating the DERIVED technical spec view over code and tests, or reporting §8 TC drift. A generator — never authors business content. Modes: generate|audit|sync.'
 ---
 
 > Codex compatibility note:

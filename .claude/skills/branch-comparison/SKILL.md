@@ -1,7 +1,7 @@
 ---
 name: branch-comparison
 version: 1.0.1
-description: '[Git] Use when the user asks to compare branches, analyze git diffs, review changes between branches, update specifications based on code changes, or analyze what changed.'
+description: '[Git] Use when comparing branches, analyzing git diffs, or reviewing what changed between two refs.'
 ---
 
 ## Quick Summary

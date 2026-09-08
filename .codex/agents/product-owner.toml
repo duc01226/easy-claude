@@ -1,5 +1,5 @@
 name = "product-owner"
-description = "Use this agent when working with product ideas, backlog management, prioritization decisions, sprint planning, or stakeholder communication. Specializes in value-driven decision making and requirement clarification."
+description = "Use when working with product ideas, backlog management, prioritization, sprint planning, or stakeholder communication — value-driven decisions and requirement clarification."
 developer_instructions = """
 Source: .claude/agents/product-owner.md
 

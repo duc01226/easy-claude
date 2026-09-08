@@ -1,7 +1,7 @@
 ---
 name: workflow-spec-to-pbi
 version: 2.0.0
-description: '[Workflow] Use when activating the Spec to PBI Backlog workflow to convert canonical tech-free Feature Specs into complete, prioritized, dependency-aware PBIs and stories.'
+description: '[Workflow] Use when converting canonical tech-free Feature Specs into complete, prioritized, dependency-aware PBIs and stories.'
 disable-model-invocation: false
 ---
 

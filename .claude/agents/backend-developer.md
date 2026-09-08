@@ -1,9 +1,8 @@
 ---
 name: backend-developer
 description: >-
-    Implement backend features using project-specific patterns.
-    Handles commands, queries, entities, event handlers, migrations, and background
-    jobs. Use for backend-only implementation tasks requiring full pattern knowledge.
+    Use when implementing backend-only work — commands, queries, entities,
+    event handlers, migrations, background jobs — following project patterns.
 model: inherit
 memory: project
 ---

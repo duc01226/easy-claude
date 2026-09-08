@@ -1,7 +1,7 @@
 ---
 name: docx-to-markdown
 version: 1.0.0
-description: '[Document Processing] Use when you need to convert Microsoft Word ( DOCX) files to Markdown with GFM support (tables, images, code blocks).'
+description: '[Document Processing] Use when converting Word DOCX files to Markdown with GFM support.'
 disable-model-invocation: false
 ---
 

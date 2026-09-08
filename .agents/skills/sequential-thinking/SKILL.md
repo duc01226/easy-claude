@@ -1,6 +1,6 @@
 ---
 name: sequential-thinking
-description: '[AI & Tools] Use when you need to apply structured, reflective problem-solving for complex tasks requiring multi-step analysis, revision capability, and hypothesis verification.'
+description: '[AI & Tools] Use when applying structured, reflective problem-solving to complex multi-step analysis needing revision and hypothesis verification.'
 ---
 
 > Codex compatibility note:

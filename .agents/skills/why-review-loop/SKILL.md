@@ -1,6 +1,6 @@
 ---
 name: why-review-loop
-description: '[Code Quality] Use when you need to combine /why-review + /fix in a recursive loop — each round runs /why-review to find validated findings then /fix to resolve them, then loops again over the CHANGED target until a fresh full /why-review clears the current round severity bar.'
+description: '[Code Quality] Use when looping /why-review + /fix recursively over a target until a fresh full review clears the severity bar.'
 ---
 
 > Codex compatibility note:

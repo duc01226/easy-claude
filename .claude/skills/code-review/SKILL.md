@@ -1,7 +1,7 @@
 ---
 name: code-review
 version: 2.4.0
-description: '[Code Quality] Use when evaluating review feedback, requesting targeted code-quality review, or verifying completion claims.'
+description: '[Code Quality] Use when evaluating review feedback, requesting a targeted code-quality review, or verifying completion claims.'
 execution-mode: subagent
 context-budget: critical
 ---

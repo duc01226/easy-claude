@@ -1,7 +1,7 @@
 ---
 name: design
 version: 1.0.0
-description: '[Design] Create or describe a UI design — quick (fast), immersive (good), or recreated/described from a screenshot or video, in a product-UI or marketing/creative lane. Dispatch via --mode={fast|good|describe|screenshot|video} (default fast) and --lane={product|marketing} (default product).'
+description: '[Design] Use when creating or describing a UI design. Flags: --mode={fast|good|describe|screenshot|video} (default fast), --lane={product|marketing} (default product).'
 disable-model-invocation: false
 ---
 

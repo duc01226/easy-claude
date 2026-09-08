@@ -1,6 +1,6 @@
 ---
 name: workflow-review-changes
-description: '[Workflow] Use when activating the Review Current Changes workflow for review, fix, and re-review recursively until the current severity bar is clear; round-2+ LOW findings are recorded and deferred.'
+description: '[Workflow] Use when reviewing uncommitted, staged, or unstaged changes before committing — review, fix, and re-review until the severity bar clears.'
 ---
 
 > Codex compatibility note:

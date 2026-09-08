@@ -1,7 +1,7 @@
 ---
 name: checkpoint
 version: 2.0.0
-description: '[Utilities] Use when you need to save analysis context to a checkpoint file for recovery (user-facing alias for memory-management Part 1 CHECKPOINT_CREATE).'
+description: '[Utilities] Use when saving analysis context to a checkpoint file for recovery.'
 disable-model-invocation: false
 ---
 

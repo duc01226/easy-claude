@@ -1,6 +1,6 @@
 ---
 name: spec
-description: '[Documentation] Use to author, audit, amend, or test-spec a business Feature Spec. The single spec skill — modes draft|init|update|audit|amend create/maintain the tech-free 8-section Feature Spec; draft authors a provisional spec from an idea/requirement (no code yet, Evidence: TBD); tests generates Section 8 TC-{FEATURE}-{NNN} test specifications; sync reconciles §8 TCs ↔ executing test code. Per-mode procedure lives in references/{author,tests,sync}.md.'
+description: '[Documentation] Use when authoring, auditing, amending, or test-speccing a business Feature Spec. Modes: draft|init|update|audit|amend build the tech-free 8-section spec; tests generates §8 TCs; sync reconciles TCs with test code.'
 ---
 
 > Codex compatibility note:

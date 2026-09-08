@@ -1,7 +1,7 @@
 ---
 name: deep-research
 version: 1.0.0
-description: '[Research] Use when deeply researching top sources from web-research.'
+description: '[Research] Use when deeply researching the top sources surfaced by web-research.'
 ---
 
 <!-- PROMPT-ENHANCE:STEP-TASK-ANCHOR:START -->

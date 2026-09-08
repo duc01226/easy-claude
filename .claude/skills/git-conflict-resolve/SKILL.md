@@ -1,7 +1,7 @@
 ---
 name: git-conflict-resolve
 version: 1.0.0
-description: '[Git] Use when you need to resolve git merge/cherry-pick/rebase conflicts with backup, analysis, and reporting.'
+description: '[Git] Use when resolving git merge, cherry-pick, or rebase conflicts with backup and analysis.'
 disable-model-invocation: false
 ---
 

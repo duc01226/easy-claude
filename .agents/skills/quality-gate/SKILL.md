@@ -1,6 +1,6 @@
 ---
 name: quality-gate
-description: '[Code Quality] Use when you need to run quality gate checklist.'
+description: '[Code Quality] Use when running the quality gate checklist.'
 ---
 
 > Codex compatibility note:

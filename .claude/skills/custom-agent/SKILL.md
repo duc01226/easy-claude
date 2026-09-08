@@ -1,6 +1,6 @@
 ---
 name: custom-agent
-description: '[AI & Tools] Use when you need create, verify, or enhance Claude Code custom agents (Claude Code custom agent files).'
+description: '[AI & Tools] Use when creating, verifying, or enhancing Claude Code custom agent files.'
 ---
 
 ## Quick Summary

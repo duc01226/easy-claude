@@ -1,7 +1,7 @@
 ---
 name: git-developer-performance
 version: 1.0.0
-description: '[Git] Use when generating developer KPI, performance, contribution value, story point, man-day, or code-quality reports from local git commit history.'
+description: '[Git] Use when generating developer KPI, contribution, story-point, man-day, or code-quality reports from git history.'
 ---
 
 ## Quick Summary

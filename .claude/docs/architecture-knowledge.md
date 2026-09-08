@@ -643,6 +643,10 @@ Threat-model on the ARCHITECTURE DIAGRAM (STRIDE per boundary, or "what does an 
 | API compatibility | OpenAPI/protobuf diff gate; consumer contract tests |
 | Event schema compatibility | Schema-registry backward-compat check in CI |
 | Performance | Latency/throughput assertion in pipeline; frontend bundle + CWV budgets |
+| **Test strength** | Mutation / fault-injection score gate on CHANGED code; where no tool exists, a **recorded defect-seeding drill** (break a top invariant → record which named test went red → restore). **Line coverage is a diagnostic, never a gate** — see `SYNC:harness-setup` and `SYNC:engineering-foundation-gate` F4 |
+| **Performance at data scale** | Perf suite seeded to a representative volume AND shape, asserting named latency/memory budgets that FAIL the run; compared across ≥2 volumes ~10× apart so super-linear growth is visible; resource exhaustion bounded, not an OOM kill — F5 |
+| **Build scalability** | Assert an unchanged module is NOT rebuilt; affected-set computation is exercised; cache-hit rate reported rather than assumed — F6 |
+| **Environment parity** | Clean-machine bootstrap exercised in CI; host and containerized paths run the SAME suite; toolchain + lockfile pinning verified — F1/F2 |
 | Security | SAST/SCA/secret/IaC scans with severity gates; no-plaintext-secret test |
 | **Multi-tenant isolation** | Test asserting a cross-tenant query returns zero rows |
 | Resilience | Chaos experiment as a scheduled test; "every outbound call has a timeout" lint |

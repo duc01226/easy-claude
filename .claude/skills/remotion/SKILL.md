@@ -1,7 +1,7 @@
 ---
 name: remotion
 version: 3.1.0
-description: '[User-Invoked] Use when you need create, update, or preview Remotion videos.'
+description: '[User-Invoked] Use when creating, updating, or previewing Remotion videos.'
 ---
 
 > **[IMPORTANT]** Use `TaskCreate` to break ALL work into small tasks BEFORE starting. For simple tasks, ask user whether to skip.

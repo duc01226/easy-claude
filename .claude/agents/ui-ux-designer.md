@@ -1,10 +1,9 @@
 ---
 name: ui-ux-designer
 description: >-
-    Use this agent when the user needs UI/UX design work including interface designs,
-    wireframes, design systems, user research, responsive layouts, animations, or
-    design documentation. Also use proactively to review new UI implementations for
-    accessibility, user experience, and mobile responsiveness.
+    Use when doing UI/UX design work — interface designs, wireframes, design
+    systems, user research, responsive layouts, animations — or reviewing new
+    UI for accessibility and responsiveness.
 model: inherit
 memory: project
 ---

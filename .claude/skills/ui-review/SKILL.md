@@ -1,7 +1,7 @@
 ---
 name: ui-review
 version: 2.0.0
-description: '[Code Quality] Use when reviewing UI/frontend changes for long-content overflow, responsive multi-screen layout (flex-wrap / row-to-column on small devices), flex-vs-fixed sizing, z-index discipline, SCSS/BEM styling quality, and async UI states & feedback (loading indicator, error surface, empty state).'
+description: '[Code Quality] Use when reviewing UI/frontend changes for content overflow, responsive layout, flex-vs-fixed sizing, z-index discipline, SCSS/BEM quality, and async loading/error/empty states.'
 execution-mode: subagent
 context-budget: high
 ---

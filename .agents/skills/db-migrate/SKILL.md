@@ -1,6 +1,6 @@
 ---
 name: db-migrate
-description: '[DevOps] Use when you need to run or create database migrations.'
+description: '[DevOps] Use when running or creating database migrations.'
 disable-model-invocation: false
 ---
 

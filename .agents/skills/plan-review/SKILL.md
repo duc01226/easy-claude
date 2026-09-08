@@ -1,6 +1,6 @@
 ---
 name: plan-review
-description: '[Planning] Use when you need to auto-review a plan for validity, correctness, and best practices — recursive: review, validate findings with why-review, fix validated blocking findings, and full re-review until the current severity exit bar is clear.'
+description: '[Planning] Use when auto-reviewing a plan for validity, correctness, and best practices — recursive until the severity exit bar clears.'
 ---
 
 > Codex compatibility note:

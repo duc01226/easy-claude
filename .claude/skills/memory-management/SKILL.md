@@ -1,7 +1,7 @@
 ---
 name: memory-management
 version: 1.0.0
-description: '[Utilities] Use when saving or recovering task progress across sessions via file checkpoints — especially before context compaction.'
+description: '[Utilities] Use when saving or recovering task progress across sessions via file checkpoints, especially before compaction.'
 disable-model-invocation: false
 ---
 

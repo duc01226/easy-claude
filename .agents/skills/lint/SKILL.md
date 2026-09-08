@@ -1,6 +1,6 @@
 ---
 name: lint
-description: '[Code Quality] Use when you need to run linters and fix issues for backend or frontend.'
+description: '[Code Quality] Use when running linters and fixing issues on backend or frontend.'
 disable-model-invocation: false
 ---
 

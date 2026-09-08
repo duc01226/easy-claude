@@ -1,6 +1,6 @@
 ---
 name: demo-guide
-description: '[Documentation] Use when you need to generate a step-by-step demo guide (demo script / walkthrough) covering all main user stories and their test cases — scope from a named feature, else the current working context, else confirm with the user — explaining for each case how the domain data is stored/changed and how the domain solves the feature. Triggers: demo guide, generate demo guide, demo script, demo walkthrough, how to demo, prepare demo, sprint demo, user story demo.'
+description: '[Documentation] Use when generating a demo guide, demo script, or sprint-demo walkthrough covering user stories and their test cases.'
 ---
 
 > Codex compatibility note:

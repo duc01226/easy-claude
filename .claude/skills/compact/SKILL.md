@@ -1,7 +1,7 @@
 ---
 name: compact
 version: 2.0.0
-description: '[Utilities] Use when you need to compress context to optimize token usage (user-facing alias for context-optimization Strategy #3 Compress).'
+description: '[Utilities] Use when compressing context to reduce token usage.'
 disable-model-invocation: false
 ---
 

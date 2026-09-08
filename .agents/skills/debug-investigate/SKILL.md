@@ -1,6 +1,6 @@
 ---
 name: debug-investigate
-description: '[Fix & Debug] Use when investigating a bug''s root cause — reproduce the symptom, trace it end-to-start through the code, form and test hypotheses, and pinpoint the defect before any fix.'
+description: '[Fix & Debug] Use when finding a bug''s root cause — reproduce, trace end-to-start, test hypotheses, pinpoint the defect before any fix.'
 ---
 
 > Codex compatibility note:

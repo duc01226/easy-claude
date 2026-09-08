@@ -1,6 +1,6 @@
 ---
 name: watzup
-description: '[Utilities] Use when you need to review recent changes and wrap up the work.'
+description: '[Utilities] Use when reviewing recent changes and wrapping up the work.'
 ---
 
 > Codex compatibility note:

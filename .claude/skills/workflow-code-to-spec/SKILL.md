@@ -1,7 +1,7 @@
 ---
 name: workflow-code-to-spec
 version: 3.0.0
-description: '[Workflow] Use when activating code-to-spec development — author/maintain the single canonical Feature Spec FROM existing code, keeping spec, implementation, and tests synchronized. For idea→spec (no code yet) use workflow-idea-to-spec.'
+description: '[Workflow] Use when authoring or maintaining the canonical Feature Spec FROM existing code, keeping spec, implementation, and tests in sync. For idea-to-spec use workflow-idea-to-spec.'
 disable-model-invocation: false
 ---
 
