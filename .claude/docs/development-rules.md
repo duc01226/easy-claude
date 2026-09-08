@@ -10,58 +10,58 @@
 
 **Key Rules:**
 
-- **Understand code first** — READ existing code, search 3+ patterns, run graph trace before ANY modification
-- **Code Step Rule** — Code is a tree of steps: no blank line = same step (parallel), blank line = new step (must consume all previous outputs). Fix violations via extract function or chaining.
-- **Class responsibility** — Logic in LOWEST layer: Entity/Model > Service > Component/Handler
-- **YAGNI / KISS / DRY** — No speculative abstractions, no over-engineering
-- **Evidence-based** — Every claim needs `file:line` proof, confidence >80% to act
-- **Zero broken builds** — Code must compile with no syntax errors
-- **Names express PURPOSE** — "OrXxx/AndYyy" joining roles/types/statuses = content-driven red flag. Test: "if I add/remove one item, must I rename?" → YES = rename
-- **Surgical changes (context-aware)** — Bug fix: every changed line traces to the bug (diff test). Review/enhancement: implement improvements AND announce them explicitly. Never silently scope-creep.
-- **Surface ambiguity before coding** — List assumptions (scope, format, volume), present interpretations with effort estimates, push back when simpler approach exists. Never pick silently and run.
-- **Goal-driven execution** — Each TaskCreate step needs explicit verify criterion: `step → verify: [observable check]`, not "make it work"
-- **Goal Contract** — Before planned, workflow, or non-trivial skill work: resolve the active Goal Contract (active plan `goal.md` → `plans/goals/{YYMMDD-HHmm}-{slug}/goal.md` → create from request via `.claude/templates/goal-contract-template.md`), execute against its saved success criteria, append iteration evidence, and close only when the Goal Satisfaction matrix passes or a blocker is escalated. See `SYNC:goal-contract-satisfaction-loop` in `.claude/skills/shared/sync-inline-versions.md`. Tiny conversational tasks may skip only with a recorded reason.
-- **Tests verify intent** — Tests must name the business rule or invariant they protect, not only assert observed behavior
+-   **Understand code first** — READ existing code, search 3+ patterns, run graph trace before ANY modification
+-   **Code Step Rule** — Code is a tree of steps: no blank line = same step (parallel), blank line = new step (must consume all previous outputs). Fix violations via extract function or chaining.
+-   **Class responsibility** — Logic in LOWEST layer: Entity/Model > Service > Component/Handler
+-   **YAGNI / KISS / DRY** — No speculative abstractions, no over-engineering
+-   **Evidence-based** — Every claim needs `file:line` proof, confidence >80% to act
+-   **Zero broken builds** — Code must compile with no syntax errors
+-   **Names express PURPOSE** — "OrXxx/AndYyy" joining roles/types/statuses = content-driven red flag. Test: "if I add/remove one item, must I rename?" → YES = rename
+-   **Surgical changes (context-aware)** — Bug fix: every changed line traces to the bug (diff test). Review/enhancement: implement improvements AND announce them explicitly. Never silently scope-creep.
+-   **Surface ambiguity before coding** — List assumptions (scope, format, volume), present interpretations with effort estimates, push back when simpler approach exists. Never pick silently and run.
+-   **Goal-driven execution** — Each TaskCreate step needs explicit verify criterion: `step → verify: [observable check]`, not "make it work"
+-   **Goal Contract** — Before planned, workflow, or non-trivial skill work: resolve the active Goal Contract (active plan `goal.md` → `plans/goals/{YYMMDD-HHmm}-{slug}/goal.md` → create from request via `.claude/templates/goal-contract-template.md`), execute against its saved success criteria, append iteration evidence, and close only when the Goal Satisfaction matrix passes or a blocker is escalated. See `SYNC:goal-contract-satisfaction-loop` in `.claude/skills/shared/sync-inline-versions.md`. Tiny conversational tasks may skip only with a recorded reason.
+-   **Tests verify intent** — Tests must name the business rule or invariant they protect, not only assert observed behavior
 
 ---
 
 ## General
 
-- **File Naming**: kebab-case with meaningful names — LLMs must understand purpose from filename alone without reading content
-- **File Size**: Keep code files under 200 lines — split into focused components, extract utilities, use composition over inheritance
-- Skills/tools: `docs-seeker` (docs via Context7), available image/video analysis tools, `sequential-thinking`/`debug-investigate` (analysis), `gh` (GitHub)
-- **[IMPORTANT]** Follow codebase structure and code standards in `./docs` during implementation
-- **[IMPORTANT]** Always implement real code — never simulate or mock implementations
-- **[CRITICAL] Class Responsibility Rule:**
-    - Logic belongs in LOWEST layer: Entity/Model > Service > Component/Handler
-    - Backend: Entity mapping → Command.UpdateEntity() or DTO.MapToEntity(), NOT in Handler
-    - Frontend: Constants, column arrays, role lists → static properties in Model class, NOT in Component
-    - Frontend: Display logic (CSS class, status text) → instance getter in Model, NOT switch in Component
+-   **File Naming**: kebab-case with meaningful names — LLMs must understand purpose from filename alone without reading content
+-   **File Size**: Keep code files under 200 lines — split into focused components, extract utilities, use composition over inheritance
+-   Skills/tools: `docs-seeker` (docs via Context7), available image/video analysis tools, `sequential-thinking`/`debug-investigate` (analysis), `gh` (GitHub)
+-   **[IMPORTANT]** Follow codebase structure and code standards in `./docs` during implementation
+-   **[IMPORTANT]** Always implement real code — never simulate or mock implementations
+-   **[CRITICAL] Class Responsibility Rule:**
+    -   Logic belongs in LOWEST layer: Entity/Model > Service > Component/Handler
+    -   Backend: Entity mapping → Command.UpdateEntity() or DTO.MapToEntity(), NOT in Handler
+    -   Frontend: Constants, column arrays, role lists → static properties in Model class, NOT in Component
+    -   Frontend: Display logic (CSS class, status text) → instance getter in Model, NOT switch in Component
 
 ## Understand Code First (MANDATORY)
 
 > **Understand-Code-First** — Do NOT write code, create plans, or attempt fixes until you READ existing code.
 > Search 3+ similar implementations first. Run graph on key files (MANDATORY when graph.db exists).
 
-- **MUST ATTENTION USE graph trace** on key files when `.code-graph/graph.db` exists — after grep finds entry points, **STOP AND DECIDE:** run `python .claude/scripts/code_graph trace <file> --direction both --json` NOW. Use `--node-mode file` for overview (10-30x less noise), `--node-mode function` for detail. Graph reveals callers, importers, bus messages, event chains that grep cannot find. See CLAUDE.md "Graph Intelligence" section.
+-   **MUST ATTENTION USE graph trace** on key files when `.code-graph/graph.db` exists — after grep finds entry points, **STOP AND DECIDE:** run `python .claude/scripts/code_graph trace <file> --direction both --json` NOW. Use `--node-mode file` for overview (10-30x less noise), `--node-mode function` for detail. Graph reveals callers, importers, bus messages, event chains that grep cannot find. See CLAUDE.md "Graph Intelligence" section.
 
 ## Code Quality Guidelines
 
 ### Naming — Purpose vs Content
 
-- **Name the PURPOSE, not the member list.** `OrXxx/AndYyy` joining roles/types/statuses → red flag. Test: "If I add/remove one item, must I rename?" → YES = content-driven = rename.
-- **"Or" is fine in behavioral idioms** (`FirstOrDefault`, `SuccessOrThrow`) — it expresses WHAT HAPPENS, not WHO IS IN A SET.
-- **For public/cross-layer abstractions, name the capability or domain contract, not the current provider, SDK, framework, database, or transport.** Keep those details on concrete adapters (`IStorage`/`Storage` → `AzureBlobStorage`); use a narrower contract when “storage” overpromises and preserve local interface syntax.
-- Canonical portable protocol: `.claude/skills/shared/sync-inline-versions.md` (`SYNC:design-patterns-quality`); research synthesis: `plans/reports/research-abstraction-naming-260820.md`.
+-   **Name the PURPOSE, not the member list.** `OrXxx/AndYyy` joining roles/types/statuses → red flag. Test: "If I add/remove one item, must I rename?" → YES = content-driven = rename.
+-   **"Or" is fine in behavioral idioms** (`FirstOrDefault`, `SuccessOrThrow`) — it expresses WHAT HAPPENS, not WHO IS IN A SET.
+-   **For public/cross-layer abstractions, name the capability or domain contract, not the current provider, SDK, framework, database, or transport.** Keep those details on concrete adapters (`IStorage`/`Storage` → `AzureBlobStorage`); use a narrower contract when “storage” overpromises and preserve local interface syntax.
+-   Canonical portable protocol: `.claude/skills/shared/sync-inline-versions.md` (`SYNC:design-patterns-quality`); research synthesis: `plans/reports/research-abstraction-naming-260820.md`.
 
 ### Standards
 
-- **Zero tolerance for broken builds** — code must compile with no syntax errors
-- Follow codebase structure and code standards in `./docs`
-- Prioritize functionality and readability over strict style enforcement
-- Handle edge cases and error scenarios; use try-catch & security standards
-- Use `code-reviewer` agent to review code after every implementation
-- **DO NOT** create new enhanced files — update existing files directly
+-   **Zero tolerance for broken builds** — code must compile with no syntax errors
+-   Follow codebase structure and code standards in `./docs`
+-   Prioritize functionality and readability over strict style enforcement
+-   Handle edge cases and error scenarios; use try-catch & security standards
+-   Use `code-reviewer` agent to review code after every implementation
+-   **DO NOT** create new enhanced files — update existing files directly
 
 <!-- SYNC:shared-protocol-duplication-policy -->
 
@@ -136,9 +136,9 @@ _(Same pattern: TypeScript/RxJS → `.pipe(map(...))`, Python → single-express
 
 The step rule naturally tells you when extraction is needed:
 
-- Can't write a step without violating the rule → **extract a function**
-- A "step" has internal blank lines → its sub-steps should be a function
-- Two adjacent lines are independent but each needs multiple operations → extract each into a function, call both on the same step (no blank line between them)
+-   Can't write a step without violating the rule → **extract a function**
+-   A "step" has internal blank lines → its sub-steps should be a function
+-   Two adjacent lines are independent but each needs multiple operations → extract each into a function, call both on the same step (no blank line between them)
 
 ---
 
@@ -150,12 +150,12 @@ The step rule naturally tells you when extraction is needed:
 
 ### Rules
 
-- **Don't improve adjacent code** — Don't refactor things that aren't broken. Don't add type hints, docstrings, or comments that weren't requested.
-- **Match existing style** — Match existing quote style, spacing, naming conventions even if you'd do it differently. Style drift in a diff is noise that obscures the real change.
-- **Orphan cleanup** — When your changes create unused imports/variables/functions, remove them. But do NOT remove pre-existing dead code unless asked. The distinction: YOU made it unused → remove it. It was already dead → mention it, don't touch it.
-- **Scope discipline** — Two modes, same transparency rule:
-    - **Bug fix context:** "Fix the bug" ≠ "improve the function." If you see a related improvement, announce it — don't silently implement it.
-    - **Review / enhancement context:** If you see improvement opportunities, **implement them AND explicitly announce** what was enhanced beyond the main request. Never leave visible quality improvements unfixed when the task gives you license to improve. The rule either way: **never silently scope-creep**. Always declare what you did beyond the stated request.
+-   **Don't improve adjacent code** — Don't refactor things that aren't broken. Don't add type hints, docstrings, or comments that weren't requested.
+-   **Match existing style** — Match existing quote style, spacing, naming conventions even if you'd do it differently. Style drift in a diff is noise that obscures the real change.
+-   **Orphan cleanup** — When your changes create unused imports/variables/functions, remove them. But do NOT remove pre-existing dead code unless asked. The distinction: YOU made it unused → remove it. It was already dead → mention it, don't touch it.
+-   **Scope discipline** — Two modes, same transparency rule:
+    -   **Bug fix context:** "Fix the bug" ≠ "improve the function." If you see a related improvement, announce it — don't silently implement it.
+    -   **Review / enhancement context:** If you see improvement opportunities, **implement them AND explicitly announce** what was enhanced beyond the main request. Never leave visible quality improvements unfixed when the task gives you license to improve. The rule either way: **never silently scope-creep**. Always declare what you did beyond the stated request.
 
 ### Anti-Pattern: Drive-By Refactoring
 
@@ -182,8 +182,8 @@ The step rule naturally tells you when extraction is needed:
 > **Iterative Phase Quality** — Score complexity before planning. Score >=6 → MUST ATTENTION decompose into phases.
 > Each phase: <=5 files, <=3h effort, plan → implement → review → fix → verify. No skipping.
 
-- **Principle:** Break large tasks into small phases. Each phase: plan → implement → review → fix → verify
-- **Rule:** No phase >5 files or >3h effort. No monolithic plans for complex tasks.
+-   **Principle:** Break large tasks into small phases. Each phase: plan → implement → review → fix → verify
+-   **Rule:** No phase >5 files or >3h effort. No monolithic plans for complex tasks.
 
 ---
 
@@ -277,11 +277,22 @@ Failure Signal: [what change would make this test fail]
 **Wrong:** Assert only that a method returns the current value or that no exception is thrown.
 **Right:** Assert the observable outcome that proves the intended rule still holds.
 
-When implementation and tests disagree, classify the mismatch before changing either side:
+When implementation and tests disagree, record a provisional verdict from the full
+five-way taxonomy BEFORE tracing or editing either side (canonical: `CLAUDE.md`):
 
-- Spec/test is stale: update the test/spec to the intended rule.
-- Source is wrong: fix source and keep/add the failing test.
-- Intent is unclear: stop and ask; do not encode accidental behavior.
+-   **SOURCE-WRONG** — production violates the intended rule: fix source, keep/add the failing test.
+-   **TEST-WRONG** — the assertion or setup is stale: update the test/spec to the intended rule.
+-   **TEST-NOT-OPTIMAL** — the test is valid but fragile or low-signal: strengthen it toward the invariant.
+-   **ENVIRONMENT-BLOCKED** — external state prevents any verdict: fix the environment, do not judge the code.
+-   **AMBIGUOUS** — intent or evidence cannot choose safely: stop and ask; never encode accidental behavior.
+
+Then trace the root cause and triangulate against the governing spec (`docs/specs/**`
+if one exists) AND the source.
+
+**NEVER weaken an assertion, add a skip, relax a timeout, or change source merely to
+force green.** A three-way split without this clause reads as permission to pick
+whichever side is cheaper to change, which is exactly how a real regression gets
+retitled as a stale test.
 
 ---
 
@@ -289,18 +300,21 @@ When implementation and tests disagree, classify the mismatch before changing ei
 
 **Consent & safety (BLOCKING — binds Claude and Codex equally; static rule, with hooks as optional accelerators):**
 
-- **Never commit, push, or stage (`git add`) unless the user explicitly asks.** "Implement X" / "fix the bug" is NOT permission to commit — finish the work, report what changed, and wait. Only an explicit "commit"/"push" (or an invoked commit skill / git-manager) authorizes it. Where hooks run, `git-commit-block.cjs` accelerates enforcement; every host must obey the static rule even when hooks are absent or stale.
-- **Never `git commit --amend`.** Amending rewrites history and can corrupt commits once HEAD has moved — always create a NEW commit. No bypass.
-- **Branch before committing on the default branch.** If asked to commit while on `main`/`master`, create a feature branch first.
-- Read-only git (`status`, `diff`, `log`, `show`, `branch`, `fetch`, `restore`, `reset HEAD`) needs no permission.
+-   **Never commit, push, or stage (`git add`) unless the user explicitly asks.** "Implement X" / "fix the bug" is NOT permission to commit — finish the work, report what changed, and wait. Only an explicit "commit"/"push" (or an invoked commit skill / git-manager) authorizes it. Where hooks run, `git-commit-block.cjs` accelerates enforcement; every host must obey the static rule even when hooks are absent or stale.
+-   **Never `git commit --amend`.** Amending rewrites history and can corrupt commits once HEAD has moved — always create a NEW commit. No bypass.
+-   **Branch before committing on the default branch.** If asked to commit while on `main`/`master`, create a feature branch first. **Model-behavioral:** `git-commit-block.cjs` has no branch awareness and will not stop a commit on `main` — nothing catches this but you.
+-   Read-only git needs no permission: `status`, `diff`, `log`, `show`, `rev-parse`, `describe`, `blame`, `check-ignore`, `ls-files`, `shortlog`, and the _listing_ forms of `branch`, `tag`, `remote`, `config` and `stash`.
+-   **`fetch`, `restore`, `reset`, `checkout`, `switch`, `stash push`, `clean`, `merge`, `rebase`, `cherry-pick`, `revert`, `rm`, `mv` and config _writes_ are NOT read-only** — they move refs, the index or the working tree, and the hook blocks them (`git-commit-block.cjs:40`). Ask before running one.
+-   **Publishing through the GitHub CLI — or the GitHub MCP server — is the same act as pushing.** `gh pr create|merge`, `gh release create`, `gh repo delete`, `gh api -X POST|PUT|PATCH|DELETE` and their siblings need the same explicit request a push does. `git-commit-block.cjs` gates the modeled write verbs; an unmodeled `gh` write verb is NOT gated, and the explicit-request rule still binds it. The GitHub MCP write tools (`mcp__github__merge_pull_request`, `create_*`, `update_*`, `push_files`, …) reach the same remote without a shell and are gated by `github-mcp-write-block.cjs` against the same session **push** lease — there an unmodeled verb IS gated, because only `get_*`/`list_*`/`search_*` count as reads.
+-   **A lease is bookkeeping, not consent.** Where the hook runs, an irreversible operation clears only with a current session lease for that exact repository and operation — but the lease is a _scoped speedbump_, not a security boundary: its store is not tamper-proof (`.claude/hooks/lib/git-operation-lease.cjs:14`) and `issueLease` performs no issuer-authority check. Holding one never substitutes for the user's explicit request.
 
 **Hygiene:**
 
-- Run linting before commit
-- Run tests before push (DO NOT ignore failed tests just to pass the build)
-- Keep commits focused on actual code changes
-- **DO NOT** commit confidential information (dotenv files, API keys, credentials) to git
-- Clean, professional commit messages — conventional commit format
+-   Run linting before commit
+-   Run tests before push (DO NOT ignore failed tests just to pass the build)
+-   Keep commits focused on actual code changes
+-   **DO NOT** commit confidential information (dotenv files, API keys, credentials) to git
+-   Clean, professional commit messages — conventional commit format
 
 ## Bulk Edit Safety (MANDATORY for multi-file replacements)
 

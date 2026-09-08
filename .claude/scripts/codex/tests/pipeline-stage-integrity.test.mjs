@@ -104,12 +104,17 @@ test('STAGE-001 hooks runner exits 1 on a zero-match --filter, and 0 on an empty
     assert.match(`${zeroMatch.stdout}${zeroMatch.stderr}`, /No test suite name matched/i,
         'output must say the selector matched nothing, not "No test suites found"');
 
-    // The runner requires only `fs`/`path`, so an isolated copy beside an EMPTY suites/ dir faithfully
-    // reproduces the fresh-scaffold state without touching the real suites directory.
+    // An isolated copy beside an EMPTY suites/ dir reproduces the fresh-scaffold state without
+    // touching the real suites directory. The runner also requires its `lib/` siblings, so the copy
+    // must carry that directory WHOLESALE — copying the runner alone reproduces a MODULE_NOT_FOUND
+    // exit 1 that looks exactly like the vacuity bug this test exists to catch, turning a green
+    // scaffold into a false failure. Copy the directory rather than naming files: enumerating them
+    // would re-break here every time the runner takes on another sibling.
     const tmp = await fs.mkdtemp(path.join(os.tmpdir(), 'stage-integrity-'));
     createdDirs.push(tmp);
     await fs.mkdir(path.join(tmp, 'suites'));
     await fs.copyFile(hooksRunnerAbs, path.join(tmp, 'run-all-tests.cjs'));
+    await fs.cp(path.join(path.dirname(hooksRunnerAbs), 'lib'), path.join(tmp, 'lib'), { recursive: true });
     const isolated = path.join(tmp, 'run-all-tests.cjs');
 
     const emptyNoFilter = await run(process.execPath, [isolated], { cwd: tmp });

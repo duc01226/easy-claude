@@ -5,9 +5,17 @@ import os from 'node:os';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 
 const repo = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../../..');
+// Size the overflow fixture from the verifier's own budget instead of a pinned number. This sentinel
+// only proves ROOT SELECTION, so it needs an AGENTS.md that overflows — whatever the current limit
+// is. Two hard-coded 32768s here silently stopped overflowing when the budget was raised, turning a
+// deliberate change into a root-contract failure that says nothing about roots.
+const { AGENTS_ROOT_LIMIT_BYTES } = await import(
+    pathToFileURL(path.join(repo, '.claude/scripts/codex/verify-skill-protocol-compliance.mjs')).href
+);
+const OVERSIZE_AGENTS_BYTES = AGENTS_ROOT_LIMIT_BYTES + 1;
 const codex = '.claude/scripts/codex';
 const spec = 'docs/specs/Root/README.Root.md';
 const names = ['feature-registry', 'no-project-residue', 'provenance-markers', 'review-validate-coverage', 'skill-protocol-compliance', 'sync-adoption-parity', 'sdd-semantic-compliance'];
@@ -26,7 +34,7 @@ function seed(root, bad) {
     const context = 'Root fixture context.\n';
     write(root, '.codex/CODEX_CONTEXT.md', context);
     const fingerprint = createHash('sha256').update(context).digest('hex');
-    write(root, 'AGENTS.md', bad ? 'x'.repeat(32769) : `<!-- CK:CODEX-ROOT-PROJECTION -->\nRoot fixture.\n<!-- /CK:CODEX-ROOT-PROJECTION -->\n<!-- CODEX-CONTEXT-MIRROR:START -->\nRead .codex/CODEX_CONTEXT.md\nContext fingerprint (SHA-256): ${fingerprint}\n<!-- CODEX-CONTEXT-MIRROR:END -->\n`);
+    write(root, 'AGENTS.md', bad ? 'x'.repeat(OVERSIZE_AGENTS_BYTES) : `<!-- CK:CODEX-ROOT-PROJECTION -->\nRoot fixture.\n<!-- /CK:CODEX-ROOT-PROJECTION -->\n<!-- CODEX-CONTEXT-MIRROR:START -->\nRead .codex/CODEX_CONTEXT.md\nContext fingerprint (SHA-256): ${fingerprint}\n<!-- CODEX-CONTEXT-MIRROR:END -->\n`);
     for (const dir of ['.agents/skills', '.claude/agents', '.codex/agents']) fs.mkdirSync(path.join(root, dir), { recursive: true });
     write(root, '.claude/scripts/inject_review_skill_blocks.py', 'ALPHA = ["skill-a"]\nMATRIX = [\n ("SYNC:alpha", ALPHA),\n]\n');
     write(root, '.claude/skills/shared/sync-inline-versions.md', '## SYNC:alpha\n\n> Alpha body.\n\n---\n\n## SYNC:alpha:reminder\n\n- Alpha reminder.\n');
@@ -67,7 +75,7 @@ const sentinels = {
     'no-project-residue': /\.claude\/skills\/root-sentinel\/SKILL\.md:1: project symbol "AppBaseComponent"/,
     'provenance-markers': /architecture-knowledge\.md:15: marker `\[texbook\]` is not a declared tag/,
     'review-validate-coverage': /code-review: carries findings\/severity language but no/,
-    'skill-protocol-compliance': /AGENTS\.md is 32769 bytes, above the 32768-byte bounded projection limit/,
+    'skill-protocol-compliance': new RegExp(`AGENTS\\.md is ${OVERSIZE_AGENTS_BYTES} bytes, above the ${AGENTS_ROOT_LIMIT_BYTES}-byte bounded projection limit`),
     'sync-adoption-parity': /skill-a :: SYNC:alpha.*injected body differs from canonical/,
     'sdd-semantic-compliance': /error SDD022 docs\/specs\/Root\/README\.RootSentinel\.md:/,
 };

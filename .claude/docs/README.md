@@ -4,18 +4,18 @@
 
 ## Quick Links
 
-| Goal                         | Document                                                                                        |
-| ---------------------------- | ----------------------------------------------------------------------------------------------- |
-| **New to Claude Code?**      | [quick-start.md](./quick-start.md) - 5-minute onboarding                                        |
-| **Need a skill?**            | [skills/README.md](./skills/README.md) - 167 skills catalog                                     |
-| **Building a feature?**      | [skills/README.md](./skills/README.md) + `docs/project-reference/` patterns                     |
+| Goal                           | Document                                                                                                                           |
+| ------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------- |
+| **New to Claude Code?**        | [quick-start.md](./quick-start.md) - 5-minute onboarding                                                                           |
+| **Need a skill?**              | [skills/README.md](./skills/README.md) - 167 skills catalog                                                                        |
+| **Building a feature?**        | [skills/README.md](./skills/README.md) + `docs/project-reference/` patterns                                                        |
 | **Verifying user experience?** | [configuration/experience-verification.md](./configuration/experience-verification.md) - portable evidence and acceptance contract |
-| **Understanding hooks?**     | [hooks/README.md](./hooks/README.md) - 17 top-level hook files deep-dive                        |
-| **Understanding workflows?** | `CLAUDE.md` workflow catalog (project root) - 19 workflows                                      |
-| **Configuring Claude?**      | [configuration/README.md](./configuration/README.md)                                            |
-| **Team collaboration?**      | [team-collaboration-guide.md](./team-collaboration-guide.md) - PO, BA, QA, QC, UX, PM workflows |
-| **Graph intelligence?**      | [code-graph-mechanism.md](./code-graph-mechanism.md) - How structural code analysis works       |
-| **Setup graph?**             | [code-graph-setup.md](./code-graph-setup.md) - Install Python deps + build graph                |
+| **Understanding hooks?**       | [hooks/README.md](./hooks/README.md) - 18 top-level hook files deep-dive                                                           |
+| **Understanding workflows?**   | `CLAUDE.md` workflow catalog (project root) - 19 workflows                                                                         |
+| **Configuring Claude?**        | [configuration/README.md](./configuration/README.md)                                                                               |
+| **Team collaboration?**        | [team-collaboration-guide.md](./team-collaboration-guide.md) - PO, BA, QA, QC, UX, PM workflows                                    |
+| **Graph intelligence?**        | [code-graph-mechanism.md](./code-graph-mechanism.md) - How structural code analysis works                                          |
+| **Setup graph?**               | [code-graph-setup.md](./code-graph-setup.md) - Install Python deps + build graph                                                   |
 
 ## Documentation Map
 
@@ -28,7 +28,7 @@
 |   |-- README.md             Skills overview + full catalog
 |   +-- (patterns)           → docs/project-reference/
 |
-|-- hooks/                    17 top-level hook files, 30 lib modules
+|-- hooks/                    18 top-level hook files, 31 lib modules
 |   |-- README.md             Hooks overview, lessons system, session lifecycle
 |   +-- extending-hooks.md    How to create custom hooks
 |
@@ -146,8 +146,8 @@
 | Category               | Count |
 | ---------------------- | ----- |
 | Skills                 | 167   |
-| Hook files (top-level) | 17    |
-| Lib Modules            | 25    |
+| Hook files (top-level) | 18    |
+| Lib Modules            | 31    |
 | Hook Events            | 8     |
 | Agents                 | 27    |
 | Workflows              | 19    |

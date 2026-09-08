@@ -247,11 +247,14 @@ EOF`,
       const cases = [
         ['windows-command-detector.cjs', createPreToolUseInput('Bash', { command: 'type file.txt' })],
         ['bash-shell-guard.cjs', createPreToolUseInput('Bash', { command: "$text = @'\nhello\n'@" })],
-        ['git-commit-block.cjs', { ...BENIGN, tool_input: { command: 'git commit -m x' } }],
+        // Both hooks now gate on IRREVERSIBILITY, so the sample has to be irreversible: `git commit`
+        // and `cat` are allowed by design (recoverable / read-only). `reset --hard` destroys the
+        // working tree and `rm` outside the root deletes a file the project does not own.
+        ['git-commit-block.cjs', { ...BENIGN, tool_input: { command: 'git reset --hard' } }],
         ['scout-block.cjs', createPreToolUseInput('Bash', { command: 'ls node_modules' })],
         ['privacy-block.cjs', createPreToolUseInput('Bash', { command: 'cat .env' })],
         ['privacy-block.cjs', createPreToolUseInput('Bash', { command: 'echo $(cat .env)' })],
-        ['path-boundary-block.cjs', createPreToolUseInput('Bash', { command: 'cat ../outside.txt' })]
+        ['path-boundary-block.cjs', createPreToolUseInput('Bash', { command: 'rm ../outside.txt' })]
       ];
       for (const [file, input] of cases) assertVisibleBlock(await runHook(file, input), file);
       assertCleanAllow(await runHook('doc-sync-gate.cjs', BENIGN), 'doc-sync-gate advisory');
@@ -414,6 +417,105 @@ EOF`,
         assert.equal(result.stdout, '');
         assert.match(result.stderr, /CLAUDE_HOOK_DEBUG log failure/);
       } finally {
+        fs.rmSync(dir, { recursive: true, force: true });
+      }
+    }
+  },
+  {
+    name: 'D3 a lost debug-log race is silent; a sink that cannot work still reports',
+    fn: async () => {
+      // Seven Bash hooks fire on one tool call and append to one file, so a lost
+      // race is the normal case. Reporting it put a line on stderr during an ALLOW,
+      // which the D1/D3 contract assertions above read as a hook fault — the race
+      // surfaced as an intermittent failure of the gate, not of the logging.
+      //
+      // The race is INJECTED at the fs calls the library makes, not stressed: a
+      // 7-way concurrent run reproduces the interleaving only sometimes, and a test
+      // that usually cannot fail protects nothing. The four cases below are the
+      // whole contract — lost race silent, unwinnable rotation loud AND bounded,
+      // transient append retried, real append failure loud.
+      const modulePath = path.join(ROOT, '.claude', 'hooks', 'lib', 'debug-log.cjs');
+      const { recordHookDecision } = require(modulePath);
+      const realRename = fs.renameSync;
+      const realAppend = fs.appendFileSync;
+      const realWrite = process.stderr.write.bind(process.stderr);
+      const previousEnv = {
+        debug: process.env.CLAUDE_HOOK_DEBUG,
+        log: process.env.CLAUDE_HOOK_DEBUG_LOG
+      };
+      const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'debug-log-race-'));
+      const logPath = path.join(dir, 'race.log');
+      const OVERSIZED = 'x'.repeat(1024 * 1024);
+
+      const raceError = code => Object.assign(new Error(`${code}: injected`), { code });
+      let captured = '';
+      const record = () => {
+        captured = '';
+        process.stderr.write = chunk => { captured += chunk.toString(); return true; };
+        try {
+          recordHookDecision('race-probe', { code: 0, toolName: 'Bash' });
+        } finally {
+          process.stderr.write = realWrite;
+        }
+        return captured;
+      };
+
+      process.env.CLAUDE_HOOK_DEBUG = '1';
+      process.env.CLAUDE_HOOK_DEBUG_LOG = logPath;
+      try {
+        // 1. A peer rotated first. The rename fails with a concurrency code AND the
+        //    oversized file is already gone — nothing to report, and nothing of the
+        //    peer's fresh file may be destroyed.
+        fs.writeFileSync(logPath, OVERSIZED);
+        fs.renameSync = (from, to) => {
+          realRename(from, to);
+          throw raceError('EPERM');
+        };
+        assert.equal(record(), '', 'a rotation lost to a peer must not write to stderr');
+        assert.ok(fs.existsSync(`${logPath}.1`), 'the peer rotation must stand');
+        assert.equal(
+          fs.readFileSync(logPath, 'utf8').trim().split('\n').length,
+          1,
+          'the losing process must append to the peer\'s fresh file, never truncate it'
+        );
+
+        // 2. The rename simply cannot succeed and the file is STILL oversized. Errno
+        //    alone cannot tell this apart from case 1, so silence here would trade a
+        //    stderr line for an unbounded log.
+        fs.rmSync(`${logPath}.1`, { force: true });
+        fs.writeFileSync(logPath, OVERSIZED);
+        fs.renameSync = () => { throw raceError('EPERM'); };
+        assert.match(record(), /CLAUDE_HOOK_DEBUG rotation failed/, 'an unwinnable rotation must stay visible');
+        assert.ok(
+          fs.statSync(logPath).size < OVERSIZED.length,
+          'an unwinnable rotation must still bound the active file'
+        );
+        fs.renameSync = realRename;
+
+        // 3. A transient append collision clears on retry — no diagnostic, and the
+        //    record still lands.
+        fs.rmSync(logPath, { force: true });
+        let appendAttempts = 0;
+        fs.appendFileSync = (target, data, encoding) => {
+          appendAttempts += 1;
+          if (appendAttempts === 1) throw raceError('EBUSY');
+          return realAppend(target, data, encoding);
+        };
+        assert.equal(record(), '', 'a retried append must not write to stderr');
+        assert.equal(appendAttempts, 2, 'the append must actually be retried, not skipped');
+        assert.equal(fs.readFileSync(logPath, 'utf8').trim().split('\n').length, 1, 'the retried record must land');
+
+        // 4. A sink that fails for a non-race reason is reported on the first attempt.
+        fs.appendFileSync = () => { throw raceError('EISDIR'); };
+        assert.match(record(), /CLAUDE_HOOK_DEBUG log failure/, 'a real sink failure must stay visible');
+      } finally {
+        fs.renameSync = realRename;
+        fs.appendFileSync = realAppend;
+        process.stderr.write = realWrite;
+        if (previousEnv.debug === undefined) delete process.env.CLAUDE_HOOK_DEBUG;
+        else process.env.CLAUDE_HOOK_DEBUG = previousEnv.debug;
+        if (previousEnv.log === undefined) delete process.env.CLAUDE_HOOK_DEBUG_LOG;
+        else process.env.CLAUDE_HOOK_DEBUG_LOG = previousEnv.log;
         fs.rmSync(dir, { recursive: true, force: true });
       }
     }

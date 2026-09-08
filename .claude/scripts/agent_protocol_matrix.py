@@ -220,6 +220,13 @@ AGENT_QUALITY_BLOCKS = {
         # agent is the production face of architecture-review-full and the
         # review owner for seed-test-data.
         "test-architecture-execution-contract",
+        # An agent that JUDGES a test must adjudicate a RED test on the same
+        # five-way scale the author uses (/why-review F-M2). Without it, this
+        # agent's only nearby rule permits "decide whether the test should
+        # change" with no never-weaken prohibition -- exactly the reasoning the
+        # taxonomy exists to forbid. Read-only role is not a counter-argument:
+        # a reviewer that reaches the WRONG verdict recommends the wrong fix.
+        "test-failure-fault-adjudication",
     ],
     "security-auditor": [
         "severity-rubric", "systematic-review-batching", "category-review-thinking",
@@ -240,12 +247,18 @@ AGENT_QUALITY_BLOCKS = {
         "test-spec-verification",
         # wave 2 (twin: artifact-review / spec)
         "trade-off-interrogation-gate", "spec-tests-code-triangulation", "ui-intent-layer",
+        # Judges spec<->test alignment, so it meets red tests and must reach a
+        # verdict on the same five-way scale as the author (/why-review F-M2).
+        "test-failure-fault-adjudication",
     ],
     "quality-gate-review": [
         "severity-rubric", "review-policy", "double-round-trip-review", "fresh-context-review",
         "review-protocol-injection", "refinement-dor-checklist", "estimation-framework",
         # wave 2 (twin: quality-gate-review / quality-gate)
         "trade-off-interrogation-gate", "source-test-drift-check",
+        # A gate whose input is a failing suite decides PASS/FAIL on it; the
+        # five-way verdict is the scale that decision needs (/why-review F-M2).
+        "test-failure-fault-adjudication",
     ],
 
     # --- investigation / research family ---------------------------------
@@ -321,12 +334,21 @@ AGENT_QUALITY_BLOCKS = {
         # wave 2 (twin: test)
         "test-failure-fault-adjudication", "real-world-fidelity-testing",
         "test-architecture-execution-contract",
+        # Carries "Tests verify intent" (clause 5). A test agent had the rule for
+        # adjudicating a RED test but none for what a GREEN test is worth --
+        # so a suite that mirrors current behavior and protects no invariant read
+        # as success (/why-review F-M1). `integration-tester` already carries it;
+        # this closes the author-side gap on the other two test agents.
+        "logic-and-intention-review",
     ],
     "e2e-runner": [
         "source-test-drift-check", "repeatable-test-principle",
         # wave 2 (twin: e2e-test)
         "test-failure-fault-adjudication", "real-world-fidelity-testing",
         "test-architecture-execution-contract",
+        # Same author-side gap as `tester`: clause 5 "Tests verify intent"
+        # (/why-review F-M1).
+        "logic-and-intention-review",
     ],
     "database-admin": [
         "graph-impact-analysis",
@@ -368,6 +390,16 @@ AGENT_QUALITY_BLOCKS = {
     # --- implementer family (no review twin -> role-derived blocks) ------
     # `ui-system-context` goes only to the two UI-touching implementers -- its body
     # gates on .ts/.html/.scss/.css work, so it is dead weight on backend-developer.
+    #
+    # All three implementers additionally carry `test-failure-fault-adjudication`
+    # and `logic-and-intention-review` (/why-review F-M3). An implementer is
+    # routed `fix` on a red test, so it is a test ADJUDICATOR in practice whatever
+    # the org chart says -- and without the taxonomy its nearest available rule
+    # permits editing the test to reach green. Reaching the taxonomy through
+    # `.claude/skills/fix/SKILL.md` is exactly the indirection this framework's own
+    # duplication policy calls a compliance loss, and a sub-agent inherits nothing
+    # but its own .md. The precedent is `code-reviewer`, given the test-architecture
+    # contract in this same campaign for the same reason.
     "backend-developer": [
         "design-patterns-quality", "complexity-prevention",
         # wave 2 (twin: plan-execute / feature-implement)
@@ -375,6 +407,8 @@ AGENT_QUALITY_BLOCKS = {
         # wave 3 -- authors entities, so it acts on all 6 gate decision points;
         # without it the implementer runs weaker rules than its own reviewer.
         "domain-entity-change-gate",
+        # /why-review F-M3 -- see the family note above.
+        "test-failure-fault-adjudication", "logic-and-intention-review",
     ],
     "frontend-developer": [
         "design-patterns-quality", "complexity-prevention",
@@ -386,6 +420,8 @@ AGENT_QUALITY_BLOCKS = {
         # borrowed card kit, a per-section entrance animation. DD-* binds it to the plan it
         # was handed; ui-copywriting binds the strings it types into templates.
         "design-distinctiveness-gate", "ui-copywriting", "design-review-checklist",
+        # /why-review F-M3 -- see the family note above.
+        "test-failure-fault-adjudication", "logic-and-intention-review",
     ],
     "fullstack-developer": [
         "design-patterns-quality", "complexity-prevention",
@@ -397,6 +433,9 @@ AGENT_QUALITY_BLOCKS = {
         # "skip when there is no user-facing surface" clause, so a backend-only phase costs
         # one stated line rather than a wrong gate.
         "design-distinctiveness-gate", "ui-copywriting", "design-review-checklist",
+        # /why-review F-M3 -- see the family note above. This is the agent the
+        # report's concrete error path routed through.
+        "test-failure-fault-adjudication", "logic-and-intention-review",
     ],
 
     # --- operations family ------------------------------------------------

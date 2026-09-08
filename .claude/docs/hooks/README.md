@@ -1,6 +1,6 @@
 # Hooks Reference
 
-> 17 top-level `.cjs` hooks and 31 lib modules for context-aware AI behavior (some hooks register on multiple events; the unified notification router lives under `.claude/hooks/notifications/notify.cjs`)
+> 18 top-level `.cjs` hooks and 31 lib modules for context-aware AI behavior (some hooks register on multiple events; the unified notification router lives under `.claude/hooks/notifications/notify.cjs`)
 
 ## Overview
 
@@ -32,8 +32,8 @@ two events is counted once per event).
 | ------------------ | ---------------------------- | ----- | ---------------------------------------------------------------------------------------- |
 | `SessionStart`     | Session begins/resumes       | 5     | Verify install, init state, auto-install npm, load docs, init graph                      |
 | `SessionEnd`       | Session ends                 | 1     | Save pending-tasks warning, cleanup temp/swap files                                      |
-| `UserPromptSubmit` | Before processing user input | 1     | Warn/route when config, root instructions, docs, or graph need refresh                   |
-| `PreToolUse`       | Before tool execution        | 10    | Block sensitive ops, guard path boundaries, warn on doc⇄code drift, command-syntax guard |
+| `UserPromptSubmit` | Before processing user input | 2     | Warn/route when config, root instructions, docs, or graph need refresh                   |
+| `PreToolUse`       | Before tool execution        | 11    | Block sensitive ops, guard path boundaries, warn on doc⇄code drift, command-syntax guard |
 | `PostToolUse`      | After tool completes         | 2     | Format code, update graph                                                                |
 | `Notification`     | Idle/waiting events          | 1     | System notification (`.claude/hooks/notifications/notify.cjs`)                           |
 | `Stop`             | Response complete            | 1     | System notification (`.claude/hooks/notifications/notify.cjs`)                           |
@@ -54,7 +54,7 @@ two events is counted once per event).
 | `npm-auto-install.cjs`                   | SessionStart                   | `startup`                                                | Auto-install missing npm packages from root `package.json`                                                                                                                                                                       |
 | `session-init-docs.cjs`                  | SessionStart                   | `startup`                                                | Config skeleton + reference doc placeholder creation                                                                                                                                                                             |
 | `graph-session-init.cjs`                 | SessionStart                   | `startup\|resume`                                        | Check Python/tree-sitter/graph.db, then `sync` the graph with git HEAD (skips if config not populated). `resume` included so a session resumed after someone else's commits landed still reconciles                              |
-| `session-end.cjs`                        | SessionEnd                     | `clear\|exit\|compact`                                   | Revoke this session's Git leases on `clear`/`exit`, leave leases unchanged on `compact`, and clean up tmpclaude temp/swap files and stale snapshots                                                                                  |
+| `session-end.cjs`                        | SessionEnd                     | `clear\|exit\|compact`                                   | Revoke this session's Git leases on `clear`/`exit`, leave leases unchanged on `compact`, and clean up tmpclaude temp/swap files and stale snapshots                                                                              |
 | `.claude/hooks/notifications/notify.cjs` | Stop, PreToolUse, Notification | –, `AskUserQuestion`, `AskUserPrompt\|permission_prompt` | Unified notification router → desktop dialog + optional Telegram/Discord/Slack; fires on task-complete (Stop), question (AskUserQuestion), and input/permission prompts. Single owner — replaces the retired `notify-waiting.js` |
 
 ### Context Management (PreToolUse / UserPromptSubmit)
@@ -67,15 +67,16 @@ The PreToolUse / UserPromptSubmit hooks are gates — not content injectors.
 
 ### Gates (PreToolUse)
 
-| Hook                           | Matcher                                                               | Purpose                                                                                                                                                                                                                     |
-| ------------------------------ | --------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `windows-command-detector.cjs` | `Bash`                                                                | Detect/block Windows CMD syntax; auto-rewrite `\!` in `node -e` commands                                                                                                                                                    |
-| `bash-shell-guard.cjs`         | `Bash`                                                                | Block PowerShell here-strings (`@' … '@`) and name the POSIX heredoc replacement — Git Bash reports only `@: command not found`                                                                                             |
-| `git-commit-block.cjs`         | `Bash`                                                                | Deny protected Git statements unless the current session has an exact, unexpired lease for the resolved repository and operation; `--amend` is unconditional deny                                                                 |
-| `doc-sync-gate.cjs`            | `Bash` and `Write\|Edit\|MultiEdit`                                   | Doc⇄Code sync gate — WARN-only (every path exits 0; warnings go to stderr): warns when a `git commit` stages behavioral code in an enforced area without touching its Feature Spec, and per-edit when enforced-area code drifts past `last_synced` |
-| `scout-block.cjs`              | `Bash\|Glob\|Grep\|Read\|Edit\|Write\|NotebookEdit`                   | Prevent bulk reads outside approved scope                                                                                                                                                                                   |
-| `privacy-block.cjs`            | `Bash\|Glob\|Grep\|Read\|Edit\|Write\|NotebookEdit`                   | Block access to sensitive files (.env, keys, credentials)                                                                                                                                                                   |
-| `path-boundary-block.cjs`      | `Bash\|Edit\|Write\|MultiEdit\|NotebookEdit` and `mcp__filesystem__*` | Block file access outside project root (security-critical)                                                                                                                                                                  |
+| Hook                           | Matcher                                                               | Purpose                                                                                                                                                                                                                                                                                                                                                                                                           |
+| ------------------------------ | --------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `windows-command-detector.cjs` | `Bash`                                                                | Detect/block Windows CMD syntax; auto-rewrite `\!` in `node -e` commands                                                                                                                                                                                                                                                                                                                                          |
+| `bash-shell-guard.cjs`         | `Bash`                                                                | Block PowerShell here-strings (`@' … '@`) and name the POSIX heredoc replacement — Git Bash reports only `@: command not found`                                                                                                                                                                                                                                                                                   |
+| `git-commit-block.cjs`         | `Bash`                                                                | Deny protected Git statements — and the GitHub CLI's modeled write verbs (`gh pr create\|merge`, `gh release create`, `gh api -X POST\|PUT\|PATCH\|DELETE`, …) — unless the current session has an exact, unexpired lease for the resolved repository and operation; `--amend` is unconditional deny                                                                                                              |
+| `doc-sync-gate.cjs`            | `Bash` and `Write\|Edit\|MultiEdit`                                   | Doc⇄Code sync gate — WARN-only (every path exits 0; warnings go to stderr): warns when a `git commit` stages behavioral code in an enforced area without touching its Feature Spec, and per-edit when enforced-area code drifts past `last_synced`                                                                                                                                                                |
+| `scout-block.cjs`              | `Bash\|Glob\|Grep\|Read\|Edit\|Write\|NotebookEdit`                   | Prevent bulk reads outside approved scope                                                                                                                                                                                                                                                                                                                                                                         |
+| `privacy-block.cjs`            | `Bash\|Glob\|Grep\|Read\|Edit\|Write\|NotebookEdit`                   | Block access to sensitive files (.env, keys, credentials)                                                                                                                                                                                                                                                                                                                                                         |
+| `path-boundary-block.cjs`      | `Bash\|Edit\|Write\|MultiEdit\|NotebookEdit` and `mcp__filesystem__*` | Block file access outside project root (security-critical)                                                                                                                                                                                                                                                                                                                                                        |
+| `github-mcp-write-block.cjs`   | `mcp__github__*`                                                      | Gate GitHub MCP **write** tools (`merge_pull_request`, `create_*`, `update_*`, `push_files`, …) behind the same session **push** lease `git push` and `gh` consume; reads (`get_*`/`list_*`/`search_*`) pass. Modeled as a READ allowlist, so an unmodeled verb is treated as a write and denied — the inverse of the `gh` gate's fail-open choice, because this namespace is small and its tool names are static |
 
 > **Plan/skill/todo enforcement is now static.** The former `edit-enforcement`,
 > `skill-enforcement`, and `workflow-task-guard` gates (block edits/skills/task-completion
@@ -105,14 +106,15 @@ Lessons are managed via the `/learn` skill. See `.claude/skills/learn/SKILL.md`.
 
 ### Safety & Privacy
 
-| Hook                           | Matcher                                                            | Purpose                                                                  |
-| ------------------------------ | ------------------------------------------------------------------ | ------------------------------------------------------------------------ |
-| `path-boundary-block.cjs`      | `Bash\|Edit\|Write\|MultiEdit\|NotebookEdit`, `mcp__filesystem__*` | Block file access outside project root (security-critical)               |
-| `privacy-block.cjs`            | `Bash\|Glob\|Grep\|Read\|Edit\|Write\|NotebookEdit`                | Block access to sensitive files (.env, keys, credentials)                |
-| `scout-block.cjs`              | `Bash\|Glob\|Grep\|Read\|Edit\|Write\|NotebookEdit`                | Prevent bulk reads outside approved scope                                |
-| `windows-command-detector.cjs` | `Bash`                                                             | Detect/block Windows CMD syntax; auto-rewrite `\!` in `node -e` commands |
-| `bash-shell-guard.cjs`         | `Bash`                                                             | Block PowerShell here-strings (`@' … '@`); name the POSIX heredoc form   |
-| `git-commit-block.cjs`         | `Bash`                                                             | Enforce deny-wins Git statement classification and exact session/repository/operation leases; no marker bypass |
+| Hook                           | Matcher                                                            | Purpose                                                                                                                           |
+| ------------------------------ | ------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------- |
+| `path-boundary-block.cjs`      | `Bash\|Edit\|Write\|MultiEdit\|NotebookEdit`, `mcp__filesystem__*` | Block file access outside project root (security-critical)                                                                        |
+| `privacy-block.cjs`            | `Bash\|Glob\|Grep\|Read\|Edit\|Write\|NotebookEdit`                | Block access to sensitive files (.env, keys, credentials)                                                                         |
+| `scout-block.cjs`              | `Bash\|Glob\|Grep\|Read\|Edit\|Write\|NotebookEdit`                | Prevent bulk reads outside approved scope                                                                                         |
+| `windows-command-detector.cjs` | `Bash`                                                             | Detect/block Windows CMD syntax; auto-rewrite `\!` in `node -e` commands                                                          |
+| `bash-shell-guard.cjs`         | `Bash`                                                             | Block PowerShell here-strings (`@' … '@`); name the POSIX heredoc form                                                            |
+| `git-commit-block.cjs`         | `Bash`                                                             | Enforce deny-wins Git **and GitHub CLI** statement classification and exact session/repository/operation leases; no marker bypass |
+| `github-mcp-write-block.cjs`   | `mcp__github__*`                                                   | Gate GitHub MCP writes behind the same session push lease; the third publish path, reached without a shell                        |
 
 ### Context Management & Utility
 
@@ -187,7 +189,7 @@ SESSION START (5 hooks)                         DURING SESSION
 
 ## Lib Modules
 
-29 modules under `.claude/hooks/lib/`.
+31 modules under `.claude/hooks/lib/`.
 
 ### State Management
 
@@ -219,13 +221,13 @@ SESSION START (5 hooks)                         DURING SESSION
 
 ### Security / Authority
 
-| Module | Purpose |
-| ------ | ------- |
-| `command-inspection.cjs` | Pure bounded Bash tokenization with static/dynamic provenance and no command execution |
-| `git-operation-lease.cjs` | Short-lived session/project/repository/operation bookkeeping with replay-safe issue/revoke/check lifecycle |
-| `path-boundary-policy.cjs` | Pure command/path role classification used by the project-boundary security hook |
-| `project-root.cjs` | Resolve and validate the consuming project root across cwd/script/env launch shapes |
-| `sensitive-path-policy.cjs` | Pure sensitive-path classification shared by privacy policy consumers |
+| Module                      | Purpose                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
+| --------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `command-inspection.cjs`    | Pure bounded Bash tokenization with static/dynamic provenance and no command execution                                                                                                                                                                                                                                                                                                                                                                                                                     |
+| `git-operation-lease.cjs`   | Short-lived session/project/repository/operation bookkeeping with replay-safe issue/revoke/check lifecycle. **Scoped speedbump, not a security boundary:** the store is an ordinary directory that is not tamper-proof (`git-operation-lease.cjs:14`) and `issueLease` performs no issuer-authority check, so any process able to write the store can mint one. It raises the cost of an accidental push; it does not stop a determined one, and it is never a substitute for the user's explicit request. |
+| `path-boundary-policy.cjs`  | Pure command/path role classification used by the project-boundary security hook                                                                                                                                                                                                                                                                                                                                                                                                                           |
+| `project-root.cjs`          | Resolve and validate the consuming project root across cwd/script/env launch shapes                                                                                                                                                                                                                                                                                                                                                                                                                        |
+| `sensitive-path-policy.cjs` | Pure sensitive-path classification shared by privacy policy consumers                                                                                                                                                                                                                                                                                                                                                                                                                                      |
 
 ### Context / Prompt Support
 
@@ -295,22 +297,22 @@ while `UserPromptSubmit` specifically accepts plaintext context.
 | `0`  | Success, allow operation to proceed            |
 | `2`  | Block operation (with error message on stderr) |
 
-> All hooks exit 0 (non-blocking) except blocking safety gates (`path-boundary-block`, `privacy-block`, `scout-block`, `git-commit-block`) which exit 2 to block. `init-prompt-gate.cjs` and `doc-sync-gate.cjs` are WARN-only — every code path exits 0.
+> All hooks exit 0 (non-blocking) except blocking safety gates (`path-boundary-block`, `privacy-block`, `scout-block`, `git-commit-block`, `github-mcp-write-block`) which exit 2 to block. `init-prompt-gate.cjs` and `doc-sync-gate.cjs` are WARN-only — every code path exits 0.
 
 ### Bash PreToolUse reliability contract
 
 The seven hooks on the Bash path use the shared `runPreToolHookSync` / `runPreToolHook` completion
 contract in `.claude/hooks/lib/hook-runner.cjs`:
 
-- An allow decision exits `0` with empty stdout. Diagnostics and advisory warnings belong on stderr.
-  `doc-sync-gate.cjs` advisory warning is written to stderr; no allow path emits stdout.
-- A block decision exits `2` with a human-readable stderr message and never writes a decision-looking
-  object to stdout unless the hook is deliberately returning the documented `hookSpecificOutput` object.
-- Input, evaluation, and output-transport failures are visible. Git, privacy, and path-boundary
-  evaluation failures deny closed; the shell and scout heuristics preserve their existing fail-open
-  policy but report the failure.
-- Hooks set `process.exitCode` after writing output so Node can drain stdout/stderr. They must not call
-  `process.exit()` immediately after emitting a block or rewrite response.
+-   An allow decision exits `0` with empty stdout. Diagnostics and advisory warnings belong on stderr.
+    `doc-sync-gate.cjs` advisory warning is written to stderr; no allow path emits stdout.
+-   A block decision exits `2` with a human-readable stderr message and never writes a decision-looking
+    object to stdout unless the hook is deliberately returning the documented `hookSpecificOutput` object.
+-   Input, evaluation, and output-transport failures are visible. Git, privacy, and path-boundary
+    evaluation failures deny closed; the shell and scout heuristics preserve their existing fail-open
+    policy but report the failure.
+-   Hooks set `process.exitCode` after writing output so Node can drain stdout/stderr. They must not call
+    `process.exit()` immediately after emitting a block or rewrite response.
 
 For a one-session diagnostic trace, set `CLAUDE_HOOK_DEBUG=1`. Each Bash-path invocation appends one
 JSON record containing the hook, tool, decision, exit code, and duration (never the command or path) to:
@@ -365,12 +367,12 @@ Hooks are registered in `settings.json` under `hooks.{EventName}[].hooks[]`. Eac
 
 ## Testing
 
-Primary hook test status: `test-all-hooks.cjs` passes with 224 tests on a clean configured project. Aggregate discovery status: `run-all-tests.cjs` discovers 502 tests on the current suite set. These totals are maintained by the test-runner count guards; rerun both commands below before publishing a new count. The discovered total includes the process-boundary Bash contract suite and varies only when suites are intentionally added or removed.
+Primary hook test status: `test-all-hooks.cjs` passes with 224 tests on a clean configured project. Aggregate discovery status: `run-all-tests.cjs` discovers 536 tests on the current suite set. These totals are maintained by the test-runner count guards; rerun both commands below before publishing a new count. The discovered total includes the process-boundary Bash contract suite and varies only when suites are intentionally added or removed.
 
 | Test Surface          | Count | File/Location                                                     |
 | --------------------- | ----- | ----------------------------------------------------------------- |
 | Primary hook runner   | 224   | `.claude/hooks/tests/test-all-hooks.cjs`                          |
-| Aggregate runner      | 502   | `.claude/hooks/tests/run-all-tests.cjs` (all suites, discovered)  |
+| Aggregate runner      | 536   | `.claude/hooks/tests/run-all-tests.cjs` (all suites, discovered)  |
 | Standalone test files | TODO  | `tests/test-*.cjs/.js` excluding runner (re-verify before citing) |
 | Scout-block tests     | TODO  | `scout-block/tests/test-*.js` (re-verify before citing)           |
 | Lib unit tests        | TODO  | `lib/__tests__/*.test.cjs` (re-verify before citing)              |

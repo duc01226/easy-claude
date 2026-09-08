@@ -74,10 +74,10 @@ description: '[Fix & Debug] Use when investigating a bug''s root cause — repro
 | **TEST-WRONG** | Stale assertion, wrong setup, non-unique data, unreachable scenario | The test's own root cause — fix the assertion/setup at its root, NEVER weaken it |
 | **TEST-NOT-OPTIMAL** | Test is right but fragile — timing, shared state, ordering dependence | The fragility's source (missing ARRANGE barrier, shared infra assertion) |
 | **SOURCE-WRONG** | Production code violates the spec or a clear invariant | Normal end-to-start trace to the invariant-owning layer; KEEP or strengthen the test |
-| **ENVIRONMENT** | Config, DB, credentials, ports, versions | Mark BLOCKED — do not trace application code |
+| **ENVIRONMENT-BLOCKED** | Config, DB, credentials, ports, versions | Mark BLOCKED — do not trace application code |
 | **AMBIGUOUS** | Spec silent or contradictory about which side is correct | **STOP and ask the user** via `AskUserQuestion` — never self-resolve |
 
-**Step 3 — governing law (`CLAUDE.md:160`, mirrored `AGENTS.md:446`):** *"A green-again suite is not the goal; the correct verdict on what was actually wrong is."* NEVER weaken an assertion, add a skip, or relax a timeout to force green; NEVER change source to satisfy a broken test — instead fix the faulty party the verdict named, at its owning layer. Spec silent or ambiguous → STOP and ask.
+**Step 3 — governing law.** The rule is the project's *"Test failure → record a provisional verdict before trace/edit, then investigate"* lesson, canonical in `CLAUDE.md` and restated in `.claude/docs/development-rules.md`, which states in full: *"NEVER weaken an assertion, add a skip, relax a timeout, or change source merely to force green."* (`AGENTS.md` is the GENERATED Codex mirror of `CLAUDE.md` — it carries the same rule once `/sync-codex` has run, so cite the canonical source, never the mirror.) A green-again suite is not the goal; the correct verdict on what was actually wrong is. Fix the faulty party the verdict named, at its owning layer. Spec silent or ambiguous → STOP and ask.
 
 ## Debug Mindset (NON-NEGOTIABLE)
 
@@ -346,6 +346,8 @@ After `/fix` applies changes, `/prove-fix` MUST be run — builds code proof tra
 > 4. **Ask the user when intended behavior is unclear.** If no spec covers the behavior, the spec is silent, or the spec is ambiguous about which side is correct, STOP and `AskUserQuestion` (or consult the canonical spec owner) before editing either side — never silently pick source or test just to make the suite pass.
 >
 > Reconcile to intended behavior, never to whichever side currently passes — green can encode the very bug.
+>
+> **Read-only/report-only role boundary:** when this block is carried by a report-only role (`code-reviewer`, `quality-gate-review`, `spec-compliance-reviewer`, `tester`, and any other agent whose definition declares it never edits source), "fix the wrong side" means RETURN the adjudicated verdict and the proposed repair to the parent — do not modify source, tests, generated carriers, or user data. The adjudication is the deliverable; the edit is the caller's. Without this sentence the block's step-3 imperatives read as write authority and directly contradict those agents' own declarations (e.g. `tester.md` "NEVER implement fixes"), which is the sibling `SYNC:double-round-trip-review` boundary applied to the same class of carrier.
 
 <!-- /SYNC:test-failure-fault-adjudication -->
 

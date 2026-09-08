@@ -48,7 +48,7 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 
 **Canonical source:** `.claude/skills/shared/sync-inline-versions.md`
 
-**Key Rules:** Edit the canonical source first; change only SYNC block bodies; preserve `:reminder` blocks unless asked; use the script for bulk insertion; verify balance, parity, and the computed target inventory.
+**Key Rules:** Edit the canonical source first; change only SYNC block bodies; sync a `:reminder` block the same mechanical way — by passing the `{tag}:reminder` tag to the script — and only when asked; use the script for bulk insertion; verify balance, parity, and the computed target inventory.
 
 **Workflow:** Choose Operation A or B → follow its canonical-source and target-inventory steps → verify before reporting.
 
@@ -89,7 +89,7 @@ For each file found:
 1. Find `<!-- SYNC:{tag-name} -->` open tag
 2. Find `<!-- /SYNC:{tag-name} -->` close tag
 3. Replace everything between them with the canonical content
-4. Do NOT touch `:reminder` blocks — those are separate, shorter versions
+4. Do NOT touch `:reminder` blocks while syncing the plain tag — they are a SEPARATE fence pair with their own canonical section, and the script never crosses between them (`sync-update-blocks.py:64-66`). Sync one by passing `{tag}:reminder` as its own tag.
 
 ### Step 5: Verify
 
@@ -109,7 +109,53 @@ Report:
 
 ### Step 6: Reminder Blocks
 
-`:reminder` blocks (`<!-- SYNC:{tag}:reminder -->`) are 1-line summaries at the bottom of skills for AI recency attention. These are NOT auto-synced — they are hand-written. Skip them unless user explicitly asks to update reminders too.
+`:reminder` blocks (`<!-- SYNC:{tag}:reminder -->`) are 1-line summaries at the bottom of skills for AI recency attention (Primacy-Recency).
+
+**Where a canonical `:reminder` section exists, they ARE mechanically syncable — do NOT hand-edit those.** `sync-update-blocks.py` treats `{tag}:reminder` as an ordinary tag: it reads the `## SYNC:{tag}:reminder` section from the canonical source and replaces the matching fence pair (`sync-update-blocks.py:11-14,25-35`). Hand-writing such a reminder desynchronizes it from the canonical text the very next time the script runs.
+
+> **Coverage is PARTIAL — check before you rely on the script.** The canonical source does NOT yet carry a `:reminder` section for every reminder tag in use: roughly half the live reminder tags have no canonical section, and running the script on one of those fails hard with `ERROR: section not found` (`sync-update-blocks.py:33`) rather than doing nothing. Confirm the section exists first:
+>
+> ```bash
+> grep -n "^## SYNC:{tag}:reminder" .claude/skills/shared/<canonical-source>.md
+> ```
+>
+> **Section present** → sync it with the script; never hand-edit. **Section absent** → the script cannot serve you at all. Add the canonical `## SYNC:{tag}:reminder` section first and then sync, so the reminder becomes managed like the rest. Do not silently hand-edit the fenced body as a workaround: that leaves a fenced block the script believes it owns and will overwrite the moment the section appears.
+
+What is true is that a reminder is a SEPARATE tag from its parent, not a shorter view of it: syncing `foo` never touches `foo:reminder`, because the script's fence regexes require whitespace before the closing marker and so cannot cross between the two (`sync-update-blocks.py:64-66`). Update a reminder by running the script on `{tag}:reminder` explicitly, after editing that section in the canonical source — and only when the user asks for reminders too.
+
+```bash
+py -3 .claude/scripts/sync-update-blocks.py --dry-run {tag}:reminder   # Windows
+python3 .claude/scripts/sync-update-blocks.py {tag}:reminder           # macOS/Linux
+```
+
+### Step 7: OVERRIDE Blocks — the sanctioned divergence
+
+Not every carrier can take the canonical body verbatim. A review skill that must route its
+sub-agents to a DIFFERENT specialist needs the same protocol substance with a different
+`agent_type`. That is what `<!-- OVERRIDE:{tag} -->` … `<!-- /OVERRIDE:{tag} -->` is for.
+
+**The contract:**
+
+- **`sync-update-blocks.py` does NOT touch an OVERRIDE block.** It is an intentional per-skill
+  divergence, so the equality property that binds `SYNC:` carriers is deliberately not applied.
+- **Divergence is limited to ROUTING, not substance.** The `sync-carrier-parity` suite's
+  OVERRIDE-SUBSTANCE GUARD pins every OVERRIDE copy to the canonical protocol COUNT and to each
+  protocol's header AND body verbatim; only the Subagent-Type / Agent-Call / Reference-Docs
+  sections may differ. Silent staleness on substance is the failure mode it exists to catch.
+- **The carrier set is pinned.** The guard asserts the exact number of OVERRIDE carriers, so a
+  new one appearing — or an existing one vanishing — fails the suite rather than passing quietly.
+- **Both markers are recognized as fences.** `check-subagent-routing.cjs` treats `SYNC` and
+  `OVERRIDE` openers/closers identically for balance checking.
+
+**Live carriers (3 skills × 2 tags):** `architecture-review`, `integration-test-review`, and
+`ui-review` each override `fresh-context-review` and `review-protocol-injection`.
+
+**Maintaining one:** edit the canonical section, run the script for the `SYNC:` carriers, then
+**hand-merge** the same substance change into each OVERRIDE block, preserving its
+`agent_type` customization. The guard tells you if you missed one.
+
+**Do NOT reach for OVERRIDE to avoid a sync conflict.** It is for a carrier that genuinely must
+dispatch elsewhere. Any other divergence belongs in the canonical source, so every carrier gets it.
 
 ---
 
@@ -277,7 +323,7 @@ $sync-skills-shared-protocols                            # Interactive — asks 
 
 - ALWAYS edit `sync-inline-versions.md` FIRST, then run this skill
 - NEVER modify content outside `<!-- SYNC:tag -->` boundaries
-- NEVER touch `:reminder` blocks unless explicitly asked
+- NEVER touch `:reminder` blocks unless explicitly asked — and when asked, sync them WITH THE SCRIPT on the `{tag}:reminder` tag; never hand-write one
 - If close tag is missing in a target file, SKIP that file and report it as an error
 - Use the `Grep` tool (not shell grep) per project conventions
 - Verify tag balance after every sync run

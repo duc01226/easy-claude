@@ -21,7 +21,27 @@ const READ_ROLES = new Set([
 const WRITE_ROLES = new Set([
   'tee', 'touch', 'cp', 'mv', 'rm', 'del', 'erase', 'copy', 'move', 'ren',
   'rename', 'mkdir', 'rmdir', 'rd', 'set-content', 'add-content', 'out-file', 'remove-item',
-  'copy-item', 'move-item'
+  'copy-item', 'move-item',
+  // `dd` reads AND writes; it is classified with the writers because that is
+  // the stronger authority. Its per-operand read/write split is handled by the
+  // `key=value` branch in collectFileOperands, not by this command-level set.
+  'dd'
+]);
+// `dd` takes NO dashed options: every operand is a bare `key=value` pair, and
+// only `if=`/`of=` name files. That shape defeated every existing rule — the
+// option branch never fires (no leading `-`), the positional branch would have
+// resolved the literal token `if=/etc/passwd` rather than the path inside it,
+// and both legacy fallbacks miss it too because the token starts with `i`, not
+// `/` or `..`. So `dd if=/etc/passwd of=/tmp/stolen.img` was ALLOWED: a raw
+// copy of any file on the host, in or out of the project, through the one
+// boundary that exists to stop exactly that.
+//
+// Listed keys are the scalars dd accepts; an UNRECOGNIZED key denies rather
+// than being skipped, so a dd operand added later cannot silently carry a path
+// past this model.
+const DD_SCALAR_KEYS = new Set([
+  'bs', 'ibs', 'obs', 'cbs', 'count', 'seek', 'skip', 'iseek', 'oseek',
+  'conv', 'iflag', 'oflag', 'status'
 ]);
 const NAVIGATION_ROLES = new Set(['cd', 'chdir', 'pushd', 'popd']);
 const LINK_MUTATION_ROLES = new Set(['ln', 'link', 'mklink', 'junction']);
@@ -39,6 +59,10 @@ const GIT_DIFF_VALUE_OPTIONS = new Set([
 const GIT_DIFF_OPTIONAL_OPTIONS = new Set(['--unified', '--abbrev', '--color', '--word-diff', '--ignore-submodules', '--relative', '--submodule']);
 const GIT_DIFF_FLAGS = new Set([
   '--no-index', '--cached', '--staged', '--check', '--name-only', '--name-status',
+  // `--numstat`/`--compact-summary`/`--cumulative` are display-only siblings of
+  // `--stat`/`--shortstat`/`--dirstat` and take no operand. Their absence denied
+  // the standard machine-readable diff form while the human-readable ones passed.
+  '--numstat', '--compact-summary', '--cumulative',
   '--stat', '--shortstat', '--dirstat', '--summary', '--patch', '-p', '--raw',
   '--patch-with-stat', '--patch-with-raw', '--binary', '--full-index', '--no-color',
   '--color-moved', '--no-color-moved', '--no-ext-diff', '--no-textconv',
@@ -52,7 +76,7 @@ const GIT_DIFF_FLAGS = new Set([
 ]);
 const NO_ARG_OPTIONS = new Set([
   '-r', '-R', '-f', '-i', '-n', '-a', '-q', '-v', '-l', '-c', '-I', '-w', '-x',
-  '-h', '-H', '--interactive', '--tty', '--rm', '--detach', '--read-only',
+  '-p', '-h', '-H', '--interactive', '--tty', '--rm', '--detach', '--read-only',
   '-Force', '-Recurse', '-Directory', '-File', '-Hidden', '-System', '-ReadOnly',
   '-Verbose', '-WhatIf', '-Confirm', '-Name'
 ]);
@@ -80,6 +104,40 @@ function operandOptionRole(command, name) {
   }
   if (COMMAND_SCALAR_OPTIONS[family]?.has(name) || POWERSHELL_FILE_COMMANDS.has(command) && SCALAR_OPTIONS.has(name)) return 'scalar';
   return null;
+}
+
+// A POSIX short-option CLUSTER (`-la`, `-rn`, `-rf`) is ONE token carrying
+// several independent switches. Decompose it ONLY when EVERY letter is already
+// individually modeled as a no-argument switch for this command; an unmodeled
+// letter, or one that takes an operand, still denies.
+//
+// The conservative form is the point. Assuming any letter is a no-arg flag would
+// silently reclassify a real operand as a flag and shrink what this boundary
+// treats as a path — the opposite of what it exists to do. So `grep -rn` and
+// `ls -la` resolve (every letter known), while `tar -xzf` keeps denying until
+// `-z` is modeled, and `head -qn 3` keeps denying because `-n` takes a value.
+function clusterIsKnownSwitches(command, value) {
+  if (!/^-[A-Za-z]{2,}$/.test(value)) return false;
+  for (const letter of value.slice(1)) {
+    const flag = `-${letter}`;
+    const role = operandOptionRole(command, flag);
+    // A letter is a no-arg switch if the generic table says so OR this command's
+    // own role table classifies it 'switch'. Consulting only the generic table
+    // made the role check below dead code and split `grep -n -o` from clustered
+    // `grep -no` — identical commands, opposite verdicts — because grep's
+    // switches (-o/-E/-F/-s) live in the role table, not the generic one.
+    if (role !== 'switch' && !NO_ARG_OPTIONS.has(flag)) return false;
+    // An operand-taking letter (scalar/pattern) still denies, clustered or not.
+    if (role && role !== 'switch') return false;
+  }
+  return true;
+}
+
+// GNU head/tail accept a bare line count as a short option (`head -3`,
+// `tail -40`) that consumes no separate operand. Modeled only for the two
+// commands whose scalar table already declares the equivalent `-n` form.
+function isCountShorthand(command, value) {
+  return (command === 'head' || command === 'tail') && /^-\d+$/.test(value);
 }
 const PATH_OPTIONS = new Set(['-Path', '-LiteralPath', '--target-directory']);
 const POWERSHELL_FILE_COMMANDS = new Set([
@@ -175,6 +233,25 @@ function collectFileOperands(statement, { privacy = false } = {}) {
       return { paths, protected: true, unknown: true, unknownCode: 'DYNAMIC_PATH_OPERAND' };
     }
     if (!afterTerminator && value === '--') { afterTerminator = true; continue; }
+    // dd's `key=value` operands — see DD_SCALAR_KEYS above for why this cannot
+    // ride either the option branch or the positional branch below.
+    if (command === 'dd') {
+      const eq = value.indexOf('=');
+      const key = eq > 0 ? value.slice(0, eq) : '';
+      const operandValue = eq > 0 ? value.slice(eq + 1) : '';
+      if (key === 'if' || key === 'of') {
+        if (!operandValue) return { paths, protected: true, unknown: true, unknownCode: 'DYNAMIC_PATH_OPERAND' };
+        // requiresExistingRead() is a COMMAND-level predicate and cannot express
+        // this: dd is both reader and writer, so the role lives on the operand.
+        // `if=` is the read, and a nested read operand is the symlink-sensitive
+        // case that predicate exists to catch — so mirror its condition here.
+        paths.push(pathEntry(operandValue, 'operand', 'argv', statement, token,
+          key === 'if' && /[\\/]/.test(operandValue)));
+        continue;
+      }
+      if (DD_SCALAR_KEYS.has(key)) continue;
+      return { paths, protected: true, unknown: true, unknownCode: 'UNSUPPORTED_DD_OPERAND' };
+    }
     if (!afterTerminator && WINDOWS_FLAG_ROLES.has(command) && /^\/{1,2}[A-Za-z][A-Za-z0-9_-]*(?::[^/\\\s]+)?$/.test(value)) {
       continue;
     }
@@ -224,7 +301,9 @@ function collectFileOperands(statement, { privacy = false } = {}) {
           paths.push(pathEntry(pathValue, 'path-option', 'argv', statement, operand,
             requiresExistingRead(command, pathValue)));
         index++;
-      } else if (!NO_ARG_OPTIONS.has(name) && inline === undefined && !name.startsWith('--target-directory') && !name.startsWith('-Path') && !name.startsWith('-LiteralPath')) {
+      } else if (!NO_ARG_OPTIONS.has(name) && inline === undefined
+        && !clusterIsKnownSwitches(command, name) && !isCountShorthand(command, name)
+        && !name.startsWith('--target-directory') && !name.startsWith('-Path') && !name.startsWith('-LiteralPath')) {
         return { paths, protected: true, unknown: true, unknownCode: 'UNSUPPORTED_OPTION_ARITY' };
       }
       continue;
@@ -314,6 +393,11 @@ function collectGitDiffOperands(statement) {
         continue;
       }
       if (GIT_DIFF_FLAGS.has(name)) continue;
+      // `-U` is the one single-letter value option here, and git accepts its
+      // value attached (`-U0`). splitOption only splits on '=', so the attached
+      // form arrived as an unknown option name while `-U 0` and `--unified=0`
+      // both resolved — three spellings of one semantic, two verdicts.
+      if (/^-U\d+$/.test(name)) continue;
       return { paths, protected: true, unknown: true, unknownCode: 'UNSUPPORTED_GIT_DIFF_OPTION' };
     }
     // Git accepts revisions and pathspecs in this position. Treat both as
@@ -443,11 +527,64 @@ function parseMount(value) {
   return map;
 }
 
+// Container subcommands whose operands are container / image / pod / service REFERENCES, never host
+// paths. `docker logs <container>` denied closed on UNSUPPORTED_CONTAINER_FORM purely because only
+// `run` and `exec` were modelled: the hook could not classify a bare container ref, so it refused to
+// guess — and a routine, read-only log read became unrunnable.
+//
+// Membership is decided by ONE question: can this subcommand name a HOST path in any operand or
+// flag? Everything that can is deliberately absent, and must stay absent:
+//   docker/podman — `cp` (host<->container copy), `build`/`buildx` (context dir), `save`/`load`/
+//                   `export`/`import` (`-o`/`-i` archives), `compose` (`-f` compose file, handled
+//                   separately below), `context`, `volume` (`--opt device=`), `secret`, `config`
+//   kubectl       — `cp`, `apply`/`create`/`replace`/`delete`/`patch` (`-f` manifest), `kustomize`
+// These return no paths but stay `protected`, so the statement's own redirects are still checked by
+// withInvocationRedirects — `docker logs x > /etc/out` is still a boundary decision.
+const CONTAINER_REF_SUBCOMMANDS = new Map([
+  ['docker', new Set([
+    'logs', 'ps', 'top', 'port', 'stats', 'events', 'inspect', 'version', 'info', 'images',
+    'start', 'stop', 'restart', 'kill', 'pause', 'unpause', 'wait', 'diff', 'history',
+    'attach', 'rm', 'rmi', 'pull', 'push', 'tag', 'search', 'login', 'logout'
+  ])],
+  ['podman', new Set([
+    'logs', 'ps', 'top', 'port', 'stats', 'events', 'inspect', 'version', 'info', 'images',
+    'start', 'stop', 'restart', 'kill', 'pause', 'unpause', 'wait', 'diff', 'history',
+    'attach', 'rm', 'rmi', 'pull', 'push', 'tag', 'search', 'login', 'logout'
+  ])],
+  ['kubectl', new Set([
+    'logs', 'get', 'describe', 'top', 'events', 'api-resources', 'api-versions',
+    'cluster-info', 'version', 'rollout', 'scale', 'wait'
+  ])]
+]);
+
+// `docker compose <sub>` is safe ONLY when no flag can name a host file. These all can.
+const COMPOSE_PATH_FLAGS = new Set(['-f', '--file', '--env-file', '--project-directory']);
+const COMPOSE_REF_SUBCOMMANDS = new Set([
+  'logs', 'ps', 'top', 'events', 'start', 'stop', 'restart', 'kill', 'pause', 'unpause', 'version'
+]);
+
+function composeIsPathFree(argv) {
+  let subcommand = null;
+  for (let index = 1; index < argv.length; index++) {
+    const value = staticValue(argv[index]);
+    if (value === null) return false;
+    if (COMPOSE_PATH_FLAGS.has(value) || [...COMPOSE_PATH_FLAGS].some(flag => value.startsWith(`${flag}=`))) return false;
+    if (!subcommand && !value.startsWith('-')) subcommand = value;
+  }
+  return subcommand !== null && COMPOSE_REF_SUBCOMMANDS.has(subcommand);
+}
+
 function collectContainerOperands(statement) {
   const tool = commandName(statement);
   if (!CONTAINER_TOOLS.has(tool)) return { paths: [], protected: false };
   const argv = Array.isArray(statement?.argv) ? statement.argv.slice(1) : [];
   const subcommand = staticValue(argv[0]);
+  if (subcommand && CONTAINER_REF_SUBCOMMANDS.get(tool)?.has(subcommand)) {
+    return { paths: [], protected: true, unknown: false, unknownCode: null };
+  }
+  if (subcommand === 'compose' && tool !== 'kubectl' && composeIsPathFree(argv)) {
+    return { paths: [], protected: true, unknown: false, unknownCode: null };
+  }
   if (!subcommand || !['run', 'exec'].includes(subcommand) && !(tool === 'kubectl' && subcommand === 'exec')) {
     return { paths: [], protected: true, unknown: true, unknownCode: 'UNSUPPORTED_CONTAINER_FORM' };
   }
@@ -579,8 +716,13 @@ function collectStatement(statement, index, inspect, depth = 0) {
     const outer = collectStatement({ ...statement, command: null, argv: [], status: 'KNOWN' }, index, inspect, depth + 1);
     const paths = child.paths.map(entry => ({ ...entry, cwdChanges: [...wrapper.cwdChanges, ...(entry.cwdChanges || [])] }));
     if (wrapper.cwdChanges.length) paths.push({ ...pathEntry('.', 'wrapper-cwd', 'argv', statement), cwdChanges: wrapper.cwdChanges });
+    // `protected` is a union (any protected part protects the whole); `covered`
+    // is an intersection (the statement is only fully modeled when BOTH the
+    // wrapped body and the invocation-scope redirects are), matching the
+    // withInvocationRedirects sibling above. OR here let a covered body
+    // launder an unmodeled outer redirect.
     return { ...child, paths: [...paths, ...outer.paths], protected: child.protected || outer.protected,
-      covered: child.covered || outer.covered, unknown: child.unknown || outer.unknown,
+      covered: child.covered && outer.covered, unknown: child.unknown || outer.unknown,
       unknownCode: child.unknownCode || outer.unknownCode };
   }
   if (LINK_MUTATION_ROLES.has(command)) {
@@ -608,9 +750,16 @@ function collectStatement(statement, index, inspect, depth = 0) {
     return { paths, protected: true, covered: true, unknown: true, unknownCode: 'INLINE_INTERPRETER_SCOPE_UNKNOWN', navigation };
   }
   for (const redirect of statement.redirects || []) {
+    // Classify the heredoc BEFORE the staticness check. The inspector sets
+    // `static: false` on a heredoc's `<<` to mean "unsupported construct", not
+    // "text produced at run time" — the operator itself is literal. Reading it
+    // through staticValue() therefore returned null and tripped the
+    // REDIRECT_UNKNOWN guard first, leaving the heredoc branch permanently
+    // unreachable and every heredoc reported as a generic unknown redirect.
+    const operatorText = redirect.operator?.value ?? null;
+    if (operatorText === '<<' || operatorText === '<<-') return { paths, protected: true, unknown: true, unknownCode: 'HEREDOC_UNSUPPORTED', navigation };
     const operator = staticValue(redirect.operator);
     if (!operator) return { paths, protected: true, unknown: true, unknownCode: 'REDIRECT_UNKNOWN', navigation };
-    if (operator === '<<' || operator === '<<-') return { paths, protected: true, unknown: true, unknownCode: 'HEREDOC_UNSUPPORTED', navigation };
     if (['<', '>', '>>', '<>', '>&', '<&', '>|', '&>'].includes(operator)) {
       const target = staticValue(redirect.target);
       if (target === null) return { paths, protected: true, unknown: true, unknownCode: 'REDIRECT_TARGET_UNKNOWN', navigation };
@@ -630,7 +779,13 @@ function collectStatement(statement, index, inspect, depth = 0) {
   return {
     paths,
     protected: protectedStatement,
-    covered: protectedStatement,
+    // `covered` answers a NARROWER question than `protected`: did operand-role
+    // classification actually MODEL this command, so the legacy regex extractor
+    // can be suppressed? A redirect target is collected for ANY command, modeled
+    // or not, so `paths.length > 0` must NOT imply coverage — conflating them let
+    // `curl -o /etc/passwd https://x > out.txt` mark itself covered off the `>`
+    // alone, suppress the fallback that was catching `/etc/passwd`, and ALLOW.
+    covered: Boolean(files.protected) || navigation,
     // Operand-role classification owns pattern opacity; aggregation must not
     // erase unresolved file operands or unknown option arity.
     unknown: Boolean(files.unknown),
@@ -689,7 +844,7 @@ function evaluateBoundary({ toolName, toolInput, eventCwd, projectRoot, allowlis
     }
     totalPathBytes += entry.value.length;
     if (isPseudoPath(entry.value)) {
-      paths.push({ statement: entry.statement ?? null, token: entry.token?.start ?? null, role: entry.role, source: entry.source, resolved: entry.value, outcome: 'INSIDE', diagnostic: null });
+      paths.push({ statement: entry.statement ?? null, token: entry.token?.start ?? null, role: entry.role, source: entry.source, value: entry.value, resolved: entry.value, outcome: 'INSIDE', diagnostic: null });
       return;
     }
     const resolved = resolveCandidate(entry.value, base, resolver, {
@@ -698,7 +853,11 @@ function evaluateBoundary({ toolName, toolInput, eventCwd, projectRoot, allowlis
     });
     const inBoundary = resolved.resolved && inside(resolved.resolved, root, allowlist);
     const outcome = resolved.outcome === 'UNKNOWN' ? 'UNKNOWN' : (inBoundary ? 'INSIDE' : 'OUTSIDE');
-    const row = { statement: entry.statement ?? null, token: entry.token?.start ?? null, role: entry.role, source: entry.source, resolved: resolved.resolved, outcome, diagnostic: outcome === 'OUTSIDE' ? 'OUTSIDE_PROJECT' : outcome === 'UNKNOWN' ? 'PATH_UNRESOLVABLE' : null };
+    // `value` carries the operand AS WRITTEN. `resolved` is null for every
+    // UNKNOWN row, so without it a caller reporting the block has nothing to
+    // name the offending operand with — `source` is the origin channel
+    // ('argv'/'structured'), never path text.
+    const row = { statement: entry.statement ?? null, token: entry.token?.start ?? null, role: entry.role, source: entry.source, value: entry.value, resolved: resolved.resolved, outcome, diagnostic: outcome === 'OUTSIDE' ? 'OUTSIDE_PROJECT' : outcome === 'UNKNOWN' ? 'PATH_UNRESOLVABLE' : null };
     paths.push(row);
     if (outcome === 'OUTSIDE') diagnostics.push(diagnostic('OUTSIDE_PROJECT', row.statement, row.token));
     if (outcome === 'UNKNOWN') diagnostics.push(diagnostic('PATH_UNRESOLVABLE', row.statement, row.token));

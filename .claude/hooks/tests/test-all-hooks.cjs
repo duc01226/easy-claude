@@ -1839,6 +1839,19 @@ async function runAllTests() {
                 file: path.join(docsDir, 'hooks', 'README.md'),
                 label: 'docs/hooks/README.md "passes with N tests" prose',
                 pattern: /passes with (\d+) tests/
+            },
+            // The framework guide carried the SAME primary-gate figure with no guard
+            // on it, and drifted to 215 against a live 224 while the rows above stayed
+            // green. A count claim nobody asserts is a claim that will be wrong.
+            {
+                file: path.join(docsDir, 'claude-ai-agent-framework-guide.md'),
+                label: 'framework guide "test-all-hooks.cjs (primary gate)" row',
+                pattern: /\|\s*`test-all-hooks\.cjs`\s*\(primary gate\)\s*\|\s*\*\*(\d+)\*\*\s*\|/
+            },
+            {
+                file: path.join(docsDir, 'claude-ai-agent-framework-guide.md'),
+                label: 'framework guide live-verified prose',
+                pattern: /`test-all-hooks\.cjs` = (\d+)/
             }
         ];
 

@@ -123,7 +123,15 @@ const LEGACY_AGENTS_CLAUDE_MERGE_START = "<!-- CLAUDE-MERGE:START -->";
 const LEGACY_AGENTS_CLAUDE_MERGE_END = "<!-- CLAUDE-MERGE:END -->";
 const AGENTS_ROOT_PROJECTION_START = "<!-- CK:CODEX-ROOT-PROJECTION -->";
 const AGENTS_ROOT_PROJECTION_END = "<!-- /CK:CODEX-ROOT-PROJECTION -->";
-const AGENTS_ROOT_LIMIT_BYTES = 32768;
+// The Codex root budget. This is a PROJECT guardrail, not a host-imposed hard limit — nothing
+// truncates at it (see reportAgentsRootSize) and exceeding it only warns. It was 32768 while the
+// projection carried neither the anti-hallucination protocol nor the System Lessons; restoring
+// both (they are the repo's own defence against the failure mode it most often hits, and Codex was
+// getting ZERO copies while Claude got two) costs roughly 9 KiB, and the naming/commands sections
+// another ~2 KiB. Raising the ceiling is the deliberate choice over compressing the DESIGN-GATE:
+// Codex pays the tokens once per prompt, and the alternative traded a correctness guardrail for
+// bytes. Revisit only with a measured host budget, never to make an overflow warning go away.
+const AGENTS_ROOT_LIMIT_BYTES = 49152;
 const AGENTS_PROJECTION_HEADINGS = [
   /^## Workflow Step Advancement & Parallel Phases$/m,
   /^## TL;DR — What You Must Know Before Writing Any Code$/m,
@@ -131,6 +139,11 @@ const AGENTS_PROJECTION_HEADINGS = [
   /^## Project Reference Loading$/m,
   /^## Task Planning Rules$/m,
   /^## Code Responsibility Hierarchy$/m,
+  // Carries the naming table AND the key-locations / dev-commands / integration-testing SECTION
+  // blocks that follow it before the next `##`. Without it a Codex session authoring a hook,
+  // skill or agent had no in-context statement of this repo's file-naming rules or test commands
+  // — in a repo whose entire product IS those artifacts.
+  /^## Naming Conventions$/m,
   /^## Evidence-Based Reasoning & Investigation$/m,
   /^## Continuous Improvement — Lesson Extraction Gate$/m,
   /^## Git & Version-Control Discipline$/m,
@@ -219,6 +232,13 @@ function buildCompactClaudeProjection(claudeMd) {
   for (const marker of [
     ["<!-- CK:WORKFLOW-GATE -->", "<!-- /CK:WORKFLOW-GATE -->"],
     ["<!-- CK:PROJECT-PROTOCOLS -->", "<!-- /CK:PROJECT-PROTOCOLS -->"],
+    // Also drop the two protocol blocks HERE, before the preface is cut at the first `##`.
+    // They are projected explicitly below; leaving them in the preface emitted the
+    // critical-thinking block twice, and — because CLAUDE.md's own
+    // `## Common AI Mistake Prevention` heading sits INSIDE the AIMP fence — cut the preface
+    // mid-block and stranded a dangling `<!-- CK:AI-MISTAKE-PREVENTION -->` open marker.
+    [CK_CRIT_START, CK_CRIT_END],
+    [CK_AIMP_START, CK_AIMP_END],
   ]) preface = stripManagedBlock(preface, marker[0], marker[1]);
   const firstHeading = preface.search(/^##\s+/m);
   preface = (firstHeading === -1 ? preface : preface.slice(0, firstHeading))
@@ -228,6 +248,13 @@ function buildCompactClaudeProjection(claudeMd) {
   for (const marker of [
     ["<!-- CK:WORKFLOW-GATE -->", "<!-- /CK:WORKFLOW-GATE -->"],
     ["<!-- CK:PROJECT-PROTOCOLS -->", "<!-- /CK:PROJECT-PROTOCOLS -->"],
+    // The anti-hallucination protocol and the System Lessons are this repo's own defence against
+    // the failure mode it most often hits. They are stamped twice in CLAUDE.md under its
+    // primacy-recency rule, but this projection is a WHITELIST: a block absent from these lists
+    // never reaches AGENTS.md at all. Omitting them gave Claude two copies and Codex none.
+    // `extractManagedBlock` matches the FIRST fence pair, so exactly one copy is projected.
+    [CK_CRIT_START, CK_CRIT_END],
+    [CK_AIMP_START, CK_AIMP_END],
   ]) {
     const block = extractManagedBlock(text, marker[0], marker[1]);
     if (block) blocks.push(block.trim());
@@ -837,20 +864,43 @@ export async function runContextSync({ outRootDir = rootDir } = {}) {
   );
   contextMd = `${contextMd.trimEnd()}\n`;
 
-  // Strip from the CLAUDE.md mirror copy so AGENTS.md (= claudeMirror + contextMirror) carries
-  // each block exactly once:
-  //   (1) the workflow-skills catalog — the Codex context block (above) already carries it;
-  //   (2) the two FULL protocol blocks (critical-thinking + ai-mistake-prevention) — CLAUDE.md
-  //       now stamps each at top AND bottom, and the CONTEXT mirror canonical-bakes them too,
-  //       so without a GLOBAL strip they would appear three times in AGENTS.md.
+  // De-duplicate the CLAUDE.md text BEFORE it is projected, so AGENTS.md
+  // (= claudeMirror + contextMirror) carries each block exactly once:
+  //   (1) the workflow-skills catalog is dropped entirely — the Codex context block (above)
+  //       already carries it, and its opening marker would otherwise dangle in the preface;
+  //   (2) the two FULL protocol blocks (critical-thinking + ai-mistake-prevention) keep their
+  //       FIRST copy and drop the surplus. CLAUDE.md stamps each at top AND bottom under its own
+  //       primacy-recency rule; the projection extracts the first fence pair of each, so leaving
+  //       both copies in would duplicate them in the Codex root.
+  //
+  // The earlier rationale here claimed the CONTEXT mirror "canonical-bakes them too, so without a
+  // GLOBAL strip they would appear three times". That stopped being true when
+  // `buildAgentsContextMirrorBlock` became a POINTER (see :180-199) — it inlines nothing. The
+  // global strip then removed both copies and nothing re-added them, so Codex got the
+  // anti-hallucination protocol and the System Lessons ZERO times while Claude got them twice.
+  //
   // Each regex is anchored to its exact CK marker pair so nothing beyond the block is removed.
-  // The catalog appears once (m); the two protocol blocks appear twice each (g, top + bottom).
+  const stripSurplusBlocks = (text, startMarker, endMarker, keep = 1) => {
+    let seen = 0;
+    return text.replace(
+      new RegExp(`${startMarker}[\\s\\S]*?${endMarker}\\n?`, "g"),
+      match => (++seen <= keep ? match : "")
+    );
+  };
   const claudeInstructionsDeduped =
     typeof claudeInstructionsRaw === "string"
-      ? claudeInstructionsRaw
-          .replace(new RegExp(`${CK_SKILLS_START}[\\s\\S]*?${CK_SKILLS_END}\\n?`, "m"), "")
-          .replace(new RegExp(`${CK_CRIT_START}[\\s\\S]*?${CK_CRIT_END}\\n?`, "g"), "")
-          .replace(new RegExp(`${CK_AIMP_START}[\\s\\S]*?${CK_AIMP_END}\\n?`, "g"), "")
+      ? stripSurplusBlocks(
+          stripSurplusBlocks(
+            claudeInstructionsRaw.replace(
+              new RegExp(`${CK_SKILLS_START}[\\s\\S]*?${CK_SKILLS_END}\\n?`, "m"),
+              ""
+            ),
+            CK_CRIT_START,
+            CK_CRIT_END
+          ),
+          CK_AIMP_START,
+          CK_AIMP_END
+        )
       : claudeInstructionsRaw;
   const claudeInstructionsMd = claudeInstructionsDeduped
     ? rewriteClaudeToolTermsForCodex(
@@ -871,4 +921,8 @@ if (invokedAsScript) {
   await runContextSync();
 }
 
-export { contextPath, agentsPath };
+// Exported so the compliance verifier reads the budget from its PRODUCER instead of keeping a second
+// copy of the number. The two drifted once already: this limit was raised to 49152 here while
+// `verify-skill-protocol-compliance.mjs` kept 32768, so a projection this generator considered valid
+// failed its own pipeline gate.
+export { contextPath, agentsPath, AGENTS_ROOT_LIMIT_BYTES };

@@ -84,7 +84,7 @@ None. No frontend framework dependency, app mapping, dev-server port, or fronten
 
 | Component      | Count                                                                                         | Location                      | Format                                                                              |
 | -------------- | --------------------------------------------------------------------------------------------- | ----------------------------- | ----------------------------------------------------------------------------------- |
-| Hooks          | <!-- COUNT:hooks -->17<!-- /COUNT -->                                                         | `.claude/hooks/*.cjs`         | Top-level CommonJS Node.js hook scripts counted by ADR-0002                         |
+| Hooks          | <!-- COUNT:hooks -->18<!-- /COUNT -->                                                         | `.claude/hooks/*.cjs`         | Top-level CommonJS Node.js hook scripts counted by ADR-0002                         |
 | Hook Libraries | <!-- COUNT:lib-modules -->31<!-- /COUNT -->                                                   | `.claude/hooks/lib/*.cjs`     | CommonJS utility modules                                                            |
 | Skills         | <!-- COUNT:skills -->167<!-- /COUNT -->                                                       | `.claude/skills/*/SKILL.md`   | Markdown + YAML frontmatter                                                         |
 | Agents         | <!-- COUNT:agents -->27<!-- /COUNT -->                                                        | `.claude/agents/*.md`         | Markdown definitions                                                                |
@@ -136,7 +136,7 @@ easy-claude/
 
 | Code | Module         | Location                       | Description                                                                                                               |
 | ---- | -------------- | ------------------------------ | ------------------------------------------------------------------------------------------------------------------------- |
-| HK   | Hooks          | `.claude/hooks/`               | <!-- COUNT:hooks -->17<!-- /COUNT --> top-level `.cjs` runtime hook files (session init, safety gates, graph, formatting) |
+| HK   | Hooks          | `.claude/hooks/`               | <!-- COUNT:hooks -->18<!-- /COUNT --> top-level `.cjs` runtime hook files (session init, safety gates, graph, formatting) |
 | HL   | Hook Libraries | `.claude/hooks/lib/`           | <!-- COUNT:lib-modules -->31<!-- /COUNT --> shared utility modules for hooks                                              |
 | SK   | Skills         | `.claude/skills/`              | <!-- COUNT:skills -->167<!-- /COUNT --> task automation skill definitions                                                 |
 | AG   | Agents         | `.claude/agents/`              | <!-- COUNT:agents -->27<!-- /COUNT --> specialized subagent role definitions                                              |
@@ -149,7 +149,7 @@ easy-claude/
 | SB   | Scout Block    | `.claude/hooks/scout-block/`   | Broad search prevention subsystem (4 modules)                                                                             |
 | HT   | Hook Tests     | `.claude/hooks/tests/`         | 24 suite files + 13 top-level `test-*` files + `run-all-tests.cjs` aggregate                                               |
 
-## Hooks (<!-- COUNT:hooks -->17<!-- /COUNT --> top-level `.cjs` files)
+## Hooks (<!-- COUNT:hooks -->18<!-- /COUNT --> top-level `.cjs` files)
 
 ### Safety Hooks
 

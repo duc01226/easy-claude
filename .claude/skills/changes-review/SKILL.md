@@ -1650,7 +1650,7 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 
 > **Logic & Intention Review** — Verify WHAT code does matches WHY it was changed.
 >
-> 1. **Change Intention Check:** Every changed file MUST ATTENTION serve the stated purpose. Flag unrelated changes as scope creep.
+> 1. **Change Intention Check:** Every changed file MUST serve the stated purpose. Flag unrelated changes as scope creep.
 > 2. **Happy Path Trace:** Walk through one complete success scenario through changed code
 > 3. **Error Path Trace:** Walk through one failure/edge case scenario through changed code
 > 4. **Acceptance Mapping:** If plan context available, map every acceptance criterion to a code change

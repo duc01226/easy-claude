@@ -6,16 +6,16 @@
 >
 > Honor an explicit request to execute a skill/workflow first. Otherwise auto-select by complexity and risk; never ask the user to choose the execution path.
 >
-> | Intent | Route |
-> | --- | --- |
-> | Clear, low-risk task or one-off question | direct |
-> | Simple coordinated steps | custom-simple: only the necessary skills/steps |
-> | Non-trivial bug/regression/stale output | `workflow-bugfix` |
-> | Non-trivial feature/enhancement | `workflow-feature`; large/ambiguous/research-heavy scope uses `workflow-big-feature` |
-> | Product vision, greenfield or release-scoped idea | owning idea/feature workflow; apply shared `isLargeIdea` and embed decomposition in its artifacts |
-> | Explicit roadmap/update/milestone-selection request | `product-roadmap`; only this explicit intent may write `docs/product-roadmap.md` |
-> | Milestone/large-idea scope needing adversarial failure, replay, state, ownership, recovery or evidence analysis | conditional `scenario` before `/plan`; no roadmap artifact |
-> | Other matching skill/workflow Use clause | that skill/workflow, verified from its canonical definition |
+> | Intent                                                                                                          | Route                                                                                             |
+> | --------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------- |
+> | Clear, low-risk task or one-off question                                                                        | direct                                                                                            |
+> | Simple coordinated steps                                                                                        | custom-simple: only the necessary skills/steps                                                    |
+> | Non-trivial bug/regression/stale output                                                                         | `workflow-bugfix`                                                                                 |
+> | Non-trivial feature/enhancement                                                                                 | `workflow-feature`; large/ambiguous/research-heavy scope uses `workflow-big-feature`              |
+> | Product vision, greenfield or release-scoped idea                                                               | owning idea/feature workflow; apply shared `isLargeIdea` and embed decomposition in its artifacts |
+> | Explicit roadmap/update/milestone-selection request                                                             | `product-roadmap`; only this explicit intent may write `docs/product-roadmap.md`                  |
+> | Milestone/large-idea scope needing adversarial failure, replay, state, ownership, recovery or evidence analysis | conditional `scenario` before `/plan`; no roadmap artifact                                        |
+> | Other matching skill/workflow Use clause                                                                        | that skill/workflow, verified from its canonical definition                                       |
 >
 > Declare `Route: {workflow-id | skill | custom-simple | direct} — because {reason}`, then ACTIVATE before edits, agents or commands. Workflow: execute `/start-workflow <id>` and use its canonical sequence for tasks 1:1; never improvise that list. Skill: read and execute its SKILL.md through the host's supported mechanism. Custom/direct: create a small task list and execute it. Missing required tools/details: stop and report; never fabricate invocation.
 >
@@ -183,46 +183,6 @@ Distinct step-skills used across the workflows above — compose these into a cu
 
 <!-- prettier-ignore-end -->
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 <!-- CK:PROJECT-PROTOCOLS -->
 
 > **[PROJECT-PROTOCOL-OVERLAY] — resolve before executing ANY skill.** Hook-independent: binds Claude and Codex equally.
@@ -301,8 +261,8 @@ Workflow progression is **model-driven** — your responsibility, not a tool/hoo
 
 **Decision Quick-Ref:**
 
-| Task | Pattern |
-|---|---|
+| Task                | Pattern                                                     |
+| ------------------- | ----------------------------------------------------------- |
 | Backend conventions | Read `docs/project-reference/backend-patterns-reference.md` |
 
 <!-- /SECTION:decision-quick-ref -->
@@ -465,14 +425,20 @@ Add a final task — "Analyze AI mistakes & lessons learned" — to every non-tr
 
 ## Git & Version-Control Discipline
 
-> **[BLOCKING] Hook-independent guardrail — binds Claude, Codex, and Copilot equally.** Where hooks run, `git-commit-block.cjs` enforces this as a hard PreToolUse block; on a hookless host (Codex/Copilot) or an un-wired project this section is the ONLY guardrail — obey it without the block.
+> **[BLOCKING] Hook-independent guardrail — binds Claude, Codex, and Copilot equally.** On a hookless host (Codex/Copilot) or an un-wired project this section is the ONLY guardrail — obey it without any block.
+>
+> **The hook enforces a NARROWER set than this section.** `git-commit-block.cjs` blocks only what is **irreversible**: commands that destroy uncommitted work (`checkout`/`restore` on a pathspec, `reset --hard`, `clean -f`, `switch --discard-changes`, `stash drop|clear`, `rm -f`) and destructive history rewrites (`push --force`, `branch -D`, `reflog expire`, `filter-branch`), plus `commit --amend` and the irreversible `gh` verbs of rule 6. Rules 1, 3 and 4 — and the recoverable half of rule 6 — are **model-behavioral**: nothing blocks them, so obeying them is your responsibility on every host including this one. A command being allowed by the hook is NEVER evidence you were asked to run it.
 
-1. **Never commit, push, or stage (`git add`) unless the user explicitly asks for it.** "Implement X" / "fix the bug" is NOT permission to commit — finish the work, report what changed, and wait. Only an explicit "commit"/"push" (or an invoked commit skill / git-manager) authorizes it.
-2. **Never `git commit --amend`.** Amending rewrites history and can corrupt commits once HEAD has moved — always create a NEW commit. No bypass.
-3. **Branch before committing on the default branch.** If asked to commit while on `main`/`master`, create a feature branch first.
-4. **Read-only git needs no permission** — `status`, `diff`, `log`, `show`, `branch`, `fetch`, `restore`, `reset HEAD` are always allowed.
+1. **Never commit, push, or stage (`git add`) unless the user explicitly asks for it.** "Implement X" / "fix the bug" is NOT permission to commit — finish the work, report what changed, and wait. Only an explicit "commit"/"push" (or an invoked commit skill / git-manager) authorizes it. _(**Model-behavioral** — the hook deliberately does NOT block these. They are recoverable, and gating them made the correct workflow harder to reach than the destructive one. Nothing catches this but you.)_
+2. **Never `git commit --amend`.** Amending rewrites history and can corrupt commits once HEAD has moved — always create a NEW commit. No bypass. _(Hook-enforced, unconditional — no lease clears it.)_
+3. **Branch before committing on the default branch.** If asked to commit while on `main`/`master`, create a feature branch first. _(**Model-behavioral** — the hook has no branch awareness and will not stop a commit on `main`. Nothing catches this but you.)_
+4. **Read-only git needs no permission** — `status`, `diff`, `log`, `show`, `rev-parse`, `describe`, `blame`, `check-ignore`, `ls-files`, `shortlog`, and the _listing_ forms of `branch`, `tag`, `remote`, `config` and `stash`. _(Model-behavioral permission note.)_
+5. **Never run a command that can destroy uncommitted work.** Unstaged edits and untracked files exist in exactly one place — the working tree. `git checkout -- <path>`, `git restore <path>`, `git reset --hard`, `git clean -f`, `git switch --discard-changes` and `git stash drop` erase the only copy that ever existed. _(Hook-enforced — this is the one class the hook blocks outright. Ask before running one; there is nothing to undo it with.)_
+6. **Publishing through the GitHub CLI — or the GitHub MCP server — is the same act as pushing.** `gh pr create|merge`, `gh release create`, `gh repo delete`, `gh api -X POST|PUT|PATCH|DELETE` and their siblings need the same explicit request rule 1 demands; `git-commit-block.cjs` gates only the **irreversible** modeled verbs — any `delete`/`delete-asset` (repo, release, secret, variable, cache, gist, label, run, issue, project, codespace, ssh-key, gpg-key), plus `archive`, `rename`, `transfer`, and any mutating `gh api` — and those consume a session **push** lease. `gh pr create|merge`, `gh release create` and the other publishing verbs are closeable, revertable or deletable afterwards, so they are NOT hook-gated; an unmodeled `gh` write verb is NOT gated either. Rule 1 binds all of them. The MCP tools (`mcp__github__merge_pull_request`, `create_*`, `update_*`, `push_files`, …) reach the same remote without a shell and are gated by `github-mcp-write-block.cjs` against the same session **push** lease; there an unmodeled verb IS gated, because only `get_*`/`list_*`/`search_*` are treated as reads.
 
-**Why:** auto-committing/pushing unprompted publishes unreviewed work and can rewrite shared history — the highest-blast-radius irreversible action an agent can take — so it stays gated on explicit human intent on every host, not only where a hook fires.
+**Why:** auto-committing/pushing unprompted publishes unreviewed work and can rewrite shared history, so it stays gated on explicit human intent on every host. That gate is now **behavioral, not mechanical** — a deliberate trade. Blocking every recoverable operation taxed correct work on every turn (branching before a commit was harder to reach than committing onto `main`) while buying little: a commit is revertable, a push is revertable, and neither loses data. The hook's budget is spent where nothing can undo the damage — destroyed uncommitted work and rewritten history. Read rule 1 as binding on YOU, not on the hook.
+
+**What the lease is and is not.** Where the hook runs, an irreversible operation clears only with a current session lease for that exact repository and operation. The git-side destructive class (`reset --hard`, `clean -f`, `checkout -- <path>`, `branch -D`, `stash drop`, a force push…) consumes the **`discard`** term; an irreversible `gh` write consumes **`push`**. `amend` has no term at all — nothing clears it. A lease is **bookkeeping, not consent**: it records that a commit skill or `git-manager` was asked to act, and it is a _scoped speedbump_, not a security boundary. Its store is an ordinary directory that is not tamper-proof (`.claude/hooks/lib/git-operation-lease.cjs:14`) and `issueLease` performs no issuer-authority check — any process able to write that store can mint one. So the lease raises the cost of an accidental push; it does not stop a determined one, and holding a lease NEVER substitutes for rule 1's explicit human request.
 
 ---
 
@@ -506,11 +472,11 @@ python .claude/scripts/code_graph search <keyword> --kind Function --json       
 
 When editing files matching these path patterns, pre-read the listed context first:
 
-| Path Pattern | Skill / Auto-Context | Pre-Read Files |
-|---|---|---|
-| `/\.claude/hooks/.*\.cjs$**` | _(auto-context)_ | `.claude/docs/hooks/README.md` |
-| `/\.claude/skills/.*SKILL\.md$**` | _(auto-context)_ | `.claude/docs/skills/README.md` |
-| `/\.claude/agents/.*\.md$**` | _(auto-context)_ | `.claude/docs/agents/README.md` |
+| Path Pattern                      | Skill / Auto-Context | Pre-Read Files                  |
+| --------------------------------- | -------------------- | ------------------------------- |
+| `/\.claude/hooks/.*\.cjs$**`      | _(auto-context)_     | `.claude/docs/hooks/README.md`  |
+| `/\.claude/skills/.*SKILL\.md$**` | _(auto-context)_     | `.claude/docs/skills/README.md` |
+| `/\.claude/agents/.*\.md$**`      | _(auto-context)_     | `.claude/docs/agents/README.md` |
 
 <!-- /SECTION:skill-activation -->
 
@@ -538,7 +504,7 @@ When editing files matching these path patterns, pre-read the listed context fir
 | Kind        | Count                                       |
 | ----------- | ------------------------------------------- |
 | Skills      | <!-- COUNT:skills -->167<!-- /COUNT -->     |
-| Hooks       | <!-- COUNT:hooks -->17<!-- /COUNT -->       |
+| Hooks       | <!-- COUNT:hooks -->18<!-- /COUNT -->       |
 | Agents      | <!-- COUNT:agents -->27<!-- /COUNT -->      |
 | Workflows   | <!-- COUNT:workflows -->19<!-- /COUNT -->   |
 | Shared      | <!-- COUNT:shared -->8<!-- /COUNT -->       |
@@ -559,14 +525,14 @@ docs/templates/  (1 files)
 
 <!-- SECTION:doc-lookup -->
 
-| If user prompt mentions... | Read first |
-|---|---|
-| Feature specs, capability behavior, business rules, test cases | `docs/specs/` + `docs/project-reference/feature-spec-reference.md` |
-| Spec paths, TC format, canonical vs derived spec artifacts | `docs/project-reference/spec-system-reference.md` |
-| Spec quality, AI-implementability, tech-agnostic prose | `docs/project-reference/spec-principles.md` |
-| Behavior or public contract changes, spec-test-code sync | `docs/project-reference/workflow-spec-test-code-cycle-reference.md` |
-| Backend patterns, CQRS, validation | `docs/project-reference/backend-patterns-reference.md` |
-| Frontend patterns, components, stores | `docs/project-reference/frontend-patterns-reference.md` |
+| If user prompt mentions...                                     | Read first                                                          |
+| -------------------------------------------------------------- | ------------------------------------------------------------------- |
+| Feature specs, capability behavior, business rules, test cases | `docs/specs/` + `docs/project-reference/feature-spec-reference.md`  |
+| Spec paths, TC format, canonical vs derived spec artifacts     | `docs/project-reference/spec-system-reference.md`                   |
+| Spec quality, AI-implementability, tech-agnostic prose         | `docs/project-reference/spec-principles.md`                         |
+| Behavior or public contract changes, spec-test-code sync       | `docs/project-reference/workflow-spec-test-code-cycle-reference.md` |
+| Backend patterns, CQRS, validation                             | `docs/project-reference/backend-patterns-reference.md`              |
+| Frontend patterns, components, stores                          | `docs/project-reference/frontend-patterns-reference.md`             |
 
 <!-- /SECTION:doc-lookup -->
 

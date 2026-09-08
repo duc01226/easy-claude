@@ -25,46 +25,6 @@ For full canonical detail, read `CLAUDE.md` and `.codex/CODEX_CONTEXT.md` direct
 <!-- prettier-ignore-end -->
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 # easy-claude - Code Instructions
 
 <!-- SECTION:tldr -->
@@ -83,16 +43,16 @@ For full canonical detail, read `CLAUDE.md` and `.codex/CODEX_CONTEXT.md` direct
 >
 > Honor an explicit request to execute a skill/workflow first. Otherwise auto-select by complexity and risk; never ask the user to choose the execution path.
 >
-> | Intent | Route |
-> | --- | --- |
-> | Clear, low-risk task or one-off question | direct |
-> | Simple coordinated steps | custom-simple: only the necessary skills/steps |
-> | Non-trivial bug/regression/stale output | `workflow-bugfix` |
-> | Non-trivial feature/enhancement | `workflow-feature`; large/ambiguous/research-heavy scope uses `workflow-big-feature` |
-> | Product vision, greenfield or release-scoped idea | owning idea/feature workflow; apply shared `isLargeIdea` and embed decomposition in its artifacts |
-> | Explicit roadmap/update/milestone-selection request | `product-roadmap`; only this explicit intent may write `docs/product-roadmap.md` |
-> | Milestone/large-idea scope needing adversarial failure, replay, state, ownership, recovery or evidence analysis | conditional `scenario` before `$plan`; no roadmap artifact |
-> | Other matching skill/workflow Use clause | that skill/workflow, verified from its canonical definition |
+> | Intent                                                                                                          | Route                                                                                             |
+> | --------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------- |
+> | Clear, low-risk task or one-off question                                                                        | direct                                                                                            |
+> | Simple coordinated steps                                                                                        | custom-simple: only the necessary skills/steps                                                    |
+> | Non-trivial bug/regression/stale output                                                                         | `workflow-bugfix`                                                                                 |
+> | Non-trivial feature/enhancement                                                                                 | `workflow-feature`; large/ambiguous/research-heavy scope uses `workflow-big-feature`              |
+> | Product vision, greenfield or release-scoped idea                                                               | owning idea/feature workflow; apply shared `isLargeIdea` and embed decomposition in its artifacts |
+> | Explicit roadmap/update/milestone-selection request                                                             | `product-roadmap`; only this explicit intent may write `docs/product-roadmap.md`                  |
+> | Milestone/large-idea scope needing adversarial failure, replay, state, ownership, recovery or evidence analysis | conditional `scenario` before `$plan`; no roadmap artifact                                        |
+> | Other matching skill/workflow Use clause                                                                        | that skill/workflow, verified from its canonical definition                                       |
 >
 > Declare `Route: {workflow-id | skill | custom-simple | direct} — because {reason}`, then ACTIVATE before edits, agents or commands. Workflow: execute `$start-workflow <id>` and use its canonical sequence for tasks 1:1; never improvise that list. Skill: read and execute its SKILL.md through the host's supported mechanism. Custom/direct: create a small task list and execute it. Missing required tools/details: stop and report; never fabricate invocation.
 >
@@ -113,6 +73,52 @@ For full canonical detail, read `CLAUDE.md` and `.codex/CODEX_CONTEXT.md` direct
 > Active overlays: _(none)_
 
 <!-- /CK:PROJECT-PROTOCOLS -->
+
+<!-- CK:CRITICAL-THINKING -->
+
+**[CRITICAL-THINKING-MINDSET]** Apply critical thinking, sequential thinking. Every claim needs traced proof, confidence >80% to act.
+**Anti-hallucination principle:** Never present guess as fact — cite sources for every claim, admit uncertainty freely, self-check output for errors, cross-reference independently, stay skeptical of own confidence — certainty without evidence root of all hallucination.
+**AI Attention principle (Primacy-Recency):** Put the 3 most critical rules at both top and bottom of long prompts/protocols so instruction adherence survives long context windows.
+**Goal-driven execution:** Define success criteria first, loop until verified, and stop only when observable checks pass.
+**Tests verify intent:** Tests must protect business rules/invariants and fail when the protected intent breaks, not only mirror current behavior.
+
+<!-- /CK:CRITICAL-THINKING -->
+
+<!-- CK:AI-MISTAKE-PREVENTION -->
+
+## Common AI Mistake Prevention (System Lessons)
+
+- **Re-read files after context compaction.** Edit requires prior Read in same context; compaction wipes read state. Re-read before editing.
+- **Grep for old terms after bulk replacements.** AI over-trusts find/replace completeness. Grep full repo after bulk edits for missed refs in docs/configs/catalogs.
+- **Check downstream references before deleting.** Deletions cascade doc/code staleness. Map referencing files before removal.
+- **After memory loss, check existing state before creating new.** Compaction wipes prior-work memory. Query current state to resume — never blindly duplicate.
+- **Verify AI-generated content against actual code.** AI hallucinates APIs, class names, method signatures. Grep to confirm existence before documenting/referencing.
+- **Trace full dependency chain after edits.** Changing a definition misses downstream consumers. Trace the full chain.
+- **When renaming, grep ALL consumer file types.** Some file types silently ignore missing refs (no compile error). Search code, templates, configs, generated files.
+- **Trace ALL code paths when verifying correctness.** Code existing ≠ code executing. Trace early exits, error branches, conditional skips — not just happy path.
+- **Update docs that embed canonical data when source changes.** Docs inlining derived data (workflows, schemas, configs) go stale silently. Update all embedding docs alongside source.
+- **Verify sub-agent results after context recovery.** Background agents may finish while parent compacted — grep-verify output, don't trust assumed completion.
+- **Cross-check full target list against sub-agent assignments.** Parallel sub-agents by category miss boundary items. Reconcile union of assignments against target list before proceeding.
+- **Sub-agents inherit knowledge only from their agent .md definition — use custom agent types, not built-in Explore.** Tool adoption = permission + knowledge + enforcement (numbered workflow step).
+- **Persist sub-agent findings incrementally, not as a final batch.** Long sub-agents hit cutoffs before final write — findings lost. Instruct append-per-section to report file.
+- **When debugging, ask "whose responsibility?" before fixing.** Trace caller (wrong data) vs callee (wrong handling). Fix at responsible layer — never patch symptom site.
+- **Test failure → record a provisional verdict before trace/edit, then investigate.** Use the full five-way taxonomy: SOURCE-WRONG (production violates intent), TEST-WRONG (assertion/setup is stale), TEST-NOT-OPTIMAL (valid but fragile or low-signal test), ENVIRONMENT-BLOCKED (external state prevents a verdict), or AMBIGUOUS (intent/evidence cannot choose safely). Then trace root cause and triangulate against the governing spec (`docs/specs/**` if one exists) AND source. NEVER weaken an assertion, add a skip, relax a timeout, or change source merely to force green.
+- **Grep ALL removed names after extraction/refactoring.** Primary file "done" ≠ secondary files clean. Grep entire scope for every removed symbol before declaring complete.
+- **Assume existing values are intentional — ask WHY before changing OR flagging one as a defect.** Pattern-matching as "wrong" skips context. Before changing or reporting any constant/limit/flag/cutoff: read comments, git blame, the CALLER's ordering (the guarantee that makes the value correct usually lives in code running immediately BEFORE the cited line), and 2+ sibling call sites of the same convention. A doc stating WHAT without WHY is missing rationale, not proof of a missing guard — and in a validation pass, an accurate `file:line` citation proves the transcription, never the defect.
+- **Verify ALL affected outputs, not just the first.** One build green ≠ all green. Multi-stack changes (backend/frontend/tests/docs) require verifying EVERY output.
+- **Evaluate fit before copying a nearby pattern.** Closest example ≠ matching preconditions — verify the new context shares the same constraints, base classes, scope, lifetime.
+- **Holistic-first debugging — resist nearest-attention trap.** Don't dive into first plausible cause. List EVERY precondition (config, env vars, paths, DB, endpoints, creds, versions, DI, data). Verify each against evidence (grep/query — not reasoning). Ask "what would falsify this?" — if nothing, it's not a hypothesis. Most expensive failure: going deeper in "obvious" layer while bug sits in layer never questioned.
+- **Surgical changes — apply the diff test (context-aware).** Two modes: (1) Bug fix → every line traces to the bug; no restyling; orphan cleanup only for imports YOUR changes made unused. (2) Review/enhancement → implement improvements AND announce as "Enhancement beyond main request: [what]". Never silently scope-creep. Diff test: "Would this line exist if I wasn't asked to do X?" — if no, delete or announce.
+- **Surface ambiguity before coding — don't pick silently.** Multiple valid interpretations → present each with effort: "[Request] could mean (1) [N h], (2) [N h]. Which matters?" List scope/format/volume/constraints assumptions first. If simpler path exists, say so. Never silently pick.
+- **[MANDATORY FIRST ACTION] ALWAYS activate a suitable skill or workflow BEFORE responding.** Match task against workflow catalog + skill list; invoke via skill invocation or `$start-workflow <workflowId>`. NEVER answer or write code before checking. Skip = protocol violation.
+- **Why-Review adversarial mindset — apply when reviewing any plan, decision, or design.** Default SKEPTIC not VALIDATOR: steel-man a rejected alternative, invert each stated reason ("what does it sacrifice?"), stress-test top 2-3 assumptions, run pre-mortem ("ships, fails in 3 months — what breaks?"), surface 1-2 alternatives author missed. Section presence ≠ quality; quality = causal reasoning + concrete mitigations + evidence, not "it's better" or "monitor closely".
+- **Front-load report-write in sub-agent prompts for large reviews.** Many-file sub-agents hit budget before final write — findings lost. Design prompts so: (1) report-write is first explicit deliverable, (2) append per-file/section (not batched), (3) scope bounded so reads don't exhaust budget. Truncated mid-sentence with no report file → spawn narrower scope, don't retry same prompt.
+- **After context compaction, re-verify all prior phase outcomes before continuing.** Summaries describe intent, not environment state (git index, filesystem, processes). On resume, FIRST audit: git status, re-read modified files, verify filesystem. Every "completed" claim is an untested hypothesis until evidence confirms.
+- **OOM/memory: check row count before row size.** Triage: (1) Unbounded query — no DB filter for trigger? Push filter to DB; eliminates OOM. (2) Large rows? Projection reduces proportionally. Row reduction > projection in ROI.
+- **Assert the outcome your system OWNS, never the intermediate state your INFRASTRUCTURE owns.** When testing anything asynchronous (queue/broker delivery, retries, background jobs, caches, replication), assert the final business/entity state. NEVER assert the delivery bookkeeping — consume/send status, attempt counts, last-error, row existence or counts in a broker, scheduler, or outbox/inbox table. That bookkeeping lives in shared infrastructure that ANY co-running process (a peer worker, a second replica, a leftover local container) can write, usually under a deterministic shared key, so the assertion silently tests the developer's environment instead of the system: green when run alone, flaky the instant anything else shares that broker + database. Gate question for every assertion: "would this hold no matter WHICH process did the work?" — if no, assert the converged data state instead. Corollary: process-local fault injection and in-process telemetry cannot gate work any process may perform — use them as stress amplifiers (arm → bounded window → disarm → assert convergence), never as preconditions.
+- **Keep domain concepts out of generic/shared/infrastructure layers.** Reusable layer (shared library, framework, infra module) must reference NO consumer-specific domain concept — tenant/customer/product IDs, business entities, feature rules. Leak compiles + runs → passes review silently while coupling the "reusable" layer to one consumer. Keep shared type domain-free; push domain fields/logic down into the consumer via subclass/composition. — why: a layer coupled to one consumer's domain is no longer reusable.
+
+<!-- /CK:AI-MISTAKE-PREVENTION -->
 
 ## Workflow Step Advancement & Parallel Phases
 
@@ -166,8 +172,8 @@ Workflow progression is **model-driven** — your responsibility, not a tool/hoo
 
 **Decision Quick-Ref:**
 
-| Task | Pattern |
-|---|---|
+| Task                | Pattern                                                     |
+| ------------------- | ----------------------------------------------------------- |
 | Backend conventions | Read `docs/project-reference/backend-patterns-reference.md` |
 
 <!-- /SECTION:decision-quick-ref -->
@@ -233,6 +239,54 @@ Entity/Model (Lowest)  >  Service  >  Component/Handler (Highest)
 
 ---
 
+## Naming Conventions
+
+| Type           | Convention       | Example                                       |
+| -------------- | ---------------- | --------------------------------------------- |
+| Files          | kebab-case       | `context-injector.cjs`, `session-manager.cjs` |
+| Hook files     | `<name>.cjs`     | `.claude/hooks/privacy-block.cjs`             |
+| Hook libraries | `<name>.cjs`     | `.claude/hooks/lib/project-config-schema.cjs` |
+| Skill dirs     | `<skill-name>/`  | `.claude/skills/code-review/SKILL.md`         |
+| Agent files    | `<name>.md`      | `.claude/agents/code-reviewer.md`             |
+| Constants      | UPPER_SNAKE_CASE | `MAX_RETRY_COUNT`                             |
+| Booleans       | Prefix with verb | `isActive`, `hasPermission`, `canEdit`        |
+| Collections    | Plural           | `users`, `items`, `employees`                 |
+
+---
+
+<!-- SECTION:key-locations -->
+
+```
+/\.claude/hooks/                         # Runtime hooks for session initialization, safety gates, graph maintenance, and code formatting
+/\.claude/hooks/lib/                     # Shared utility modules consumed by hooks
+/\.claude/skills/                        # Skill definitions for task automation (SKILL.md + scripts)
+/\.claude/agents/                        # Agent definitions for specialized subagent roles
+/\.claude/scripts/                       # Utility scripts for catalog generation, skill management, and worktree operations
+/\.claude/workflows/                     # Workflow definitions for orchestrating multi-step task sequences
+/\.claude/docs/                          # Framework documentation — agents, skills, hooks, configuration guides
+```
+
+<!-- /SECTION:key-locations -->
+
+<!-- SECTION:dev-commands -->
+
+```bash
+node .claude/hooks/tests/test-all-hooks.cjs   # hook tests
+node .claude/hooks/tests/run-all-tests.cjs    # all suites
+```
+
+**Platform (Windows):** invoke Python via `py -3` or `py` — NEVER `python3` (MS Store alias exits 49). Scripts resolve `python` then `py -3` (see `count-drift.test.cjs:29-32`). macOS/Linux: use `python3`.
+
+<!-- /SECTION:dev-commands -->
+
+<!-- SECTION:integration-testing -->
+
+See [integration-test-reference.md](docs/project-reference/integration-test-reference.md) for integration test patterns and setup.
+
+<!-- /SECTION:integration-testing -->
+
+---
+
 ## Evidence-Based Reasoning & Investigation
 
 Don't speculate. Every claim about code behavior — and every recommendation for changes — must be backed by evidence.
@@ -274,14 +328,20 @@ Add a final task — "Analyze AI mistakes & lessons learned" — to every non-tr
 
 ## Git & Version-Control Discipline
 
-> **[BLOCKING] Hook-independent guardrail — binds Claude, Codex, and Copilot equally.** Where hooks run, `git-commit-block.cjs` enforces this as a hard PreToolUse block; on a hookless host (Codex/Copilot) or an un-wired project this section is the ONLY guardrail — obey it without the block.
+> **[BLOCKING] Hook-independent guardrail — binds Claude, Codex, and Copilot equally.** On a hookless host (Codex/Copilot) or an un-wired project this section is the ONLY guardrail — obey it without any block.
+>
+> **The hook enforces a NARROWER set than this section.** `git-commit-block.cjs` blocks only what is **irreversible**: commands that destroy uncommitted work (`checkout`/`restore` on a pathspec, `reset --hard`, `clean -f`, `switch --discard-changes`, `stash drop|clear`, `rm -f`) and destructive history rewrites (`push --force`, `branch -D`, `reflog expire`, `filter-branch`), plus `commit --amend` and the irreversible `gh` verbs of rule 6. Rules 1, 3 and 4 — and the recoverable half of rule 6 — are **model-behavioral**: nothing blocks them, so obeying them is your responsibility on every host including this one. A command being allowed by the hook is NEVER evidence you were asked to run it.
 
-1. **Never commit, push, or stage (`git add`) unless the user explicitly asks for it.** "Implement X" / "fix the bug" is NOT permission to commit — finish the work, report what changed, and wait. Only an explicit "commit"/"push" (or an invoked commit skill / git-manager) authorizes it.
-2. **Never `git commit --amend`.** Amending rewrites history and can corrupt commits once HEAD has moved — always create a NEW commit. No bypass.
-3. **Branch before committing on the default branch.** If asked to commit while on `main`/`master`, create a feature branch first.
-4. **Read-only git needs no permission** — `status`, `diff`, `log`, `show`, `branch`, `fetch`, `restore`, `reset HEAD` are always allowed.
+1. **Never commit, push, or stage (`git add`) unless the user explicitly asks for it.** "Implement X" / "fix the bug" is NOT permission to commit — finish the work, report what changed, and wait. Only an explicit "commit"/"push" (or an invoked commit skill / git-manager) authorizes it. _(**Model-behavioral** — the hook deliberately does NOT block these. They are recoverable, and gating them made the correct workflow harder to reach than the destructive one. Nothing catches this but you.)_
+2. **Never `git commit --amend`.** Amending rewrites history and can corrupt commits once HEAD has moved — always create a NEW commit. No bypass. _(Hook-enforced, unconditional — no lease clears it.)_
+3. **Branch before committing on the default branch.** If asked to commit while on `main`/`master`, create a feature branch first. _(**Model-behavioral** — the hook has no branch awareness and will not stop a commit on `main`. Nothing catches this but you.)_
+4. **Read-only git needs no permission** — `status`, `diff`, `log`, `show`, `rev-parse`, `describe`, `blame`, `check-ignore`, `ls-files`, `shortlog`, and the _listing_ forms of `branch`, `tag`, `remote`, `config` and `stash`. _(Model-behavioral permission note.)_
+5. **Never run a command that can destroy uncommitted work.** Unstaged edits and untracked files exist in exactly one place — the working tree. `git checkout -- <path>`, `git restore <path>`, `git reset --hard`, `git clean -f`, `git switch --discard-changes` and `git stash drop` erase the only copy that ever existed. _(Hook-enforced — this is the one class the hook blocks outright. Ask before running one; there is nothing to undo it with.)_
+6. **Publishing through the GitHub CLI — or the GitHub MCP server — is the same act as pushing.** `gh pr create|merge`, `gh release create`, `gh repo delete`, `gh api -X POST|PUT|PATCH|DELETE` and their siblings need the same explicit request rule 1 demands; `git-commit-block.cjs` gates only the **irreversible** modeled verbs — any `delete`/`delete-asset` (repo, release, secret, variable, cache, gist, label, run, issue, project, codespace, ssh-key, gpg-key), plus `archive`, `rename`, `transfer`, and any mutating `gh api` — and those consume a session **push** lease. `gh pr create|merge`, `gh release create` and the other publishing verbs are closeable, revertable or deletable afterwards, so they are NOT hook-gated; an unmodeled `gh` write verb is NOT gated either. Rule 1 binds all of them. The MCP tools (`mcp__github__merge_pull_request`, `create_*`, `update_*`, `push_files`, …) reach the same remote without a shell and are gated by `github-mcp-write-block.cjs` against the same session **push** lease; there an unmodeled verb IS gated, because only `get_*`/`list_*`/`search_*` are treated as reads.
 
-**Why:** auto-committing/pushing unprompted publishes unreviewed work and can rewrite shared history — the highest-blast-radius irreversible action an agent can take — so it stays gated on explicit human intent on every host, not only where a hook fires.
+**Why:** auto-committing/pushing unprompted publishes unreviewed work and can rewrite shared history, so it stays gated on explicit human intent on every host. That gate is now **behavioral, not mechanical** — a deliberate trade. Blocking every recoverable operation taxed correct work on every turn (branching before a commit was harder to reach than committing onto `main`) while buying little: a commit is revertable, a push is revertable, and neither loses data. The hook's budget is spent where nothing can undo the damage — destroyed uncommitted work and rewritten history. Read rule 1 as binding on YOU, not on the hook.
+
+**What the lease is and is not.** Where the hook runs, an irreversible operation clears only with a current session lease for that exact repository and operation. The git-side destructive class (`reset --hard`, `clean -f`, `checkout -- <path>`, `branch -D`, `stash drop`, a force push…) consumes the **`discard`** term; an irreversible `gh` write consumes **`push`**. `amend` has no term at all — nothing clears it. A lease is **bookkeeping, not consent**: it records that a commit skill or `git-manager` was asked to act, and it is a _scoped speedbump_, not a security boundary. Its store is an ordinary directory that is not tamper-proof (`.claude/hooks/lib/git-operation-lease.cjs:14`) and `issueLease` performs no issuer-authority check — any process able to write that store can mint one. So the lease raises the cost of an accidental push; it does not stop a determined one, and holding a lease NEVER substitutes for rule 1's explicit human request.
 
 ---
 
@@ -315,11 +375,11 @@ python .claude/scripts/code_graph search <keyword> --kind Function --json       
 
 When editing files matching these path patterns, pre-read the listed context first:
 
-| Path Pattern | Skill / Auto-Context | Pre-Read Files |
-|---|---|---|
-| `/\.claude/hooks/.*\.cjs$**` | _(auto-context)_ | `.claude/docs/hooks/README.md` |
-| `/\.claude/skills/.*SKILL\.md$**` | _(auto-context)_ | `.claude/docs/skills/README.md` |
-| `/\.claude/agents/.*\.md$**` | _(auto-context)_ | `.claude/docs/agents/README.md` |
+| Path Pattern                      | Skill / Auto-Context | Pre-Read Files                  |
+| --------------------------------- | -------------------- | ------------------------------- |
+| `/\.claude/hooks/.*\.cjs$**`      | _(auto-context)_     | `.claude/docs/hooks/README.md`  |
+| `/\.claude/skills/.*SKILL\.md$**` | _(auto-context)_     | `.claude/docs/skills/README.md` |
+| `/\.claude/agents/.*\.md$**`      | _(auto-context)_     | `.claude/docs/agents/README.md` |
 
 <!-- /SECTION:skill-activation -->
 

@@ -6,7 +6,6 @@ import vm from 'node:vm';
 import { createRequire } from 'node:module';
 import { fileURLToPath } from 'node:url';
 import { spawnSync } from 'node:child_process';
-import { isFrameworkRepo } from './framework-repo.helper.mjs';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../../..');
 const require = createRequire(import.meta.url);
@@ -72,8 +71,19 @@ function assertDrainedBlock(source) {
     assert.doesNotMatch(source, /process\.exit\s*\(/);
 }
 
-test('DOC-HOOK-002 backend rejection example drains and returns with exit 2', { skip: !isFrameworkRepo(root) }, () => {
-    const source = example(read('docs/project-reference/backend-patterns-reference.md'), '## Validation Patterns');
+// The drain-then-return rejection is a HOOK contract, so it is asserted against the portable hooks
+// guide — the same `guide` DOC-HOOK-001/004/005 read — not a project-reference doc. It carries no
+// isFrameworkRepo guard for the same reason those three do not: `.claude/docs/hooks/extending-hooks.md`
+// travels with the framework into every adopting project, so the coverage must travel with it.
+//
+// Do NOT repoint this at a project-reference doc's `## Validation Patterns`. That heading collides with
+// an unrelated PROJECT-owned section (C# request/entity validation, registered for the backend session
+// hook in `.claude/hooks/lib/session-init-helpers.cjs`), whose only fence is `csharp` — so the extractor
+// matches zero examples and this test fails. A previous change made exactly that repoint, deleted the
+// guide section, and added an isFrameworkRepo guard, which would also have dropped the coverage in every
+// adopting project.
+test('DOC-HOOK-002 backend rejection example drains and returns with exit 2', () => {
+    const source = example(guide, '## Validation Patterns');
     assertDrainedBlock(source);
     for (const mutant of [source.replace('process.exitCode = 2;', 'process.exit(2);'),
         source.replace('process.exitCode = 2;', 'process.exitCode = 0;'),

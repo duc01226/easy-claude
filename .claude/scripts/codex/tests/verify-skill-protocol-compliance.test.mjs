@@ -12,10 +12,80 @@ const {
     checkOrphanHeadings,
     formatMirrorRemediation,
     countOccurrences,
-    checkCompactAgentsProjection
+    checkCompactAgentsProjection,
+    checkProtocolBodySignatureCounts,
+    AGENTS_ROOT_LIMIT_BYTES
 } = await import(pathToFileURL(verifierPath).href);
 
 const joinLines = (...lines) => lines.join('\n');
+
+const FENCED_CLAUDE = joinLines('<!-- CK:CRITICAL-THINKING -->', '<!-- CK:AI-MISTAKE-PREVENTION -->');
+const BOTH_BODIES = joinLines('[CRITICAL-THINKING-MINDSET]', '## Common AI Mistake Prevention (System Lessons)');
+const FENCELESS_CLAUDE = '# Portable project\n';
+
+// The gate measures a projection it does not build, so its budget must equal the GENERATOR's. Those
+// two constants cannot be collapsed into one import — the verifier is loaded from a `data:` URL and
+// copied into isolated roots without its siblings, so a relative import breaks it (see
+// `verifier-root-contract.test.mjs`). This cross-producer assertion is what replaces the import:
+// they already drifted once, the generator raising its budget to project the anti-hallucination
+// protocol into the Codex root while this gate kept the old number and failed the generator's own
+// output. Reading the value from each module independently is the point — deriving one from the
+// other would only ask a single source whether it agrees with itself.
+test('TC-CTXP-035e: the projection budget matches the generator that produces the projection', async () => {
+    const generatorPath = path.resolve(thisDir, '..', 'sync-context-workflows.mjs');
+    const generator = await import(pathToFileURL(generatorPath).href);
+    assert.equal(
+        AGENTS_ROOT_LIMIT_BYTES,
+        generator.AGENTS_ROOT_LIMIT_BYTES,
+        'verify-skill-protocol-compliance.mjs and sync-context-workflows.mjs must agree on the AGENTS.md root budget'
+    );
+});
+
+// The bounded root's occurrence contract is CONDITIONAL, unlike `.codex/CODEX_CONTEXT.md`'s
+// unconditional exactly-once. That asymmetry is the whole point: the context file's copy is baked
+// from the canonical shared source and is project-independent, while AGENTS.md's is CLAUDE.md-
+// derived through the projection whitelist. An unconditional ">=1" would hard-fail every adopter
+// whose CLAUDE.md carries no CK fence — this repo's own PORT-013 fixture is exactly that shape —
+// because the whitelist has nothing to project. Drive every branch here: the gate itself reads real
+// repo paths, so only the extracted predicate can be fixture-driven.
+test('TC-CTXP-035f: the bounded-root occurrence contract follows what CLAUDE.md can source', () => {
+    // Fenced CLAUDE.md → exactly one deduped copy of each block is required, and satisfies it.
+    assert.deepEqual(checkProtocolBodySignatureCounts(BOTH_BODIES, FENCED_CLAUDE), []);
+
+    // Fenced but ZERO copies → Codex lost the guardrail. This is the regression the guard exists for.
+    const lost = checkProtocolBodySignatureCounts('', FENCED_CLAUDE);
+    assert.equal(lost.length, 2, 'both blocks must be reported missing');
+    assert.match(lost[0], /found 0×.*expected exactly 1/);
+
+    // Fenced with a second copy → de-duplication regressed and the root pays for the block twice.
+    const dupe = checkProtocolBodySignatureCounts(joinLines(BOTH_BODIES, BOTH_BODIES), FENCED_CLAUDE);
+    assert.equal(dupe.length, 2);
+    assert.match(dupe[0], /found 2×.*de-duplication regressed/);
+
+    // Fence-less CLAUDE.md (the PORT-013 adopter shape) → zero copies is CORRECT, not a failure.
+    // Regressing this to an unconditional >=1 turns every such adopter's `verify:all` red.
+    assert.deepEqual(checkProtocolBodySignatureCounts(FENCELESS_CLAUDE, FENCELESS_CLAUDE), []);
+
+    // A missing CLAUDE.md is treated the same way — its absence is the agent-files bootstrap gate's
+    // failure to report, not this gate's.
+    assert.deepEqual(checkProtocolBodySignatureCounts('', ''), []);
+
+    // …but a fence-less root that somehow gained a copy is still wrong: nothing could have sourced it.
+    const unsourced = checkProtocolBodySignatureCounts(BOTH_BODIES, FENCELESS_CLAUDE);
+    assert.equal(unsourced.length, 2);
+    assert.match(unsourced[0], /found 1×.*expected 0.*cannot source/);
+});
+
+test('TC-CTXP-035g: loosening the bounded-root occurrence check is killed by its own contract', async () => {
+    const source = await fs.readFile(verifierPath, 'utf8');
+    const guard = 'if (n === expected) continue;';
+    assert.equal(source.split(guard).length, 2, 'mutation anchor must be unique');
+    const mutated = source.replace(guard, 'if (true) continue;').replaceAll('import.meta.url', JSON.stringify(pathToFileURL(verifierPath).href));
+    const verifier = await import(`data:text/javascript;base64,${Buffer.from(mutated).toString('base64')}`);
+    const oracle = fn => assert.equal(fn('', FENCED_CLAUDE).length, 2);
+    oracle(checkProtocolBodySignatureCounts);
+    assert.throws(() => oracle(verifier.checkProtocolBodySignatureCounts), assert.AssertionError);
+});
 
 test('TC-CTXP-035d: deleting malformed-marker rejection is killed by the ordered-pair assertion', async () => {
     const source = await fs.readFile(verifierPath, 'utf8');
@@ -226,10 +296,12 @@ test('TC-CTXP-035b: compact AGENTS projection rejects stale fingerprints, missin
         'Read `.codex/CODEX_CONTEXT.md`.',
         'Context fingerprint (SHA-256): 0000000000000000000000000000000000000000000000000000000000000000',
         '<!-- CODEX-CONTEXT-MIRROR:END -->',
-        'x'.repeat(32769)
+        // Derived from the constant, not a second copy of the number: pinning the literal here is
+        // what made a deliberate budget change look like a test failure instead of a doc update.
+        'x'.repeat(AGENTS_ROOT_LIMIT_BYTES + 1)
     );
     const failures = checkCompactAgentsProjection(agents, context);
-    assert.ok(failures.some((failure) => /above the 32768-byte/.test(failure)));
+    assert.ok(failures.some((failure) => new RegExp(`above the ${AGENTS_ROOT_LIMIT_BYTES}-byte`).test(failure)));
     assert.ok(failures.some((failure) => /bounded root projection markers/.test(failure)));
     assert.ok(failures.some((failure) => /fingerprint does not match/.test(failure)));
 });

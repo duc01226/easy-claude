@@ -7,6 +7,9 @@ import { spawn } from 'node:child_process';
 import { builtinModules } from 'node:module';
 import { fileURLToPath } from 'node:url';
 import { DEFAULT_FRAMEWORK_PACKAGE_NAME, frameworkPackageName, frameworkPkg, isFrameworkRepo } from './framework-repo.helper.mjs';
+// DERIVED from the generator that produces the projection PORT-013 measures — never a literal, so
+// the bound tracks the live budget instead of silently going loose when it moves.
+import { AGENTS_ROOT_LIMIT_BYTES } from '../sync-context-workflows.mjs';
 
 // Portability contract: copying ONLY `.claude/` into a new project that has NO root package.json
 // must still run the full sync+verify pipeline. The framework's script execution is self-contained in
@@ -370,7 +373,27 @@ test('PORT-013 relocated .claude and .codex bundles resolve from the consuming p
     const agents = await fs.readFile(path.join(relocated, 'AGENTS.md'), 'utf8');
     assert.match(context, /Workflow Protocol \(Hook-Independent\)/);
     assert.match(agents, /\.codex\/CODEX_CONTEXT\.md/);
-    assert.ok(Buffer.byteLength(agents, 'utf8') <= 32768, 'relocated root projection must remain bounded');
+    assert.ok(Buffer.byteLength(agents, 'utf8') <= AGENTS_ROOT_LIMIT_BYTES, 'relocated root projection must remain bounded');
+
+    // The adopter path must survive the VERIFIER, not just the generator. This fixture's CLAUDE.md
+    // is the literal '# Portable project\n' — no CK fences — so the projection whitelist has nothing
+    // to source and AGENTS.md carries ZERO protocol-body copies. That is correct for this shape, and
+    // the bounded-root occurrence contract is conditional precisely so it stays correct
+    // (`verify-skill-protocol-compliance.mjs` checkProtocolBodySignatureCounts). Running only the
+    // generator here is what let an unconditional ">=1" ship: it turned every fence-less adopter's
+    // `verify:all` red while this suite stayed green.
+    const skProto = await run(process.execPath, [relocatedRunner, '--only=sk-proto'], {
+        cwd: path.join(relocated, 'nested', 'work')
+    });
+    // Assert the EXIT CODE, not merely the absence of a message: a `doesNotMatch` alone would pass
+    // vacuously on any unrelated failure, which is the same class of vacuous check this assertion
+    // exists to prevent. The message match then names WHICH contract must not be the one that broke.
+    assert.equal(skProto.code, 0, `a CK-fence-less adopter root must pass sk-proto: ${skProto.stderr || skProto.stdout}`);
+    assert.doesNotMatch(
+        skProto.stdout + skProto.stderr,
+        /body signature .* found \d+×/,
+        'a CK-fence-less adopter root must not fail the bounded-root protocol-body occurrence contract'
+    );
     assert.doesNotMatch(context, new RegExp(exported.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
     assert.doesNotMatch(agents, new RegExp(exported.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
 });

@@ -5,7 +5,7 @@
 **Audience:** AI engineers, tech leads, and teams wanting to build reliable AI-assisted development systems.
 **Scope:** What each layer does, why it exists, how the pieces compose, the design principles behind every decision, and which AI agent best practices each addresses.
 
-> **Document Sync Status** — Current local verification (2026-09-07): **17 top-level hook files · 167 skills · 19 workflows · 27 agents** using the ADR-0002 filesystem metrics. Codex mirrors are committed under `.agents/`, `.codex/`, and `AGENTS.md`. Notable mechanisms documented here include multi-AI-tool portability (§13), behavioral-principle injection (§8.21), self-validating review (§8.20), and embedded sequential-thinking.
+> **Document Sync Status** — Current local verification (2026-09-07): **18 top-level hook files · 167 skills · 19 workflows · 27 agents** using the ADR-0002 filesystem metrics. Codex mirrors are committed under `.agents/`, `.codex/`, and `AGENTS.md`. Notable mechanisms documented here include multi-AI-tool portability (§13), behavioral-principle injection (§8.21), self-validating review (§8.20), and embedded sequential-thinking.
 
 ---
 
@@ -45,7 +45,7 @@
 
 ## 1. Executive Summary
 
-This framework wraps Claude Code in a three-pillar execution framework — **17 top-level hook files**, **167 skills**, **19 registered workflows**, and **27 specialized agents** — that transforms a generic LLM into a project-aware, quality-enforced, hallucination-resistant development agent. The framework covers the **entire software development lifecycle** — from idea capture and TDD test specification through implementation, testing, E2E testing, code review, and documentation — with AI as a first-class participant at every stage.
+This framework wraps Claude Code in a three-pillar execution framework — **18 top-level hook files**, **167 skills**, **19 registered workflows**, and **27 specialized agents** — that transforms a generic LLM into a project-aware, quality-enforced, hallucination-resistant development agent. The framework covers the **entire software development lifecycle** — from idea capture and TDD test specification through implementation, testing, E2E testing, code review, and documentation — with AI as a first-class participant at every stage.
 
 It is also **harness- and project-agnostic**: the `.claude/` source compiles to verified OpenAI Codex mirrors (`AGENTS.md`, `.agents/`, `.codex/`), while all project-specific knowledge is factored into `project-config.json` + reference docs — so the same behavior runs on any supported AI tool and ports to any codebase (Section 13).
 
@@ -2245,14 +2245,14 @@ Uses triple planning rounds and a reviewed-foundation gate (architecture-review-
 
 The `solution-architect` agent (inherits parent session model) provides domain expertise throughout:
 
-| Capability            | What It Does                                                   |
-| --------------------- | -------------------------------------------------------------- |
-| Discovery Interview   | Problem statement, vision, constraints, team skills            |
-| Market Source Discovery | WebSearch + WebFetch for competitive landscape               |
-| Tech Stack Evaluation | Comparison matrix with pros/cons, confidence %, recommendation |
-| DDD Domain Modeling   | Bounded contexts, aggregates, entities, domain events          |
-| Project Structure     | Folder layout, monorepo/polyrepo, CI/CD skeleton               |
-| CLAUDE.md Generation  | Starter instructions file for the new project                  |
+| Capability              | What It Does                                                   |
+| ----------------------- | -------------------------------------------------------------- |
+| Discovery Interview     | Problem statement, vision, constraints, team skills            |
+| Market Source Discovery | WebSearch + WebFetch for competitive landscape                 |
+| Tech Stack Evaluation   | Comparison matrix with pros/cons, confidence %, recommendation |
+| DDD Domain Modeling     | Bounded contexts, aggregates, entities, domain events          |
+| Project Structure       | Folder layout, monorepo/polyrepo, CI/CD skeleton               |
+| CLAUDE.md Generation    | Starter instructions file for the new project                  |
 
 #### Skill Greenfield Mode
 
@@ -3420,10 +3420,13 @@ sequenceDiagram
 
 | Runner                               | Tests   | Scope                                                                                      |
 | ------------------------------------ | ------- | ------------------------------------------------------------------------------------------ |
-| `test-all-hooks.cjs` (primary gate)  | **215** | All 15 hook behaviors + bridged suites + count-drift guard                                 |
-| `run-all-tests.cjs` (full aggregate) | **300** | Primary + extended lib, swap-engine, shared-utilities, and every `tests/suites/*.test.cjs` |
+| `test-all-hooks.cjs` (primary gate)  | **224** | All hook behaviors + bridged suites + count-drift guard                                    |
+| `run-all-tests.cjs` (full aggregate) | **536** | Primary + extended lib, swap-engine, shared-utilities, and every `tests/suites/*.test.cjs` |
 
-> Counts are live-verified (`test-all-hooks.cjs` = 215, `run-all-tests.cjs` = 300; 2026-06-18). The former per-suite breakdown was hand-maintained and drifted — derive counts from a live run, not a static table.
+> Counts are live-verified (`test-all-hooks.cjs` = 224, `run-all-tests.cjs` = 536) and are now
+> GUARDED: each runner asserts the figures above against its own live total on every full run,
+> so a stale number fails the suite instead of sitting here. They previously drifted to 215/300
+> behind a single guarded sentence elsewhere. Derive counts from a live run, never a static table.
 
 Suites under `tests/suites/` (15): agent-files-gate, agent-universal-rules, bugfix-regression, check-subagent-routing, content-presence, count-drift, doc-sync-gate, init-reference-docs, integration, lifecycle, notification, protocol-text-parity, security, swap-engine, workflow.
 
@@ -3729,17 +3732,17 @@ Mirror parity also enables **multi-AI execution**, not just portability: the **`
 
 Nine verifier scripts (`.claude/scripts/codex/verify-*.mjs`, each with a unit test), plus the tech-spec generator's read-only freshness oracle, turn repository consistency from a discipline into a **build gate**:
 
-| Verifier                           | Asserts                                                                                                                                                                                                                                                                                                                                   |
-| ---------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `verify-sync-divergence`           | **Oracle gate** — re-runs the real mirror transform into a throwaway dir and diffs against the committed `.agents/skills`. Any difference = someone edited source without re-syncing, or hand-edited a mirror.                                                                                                                            |
-| `verify-skill-protocol-compliance` | Bidirectional set-diff parity (every source skill has a mirror and vice-versa); the 6 strict-execution-contract sentences present in every mirror; **no Claude-isms** (`Agent(`, `subagent_type`) leak into Codex output; AGENTS.md context block byte-matches `CODEX_CONTEXT.md`.                                                        |
-| `verify-workflow-cycle-compliance` | Workflow step-sequences in `workflows.json` match the skill files in **both** `.claude/skills` AND `.agents/skills` ("paired-drift" detection); ordered gates (integration → review → verify; docs-update → workflow-end) intact.                                                                                                         |
-| `verify-no-project-residue`        | **Portability enforcement** — scans the generic surfaces for the origin project's literal name and a denylist of its framework symbols (configured per-project). A reusable skill that hardcodes a project-specific name **fails the build**.                                                                                             |
-| `verify-sdd-semantic-compliance`   | ~30 semantic assertions on the spec-driven cycle; Codex mirrors reference the _local_ shared-contract path, not the `.claude` source path.                                                                                                                                                                                                |
-| `verify-review-validate-coverage`  | **Self-Review Convergence Loop sensor** — every review-family skill that produces findings carries the `/why-review --validate-findings` route (the ≥85% finding-survival bar lives there), and a validate-only grader never embeds the `double-round-trip-review` fix-loop. A review skill shipped without the gate **fails the build**. |
-| `verify-sync-adoption-parity`      | Verifies every declared SYNC carrier has canonical main and reminder blocks, and rejects undeclared carriers. |
-| `verify-provenance-markers`        | Verifies architecture-knowledge provenance markers and the consumer guards that interpret them. |
-| `verify-feature-registry`          | Verifies canonical TC/BR identity, continuation parts, split limits, relative links, declared ranges, release summaries, and coverage evidence. Normal pipeline scope comes from `specSystem.featureRegistryRoots`; explicit-path and whole-tree audits remain available. |
+| Verifier                           | Asserts                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
+| ---------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `verify-sync-divergence`           | **Oracle gate** — re-runs the real mirror writers into a throwaway dir and diffs against the four committed mirrors: `.agents/skills`, `.codex/agents/*.toml`, the context mirror (`AGENTS.md` + `.codex/CODEX_CONTEXT.md`), and `.codex/hooks.json`. Any difference = someone edited source without re-syncing, or hand-edited a mirror. The `hooks.json` surface is the highest-consequence one: it decides which hooks a Codex session actually runs, so a stale copy downgrades the safety gates rather than merely serving stale guidance. |
+| `verify-skill-protocol-compliance` | Bidirectional set-diff parity (every source skill has a mirror and vice-versa); the 6 strict-execution-contract sentences present in every mirror; **no Claude-isms** (`Agent(`, `subagent_type`) leak into Codex output; AGENTS.md context block byte-matches `CODEX_CONTEXT.md`.                                                                                                                                                                                                                                                              |
+| `verify-workflow-cycle-compliance` | Workflow step-sequences in `workflows.json` match the skill files in **both** `.claude/skills` AND `.agents/skills` ("paired-drift" detection); ordered gates (integration → review → verify; docs-update → workflow-end) intact.                                                                                                                                                                                                                                                                                                               |
+| `verify-no-project-residue`        | **Portability enforcement** — scans the generic surfaces for the origin project's literal name and a denylist of its framework symbols (configured per-project). A reusable skill that hardcodes a project-specific name **fails the build**.                                                                                                                                                                                                                                                                                                   |
+| `verify-sdd-semantic-compliance`   | ~30 semantic assertions on the spec-driven cycle; Codex mirrors reference the _local_ shared-contract path, not the `.claude` source path.                                                                                                                                                                                                                                                                                                                                                                                                      |
+| `verify-review-validate-coverage`  | **Self-Review Convergence Loop sensor** — every review-family skill that produces findings carries the `/why-review --validate-findings` route (the ≥85% finding-survival bar lives there), and a validate-only grader never embeds the `double-round-trip-review` fix-loop. A review skill shipped without the gate **fails the build**.                                                                                                                                                                                                       |
+| `verify-sync-adoption-parity`      | Verifies every declared SYNC carrier has canonical main and reminder blocks, and rejects undeclared carriers.                                                                                                                                                                                                                                                                                                                                                                                                                                   |
+| `verify-provenance-markers`        | Verifies architecture-knowledge provenance markers and the consumer guards that interpret them.                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
+| `verify-feature-registry`          | Verifies canonical TC/BR identity, continuation parts, split limits, relative links, declared ranges, release summaries, and coverage evidence. Normal pipeline scope comes from `specSystem.featureRegistryRoots`; explicit-path and whole-tree audits remain available.                                                                                                                                                                                                                                                                       |
 
 The `tech-spec-freshness` stage runs `generate-tech-specs.mjs --check`; it compares a fresh in-memory render to committed derived views without rewriting them.
 
@@ -3861,7 +3864,7 @@ The framework succeeds because it aligns with how LLMs actually fail:
 
 ### The Result
 
-**17 top-level hook files**, **167 skills**, **19 registered workflows**, and **27 specialized agents** working in concert to deliver:
+**18 top-level hook files**, **167 skills**, **19 registered workflows**, and **27 specialized agents** working in concert to deliver:
 
 -   **Fewer hallucinations** — Evidence gates and proof traces catch AI fabrications before they reach files
 -   **Better code quality** — Pattern injection ensures AI follows project conventions, not generic training data

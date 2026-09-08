@@ -70,17 +70,28 @@ const CK_PROTOCOL_MARKERS = [/<!--\s*CK:CRITICAL-THINKING\s*-->/i, /<!--\s*CK:AI
 // sync-inline-versions.md `critical-thinking-mindset:full` + `ai-mistake-prevention:full`).
 // Stable across the Codex tool-term rewrite (neither phrase contains a rewritten token).
 const CANONICAL_PROTOCOL_PHRASES = [/\[CRITICAL-THINKING-MINDSET\]/, /Common AI Mistake Prevention \(System Lessons\)/i];
-// AGENTS.md does NOT carry those phrases inline, and must not: it is a bounded 32 KiB root
-// projection whose contract (verify-skill-protocol-compliance.mjs) states the protocol body
-// appears EXACTLY ONCE in `.codex/CODEX_CONTEXT.md` and that "AGENTS.md is a bounded
-// projection and pointer; it must not duplicate the full protocol body". Requiring the body
-// inline here was unsatisfiable, not merely inconsistent: this repo's two blocks measure
-// 11 758 bytes against 3 992 bytes of headroom, so a "fixed" AGENTS.md would be 40 534 bytes
-// and fail the 32 768-byte bound asserted by verify-skill-protocol-compliance.mjs,
-// compact-root-contract, generate-claude-md-content-guard and portability-no-package-json.
-// The gate therefore fired on every prompt while its own remedy (re-run the sync) regenerated
-// the same compliant file — the "incomplete forever" dead end. The sanctioned AGENTS.md
-// surface form is the context pointer, so probe THAT, then follow it to the body.
+// This gate does NOT require those phrases inline in AGENTS.md, and must not — but the reason
+// is reachability, not prohibition. Two facts govern:
+//
+//   1. Whether AGENTS.md carries the body at all is PROJECT-DEPENDENT. Its copy is CLAUDE.md-
+//      derived through the projection whitelist, so a root whose CLAUDE.md carries the CK fences
+//      gets exactly one deduped copy, and a fence-less root legitimately gets zero. Requiring the
+//      body here would fire forever on every fence-less project while its own remedy (re-run the
+//      sync) regenerated the same, correct, body-less file — the "incomplete forever" dead end.
+//   2. Enforcing the exact count is a DIFFERENT gate's job. `verify-skill-protocol-compliance.mjs`
+//      (checkProtocolBodySignatureCounts) owns it and applies the same conditional rule: exactly 1
+//      when CLAUDE.md carries that block's CK fence, exactly 0 when it does not, >=2 never.
+//
+// What this gate owns is REACHABILITY: the protocol body must be reachable from AGENTS.md whether
+// or not the root inlines it. The always-present carrier is `.codex/CODEX_CONTEXT.md`, whose copy
+// is baked from the canonical shared source and is therefore project-independent. So probe the
+// context POINTER, then follow it to the body — a check that holds for fenced and fence-less roots
+// alike.
+//
+// (Historical note: this comment once asserted the body was unsatisfiable inline against a
+// 32 768-byte bound. That budget was raised to 49 152 — `AGENTS_ROOT_LIMIT_BYTES`, pinned equal in
+// verify-skill-protocol-compliance.mjs and sync-context-workflows.mjs — so the arithmetic no longer
+// holds and the root does now carry the blocks in this repo. Do not restore the old rationale.)
 const CODEX_CONTEXT_RELATIVE = path.join('.codex', 'CODEX_CONTEXT.md');
 const AGENTS_CONTEXT_POINTER = [
     /<!--\s*CODEX-CONTEXT-MIRROR:START\s*-->/i,

@@ -47,7 +47,18 @@ const tests = [
       }
       for (const command of ['grep needle "$FILE"', 'grep "$PATTERN" "$FILE"', 'mawk x "$FILE"', 'git diff -- "$FILE"']) {
         assert.equal(await code('Bash', { command }), 2, command);
+      }
+      // The two hooks answer DIFFERENT questions about the same unresolvable operand, and this is
+      // where they part company. Privacy denies it because `$FILE` could name a secret and reading
+      // one is the harm. The boundary hook denies it only when the statement can WRITE — an
+      // unresolvable read cannot destroy anything outside the project, so denying it would be the
+      // over-blocking that model removed. Both directions are pinned so neither drifts into the
+      // other's job.
+      for (const command of ['rm "$FILE"', 'cp README.md "$FILE"', 'git diff --output="$FILE"']) {
         assert.equal((await runHook(boundary, createPreToolUseInput('Bash', { command }))).code, 2, command);
+      }
+      for (const command of ['grep needle "$FILE"', 'grep "$PATTERN" "$FILE"', 'mawk x "$FILE"', 'git diff -- "$FILE"']) {
+        assert.equal((await runHook(boundary, createPreToolUseInput('Bash', { command }))).code, 0, command);
       }
       assert.equal(await code('Bash', { command: 'git diff -- APPROVED:.env' }), 0);
       assert.equal(await code('Bash', { command: 'git diff -- APPROVED:.env .env.local' }), 2);

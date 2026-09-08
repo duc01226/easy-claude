@@ -6,12 +6,18 @@ import path from 'node:path';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import { fileURLToPath } from 'node:url';
+import { AGENTS_ROOT_LIMIT_BYTES } from '../sync-context-workflows.mjs';
 
 const execFileAsync = promisify(execFile);
 const thisDir = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(thisDir, '..', '..', '..', '..');
 const syncContextScript = path.join(repoRoot, '.claude', 'scripts', 'codex', 'sync-context-workflows.mjs');
-const ROOT_LIMIT_BYTES = 32768;
+// DERIVED from the generator this suite exercises — never a literal. A hard-coded budget here
+// silently stops tracking the real one the moment the budget moves: the `<=` case goes loose and,
+// worse, the overflow case (TC-HARNESS-008b) keeps asserting "over budget" at a size that no longer
+// overflows, so the assertion and the `ROOT_OVERFLOW` warning it is paired with decouple and the
+// check goes vacuous. That is exactly the regression `verifier-root-contract.test.mjs:13` records.
+const ROOT_LIMIT_BYTES = AGENTS_ROOT_LIMIT_BYTES;
 
 async function makeFixture(claudeText) {
   const tempRoot = await fs.mkdtemp(path.join(os.tmpdir(), 'codex-compact-root-'));

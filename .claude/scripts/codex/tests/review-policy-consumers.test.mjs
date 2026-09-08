@@ -3,6 +3,13 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { createRequire } from 'node:module';
+
+// Reuse the repo's single owner of EOL normalization rather than hand-rolling a second one.
+// `extract-sync-block.cjs` documents why this matters: the canonical markdown is committed LF
+// but a Windows checkout (`core.autocrlf=true`) materializes CRLF, so any comparison that
+// normalizes only ONE side reports a checkout-format artifact as canonical drift.
+const { normalizeEol } = createRequire(import.meta.url)('../../lib/extract-sync-block.cjs');
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(here, '..', '..', '..', '..');
@@ -49,13 +56,22 @@ const severityConsumers = [
 
 function body(text, tag) {
     const escaped = tag.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-    const match = text.match(new RegExp(`<!--\\s*SYNC:${escaped}\\s*-->\\s*([\\s\\S]*?)\\s*<!--\\s*/SYNC:${escaped}\\s*-->`));
-    return match ? match[1].replace(/\r\n/g, '\n').trim() : null;
+    const match = normalizeEol(text).match(new RegExp(`<!--\\s*SYNC:${escaped}\\s*-->\\s*([\\s\\S]*?)\\s*<!--\\s*/SYNC:${escaped}\\s*-->`));
+    return match ? match[1].trim() : null;
 }
 
+// Normalize on BOTH sides. `body()` normalized the consumer but this side did not, so an LF string
+// was compared against a CRLF one and every multi-line block failed — a checkout-format artifact
+// reported as canonical drift, which is the false alarm that trains a maintainer to distrust the
+// guard. The contract is byte-exact BODY TEXT; the line ending is a property of the working copy,
+// not of the protocol. Boundary detection is left as-is deliberately: this matcher stops at
+// `\n---\n` OR `\n## SYNC:`, which is not the same span as extract-sync-block's combined
+// `\n---\n\n## SYNC:` delimiter, so adopting that extractor wholesale would change WHAT is compared
+// rather than just how line endings are read.
 function canonicalBody(text, tag) {
     const escaped = tag.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-    const match = text.match(new RegExp(`^## SYNC:${escaped}\\s*\\n([\\s\\S]*?)(?=\\n---\\s*\\n|\\n## SYNC:)`, 'm'));
+    const match = normalizeEol(text)
+        .match(new RegExp(`^## SYNC:${escaped}\\s*\\n([\\s\\S]*?)(?=\\n---\\s*\\n|\\n## SYNC:)`, 'm'));
     return match ? match[1].trim() : null;
 }
 

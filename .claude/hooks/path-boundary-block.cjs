@@ -393,28 +393,102 @@ function extractPaths(toolInput, toolName) {
             if (cmdHasWinTool && /^\/{1,2}[A-Za-z][A-Za-z0-9_-]*(?::[^\s/\\]*)?$/.test(m)) return false;
             return true;
         }).forEach(p => addPath(p, 'command'));
+
+        // Relative traversal on a command this extractor does not otherwise model.
+        // The rules above catch absolute paths and a fixed read-command list, so
+        // `sort ../../outside.txt` escaped BOTH layers: the structured policy does
+        // not model sort's operands, and nothing here proposed the operand as a
+        // path candidate. Absolute-only coverage is not a boundary.
+        //
+        // Deliberately narrow: a token qualifies only when a whole segment is `..`
+        // delimited by a path separator, so `HEAD~2..HEAD`, `1..5` and version
+        // ranges never match. Candidates are still resolved against the project
+        // root, so `.claude/../README.md` resolves back inside and allows.
+        extractMatches(/(?:^|\s)(?:"([^"]*(?:^|[/\\])\.\.(?:[/\\][^"]*)?)"|'([^']*(?:^|[/\\])\.\.(?:[/\\][^']*)?)'|([^\s"'|><&;]*(?:^|[/\\])\.\.(?:[/\\][^\s"'|><&;]*)?))/g, cmd,
+            m => /(?:^|[/\\])\.\.(?:[/\\]|$)/.test(m) && !m.startsWith('-')
+        ).forEach(p => addPath(p, 'command'));
     }
 
     return paths;
 }
 
+// Plain-language cause for the diagnostic codes a user actually meets. The
+// code is ALWAYS printed alongside, so an unlisted code degrades to the
+// rule-based fallback below rather than to a wrong sentence — the map is a
+// precision layer, never the correctness layer, and adding a code to
+// path-boundary-policy.cjs cannot silently produce a misleading message.
+const DIAGNOSTIC_REASONS = new Map([
+    ['OUTSIDE_PROJECT', 'the path resolves outside the project root'],
+    ['PATH_UNRESOLVABLE', 'the path could not be resolved to a real location'],
+    ['STATEMENT_UNKNOWN', 'this statement is not a form the hook can parse into file operands'],
+    ['DYNAMIC_PATH_OPERAND', 'an operand is produced at run time (variable, command substitution, or glob), so its target cannot be known before the command runs'],
+    ['DYNAMIC_PATH_OPTION', 'an option value is produced at run time, so its target cannot be known before the command runs'],
+    ['REDIRECT_UNKNOWN', 'a redirection uses a form the hook does not model'],
+    ['REDIRECT_TARGET_UNKNOWN', 'a redirection writes to a target produced at run time'],
+    ['HEREDOC_UNSUPPORTED', 'here-documents are not modelled, so the hook cannot tell what the body writes'],
+    ['CWD_TRANSITION_UNKNOWN', 'the statement runs after a directory change whose destination the hook could not follow'],
+    ['UNSUPPORTED_OPTION_ARITY', 'an option takes an argument shape the hook does not model'],
+    ['POLICY_EXCEPTION', 'the command scanner failed, so nothing about this command is known'],
+    ['INVALID_CONTEXT', 'the project root or event working directory is not a usable absolute path'],
+
+    // The twelve below reach a user but matched NONE of the naming-convention
+    // rules in explainDiagnostic, so each one printed the same terminal sentence
+    // ("the boundary policy denied this input") — which says only that the hook
+    // said no. A denial the operator cannot act on is a denial they work around,
+    // so each now names the specific parse or limit that stopped the scan.
+    // Their emission sites, in order: command-inspection.cjs :349, :348, :288,
+    // :423, path-boundary-policy.cjs :439, :777/:784, :745/:787, :749,
+    // command-inspection.cjs :236, :387, :342, :259.
+    ['INPUT_LIMIT', 'the command is longer than the scanner will parse, so its operands were never read'],
+    ['INVALID_INPUT', 'the command was not a string, so there was nothing to parse'],
+    ['MISSING_REDIRECT_TARGET', 'a redirection operator has no target after it'],
+    ['MISSING_STATEMENT', 'the command ends with a separator (`&&`, `;`, `|`) and no statement after it'],
+    ['SHELL_INSPECTION_FAILED', 'inspecting the nested shell body failed, so the paths it touches are unknown'],
+    ['STRUCTURED_PATH_INVALID', 'a structured path field is not a non-empty string'],
+    ['STRUCTURED_PATH_LIMIT', 'the input lists more paths — or more total path bytes — than the policy will check'],
+    ['STRUCTURED_PATH_TOO_LONG', 'a structured path is longer than the policy will resolve'],
+    ['TRAILING_ESCAPE', 'the command ends in a trailing backslash, leaving its final token incomplete'],
+    ['UNEXPECTED_SEPARATOR', 'a separator (`&&`, `;`, `|`) appears with no command before it'],
+    ['UNTERMINATED_HEREDOC', 'a here-document is opened but its terminator never appears'],
+    ['UNTERMINATED_QUOTE', 'a quoted string is never closed, so the command cannot be tokenized'],
+    ['UNSUPPORTED_DD_OPERAND', 'a `dd` operand is not a recognized `key=value` pair, so the hook cannot tell whether it names a file']
+]);
+
 /**
- * Format block message
- * @param {string} blockedPath - Path that was blocked
+ * Explain a diagnostic code in prose.
+ *
+ * Falls back to the code's own naming convention (`DYNAMIC_*`, `*_UNSUPPORTED`,
+ * `*_UNKNOWN`) so a code added later still yields a true sentence.
+ * @param {string} code - Diagnostic code from the boundary policy
+ * @returns {string} Human-readable cause
+ */
+function explainDiagnostic(code) {
+    if (DIAGNOSTIC_REASONS.has(code)) return DIAGNOSTIC_REASONS.get(code);
+    if (/^DYNAMIC_/.test(code)) return 'part of the command is produced at run time, so its targets cannot be known before it runs';
+    if (/UNSUPPORTED/.test(code)) return 'the command uses a form the hook does not model';
+    if (/UNKNOWN|UNRESOLVABLE/.test(code)) return 'the hook could not determine which paths this command touches';
+    return 'the boundary policy denied this input';
+}
+
+/**
+ * Format block message.
+ *
+ * Every slot is labelled by what it ACTUALLY holds. The structured-policy
+ * branch often has no path at all — only a diagnostic code saying the command's
+ * operands could not be determined. Printing that code under `Path:` claimed a
+ * filesystem path was rejected and sent the reader hunting for a file that was
+ * never named, while the printed remedy (allowlist another directory) could not
+ * fix an unparseable command. The three subjects below are genuinely different
+ * denials and now read as such.
+ * @param {string|{kind: string, path?: string, code?: string, command?: string}} subject
+ *   A bare string is the legacy form and means an OUTSIDE path.
  * @param {string} projectRoot - Project root for reference
  * @returns {string} Formatted error message
  */
-function formatBlockMessage(blockedPath, projectRoot) {
-    return `
-\x1b[31mBLOCKED:\x1b[0m Path outside project boundary
-
-  \x1b[33mPath:\x1b[0m ${blockedPath}
-  \x1b[33mProject Root:\x1b[0m ${projectRoot}
-
-  File access is restricted to the current project directory.
-  This is a security measure to prevent unintended access to
-  files outside the project.
-
+function formatBlockMessage(subject, projectRoot) {
+    const detail = typeof subject === 'string' ? { kind: 'outside', path: subject } : (subject || {});
+    const root = `  \x1b[33mProject Root:\x1b[0m ${projectRoot}`;
+    const allowlistFooter = `
   \x1b[34mAllowed locations:\x1b[0m
   - Project directory and subdirectories
   - System temp directories
@@ -423,6 +497,106 @@ function formatBlockMessage(blockedPath, projectRoot) {
   \x1b[90mTo allow additional directories, add them to
   .claude/.ck.json: { "pathBoundaryAllowedDirs": ["D:/path"] }\x1b[0m
 `;
+
+    if (detail.kind === 'undetermined') {
+        // No path was rejected — none was ever resolved. Naming the command is
+        // the only actionable subject the hook has here.
+        //
+        // But this branch is reached by NON-Bash tools too (Write, Edit,
+        // NotebookEdit, mcp__filesystem__*), whose input carries no command at
+        // all. Those denials used to print `Command: (no command in this tool
+        // input)` above a remedy telling the reader to "split a compound
+        // statement, drop the pipe or redirection" — advice with no referent,
+        // contradicting this file's own docstring at :452 that every slot is
+        // labelled by what it ACTUALLY holds. A remedy that cannot be followed
+        // reads as a malfunction, so the two cases now diverge: a shell denial
+        // gets the shell remedy, a structured-input denial gets the one that
+        // applies to it.
+        const hasCommand = typeof detail.command === 'string' && detail.command.length > 0;
+        const subjectLine = hasCommand
+            ? `  \x1b[33mCommand:\x1b[0m ${detail.command.length > 300 ? `${detail.command.slice(0, 300)}…` : detail.command}`
+            : `  \x1b[33mTool input:\x1b[0m ${detail.tool ? `${detail.tool} (no shell command — path fields only)` : 'structured path fields only (no shell command)'}`;
+        const remedy = hasCommand
+            ? `  \x1b[90mRewrite the command so its file operands are literal: split a
+  compound statement, drop the pipe or redirection, or use the Read /
+  Write / Glob / Grep tools instead of a shell equivalent.\x1b[0m`
+            : `  \x1b[90mThis tool takes path fields, not a shell command — the reason above
+  names which field the policy could not resolve. Supply a literal
+  absolute or project-relative path in that field.\x1b[0m`;
+        return `
+\x1b[31mBLOCKED:\x1b[0m ${hasCommand ? 'Command paths could not be determined' : 'Tool input paths could not be determined'}
+
+  \x1b[33mReason:\x1b[0m ${detail.code} — ${explainDiagnostic(detail.code)}
+${subjectLine}
+${root}
+
+  No path was rejected — the hook could not work out which paths this
+  ${hasCommand ? 'command' : 'tool input'} touches, so it denies closed rather than guess.
+
+${remedy}
+`;
+    }
+
+    if (detail.kind === 'unresolved-path') {
+        return `
+\x1b[31mBLOCKED:\x1b[0m Path could not be resolved
+
+  \x1b[33mPath:\x1b[0m ${detail.path}
+  \x1b[33mReason:\x1b[0m ${detail.code} — ${explainDiagnostic(detail.code)}
+${root}
+
+  The path was named but could not be resolved to a real location, so
+  the hook cannot prove it is inside the project and denies closed.
+${allowlistFooter}`;
+    }
+
+    return `
+\x1b[31mBLOCKED:\x1b[0m Path outside project boundary
+
+  \x1b[33mPath:\x1b[0m ${detail.path}
+${root}
+
+  File access is restricted to the current project directory.
+  This is a security measure to prevent unintended access to
+  files outside the project.
+${allowlistFooter}`;
+}
+
+/**
+ * Choose what the block message is ABOUT.
+ *
+ * An actual boundary violation outranks an unresolved operand: `OUTSIDE` is a
+ * decided verdict on a named path, `UNKNOWN` only says the hook could not
+ * decide. The previous first-match-in-path-order pick could report the vaguer
+ * one while a concrete violation sat in the same command.
+ * @param {object} policy - Result from evaluateBoundary
+ * @param {object} toolInput - The tool input under evaluation
+ * @returns {{kind: string, path?: string, code?: string, command?: string}}
+ */
+function describeBlock(policy, toolInput, toolName) {
+    const outside = policy.paths.find(item => item.outcome === 'OUTSIDE');
+    if (outside) return { kind: 'outside', path: outside.resolved || outside.value || '(unnamed operand)' };
+
+    const unresolved = policy.paths.find(item => item.outcome === 'UNKNOWN');
+    const firstCode = policy.diagnostics[0]?.code || 'STATEMENT_UNKNOWN';
+    if (unresolved) {
+        return {
+            kind: 'unresolved-path',
+            path: unresolved.value || '(unnamed operand)',
+            code: unresolved.diagnostic || firstCode
+        };
+    }
+
+    return {
+        kind: 'undetermined',
+        code: firstCode,
+        command: typeof toolInput?.command === 'string' ? toolInput.command : null,
+        // Carried ONLY so a commandless denial can name which tool it came from.
+        // The message never branches on the tool's identity — it branches on
+        // whether a command exists — so an unrecognized tool degrades to the
+        // generic "structured path fields only" wording rather than a wrong one.
+        tool: typeof toolName === 'string' && toolName.length > 0 ? toolName : null
+    };
 }
 
 // Main execution
@@ -432,6 +606,172 @@ function evaluationError(message) {
         stderr: `[path-boundary-block] Unable to evaluate tool input: ${message}\n`,
         decision: 'error-block'
     };
+}
+
+// ── Write-only enforcement ──────────────────────────────────────────────────────────────────────
+// This hook exists to stop ONE accident: creating, modifying or deleting a file OUTSIDE the project
+// root. Reading outside the root is not that accident, so a read-only request is allowed wherever it
+// points. (Secrets stay `privacy-block.cjs`'s job — this hook never was the credential gate.)
+//
+// The consequence that matters: a command this file does not recognize is treated as a READER and
+// allowed. The previous model denied closed on anything the grammar could not fully parse, so every
+// unmodelled shape — `docker logs`, a piped `grep`, a heredoc, a `cd &&` chain — became unrunnable
+// until someone extended the parser. That charged a large, permanent tax on correct work to prevent
+// a file write those commands were never going to perform.
+//
+// So the maintained list is the SMALL one: things that write. Missing an exotic mutator here is a
+// real gap, and it is the deliberate trade for not blocking everything else by default. Two shapes
+// count as writes regardless of the command name:
+//   - an output redirect (`>`, `>>`) — it writes whatever it points at
+//   - a structured write tool (Write / Edit / NotebookEdit, or an MCP tool whose name says write)
+const FILE_MUTATING_COMMANDS = new Set([
+    // POSIX file mutation
+    'rm', 'rmdir', 'unlink', 'shred', 'mv', 'cp', 'dd', 'install', 'truncate', 'tee', 'touch',
+    'mkdir', 'ln', 'chmod', 'chown', 'chgrp', 'chattr', 'setfacl', 'mkfifo', 'mknod', 'split',
+    // In-place editors and stream writers
+    'sed', 'perl', 'ed', 'ex', 'vi', 'vim', 'nano', 'emacs', 'patch', 'sponge',
+    // Archive and transfer tools that materialize files
+    'tar', 'unzip', 'zip', 'gzip', 'gunzip', 'bzip2', 'bunzip2', 'xz', 'unxz', '7z', '7za',
+    'rsync', 'scp', 'sftp', 'curl', 'wget',
+    // Windows shell
+    'del', 'erase', 'move', 'copy', 'xcopy', 'robocopy', 'ren', 'rename', 'rd', 'md', 'mklink',
+    // PowerShell
+    'remove-item', 'move-item', 'copy-item', 'rename-item', 'new-item', 'set-content',
+    'add-content', 'clear-content', 'out-file', 'set-item', 'set-itemproperty',
+    'new-itemproperty', 'remove-itemproperty', 'export-csv', 'export-clixml'
+]);
+
+// A wrapper delegates to whatever follows it, so `sudo rm -rf /x` and `xargs rm` must still read as
+// writes. Only for these is the whole argv scanned — scanning every command's argv would turn
+// `grep -r "rm" .` into a false write.
+const COMMAND_WRAPPERS = new Set([
+    'sudo', 'doas', 'env', 'command', 'builtin', 'exec', 'nice', 'nohup', 'time', 'timeout',
+    'xargs', 'sh', 'bash', 'zsh', 'dash', 'ksh', 'fish', 'pwsh', 'powershell', 'cmd',
+    // Container CLIs delegate to a payload exactly as `sudo` does — `docker exec c rm -rf /data`
+    // and `kubectl cp pod:/a /etc/b` are still the mutator they name.
+    'docker', 'podman', 'nerdctl', 'kubectl', 'docker-compose'
+]);
+
+const CONTAINER_CLIS = new Set(['docker', 'podman', 'nerdctl', 'kubectl', 'docker-compose']);
+
+// A bind mount is the mechanism by which anything inside a container reaches a HOST file, so the
+// mount itself is the write — the payload that uses it is the container's business, not visible
+// here. `-o` is deliberately NOT on this list: for `kubectl` it selects an output FORMAT
+// (`kubectl get pods -o json`), and treating it as a file would deny an everyday read.
+const BIND_MOUNT_FLAG = /^(?:-v$|--volume(?:=|$)|--mount(?:=|$))/;
+
+// Some binaries sit on BOTH sides of the line — the same program reads in one invocation and writes
+// in another, and a flag is what decides. Listing them unconditionally re-imports exactly the
+// over-blocking this model exists to remove: `sed -n '1,40p' file` is a pager and `git diff` is a
+// report, yet both would be denied for pointing outside the root. So each carries a predicate over
+// its own argv answering the only question that matters — does THIS invocation materialize a file?
+const CONDITIONAL_MUTATORS = new Map([
+    // `sed`/`perl` touch a file only in place; without `-i` they stream to stdout.
+    ['sed', argv => argv.some(arg => /^-[A-Za-z]*i/.test(arg) || arg.startsWith('--in-place'))],
+    ['perl', argv => argv.some(arg => /^-[A-Za-z]*i/.test(arg))],
+    // `curl` prints the response body unless told where to save it.
+    ['curl', argv => argv.some(arg => /^--(?:output|remote-name|remote-name-all|output-dir|dump-header)\b/.test(arg)
+        || /^-[A-Za-z]*[oOD]$/.test(arg))],
+    // `tar`'s list mode materializes nothing; every other mode can. The mode is the first bare
+    // letter cluster (`tar tf a.tar` and `tar -tf a.tar` are the same command).
+    ['tar', argv => {
+        if (argv.includes('--list')) return false;
+        const mode = argv.find(arg => /^-?[A-Za-z]+$/.test(arg));
+        return !(mode && /t/.test(mode) && !/[xcruA]/.test(mode));
+    }],
+    // `unzip -l|-p|-t|-v|-z` inspect an archive without extracting it.
+    ['unzip', argv => !argv.some(arg => /^-[A-Za-z]*[lptvz]/.test(arg))],
+    // `git` reaches a path of its own choosing only through a named output file. Every other git
+    // write targets the work tree, which is `git-commit-block.cjs`'s subject, not this hook's.
+    ['git', argv => argv.some(arg => /^--output(?:=|$)/.test(arg))]
+]);
+
+const STRUCTURED_WRITE_TOOLS = new Set(['Write', 'Edit', 'MultiEdit', 'NotebookEdit']);
+
+// `sh -c "sh -c '…'"` nests; the payload shrinks each hop, so a small cap ends the recursion
+// without truncating any shape a person actually types.
+const MAX_NESTED_COMMAND_DEPTH = 4;
+
+function normalizeCommandName(value) {
+    return String(value || '')
+        .replace(/^.*[\\/]/, '')
+        .replace(/\.(?:exe|cmd|bat|ps1|com)$/i, '')
+        .toLowerCase();
+}
+
+function isMutatorName(name) {
+    return FILE_MUTATING_COMMANDS.has(name) || CONDITIONAL_MUTATORS.has(name);
+}
+
+/**
+ * The mutator's OWN arguments — argv carries the program name at [0], and under a wrapper it also
+ * carries the wrapper's, so a predicate reading raw argv would score `tar` itself as a mode string.
+ */
+function invocationArgs(name, statement) {
+    const tokens = (statement?.argv || []).map(token => String(token?.value ?? ''));
+    const index = tokens.findIndex(token => normalizeCommandName(token) === name);
+    return index >= 0 ? tokens.slice(index + 1) : tokens;
+}
+
+/** Does THIS invocation of a known mutator actually write? Conditional entries decide by argv. */
+function invocationWrites(name, statement) {
+    const conditional = CONDITIONAL_MUTATORS.get(name);
+    if (!conditional) return FILE_MUTATING_COMMANDS.has(name);
+    return conditional(invocationArgs(name, statement));
+}
+
+function statementWrites(statement, depth) {
+    for (const redirect of statement?.redirects || []) {
+        const operator = redirect?.operator?.value;
+        // `2>&1` and friends duplicate a descriptor rather than naming a file, so they cannot
+        // create a file at a path of their own.
+        if (typeof operator === 'string' && operator.includes('>') && !operator.includes('&')) return true;
+    }
+    const name = normalizeCommandName(statement?.command?.value);
+    if (isMutatorName(name)) return invocationWrites(name, statement);
+    if (!COMMAND_WRAPPERS.has(name) || depth >= MAX_NESTED_COMMAND_DEPTH) return false;
+    if (CONTAINER_CLIS.has(name)
+        && (statement?.argv || []).some(token => BIND_MOUNT_FLAG.test(String(token?.value ?? '')))) {
+        return true;
+    }
+    return (statement?.argv || []).some(token => {
+        const value = token?.value;
+        if (typeof value !== 'string') return false;
+        // `sudo sed -i …` — a wrapper's argv IS the child's argv, so the conditional predicate
+        // reads the same tokens it would have read unwrapped.
+        const inner = normalizeCommandName(value);
+        if (isMutatorName(inner)) return invocationWrites(inner, statement);
+        // `sh -c "rm x"` carries a whole script inside ONE token. Parsing it is the only way to
+        // see the mutator; a name comparison against `rm x` never matches.
+        return /\s/.test(value) && commandCanWriteFiles(value, depth + 1);
+    });
+}
+
+/**
+ * Can this Bash command create, modify or delete a file?
+ * An unparseable command falls back to a literal scan for a mutator name or an output redirect —
+ * an unparseable `docker logs` is still just a read. Conditional mutators are matched by NAME in
+ * that fallback: once the grammar has failed there is no argv left to test the predicate against,
+ * and an unparseable command is rare enough that leaning to the boundary check there costs little.
+ */
+function commandCanWriteFiles(command, depth = 0) {
+    let statements = [];
+    try {
+        statements = inspectCommand(command)?.statements || [];
+    } catch {
+        statements = [];
+    }
+    if (statements.length > 0) return statements.some(statement => statementWrites(statement, depth));
+    const names = [...FILE_MUTATING_COMMANDS].join('|');
+    return new RegExp(`(?:^|[\\s;&|(])(?:${names})\\b`, 'i').test(command)
+        || /(?:^|[^0-9&>])>{1,2}(?![&>])/.test(command);
+}
+
+/** Structured (non-Bash) tools: does this tool's purpose include writing? */
+function toolWrites(toolName) {
+    if (typeof toolName !== 'string' || toolName.length === 0) return true;
+    if (STRUCTURED_WRITE_TOOLS.has(toolName)) return true;
+    return /(?:write|edit|create|move|delete|remove|rename|copy|mkdir|put|save|append)/i.test(toolName);
 }
 
 function evaluate(input) {
@@ -450,6 +790,18 @@ function evaluate(input) {
     // Check if boundary check is disabled. Invalid configuration throws and
     // becomes a visible exit-2 error through the shared runner.
     if (isBoundaryCheckDisabled()) return undefined;
+
+    // Write-only gate — see FILE_MUTATING_COMMANDS above. A request that cannot create, modify or
+    // delete a file cannot commit the accident this hook exists to prevent, so it is allowed
+    // wherever it points and is never denied merely for being unparseable.
+    if (Object.prototype.hasOwnProperty.call(toolInput, 'command')) {
+        // A `command` that is present but not a string is MALFORMED input, not a read. Fall through
+        // so the policy layer reports it and denies closed; silently allowing it would turn a
+        // delivery bug into an unlogged pass.
+        if (typeof toolInput.command === 'string' && !commandCanWriteFiles(toolInput.command)) return undefined;
+    } else if (!toolWrites(toolName)) {
+        return undefined;
+    }
 
     const projectRoot = getProjectRoot();
     const allowlist = buildAllowlist();
@@ -471,9 +823,7 @@ function evaluate(input) {
     });
 
     if (policy.status === 'BLOCK' || policy.status === 'UNKNOWN') {
-        const first = policy.paths.find(item => item.outcome === 'OUTSIDE' || item.outcome === 'UNKNOWN');
-        const display = first?.resolved || first?.source || policy.diagnostics[0]?.code || 'ambiguous protected command';
-        return { code: 2, stderr: `${formatBlockMessage(display, projectRoot)}\n`, decision: 'block' };
+        return { code: 2, stderr: `${formatBlockMessage(describeBlock(policy, toolInput, toolName), projectRoot)}\n`, decision: 'block' };
     }
 
     // The structured policy is authoritative for commands it understands. The
@@ -513,6 +863,9 @@ module.exports = {
     isBoundaryCheckDisabled,
     isOutsideProject,
     isWithinDir,
+    formatBlockMessage,
+    describeBlock,
+    explainDiagnostic,
     extractPaths,
     extractMatches,
     stripInlineCode,

@@ -21,6 +21,9 @@ const agentsRoot = path.join(rootDir, '.codex', 'agents');
 const contextPath = path.join(rootDir, '.codex', 'CODEX_CONTEXT.md');
 const projectAgentsPath = path.join(rootDir, 'AGENTS.md');
 const canonicalSyncPath = path.join(rootDir, '.claude', 'skills', 'shared', 'sync-inline-versions.md');
+// Source of the AGENTS.md root projection — read only to decide whether a protocol block is
+// PRODUCIBLE for this project (see checkProtocolBodySignatureCounts), never to verify CLAUDE.md.
+const projectClaudePath = path.join(rootDir, 'CLAUDE.md');
 const SKILL_PROTOCOL_MARKER = 'CODEX:SYNC-PROMPT-PROTOCOLS:START';
 const SKILL_PROTOCOL_END_MARKER = 'CODEX:SYNC-PROMPT-PROTOCOLS:END';
 const CONTEXT_PROTOCOL_TOP_MARKER = 'PROMPT-PROTOCOLS:START';
@@ -31,7 +34,14 @@ const AGENTS_CONTEXT_MIRROR_START = 'CODEX-CONTEXT-MIRROR:START';
 const AGENTS_CONTEXT_MIRROR_END = 'CODEX-CONTEXT-MIRROR:END';
 const AGENTS_ROOT_PROJECTION_START = 'CK:CODEX-ROOT-PROJECTION';
 const AGENTS_ROOT_PROJECTION_END = '/CK:CODEX-ROOT-PROJECTION';
-const AGENTS_ROOT_LIMIT_BYTES = 32768;
+// MUST equal AGENTS_ROOT_LIMIT_BYTES in `sync-context-workflows.mjs` — the generator that produces
+// the projection this gate measures. The two drifted once: the generator raised its budget to 49152
+// (it now projects the anti-hallucination protocol and System Lessons into the Codex root instead of
+// leaving Codex with zero copies) while this verifier kept 32768 and rejected the generator's own
+// valid output. Deliberately a LOCAL copy, NOT an import: this file is loaded from a `data:` URL and
+// copied into isolated roots without its siblings (`verifier-root-contract.test.mjs`), so a relative
+// import breaks it. `verify-skill-protocol-compliance.test.mjs` asserts the two constants match.
+export const AGENTS_ROOT_LIMIT_BYTES = 49152;
 const DEBUGGER_TRACE_MARKER = '<!-- SYNC:end-to-start-debugger-trace -->';
 const DEBUGGER_TRACE_REQUIRED_SNIPPETS = [
     'End-to-Start Debugger Trace',
@@ -73,15 +83,33 @@ const REQUIRED_CONTRACT_SNIPPETS = [
     'If a required step/tool cannot run in this environment, stop and ask the user before adapting.'
 ];
 
-// P6 — canonical protocol-body parity in the full static context. The mirror term-rewrites tool
+// P6 — canonical protocol-body parity across the TWO static carriers. The mirror term-rewrites tool
 // nouns (Agent->spawn_agent, "Skill tool"->lowercased, etc.), so byte-equality vs the raw canonical
 // :full block is INVALID and would false-fail. Instead anchor on each block's rewrite-invariant
-// signature and assert it appears EXACTLY ONCE in `.codex/CODEX_CONTEXT.md`. `AGENTS.md` is a bounded
-// projection and pointer; it must not duplicate the full protocol body. Hooks may accelerate loading
-// on either host, but these static carriers remain authoritative.
+// signature and count occurrences per carrier — the two carriers have DIFFERENT contracts because
+// they have different sources:
+//   - `.codex/CODEX_CONTEXT.md` — ALWAYS exactly 1. Its copy is baked from the canonical shared
+//     source, so it is project-independent and always producible.
+//   - `AGENTS.md` — the bounded root projection, whose copy is CLAUDE.md-DERIVED through the
+//     projection whitelist (`sync-context-workflows.mjs:248-260`). Its expected count is therefore
+//     CONDITIONAL on the source: exactly 1 when CLAUDE.md carries that block's `claudeFence`, and
+//     exactly 0 when it does not, because a fence-less root gives the whitelist nothing to project.
+//     Either way >=2 is a de-duplication regression and fails.
+// NOTE: AGENTS.md is no longer a pointer-ONLY projection for these blocks — it carries one deduped
+// copy of each whenever CLAUDE.md can source it. Anything still describing it as a pure pointer is
+// stale; see the conditional rationale at checkProtocolBodySignatureCounts.
+// Hooks may accelerate loading on either host, but these static carriers remain authoritative.
 const PROTOCOL_BODY_SIGNATURES = [
-    { tag: 'critical-thinking-mindset:full', signature: '[CRITICAL-THINKING-MINDSET]' },
-    { tag: 'ai-mistake-prevention:full', signature: '## Common AI Mistake Prevention (System Lessons)' }
+    {
+        tag: 'critical-thinking-mindset:full',
+        signature: '[CRITICAL-THINKING-MINDSET]',
+        claudeFence: /<!--\s*CK:CRITICAL-THINKING\s*-->/i
+    },
+    {
+        tag: 'ai-mistake-prevention:full',
+        signature: '## Common AI Mistake Prevention (System Lessons)',
+        claudeFence: /<!--\s*CK:AI-MISTAKE-PREVENTION\s*-->/i
+    }
 ];
 
 const FORBIDDEN_SKILL_PROTOCOL_PATTERNS = [
@@ -365,6 +393,19 @@ export function formatMirrorRemediation(failures) {
         lines.push('A "context mirror content drifted" failure almost always means a mirror file was reformatted');
         lines.push('or edited after the last sync; `npm run codex:sync` rewrites it byte-for-byte from the source.');
     }
+    // Size overflow is the ONE failure the sync cannot fix, so it must not inherit the generic
+    // "regenerate" advice above — that advice is a non-terminating loop here. The generator
+    // preserves content without truncating and only WARNS on overflow (reportAgentsRootSize), so
+    // re-running it reproduces the identical oversized file and this gate fails identically.
+    if (Array.isArray(failures) && failures.some(f => /bounded projection limit/i.test(String(f)))) {
+        lines.push('EXCEPTION — a "bytes, above the …-byte bounded projection limit" failure is NOT fixed by');
+        lines.push('re-running the sync. The generator preserves content without truncating and only warns on');
+        lines.push('overflow (`sync-context-workflows.mjs` reportAgentsRootSize), so regenerating reproduces the');
+        lines.push('identical oversized file. Change the budget or the input instead:');
+        lines.push('  - raise AGENTS_ROOT_LIMIT_BYTES in BOTH .claude/scripts/codex/verify-skill-protocol-compliance.mjs');
+        lines.push('    and .claude/scripts/codex/sync-context-workflows.mjs (TC-CTXP-035e pins them equal), or');
+        lines.push('  - shrink the projection whitelist (AGENTS_PROJECTION_HEADINGS in sync-context-workflows.mjs).');
+    }
     return lines.join('\n');
 }
 
@@ -456,17 +497,54 @@ async function checkCanonicalProtocolBodySignatures(failures) {
         }
     }
 
-    // The bounded root must point at the full context rather than silently carrying a second,
-    // truncated protocol copy. A zero count is intentional for signatures in AGENTS.md.
     if (await exists(projectAgentsPath)) {
         const agentsText = await fs.readFile(projectAgentsPath, 'utf8');
-        for (const { tag, signature } of PROTOCOL_BODY_SIGNATURES) {
-            const n = countOccurrences(agentsText, signature);
-            if (n !== 0) {
-                failures.push(`AGENTS.md: canonical SYNC:${tag} body signature "${signature}" found ${n}× (expected 0 in the bounded projection; read .codex/CODEX_CONTEXT.md)`);
-            }
-        }
+        const claudeText = (await exists(projectClaudePath))
+            ? await fs.readFile(projectClaudePath, 'utf8')
+            : '';
+        failures.push(...checkProtocolBodySignatureCounts(agentsText, claudeText));
     }
+}
+
+// Occurrence contract for the bounded root projection — the count is CONDITIONAL on what CLAUDE.md
+// can source.
+//
+// This asserted zero while the projection was a pure pointer. That contract changed deliberately
+// (`sync-context-workflows.mjs:248-260`): CLAUDE.md stamps both protocol blocks twice under its
+// primacy-recency rule, the projection whitelist now carries the FIRST fence pair of each, and the
+// pre-projection strip keeps one copy and drops the surplus. The reason was a real gap, not
+// convenience — a pointer-only root gave Codex ZERO copies of this repo's anti-hallucination
+// protocol and System Lessons while Claude got two.
+//
+// But unlike `.codex/CODEX_CONTEXT.md` — whose copy is baked from the canonical source and is
+// therefore project-independent — this carrier is CLAUDE.md-DERIVED. Requiring >=1 unconditionally
+// would hard-fail every adopter whose CLAUDE.md carries no CK fence, a supported shape this repo's
+// own PORT-013 fixture exercises (`tests/portability-no-package-json.test.mjs`), because the
+// whitelist simply has nothing to project. So the expectation follows the source: 1 when the fence
+// is present, 0 when it is not. Both directions stay guarded in each case — a fenced project that
+// drops to 0 means Codex lost the guardrail, and >=2 in either case means de-duplication regressed.
+//
+// A MISSING CLAUDE.md is treated as "cannot source" (expect 0). That file's absence is the
+// agent-files bootstrap gate's failure to report, not this gate's.
+//
+// Pure + exported so a focused test can drive every branch — and prove the guard is not silently
+// deletable — without a host runtime, the same convention `checkCompactAgentsProjection` follows.
+export function checkProtocolBodySignatureCounts(agentsText, claudeText, {
+    signatures = PROTOCOL_BODY_SIGNATURES
+} = {}) {
+    const failures = [];
+    const agents = String(agentsText ?? '');
+    const claude = String(claudeText ?? '');
+    for (const { tag, signature, claudeFence } of signatures) {
+        const n = countOccurrences(agents, signature);
+        const sourceable = claudeFence ? claudeFence.test(claude) : true;
+        const expected = sourceable ? 1 : 0;
+        if (n === expected) continue;
+        failures.push(sourceable
+            ? `AGENTS.md: canonical SYNC:${tag} body signature "${signature}" found ${n}× (expected exactly 1 — CLAUDE.md carries ${claudeFence.source}, so the projection must carry one deduped copy; 0 means Codex lost the guardrail, >=2 means de-duplication regressed)`
+            : `AGENTS.md: canonical SYNC:${tag} body signature "${signature}" found ${n}× (expected 0 — CLAUDE.md carries no matching CK fence, so the projection whitelist cannot source this block; >=1 means the root gained an unsourced copy)`);
+    }
+    return failures;
 }
 
 async function checkRequiredDebuggerTraceFiles(relativePaths, failures) {

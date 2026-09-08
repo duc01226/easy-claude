@@ -194,6 +194,35 @@ or its unrelated compound tail. Permission evaluation belongs to the host and se
 
 ---
 
+## Validation Patterns
+
+When a hook emits its own rejection instead of delegating to `runBlockingHook`, it must **drain before it
+exits**. Write the message, set `process.exitCode`, then `return` — and let Node flush the stream on its own:
+
+```javascript
+if (!result.allowed) {
+    process.stderr.write(result.message);
+    process.exitCode = 2;
+    return;
+}
+```
+
+Each of those three lines carries the whole contract:
+
+-   **`process.stderr.write(result.message)`** — the block message is the only thing the user and Claude
+    see. A rejection with no stderr text is a silent failure the caller cannot act on.
+-   **`process.exitCode = 2`** — never `process.exit(2)`. `process.exit` tears the process down
+    immediately, so a large diagnostic queued on a pipe is truncated or lost entirely; setting
+    `exitCode` lets Node drain first and exit with the same status.
+-   **`return`** — the rejection must not fall through into the allow path that follows it. Dropping the
+    `return` produces a hook that writes a block message and then permits the operation anyway.
+
+The canonical implementation of this contract lives in `runBlockingHook` itself
+(`.claude/hooks/lib/hook-runner.cjs`), so a hook that delegates inherits it; the rules above bind any hook
+that writes its own rejection instead.
+
+---
+
 ## Registration
 
 ### settings.json Configuration
@@ -492,8 +521,8 @@ export CK_DEBUG=1
 
 Debug logs are written to stderr and appear in:
 
-- Terminal output during Claude Code execution
-- stderr when `CLAUDE_HOOK_DEBUG=1` is enabled
+-   Terminal output during Claude Code execution
+-   stderr when `CLAUDE_HOOK_DEBUG=1` is enabled
 
 For the Bash PreToolUse chain, `CLAUDE_HOOK_DEBUG=1` writes one JSON record per invocation to the
 platform temp directory at `ck/debug/bash-hooks.log` (override with `CLAUDE_HOOK_DEBUG_LOG`). Records
@@ -598,18 +627,18 @@ command or path contents. A sink failure is reported on stderr and does not chan
 
 ### Common Issues
 
-| Issue                          | Cause                                  | Solution                                               |
-| ------------------------------ | -------------------------------------- | ------------------------------------------------------ |
-| Hook not executing             | Not registered in settings.json        | Add to appropriate event in hooks config               |
-| Hook blocking unexpectedly     | Exit code != 0                         | Return an explicit outcome and let the wrapper set `process.exitCode` |
-| Unexpected SessionStart output | Hook writes stdout or enables output   | Remove stdout output; move guidance to static carriers |
-| JSON parse errors              | Malformed stdin                        | Use the pre-tool wrapper so the failure is visible and policy-specific |
+| Issue                          | Cause                                | Solution                                                               |
+| ------------------------------ | ------------------------------------ | ---------------------------------------------------------------------- |
+| Hook not executing             | Not registered in settings.json      | Add to appropriate event in hooks config                               |
+| Hook blocking unexpectedly     | Exit code != 0                       | Return an explicit outcome and let the wrapper set `process.exitCode`  |
+| Unexpected SessionStart output | Hook writes stdout or enables output | Remove stdout output; move guidance to static carriers                 |
+| JSON parse errors              | Malformed stdin                      | Use the pre-tool wrapper so the failure is visible and policy-specific |
 
 ---
 
 ## Related Documentation
 
-- [README.md](./README.md) - Hooks overview and catalog
+-   [README.md](./README.md) - Hooks overview and catalog
 
 ---
 

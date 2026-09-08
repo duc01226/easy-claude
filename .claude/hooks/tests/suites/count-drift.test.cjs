@@ -16,9 +16,15 @@ const { spawnSync } = require('child_process');
 const REPO_ROOT = path.resolve(__dirname, '..', '..', '..', '..');
 const SCRIPT = path.join(REPO_ROOT, '.claude', 'scripts', 'generate_catalogs.py');
 
+// Files whose `<!-- COUNT:kind -->` marker regions are checked against filesystem
+// truth. Adding a file here is how a hand-typed inventory figure stops drifting:
+// the guard previously asserted only 6 regexes, so 14 hand-typed counts sat in
+// files it never opened (team-collaboration-guide.md claimed 164 skills against
+// a real 167) while the suite reported 8/8 green.
 const PILOT_FILES = [
     'CLAUDE.md',
-    'docs/project-reference/project-structure-reference.md'
+    'docs/project-reference/project-structure-reference.md',
+    '.claude/docs/team-collaboration-guide.md'
 ];
 
 let pythonCommand = null;

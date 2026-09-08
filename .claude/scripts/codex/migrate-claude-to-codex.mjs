@@ -34,9 +34,9 @@ const {
     buildCodexPromptProtocolBlock
 } = loadHooklessPromptProtocol();
 
-const claudeAgentsDir = path.join(rootDir, '.claude', 'agents');
+export const claudeAgentsDir = path.join(rootDir, '.claude', 'agents');
 export const claudeSkillsDir = path.join(rootDir, '.claude', 'skills');
-const codexAgentsDir = path.join(rootDir, '.codex', 'agents');
+export const codexAgentsDir = path.join(rootDir, '.codex', 'agents');
 export const agentsSkillsDir = path.join(rootDir, '.agents', 'skills');
 const codexConfigPath = path.join(rootDir, '.codex', 'config.toml');
 const codexScriptsDir = path.join(rootDir, '.codex', 'scripts', 'codex');
@@ -651,14 +651,20 @@ async function writeAgentsSkillsMirrorSentinel() {
     );
 }
 
-async function migrateAgents() {
+// Single source of truth for materializing the Codex sub-agent mirror into `targetDir`.
+// Called by the real writer (migrateAgents → codexAgentsDir) AND by the sync-divergence
+// oracle gate (→ throwaway staging dir), for the same reason materializeSkillMirror is
+// shared: an oracle that re-implements the transform can drift from it, and the 27 agent
+// TOMLs are the ENTIRE Codex sub-agent surface — previously the only committed mirror with
+// no divergence gate at all. Returns the number of agents written.
+export async function materializeAgentMirror(targetDir = codexAgentsDir) {
     const exists = await pathExists(claudeAgentsDir);
     if (!exists) {
         console.warn('[codex-migrate] .claude/agents not found, skipping sub-agent migration.');
         return 0;
     }
 
-    await ensureDir(codexAgentsDir);
+    await ensureDir(targetDir);
 
     const entries = await fs.readdir(claudeAgentsDir, { withFileTypes: true });
     const markdownFiles = entries
@@ -697,12 +703,16 @@ async function migrateAgents() {
             ''
         ].join('\n');
 
-        const outputPath = path.join(codexAgentsDir, `${stemName}.toml`);
+        const outputPath = path.join(targetDir, `${stemName}.toml`);
         await fs.writeFile(outputPath, toml, 'utf8');
         migrated += 1;
     }
 
     return migrated;
+}
+
+async function migrateAgents() {
+    return materializeAgentMirror(codexAgentsDir);
 }
 
 // Single source of truth for materializing the skill mirror into `targetDir`.

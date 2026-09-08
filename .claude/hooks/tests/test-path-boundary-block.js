@@ -15,6 +15,29 @@ const PROJECT_ROOT = path.resolve(__dirname, '..', '..', '..');
 const { generateTestFixtures } = require('../lib/test-fixture-generator.cjs');
 const f = generateTestFixtures();
 
+// This suite describes the BOUNDARY layer: which paths a request reaches, and whether they fall
+// outside the project. The hook reaches that layer ONLY for a request that can create, modify or
+// delete a file — a read is allowed wherever it points, because reading outside the project
+// destroys nothing (see the write-only gate in path-boundary-block.cjs). So every fixture is
+// presented as the write it is describing:
+//   * a structured path field runs as `Write` instead of the legacy `Bash` default;
+//   * a Bash command is prefixed with an in-project `touch`, which makes the statement mutating
+//     while contributing no path of its own — the fixture's own operands stay the thing judged.
+// A fixture that names its own tool, or sets `readOnly: true`, is passed through untouched; the
+// read-allowed direction is asserted by those fixtures and by path-boundary-policy.test.cjs.
+// The marker is ABSOLUTE and derived from the fixture's own project root: a relative one would
+// resolve against the event cwd, which the space-in-root group deliberately points elsewhere.
+function asWriteRequest(hookData, projectDir) {
+    if (!hookData || typeof hookData !== 'object' || hookData.tool_name || hookData.readOnly) return hookData;
+    const toolInput = hookData.tool_input;
+    if (toolInput && typeof toolInput === 'object' && typeof toolInput.command === 'string') {
+        const marker = `${String(projectDir).replace(/\\/g, '/')}/.boundary-test-marker`;
+        const command = `touch "${marker}" && ${toolInput.command}`;
+        return { tool_name: 'Bash', ...hookData, tool_input: { ...toolInput, command } };
+    }
+    return { tool_name: 'Write', ...hookData };
+}
+
 /**
  * Run the hook with given input
  * @param {object} hookData - Hook input data
@@ -43,10 +66,7 @@ async function runHook(hookData, options = {}) {
             resolve({ code, stderr });
         });
 
-        const payload = hookData && typeof hookData === 'object' && !hookData.tool_name
-            ? { tool_name: 'Bash', ...hookData }
-            : hookData;
-        proc.stdin.write(JSON.stringify(payload));
+        proc.stdin.write(JSON.stringify(asWriteRequest(hookData, options.projectDir || PROJECT_ROOT)));
         proc.stdin.end();
     });
 }
@@ -476,8 +496,7 @@ const sedAwkTests = [
         name: 'find -exec child scope is unmodeled - should block',
         input: {
             tool_input: {
-                command:
-                    'find . -name "*.cmd" -exec sed -i \'s/docker compose --ansi always \\(.*\\) build /docker compose \\1/\' {} \\;'
+                command: 'find . -name "*.cmd" -exec sed -i \'s/docker compose --ansi always \\(.*\\) build /docker compose \\1/\' {} \\;'
             }
         },
         // Strict scoped guards cannot infer a child command's file effects.
@@ -724,26 +743,44 @@ const spaceInRootTests = [
 // Tests for MCP filesystem tools
 const mcpTests = [
     {
-        name: 'MCP read file outside project - should block',
+        name: 'MCP write file outside project - should block',
         input: {
-            tool_name: 'mcp__filesystem__read_text_file',
+            tool_name: 'mcp__filesystem__write_file',
             tool_input: { path: 'D:/OtherProject/config.json' }
         },
         expectBlock: true
     },
     {
-        name: 'MCP read multiple with one outside - should block',
+        name: 'MCP edit multiple with one outside - should block',
         input: {
-            tool_name: 'mcp__filesystem__read_multiple_files',
+            tool_name: 'mcp__filesystem__edit_multiple_files',
             tool_input: { paths: [path.join(PROJECT_ROOT, 'file1.txt'), 'D:/Outside/file2.txt'] }
         },
         expectBlock: true
     },
     {
-        name: 'MCP read file inside project - should allow',
+        name: 'MCP write file inside project - should allow',
+        input: {
+            tool_name: 'mcp__filesystem__write_file',
+            tool_input: { path: path.join(PROJECT_ROOT, 'CLAUDE.md') }
+        },
+        expectBlock: false
+    },
+    // The write-only gate decides by TOOL for a structured request: an MCP reader is allowed
+    // wherever it points, because reading a file outside the project destroys nothing.
+    {
+        name: 'MCP read file outside project - should allow (a read is not a boundary risk)',
         input: {
             tool_name: 'mcp__filesystem__read_text_file',
-            tool_input: { path: path.join(PROJECT_ROOT, 'CLAUDE.md') }
+            tool_input: { path: 'D:/OtherProject/config.json' }
+        },
+        expectBlock: false
+    },
+    {
+        name: 'MCP read multiple with one outside - should allow',
+        input: {
+            tool_name: 'mcp__filesystem__read_multiple_files',
+            tool_input: { paths: [path.join(PROJECT_ROOT, 'file1.txt'), 'D:/Outside/file2.txt'] }
         },
         expectBlock: false
     }
@@ -806,6 +843,74 @@ const edgeCaseTests = [
         name: 'invalid JSON - should block with a visible diagnostic (fail-closed)',
         rawInput: 'not json',
         expectBlock: true
+    }
+];
+
+// Block-message honesty: every slot must be labelled by what it HOLDS.
+// A denial whose cause is "the hook could not determine the paths" must not
+// present a diagnostic code (or the origin channel 'argv'/'structured') under
+// a `Path:` label — that claims a filesystem path was rejected and sends the
+// reader looking for a file the hook never named.
+const blockMessageTests = [
+    {
+        name: 'undetermined command - names the reason, not a fake Path',
+        input: { tool_input: { command: 'cat "$SOME_FILE"' } },
+        expectBlock: true,
+        expectContains: 'Command paths could not be determined'
+    },
+    {
+        name: 'undetermined command - prints the diagnostic code under Reason',
+        input: { tool_input: { command: 'cat "$SOME_FILE"' } },
+        expectBlock: true,
+        expectContains: 'Reason:'
+    },
+    {
+        name: 'undetermined command - echoes the offending command',
+        input: { tool_input: { command: 'cat "$SOME_FILE"' } },
+        expectBlock: true,
+        expectContains: 'cat "$SOME_FILE"'
+    },
+    {
+        // A plain pipe is modelled and ALLOWS; the fd-duplicating redirection
+        // is what the hook cannot follow. Asserting the wrong form here would
+        // have tested nothing.
+        name: 'undetermined fd redirection - not reported as a rejected Path',
+        input: { tool_input: { command: 'node script.cjs 2>&1 | tail -25' } },
+        expectBlock: true,
+        expectContains: 'No path was rejected'
+    },
+    {
+        name: 'undetermined redirection - not reported as a rejected Path',
+        input: { tool_input: { command: 'echo hi > "$OUT"' } },
+        expectBlock: true,
+        expectContains: 'Command paths could not be determined'
+    },
+    {
+        // The heredoc branch in path-boundary-policy.cjs was unreachable: the
+        // inspector marks `<<` static:false, so the staticness guard fired
+        // first and reported every heredoc as a generic unknown redirect.
+        name: 'heredoc - reports HEREDOC_UNSUPPORTED, not a generic redirect',
+        input: { tool_input: { command: "python - <<'PY'\nprint(1)\nPY" } },
+        expectBlock: true,
+        expectContains: 'HEREDOC_UNSUPPORTED'
+    },
+    {
+        name: 'heredoc - explains here-documents specifically',
+        input: { tool_input: { command: 'cat <<EOF > out.txt\nhi\nEOF' } },
+        expectBlock: true,
+        expectContains: 'here-documents are not modelled'
+    },
+    {
+        name: 'outside path - keeps the boundary-violation message',
+        input: { tool_input: { file_path: path.join(os.homedir(), 'outside-boundary.txt') } },
+        expectBlock: true,
+        expectContains: 'Path outside project boundary'
+    },
+    {
+        name: 'outside path - names the resolved path, not a diagnostic code',
+        input: { tool_input: { file_path: path.join(os.homedir(), 'outside-boundary.txt') } },
+        expectBlock: true,
+        expectContains: 'outside-boundary.txt'
     }
 ];
 
@@ -904,6 +1009,7 @@ async function main() {
         ['NotebookEdit Tests', notebookTests],
         ['Config Toggle Tests', configTests],
         ['Edge Cases', edgeCaseTests],
+        ['Block Message Honesty (labelled slots)', blockMessageTests],
         ['Linux Regression (boundary cannot bypass on Linux)', linuxRegressionTests, { env: { CLAUDE_TEST_PLATFORM: 'linux' } }],
         ['Windows Flag Allow (findstr /I, cmd /C, etc.)', winFlagAllowTests, { env: { CLAUDE_TEST_PLATFORM: 'win32' } }],
         ['cd/pushd Navigation Exemption (navigation-only, access still scanned)', cdNavigationTests, { env: { CLAUDE_TEST_PLATFORM: 'win32' } }],

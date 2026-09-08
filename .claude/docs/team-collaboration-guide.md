@@ -25,11 +25,11 @@
 
 Claude Code uses a **three-pillar architecture** to assist every role:
 
-| Pillar                        | What It Does                                                          | Count                   |
-| ----------------------------- | --------------------------------------------------------------------- | ----------------------- |
-| **Hooks** (Enforcement)       | Enforce quality gates, block unsafe actions, manage session lifecycle | 17 top-level hook files |
-| **Skills** (Intelligence)     | Prompt-engineered protocols loaded on demand via `/skill-name`        | 164 skills              |
-| **Workflows** (Orchestration) | Multi-step sequences of skills with progress tracking                 | 19 workflows            |
+| Pillar                        | What It Does                                                          | Count                                          |
+| ----------------------------- | --------------------------------------------------------------------- | ---------------------------------------------- |
+| **Hooks** (Enforcement)       | Enforce quality gates, block unsafe actions, manage session lifecycle | 18 top-level hook files                        |
+| **Skills** (Intelligence)     | Prompt-engineered protocols loaded on demand via `/skill-name`        | <!-- COUNT:skills -->167<!-- /COUNT --> skills |
+| **Workflows** (Orchestration) | Multi-step sequences of skills with progress tracking                 | 19 workflows                                   |
 
 ### Workflow Detection
 
@@ -278,9 +278,9 @@ QC:                              /quality-gate-review ──→ [PASS/FAIL repor
 
 **Quality gate criteria (pre-QA):**
 
-- All test cases have `TC-{FEATURE}-{NNN}` IDs
-- At least 5 categories: positive, negative, edge, authorization, and invariant/property (≥1 universally-quantified property TC + boundary counter-case per [HARD] rule / §5 invariant — see `.claude/skills/shared/tc-format.md`)
-- Evidence fields use `[Source: namespace/service/id]` abstract anchors (stack-portable — never `file:line`)
+-   All test cases have `TC-{FEATURE}-{NNN}` IDs
+-   At least 5 categories: positive, negative, edge, authorization, and invariant/property (≥1 universally-quantified property TC + boundary counter-case per [HARD] rule / §5 invariant — see `.claude/skills/shared/tc-format.md`)
+-   Evidence fields use `[Source: namespace/service/id]` abstract anchors (stack-portable — never `file:line`)
 
 ---
 
@@ -302,10 +302,10 @@ Dev:                             /code-review ──→ Implementation
 
 **Design spec checklist:**
 
-- All states: default, hover, active, disabled, error, loading
-- Design tokens mapped (no hardcoded values)
-- BEM classes defined
-- Accessibility requirements (WCAG 2.2)
+-   All states: default, hover, active, disabled, error, loading
+-   Design tokens mapped (no hardcoded values)
+-   BEM classes defined
+-   Accessibility requirements (WCAG 2.2)
 
 ---
 
@@ -547,10 +547,10 @@ PLANNING
 
 **Common causes:**
 
-- Missing GIVEN/WHEN/THEN in acceptance criteria
-- Test cases without `TC-{FEATURE}-{NNN}` IDs
-- No Evidence field in test cases
-- Dependencies not documented
+-   Missing GIVEN/WHEN/THEN in acceptance criteria
+-   Test cases without `TC-{FEATURE}-{NNN}` IDs
+-   No Evidence field in test cases
+-   Dependencies not documented
 
 **Fix:** Review the gate report and address each failed criterion.
 

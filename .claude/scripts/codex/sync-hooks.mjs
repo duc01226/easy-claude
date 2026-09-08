@@ -13,8 +13,8 @@ const rootResolution = resolveMutationProjectRoot({
   env: process.env,
 });
 const rootDir = rootResolution.rootDir;
-const claudeSettingsPath = path.join(rootDir, ".claude", "settings.json");
-const codexDir = path.join(rootDir, ".codex");
+export const claudeSettingsPath = path.join(rootDir, ".claude", "settings.json");
+export const codexDir = path.join(rootDir, ".codex");
 const codexHooksPath = path.join(codexDir, "hooks.json");
 const reportPath = path.join(codexDir, "hooks.sync.report.json");
 
@@ -88,7 +88,24 @@ function pushSkip(report, eventName, groupIndex, reason, matcher) {
   });
 }
 
-async function main() {
+/**
+ * Write the Codex hook mirror into `targetDir`.
+ *
+ * Exported so the divergence oracle can materialize a FRESH mirror with THIS
+ * function — the same writer the real sync uses — instead of re-deriving what
+ * the output "should" look like. A second derivation is a second implementation
+ * that drifts from this one, and then the guard passes while the mirror is
+ * wrong.
+ * @param {string} targetDir - Directory to write hooks.json and the report into
+ * @returns {Promise<object>} The sync report
+ */
+export async function materializeHookMirror(targetDir = codexDir) {
+  return main(targetDir);
+}
+
+async function main(targetDir = codexDir) {
+  const hooksPath = path.join(targetDir, "hooks.json");
+  const hooksReportPath = path.join(targetDir, "hooks.sync.report.json");
   const rawSettings = await fs.readFile(claudeSettingsPath, "utf8");
   const claudeSettings = JSON.parse(rawSettings);
   const claudeHooks = claudeSettings?.hooks ?? {};
@@ -181,16 +198,24 @@ async function main() {
     }
   }
 
-  await fs.mkdir(codexDir, { recursive: true });
-  await fs.writeFile(codexHooksPath, `${JSON.stringify({ hooks: codexHooks }, null, 2)}\n`, "utf8");
-  await fs.writeFile(reportPath, `${JSON.stringify(report, null, 2)}\n`, "utf8");
+  await fs.mkdir(targetDir, { recursive: true });
+  await fs.writeFile(hooksPath, `${JSON.stringify({ hooks: codexHooks }, null, 2)}\n`, "utf8");
+  await fs.writeFile(hooksReportPath, `${JSON.stringify(report, null, 2)}\n`, "utf8");
 
-  console.log(
-    `[codex-hooks-sync] wrote ${path.relative(rootDir, codexHooksPath)} with ${report.converted_groups_total} group(s) across ${report.converted_events.length} event(s)`
-  );
-  console.log(
-    `[codex-hooks-sync] skipped ${report.skipped_groups.length} incompatible group(s); report: ${path.relative(rootDir, reportPath)}`
-  );
+  if (targetDir === codexDir) {
+    console.log(
+      `[codex-hooks-sync] wrote ${path.relative(rootDir, codexHooksPath)} with ${report.converted_groups_total} group(s) across ${report.converted_events.length} event(s)`
+    );
+    console.log(
+      `[codex-hooks-sync] skipped ${report.skipped_groups.length} incompatible group(s); report: ${path.relative(rootDir, reportPath)}`
+    );
+  }
+  return report;
 }
 
-await main();
+// Importing this module must not write the real mirror — the divergence oracle
+// imports it to materialize into a temp directory.
+const invokedAsScript = process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url);
+if (invokedAsScript) {
+  await main();
+}

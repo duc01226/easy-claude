@@ -171,7 +171,7 @@ Markdown-based prompts with YAML frontmatter that guide AI behavior.
 
 | Category           | Examples                                                                                                   | What They Do                                             |
 | ------------------ | ---------------------------------------------------------------------------------------------------------- | -------------------------------------------------------- |
-| **Planning**       | `/plan`, `/investigate`                                                                                     | Research, plan, investigate before coding                |
+| **Planning**       | `/plan`, `/investigate`                                                                                    | Research, plan, investigate before coding                |
 | **Implementation** | `/feature-implement`, `/plan-execute`, `/fix`, `/refactoring`                                              | Write code with quality gates                            |
 | **Testing**        | `/test`, `/integration-test`, `/integration-test-review`, `/integration-test-verify`, `/e2e-test`, `/spec` | Test-first, test-after, and spec-traceability workflows  |
 | **Review**         | `/code-review`, `/changes-review`, `/security-review`                                                      | Code quality, security audits                            |
@@ -286,7 +286,7 @@ The entire framework is **project-agnostic**. All project-specific knowledge liv
 ```
 ┌─────────────────────────────────────┐
 │     Generic Framework (reusable)    │
-│ 17 Hook Files + 167 Skills + 19 Flows │
+│ 18 Hook Files + 167 Skills + 19 Flows │
 └──────────────┬──────────────────────┘
                │
         ┌──────┴──────┐
