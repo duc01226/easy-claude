@@ -2,11 +2,13 @@
 
 The **single source of truth** for the rich, standalone HTML release presentation. Owned by `release-notes` (Step 6, default-on). Never duplicate this procedure into a skill body — link to it.
 
-**What this produces:** ONE self-contained, offline, professional HTML file that shows a reader **what's new** and **what changed** in a release, and — when the release touched a user-facing surface — **renders faithful mock-ups of the real screens** using the project's real design tokens, real component patterns, and real domain field names.
+**What this produces:** ONE self-contained, offline, professional HTML file that tells **a real user of the product** what's new and what changed in a release, and — when the release touched a user-facing surface — **renders faithful mock-ups of the real screens** using the project's real design tokens, real component patterns, and real domain field names.
 
 **Non-negotiable order:** comprehend the whole change set (R1) → investigate each feature end-to-end (R2) → correlate specs (R3) → detect + inventory UI (R4) → **write the temp analysis report (R5)** → assemble HTML from that report (R6) → save (R7) → gates (R8) → auto-open (R9).
 
 > **[BLOCKING] R5 before R6.** The HTML is assembled **from the temp report**, never straight from a diff or from memory. An HTML file produced without a written temp report is a protocol failure — regenerate. — why: the report is external memory; a large diff overflows context and the deck silently degrades into invented claims.
+
+> **[BLOCKING] The HTML is a USER-FACING release announcement, not an engineering report.** Its reader is the person who USES the product, not the person who built it. Full contract: **R6.0**. The engineering view is not lost — it lives in the markdown release notes (the skill's other output) and in the collapsed §7/§8/§9 of this document. — why: a release page padded with refactors and class names buries the two or three things the user actually gained.
 
 ---
 
@@ -40,9 +42,16 @@ Create one task tracking todo per R-stage plus one per **release highlight** ide
     Reuse the Step 3b thematic area map when one was built; otherwise derive `Area` from `docs/project-config.json` modules — never from guesswork, and never as a second divergent grouping.
 
 4. **Rank into release highlights** — select the changes a reader actually cares about, in this order: **breaking changes → new user-facing capability → changed user-facing behavior → notable fixes → performance → internal/tooling**. A highlight is a *user-meaningful outcome*, not a commit. Merge N commits that deliver one outcome into ONE highlight; split one commit that delivers two unrelated outcomes into two.
+    **4b — apply the observability filter, one verdict per highlight.** Ask of each: *would a person who uses this product, and never reads its code, notice this?*
+
+    - **`USER-VISIBLE`** — a new capability, a changed screen or flow, a fix whose symptom they felt, a speed-up they can perceive, an action they must now take. Eligible for the HTML's narrative sections (§2/§4/§5/§6).
+    - **`INTERNAL`** — refactors, renames, tests, CI, build, tooling, dependency bumps, type/lint changes, doc-only edits, logging/metrics plumbing. **Never** enters §2/§4/§5/§6; it is carried, one line each, into the collapsed §7 "Under the Hood".
+
+    Record the verdict in the temp report's §2 table. `INTERNAL` is a routing decision, not a deletion — the work is still reported, just where an engineer looks for it. Do NOT reword an internal change into invented user value to promote it; an honest §7 line beats a fabricated feature.
+
 5. **Cross-check coverage** — every `A`/`D` file and every `BREAKING CHANGE` commit maps to a highlight or to a written exclusion reason. An unmapped added file is a missed feature.
 
-**R1 exit bar:** change map complete · highlights ranked · coverage cross-check written · zero unmapped `A`/`D`/breaking entries.
+**R1 exit bar:** change map complete · highlights ranked · **every highlight carries a `USER-VISIBLE` / `INTERNAL` verdict** · coverage cross-check written · zero unmapped `A`/`D`/breaking entries.
 
 ---
 
@@ -99,11 +108,13 @@ Classify each highlight:
 
 Detect by intersecting the changed-file list with the project's frontend roots and file types (`.tsx/.jsx/.vue/.svelte/.html/.scss/.css/.razor/…`) from `docs/project-config.json`, AND by checking each `BEHIND-UI` candidate's consumers found in R2.4.
 
-**If every highlight is `NO-UI`:** state `UI surface: none — release is internal/backend only` in the report and the HTML, SKIP R4.2–R4.4 and the mock-up sections, and still produce the full HTML doc (narrative + change tables + evidence). A release doc without UI is still a release doc — never skip the HTML because there is no screen.
+**Prefer `BEHIND-UI` over `NO-UI` whenever the change surfaces anywhere.** A backend-only diff whose effect a user can see on an existing screen — a new column, a new status value, a changed validation message, a list that now loads — is `BEHIND-UI` and DOES get a mock-up of that existing screen. `NO-UI` is reserved for work with no observable surface at all. — why: "it's a backend change" is the most common excuse for shipping a screenshot-free release page, and it is usually wrong.
+
+**If every highlight is `NO-UI`:** state `UI surface: none — release is internal/backend only` in the report and the HTML, SKIP R4.2–R4.4 and the mock-up sections, and still produce the full HTML doc. Per R6.0.6, if those highlights are also all `INTERNAL`, the document says so plainly and renders §7/§9 only — an honest "no user-facing changes this release" page, never §4 padded with maintenance work. A release doc without UI is still a release doc — never skip the HTML because there is no screen.
 
 ### R4.2 Load the project's design context
 
-Same discovery ladder as `pbi-mockup` / `feature-presentation` — do not invent a third one:
+Same discovery ladder as `pbi-mockup` Step 3 / `feature-presentation` — do not invent a third one:
 
 1. **Baseline:** `docs/project-reference/design-system/README.md` and `docs/project-reference/design-system/design-system-canonical.md`.
 2. **Primary:** top-level `designSystem` in `docs/project-config.json` — use `designSystem.docsPath` + `designSystem.canonicalDoc`, then match the touched app/module against `designSystem.appMappings[]` for the per-app doc.
@@ -119,7 +130,7 @@ Also read `docs/project-reference/scss-styling-guide.md` (first ~100 lines) for 
 
 > **[BLOCKING] Understand the existing UI before you render anything** — canonical rule: `SYNC:existing-ui-research` (source of truth: `.claude/skills/shared/sync-inline-versions.md`). Inventory the existing related UI, map the connected flows in and out, reuse before you invent, and record what matched — so the render faithfully matches the current UI system rather than generic HTML. **Skip ONLY** when the release is backend-only (no UI) — state that explicitly.
 
-Concretely, for each `NEW-UI` / `CHANGED-UI` / `BEHIND-UI` highlight:
+This is `pbi-mockup` Step 3b applied to a release scope. Concretely, for each `NEW-UI` / `CHANGED-UI` / `BEHIND-UI` highlight:
 
 1. Read `docs/project-reference/frontend-patterns-reference.md` (first ~200 lines) — base component classes, form/table/dialog/navigation patterns.
 2. **Open the actual component/template files the diff touched** and 2–3 sibling components of the same tier. Copy their real markup structure and real class names — the mock-up must be a faithful reproduction of the project's UI, not a generic card grid.
@@ -162,7 +173,7 @@ Excluded from highlights: {area — reason} …
 
 ## 2. Release Highlights (ranked, R1.4)
 
-| # | Highlight (user outcome) | Kind (breaking/new/changed/fix/perf/internal) | Owning commits | UI verdict (NEW/CHANGED/BEHIND/NO-UI) |
+| # | Highlight (user outcome) | Kind (breaking/new/changed/fix/perf/internal) | Owning commits | Audience (USER-VISIBLE / INTERNAL, R1.4b) | UI verdict (NEW/CHANGED/BEHIND/NO-UI) |
 
 ## 3. Per-Highlight Deep Dive (R2 + R3)
 
@@ -190,13 +201,26 @@ Excluded from highlights: {area — reason} …
 ## 6. Needs Confirmation (confidence <60%, spec CONFLICT, unresolved questions)
 ```
 
-**R5 exit bar:** file exists on disk · every R1 highlight has a §3 entry · every claim carries evidence · every UI highlight has a §4 render plan · §6 lists everything unproven. **Only now may the HTML be written.**
+**R5 exit bar:** file exists on disk · every R1 highlight has a §3 entry · **every §2 row carries its `USER-VISIBLE` / `INTERNAL` verdict** · every claim carries evidence · every UI highlight has a §4 render plan · §6 lists everything unproven. **Only now may the HTML be written.**
 
 ---
 
 ## R6. Assemble the standalone HTML release document
 
 Build ONE self-contained file **from the temp report**. Re-read the temp report as you write each section — do not work from memory.
+
+### R6.0 [BLOCKING] Audience — write for real users, not for engineers
+
+> **[BLOCKING] The reader is the person who USES the product.** They have one question: *what can I do now that I could not do before?* They did not follow the work, do not know the codebase, and will not read a commit table. Every editorial decision in this document answers to that reader.
+
+1. **Only `USER-VISIBLE` highlights (R1.4b) may appear in §2 At a glance, §4 What's New, §5 What Changed, and §6 Fixes & Improvements.** Everything an `INTERNAL` verdict covers — refactors, renames, tests, CI, build, tooling, dependency bumps, type/lint changes, doc-only edits, logging/metrics plumbing — is confined to the collapsed §7 "Under the Hood" and §9 Technical Appendix. It is reported, never promoted.
+2. **Lead with the visible surface.** A `NEW-UI` / `CHANGED-UI` / `BEHIND-UI` highlight opens with its mock-up (R6.3); the prose explains the picture. A `USER-VISIBLE` highlight with no screen must still be stated as something the user can observe ("exports now finish without a timeout") — if it cannot be stated that way, its verdict was wrong: send it to §7.
+3. **Prose carries no implementation vocabulary.** No class, component, file, module, table, endpoint, framework, or library names. No commit subjects. No `file:line` inside a sentence. Traceability lives in the evidence chips (R6.2) and the appendix — meaning lives in the sentences. Say "the order list now shows delivery status", never "added `DeliveryStatusColumn` to `OrderGrid.tsx`".
+4. **Describe the outcome, not the mechanism.** A fix is named by the symptom the user no longer hits, not by the defect that caused it. A performance change is named in what the user perceives, not in milliseconds of a query plan.
+5. **Never manufacture user value.** An internal change reworded to sound user-facing is a fabrication and fails R8.1. Honest routing to §7 is always the correct move.
+6. **Honest emptiness beats padding.** A release whose entire change set is `INTERNAL` says so plainly — "no user-facing changes in this release; the work below is maintenance and tooling" — and renders §7/§9 only. Do not inflate §4 to fill the page.
+
+**The gate question for every sentence in §2–§6:** *would a person who never reads code recognise this as something that changed for them?* No → it belongs in §7.
 
 ### R6.1 Hard constraints
 
@@ -209,24 +233,30 @@ Build ONE self-contained file **from the temp report**. Re-read the temp report 
 
 ### R6.2 Required sections (in order)
 
-| # | Section                    | Content                                                                                                                                                     |
-| - | -------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 1 | **Header / hero**          | Project · version or period · date · commit/file/line stats · `Status: Draft` badge                                                                          |
-| 2 | **At a glance**            | 3–6 highlight cards, ranked as in R1.4 — each an outcome in the reader's words, not a commit subject                                                          |
-| 3 | **⚠ Action required**      | Breaking changes + migrations, with before→after and the concrete step. Rendered FIRST and visually distinct. Omit the section entirely when there are none. |
-| 4 | **What's New**             | One block per new-capability highlight: narrative · **UI mock-up when applicable** · evidence chips                                                          |
-| 5 | **What Changed**           | One block per changed-behavior highlight: **before → after**, side-by-side render for UI changes                                                              |
-| 6 | **Fixes & Improvements**   | Grouped, each with the user-visible symptom that is now gone                                                                                                 |
-| 7 | **Under the Hood**         | Internal/tooling/refactor changes, collapsed by default (`<details>`)                                                                                         |
-| 8 | **Spec & Test Coverage**   | Per highlight: spec verdict + governing §/TC ids + covering tests (or the honest gap)                                                                        |
-| 9 | **Technical Appendix**     | Commit table (hash · type · subject) · file-change table by area · statistics — collapsed by default                                                          |
-| 10| **Footer**                 | Generated date · branch · range `{OLD}..{HEAD}` · **paths of the temp report and git artifacts**                                                              |
+Sections 2–6 are the **user narrative** — `USER-VISIBLE` highlights only, written per R6.0. Sections 7–9 are the **technical view** — collapsed by default and never a place the user has to go to learn what changed for them.
 
-Every claim in sections 3–8 carries an **evidence chip** — a small inline `commit • file:line` marker. A section with no chip is unsourced and must be removed or sourced.
+| # | Section                    | Audience | Content                                                                                                                                                     |
+| - | -------------------------- | -------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1 | **Header / hero**          | user     | Project · version or period · date · `Status: Draft` badge. Headline counts are **user-facing** ones (new / changed / fixed); commit, file and line stats belong in §9. |
+| 2 | **At a glance**            | user     | 3–6 highlight cards, ranked as in R1.4 — each an outcome in the reader's words, not a commit subject                                                          |
+| 3 | **⚠ Action required**      | user     | Breaking changes + migrations, with before→after and the concrete step the user takes. Rendered FIRST and visually distinct. Omit the section entirely when there are none. |
+| 4 | **What's New**             | user     | One block per new-capability `USER-VISIBLE` highlight: **UI mock-up first when the highlight has a screen** · narrative · evidence chips                      |
+| 5 | **What Changed**           | user     | One block per changed-behavior `USER-VISIBLE` highlight: **before → after**, side-by-side render for UI changes                                                |
+| 6 | **Fixes & Improvements**   | user     | Grouped, each named by the **user-visible symptom that is now gone** — never by the defect or the code that caused it                                          |
+| 7 | **Under the Hood**         | technical | Every `INTERNAL` highlight (R1.4b), one line each, collapsed by default (`<details>`). This is the ONLY home for refactors, tests, CI, tooling, deps, docs.  |
+| 8 | **Spec & Test Coverage**   | technical | Per highlight: spec verdict + governing §/TC ids + covering tests (or the honest gap) — collapsed by default                                                  |
+| 9 | **Technical Appendix**     | technical | Commit table (hash · type · subject) · file-change table by area · full statistics — collapsed by default                                                     |
+| 10| **Footer**                 | —        | Generated date · branch · range `{OLD}..{HEAD}` · **paths of the temp report and git artifacts**                                                               |
+
+Every claim in sections 3–8 carries an **evidence chip** — a small inline `commit • file:line` marker. A section with no chip is unsourced and must be removed or sourced. Chips are **markers, not prose**: they sit beside the sentence, they never replace it, and R6.0.3 still forbids implementation names inside the sentence itself.
 
 ### R6.3 Rendering the mock-ups (the part that must look real)
 
 For every `NEW-UI` / `CHANGED-UI` / `BEHIND-UI` highlight, render a **faithful HTML reproduction of the real screen** inside the doc.
+
+> **[BLOCKING] The mock-up procedure is the `pbi-mockup` protocol — do not invent a second one.** How a screen is reproduced is owned by `.claude/skills/pbi-mockup/SKILL.md`: its **Step 3** (load the design system — canonical doc + the per-app doc matched from `docs/project-config.json`), **Step 3b** (`[BLOCKING]` inventory the existing UI and map connected flows by reading the real shared/module component files), **Step 3c** (real domain entity fields, types, enum values), and its **Step 7 fidelity validation**. R4.2–R4.4 above ARE that contract applied to a release scope — they must never drift from it. Where the two ever read differently, **`pbi-mockup` governs HOW a screen is reproduced; this file governs WHAT gets rendered** (which highlights, before→after pairing, per-highlight scope, and the release document's own chrome).
+
+**Deliberate scope difference — do not import the whole PBI skill.** `pbi-mockup` builds a clickable multi-view prototype of an **unbuilt** PBI, with guided narration and scripted flows. A release mock-up reproduces a screen that has **already shipped**: static or lightly toggled is enough (rule 7 below), and the ▶ Play / ⏭ Next walkthrough machinery is not required. Borrow the fidelity contract, not the prototype machinery. Its `⚠ Simulated` banner does carry over, as the `⚠ Illustrative mock-up` label in rule 8.
 
 **Fidelity rules — these are what separate a real release doc from a generic template:**
 
@@ -245,7 +275,7 @@ For every `NEW-UI` / `CHANGED-UI` / `BEHIND-UI` highlight, render a **faithful H
 
 ### R6.4 Tone
 
-Write for a reader who did not follow the work: business/observable language in all prose ("the record list now shows delivery status"), not framework or class names. The rendered HTML may use real class names internally — that is implementation, not prose.
+R6.0 sets the audience; this sets the voice. Write for a reader who did not follow the work: business/observable language in all prose ("the record list now shows delivery status"), not framework or class names. Second person and present tense — what *you can now do*, not what *was implemented*. The rendered HTML may use real class names internally — that is implementation, not prose.
 
 ---
 
@@ -261,7 +291,7 @@ Deriving the HTML path from the markdown stem keeps the pair together and makes 
 
 ---
 
-## R8. [BLOCKING] Gates — run BOTH before reporting done
+## R8. [BLOCKING] Gates — run ALL THREE before reporting done
 
 ### R8.1 Accuracy gate
 
@@ -273,6 +303,7 @@ Deriving the HTML path from the markdown stem keeps the pair together and makes 
 - [ ] New/deleted files cross-checked — nothing added or removed in the range is silently unreported
 - [ ] Spec `CONFLICT` verdicts are surfaced to the user, not smoothed over
 - [ ] No `TODO`, no unfilled placeholder, no invented API/class/method name
+- [ ] No `INTERNAL` change reworded into invented user value (R6.0.5)
 
 Record: `Release accuracy: PASS | FAIL`.
 
@@ -287,8 +318,23 @@ Record: `Release accuracy: PASS | FAIL`.
 - [ ] Responsive at 1440px and 375px; no horizontal body scroll; wide blocks scroll in their own container
 - [ ] Contrast 4.5:1, one `h1`, ordered headings, visible focus ring, reduced-motion honoured
 - [ ] `NO-UI` release: `UI surface: none` stated and no empty/broken mock-up frame rendered
+- [ ] Mock-ups satisfy the `pbi-mockup` fidelity contract (Steps 3 / 3b / 3c, Step 7) — a second, self-invented procedure was not used
 
 Record: `Release fidelity: PASS | FAIL`.
+
+### R8.3 [BLOCKING] Audience gate — is this readable by a real user?
+
+Read the rendered §2–§6 as someone who uses the product and has never seen the codebase.
+
+- [ ] Every §2/§4/§5/§6 entry names something the reader can observe — a capability, a screen, a symptom that is gone, an action they must take
+- [ ] Zero implementation vocabulary in prose: no class, component, file, module, table, endpoint, framework, or library names; no commit subjects; no `file:line` inside a sentence (R6.0.3)
+- [ ] Every `INTERNAL` highlight (R1.4b) appears ONLY in §7/§9 — none promoted into the user narrative
+- [ ] Every `USER-VISIBLE` highlight with a UI verdict of `NEW-UI` / `CHANGED-UI` / `BEHIND-UI` carries its mock-up, placed before its prose
+- [ ] §7, §8 and §9 are collapsed by default; nothing the user needs is buried inside them
+- [ ] Fixes are named by symptom, not by cause; performance is named by what the user perceives
+- [ ] An all-`INTERNAL` release says so plainly instead of padding §4 (R6.0.6)
+
+Record: `Release audience: PASS | FAIL`.
 
 **On FAIL:** fix and re-run the gate. Never hand over a FAIL, and never downgrade a check to force a pass.
 
@@ -329,10 +375,12 @@ Git artifacts:    docs/release-notes/tmp/git-log-{PERIOD}.txt, docs/release-note
 
 Range: {BASE}..{HEAD} | {N} commits | {N} files | +{N}/−{N}
 Highlights: {N} ({N} breaking, {N} new, {N} changed, {N} fixes)
+Audience split: {N} user-visible (in the narrative) | {N} internal (Under the Hood only)
 UI surface: {N} screens rendered ({N} before/after pairs) | or: none — internal release
 Spec correlation: {N} aligned, {N} code-ahead, {N} spec-ahead, {N} conflict
 Release accuracy: PASS | FAIL
 Release fidelity: PASS | FAIL
+Release audience: PASS | FAIL
 Needs confirmation: {N} items (see temp report §6)
 Auto-open: opened | skipped ({reason})
 ```
@@ -349,6 +397,12 @@ Auto-open: opened | skipped ({reason})
 | Lorem ipsum / `Item 1` / `foo@bar.com`                    | Fails R8.2 — real domain fields and realistic data only                                   |
 | A render with no `⚠ Illustrative mock-up` label           | A reconstruction presented as a screenshot misleads the reader                            |
 | Restating commit subjects as "What's New"                 | A highlight is a user outcome, not a commit                                               |
+| Refactors, tests, CI, deps or docs listed in "What's New"  | Fails R8.3 — `INTERNAL` work belongs in the collapsed §7, never in the user narrative     |
+| Class / component / file / endpoint names in the prose     | Fails R8.3 — the reader does not know the codebase; chips carry traceability, prose carries meaning |
+| Rewording an internal change to sound user-facing          | Fails R8.1 — manufactured value is a fabrication; honest §7 routing is the correct move   |
+| Padding "What's New" so an all-internal release looks big  | Fails R8.3 — say "no user-facing changes this release" and render §7/§9 only              |
+| Calling a change `NO-UI` because the diff was backend-only | Fails R4.1 — if its effect shows on an existing screen it is `BEHIND-UI` and gets a mock-up |
+| Inventing a mock-up procedure instead of `pbi-mockup`'s    | Fails R8.2 — R6.3 binds the reproduction contract to `pbi-mockup` Steps 3/3b/3c/7          |
 | Claiming a behavior with no `file:line`                   | Fails R8.1 — every claim carries an evidence chip                                         |
 | Smoothing over a spec↔code conflict                       | R3.3 requires surfacing it; a release doc must not hide a contradiction                   |
 | Failing the run because the browser did not open          | R9 — auto-open is best-effort, never a blocker                                            |

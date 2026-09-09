@@ -1,6 +1,6 @@
 ---
 name: experience-review
-description: '[Testing] Use when reviewing a running user experience or observable output (UI, API, CLI, service), setting a baseline, or adjudicating a regression. Flag: --rounds=N (default 3; 0 = report-only).'
+description: '[Testing] Use when reviewing a running user experience or observable output (UI, API, CLI, service) — run it locally, drive it end to end like a user, gate on runtime/console logs and captured screens, set a baseline, or adjudicate a regression. Flag: --rounds=N (default 3; 0 = report-only).'
 ---
 
 > Codex compatibility note:
@@ -51,11 +51,13 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 
 **Goal:** Exercise and inspect an applicable running/observable feature against its intended purpose, drive its BLOCKING defects to zero in a bounded remediation loop, then leave durable evidence and a truthful acceptance or limitation status.
 
-**Workflow:** Resolve round budget → read intent → classify surface/capability → exercise actual behavior → inspect evidence → judge against purpose → **remediate and re-exercise until zero BLOCKING defects or the budget is spent** → compare/preserve expectations → recommend acceptance and request an explicit human decision.
+**Workflow:** Resolve round budget → read intent → classify surface/capability → **bring the system up locally and instrument it** → exercise actual behavior end to end → inspect evidence (including runtime logs and captured screens) → judge against purpose → **remediate and re-exercise until zero BLOCKING defects or the budget is spent** → compare/preserve expectations → tear down → recommend acceptance and request an explicit human decision.
 
 **Key Rules:**
 
 - `OBSERVED` is witnessed evidence; `JUDGED` is an agent assessment; `HUMAN-ACCEPTED` requires an explicit named owner/human record. Confidence is never approval.
+- **Run the real system, then use it like a person.** Bring the surface up locally as a WHOLE — its backing services, then the app — poll a readiness signal, drive the actual journey end to end through the real interface, and tear down what you started. A surface that never ran is `ENVIRONMENT-BLOCKED`, never a pass.
+- **Runtime logs and captured screens are evidence channels, not extras.** Capture them on every exercise and re-capture them every round. A runtime ERROR is BLOCKING. A WARNING is ADVISORY — attempt a bounded fix, never let one hold the review open. For a visual surface, capture each state/viewport and READ the images; unread captures are not observations.
 - **The loop converges on defects, never on taste.** Only a BLOCKING defect — objectively checkable against the stated purpose — opens a round. An ADVISORY finding (preference, polish, visual identity) is recorded, never looped on.
 - **Bounded: `--rounds=N`, default 3.** Every round adjudicates before editing, fixes at the owning layer through `$fix`, `$changes-review`s its own fix diff, and re-exercises from scratch. Cap reached, defects not shrinking across two rounds, defects increasing, or `ENVIRONMENT-BLOCKED` → STOP and escalate by asking the user directly. `--rounds=0` returns the single-pass report-only review.
 - **Fix the defect, never the evidence of it.** Expectations, baselines, snapshots, fixtures, assertions, and acceptance criteria stay read-only in every round. A review that got clean by looking at less did not converge — it regressed.
@@ -110,7 +112,7 @@ Inspect the change and identify:
 
 For every configured surface, create one row before execution:
 
-`surface id | kind | applicability | purpose | entry point | runner/tool | fixture/identity | platform/device/viewport/locale/network | evidence root | accepted expectation | impacted states`
+`surface id | kind | applicability | purpose | entry point | runner/tool | local-run recipe | log channels | fixture/identity | platform/device/viewport/locale/network | evidence root | accepted expectation | impacted states`
 
 Use only project configuration, repository files, and host/tool evidence.
 
@@ -127,6 +129,55 @@ Use only project configuration, repository files, and host/tool evidence.
 If a project has no `experienceVerification` configuration, do not invent
 defaults. Record the missing configuration as an adoption/setup limitation and
 use the project’s documented existing runner only when it provides evidence.
+
+### 2b. Bring the system up locally and instrument it
+
+A review reads what the system DOES, and the system only does anything while it
+is running. Bring every `APPLICABLE` surface up on this machine as a whole
+system before the first observation — not the one process the change touched.
+
+**Resolve the recipe from project evidence, in this order.** Use
+`experienceVerification.surfaces[].localRun` (`dependencyCommand`,
+`startCommand`, `workingDir`, `readyCheck`, `readyTimeoutSeconds`,
+`teardownCommand`, `logSources`, `credentialsRef`) when the project declares it.
+When it does not, DERIVE the recipe from repository evidence — package/task
+scripts, compose or container manifests, Makefile/justfile targets, IDE or CI
+run configurations, the README's run section — and record the exact file and
+line each command came from. Never invent a port, script name, or default
+command; a recipe you could not source is `ENVIRONMENT-BLOCKED`. When you
+derived a working recipe that the config lacks, propose it as a `localRun`
+block in the report so the next review does not re-derive it.
+
+**Bring-up order, each step gated on the previous:**
+
+1. **Backing services first** — database, broker, cache, object store, emulator,
+   external stubs. A UI driven against a half-present backend produces defects
+   that belong to the environment, and every one of them costs a round.
+2. **Migrations/seed through the project's own supported path**, when the
+   project has one. Never hand-write rows to make a screen render.
+3. **The surface itself**, started in the background so the session can keep
+   driving it.
+4. **Readiness is POLLED, never assumed.** Wait on `readyCheck` — a health
+   endpoint/command returning success, or the declared ready log line — up to
+   `readyTimeoutSeconds`. Process-started is not ready, an open port is not
+   ready, and a fixed sleep is not a readiness signal. Record what you polled
+   and how long it took.
+5. **Attach the log channels BEFORE the first interaction** (see step 3), so the
+   startup window is captured too — a large share of runtime errors fire during
+   boot and first paint, and a listener attached afterwards will never see them.
+
+Record the resolved recipe, its evidence source, the readiness observation, and
+the versions/ports/profile actually used. If bring-up fails, capture the failing
+command, exit status, and logs, and record the surface `ENVIRONMENT-BLOCKED` —
+diagnose it as an environment defect. Do NOT weaken the system to get it up:
+stubbing a failing dependency, disabling auth, or skipping a service turns every
+later observation into evidence about a system nobody ships.
+
+**Tear down what you started** once step 6 has run — stop the processes and
+services through `teardownCommand` or the way you started them, and say so in
+the report. Data and containers a reviewer leaves behind become the next
+reviewer's phantom defect. Leave anything the developer already had running
+untouched; you did not start it, so it is not yours to stop.
 
 ### 3. Exercise the actual behavior
 
@@ -147,6 +198,41 @@ or invoked feature:
   observable result, emitted message, job outcome, or durable state;
 - generated output: run the generator and inspect the resulting artifact and
   its provenance, not only the generator exit code.
+
+**Drive it the way a person would, through the real interface.** Reach the
+result by the route a user has — sign in, navigate, type, click, submit, wait,
+read what came back — not by calling an internal function, posting to the
+endpoint the button would have called, or setting state directly. A shortcut
+skips exactly the layer the review exists to check: the wiring between the
+interface and the logic. Use whatever control mechanism the host actually
+offers for the surface — a browser automation/devtools driver (for a web
+surface, `webapp-testing`'s Playwright + server-lifecycle scripts are the
+project's existing mechanism), a device/desktop driver, the real CLI in a
+terminal, an HTTP client for an API. Chain the journey's steps so later steps
+consume what earlier steps really produced, and cover the states the matrix
+lists, not only the happy path.
+
+**Capture the runtime log stream for the whole session.** Attach before the
+first interaction (step 2b.5) and keep capturing until teardown:
+
+- **web surface:** browser console messages at every level, uncaught exceptions,
+  unhandled promise rejections, and failed network requests (4xx/5xx, blocked,
+  aborted, CORS) — plus the server-side log of whatever backend it called;
+- **terminal/CLI, API, service, job:** the process's stdout/stderr and every
+  channel named in `localRun.logSources`, including the dependency containers.
+
+Save the captured stream under the evidence root and READ it. Attribute each
+entry to the action that produced it, and note the startup window separately
+from the interaction window. An empty capture is only evidence when you can show
+the listener was attached — "no errors appeared" and "nothing was listening"
+look identical in a report, so record which one it was.
+
+**Capture the screen for every visual surface.** Take a screenshot of each
+matrix state at each matrix viewport — including the loading, empty, error,
+permission, and post-submit states, not just the settled happy path — plus a
+full-page capture where the surface scrolls. Name each file for its state and
+viewport and store it under the evidence root. Then OPEN and read the images:
+capture produces a file, and only reading it produces an observation.
 
 If interaction or visual inspection is unavailable, stop that branch as
 `ENVIRONMENT-BLOCKED`. A screenshot that was saved but not inspected is not an
@@ -186,6 +272,42 @@ that runs on it will keep editing a surface that was already correct, and each
 edit costs a fresh full re-exercise. If a finding cannot be stated as "this
 observably fails to do X, which the intent requires", it is ADVISORY.
 
+**Runtime log verdict — errors open a round, warnings never do.**
+
+- An **ERROR**, uncaught exception, unhandled rejection, or failed request the
+  journey depended on is **BLOCKING** — including when the screen still looked
+  right. A caught-and-logged error is a defect the interface hid, and the log is
+  the only place it surfaced.
+- A **WARNING**, deprecation, or noisy info line is **ADVISORY**, with a bounded
+  best effort: fix it inside the round when the cause is this project's code and
+  the fix is small and behavior-preserving. Otherwise record it with its emitter
+  and why it stands. Never hold a review open on a warning.
+- Third-party or framework noise you do not own is ADVISORY — name the emitter
+  and the reason it is not yours. An ERROR you cannot fix at this layer is
+  **routed to its owner as BLOCKING**, never downgraded to make the round close.
+- **Never silence a log to clear it.** Suppressing a line, lowering its level,
+  filtering the capture, or wrapping the call in a catch that swallows is fixing
+  the EVIDENCE, which the boundary rule forbids in every round.
+
+**Visual verdict — separate the floor from the taste.** Judge the captured
+images, not a memory of the design:
+
+- **BLOCKING — the usability/accessibility floor** (`UI-1.1`–`UI-9.4`, and
+  `P0`–`P2` findings from the review checklist `CL-1`–`CL-6`): content clipped,
+  overlapping, or unreadable; a control off-screen or unreachable with no scroll
+  path; a state the surface never reaches; contrast below the measured floor; a
+  touch target under the floor; a missing or invisible focus ring; layout broken
+  at a matrix viewport.
+- **ADVISORY — visual identity and polish** (`DD-1`–`DD-8`): distinctiveness,
+  palette and type character, spacing taste, a nicer alternative. Recorded with
+  its location and rationale, never looped on.
+- Cite the image and the location, and say what IN the image shows it. **Never
+  invent a measurement** — if a claim needs a number the capture cannot give,
+  record it `NOT VERIFIABLE` and name what would settle it.
+- The project's design-system, SCSS, and frontend-pattern docs and ADRs
+  **outrank** these clauses. A repo-wide convention is an intentional identity,
+  not a finding; a genuine conflict goes to the user, never resolved silently.
+
 `NOT-VERIFIABLE` is never BLOCKING — it is missing capability, not a defect.
 Route it to `ENVIRONMENT-BLOCKED` or `UNVERIFIED` and say what would settle it.
 
@@ -215,11 +337,16 @@ budget is spent.
    right cannot show you a wrong-layer fix, a broken invariant elsewhere, or a
    security/performance regression the eye never reaches.
 4. **Re-exercise from scratch.** Repeat steps 3 and 4 over the CURRENT build
-   with the SAME evidence matrix. A capture taken before the fix is not evidence
-   for the build after it, and a partial re-check is not a round.
+   with the SAME evidence matrix — fresh log capture attached before the first
+   interaction and fresh screenshots of every matrix state. A capture taken
+   before the fix is not evidence for the build after it, and a partial re-check
+   is not a round. When the fix touched startup, configuration, dependencies,
+   schema, or build output, **restart through step 2b** and re-gate on
+   readiness; a hot-reloaded process can still be serving the old wiring.
 5. **Round Integrity Check.** The round counts only if the matrix did not
    shrink: no surface dropped, no state removed, no viewport/device/locale
-   narrowed, no `APPLICABLE` row quietly reclassified `NOT-APPLICABLE`, and no
+   narrowed, no `APPLICABLE` row quietly reclassified `NOT-APPLICABLE`, no log
+   channel detached, filtered, or level-raised, no state left uncaptured, and no
    acceptance criterion, assertion, or journey weakened. Fail this check →
    restore the matrix and re-run the round; it is a regression, not progress.
 6. **Log the round** in the report: round number, BLOCKING defects in, verdicts,
@@ -278,7 +405,13 @@ review id / surface / mode / applicability
 round budget, rounds used, and per-round log
 intended purpose and governing references
 exact execution command/tool, entry point, identity, fixture, conditions
+local-run recipe actually used + where each command came from + readiness
+  observation + teardown result (or the proposed localRun block when derived)
 actions and settle signals
+runtime-log summary: capture window and channels, every ERROR with its
+  disposition, every WARNING with its emitter and why it stands or was fixed
+screenshot inventory: one entry per state x viewport, with the observation each
+  image supports
 OBSERVED observations + evidence references
 JUDGED judgments + BLOCKING/ADVISORY class + rationale + confidence metadata
 remediation verdicts, fix paths, and each round's $changes-review outcome
@@ -367,12 +500,13 @@ that the fix belongs elsewhere — stop the round and escalate.
 >
 > 1. **Classify the surface from project evidence:** web, mobile, desktop, terminal, API, library, background service, generated output, or another configured kind. Record `APPLICABLE`, `NOT-APPLICABLE — <reason + evidence>`, or `ENVIRONMENT-BLOCKED — <missing capability + evidence>`. Never infer a browser, device, GUI, service, or interactive runner from this skill or from a screenshot.
 > 2. **Read intended purpose first:** use the governing spec, acceptance criteria, API/CLI/library contract, design artifact, or documented operator outcome. State the actor, job, expected result, important states, and unchanged behavior before exercising the implementation.
-> 3. **Exercise the running/observable feature when applicable:** use the project's configured entry point and runner/tool; perform the intended journey and relevant failure, empty, loading, offline, permission, recovery, or boundary states. For non-visual surfaces inspect the actual response, transcript, return value, persisted state, emitted message, or generated artifact. Source reading, test-writing, and screenshot generation alone are not exercise evidence.
+> 3. **Exercise the running/observable feature when applicable:** bring the surface up as a WHOLE running system first — backing services, then the surface — gated on a POLLED readiness signal (a started process, an open port, or a fixed sleep is not readiness), then drive it through the real interface a user has, never an internal call or a direct state write. Use the project's configured entry point and runner/tool; perform the intended journey and relevant failure, empty, loading, offline, permission, recovery, or boundary states. For non-visual surfaces inspect the actual response, transcript, return value, persisted state, emitted message, or generated artifact. Never weaken the system to get it up — a stubbed dependency or disabled auth makes every later observation evidence about a system nobody ships — and tear down only what you started. Source reading, test-writing, and screenshot generation alone are not exercise evidence.
 > 4. **Inspect evidence, do not merely produce it:** a screenshot, video, DOM/tree dump, terminal transcript, API payload, or artifact must be opened/read and tied to an observation. Record exact command/tool, entry point, identity/fixture, platform/device/viewport/locale/network conditions, actions, settle signals, timestamps, and evidence references. Redact secrets.
 > 5. **Separate evidence levels:** `OBSERVED` is directly witnessed; `JUDGED` is an agent assessment against the stated purpose; `HUMAN-ACCEPTED` is an explicit named owner/human decision linked to the evidence and intent; `UNVERIFIED` means required evidence was not collected; `ENVIRONMENT-BLOCKED` means applicable review could not run; `NOT-APPLICABLE` means the surface does not exist. Agent confidence is metadata, never acceptance or proof.
 > 6. **First-run rule:** without an accepted expectation, report candidate evidence and `ACCEPTANCE-PENDING`. Never save the current screen/output as an expected baseline merely because it was generated or because an automated test passed. Promotion requires an explicit acceptance record naming the accepting person/role, timestamp, intent reference, evidence references, scope, and residual risk where relevant.
 > 7. **Mismatch rule:** preserve the previous accepted expectation. Classify a difference as `POTENTIAL-REGRESSION`, `INTENDED-CHANGE-PENDING-ACCEPTANCE`, `TEST-CONDITION-INVALID`, `ENVIRONMENT-BLOCKED`, `UNVERIFIED`, or `AMBIGUOUS`. Do not update snapshots, fixtures, assertions, or generated expectations to make a failure green. Intended changes require renewed exercise and explicit acceptance; unaffected cases retain their protection.
 > 8. **Automation boundary:** ordinary regression tests and application operation remain deterministic and model-free. Development-time agent review may create evidence and a report, but it must not silently approve, rewrite expectations, or claim human acceptance. A missing runner/capability is an honest limitation, not a successful verification.
+> 9. **Runtime signal and visual evidence are exercise channels, not extras:** capture the surface's runtime log stream from BEFORE the first interaction until teardown — browser console messages, uncaught exceptions, unhandled promise rejections, and failed network requests for a web surface; process stdout/stderr and every configured log source otherwise — and capture each relevant state and viewport of a visual surface. Then READ both: an unread capture is a file, not an observation, and an empty capture proves nothing unless you can show the listener was attached. A runtime ERROR, uncaught exception, unhandled rejection, or journey-critical failed request is a DEFECT even when the output looked correct; a WARNING is advisory and never blocks acceptance on its own. Never silence, filter, level-raise, or swallow a log to clear it, and never invent a measurement the capture cannot give — that is fixing the evidence, not the defect.
 
 <!-- /SYNC:experience-acceptance-contract -->
 <!-- SYNC:critical-thinking-mindset -->
@@ -402,6 +536,12 @@ that the fix belongs elsewhere — stop the round and escalate.
 
 **IMPORTANT MUST ATTENTION** read intent first, classify capability from project evidence, exercise the actual observable feature, inspect the evidence, separate observation/judgment/acceptance, and report every limitation.
 
+**IMPORTANT MUST ATTENTION** bring the WHOLE system up locally before the first observation — backing services, then migrations/seed, then the surface — POLL a readiness signal (a started process, an open port, or a sleep is not readiness), attach the log channels BEFORE the first interaction, and tear down only what you started. Never weaken the system to get it up: a stubbed dependency or disabled auth turns every later observation into evidence about a system nobody ships. Bring-up that fails is `ENVIRONMENT-BLOCKED`, never a pass.
+
+**IMPORTANT MUST ATTENTION** drive the journey through the REAL interface the user has — never an internal call, a direct state write, or the endpoint the button would have called; the shortcut skips exactly the wiring the review exists to check.
+
+**IMPORTANT MUST ATTENTION** runtime logs and captured screens are mandatory evidence channels on every exercise and every round. A runtime ERROR / uncaught exception / unhandled rejection / journey-critical failed request is BLOCKING even when the screen looked right; a WARNING is ADVISORY with a bounded best-effort fix and NEVER holds the review open. NEVER silence a log, lower its level, filter the capture, or swallow it in a catch — that is fixing the evidence. For a visual surface capture every matrix state x viewport and READ the images: floor breakage (`UI-1.1`–`UI-9.4`, checklist `P0`–`P2`) is BLOCKING, identity and polish (`DD-1`–`DD-8`) is ADVISORY, no measurement is ever invented, and the project's design-system docs outrank the clauses.
+
 **IMPORTANT MUST ATTENTION** state the round budget (`--rounds=N`, default 3) BEFORE the first observation; every round = adjudicate → `$fix` at the owning layer → `$changes-review` the round's fix diff → re-exercise FRESH over the same matrix → Round Integrity Check → log. A capture taken before the fix is not evidence for the build after it.
 
 **IMPORTANT MUST ATTENTION** only a BLOCKING defect opens a round — ADVISORY findings (preference, polish, visual identity) are recorded, NEVER looped on; a loop that runs on taste has no fixed point.
@@ -414,7 +554,7 @@ that the fix belongs elsewhere — stop the round and escalate.
 
 <!-- SYNC:experience-acceptance-contract:reminder -->
 
-**MUST ATTENTION** classify the configured surface, read intended purpose, exercise the actual observable feature, inspect evidence, separate OBSERVED/JUDGED/HUMAN-ACCEPTED/UNVERIFIED/ENVIRONMENT-BLOCKED/NOT-APPLICABLE, preserve old expectations on mismatch, and require explicit acceptance before baseline promotion. Never infer acceptance from a screenshot, passing test, or agent confidence; ordinary tests remain model-free.
+**MUST ATTENTION** classify the configured surface, read intended purpose, bring the whole system up locally and POLL readiness before observing, exercise the actual observable feature through the real interface, capture and READ the runtime log stream and the relevant screens, inspect evidence, separate OBSERVED/JUDGED/HUMAN-ACCEPTED/UNVERIFIED/ENVIRONMENT-BLOCKED/NOT-APPLICABLE, preserve old expectations on mismatch, and require explicit acceptance before baseline promotion. A runtime ERROR is a defect even when the output looked right; a WARNING is advisory. Never silence a log, invent a measurement, or infer acceptance from a screenshot, passing test, or agent confidence; ordinary tests remain model-free.
 
 <!-- /SYNC:experience-acceptance-contract:reminder -->
 

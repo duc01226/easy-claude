@@ -1172,7 +1172,7 @@ Distinct step-skills used across the workflows above — compose these into a cu
 | `dor-gate` | [Code Quality] Use when validating a PBI against Definition of Ready before grooming. |
 | `e2e-test` | [Testing] Use when generating, updating, or maintaining E2E tests from recordings, specs, or code changes. |
 | `excalidraw-diagram` | [Utilities] Use when visualizing workflows, architectures, or concepts as Excalidraw diagram JSON. |
-| `experience-review` | [Testing] Use when reviewing a running user experience or observable output (UI, API, CLI, service), setting a baseline, or adjudicating a regression. Flag: --rounds=N (default 3; 0 = report-only). |
+| `experience-review` | [Testing] Use when reviewing a running user experience or observable output (UI, API, CLI, service) — run it locally, drive it end to end like a user, gate on runtime/console logs and captured screens, set a baseline, or adjudicate a regression. Flag: --rounds=N (default 3; 0 = report-only). |
 | `feature-presentation` | [Documentation] Use when synthesizing specs, PBIs, ideas, and mockups into one standalone HTML slide deck for stakeholders. |
 | `fix` | [Implementation] Use when analyzing and fixing issues. Flag: --target={ci\|issue\|logs\|test\|types\|ui} scopes the fix. |
 | `harness-setup` | [Quality] Use when setting up an agent quality harness with feedforward guides and feedback sensors. |

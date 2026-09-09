@@ -317,6 +317,21 @@ const SCHEMA = {
                     evidenceRoot: { type: 'string', required: false },
                     baselineRoot: { type: 'string', required: false },
                     states: { type: 'array', required: false },
+                    localRun: {
+                        type: 'object',
+                        required: false,
+                        describe: 'How this surface is brought up as a WHOLE running system on a developer machine, so a review can exercise it the way a person would instead of reading source. Record only commands the project actually has; a missing command is ENVIRONMENT-BLOCKED at review time, never an assumed default.',
+                        properties: {
+                            dependencyCommand: { type: 'string', required: false, describe: 'Command that starts the backing services this surface needs before the app itself (database, broker, cache, emulator, stub).' },
+                            startCommand: { type: 'string', required: false, describe: 'Command that starts the surface itself. Long-running: the reviewer runs it in the background and tears it down afterwards.' },
+                            workingDir: { type: 'string', required: false, describe: 'Directory the start/dependency commands run from, relative to the project root, when it is not the root.' },
+                            readyCheck: { type: 'string', required: false, describe: 'Observable readiness signal — a health command/URL to poll or a log line to wait for. Readiness is polled, never assumed from a sleep or from process start.' },
+                            readyTimeoutSeconds: { type: 'number', required: false, describe: 'How long readiness may take before the surface is recorded ENVIRONMENT-BLOCKED.' },
+                            teardownCommand: { type: 'string', required: false, describe: 'Command that stops what startCommand/dependencyCommand started, so a review leaves no running process behind.' },
+                            logSources: { type: 'array', required: false, itemType: 'string', describe: 'Runtime log channels to capture and read besides the surface itself — log file paths or container/service log commands. Browser console/page-error capture is inherent to a web surface and needs no entry.' },
+                            credentialsRef: { type: 'string', required: false, describe: 'Pointer to the local fixture identity or credential source used to sign in (env var name, secret-manager key, setup doc). NEVER the secret value itself.' }
+                        }
+                    },
                     notes: { type: 'string', required: false }
                 }
             },

@@ -42,7 +42,7 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 
 ## Quick Summary
 
-**Goal:** Generate a professional release document from git history at **any scope** — tag-to-tag, branch-to-branch, or a time range ("last 30 days") — with automated categorization, thematic AI analysis, service detection, and validation, **plus a rich standalone HTML release presentation** that renders faithful mock-ups of the project's REAL screens for any UI change and auto-opens in the browser. Both outputs are produced by default.
+**Goal:** Generate a professional release document from git history at **any scope** — tag-to-tag, branch-to-branch, or a time range ("last 30 days") — with automated categorization, thematic AI analysis, service detection, and validation, **plus a rich standalone HTML release presentation written FOR REAL USERS** — user-visible features and enhancements only, with faithful mock-ups of the project's REAL screens for any UI change — which auto-opens in the browser. Both outputs are produced by default; the markdown carries the engineering detail, the HTML carries the user story.
 
 > **This is the single release skill.** It absorbed `$release-doc` (2026-09-08), which is now a deprecated alias. Use `$release-notes` for every release-summary need; `$changelog` remains separate for per-feature changelog entries.
 
@@ -55,7 +55,7 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 3. **Analyze Key Diffs** — read the most significant changes per category via `git show` / `git diff`
 4. **Render** — `render-template.cjs --version vX.Y.Z` generates markdown with Summary, What's New, Improvements, Bug Fixes, Breaking Changes, Technical Details
 5. **Validate** — `validate-notes.cjs` scores against quality rules (100 points)
-6. **[BLOCKING] HTML Presentation (R1–R9, default-on)** — run the canonical procedure in `references/html-release-report.md`: comprehend the whole change set → investigate each highlight end-to-end → correlate spec changes → inventory the real existing UI → **write the temp analysis report** → assemble ONE standalone HTML doc with real-UI mock-ups → save → accuracy + fidelity gates → **auto-open**
+6. **[BLOCKING] HTML Presentation (R1–R9, default-on)** — run the canonical procedure in `references/html-release-report.md`: comprehend the whole change set → investigate each highlight end-to-end → correlate spec changes → inventory the real existing UI → **write the temp analysis report** → assemble ONE standalone HTML doc **written for real users**, with real-UI mock-ups → save → accuracy + fidelity + audience gates → **auto-open**
 
 **Key Rules:**
 
@@ -69,7 +69,11 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 - **The HTML stage is model work, not a script** — the scripted pipeline (steps 1–5) produces the markdown; the HTML presentation requires reading the actual diffs, tracing each feature end-to-end, and reproducing real UI, so it is executed by following `references/html-release-report.md`, NOT by piping another `lib/*.cjs`
 - **Breadth before depth** — map the WHOLE change set before opening any single feature (R1); diving into the first interesting commit under-reports the rest
 - **[BLOCKING] Temp report before HTML** — the HTML is assembled FROM the temp analysis report, never straight from a diff or from memory (R5)
-- **Mock-ups reproduce the REAL UI** — real design tokens, real component structure and class names, real route and page shell, real domain field names; never Lorem ipsum, never a generic card layout (R6.3)
+- **[BLOCKING] The HTML is written for REAL USERS, not engineers (R6.0)** — its reader USES the product and never reads its code. Only `USER-VISIBLE` outcomes go in At a glance / What's New / What Changed / Fixes; refactors, tests, CI, tooling, dependency bumps, type/lint and doc-only changes are `INTERNAL` and live one line each in the collapsed "Under the Hood". Prose carries no class, component, file, endpoint, or framework names and no commit subjects — evidence chips carry traceability, sentences carry meaning. The engineering view is not lost: it is the markdown notes plus the collapsed §7–§9.
+- **Never manufacture user value** — an internal change reworded to sound user-facing is a fabrication (R8.1). An honest "no user-facing changes this release" page beats a padded one.
+- **UI-bearing highlights lead with their mock-up** — the picture first, the prose explaining it second (R6.2 §4/§5)
+- **Mock-ups follow the `pbi-mockup` protocol, not a second invented one (R6.3)** — `pbi-mockup` Steps 3 (design system), 3b (inventory the real existing UI), 3c (real domain entities) and 7 (fidelity gate) govern HOW a screen is reproduced; this skill governs WHAT gets rendered. Real design tokens, real component structure and class names, real route and page shell, real domain field names; never Lorem ipsum, never a generic card layout. Borrow the fidelity contract, not the clickable-prototype machinery.
+- **Backend-only ≠ `NO-UI`** — if the change's effect shows on an existing screen it is `BEHIND-UI` and gets a mock-up of that screen (R4.1)
 - **`NO-UI` release still gets the full HTML** — state `UI surface: none` and omit only the mock-up sections
 - **Auto-open is best-effort** — a failed browser launch is a warning with the printed path, NEVER a failed run; `--no-open` opts out
 
@@ -266,20 +270,22 @@ Category-map and output overrides live in `docs/project-config.json`:
 
 > **[BLOCKING] Runs on every invocation unless the user passed `--no-html`.** Do not ask whether to generate it, and do not treat it as optional polish — the markdown notes alone are an incomplete deliverable.
 
-The markdown from Steps 3–5 is a categorized change summary. This step adds the **reader-facing release presentation**: one standalone, offline, professional HTML file that shows what's new and what changed, and renders faithful mock-ups of the project's **real** screens for any UI change.
+The markdown from Steps 3–5 is a categorized change summary **for the team**. This step adds the **user-facing release presentation**: one standalone, offline, professional HTML file that tells a person who USES the product what's new and what changed, and renders faithful mock-ups of the project's **real** screens for any UI change.
+
+**The two outputs have different audiences and that is the point.** The markdown keeps every commit, every technical detail, every internal change. The HTML keeps only what a user can observe — new features, enhancements they can see and use, fixes whose symptom they felt — with internal work collapsed into "Under the Hood". Do not let the HTML degrade into a prettier copy of the markdown.
 
 **Execute the canonical procedure in `references/html-release-report.md` (R1–R9), in order.** That file is the single source of truth — read it and follow it; do not improvise the sequence, and do not restate it here.
 
 | Stage  | Purpose                                                                                                             |
 | ------ | --------------------------------------------------------------------------------------------------------------------- |
-| **R1** | Comprehend the WHOLE change set — change map over every changed file, then rank into user-meaningful highlights       |
+| **R1** | Comprehend the WHOLE change set — change map over every changed file, rank into user-meaningful highlights, then give each a `USER-VISIBLE` / `INTERNAL` verdict (R1.4b) |
 | **R2** | Investigate each highlight END-TO-END — entry → logic → persistence → observable result; before→after; blast radius; covering tests; confidence % |
 | **R3** | Correlate spec changes — verdict `ALIGNED` / `SPEC-AHEAD` / `CODE-AHEAD` / `CONFLICT` per highlight                   |
 | **R4** | Detect the UI surface and **[BLOCKING] inventory the real existing UI** — design tokens, real components, real routes, real entity fields |
 | **R5** | **[BLOCKING] Write the temp analysis report** — the HTML is assembled FROM it, never from a diff or from memory        |
-| **R6** | Assemble ONE standalone HTML file — 10 required sections, evidence chips, real-UI mock-ups with before→after pairs     |
+| **R6** | Assemble ONE standalone HTML file — **[BLOCKING] R6.0 audience rule: user-facing narrative only**, 10 required sections, evidence chips, real-UI mock-ups (per the `pbi-mockup` contract) with before→after pairs |
 | **R7** | Save beside the markdown notes, same stem with `.html`                                                                |
-| **R8** | **[BLOCKING] Accuracy + fidelity gates** — record `Release accuracy: PASS\|FAIL`, `Release fidelity: PASS\|FAIL`       |
+| **R8** | **[BLOCKING] Accuracy + fidelity + audience gates** — record `Release accuracy: PASS\|FAIL`, `Release fidelity: PASS\|FAIL`, `Release audience: PASS\|FAIL` |
 | **R9** | **Auto-open** in the default browser (best-effort; `--no-open` opts out), then report the path                        |
 
 **R0 is already satisfied** — Step 0b dumped the git artifacts and Steps 2–3b categorized the changes. Optionally add the structured commit JSON as extra R1 input:
@@ -291,11 +297,13 @@ node .claude/skills/release-notes/lib/parse-commits.cjs <base> <head> --with-fil
 
 Run R1–R9 with the temp report at `docs/release-notes/tmp/{PERIOD}-release-analysis.md`.
 
-**Three rules specific to invoking it from here:**
+**Five rules specific to invoking it from here:**
 
 1. **This stage is model work, not another pipe.** The `lib/*.cjs` scripts categorize commits; they cannot trace a feature end-to-end or reproduce a real screen. Do not attempt to satisfy Step 6 by adding a renderer to the pipeline.
 2. **`categorize-commits.cjs` output is an input to R1, not a substitute for it.** Its type-based buckets are a starting point; R1.4 still re-ranks into *user outcomes* (merging N commits that ship one outcome, splitting one commit that ships two) and R1.5 still cross-checks that every added/deleted file and every breaking change is accounted for.
 3. **Step 3b's area map feeds R1.3.** When a thematic map was built, reuse it as the change map's `Area` column rather than deriving a second, divergent grouping.
+4. **The categorizer's `User-Facing` column is NOT the audience verdict.** It answers "what type of commit is this"; R1.4b answers "would a user notice this". A `docs` commit is marked user-facing by the table above yet is almost always `INTERNAL` for the HTML; a `refactor` that changes a visible label is `USER-VISIBLE`. Decide from the traced behavior (R2), never from the commit type.
+5. **Mock-ups defer to `$pbi-mockup`.** R6.3 binds screen reproduction to that skill's fidelity contract (Steps 3/3b/3c/7). Read it rather than inventing a rendering procedure here.
 
 ## Complete Pipeline
 
@@ -568,7 +576,7 @@ Generated release notes are **Draft** status by default:
 - **`$docs-update`** - Update CHANGELOG.md with new release
 - **`$release-doc`** - **Deprecated alias of this skill** (superseded 2026-09-08). It resolves here; do not route work to it. Its time-range scope, artifact dumping, thematic analysis, `--focus`, and HTML presentation all live here now.
 - **`$changelog`** - Still separate: per-feature changelog entries. This skill is for multi-commit release summaries.
-- **`$pbi-mockup`** - When a shipped feature already has a `team-artifacts/pbis/*-mockup.html`, R6.3 REUSES it via `<iframe srcdoc>` instead of rebuilding the screen.
+- **`$pbi-mockup`** - **Owns the mock-up protocol this skill's R6.3 defers to** — its Steps 3 (design system), 3b (inventory the real existing UI), 3c (real domain entities) and 7 (fidelity gate) govern HOW a screen is reproduced; R6.3 governs WHAT gets rendered. Borrow the fidelity contract, not the clickable-prototype machinery. And when a shipped feature already has a `team-artifacts/pbis/*-mockup.html`, R6.3 REUSES it via `<iframe srcdoc>` instead of rebuilding the screen.
 
 ## Troubleshooting
 
@@ -595,6 +603,14 @@ The R4.3 UI inventory was skipped or done shallowly. The mock-up must be built f
 ### The HTML doc is full of commit subjects
 
 R1.4 was skipped: `categorize-commits.cjs` buckets were used verbatim as highlights. A highlight is a *user outcome*, not a commit — merge the commits that ship one outcome and re-rank breaking → new → changed → fixes → perf → internal.
+
+### The HTML reads like an engineering report, not a release announcement
+
+R1.4b and R6.0 were skipped. Symptoms: refactors, test/CI/tooling work or dependency bumps sitting in "What's New"; class, component or file names inside sentences; fixes described by their cause instead of the symptom the user hit. Re-run R1.4b to give every highlight a `USER-VISIBLE` / `INTERNAL` verdict, move every `INTERNAL` one into the collapsed "Under the Hood", rewrite §2–§6 per R6.0, then re-run the R8.3 audience gate.
+
+### The release "has no UI", so the HTML has no screens
+
+Usually a mis-verdict. R4.1 classifies a backend change whose effect shows on an existing screen as `BEHIND-UI` — it gets a mock-up of that existing screen with the new field, status, or validation visible. `NO-UI` is only for work with no observable surface at all. Re-classify, then run R4.3–R4.4 and R6.3 for the highlights that flipped.
 
 ### Browser did not open
 
@@ -665,8 +681,10 @@ Auto-open is best-effort by design (R9). A sandbox, headless runner, hook refusa
 **IMPORTANT MUST ATTENTION** cite `file:line` evidence for every claim (confidence >80% to act)
 **IMPORTANT MUST ATTENTION** Step 6 (HTML presentation) is DEFAULT-ON: follow `references/html-release-report.md` R1–R9 verbatim — never restate or improvise that procedure
 **IMPORTANT MUST ATTENTION** Step 6 (HTML presentation) is DEFAULT-ON: comprehend the whole change set and trace each highlight end-to-end BEFORE writing; write the temp analysis report (R5) BEFORE the HTML
-**IMPORTANT MUST ATTENTION** Step 6 (HTML presentation) is DEFAULT-ON: mock-ups reproduce the project's REAL UI (real tokens, components, routes, domain fields) and carry the `⚠ Illustrative mock-up` label — never Lorem ipsum, never a generic layout
-**IMPORTANT MUST ATTENTION** Step 6 (HTML presentation) is DEFAULT-ON: record `Release accuracy: PASS|FAIL` + `Release fidelity: PASS|FAIL` (R8) and auto-open best-effort (R9) before reporting done
+**IMPORTANT MUST ATTENTION** Step 6 (HTML presentation) is DEFAULT-ON: the HTML is written FOR REAL USERS (R6.0) — only user-visible features, enhancements and fixes in At a glance / What's New / What Changed / Fixes; refactors, tests, CI, tooling, deps and doc-only changes are `INTERNAL` and collapse into "Under the Hood"; no class/component/file/endpoint names or commit subjects in prose; NEVER reword internal work into invented user value
+**IMPORTANT MUST ATTENTION** Step 6 (HTML presentation) is DEFAULT-ON: mock-ups follow the `$pbi-mockup` protocol (its Steps 3/3b/3c/7) and reproduce the project's REAL UI (real tokens, real components and class names, real route and page shell, real domain fields) and carry the `⚠ Illustrative mock-up` label — never Lorem ipsum, never a generic layout, never a second self-invented rendering procedure
+**IMPORTANT MUST ATTENTION** Step 6 (HTML presentation) is DEFAULT-ON: a backend change whose effect shows on an existing screen is `BEHIND-UI`, not `NO-UI` — it gets a mock-up of that screen; UI-bearing highlights lead with the mock-up, prose second
+**IMPORTANT MUST ATTENTION** Step 6 (HTML presentation) is DEFAULT-ON: record `Release accuracy: PASS|FAIL` + `Release fidelity: PASS|FAIL` + `Release audience: PASS|FAIL` (R8) and auto-open best-effort (R9) before reporting done
 **IMPORTANT MUST ATTENTION** add a final review todo task to verify work quality
 
 **[TASK-PLANNING]** Before acting, analyze task scope and systematically break it into small todo tasks and sub-tasks using task tracking.

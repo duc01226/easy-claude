@@ -191,3 +191,59 @@ test('TC-EXP-CONFIG-010: actual disabled-warning deletion is killed by its diagn
     assert.equal(result.warnings.includes(disabledWarning), false);
     assert.throws(() => expectDisabledWarning(result), { code: 'ERR_ASSERTION' });
 });
+
+const validLocalRun = {
+    dependencyCommand: 'docker compose up -d',
+    startCommand: 'npm run dev',
+    workingDir: 'apps/web',
+    readyCheck: 'curl -fsS http://127.0.0.1:5173/healthz',
+    readyTimeoutSeconds: 120,
+    teardownCommand: 'docker compose down',
+    logSources: ['docker compose logs api', 'var/log/app.log'],
+    credentialsRef: 'REVIEW_FIXTURE_USER'
+};
+
+function localRunConfig(localRun) {
+    const config = surfaceConfig();
+    config.experienceVerification.surfaces[0].localRun = localRun;
+    return config;
+}
+
+test('TC-EXP-CONFIG-011: the optional local bring-up recipe is accepted whole and absent', () => {
+    // Invariant: a review can record how to run the surface locally, and every
+    // pre-existing surface without a recipe keeps validating unchanged.
+    assert.equal(validateConfig(surfaceConfig()).valid, true, 'absent localRun must stay valid');
+    const result = validateConfig(localRunConfig(validLocalRun));
+    assert.equal(result.valid, true, result.errors.join('; '));
+    assert.deepEqual(result.warnings.filter(warning => warning.includes('localRun')), [], 'declared fields must not warn as unknown');
+});
+
+test('TC-EXP-CONFIG-012: each local bring-up field is type-checked at its own path', () => {
+    // Invariant: a malformed command accepted here becomes an unrunnable recipe
+    // the review only discovers against a dead environment, one round too late.
+    for (const field of Object.keys(validLocalRun)) {
+        const expected = field === 'readyTimeoutSeconds' ? 'number' : field === 'logSources' ? 'array' : 'string';
+        const wrongValue = expected === 'number' ? 'soon' : 42;
+        const got = expected === 'number' ? 'string' : 'number';
+        const result = validateConfig(localRunConfig({ ...validLocalRun, [field]: wrongValue }));
+        assert.equal(result.valid, false, `${field} must be type-checked`);
+        assert.deepEqual(
+            Array.from(result.errors),
+            [`experienceVerification.surfaces[0].localRun.${field}: expected ${expected}, got ${got}`]
+        );
+    }
+    const unknown = validateConfig(localRunConfig({ ...validLocalRun, startCmd: 'npm start' }));
+    assert.equal(unknown.valid, true, 'an unknown recipe field warns, never rejects');
+    assert.ok(unknown.warnings.includes('experienceVerification.surfaces[0].localRun.startCmd: unknown property (not in schema)'));
+});
+
+test('TC-EXP-CONFIG-013: actual freeform weakening of the bring-up recipe is killed by its type oracle', () => {
+    const source = fs.readFileSync(path.resolve(__dirname, '../../hooks/lib/project-config-schema.cjs'), 'utf8');
+    const anchor = "                    localRun: {\n                        type: 'object',\n                        required: false,";
+    assert.equal(source.split(anchor).length, 2, 'one localRun mutation site');
+    const mutant = loadSchemaSource(source.replace(anchor, `${anchor}\n                        freeform: true,`));
+    assert.equal(mutant(surfaceConfig()).valid, true, 'mutant must still execute valid configuration');
+    const result = mutant(localRunConfig({ ...validLocalRun, startCommand: 42 }));
+    assert.equal(result.valid, true, 'the freeform mutation must actually weaken the contract');
+    assert.equal(result.errors.length, 0);
+});

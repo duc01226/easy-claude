@@ -530,8 +530,9 @@
   deprecated_by: null
   deprecated_since: null
   description: '[Testing] Use when reviewing a running user experience or observable
-    output (UI, API, CLI, service), setting a baseline, or adjudicating a regression.
-    Flag: --rounds=N (default 3; 0 = report-only).'
+    output (UI, API, CLI, service) — run it locally, drive it end to end like a user,
+    gate on runtime/console logs and captured screens, set a baseline, or adjudicate
+    a regression. Flag: --rounds=N (default 3; 0 = report-only).'
   has_references: true
   has_scripts: true
   name: experience-review

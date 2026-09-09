@@ -471,8 +471,9 @@ skills:
     - name: experience-review
       path: experience-review/SKILL.md
       description: '[Testing] Use when reviewing a running user experience or observable
-        output (UI, API, CLI, service), setting a baseline, or adjudicating a regression.
-        Flag: --rounds=N (default 3; 0 = report-only).'
+        output (UI, API, CLI, service) — run it locally, drive it end to end like
+        a user, gate on runtime/console logs and captured screens, set a baseline,
+        or adjudicate a regression. Flag: --rounds=N (default 3; 0 = report-only).'
       category: other
       has_scripts: true
       has_references: true
