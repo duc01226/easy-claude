@@ -231,6 +231,34 @@ test('migrate-claude-to-codex mirrors skills and injects protocol block', async 
     }
 });
 
+test('migrate rejects unknown and duplicate flags before creating output', async () => {
+    const tempRoot = await fs.mkdtemp(path.join(os.tmpdir(), 'codex-migrate-args-'));
+    try {
+        await fs.mkdir(path.join(tempRoot, '.claude', 'skills', 'sample-skill'), { recursive: true });
+        await fs.writeFile(
+            path.join(tempRoot, '.claude', 'skills', 'sample-skill', 'SKILL.md'),
+            ['---', 'name: sample-skill', 'description: Sample skill', '---', '', '# Sample Skill', ''].join('\n'),
+            'utf8'
+        );
+
+        for (const args of [['--unknown-option'], ['--copy-skills', '--copy-skills']]) {
+            await assert.rejects(
+                execFileAsync(process.execPath, [migrateScript, ...args], { cwd: tempRoot }),
+                error => {
+                    assert.equal(error.code, 1);
+                    assert.match(error.stderr, /unknown option|duplicate option/);
+                    assert.match(error.stderr, /Usage: node/);
+                    return true;
+                }
+            );
+            assert.equal(await pathExists(path.join(tempRoot, '.agents')), false);
+            assert.equal(await pathExists(path.join(tempRoot, '.codex')), false);
+        }
+    } finally {
+        await fs.rm(tempRoot, { recursive: true, force: true });
+    }
+});
+
 test('sync-codex runner works from copied .claude without a root scripts folder', async () => {
     const tempRoot = await fs.mkdtemp(path.join(os.tmpdir(), 'codex-sync-portable-'));
     try {

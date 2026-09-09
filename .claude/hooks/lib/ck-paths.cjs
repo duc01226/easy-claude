@@ -4,9 +4,9 @@
 /**
  * ClaudeKit Paths - Centralized path constants for all temporary/runtime files
  *
- * All ClaudeKit temp files consolidated under /tmp/ck/ namespace for:
- * - Cleaner /tmp directory (single namespace)
- * - Easier cleanup (rm -rf /tmp/ck/)
+ * All ClaudeKit temp files consolidated under the OS temp `ck` namespace for:
+ * - Cleaner OS temp directory (single namespace)
+ * - Easier cleanup through the portable cleanAll() helper
  * - Debugging (all state in one place)
  * - No collisions with other tools
  *

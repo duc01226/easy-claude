@@ -472,7 +472,7 @@ Return verdict path + status. **Caller owns reconciliation and bounded re-do; ro
 
 After first next-step question, evaluate gate:
 
-1. **Workflow suppression first:** read `plans/.workflow-state.json` or equivalent `workflowId`. Suppress council for `workflow-refactor`, `workflow-bugfix`, and `test-*`. Rationale: council costs 11 LLM calls; these workflows are routine/reversible/test-only enough for `/why-review`. Matches `.claude/skills/llm-council/SKILL.md` "Workflow Integration".
+1. **Workflow suppression first:** resolve the current `workflowId` from host-injected workflow context; when it is not already present, read the host's documented state owner — `.claude/hooks/lib/workflow-state.cjs` owns `CK_TMP_DIR/workflow/{sessionId}.json` in this repository, while a host may use a legacy `plans/.workflow-state.json` only when that file is actually present. Never assume the legacy file exists. If no state is available, record `workflowId = unavailable` and continue to the frontmatter gate without fabricating a workflow. Suppress council for `workflow-refactor`, `workflow-bugfix`, and `test-*`. Rationale: council costs 11 LLM calls; these workflows are routine/reversible/test-only enough for `/why-review`. Matches `.claude/skills/llm-council/SKILL.md` "Workflow Integration".
 2. **Frontmatter gate:** read active `plan.md` or PBI frontmatter. Gate fires when ANY true: `cross_service_impact != NONE`; `breaking_changes`; `complexity in {high, critical}` or `story_points >= 13`; `new_framework`; `irreversible`; `security_critical`; `performance_critical`; `cost_high`.
 3. **Override/defaults:** absent fields default no-fire; `council_suppress: true` skips prompt and logs reason.
 

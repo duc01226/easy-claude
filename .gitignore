@@ -1,5 +1,7 @@
 *.local.json
 .claude/tmp/
+.claude/.todo-state.json
+.claude/.workflow-state.json
 .claude/workflow-state.json
 .code-graph/
 plans/

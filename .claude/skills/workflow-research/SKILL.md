@@ -44,6 +44,17 @@ All modes share the research scaffold `/web-research → /deep-research → … 
 
 This skill IS the canonical Research & Synthesis entry point — invoke it directly with `--output=<mode>` (default `synthesis`), resolve the matching complete variant through `.claude/scripts/lib/workflow-manifest.cjs`, and execute every returned occurrence in order via the `Skill` tool. The workflow catalog exposes the same four variants for auto-routing and `/start-workflow workflow-research`; never execute a prose-swapped sequence that differs from the resolved manifest.
 
+**[BLOCKING] Evidence-artifact identity for `business-eval` and `marketing`:** before invoking the
+first research child, derive one stable `ARTIFACT_SLUG` from the user's topic and record the exact
+`MARKET_ANALYSIS_PATH = docs/knowledge/strategy/market-analysis/{ARTIFACT_SLUG}.md` in the parent
+workflow context/task handoff. Pass those exact values to every child skill. `market-analysis` is the
+only producer; it must write and return that path, and `business-evaluation`/`strategy-builder` must
+read that exact path rather than deriving a second slug. If a plan directory is active, its
+`{plan-dir}/research/market-analysis.md` file is a copy of the same producer artifact, not a second
+identity. This token is not needed for `synthesis` or `course` variants. — why: sequence ordering
+without a shared artifact key still allows a producer/consumer miss that degrades the final evidence
+without failing the workflow.
+
 **[TASK-PLANNING]** Before acting, analyze task scope and systematically break it into small todo tasks and sub-tasks using TaskCreate.
 
 > **[IMPORTANT]** Analyze how big the task is and break it into many small todo tasks systematically before starting — this is very important.

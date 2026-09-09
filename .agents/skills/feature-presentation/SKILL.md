@@ -116,7 +116,7 @@ Synthesize all session-generated specs, PBIs, ideas, and mockups into one standa
 | Mockups       | `team-artifacts/pbis/*-mockup.html`                          |
 | Design specs  | `team-artifacts/design-specs/{YYMMDD}-designspec-*.md`      |
 | Feature Specs | `docs/specs/{Bucket}/README.{Feature}.md`                   |
-| Active plan   | `activePlan` in `/tmp/ck-session-{id}.json` (set-active-plan.cjs) |
+| Active plan   | `activePlan` in the OS-temp `CK_TMP_DIR/session/{id}.json` (the path returned by `getSessionStatePath`, written by `set-active-plan.cjs`) |
 | Explicit scope | User provides specs/features as argument                    |
 
 ### Output
@@ -139,7 +139,7 @@ Synthesize all session-generated specs, PBIs, ideas, and mockups into one standa
 
 Determine which artifacts the deck synthesizes. See `references/artifact-accumulation.md` → "Scope Resolution" for the full algorithm.
 
-1. **Default (active-plan anchor):** Read `activePlan` from `/tmp/ck-session-{id}.json` (set by `.claude/scripts/set-active-plan.cjs`). Accumulate the plan's FULL artifact set across the plan's **created→now date range** — glob `team-artifacts/{ideas,pbis,pbis/stories,design-specs}` and `*-mockup.html` for EVERY `{YYMMDD}` in that range, plus the plan's `docs/specs` outputs.
+1. **Default (active-plan anchor):** Read `activePlan` from the OS-temp per-session file `CK_TMP_DIR/session/{id}.json` (the path returned by `getSessionStatePath`, written by `.claude/scripts/set-active-plan.cjs`). Accumulate the plan's FULL artifact set across the plan's **created→now date range** — glob `team-artifacts/{ideas,pbis,pbis/stories,design-specs}` and `*-mockup.html` for EVERY `{YYMMDD}` in that range, plus the plan's `docs/specs` outputs.
     - **Multi-day rule:** a workflow that spans midnight authors specs on day 1 and PBIs on day 2 — a single-day `{YYMMDD}` glob silently drops day-1 artifacts. Glob over the whole created→now range, never just today.
 2. **Custom prompt:** If the user names specs/features, widen scope to those named artifacts (plus their dependents).
 3. **Standalone + no prompt:** Use ask the user directly to ask which specs/ideas to present — never silently guess scope.

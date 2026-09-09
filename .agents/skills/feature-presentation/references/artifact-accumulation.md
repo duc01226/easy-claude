@@ -10,7 +10,7 @@ Three modes, in priority order:
 
 ### A. Default — active-plan anchor (created→now date range)
 
-1. Read `activePlan` from the session file `/tmp/ck-session-{id}.json` (set by `.claude/scripts/set-active-plan.cjs`).
+1. Read `activePlan` from the OS-temp per-session file `CK_TMP_DIR/session/{id}.json` (the path returned by `getSessionStatePath`, written by `.claude/scripts/set-active-plan.cjs`).
 2. Read the plan to get its **created date** (frontmatter `created:`) and its declared artifact/spec outputs.
 3. Compute the **created→now date range** and enumerate every `{YYMMDD}` in it.
 4. Glob each artifact root for EVERY `{YYMMDD}` in the range (NOT just today):

@@ -73,7 +73,9 @@ a **stated blocker**, never a quiet promotion.
 > *As a {role}, I want {capability} so that {value}.*
 
 **One-time demo setup:** {roles, configuration, seed data, which app/screen — staged via real paths}
-_{`no UI demo path — technical only` — only when this story has no front-end demonstration at all}_
+_{`no UI demo path — technical only` — only when a front-end is present but this story has no
+front-end demonstration; under the no-front-end rung, use the project's primary surface as the main
+channel and do not write this note}_
 
 ### {A1} — {short case title} · `{REAL-TC-ID(s)}` · 🖥️ {main-channel label}
 - **Setup / preconditions:** {exact state to stage first, via real user paths; accounts by role, secrets `<redacted:…>`}

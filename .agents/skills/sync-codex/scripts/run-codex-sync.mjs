@@ -27,9 +27,13 @@ const onlySet = parseListFlag("--only");
 const migrateFlags = args.filter(arg => arg === "--copy-skills");
 
 function parseListFlag(name) {
-    const arg = args.find(a => a.startsWith(`${name}=`));
-    if (!arg) return null;
-    return new Set(arg.split("=", 2)[1].split(",").map(s => s.trim()).filter(Boolean));
+    const matches = args.filter(arg => arg.startsWith(`${name}=`));
+    if (matches.length > 1) {
+        console.error(`[codex-sync] duplicate ${name} flag; provide one comma-separated selector`);
+        process.exit(1);
+    }
+    if (matches.length === 0) return null;
+    return new Set(matches[0].slice(`${name}=`.length).split(",").map(s => s.trim()).filter(Boolean));
 }
 
 async function listTestFiles(dir) {

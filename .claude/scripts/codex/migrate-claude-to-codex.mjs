@@ -6,7 +6,6 @@ import { createRequire } from 'node:module';
 import { buildSkillReferenceMap, prependCodexCompatibilityNote, rewriteClaudeToolTermsForCodex, rewriteSkillMentionsForCodex } from './compat-rewrite.mjs';
 import { fileURLToPath } from 'node:url';
 
-const args = new Set(process.argv.slice(2));
 const require = createRequire(import.meta.url);
 const { resolveMutationProjectRoot } = require('../lib/project-root.cjs');
 const rootResolution = resolveMutationProjectRoot({
@@ -15,6 +14,20 @@ const rootResolution = resolveMutationProjectRoot({
     env: process.env
 });
 const rootDir = rootResolution.rootDir;
+const invokedAsScript = process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url);
+
+const args = new Set(process.argv.slice(2));
+const MIGRATION_FLAGS = new Set(['--no-skills', '--copy-skills', '--normalize-source-skills']);
+const MIGRATION_USAGE = 'Usage: node .claude/scripts/codex/migrate-claude-to-codex.mjs [--no-skills] [--copy-skills] [--normalize-source-skills]';
+
+function validateCliArgs(argv) {
+    const seen = new Set();
+    for (const arg of argv) {
+        if (!MIGRATION_FLAGS.has(arg)) throw new Error(`unknown option: ${arg}`);
+        if (seen.has(arg)) throw new Error(`duplicate option: ${arg}`);
+        seen.add(arg);
+    }
+}
 
 function loadHooklessPromptProtocol() {
     const scriptDir = path.dirname(fileURLToPath(import.meta.url));
@@ -808,7 +821,12 @@ async function main() {
 // CLI guard: only run the (destructive) migration when invoked directly as a script.
 // Importing this module (e.g. the verify-sync-divergence oracle gate, or unit tests)
 // must NOT trigger a real sync that would wipe and regenerate .agents/skills.
-const invokedAsScript = process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url);
 if (invokedAsScript) {
-    await main();
+    try {
+        validateCliArgs(process.argv.slice(2));
+    } catch (error) {
+        console.error(`[codex-migrate] ERROR: ${error.message}. ${MIGRATION_USAGE}`);
+        process.exitCode = 1;
+    }
+    if (!process.exitCode) await main();
 }

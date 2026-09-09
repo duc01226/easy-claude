@@ -58,6 +58,7 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 - Positioning MUST ATTENTION reference competitive analysis
 - Every channel: purpose, budget %, expected ROI, priority
 - KPIs must be specific, measurable, time-bound
+- Market evidence must be labelled as the exact market-analysis artifact or as unverified inline context; never silently treat the latter as reviewed research
 
 **Be skeptical. Apply critical thinking, sequential thinking. Every claim needs traced proof, confidence percentages (Idea should be more than 80%).**
 
@@ -65,8 +66,13 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 
 ## Step 1: Load Market Analysis
 
-Read the market analysis output (from market-analysis skill or inline).
-Extract: competitor landscape, target segments, SWOT, market size.
+When invoked by `workflow-research` marketing mode, read the exact parent-provided
+`MARKET_ANALYSIS_PATH`; never derive a second slug. If that workflow artifact is missing, mark market
+facts N/A and cap market-evidence confidence at 60% — do not silently substitute inline context.
+Standalone inline context is allowed only when labelled **Unverified inline market context**. In that
+mode, do not claim it is the market-analysis artifact, do not introduce uncited market-size figures,
+mark unsupported market facts N/A, and cap market-evidence confidence at 60%. Extract only what the
+evidence provenance supports: competitor landscape, target segments, SWOT, and market size.
 
 ## Step 2: Positioning
 

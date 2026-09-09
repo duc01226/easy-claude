@@ -32,6 +32,29 @@ import { fileURLToPath } from "node:url";
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(__dirname, "..", ".."); // .claude/scripts -> repo root
 const EXCLUDED_DIRS = new Set(["node_modules", ".venv", ".git", "tmp"]);
+const USAGE = "Usage: node .claude/scripts/export-claude.mjs <targetProjectDir> [--force] [--include-untracked]";
+
+function normalizeIdentityPath(value) {
+  const normalized = path.normalize(path.resolve(value));
+  return process.platform === "win32" ? normalized.toLowerCase() : normalized;
+}
+
+function realpathIfExists(targetPath) {
+  try {
+    return (fs.realpathSync.native || fs.realpathSync)(targetPath);
+  } catch (error) {
+    if (error?.code === "ENOENT") return null;
+    throw error;
+  }
+}
+
+function isExistingPathAlias(firstPath, secondPath) {
+  const firstRealPath = realpathIfExists(firstPath);
+  const secondRealPath = realpathIfExists(secondPath);
+  return firstRealPath !== null
+    && secondRealPath !== null
+    && normalizeIdentityPath(firstRealPath) === normalizeIdentityPath(secondRealPath);
+}
 
 function fail(msg) {
   process.stderr.write(`[export-claude] ERROR: ${msg}\n`);
@@ -40,9 +63,26 @@ function fail(msg) {
 
 function parseArgs(argv) {
   const args = argv.slice(2);
-  const force = args.includes("--force");
-  const includeUntracked = args.includes("--include-untracked");
-  const target = args.find((a) => !a.startsWith("--"));
+  let force = false;
+  let includeUntracked = false;
+  let target = null;
+
+  for (const arg of args) {
+    if (arg === "--force") {
+      if (force) throw new Error("duplicate --force flag");
+      force = true;
+    } else if (arg === "--include-untracked") {
+      if (includeUntracked) throw new Error("duplicate --include-untracked flag");
+      includeUntracked = true;
+    } else if (arg.startsWith("-")) {
+      throw new Error(`unknown option: ${arg}`);
+    } else if (target !== null) {
+      throw new Error(`multiple target directories: ${target} and ${arg}`);
+    } else {
+      target = arg;
+    }
+  }
+
   return { target, force, includeUntracked };
 }
 
@@ -87,10 +127,17 @@ function walkClaude() {
 }
 
 function main() {
-  const { target, force, includeUntracked } = parseArgs(process.argv);
+  let parsed;
+  try {
+    parsed = parseArgs(process.argv);
+  } catch (error) {
+    fail(`${error.message}. ${USAGE}`);
+  }
+
+  const { target, force, includeUntracked } = parsed;
 
   if (!target) {
-    fail("missing target. Usage: node .claude/scripts/export-claude.mjs <targetProjectDir> [--force] [--include-untracked]");
+    fail(`missing target. ${USAGE}`);
   }
   if (!fs.existsSync(path.join(repoRoot, ".claude"))) {
     fail(`source .claude not found under ${repoRoot}`);
@@ -101,6 +148,9 @@ function main() {
 
   if (path.resolve(targetRoot) === path.resolve(repoRoot)) {
     fail("target is the source repo itself — refusing to self-export.");
+  }
+  if (isExistingPathAlias(targetRoot, repoRoot)) {
+    fail("target resolves to the source repo itself — refusing to self-export.");
   }
   if (fs.existsSync(targetClaude) && fs.readdirSync(targetClaude).length > 0 && !force) {
     fail(`${targetClaude} exists and is not empty. Re-run with --force to overwrite.`);

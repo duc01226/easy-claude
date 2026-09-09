@@ -687,6 +687,20 @@ const CONDITIONAL_MUTATORS = new Map([
 ]);
 
 const STRUCTURED_WRITE_TOOLS = new Set(['Write', 'Edit', 'MultiEdit', 'NotebookEdit']);
+const STRUCTURED_PATH_FIELDS = ['file_path', 'path', 'notebook_path'];
+
+function hasStructuredPathInput(toolInput, toolName) {
+    if (STRUCTURED_PATH_FIELDS.some(field =>
+        Object.prototype.hasOwnProperty.call(toolInput, field)
+        && toolInput[field] !== undefined
+        && toolInput[field] !== ''
+    )) return true;
+
+    return typeof toolName === 'string'
+        && toolName.startsWith('mcp__filesystem__')
+        && Array.isArray(toolInput.paths)
+        && toolInput.paths.length > 0;
+}
 
 // `sh -c "sh -c '…'"` nests; the payload shrinks each hop, so a small cap ends the recursion
 // without truncating any shape a person actually types.
@@ -794,11 +808,12 @@ function evaluate(input) {
     // Write-only gate — see FILE_MUTATING_COMMANDS above. A request that cannot create, modify or
     // delete a file cannot commit the accident this hook exists to prevent, so it is allowed
     // wherever it points and is never denied merely for being unparseable.
+    const hasStructuredPath = hasStructuredPathInput(toolInput, toolName);
     if (Object.prototype.hasOwnProperty.call(toolInput, 'command')) {
         // A `command` that is present but not a string is MALFORMED input, not a read. Fall through
         // so the policy layer reports it and denies closed; silently allowing it would turn a
         // delivery bug into an unlogged pass.
-        if (typeof toolInput.command === 'string' && !commandCanWriteFiles(toolInput.command)) return undefined;
+        if (typeof toolInput.command === 'string' && !commandCanWriteFiles(toolInput.command) && !hasStructuredPath) return undefined;
     } else if (!toolWrites(toolName)) {
         return undefined;
     }

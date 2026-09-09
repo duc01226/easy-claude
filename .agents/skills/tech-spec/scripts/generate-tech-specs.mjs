@@ -12,6 +12,7 @@ const DERIVED_BANNER = '> DERIVED — regenerate with the tech-spec skill; do NO
 // The two trait names the renderer understands. A config-supplied annotationPattern
 // MUST capture one of these as group 1 and a non-empty spec id as group 2.
 const KNOWN_TRAIT_NAMES = new Set(['TestSpec', 'TechnicalSpec']);
+const CONTROL_FLOW_NAMES = new Set(['if', 'for', 'while', 'switch', 'catch', 'when', 'with', 'assert', 'return']);
 const MAX_REPORTED_DIFFERENCES = 50;
 const OCCURRENCE_MARKER_PATTERN = /<!-- tech-spec-annotation-occurrence:([A-Za-z0-9_-]+) -->/g;
 const OPERATION_TOKENS = {
@@ -58,12 +59,16 @@ const TECHNICAL_HINTS = [
   'table',
 ];
 
+// Match the shared runner's cwd-ancestor/script-ancestor contract. Explicit
+// CLAUDE_PROJECT_DIR remains the highest-precedence selection when a caller
+// needs to target a copied or relocated project.
 const repoRoot = resolveMutationProjectRoot({
   cwd: process.cwd(),
   scriptPath: fileURLToPath(import.meta.url),
   env: process.env,
-  preferCwdFallback: true,
+  preferCwdFallback: false,
 }).rootDir;
+const realRepoRoot = await fs.realpath(repoRoot);
 const args = process.argv.slice(2);
 const isCheck = args.includes('--check');
 const isOptional = args.includes('--optional');
@@ -141,16 +146,16 @@ if (isCheck) {
     process.exitCode = 1;
   }
 } else {
-  await fs.mkdir(outputRoot, { recursive: true });
-  await removeGeneratedMarkdown(outputRoot);
-  await writeTechnicalViews(outputRoot, groups);
+  const output = await reconcileAllViews(outputRoot, groups);
 
   console.log(
     JSON.stringify(
       {
         status: 'ok',
         outputRoot: toPosix(path.relative(repoRoot, outputRoot)),
-        filesWritten: groups.size,
+        filesWritten: output.filesWritten,
+        filesUnchanged: output.filesUnchanged,
+        filesRemoved: output.filesRemoved,
         annotations: entries.length,
         technicalSpecAnnotations: technicalCount,
         testSpecAnnotations: businessJoinCount,
@@ -199,6 +204,48 @@ function assertInsideRepo(targetPath) {
   }
 }
 
+function isPathWithin(basePath, targetPath) {
+  const relative = path.relative(basePath, targetPath);
+  return relative === '' || (!relative.startsWith(`..${path.sep}`) && relative !== '..' && !path.isAbsolute(relative));
+}
+
+// Lexical containment is not enough when an existing directory component is a
+// junction/symlink. Walk to the nearest existing ancestor and validate both the
+// directory entry and its resolved location before any generated file is read
+// or written. Missing leaf directories are safe to create once their existing
+// ancestor has passed this check.
+async function assertSafeOutputPath(targetPath) {
+  const logicalPath = path.resolve(targetPath);
+  assertInsideRepo(logicalPath);
+
+  let currentPath = logicalPath;
+  while (true) {
+    try {
+      const stat = await fs.lstat(currentPath);
+      if (stat.isSymbolicLink()) {
+        throw new Error(
+          `Refusing to use symbolic link in technical-spec output path: ${toPosix(path.relative(repoRoot, currentPath))}`,
+        );
+      }
+
+      const resolvedPath = await fs.realpath(currentPath);
+      if (!isPathWithin(realRepoRoot, resolvedPath)) {
+        throw new Error(
+          `Refusing to use technical-spec output outside repository after resolving links: ${currentPath}`,
+        );
+      }
+      return;
+    } catch (error) {
+      if (error?.code !== 'ENOENT') throw error;
+      const parentPath = path.dirname(currentPath);
+      if (parentPath === currentPath) {
+        throw new Error(`Unable to resolve technical-spec output ancestor: ${logicalPath}`, { cause: error });
+      }
+      currentPath = parentPath;
+    }
+  }
+}
+
 async function collectTraitEntries(rootPath) {
   const files = await collectFiles(rootPath, {
     matches: (name) => sourceExtensions.some((ext) => name.endsWith(ext)),
@@ -224,20 +271,32 @@ async function collectTraitEntries(rootPath) {
 // whether they prune build directories, so those are parameters rather than a second copy.
 // `excludeDirs` defaults to pruning NOTHING: the deletion scan must see every file under
 // the technical root, since an unseen file is one this script would delete without
-// validating it. An unreadable directory is skipped, not fatal.
-async function collectFiles(rootPath, { matches, excludeDirs = new Set() }) {
+// validating it. A missing scan root is interpreted by the caller as an empty root;
+// every nested read error fails closed instead of producing a partial projection.
+async function collectFiles(rootPath, { matches, excludeDirs = new Set(), rejectSymlinks = false }) {
   const files = [];
 
   async function walk(currentPath) {
     let items;
     try {
       items = await fs.readdir(currentPath, { withFileTypes: true });
-    } catch {
-      return;
+    } catch (error) {
+      if (error?.code === 'ENOENT' && currentPath === rootPath) {
+        return;
+      }
+      const relativePath = toPosix(path.relative(repoRoot, currentPath)) || '.';
+      throw new Error(`Unable to scan tech-spec path ${relativePath}: ${error.message}`, { cause: error });
     }
 
     for (const item of items) {
       const itemPath = path.join(currentPath, item.name);
+      if (item.isSymbolicLink()) {
+        if (!rejectSymlinks) continue;
+        throw new Error(
+          `Refusing to scan symbolic link in technical-spec path ${toPosix(path.relative(repoRoot, itemPath))}. ` +
+            'Remove the link or point the configured root at a real directory.',
+        );
+      }
       if (item.isDirectory()) {
         if (!excludeDirs.has(item.name.toLowerCase())) {
           await walk(itemPath);
@@ -262,7 +321,9 @@ async function parseTraitEntries(filePath) {
 
   for (let index = 0; index < lines.length; index += 1) {
     const line = lines[index];
-    const classMatch = line.match(/^\s*(?:(?:public|private|internal|protected|abstract|sealed|static|partial)\s+)*class\s+([A-Za-z_][A-Za-z0-9_]*)\b/);
+    const classMatch = line.match(
+      /^\s*(?:(?:export|default|public|private|internal|protected|abstract|sealed|static|partial|final|open|data)\s+)*(?:class|interface|object)\s+([A-Za-z_$][A-Za-z0-9_$]*)\b/,
+    );
     if (classMatch) {
       currentClass = classMatch[1];
     }
@@ -270,7 +331,7 @@ async function parseTraitEntries(filePath) {
     const traitMatch = line.match(annotationPattern);
     if (traitMatch) {
       // annotationPattern is CONFIG-SUPPLIED, so its captures cannot be trusted.
-      // Validate here — at the parse boundary, which runs BEFORE removeGeneratedMarkdown —
+      // Validate here — at the parse boundary, which runs BEFORE reconcileAllViews —
       // because a downstream failure would throw only after derived output was already
       // deleted, reproducing the very data-loss this script was fixed to prevent.
       const [, traitName, id] = traitMatch;
@@ -283,7 +344,17 @@ async function parseTraitEntries(filePath) {
             `The pattern must expose exactly two capture groups in that order. No files were changed.`,
         );
       }
-      pendingTraits.push({ traitName, id, line: index + 1 });
+      const trait = { traitName, id, line: index + 1 };
+      // JavaScript/TypeScript commonly carries the test identity inside the
+      // describe/it/test call rather than on a declaration line. Use the stable
+      // configured id in the synthetic method name so repeated runs project the
+      // same occurrence and multiple calls on one line remain distinguishable.
+      const methodName = inlineTestMethodName(line, id) ?? methodNameForLine(line);
+      if (methodName) {
+        appendTraitEntries(entries, [trait], { relPath, currentClass, methodName });
+      } else {
+        pendingTraits.push(trait);
+      }
       continue;
     }
 
@@ -291,29 +362,64 @@ async function parseTraitEntries(filePath) {
       continue;
     }
 
-    const methodMatch = line.match(
-      /^\s*(?:public|private|internal|protected)\s+(?:static\s+)?(?:async\s+)?[A-Za-z0-9_<>,\[\]\.?]+\s+([A-Za-z_][A-Za-z0-9_]*)\s*\(/,
-    );
-    if (!methodMatch) {
+    const methodName = methodNameForLine(line);
+    if (!methodName) {
       continue;
     }
 
-    const methodName = methodMatch[1];
-    const { service, component } = deriveServiceComponent(relPath, currentClass);
-    for (const trait of pendingTraits.splice(0)) {
-      entries.push({
-        ...trait,
-        relPath,
-        className: currentClass,
-        methodName,
-        service,
-        component,
-        operationKind: deriveOperationKind(`${relPath} ${currentClass} ${methodName} ${trait.id}`),
-      });
-    }
+    appendTraitEntries(entries, pendingTraits.splice(0), { relPath, currentClass, methodName });
   }
 
   return entries;
+}
+
+function methodNameForLine(line) {
+  const csharpMatch = line.match(
+    /^\s*(?:public|private|internal|protected)\s+(?:static\s+)?(?:async\s+)?[A-Za-z0-9_<>,\[\]\.?]+\s+([A-Za-z_$][A-Za-z0-9_$]*)\s*\(/,
+  );
+  if (csharpMatch) return csharpMatch[1];
+
+  const functionMatch = line.match(
+    /^\s*(?:(?:export|default|declare)\s+)*(?:async\s+)?function\s+([A-Za-z_$][A-Za-z0-9_$]*)\s*\(/,
+  );
+  if (functionMatch) return functionMatch[1];
+
+  const arrowMatch = line.match(
+    /^\s*(?:(?:export|declare)\s+)?(?:const|let|var)\s+([A-Za-z_$][A-Za-z0-9_$]*)\s*=\s*(?:async\s+)?(?:\([^)]*\)|[A-Za-z_$][A-Za-z0-9_$]*)\s*=>/,
+  );
+  if (arrowMatch) return arrowMatch[1];
+
+  const pythonMatch = line.match(/^\s*(?:async\s+)?def\s+([A-Za-z_][A-Za-z0-9_]*)\s*\(/);
+  if (pythonMatch) return pythonMatch[1];
+
+  // Covers Java/Kotlin declarations and class/object methods without trying to
+  // become a language parser. The explicit control-flow exclusion prevents an
+  // annotation followed by `if (...)` from being attached to a branch.
+  const declarationMatch = line.match(
+    /^\s*(?:(?:public|private|protected|internal|static|final|abstract|async|override|virtual|sealed|synchronized|native|inline|open|suspend|operator|fun)\s+)*(?:<[^>]+>\s*)?(?:[A-Za-z_$][A-Za-z0-9_$<>,.?[\]]*\s+)?([A-Za-z_$][A-Za-z0-9_$]*)\s*\(/,
+  );
+  if (!declarationMatch || CONTROL_FLOW_NAMES.has(declarationMatch[1])) return null;
+  return declarationMatch[1];
+}
+
+function inlineTestMethodName(line, id) {
+  const callMatch = line.match(/\b(describe|it|test|specify|suite)\s*\(/);
+  return callMatch ? `${callMatch[1]}_${sanitizeSegment(id)}` : null;
+}
+
+function appendTraitEntries(entries, traits, { relPath, currentClass, methodName }) {
+  const { service, component } = deriveServiceComponent(relPath, currentClass);
+  for (const trait of traits) {
+    entries.push({
+      ...trait,
+      relPath,
+      className: currentClass,
+      methodName,
+      service,
+      component,
+      operationKind: deriveOperationKind(`${relPath} ${currentClass} ${methodName} ${trait.id}`),
+    });
+  }
 }
 
 function deriveServiceComponent(relPath, className) {
@@ -400,15 +506,12 @@ function tokenizeForMatch(value) {
     .filter(Boolean);
 }
 
-// Deletion is ALL-OR-NOTHING: every file is validated before any file is removed.
-// Validating and deleting in one loop (the previous shape) meant a single hand-edited
-// file aborted the run AFTER the files before it were already gone and BEFORE
-// writeTechnicalViews could regenerate anything — irreversible loss with no output.
-// — why: never destroy what you have not yet proven you can replace.
-async function removeGeneratedMarkdown(rootPath) {
-  const files = await collectFiles(rootPath, { matches: (name) => name.endsWith('.md') });
+// Validate the complete live tree before any writes. A hand-authored Markdown file is
+// never eligible for reconciliation or deletion.
+async function validateGeneratedMarkdown(rootPath) {
+  await assertSafeOutputPath(rootPath);
+  const files = await collectFiles(rootPath, { matches: (name) => name.endsWith('.md'), rejectSymlinks: true });
 
-  // Pass 1 — validate every file, collecting ALL offenders. Nothing is deleted here.
   const nonDerived = [];
   for (const filePath of files) {
     const content = await fs.readFile(filePath, 'utf8');
@@ -426,19 +529,141 @@ async function removeGeneratedMarkdown(rootPath) {
     );
   }
 
-  // Pass 2 — every file is proven derived; safe to remove.
-  for (const filePath of files) {
-    await fs.rm(filePath);
+  return files;
+}
+
+// Reconcile with a preflight plan and rollback protection rather than
+// delete-and-rebuild. Preflight catches invalid output paths before mutation;
+// backups let a mid-commit I/O failure restore the previous complete tree.
+async function reconcileAllViews(rootPath, groups, { today = new Date().toISOString().slice(0, 10) } = {}) {
+  const existingFiles = await validateGeneratedMarkdown(rootPath);
+  const existingByKey = new Map(existingFiles.map((filePath) => [pathKey(filePath), filePath]));
+  const expectedFiles = new Map();
+  const plannedViews = [];
+
+  for (const [groupKey, groupEntriesList] of [...groups.entries()].sort(([a], [b]) => compareText(a, b))) {
+    const [service, component] = groupKey.split('/');
+    const outputPath = path.join(rootPath, service, `${component}.md`);
+    await assertSafeOutputPath(outputPath);
+    const outputKey = pathKey(outputPath);
+    if (expectedFiles.has(outputKey)) {
+      throw new Error(`Multiple generated views resolve to the same output path: ${outputPath}`);
+    }
+    expectedFiles.set(outputKey, outputPath);
+
+    // Read every target before the first write. Besides making the plan explicit,
+    // this turns a target directory, broken parent, or permission error into a
+    // no-mutation failure instead of discovering it after an earlier view changed.
+    const existingPath = existingByKey.get(outputKey) ?? outputPath;
+    const existing = await readOptionalFile(existingPath);
+    const content = renderView({ service, component, entries: groupEntriesList, today });
+    plannedViews.push({
+      filePath: existingPath,
+      content,
+      existing,
+      changed: existing === null || normalizeGeneratedContent(existing) !== normalizeGeneratedContent(content),
+    });
+  }
+
+  const staleFiles = existingFiles.filter((filePath) => !expectedFiles.has(pathKey(filePath)));
+  const filesWritten = plannedViews.filter((view) => view.changed).length;
+  const filesUnchanged = plannedViews.length - filesWritten;
+  if (filesWritten === 0 && staleFiles.length === 0) {
+    return { filesWritten, filesUnchanged, filesRemoved: 0 };
+  }
+
+  const transactionRoot = await fs.mkdtemp(path.join(os.tmpdir(), 'tech-spec-reconcile-'));
+  const backups = [];
+  const createdPaths = [];
+
+  try {
+    // Back up every file that this transaction may replace or remove before
+    // touching the output tree. Copies keep the original tree intact during
+    // preflight and make rollback independent of filesystem rename semantics.
+    let backupIndex = 0;
+    for (const view of plannedViews.filter((candidate) => candidate.changed && candidate.existing !== null)) {
+      const backupPath = path.join(transactionRoot, `${backupIndex++}.bak`);
+      await fs.copyFile(view.filePath, backupPath);
+      backups.push({ originalPath: view.filePath, backupPath });
+    }
+    for (const filePath of staleFiles) {
+      const backupPath = path.join(transactionRoot, `${backupIndex++}.bak`);
+      await fs.copyFile(filePath, backupPath);
+      backups.push({ originalPath: filePath, backupPath });
+    }
+
+    for (const view of plannedViews.filter((candidate) => candidate.changed)) {
+      if (view.existing === null) createdPaths.push(view.filePath);
+      await fs.mkdir(path.dirname(view.filePath), { recursive: true });
+      await fs.writeFile(view.filePath, view.content, 'utf8');
+    }
+
+    // Stale output is removed only after every expected view has been written or
+    // confirmed unchanged. A failed commit enters rollback and restores the
+    // previous tree, including stale derived files.
+    for (const filePath of staleFiles) {
+      await fs.rm(filePath);
+    }
+
+    return { filesWritten, filesUnchanged, filesRemoved: staleFiles.length };
+  } catch (error) {
+    const rollbackErrors = await rollbackReconciliation(backups, createdPaths);
+    if (rollbackErrors.length > 0) {
+      throw new Error(
+        `${error.message}; rollback also failed for ${rollbackErrors.length} path(s): ${rollbackErrors.join('; ')}`,
+        { cause: error },
+      );
+    }
+    throw error;
+  } finally {
+    await fs.rm(transactionRoot, { recursive: true, force: true });
   }
 }
 
+async function readOptionalFile(filePath) {
+  let existing = null;
+  try {
+    existing = await fs.readFile(filePath, 'utf8');
+  } catch (error) {
+    if (error?.code !== 'ENOENT') throw error;
+  }
+  return existing;
+}
+
+function pathKey(filePath) {
+  const normalized = path.normalize(path.resolve(filePath));
+  return process.platform === 'win32' ? normalized.toLowerCase() : normalized;
+}
+
+async function rollbackReconciliation(backups, createdPaths) {
+  const errors = [];
+  for (const filePath of [...createdPaths].reverse()) {
+    try {
+      const stat = await fs.lstat(filePath);
+      if (stat.isFile() || stat.isSymbolicLink()) await fs.unlink(filePath);
+    } catch (error) {
+      if (error?.code !== 'ENOENT') errors.push(`${filePath}: ${error.message}`);
+    }
+  }
+  for (const { originalPath, backupPath } of [...backups].reverse()) {
+    try {
+      await fs.mkdir(path.dirname(originalPath), { recursive: true });
+      await fs.copyFile(backupPath, originalPath);
+    } catch (error) {
+      errors.push(`${originalPath}: ${error.message}`);
+    }
+  }
+  return errors;
+}
+
 async function checkTechnicalViews(rootPath, groups, sourceEntries) {
+  await assertSafeOutputPath(rootPath);
   const stagingRoot = await fs.mkdtemp(path.join(os.tmpdir(), 'tech-spec-check-'));
   try {
     await writeTechnicalViews(stagingRoot, groups);
 
     const expected = await readMarkdownMap(stagingRoot);
-    const actual = await readMarkdownMap(rootPath);
+    const actual = await readMarkdownMap(rootPath, { rejectSymlinks: true });
     const allDifferences = diffMarkdownMaps(expected, actual);
     const sourceOccurrences = countValues(sourceEntries.map(annotationOccurrenceKey));
     const expectedOccurrences = projectedOccurrenceCounts(expected);
@@ -468,8 +693,8 @@ async function checkTechnicalViews(rootPath, groups, sourceEntries) {
   }
 }
 
-async function readMarkdownMap(rootPath) {
-  const files = await collectFiles(rootPath, { matches: (name) => name.endsWith('.md') });
+async function readMarkdownMap(rootPath, { rejectSymlinks = false } = {}) {
+  const files = await collectFiles(rootPath, { matches: (name) => name.endsWith('.md'), rejectSymlinks });
   const result = new Map();
   for (const filePath of files.sort(compareText)) {
     const relativePath = toPosix(path.relative(rootPath, filePath));

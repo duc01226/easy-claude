@@ -25,7 +25,6 @@ const { assertEqual, assertAllowed, assertTrue, assertFalse } = require('../lib/
 const {
     createTempDir,
     cleanupTempDir,
-    setupTodoState,
     createMockFile
 } = require('../lib/test-utils.cjs');
 
@@ -151,8 +150,6 @@ const sessionEndTests = [
         fn: async () => {
             const tmpDir = createTempDir();
             try {
-                // Create state files
-                setupTodoState(tmpDir, { hasTodos: true, taskCount: 2 });
                 const input = createSessionEndInput('clear');
                 const result = await runHook(SESSION_END, input, { cwd: tmpDir, timeout: SPAWN_TIMEOUT_MS });
                 assertAllowed(result.code);

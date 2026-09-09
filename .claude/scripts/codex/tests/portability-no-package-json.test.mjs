@@ -495,3 +495,14 @@ test('PORT-009 runner exits 1 and names the bad id on an unknown --only stage id
     assert.equal(code, 1, 'runner must exit 1 when an --only id is not a known stage');
     assert.match(stderr, /unknown stage id/i, 'stderr must name the unknown stage id, not silently drop it');
 });
+
+test('PORT-013 runner rejects duplicate --only/--skip selectors before stage execution', async () => {
+    for (const args of [
+        ['--only=residue', '--only=sdd'],
+        ['--skip=migrate', '--skip=hooks']
+    ]) {
+        const { code, stderr } = await run(process.execPath, [runnerAbs, ...args], { cwd: repoRoot });
+        assert.equal(code, 1, `${args[0]} ${args[1]} must fail instead of silently selecting the first flag`);
+        assert.match(stderr, /duplicate --(?:only|skip) flag/);
+    }
+});

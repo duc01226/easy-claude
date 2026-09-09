@@ -51,14 +51,14 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 
 ## Quick Summary
 
-**Goal:** [Process] Close the active workflow cleanly — clear workflow tracking so the next prompt gets fresh detection, and before clearing state print a one-way developer-comprehension recap (what / purpose / how / why) of what the workflow changed so the developer understands the work without re-reading the diff.
+**Goal:** [Process] Close the active workflow cleanly — complete the closure gates and print a one-way developer-comprehension recap (what / purpose / how / why) of what the workflow changed. Normal completion leaves the per-session workflow tracking intact for recovery; explicit `/clear` owns state deletion.
 
 **Summary:**
 
 - **Purpose:** penultimate state-closure step (runs before `$watzup`) — close the active workflow cleanly so the next prompt gets fresh detection, AND leave the developer understanding what changed without re-reading the diff.
-- **Main steps (ordered):** (1) integration-test coverage check on changed business-logic files; (2) spec ↔ TDD-test sync gate (`spec-tdd-test-sync-gate`) BEFORE task-completion verification; (3) sync knowledge graph if `.code-graph/` exists; (4) verify the workflow-owned baseline and classify unowned/ambiguous changes; (5) verify all preceding tasks completed; (6) print the diff-gated one-way comprehension recap (what / purpose / how / why); (7) close only the recorded owned baseline run and verify deletion results; (8) announce `Workflow [name] completed`; (9) confirm state cleared.
+- **Main steps (ordered):** (1) integration-test coverage check on changed business-logic files; (2) spec ↔ TDD-test sync gate (`spec-tdd-test-sync-gate`) BEFORE task-completion verification; (3) sync knowledge graph if `.code-graph/` exists; (4) verify the workflow-owned baseline and classify unowned/ambiguous changes; (5) verify all preceding tasks completed; (6) print the diff-gated one-way comprehension recap (what / purpose / how / why); (7) close only the recorded owned baseline run and verify deletion results; (8) announce `Workflow [name] completed`; (9) confirm per-session state is retained until explicit `/clear`.
 - **Blocking gates:** coverage gap (changed handler/command/service/controller with no matching test) OR unadjudicated spec-vs-code drift → MUST surface by asking the user directly, NEVER silent-skip; workflow MUST NOT report `completed` while drift is unadjudicated.
-- **Model-driven close:** completes once ALL the current task list items done, the sync gate recorded synced-or-accepted-as-is, and the exact owned baseline run closed successfully or was explicitly not applicable. NO hook clears residual `.ck-workflow-state.json`; `session-init` clears it only on explicit `/clear`.
+- **Model-driven close:** completes once ALL the current task list items done, the sync gate recorded synced-or-accepted-as-is, and the exact owned baseline run closed successfully or was explicitly not applicable. NO hook clears the actual `CK_TMP_DIR/workflow/{sessionId}.json` on normal completion; `session-init` cleans it only on explicit `/clear`.
 - **Recap depth** throttled by `codingLevel` (`CK_CODING_LEVEL` → `.claude/.ck.json` → default 3); skip recap ONLY when there is no diff. The recap never quizzes and never blocks — deeper explanation is the standalone `$understand` skill.
 
 **Workflow:**
@@ -82,7 +82,7 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 
 ## When This Runs
 
-This skill is the **workflow state-closure step**. In workflows including `$watzup`, runs after final verification/docs work and before `$watzup`, so active workflow closes before post-workflow summary and `$understand` handoff. As penultimate action — after all workflow work done, before clearing state — prints one-way developer-comprehension recap of what workflow changed. Use `$understand` for deep standalone explainer of any target.
+This skill is the **workflow state-closure step**. In workflows including `$watzup`, runs after final verification/docs work and before `$watzup`, so the active workflow closes before post-workflow summary and `$understand` handoff. As the penultimate action — after all workflow work is done and before the developer handoff — it prints a one-way comprehension recap; the actual per-session tracking file remains until explicit `/clear`. Use `$understand` for a deep standalone explainer of any target.
 
 **NOT for**: Manual invocation mid-workflow (use workflow switching via `$start-workflow` instead).
 
@@ -157,7 +157,7 @@ This skill is the **workflow state-closure step**. In workflows including `$watz
    - Nested closure closes only the child run; preserve the parent run and all sibling runs. Never call `cleanup-expired` or delete a store directory as part of this step.
    - If no baseline run was recorded, explicitly mark only this step `N/A — no recorded baseline run`; do not discover or remove another run.
 8. Mark this task `completed` and announce to the user: "Workflow **[name]** completed. Next prompt will trigger fresh workflow detection."
-9. Workflow end is model-driven — it completes once this skill's the current task list items are all marked done, the spec ↔ TDD-test sync gate (step 2) recorded synced-or-accepted-as-is, the owned-baseline report (step 4) recorded qualified or user-accepted ambiguity, and the exact owned-run close (step 7) succeeded or was explicitly not applicable. No hook clears persisted workflow tracking on completion; any residual `.claude/.ck-workflow-state.json` is cleared by `session-init` on an explicit `/clear`. Do not describe residual persisted tracking as deleted.
+9. Workflow end is model-driven — it completes once this skill's the current task list items are all marked done, the spec ↔ TDD-test sync gate (step 2) recorded synced-or-accepted-as-is, the owned-baseline report (step 4) recorded qualified or user-accepted ambiguity, and the exact owned-run close (step 7) succeeded or was explicitly not applicable. No hook clears persisted workflow tracking on completion; the actual `CK_TMP_DIR/workflow/{sessionId}.json` is cleaned by `session-init` on an explicit `/clear`. Do not describe normal completion as deleting the per-session tracking file.
 
 ---
 
@@ -165,19 +165,17 @@ This skill is the **workflow state-closure step**. In workflows including `$watz
 
 - **Skill:** `$start-workflow` - Start/switch workflows
 - **Doc:** `CLAUDE.md` → _Workflow Step Advancement_ - model-driven advancement rule (no step-tracking hook)
-- **Hook:** `session-init.cjs` - clears any residual `.ck-workflow-state.json` on an explicit `/clear`
+- **Hook:** `session-init.cjs` - cleans the per-session `CK_TMP_DIR/workflow/{sessionId}.json` on an explicit `/clear`
 
 ---
 
-**IMPORTANT MANDATORY Steps:** integration-test-coverage-check -> spec-tdd-test-sync-gate -> sync-knowledge-graph -> verify-owned-baseline -> verify-task-completion -> explain-changes-recap -> close-owned-baseline -> announce-workflow-completion -> clear-workflow-state
-
-**IMPORTANT MANDATORY Steps:** integration-test-coverage-check -> spec-tdd-test-sync-gate -> sync-knowledge-graph -> verify-owned-baseline -> verify-task-completion -> explain-changes-recap -> close-owned-baseline -> announce-workflow-completion -> clear-workflow-state
+**IMPORTANT MANDATORY Steps:** integration-test-coverage-check -> spec-tdd-test-sync-gate -> sync-knowledge-graph -> verify-owned-baseline -> verify-task-completion -> explain-changes-recap -> close-owned-baseline -> announce-workflow-completion -> confirm-state-retained-until-explicit-clear
 
 **Be skeptical. Apply critical thinking, sequential thinking. Every claim needs traced proof, confidence percentages (Idea should be more than 80%).**
 
 # Workflow End
 
-Finalize and close the active workflow, clearing state so the next user prompt triggers fresh workflow detection.
+Finalize and close the active workflow while retaining per-session recovery state until an explicit `/clear` event.
 
 ---
 
@@ -265,7 +263,7 @@ Finalize and close the active workflow, clearing state so the next user prompt t
 
 ## Closing Reminders
 
-**IMPORTANT MUST ATTENTION Goal:** Close the active workflow cleanly — clear workflow tracking so the next prompt gets fresh detection, AND before clearing state leave the developer understanding what the workflow changed via the diff-gated one-way comprehension recap.
+**IMPORTANT MUST ATTENTION Goal:** Close the active workflow cleanly — complete closure evidence and leave the developer understanding what the workflow changed via the diff-gated one-way comprehension recap. Normal completion retains per-session tracking; explicit `/clear` owns deletion.
 
 **Protocols in force (concise digest of the SYNC/shared blocks this skill carries):**
 
@@ -278,7 +276,7 @@ Finalize and close the active workflow, clearing state so the next user prompt t
 **IMPORTANT MUST ATTENTION** the spec ↔ TDD-test sync gate runs BEFORE task-completion verification — NEVER report the workflow `completed` while a behavior-vs-spec divergence is unadjudicated; reconcile via `$spec [mode=sync]` or capture an explicit accept-as-is reason — why: green tests do not normalize spec drift; the feedback half of the loop closes here
 **IMPORTANT MUST ATTENTION** run the integration-test coverage check on changed business-logic files (handlers/commands/queries/services/controllers/resolvers/event processors) — if ANY lacks a matching test, surface by asking the user directly; NEVER silent-skip — why: business-logic change without coverage ships an unguarded regression path
 **IMPORTANT MUST ATTENTION** the recap is one-way and NEVER blocks — no quiz, no teach-back; route deeper comprehension to the standalone `$understand` skill — why: blocking on a teaching step would stall workflow closure
-**IMPORTANT MUST ATTENTION** workflow end is model-driven — close ONLY once every the current task list item is done AND the sync gate recorded synced-or-accepted-as-is; NEVER wait for a hook to clear state — why: no hook clears `.ck-workflow-state.json` on completion (only `session-init` on explicit `/clear`)
+**IMPORTANT MUST ATTENTION** workflow end is model-driven — close ONLY once every the current task list item is done AND the sync gate recorded synced-or-accepted-as-is; NEVER wait for a hook to clear state — why: no hook clears `CK_TMP_DIR/workflow/{sessionId}.json` on completion (only `session-init` cleans it on explicit `/clear`)
 **IMPORTANT MUST ATTENTION** break work into small todo tasks with task tracking BEFORE starting; mark one `in_progress`, complete it immediately after its evidence lands; add a final review todo — why: untracked steps get silently skipped under long context
 **IMPORTANT MUST ATTENTION** search codebase for 3+ similar patterns before creating new code, and verify pattern FIT (same base class, scope, lifetime, preconditions) before copying the nearest example — why: closest example ≠ matching constraints
 **IMPORTANT MUST ATTENTION** cite `file:line` evidence for every claim — confidence >80% to act, <60% DO NOT recommend; NEVER present a guess as fact
@@ -293,7 +291,7 @@ Finalize and close the active workflow, clearing state so the next user prompt t
 | "Business file changed but I'm sure it's covered" | Show the matching test `file:line`. No proof → surface coverage gap by asking the user directly.        |
 | "Workflow feels done, clear state now"            | Model-driven: confirm ALL the current task list items done + sync gate recorded before announcing completion.  |
 
-**IMPORTANT MUST ATTENTION Goal echo:** close the workflow cleanly — diff-gated recap delivered, sync gate adjudicated, state cleared for fresh detection.
+**IMPORTANT MUST ATTENTION Goal echo:** close the workflow cleanly — diff-gated recap delivered, sync gate adjudicated, closure evidence recorded, and per-session state retained until explicit `/clear`.
 **IMPORTANT MUST ATTENTION** NEVER silent-skip the integration-test coverage gate or the spec↔TDD-test sync gate — surface gaps by asking the user directly.
 **IMPORTANT MUST ATTENTION** cite `file:line` evidence (confidence >80%); print the diff-gated recap; NEVER report `completed` with unadjudicated drift.
 

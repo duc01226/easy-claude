@@ -50,3 +50,69 @@ test('export keeps tracked scope by default and requires explicit untracked incl
         await fs.rm(tmp, { recursive: true, force: true });
     }
 });
+
+test('export rejects unknown flags, duplicate flags, and extra operands before copying', async () => {
+    const tmp = await fs.mkdtemp(path.join(os.tmpdir(), 'export-args-'));
+    try {
+        const source = path.join(tmp, 'source', '.claude', 'scripts');
+        await fs.mkdir(source, { recursive: true });
+        const exporter = path.join(source, 'export-claude.mjs');
+        await fs.copyFile(path.join(repoRoot, '.claude/scripts/export-claude.mjs'), exporter);
+
+        const cases = [
+            { name: 'unknown option', args: ['typo-target', '--include-untrackd'], message: /unknown option/ },
+            { name: 'extra operand', args: ['extra-target', 'another-target'], message: /multiple target directories/ },
+            { name: 'duplicate flag', args: ['duplicate-target', '--force', '--force'], message: /duplicate --force/ },
+        ];
+
+        for (const { name, args, message } of cases) {
+            const target = path.join(tmp, name);
+            const result = spawnSync(process.execPath, [exporter, ...args.map(arg => arg.replace(/^(?:typo|extra|duplicate)-target$/, target))], {
+                encoding: 'utf8',
+            });
+            assert.equal(result.status, 1, `${name} must fail`);
+            assert.match(result.stderr, message, `${name} must explain the invalid argument`);
+            await assert.rejects(fs.access(target), `${name} must not create a target`);
+        }
+    } finally {
+        await fs.rm(tmp, { recursive: true, force: true });
+    }
+});
+
+test('export rejects a symlink or junction alias of the source before copying', async (t) => {
+    const tmp = await fs.mkdtemp(path.join(os.tmpdir(), 'export-self-alias-'));
+    try {
+        const source = path.join(tmp, 'source');
+        const scripts = path.join(source, '.claude', 'scripts');
+        await fs.mkdir(scripts, { recursive: true });
+        const exporter = path.join(scripts, 'export-claude.mjs');
+        await fs.copyFile(path.join(repoRoot, '.claude/scripts/export-claude.mjs'), exporter);
+        await fs.writeFile(path.join(source, '.claude/tracked.txt'), 'fixture');
+
+        const git = spawnSync('git', ['init', '--quiet'], { cwd: source, encoding: 'utf8' });
+        assert.equal(git.status, 0, git.stderr);
+        const add = spawnSync('git', ['add', '--', '.claude/tracked.txt', '.claude/scripts/export-claude.mjs'], {
+            cwd: source,
+            encoding: 'utf8'
+        });
+        assert.equal(add.status, 0, add.stderr);
+
+        const alias = path.join(tmp, 'source-alias');
+        try {
+            await fs.symlink(source, alias, process.platform === 'win32' ? 'junction' : 'dir');
+        } catch (error) {
+            if (['EACCES', 'EPERM', 'ENOSYS'].includes(error?.code)) {
+                t.skip(`symlink capability unavailable: ${error.code}`);
+                return;
+            }
+            throw error;
+        }
+
+        const result = spawnSync(process.execPath, [exporter, alias, '--force'], { encoding: 'utf8' });
+        assert.equal(result.status, 1, result.stderr);
+        assert.match(result.stderr, /resolves to the source repo itself/);
+        assert.equal(await fs.readFile(path.join(source, '.claude/tracked.txt'), 'utf8'), 'fixture');
+    } finally {
+        await fs.rm(tmp, { recursive: true, force: true });
+    }
+});

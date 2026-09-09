@@ -5,6 +5,10 @@
 **Status:** Draft | Final
 **Consumed by:** `/business-evaluation`, `/strategy-builder`
 
+> **Evidence contract:** Every factual sentence, number, comparison, table item, and inference ends
+> with an inline `[N]` citation mapped to one row in **Sources**. If a claim cannot be sourced, write
+> `N/A — {reason}` instead of estimating. Do not invent source metadata.
+
 ---
 
 ## Executive Summary
@@ -27,11 +31,11 @@
 
 | Metric  | Value        | Source (tier)              | Methodology                        |
 | ------- | ------------ | -------------------------- | ---------------------------------- |
-| **TAM** | {currency/yr} | {source} (Tier {1\|2\|3}) | {top-down \| bottom-up — how}      |
-| **SAM** | {currency/yr} | {source} (Tier {1\|2\|3}) | {constraints applied}              |
-| **SOM** | {currency/yr} | {source} (Tier {1\|2\|3}) | {realistic 3-year capture basis}   |
+| **TAM** | {currency/yr} | {source [N]} (Tier {1\|2\|3}) | {top-down \| bottom-up — how}      |
+| **SAM** | {currency/yr} | {source [N]} (Tier {1\|2\|3}) | {constraints applied}              |
+| **SOM** | {currency/yr} | {source [N]} (Tier {1\|2\|3}) | {realistic 3-year capture basis}   |
 
-**Growth rate:** {CAGR %} over {period} — {source}
+**Growth rate:** {CAGR %} over {period} — {source [N]}
 
 ## Competitors
 
@@ -72,9 +76,9 @@ Cover growth drivers, disruptions, and regulatory changes.
 
 ## Sources
 
-| # | Source | Tier | Date | Used for |
-| - | ------ | ---- | ---- | -------- |
-| 1 | {URL / report} | {1\|2\|3} | {YYYY-MM} | {which section} |
+| # | Title | URL | Author / Publisher | Tier | Date | Used for |
+| - | ----- | --- | ------------------ | ---- | ---- | -------- |
+| 1 | {report title} | {https://…} | {author / publisher} | {1\|2\|3} | {YYYY-MM} | {which claims/section} |
 
 Tier 1-2 sources are required for every sizing figure (Gartner, Statista, IBISWorld, government data, audited filings).
 

@@ -19,6 +19,25 @@ const DERIVED_BANNER = '> DERIVED — regenerate with the tech-spec skill; do NO
 
 const ANNOTATION_PATTERN = '\\[Trait\\("((?:TestSpec)|(?:TechnicalSpec))"\\s*,\\s*"([^"]+)"\\)\\]';
 
+const TYPESCRIPT_ANNOTATION_PATTERN = '\\[(TestSpec|TechnicalSpec):([^\\]]+)\\]';
+const TYPESCRIPT_SOURCE = `
+describe('[TestSpec:TC-TS-001] persists an order', () => {
+});
+`;
+
+const KOTLIN_ANNOTATION_PATTERN = '@Tag\\("(TestSpec|TechnicalSpec):([^"]+)"\\)';
+const KOTLIN_SOURCE = `
+@Tag("TestSpec:TC-KT-001")
+fun shouldPersist() {
+}
+`;
+
+const JAVA_SOURCE = `
+@Tag("TestSpec:TC-JAVA-001")
+public void shouldPersist() {
+}
+`;
+
 const ANNOTATED_SOURCE = `
 public class OrderTests
 {
@@ -85,7 +104,17 @@ public class OperationKindsTests
 }
 `;
 
-async function makeProject({ technicalPath = 'out', sourceRoot = 'src', configPath = 'docs/project-config.json', withSource = true, source = ANNOTATED_SOURCE } = {}) {
+async function makeProject({
+    technicalPath = 'out',
+    sourceRoot = 'src',
+    configPath = 'docs/project-config.json',
+    withSource = true,
+    source = ANNOTATED_SOURCE,
+    fileExtension = '.cs',
+    fileName = 'OrderTests.cs',
+    fileExtensions = [fileExtension],
+    annotationPattern = ANNOTATION_PATTERN,
+} = {}) {
     const root = await fs.mkdtemp(path.join(os.tmpdir(), 'tech-spec-gen-'));
     await fs.mkdir(path.join(root, '.claude'));
     const projectConfigPath = path.join(root, ...configPath.split('/'));
@@ -94,7 +123,7 @@ async function makeProject({ technicalPath = 'out', sourceRoot = 'src', configPa
         projectConfigPath,
         JSON.stringify({
             specRoots: { technical: { path: technicalPath } },
-            techSpecScan: { sourceRoot, fileExtensions: ['.cs'], annotationPattern: ANNOTATION_PATTERN }
+            techSpecScan: { sourceRoot, fileExtensions, annotationPattern }
         }),
         'utf8'
     );
@@ -108,7 +137,7 @@ async function makeProject({ technicalPath = 'out', sourceRoot = 'src', configPa
     }
     if (withSource) {
         await fs.mkdir(path.join(root, sourceRoot, 'Services', 'Orders'), { recursive: true });
-        await fs.writeFile(path.join(root, sourceRoot, 'Services', 'Orders', 'OrderTests.cs'), source, 'utf8');
+        await fs.writeFile(path.join(root, sourceRoot, 'Services', 'Orders', fileName), source, 'utf8');
     } else {
         await fs.mkdir(path.join(root, sourceRoot), { recursive: true });
     }
@@ -181,9 +210,9 @@ function operationKindFor(markdown, methodName) {
     return match[1].trim();
 }
 
-// THE regression test for the data-loss defect. The original removeGeneratedMarkdown
-// validated and deleted in ONE loop, so a hand-edited file aborted the run only AFTER
-// the files before it were already removed — and writeTechnicalViews never ran.
+// THE regression test for the data-loss defect. The original validation/deletion
+// loop removed files before discovering a hand-edited file, so the files before
+// the offender were already gone and the writer never ran.
 //
 // Ordering matters: collectFiles does NOT sort, so traversal order is filesystem
 // dependent. Names are chosen so the hand-edited file sorts LAST, and the assertion is
@@ -228,6 +257,164 @@ test('generate-tech-specs regenerates cleanly when every file is derived (TC-TSP
     // Output must itself carry the banner, or the NEXT run would refuse to clean it up.
     const written = await fs.readFile(path.join(outDir, after[0]), 'utf8');
     assert.ok(written.startsWith(DERIVED_BANNER), 'generated output must be re-deletable by the next run');
+});
+
+test('generate-tech-specs preserves semantically unchanged views and their date/EOL bytes (TC-TSPEC-013)', async () => {
+    const root = await makeProject();
+    try {
+        const first = runGenerator(root);
+        assert.equal(first.status, 0, first.stderr);
+
+        const outputPath = await generatedMarkdownPath(root);
+        const initial = await fs.readFile(outputPath, 'utf8');
+        const preserved = initial
+            .replace(/Regenerated:\s*\d{4}-\d{2}-\d{2}\./, 'Regenerated: 2000-01-01.')
+            .replace(/\r?\n/g, '\r\n');
+        await fs.writeFile(outputPath, preserved, 'utf8');
+
+        const second = runGenerator(root);
+        assert.equal(second.status, 0, second.stderr);
+        const report = parseResultJson(second);
+        assert.equal(report.filesWritten, 0, 'unchanged generated views must not be rewritten');
+        assert.equal(report.filesUnchanged, 1, 'the fixture has one unchanged generated view');
+        assert.equal(report.filesRemoved, 0);
+        assert.equal(await fs.readFile(outputPath, 'utf8'), preserved, 'date and EOL style must remain stable');
+    } finally {
+        await fs.rm(root, { recursive: true, force: true });
+    }
+});
+
+test('generate-tech-specs keeps the previous derived tree when a later view cannot be written (TC-TSPEC-017)', async () => {
+    const root = await makeProject();
+    try {
+        const first = runGenerator(root);
+        assert.equal(first.status, 0, first.stderr);
+
+        const existingPath = await generatedMarkdownPath(root);
+        const outDir = path.dirname(existingPath);
+        const stalePath = path.join(outDir, 'stale.md');
+        const existing = await fs.readFile(existingPath, 'utf8');
+        await fs.writeFile(stalePath, `${DERIVED_BANNER}\n\n# Stale\n`, 'utf8');
+
+        const sourcePath = path.join(root, 'src', 'Services', 'Orders', 'OrderTests.cs');
+        const source = await fs.readFile(sourcePath, 'utf8');
+        await fs.writeFile(sourcePath, source.replace('TS-ORDER-001', 'TS-ORDER-002'), 'utf8');
+
+        await fs.mkdir(path.join(root, 'src', 'Services', 'Orders', 'ExtraTests'), { recursive: true });
+        await fs.writeFile(
+            path.join(root, 'src', 'Services', 'Orders', 'ExtraTests', 'SecondTests.cs'),
+            `
+public class SecondTests
+{
+    [Trait("TechnicalSpec", "TS-SECOND-001")]
+    public Task Persists()
+    {
+    }
+}
+`,
+            'utf8',
+        );
+        // A directory at the expected file path makes preflight fail after the
+        // first group has been planned as changed. The prior tree must still win.
+        await fs.mkdir(path.join(outDir, 'Second.md'));
+
+        const result = runGenerator(root);
+        assert.notEqual(result.status, 0, 'the blocked output path must fail the generation');
+        assert.equal(await fs.readFile(existingPath, 'utf8'), existing, 'existing view must survive the failed run');
+        assert.doesNotMatch(await fs.readFile(existingPath, 'utf8'), /TS-ORDER-002/, 'a changed earlier view must not partially commit');
+        assert.equal(await fs.readFile(stalePath, 'utf8'), `${DERIVED_BANNER}\n\n# Stale\n`, 'stale view must not be removed before all writes finish');
+    } finally {
+        await fs.rm(root, { recursive: true, force: true });
+    }
+});
+
+test('generate-tech-specs refuses symlinked output parents before writing outside the project (TC-TSPEC-019)', async (t) => {
+    const root = await makeProject();
+    const outside = await fs.mkdtemp(path.join(os.tmpdir(), 'tech-spec-symlink-out-'));
+    const outputParent = path.join(root, 'out', 'Orders');
+    try {
+        await fs.mkdir(path.dirname(outputParent), { recursive: true });
+        try {
+            await fs.symlink(outside, outputParent, process.platform === 'win32' ? 'junction' : 'dir');
+        } catch (error) {
+            if (['EPERM', 'EACCES', 'ENOSYS'].includes(error?.code)) {
+                t.skip(`symlink capability unavailable: ${error.code}`);
+                return;
+            }
+            throw error;
+        }
+
+        const result = runGenerator(root);
+
+        assert.notEqual(result.status, 0, 'a symlinked output parent must fail closed');
+        assert.match(result.stderr, /symbolic link/i);
+        assert.deepEqual(await listFiles(outside), [], 'the generator must not write through the link');
+
+        const check = runGenerator(root, ['--check']);
+        assert.notEqual(check.status, 0, 'freshness check must not bless a hidden symlinked output');
+        assert.match(check.stderr, /symbolic link/i);
+        assert.deepEqual(await listFiles(outside), [], 'freshness checking must remain read-only');
+    } finally {
+        await fs.rm(root, { recursive: true, force: true });
+        await fs.rm(outside, { recursive: true, force: true });
+    }
+});
+
+test('generate-tech-specs supports documented TypeScript test-call annotations (TC-TSPEC-014)', async () => {
+    const root = await makeProject({
+        fileExtension: '.ts',
+        fileName: 'order.test.ts',
+        fileExtensions: ['.ts'],
+        annotationPattern: TYPESCRIPT_ANNOTATION_PATTERN,
+        source: TYPESCRIPT_SOURCE,
+    });
+    try {
+        const result = runGenerator(root);
+        assert.equal(result.status, 0, result.stderr);
+        const markdown = await fs.readFile(await generatedMarkdownPath(root), 'utf8');
+        assert.match(markdown, /TC-TS-001/);
+        assert.match(markdown, /describe_TC-TS-001/);
+    } finally {
+        await fs.rm(root, { recursive: true, force: true });
+    }
+});
+
+test('generate-tech-specs supports documented Kotlin-style @Tag declarations (TC-TSPEC-015)', async () => {
+    const root = await makeProject({
+        fileExtension: '.kt',
+        fileName: 'OrderTests.kt',
+        fileExtensions: ['.kt'],
+        annotationPattern: KOTLIN_ANNOTATION_PATTERN,
+        source: KOTLIN_SOURCE,
+    });
+    try {
+        const result = runGenerator(root);
+        assert.equal(result.status, 0, result.stderr);
+        const markdown = await fs.readFile(await generatedMarkdownPath(root), 'utf8');
+        assert.match(markdown, /TC-KT-001/);
+        assert.match(markdown, /shouldPersist/);
+    } finally {
+        await fs.rm(root, { recursive: true, force: true });
+    }
+});
+
+test('generate-tech-specs preserves documented Java @Tag declarations (TC-TSPEC-018)', async () => {
+    const root = await makeProject({
+        fileExtension: '.java',
+        fileName: 'OrderTests.java',
+        fileExtensions: ['.java'],
+        annotationPattern: KOTLIN_ANNOTATION_PATTERN,
+        source: JAVA_SOURCE,
+    });
+    try {
+        const result = runGenerator(root);
+        assert.equal(result.status, 0, result.stderr);
+        const markdown = await fs.readFile(await generatedMarkdownPath(root), 'utf8');
+        assert.match(markdown, /TC-JAVA-001/);
+        assert.match(markdown, /shouldPersist/);
+    } finally {
+        await fs.rm(root, { recursive: true, force: true });
+    }
 });
 
 // Business Intent / Invariant Guarded: topology is projected only from exact operation words;
@@ -365,6 +552,26 @@ test('generate-tech-specs honors a relocated project config path (TC-TSPEC-011)'
     assert.match(await fs.readFile(await generatedMarkdownPath(root), 'utf8'), /TS-ORDER-001/);
 });
 
+test('direct tech-spec generation resolves the consuming project from a nested cwd (TC-TSPEC-016)', async () => {
+    const root = await makeProject();
+    const nested = path.join(root, 'docs', 'nested');
+    await fs.mkdir(nested, { recursive: true });
+    const ambient = { ...process.env };
+    delete ambient.CLAUDE_PROJECT_DIR;
+
+    try {
+        const result = spawnSync(process.execPath, [SCRIPT], {
+            cwd: nested,
+            encoding: 'utf8',
+            env: ambient,
+        });
+        assert.equal(result.status, 0, result.stderr);
+        assert.match(await fs.readFile(await generatedMarkdownPath(root), 'utf8'), /TS-ORDER-001/);
+    } finally {
+        await fs.rm(root, { recursive: true, force: true });
+    }
+});
+
 test('generate-tech-specs refuses a technical root outside the repository (TC-TSPEC-003)', async () => {
     // The escape target is derived from this run's unique mkdtemp name. A fixed name like
     // "../escape-hatch" resolves into the SHARED os.tmpdir(), so one leftover directory from
@@ -405,7 +612,7 @@ test('generate-tech-specs fails loudly when the scan matches no annotations (TC-
 
 // Regression for the second door into the data-loss failure mode: making the scan
 // config-driven meant capture group 1 could be ANY string, but the renderer indexes a
-// fixed two-key map by it. A bad pattern threw only AFTER removeGeneratedMarkdown had
+// fixed two-key map by it. A bad pattern threw only AFTER the old delete pass had
 // legitimately deleted the old output — files gone, nothing written. Validation now
 // happens at the parse boundary, which runs before any deletion.
 test('generate-tech-specs rejects a bad annotationPattern BEFORE deleting anything (TC-TSPEC-007)', async () => {

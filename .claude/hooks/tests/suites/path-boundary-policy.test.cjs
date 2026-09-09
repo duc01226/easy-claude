@@ -41,6 +41,25 @@ function runHook(command, toolInput = { command }, event = {}) {
 
 const tests = [
   {
+    name: 'mixed command and structured write paths cannot bypass the boundary gate',
+    fn() {
+      const outside = path.join(path.dirname(ROOT), 'boundary-mixed-input.txt');
+      const cases = [
+        ['empty command + file_path', 'Write', { command: '', file_path: outside }],
+        ['read command + file_path', 'Write', { command: 'echo safe', file_path: outside }],
+        ['read command + path', 'Write', { command: 'echo safe', path: outside }],
+        ['read command + notebook_path', 'Write', { command: 'echo safe', notebook_path: outside }],
+        ['read command + MCP paths', 'mcp__filesystem__edit_multiple_files', { command: 'echo safe', paths: [outside] }]
+      ];
+
+      for (const [label, toolName, toolInput] of cases) {
+        const result = runHook(undefined, toolInput, { tool_name: toolName });
+        assert.equal(result.status, 2, `${label} must be denied: ${result.stderr}`);
+        assert.match(result.stderr, /Path outside project boundary/, label);
+      }
+    }
+  },
+  {
     name: 'R05 wrapper grammar is explicit, bounded and preserves child scope',
     fn() {
       for (const prefix of ['env', 'env.exe -i', 'env --ignore-environment', 'env -0', 'env --null', 'env -u NAME', 'env -uNAME', 'env --unset=NAME', 'env NAME=value', 'env --', 'sudo', 'sudo -n -E -H', 'sudo --non-interactive --preserve-env --set-home', 'sudo -u user', 'sudo -uuser', 'sudo --user=user', 'sudo -gstaff', 'sudo --group staff', 'command -p', 'builtin', 'exec -c -l -a name', 'env sudo -g staff']) {

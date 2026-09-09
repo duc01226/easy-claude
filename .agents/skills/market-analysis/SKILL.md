@@ -56,7 +56,9 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 **Key Rules:**
 
 - Prefer Tier 1-2 sources for market sizing
+- Every factual claim, number, table row, and inference must end with an inline `[N]` citation that maps to one Sources row; use `N/A — {reason}` when evidence is unavailable
 - Every market size claim must cite source + methodology
+- The Sources table must provide Title, URL, Author/Publisher, Date, and Tier for every source; never invent missing metadata
 - SWOT items linked to evidence, not speculation
 
 **Be skeptical. Apply critical thinking, sequential thinking. Every claim needs traced proof, confidence percentages (Idea should be more than 80%).**
@@ -127,7 +129,11 @@ For each segment:
 
 ## Output
 
-**MANDATORY IMPORTANT MUST ATTENTION** write the result to `docs/knowledge/strategy/market-analysis/{descriptive-slug}.md` via the enforced `.claude/templates/market-analysis-template.md` — why: downstream skills consume this as EVIDENCE, and evidence with no deterministic location and no known shape cannot be loaded, so an informal "working file or inline" handoff fails silently and leaves the consumer with nothing to cite.
+**MANDATORY IMPORTANT MUST ATTENTION** write the result via the enforced `.claude/templates/market-analysis-template.md` to the parent-provided `MARKET_ANALYSIS_PATH` when one exists; otherwise use `docs/knowledge/strategy/market-analysis/{descriptive-slug}.md` — why: downstream skills consume this as EVIDENCE, and evidence with no deterministic location and no known shape cannot be loaded, so an informal "working file or inline" handoff fails silently and leaves the consumer with nothing to cite.
+
+When invoked by `workflow-research` in `business-eval` or `marketing` mode, use the parent-provided
+`ARTIFACT_SLUG` and `MARKET_ANALYSIS_PATH` exactly; do not derive a new slug. Return the exact written
+path in the completion handoff so the next skill can verify it before reading.
 
 Consumed by:
 
