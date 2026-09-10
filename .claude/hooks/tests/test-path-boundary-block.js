@@ -657,7 +657,7 @@ const psHereStringTests = [
         input: {
             tool_input: {
                 command:
-                    "powershell -NoProfile -Command \"Add-Content -Path 'plans/reports/r.md' -Value @'\ngrep `FindFieldUpdatedEvent\\(.*=>\\s*\\w+\\.(Profiles\\|Sharings)`\n'@\""
+                    "powershell -NoProfile -Command \"Add-Content -Path 'tmp/reports/r.md' -Value @'\ngrep `FindFieldUpdatedEvent\\(.*=>\\s*\\w+\\.(Profiles\\|Sharings)`\n'@\""
             }
         },
         expectBlock: false

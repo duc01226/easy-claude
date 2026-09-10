@@ -138,6 +138,7 @@ const AGENTS_PROJECTION_HEADINGS = [
   /^## Search Existing Code First$/m,
   /^## Project Reference Loading$/m,
   /^## Task Planning Rules$/m,
+  /^## Generated Artifact Storage$/m,
   /^## Code Responsibility Hierarchy$/m,
   // Carries the naming table AND the key-locations / dev-commands / integration-testing SECTION
   // blocks that follow it before the next `##`. Without it a Codex session authoring a hook,

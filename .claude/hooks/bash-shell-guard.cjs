@@ -37,7 +37,7 @@
  * Since `cat > x.js <<'EOF' … const p = `…` … EOF` is an ordinary Bash command here, that detector
  * would block real work to translate an error bash already reports (exit 2, "unexpected EOF").
  *
- * See plans/reports/why-review-260805-0517-bash-shell-guard.md for the full evidence.
+ * See tmp/reports/why-review-260805-0517-bash-shell-guard.md for the full evidence.
  *
  * WHAT REMAINS — exactly one check
  * --------------------------------

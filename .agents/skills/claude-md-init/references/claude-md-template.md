@@ -28,7 +28,11 @@ If config, root instructions or required docs are missing or stale, run `$projec
 
 ## Task Planning Rules
 
-Create a small task per change before edits; keep exactly one `in_progress`, complete it immediately after evidence, and include final consistency review. For non-trivial work resolve the active goal contract and observable acceptance criteria; persist findings incrementally to `plans/reports/`. On compaction inspect existing tasks/state and re-read files before continuing. Required quality gates and native host permissions cannot be waived by routing, overlays, delegation or completion pressure.
+Create a small task per change before edits; keep exactly one `in_progress`, complete it immediately after evidence, and include final consistency review. For non-trivial work resolve the active goal contract and observable acceptance criteria; persist findings incrementally to `tmp/reports/`. On compaction inspect existing tasks/state and re-read files before continuing. Required quality gates and native host permissions cannot be waived by routing, overlays, delegation or completion pressure.
+
+## Generated Artifact Storage
+
+Store disposable generated output in the project workspace. Treat it as disposable unless its owning contract explicitly declares it a source-of-truth or an intentionally versioned projection. Write temporary state, integration/E2E test results, reports, logs, screenshots, traces, videos, coverage, dumps, candidate evidence, and any other reproducible non-source output under the project-root `tmp/` or `temp/` directory (prefer `tmp/`), scoped to the run. The project-root `.gitignore` must ignore `/tmp/` and `/temp/` by default. Do not place disposable output in source, docs, `plans/`, `team-artifacts/`, or generated mirror directories; committed fixtures, accepted baselines, canonical specs/docs, and explicitly versioned mirrors remain at their declared owner paths.
 
 ## Workflow Step Advancement & Parallel Phases
 

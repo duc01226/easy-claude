@@ -41,7 +41,7 @@ description: '[DDD Quality] Use when reviewing domain entities and value objects
 - MUST ATTENTION run mandatory grep patterns in Phase 1 BEFORE reading individual files — why: highest-signal violations surface fastest and seed the report.
 - MUST ATTENTION validate findings via the Phase 5 `/why-review` gate before any fix, then restart the full review after validated fixes — a pass clearing the current severity bar ENDS the review (Round 1: zero findings; Round 2+: zero CRITICAL/HIGH/MEDIUM, LOW deferred) — why: every fix invalidates the prior verdict and AI reports inherit confirmation bias.
 - NEVER report a finding without `file:line` evidence at confidence >80% — why: unproven findings inflate severity downstream.
-- MUST ATTENTION append findings per file and persist to `plans/reports/` incrementally; 10+ entity files → parallel sub-agents — why: batched writes vanish on context/budget cutoff.
+- MUST ATTENTION append findings per file and persist to `tmp/reports/` incrementally; 10+ entity files → parallel sub-agents — why: batched writes vanish on context/budget cutoff.
 - MUST ATTENTION detect the modelling paradigm (0.4) before applying any setter/mutability rule, and judge subdomain fit (3.1) before reporting anemic model — NEVER flag a paradigm-appropriate or appropriately-simple design as a violation — why: uniform tactical DDD over CRUD is itself an anti-pattern, and rules written for mutable OO are meaningless against an immutable or event-sourced model.
 - MUST ATTENTION treat invariant and validation as different questions with different owners (entity vs boundary), and keep failure signalling consistent with the Phase 0 convention — why: collapsing them buries UX checks in entities and parks business rules in bypassable validators.
 
@@ -158,7 +158,7 @@ Detect from the domain source, NEVER assume:
 
 ## Phase 1: Collect Files + Grep Patterns + Create Report
 
-**Create report FIRST:** `plans/reports/domain-entities-review-{date}-{slug}.md`
+**Create report FIRST:** `tmp/reports/domain-entities-review-{date}-{slug}.md`
 
 Initialize with: Mode, Tech Stack, Discovered Conventions, Blast Radius Summary.
 
@@ -516,7 +516,7 @@ If none: read 3 existing entity files to infer project conventions before review
 {insert entity/VO file list from Phase 1}
 
 ## Output
-Write to plans/reports/domain-entities-rerun{N}-{date}.md:
+Write to tmp/reports/domain-entities-rerun{N}-{date}.md:
 - Status: PASS | FAIL
 - Critical Issues (file:line evidence)
 - High Priority Issues (file:line evidence)
@@ -675,7 +675,7 @@ Anemic Model:  entity has 0 domain methods + all logic in handlers → move logi
 1. announce: `"Detected {N} entity files. Switching to parallel DDD review protocol."`
 2. Group by module/aggregate/type
 3. Fire parallel `code-reviewer` sub-agents with `run_in_background: true` (one per group)
-4. Each sub-agent: Phase 2 checklist + discovered project-specific rules → write to `plans/reports/domain-entities-{group}-round1-{date}.md`
+4. Each sub-agent: Phase 2 checklist + discovered project-specific rules → write to `tmp/reports/domain-entities-{group}-round1-{date}.md`
 5. Main agent consolidates: cross-aggregate violations, naming consistency, model coherence
 
 ---
@@ -697,7 +697,7 @@ Medium Issues: (should fix)
 Positive Observations:
 Unresolved Questions:
 
-Report: plans/reports/domain-entities-review-{date}-{slug}.md
+Report: tmp/reports/domain-entities-review-{date}-{slug}.md
 ```
 
 ---
@@ -710,9 +710,9 @@ Report: plans/reports/domain-entities-review-{date}-{slug}.md
 
 **Protocol:**
 
-1. Read own finalized report from `plans/reports/{skill}-{date}-{slug}.md`
-2. Invoke `/why-review` skill with arg: `validate findings in plans/reports/{skill}-{date}-{slug}.md — verify each finding has file:line proof, steel-man each rejected interpretation, and stress-test severity classifications`
-3. Read the validation verdict path returned by why-review, expected as `plans/reports/why-review-validate-{date}.md`
+1. Read own finalized report from `tmp/reports/{skill}-{date}-{slug}.md`
+2. Invoke `/why-review` skill with arg: `validate findings in tmp/reports/{skill}-{date}-{slug}.md — verify each finding has file:line proof, steel-man each rejected interpretation, and stress-test severity classifications`
+3. Read the validation verdict path returned by why-review, expected as `tmp/reports/why-review-validate-{date}.md`
 4. **If why-review demotes/removes any finding:** UPDATE own finalized report with revised severities, remove false positives, and add a `## Why-Review Validation Notes` section citing what changed and why
 5. **If why-review confirms all findings:** Append `## Why-Review Validation` line to own report stating "All N findings re-validated against actual code; no severity changes."
 
@@ -793,6 +793,7 @@ If no domain entity files match in changes mode → announce "No domain entity c
 > **Assume existing values are intentional — ask WHY before changing OR flagging one as a defect.** Before changing or reporting a constant, limit, flag, cutoff, wording, or pattern, read nearby context and history, the CALLER's ordering, and 2+ sibling call sites of the same convention. A doc stating WHAT without WHY is missing rationale, not proof of a missing guard.
 > **Surface ambiguity before acting — don't pick silently.** Multiple valid interpretations require an explicit question or stated assumption with risk.
 > **Assert the outcome your system owns, not the intermediate state your infrastructure owns.** When verifying async work, assert the final business state — never the delivery/retry bookkeeping held in shared infrastructure that any co-running process can write. Such a check passes when run alone and flakes the moment anything else shares that infrastructure.
+> **Store disposable generated output in the project workspace.** If an output can be regenerated and is not source code, a canonical source-of-truth, or an intentionally versioned projection, write it under the project-root `tmp/` or `temp/` directory (prefer `tmp/`), scoped to the run. This includes temporary state, integration/E2E results, reports, logs, screenshots, traces, videos, coverage, dumps, and candidate evidence. Never put these outputs in source, docs, `plans/`, `team-artifacts/`, or mirror directories; the project-root `.gitignore` must ignore `/tmp/` and `/temp/` by default. Committed fixtures, accepted baselines, canonical specs/docs, and explicitly versioned generated mirrors remain at their declared owner paths.
 > **Keep shared guidance role-relevant.** Universal guidance must help every receiving skill or agent; code-specific obligations belong only in code-specific protocols.
 
 <!-- /SYNC:ai-mistake-prevention -->
@@ -831,9 +832,9 @@ If no domain entity files match in changes mode → announce "No domain entity c
 >
 > 1. Create a small task breakdown before target file reads, grep, edits, or analysis. On context loss, inspect the current task list first.
 > 2. Mark one task `in_progress` before work and `completed` immediately after evidence; never batch transitions.
-> 3. For plan/review work, create `plans/reports/{skill}-{YYMMDD}-{HHmm}-{slug}.md` before first finding.
+> 3. For plan/review work, create `tmp/reports/{skill}-{YYMMDD}-{HHmm}-{slug}.md` before first finding.
 > 4. Append findings after each file/section/decision and synthesize from the report file at the end.
-> 5. Final output cites `Full report: plans/reports/{filename}`.
+> 5. Final output cites `Full report: tmp/reports/{filename}`.
 >
 > **Blocked until:** task breakdown exists, report path declared for plan/review work, first finding persisted before the next finding.
 
@@ -854,7 +855,7 @@ If no domain entity files match in changes mode → announce "No domain entity c
 > 2. Read existing files in target area — understand structure, base classes, conventions
 > 3. Run `python .claude/scripts/code_graph trace <file> --direction both --json` when `.code-graph/graph.db` exists
 > 4. Map dependencies via `connections` or `callers_of` — know what depends on your target
-> 5. Write investigation to `.ai/workspace/analysis/` for non-trivial tasks (3+ files)
+> 5. Write investigation to `tmp/analysis/` for non-trivial tasks (3+ files)
 > 6. Re-read analysis file before implementing — never work from memory alone. — why: long context drifts from the file; the file is ground truth
 > 7. NEVER invent new patterns when existing ones work — match exactly or document deviation. — why: divergent patterns fragment the codebase and slow every future reader
 >
@@ -963,7 +964,7 @@ If no domain entity files match in changes mode → announce "No domain entity c
 > 1. Start a NEW full review invocation/task breakdown; when that protocol calls for agents, spawn NEW `Agent` tool calls — use `code-reviewer` subagent_type for code reviews, `general-purpose` for plan/doc/artifact reviews
 > 2. Inject ALL required review protocols VERBATIM into the prompt — see `SYNC:review-protocol-injection` for the full list and template. Never reference protocols by file path; AI compliance drops behind file-read indirection (see `SYNC:shared-protocol-duplication-policy`)
 > 3. Sub-agent re-reads ALL target files from scratch via its own tool calls — never pass file contents inline in the prompt
-> 4. Sub-agent writes structured report to `plans/reports/{review-type}-round{N}-{date}.md`
+> 4. Sub-agent writes structured report to `tmp/reports/{review-type}-round{N}-{date}.md`
 > 5. Main agent reads the report, integrates findings into its own report, DOES NOT override or filter
 >
 > **Rules:**
@@ -1009,7 +1010,7 @@ If no domain entity files match in changes mode → announce "No domain entity c
 > - Performance-critical paths → `performance-optimizer`
 > - Docs, plans, specs, configs, infra → `general-purpose`
 >
-> Each batch sub-agent receives: its full file list; `SYNC:category-review-thinking` as its primary thinking model — derive each category's concerns from first principles, NOT a fixed checklist (if the consuming skill does not carry that block, apply category-first thinking directly); project reference docs relevant to its concern (discover via `*patterns*`, `*conventions*`, `*style-guide*`); cross-reference verification instructions (counts, tables, links). All batch agents run in parallel and write findings to `plans/reports/` (per `SYNC:task-tracking-external-report`); reducers read from disk, never from memory.
+> Each batch sub-agent receives: its full file list; `SYNC:category-review-thinking` as its primary thinking model — derive each category's concerns from first principles, NOT a fixed checklist (if the consuming skill does not carry that block, apply category-first thinking directly); project reference docs relevant to its concern (discover via `*patterns*`, `*conventions*`, `*style-guide*`); cross-reference verification instructions (counts, tables, links). All batch agents run in parallel and write findings to `tmp/reports/` (per `SYNC:task-tracking-external-report`); reducers read from disk, never from memory.
 >
 > **Step 3 — Reduce.**
 >
@@ -1165,14 +1166,14 @@ If no domain entity files match in changes mode → announce "No domain entity c
 
 <!-- SYNC:ai-mistake-prevention:reminder -->
 
-**MUST ATTENTION** apply AI mistake prevention — verify generated content against evidence, trace downstream references before deleting or renaming, verify all affected outputs, re-read files after context loss, and surface ambiguity before acting.
+**MUST ATTENTION** apply AI mistake prevention — verify generated content against evidence, trace downstream references before deleting or renaming, verify all affected outputs, re-read files after context loss, surface ambiguity before acting, and route disposable generated output (including integration/E2E results) to project-root `tmp/` or `temp/`; root `.gitignore` ignores both by default.
 
 <!-- /SYNC:ai-mistake-prevention:reminder -->
 
 <!-- SYNC:task-tracking-external-report:reminder -->
 
 - **MANDATORY** Bootstrap task tracking before target work; transition one task at a time.
-- **MANDATORY** Persist plan/review findings to `plans/reports/` incrementally and synthesize from disk.
+- **MANDATORY** Persist plan/review findings to `tmp/reports/` incrementally and synthesize from disk.
 
 <!-- /SYNC:task-tracking-external-report:reminder -->
 
@@ -1260,7 +1261,7 @@ If no domain entity files match in changes mode → announce "No domain entity c
 > 2. **Group `PAR` into waves.** No edge between members. Two writers of one file NEVER share a wave. Read-only work (search, investigation, review, research) parallelizes freely.
 > 3. **Declare before dispatch:** `Parallel plan: wave 1 = [...] · wave 2 = [...] · SEQ = [...] (reason)`.
 > 4. **Spawn each wave in ONE message** — every `Agent` call in one response, NEVER dripped per turn. Route each task to its specialist (`.claude/skills/shared/sub-agent-selection-guide.md`); NEVER `code-reviewer` as catch-all.
-> 5. **Brief each sub-agent self-contained:** goal · scope + owned files · reference docs · return contract (summary + `Full report:` path, per SYNC:subagent-return-contract) · incremental persistence to `plans/reports/` (per SYNC:incremental-persistence).
+> 5. **Brief each sub-agent self-contained:** goal · scope + owned files · reference docs · return contract (summary + `Full report:` path, per SYNC:subagent-return-contract) · incremental persistence to `tmp/reports/` (per SYNC:incremental-persistence).
 > 6. **Barrier per wave.** Advance ONLY after EVERY member returns (a skipped conditional counts as returned). Merge, mark each task completed/skipped, THEN dispatch the next wave. Mutating steps wait for the barrier.
 > 7. **One level deep.** A dispatched sub-agent executes its own brief; further fan-out stays the orchestrator's job unless that agent's `.claude/agents/*.md` definition authorizes it.
 >
@@ -1303,7 +1304,7 @@ If no domain entity files match in changes mode → announce "No domain entity c
 - **AI Mistake Prevention:** verify generated content against evidence, trace downstream references, verify all affected outputs, re-read after context loss, surface ambiguity.
 - **Nested Task Creation:** Workflow parent row NEVER replaces child phase tracking.
 - **Project Reference Docs Guide:** Read required project-reference docs (incl. `lessons.md`) before target work.
-- **Task Tracking & External Report:** Bootstrap tasks; persist review findings to `plans/reports/` incrementally.
+- **Task Tracking & External Report:** Bootstrap tasks; persist review findings to `tmp/reports/` incrementally.
 - **Critical Thinking Mindset:** Traced `file:line` proof per claim; confidence >80% to act.
 - **Understand Code First:** Discover conventions and grep 3+ patterns before applying checklist.
 - **Graph-Assisted Investigation:** Run a graph trace on key entity files when graph.db exists.
@@ -1327,7 +1328,7 @@ If no domain entity files match in changes mode → announce "No domain entity c
 - **MANDATORY MUST ATTENTION** read project-reference docs (`lessons.md`, entity/backend/code-review references) + `CLAUDE.md` and search 3+ existing entity files BEFORE applying any checklist — discovered conventions win — why: local conventions differ from generic framework defaults.
 - **MANDATORY MUST ATTENTION** evaluate pattern FIT before copying a nearby entity pattern — verify the new context shares the same base class, scope, and lifetime — why: closest example ≠ matching preconditions.
 - **MANDATORY MUST ATTENTION** run a graph trace on key entity files when `.code-graph/graph.db` exists, and inspect entity callers/usages before classifying anemic model or misplaced invariant — why: code existing ≠ code executing; the bug owner is the layer the data flows through.
-- **MANDATORY MUST ATTENTION** append findings per file — NEVER batch; persist to `plans/reports/` incrementally and synthesize from disk — why: long sub-agents hit budget before a final batched write and lose everything.
+- **MANDATORY MUST ATTENTION** append findings per file — NEVER batch; persist to `tmp/reports/` incrementally and synthesize from disk — why: long sub-agents hit budget before a final batched write and lose everything.
 
 **Domain rules (this skill's invariants):**
 
@@ -1360,7 +1361,7 @@ If no domain entity files match in changes mode → announce "No domain entity c
 | "Clean enough, skip the re-review after fixes" | Every fix invalidates the prior verdict — restart the full review until the current round's exit bar is clear (round 1: zero findings; round 2+: zero CRITICAL/HIGH/MEDIUM, LOW deferred). |
 | "Looks anemic, flag it" | Inspect callers + base class first — pattern fit, not pattern resemblance, decides anemic vs. correct delegation. |
 | "Invariant enforced in code, that's coverage" | Dual-Feedback: spec must NAME it AND a property TC must GUARD it — code-only is INCOMPLETE. |
-| "Many entities, review them inline" | 10+ files → parallel sub-agents; persist per-file findings to `plans/reports/` or they vanish on budget cutoff. |
+| "Many entities, review them inline" | 10+ files → parallel sub-agents; persist per-file findings to `tmp/reports/` or they vanish on budget cutoff. |
 | "No setters here, model is fine" | Detect the paradigm (0.4) first — an immutable or event-sourced model has no setters BY CONSTRUCTION; the absence proves nothing until you know which model you are reading. |
 | "Entity has no methods → anemic" | Judge subdomain fit (3.1) first. CRUD/supporting subdomain with no invariants → simple IS correct; the finding is noise. |
 | "Rule is enforced, location is style" | Location IS the rule. In a validator/handler it is bypassable by every other entry point — that is a HIGH invariant gap, not a preference. |

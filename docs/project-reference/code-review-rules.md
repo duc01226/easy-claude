@@ -192,7 +192,7 @@ Use a dedicated `## Workflow` when the agent owns an ordered process. The three 
 
 - Agents must NOT duplicate skill logic — delegate to skills
 - Include the role's evidence gate in its live instructions
-- Include external memory directive for complex work (write to `plans/reports/`)
+- Include external memory directive for complex work (write to `tmp/reports/`)
 - Include project-specific reference doc callouts
 - Keep focused: one agent = one specialized role
 
@@ -301,7 +301,7 @@ echo $?  # Verify exit code
 - [ ] Uses kebab-case filename
 - [ ] Has Quick Summary, Project Context, Key Rules, Output, and Closing Reminders; includes Workflow when the role owns ordered steps
 - [ ] Includes an evidence gate in the live role instructions
-- [ ] Includes external memory directive (write to `plans/reports/`)
+- [ ] Includes external memory directive (write to `tmp/reports/`)
 - [ ] Includes `**MUST READ**` callouts for project reference docs
 - [ ] Does NOT duplicate skill logic — delegates via `skills:` field
 

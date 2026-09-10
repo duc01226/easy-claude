@@ -64,7 +64,7 @@ Resolve the flag before Phase 0:
 
 `--mode=roadmap` is not a shortcut around owner approval. Use `AskUserQuestion` for milestone boundaries and lifecycle terms. The product-roadmap skill owns the canonical artifact and selection gate; this mode supplies structured framing to it.
 
-`--mode=scope` MUST resolve the existing scope-brief path from the product-roadmap handoff, `$ARGUMENTS`, or active plan context, then amend that file in place. If no stable `plans/{plan-id}/scope-brief.md` is available, stop and route to `/product-roadmap`; never create a competing scope brief or write one under `plans/reports/`.
+`--mode=scope` MUST resolve the existing scope-brief path from the product-roadmap handoff, `$ARGUMENTS`, or active plan context, then amend that file in place. If no stable `plans/{plan-id}/scope-brief.md` is available, stop and route to `/product-roadmap`; never create a competing scope brief or write one under `tmp/reports/`.
 
 For the default mode, do not route to `--mode=roadmap` merely because the idea is broad. Evaluate:
 
@@ -840,6 +840,7 @@ After brainstorm session concludes, use `AskUserQuestion` to present next steps:
 > **Assume existing values are intentional — ask WHY before changing OR flagging one as a defect.** Before changing or reporting a constant, limit, flag, cutoff, wording, or pattern, read nearby context and history, the CALLER's ordering, and 2+ sibling call sites of the same convention. A doc stating WHAT without WHY is missing rationale, not proof of a missing guard.
 > **Surface ambiguity before acting — don't pick silently.** Multiple valid interpretations require an explicit question or stated assumption with risk.
 > **Assert the outcome your system owns, not the intermediate state your infrastructure owns.** When verifying async work, assert the final business state — never the delivery/retry bookkeeping held in shared infrastructure that any co-running process can write. Such a check passes when run alone and flakes the moment anything else shares that infrastructure.
+> **Store disposable generated output in the project workspace.** If an output can be regenerated and is not source code, a canonical source-of-truth, or an intentionally versioned projection, write it under the project-root `tmp/` or `temp/` directory (prefer `tmp/`), scoped to the run. This includes temporary state, integration/E2E results, reports, logs, screenshots, traces, videos, coverage, dumps, and candidate evidence. Never put these outputs in source, docs, `plans/`, `team-artifacts/`, or mirror directories; the project-root `.gitignore` must ignore `/tmp/` and `/temp/` by default. Committed fixtures, accepted baselines, canonical specs/docs, and explicitly versioned generated mirrors remain at their declared owner paths.
 > **Keep shared guidance role-relevant.** Universal guidance must help every receiving skill or agent; code-specific obligations belong only in code-specific protocols.
 
 <!-- /SYNC:ai-mistake-prevention -->
@@ -889,7 +890,7 @@ After brainstorm session concludes, use `AskUserQuestion` to present next steps:
 
 <!-- SYNC:ai-mistake-prevention:reminder -->
 
-**MUST ATTENTION** apply AI mistake prevention — verify generated content against evidence, trace downstream references before deleting or renaming, verify all affected outputs, re-read files after context loss, and surface ambiguity before acting.
+**MUST ATTENTION** apply AI mistake prevention — verify generated content against evidence, trace downstream references before deleting or renaming, verify all affected outputs, re-read files after context loss, surface ambiguity before acting, and route disposable generated output (including integration/E2E results) to project-root `tmp/` or `temp/`; root `.gitignore` ignores both by default.
 
 <!-- /SYNC:ai-mistake-prevention:reminder -->
 

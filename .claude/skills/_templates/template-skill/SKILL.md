@@ -38,7 +38,7 @@ description: '[Category] Use when defining the standard skill description patter
 > 2. Read existing files in target area — understand structure, base classes, conventions
 > 3. Run `python .claude/scripts/code_graph trace <file> --direction both --json` when `.code-graph/graph.db` exists
 > 4. Map dependencies via `connections` or `callers_of` — know what depends on your target
-> 5. Write investigation to `.ai/workspace/analysis/` for non-trivial tasks (3+ files)
+> 5. Write investigation to `tmp/analysis/` for non-trivial tasks (3+ files)
 > 6. Re-read analysis file before implementing — never work from memory alone
 > 7. NEVER invent new patterns when existing ones work — match exactly or document deviation
 >

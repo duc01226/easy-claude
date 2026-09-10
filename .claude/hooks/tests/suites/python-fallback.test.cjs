@@ -4,7 +4,7 @@
  * Guards the platform-ordered python fallback in session-init.cjs
  * (`pythonFallbackOrder` / `resolvePythonFallback`).
  *
- * Intent under test (fix #2A — see plans/reports/debug-investigate-260711-lifecycle-timeouts.md, F2/E1):
+ * Intent under test (fix #2A — see tmp/reports/debug-investigate-260711-lifecycle-timeouts.md, F2/E1):
  *  - Windows probes real `python` BEFORE the wasteful MS-Store `python3` alias (cost optimization).
  *  - Off-Windows still probes `python3` FIRST (E1: `python3` is canonical on Linux/macOS; `python` often absent).
  *  - `python3` is ALWAYS in the list — the reorder is a cost optimization, never a coverage reduction,

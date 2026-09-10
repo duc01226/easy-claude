@@ -79,7 +79,7 @@ git diff → Triage → Phase 1: Project Context Sync (PARALLEL, impact-scoped)
 | 4   | `[docs-update] Phase 2.5/2.6 — Refresh derived views via /spec-index and/or /tech-spec`              | Yes — Feature Spec changed and bucket maintains INDEX/ERD, OR technical tree is affected |
 | 5   | `[docs-update] Phase 3 — Invoke /spec [mode=tests]: update/add §8 business test specifications`                    | Yes — business-visible functionality added OR existing business-visible behavior changed  |
 | 6   | `[docs-update] Phase 4 — Invoke /spec [mode=sync]: sync §8 ↔ test code`                          | Yes — Phase 3 changed §8 TCs                                                              |
-| 7   | `[docs-update] Phase 5 — Write summary report to plans/reports/docs-update-{YYMMDD}-{HHMM}.md`            | No — always                                                                              |
+| 7   | `[docs-update] Phase 5 — Write summary report to tmp/reports/docs-update-{YYMMDD}-{HHMM}.md`            | No — always                                                                              |
 | 8   | `[docs-update] Final review — verify all impacted docs updated, no phases skipped without justification, AND run the Step 2.4 code↔spec sync-verify (AC/BR/TC drift) for every touched module` | No — always                                                                              |
 
 **Execution rules:**
@@ -544,7 +544,7 @@ Updated TCs from Phase 3: {list of new/changed TC IDs}.
 
 ## Phase 5: Summary Report
 
-ALWAYS write full report to `plans/reports/docs-update-{YYMMDD}-{HHMM}.md`:
+ALWAYS write full report to `tmp/reports/docs-update-{YYMMDD}-{HHMM}.md`:
 
 ```markdown
 ### Documentation Update Summary
@@ -701,7 +701,7 @@ $ARGUMENTS
 >
 > - [blocker description, or `none`]
 >
-> Full report: plans/reports/[skill-name]-[date]-[slug].md
+> Full report: tmp/reports/[skill-name]-[date]-[slug].md
 > ```
 >
 > The ten-bullet limit is a transport limit, not a visibility limit: the full report may contain more than ten Medium/Low findings when no named blocker exists, and the parent MUST read it when synthesizing or deduplicating. The parent MUST reject a stale, duplicate, or superseded `Attempt ID` and MUST accept the current attempt before advancing a dependent step. Read-only leaves write repair proposals/reports only; they do not edit source, generated carriers, or user files.
@@ -741,6 +741,7 @@ $ARGUMENTS
 > **Assume existing values are intentional — ask WHY before changing OR flagging one as a defect.** Before changing or reporting a constant, limit, flag, cutoff, wording, or pattern, read nearby context and history, the CALLER's ordering, and 2+ sibling call sites of the same convention. A doc stating WHAT without WHY is missing rationale, not proof of a missing guard.
 > **Surface ambiguity before acting — don't pick silently.** Multiple valid interpretations require an explicit question or stated assumption with risk.
 > **Assert the outcome your system owns, not the intermediate state your infrastructure owns.** When verifying async work, assert the final business state — never the delivery/retry bookkeeping held in shared infrastructure that any co-running process can write. Such a check passes when run alone and flakes the moment anything else shares that infrastructure.
+> **Store disposable generated output in the project workspace.** If an output can be regenerated and is not source code, a canonical source-of-truth, or an intentionally versioned projection, write it under the project-root `tmp/` or `temp/` directory (prefer `tmp/`), scoped to the run. This includes temporary state, integration/E2E results, reports, logs, screenshots, traces, videos, coverage, dumps, and candidate evidence. Never put these outputs in source, docs, `plans/`, `team-artifacts/`, or mirror directories; the project-root `.gitignore` must ignore `/tmp/` and `/temp/` by default. Committed fixtures, accepted baselines, canonical specs/docs, and explicitly versioned generated mirrors remain at their declared owner paths.
 > **Keep shared guidance role-relevant.** Universal guidance must help every receiving skill or agent; code-specific obligations belong only in code-specific protocols.
 
 <!-- /SYNC:ai-mistake-prevention -->
@@ -779,9 +780,9 @@ $ARGUMENTS
 >
 > 1. Create a small task breakdown before target file reads, grep, edits, or analysis. On context loss, inspect the current task list first.
 > 2. Mark one task `in_progress` before work and `completed` immediately after evidence; never batch transitions.
-> 3. For plan/review work, create `plans/reports/{skill}-{YYMMDD}-{HHmm}-{slug}.md` before first finding.
+> 3. For plan/review work, create `tmp/reports/{skill}-{YYMMDD}-{HHmm}-{slug}.md` before first finding.
 > 4. Append findings after each file/section/decision and synthesize from the report file at the end.
-> 5. Final output cites `Full report: plans/reports/{filename}`.
+> 5. Final output cites `Full report: tmp/reports/{filename}`.
 >
 > **Blocked until:** task breakdown exists, report path declared for plan/review work, first finding persisted before the next finding.
 
@@ -795,14 +796,14 @@ $ARGUMENTS
 
 <!-- SYNC:ai-mistake-prevention:reminder -->
 
-**MUST ATTENTION** apply AI mistake prevention — verify generated content against evidence, trace downstream references before deleting or renaming, verify all affected outputs, re-read files after context loss, and surface ambiguity before acting.
+**MUST ATTENTION** apply AI mistake prevention — verify generated content against evidence, trace downstream references before deleting or renaming, verify all affected outputs, re-read files after context loss, surface ambiguity before acting, and route disposable generated output (including integration/E2E results) to project-root `tmp/` or `temp/`; root `.gitignore` ignores both by default.
 
 <!-- /SYNC:ai-mistake-prevention:reminder -->
 
 <!-- SYNC:task-tracking-external-report:reminder -->
 
 - **MANDATORY** Bootstrap task tracking before target work; transition one task at a time.
-- **MANDATORY** Persist plan/review findings to `plans/reports/` incrementally and synthesize from disk.
+- **MANDATORY** Persist plan/review findings to `tmp/reports/` incrementally and synthesize from disk.
 
 <!-- /SYNC:task-tracking-external-report:reminder -->
 
@@ -841,7 +842,7 @@ $ARGUMENTS
 > 2. **Group `PAR` into waves.** No edge between members. Two writers of one file NEVER share a wave. Read-only work (search, investigation, review, research) parallelizes freely.
 > 3. **Declare before dispatch:** `Parallel plan: wave 1 = [...] · wave 2 = [...] · SEQ = [...] (reason)`.
 > 4. **Spawn each wave in ONE message** — every `Agent` call in one response, NEVER dripped per turn. Route each task to its specialist (`.claude/skills/shared/sub-agent-selection-guide.md`); NEVER `code-reviewer` as catch-all.
-> 5. **Brief each sub-agent self-contained:** goal · scope + owned files · reference docs · return contract (summary + `Full report:` path, per SYNC:subagent-return-contract) · incremental persistence to `plans/reports/` (per SYNC:incremental-persistence).
+> 5. **Brief each sub-agent self-contained:** goal · scope + owned files · reference docs · return contract (summary + `Full report:` path, per SYNC:subagent-return-contract) · incremental persistence to `tmp/reports/` (per SYNC:incremental-persistence).
 > 6. **Barrier per wave.** Advance ONLY after EVERY member returns (a skipped conditional counts as returned). Merge, mark each task completed/skipped, THEN dispatch the next wave. Mutating steps wait for the barrier.
 > 7. **One level deep.** A dispatched sub-agent executes its own brief; further fan-out stays the orchestrator's job unless that agent's `.claude/agents/*.md` definition authorizes it.
 >
@@ -886,7 +887,7 @@ $ARGUMENTS
 - **AI Mistake Prevention:** verify generated content against evidence, trace downstream references, verify all affected outputs, re-read after context loss, surface ambiguity.
 - **Nested Task Creation:** When nested, still expand child phase tasks and link the parent workflow row.
 - **Project Reference Docs:** Read required project-reference docs (always `lessons.md`) before target work.
-- **Task Tracking:** Bootstrap tasks, one active, persist findings to `plans/reports/` incrementally.
+- **Task Tracking:** Bootstrap tasks, one active, persist findings to `tmp/reports/` incrementally.
 - **Parallel Sub-Agent Dispatch:** Tag tasks PAR/SEQ, group PAR into disjoint-write-set waves, spawn each wave in ONE message, barrier before advancing.
 
 **IMPORTANT MUST ATTENTION** create ALL 8 tasks via `TaskCreate` BEFORE any action, then run the FIXED order `0 -> 1 -> 2 -> 2.5/2.6 -> 3 -> 4 -> 5 -> final review` — NEVER reorder, merge, or skip without explicit user approval — why: phase order is the gate that catches drift; a skipped phase ships silent staleness
@@ -905,7 +906,7 @@ $ARGUMENTS
 **MUST ATTENTION** Phase 0 triage ALWAYS runs first (git diff → categorize → dedup modules → record existing-doc state); Phase 2 `/spec` updates §1–§7 and BLOCKS doc-first when a changed module has feature behavior but no Feature Spec — why: skipping triage or the doc-first gate ships undocumented behavior
 **MUST ATTENTION** Phase 2.5 `/spec-index [mode=index]` OPTIONALLY refreshes the derived bucket INDEX/ERD from Feature Specs (never re-extracts an A-E tree); Phase 2.6 `/tech-spec` OPTIONALLY refreshes/audits the derived technical view; Phase 3 `/spec [mode=tests]` syncs §8 TCs; Phase 4 `/spec [mode=sync]` syncs §8 TCs ↔ executing test code (no QA dashboard exists)
 **MUST ATTENTION** for `.claude` skills/hooks/workflows/sync-tooling changes, flag generated-mirror sync status (`npm run codex:sync` completed or explicit N/A) — `docs-update` routes/reports this check, NEVER edits generated mirrors directly
-**MUST ATTENTION** ALWAYS write the Phase 5 summary report to `plans/reports/docs-update-{YYMMDD}-{HHMM}.md` and the final review task (#8) — the report is the audit trail, the review verifies all impacted docs updated with no unjustified skips
+**MUST ATTENTION** ALWAYS write the Phase 5 summary report to `tmp/reports/docs-update-{YYMMDD}-{HHMM}.md` and the final review task (#8) — the report is the audit trail, the review verifies all impacted docs updated with no unjustified skips
 
 **Anti-Rationalization:**
 

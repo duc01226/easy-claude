@@ -29,7 +29,7 @@ unrunnable or uninspectable surface is `ENVIRONMENT-BLOCKED`.
 {
   "experienceVerification": {
     "enabled": true,
-    "evidenceRoot": "plans/reports/experience",
+    "evidenceRoot": "tmp/experience",
     "baselineRoot": "tests/experience-baselines",
     "acceptancePolicy": "manual-acceptance-required",
     "reviewOn": ["new-surface", "changed-surface", "bugfix", "baseline-mismatch"],
@@ -64,6 +64,12 @@ framework defaults. Use the project’s existing commands and tools. A surface
 is `APPLICABLE` only after the agent verifies that the configured entry point,
 runner, fixture/data, and inspection capability work in the current
 environment. Configuration alone cannot prove applicability.
+
+Candidate captures, runtime logs, reports, and other repeatable evidence are
+disposable outputs: keep them below the project-root `tmp/` or `temp/` directory
+(the default is `tmp/experience`) and ensure both directories are ignored by the
+root `.gitignore`. The `baselineRoot` is the explicit exception for accepted,
+intentionally versioned expectations; it is not a place to store run output.
 
 ## Local bring-up (`localRun`)
 
@@ -151,7 +157,7 @@ replacing the reason with verified project facts:
 {
   "experienceVerification": {
     "enabled": false,
-    "evidenceRoot": "plans/reports/experience",
+    "evidenceRoot": "tmp/experience",
     "baselineRoot": "tests/experience-baselines",
     "acceptancePolicy": "manual-acceptance-required",
     "surfaces": [],

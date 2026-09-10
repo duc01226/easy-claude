@@ -55,7 +55,7 @@ framework/library change
 
 Each arrow is a handoff. A roadmap path and milestone ID are required only for the explicit roadmap chain. Embedded and framework/library artifacts MUST use their own branch values and MUST NOT fabricate `docs/product-roadmap.md`, a product milestone, or a scope brief merely because the idea is large.
 
-When no active `plan.md` exists yet, an explicit roadmap selection, an embedded large-idea handoff, an explicit EXEMPT scope, or a framework/library change creates the stable handoff directory `plans/{YYMMDD-HHmm}-{slug}/`. Any required scope brief, scenario analysis, and later plan MUST use that same `plan-id`; `plans/reports/` is reserved for review/report artifacts and is not a scope-brief handoff location.
+When no active `plan.md` exists yet, an explicit roadmap selection, an embedded large-idea handoff, an explicit EXEMPT scope, or a framework/library change creates the stable handoff directory `plans/{YYMMDD-HHmm}-{slug}/`. Any required scope brief, scenario analysis, and later plan MUST use that same `plan-id`; `tmp/reports/` is reserved for review/report artifacts and is not a scope-brief handoff location.
 
 ## Product roadmap versus implementation plan
 

@@ -37,7 +37,7 @@ const SCOUT_BLOCK = getHookPath('scout-block.cjs');
 // 10 parallel session-init spawns (each with 3 git/python grandchildren) is the
 // suite's heaviest spawn burst; under full-suite contention a spawn can exceed
 // hook-runner's 10s default and hit SIGKILL — a flaky, environmental timeout
-// (see plans/reports/debug-investigate-260711-lifecycle-timeouts.md). Give this
+// (see tmp/reports/debug-investigate-260711-lifecycle-timeouts.md). Give this
 // burst a wider per-call ceiling, matching test-all-hooks.cjs:334/348.
 const SPAWN_TIMEOUT_MS = 20000;
 

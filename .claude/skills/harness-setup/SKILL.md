@@ -23,7 +23,7 @@ description: '[Quality] Use when setting up an agent quality harness with feedfo
 - BLOCK on the `/linter-setup` prerequisite first — computational sensors (linters, hooks, CI gates) MUST exist before any phase runs; this skill never installs them itself.
 - Walk phases A→F as a hard barrier sequence: detect stack → author feedforward guides (CLAUDE.md conventions, anti-patterns, pattern catalog) → confirm computational sensors → wire inferential review skills to lifecycle gates → define behaviour/test strategy → emit inventory.
 - Treat every feedforward-guide and sensor choice as `AskUserQuestion`-gated — never auto-decide content — why: harness conventions bind every future agent and silent choices propagate.
-- Write `.ai/workspace/harness/harness-inventory.md` incrementally (append per phase, never held in memory) — keep it a LIVING document updated as new sensors are added.
+- Write `tmp/harness/harness-inventory.md` incrementally (append per phase, never held in memory) — keep it a LIVING document updated as new sensors are added.
 
 **Main steps (run in order — each BLOCKS the next):**
 
@@ -41,7 +41,7 @@ description: '[Quality] Use when setting up an agent quality harness with feedfo
 - Feedforward guides: CLAUDE.md/AGENTS.md conventions, architecture docs, pattern catalogs, skill activation rules
 - Computational feedback sensors: configured via `/linter-setup` (linters, formatters, pre-commit hooks, CI gates)
 - Inferential feedback sensors: AI review skills wired to lifecycle stages
-- Harness inventory: `.ai/workspace/harness/harness-inventory.md`
+- Harness inventory: `tmp/harness/harness-inventory.md`
 
 **When invoked:** After `/scaffold` + `/linter-setup` in greenfield workflow. Assumes scaffolding complete.
 
@@ -62,7 +62,7 @@ If any missing → `AskUserQuestion`: "/linter-setup appears incomplete. Computa
 **BLOCK** Phase A/B/C/D/E until linter-setup verification passes.
 
 **Check 2 — Existing harness inventory:**
-Check for `.ai/workspace/harness/harness-inventory.md`
+Check for `tmp/harness/harness-inventory.md`
 
 - If found → `AskUserQuestion`: "Harness inventory already exists — re-run to enhance existing harness, or skip?"
 - Proceed even when `CLAUDE.md`/`AGENTS.md` present — those are feedforward guides this skill may enhance, NEVER signals to skip
@@ -81,7 +81,7 @@ Extract:
 - Package manager and monorepo structure (if any)
 - Module system and build tooling
 
-Write detection result to `.ai/workspace/harness/stack-profile.md`.
+Write detection result to `tmp/harness/stack-profile.md`.
 
 If any field undetectable → `AskUserQuestion` to confirm before proceeding.
 
@@ -215,7 +215,7 @@ Document agreed test strategy to `docs/architecture/test-strategy.md`.
 
 ## Phase F — Harness Inventory Report
 
-Write `.ai/workspace/harness/harness-inventory.md`:
+Write `tmp/harness/harness-inventory.md`:
 
 ```markdown
 # Harness Inventory
@@ -310,6 +310,7 @@ Present inventory to user for review via `AskUserQuestion`.
 > **Assume existing values are intentional — ask WHY before changing OR flagging one as a defect.** Before changing or reporting a constant, limit, flag, cutoff, wording, or pattern, read nearby context and history, the CALLER's ordering, and 2+ sibling call sites of the same convention. A doc stating WHAT without WHY is missing rationale, not proof of a missing guard.
 > **Surface ambiguity before acting — don't pick silently.** Multiple valid interpretations require an explicit question or stated assumption with risk.
 > **Assert the outcome your system owns, not the intermediate state your infrastructure owns.** When verifying async work, assert the final business state — never the delivery/retry bookkeeping held in shared infrastructure that any co-running process can write. Such a check passes when run alone and flakes the moment anything else shares that infrastructure.
+> **Store disposable generated output in the project workspace.** If an output can be regenerated and is not source code, a canonical source-of-truth, or an intentionally versioned projection, write it under the project-root `tmp/` or `temp/` directory (prefer `tmp/`), scoped to the run. This includes temporary state, integration/E2E results, reports, logs, screenshots, traces, videos, coverage, dumps, and candidate evidence. Never put these outputs in source, docs, `plans/`, `team-artifacts/`, or mirror directories; the project-root `.gitignore` must ignore `/tmp/` and `/temp/` by default. Committed fixtures, accepted baselines, canonical specs/docs, and explicitly versioned generated mirrors remain at their declared owner paths.
 > **Keep shared guidance role-relevant.** Universal guidance must help every receiving skill or agent; code-specific obligations belong only in code-specific protocols.
 
 <!-- /SYNC:ai-mistake-prevention -->
@@ -435,7 +436,7 @@ Present inventory to user for review via `AskUserQuestion`.
 
 **IMPORTANT MUST ATTENTION** BLOCK on the `/linter-setup` prerequisite first — ALWAYS verify computational sensors (linter config, pre-commit hook, CI gate) exist before any phase runs — why: keep quality left; cheapest gates must precede inferential ones, and this skill never installs them itself
 **IMPORTANT MUST ATTENTION** NEVER auto-decide feedforward-guide or sensor content — present the draft and confirm via `AskUserQuestion` — why: harness conventions bind every future agent; silent choices propagate to all later sessions
-**IMPORTANT MUST ATTENTION** write `.ai/workspace/harness/harness-inventory.md` incrementally (append after each phase) — NEVER hold findings in memory — why: long context drifts and silently drops findings
+**IMPORTANT MUST ATTENTION** write `tmp/harness/harness-inventory.md` incrementally (append after each phase) — NEVER hold findings in memory — why: long context drifts and silently drops findings
 **IMPORTANT MUST ATTENTION** walk phases A→F as a hard barrier sequence — NEVER skip or reorder; each phase BLOCKS the next until its guard passes — why: a later phase consumes the prior phase's verified output
 **IMPORTANT MUST ATTENTION** gate the behaviour harness on mutation score + property coverage — NEVER fail a build on a line-coverage % — why: lines execute without asserting intent, so coverage % is a diagnostic only, never a quality gate
 **IMPORTANT MUST ATTENTION** wire `/integration-test-review`'s feature-area-wide TC audit as a Phase D sensor BOTH pre-release AND on the SAME recurring cadence as `/scan-codebase-health` — never pre-release only — why: a diff-scoped-only run cannot see a §8 TC whose covering test regressed outside the current change set; only a periodic feature-area sweep catches it

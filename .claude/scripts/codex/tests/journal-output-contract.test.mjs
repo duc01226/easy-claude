@@ -14,7 +14,7 @@ function requireDestination(source, anchor, label) {
     const line = source.split(/\r?\n/).find(value => anchor.test(value));
     assert.ok(line, `${label}: missing destination instruction`);
     assert.match(line, journalPath, `${label}: journal destination must be docs/journals`);
-    assert.doesNotMatch(line, /plans\/reports\//, `${label}: journal is not an assessment report`);
+        assert.doesNotMatch(line, /tmp\/reports\//, `${label}: journal is not an assessment report`);
 }
 
 function assertSkillDestination(source) {
@@ -45,10 +45,10 @@ function assertReportsDistinct(skillSource, writerSource) {
     for (const [label, source] of [['skill', skillSource], ['writer', writerSource]]) {
         const boundary = source.split(/\r?\n/).find(line => /intermediate assessments/.test(line));
         assert.ok(boundary, `${label}: missing intermediate assessment boundary`);
-        assert.match(boundary, /`plans\/reports\/`/, `${label}: assessment reports retain their destination`);
+        assert.match(boundary, /`tmp\/reports\/`/, `${label}: assessment reports retain their destination`);
         assert.match(boundary, /journal entries.*`\.\/docs\/journals\/`/, `${label}: durable journal stays separate`);
     }
-    assert.match(writerSource, /For plan\/review work, create `plans\/reports\//);
+    assert.match(writerSource, /For plan\/review work, create `tmp\/reports\//);
 }
 
 // TC-HARNESS-015 / S15: prompt-contract checks, not measured agent execution.
@@ -61,7 +61,7 @@ test('TC-HARNESS-015: skill journal destination and dated slug remain consistent
     }
     // Bounded domain: each of four anchors, five wrong directory spellings.
     const anchors = [/^2\. \*\*Write\*\*/, /^\*\*Journal output:/, /^Keep journal entries/, /^\*\*IMPORTANT MUST ATTENTION Goal:/];
-    const wrongDirectories = ['plans/reports/', 'docs/journal/', 'docs/journals-extra/', 'docs/journals/../reports/', '../docs/journals/'];
+    const wrongDirectories = ['tmp/reports/', 'docs/journal/', 'docs/journals-extra/', 'docs/journals/../reports/', '../docs/journals/'];
     for (const anchor of anchors) {
         for (const directory of wrongDirectories) {
             const mutant = skill.split(/\r?\n/).map(line => anchor.test(line)
@@ -80,7 +80,7 @@ test('TC-HARNESS-015: writer destination consumes the journal skill owner', t =>
     const anchors = [/^- Write the journal file/, /^6\. \*\*Write journal entry/, /^\*\*Journal location:/, /^\*\*IMPORTANT MUST ATTENTION\*\* Write the journal file/];
     for (const anchor of anchors) {
         const mutant = writer.split(/\r?\n/).map(line => anchor.test(line)
-            ? line.replace('./docs/journals/', 'plans/reports/') : line).join('\n');
+            ? line.replace('./docs/journals/', 'tmp/reports/') : line).join('\n');
         assert.notEqual(mutant, writer.replace(/\r?\n/g, '\n'), 'mutation must alter its target');
         assert.throws(() => assertWriterDestination(mutant), /journal destination must be docs\/journals/);
     }
@@ -94,7 +94,7 @@ test('TC-HARNESS-015: intermediate reports remain distinct from journal entries'
     for (const target of ['skill', 'writer']) {
         const source = target === 'skill' ? skill : writer;
         const mutant = source.split(/\r?\n/).map(line => /intermediate assessments/.test(line)
-            ? line.replace('plans/reports/', './docs/journals/') : line).join('\n');
+            ? line.replace('tmp/reports/', './docs/journals/') : line).join('\n');
         assert.throws(() => assertReportsDistinct(target === 'skill' ? mutant : skill, target === 'writer' ? mutant : writer),
             /assessment reports retain their destination/);
     }

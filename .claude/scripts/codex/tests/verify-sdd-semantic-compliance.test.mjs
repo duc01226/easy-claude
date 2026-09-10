@@ -653,7 +653,7 @@ test("runChecks passes positive SDD fixture", async () => {
       ],
       [
         ".claude/skills/workflow-idea-to-pbi/SKILL.md",
-        "Feature doc Section 8 TC IDs docs-update docs/project-config.json team-artifacts/ideas team-artifacts/pbis plans/reports/docs-update",
+        "Feature doc Section 8 TC IDs docs-update docs/project-config.json team-artifacts/ideas team-artifacts/pbis tmp/reports/docs-update",
       ],
       [
         ".claude/skills/docs-update/SKILL.md",
@@ -709,7 +709,7 @@ test("runChecks passes positive SDD fixture", async () => {
       ],
       [
         ".agents/skills/workflow-idea-to-pbi/SKILL.md",
-        "Feature doc Section 8 TC IDs docs-update shared/sdd-artifact-contract.md team-artifacts/ideas team-artifacts/pbis plans/reports/docs-update",
+        "Feature doc Section 8 TC IDs docs-update shared/sdd-artifact-contract.md team-artifacts/ideas team-artifacts/pbis tmp/reports/docs-update",
       ],
       [
         ".agents/skills/docs-update/SKILL.md",

@@ -74,7 +74,7 @@ Connected contracts:
 - NEVER create business feature docs from scratch — recommend `$spec` skill for new docs
 - NEVER auto-fix stale docs before verifying the code change — verify first, then edit
 - NEVER remove doc sections before checking downstream references — map referencing files first
-- **No meta-log in AI-facing docs** — `CLAUDE.md`, `AGENTS.md`, agent `.md`, `SKILL.md`, `.claude/docs/**` read as live instruction; write only current actionable state. NEVER narrate change-history, migration rationale, or provenance ("formerly", "removed in the … refactor", "now embedded / now lives here"). History → git / `CHANGELOG.md` / `docs/adr/**` / `plans/reports/**`
+- **No meta-log in AI-facing docs** — `CLAUDE.md`, `AGENTS.md`, agent `.md`, `SKILL.md`, `.claude/docs/**` read as live instruction; write only current actionable state. NEVER narrate change-history, migration rationale, or provenance ("formerly", "removed in the … refactor", "now embedded / now lives here"). History → git / `CHANGELOG.md` / `docs/adr/**` / `tmp/reports/**`
 - Fast Exit: ONLY when `node .claude/scripts/doc-impact-map.cjs` routes zero docs, zero config sections, and zero unrouted files → report "No documentation impacted" and exit. A `.claude/**`- or tooling-only diff is NOT a fast exit — it rots the skill/hook/agent/workflow counts and catalogs that `CLAUDE.md`, `docs-index-reference.md`, and `project-structure-reference.md` derive by globbing
 - Freshness verdicts are evidence, not impressions — every routed doc gets `FRESH | PATCHED | RESCAN REQUIRED | UNVERIFIED`; a doc you did not check is `UNVERIFIED`, NEVER `FRESH`
 - NEVER write `<!-- Last scanned: -->` — only a full `$scan --target=X` may move that stamp; an impact-scoped patch writes `<!-- Last verified: YYYY-MM-DD (docs-update, impact-scoped) -->` on the line after it — but ONLY in a doc that already carries a `Last scanned` stamp. A doc with NO such stamp (`CLAUDE.md`, `.claude/docs/**`, any AI-facing instruction file) gets NO stamp at all; record its verdict in the run report instead — the no-meta-log rule above WINS, it is never overridden by this one
@@ -83,7 +83,7 @@ Connected contracts:
 > **[IMPORTANT] Goal:** Detect docs impacted by code changes, update the right docs (project + business-feature) accurately and surgically, then report checked/updated/skipped — so docs stay synchronized with code without fabrication or scratch-creation.
 > **[IMPORTANT]** NEVER create business feature docs from scratch — use `$spec` skill. NEVER fabricate paths or behavior — investigate first.
 > **Evidence Gate:** Every claim requires `file:line` proof. Confidence >80% to act, <80% verify first. NEVER fabricate paths, names, or behavior.
-> **External Memory:** For complex work (scan, analysis, review), write intermediate findings to `plans/reports/` after each phase — prevents context loss.
+> **External Memory:** For complex work (scan, analysis, review), write intermediate findings to `tmp/reports/` after each phase — prevents context loss.
 
 ## Project Context
 
@@ -147,7 +147,7 @@ Concise — sacrifice grammar for brevity. List unresolved questions at end. ALW
 > 1. **On start:** create `tmp/ck-agent-{ts}-{rnd}.progress.md` — `ts` = current timestamp in `YYYYMMDDHHmmssSSS` (17 digits), `rnd` = random 6-char hex. First line records the session id.
 > 2. **After each step:** append findings, marking `[done]` / `[partial]` / `[pending]`.
 > 3. **Running out of context?** Write `[partial]` to the file FIRST — NEVER summarize before writing.
-> 4. **Producing a report?** Persist it incrementally to `plans/reports/` and start the final message with its path.
+> 4. **Producing a report?** Persist it incrementally to `tmp/reports/` and start the final message with its path.
 >
 > **Blocked until:** task breakdown exists · progress file created when the task exceeds the size threshold.
 
@@ -183,9 +183,9 @@ Concise — sacrifice grammar for brevity. List unresolved questions at end. ALW
 >
 > 1. Create a small task breakdown before target file reads, grep, edits, or analysis. On context loss, inspect the current task list first.
 > 2. Mark one task `in_progress` before work and `completed` immediately after evidence; never batch transitions.
-> 3. For plan/review work, create `plans/reports/{skill}-{YYMMDD}-{HHmm}-{slug}.md` before first finding.
+> 3. For plan/review work, create `tmp/reports/{skill}-{YYMMDD}-{HHmm}-{slug}.md` before first finding.
 > 4. Append findings after each file/section/decision and synthesize from the report file at the end.
-> 5. Final output cites `Full report: plans/reports/{filename}`.
+> 5. Final output cites `Full report: tmp/reports/{filename}`.
 >
 > **Blocked until:** task breakdown exists, report path declared for plan/review work, first finding persisted before the next finding.
 
@@ -223,6 +223,7 @@ Concise — sacrifice grammar for brevity. List unresolved questions at end. ALW
 > **Assume existing values are intentional — ask WHY before changing OR flagging one as a defect.** Before changing or reporting a constant, limit, flag, cutoff, wording, or pattern, read nearby context and history, the CALLER's ordering, and 2+ sibling call sites of the same convention. A doc stating WHAT without WHY is missing rationale, not proof of a missing guard.
 > **Surface ambiguity before acting — don't pick silently.** Multiple valid interpretations require an explicit question or stated assumption with risk.
 > **Assert the outcome your system owns, not the intermediate state your infrastructure owns.** When verifying async work, assert the final business state — never the delivery/retry bookkeeping held in shared infrastructure that any co-running process can write. Such a check passes when run alone and flakes the moment anything else shares that infrastructure.
+> **Store disposable generated output in the project workspace.** If an output can be regenerated and is not source code, a canonical source-of-truth, or an intentionally versioned projection, write it under the project-root `tmp/` or `temp/` directory (prefer `tmp/`), scoped to the run. This includes temporary state, integration/E2E results, reports, logs, screenshots, traces, videos, coverage, dumps, and candidate evidence. Never put these outputs in source, docs, `plans/`, `team-artifacts/`, or mirror directories; the project-root `.gitignore` must ignore `/tmp/` and `/temp/` by default. Committed fixtures, accepted baselines, canonical specs/docs, and explicitly versioned generated mirrors remain at their declared owner paths.
 > **Keep shared guidance role-relevant.** Universal guidance must help every receiving skill or agent; code-specific obligations belong only in code-specific protocols.
 
 <!-- /SYNC:ai-mistake-prevention -->
@@ -231,7 +232,7 @@ Concise — sacrifice grammar for brevity. List unresolved questions at end. ALW
 
 > **Incremental Result Persistence** — MANDATORY for all sub-agents or heavy inline steps processing >3 files.
 >
-> 1. **Before starting:** Create report file `plans/reports/{skill}-{date}-{slug}.md` and record Run ID, Task ID, Attempt ID, target scope, and target fingerprint.
+> 1. **Before starting:** Create report file `tmp/reports/{skill}-{date}-{slug}.md` and record Run ID, Task ID, Attempt ID, target scope, and target fingerprint.
 > 2. **After each file/section reviewed:** Append findings, evidence, changed paths, and gaps immediately — never hold them in memory.
 > 3. **Delegated return:** A sub-agent emits only the structured `SYNC:subagent-return-contract` envelope with exact totals, salient Critical/High findings (maximum ten), current attempt, and `Full report:` path. **Inline user-facing output:** Preserve the skill's requested explanation or teaching, with links to the persisted evidence; the delegated transport limit does not replace that deliverable. Do not paste a full review report into an envelope.
 > 4. **Parent synthesis:** The main agent reads the full report for synthesis, acceptance, deduplication, and repair planning — not only when a named blocker exists. It preserves all severities beyond the transport cap.
@@ -240,7 +241,7 @@ Concise — sacrifice grammar for brevity. List unresolved questions at end. ALW
 >
 > **Why:** Context cutoff mid-execution loses ALL in-memory findings. Each disk write survives compaction. Partial results are better than no results, while explicit identity prevents a late result from being mistaken for the current run.
 >
-> **Report naming:** `plans/reports/{skill-name}-{YYMMDD}-{HHmm}-{slug}.md`
+> **Report naming:** `tmp/reports/{skill-name}-{YYMMDD}-{HHmm}-{slug}.md`
 
 <!-- /SYNC:incremental-persistence -->
 
@@ -253,7 +254,7 @@ Concise — sacrifice grammar for brevity. List unresolved questions at end. ALW
 
 <!-- SYNC:ai-mistake-prevention:reminder -->
 
-**MUST ATTENTION** apply AI mistake prevention — verify generated content against evidence, trace downstream references before deleting or renaming, verify all affected outputs, re-read files after context loss, and surface ambiguity before acting.
+**MUST ATTENTION** apply AI mistake prevention — verify generated content against evidence, trace downstream references before deleting or renaming, verify all affected outputs, re-read files after context loss, surface ambiguity before acting, and route disposable generated output (including integration/E2E results) to project-root `tmp/` or `temp/`; root `.gitignore` ignores both by default.
 
 <!-- /SYNC:ai-mistake-prevention:reminder -->
 
@@ -266,7 +267,7 @@ Concise — sacrifice grammar for brevity. List unresolved questions at end. ALW
 <!-- SYNC:task-tracking-external-report:reminder -->
 
 - **MANDATORY** Bootstrap task tracking before target work; transition one task at a time.
-- **MANDATORY** Persist plan/review findings to `plans/reports/` incrementally and synthesize from disk.
+- **MANDATORY** Persist plan/review findings to `tmp/reports/` incrementally and synthesize from disk.
 
 <!-- /SYNC:task-tracking-external-report:reminder -->
 
@@ -287,7 +288,7 @@ Concise — sacrifice grammar for brevity. List unresolved questions at end. ALW
 
 - **Agent Bootstrap:** Break work into tasks; one in-progress; progress file on large work.
 - **Sequential Thinking:** Multi-step Thought N/M with revision/branch/hypothesis; confidence % closer.
-- **Task Tracking & External Report:** Bootstrap tracking; persist findings to `plans/reports/` incrementally.
+- **Task Tracking & External Report:** Bootstrap tracking; persist findings to `tmp/reports/` incrementally.
 - **Project Reference Docs Guide:** Read required project docs (always `lessons.md`); cite before target work.
 - **Critical Thinking:** MUST ATTENTION traced `file:line` proof per claim; >80% to act; never guess.
 - **AI Mistake Prevention:** verify generated content against evidence, trace downstream references, verify all affected outputs, re-read after context loss, surface ambiguity.
@@ -300,8 +301,8 @@ Concise — sacrifice grammar for brevity. List unresolved questions at end. ALW
 **IMPORTANT MUST ATTENTION** every TC-{FEATURE}-{NNN} MUST carry `[Source: ...]` abstract-anchor evidence mapping to real source; compare `[Trait("TestSpec", ...)]` against feature-doc TC codes and flag discrepancies — why: an unmapped anchor signals a fabricated or stale TC
 **IMPORTANT MUST ATTENTION** bootstrap a task breakdown before triage/reads/edits; transition one task at a time; on context loss inspect the existing task list before creating new tasks — why: batched/forgotten tracking loses progress across compaction
 **IMPORTANT MUST ATTENTION** search 3+ existing doc/section patterns and evaluate fit before writing — match the local doc convention, don't invent a new section shape — why: divergent doc structure fragments the docs and slows every future reader
-**IMPORTANT MUST ATTENTION** No meta-log in AI-facing docs — state the current truth only; never write change-history/provenance ("formerly", "removed in the … refactor", "now embedded") into `CLAUDE.md` / `AGENTS.md` / agent `.md` / `SKILL.md` / `.claude/docs/**`. History → git / `CHANGELOG.md` / `docs/adr/**` / `plans/reports/**`
-**IMPORTANT MUST ATTENTION** ALWAYS report even when nothing changed — state what was checked, updated, and skipped (with reason); write intermediate findings to `plans/reports/` after each phase to prevent context loss
+**IMPORTANT MUST ATTENTION** No meta-log in AI-facing docs — state the current truth only; never write change-history/provenance ("formerly", "removed in the … refactor", "now embedded") into `CLAUDE.md` / `AGENTS.md` / agent `.md` / `SKILL.md` / `.claude/docs/**`. History → git / `CHANGELOG.md` / `docs/adr/**` / `tmp/reports/**`
+**IMPORTANT MUST ATTENTION** ALWAYS report even when nothing changed — state what was checked, updated, and skipped (with reason); write intermediate findings to `tmp/reports/` after each phase to prevent context loss
 
 **Anti-Rationalization:**
 

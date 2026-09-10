@@ -351,7 +351,7 @@ Task({
 
 ## Authoring Rule — No Meta-Log
 
-> An agent `.md` is read as live instruction. Write only the CURRENT actionable truth. Do NOT add change-history, migration rationale, or provenance — "formerly", "removed in the … refactor", "now baked statically", "used to be hook-injected". It carries zero instruction value and dilutes the directive the agent acts on. Change history belongs in git / `CHANGELOG.md` / `docs/adr/**` / `plans/reports/**`. State what IS, not what changed.
+> An agent `.md` is read as live instruction. Write only the CURRENT actionable truth. Do NOT add change-history, migration rationale, or provenance — "formerly", "removed in the … refactor", "now baked statically", "used to be hook-injected". It carries zero instruction value and dilutes the directive the agent acts on. Change history belongs in git / `CHANGELOG.md` / `docs/adr/**` / `tmp/reports/**`. State what IS, not what changed.
 
 ## Quality-Parity with Skills
 

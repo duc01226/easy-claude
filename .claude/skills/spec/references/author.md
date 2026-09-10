@@ -311,7 +311,7 @@ For each entity in Entity layer:
 - Tech-agnostic types only: `string`, `number`, `boolean`, `date`, `list`, `map`
 - Mark aggregate roots with `%% [AGGREGATE: ...]`
 - Cross-module references as stubs: `%% [CROSS-REF: module-name]`
-- Save ERD in `.ai/workspace/analysis/{Module}-erd.md` for Section 5
+- Save ERD in `tmp/analysis/{Module}-erd.md` for Section 5
 
 #### Step 1-INIT.3: Business Rules Extraction (Phase B)
 
@@ -384,7 +384,7 @@ UI view / entry point
 2. **Backend flow — `graph-trace`** (`python .claude/scripts/code_graph trace {entry-file} --direction both --json`): from each handler, trace down to entity/rule and outward to events/consumers. Reuse the 1-INIT.4.5 cross-service output for the event tail.
 3. **Read-side closure:** for every write that emits an event, trace to the projection/read model and to the view that displays it — so the chain returns to the UI, not just to persistence.
 
-**Output — Full-Chain Trace Map** (working note in `.ai/workspace/analysis/{Module}-chain-map.md`; folds into §6 flows + §8 TCs):
+**Output — Full-Chain Trace Map** (working note in `tmp/analysis/{Module}-chain-map.md`; folds into §6 flows + §8 TCs):
 
 | Chain ID | UI view + action | API/operation | Handler | Entity + BR enforced | Event(s) | Consumer/read-model | UI outcome state | Status |
 | -------- | ---------------- | ------------- | ------- | -------------------- | -------- | ------------------- | ---------------- | ------ |
@@ -599,7 +599,7 @@ Grep evidence from source:
 
 ### Step 1.4: Feature Analysis
 
-Build knowledge model in `.ai/workspace/analysis/[feature-name].md`. Discover: entities/enums, commands/queries/events/jobs, controllers/DTOs, frontend components, cross-service bus messages.
+Build knowledge model in `tmp/analysis/[feature-name].md`. Discover: entities/enums, commands/queries/events/jobs, controllers/DTOs, frontend components, cross-service bus messages.
 
 ---
 

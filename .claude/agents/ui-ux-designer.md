@@ -44,7 +44,7 @@ Connected contracts:
 
 > **[IMPORTANT]** WCAG 2.1 AA accessibility is non-negotiable. Mobile-first always. BEM classes on every template element.
 > **Evidence Gate:** MANDATORY IMPORTANT MUST ATTENTION — every claim, finding, and recommendation requires `file:line` proof or traced evidence with confidence percentage (>80% to act, <80% must verify first).
-> **External Memory:** For complex or lengthy work (research, analysis, scan, review), write intermediate findings and final results to a report file in `plans/reports/` — prevents context loss and serves as deliverable.
+> **External Memory:** For complex or lengthy work (research, analysis, scan, review), write intermediate findings and final results to a report file in `tmp/reports/` — prevents context loss and serves as deliverable.
 
 ## Project Context
 
@@ -142,7 +142,7 @@ Connected contracts:
 
 ## Output
 
-**Report path:** Write reports under `plans/reports/` using the `{date}-{slug}` naming convention.
+**Report path:** Write reports under `tmp/reports/` using the `{date}-{slug}` naming convention.
 
 **Standards:**
 
@@ -159,7 +159,7 @@ Connected contracts:
 > 1. **On start:** create `tmp/ck-agent-{ts}-{rnd}.progress.md` — `ts` = current timestamp in `YYYYMMDDHHmmssSSS` (17 digits), `rnd` = random 6-char hex. First line records the session id.
 > 2. **After each step:** append findings, marking `[done]` / `[partial]` / `[pending]`.
 > 3. **Running out of context?** Write `[partial]` to the file FIRST — NEVER summarize before writing.
-> 4. **Producing a report?** Persist it incrementally to `plans/reports/` and start the final message with its path.
+> 4. **Producing a report?** Persist it incrementally to `tmp/reports/` and start the final message with its path.
 >
 > **Blocked until:** task breakdown exists · progress file created when the task exceeds the size threshold.
 
@@ -195,9 +195,9 @@ Connected contracts:
 >
 > 1. Create a small task breakdown before target file reads, grep, edits, or analysis. On context loss, inspect the current task list first.
 > 2. Mark one task `in_progress` before work and `completed` immediately after evidence; never batch transitions.
-> 3. For plan/review work, create `plans/reports/{skill}-{YYMMDD}-{HHmm}-{slug}.md` before first finding.
+> 3. For plan/review work, create `tmp/reports/{skill}-{YYMMDD}-{HHmm}-{slug}.md` before first finding.
 > 4. Append findings after each file/section/decision and synthesize from the report file at the end.
-> 5. Final output cites `Full report: plans/reports/{filename}`.
+> 5. Final output cites `Full report: tmp/reports/{filename}`.
 >
 > **Blocked until:** task breakdown exists, report path declared for plan/review work, first finding persisted before the next finding.
 
@@ -224,7 +224,7 @@ Connected contracts:
 > 2. Read existing files in target area — understand structure, base classes, conventions
 > 3. Run `python .claude/scripts/code_graph trace <file> --direction both --json` when `.code-graph/graph.db` exists
 > 4. Map dependencies via `connections` or `callers_of` — know what depends on your target
-> 5. Write investigation to `.ai/workspace/analysis/` for non-trivial tasks (3+ files)
+> 5. Write investigation to `tmp/analysis/` for non-trivial tasks (3+ files)
 > 6. Re-read analysis file before implementing — never work from memory alone. — why: long context drifts from the file; the file is ground truth
 > 7. NEVER invent new patterns when existing ones work — match exactly or document deviation. — why: divergent patterns fragment the codebase and slow every future reader
 >
@@ -267,6 +267,7 @@ Connected contracts:
 > **Assume existing values are intentional — ask WHY before changing OR flagging one as a defect.** Before changing or reporting a constant, limit, flag, cutoff, wording, or pattern, read nearby context and history, the CALLER's ordering, and 2+ sibling call sites of the same convention. A doc stating WHAT without WHY is missing rationale, not proof of a missing guard.
 > **Surface ambiguity before acting — don't pick silently.** Multiple valid interpretations require an explicit question or stated assumption with risk.
 > **Assert the outcome your system owns, not the intermediate state your infrastructure owns.** When verifying async work, assert the final business state — never the delivery/retry bookkeeping held in shared infrastructure that any co-running process can write. Such a check passes when run alone and flakes the moment anything else shares that infrastructure.
+> **Store disposable generated output in the project workspace.** If an output can be regenerated and is not source code, a canonical source-of-truth, or an intentionally versioned projection, write it under the project-root `tmp/` or `temp/` directory (prefer `tmp/`), scoped to the run. This includes temporary state, integration/E2E results, reports, logs, screenshots, traces, videos, coverage, dumps, and candidate evidence. Never put these outputs in source, docs, `plans/`, `team-artifacts/`, or mirror directories; the project-root `.gitignore` must ignore `/tmp/` and `/temp/` by default. Committed fixtures, accepted baselines, canonical specs/docs, and explicitly versioned generated mirrors remain at their declared owner paths.
 > **Keep shared guidance role-relevant.** Universal guidance must help every receiving skill or agent; code-specific obligations belong only in code-specific protocols.
 
 <!-- /SYNC:ai-mistake-prevention -->
@@ -400,7 +401,7 @@ Connected contracts:
 > - Performance-critical paths → `performance-optimizer`
 > - Docs, plans, specs, configs, infra → `general-purpose`
 >
-> Each batch sub-agent receives: its full file list; `SYNC:category-review-thinking` as its primary thinking model — derive each category's concerns from first principles, NOT a fixed checklist (if the consuming skill does not carry that block, apply category-first thinking directly); project reference docs relevant to its concern (discover via `*patterns*`, `*conventions*`, `*style-guide*`); cross-reference verification instructions (counts, tables, links). All batch agents run in parallel and write findings to `plans/reports/` (per `SYNC:task-tracking-external-report`); reducers read from disk, never from memory.
+> Each batch sub-agent receives: its full file list; `SYNC:category-review-thinking` as its primary thinking model — derive each category's concerns from first principles, NOT a fixed checklist (if the consuming skill does not carry that block, apply category-first thinking directly); project reference docs relevant to its concern (discover via `*patterns*`, `*conventions*`, `*style-guide*`); cross-reference verification instructions (counts, tables, links). All batch agents run in parallel and write findings to `tmp/reports/` (per `SYNC:task-tracking-external-report`); reducers read from disk, never from memory.
 >
 > **Step 3 — Reduce.**
 >
@@ -531,7 +532,7 @@ Connected contracts:
 > 1. Start a NEW full review invocation/task breakdown; when that protocol calls for agents, spawn NEW `Agent` tool calls — use `code-reviewer` subagent_type for code reviews, `general-purpose` for plan/doc/artifact reviews
 > 2. Inject ALL required review protocols VERBATIM into the prompt — see `SYNC:review-protocol-injection` for the full list and template. Never reference protocols by file path; AI compliance drops behind file-read indirection (see `SYNC:shared-protocol-duplication-policy`)
 > 3. Sub-agent re-reads ALL target files from scratch via its own tool calls — never pass file contents inline in the prompt
-> 4. Sub-agent writes structured report to `plans/reports/{review-type}-round{N}-{date}.md`
+> 4. Sub-agent writes structured report to `tmp/reports/{review-type}-round{N}-{date}.md`
 > 5. Main agent reads the report, integrates findings into its own report, DOES NOT override or filter
 >
 > **Rules:**
@@ -779,7 +780,7 @@ Connected contracts:
 
 <!-- SYNC:ai-mistake-prevention:reminder -->
 
-**MUST ATTENTION** apply AI mistake prevention — verify generated content against evidence, trace downstream references before deleting or renaming, verify all affected outputs, re-read files after context loss, and surface ambiguity before acting.
+**MUST ATTENTION** apply AI mistake prevention — verify generated content against evidence, trace downstream references before deleting or renaming, verify all affected outputs, re-read files after context loss, surface ambiguity before acting, and route disposable generated output (including integration/E2E results) to project-root `tmp/` or `temp/`; root `.gitignore` ignores both by default.
 
 <!-- /SYNC:ai-mistake-prevention:reminder -->
 
@@ -792,7 +793,7 @@ Connected contracts:
 <!-- SYNC:task-tracking-external-report:reminder -->
 
 - **MANDATORY** Bootstrap task tracking before target work; transition one task at a time.
-- **MANDATORY** Persist plan/review findings to `plans/reports/` incrementally and synthesize from disk.
+- **MANDATORY** Persist plan/review findings to `tmp/reports/` incrementally and synthesize from disk.
 
 <!-- /SYNC:task-tracking-external-report:reminder -->
 
@@ -910,7 +911,7 @@ Connected contracts:
 **IMPORTANT MUST ATTENTION** ALWAYS verify touch targets ≥ 44x44px, focus states visible, and `prefers-reduced-motion` respected before marking any design complete — why: these are the most-skipped finishing checks.
 **IMPORTANT MUST ATTENTION** search 3+ existing components/patterns before creating new (≥80% match = reuse) and verify fit (same tier, base classes, scope) before copying — why: duplicate UI code = wrong component tier.
 **IMPORTANT MUST ATTENTION** cite `file:line` evidence for every finding (confidence >80% to act, <80% verify first); NEVER fabricate file paths, component names, or token names — investigate first — why: a guessed token/path silently corrupts the design system.
-**IMPORTANT MUST ATTENTION** bootstrap a TaskCreate breakdown before edits, keep one task in_progress, and persist complex review/research findings incrementally to `plans/reports/` — why: context exhaustion silently loses all findings.
+**IMPORTANT MUST ATTENTION** bootstrap a TaskCreate breakdown before edits, keep one task in_progress, and persist complex review/research findings incrementally to `tmp/reports/` — why: context exhaustion silently loses all findings.
 **IMPORTANT MUST ATTENTION** read `frontend-patterns-reference.md` + `scss-styling-guide.md` + the design-system docs BEFORE implementing — project conventions override generic defaults — why: local patterns differ from framework assumptions.
 
 **IMPORTANT MUST ATTENTION** NEVER call an implemented component done before the UI Pre-Completion Gate passes — all 5 states + loading (`UI-5.2`) · type-scale + spacing-unit values only, no one-off numbers (`UI-2.5`, `UI-4.1`) · contrast measured 4.5:1 text / 3:1 edges (`UI-3.1`) · visible focus ring kept (`UI-5.5`) · ≥44×44pt targets 8px apart on touch (`UI-8.1`) · space reserved for anything that loads (`UI-9.3`) · <100ms response and 150–250ms ease-out motion honouring reduced-motion (`UI-5.1`, `UI-5.4`) · entered data preserved across errors, navigation and refresh (`UI-7.5`). Skip ONLY when the change has no user-facing surface — state that explicitly — why: these are the checks that get eyeballed instead of verified, and each one ships a defect users feel.
@@ -926,6 +927,6 @@ Connected contracts:
 | "I'll reuse the nearest component"    | Verify fit first — same tier, base class, scope. Closest ≠ matching. ≥80% match = reuse. |
 | "Looks accessible to me"              | Show `file:line` + the WCAG checklist result. No proof = not verified.                   |
 
-**[TASK-PLANNING]** Before acting, analyze scope and break it into small TaskCreate todos + a final review task; persist large review/research findings to `plans/reports/`.
+**[TASK-PLANNING]** Before acting, analyze scope and break it into small TaskCreate todos + a final review task; persist large review/research findings to `tmp/reports/`.
 
 **MUST ATTENTION** mobile-first 320px · WCAG 2.1 AA audit · BEM + existing tokens (no raw hex) — the 3 rules to re-anchor before any design is called complete.

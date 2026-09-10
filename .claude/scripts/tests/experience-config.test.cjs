@@ -17,12 +17,19 @@ test('TC-EXP-CONFIG-001: the optional experienceVerification contract is declare
     assert.equal(validateConfig(SKELETON).valid, true);
 });
 
+test('TC-EXP-CONFIG-001a: disposable experience evidence defaults to a project-root temp directory', () => {
+    assert.equal(realConfig.experienceVerification.evidenceRoot, 'tmp/experience');
+    assert.equal(SKELETON.experienceVerification.evidenceRoot, 'tmp/experience');
+    const description = require('../../hooks/lib/project-config-schema.cjs').describeSchema();
+    assert.match(description, /project-root tmp\/ or temp\//);
+});
+
 test('TC-EXP-CONFIG-002: a configured surface carries project facts without a framework-specific enum', () => {
     const config = {
         ...realConfig,
         experienceVerification: {
             enabled: true,
-            evidenceRoot: 'artifacts/experience',
+            evidenceRoot: 'tmp/experience',
             baselineRoot: 'tests/baselines',
             acceptancePolicy: 'manual-acceptance-required',
             surfaces: [{
@@ -53,7 +60,7 @@ test('TC-EXP-CONFIG-004: an empty disabled contract requires an honest reason', 
         ...realConfig,
         experienceVerification: {
             enabled: false,
-            evidenceRoot: 'artifacts/experience',
+            evidenceRoot: 'tmp/experience',
             baselineRoot: 'tests/baselines',
             acceptancePolicy: 'manual-acceptance-required',
             surfaces: []
@@ -69,7 +76,7 @@ test('TC-EXP-CONFIG-005: enabled experience verification requires a configured s
         ...realConfig,
         experienceVerification: {
             enabled: true,
-            evidenceRoot: 'artifacts/experience',
+            evidenceRoot: 'tmp/experience',
             baselineRoot: 'tests/baselines',
             acceptancePolicy: 'manual-acceptance-required',
             surfaces: [],
@@ -105,7 +112,7 @@ function surfaceConfig(enabled = true) {
         ...realConfig,
         experienceVerification: {
             enabled,
-            evidenceRoot: 'artifacts/experience',
+            evidenceRoot: 'tmp/experience',
             baselineRoot: 'tests/baselines',
             acceptancePolicy: 'manual-acceptance-required',
             surfaces: [{ id: 'operator', kind: 'terminal', runner: 'cli-harness', entryPoints: ['bin/tool'] }]
@@ -290,7 +297,7 @@ const validE2eExecution = {
         actionDelayMs: 250
     },
     evidence: {
-        root: 'plans/reports/e2e',
+        root: 'tmp/e2e',
         capture: ['screenshot', 'console', 'requests', 'trace', 'video'],
         redaction: 'project-configured redactor'
     },

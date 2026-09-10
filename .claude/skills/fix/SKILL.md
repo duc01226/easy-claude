@@ -69,7 +69,7 @@ disable-model-invocation: false
 > **2. Check — evidence, never memory.** Before the first code edit, determine whether `/debug-investigate` already ran **in this session, for this same problem**. Accept ONLY:
 >
 > - a `TaskList` row for `debug-investigate` (or its phase tasks) covering this symptom, **or**
-> - a written investigation report naming this symptom (e.g. `.ai/workspace/analysis/{issue-name}.analysis.md`, `plans/reports/debug-investigate-*.md`) containing the end-to-start trace.
+> - a written investigation report naming this symptom (e.g. `tmp/analysis/{issue-name}.analysis.md`, `tmp/reports/debug-investigate-*.md`) containing the end-to-start trace.
 >
 > **No such evidence → treat as NOT run.** Recalling that the cause "is known" is not evidence. — why: after context compaction the model's belief that it already investigated survives while the actual findings do not.
 >
@@ -170,7 +170,7 @@ The Debug Mindset, Confidence & Evidence Gate, and all SYNC gates below apply to
 
 **Workflow:**
 
-1. Use the `debugger` subagent to read the CI logs via the configured CI tool/API (from `docs/project-config.json`), analyze the final failing log/error **backward** to the root cause, and report back. Write findings to `.ai/workspace/analysis/{ci-issue}.analysis.md`; re-read before implementing.
+1. Use the `debugger` subagent to read the CI logs via the configured CI tool/API (from `docs/project-config.json`), analyze the final failing log/error **backward** to the root cause, and report back. Write findings to `tmp/analysis/{ci-issue}.analysis.md`; re-read before implementing.
 2. **🛑 Present root cause + proposed fix → `AskUserQuestion` → wait for approval.**
 3. Implement the fix from the report.
 4. Use the `tester` subagent to verify; report back.
@@ -195,7 +195,7 @@ The Debug Mindset, Confidence & Evidence Gate, and all SYNC gates below apply to
 **Workflow:**
 
 1. Activate the `debug-investigate` skill and follow its workflow — this step **satisfies** the Root-Cause Prerequisite Gate for this problem; record its report path as the gate's §2 evidence. See `.claude/docs/AI-DEBUGGING-PROTOCOL.md` for comprehensive guidelines.
-2. Use external memory at `.ai/workspace/analysis/issue-[number].analysis.md` for structured analysis. **Re-read the ENTIRE analysis file before proposing any fix.**
+2. Use external memory at `tmp/analysis/issue-[number].analysis.md` for structured analysis. **Re-read the ENTIRE analysis file before proposing any fix.**
 3. **🛑 Present root cause + proposed fix → `AskUserQuestion` → wait for approval before implementing.**
 4. Implement, then run `/prove-fix`.
 
@@ -217,7 +217,7 @@ The Debug Mindset, Confidence & Evidence Gate, and all SYNC gates below apply to
 **Workflow:**
 
 1. Check whether `./logs.txt` exists. If missing, set up permanent log piping in the project's script config (`package.json`, `Makefile`, `pyproject.toml`, …): **Bash/Unix** append `2>&1 | tee logs.txt`; **PowerShell** append `*>&1 | Tee-Object logs.txt`. Run the command to generate logs.
-2. Use the `debugger` subagent to analyze `./logs.txt`: read with `Grep` `head_limit: 30` (last 30 lines; increase if needed — avoid loading the whole file). Write analysis to `.ai/workspace/analysis/{issue-name}.analysis.md`; re-read before fixing.
+2. Use the `debugger` subagent to analyze `./logs.txt`: read with `Grep` `head_limit: 30` (last 30 lines; increase if needed — avoid loading the whole file). Write analysis to `tmp/analysis/{issue-name}.analysis.md`; re-read before fixing.
 3. Use the `/investigate` skill to locate the exact source of the issue; report back.
 4. Use the `planner` subagent to create an implementation plan; report back.
 5. **🛑 Present root cause + fix plan → `AskUserQuestion` → wait for approval.**
@@ -244,7 +244,7 @@ The Debug Mindset, Confidence & Evidence Gate, and all SYNC gates below apply to
 **Workflow:**
 
 1. Use the `tester` subagent to compile the code and fix any syntax errors.
-2. Use the `tester` subagent to run the tests; report back. Write failure analysis to `.ai/workspace/analysis/{test-issue}.analysis.md`; re-read before fixing.
+2. Use the `tester` subagent to run the tests; report back. Write failure analysis to `tmp/analysis/{test-issue}.analysis.md`; re-read before fixing.
 3. If tests fail, use the `debugger` subagent to find the root cause; report back.
 4. Use the `planner` subagent to create an implementation plan; report back.
 5. **🛑 Present root cause + fix plan → `AskUserQuestion` → wait for approval.**
@@ -316,7 +316,7 @@ Use `problem-solving` skills to tackle issues.
 Analyze skills catalog and activate other needed skills during the process.
 
 1. Use `debugger` subagent to find root cause and report back to main agent. **Skip this step when the Root-Cause Prerequisite Gate already ran `/debug-investigate` for this problem** — that report subsumes this step; resume at step 3 (planning) instead of re-tracing. — why: re-running diagnosis double-runs the spine.
-   1.5. Write investigation results to `.ai/workspace/analysis/{issue-name}.analysis.md`. Re-read ENTIRE file before planning fix.
+   1.5. Write investigation results to `tmp/analysis/{issue-name}.analysis.md`. Re-read ENTIRE file before planning fix.
    1.6. Confirm the report contains final symptom -> reader -> storage/projection -> writer -> consumer/job -> producer/origin, all feeder paths, hypothesis matrix, owning fix layer, and forward convergence proof.
 2. Use `researcher` subagent to research root causes on internet (if needed) and report back.
 3. Use `planner` subagent to create implementation plan based on reports; report back.
@@ -425,9 +425,9 @@ Analyze skills catalog and activate other needed skills during the process.
 >
 > 1. Create a small task breakdown before target file reads, grep, edits, or analysis. On context loss, inspect the current task list first.
 > 2. Mark one task `in_progress` before work and `completed` immediately after evidence; never batch transitions.
-> 3. For plan/review work, create `plans/reports/{skill}-{YYMMDD}-{HHmm}-{slug}.md` before first finding.
+> 3. For plan/review work, create `tmp/reports/{skill}-{YYMMDD}-{HHmm}-{slug}.md` before first finding.
 > 4. Append findings after each file/section/decision and synthesize from the report file at the end.
-> 5. Final output cites `Full report: plans/reports/{filename}`.
+> 5. Final output cites `Full report: tmp/reports/{filename}`.
 >
 > **Blocked until:** task breakdown exists, report path declared for plan/review work, first finding persisted before the next finding.
 
@@ -448,7 +448,7 @@ Analyze skills catalog and activate other needed skills during the process.
 > 2. Read existing files in target area — understand structure, base classes, conventions
 > 3. Run `python .claude/scripts/code_graph trace <file> --direction both --json` when `.code-graph/graph.db` exists
 > 4. Map dependencies via `connections` or `callers_of` — know what depends on your target
-> 5. Write investigation to `.ai/workspace/analysis/` for non-trivial tasks (3+ files)
+> 5. Write investigation to `tmp/analysis/` for non-trivial tasks (3+ files)
 > 6. Re-read analysis file before implementing — never work from memory alone. — why: long context drifts from the file; the file is ground truth
 > 7. NEVER invent new patterns when existing ones work — match exactly or document deviation. — why: divergent patterns fragment the codebase and slow every future reader
 >
@@ -534,6 +534,7 @@ Analyze skills catalog and activate other needed skills during the process.
 > **Assume existing values are intentional — ask WHY before changing OR flagging one as a defect.** Before changing or reporting a constant, limit, flag, cutoff, wording, or pattern, read nearby context and history, the CALLER's ordering, and 2+ sibling call sites of the same convention. A doc stating WHAT without WHY is missing rationale, not proof of a missing guard.
 > **Surface ambiguity before acting — don't pick silently.** Multiple valid interpretations require an explicit question or stated assumption with risk.
 > **Assert the outcome your system owns, not the intermediate state your infrastructure owns.** When verifying async work, assert the final business state — never the delivery/retry bookkeeping held in shared infrastructure that any co-running process can write. Such a check passes when run alone and flakes the moment anything else shares that infrastructure.
+> **Store disposable generated output in the project workspace.** If an output can be regenerated and is not source code, a canonical source-of-truth, or an intentionally versioned projection, write it under the project-root `tmp/` or `temp/` directory (prefer `tmp/`), scoped to the run. This includes temporary state, integration/E2E results, reports, logs, screenshots, traces, videos, coverage, dumps, and candidate evidence. Never put these outputs in source, docs, `plans/`, `team-artifacts/`, or mirror directories; the project-root `.gitignore` must ignore `/tmp/` and `/temp/` by default. Committed fixtures, accepted baselines, canonical specs/docs, and explicitly versioned generated mirrors remain at their declared owner paths.
 > **Keep shared guidance role-relevant.** Universal guidance must help every receiving skill or agent; code-specific obligations belong only in code-specific protocols.
 
 <!-- /SYNC:ai-mistake-prevention -->
@@ -649,14 +650,14 @@ Analyze skills catalog and activate other needed skills during the process.
 
 <!-- SYNC:ai-mistake-prevention:reminder -->
 
-**MUST ATTENTION** apply AI mistake prevention — verify generated content against evidence, trace downstream references before deleting or renaming, verify all affected outputs, re-read files after context loss, and surface ambiguity before acting.
+**MUST ATTENTION** apply AI mistake prevention — verify generated content against evidence, trace downstream references before deleting or renaming, verify all affected outputs, re-read files after context loss, surface ambiguity before acting, and route disposable generated output (including integration/E2E results) to project-root `tmp/` or `temp/`; root `.gitignore` ignores both by default.
 
 <!-- /SYNC:ai-mistake-prevention:reminder -->
 
 <!-- SYNC:task-tracking-external-report:reminder -->
 
 - **MANDATORY** Bootstrap task tracking before target work; transition one task at a time.
-- **MANDATORY** Persist plan/review findings to `plans/reports/` incrementally and synthesize from disk.
+- **MANDATORY** Persist plan/review findings to `tmp/reports/` incrementally and synthesize from disk.
 
 <!-- /SYNC:task-tracking-external-report:reminder -->
 
@@ -735,7 +736,7 @@ Analyze skills catalog and activate other needed skills during the process.
 - **Root Cause Debugging:** reproduce → isolate → trace → hypothesize → verify → fix the cause, never symptoms.
 - **Nested Task Creation:** parent workflow rows don't replace child phase tracking; expand and link phases.
 - **Project Reference Docs Guide:** read required project-reference docs (`lessons.md` always) before target work.
-- **Task Tracking & External Report:** bootstrap task tracking; persist plan/review findings to `plans/reports/` incrementally.
+- **Task Tracking & External Report:** bootstrap task tracking; persist plan/review findings to `tmp/reports/` incrementally.
 - **Critical Thinking:** apply critical + sequential thinking; traced proof per claim, confidence >80% to act.
 - **Understand Code First:** search 3+ patterns and read code before any modification.
 - **Evidence-Based Reasoning:** cite `file:line` for every claim; <60% confidence = do NOT recommend.

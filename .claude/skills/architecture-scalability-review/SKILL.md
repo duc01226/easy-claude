@@ -33,7 +33,7 @@ description: '[Architecture] Use when grading architecture and scalability — b
 3. Read `references/scorecard.md`.
 4. Score all 10 areas 0-2 with evidence.
 5. Run pass/fail gates (G1-G7).
-6. Emit the architecture scalability review report under `plans/reports/`.
+6. Emit the architecture scalability review report under `tmp/reports/`.
 
 **Key Rules:**
 
@@ -178,7 +178,7 @@ TVC is a setup/verification status, not an eighth score area: it MUST NOT change
 
 Write:
 
-`plans/reports/architecture-scalability-review-{YYMMDD}-{HHmm}-{slug}.md`
+`tmp/reports/architecture-scalability-review-{YYMMDD}-{HHmm}-{slug}.md`
 
 Report structure:
 
@@ -236,7 +236,7 @@ List only user-confirmed recommendations or mark `N/A`.
 
 **Protocol:**
 
-1. Read the finalized scorecard report from `plans/reports/{skill}-{date}-{slug}.md` (or the exact report path written).
+1. Read the finalized scorecard report from `tmp/reports/{skill}-{date}-{slug}.md` (or the exact report path written).
 2. Invoke `/why-review --validate-findings <report-path>` — verify each sub-80 grade and each risk finding has `file:line` evidence and clears why-review's finding-survival bar.
 3. **If why-review demotes/removes any grade or finding:** update the scorecard with the revised grade/severity and add a `## Why-Review Validation Notes` section citing what changed and why.
 4. **If the scorecard changed after validation:** re-run this gate — maximum 2 validation passes — until the remaining grades/findings are validated. No fix-loop: this skill grades and routes fixes to siblings; it never restarts a full review over its own fixes.
@@ -458,6 +458,7 @@ List only user-confirmed recommendations or mark `N/A`.
 > **Assume existing values are intentional — ask WHY before changing OR flagging one as a defect.** Before changing or reporting a constant, limit, flag, cutoff, wording, or pattern, read nearby context and history, the CALLER's ordering, and 2+ sibling call sites of the same convention. A doc stating WHAT without WHY is missing rationale, not proof of a missing guard.
 > **Surface ambiguity before acting — don't pick silently.** Multiple valid interpretations require an explicit question or stated assumption with risk.
 > **Assert the outcome your system owns, not the intermediate state your infrastructure owns.** When verifying async work, assert the final business state — never the delivery/retry bookkeeping held in shared infrastructure that any co-running process can write. Such a check passes when run alone and flakes the moment anything else shares that infrastructure.
+> **Store disposable generated output in the project workspace.** If an output can be regenerated and is not source code, a canonical source-of-truth, or an intentionally versioned projection, write it under the project-root `tmp/` or `temp/` directory (prefer `tmp/`), scoped to the run. This includes temporary state, integration/E2E results, reports, logs, screenshots, traces, videos, coverage, dumps, and candidate evidence. Never put these outputs in source, docs, `plans/`, `team-artifacts/`, or mirror directories; the project-root `.gitignore` must ignore `/tmp/` and `/temp/` by default. Committed fixtures, accepted baselines, canonical specs/docs, and explicitly versioned generated mirrors remain at their declared owner paths.
 > **Keep shared guidance role-relevant.** Universal guidance must help every receiving skill or agent; code-specific obligations belong only in code-specific protocols.
 
 <!-- /SYNC:ai-mistake-prevention -->
@@ -467,7 +468,9 @@ List only user-confirmed recommendations or mark `N/A`.
 <!-- /SYNC:critical-thinking-mindset:reminder -->
 
 <!-- SYNC:ai-mistake-prevention:reminder -->
-**MUST ATTENTION** apply AI mistake prevention — verify generated content against evidence, trace downstream references before deleting or renaming, verify all affected outputs, re-read files after context loss, and surface ambiguity before acting.
+
+**MUST ATTENTION** apply AI mistake prevention — verify generated content against evidence, trace downstream references before deleting or renaming, verify all affected outputs, re-read files after context loss, surface ambiguity before acting, and route disposable generated output (including integration/E2E results) to project-root `tmp/` or `temp/`; root `.gitignore` ignores both by default.
+
 <!-- /SYNC:ai-mistake-prevention:reminder -->
 
 <!-- SYNC:project-protocol-overlay -->
@@ -509,7 +512,7 @@ List only user-confirmed recommendations or mark `N/A`.
 **IMPORTANT MUST ATTENTION** Testability contract: resolve evidence-backed Unit/Integration/System/E2E rows, copy-ready full/focused commands, zero-match failures, owner/root/data, CI/simple-Windows entry, unique run identity, and repeat proof before claiming setup, review, or test completion.
 **IMPORTANT MUST ATTENTION Goal:** Grade project architecture & scalability quality on the evidence-backed scorecard — build/CI scalability, distributed-monolith risk, module isolation, dependency discipline, loose coupling, horizontal scaling, DRY, abstraction, clean architecture, observability, and delivery — routing sibling-owned depth (security, performance, production-readiness) rather than duplicating it.
 
-**IMPORTANT MUST ATTENTION main steps (run in order):** (1) resolve `mode=init`/`mode=audit` + scope; (2) load project context + evidence; (3) read `references/scorecard.md`; (4) score all 10 areas 0-2 with evidence; (5) run pass/fail gates G1-G7; (6) emit the report under `plans/reports/`.
+**IMPORTANT MUST ATTENTION main steps (run in order):** (1) resolve `mode=init`/`mode=audit` + scope; (2) load project context + evidence; (3) read `references/scorecard.md`; (4) score all 10 areas 0-2 with evidence; (5) run pass/fail gates G1-G7; (6) emit the report under `tmp/reports/`.
 
 **Protocols in force (concise digest of the SYNC/shared blocks this skill carries):**
 

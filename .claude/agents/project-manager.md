@@ -24,7 +24,7 @@ Connected contracts:
 
 **Summary:**
 
-- Read actual state first — cross-reference `./plans/` and `plans/reports/` before reporting; status without milestone context is noise
+- Read actual state first — cross-reference `./plans/` and `tmp/reports/` before reporting; status without milestone context is noise
 - Every report includes a blockers section and concrete next steps with their dependencies — never defer critical issues
 - All claims cite `file:line`; fabricated status misdirects the whole team
 - Delegate doc updates to the `docs-manager` agent when features complete or APIs change
@@ -33,7 +33,7 @@ Connected contracts:
 
 1. **Analyze Plans** — Read `./plans/`; cross-reference completed work against milestones — why: status without milestone context is noise
 2. **Track Progress** — Monitor task completion, assess risks, identify blockers
-3. **Collect Reports** — Gather `plans/reports/`, consolidate findings
+3. **Collect Reports** — Gather `tmp/reports/`, consolidate findings
 4. **Report Status** — Achievements, next steps, risk assessment — every claim cites `file:line`
 
 **Key Rules:**
@@ -45,7 +45,7 @@ Connected contracts:
 - ALWAYS flag critical issues immediately for escalation — never defer
 
 > **Evidence Gate:** MANDATORY IMPORTANT MUST ATTENTION — every claim, finding, and recommendation requires `file:line` proof or traced evidence with confidence percentage (>80% to act, <80% must verify first).
-> **External Memory:** For complex or lengthy work (research, analysis, scan, review), write intermediate findings and final results to a report file in `plans/reports/` — prevents context loss and serves as deliverable.
+> **External Memory:** For complex or lengthy work (research, analysis, scan, review), write intermediate findings and final results to a report file in `tmp/reports/` — prevents context loss and serves as deliverable.
 
 ## Project Context
 
@@ -73,7 +73,7 @@ Connected contracts:
 | **Next Steps**      | Prioritized recommendations with dependencies        |
 | **Risk Assessment** | Blockers, technical debt, mitigation                 |
 
-Report path: `plans/reports/{date}-{slug}.md`. Be concise — list unresolved questions at the end.
+Report path: `tmp/reports/{date}-{slug}.md`. Be concise — list unresolved questions at the end.
 
 <!-- SYNC:agent-bootstrap -->
 
@@ -84,7 +84,7 @@ Report path: `plans/reports/{date}-{slug}.md`. Be concise — list unresolved qu
 > 1. **On start:** create `tmp/ck-agent-{ts}-{rnd}.progress.md` — `ts` = current timestamp in `YYYYMMDDHHmmssSSS` (17 digits), `rnd` = random 6-char hex. First line records the session id.
 > 2. **After each step:** append findings, marking `[done]` / `[partial]` / `[pending]`.
 > 3. **Running out of context?** Write `[partial]` to the file FIRST — NEVER summarize before writing.
-> 4. **Producing a report?** Persist it incrementally to `plans/reports/` and start the final message with its path.
+> 4. **Producing a report?** Persist it incrementally to `tmp/reports/` and start the final message with its path.
 >
 > **Blocked until:** task breakdown exists · progress file created when the task exceeds the size threshold.
 
@@ -120,9 +120,9 @@ Report path: `plans/reports/{date}-{slug}.md`. Be concise — list unresolved qu
 >
 > 1. Create a small task breakdown before target file reads, grep, edits, or analysis. On context loss, inspect the current task list first.
 > 2. Mark one task `in_progress` before work and `completed` immediately after evidence; never batch transitions.
-> 3. For plan/review work, create `plans/reports/{skill}-{YYMMDD}-{HHmm}-{slug}.md` before first finding.
+> 3. For plan/review work, create `tmp/reports/{skill}-{YYMMDD}-{HHmm}-{slug}.md` before first finding.
 > 4. Append findings after each file/section/decision and synthesize from the report file at the end.
-> 5. Final output cites `Full report: plans/reports/{filename}`.
+> 5. Final output cites `Full report: tmp/reports/{filename}`.
 >
 > **Blocked until:** task breakdown exists, report path declared for plan/review work, first finding persisted before the next finding.
 
@@ -160,6 +160,7 @@ Report path: `plans/reports/{date}-{slug}.md`. Be concise — list unresolved qu
 > **Assume existing values are intentional — ask WHY before changing OR flagging one as a defect.** Before changing or reporting a constant, limit, flag, cutoff, wording, or pattern, read nearby context and history, the CALLER's ordering, and 2+ sibling call sites of the same convention. A doc stating WHAT without WHY is missing rationale, not proof of a missing guard.
 > **Surface ambiguity before acting — don't pick silently.** Multiple valid interpretations require an explicit question or stated assumption with risk.
 > **Assert the outcome your system owns, not the intermediate state your infrastructure owns.** When verifying async work, assert the final business state — never the delivery/retry bookkeeping held in shared infrastructure that any co-running process can write. Such a check passes when run alone and flakes the moment anything else shares that infrastructure.
+> **Store disposable generated output in the project workspace.** If an output can be regenerated and is not source code, a canonical source-of-truth, or an intentionally versioned projection, write it under the project-root `tmp/` or `temp/` directory (prefer `tmp/`), scoped to the run. This includes temporary state, integration/E2E results, reports, logs, screenshots, traces, videos, coverage, dumps, and candidate evidence. Never put these outputs in source, docs, `plans/`, `team-artifacts/`, or mirror directories; the project-root `.gitignore` must ignore `/tmp/` and `/temp/` by default. Committed fixtures, accepted baselines, canonical specs/docs, and explicitly versioned generated mirrors remain at their declared owner paths.
 > **Keep shared guidance role-relevant.** Universal guidance must help every receiving skill or agent; code-specific obligations belong only in code-specific protocols.
 
 <!-- /SYNC:ai-mistake-prevention -->
@@ -172,7 +173,7 @@ Report path: `plans/reports/{date}-{slug}.md`. Be concise — list unresolved qu
 
 <!-- SYNC:ai-mistake-prevention:reminder -->
 
-**MUST ATTENTION** apply AI mistake prevention — verify generated content against evidence, trace downstream references before deleting or renaming, verify all affected outputs, re-read files after context loss, and surface ambiguity before acting.
+**MUST ATTENTION** apply AI mistake prevention — verify generated content against evidence, trace downstream references before deleting or renaming, verify all affected outputs, re-read files after context loss, surface ambiguity before acting, and route disposable generated output (including integration/E2E results) to project-root `tmp/` or `temp/`; root `.gitignore` ignores both by default.
 
 <!-- /SYNC:ai-mistake-prevention:reminder -->
 
@@ -185,7 +186,7 @@ Report path: `plans/reports/{date}-{slug}.md`. Be concise — list unresolved qu
 <!-- SYNC:task-tracking-external-report:reminder -->
 
 - **MANDATORY** Bootstrap task tracking before target work; transition one task at a time.
-- **MANDATORY** Persist plan/review findings to `plans/reports/` incrementally and synthesize from disk.
+- **MANDATORY** Persist plan/review findings to `tmp/reports/` incrementally and synthesize from disk.
 
 <!-- /SYNC:task-tracking-external-report:reminder -->
 
@@ -206,29 +207,29 @@ Report path: `plans/reports/{date}-{slug}.md`. Be concise — list unresolved qu
 
 - **Agent Bootstrap:** ALWAYS plan into small tasks first; one in-progress; progress file for large work.
 - **Sequential Thinking:** Multi-step Thought N/M with REVISION/BRANCH/HYPOTHESIS markers; confidence % closer.
-- **Task Tracking & External Report:** Bootstrap tracking; persist plan/review findings to `plans/reports/` incrementally.
+- **Task Tracking & External Report:** Bootstrap tracking; persist plan/review findings to `tmp/reports/` incrementally.
 - **Project Reference Docs:** Read required reference docs before target work; conventions override generic defaults.
 - **Critical Thinking:** Traced `file:line` proof per claim; NEVER present guess as fact.
 - **AI Mistake Prevention:** verify generated content against evidence, trace downstream references, verify all affected outputs, re-read after context loss, surface ambiguity.
 
-- **IMPORTANT MUST ATTENTION** NEVER report progress without checking actual task status — read `./plans/` and `plans/reports/` first — why: status without milestone context is noise that misdirects the team.
+- **IMPORTANT MUST ATTENTION** NEVER report progress without checking actual task status — read `./plans/` and `tmp/reports/` first — why: status without milestone context is noise that misdirects the team.
 - **IMPORTANT MUST ATTENTION** cite `file:line` evidence for every claim, finding, and recommendation; confidence >80% to act, <80% verify first; NEVER guess or fabricate paths/function names/status — why: a fabricated status misdirects the whole team.
 - **IMPORTANT MUST ATTENTION** NEVER skip blocker identification — every report includes a blockers section; flag critical issues immediately for escalation, NEVER defer — why: a deferred blocker silently stalls downstream work.
 - **IMPORTANT MUST ATTENTION** ALWAYS include concrete next steps with their dependencies — build the dependency graph, identify the critical path, flag circular deps — why: a next step without its dependency order cannot be scheduled.
 - **IMPORTANT MUST ATTENTION** ALWAYS delegate doc updates to the `docs-manager` agent when features complete or APIs change — why: stale docs cascade into wrong assumptions across the team.
 - **IMPORTANT MUST ATTENTION** bootstrap task tracking before analysis; keep exactly one task `in_progress`; on context loss inspect the existing task list before creating new tasks — why: duplicate tasks fragment progress and hide what is actually done.
-- **IMPORTANT MUST ATTENTION** persist intermediate findings and final results to `plans/reports/{date}-{slug}.md` incrementally for complex/lengthy work, and synthesize from disk — why: context exhaustion silently loses all unwritten findings.
+- **IMPORTANT MUST ATTENTION** persist intermediate findings and final results to `tmp/reports/{date}-{slug}.md` incrementally for complex/lengthy work, and synthesize from disk — why: context exhaustion silently loses all unwritten findings.
 - **IMPORTANT MUST ATTENTION** verify plan YAML frontmatter (title, status, priority, effort, branch, tags, created); update `status` on state changes — why: a stale plan status reports the wrong project state.
-- **IMPORTANT MUST ATTENTION** search 3+ existing plans/reports for the pattern before authoring a new status format; evaluate fit before copying a nearby report's shape — why: closest example ≠ matching scope/milestone context.
+- **IMPORTANT MUST ATTENTION** search 3+ existing tmp/reports for the pattern before authoring a new status format; evaluate fit before copying a nearby report's shape — why: closest example ≠ matching scope/milestone context.
 
 **Anti-Rationalization:**
 
 | Evasion                                 | Rebuttal                                                                       |
 | --------------------------------------- | ------------------------------------------------------------------------------ |
-| "Status is obvious, skip reading plans" | Read `./plans/` + `plans/reports/` first — status without milestone is noise.  |
+| "Status is obvious, skip reading plans" | Read `./plans/` + `tmp/reports/` first — status without milestone is noise.  |
 | "No blockers worth noting"              | Every report includes a blockers section — "none found" is itself a finding.   |
 | "I remember the progress"               | Show `file:line` from plan/report files — memory after compaction is untested. |
 | "Docs can be updated later"             | Delegate to `docs-manager` now — stale docs cascade wrong assumptions.         |
-| "Just summarize, skip the report file"  | Persist findings to `plans/reports/` incrementally — unwritten = lost.         |
+| "Just summarize, skip the report file"  | Persist findings to `tmp/reports/` incrementally — unwritten = lost.         |
 
 **[TASK-PLANNING]** Before acting, break the task into small todos with `TaskCreate`; keep one `in_progress`; add a final review todo.

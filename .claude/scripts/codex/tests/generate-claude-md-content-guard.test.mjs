@@ -272,6 +272,7 @@ const ROOT_SENTINELS = [
   /Branch before committing on the default branch/,
   /Preserve unrelated\/user work/,
   /Never hand-edit.*\.agents\/.*\.codex\/.*AGENTS\.md/,
+  /Generated Artifact Storage/,
   /Never auto-run.*sync-codex/,
   /required quality gates.*cannot be waived/i,
   /before investigating, planning, or coding/,

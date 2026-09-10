@@ -336,7 +336,7 @@ const SCHEMA = {
                         required: false,
                         describe: 'Evidence capture and redaction settings. Captures are sensitive by default and must be read, redacted, and retained under a project-owned path.',
                         properties: {
-                            root: { type: 'string', required: false, describe: 'Project-relative candidate-evidence root.' },
+                            root: { type: 'string', required: false, describe: 'Project-relative disposable candidate-evidence root; use tmp/ or temp/ unless explicitly versioned.' },
                             capture: { type: 'array', required: false, itemType: 'string', describe: 'Capture kinds: screenshot, console, requests, trace, or video.' },
                             redaction: { type: 'string', required: false, describe: 'Project-defined redaction rule/tool reference; never a secret value.' }
                         }
@@ -361,7 +361,7 @@ const SCHEMA = {
         describe: 'Optional evidence contract for user-facing or externally observable surfaces. Configure only what the project can actually run and inspect; missing capability is recorded as ENVIRONMENT-BLOCKED, never as a successful check.',
         properties: {
             enabled: { type: 'boolean', required: true, describe: 'Enable conditional experience-review routing for configured surfaces.' },
-            evidenceRoot: { type: 'string', required: true, describe: 'Versioned report/candidate-evidence root, relative to the project.' },
+            evidenceRoot: { type: 'string', required: true, describe: 'Project-relative disposable report/candidate-evidence root; use a project-root tmp/ or temp/ path unless the owning contract explicitly declares a versioned output.' },
             baselineRoot: { type: 'string', required: true, describe: 'Expected-baseline root, changed only through explicit acceptance outside automatic comparison.' },
             acceptancePolicy: { type: 'string', required: true, describe: 'Keep manual-acceptance-required unless the project documents a stricter named owner process.' },
             reviewOn: { type: 'array', required: false, itemType: 'string', describe: 'Impact triggers such as new-surface, changed-surface, bugfix, or baseline-mismatch.' },

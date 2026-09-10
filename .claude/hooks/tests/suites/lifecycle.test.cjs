@@ -34,7 +34,7 @@ const SESSION_END = getHookPath('session-end.cjs');
 
 // session-init spawns 3 git/python grandchildren per run; under full-suite resource
 // contention a single spawn can exceed hook-runner's 10s default and hit SIGKILL —
-// a flaky, environmental timeout (see plans/reports/debug-investigate-260711-lifecycle-timeouts.md).
+// a flaky, environmental timeout (see tmp/reports/debug-investigate-260711-lifecycle-timeouts.md).
 // Give these spawn-based lifecycle tests a wider per-call ceiling, matching the
 // per-call precedent at test-all-hooks.cjs:334/348. Not a global DEFAULT_TIMEOUT change.
 const SPAWN_TIMEOUT_MS = 20000;

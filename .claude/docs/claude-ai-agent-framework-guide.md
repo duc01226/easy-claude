@@ -578,7 +578,7 @@ mindmap
 │     └─ "Is my understanding correct? Proof: file:line"           │
 │                                                                   │
 │  4. For non-trivial tasks (>3 files):                            │
-│     └─ Write analysis to .ai/workspace/analysis/                 │
+│     └─ Write analysis to tmp/analysis/                 │
 │                                                                   │
 │  ANTI-PATTERNS (FORBIDDEN):                                       │
 │  ❌ Guessing constructor signatures                               │
@@ -2836,7 +2836,7 @@ Context engineering is the discipline of **managing what information reaches the
 │     • Effect: Task progress survives compaction                  │
 │     • Recovery: model re-reads via TaskList after compaction     │
 │                                                                   │
-│  2. PLAN FILES (plans/ directory + plans/reports/)               │
+│  2. PLAN FILES (plans/ directory + tmp/reports/)               │
 │     • Trigger: /plan skill                                       │
 │     • Action: Write implementation plan to disk                  │
 │     • Effect: Plan survives compaction, can be re-read           │

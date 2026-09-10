@@ -74,6 +74,30 @@ test('session recovery documentation and ignore rules match the OS-temp state ow
     assert.match(workflowEnd, /CK_TMP_DIR\/workflow\/\{sessionId\}\.json/);
     assert.match(gitignore, /^\.claude\/.todo-state\.json$/m);
     assert.match(gitignore, /^\.claude\/.workflow-state\.json$/m);
+    assert.match(gitignore, /^\/tmp\/$/m);
+    assert.match(gitignore, /^\/temp\/$/m);
+});
+
+test('disposable generated-artifact policy reaches Claude and Codex source/mirror surfaces (TC-PROMPT-008)', async () => {
+    const [shared, template, claude, agents, context] = await Promise.all([
+        read('.claude/skills/shared/sync-inline-versions.md'),
+        read('.claude/skills/claude-md-init/references/claude-md-template.md'),
+        read('CLAUDE.md'),
+        read('AGENTS.md'),
+        read('.codex/CODEX_CONTEXT.md'),
+    ]);
+
+    assert.match(shared, /Store disposable generated output in the project workspace/);
+    assert.match(shared, /project-root `tmp\/` or `temp\/`/);
+    assert.match(shared, /integration\/E2E results/);
+    assert.match(shared, /tmp\/reports/);
+    assert.match(shared, /tmp\/analysis/);
+    assert.match(template, /^## Generated Artifact Storage$/m);
+    assert.match(template, /project-root `tmp\/` or `temp\/`/);
+    for (const [name, content] of [['CLAUDE.md', claude], ['AGENTS.md', agents], ['CODEX_CONTEXT.md', context]]) {
+        assert.match(content, /Store disposable generated output in the project workspace/, `${name} must carry the universal rule`);
+        assert.match(content, /project-root `tmp\/` or `temp\/`/, `${name} must carry the temp-path contract`);
+    }
 });
 
 test('active-plan and workflow-end prompts agree with live state ownership (TC-PROMPT-006)', async () => {

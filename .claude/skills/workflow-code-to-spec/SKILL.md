@@ -147,7 +147,7 @@ the guard for "the whole-project code-to-spec works flawlessly and nothing is mi
 
 1. **Enumerate the full target set:** for every bucket (App Bucket Mapping), list every capability
    discovered in investigate. This is the denominator — the complete set that MUST end with a Feature Spec.
-2. **Write the ledger** to `plans/reports/code-to-spec-coverage-{date}.md`:
+2. **Write the ledger** to `tmp/reports/code-to-spec-coverage-{date}.md`:
 
    | Bucket | Capability | Spec path | §1-7 | §6 (UI) | §8 TCs | Chain trace | Status |
    | ------ | ---------- | --------- | :--: | :-----: | :----: | :---------: | ------ |
@@ -325,7 +325,7 @@ Budget multiplier: If last audit was >90 days ago → ×1.5 (more drift expected
 
 /artifact-review
   → Consolidated audit report
-  → Produce: plans/reports/spec-audit-{date}-{Bucket}.md
+  → Produce: tmp/reports/spec-audit-{date}-{Bucket}.md
   → Include: total stale coverage %, estimated update effort, priority order
   → (Optional) /spec-index [mode=audit] — report which DERIVED index/ERD aids lag their source specs
 
@@ -467,6 +467,7 @@ The Feature Spec stays in sync on every feature/bugfix/refactor workflow.
 > **Assume existing values are intentional — ask WHY before changing OR flagging one as a defect.** Before changing or reporting a constant, limit, flag, cutoff, wording, or pattern, read nearby context and history, the CALLER's ordering, and 2+ sibling call sites of the same convention. A doc stating WHAT without WHY is missing rationale, not proof of a missing guard.
 > **Surface ambiguity before acting — don't pick silently.** Multiple valid interpretations require an explicit question or stated assumption with risk.
 > **Assert the outcome your system owns, not the intermediate state your infrastructure owns.** When verifying async work, assert the final business state — never the delivery/retry bookkeeping held in shared infrastructure that any co-running process can write. Such a check passes when run alone and flakes the moment anything else shares that infrastructure.
+> **Store disposable generated output in the project workspace.** If an output can be regenerated and is not source code, a canonical source-of-truth, or an intentionally versioned projection, write it under the project-root `tmp/` or `temp/` directory (prefer `tmp/`), scoped to the run. This includes temporary state, integration/E2E results, reports, logs, screenshots, traces, videos, coverage, dumps, and candidate evidence. Never put these outputs in source, docs, `plans/`, `team-artifacts/`, or mirror directories; the project-root `.gitignore` must ignore `/tmp/` and `/temp/` by default. Committed fixtures, accepted baselines, canonical specs/docs, and explicitly versioned generated mirrors remain at their declared owner paths.
 > **Keep shared guidance role-relevant.** Universal guidance must help every receiving skill or agent; code-specific obligations belong only in code-specific protocols.
 
 <!-- /SYNC:ai-mistake-prevention -->
@@ -475,7 +476,7 @@ The Feature Spec stays in sync on every feature/bugfix/refactor workflow.
 
 > **Incremental Result Persistence** — MANDATORY for all sub-agents or heavy inline steps processing >3 files.
 >
-> 1. **Before starting:** Create report file `plans/reports/{skill}-{date}-{slug}.md` and record Run ID, Task ID, Attempt ID, target scope, and target fingerprint.
+> 1. **Before starting:** Create report file `tmp/reports/{skill}-{date}-{slug}.md` and record Run ID, Task ID, Attempt ID, target scope, and target fingerprint.
 > 2. **After each file/section reviewed:** Append findings, evidence, changed paths, and gaps immediately — never hold them in memory.
 > 3. **Delegated return:** A sub-agent emits only the structured `SYNC:subagent-return-contract` envelope with exact totals, salient Critical/High findings (maximum ten), current attempt, and `Full report:` path. **Inline user-facing output:** Preserve the skill's requested explanation or teaching, with links to the persisted evidence; the delegated transport limit does not replace that deliverable. Do not paste a full review report into an envelope.
 > 4. **Parent synthesis:** The main agent reads the full report for synthesis, acceptance, deduplication, and repair planning — not only when a named blocker exists. It preserves all severities beyond the transport cap.
@@ -484,7 +485,7 @@ The Feature Spec stays in sync on every feature/bugfix/refactor workflow.
 >
 > **Why:** Context cutoff mid-execution loses ALL in-memory findings. Each disk write survives compaction. Partial results are better than no results, while explicit identity prevents a late result from being mistaken for the current run.
 >
-> **Report naming:** `plans/reports/{skill-name}-{YYMMDD}-{HHmm}-{slug}.md`
+> **Report naming:** `tmp/reports/{skill-name}-{YYMMDD}-{HHmm}-{slug}.md`
 
 <!-- /SYNC:incremental-persistence -->
 
@@ -521,7 +522,7 @@ The Feature Spec stays in sync on every feature/bugfix/refactor workflow.
 >
 > - [blocker description, or `none`]
 >
-> Full report: plans/reports/[skill-name]-[date]-[slug].md
+> Full report: tmp/reports/[skill-name]-[date]-[slug].md
 > ```
 >
 > The ten-bullet limit is a transport limit, not a visibility limit: the full report may contain more than ten Medium/Low findings when no named blocker exists, and the parent MUST read it when synthesizing or deduplicating. The parent MUST reject a stale, duplicate, or superseded `Attempt ID` and MUST accept the current attempt before advancing a dependent step. Read-only leaves write repair proposals/reports only; they do not edit source, generated carriers, or user files.
@@ -585,7 +586,7 @@ The Feature Spec stays in sync on every feature/bugfix/refactor workflow.
 > 2. **Group `PAR` into waves.** No edge between members. Two writers of one file NEVER share a wave. Read-only work (search, investigation, review, research) parallelizes freely.
 > 3. **Declare before dispatch:** `Parallel plan: wave 1 = [...] · wave 2 = [...] · SEQ = [...] (reason)`.
 > 4. **Spawn each wave in ONE message** — every `Agent` call in one response, NEVER dripped per turn. Route each task to its specialist (`.claude/skills/shared/sub-agent-selection-guide.md`); NEVER `code-reviewer` as catch-all.
-> 5. **Brief each sub-agent self-contained:** goal · scope + owned files · reference docs · return contract (summary + `Full report:` path, per SYNC:subagent-return-contract) · incremental persistence to `plans/reports/` (per SYNC:incremental-persistence).
+> 5. **Brief each sub-agent self-contained:** goal · scope + owned files · reference docs · return contract (summary + `Full report:` path, per SYNC:subagent-return-contract) · incremental persistence to `tmp/reports/` (per SYNC:incremental-persistence).
 > 6. **Barrier per wave.** Advance ONLY after EVERY member returns (a skipped conditional counts as returned). Merge, mark each task completed/skipped, THEN dispatch the next wave. Mutating steps wait for the barrier.
 > 7. **One level deep.** A dispatched sub-agent executes its own brief; further fan-out stays the orchestrator's job unless that agent's `.claude/agents/*.md` definition authorizes it.
 >
@@ -627,7 +628,7 @@ The Feature Spec stays in sync on every feature/bugfix/refactor workflow.
 - **Nested Task Creation:** expand child phases, link parent when nested; NEVER batch transitions.
 - **Critical Thinking:** traced proof per claim, confidence >80% to act; NEVER present guess as fact.
 - **AI Mistake Prevention:** verify generated content against evidence, trace downstream references, verify all affected outputs, re-read after context loss, surface ambiguity.
-- **Incremental Persistence:** persist findings to `plans/reports/` per section; NEVER hold in memory.
+- **Incremental Persistence:** persist findings to `tmp/reports/` per section; NEVER hold in memory.
 - **Sub-Agent Return Contract:** sub-agents return summary only; NEVER request full output inline.
 
 - **[BLOCKING]** Confirm mode via `AskUserQuestion` BEFORE any action — NEVER skip Step 0

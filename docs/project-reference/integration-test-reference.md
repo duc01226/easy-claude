@@ -10,6 +10,7 @@
 - Run real hook entry points as Node child processes with JSON stdin; assert exit code, stdout/stderr, and state.
 - Isolate mutable state in unique OS-temp directories and restore environment changes in `finally`.
 - Run the canonical suite twice consecutively without resetting state before claiming repeatability.
+- Persist repeatable integration-test results, reports, logs, and captures under the project-root `tmp/` or `temp/` directory (prefer `tmp/integration`); the root `.gitignore` ignores both by default. OS-temp directories remain appropriate for private per-test setup that is removed during teardown.
 
 ## Workflow
 

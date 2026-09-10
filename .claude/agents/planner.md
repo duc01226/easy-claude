@@ -47,7 +47,7 @@ Connected contracts:
 - **YAGNI/KISS/DRY** — Every proposed solution must honor these principles
 
 > **Evidence Gate** — Speculation is FORBIDDEN. Every claim needs `file:line` proof or traced evidence. Confidence >80% to act, <80% must verify first. "I don't have enough evidence" is valid output. NEVER say "probably", "should be", "I think" about existing code.
-> **External Memory** — For complex/lengthy work, write intermediate findings to `plans/reports/` after EACH phase. Context loss without a progress file = unrecoverable work.
+> **External Memory** — For complex/lengthy work, write intermediate findings to `tmp/reports/` after EACH phase. Context loss without a progress file = unrecoverable work.
 > **Graph Intelligence** — MANDATORY when `.code-graph/graph.db` exists. Run at least ONE graph command on key files BEFORE concluding any investigation. Pattern: grep finds files → `trace --direction both` reveals full system flow → grep verifies details.
 
 ## Project Context
@@ -77,7 +77,7 @@ Connected contracts:
 ## Output
 
 - Plan directory: `{plan-dir}/plan.md` + `{plan-dir}/phase-XX-*.md` + `{plan-dir}/research/*.md`
-- Name report files under `plans/reports/` using the `{date}-{slug}` convention
+- Name report files under `tmp/reports/` using the `{date}-{slug}` convention
 - After creating plan, run `node .claude/scripts/set-active-plan.cjs {plan-dir}` to update session state
 - Respond with summary and file path of plan — do NOT start implementation
 - Concise reports; list unresolved questions at end
@@ -115,7 +115,7 @@ python .claude/scripts/code_graph query tests_for <function> --json     # Test c
 > 1. **On start:** create `tmp/ck-agent-{ts}-{rnd}.progress.md` — `ts` = current timestamp in `YYYYMMDDHHmmssSSS` (17 digits), `rnd` = random 6-char hex. First line records the session id.
 > 2. **After each step:** append findings, marking `[done]` / `[partial]` / `[pending]`.
 > 3. **Running out of context?** Write `[partial]` to the file FIRST — NEVER summarize before writing.
-> 4. **Producing a report?** Persist it incrementally to `plans/reports/` and start the final message with its path.
+> 4. **Producing a report?** Persist it incrementally to `tmp/reports/` and start the final message with its path.
 >
 > **Blocked until:** task breakdown exists · progress file created when the task exceeds the size threshold.
 
@@ -127,9 +127,9 @@ python .claude/scripts/code_graph query tests_for <function> --json     # Test c
 >
 > 1. Create a small task breakdown before target file reads, grep, edits, or analysis. On context loss, inspect the current task list first.
 > 2. Mark one task `in_progress` before work and `completed` immediately after evidence; never batch transitions.
-> 3. For plan/review work, create `plans/reports/{skill}-{YYMMDD}-{HHmm}-{slug}.md` before first finding.
+> 3. For plan/review work, create `tmp/reports/{skill}-{YYMMDD}-{HHmm}-{slug}.md` before first finding.
 > 4. Append findings after each file/section/decision and synthesize from the report file at the end.
-> 5. Final output cites `Full report: plans/reports/{filename}`.
+> 5. Final output cites `Full report: tmp/reports/{filename}`.
 >
 > **Blocked until:** task breakdown exists, report path declared for plan/review work, first finding persisted before the next finding.
 
@@ -156,7 +156,7 @@ python .claude/scripts/code_graph query tests_for <function> --json     # Test c
 > 2. Read existing files in target area — understand structure, base classes, conventions
 > 3. Run `python .claude/scripts/code_graph trace <file> --direction both --json` when `.code-graph/graph.db` exists
 > 4. Map dependencies via `connections` or `callers_of` — know what depends on your target
-> 5. Write investigation to `.ai/workspace/analysis/` for non-trivial tasks (3+ files)
+> 5. Write investigation to `tmp/analysis/` for non-trivial tasks (3+ files)
 > 6. Re-read analysis file before implementing — never work from memory alone. — why: long context drifts from the file; the file is ground truth
 > 7. NEVER invent new patterns when existing ones work — match exactly or document deviation. — why: divergent patterns fragment the codebase and slow every future reader
 >
@@ -265,6 +265,7 @@ python .claude/scripts/code_graph query tests_for <function> --json     # Test c
 > **Assume existing values are intentional — ask WHY before changing OR flagging one as a defect.** Before changing or reporting a constant, limit, flag, cutoff, wording, or pattern, read nearby context and history, the CALLER's ordering, and 2+ sibling call sites of the same convention. A doc stating WHAT without WHY is missing rationale, not proof of a missing guard.
 > **Surface ambiguity before acting — don't pick silently.** Multiple valid interpretations require an explicit question or stated assumption with risk.
 > **Assert the outcome your system owns, not the intermediate state your infrastructure owns.** When verifying async work, assert the final business state — never the delivery/retry bookkeeping held in shared infrastructure that any co-running process can write. Such a check passes when run alone and flakes the moment anything else shares that infrastructure.
+> **Store disposable generated output in the project workspace.** If an output can be regenerated and is not source code, a canonical source-of-truth, or an intentionally versioned projection, write it under the project-root `tmp/` or `temp/` directory (prefer `tmp/`), scoped to the run. This includes temporary state, integration/E2E results, reports, logs, screenshots, traces, videos, coverage, dumps, and candidate evidence. Never put these outputs in source, docs, `plans/`, `team-artifacts/`, or mirror directories; the project-root `.gitignore` must ignore `/tmp/` and `/temp/` by default. Committed fixtures, accepted baselines, canonical specs/docs, and explicitly versioned generated mirrors remain at their declared owner paths.
 > **Keep shared guidance role-relevant.** Universal guidance must help every receiving skill or agent; code-specific obligations belong only in code-specific protocols.
 
 <!-- /SYNC:ai-mistake-prevention -->
@@ -559,7 +560,7 @@ python .claude/scripts/code_graph query tests_for <function> --json     # Test c
 > 1. Start a NEW full review invocation/task breakdown; when that protocol calls for agents, spawn NEW `Agent` tool calls — use `code-reviewer` subagent_type for code reviews, `general-purpose` for plan/doc/artifact reviews
 > 2. Inject ALL required review protocols VERBATIM into the prompt — see `SYNC:review-protocol-injection` for the full list and template. Never reference protocols by file path; AI compliance drops behind file-read indirection (see `SYNC:shared-protocol-duplication-policy`)
 > 3. Sub-agent re-reads ALL target files from scratch via its own tool calls — never pass file contents inline in the prompt
-> 4. Sub-agent writes structured report to `plans/reports/{review-type}-round{N}-{date}.md`
+> 4. Sub-agent writes structured report to `tmp/reports/{review-type}-round{N}-{date}.md`
 > 5. Main agent reads the report, integrates findings into its own report, DOES NOT override or filter
 >
 > **Rules:**
@@ -800,7 +801,7 @@ HARD-GATE: Do NOT write, plan, or fix until you READ existing code.
 2. Read existing files in target area — understand structure, base classes, conventions.
 3. Run python .claude/scripts/code_graph trace <file> --direction both --json when .code-graph/graph.db exists.
 4. Map dependencies via connections or callers_of — know what depends on your target.
-5. Write investigation to .ai/workspace/analysis/ for non-trivial tasks (3+ files).
+5. Write investigation to tmp/analysis/ for non-trivial tasks (3+ files).
 6. Re-read analysis file before implementing — never work from memory alone.
 7. NEVER invent new patterns when existing ones work — match exactly or document deviation.
 BLOCKED until: Read target files; Grep 3+ patterns; Graph trace (if graph.db exists); Assumptions verified with evidence.
@@ -814,7 +815,7 @@ BLOCKED until: Read target files; Grep 3+ patterns; Graph trace (if graph.db exi
 {explicit file list OR "run git diff to see uncommitted changes" OR "read all files under {plan-dir}"}
 
 ## Output
-Write a structured report to plans/reports/{review-type}-round{N}-{date}.md with sections:
+Write a structured report to tmp/reports/{review-type}-round{N}-{date}.md with sections:
 - Status: PASS | FAIL
 - Issue Count: {number}
 - Critical Issues (with file:line evidence)
@@ -933,14 +934,14 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 
 <!-- SYNC:ai-mistake-prevention:reminder -->
 
-**MUST ATTENTION** apply AI mistake prevention — verify generated content against evidence, trace downstream references before deleting or renaming, verify all affected outputs, re-read files after context loss, and surface ambiguity before acting.
+**MUST ATTENTION** apply AI mistake prevention — verify generated content against evidence, trace downstream references before deleting or renaming, verify all affected outputs, re-read files after context loss, surface ambiguity before acting, and route disposable generated output (including integration/E2E results) to project-root `tmp/` or `temp/`; root `.gitignore` ignores both by default.
 
 <!-- /SYNC:ai-mistake-prevention:reminder -->
 
 <!-- SYNC:task-tracking-external-report:reminder -->
 
 - **MANDATORY** Bootstrap task tracking before target work; transition one task at a time.
-- **MANDATORY** Persist plan/review findings to `plans/reports/` incrementally and synthesize from disk.
+- **MANDATORY** Persist plan/review findings to `tmp/reports/` incrementally and synthesize from disk.
 
 <!-- /SYNC:task-tracking-external-report:reminder -->
 
@@ -1026,7 +1027,7 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 **IMPORTANT MUST ATTENTION** search 3+ existing patterns (grep/glob) BEFORE proposing any new pattern; cite evidence — why: projects carry local conventions that override generic framework defaults.
 **IMPORTANT MUST ATTENTION** Collaborate — present options with a recommendation and wait for user confirmation via `AskUserQuestion`; never silently decide a real decision point — why: a plan the user did not confirm is a plan they will not execute.
 **IMPORTANT MUST ATTENTION** run `/plan-review` after every plan creation; offer `/plan-validate` to confirm decisions with the user — why: closing the review/validate loop catches unverified paths and oversized phases before code starts.
-**IMPORTANT MUST ATTENTION** bootstrap a `TaskCreate` breakdown before research/edits; persist intermediate findings to `plans/reports/` after EACH phase — why: context loss without an on-disk progress file is unrecoverable work.
+**IMPORTANT MUST ATTENTION** bootstrap a `TaskCreate` breakdown before research/edits; persist intermediate findings to `tmp/reports/` after EACH phase — why: context loss without an on-disk progress file is unrecoverable work.
 **IMPORTANT MUST ATTENTION** evaluate pattern FIT before copying a nearby example — verify the new context shares the same base classes, scope, lifetime, and constraints — why: the closest example is not always a matching example.
 **IMPORTANT MUST ATTENTION** every phase passes the granularity gate — exact file paths, ≤5 files, ≤3h, no planning verbs, no open TBDs — and carries `## Test Specifications` with `TC-{FEATURE}-{NNN}` IDs — why: a phase you cannot start coding right now is not a plan, it is a research note.
 **IMPORTANT MUST ATTENTION** bugfix plans produce the Preservation Inventory (≥3 rows, each `file:line` + TC-ID/grep) BEFORE implementation steps — why: an un-inventoried invariant is the one the fix silently breaks.

@@ -11,7 +11,7 @@ disable-model-invocation: false
 
 **Workflow:**
 
-1. **File Checkpoints** — Save task-specific context to `plans/reports/checkpoint-*.md` every 30-60 min
+1. **File Checkpoints** — Save task-specific context to `tmp/reports/checkpoint-*.md` every 30-60 min
 2. **Recovery** — On context loss, find latest checkpoint via Glob, read it, resume from documented next steps
 
 **Key Rules:**
@@ -40,7 +40,7 @@ Provide external file-based checkpoints for long-running tasks so progress, find
 
 ### Checkpoint File Location
 
-Files saved to: `plans/reports/checkpoint-{YYYYMMDD}-{HHMMSS}-{slug}.md`
+Files saved to: `tmp/reports/checkpoint-{YYYYMMDD}-{HHMMSS}-{slug}.md`
 
 ### CHECKPOINT_CREATE Protocol
 
@@ -91,7 +91,7 @@ Create a checkpoint file with this structure:
 
 When recovering from a checkpoint:
 
-1. Search for latest checkpoint: `Glob("plans/reports/checkpoint-*.md")`
+1. Search for latest checkpoint: `Glob("tmp/reports/checkpoint-*.md")`
 2. Read the checkpoint file
 3. Load any referenced analysis files
 4. Review Progress section
@@ -143,7 +143,7 @@ All long-running workflows should follow this pattern:
 | Manual checkpoint | `checkpoint-{YYYYMMDD}-{HHMMSS}-{slug}.md`  | `checkpoint-20250106-143000-user-auth.md` |
 | Auto checkpoint   | `checkpoint-{YYYYMMDD}-{HHMMSS}-{slug}.md`  | `checkpoint-20250106-143000-autosave.md`  |
 | Analysis notes    | `{type}-{date}-{slug}.md`                   | `analysis-250106-payment-flow.md`         |
-| Task notes        | `.ai/workspace/analysis/{slug}.analysis.md` | Used by feature                           |
+| Task notes        | `tmp/analysis/{slug}.analysis.md` | Used by feature                           |
 
 > **Legacy back-read:** checkpoints written before grammar unification — `memory-checkpoint-*.md`, or `checkpoint-{YYMMDD}-{HHMM}-{slug}.md` without seconds — are still discovered by `/recover`. No on-disk checkpoint is orphaned by the rename. (`/recover` is the sole discoverer — recovery is skill-driven.)
 
@@ -180,6 +180,7 @@ All long-running workflows should follow this pattern:
 > **Assume existing values are intentional — ask WHY before changing OR flagging one as a defect.** Before changing or reporting a constant, limit, flag, cutoff, wording, or pattern, read nearby context and history, the CALLER's ordering, and 2+ sibling call sites of the same convention. A doc stating WHAT without WHY is missing rationale, not proof of a missing guard.
 > **Surface ambiguity before acting — don't pick silently.** Multiple valid interpretations require an explicit question or stated assumption with risk.
 > **Assert the outcome your system owns, not the intermediate state your infrastructure owns.** When verifying async work, assert the final business state — never the delivery/retry bookkeeping held in shared infrastructure that any co-running process can write. Such a check passes when run alone and flakes the moment anything else shares that infrastructure.
+> **Store disposable generated output in the project workspace.** If an output can be regenerated and is not source code, a canonical source-of-truth, or an intentionally versioned projection, write it under the project-root `tmp/` or `temp/` directory (prefer `tmp/`), scoped to the run. This includes temporary state, integration/E2E results, reports, logs, screenshots, traces, videos, coverage, dumps, and candidate evidence. Never put these outputs in source, docs, `plans/`, `team-artifacts/`, or mirror directories; the project-root `.gitignore` must ignore `/tmp/` and `/temp/` by default. Committed fixtures, accepted baselines, canonical specs/docs, and explicitly versioned generated mirrors remain at their declared owner paths.
 > **Keep shared guidance role-relevant.** Universal guidance must help every receiving skill or agent; code-specific obligations belong only in code-specific protocols.
 
 <!-- /SYNC:ai-mistake-prevention -->
@@ -199,7 +200,7 @@ All long-running workflows should follow this pattern:
 
 <!-- SYNC:ai-mistake-prevention:reminder -->
 
-**MUST ATTENTION** apply AI mistake prevention — verify generated content against evidence, trace downstream references before deleting or renaming, verify all affected outputs, re-read files after context loss, and surface ambiguity before acting.
+**MUST ATTENTION** apply AI mistake prevention — verify generated content against evidence, trace downstream references before deleting or renaming, verify all affected outputs, re-read files after context loss, surface ambiguity before acting, and route disposable generated output (including integration/E2E results) to project-root `tmp/` or `temp/`; root `.gitignore` ignores both by default.
 
 <!-- /SYNC:ai-mistake-prevention:reminder -->
 

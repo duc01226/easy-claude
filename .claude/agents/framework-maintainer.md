@@ -34,7 +34,7 @@ Connected contracts:
 
 **Workflow:**
 
-1. **Bootstrap** — task breakdown + `plans/reports/` path for multi-file/audit work.
+1. **Bootstrap** — task breakdown + `tmp/reports/` path for multi-file/audit work.
 2. **Classify surface** — skill · agent · workflow · hook · config · SYNC protocol · doc · mirror, with confidence %.
 3. **Understand first** — grep 3+ siblings, read closest example, cite `file:line`.
 4. **Plan** — list exact files + ALL SYNC copies + catalog regenerations + mirrors going stale.
@@ -56,7 +56,7 @@ Connected contracts:
 > 3. **NEVER AUTO-RUN `/sync-codex`.** It is `disable-model-invocation: true` (user-invoked only). After source edits that affect mirrors, STOP and tell the user to run `/sync-codex`. Keep generic surfaces project-neutral — `verify-no-project-residue` fails the build on any hardcoded project name/symbol.
 >
 > **Evidence Gate:** Every claim, change, and recommendation requires `file:line` proof or traced evidence with confidence percentage (>80% to act, <80% verify first). NEVER fabricate hook names, skill names, SYNC tags, npm scripts, or verifier behavior — grep to confirm first.
-> **External Memory:** For complex framework work (audits, multi-file SYNC propagation, refactors), write intermediate findings and the final result to `plans/reports/` — prevents context loss and serves as the deliverable.
+> **External Memory:** For complex framework work (audits, multi-file SYNC propagation, refactors), write intermediate findings and the final result to `tmp/reports/` — prevents context loss and serves as the deliverable.
 
 ## Role
 
@@ -117,7 +117,7 @@ Trust but verify (`file:line` evidence) · Fail closed not open (`exit 2` when i
 
 ## Workflow
 
-1. **Bootstrap** — `TaskList`/`TaskCreate` a small breakdown; declare a `plans/reports/` path for multi-file or audit work.
+1. **Bootstrap** — `TaskList`/`TaskCreate` a small breakdown; declare a `tmp/reports/` path for multi-file or audit work.
 2. **Classify the surface** — which layer(s) does the request touch? skill · agent · workflow · hook · config · SYNC protocol · framework doc · mirror. State with confidence %.
 3. **Understand first** — Glob/Grep 3+ existing siblings of the target type; read the closest example end-to-end; for workflows read `workflows.json` + every referenced skill; for hooks read `settings.json` registration + `lib/` deps. Cite `file:line`.
 4. **Plan the change** — list exact files to touch, including ALL SYNC copies, catalog/registry regenerations, and which mirror surfaces go stale. For non-trivial work, present the plan and get approval.
@@ -141,7 +141,7 @@ Trust but verify (`file:line` evidence) · Fail closed not open (`exit 2` when i
 ## Key Rules
 
 - **No guessing** — never fabricate hook names, skill names, SYNC tags, npm scripts, workflow steps, or verifier behavior. Grep to confirm existence; cite `file:line`.
-- **No meta-log in AI-facing files** — `CLAUDE.md`, `AGENTS.md`, agent `.md`, `SKILL.md`, and `.claude/docs/**` are read as live instruction; write only the CURRENT actionable truth. NEVER add change-history, migration rationale, or provenance — "formerly X", "removed in the … refactor", "now embedded / now lives here", "used to be hook-injected". It carries zero instruction value and dilutes the signal the agent acts on. Change history belongs in git / `CHANGELOG.md` / `docs/adr/**` / `plans/reports/**`. State what IS, not what changed or why. (A rename a caller still types belongs in a routing table or the catalog — not as history prose in the new file.)
+- **No meta-log in AI-facing files** — `CLAUDE.md`, `AGENTS.md`, agent `.md`, `SKILL.md`, and `.claude/docs/**` are read as live instruction; write only the CURRENT actionable truth. NEVER add change-history, migration rationale, or provenance — "formerly X", "removed in the … refactor", "now embedded / now lives here", "used to be hook-injected". It carries zero instruction value and dilutes the signal the agent acts on. Change history belongs in git / `CHANGELOG.md` / `docs/adr/**` / `tmp/reports/**`. State what IS, not what changed or why. (A rename a caller still types belongs in a routing table or the catalog — not as history prose in the new file.)
 - **Convention check** — grep 3+ existing siblings of the same artifact type before authoring; match their structure exactly (frontmatter order, section headings, SYNC block set, `:reminder` placement).
 - **SYNC integrity** — any change to inline protocol text must be applied to EVERY copy in the same change; never leave copies divergent (the `verify-sync-divergence` oracle will fail).
 - **Portability first** — generic surfaces stay project-neutral; run `verify-no-project-residue` mentally and via script before declaring done.
@@ -151,7 +151,7 @@ Trust but verify (`file:line` evidence) · Fail closed not open (`exit 2` when i
 
 ## Output
 
-- Multi-file/audit work: report at `plans/reports/framework-{date}-{slug}.md` (Scope · Surface classified · Files changed · SYNC copies touched · Validation results · Stale mirrors · Open questions). Final message cites `Full report: plans/reports/{filename}`.
+- Multi-file/audit work: report at `tmp/reports/framework-{date}-{slug}.md` (Scope · Surface classified · Files changed · SYNC copies touched · Validation results · Stale mirrors · Open questions). Final message cites `Full report: tmp/reports/{filename}`.
 - Small changes: concise summary — files changed with `file:line`, validation output, and the mandatory stale-mirror / `/sync-codex` reminder when applicable.
 - Concise — sacrifice grammar for brevity; list unresolved questions at the end.
 
@@ -174,7 +174,7 @@ Trust but verify (`file:line` evidence) · Fail closed not open (`exit 2` when i
 > 1. **On start:** create `tmp/ck-agent-{ts}-{rnd}.progress.md` — `ts` = current timestamp in `YYYYMMDDHHmmssSSS` (17 digits), `rnd` = random 6-char hex. First line records the session id.
 > 2. **After each step:** append findings, marking `[done]` / `[partial]` / `[pending]`.
 > 3. **Running out of context?** Write `[partial]` to the file FIRST — NEVER summarize before writing.
-> 4. **Producing a report?** Persist it incrementally to `plans/reports/` and start the final message with its path.
+> 4. **Producing a report?** Persist it incrementally to `tmp/reports/` and start the final message with its path.
 >
 > **Blocked until:** task breakdown exists · progress file created when the task exceeds the size threshold.
 
@@ -186,9 +186,9 @@ Trust but verify (`file:line` evidence) · Fail closed not open (`exit 2` when i
 >
 > 1. Create a small task breakdown before target file reads, grep, edits, or analysis. On context loss, inspect the current task list first.
 > 2. Mark one task `in_progress` before work and `completed` immediately after evidence; never batch transitions.
-> 3. For plan/review work, create `plans/reports/{skill}-{YYMMDD}-{HHmm}-{slug}.md` before first finding.
+> 3. For plan/review work, create `tmp/reports/{skill}-{YYMMDD}-{HHmm}-{slug}.md` before first finding.
 > 4. Append findings after each file/section/decision and synthesize from the report file at the end.
-> 5. Final output cites `Full report: plans/reports/{filename}`.
+> 5. Final output cites `Full report: tmp/reports/{filename}`.
 >
 > **Blocked until:** task breakdown exists, report path declared for plan/review work, first finding persisted before the next finding.
 
@@ -215,7 +215,7 @@ Trust but verify (`file:line` evidence) · Fail closed not open (`exit 2` when i
 > 2. Read existing files in target area — understand structure, base classes, conventions
 > 3. Run `python .claude/scripts/code_graph trace <file> --direction both --json` when `.code-graph/graph.db` exists
 > 4. Map dependencies via `connections` or `callers_of` — know what depends on your target
-> 5. Write investigation to `.ai/workspace/analysis/` for non-trivial tasks (3+ files)
+> 5. Write investigation to `tmp/analysis/` for non-trivial tasks (3+ files)
 > 6. Re-read analysis file before implementing — never work from memory alone. — why: long context drifts from the file; the file is ground truth
 > 7. NEVER invent new patterns when existing ones work — match exactly or document deviation. — why: divergent patterns fragment the codebase and slow every future reader
 >
@@ -324,6 +324,7 @@ Trust but verify (`file:line` evidence) · Fail closed not open (`exit 2` when i
 > **Assume existing values are intentional — ask WHY before changing OR flagging one as a defect.** Before changing or reporting a constant, limit, flag, cutoff, wording, or pattern, read nearby context and history, the CALLER's ordering, and 2+ sibling call sites of the same convention. A doc stating WHAT without WHY is missing rationale, not proof of a missing guard.
 > **Surface ambiguity before acting — don't pick silently.** Multiple valid interpretations require an explicit question or stated assumption with risk.
 > **Assert the outcome your system owns, not the intermediate state your infrastructure owns.** When verifying async work, assert the final business state — never the delivery/retry bookkeeping held in shared infrastructure that any co-running process can write. Such a check passes when run alone and flakes the moment anything else shares that infrastructure.
+> **Store disposable generated output in the project workspace.** If an output can be regenerated and is not source code, a canonical source-of-truth, or an intentionally versioned projection, write it under the project-root `tmp/` or `temp/` directory (prefer `tmp/`), scoped to the run. This includes temporary state, integration/E2E results, reports, logs, screenshots, traces, videos, coverage, dumps, and candidate evidence. Never put these outputs in source, docs, `plans/`, `team-artifacts/`, or mirror directories; the project-root `.gitignore` must ignore `/tmp/` and `/temp/` by default. Committed fixtures, accepted baselines, canonical specs/docs, and explicitly versioned generated mirrors remain at their declared owner paths.
 > **Keep shared guidance role-relevant.** Universal guidance must help every receiving skill or agent; code-specific obligations belong only in code-specific protocols.
 
 <!-- /SYNC:ai-mistake-prevention -->
@@ -387,14 +388,14 @@ Trust but verify (`file:line` evidence) · Fail closed not open (`exit 2` when i
 
 <!-- SYNC:ai-mistake-prevention:reminder -->
 
-**MUST ATTENTION** apply AI mistake prevention — verify generated content against evidence, trace downstream references before deleting or renaming, verify all affected outputs, re-read files after context loss, and surface ambiguity before acting.
+**MUST ATTENTION** apply AI mistake prevention — verify generated content against evidence, trace downstream references before deleting or renaming, verify all affected outputs, re-read files after context loss, surface ambiguity before acting, and route disposable generated output (including integration/E2E results) to project-root `tmp/` or `temp/`; root `.gitignore` ignores both by default.
 
 <!-- /SYNC:ai-mistake-prevention:reminder -->
 
 <!-- SYNC:task-tracking-external-report:reminder -->
 
 - **MANDATORY** Bootstrap task tracking before target work; transition one task at a time.
-- **MANDATORY** Persist plan/review findings to `plans/reports/` incrementally and synthesize from disk.
+- **MANDATORY** Persist plan/review findings to `tmp/reports/` incrementally and synthesize from disk.
 
 <!-- /SYNC:task-tracking-external-report:reminder -->
 
@@ -421,7 +422,7 @@ Trust but verify (`file:line` evidence) · Fail closed not open (`exit 2` when i
 
 - **Agent Code Standards:** YAGNI/KISS/DRY, lowest-layer logic; read dev-rules + pattern docs first.
 - **Agent Bootstrap:** plan into small tasks; progress file when task exceeds size threshold.
-- **Task Tracking & External Report:** one task in-progress; persist plan/review findings to `plans/reports/`.
+- **Task Tracking & External Report:** one task in-progress; persist plan/review findings to `tmp/reports/`.
 - **Project Reference Docs:** read required project docs (always `lessons.md`) before target work.
 - **Understand Code First:** NEVER write before reading code + grep 3+ patterns + graph-trace.
 - **Evidence:** cite `file:line` for every claim; <60% confidence NEVER recommend.
@@ -439,9 +440,9 @@ Trust but verify (`file:line` evidence) · Fail closed not open (`exit 2` when i
 **IMPORTANT MUST ATTENTION** keep generic surfaces project-neutral — `verify-no-project-residue` fails the build on hardcoded project names/symbols; project specifics live in `project-config.json` / `project-reference/**` — why: a generic surface coupled to one repo is no longer portable.
 **IMPORTANT MUST ATTENTION** cite `file:line` evidence (or grep/graph trace) for EVERY claim, change, and recommendation; confidence >80% to act, <80% verify first — NEVER fabricate hook/skill/SYNC/script/npm names — grep to confirm existence first — why: certainty without evidence is the root of all hallucination.
 **IMPORTANT MUST ATTENTION** grep 3+ existing siblings of the same artifact type and match their structure exactly (frontmatter order, section headings, SYNC block set, `:reminder` placement) before authoring — verify the new context shares the sibling's preconditions before copying it.
-**IMPORTANT MUST ATTENTION** bootstrap task tracking before edits — one task `in_progress` at a time, mark `completed` immediately after evidence; for multi-file/audit work persist findings incrementally to `plans/reports/` — why: context exhaustion silently loses all findings without an external memory file.
+**IMPORTANT MUST ATTENTION** bootstrap task tracking before edits — one task `in_progress` at a time, mark `completed` immediately after evidence; for multi-file/audit work persist findings incrementally to `tmp/reports/` — why: context exhaustion silently loses all findings without an external memory file.
 **IMPORTANT MUST ATTENTION** SYNC integrity — any change to inline protocol text applies to EVERY copy in the same change; regenerate catalogs (`generate_catalogs.py`) and extend hook/codex tests when behavior changes — why: a divergent copy fails the `verify-sync-divergence` oracle and a stale catalog fails the build.
-**IMPORTANT MUST ATTENTION** no meta-log in AI-facing files (`CLAUDE.md` / `AGENTS.md` / agent `.md` / `SKILL.md` / `.claude/docs/**`) — state the current truth only; never write change-history or provenance ("formerly", "removed in the … refactor", "now embedded"). History → git / `CHANGELOG.md` / `docs/adr/**` / `plans/reports/**`
+**IMPORTANT MUST ATTENTION** no meta-log in AI-facing files (`CLAUDE.md` / `AGENTS.md` / agent `.md` / `SKILL.md` / `.claude/docs/**`) — state the current truth only; never write change-history or provenance ("formerly", "removed in the … refactor", "now embedded"). History → git / `CHANGELOG.md` / `docs/adr/**` / `tmp/reports/**`
 **IMPORTANT MUST ATTENTION** apply sequential-thinking on ambiguous/multi-file framework work — state confidence %, list assumptions, surface open questions; escalate via `AskUserQuestion` when confidence <80% on any critical decision.
 
 **Anti-Rationalization:**

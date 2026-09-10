@@ -901,7 +901,7 @@ Also: in Sync mode extract section list → skip well-documented sections. Read 
 
 **Evidence gate:** Confidence <60% on framework → report uncertainty, ask user before proceeding.
 
-### Sub-agent Think scopes (Phase 2 contract: write incrementally per file, cite `file:line`, NEVER document a count — use grep-expression statistics. Report → `plans/reports/scan-e2e-tests-{YYMMDD}-{HHMM}-report.md`.)
+### Sub-agent Think scopes (Phase 2 contract: write incrementally per file, cite `file:line`, NEVER document a count — use grep-expression statistics. Report → `tmp/reports/scan-e2e-tests-{YYMMDD}-{HHMM}-report.md`.)
 
 **Agent 1: E2E Framework & Architecture**
 - **Think:** What makes this test infrastructure reusable vs brittle? How is the test project structured? What base classes exist and what do they provide? What lifecycle hooks are available?
@@ -1127,7 +1127,7 @@ Standard `output-quality-principles`. Surgical sync only — keep existing secti
 ### Special slivers
 - **DI-scope safety gate:** verify the project's scoped-async execution primitive (discover via codebase grep — do NOT assume) against real source usage before documenting it.
 - **One graph trace** when graph DB available (seeder entry file).
-- Report → `plans/reports/seed-test-data-scan-{YYMMDD}-{HHMM}-report.md` (mode, evidence summary `file:line`, sections updated, open gaps).
+- Report → `tmp/reports/seed-test-data-scan-{YYMMDD}-{HHMM}-report.md` (mode, evidence summary `file:line`, sections updated, open gaps).
 
 ### Anti-Rationalization rows
 

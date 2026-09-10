@@ -8,7 +8,9 @@ plans/
 .claude-md.backup
 *.bak
 .claude/settings.json.*.bak
-tmp/
+# Disposable generated output (reports, test results, logs, captures, traces, coverage, etc.)
+/tmp/
+/temp/
 .claude/scheduled_tasks.lock
 node_modules/
 .claude/scripts/codex/tests/fixtures/
@@ -19,4 +21,3 @@ node_modules/
 # Scratch report dumps + orphan test baselines (workflow-review-changes hygiene)
 rep-*.txt
 _baseline-*.txt
-.ai/workspace/analysis/

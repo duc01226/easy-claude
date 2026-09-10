@@ -25,7 +25,7 @@ triggers:
 **Summary:**
 
 - Translate every diff into business impact: name the user-facing capability, never the class/file/enum/migration (the "Business Focus" table is the lens — e.g. "Fixed pipeline loading error", not "Fixed null ref in GetById").
-- Drive the review through a throwaway `.ai/workspace/changelog-notes-*.md` notes file (categorize Added/Changed/Fixed/Deprecated/Removed/Security), then DELETE it in the final cleanup step — a leftover notes file is an anti-pattern.
+- Drive the review through a throwaway `tmp/changelog-notes-*.md` notes file (categorize Added/Changed/Fixed/Deprecated/Removed/Security), then DELETE it in the final cleanup step — a leftover notes file is an anti-pattern.
 - Always write the entry under `[Unreleased]` (create the section if absent), grouped by module/feature rather than per-file, preserving existing entries.
 - Cite affected logical IDs (`FR-`/`BR-`/`TC-`) in `**Refs**` and prefix any breaking change with `**BREAKING:**` plus a one-line migration/impact note; omit the Breaking block when there is none.
 - **Main steps (in order):** locate `CHANGELOG.md` (root `./CHANGELOG.md` preferred, `./docs/CHANGELOG.md` fallback, else create at root) → gather changed files via `git diff` (PR / commit / range mode) → create categorized notes file → review EVERY changed file for business impact + categorize → holistic read of notes → write the grouped entry under `[Unreleased]` → update + preserve existing entries → delete the notes file. NEVER skip the per-file review — uncategorized changes get silently dropped.
@@ -79,7 +79,7 @@ git diff {from}..{to} --name-only
 
 ### Step 2: Create Temp Notes File
 
-Create `.ai/workspace/changelog-notes-{YYMMDD-HHMM}.md`:
+Create `tmp/changelog-notes-{YYMMDD-HHMM}.md`:
 
 ```markdown
 # Changelog Review Notes - {date}
@@ -186,7 +186,7 @@ Format (Keep a Changelog):
 
 ### Step 7: Cleanup
 
-Delete temp notes file: `.ai/workspace/changelog-notes-*.md`
+Delete temp notes file: `tmp/changelog-notes-*.md`
 
 ## Grouping Strategy
 
@@ -287,7 +287,7 @@ See `references/keep-a-changelog-format.md` for format specification.
 
 > **[IMPORTANT]** Use `TaskCreate` to break ALL work into small tasks BEFORE starting — including tasks for each file read. This prevents context loss from long files. For simple tasks, AI MUST ATTENTION ask user whether to skip.
 
-> **External Memory:** For complex or lengthy work (research, analysis, scan, review), write intermediate findings and final results to a report file in `plans/reports/` — prevents context loss and serves as deliverable.
+> **External Memory:** For complex or lengthy work (research, analysis, scan, review), write intermediate findings and final results to a report file in `tmp/reports/` — prevents context loss and serves as deliverable.
 
 > **Evidence Gate:** MANDATORY IMPORTANT MUST ATTENTION — every claim, finding, and recommendation requires `file:line` proof or traced evidence with confidence percentage (>80% to act, <80% must verify first).
 
@@ -303,6 +303,7 @@ See `references/keep-a-changelog-format.md` for format specification.
 > **Assume existing values are intentional — ask WHY before changing OR flagging one as a defect.** Before changing or reporting a constant, limit, flag, cutoff, wording, or pattern, read nearby context and history, the CALLER's ordering, and 2+ sibling call sites of the same convention. A doc stating WHAT without WHY is missing rationale, not proof of a missing guard.
 > **Surface ambiguity before acting — don't pick silently.** Multiple valid interpretations require an explicit question or stated assumption with risk.
 > **Assert the outcome your system owns, not the intermediate state your infrastructure owns.** When verifying async work, assert the final business state — never the delivery/retry bookkeeping held in shared infrastructure that any co-running process can write. Such a check passes when run alone and flakes the moment anything else shares that infrastructure.
+> **Store disposable generated output in the project workspace.** If an output can be regenerated and is not source code, a canonical source-of-truth, or an intentionally versioned projection, write it under the project-root `tmp/` or `temp/` directory (prefer `tmp/`), scoped to the run. This includes temporary state, integration/E2E results, reports, logs, screenshots, traces, videos, coverage, dumps, and candidate evidence. Never put these outputs in source, docs, `plans/`, `team-artifacts/`, or mirror directories; the project-root `.gitignore` must ignore `/tmp/` and `/temp/` by default. Committed fixtures, accepted baselines, canonical specs/docs, and explicitly versioned generated mirrors remain at their declared owner paths.
 > **Keep shared guidance role-relevant.** Universal guidance must help every receiving skill or agent; code-specific obligations belong only in code-specific protocols.
 
 <!-- /SYNC:ai-mistake-prevention -->
@@ -335,7 +336,7 @@ See `references/keep-a-changelog-format.md` for format specification.
 
 <!-- SYNC:ai-mistake-prevention:reminder -->
 
-**MUST ATTENTION** apply AI mistake prevention — verify generated content against evidence, trace downstream references before deleting or renaming, verify all affected outputs, re-read files after context loss, and surface ambiguity before acting.
+**MUST ATTENTION** apply AI mistake prevention — verify generated content against evidence, trace downstream references before deleting or renaming, verify all affected outputs, re-read files after context loss, surface ambiguity before acting, and route disposable generated output (including integration/E2E results) to project-root `tmp/` or `temp/`; root `.gitignore` ignores both by default.
 
 <!-- /SYNC:ai-mistake-prevention:reminder -->
 
@@ -387,7 +388,7 @@ See `references/keep-a-changelog-format.md` for format specification.
 
 **IMPORTANT MUST ATTENTION** use business-focused language, group by module/feature — name the user-facing capability, NEVER the class/file/enum/migration — why: changelog readers track impact, not implementation (see Business Focus table).
 **IMPORTANT MUST ATTENTION** cite `FR-`/`BR-`/`TC-` logical IDs in `**Refs**`; prefix every breaking change with `**BREAKING:**` + one-line migration/impact note; omit the Breaking block when none — why: readers need traceability and a migration signal, not noise.
-**IMPORTANT MUST ATTENTION** always insert under `[Unreleased]` (create it if absent), preserve existing entries; DELETE the temp `.ai/workspace/changelog-notes-*.md` notes file in cleanup — why: a leftover notes file is an anti-pattern and entries belong only under Unreleased.
+**IMPORTANT MUST ATTENTION** always insert under `[Unreleased]` (create it if absent), preserve existing entries; DELETE the temp `tmp/changelog-notes-*.md` notes file in cleanup — why: a leftover notes file is an anti-pattern and entries belong only under Unreleased.
 
 **IMPORTANT MUST ATTENTION** drive the review through the throwaway notes file: review EVERY changed file, categorize Added/Changed/Fixed/Deprecated/Removed/Security — why: skipping file review silently drops changes.
 **IMPORTANT MUST ATTENTION** verify each business-impact claim against the actual diff (`file:line`), confidence >80% to act, <80% re-read the diff first — NEVER speculate impact from a filename — why: a misread diff ships a wrong user-facing claim.

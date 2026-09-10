@@ -510,7 +510,7 @@ Trigger this gate whenever the plan-review output contains **any finding**: FAIL
 3. Embed the full verbatim body of these SYNC blocks (inlined above in this skill file): `SYNC:evidence-based-reasoning`, `SYNC:rationalization-prevention`, `SYNC:graph-assisted-investigation`, `SYNC:understand-code-first` (omit code-specific protocols like `SYNC:bug-detection`, `SYNC:test-spec-verification` which are not applicable to plan files)
 4. Set the Task as `"Review plan files under {plan-dir}. Validate structural completeness, code-proof anti-hallucination (every file:line claim about existing source code must exist), and adversarial simulation (imagine implementing each phase right now — what fails first?)."`
 5. Set Target Files as `"read plan.md and all phase-*.md files under {plan-dir}"`
-6. Set report path as `plans/reports/plan-review-round{N}-{date}.md`
+6. Set report path as `tmp/reports/plan-review-round{N}-{date}.md`
 
 After the sub-agent returns:
 
@@ -605,7 +605,7 @@ After the sub-agent returns:
 
 > **Critical Purpose:** Ensure quality — no flaws, no bugs, no missing updates, no stale content. Verify both code AND documentation.
 
-> **External Memory:** For complex or lengthy work (research, analysis, scan, review), write intermediate findings and final results to a report file in `plans/reports/` — prevents context loss and serves as deliverable.
+> **External Memory:** For complex or lengthy work (research, analysis, scan, review), write intermediate findings and final results to a report file in `tmp/reports/` — prevents context loss and serves as deliverable.
 
 > **Evidence Gate:** MANDATORY — every claim, finding, and recommendation requires `file:line` proof or traced evidence with confidence percentage (>80% to act, <80% must verify first).
 
@@ -689,7 +689,7 @@ After the sub-agent returns:
 > 1. Start a NEW full review invocation/task breakdown; when that protocol calls for agents, spawn NEW `Agent` tool calls — use `code-reviewer` subagent_type for code reviews, `general-purpose` for plan/doc/artifact reviews
 > 2. Inject ALL required review protocols VERBATIM into the prompt — see `SYNC:review-protocol-injection` for the full list and template. Never reference protocols by file path; AI compliance drops behind file-read indirection (see `SYNC:shared-protocol-duplication-policy`)
 > 3. Sub-agent re-reads ALL target files from scratch via its own tool calls — never pass file contents inline in the prompt
-> 4. Sub-agent writes structured report to `plans/reports/{review-type}-round{N}-{date}.md`
+> 4. Sub-agent writes structured report to `tmp/reports/{review-type}-round{N}-{date}.md`
 > 5. Main agent reads the report, integrates findings into its own report, DOES NOT override or filter
 >
 > **Rules:**
@@ -723,9 +723,9 @@ After the sub-agent returns:
 >
 > 1. Create a small task breakdown before target file reads, grep, edits, or analysis. On context loss, inspect the current task list first.
 > 2. Mark one task `in_progress` before work and `completed` immediately after evidence; never batch transitions.
-> 3. For plan/review work, create `plans/reports/{skill}-{YYMMDD}-{HHmm}-{slug}.md` before first finding.
+> 3. For plan/review work, create `tmp/reports/{skill}-{YYMMDD}-{HHmm}-{slug}.md` before first finding.
 > 4. Append findings after each file/section/decision and synthesize from the report file at the end.
-> 5. Final output cites `Full report: plans/reports/{filename}`.
+> 5. Final output cites `Full report: tmp/reports/{filename}`.
 >
 > **Blocked until:** task breakdown exists, report path declared for plan/review work, first finding persisted before the next finding.
 
@@ -947,7 +947,7 @@ After the sub-agent returns:
 > 2. Read existing files in target area — understand structure, base classes, conventions
 > 3. Run `python .claude/scripts/code_graph trace <file> --direction both --json` when `.code-graph/graph.db` exists
 > 4. Map dependencies via `connections` or `callers_of` — know what depends on your target
-> 5. Write investigation to `.ai/workspace/analysis/` for non-trivial tasks (3+ files)
+> 5. Write investigation to `tmp/analysis/` for non-trivial tasks (3+ files)
 > 6. Re-read analysis file before implementing — never work from memory alone. — why: long context drifts from the file; the file is ground truth
 > 7. NEVER invent new patterns when existing ones work — match exactly or document deviation. — why: divergent patterns fragment the codebase and slow every future reader
 >
@@ -1163,7 +1163,7 @@ HARD-GATE: Do NOT write, plan, or fix until you READ existing code.
 2. Read existing files in target area — understand structure, base classes, conventions.
 3. Run python .claude/scripts/code_graph trace <file> --direction both --json when .code-graph/graph.db exists.
 4. Map dependencies via connections or callers_of — know what depends on your target.
-5. Write investigation to .ai/workspace/analysis/ for non-trivial tasks (3+ files).
+5. Write investigation to tmp/analysis/ for non-trivial tasks (3+ files).
 6. Re-read analysis file before implementing — never work from memory alone.
 7. NEVER invent new patterns when existing ones work — match exactly or document deviation.
 BLOCKED until: Read target files; Grep 3+ patterns; Graph trace (if graph.db exists); Assumptions verified with evidence.
@@ -1177,7 +1177,7 @@ BLOCKED until: Read target files; Grep 3+ patterns; Graph trace (if graph.db exi
 {explicit file list OR "run git diff to see uncommitted changes" OR "read all files under {plan-dir}"}
 
 ## Output
-Write a structured report to plans/reports/{review-type}-round{N}-{date}.md with sections:
+Write a structured report to tmp/reports/{review-type}-round{N}-{date}.md with sections:
 - Status: PASS | FAIL
 - Issue Count: {number}
 - Critical Issues (with file:line evidence)
@@ -1215,6 +1215,7 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 > **Assume existing values are intentional — ask WHY before changing OR flagging one as a defect.** Before changing or reporting a constant, limit, flag, cutoff, wording, or pattern, read nearby context and history, the CALLER's ordering, and 2+ sibling call sites of the same convention. A doc stating WHAT without WHY is missing rationale, not proof of a missing guard.
 > **Surface ambiguity before acting — don't pick silently.** Multiple valid interpretations require an explicit question or stated assumption with risk.
 > **Assert the outcome your system owns, not the intermediate state your infrastructure owns.** When verifying async work, assert the final business state — never the delivery/retry bookkeeping held in shared infrastructure that any co-running process can write. Such a check passes when run alone and flakes the moment anything else shares that infrastructure.
+> **Store disposable generated output in the project workspace.** If an output can be regenerated and is not source code, a canonical source-of-truth, or an intentionally versioned projection, write it under the project-root `tmp/` or `temp/` directory (prefer `tmp/`), scoped to the run. This includes temporary state, integration/E2E results, reports, logs, screenshots, traces, videos, coverage, dumps, and candidate evidence. Never put these outputs in source, docs, `plans/`, `team-artifacts/`, or mirror directories; the project-root `.gitignore` must ignore `/tmp/` and `/temp/` by default. Committed fixtures, accepted baselines, canonical specs/docs, and explicitly versioned generated mirrors remain at their declared owner paths.
 > **Keep shared guidance role-relevant.** Universal guidance must help every receiving skill or agent; code-specific obligations belong only in code-specific protocols.
 
 <!-- /SYNC:ai-mistake-prevention -->
@@ -1375,7 +1376,7 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 > 2. **Group `PAR` into waves.** No edge between members. Two writers of one file NEVER share a wave. Read-only work (search, investigation, review, research) parallelizes freely.
 > 3. **Declare before dispatch:** `Parallel plan: wave 1 = [...] · wave 2 = [...] · SEQ = [...] (reason)`.
 > 4. **Spawn each wave in ONE message** — every `Agent` call in one response, NEVER dripped per turn. Route each task to its specialist (`.claude/skills/shared/sub-agent-selection-guide.md`); NEVER `code-reviewer` as catch-all.
-> 5. **Brief each sub-agent self-contained:** goal · scope + owned files · reference docs · return contract (summary + `Full report:` path, per SYNC:subagent-return-contract) · incremental persistence to `plans/reports/` (per SYNC:incremental-persistence).
+> 5. **Brief each sub-agent self-contained:** goal · scope + owned files · reference docs · return contract (summary + `Full report:` path, per SYNC:subagent-return-contract) · incremental persistence to `tmp/reports/` (per SYNC:incremental-persistence).
 > 6. **Barrier per wave.** Advance ONLY after EVERY member returns (a skipped conditional counts as returned). Merge, mark each task completed/skipped, THEN dispatch the next wave. Mutating steps wait for the barrier.
 > 7. **One level deep.** A dispatched sub-agent executes its own brief; further fan-out stays the orchestrator's job unless that agent's `.claude/agents/*.md` definition authorizes it.
 >
@@ -1449,14 +1450,14 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 
 <!-- SYNC:ai-mistake-prevention:reminder -->
 
-**MUST ATTENTION** apply AI mistake prevention — verify generated content against evidence, trace downstream references before deleting or renaming, verify all affected outputs, re-read files after context loss, and surface ambiguity before acting.
+**MUST ATTENTION** apply AI mistake prevention — verify generated content against evidence, trace downstream references before deleting or renaming, verify all affected outputs, re-read files after context loss, surface ambiguity before acting, and route disposable generated output (including integration/E2E results) to project-root `tmp/` or `temp/`; root `.gitignore` ignores both by default.
 
 <!-- /SYNC:ai-mistake-prevention:reminder -->
 
 <!-- SYNC:task-tracking-external-report:reminder -->
 
 - **MANDATORY** Bootstrap task tracking before target work; transition one task at a time.
-- **MANDATORY** Persist plan/review findings to `plans/reports/` incrementally and synthesize from disk.
+- **MANDATORY** Persist plan/review findings to `tmp/reports/` incrementally and synthesize from disk.
 
 <!-- /SYNC:task-tracking-external-report:reminder -->
 
@@ -1546,7 +1547,7 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 - **Cross-Service Check:** scan producers, consumers, sagas, contracts; missing consumer = silent regression.
 - **Fresh Context Review:** spawn zero-memory sub-agent re-reading from scratch after each fix cycle.
 - **Nested Task Creation:** expand child phase tasks; link the parent workflow row when nested.
-- **Task Tracking & External Report:** bootstrap task breakdown; persist findings to `plans/reports/` incrementally.
+- **Task Tracking & External Report:** bootstrap task breakdown; persist findings to `tmp/reports/` incrementally.
 - **Critical Thinking:** every claim needs traced `file:line` proof; never present guess as fact.
 - **Sequential Thinking:** multi-step Thought N/M with REVISION/BRANCH/HYPOTHESIS markers and confidence closer.
 - **Project Reference Docs:** read required project-reference docs before target work; conventions override generic defaults.
@@ -1566,7 +1567,7 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 **MANDATORY IMPORTANT MUST ATTENTION** spec-loop scheduling — plan must schedule property/invariant test specs for every `[HARD]` §4 rule / §5 invariant + a MUTATION-SCORE quality bar; FAIL a plan targeting a line-coverage % instead of a mutation-score bar.
 **MANDATORY IMPORTANT MUST ATTENTION** when ANY finding exists, run `/why-review --validate-findings` BEFORE editing any `plan.md`/`phase-*.md`; fix ONLY validated blocking findings at the smallest responsible location, then restart the FULL review with a fresh zero-memory sub-agent — loop until the current round's bar is clear (round 1: zero findings; round 2+: zero CRITICAL/HIGH/MEDIUM, LOW deferred); NEVER edit plan files before this gate passes — why: unvalidated fixes corrupt the plan and waste review rounds.
 **MANDATORY IMPORTANT MUST ATTENTION** round cap 3 — a CEILING, never a target: a clean pass ends the loop once the persisted `minRounds` is met; escalate via `AskUserQuestion` when the SAME blocker survives 2 consecutive full re-reviews with no progress, when round 3 completes with findings still open, or when a finding needs product/owner judgment. NEVER loop past 3 rounds and NEVER convert cap exhaustion into a PASS.
-**MANDATORY IMPORTANT MUST ATTENTION** bootstrap `TaskCreate` task breakdown BEFORE reads/grep/edits (one task per file read); persist findings to `plans/reports/{skill}-{YYMMDD}-{HHmm}-{slug}.md` incrementally and synthesize from disk; add a final review task — why: long plan files exhaust context, the report file is ground truth.
+**MANDATORY IMPORTANT MUST ATTENTION** bootstrap `TaskCreate` task breakdown BEFORE reads/grep/edits (one task per file read); persist findings to `tmp/reports/{skill}-{YYMMDD}-{HHmm}-{slug}.md` incrementally and synthesize from disk; add a final review task — why: long plan files exhaust context, the report file is ground truth.
 **MANDATORY IMPORTANT MUST ATTENTION** run a graph trace on each "files to modify" entry when `.code-graph/graph.db` exists; flag any downstream file NOT listed in the plan as "potentially missed" — why: catches cross-service/event-handler impact the author overlooked.
 **MANDATORY IMPORTANT MUST ATTENTION** Dimension 7 — Estimation Drift: re-derive `bottom_up_hours = Σ phase_hours` from the FINALIZED phase files per the carried `SYNC:estimation-framework` and compare against frontmatter. `|delta| > 20%` → frontmatter MUST carry `reestimate_delta_pct` + a 1-line `reestimate_reason`, and a missing update is a FAIL; `|delta| > 50%` → flag `SHOULD-RESCOPE` and surface the rescope decision to the user BEFORE implementation — why: pre-completion estimates anchor on a scope guess, and locked phases are the first place the real cost is visible.
 **MANDATORY IMPORTANT MUST ATTENTION** Dimension 8 — Domain Entity Design (CONDITIONAL): when the plan touches an entity, value object, or aggregate, apply `SYNC:domain-entity-change-gate` — the SAME protocol `/plan` authored under and `/changes-review` reviews under. An unanswered, hand-waved, or deferred-to-implementation decision point is a FINDING with `file:line` into the plan; the word "entity" in a task is NEVER an answer. Verify paradigm + subdomain fit are stated BEFORE any entity task, and that each triggered row names its OWNING FILE. State `No domain-entity surface — Dimension 8 N/A` when it does not fire — why: an aggregate boundary chosen by DB table or UI screen is the costliest decision to reverse after implementation.

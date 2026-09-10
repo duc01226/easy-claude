@@ -27,6 +27,12 @@ framework's own runtime:
 | `evidence` | Declares the project-relative evidence root, capture kinds, and a non-empty redaction policy whenever sensitive captures are enabled. Attach console/page errors/failed requests before interaction when applicable; read screenshots/traces/video before judging them. |
 | `convergence` | Bounds attempts, consecutive green runs, and settle timeout. Keep the same scope; classify failures before edits, fix at the owning layer, review each fix, and rerun fresh. |
 
+Candidate E2E evidence and repeatable run output belong under the project-root
+`tmp/` or `temp/` directory (prefer `tmp/e2e`), which the root `.gitignore`
+ignores by default. Accepted baselines are the explicit versioned exception;
+they remain at the project-declared baseline path and are never overwritten by a
+passing run.
+
 When the profile is partial or absent, discover only from verified project
 evidence in this order: linked surface `localRun`, E2E reference/runner
 configuration, package/task/compose/CI/fixture/auth documentation, then a

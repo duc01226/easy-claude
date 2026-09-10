@@ -2,7 +2,7 @@
 
 > Loaded by `$understand` Step 4. This file is the **canonical shape of the report file**. The skill's in-chat output is a summary of this document; this document is the deliverable the developer keeps, re-reads, and argues with.
 
-**Path:** `plans/reports/understand-{YYMMDD}-{HHmm}-{slug}.md` — a working artifact, not a tracked doc. Resolve the directory per SKILL.md Step 3: `docs/project-config.json` if it names one, else `plans/reports/`; if none of those is git-ignored, the report is **delivered in chat** and the blocker reported — never written to a tracked path.
+**Path:** `tmp/reports/understand-{YYMMDD}-{HHmm}-{slug}.md` — a working artifact, not a tracked doc. Resolve the directory per SKILL.md Step 3: `docs/project-config.json` if it names one, else `tmp/reports/`; if none of those is git-ignored, the report is **delivered in chat** and the blocker reported — never written to a tracked path.
 
 **Audience:** the developer who did NOT write this code (even when they nominally did — AI wrote it). Assume zero memory of the reasoning, full ability to judge it once shown.
 

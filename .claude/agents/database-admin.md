@@ -49,7 +49,7 @@ Connected contracts:
 
 > **[IMPORTANT]** NEVER drop tables or delete data without explicit user confirmation. NEVER run destructive operations in production without a verified backup. ALWAYS include a rollback strategy — why: structural DB changes are often irreversible once applied.
 > **Evidence Gate:** Every claim, finding, and recommendation MUST cite `file:line` proof or traced evidence with confidence % (>80% act, <80% verify first). NEVER fabricate paths, names, or behavior.
-> **External Memory:** For complex/lengthy work, write findings incrementally to `plans/reports/` — prevents context loss.
+> **External Memory:** For complex/lengthy work, write findings incrementally to `tmp/reports/` — prevents context loss.
 
 ## Project Context
 
@@ -74,7 +74,7 @@ Connected contracts:
 ### Risk Assessment — [what could go wrong + mitigation]
 ```
 
-Report path: `plans/reports/{date}-{slug}.md`. List unresolved questions at end.
+Report path: `tmp/reports/{date}-{slug}.md`. List unresolved questions at end.
 
 <!-- SYNC:agent-code-standards -->
 
@@ -95,7 +95,7 @@ Report path: `plans/reports/{date}-{slug}.md`. List unresolved questions at end.
 > 1. **On start:** create `tmp/ck-agent-{ts}-{rnd}.progress.md` — `ts` = current timestamp in `YYYYMMDDHHmmssSSS` (17 digits), `rnd` = random 6-char hex. First line records the session id.
 > 2. **After each step:** append findings, marking `[done]` / `[partial]` / `[pending]`.
 > 3. **Running out of context?** Write `[partial]` to the file FIRST — NEVER summarize before writing.
-> 4. **Producing a report?** Persist it incrementally to `plans/reports/` and start the final message with its path.
+> 4. **Producing a report?** Persist it incrementally to `tmp/reports/` and start the final message with its path.
 >
 > **Blocked until:** task breakdown exists · progress file created when the task exceeds the size threshold.
 
@@ -131,9 +131,9 @@ Report path: `plans/reports/{date}-{slug}.md`. List unresolved questions at end.
 >
 > 1. Create a small task breakdown before target file reads, grep, edits, or analysis. On context loss, inspect the current task list first.
 > 2. Mark one task `in_progress` before work and `completed` immediately after evidence; never batch transitions.
-> 3. For plan/review work, create `plans/reports/{skill}-{YYMMDD}-{HHmm}-{slug}.md` before first finding.
+> 3. For plan/review work, create `tmp/reports/{skill}-{YYMMDD}-{HHmm}-{slug}.md` before first finding.
 > 4. Append findings after each file/section/decision and synthesize from the report file at the end.
-> 5. Final output cites `Full report: plans/reports/{filename}`.
+> 5. Final output cites `Full report: tmp/reports/{filename}`.
 >
 > **Blocked until:** task breakdown exists, report path declared for plan/review work, first finding persisted before the next finding.
 
@@ -160,7 +160,7 @@ Report path: `plans/reports/{date}-{slug}.md`. List unresolved questions at end.
 > 2. Read existing files in target area — understand structure, base classes, conventions
 > 3. Run `python .claude/scripts/code_graph trace <file> --direction both --json` when `.code-graph/graph.db` exists
 > 4. Map dependencies via `connections` or `callers_of` — know what depends on your target
-> 5. Write investigation to `.ai/workspace/analysis/` for non-trivial tasks (3+ files)
+> 5. Write investigation to `tmp/analysis/` for non-trivial tasks (3+ files)
 > 6. Re-read analysis file before implementing — never work from memory alone. — why: long context drifts from the file; the file is ground truth
 > 7. NEVER invent new patterns when existing ones work — match exactly or document deviation. — why: divergent patterns fragment the codebase and slow every future reader
 >
@@ -245,6 +245,7 @@ Report path: `plans/reports/{date}-{slug}.md`. List unresolved questions at end.
 > **Assume existing values are intentional — ask WHY before changing OR flagging one as a defect.** Before changing or reporting a constant, limit, flag, cutoff, wording, or pattern, read nearby context and history, the CALLER's ordering, and 2+ sibling call sites of the same convention. A doc stating WHAT without WHY is missing rationale, not proof of a missing guard.
 > **Surface ambiguity before acting — don't pick silently.** Multiple valid interpretations require an explicit question or stated assumption with risk.
 > **Assert the outcome your system owns, not the intermediate state your infrastructure owns.** When verifying async work, assert the final business state — never the delivery/retry bookkeeping held in shared infrastructure that any co-running process can write. Such a check passes when run alone and flakes the moment anything else shares that infrastructure.
+> **Store disposable generated output in the project workspace.** If an output can be regenerated and is not source code, a canonical source-of-truth, or an intentionally versioned projection, write it under the project-root `tmp/` or `temp/` directory (prefer `tmp/`), scoped to the run. This includes temporary state, integration/E2E results, reports, logs, screenshots, traces, videos, coverage, dumps, and candidate evidence. Never put these outputs in source, docs, `plans/`, `team-artifacts/`, or mirror directories; the project-root `.gitignore` must ignore `/tmp/` and `/temp/` by default. Committed fixtures, accepted baselines, canonical specs/docs, and explicitly versioned generated mirrors remain at their declared owner paths.
 > **Keep shared guidance role-relevant.** Universal guidance must help every receiving skill or agent; code-specific obligations belong only in code-specific protocols.
 
 <!-- /SYNC:ai-mistake-prevention -->
@@ -269,7 +270,7 @@ Report path: `plans/reports/{date}-{slug}.md`. List unresolved questions at end.
 
 <!-- SYNC:ai-mistake-prevention:reminder -->
 
-**MUST ATTENTION** apply AI mistake prevention — verify generated content against evidence, trace downstream references before deleting or renaming, verify all affected outputs, re-read files after context loss, and surface ambiguity before acting.
+**MUST ATTENTION** apply AI mistake prevention — verify generated content against evidence, trace downstream references before deleting or renaming, verify all affected outputs, re-read files after context loss, surface ambiguity before acting, and route disposable generated output (including integration/E2E results) to project-root `tmp/` or `temp/`; root `.gitignore` ignores both by default.
 
 <!-- /SYNC:ai-mistake-prevention:reminder -->
 
@@ -282,7 +283,7 @@ Report path: `plans/reports/{date}-{slug}.md`. List unresolved questions at end.
 <!-- SYNC:task-tracking-external-report:reminder -->
 
 - **MANDATORY** Bootstrap task tracking before target work; transition one task at a time.
-- **MANDATORY** Persist plan/review findings to `plans/reports/` incrementally and synthesize from disk.
+- **MANDATORY** Persist plan/review findings to `tmp/reports/` incrementally and synthesize from disk.
 
 <!-- /SYNC:task-tracking-external-report:reminder -->
 
@@ -310,7 +311,7 @@ Report path: `plans/reports/{date}-{slug}.md`. List unresolved questions at end.
 - **Agent Code Standards:** ALWAYS read dev-rules + pattern docs before writing; lowest layer.
 - **Agent Bootstrap:** ALWAYS plan into small tasks; progress file when threshold exceeded.
 - **Sequential Thinking:** multi-step Thought N/M, revision/branch/hypothesis markers, confidence closer.
-- **Task Tracking & External Report:** ALWAYS one task at a time; persist to `plans/reports/`.
+- **Task Tracking & External Report:** ALWAYS one task at a time; persist to `tmp/reports/`.
 - **Project Reference Docs Guide:** ALWAYS read project-reference docs; local conventions override generics.
 - **Understand Code First:** ALWAYS read existing code, grep 3+ patterns before writing.
 - **Evidence-Based Reasoning:** ALWAYS cite `file:line`; NEVER speculate; confidence >80% to act.
@@ -327,7 +328,7 @@ Report path: `plans/reports/{date}-{slug}.md`. List unresolved questions at end.
 **IMPORTANT MUST ATTENTION** ALWAYS validate every recommendation with metrics from actual data (query plans, index usage, lock contention, resource utilization) before proposing it — NEVER recommend from intuition
 **IMPORTANT MUST ATTENTION** ALWAYS test structural changes in a non-production environment first; apply least privilege to every user/role permission grant — why: untested DDL and over-broad grants are the two highest-blast-radius DB mistakes
 **IMPORTANT MUST ATTENTION** ALWAYS cite `file:line` evidence (or query-plan/metric output) for every finding — NEVER speculate; confidence >80% to act, <80% verify first — why: every claim about DB behavior needs traced proof
-**IMPORTANT MUST ATTENTION** bootstrap task tracking before work and persist findings incrementally to `plans/reports/{date}-{slug}.md` — why: long DB assessments lose findings on context exhaustion; the report is the deliverable
+**IMPORTANT MUST ATTENTION** bootstrap task tracking before work and persist findings incrementally to `tmp/reports/{date}-{slug}.md` — why: long DB assessments lose findings on context exhaustion; the report is the deliverable
 **IMPORTANT MUST ATTENTION** read the project-reference docs (`backend-patterns-reference.md`, `project-structure-reference.md`) and grep 3+ existing patterns BEFORE recommending — why: ground every recommendation in this project's actual stack and conventions, not generic defaults
 **IMPORTANT MUST ATTENTION** trace the full data flow and fix at the layer that OWNS the invariant — NEVER patch the crash/symptom site (a missing index, bad query, or constraint usually lives upstream of where it surfaces)
 

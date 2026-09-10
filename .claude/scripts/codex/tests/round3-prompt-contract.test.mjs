@@ -88,15 +88,15 @@ test('R3-PROMPT-027/031: advisory scores and category labels cannot bypass eligi
 });
 
 function assertFullReport(text) {
-    assert.match(text, /Main agent reads the full `plans\/reports\/` file before synthesis, acceptance, deduplication, or repair planning/);
+    assert.match(text, /Main agent reads the full `tmp\/reports\/` file before synthesis, acceptance, deduplication, or repair planning/);
     assert.match(text, /including every severity and all findings beyond the envelope cap/);
-    assert.doesNotMatch(text, /reads `plans\/reports\/` file only when resolving specific blockers/);
+    assert.doesNotMatch(text, /reads `tmp\/reports\/` file only when resolving specific blockers/);
 }
 
 test('R3-PROMPT-029: bounded nested return never limits report consumption', () => {
     const source = local(skill('start-workflow'));
     assertFullReport(source);
-    rejects(assertFullReport, source, 'Main agent reads the full `plans/reports/` file before synthesis, acceptance, deduplication, or repair planning', 'Main agent reads `plans/reports/` file only when resolving specific blockers');
+    rejects(assertFullReport, source, 'Main agent reads the full `tmp/reports/` file before synthesis, acceptance, deduplication, or repair planning', 'Main agent reads `tmp/reports/` file only when resolving specific blockers');
     rejects(assertFullReport, source, 'including every severity and all findings beyond the envelope cap', 'including only salient Critical/High findings');
 });
 

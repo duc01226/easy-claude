@@ -105,6 +105,6 @@ Apply these individually first, then combine for maximum stress:
 
 ## Recording Results
 
-Save pressure test results to: `plans/reports/pressure-test-{skill-name}-{date}.md`
+Save pressure test results to: `tmp/reports/pressure-test-{skill-name}-{date}.md`
 
 Include: scenario description, baseline failures, skill compliance results, loopholes found, fixes applied.

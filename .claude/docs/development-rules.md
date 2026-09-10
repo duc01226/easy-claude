@@ -52,7 +52,7 @@
 -   **Name the PURPOSE, not the member list.** `OrXxx/AndYyy` joining roles/types/statuses → red flag. Test: "If I add/remove one item, must I rename?" → YES = content-driven = rename.
 -   **"Or" is fine in behavioral idioms** (`FirstOrDefault`, `SuccessOrThrow`) — it expresses WHAT HAPPENS, not WHO IS IN A SET.
 -   **For public/cross-layer abstractions, name the capability or domain contract, not the current provider, SDK, framework, database, or transport.** Keep those details on concrete adapters (`IStorage`/`Storage` → `AzureBlobStorage`); use a narrower contract when “storage” overpromises and preserve local interface syntax.
--   Canonical portable protocol: `.claude/skills/shared/sync-inline-versions.md` (`SYNC:design-patterns-quality`); research synthesis: `plans/reports/research-abstraction-naming-260820.md`.
+-   Canonical portable protocol: `.claude/skills/shared/sync-inline-versions.md` (`SYNC:design-patterns-quality`); research synthesis: `tmp/reports/research-abstraction-naming-260820.md`.
 
 ### Standards
 

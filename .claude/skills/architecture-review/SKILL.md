@@ -26,7 +26,7 @@ description: '[Code Quality] Use when reviewing architecture compliance — laye
 - Phase 0 is non-negotiable and first: load the project architecture docs (`backend-patterns-reference.md`, `project-structure-reference.md`, `frontend-patterns-reference.md`, `code-review-rules.md`) — every rule and base-class/symbol name comes from those docs, NEVER general knowledge; the framework names in Categories 2–8 are illustrative only.
 - **Universal reasoning comes from `.claude/docs/architecture-knowledge.md`** (coupling taxonomy + four coupling dimensions, distributed-monolith signature, module-design principles §4, isolation levels + coordination primitives §8-§9, ~100-entry anti-pattern catalog, symptom→root-cause triage, judgment checklists §20) — use it to RECOGNIZE a defect class, then prove it with `file:line`. **The project's own reference docs and accepted ADRs OUTRANK that catalog on every conflict — NEVER flag a deviation from the catalog as a project violation.** An anti-pattern match is a HYPOTHESIS until evidence plus the damaged quality attribute are both named. — why: pattern-shape matching without project grounding is exactly the guess-as-fact failure this skill exists to prevent.
 - Stay in lane: deep-review only what this skill OWNS (layers, messaging/CQRS/repos/service boundaries, entity events, frontend architecture, quality tooling, generated artifacts, ADRs); record a one-line `→ route to {sibling}` pointer for security/performance/DDD/UI/test findings instead of expanding them. — why: duplicated findings across reviewers inflate severity counts and bury issues each reviewer uniquely owns.
-- Read-only until validated: **self-audit every draft finding against the 11 thinking red flags (`architecture-knowledge.md` §20.3) FIRST** — a finding whose sacrifice/trade-off you cannot name, or that rests on "best practice", is demoted or deleted, never reworded — then run the Phase 5 `/why-review` self-validation gate before handoff; fixes happen only in the validated fix loop, and every fix restarts a full review from Phase 0. That loop fixes only findings that block the current round: Round 1 = every validated severity; Round 2+ = CRITICAL/HIGH/MEDIUM; LOW-only is recorded as deferred and ends the loop, while failed binary gates always block. Write findings to `plans/reports/arch-review-{date}-{slug}.md`.
+- Read-only until validated: **self-audit every draft finding against the 11 thinking red flags (`architecture-knowledge.md` §20.3) FIRST** — a finding whose sacrifice/trade-off you cannot name, or that rests on "best practice", is demoted or deleted, never reworded — then run the Phase 5 `/why-review` self-validation gate before handoff; fixes happen only in the validated fix loop, and every fix restarts a full review from Phase 0. That loop fixes only findings that block the current round: Round 1 = every validated severity; Round 2+ = CRITICAL/HIGH/MEDIUM; LOW-only is recorded as deferred and ends the loop, while failed binary gates always block. Write findings to `tmp/reports/arch-review-{date}-{slug}.md`.
 
 **Default scope:** All uncommitted changes (staged + unstaged). Override: specify files, directories, services, or full codebase.
 
@@ -54,7 +54,7 @@ description: '[Code Quality] Use when reviewing architecture compliance — laye
 - MUST ATTENTION read project architecture docs in Phase 0 BEFORE reviewing — rules come from docs, NEVER general knowledge.
 - Every violation needs `file:line` proof + grep 3+ counterexamples before flagging — NEVER speculate.
 - MUST ATTENTION review one category at a time: doc rule → source evidence → verdict — NEVER scan categories simultaneously.
-- Write findings to `plans/reports/arch-review-{date}-{slug}.md`.
+- Write findings to `tmp/reports/arch-review-{date}-{slug}.md`.
 - BLOCKED = must fix before merge | WARN = review and decide | PASS = compliant.
 - Review is read-only until `/why-review --validate-findings` confirms findings; fixes happen only in the validated fix loop or downstream plan/feature-implement, and every fix restarts a full architecture review from Phase 0 with a fresh task breakdown. Apply the round severity bar: Round 1 clears only at zero findings; Round 2+ clears at zero CRITICAL/HIGH/MEDIUM, with LOW findings deferred. Failed binary gates remain blocking.
 
@@ -162,7 +162,7 @@ Flag MESSAGE_BUS consumers or event handlers impacted by changes.
 
 ## Phase 3: Architecture Review
 
-Create report: `plans/reports/arch-review-{date}-{slug}.md`
+Create report: `tmp/reports/arch-review-{date}-{slug}.md`
 
 Per file in scope, evaluate against ALL applicable categories. Skip categories not applicable to file type.
 
@@ -662,9 +662,9 @@ Per changed file:
 
 **Protocol:**
 
-1. Read own finalized report from `plans/reports/{skill}-{date}-{slug}.md`
-2. Invoke `/why-review` skill with arg: `validate findings in plans/reports/{skill}-{date}-{slug}.md — verify each finding has file:line proof, steel-man each rejected interpretation, and stress-test severity classifications`
-3. Read validation verdict path returned by why-review, expected as `plans/reports/why-review-validate-{date}.md`
+1. Read own finalized report from `tmp/reports/{skill}-{date}-{slug}.md`
+2. Invoke `/why-review` skill with arg: `validate findings in tmp/reports/{skill}-{date}-{slug}.md — verify each finding has file:line proof, steel-man each rejected interpretation, and stress-test severity classifications`
+3. Read validation verdict path returned by why-review, expected as `tmp/reports/why-review-validate-{date}.md`
 4. **why-review demotes/removes any finding →** UPDATE own finalized report with revised severities, remove false positives, add `## Why-Review Validation Notes` section citing what changed + why.
 5. **why-review confirms all findings →** Append `## Why-Review Validation` line to own report stating "All N findings re-validated against actual code; no severity changes."
 
@@ -714,7 +714,7 @@ Before reporting ANY work done:
 > 1. Start a NEW full review invocation/task breakdown; when that protocol calls for agents, spawn a NEW `Agent` tool call — use `architect` subagent_type for architecture reviews (see Sub-Agent Type Override above)
 > 2. Inject ALL required review protocols VERBATIM into the prompt — see `SYNC:review-protocol-injection` for the full list and template. Never reference protocols by file path; AI compliance drops behind file-read indirection (see `SYNC:shared-protocol-duplication-policy`)
 > 3. Sub-agent re-reads ALL target files from scratch via its own tool calls — never pass file contents inline in the prompt
-> 4. Sub-agent writes structured report to `plans/reports/{review-type}-round{N}-{date}.md`
+> 4. Sub-agent writes structured report to `tmp/reports/{review-type}-round{N}-{date}.md`
 > 5. Main agent reads the report, integrates findings into its own report, DOES NOT override or filter
 >
 > **Rules:**
@@ -874,7 +874,7 @@ HARD-GATE: Do NOT write, plan, or fix until you READ existing code.
 2. Read existing files in target area — understand structure, base classes, conventions.
 3. Run python .claude/scripts/code_graph trace <file> --direction both --json when .code-graph/graph.db exists.
 4. Map dependencies via connections or callers_of — know what depends on your target.
-5. Write investigation to .ai/workspace/analysis/ for non-trivial tasks (3+ files).
+5. Write investigation to tmp/analysis/ for non-trivial tasks (3+ files).
 6. Re-read analysis file before implementing — never work from memory alone.
 7. NEVER invent new patterns when existing ones work — match exactly or document deviation.
 BLOCKED until: Read target files; Grep 3+ patterns; Graph trace (if graph.db exists); Assumptions verified with evidence.
@@ -887,7 +887,7 @@ BLOCKED until: Read target files; Grep 3+ patterns; Graph trace (if graph.db exi
 {explicit file list OR "run git diff to see uncommitted changes" OR "read all files under {plan-dir}"}
 
 ## Output
-Write a structured report to plans/reports/{review-type}-round{N}-{date}.md with sections:
+Write a structured report to tmp/reports/{review-type}-round{N}-{date}.md with sections:
 - Status: PASS | FAIL
 - Issue Count: {number}
 - Critical Issues (with file:line evidence)
@@ -914,7 +914,7 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 <!-- /OVERRIDE:review-protocol-injection -->
 
 > **Critical Purpose:** Architecture compliance — no layer violations, no messaging anti-patterns, no service boundary breaches, no pattern drift.
-> **External Memory:** Complex/lengthy work → write findings to `plans/reports/`. Prevents context loss, serves as deliverable.
+> **External Memory:** Complex/lengthy work → write findings to `tmp/reports/`. Prevents context loss, serves as deliverable.
 > **Evidence Gate:** MANDATORY — every finding requires `file:line` proof + confidence percentage (>80% act, <80% verify first).
 
 <!-- SYNC:graph-assisted-investigation -->
@@ -971,9 +971,9 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 >
 > 1. Create a small task breakdown before target file reads, grep, edits, or analysis. On context loss, inspect the current task list first.
 > 2. Mark one task `in_progress` before work and `completed` immediately after evidence; never batch transitions.
-> 3. For plan/review work, create `plans/reports/{skill}-{YYMMDD}-{HHmm}-{slug}.md` before first finding.
+> 3. For plan/review work, create `tmp/reports/{skill}-{YYMMDD}-{HHmm}-{slug}.md` before first finding.
 > 4. Append findings after each file/section/decision and synthesize from the report file at the end.
-> 5. Final output cites `Full report: plans/reports/{filename}`.
+> 5. Final output cites `Full report: tmp/reports/{filename}`.
 >
 > **Blocked until:** task breakdown exists, report path declared for plan/review work, first finding persisted before the next finding.
 
@@ -1119,6 +1119,7 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 > **Assume existing values are intentional — ask WHY before changing OR flagging one as a defect.** Before changing or reporting a constant, limit, flag, cutoff, wording, or pattern, read nearby context and history, the CALLER's ordering, and 2+ sibling call sites of the same convention. A doc stating WHAT without WHY is missing rationale, not proof of a missing guard.
 > **Surface ambiguity before acting — don't pick silently.** Multiple valid interpretations require an explicit question or stated assumption with risk.
 > **Assert the outcome your system owns, not the intermediate state your infrastructure owns.** When verifying async work, assert the final business state — never the delivery/retry bookkeeping held in shared infrastructure that any co-running process can write. Such a check passes when run alone and flakes the moment anything else shares that infrastructure.
+> **Store disposable generated output in the project workspace.** If an output can be regenerated and is not source code, a canonical source-of-truth, or an intentionally versioned projection, write it under the project-root `tmp/` or `temp/` directory (prefer `tmp/`), scoped to the run. This includes temporary state, integration/E2E results, reports, logs, screenshots, traces, videos, coverage, dumps, and candidate evidence. Never put these outputs in source, docs, `plans/`, `team-artifacts/`, or mirror directories; the project-root `.gitignore` must ignore `/tmp/` and `/temp/` by default. Committed fixtures, accepted baselines, canonical specs/docs, and explicitly versioned generated mirrors remain at their declared owner paths.
 > **Keep shared guidance role-relevant.** Universal guidance must help every receiving skill or agent; code-specific obligations belong only in code-specific protocols.
 
 <!-- /SYNC:ai-mistake-prevention -->
@@ -1156,7 +1157,7 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 > - Performance-critical paths → `performance-optimizer`
 > - Docs, plans, specs, configs, infra → `general-purpose`
 >
-> Each batch sub-agent receives: its full file list; `SYNC:category-review-thinking` as its primary thinking model — derive each category's concerns from first principles, NOT a fixed checklist (if the consuming skill does not carry that block, apply category-first thinking directly); project reference docs relevant to its concern (discover via `*patterns*`, `*conventions*`, `*style-guide*`); cross-reference verification instructions (counts, tables, links). All batch agents run in parallel and write findings to `plans/reports/` (per `SYNC:task-tracking-external-report`); reducers read from disk, never from memory.
+> Each batch sub-agent receives: its full file list; `SYNC:category-review-thinking` as its primary thinking model — derive each category's concerns from first principles, NOT a fixed checklist (if the consuming skill does not carry that block, apply category-first thinking directly); project reference docs relevant to its concern (discover via `*patterns*`, `*conventions*`, `*style-guide*`); cross-reference verification instructions (counts, tables, links). All batch agents run in parallel and write findings to `tmp/reports/` (per `SYNC:task-tracking-external-report`); reducers read from disk, never from memory.
 >
 > **Step 3 — Reduce.**
 >
@@ -1352,14 +1353,14 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 
 <!-- SYNC:ai-mistake-prevention:reminder -->
 
-**MUST ATTENTION** apply AI mistake prevention — verify generated content against evidence, trace downstream references before deleting or renaming, verify all affected outputs, re-read files after context loss, and surface ambiguity before acting.
+**MUST ATTENTION** apply AI mistake prevention — verify generated content against evidence, trace downstream references before deleting or renaming, verify all affected outputs, re-read files after context loss, surface ambiguity before acting, and route disposable generated output (including integration/E2E results) to project-root `tmp/` or `temp/`; root `.gitignore` ignores both by default.
 
 <!-- /SYNC:ai-mistake-prevention:reminder -->
 
 <!-- SYNC:task-tracking-external-report:reminder -->
 
 - **MANDATORY** Bootstrap task tracking before target work; transition one task at a time.
-- **MANDATORY** Persist plan/review findings to `plans/reports/` incrementally and synthesize from disk.
+- **MANDATORY** Persist plan/review findings to `tmp/reports/` incrementally and synthesize from disk.
 
 <!-- /SYNC:task-tracking-external-report:reminder -->
 
@@ -1459,7 +1460,7 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 > 2. **Group `PAR` into waves.** No edge between members. Two writers of one file NEVER share a wave. Read-only work (search, investigation, review, research) parallelizes freely.
 > 3. **Declare before dispatch:** `Parallel plan: wave 1 = [...] · wave 2 = [...] · SEQ = [...] (reason)`.
 > 4. **Spawn each wave in ONE message** — every `Agent` call in one response, NEVER dripped per turn. Route each task to its specialist (`.claude/skills/shared/sub-agent-selection-guide.md`); NEVER `code-reviewer` as catch-all.
-> 5. **Brief each sub-agent self-contained:** goal · scope + owned files · reference docs · return contract (summary + `Full report:` path, per SYNC:subagent-return-contract) · incremental persistence to `plans/reports/` (per SYNC:incremental-persistence).
+> 5. **Brief each sub-agent self-contained:** goal · scope + owned files · reference docs · return contract (summary + `Full report:` path, per SYNC:subagent-return-contract) · incremental persistence to `tmp/reports/` (per SYNC:incremental-persistence).
 > 6. **Barrier per wave.** Advance ONLY after EVERY member returns (a skipped conditional counts as returned). Merge, mark each task completed/skipped, THEN dispatch the next wave. Mutating steps wait for the barrier.
 > 7. **One level deep.** A dispatched sub-agent executes its own brief; further fan-out stays the orchestrator's job unless that agent's `.claude/agents/*.md` definition authorizes it.
 >
@@ -1499,7 +1500,7 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 - **Graph-Assisted Investigation:** Run one graph command on key files when graph.db exists.
 - **Nested Task Creation:** Child skill expands visible phase tasks; link parent when nested.
 - **Project Reference Docs Guide:** Read required project-reference docs before target work; `lessons.md` always.
-- **Task Tracking External Report:** Bootstrap tasks; persist plan/review findings to `plans/reports/` incrementally.
+- **Task Tracking External Report:** Bootstrap tasks; persist plan/review findings to `tmp/reports/` incrementally.
 - **Critical Thinking Mindset:** Traced proof per claim, confidence >80%; NEVER present guess as fact.
 - **Sequential Thinking Protocol:** Multi-step Thought N/M with REVISION/BRANCH/HYPOTHESIS markers and confidence closer.
 - **Evidence-Based Reasoning:** Cite `file:line` for every claim; <60% confidence = do NOT recommend.
@@ -1531,7 +1532,7 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 **IMPORTANT MUST ATTENTION** run at least ONE graph command on key files when `.code-graph/graph.db` exists (grep → `trace --direction both` → verify) — why: trace reveals cross-service blast radius grep alone cannot.
 **IMPORTANT MUST ATTENTION** evaluate pattern fit before flagging — copying-nearby ≠ matching preconditions; verify same scope, lifetime, base class, constraints, established-exception status before calling a deviation a violation.
 **IMPORTANT MUST ATTENTION** review is read-only until validated — NEVER fix code in this skill; after ANY finding run the Phase 5 `/why-review --validate-findings` self-validation gate BEFORE handoff, and every validated fix restarts a full review from Phase 0 with a fresh task breakdown — why: AI reports inherit confirmation bias; adversarial validation demotes false-positive Highs at the source.
-**IMPORTANT MUST ATTENTION** write findings to `plans/reports/arch-review-{date}-{slug}.md` incrementally and synthesize from disk; use `AskUserQuestion` to present next steps (`/code-simplifier` / `/code-review` / skip) after completing review — why: long reviews exhaust context before a final batch write, losing findings.
+**IMPORTANT MUST ATTENTION** write findings to `tmp/reports/arch-review-{date}-{slug}.md` incrementally and synthesize from disk; use `AskUserQuestion` to present next steps (`/code-simplifier` / `/code-review` / skip) after completing review — why: long reviews exhaust context before a final batch write, losing findings.
 
 **Anti-Rationalization:**
 

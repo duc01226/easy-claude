@@ -248,7 +248,7 @@ A markdown file defining a specialized subagent role. The orchestrator spawns an
 ### Key Properties
 
 - **Evidence Gate:** Most agents require `file:line` proof for claims
-- **External Memory:** Agents write reports to `plans/reports/` to survive context loss
+- **External Memory:** Agents write reports to `tmp/reports/` to survive context loss
 - **Static context contract:** Each canonical agent definition contains its required project-reference and shared quality protocols
 
 ### Relationships

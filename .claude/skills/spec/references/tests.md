@@ -214,7 +214,7 @@ Build actor catalog into **§2**: `[Role1, Role2,...]`. Authorization TC minimum
 
 1. Grep commands/queries using project patterns from `docs/project-config.json` and the referenced architecture/test docs.
 2. Grep entities and domain events
-3. **Trace the full vertical chain, not just the backend slice:** UI view + action → API/route → command/query handler → entity + business rule → persistence → event → consumer/read model → UI observable outcome. Reuse the Full-Chain Trace Map authored by `spec [mode=init]` (`.ai/workspace/analysis/{Module}-chain-map.md`, Step 1-INIT.4.6) when it exists; otherwise build the chain with `graph-connect-api` (frontend→backend links) + `graph-trace` (backend→entity→event). A TC that asserts only a handler in isolation misses the seam behavior the chain reveals.
+3. **Trace the full vertical chain, not just the backend slice:** UI view + action → API/route → command/query handler → entity + business rule → persistence → event → consumer/read model → UI observable outcome. Reuse the Full-Chain Trace Map authored by `spec [mode=init]` (`tmp/analysis/{Module}-chain-map.md`, Step 1-INIT.4.6) when it exists; otherwise build the chain with `graph-connect-api` (frontend→backend links) + `graph-trace` (backend→entity→event). A TC that asserts only a handler in isolation misses the seam behavior the chain reveals.
 4. Identify testable behaviors from implementation — at least one **end-to-end chain TC** (decade 061–069, UI/User-journey) per `COMPLETE` chain that spans intent → outcome across the full slice, in addition to the per-operation TCs
 
 **Update mode (post-change / post-bugfix / post-PR):**

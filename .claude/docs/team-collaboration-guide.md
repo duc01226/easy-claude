@@ -53,7 +53,7 @@ Project knowledge — backend/frontend patterns, design tokens, code-review rule
 1. **Claude Code installed** — Verify with `claude --version`
 2. **Project configured** — `docs/project-config.json` exists
 3. **Know where outputs go:**
-    - Plans and reports: `plans/` and `plans/reports/`
+    - Plans and reports: `plans/` and `tmp/reports/`
     - Documentation: `docs/`
     - Design specs, test specs: within `docs/` or `plans/`
 

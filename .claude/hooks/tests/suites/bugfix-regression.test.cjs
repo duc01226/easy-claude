@@ -31,7 +31,7 @@ const SESSION_END = getHookPath('session-end.cjs');
 // session-init/session-end/prettier all spawn node subprocesses (session-init alone
 // spawns 3 git/python grandchildren); under full-suite resource contention a spawn can
 // exceed hook-runner's 10s default and hit SIGKILL — a flaky, environmental timeout
-// (see plans/reports/debug-investigate-260711-lifecycle-timeouts.md). Give every
+// (see tmp/reports/debug-investigate-260711-lifecycle-timeouts.md). Give every
 // spawn-based test in this file a wider per-call ceiling, matching test-all-hooks.cjs:334/348.
 const SPAWN_TIMEOUT_MS = 20000;
 

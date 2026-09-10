@@ -10,7 +10,7 @@ Inserts:
 TODO (follow-up): the inject_*.py family (this + inject_task_tracking_sync.py +
 inject_project_reference_prefetch.py) is ~85% identical. Extract a shared
 inject_sync_block(skills, tag, top, bottom) helper. Tracked as MEDIUM DRY finding
-in plans/reports/workflow-review-changes-260504-0353-tooling-changeset.md.
+in tmp/reports/workflow-review-changes-260504-0353-tooling-changeset.md.
 """
 from __future__ import annotations
 

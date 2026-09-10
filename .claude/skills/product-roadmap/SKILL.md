@@ -108,7 +108,7 @@ For roadmap-applicable work, ask the owner to select one milestone (or confirm t
 
 `plans/{active-plan-id}/scope-brief.md`
 
-If no active plan exists, create one stable handoff directory named `plans/{YYMMDD-HHmm}-{slug}/`, write the scope brief there, and keep that `plan-id` for every downstream artifact. Do not put a scope brief under `plans/reports/`: that directory is for reports, not the roadmap-to-plan handoff. The scope brief must carry the roadmap path, milestone ID/outcome, actor, in-scope behaviors, non-goals, terminology, source of truth, risks, confirmed decisions, open questions, evidence gate, and redaction rules. Update the roadmap’s `## Selected Milestone` section with the same path and approval status.
+If no active plan exists, create one stable handoff directory named `plans/{YYMMDD-HHmm}-{slug}/`, write the scope brief there, and keep that `plan-id` for every downstream artifact. Do not put a scope brief under `tmp/reports/`: that directory is for reports, not the roadmap-to-plan handoff. The scope brief must carry the roadmap path, milestone ID/outcome, actor, in-scope behaviors, non-goals, terminology, source of truth, risks, confirmed decisions, open questions, evidence gate, and redaction rules. Update the roadmap’s `## Selected Milestone` section with the same path and approval status.
 
 Do not select multiple milestones for one implementation plan. If the request spans independent outcomes, return to milestone design and split the scope.
 
@@ -148,6 +148,7 @@ Report:
 > **Assume existing values are intentional — ask WHY before changing OR flagging one as a defect.** Before changing or reporting a constant, limit, flag, cutoff, wording, or pattern, read nearby context and history, the CALLER's ordering, and 2+ sibling call sites of the same convention. A doc stating WHAT without WHY is missing rationale, not proof of a missing guard.
 > **Surface ambiguity before acting — don't pick silently.** Multiple valid interpretations require an explicit question or stated assumption with risk.
 > **Assert the outcome your system owns, not the intermediate state your infrastructure owns.** When verifying async work, assert the final business state — never the delivery/retry bookkeeping held in shared infrastructure that any co-running process can write. Such a check passes when run alone and flakes the moment anything else shares that infrastructure.
+> **Store disposable generated output in the project workspace.** If an output can be regenerated and is not source code, a canonical source-of-truth, or an intentionally versioned projection, write it under the project-root `tmp/` or `temp/` directory (prefer `tmp/`), scoped to the run. This includes temporary state, integration/E2E results, reports, logs, screenshots, traces, videos, coverage, dumps, and candidate evidence. Never put these outputs in source, docs, `plans/`, `team-artifacts/`, or mirror directories; the project-root `.gitignore` must ignore `/tmp/` and `/temp/` by default. Committed fixtures, accepted baselines, canonical specs/docs, and explicitly versioned generated mirrors remain at their declared owner paths.
 > **Keep shared guidance role-relevant.** Universal guidance must help every receiving skill or agent; code-specific obligations belong only in code-specific protocols.
 
 <!-- /SYNC:ai-mistake-prevention -->

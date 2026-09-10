@@ -24,7 +24,7 @@ context-budget: high
 
 **Summary:**
 
-- **Main steps (run in order):** (1) **Scope** — resolve mode (`changes`/`full`/`deps`/`vet`/`host`) + select domains; (2) **Audit** — run each in-scope D1–D10 checklist with `file:line` / command-output evidence; (3) **Report** — findings with severity + confidence + remediation to `plans/reports/security-review-{YYMMDD}-{HHmm}-{slug}.md`; (4) **Validate Findings** — `/why-review --validate-findings` BEFORE any fix; (5) **Fix + Full Re-Review** — fix only validated findings that block the current round, then restart the FULL review from Scope with a fresh `security-auditor` sub-agent (never `code-reviewer`); Round 1 blocks on every severity, Round 2+ blocks only CRITICAL/HIGH/MEDIUM, LOW-only is deferred, and binary security gates always block. — why: AI keeps forgetting the skill's own pipeline; surface every step or steps silently merge/skip.
+- **Main steps (run in order):** (1) **Scope** — resolve mode (`changes`/`full`/`deps`/`vet`/`host`) + select domains; (2) **Audit** — run each in-scope D1–D10 checklist with `file:line` / command-output evidence; (3) **Report** — findings with severity + confidence + remediation to `tmp/reports/security-review-{YYMMDD}-{HHmm}-{slug}.md`; (4) **Validate Findings** — `/why-review --validate-findings` BEFORE any fix; (5) **Fix + Full Re-Review** — fix only validated findings that block the current round, then restart the FULL review from Scope with a fresh `security-auditor` sub-agent (never `code-reviewer`); Round 1 blocks on every severity, Round 2+ blocks only CRITICAL/HIGH/MEDIUM, LOW-only is deferred, and binary security gates always block. — why: AI keeps forgetting the skill's own pipeline; surface every step or steps silently merge/skip.
 - Code being clean is not the verdict — security spans ten domains (D1 OWASP app code, D2 secrets ALWAYS, D3 dependencies, D4 third-party vetting, D5 host/VPS, D6 frontend, D7 API boundaries, D8 infra, D9 CI/CD, D10 AI/agent); resolve the scope mode first (`changes`/`full`/`deps`/`vet`/`host`), then run the matching domain checklists. — why: nine non-code domains each can be the breach the clean-code verdict misses.
 - Every finding needs `file:line` or exact command+output evidence with severity and confidence; if you cannot prove exploitability with a trace, say "potential risk, not confirmed" — never "looks secure" without proof.
 - D4 third-party vetting is a hard gate BEFORE the first install/clone/run (install-time is infection-time), and D2 secrets runs in every mode regardless — automation does not bypass either.
@@ -373,7 +373,7 @@ docker ps -a; docker images                     # unknown containers/images, pri
 | **Medium** | Exploitable in combination / hardening gap | Missing rate limit, weak headers, verbose errors, unvetted-but-clean-looking dependency with install script |
 | **Low** | Defense-in-depth improvement | Logging gaps, missing SRI, doc/process gaps |
 
-Every finding: `[severity] [confidence %] [file:line OR command+output] [finding] [remediation]`. Confirmed vs "potential risk, not confirmed" must be explicit. Findings report: `plans/reports/security-review-{YYMMDD}-{HHmm}-{slug}.md`.
+Every finding: `[severity] [confidence %] [file:line OR command+output] [finding] [remediation]`. Confirmed vs "potential risk, not confirmed" must be explicit. Findings report: `tmp/reports/security-review-{YYMMDD}-{HHmm}-{slug}.md`.
 
 > **Spec-Loop Discipline (Dual-Feedback half — tailored).** Security is **orthogonal** to functional correctness, so the property/metamorphic generation and the MUTATION-SCORE assertion gate are scoped to functional core-logic and do **NOT** apply here — N/A. Apply only the **dual-feedback half**: every confirmed security finding that changes intended behavior (a new authz/tenant-scope rule, an input-validation boundary, a fail-closed requirement, a rate limit) feeds BOTH (a) the **spec** — record the security rule / trust boundary as a §4/§5 invariant so it is documented intent, not tribal knowledge — AND (b) a **guarding test** — a negative test that proves the unauthorized/abusive path is rejected. A fix that patches code but leaves the rule undocumented OR untested is **INCOMPLETE**, never a code-only fix.
 
@@ -432,9 +432,9 @@ When graph DB available, use `trace` to analyze data flow paths for security rev
 
 **Protocol:**
 
-1. Read own finalized report from `plans/reports/{skill}-{date}-{slug}.md`
-2. Invoke `/why-review --validate-findings plans/reports/{skill}-{date}-{slug}.md`
-3. Read the validation verdict path returned by why-review, expected as `plans/reports/why-review-validate-{date}.md`
+1. Read own finalized report from `tmp/reports/{skill}-{date}-{slug}.md`
+2. Invoke `/why-review --validate-findings tmp/reports/{skill}-{date}-{slug}.md`
+3. Read the validation verdict path returned by why-review, expected as `tmp/reports/why-review-validate-{date}.md`
 4. **If why-review demotes/removes any finding:** UPDATE own finalized report with revised severities, remove false positives, and add a `## Why-Review Validation Notes` section citing what changed and why
 5. **If why-review confirms all findings:** Append `## Why-Review Validation` line to own report stating "All N findings re-validated against actual code; no severity changes."
 6. **If the report changed after validation:** re-run this validation gate, maximum 2 validation passes, until the report's remaining findings are validated or zero findings remain.
@@ -495,7 +495,7 @@ When graph DB available, use `trace` to analyze data flow paths for security rev
 
 - `docs/project-reference/domain-entities-reference.md` — Domain entity catalog, relationships, cross-service sync (read when task involves business entities/models)
 
-> **External Memory:** For complex or lengthy work (research, analysis, scan, review), write intermediate findings and final results to a report file in `plans/reports/` — prevents context loss and serves as deliverable.
+> **External Memory:** For complex or lengthy work (research, analysis, scan, review), write intermediate findings and final results to a report file in `tmp/reports/` — prevents context loss and serves as deliverable.
 
 > **Evidence Gate:** MANDATORY — every claim, finding, and recommendation requires `file:line` proof or traced evidence with confidence percentage (>80% to act, <80% must verify first).
 
@@ -530,7 +530,7 @@ When graph DB available, use `trace` to analyze data flow paths for security rev
 
 > **Incremental Result Persistence** — MANDATORY for all sub-agents or heavy inline steps processing >3 files.
 >
-> 1. **Before starting:** Create report file `plans/reports/{skill}-{date}-{slug}.md` and record Run ID, Task ID, Attempt ID, target scope, and target fingerprint.
+> 1. **Before starting:** Create report file `tmp/reports/{skill}-{date}-{slug}.md` and record Run ID, Task ID, Attempt ID, target scope, and target fingerprint.
 > 2. **After each file/section reviewed:** Append findings, evidence, changed paths, and gaps immediately — never hold them in memory.
 > 3. **Delegated return:** A sub-agent emits only the structured `SYNC:subagent-return-contract` envelope with exact totals, salient Critical/High findings (maximum ten), current attempt, and `Full report:` path. **Inline user-facing output:** Preserve the skill's requested explanation or teaching, with links to the persisted evidence; the delegated transport limit does not replace that deliverable. Do not paste a full review report into an envelope.
 > 4. **Parent synthesis:** The main agent reads the full report for synthesis, acceptance, deduplication, and repair planning — not only when a named blocker exists. It preserves all severities beyond the transport cap.
@@ -539,7 +539,7 @@ When graph DB available, use `trace` to analyze data flow paths for security rev
 >
 > **Why:** Context cutoff mid-execution loses ALL in-memory findings. Each disk write survives compaction. Partial results are better than no results, while explicit identity prevents a late result from being mistaken for the current run.
 >
-> **Report naming:** `plans/reports/{skill-name}-{YYMMDD}-{HHmm}-{slug}.md`
+> **Report naming:** `tmp/reports/{skill-name}-{YYMMDD}-{HHmm}-{slug}.md`
 
 <!-- /SYNC:incremental-persistence -->
 
@@ -576,7 +576,7 @@ When graph DB available, use `trace` to analyze data flow paths for security rev
 >
 > - [blocker description, or `none`]
 >
-> Full report: plans/reports/[skill-name]-[date]-[slug].md
+> Full report: tmp/reports/[skill-name]-[date]-[slug].md
 > ```
 >
 > The ten-bullet limit is a transport limit, not a visibility limit: the full report may contain more than ten Medium/Low findings when no named blocker exists, and the parent MUST read it when synthesizing or deduplicating. The parent MUST reject a stale, duplicate, or superseded `Attempt ID` and MUST accept the current attempt before advancing a dependent step. Read-only leaves write repair proposals/reports only; they do not edit source, generated carriers, or user files.
@@ -619,9 +619,9 @@ When graph DB available, use `trace` to analyze data flow paths for security rev
 >
 > 1. Create a small task breakdown before target file reads, grep, edits, or analysis. On context loss, inspect the current task list first.
 > 2. Mark one task `in_progress` before work and `completed` immediately after evidence; never batch transitions.
-> 3. For plan/review work, create `plans/reports/{skill}-{YYMMDD}-{HHmm}-{slug}.md` before first finding.
+> 3. For plan/review work, create `tmp/reports/{skill}-{YYMMDD}-{HHmm}-{slug}.md` before first finding.
 > 4. Append findings after each file/section/decision and synthesize from the report file at the end.
-> 5. Final output cites `Full report: plans/reports/{filename}`.
+> 5. Final output cites `Full report: tmp/reports/{filename}`.
 >
 > **Blocked until:** task breakdown exists, report path declared for plan/review work, first finding persisted before the next finding.
 
@@ -668,6 +668,7 @@ When graph DB available, use `trace` to analyze data flow paths for security rev
 > **Assume existing values are intentional — ask WHY before changing OR flagging one as a defect.** Before changing or reporting a constant, limit, flag, cutoff, wording, or pattern, read nearby context and history, the CALLER's ordering, and 2+ sibling call sites of the same convention. A doc stating WHAT without WHY is missing rationale, not proof of a missing guard.
 > **Surface ambiguity before acting — don't pick silently.** Multiple valid interpretations require an explicit question or stated assumption with risk.
 > **Assert the outcome your system owns, not the intermediate state your infrastructure owns.** When verifying async work, assert the final business state — never the delivery/retry bookkeeping held in shared infrastructure that any co-running process can write. Such a check passes when run alone and flakes the moment anything else shares that infrastructure.
+> **Store disposable generated output in the project workspace.** If an output can be regenerated and is not source code, a canonical source-of-truth, or an intentionally versioned projection, write it under the project-root `tmp/` or `temp/` directory (prefer `tmp/`), scoped to the run. This includes temporary state, integration/E2E results, reports, logs, screenshots, traces, videos, coverage, dumps, and candidate evidence. Never put these outputs in source, docs, `plans/`, `team-artifacts/`, or mirror directories; the project-root `.gitignore` must ignore `/tmp/` and `/temp/` by default. Committed fixtures, accepted baselines, canonical specs/docs, and explicitly versioned generated mirrors remain at their declared owner paths.
 > **Keep shared guidance role-relevant.** Universal guidance must help every receiving skill or agent; code-specific obligations belong only in code-specific protocols.
 
 <!-- /SYNC:ai-mistake-prevention -->
@@ -705,7 +706,7 @@ When graph DB available, use `trace` to analyze data flow paths for security rev
 > - Performance-critical paths → `performance-optimizer`
 > - Docs, plans, specs, configs, infra → `general-purpose`
 >
-> Each batch sub-agent receives: its full file list; `SYNC:category-review-thinking` as its primary thinking model — derive each category's concerns from first principles, NOT a fixed checklist (if the consuming skill does not carry that block, apply category-first thinking directly); project reference docs relevant to its concern (discover via `*patterns*`, `*conventions*`, `*style-guide*`); cross-reference verification instructions (counts, tables, links). All batch agents run in parallel and write findings to `plans/reports/` (per `SYNC:task-tracking-external-report`); reducers read from disk, never from memory.
+> Each batch sub-agent receives: its full file list; `SYNC:category-review-thinking` as its primary thinking model — derive each category's concerns from first principles, NOT a fixed checklist (if the consuming skill does not carry that block, apply category-first thinking directly); project reference docs relevant to its concern (discover via `*patterns*`, `*conventions*`, `*style-guide*`); cross-reference verification instructions (counts, tables, links). All batch agents run in parallel and write findings to `tmp/reports/` (per `SYNC:task-tracking-external-report`); reducers read from disk, never from memory.
 >
 > **Step 3 — Reduce.**
 >
@@ -924,14 +925,14 @@ When graph DB available, use `trace` to analyze data flow paths for security rev
 
 <!-- SYNC:ai-mistake-prevention:reminder -->
 
-**MUST ATTENTION** apply AI mistake prevention — verify generated content against evidence, trace downstream references before deleting or renaming, verify all affected outputs, re-read files after context loss, and surface ambiguity before acting.
+**MUST ATTENTION** apply AI mistake prevention — verify generated content against evidence, trace downstream references before deleting or renaming, verify all affected outputs, re-read files after context loss, surface ambiguity before acting, and route disposable generated output (including integration/E2E results) to project-root `tmp/` or `temp/`; root `.gitignore` ignores both by default.
 
 <!-- /SYNC:ai-mistake-prevention:reminder -->
 
 <!-- SYNC:task-tracking-external-report:reminder -->
 
 - **MANDATORY** Bootstrap task tracking before target work; transition one task at a time.
-- **MANDATORY** Persist plan/review findings to `plans/reports/` incrementally and synthesize from disk.
+- **MANDATORY** Persist plan/review findings to `tmp/reports/` incrementally and synthesize from disk.
 
 <!-- /SYNC:task-tracking-external-report:reminder -->
 
@@ -1019,7 +1020,7 @@ When graph DB available, use `trace` to analyze data flow paths for security rev
 > 2. **Group `PAR` into waves.** No edge between members. Two writers of one file NEVER share a wave. Read-only work (search, investigation, review, research) parallelizes freely.
 > 3. **Declare before dispatch:** `Parallel plan: wave 1 = [...] · wave 2 = [...] · SEQ = [...] (reason)`.
 > 4. **Spawn each wave in ONE message** — every `Agent` call in one response, NEVER dripped per turn. Route each task to its specialist (`.claude/skills/shared/sub-agent-selection-guide.md`); NEVER `code-reviewer` as catch-all.
-> 5. **Brief each sub-agent self-contained:** goal · scope + owned files · reference docs · return contract (summary + `Full report:` path, per SYNC:subagent-return-contract) · incremental persistence to `plans/reports/` (per SYNC:incremental-persistence).
+> 5. **Brief each sub-agent self-contained:** goal · scope + owned files · reference docs · return contract (summary + `Full report:` path, per SYNC:subagent-return-contract) · incremental persistence to `tmp/reports/` (per SYNC:incremental-persistence).
 > 6. **Barrier per wave.** Advance ONLY after EVERY member returns (a skipped conditional counts as returned). Merge, mark each task completed/skipped, THEN dispatch the next wave. Mutating steps wait for the barrier.
 > 7. **One level deep.** A dispatched sub-agent executes its own brief; further fan-out stays the orchestrator's job unless that agent's `.claude/agents/*.md` definition authorizes it.
 >
@@ -1054,13 +1055,13 @@ When graph DB available, use `trace` to analyze data flow paths for security rev
 
 **IMPORTANT MUST ATTENTION Goal:** Ensure the reviewed scope resists credible security failures — exploitable authorization, injection, data, dependency, supply-chain, configuration, pipeline, and host-level risks — via a comprehensive review against OWASP Top 10 (2025), supply-chain/malware threats, secrets exposure, infrastructure misconfiguration, and host compromise indicators, proven with evidence before handoff.
 
-**IMPORTANT MUST ATTENTION Main steps (run in declared order, none skipped/merged):** Scope (resolve mode + select domains) → Audit (run each in-scope D1–D10 checklist with `file:line`/command-output evidence) → Report (severity + confidence + remediation to `plans/reports/`) → Validate Findings (`/why-review --validate-findings` BEFORE any fix) → Fix + Full Re-Review (fix only validated findings that block the current round, then restart the FULL review from Scope with a fresh `security-auditor`, never `code-reviewer`; Round 1 = all severities, Round 2+ = CRITICAL/HIGH/MEDIUM, LOW-only deferred, binary gates always block). — why: surfacing every step at the recency anchor stops the pipeline collapsing after the long middle.
+**IMPORTANT MUST ATTENTION Main steps (run in declared order, none skipped/merged):** Scope (resolve mode + select domains) → Audit (run each in-scope D1–D10 checklist with `file:line`/command-output evidence) → Report (severity + confidence + remediation to `tmp/reports/`) → Validate Findings (`/why-review --validate-findings` BEFORE any fix) → Fix + Full Re-Review (fix only validated findings that block the current round, then restart the FULL review from Scope with a fresh `security-auditor`, never `code-reviewer`; Round 1 = all severities, Round 2+ = CRITICAL/HIGH/MEDIUM, LOW-only deferred, binary gates always block). — why: surfacing every step at the recency anchor stops the pipeline collapsing after the long middle.
 
 **Protocols in force (concise digest of the SYNC/shared blocks this skill carries):**
 
 - **Sub-Agent Selection:** Route specialized domains to matching specialist agent; NEVER `code-reviewer`.
 - **Graph-Assisted Investigation:** Run ≥1 graph command on key files before concluding.
-- **Incremental Persistence:** Append findings to `plans/reports/` per file; NEVER hold in memory.
+- **Incremental Persistence:** Append findings to `tmp/reports/` per file; NEVER hold in memory.
 - **Subagent Return Contract:** Sub-agents return summary only; full detail lives on disk.
 - **Nested Task Creation:** Expand child phases and link parent workflow row when nested.
 - **Project Reference Docs Guide:** Read required project docs before target work; cite them.
@@ -1083,7 +1084,7 @@ When graph DB available, use `trace` to analyze data flow paths for security rev
 **IMPORTANT MUST ATTENTION** restarted review spawns a fresh `security-auditor` sub-agent with zero memory — NEVER `code-reviewer` — why: `code-reviewer` lacks OWASP/auth-flow/injection/CVE/boundary protocols and misses security-specific issues.
 **IMPORTANT MUST ATTENTION** confirmed host compromise → isolate first, rotate EVERY credential that touched the host, rebuild from a clean image — NEVER trust an in-place "cleaned" rooted box — why: rootkits hide from the tools you would clean with.
 **IMPORTANT MUST ATTENTION** every confirmed finding that changes intended behavior feeds BOTH the spec (§4/§5 invariant) AND a guarding negative test — a code-only fix is INCOMPLETE — why: undocumented + untested security rules become tribal knowledge that regresses silently.
-**IMPORTANT MUST ATTENTION** break work into small todo tasks via `TaskCreate` BEFORE starting; persist findings incrementally to `plans/reports/security-review-{YYMMDD}-{HHmm}-{slug}.md`; add a final review todo; validate workflow choice via `AskUserQuestion` — never auto-decide.
+**IMPORTANT MUST ATTENTION** break work into small todo tasks via `TaskCreate` BEFORE starting; persist findings incrementally to `tmp/reports/security-review-{YYMMDD}-{HHmm}-{slug}.md`; add a final review todo; validate workflow choice via `AskUserQuestion` — never auto-decide.
 **IMPORTANT MUST ATTENTION** when `.code-graph/graph.db` exists, run ≥1 graph command (`callers_of` on sensitive functions, `trace --direction downstream` for blast-radius) before concluding — why: reachability proves or rules out exploitability and drives severity.
 
 **Anti-Rationalization:**

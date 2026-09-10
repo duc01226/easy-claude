@@ -11,7 +11,7 @@ The portable `.claude/` harness ships 270+ skills. Prior to this ADR there was n
 machine-checkable signal for whether a skill was current, deprecated, or
 experimental. Skill removal happened ad-hoc by directory `rm -rf` with no
 deprecation window, no scheduled GC, and no ownership trail. The
-LLM-Council audit (`plans/reports/council-260514-1407-harness-quality-refactor.md:46`)
+LLM-Council audit (`tmp/reports/council-260514-1407-harness-quality-refactor.md:46`)
 flagged this as a Risk Register item:
 "No garbage collector. Whatever you cut today regrows in six months."
 
@@ -238,7 +238,7 @@ as `--output`). This is the CI-ready signal consumed by Phase 4's drift gate.
 - `plans/260514-1407-harness-quality-refactor/plan.md`
 - `plans/260514-1407-harness-quality-refactor/phase-02a-deprecation-policy.md`
 - `plans/260514-1407-harness-quality-refactor/phase-02b-gc-script-and-poc.md`
-- `plans/reports/council-260514-1407-harness-quality-refactor.md`
+- `tmp/reports/council-260514-1407-harness-quality-refactor.md`
 
 ## Amendments
 

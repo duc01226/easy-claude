@@ -73,7 +73,7 @@ const SKELETON = {
     testing: { frameworks: [], filePatterns: {}, commands: {} },
     experienceVerification: {
         enabled: false,
-        evidenceRoot: 'plans/reports/experience',
+        evidenceRoot: 'tmp/experience',
         baselineRoot: 'tests/experience-baselines',
         acceptancePolicy: 'manual-acceptance-required',
         reviewOn: ['new-surface', 'changed-surface', 'bugfix', 'baseline-mismatch'],

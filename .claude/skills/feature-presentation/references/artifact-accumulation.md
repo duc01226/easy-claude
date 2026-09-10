@@ -58,11 +58,11 @@ Fill missing downstream artifacts so the deck is complete:
 
 | Gap                                              | Fill action                                                                                          |
 | ------------------------------------------------ | --------------------------------------------------------------------------------------------------- |
-| Targeted spec has NO PBIs                         | Invoke `workflow-spec-to-pbi` **AS A SUB-AGENT** (Agent tool) — returns a summary, writes full findings to `plans/reports/` |
+| Targeted spec has NO PBIs                         | Invoke `workflow-spec-to-pbi` **AS A SUB-AGENT** (Agent tool) — returns a summary, writes full findings to `tmp/reports/` |
 | PBIs lack `-mockup.html` AND workflow is mockup-bearing (`idea-to-pbi`) | Invoke `pbi-mockup` per PBI to generate the missing mockup                       |
 | Spec-only `idea-to-spec` context                 | SKIP all mockup generation — never invoke `pbi-mockup` (deck uses design-spec visuals only)          |
 
-**Sub-agent rule (why):** per CLAUDE.md "Workflow Step Advancement §3", a step that itself activates a multi-step workflow MUST run as a sub-agent — it returns only a summary and writes full findings to `plans/reports/`. Running it inline would pollute the deck-build context with the entire workflow transcript and exhaust the budget before assembly.
+**Sub-agent rule (why):** per CLAUDE.md "Workflow Step Advancement §3", a step that itself activates a multi-step workflow MUST run as a sub-agent — it returns only a summary and writes full findings to `tmp/reports/`. Running it inline would pollute the deck-build context with the entire workflow transcript and exhaust the budget before assembly.
 
 ---
 
