@@ -226,7 +226,7 @@ See `references/section-registry.md` for full mapping. Summary:
 | `infra-ports`         | `modules[].meta.port` (infra)           | Yes — skip if no ports    |
 | `api-ports`           | `modules[].meta.port` (services)        | Yes — skip if no ports    |
 | `integration-testing` | `framework.integrationTestDoc`          | Yes — skip if no doc      |
-| `e2e-testing`         | `framework.e2eTestDoc` or scan          | Yes — skip if no tests    |
+| `e2e-testing`         | `framework.e2eTestDoc`, scan, or `e2eTesting.execution` | Yes — skip if no E2E evidence/profile |
 | `doc-index`           | Scan `docs/` directory                  | Yes — skip if no docs/    |
 | `doc-lookup`          | `modules[]` + business features         | Yes — skip if no modules  |
 

@@ -339,6 +339,32 @@ test("TC-HARNESS-015 project map retains every configured context path and note"
     assert.ok(text.includes(value), value);
 });
 
+test("TC-CLG-008 init and update materialize config-sourced E2E guidance", async t => {
+  const config = {
+    project: { name: "E2E generation fixture", description: "Synthetic E2E config." },
+    e2eTesting: {
+      framework: "playwright",
+      guideDoc: "docs/project-reference/e2e-test-reference.md",
+    },
+  };
+
+  const fresh = await fixture(t, config);
+  await fresh.run(["--mode", "init"]);
+  const initialized = await fresh.read();
+  assert.match(initialized, /SECTION:e2e-testing/);
+  assert.match(initialized, /e2e-test-reference\.md/);
+
+  const existing = await fixture(t, config);
+  const custom = "# Existing root\n\n" + section("tldr", "keep this root") + "\n\n## Custom rule\nretain me\n";
+  await fs.writeFile(path.join(existing.root, "CLAUDE.md"), custom, "utf8");
+  await existing.run(["--mode", "update"]);
+  const updated = await existing.read();
+  assert.match(updated, /SECTION:e2e-testing/);
+  assert.match(updated, /e2e-test-reference\.md/);
+  assert.match(updated, /retain me/);
+  assert.equal((updated.match(/<!-- SECTION:e2e-testing -->/g) || []).length, 1);
+});
+
 test("TC-HARNESS-008 secret-shaped infrastructure credentials never enter generated root", async t => {
   const sentinel = "password=synthetic-never-rendered-7f4d";
   const f = await fixture(t, {

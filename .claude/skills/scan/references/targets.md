@@ -897,7 +897,7 @@ Mode-detect table (explicit):
 | Init | Target doc doesn't exist or is placeholder | Full scan, create all sections |
 | Sync | Target doc exists with content | Diff scan — check for new frameworks, count changes |
 
-Also: in Sync mode extract section list → skip well-documented sections. Read `docs/project-config.json` `e2eTesting` section if it exists — use as path hints.
+Also: in Sync mode extract section list → skip well-documented sections. Read `docs/project-config.json` `e2eTesting` section if it exists — use as path hints. If `e2eTesting.execution` exists, preserve its verified values and resolve `surfaceIds[]` through `experienceVerification.surfaces[].localRun`; never duplicate lifecycle commands into the E2E section.
 
 **Evidence gate:** Confidence <60% on framework → report uncertainty, ask user before proceeding.
 
@@ -925,7 +925,7 @@ Required Sections (all frameworks):
 | **Base Classes** | Test/page object hierarchies with code examples |
 | **Page Object Pattern** | How to create page objects, component wrappers |
 | **Wait & Assertion Patterns** | Resilient waits, retry, assertion helpers |
-| **Configuration** | Settings files, environment variants, CI setup |
+| **Configuration** | Settings files, environment variants, CI setup, linked `e2eTesting.execution` and `experienceVerification.localRun` ownership |
 | **Running Tests** | Commands for all, filtered, headed, CI modes |
 | **Best Practices** | Project-specific conventions |
 
@@ -944,7 +944,7 @@ Conditional Sections (framework-specific — only add if corresponding code evid
 - **BDD authoring branch:** Agent 3 + BDD Pattern section + Test Account System + Environment Variants are all evidence-gated branches.
 - **CRITICAL security flag:** hardcoded test credentials in source → flag CRITICAL in report; verified again in Round 2.
 - **Grep-expression statistics (no hardcoded counts):** feature/step counts expressed as grep expressions, never numbers; verified in Round 2 and Phase 5.
-- **Phase 4 `project-config.json` update (target-unique step):** update/create `e2eTesting` section (framework, language, bddFramework, guideDoc, runCommands, entryPoints, `stats` with `featureFilesGrepExpr` / `stepDefinitionFilesGrepExpr`, dependencies, architecture) — stats use grep expressions NOT counts.
+- **Phase 4 `project-config.json` update (target-unique step):** update/create `e2eTesting` section (framework, language, bddFramework, guideDoc, runCommands, entryPoints, `stats` with `featureFilesGrepExpr` / `stepDefinitionFilesGrepExpr`, dependencies, architecture) and, only when evidence exists, `execution` (`surfaceIds[]`, auth/data/browser/evidence/convergence facts). Keep startup/dependency/readiness/teardown/log commands in the linked `experienceVerification.surfaces[].localRun`; record auth/data/browser/evidence values as references and project facts, not secrets or guessed defaults. Stats use grep expressions NOT counts. Missing capability is recorded as `ENVIRONMENT-BLOCKED` for execution or evidence-backed `NOT-APPLICABLE` when no surface exists.
 - **Multi-round verification with escalation cap:** R1 (main) → R2 (fresh sub-agent, zero memory) → R3 only if R2 finds issues; max 3 rounds → escalate to user.
 - **Phase 5 Write & Verify extras:** verify dependency versions against `.csproj` / `package.json` / `requirements.txt`; verify no hardcoded file counts in output doc.
 

@@ -109,7 +109,7 @@ docs/project-config.json
 ├── componentSystem — { type, selectorPrefixes[], filePattern, layerClassification{} }
 ├── framework — { name, backendPatternsDoc, frontendPatternsDoc, codeReviewDoc, integrationTestDoc, searchPatternKeywords[] }
 ├── testing — { frameworks[], filePatterns{}, commands{}, coverageTool, guideDoc, integrationRules[] }
-├── e2eTesting — { framework, language, configFile, testsPath, pageObjectsPath, fixturesPath, ... }
+├── e2eTesting — { framework, language, configFile, testsPath, pageObjectsPath, fixturesPath, execution{ surfaceIds[], auth{}, data{}, browser{}, evidence{}, convergence{} }, ... }
 ├── experienceVerification — { enabled, evidenceRoot, baselineRoot, acceptancePolicy, reviewOn[], surfaces[] }
 ├── databases{}, messaging{ broker, patterns[], consumerConvention }, api{ style, docsFormat, docsPath, authPattern }
 ├── infrastructure — { containerization, orchestration, cicd{ tool, configPath } }
@@ -247,7 +247,8 @@ Rules MUST ATTENTION be specific: "Use the service-specific repository (e.g. `Or
 ### 2i–2j. Testing & E2E
 
 - `testing { frameworks[], filePatterns{}, commands{}, coverageTool, guideDoc, integrationRules[] }`
-- `e2eTesting { framework, language, configFile, testsPath, pageObjectsPath, fixturesPath, runCommands{}, tcCodeFormat, entryPoints[] }`
+- `e2eTesting { framework, language, configFile, testsPath, pageObjectsPath, fixturesPath, runCommands{}, tcCodeFormat, entryPoints[], execution{ surfaceIds[], auth{}, data{}, browser{}, evidence{}, convergence{} } }`
+- `e2eTesting.execution` is optional and E2E-specific. Link `surfaceIds[]` to `experienceVerification.surfaces[].id`; keep dependency/start/readiness/log/teardown commands in that surface's `localRun` object so there is one lifecycle owner. `auth` and `localRun.credentialsRef` store references only (`credentialsRef`/`storageStateRef`), never secret values; registration/seed commands must use environment, fixture, or secret-manager references for credentials. `data` records a verified seed/reference strategy; `browser` records the project runner/engine, visibility, and optional human-QC action delay; `evidence` records a project-relative root, capture kinds, and non-empty redaction reference when sensitive captures are enabled; `convergence` bounds the verify/fix loop. `--describe` is authoritative for exact nested field names and semantics.
 - `integrationTestVerify { guidance, referenceDocs[], runScript, startupScript, quickRunCommand, systemCheckCommand, testProjectPattern, testProjects[] }`
 - `integrationTestVerify.referenceDocs[]` MUST contain project-specific docs that explain setup prerequisites before a verifier runs `systemCheckCommand` or test commands.
 
@@ -257,6 +258,12 @@ Rules MUST ATTENTION be specific: "Use the service-specific repository (e.g. `Or
 - Each `surfaces[]` row records the project runner/tool, entry points, optional full/focused commands, impact triggers, evidence root, baseline root, and relevant states. Configuration is a routing contract, not proof that the environment can run it.
 - Keep `acceptancePolicy` at `manual-acceptance-required` unless the project documents a named owner process. First-run evidence is candidate evidence; never promote a generated screenshot or current output automatically.
 - If no applicable surface exists, use `enabled:false`, `surfaces:[]`, and an evidence-backed reason. If a relevant surface cannot run or be inspected, `/experience-review` records `ENVIRONMENT-BLOCKED`; it is not N/A or PASS.
+
+#### E2E execution discovery order
+
+When `e2eTesting.execution` is absent or partial, preserve every verified fact and discover missing facts in this order: (1) `docs/project-config.json` and the linked `experienceVerification.surfaces[].localRun`; (2) the E2E reference and existing runner config; (3) package/task scripts, compose/Make targets, CI workflows, fixtures/seed scripts, and auth setup docs; (4) a bounded repository scan for the configured framework's entry points. Record each discovered value with `file:line` evidence. A missing startup, readiness, auth, seed, browser, or evidence capability is `ENVIRONMENT-BLOCKED` for execution, not a guessed command or a silent pass. This profile does not turn the framework repository's own E2E N/A state into an adopter default.
+
+For web human-QC, use the project's configured visible Playwright CLI path when the evidence supports it. Wait for real readiness and actionability first; a deterministic 200–300ms delay is only for actor pacing/presentation and never for readiness. Capture and read the configured screenshots, console/request logs, traces, or video, redact sensitive data, and keep accepted baselines human-owned.
 
 ### 2k–2n. Databases, Messaging, API, Infrastructure
 

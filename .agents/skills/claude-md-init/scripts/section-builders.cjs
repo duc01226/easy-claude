@@ -193,7 +193,9 @@ function buildE2eTesting(config) {
     const e2e = config.e2eTesting || {};
     const doc = config.framework?.e2eTestDoc || e2e.guideDoc;
     const frameworks = config.testing?.frameworks || [];
-    const hasE2e = frameworks.some(f => /selenium|playwright|cypress|specflow/i.test(f)) || !!e2e.framework;
+    const execution = e2e.execution || {};
+    const hasE2e = frameworks.some(f => /selenium|playwright|cypress|specflow/i.test(f)) ||
+        !!e2e.framework || Object.keys(execution).length > 0;
 
     if (!doc && !hasE2e) return null;
 
@@ -214,10 +216,52 @@ function buildE2eTesting(config) {
         ? `Full guide: [${path.basename(doc)}](${doc}) for E2E test patterns, page objects, and configuration.`
         : '';
 
-    if (stack && docLink) return `${stack}. ${docLink}`;
-    if (stack) return `E2E stack: ${stack}.`;
-    if (docLink) return docLink;
-    return `E2E testing framework(s): ${frameworks.join(', ')}`;
+    // Keep generated root context useful without copying commands, credentials,
+    // storage state, or arbitrary config text into a broadly consumed document.
+    // The project-config remains the source of truth for exact values.
+    const executionLines = [];
+    const surfaceIds = Array.isArray(execution.surfaceIds) ? execution.surfaceIds : [];
+    const surfaces = Array.isArray(config.experienceVerification?.surfaces)
+        ? config.experienceVerification.surfaces
+        : [];
+    if (surfaceIds.length > 0) {
+        const lifecycle = surfaceIds.map(id => {
+            const surface = surfaces.find(s => s?.id === id);
+            return `\`${String(id).replace(/[|\r\n]/g, ' ')}\`${surface?.localRun ? ' (localRun configured)' : ' (localRun must be verified/discovered)'}`;
+        });
+        executionLines.push(`- **E2E surfaces:** ${lifecycle.join(', ')}; use each surface's configured localRun owner.`);
+    } else if (Object.keys(execution).length > 0) {
+        executionLines.push('- **E2E surfaces:** resolve surface IDs and localRun ownership from `experienceVerification.surfaces[]`; do not invent lifecycle details.');
+    }
+    if (execution.auth) {
+        const mode = execution.auth.mode ? `\`${String(execution.auth.mode).replace(/[|\r\n]/g, ' ')}\`` : 'configured mode';
+        executionLines.push(`- **E2E authentication:** ${mode}; use configured non-secret references/fixtures or the documented manual-login path, never raw credentials.`);
+    }
+    if (execution.data) {
+        const mode = execution.data.mode ? `\`${String(execution.data.mode).replace(/[|\r\n]/g, ' ')}\`` : 'configured policy';
+        executionLines.push(`- **E2E data:** ${mode}; use the configured seed/cleanup policy and record data identity without exposing secrets.`);
+    }
+    if (execution.browser) {
+        const runner = execution.browser.runner ? ` runner \`${String(execution.browser.runner).replace(/[|\r\n]/g, ' ')}\`` : '';
+        const headed = execution.browser.headed === true ? 'headed/visible' : execution.browser.headed === false ? 'headless' : 'configured visibility';
+        executionLines.push(`- **E2E browser:**${runner}; ${headed}. Use readiness/actionability waits; any 200–300ms delay is presentation pacing after a completed action.`);
+    }
+    if (execution.evidence) {
+        const capture = Array.isArray(execution.evidence.capture) ? execution.evidence.capture.join(', ') : 'configured capture set';
+        executionLines.push(`- **E2E evidence:** capture ${capture}; store under the configured evidence root, read the evidence, and apply the configured redaction policy.`);
+    }
+    if (execution.convergence) {
+        const attempts = execution.convergence.maxAttempts ? `max ${execution.convergence.maxAttempts} attempts` : 'bounded attempts';
+        executionLines.push(`- **E2E convergence:** ${attempts}; preserve scope, classify failures before edits, review fixes, and escalate when the contract cannot converge.`);
+    }
+    const executionProfile = executionLines.length > 0
+        ? `\n\nE2E execution profile (read \`docs/project-config.json → e2eTesting.execution\` for exact project facts):\n${executionLines.join('\n')}`
+        : '';
+
+    if (stack && docLink) return `${stack}. ${docLink}${executionProfile}`;
+    if (stack) return `E2E stack: ${stack}.${executionProfile}`;
+    if (docLink) return `${docLink}${executionProfile}`;
+    return `E2E testing framework(s): ${frameworks.join(', ')}${executionProfile}`;
 }
 
 function buildSkillActivation(config) {

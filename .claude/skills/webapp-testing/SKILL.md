@@ -11,6 +11,8 @@ license: Complete terms in LICENSE.txt
 **Goal:** Test local web applications using Python Playwright scripts with server lifecycle management.
 
 > **For full-site QA audits (accessibility, performance, security, SEO), use `test-ui` instead.**
+>
+> **For feature/bugfix/whole-project human-QC E2E, use `workflow-e2e-green` / `e2e-test-verify-loop`; this helper does not invent project startup, auth, seed, or browser configuration.**
 
 **Workflow:**
 
@@ -23,13 +25,15 @@ license: Complete terms in LICENSE.txt
 
 - Always wait for `networkidle` before inspecting DOM on dynamic apps
 - Use bundled scripts as black boxes; run `--help` first, don't read source
-- Always launch Chromium in headless mode and close browser when done
+- This narrow helper defaults to headless page/component checks; a configured E2E profile may require the visible Playwright CLI path instead
+- Use readiness/actionability waits for correctness; `wait_for_timeout` is not a readiness signal and 200–300ms is only a post-action presentation delay for visible human-QC
+- Capture console/page errors, failed requests, and screenshots when the task requires runtime evidence; redact sensitive values before retaining them
 
 **Be skeptical. Apply critical thinking, sequential thinking. Every claim needs traced proof, confidence percentages (Idea should be more than 80%).**
 
 # Web Application Testing
 
-To test local web applications, write native Python Playwright scripts.
+To test an individual local page or component, write native Python Playwright scripts. For a broader journey, first hand off to the config-first E2E workflow so the project owns lifecycle, auth, data, evidence, and convergence decisions.
 
 **Helper Scripts Available**:
 
@@ -81,7 +85,7 @@ To create an automation script, include only Playwright logic (servers are manag
 from playwright.sync_api import sync_playwright
 
 with sync_playwright() as p:
-    browser = p.chromium.launch(headless=True) # Always launch chromium in headless mode
+    browser = p.chromium.launch(headless=True) # Narrow page/component helper default; obey a configured E2E profile when one owns the run.
     page = browser.new_page()
     page.goto('http://localhost:5173') # Server already running and ready
     page.wait_for_load_state('networkidle') # CRITICAL: Wait for JS to execute
@@ -114,7 +118,7 @@ with sync_playwright() as p:
 - Use `sync_playwright()` for synchronous scripts
 - Always close the browser when done
 - Use descriptive selectors: `text=`, `role=`, CSS selectors, or IDs
-- Add appropriate waits: `page.wait_for_selector()` or `page.wait_for_timeout()`
+- Add appropriate readiness/actionability waits: `page.wait_for_selector()` or a project-specific observable condition. Use `page.wait_for_timeout()` only for a deliberate post-action presentation delay, never to declare the app ready.
 
 ## Reference Files
 

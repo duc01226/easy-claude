@@ -6,16 +6,16 @@
 >
 > Honor an explicit request to execute a skill/workflow first. Otherwise auto-select by complexity and risk; never ask the user to choose the execution path.
 >
-> | Intent                                                                                                          | Route                                                                                             |
-> | --------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------- |
-> | Clear, low-risk task or one-off question                                                                        | direct                                                                                            |
-> | Simple coordinated steps                                                                                        | custom-simple: only the necessary skills/steps                                                    |
-> | Non-trivial bug/regression/stale output                                                                         | `workflow-bugfix`                                                                                 |
-> | Non-trivial feature/enhancement                                                                                 | `workflow-feature`; large/ambiguous/research-heavy scope uses `workflow-big-feature`              |
-> | Product vision, greenfield or release-scoped idea                                                               | owning idea/feature workflow; apply shared `isLargeIdea` and embed decomposition in its artifacts |
-> | Explicit roadmap/update/milestone-selection request                                                             | `product-roadmap`; only this explicit intent may write `docs/product-roadmap.md`                  |
-> | Milestone/large-idea scope needing adversarial failure, replay, state, ownership, recovery or evidence analysis | conditional `scenario` before `/plan`; no roadmap artifact                                        |
-> | Other matching skill/workflow Use clause                                                                        | that skill/workflow, verified from its canonical definition                                       |
+> | Intent | Route |
+> | --- | --- |
+> | Clear, low-risk task or one-off question | direct |
+> | Simple coordinated steps | custom-simple: only the necessary skills/steps |
+> | Non-trivial bug/regression/stale output | `workflow-bugfix` |
+> | Non-trivial feature/enhancement | `workflow-feature`; large/ambiguous/research-heavy scope uses `workflow-big-feature` |
+> | Product vision, greenfield or release-scoped idea | owning idea/feature workflow; apply shared `isLargeIdea` and embed decomposition in its artifacts |
+> | Explicit roadmap/update/milestone-selection request | `product-roadmap`; only this explicit intent may write `docs/product-roadmap.md` |
+> | Milestone/large-idea scope needing adversarial failure, replay, state, ownership, recovery or evidence analysis | conditional `scenario` before `/plan`; no roadmap artifact |
+> | Other matching skill/workflow Use clause | that skill/workflow, verified from its canonical definition |
 >
 > Declare `Route: {workflow-id | skill | custom-simple | direct} — because {reason}`, then ACTIVATE before edits, agents or commands. Workflow: execute `/start-workflow <id>` and use its canonical sequence for tasks 1:1; never improvise that list. Skill: read and execute its SKILL.md through the host's supported mechanism. Custom/direct: create a small task list and execute it. Missing required tools/details: stop and report; never fabricate invocation.
 >
@@ -26,12 +26,11 @@
 <!-- prettier-ignore-start -->
 
 <!-- CK:WORKFLOW-SKILLS -->
-
 ## Workflow & Skills Catalog
 
 Session-start reference derived from `.claude/workflows.json` — use it to pick a route on any prompt: run a standard workflow, compose a custom workflow from the step-skills, invoke a single skill, or execute directly.
 
-### Workflows Index (19)
+### Workflows Index (20)
 
 | Workflow | When to use | Steps |
 | --- | --- | --- |
@@ -40,6 +39,7 @@ Session-start reference derived from `.claude/workflows.json` — use it to pick
 | `workflow-bugfix` | a bug, error, crash | investigate → debug-investigate → spec [mode=amend] → plan → plan-review → plan-validate → why-review → spec [mode=tests] → why-review → artifact-review --type=spec-tests → integration-test → fix → prove-fix → integration-test → integration-test-review → integration-test-verify → spec [mode=sync] → workflow-review-changes → changelog → test → scan --target=domain-entities → docs-update → demo-guide → workflow-end → watzup |
 | `workflow-code-to-spec` | initial feature spec generation from zero, maintaining spec sync after code changes, quarterly spec health audits | init-full: investigate → plan → plan-review → plan-validate → spec [mode=init] → spec [mode=tests] → artifact-review --type=spec-tests → artifact-review → docs-update → workflow-end → watzup; update: workflow-review-changes → spec [mode=update] → spec [mode=tests] → artifact-review --type=spec-tests → spec [mode=sync] → changes-review → docs-update → workflow-end → watzup; audit: investigate → spec [mode=audit] → artifact-review → docs-update → workflow-end → watzup |
 | `workflow-e2e` | generate, update, or maintain e2e/playwright tests from code/spec | investigate → e2e-test → experience-review → test → docs-update → workflow-end → watzup |
+| `workflow-e2e-green` | user asks to test a feature, bugfix, whole project | investigate → e2e-test-verify-loop → docs-update → workflow-end → watzup |
 | `workflow-feature` | implement a well-defined feature, add a component, build a capability | investigate → spec-discovery → domain-analysis → why-review → spec → spec-clarify → scenario → plan → plan-review → plan-validate → why-review → spec [mode=tests] → why-review → artifact-review --type=spec-tests → plan → plan-review → plan-execute → seed-test-data → domain-entities-review → spec [mode=tests] → why-review → artifact-review --type=spec-tests → spec [mode=sync] → integration-test → integration-test-review → integration-test-verify → workflow-review-changes → security-review → changelog → test → scan --target=domain-entities → docs-update → demo-guide → workflow-end → watzup |
 | `workflow-feature-spec` | create or update business feature documentation | investigate → plan → plan-review → plan-validate → why-review → docs-update → workflow-review-changes → workflow-end → watzup |
 | `workflow-greenfield-init` | start a new project from scratch, init a greenfield project, plan a new application | idea → web-research → deep-research → market-analysis → business-evaluation → spec-discovery → domain-analysis → why-review → tech-stack-research → architecture-design → architecture-scalability-review → why-review → scenario → plan → plan-review → security-review → performance-review → plan-review → refine → why-review → artifact-review --type=pbi → story → why-review → artifact-review --type=story → pbi-challenge → dor-gate → pbi-mockup → plan-validate → why-review → spec [mode=tests] → why-review → artifact-review --type=spec-tests → spec-clarify → plan → plan-review → scaffold → linter-setup → harness-setup → architecture-review-full → scan --target=ui-system → scan --target=backend-patterns → scan --target=integration-tests → scan --target=project-structure → why-review → plan-execute → seed-test-data → domain-entities-review → spec [mode=tests] → why-review → artifact-review --type=spec-tests → plan → plan-review → integration-test → integration-test-review → integration-test-verify → e2e-test → test → workflow-review-changes → security-review → changelog → test → scan --target=domain-entities → docs-update → workflow-end → watzup |
@@ -55,7 +55,7 @@ Session-start reference derived from `.claude/workflows.json` — use it to pick
 | `workflow-visualize` | visualize, diagram, draw | codebase: investigate → excalidraw-diagram → workflow-end; knowledge: web-research → deep-research → excalidraw-diagram → workflow-end |
 | `workflow-write-integration-test` | write integration tests for a specific, add test coverage to an untested, update integration tests after code changes | investigate → spec [mode=tests] → why-review → artifact-review --type=spec-tests → integration-test → integration-test-review → integration-test-verify → spec [mode=sync] → docs-update → workflow-end → watzup |
 
-### Workflow Skills (65 composable steps)
+### Workflow Skills (66 composable steps)
 
 Distinct step-skills used across the workflows above — compose these into a custom workflow when no standard workflow fits.
 
@@ -80,7 +80,8 @@ Distinct step-skills used across the workflows above — compose these into a cu
 | `domain-analysis` | [Architecture] Use when analyzing the business domain — bounded contexts, aggregates, entities, ERD, domain events, cross-context integration. |
 | `domain-entities-review` | [DDD Quality] Use when reviewing domain entities and value objects for DDD design quality. |
 | `dor-gate` | [Code Quality] Use when validating a PBI against Definition of Ready before grooming. |
-| `e2e-test` | [Testing] Use when generating, updating, or maintaining E2E tests from recordings, specs, or code changes. |
+| `e2e-test` | [Testing] Use when selecting, generating, updating, or maintaining E2E tests from a prompt, current context, recordings, specs, or code changes. |
+| `e2e-test-verify-loop` | [Testing] Use when driving a configured E2E suite or human-QC journey to green with project-config setup, evidence, fault adjudication, and bounded re-verification. |
 | `excalidraw-diagram` | [Utilities] Use when visualizing workflows, architectures, or concepts as Excalidraw diagram JSON. |
 | `experience-review` | [Testing] Use when reviewing a running user experience or observable output (UI, API, CLI, service) — run it locally, drive it end to end like a user, gate on runtime/console logs and captured screens, set a baseline, or adjudicate a regression. Flag: --rounds=N (default 3; 0 = report-only). |
 | `feature-presentation` | [Documentation] Use when synthesizing specs, PBIs, ideas, and mockups into one standalone HTML slide deck for stakeholders. |
@@ -126,7 +127,6 @@ Distinct step-skills used across the workflows above — compose these into a cu
 | `why-review` | [Code Quality] Use when reviewing rationale and change quality for plans, PBIs, commits, diffs, docs, specs, or reports. |
 | `workflow-end` | [Process] Use when ending the active workflow and clearing its state. |
 | `workflow-review-changes` | [Workflow] Use when reviewing uncommitted, staged, or unstaged changes before committing — review, fix, and re-review until the severity bar clears. |
-
 <!-- /CK:WORKFLOW-SKILLS -->
 
 <!-- prettier-ignore-end -->
@@ -184,6 +184,26 @@ Distinct step-skills used across the workflows above — compose these into a cu
 <!-- /CK:AI-MISTAKE-PREVENTION -->
 
 <!-- prettier-ignore-end -->
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 <!-- CK:PROJECT-PROTOCOLS -->
 
@@ -263,8 +283,8 @@ Workflow progression is **model-driven** — your responsibility, not a tool/hoo
 
 **Decision Quick-Ref:**
 
-| Task                | Pattern                                                     |
-| ------------------- | ----------------------------------------------------------- |
+| Task | Pattern |
+|---|---|
 | Backend conventions | Read `docs/project-reference/backend-patterns-reference.md` |
 
 <!-- /SECTION:decision-quick-ref -->
@@ -378,6 +398,12 @@ node .claude/hooks/tests/run-all-tests.cjs    # all suites
 
 <!-- /SECTION:dev-commands -->
 
+<!-- SECTION:e2e-testing -->
+
+Full guide: [e2e-test-reference.md](docs/project-reference/e2e-test-reference.md) for E2E test patterns, page objects, and configuration.
+
+<!-- /SECTION:e2e-testing -->
+
 <!-- SECTION:integration-testing -->
 
 See [integration-test-reference.md](docs/project-reference/integration-test-reference.md) for integration test patterns and setup.
@@ -474,11 +500,11 @@ python .claude/scripts/code_graph search <keyword> --kind Function --json       
 
 When editing files matching these path patterns, pre-read the listed context first:
 
-| Path Pattern                      | Skill / Auto-Context | Pre-Read Files                  |
-| --------------------------------- | -------------------- | ------------------------------- |
-| `/\.claude/hooks/.*\.cjs$**`      | _(auto-context)_     | `.claude/docs/hooks/README.md`  |
-| `/\.claude/skills/.*SKILL\.md$**` | _(auto-context)_     | `.claude/docs/skills/README.md` |
-| `/\.claude/agents/.*\.md$**`      | _(auto-context)_     | `.claude/docs/agents/README.md` |
+| Path Pattern | Skill / Auto-Context | Pre-Read Files |
+|---|---|---|
+| `/\.claude/hooks/.*\.cjs$**` | _(auto-context)_ | `.claude/docs/hooks/README.md` |
+| `/\.claude/skills/.*SKILL\.md$**` | _(auto-context)_ | `.claude/docs/skills/README.md` |
+| `/\.claude/agents/.*\.md$**` | _(auto-context)_ | `.claude/docs/agents/README.md` |
 
 <!-- /SECTION:skill-activation -->
 
@@ -505,10 +531,10 @@ When editing files matching these path patterns, pre-read the listed context fir
 
 | Kind        | Count                                       |
 | ----------- | ------------------------------------------- |
-| Skills      | <!-- COUNT:skills -->167<!-- /COUNT -->     |
+| Skills      | <!-- COUNT:skills -->170<!-- /COUNT -->     |
 | Hooks       | <!-- COUNT:hooks -->18<!-- /COUNT -->       |
 | Agents      | <!-- COUNT:agents -->27<!-- /COUNT -->      |
-| Workflows   | <!-- COUNT:workflows -->19<!-- /COUNT -->   |
+| Workflows   | <!-- COUNT:workflows -->20<!-- /COUNT -->   |
 | Shared      | <!-- COUNT:shared -->8<!-- /COUNT -->       |
 | Lib modules | <!-- COUNT:lib-modules -->31<!-- /COUNT --> |
 
@@ -527,14 +553,14 @@ docs/templates/  (1 files)
 
 <!-- SECTION:doc-lookup -->
 
-| If user prompt mentions...                                     | Read first                                                          |
-| -------------------------------------------------------------- | ------------------------------------------------------------------- |
-| Feature specs, capability behavior, business rules, test cases | `docs/specs/` + `docs/project-reference/feature-spec-reference.md`  |
-| Spec paths, TC format, canonical vs derived spec artifacts     | `docs/project-reference/spec-system-reference.md`                   |
-| Spec quality, AI-implementability, tech-agnostic prose         | `docs/project-reference/spec-principles.md`                         |
-| Behavior or public contract changes, spec-test-code sync       | `docs/project-reference/workflow-spec-test-code-cycle-reference.md` |
-| Backend patterns, CQRS, validation                             | `docs/project-reference/backend-patterns-reference.md`              |
-| Frontend patterns, components, stores                          | `docs/project-reference/frontend-patterns-reference.md`             |
+| If user prompt mentions... | Read first |
+|---|---|
+| Feature specs, capability behavior, business rules, test cases | `docs/specs/` + `docs/project-reference/feature-spec-reference.md` |
+| Spec paths, TC format, canonical vs derived spec artifacts | `docs/project-reference/spec-system-reference.md` |
+| Spec quality, AI-implementability, tech-agnostic prose | `docs/project-reference/spec-principles.md` |
+| Behavior or public contract changes, spec-test-code sync | `docs/project-reference/workflow-spec-test-code-cycle-reference.md` |
+| Backend patterns, CQRS, validation | `docs/project-reference/backend-patterns-reference.md` |
+| Frontend patterns, components, stores | `docs/project-reference/frontend-patterns-reference.md` |
 
 <!-- /SECTION:doc-lookup -->
 

@@ -159,7 +159,7 @@ Trust but verify (`file:line` evidence) · Fail closed not open (`exit 2` when i
     - **Hook** — edit `.cjs`; register in `settings.json`; unique dedup marker+window; read project specifics from `project-config.json`; add/extend a test under `.claude/hooks/tests/`.
     - **Config/portability** — keep generic surfaces project-neutral; project specifics go to `project-config.json` / `project-reference/**`.
     - **SYNC protocol** — edit canonical `sync-inline-versions.md` FIRST, then propagate to every copy (grep + `sync-hooks-to-skills.py` / `sync-skills-shared-protocols`); verify fence balance.
-6. **Validate** — run available tests (`node .claude/hooks/tests/test-all-hooks.cjs`, `node --test .claude/scripts/codex/tests/*.test.mjs`), `python .claude/scripts/generate_catalogs.py --skills` if catalogs changed, and read-only codex verifiers (`--only=...`). Report pass/fail with output.
+6. **Validate** — run available tests (`node .claude/hooks/tests/test-all-hooks.cjs`, `npm run codex:test:tooling`), `python .claude/scripts/generate_catalogs.py --skills` if catalogs changed, and read-only codex verifiers (`--only=...`). Report pass/fail with output.
 7. **Flag stale mirrors** — if any source under the sync source-set changed, STOP and instruct the user to run `$sync-codex` (never auto-run). Name which mirrors are now stale.
 8. **Final review task** — verify consistency, no project residue, all SYNC copies identical, catalogs regenerated, docs not stale.
 

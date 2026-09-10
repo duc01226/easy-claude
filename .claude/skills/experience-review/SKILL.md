@@ -94,6 +94,23 @@ If a project has no `experienceVerification` configuration, do not invent
 defaults. Record the missing configuration as an adoption/setup limitation and
 use the project’s documented existing runner only when it provides evidence.
 
+For an E2E-backed surface, resolve `e2eTesting.execution` alongside this
+matrix. Match `surfaceIds[]` to the configured surface, keep dependency/start/
+readiness/log/teardown ownership in that surface's `localRun`, and use the
+E2E profile only for auth/data/browser/evidence/convergence facts. If the
+profile is missing or partial, derive values from the E2E reference, runner
+configuration, package/task/compose/CI scripts, fixture/seed/auth docs, and
+bounded repository search in that order. Record `file:line` evidence; missing
+capability is `ENVIRONMENT-BLOCKED`, never a guessed default or pass.
+
+For a web surface whose profile requests human QC, open the browser visibly
+through the project's configured Playwright CLI path when supported. Wait for
+readiness and actionability before each actor action; a deterministic 200–300ms
+post-action delay may make the journey observable but never replaces a settle
+signal. Attach console/page-error/request capture before the first interaction,
+capture configured screenshots/trace/video, read them, and redact sensitive
+values before persistence.
+
 ### 2b. Bring the system up locally and instrument it
 
 A review reads what the system DOES, and the system only does anything while it
@@ -170,8 +187,8 @@ endpoint the button would have called, or setting state directly. A shortcut
 skips exactly the layer the review exists to check: the wiring between the
 interface and the logic. Use whatever control mechanism the host actually
 offers for the surface — a browser automation/devtools driver (for a web
-surface, `webapp-testing`'s Playwright + server-lifecycle scripts are the
-project's existing mechanism), a device/desktop driver, the real CLI in a
+surface, use the project's configured visible `playwright-cli` path when
+supported; `webapp-testing` remains a fast page/component helper), a device/desktop driver, the real CLI in a
 terminal, an HTTP client for an API. Chain the journey's steps so later steps
 consume what earlier steps really produced, and cover the states the matrix
 lists, not only the happy path.
@@ -465,6 +482,8 @@ that the fix belongs elsewhere — stop the round and escalate.
 > 1. **Classify the surface from project evidence:** web, mobile, desktop, terminal, API, library, background service, generated output, or another configured kind. Record `APPLICABLE`, `NOT-APPLICABLE — <reason + evidence>`, or `ENVIRONMENT-BLOCKED — <missing capability + evidence>`. Never infer a browser, device, GUI, service, or interactive runner from this skill or from a screenshot.
 > 2. **Read intended purpose first:** use the governing spec, acceptance criteria, API/CLI/library contract, design artifact, or documented operator outcome. State the actor, job, expected result, important states, and unchanged behavior before exercising the implementation.
 > 3. **Exercise the running/observable feature when applicable:** bring the surface up as a WHOLE running system first — backing services, then the surface — gated on a POLLED readiness signal (a started process, an open port, or a fixed sleep is not readiness), then drive it through the real interface a user has, never an internal call or a direct state write. Use the project's configured entry point and runner/tool; perform the intended journey and relevant failure, empty, loading, offline, permission, recovery, or boundary states. For non-visual surfaces inspect the actual response, transcript, return value, persisted state, emitted message, or generated artifact. Never weaken the system to get it up — a stubbed dependency or disabled auth makes every later observation evidence about a system nobody ships — and tear down only what you started. Source reading, test-writing, and screenshot generation alone are not exercise evidence.
+> 3a. **Resolve E2E execution from one project contract:** when `e2eTesting.execution` exists, resolve `surfaceIds[]` to `experienceVerification.surfaces[]`, then use that surface's `localRun` for dependency/start/readiness/log/teardown. Use the E2E profile only for auth/data/browser/evidence/convergence facts. When a field is absent, derive it from repository evidence and cite the source; if the capability remains missing, record `ENVIRONMENT-BLOCKED` rather than inventing a port, account, seed, selector, or command.
+> 3b. **Human-QC browser path:** for an applicable web surface, use the project's configured visible Playwright CLI path when supported. Wait for readiness and actionability before each interaction; apply a deterministic 200–300ms post-action presentation delay for visible human-QC when configured, never as readiness. Attach console/page-error/request capture before the first interaction and redact sensitive evidence before persistence.
 > 4. **Inspect evidence, do not merely produce it:** a screenshot, video, DOM/tree dump, terminal transcript, API payload, or artifact must be opened/read and tied to an observation. Record exact command/tool, entry point, identity/fixture, platform/device/viewport/locale/network conditions, actions, settle signals, timestamps, and evidence references. Redact secrets.
 > 5. **Separate evidence levels:** `OBSERVED` is directly witnessed; `JUDGED` is an agent assessment against the stated purpose; `HUMAN-ACCEPTED` is an explicit named owner/human decision linked to the evidence and intent; `UNVERIFIED` means required evidence was not collected; `ENVIRONMENT-BLOCKED` means applicable review could not run; `NOT-APPLICABLE` means the surface does not exist. Agent confidence is metadata, never acceptance or proof.
 > 6. **First-run rule:** without an accepted expectation, report candidate evidence and `ACCEPTANCE-PENDING`. Never save the current screen/output as an expected baseline merely because it was generated or because an automated test passed. Promotion requires an explicit acceptance record naming the accepting person/role, timestamp, intent reference, evidence references, scope, and residual risk where relevant.

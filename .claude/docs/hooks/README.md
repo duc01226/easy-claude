@@ -367,12 +367,12 @@ Hooks are registered in `settings.json` under `hooks.{EventName}[].hooks[]`. Eac
 
 ## Testing
 
-Primary hook test status: `test-all-hooks.cjs` passes with 224 tests on a clean configured project. Aggregate discovery status: `run-all-tests.cjs` discovers 537 tests on the current suite set. These totals are maintained by the test-runner count guards; rerun both commands below before publishing a new count. The discovered total includes the process-boundary Bash contract suite and varies only when suites are intentionally added or removed.
+Primary hook test status: `test-all-hooks.cjs` passes with 224 tests on a clean configured project. Aggregate discovery status: `run-all-tests.cjs` discovers 539 tests on the current suite set. These totals are maintained by the test-runner count guards; rerun both commands below before publishing a new count. The discovered total includes the process-boundary Bash contract suite and varies only when suites are intentionally added or removed.
 
 | Test Surface          | Count | File/Location                                                     |
 | --------------------- | ----- | ----------------------------------------------------------------- |
 | Primary hook runner   | 224   | `.claude/hooks/tests/test-all-hooks.cjs`                          |
-| Aggregate runner      | 537   | `.claude/hooks/tests/run-all-tests.cjs` (all suites, discovered)  |
+| Aggregate runner      | 539   | `.claude/hooks/tests/run-all-tests.cjs` (all suites, discovered)  |
 | Standalone test files | TODO  | `tests/test-*.cjs/.js` excluding runner (re-verify before citing) |
 | Scout-block tests     | TODO  | `scout-block/tests/test-*.js` (re-verify before citing)           |
 | Lib unit tests        | TODO  | `lib/__tests__/*.test.cjs` (re-verify before citing)              |

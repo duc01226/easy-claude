@@ -1,6 +1,6 @@
 # Skills Reference
 
-> 167 runnable skills across 15+ domains + 7 shared reference/protocol files for context-aware AI assistance (`_templates/template-skill` is a source template, not a runnable skill)
+> 170 runnable skills across 15+ domains + 7 shared reference/protocol files for context-aware AI assistance (`_templates/template-skill` is a source template, not a runnable skill)
 
 ## Overview
 
@@ -22,7 +22,7 @@ Skills Activated: fix, investigate
 
 ## Skill Domains
 
-> Curated highlights — the full catalog has 167 runnable skills; the tables below list selected skills per domain, not the complete set.
+> Curated highlights — the full catalog has 170 runnable skills; the tables below list selected skills per domain, not the complete set.
 
 | Domain                                            | Skills | Description                                    |
 | ------------------------------------------------- | ------ | ---------------------------------------------- |
@@ -314,4 +314,4 @@ Use `/skill-creator` to create a new skill:
 
 ---
 
-_Source: `.claude/skills/` | 167 runnable skills across 15+ domains + 7 shared reference/protocol files (the `_templates/template-skill` source is excluded from runtime discovery)_
+_Source: `.claude/skills/` | 170 runnable skills across 15+ domains + 7 shared reference/protocol files (the `_templates/template-skill` source is excluded from runtime discovery)_

@@ -23,7 +23,10 @@ disable-model-invocation: false
 
 - Test and report only — never implement fixes (this is a testing/reporting skill)
 - Save all screenshots in the report directory
-- Support authenticated routes via cookie/token/localStorage injection
+- Read `docs/project-config.json` and the linked E2E/experience references before choosing a runner, startup, authentication, data, viewport, or evidence strategy
+- Use only configured fixture, storage-state, registration, or manual-login procedures; never request, paste, print, or export raw cookies, tokens, passwords, headers, or browser storage
+- A feature/bugfix/whole-project E2E request belongs to `workflow-e2e-green`; this skill remains a report-only full-site QA/audit surface
+- For web human-QC journeys, prefer the configured visible Playwright CLI path; use readiness/actionability signals for correctness and reserve 200–300ms delays for post-action presentation
 
 **Be skeptical. Apply critical thinking, sequential thinking. Every claim needs traced proof, confidence percentages (Idea should be more than 80%).**
 
@@ -38,62 +41,43 @@ Run comprehensive UI tests on a website and generate a detailed report.
 ## Arguments
 
 - $1: URL - The URL of the website to test
-- $2: OPTIONS - Optional test configuration (e.g., --headless, --mobile, --auth)
+- $2: OPTIONS - Optional test configuration (e.g., --mobile, --auth=project-config, --headed)
+
+## Project-config preflight
+
+Before browsing, resolve the target surface from `experienceVerification.surfaces[]` and, when E2E execution is requested, `e2eTesting.execution`:
+
+1. Confirm the surface entry point and its `localRun` owner, or perform bounded repository discovery and cite the evidence.
+2. Resolve the configured auth mode and non-secret reference (`credentialsRef`, `storageStateRef`, fixture, login path, or registration command).
+3. Resolve the declared data/seed policy, browser/evidence settings, and redaction policy.
+4. If the profile is absent, do not invent a URL, port, command, account, seed, selector, or credential. Record `N/A` only when no applicable surface exists; otherwise record `ENVIRONMENT-BLOCKED`.
 
 ## Testing Protected Routes (Authentication)
 
-For testing protected routes that require authentication, follow this workflow:
+For protected routes, follow the project-configured procedure without handling secret values:
 
-### Step 1: User Manual Login
+### Step 1: Resolve the configured auth path
 
-Instruct the user to:
+- `fixture`: invoke the documented local fixture identity/setup.
+- `storage-state`: use the configured `storageStateRef` through the project runner; do not open or print the state contents.
+- `registration`: run the configured idempotent registration command and record its result without recording credentials.
+- `manual`: open the visible browser and ask the user to complete login in the browser; continue after the session is authenticated.
+- `none`: test the public route only.
+- Missing or ambiguous auth evidence: stop with `ENVIRONMENT-BLOCKED`.
 
-1. Open the target site in their browser
-2. Log in manually with their credentials
-3. Open browser DevTools (F12) → Application tab → Cookies/Storage
+### Step 2: Keep authentication inside the configured session
 
-### Step 2: Extract Auth Credentials
+- Do not ask the user to provide cookies, bearer tokens, passwords, localStorage, sessionStorage, or authorization headers.
+- Do not inject raw credentials through command-line arguments, source files, logs, screenshots, or reports.
+- Use the runner's documented secret/reference mechanism and redact auth material from captured evidence.
 
-Ask the user to provide one of:
+### Step 3: Exercise and capture
 
-- **Cookies**: Copy cookie values (name, value, domain)
-- **Access Token**: Copy JWT/Bearer token from localStorage or cookies
-- **Session Storage**: Copy relevant session keys
+Attach browser console, page errors, failed requests, and the configured server logs before the first interaction. Capture configured visual states, read the captures, and preserve evidence until teardown.
 
-### Step 3: Inject Authentication
+### Step 4: Record the outcome
 
-Use the available browser automation runner to inject credentials before testing:
-
-```bash
-# Cookies
-# Add cookies before navigating to protected pages.
-
-# Bearer token
-# Set the Authorization header or localStorage token key before navigation.
-
-# Local/session storage
-# Populate the required storage keys, then reload the page.
-```
-
-### Step 4: Run Tests
-
-After auth injection, the browser session persists. Run tests normally with the available browser automation runner:
-
-```bash
-# Navigate and screenshot protected pages.
-# Save outputs in the report directory for later analysis.
-```
-
-### Auth Script Options
-
-- `--cookies '<json>'` - Inject cookies (JSON array)
-- `--token '<token>'` - Inject Bearer token
-- `--token-key '<key>'` - localStorage key for token (default: access_token)
-- `--header '<name>'` - Set HTTP header with token (e.g., Authorization)
-- `--local-storage '<json>'` - Inject localStorage items
-- `--session-storage '<json>'` - Inject sessionStorage items
-- `--reload true` - Reload page after injection
-- `--clear true` - Clear saved auth session
+Record the auth mode/reference class (not its value), entry point, fixture/data identity, readiness signal, exact actions, evidence paths, and verdict. A login failure is `ENVIRONMENT-BLOCKED` unless the project evidence proves a source defect.
 
 ## Workflow
 

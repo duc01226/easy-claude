@@ -21,23 +21,24 @@ Connected contracts:
 
 ## Quick Summary
 
-**Goal:** Generate and maintain E2E tests on the project's auto-detected framework with mandatory TC-code↔test traceability, producing a suite that runs, repeats deterministically, and provably maps every test back to its spec.
+**Goal:** Select, generate, and maintain E2E tests on the project's configured framework with mandatory TC-code↔test traceability, producing a suite that runs, repeats deterministically, and provably maps every test back to its spec or prompt-derived invariant.
 
 **Summary:**
 
-- Read the project E2E reference + config FIRST — detect the framework (Playwright/Cypress/Selenium) before writing anything.
+- Read the project E2E reference + config FIRST — detect the framework (Playwright/Cypress/Selenium) and optional `e2eTesting.execution` profile before writing anything. Prompt/current-context generation uses the same config-first contract; never invent setup from a generic browser default.
 - Every test carries a `TC-{MODULE}-E2E-{NNN}` code — traceability back to the spec is mandatory.
 - Use Page Object Model; derive stable selectors from `data-testid`/BEM/ARIA, never positional/generated ones; keep assertions out of page objects.
-- Deterministic runs — unique GUID test data, explicit waits only, reused auth session; after fixing failures, record the learning back in the E2E reference doc.
+- Deterministic runs — unique GUID test data, real readiness/actionability waits, optional 200–300ms post-action presentation pacing for visible human-QC, reused configured auth session; after fixing failures, record the learning back in the E2E reference doc.
 
 **Workflow:**
 
 1. **Read project E2E docs** — `docs/project-reference/e2e-test-reference.md`, `docs/project-config.json`
-2. **Detect framework** — Playwright, Cypress, Selenium, etc.
-3. **Load test specs** — find TC codes in feature docs
-4. **Generate/update tests** — follow Page Object pattern
-5. **Run tests** — project's configured commands
-6. **Update docs** — add learnings to `docs/project-reference/e2e-test-reference.md`
+2. **Resolve execution profile** — link `e2eTesting.execution.surfaceIds[]` to `experienceVerification.surfaces[]`; use linked `localRun` for lifecycle and profile fields for auth/data/browser/evidence/convergence.
+3. **Detect framework** — Playwright, Cypress, Selenium, etc.; use a visible configured Playwright CLI path for web human-QC when supported.
+4. **Load or derive intent** — find TC codes in feature docs, otherwise write a prompt/current-context Given/When/Then record with a named invariant.
+5. **Select or generate/update tests** — follow Page Object pattern and preserve existing suitable coverage.
+6. **Run tests and inspect evidence** — project's configured commands, exact counts/exit status, redacted screenshots/logs/traces/video when configured.
+7. **Update docs** — add evidence-backed learnings to `docs/project-reference/e2e-test-reference.md`
 
 **Key Rules:**
 
@@ -46,6 +47,7 @@ Connected contracts:
 - NEVER hardcode brittle selectors — derive stable ones from `data-testid`, BEM classes, or ARIA roles — why: generated/positional selectors break on every unrelated markup change
 - Treat changed visual output as candidate evidence; replace visual baselines ONLY after inspection and an explicit `HUMAN-ACCEPTED` record through `/experience-review`. Preserve the previous accepted baseline while acceptance is missing, ambiguous, rejected, or environment-blocked — why: an unaccepted change must not redefine the regression expectation.
 - MUST ATTENTION read the project E2E reference BEFORE any E2E work — why: local conventions override generic framework defaults
+- Never infer a startup command, account, seed, port, selector, browser dependency, or evidence path. Discover it from the project contract/repository and report `ENVIRONMENT-BLOCKED` when required capability is missing.
 
 ---
 
@@ -64,6 +66,12 @@ grep -A 50 '"e2eTesting"' docs/project-config.json       # Framework, paths, com
 grep -r "TC-.*-E2E-" docs/specs/  # Find TC codes
 ```
 
+If `e2eTesting.execution` exists, also resolve its `surfaceIds[]`, auth/data,
+browser, evidence, and convergence fields and read the linked
+`experienceVerification.surfaces[].localRun` recipe. Missing or partial facts
+must be recorded as discovery work or `ENVIRONMENT-BLOCKED`, never filled with
+generic Playwright defaults.
+
 **When fixing E2E failures, MUST ATTENTION update `docs/project-reference/e2e-test-reference.md` with learnings — why: the next run starts from the lesson, not the same failure.**
 
 ---
@@ -76,6 +84,7 @@ grep -r "TC-.*-E2E-" docs/specs/  # Find TC codes
 | `update-ui`      | Git diff of UI changes     | Updated screenshot baselines |
 | `from-changes`   | Changed test specs or code | Updated test implementations |
 | `from-spec`      | TC codes from test specs   | New tests matching specs     |
+| `from-prompt-context` | User prompt or current context | Given/When/Then scenario and Page Object/test mapped to a named invariant |
 
 ---
 
@@ -134,7 +143,7 @@ public async Task SubmitLeaveRequest() { ... }
 ### Test Data & Repeatability
 
 - Append GUIDs to test data — NEVER depend on specific DB state — why: shared fixed data makes tests order-dependent and flaky
-- Use explicit waits — NEVER arbitrary `sleep`/`timeout` — why: fixed sleeps are slow and still race the app
+- Use explicit readiness/actionability waits — NEVER use arbitrary sleep as readiness. For visible human-QC only, a deterministic 200–300ms delay may follow a completed action to make the demo observable; it must never wrap or replace an assertion or settle signal.
 - Reuse auth session state — NEVER re-login each test — why: per-test login wastes runtime and adds a failure point
 - Document preconditions (infrastructure, seed data, feature configs) — why: an undocumented precondition is a silent prerequisite the next runner can't satisfy
 
@@ -142,7 +151,11 @@ public async Task SubmitLeaveRequest() { ... }
 
 ## Output
 
-E2E test report: files created/modified, TC codes covered, run command, preconditions needed.
+E2E test report: prompt/current-context scope, Given/When/Then + protected
+invariant, files created/modified, whether existing coverage was reused, TC
+codes covered, resolved project-config profile, run command, exact counts and
+exit status, evidence/redaction references, preconditions, and any
+`N/A`/`ENVIRONMENT-BLOCKED`/`ACCEPTANCE-PENDING` limitation.
 
 <!-- SYNC:agent-code-standards -->
 
@@ -328,10 +341,10 @@ E2E test report: files created/modified, TC codes covered, run command, precondi
 > **Infinitely Repeatable Tests** — Tests MUST run N times without failure. Like manual QC — run the suite 100 times, each run just adds more data. Verification is only PASS after the relevant suite/project passes 2 consecutive runs without database reset.
 >
 > 1. **Unique data per run:** Use the project's unique ID generator for ALL entity IDs created in tests. NEVER hardcode IDs.
-> 2. **Additive only:** Tests create data, never delete/reset. Prior test runs MUST NOT interfere with current run.
+> 2. **Persistent/additive data is never deleted or reset:** Tests create data without deleting/resetting persistent, reference, seeded, additive, or shared state. Prior test runs MUST NOT interfere with the current run.
 > 3. **No schema rollback dependency:** Tests work with current schema only. Never rely on schema rollback or migration reversals.
 > 4. **Idempotent seeders:** Fixture-level seeders use create-if-missing pattern (check existence before insert). Test-level data uses unique IDs per execution.
-> 5. **No cleanup required:** No teardown, no database reset between runs. Each test is isolated by unique seed data, not by cleanup.
+> 5. **No cleanup required for repeat-proof:** Repeatability must not depend on teardown or database reset between runs. If the project explicitly supports opt-in cleanup, it may remove only current-run ephemeral resources after evidence capture; it must never delete another run's data or replace no-reset proof.
 > 6. **Unique names/codes:** When entities require unique names/codes, append a unique suffix using the project's ID generator.
 > 7. **Migration code excluded:** Do not write tests for migration code. Schema/data migrations are one-time execution paths, not core application logic.
 
@@ -365,12 +378,13 @@ E2E test report: files created/modified, TC codes covered, run command, precondi
 > A test earns trust by reproducing a situation the system can actually meet in production. A scenario that could never occur in real life proves nothing when it passes, and wastes hours when it fails.
 >
 > 1. **Ask the fidelity question BEFORE writing the setup:** *"Can this sequence, timing, and data actually occur in production?"* If no, the test is mis-specified — fix the SCENARIO, never the assertion.
-> 2. **Model real pacing between actor steps.** Two distinct actor actions that production separates by seconds, minutes, or hours MUST NOT be fired back-to-back in the same millisecond. Compressed pacing manufactures races the system was never designed to survive, then reports them as product defects.
-> 3. **Wait on a real signal, never a blind sleep.** Find an observable proving the prior step finished — a persisted state change, an audit/version stamp, a queue/worker idle marker, a completion event — and poll until it settles (unchanged across a short stability window). Use a fixed delay ONLY when no observable exists, and say so in a comment.
+> 2. **Model real pacing between actor steps.** Two distinct actor actions that production separates by seconds, minutes, or hours MUST NOT be fired back-to-back in the same millisecond. Compressed pacing manufactures races the system was never designed to survive, then reports them as product defects. For visible web human-QC, a configured deterministic 200–300ms post-action presentation delay is acceptable after actionability; it is pacing, not readiness, and automation may explicitly use zero.
+> 3. **Wait on a real signal, never a blind sleep.** Find an observable proving the prior step finished — a persisted state change, an audit/version stamp, a queue/worker idle marker, a completion event — and poll until it settles (unchanged across a short stability window). Use a fixed delay ONLY when no observable exists, and say so in a comment. A browser action delay MUST never replace a readiness/actionability wait.
 > 4. **Barriers belong in ARRANGE, never in ASSERT.** Waiting for a precondition is fidelity. Widening an assertion's timeout, loosening a comparison, adding a retry around a failing assertion, or skipping the test is masking. NEVER do the latter to force green.
 > 5. **Distinguish harness-amplified from real.** Test topologies (shared infra, fan-out consumers, parallel suites, cold starts) can make a rare production race routine locally. Before filing a product defect, state whether the trigger exists in production and at what likelihood.
 > 6. **Keep the protected invariant intact.** Improving fidelity must NEVER reduce what the test protects. If a realistic scenario no longer exercises the rule, the rule needs a DIFFERENT realistic scenario — not a weaker assertion.
 > 7. **Deliberate impossible-state tests are allowed, but MUST be labelled.** Corruption-repair, migration, and fail-safe tests intentionally construct states production should never reach; comment WHY the state is reachable (upstream bug, partial write, legacy data), so they are never confused with unrealistic setups.
+> 8. **Visible browser evidence is part of fidelity.** When a project configures a web surface for human-QC, exercise it through the configured visible Playwright CLI path when supported, attach console/page-error/request listeners before the first interaction, and capture/read the configured screenshot, trace, or video evidence. Redact credentials, tokens, cookies, and sensitive request/response data before persistence; never treat an unread artifact as an observation.
 
 <!-- /SYNC:real-world-fidelity-testing -->
 
@@ -379,7 +393,8 @@ E2E test report: files created/modified, TC codes covered, run command, precondi
 > **Test Architecture & Execution Contract** — Treat testability as a setup/architecture acceptance condition. For every potentially applicable tier — Unit, Integration/System, E2E, and Performance/Scale (warranted at `T1+`/`B2+`) — record `APPLICABLE` only with evidence of its runner/framework/configuration; otherwise record `N/A — <evidence>` and never fabricate coverage.
 >
 > 1. **Matrix before implementation:** Record applicability, owner, runner/framework, test root, fixture/data strategy, full command, focused/partial command, zero-match behavior, CI gate, a simple/Windows entry point (a `.cmd` when the project needs one), the **host-mode AND container-mode commands** where the project supports both, and the **environment reach** (which of local / CI / production-shaped this tier can target).
-> 2. **Runnable scopes:** Full and focused commands must be copy-ready, fail on invalid or zero-match selections, report exact counts and exit status, and be safe to repeat. E2E uses only configured browser/service commands.
+> 1a. **E2E profile handoff:** For E2E, also record the selected `surfaceIds[]`, the linked `localRun` owner, auth mode/reference, seed/data mode, browser runner/engine/headed setting, action-delay policy, evidence root/capture/redaction policy, and convergence cap. Missing fields remain explicit blockers or N/A; they are never filled from generic browser defaults.
+> 2. **Runnable scopes:** Full and focused commands must be copy-ready, fail on invalid or zero-match selections, report exact counts and exit status, and be safe to repeat. E2E uses only configured browser/service commands. A visible human-QC web run waits on readiness/actionability first and may add a deterministic 200–300ms post-action delay for presentation; the delay is never a readiness mechanism.
 > 3. **Fresh valid state:** Each run/test owns a unique run identity and business-data suffix, arranges through supported public paths, and uses realistic valid data. Reference setup is count-before-create, idempotent, and restart-safe. Intentional accumulation is additive, keyed, and integrity-checked; never hide contamination with destructive reset.
 >    Run-scoped cleanup, when supported, is opt-in and idempotent: after evidence capture it may remove only ephemeral resources owned by the current run; it must never delete persistent/additive data or another run's data, reset shared state, or replace no-reset proof.
 > 4. **Isolation and fidelity:** Isolate mutable roots and parallel workers; share only immutable/reference data. Preserve real actor pacing and observable arrange barriers. Do not widen retries or weaken assertions to make a scenario pass.
@@ -469,7 +484,7 @@ E2E test report: files created/modified, TC codes covered, run command, precondi
 - **Critical Thinking:** Traced proof per claim; never present a guess as fact.
 - **AI Mistake Prevention:** verify generated content against evidence, trace downstream references, verify all affected outputs, re-read after context loss, surface ambiguity.
 - **Source/Test Drift:** When source behavior changes, reconcile affected tests from evidence.
-- **Repeatable Tests:** Unique-ID data, additive-only, no cleanup; prove 2 consecutive runs.
+- **Repeatable Tests:** Unique-ID data; persistent, reference, seeded, additive, and shared state is never deleted or reset; configured cleanup is limited to current-run ephemeral resources after evidence capture; prove 2 consecutive runs without reset.
 
 **IMPORTANT MUST ATTENTION** read `docs/project-reference/e2e-test-reference.md` and `docs/project-config.json` BEFORE any E2E work — detect the framework first — why: local conventions override generic framework defaults and a wrong-framework test is dead on arrival
 **IMPORTANT MUST ATTENTION** every test MUST carry a `TC-{MODULE}-E2E-{NNN}` code — why: traceability is how a test proves which spec it covers

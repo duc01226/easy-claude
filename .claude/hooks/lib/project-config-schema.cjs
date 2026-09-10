@@ -290,7 +290,69 @@ const SCHEMA = {
             dependencies: { type: 'object', required: false, freeform: true },
             architecture: { type: 'object', required: false, freeform: true },
             bestPractices: { type: 'array', required: false },
-            entryPoints: { type: 'array', required: false }
+            entryPoints: { type: 'array', required: false },
+            execution: {
+                type: 'object',
+                required: false,
+                describe: 'Optional E2E execution profile. Link surfaceIds to experienceVerification.surfaces; keep startup/readiness in each surface localRun recipe. Missing facts are discovered or reported ENVIRONMENT-BLOCKED, never invented.',
+                properties: {
+                    surfaceIds: { type: 'array', required: false, itemType: 'string', describe: 'IDs of observable surfaces exercised by E2E. Resolve lifecycle commands through the matching experienceVerification surface.' },
+                    auth: {
+                        type: 'object',
+                        required: false,
+                        describe: 'Authentication strategy. Store references only; never put passwords, tokens, cookies, or storage-state contents in project-config.json.',
+                        properties: {
+                            mode: { type: 'string', required: false, describe: 'One of fixture, storage-state, registration, manual, or none.' },
+                            credentialsRef: { type: 'string', required: false, describe: 'Reference to a local fixture identity or secret-manager/env source; never the secret value.' },
+                            storageStateRef: { type: 'string', required: false, describe: 'Reference/path to a project-owned browser storage-state artifact; never its JSON contents.' },
+                            loginPath: { type: 'string', required: false, describe: 'Observed application login route when a real login journey is required.' },
+                            registrationCommand: { type: 'string', required: false, describe: 'Project-owned registration/setup command only when the repository proves it is safe and repeatable; inline credential arguments are warned, so use environment or fixture references.' }
+                        }
+                    },
+                    data: {
+                        type: 'object',
+                        required: false,
+                        describe: 'Seed/reference-data strategy. Prefer idempotent or additive public-path setup and never reset shared state.',
+                        properties: {
+                            seedCommand: { type: 'string', required: false, describe: 'Project-defined seed or fixture command; missing capability blocks E2E rather than receiving a guessed command; inline credential arguments are warned, so use environment or fixture references.' },
+                            workingDir: { type: 'string', required: false, describe: 'Project-relative directory for the seed command.' },
+                            mode: { type: 'string', required: false, describe: 'One of reference-only, idempotent, or additive.' },
+                            cleanupPolicy: { type: 'string', required: false, describe: 'Project-defined cleanup policy; cleanup may remove only current-run ephemeral data after evidence capture.' }
+                        }
+                    },
+                    browser: {
+                        type: 'object',
+                        required: false,
+                        describe: 'Browser runner and human-QC presentation settings. Readiness/actionability always precede pacing; headed human runs default to a deterministic 200–300ms action delay, while automation may explicitly use zero.',
+                        properties: {
+                            runner: { type: 'string', required: false, describe: 'Project-configured browser runner hint, such as playwright-cli; do not infer a dependency from this field alone.' },
+                            engine: { type: 'string', required: false, describe: 'Project-configured browser engine or target, such as chromium.' },
+                            headed: { type: 'boolean', required: false, describe: 'Whether the browser is visible to the user during human-QC execution.' },
+                            actionDelayMs: { type: 'number', required: false, describe: 'Deterministic post-action presentation delay: zero for automation, otherwise normally 200–300ms; never a readiness substitute.' }
+                        }
+                    },
+                    evidence: {
+                        type: 'object',
+                        required: false,
+                        describe: 'Evidence capture and redaction settings. Captures are sensitive by default and must be read, redacted, and retained under a project-owned path.',
+                        properties: {
+                            root: { type: 'string', required: false, describe: 'Project-relative candidate-evidence root.' },
+                            capture: { type: 'array', required: false, itemType: 'string', describe: 'Capture kinds: screenshot, console, requests, trace, or video.' },
+                            redaction: { type: 'string', required: false, describe: 'Project-defined redaction rule/tool reference; never a secret value.' }
+                        }
+                    },
+                    convergence: {
+                        type: 'object',
+                        required: false,
+                        describe: 'Bounded verify/fix loop controls. A cap or missing capability produces an escalation, never an infinite retry.',
+                        properties: {
+                            maxAttempts: { type: 'number', required: false, describe: 'Positive bounded maximum remediation attempts.' },
+                            consecutiveGreen: { type: 'number', required: false, describe: 'Fresh consecutive green runs required before convergence.' },
+                            settleTimeoutSeconds: { type: 'number', required: false, describe: 'Positive bounded timeout for observable readiness/settle signals.' }
+                        }
+                    }
+                }
+            }
         }
     },
     experienceVerification: {
@@ -729,6 +791,146 @@ function validateExperienceVerificationSemantics(config, errors, warnings) {
     if (!experience.enabled && experience.surfaces.length > 0) {
         warnings.push('experienceVerification: surfaces are configured while the contract is disabled; conditional experience review routing is off until enabled');
     }
+
+    experience.surfaces.forEach((surface, index) => {
+        const credentialsRef = surface && surface.localRun && surface.localRun.credentialsRef;
+        if (typeof credentialsRef === 'string' && appearsToContainSecretLiteral(credentialsRef)) {
+            warnings.push(`experienceVerification.surfaces[${index}].localRun.credentialsRef: appears to contain a credential/token literal; store a reference, not the secret value`);
+        }
+    });
+}
+
+const E2E_AUTH_MODES = new Set(['fixture', 'storage-state', 'registration', 'manual', 'none']);
+const E2E_DATA_MODES = new Set(['reference-only', 'idempotent', 'additive']);
+const E2E_CAPTURE_KINDS = new Set(['screenshot', 'console', 'requests', 'trace', 'video']);
+
+function isAbsoluteProjectPath(value) {
+    return value.startsWith('/') || value.startsWith('\\') || /^[A-Za-z]:[\\/]/.test(value) || value.split(/[\\/]/).includes('..');
+}
+
+function appearsToContainSecretLiteral(value) {
+    return /\b(?:bearer|basic)\s+[A-Za-z0-9+/=_-]{12,}/i.test(value) ||
+        /\b(?:password|passwd|token|secret|cookie)\s*[:=]/i.test(value) ||
+        /(?:^|\s)--?(?:password|passwd|token|secret|cookie)(?:[-_a-z]*)\s+(?!\$\{?[\w-]+\}?|%[\w-]+%|(?:env|secret|fixture):)[^\s]+/i.test(value) ||
+        /^eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/.test(value);
+}
+
+function isNonEmptyString(value) {
+    return typeof value === 'string' && value.trim().length > 0;
+}
+
+function validateE2eExecutionSemantics(config, errors, warnings) {
+    const e2e = config.e2eTesting;
+    if (e2e === undefined || e2e === null || typeof e2e !== 'object' || Array.isArray(e2e)) return;
+
+    const execution = e2e.execution;
+    if (execution === undefined || execution === null || typeof execution !== 'object' || Array.isArray(execution)) return;
+
+    const pathFields = [
+        ['e2eTesting.execution.data.workingDir', execution.data && execution.data.workingDir],
+        ['e2eTesting.execution.evidence.root', execution.evidence && execution.evidence.root]
+    ];
+    for (const [path, value] of pathFields) {
+        if (typeof value === 'string' && isAbsoluteProjectPath(value)) {
+            errors.push(`${path}: must be a project-relative path without parent traversal`);
+        }
+    }
+
+    const auth = execution.auth;
+    if (auth && typeof auth === 'object' && !Array.isArray(auth)) {
+        if (typeof auth.mode === 'string' && !E2E_AUTH_MODES.has(auth.mode)) {
+            errors.push(`e2eTesting.execution.auth.mode: unsupported mode "${auth.mode}"; expected one of ${Array.from(E2E_AUTH_MODES).join(', ')}`);
+        }
+        for (const field of ['credentialsRef', 'storageStateRef']) {
+            if (typeof auth[field] === 'string' && appearsToContainSecretLiteral(auth[field])) {
+                warnings.push(`e2eTesting.execution.auth.${field}: appears to contain a credential/token literal; store a reference, not the secret value`);
+            }
+        }
+        if (auth.mode === 'fixture' && !isNonEmptyString(auth.credentialsRef)) {
+            warnings.push('e2eTesting.execution.auth.credentialsRef: required before a fixture-authenticated run can be APPLICABLE');
+        }
+        if (auth.mode === 'storage-state' && !isNonEmptyString(auth.storageStateRef)) {
+            warnings.push('e2eTesting.execution.auth.storageStateRef: required before a storage-state-authenticated run can be APPLICABLE');
+        }
+        if (auth.mode === 'registration' && !isNonEmptyString(auth.registrationCommand)) {
+            warnings.push('e2eTesting.execution.auth.registrationCommand: required before a registration-authenticated run can be APPLICABLE');
+        }
+    }
+
+    const data = execution.data;
+    if (data && typeof data === 'object' && !Array.isArray(data) &&
+        typeof data.mode === 'string' && !E2E_DATA_MODES.has(data.mode)) {
+        errors.push(`e2eTesting.execution.data.mode: unsupported mode "${data.mode}"; expected one of ${Array.from(E2E_DATA_MODES).join(', ')}`);
+    }
+    if (data && typeof data === 'object' && !Array.isArray(data) &&
+        ['idempotent', 'additive'].includes(data.mode) && !isNonEmptyString(data.seedCommand)) {
+        warnings.push('e2eTesting.execution.data.seedCommand: required before an idempotent/additive data run can be APPLICABLE');
+    }
+    for (const [path, value] of [
+        ['e2eTesting.execution.auth.registrationCommand', auth && auth.registrationCommand],
+        ['e2eTesting.execution.data.seedCommand', data && data.seedCommand]
+    ]) {
+        if (typeof value === 'string' && appearsToContainSecretLiteral(value)) {
+            warnings.push(`${path}: appears to contain a credential/token literal; use an environment, fixture, or secret-manager reference instead of an inline value`);
+        }
+    }
+
+    const browser = execution.browser;
+    if (browser && typeof browser === 'object' && !Array.isArray(browser)) {
+        if (typeof browser.actionDelayMs === 'number') {
+            if (!Number.isFinite(browser.actionDelayMs) || !Number.isInteger(browser.actionDelayMs) || browser.actionDelayMs < 0 || browser.actionDelayMs > 2000) {
+                errors.push('e2eTesting.execution.browser.actionDelayMs: expected an integer from 0 through 2000');
+            } else if (browser.actionDelayMs !== 0 && (browser.actionDelayMs < 200 || browser.actionDelayMs > 300)) {
+                warnings.push('e2eTesting.execution.browser.actionDelayMs: human-QC pacing is normally 200–300ms; this value is outside that guidance and is never a readiness signal');
+            }
+        }
+        if (browser.headed === true && browser.actionDelayMs === 0) {
+            warnings.push('e2eTesting.execution.browser.actionDelayMs: visible human-QC runs normally use 200–300ms; zero is intended for automation');
+        }
+    }
+
+    const evidence = execution.evidence;
+    if (evidence && typeof evidence === 'object' && !Array.isArray(evidence)) {
+        if (Array.isArray(evidence.capture)) {
+            evidence.capture.forEach((kind, index) => {
+                if (typeof kind === 'string' && !E2E_CAPTURE_KINDS.has(kind)) {
+                    errors.push(`e2eTesting.execution.evidence.capture[${index}]: unsupported capture "${kind}"; expected one of ${Array.from(E2E_CAPTURE_KINDS).join(', ')}`);
+                }
+            });
+            if (evidence.capture.some(kind => E2E_CAPTURE_KINDS.has(kind)) && !isNonEmptyString(evidence.redaction)) {
+                warnings.push('e2eTesting.execution.evidence.redaction: configure redaction before persisting screenshot, console, request, trace, or video evidence');
+            }
+        }
+    }
+
+    const convergence = execution.convergence;
+    if (convergence && typeof convergence === 'object' && !Array.isArray(convergence)) {
+        const bounds = [
+            ['maxAttempts', convergence.maxAttempts, 1, 10],
+            ['consecutiveGreen', convergence.consecutiveGreen, 1, 5],
+            ['settleTimeoutSeconds', convergence.settleTimeoutSeconds, 1, 600]
+        ];
+        for (const [field, value, min, max] of bounds) {
+            if (value !== undefined && (!Number.isFinite(value) || !Number.isInteger(value) || value < min || value > max)) {
+                errors.push(`e2eTesting.execution.convergence.${field}: expected an integer from ${min} through ${max}`);
+            }
+        }
+        if (typeof convergence.maxAttempts === 'number' && typeof convergence.consecutiveGreen === 'number' && convergence.consecutiveGreen > convergence.maxAttempts) {
+            errors.push('e2eTesting.execution.convergence.consecutiveGreen: cannot exceed convergence.maxAttempts');
+        }
+    }
+
+    if (Array.isArray(execution.surfaceIds)) {
+        const surfaces = config.experienceVerification && Array.isArray(config.experienceVerification.surfaces)
+            ? config.experienceVerification.surfaces
+            : [];
+        const knownIds = new Set(surfaces.filter(surface => surface && typeof surface.id === 'string').map(surface => surface.id));
+        execution.surfaceIds.forEach((surfaceId, index) => {
+            if (typeof surfaceId === 'string' && !knownIds.has(surfaceId)) {
+                warnings.push(`e2eTesting.execution.surfaceIds[${index}]: no matching experienceVerification.surfaces[].id; setup must discover or configure the surface before E2E can be APPLICABLE`);
+            }
+        });
+    }
 }
 
 /**
@@ -754,6 +956,7 @@ function validateConfig(config) {
     }
 
     validateExperienceVerificationSemantics(config, errors, warnings);
+    validateE2eExecutionSemantics(config, errors, warnings);
 
     // Check for unknown top-level keys
     const knownKeys = new Set(Object.keys(SCHEMA));

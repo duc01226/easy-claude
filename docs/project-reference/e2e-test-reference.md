@@ -1,6 +1,6 @@
 # E2E Test Reference
 
-<!-- Last scanned: 2026-08-04 -->
+<!-- Last scanned: 2026-09-10 -->
 <!-- This file is referenced by Claude skills and agents for project-specific context. -->
 
 > **Goal:** Record the verified absence of a project E2E stack without turning skill-local browser tooling into application test conventions.
@@ -11,11 +11,41 @@
 - BDD, Page Objects, browser configuration, credentials, and E2E run commands: **N/A**.
 - Browser-automation files under `.claude/skills/` are reusable tooling for adopter projects, not this repository's E2E suite.
 
+## Portable adopter execution contract
+
+Adopter projects may opt into an `e2eTesting.execution` profile in
+`docs/project-config.json`. This repository does not enable that profile; the
+fields below describe the portable handoff and are not facts about this
+framework's own runtime:
+
+| Profile area | Contract |
+| --- | --- |
+| `surfaceIds` | Links E2E execution to `experienceVerification.surfaces[]`; that surface's `localRun` owns dependencies, startup, readiness, teardown, runtime logs, and reference-only `credentialsRef`. |
+| `auth` | Declares `fixture`, `storage-state`, `registration`, `manual`, or `none` plus non-secret references. Never copy credentials, cookies, tokens, headers, or storage contents into a prompt, command, test, or report. |
+| `data` | Declares the verified seed command/working directory, `reference-only`/`idempotent`/`additive` mode, and cleanup policy. Use the project recipe; do not mutate a datastore as a UI shortcut. |
+| `browser` | Declares the configured runner/engine, headed visibility, and action delay. For web human QC, use the visible Playwright CLI path when configured; readiness/actionability is correctness, while 200–300ms is only post-action presentation pacing. |
+| `evidence` | Declares the project-relative evidence root, capture kinds, and a non-empty redaction policy whenever sensitive captures are enabled. Attach console/page errors/failed requests before interaction when applicable; read screenshots/traces/video before judging them. |
+| `convergence` | Bounds attempts, consecutive green runs, and settle timeout. Keep the same scope; classify failures before edits, fix at the owning layer, review each fix, and rerun fresh. |
+
+When the profile is partial or absent, discover only from verified project
+evidence in this order: linked surface `localRun`, E2E reference/runner
+configuration, package/task/compose/CI/fixture/auth documentation, then a
+bounded repository scan. Record the source file/line for each fact. Record
+`N/A` only when no applicable E2E surface exists; an applicable but unrunnable
+or uninspectable prerequisite is `ENVIRONMENT-BLOCKED`.
+
+The canonical execution surfaces are `.claude/skills/e2e-test-verify-loop/`,
+`.claude/skills/workflow-e2e-green/`, `.claude/skills/e2e-test/`, and
+`.claude/skills/playwright-cli/`. `experience-review` remains the report-only
+observable acceptance gate; it does not silently accept baselines or replace
+the project runner.
+
 ## Workflow
 
 1. Read `docs/project-config.json` and confirm the `e2eTesting` status.
-2. Search the repository root for framework configs, feature files, browser test patterns, and runnable commands.
-3. Re-run `/scan --target=e2e-tests` before documenting any future E2E convention.
+2. If an adopter profile exists, read `e2eTesting.execution` and its linked `experienceVerification.surfaces[]` before choosing a runner or lifecycle command.
+3. Search the repository root for framework configs, feature files, browser test patterns, auth/fixture evidence, and runnable commands when the profile is partial or absent.
+4. Re-run `/scan --target=e2e-tests` before documenting any future E2E convention.
 
 ## Key Rules
 
@@ -45,7 +75,7 @@ The project-owned test layer is the custom CJS hook harness (`docs/project-confi
 
 `docs/project-config.json` declares `framework: none`, `language: none`, no run commands or entry points, no dependencies, and a not-applicable architecture. Its `featureFilesGrepExpr` and `stepDefinitionFilesGrepExpr` fields preserve executable negative checks without stale totals.
 
-No Playwright/Cypress/WebdriverIO root config or browser package is present. No BDD framework, credential system, or multi-environment E2E configuration was verified; conditional sections therefore remain absent.
+No Playwright/Cypress/WebdriverIO root config or browser package is present. No BDD framework, credential system, or multi-environment E2E configuration was verified; conditional sections therefore remain absent. The optional adopter profile must not be inferred from skill-local Playwright files.
 
 ## Running Tests
 
@@ -65,7 +95,8 @@ rg -l --hidden "Given\(|When\(|Then\(|@given|@when|@then|\[Binding\]" . -g "*.cs
 
 - Keep `e2eTesting.framework` set to `none` until a runnable project suite exists.
 - Add a conditional BDD/account/environment section only after its framework and source artifacts are verified.
-- When E2E is introduced, record real config paths, entry points, dependency versions, commands, selectors, waits, and credential source with `file:line` evidence.
+- When E2E is introduced, record real config paths, linked surfaces/localRun ownership, dependency versions, commands, selectors, waits, evidence/redaction, and non-secret credential references with `file:line` evidence.
+- Generate or reuse test cases from the governing spec/current context as Given/When/Then records with a named protected invariant; do not generate a duplicate suite when a suitable case already exists.
 - Treat hardcoded real E2E credentials as a **CRITICAL** security finding; none was verified in the current project surface.
 
 ## Closing Reminders

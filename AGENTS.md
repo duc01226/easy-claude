@@ -25,6 +25,26 @@ For full canonical detail, read `CLAUDE.md` and `.codex/CODEX_CONTEXT.md` direct
 <!-- prettier-ignore-end -->
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 # easy-claude - Code Instructions
 
 <!-- SECTION:tldr -->
@@ -43,16 +63,16 @@ For full canonical detail, read `CLAUDE.md` and `.codex/CODEX_CONTEXT.md` direct
 >
 > Honor an explicit request to execute a skill/workflow first. Otherwise auto-select by complexity and risk; never ask the user to choose the execution path.
 >
-> | Intent                                                                                                          | Route                                                                                             |
-> | --------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------- |
-> | Clear, low-risk task or one-off question                                                                        | direct                                                                                            |
-> | Simple coordinated steps                                                                                        | custom-simple: only the necessary skills/steps                                                    |
-> | Non-trivial bug/regression/stale output                                                                         | `workflow-bugfix`                                                                                 |
-> | Non-trivial feature/enhancement                                                                                 | `workflow-feature`; large/ambiguous/research-heavy scope uses `workflow-big-feature`              |
-> | Product vision, greenfield or release-scoped idea                                                               | owning idea/feature workflow; apply shared `isLargeIdea` and embed decomposition in its artifacts |
-> | Explicit roadmap/update/milestone-selection request                                                             | `product-roadmap`; only this explicit intent may write `docs/product-roadmap.md`                  |
-> | Milestone/large-idea scope needing adversarial failure, replay, state, ownership, recovery or evidence analysis | conditional `scenario` before `$plan`; no roadmap artifact                                        |
-> | Other matching skill/workflow Use clause                                                                        | that skill/workflow, verified from its canonical definition                                       |
+> | Intent | Route |
+> | --- | --- |
+> | Clear, low-risk task or one-off question | direct |
+> | Simple coordinated steps | custom-simple: only the necessary skills/steps |
+> | Non-trivial bug/regression/stale output | `workflow-bugfix` |
+> | Non-trivial feature/enhancement | `workflow-feature`; large/ambiguous/research-heavy scope uses `workflow-big-feature` |
+> | Product vision, greenfield or release-scoped idea | owning idea/feature workflow; apply shared `isLargeIdea` and embed decomposition in its artifacts |
+> | Explicit roadmap/update/milestone-selection request | `product-roadmap`; only this explicit intent may write `docs/product-roadmap.md` |
+> | Milestone/large-idea scope needing adversarial failure, replay, state, ownership, recovery or evidence analysis | conditional `scenario` before `$plan`; no roadmap artifact |
+> | Other matching skill/workflow Use clause | that skill/workflow, verified from its canonical definition |
 >
 > Declare `Route: {workflow-id | skill | custom-simple | direct} — because {reason}`, then ACTIVATE before edits, agents or commands. Workflow: execute `$start-workflow <id>` and use its canonical sequence for tasks 1:1; never improvise that list. Skill: read and execute its SKILL.md through the host's supported mechanism. Custom/direct: create a small task list and execute it. Missing required tools/details: stop and report; never fabricate invocation.
 >
@@ -172,8 +192,8 @@ Workflow progression is **model-driven** — your responsibility, not a tool/hoo
 
 **Decision Quick-Ref:**
 
-| Task                | Pattern                                                     |
-| ------------------- | ----------------------------------------------------------- |
+| Task | Pattern |
+|---|---|
 | Backend conventions | Read `docs/project-reference/backend-patterns-reference.md` |
 
 <!-- /SECTION:decision-quick-ref -->
@@ -279,6 +299,12 @@ node .claude/hooks/tests/run-all-tests.cjs    # all suites
 
 <!-- /SECTION:dev-commands -->
 
+<!-- SECTION:e2e-testing -->
+
+Full guide: [e2e-test-reference.md](docs/project-reference/e2e-test-reference.md) for E2E test patterns, page objects, and configuration.
+
+<!-- /SECTION:e2e-testing -->
+
 <!-- SECTION:integration-testing -->
 
 See [integration-test-reference.md](docs/project-reference/integration-test-reference.md) for integration test patterns and setup.
@@ -375,11 +401,11 @@ python .claude/scripts/code_graph search <keyword> --kind Function --json       
 
 When editing files matching these path patterns, pre-read the listed context first:
 
-| Path Pattern                      | Skill / Auto-Context | Pre-Read Files                  |
-| --------------------------------- | -------------------- | ------------------------------- |
-| `/\.claude/hooks/.*\.cjs$**`      | _(auto-context)_     | `.claude/docs/hooks/README.md`  |
-| `/\.claude/skills/.*SKILL\.md$**` | _(auto-context)_     | `.claude/docs/skills/README.md` |
-| `/\.claude/agents/.*\.md$**`      | _(auto-context)_     | `.claude/docs/agents/README.md` |
+| Path Pattern | Skill / Auto-Context | Pre-Read Files |
+|---|---|---|
+| `/\.claude/hooks/.*\.cjs$**` | _(auto-context)_ | `.claude/docs/hooks/README.md` |
+| `/\.claude/skills/.*SKILL\.md$**` | _(auto-context)_ | `.claude/docs/skills/README.md` |
+| `/\.claude/agents/.*\.md$**` | _(auto-context)_ | `.claude/docs/agents/README.md` |
 
 <!-- /SECTION:skill-activation -->
 
@@ -419,7 +445,7 @@ Apply the shared AI-SDD contract from `shared/sdd-artifact-contract.md` and `SYN
 
 This compact pointer is auto-generated from `.codex/CODEX_CONTEXT.md` by `npm run codex:sync:context`.
 Read `.codex/CODEX_CONTEXT.md` before any non-trivial workflow or skill; it carries the full static catalog and protocol detail.
-Context fingerprint (SHA-256): 44242cc495729b0e57cc090ee9ccb7f1ee214d41855d133814b717381dea8d29
+Context fingerprint (SHA-256): 6c0736d30c59c1433c7fd0a5247778f8f5eb6a262f280f0b5fc8f284e5def932
 Do not edit this pointer manually; update canonical Claude sources and re-sync.
 
 ## Codex Project Reference Gate (Hook-Independent)

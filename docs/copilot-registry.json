@@ -79,7 +79,7 @@
       "tests": [
         "node .claude/hooks/tests/test-all-hooks.cjs",
         "node .claude/hooks/tests/run-all-tests.cjs",
-        "node --test .claude/scripts/codex/tests/*.test.mjs"
+        "npm run codex:test:tooling"
       ],
       "sync": ["node .claude/scripts/sync-copilot-workflows.cjs", "npm run codex:sync"],
       "verify": ["npm run copilot:verify:divergence", "npm run codex:verify:sync-divergence", "npm run codex:verify:sdd"]

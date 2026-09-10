@@ -577,6 +577,37 @@ function updateMarkedSections(existing, sections, onWarn = msg => console.warn(m
     return output.join('\n');
 }
 
+// E2E is an optional, config-sourced section that may be enabled after a project already has
+// marker-managed CLAUDE.md. Unlike the universal guides, it is intentionally not back-filled into
+// every project: insert it only when the builder has verified E2E evidence/profile data. This keeps
+// an existing root's unmanaged prose intact while making `--mode update` effective for newly added
+// E2E configuration. The init template carries the same marker for fresh roots.
+function backfillGeneratedE2eSection(content, sections) {
+    const e2e = sections['e2e-testing'];
+    if (!e2e || content.split('\n').some(line => line.trim() === '<!-- SECTION:e2e-testing -->')) return content;
+
+    const block = `<!-- SECTION:e2e-testing -->\n\n${e2e}\n\n<!-- /SECTION:e2e-testing -->`;
+    // Keep the generated section near the other generated setup sections. Prefer the template's
+    // stable location, then degrade safely for older roots that lack one of those markers.
+    const anchors = [
+        '<!-- /SECTION:dev-commands -->',
+        '<!-- /SECTION:integration-testing -->',
+        '<!-- /SECTION:tldr -->'
+    ];
+    for (const anchor of anchors) {
+        const at = content.indexOf(anchor);
+        if (at === -1) continue;
+        const end = at + anchor.length;
+        return `${content.slice(0, end)}\n\n${block}${content.slice(end)}`;
+    }
+
+    const firstHeading = content.search(/^##\s+/m);
+    if (firstHeading !== -1) {
+        return `${content.slice(0, firstHeading).replace(/\s+$/, '')}\n\n${block}\n\n${content.slice(firstHeading)}`;
+    }
+    return `${content.replace(/\s+$/, '')}\n\n${block}\n`;
+}
+
 function parseBackupPath(args) {
     let destination = null;
     for (let i = 0; i < args.length; i++) {
@@ -675,6 +706,12 @@ function main() {
         }
         const existing = fs.readFileSync(CLAUDE_MD_PATH, 'utf-8');
         let output = updateMarkedSections(existing, sections);
+
+        const withE2e = backfillGeneratedE2eSection(output, sections);
+        if (withE2e !== output) {
+            output = withE2e;
+            console.log('[OK] Back-filled generated E2E section from project configuration');
+        }
 
         // Back-fill universal-guide sections that drifted out of a managed file (e.g. a
         // CLAUDE.md authored before the current template version). Marker-managed files

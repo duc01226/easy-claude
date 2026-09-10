@@ -27,7 +27,7 @@
     "codex:sync:copy-skills": "node .claude/skills/sync-codex/scripts/run-codex-sync.mjs --copy-skills",
     "codex:sync:hooks": "node .claude/scripts/codex/sync-hooks.mjs",
     "codex:test:scripts": "node .claude/skills/sync-codex/scripts/run-codex-sync.mjs --only=scripts-tests",
-    "codex:test:tooling": "node --test .claude/scripts/codex/tests/*.test.mjs",
+    "codex:test:tooling": "node --test .claude/scripts/codex/tests",
     "codex:verify:all": "npm run verify:all",
     "codex:verify:feature-registry": "node .claude/scripts/codex/verify-feature-registry.mjs --configured-roots --optional",
     "codex:verify:no-project-residue": "node .claude/scripts/codex/verify-no-project-residue.mjs",

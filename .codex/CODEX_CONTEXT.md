@@ -122,7 +122,7 @@ Use this protocol for workflow execution on Claude or Codex (hooks are optional 
 5. Tasking: create tasks for each workflow/custom/skill step when the selected path has multiple steps.
 6. Execute: run steps in order, validate outputs, and report completion.
 
-Workflow source: `.claude/workflows.json` (19 workflows).
+Workflow source: `.claude/workflows.json` (20 workflows).
 
 ## Workflow Catalog
 
@@ -135,6 +135,7 @@ Workflow source: `.claude/workflows.json` (19 workflows).
 | a bug, error, crash | `workflow-bugfix` | Bug Fix |
 | initial feature spec generation from zero, maintaining spec sync after code changes, quarterly spec health audits | `workflow-code-to-spec` | Code to Feature Spec |
 | generate, update, or maintain e2e/playwright tests from code/spec | `workflow-e2e` | E2E Testing |
+| user asks to test a feature, bugfix, whole project | `workflow-e2e-green` | E2E Green (Verify · Adjudicate · Fix · Loop) |
 | implement a well-defined feature, add a component, build a capability | `workflow-feature` | Feature Implementation |
 | create or update business feature documentation | `workflow-feature-spec` | Business Feature Documentation |
 | start a new project from scratch, init a greenfield project, plan a new application | `workflow-greenfield-init` | Greenfield Project Init |
@@ -353,21 +354,32 @@ UNIVERSAL RULES:
 ```
 
 ### workflow-e2e — E2E Testing
-- Description: Generate, update, or maintain E2E/Playwright tests and deliberately review affected observable experience — source-parameterized (changes | recording | update-ui)
-- When To Use: User wants to generate, update, or maintain E2E/Playwright tests from code/spec changes (--source=changes), a Chrome DevTools recording (--source=recording), or for UI screenshot baselines (--source=update-ui)
+- Description: Generate, update, or maintain E2E/Playwright tests and deliberately review affected observable experience — source-parameterized maintenance (changes | recording | update-ui); prompt/context/whole verification uses workflow-e2e-green
+- When To Use: User wants to generate, update, or maintain E2E/Playwright tests from code/spec changes (--source=changes), a Chrome DevTools recording (--source=recording), or for UI screenshot baselines (--source=update-ui); prompt/context/whole-project verification routes to workflow-e2e-green
 - Sequence: `investigate -> e2e-test -> experience-review -> test -> docs-update -> workflow-end -> watzup`
 
 Protocol:
 ```text
 E2E WORKFLOW (source-parameterized):
-Resolve --source={changes|recording|update-ui} and follow the matching protocol block in .claude/skills/workflow-e2e/SKILL.md:
+Resolve --source={changes|recording|update-ui|prompt|context|whole} and follow the matching protocol block in .claude/skills/workflow-e2e/SKILL.md. The maintenance sources changes, recording, and update-ui use this workflow's legacy sequence; prompt, context, and whole must hand off immediately to workflow-e2e-green and its bounded verify/adjudicate/fix/retest loop.
 - changes: detect change type from git diff (spec/code/API) -> load affected TC-{FEATURE}-{NNN} -> update/generate test implementations -> ensure each TC has a corresponding test -> run tests -> report coverage.
 - recording: validate recording JSON -> identify app/feature -> run convert-recording.ts -> map TCs to recording steps -> apply project CSS conventions (docs/project-config.json → workflowPatterns.cssMethodology) -> add screenshot assertions -> Page Object if complex -> run + report.
 - update-ui: identify visual diff (SCSS/HTML/TS) -> map to page objects -> find affected specs -> collect candidate evidence without changing accepted expectations -> run experience-review -> only after explicit acceptance update the affected snapshots/baselines -> report.
+- prompt|context|whole: resolve scope from the user request/current context/whole configured project, read the E2E profile and linked localRun contract, select or generate Given/When/Then cases, exercise the visible human-QC path where applicable, capture/read/redact evidence, and loop on the same scope through workflow-e2e-green until its convergence contract passes or an evidence-backed N/A/ENVIRONMENT-BLOCKED result is recorded.
 UNIVERSAL RULES:
 - Goal-Driven Execution: define success criteria before execution; loop until observable checks pass.
 - Tests Verify Intent: when creating or reviewing specs/tests, name the protected business intent or invariant and ensure the test would fail if that intent breaks.
 - Spec-Loop Discipline (E2E tier — tailored): trace each E2E scenario to the §8 invariant/behavior it guards (name the protected rule, not just the click path) so a scenario fails only when that intended behavior breaks. Property/metamorphic generation and the MUTATION-SCORE assertion gate are scoped to unit/integration core-logic and are N/A at the E2E tier — do NOT force them here. Any coverage gap found feeds the Dual-Feedback Ledger into BOTH the spec (the missing/changed behavior) AND the tests (a blank Spec-feedback OR Test-feedback cell = INCOMPLETE), never a test-only fix.
+```
+
+### workflow-e2e-green — E2E Green (Verify · Adjudicate · Fix · Loop)
+- Description: Run config-first, human-QC E2E verification from a prompt, current context, feature/bugfix, or whole configured project with bounded adjudication and fix/retest convergence
+- When To Use: User asks to test a feature, bugfix, whole project, or journey end-to-end; prompt/current context and human-like visible web QC use generate/select, evidence, and bounded fix/retest looping
+- Sequence: `investigate -> e2e-test-verify-loop -> docs-update -> workflow-end -> watzup`
+
+Protocol:
+```text
+E2E GREEN PROTOCOL: Read project-config.json and the linked E2E reference first. Resolve scope from the prompt/current context, select or generate Given/When/Then cases, preserve the protected invariant, use the configured localRun/auth/data/browser/evidence profile, and record N/A versus ENVIRONMENT-BLOCKED with evidence. For web use a visible Playwright CLI browser when configured; wait for readiness/actionability, use 200–300ms only after completed actions for human-QC presentation, capture/read/redact evidence, classify failures before changing code or tests, fix at the owning layer, review every fix, and repeat the same scope until the bounded convergence contract passes or escalate.
 ```
 
 ### workflow-feature — Feature Implementation
@@ -1145,7 +1157,7 @@ UNIVERSAL RULES:
 
 Session-start reference derived from `.claude/workflows.json` — use it to pick a route on any prompt: run a standard workflow, compose a custom workflow from the step-skills, invoke a single skill, or execute directly.
 
-### Workflow Skills (65 composable steps)
+### Workflow Skills (66 composable steps)
 
 Distinct step-skills used across the workflows above — compose these into a custom workflow when no standard workflow fits.
 
@@ -1170,7 +1182,8 @@ Distinct step-skills used across the workflows above — compose these into a cu
 | `domain-analysis` | [Architecture] Use when analyzing the business domain — bounded contexts, aggregates, entities, ERD, domain events, cross-context integration. |
 | `domain-entities-review` | [DDD Quality] Use when reviewing domain entities and value objects for DDD design quality. |
 | `dor-gate` | [Code Quality] Use when validating a PBI against Definition of Ready before grooming. |
-| `e2e-test` | [Testing] Use when generating, updating, or maintaining E2E tests from recordings, specs, or code changes. |
+| `e2e-test` | [Testing] Use when selecting, generating, updating, or maintaining E2E tests from a prompt, current context, recordings, specs, or code changes. |
+| `e2e-test-verify-loop` | [Testing] Use when driving a configured E2E suite or human-QC journey to green with project-config setup, evidence, fault adjudication, and bounded re-verification. |
 | `excalidraw-diagram` | [Utilities] Use when visualizing workflows, architectures, or concepts as Excalidraw diagram JSON. |
 | `experience-review` | [Testing] Use when reviewing a running user experience or observable output (UI, API, CLI, service) — run it locally, drive it end to end like a user, gate on runtime/console logs and captured screens, set a baseline, or adjudicate a regression. Flag: --rounds=N (default 3; 0 = report-only). |
 | `feature-presentation` | [Documentation] Use when synthesizing specs, PBIs, ideas, and mockups into one standalone HTML slide deck for stakeholders. |

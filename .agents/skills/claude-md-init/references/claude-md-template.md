@@ -86,6 +86,9 @@ Add `Analyze AI mistakes & lessons learned` to non-trivial tasks. Extract the ro
 <!-- SECTION:dev-commands -->
 <!-- /SECTION:dev-commands -->
 
+<!-- SECTION:e2e-testing -->
+<!-- /SECTION:e2e-testing -->
+
 <!-- SECTION:skill-activation -->
 <!-- /SECTION:skill-activation -->
 

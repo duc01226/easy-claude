@@ -1,6 +1,6 @@
 ---
 name: workflow-e2e
-description: '[Workflow] Use when generating, updating, or maintaining E2E/Playwright tests. Flag: --source={changes|recording|update-ui}.'
+description: '[Workflow] Use when generating, updating, or maintaining E2E/Playwright tests. Flag: --source={changes|recording|update-ui|prompt|context|whole}.'
 disable-model-invocation: false
 ---
 
@@ -52,14 +52,14 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 
 ## Quick Summary
 
-**Goal:** [Workflow] Trigger the E2E testing workflow — one parameterized entry covering all three E2E sources. `--source` selects the protocol; every source prepares tests, conditionally reviews the affected observable experience, and only then runs regression verification.
+**Goal:** [Workflow] Trigger the E2E testing workflow — one parameterized entry covering change, recording, UI, prompt/context, and whole-project verification. `--source` selects the protocol; prompt/context/whole verification hands off to the bounded green loop.
 
-**Summary:** Resolve `--source={changes|recording|update-ui}` (infer and state it when omitted), then run `$investigate` → `$e2e-test` → conditional `$experience-review` → `$test` → `$docs-update` → `$workflow-end` → `$watzup`; the `e2e-test` leaf applies the selected source protocol, and every step records evidence, task transitions, and observable verification.
+**Summary:** Resolve `--source={changes|recording|update-ui|prompt|context|whole}` (infer and state it when omitted). Existing source modes run the established sequence; prompt/context/whole invoke the config-first `$workflow-e2e-green` loop, which selects or generates scenarios, exercises visible web journeys, adjudicates failures, and repeats bounded remediation with evidence.
 - **Testability contract:** resolve Unit/Integration/System/E2E applicability from runner/config evidence; record owner/root/data, copy-ready full + focused commands, zero-match behavior, CI/simple-Windows entry, unique run/data identity, and repeat proof; unresolved applicable fields block handoff, while non-applicable tiers require evidence-backed `N/A`.
 
 **Workflow:**
 
-1. **Detect** — read `--source={changes|recording|update-ui}`; classify request scope and target artifacts.
+1. **Detect** — read `--source={changes|recording|update-ui|prompt|context|whole}`; classify request scope and target artifacts.
 2. **Execute** — apply the source-specific protocol below with evidence-backed actions.
 3. **Verify** — confirm constraints, output quality, and completion evidence.
 
@@ -73,6 +73,8 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 
 **IMPORTANT MANDATORY Steps:** $investigate -> $e2e-test -> $experience-review -> $test -> $docs-update -> $workflow-end -> $watzup
 
+**Green source handoff Steps:** $investigate -> $e2e-test-verify-loop -> $docs-update -> $workflow-end -> $watzup.
+
 > **[BLOCKING]** Each step MUST ATTENTION invoke its skill invocation — marking a task `completed` without skill invocation is a workflow violation. NEVER batch-complete validation gates.
 
 ## Source Dispatch (`--source`)
@@ -84,8 +86,13 @@ Resolve `--source` from the invocation. If omitted, infer from the request (reco
 | `changes`   | Test specs or source code changed and E2E tests need to be synced.       | New recordings (`recording`), visual-only changes (`update-ui`).       |
 | `recording` | A Chrome DevTools recording JSON exists and a Playwright test is wanted. | Updating existing tests, writing from scratch, running existing tests. |
 | `update-ui` | UI changed and E2E screenshot baselines need updating.                   | Generating new tests, fixing test logic, non-visual changes.           |
+| `prompt`    | The user gives a feature, bugfix, journey, or QC request and the suitable E2E test may need to be selected or generated. | A narrowly scoped existing-test maintenance task. |
+| `context`   | Current project/spec/code context should determine the E2E scope and cases. | A single known recording or baseline update. |
+| `whole`     | The user asks for a project-wide E2E/QC verification run. | A feature-local change that does not require the full configured suite. |
 
-All three sources run the same sequence: `$investigate → $e2e-test → $experience-review (conditional) → $test → $docs-update → $workflow-end → $watzup`. The downstream `e2e-test` leaf is mode-aware and performs the per-source work; `experience-review` classifies and inspects relevant observable evidence before any expectation promotion; this wrapper injects the matching protocol and triggers the workflow.
+The `changes`, `recording`, and `update-ui` sources run the established sequence: `$investigate → $e2e-test → $experience-review (conditional) → $test → $docs-update → $workflow-end → $watzup`. The downstream `e2e-test` leaf is mode-aware and performs the per-source work; `experience-review` classifies and inspects relevant observable evidence before any expectation promotion.
+
+The `prompt`, `context`, and `whole` sources use `$workflow-e2e-green`: `$investigate` resolves project configuration and applicability, `$e2e-test-verify-loop` selects or generates Given/When/Then cases, exercises the configured lifecycle in a visible browser where applicable, evaluates human-QC evidence, and performs bounded debug/fix/retest rounds. `$docs-update`, `$workflow-end`, and `$watzup` remain mandatory after the loop.
 
 ### `--source=changes` — E2E from Changes
 
@@ -131,14 +138,27 @@ E2E UPDATE UI PROTOCOL:
 7. Report updated files, evidence references, decision, and any remaining limitation
 ```
 
+### `--source=prompt|context|whole` — E2E Verify Green Handoff
+
+```
+E2E VERIFY GREEN PROTOCOL:
+1. Resolve the requested scope from the prompt, current context, feature/bugfix, or whole configured project.
+2. Read docs/project-config.json and the linked E2E reference before choosing a runner, startup command, port, account, seed, selector, or evidence path.
+3. If the E2E profile is absent or incomplete, perform bounded repository discovery; record N/A only when E2E is not applicable and ENVIRONMENT-BLOCKED when an applicable prerequisite cannot be verified.
+4. Select suitable existing cases or generate cases from the governing spec and code intent. Record Given/When/Then, protected invariant, and settle condition for every case.
+5. Exercise the configured project lifecycle. For web journeys use a visible Playwright CLI browser when the project supports it; use readiness/actionability waits for correctness and 200–300ms delays only after completed actions for human-QC presentation.
+6. Capture, open, assess, and redact the configured evidence (screenshots, console/page errors, requests, trace, or video) as needed.
+7. Run bounded fresh rounds. Classify each failure before changing source or test, fix at the owning layer, review each fix, and re-run the same scope until the configured convergence contract is met or escalate with exact evidence.
+```
+
 **UNIVERSAL RULES (all sources):**
 
 - Goal-Driven Execution: define success criteria before execution; loop until observable checks pass.
 - Tests Verify Intent: when creating or reviewing specs/tests, name the protected business intent or invariant and ensure the test would fail if that intent breaks.
 
-Activate the `workflow-e2e` workflow. Run `$start-workflow workflow-e2e` with the user's prompt as context and the resolved `--source` protocol above.
+Activate the `workflow-e2e` workflow for `changes`, `recording`, and `update-ui`. For `prompt`, `context`, or `whole`, run `$start-workflow workflow-e2e-green` with the user's prompt/current context and the resolved scope protocol above.
 
-**Steps:** $investigate → $e2e-test → $experience-review → $test → $docs-update → $workflow-end → $watzup
+**Steps:** Existing source modes: `$investigate → $e2e-test → $experience-review → $test → $docs-update → $workflow-end → $watzup`. Green sources: `$investigate → $e2e-test-verify-loop` (nested `$experience-review` report-only) → `$docs-update → $workflow-end → $watzup`.
 
 ## Experience Acceptance Handoff
 
@@ -166,7 +186,7 @@ Before `$e2e-test`, resolve and carry one evidence-backed contract record throug
 
 ---
 
-**IMPORTANT MANDATORY Steps:** $investigate -> $e2e-test -> $experience-review -> $test -> $docs-update -> $workflow-end -> $watzup
+**Green source handoff Steps:** $investigate -> $e2e-test-verify-loop -> $docs-update -> $workflow-end -> $watzup.
 
 <!-- SYNC:ai-mistake-prevention -->
 
@@ -270,7 +290,8 @@ Before `$e2e-test`, resolve and carry one evidence-backed contract record throug
 > **Test Architecture & Execution Contract** — Treat testability as a setup/architecture acceptance condition. For every potentially applicable tier — Unit, Integration/System, E2E, and Performance/Scale (warranted at `T1+`/`B2+`) — record `APPLICABLE` only with evidence of its runner/framework/configuration; otherwise record `N/A — <evidence>` and never fabricate coverage.
 >
 > 1. **Matrix before implementation:** Record applicability, owner, runner/framework, test root, fixture/data strategy, full command, focused/partial command, zero-match behavior, CI gate, a simple/Windows entry point (a `.cmd` when the project needs one), the **host-mode AND container-mode commands** where the project supports both, and the **environment reach** (which of local / CI / production-shaped this tier can target).
-> 2. **Runnable scopes:** Full and focused commands must be copy-ready, fail on invalid or zero-match selections, report exact counts and exit status, and be safe to repeat. E2E uses only configured browser/service commands.
+> 1a. **E2E profile handoff:** For E2E, also record the selected `surfaceIds[]`, the linked `localRun` owner, auth mode/reference, seed/data mode, browser runner/engine/headed setting, action-delay policy, evidence root/capture/redaction policy, and convergence cap. Missing fields remain explicit blockers or N/A; they are never filled from generic browser defaults.
+> 2. **Runnable scopes:** Full and focused commands must be copy-ready, fail on invalid or zero-match selections, report exact counts and exit status, and be safe to repeat. E2E uses only configured browser/service commands. A visible human-QC web run waits on readiness/actionability first and may add a deterministic 200–300ms post-action delay for presentation; the delay is never a readiness mechanism.
 > 3. **Fresh valid state:** Each run/test owns a unique run identity and business-data suffix, arranges through supported public paths, and uses realistic valid data. Reference setup is count-before-create, idempotent, and restart-safe. Intentional accumulation is additive, keyed, and integrity-checked; never hide contamination with destructive reset.
 >    Run-scoped cleanup, when supported, is opt-in and idempotent: after evidence capture it may remove only ephemeral resources owned by the current run; it must never delete persistent/additive data or another run's data, reset shared state, or replace no-reset proof.
 > 4. **Isolation and fidelity:** Isolate mutable roots and parallel workers; share only immutable/reference data. Preserve real actor pacing and observable arrange barriers. Do not widen retries or weaken assertions to make a scenario pass.
@@ -323,9 +344,9 @@ Before `$e2e-test`, resolve and carry one evidence-backed contract record throug
 ## Closing Reminders
 
 **IMPORTANT MUST ATTENTION** Testability contract: resolve evidence-backed Unit/Integration/System/E2E rows, copy-ready full/focused commands, zero-match failures, owner/root/data, CI/simple-Windows entry, unique run identity, and repeat proof before claiming setup, review, or test completion.
-**IMPORTANT MUST ATTENTION Goal:** [Workflow] Trigger the E2E testing workflow — one parameterized entry covering all three E2E sources. `--source` selects the protocol; every source conditionally reviews relevant observable experience before expectation promotion and regression verification.
+**IMPORTANT MUST ATTENTION Goal:** [Workflow] Trigger the E2E testing workflow — one parameterized entry covering maintenance and green verification source modes. `--source` selects the protocol; every source conditionally reviews relevant observable experience before expectation promotion and regression verification.
 
-**IMPORTANT MUST ATTENTION Workflow:** Resolve and state `--source={changes|recording|update-ui}`; apply its source-specific protocol through `$investigate` → `$e2e-test` → conditional `$experience-review` → `$test` → `$docs-update` → `$workflow-end` → `$watzup`; preserve intent-named test assertions, evidence-backed task transitions, and explicit verification of generated/updated E2E artifacts.
+**IMPORTANT MUST ATTENTION Workflow:** Resolve and state `--source={changes|recording|update-ui|prompt|context|whole}`; apply the established source protocol or the config-first green loop through its declared sequence; preserve intent-named test assertions, evidence-backed task transitions, visible human-QC evidence, and explicit verification of generated/updated E2E artifacts.
 
 **IMPORTANT MUST ATTENTION — Protocols in force (concise digest of the SYNC/shared blocks this skill carries):**
 

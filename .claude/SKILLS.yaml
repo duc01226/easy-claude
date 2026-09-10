@@ -1,10 +1,10 @@
 metadata:
   title: Skills Catalog
   description: Auto-generated catalog of all available skills in ClaudeKit Engineer
-  last_updated: '2026-09-09'
-  total_skills: 167
+  last_updated: '2026-09-10'
+  total_skills: 170
   total_by_status:
-    active: 165
+    active: 168
     deprecated: 2
     experimental: 0
 categories:
@@ -437,8 +437,20 @@ skills:
       removal_after: null
     - name: e2e-test
       path: e2e-test/SKILL.md
-      description: '[Testing] Use when generating, updating, or maintaining E2E tests
-        from recordings, specs, or code changes.'
+      description: '[Testing] Use when selecting, generating, updating, or maintaining
+        E2E tests from a prompt, current context, recordings, specs, or code changes.'
+      category: other
+      has_scripts: false
+      has_references: false
+      status: active
+      deprecated_by: null
+      deprecated_since: null
+      removal_after: null
+    - name: e2e-test-verify-loop
+      path: e2e-test-verify-loop/SKILL.md
+      description: '[Testing] Use when driving a configured E2E suite or human-QC
+        journey to green with project-config setup, evidence, fault adjudication,
+        and bounded re-verification.'
       category: other
       has_scripts: false
       has_references: false
@@ -870,6 +882,17 @@ skills:
       description: '[Debugging] Use when analyzing or optimizing performance — slow
         queries, N+1, indexing, API latency, memory/GC, concurrency, algorithmic complexity,
         caching, frontend rendering and Core Web Vitals.'
+      category: other
+      has_scripts: false
+      has_references: true
+      status: active
+      deprecated_by: null
+      deprecated_since: null
+      removal_after: null
+    - name: playwright-cli
+      path: playwright-cli/SKILL.md
+      description: '[Testing] Automate browser interactions, test web pages, and work
+        with Playwright tests.'
       category: other
       has_scripts: false
       has_references: true
@@ -1388,7 +1411,19 @@ skills:
     - name: workflow-e2e
       path: workflow-e2e/SKILL.md
       description: '[Workflow] Use when generating, updating, or maintaining E2E/Playwright
-        tests. Flag: --source={changes|recording|update-ui}.'
+        tests. Flag: --source={changes|recording|update-ui|prompt|context|whole}.'
+      category: other
+      has_scripts: false
+      has_references: false
+      status: active
+      deprecated_by: null
+      deprecated_since: null
+      removal_after: null
+    - name: workflow-e2e-green
+      path: workflow-e2e-green/SKILL.md
+      description: '[Workflow] Drive configured E2E and human-QC journeys to green
+        with project-config setup, visible browser evidence, bounded adjudication,
+        and fresh re-verification.'
       category: other
       has_scripts: false
       has_references: false

@@ -247,3 +247,176 @@ test('TC-EXP-CONFIG-013: actual freeform weakening of the bring-up recipe is kil
     assert.equal(result.valid, true, 'the freeform mutation must actually weaken the contract');
     assert.equal(result.errors.length, 0);
 });
+
+function e2eConfig(execution, surface = {}) {
+    return {
+        ...SKELETON,
+        e2eTesting: {
+            framework: 'playwright',
+            language: 'typescript',
+            execution
+        },
+        experienceVerification: {
+            ...SKELETON.experienceVerification,
+            enabled: true,
+            surfaces: [{
+                id: 'web',
+                kind: 'web',
+                runner: 'playwright-cli',
+                entryPoints: ['apps/web'],
+                ...surface
+            }]
+        }
+    };
+}
+
+const validE2eExecution = {
+    surfaceIds: ['web'],
+    auth: {
+        mode: 'fixture',
+        credentialsRef: 'env:E2E_REVIEW_USER',
+        loginPath: '/login'
+    },
+    data: {
+        seedCommand: 'npm run seed:e2e',
+        workingDir: 'apps/web',
+        mode: 'idempotent',
+        cleanupPolicy: 'current-run ephemeral data only after evidence capture'
+    },
+    browser: {
+        runner: 'playwright-cli',
+        engine: 'chromium',
+        headed: true,
+        actionDelayMs: 250
+    },
+    evidence: {
+        root: 'plans/reports/e2e',
+        capture: ['screenshot', 'console', 'requests', 'trace', 'video'],
+        redaction: 'project-configured redactor'
+    },
+    convergence: {
+        maxAttempts: 3,
+        consecutiveGreen: 2,
+        settleTimeoutSeconds: 120
+    }
+};
+
+test('TC-E2E-CONFIG-014: a complete optional E2E execution profile validates and is discoverable', () => {
+    const result = validateConfig(e2eConfig(validE2eExecution));
+    assert.equal(result.valid, true, result.errors.join('; '));
+    assert.deepEqual(result.warnings, []);
+    assert.equal(SCHEMA.e2eTesting.properties.execution.type, 'object');
+    assert.equal(SCHEMA.e2eTesting.properties.execution.properties.browser.properties.runner.type, 'string');
+    const description = require('../../hooks/lib/project-config-schema.cjs').describeSchema();
+    for (const field of ['surfaceIds', 'auth', 'data', 'browser', 'evidence', 'convergence', 'actionDelayMs', 'redaction', 'consecutiveGreen']) {
+        assert.ok(description.includes(field), `--describe output must include ${field}`);
+    }
+});
+
+test('TC-E2E-CONFIG-015: a partial profile remains valid but exposes unresolved capability as a warning', () => {
+    const config = e2eConfig({
+        surfaceIds: ['not-configured-yet'],
+        browser: { headed: true }
+    });
+    const result = validateConfig(config);
+    assert.equal(result.valid, true, result.errors.join('; '));
+    assert.ok(result.warnings.some(warning => warning.includes('surfaceIds[0]')));
+    assert.equal(config.e2eTesting.execution.browser.headed, true);
+    assert.equal(config.e2eTesting.execution.auth, undefined);
+});
+
+test('TC-E2E-CONFIG-016: declared nested fields keep path-specific type validation', () => {
+    const mutations = [
+        ['surfaceIds', 42, 'e2eTesting.execution.surfaceIds: expected array, got number'],
+        ['auth', 'fixture', 'e2eTesting.execution.auth: expected object, got string'],
+        ['browser', [], 'e2eTesting.execution.browser: expected object, got array'],
+        ['evidence', { capture: [42] }, 'e2eTesting.execution.evidence.capture[0]: expected string, got number'],
+        ['convergence', { maxAttempts: 'three' }, 'e2eTesting.execution.convergence.maxAttempts: expected number, got string']
+    ];
+    for (const [field, value, expected] of mutations) {
+        const result = validateConfig(e2eConfig({ [field]: value }));
+        assert.equal(result.valid, false, `${field} mutation must fail`);
+        assert.ok(result.errors.includes(expected), `${field}: ${result.errors.join('; ')}`);
+    }
+});
+
+test('TC-E2E-CONFIG-017: unsafe paths, unsupported modes, invalid pacing, and unbounded convergence are rejected', () => {
+    const config = e2eConfig({
+        surfaceIds: ['web'],
+        auth: { mode: 'unknown' },
+        data: { mode: 'reset-all', workingDir: '../shared' },
+        browser: { actionDelayMs: 2501 },
+        evidence: { root: '../outside', capture: ['dom-dump'] },
+        convergence: { maxAttempts: 0, consecutiveGreen: 4, settleTimeoutSeconds: 601 }
+    });
+    const result = validateConfig(config);
+    assert.equal(result.valid, false);
+    for (const fragment of [
+        'auth.mode: unsupported mode',
+        'data.mode: unsupported mode',
+        'data.workingDir: must be a project-relative path',
+        'browser.actionDelayMs: expected an integer from 0 through 2000',
+        'evidence.root: must be a project-relative path',
+        'evidence.capture[0]: unsupported capture',
+        'convergence.maxAttempts: expected an integer from 1 through 10',
+        'convergence.settleTimeoutSeconds: expected an integer from 1 through 600'
+    ]) {
+        assert.ok(result.errors.some(error => error.includes(fragment)), `${fragment}: ${result.errors.join('; ')}`);
+    }
+});
+
+test('TC-E2E-CONFIG-018: credential-looking literals in references and commands are warned', () => {
+    const result = validateConfig(e2eConfig({
+        auth: {
+            mode: 'fixture',
+            credentialsRef: 'password=not-a-reference',
+            registrationCommand: 'npm run register -- --password hunter2'
+        },
+        data: { seedCommand: 'npm run seed -- --token abc123' },
+        evidence: { capture: ['requests'] }
+    }, { localRun: { credentialsRef: 'password=inline' } }));
+    assert.equal(result.valid, true, result.errors.join('; '));
+    assert.ok(result.warnings.some(warning => warning.includes('credentialsRef') && warning.includes('credential/token literal')));
+    assert.ok(result.warnings.some(warning => warning.includes('registrationCommand') && warning.includes('credential/token literal')));
+    assert.ok(result.warnings.some(warning => warning.includes('seedCommand') && warning.includes('credential/token literal')));
+    assert.ok(result.warnings.some(warning => warning.includes('localRun.credentialsRef') && warning.includes('credential/token literal')));
+    assert.ok(result.warnings.some(warning => warning.includes('evidence.redaction')));
+});
+
+test('TC-E2E-CONFIG-019: blank conditional capabilities remain unresolved', () => {
+    const cases = [
+        [{ auth: { mode: 'fixture', credentialsRef: ' ' } }, 'auth.credentialsRef'],
+        [{ auth: { mode: 'storage-state', storageStateRef: ' ' } }, 'auth.storageStateRef'],
+        [{ auth: { mode: 'registration', registrationCommand: ' ' } }, 'auth.registrationCommand'],
+        [{ data: { mode: 'idempotent', seedCommand: ' ' } }, 'data.seedCommand'],
+        [{ evidence: { capture: ['requests'], redaction: ' ' } }, 'evidence.redaction'],
+        [{ evidence: { capture: ['screenshot'], redaction: ' ' } }, 'evidence.redaction']
+    ];
+    for (const [execution, fragment] of cases) {
+        const result = validateConfig(e2eConfig(execution));
+        assert.equal(result.valid, true, result.errors.join('; '));
+        assert.ok(result.warnings.some(warning => warning.includes(fragment)), `${fragment}: ${result.warnings.join('; ')}`);
+    }
+});
+
+test('TC-E2E-CONFIG-020: the real project configuration keeps its explicit E2E state', () => {
+    const e2e = realConfig.e2eTesting;
+    if (e2e === undefined) {
+        assert.equal(validateConfig(realConfig).valid, true);
+        return;
+    }
+
+    assert.equal(typeof e2e, 'object');
+    assert.equal(typeof e2e.framework, 'string');
+    assert.ok(e2e.framework.trim().length > 0);
+
+    if (e2e.framework === 'none') {
+        assert.deepEqual(e2e.entryPoints, []);
+        assert.deepEqual(e2e.runCommands, {});
+    } else {
+        assert.ok(Array.isArray(e2e.entryPoints));
+        assert.ok(e2e.runCommands && typeof e2e.runCommands === 'object' && !Array.isArray(e2e.runCommands));
+    }
+
+    assert.equal(validateConfig(realConfig).valid, true);
+});

@@ -86,14 +86,14 @@ None. No frontend framework dependency, app mapping, dev-server port, or fronten
 | -------------- | --------------------------------------------------------------------------------------------- | ----------------------------- | ----------------------------------------------------------------------------------- |
 | Hooks          | <!-- COUNT:hooks -->18<!-- /COUNT -->                                                         | `.claude/hooks/*.cjs`         | Top-level CommonJS Node.js hook scripts counted by ADR-0002                         |
 | Hook Libraries | <!-- COUNT:lib-modules -->31<!-- /COUNT -->                                                   | `.claude/hooks/lib/*.cjs`     | CommonJS utility modules                                                            |
-| Skills         | <!-- COUNT:skills -->167<!-- /COUNT -->                                                       | `.claude/skills/*/SKILL.md`   | Markdown + YAML frontmatter                                                         |
+| Skills         | <!-- COUNT:skills -->170<!-- /COUNT -->                                                       | `.claude/skills/*/SKILL.md`   | Markdown + YAML frontmatter                                                         |
 | Agents         | <!-- COUNT:agents -->27<!-- /COUNT -->                                                        | `.claude/agents/*.md`         | Markdown definitions                                                                |
-| Workflows      | <!-- COUNT:workflows -->19<!-- /COUNT -->                                                     | `.claude/workflows.json`      | JSON workflow definitions                                                           |
+| Workflows      | <!-- COUNT:workflows -->20<!-- /COUNT -->                                                     | `.claude/workflows.json`      | JSON workflow definitions                                                           |
 | Output Styles  | 6                                                                                             | `.claude/output-styles/*.md`  | Coding level presets (ELI5→God)                                                     |
 | Scripts        | 31                                                                                            | `.claude/scripts/*`           | CJS/ESM + Python utilities (top-level; excludes tests and non-executable data/docs) |
 | Codex Scripts  | 13                                                                                            | `.claude/scripts/codex/*.mjs` | Top-level ESM sync, migration, notification, and verification tools                 |
 | Hook Tests     | 24 suites + 13 `test-*` files                                                                  | `.claude/hooks/tests/`        | CJS/JS test files; top-level `test-*` files plus `run-all-tests.cjs` aggregate      |
-| Codex Mirrors  | <!-- COUNT:skills -->167<!-- /COUNT --> skills, <!-- COUNT:agents -->27<!-- /COUNT --> agents | `.agents/`, `.codex/`         | Generated Codex-compatible copy                                                     |
+| Codex Mirrors  | <!-- COUNT:skills -->170<!-- /COUNT --> skills, <!-- COUNT:agents -->27<!-- /COUNT --> agents | `.agents/`, `.codex/`         | Generated Codex-compatible copy                                                     |
 
 ## Project Directory Tree
 
@@ -138,9 +138,9 @@ easy-claude/
 | ---- | -------------- | ------------------------------ | ------------------------------------------------------------------------------------------------------------------------- |
 | HK   | Hooks          | `.claude/hooks/`               | <!-- COUNT:hooks -->18<!-- /COUNT --> top-level `.cjs` runtime hook files (session init, safety gates, graph, formatting) |
 | HL   | Hook Libraries | `.claude/hooks/lib/`           | <!-- COUNT:lib-modules -->31<!-- /COUNT --> shared utility modules for hooks                                              |
-| SK   | Skills         | `.claude/skills/`              | <!-- COUNT:skills -->167<!-- /COUNT --> task automation skill definitions                                                 |
+| SK   | Skills         | `.claude/skills/`              | <!-- COUNT:skills -->170<!-- /COUNT --> task automation skill definitions                                                 |
 | AG   | Agents         | `.claude/agents/`              | <!-- COUNT:agents -->27<!-- /COUNT --> specialized subagent role definitions                                              |
-| WF   | Workflows      | `.claude/workflows.json`       | <!-- COUNT:workflows -->19<!-- /COUNT --> end-to-end process orchestrations                                               |
+| WF   | Workflows      | `.claude/workflows.json`       | <!-- COUNT:workflows -->20<!-- /COUNT --> end-to-end process orchestrations                                               |
 | SC   | Scripts        | `.claude/scripts/`             | 31 top-level CJS/ESM/Python utilities; excludes tests and non-executable data/docs                                        |
 | CX   | Codex Tooling  | `.claude/scripts/codex/`       | 13 top-level ESM sync, migration, notification, and verification scripts                                                  |
 | CM   | Codex Mirrors  | `.agents/`, `.codex/`          | Generated Codex-compatible skills, agents, hooks                                                                          |
@@ -210,14 +210,14 @@ easy-claude/
 
 > **Sub-agent context:** `.claude/agents/*.md` carries static context; no `SubagentStart` hook supplies it.
 
-## Workflows (<!-- COUNT:workflows -->19<!-- /COUNT -->)
+## Workflows (<!-- COUNT:workflows -->20<!-- /COUNT -->)
 
 | Category                   | Registered Workflows                                                                                |
 | -------------------------- | --------------------------------------------------------------------------------------------------- |
 | **Core Development**       | `workflow-feature`, `workflow-bugfix`, `workflow-refactor`, `workflow-big-feature`                  |
 | **Discovery & Planning**   | `workflow-idea-to-pbi`, `workflow-idea-to-spec`, `workflow-greenfield-init`, `workflow-spec-to-pbi` |
 | **Spec & Documentation**   | `workflow-code-to-spec`, `workflow-spec-sync`, `workflow-feature-spec`, `workflow-research`         |
-| **Testing**                | `workflow-write-integration-test`, `workflow-e2e`, `workflow-seed-test-data`                        |
+| **Testing**                | `workflow-write-integration-test`, `workflow-e2e`, `workflow-e2e-green`, `workflow-seed-test-data` |
 | **Review & Visualization** | `workflow-review-changes`, `workflow-architecture-audit`, `workflow-visualize`                      |
 
 > **Also available as workflow skills** (invokeable via `/workflow-<name>` but not registered in `workflows.json`):
@@ -264,7 +264,7 @@ easy-claude/
 | `.claude/settings.json`                  | Hook registration, permissions, features                             |
 | `.claude/hooks/session-init.cjs`         | Session startup — loads config, sets state                           |
 | `CLAUDE.md` / `SKILL.md`                 | Static rules/lessons re-anchored after compaction (no recovery hook) |
-| `.claude/workflows.json`                 | All <!-- COUNT:workflows -->19<!-- /COUNT --> workflow definitions   |
+| `.claude/workflows.json`                 | All <!-- COUNT:workflows -->20<!-- /COUNT --> workflow definitions   |
 | `docs/project-config.json`               | Project-specific runtime configuration                               |
 | `.claude/hooks/tests/test-all-hooks.cjs` | Main test runner                                                     |
 | `CLAUDE.md`                              | Project instructions for Claude                                      |

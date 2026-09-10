@@ -240,7 +240,7 @@ test("TC-WSC-009 framework guide carries the current workflow count and conditio
     )
   );
 
-  assert.match(guide, /Workflow Catalog \(19 Workflows\)/);
+  assert.match(guide, /Workflow Catalog \(20 Workflows\)/);
   assert.match(guide, /workflow-integration-test-green/);
   assert.match(guide, /test → scan --target=domain-entities → docs-update/);
   assert.match(guide, /only when the final diff changes an entity\/model, DTO\/data contract, persistence schema\/migration, or entity-sync evidence/i);

@@ -5,6 +5,24 @@ what users or downstream consumers actually experience. It is deliberately
 not a web-test setting and does not replace a project’s existing test, lint,
 accessibility, device, API, CLI, or generator tooling.
 
+## Relationship to E2E execution
+
+`experienceVerification` owns observable surfaces, local lifecycle ownership,
+runtime evidence, and human/owner acceptance. When a project needs generated or
+executed E2E journeys, the optional `e2eTesting.execution` profile owns the
+execution handoff: linked `surfaceIds`, auth mode and non-secret references,
+data/seed policy, browser runner/visibility, evidence capture/redaction, and
+bounded convergence. The profile links to this document's
+`experienceVerification.surfaces[]`; it does not duplicate `startCommand`,
+`dependencyCommand`, or readiness ownership.
+
+Agents must read both sections before a feature, bugfix, prompt-driven, or
+whole-project E2E run. If `e2eTesting.execution` is absent, perform bounded
+repository discovery from the configured surface and cite the evidence. Do not
+invent a port, account, seed, selector, command, or credential. A missing
+capability is `N/A` only when no applicable surface exists; an applicable but
+unrunnable or uninspectable surface is `ENVIRONMENT-BLOCKED`.
+
 ## Minimal shape
 
 ```json
