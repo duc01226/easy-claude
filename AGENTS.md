@@ -108,6 +108,8 @@ For full canonical detail, read `CLAUDE.md` and `.codex/CODEX_CONTEXT.md` direct
 
 ## Common AI Mistake Prevention (System Lessons)
 
+- **FIX GATE — INVESTIGATE FIRST.** Before applying any project-related fix, always invoke `$investigate` or `$debug-investigate` and establish the root cause; the failure site may be only a symptom.
+- **FAILED-TEST GATE.** For any failed or flaky test, `$debug-investigate` is mandatory before editing source or tests; never change either side merely to force green.
 - **Re-read files after context compaction.** Edit requires prior Read in same context; compaction wipes read state. Re-read before editing.
 - **Grep for old terms after bulk replacements.** AI over-trusts find/replace completeness. Grep full repo after bulk edits for missed refs in docs/configs/catalogs.
 - **Check downstream references before deleting.** Deletions cascade doc/code staleness. Map referencing files before removal.
@@ -452,7 +454,7 @@ Apply the shared AI-SDD contract from `shared/sdd-artifact-contract.md` and `SYN
 
 This compact pointer is auto-generated from `.codex/CODEX_CONTEXT.md` by `npm run codex:sync:context`.
 Read `.codex/CODEX_CONTEXT.md` before any non-trivial workflow or skill; it carries the full static catalog and protocol detail.
-Context fingerprint (SHA-256): 38ab310d6f865f0970ee4557a2bd2b91789caaeceeb1a84b1dd3dccc42f1c56e
+Context fingerprint (SHA-256): 54c47ccbea03fba59712f036436e2f228c27e79eabb18802d5c5510ce0985c5a
 Do not edit this pointer manually; update canonical Claude sources and re-sync.
 
 ## Codex Project Reference Gate (Hook-Independent)

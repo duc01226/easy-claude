@@ -151,6 +151,8 @@ Distinct step-skills used across the workflows above — compose these into a cu
 
 ## Common AI Mistake Prevention (System Lessons)
 
+- **FIX GATE — INVESTIGATE FIRST.** Before applying any project-related fix, always invoke `$investigate` or `$debug-investigate` and establish the root cause; the failure site may be only a symptom.
+- **FAILED-TEST GATE.** For any failed or flaky test, `$debug-investigate` is mandatory before editing source or tests; never change either side merely to force green.
 - **Re-read files after context compaction.** Edit requires prior Read in same context; compaction wipes read state. Re-read before editing.
 - **Grep for old terms after bulk replacements.** AI over-trusts find/replace completeness. Grep full repo after bulk edits for missed refs in docs/configs/catalogs.
 - **Check downstream references before deleting.** Deletions cascade doc/code staleness. Map referencing files before removal.
@@ -591,6 +593,8 @@ docs/templates/  (1 files)
 
 ## Common AI Mistake Prevention (System Lessons)
 
+- **FIX GATE — INVESTIGATE FIRST.** Before applying any project-related fix, always invoke `$investigate` or `$debug-investigate` and establish the root cause; the failure site may be only a symptom.
+- **FAILED-TEST GATE.** For any failed or flaky test, `$debug-investigate` is mandatory before editing source or tests; never change either side merely to force green.
 - **Re-read files after context compaction.** Edit requires prior Read in same context; compaction wipes read state. Re-read before editing.
 - **Grep for old terms after bulk replacements.** AI over-trusts find/replace completeness. Grep full repo after bulk edits for missed refs in docs/configs/catalogs.
 - **Check downstream references before deleting.** Deletions cascade doc/code staleness. Map referencing files before removal.

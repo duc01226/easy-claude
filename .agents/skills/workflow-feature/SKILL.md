@@ -187,6 +187,8 @@ Activate the `workflow-feature` workflow. Run `$start-workflow workflow-feature`
 
 > **AI Mistake Prevention** — Failure modes to avoid on every task:
 >
+> **FIX GATE — INVESTIGATE FIRST.** Before applying any project-related fix, always invoke `$investigate` or `$debug-investigate` and establish the root cause; the failure site may be only a symptom.
+> **FAILED-TEST GATE.** For any failed or flaky test, `$debug-investigate` is mandatory before editing source or tests; never change either side merely to force green.
 > **Re-read files after context changes.** Context compaction, resume, or long-running work can make memory stale; verify current files before acting.
 > **Verify generated content against source evidence.** AI hallucinates APIs, names, claims, and document facts. Check the relevant source before documenting or referencing.
 > **Check downstream references before deleting or renaming.** Removing an artifact can stale docs, generated mirrors, configs, and callers; map references first.
@@ -443,6 +445,8 @@ Break work into small tasks (task tracking) before starting. Add final task: "An
 **Tests verify intent:** Tests must protect business rules/invariants and fail when the protected intent breaks, not only mirror current behavior.
 ## Common AI Mistake Prevention (System Lessons)
 
+- **FIX GATE — INVESTIGATE FIRST.** Before applying any project-related fix, always invoke `$investigate` or `$debug-investigate` and establish the root cause; the failure site may be only a symptom.
+- **FAILED-TEST GATE.** For any failed or flaky test, `$debug-investigate` is mandatory before editing source or tests; never change either side merely to force green.
 - **Re-read files after context compaction.** Edit requires prior Read in same context; compaction wipes read state. Re-read before editing.
 - **Grep for old terms after bulk replacements.** AI over-trusts find/replace completeness. Grep full repo after bulk edits for missed refs in docs/configs/catalogs.
 - **Check downstream references before deleting.** Deletions cascade doc/code staleness. Map referencing files before removal.
