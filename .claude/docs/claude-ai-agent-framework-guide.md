@@ -3429,9 +3429,9 @@ sequenceDiagram
 | Runner                               | Tests   | Scope                                                                                      |
 | ------------------------------------ | ------- | ------------------------------------------------------------------------------------------ |
 | `test-all-hooks.cjs` (primary gate)  | **224** | All hook behaviors + bridged suites + count-drift guard                                    |
-| `run-all-tests.cjs` (full aggregate) | **539** | Primary + extended lib, swap-engine, shared-utilities, and every `tests/suites/*.test.cjs` |
+| `run-all-tests.cjs` (full aggregate) | **540** | Primary + extended lib, swap-engine, shared-utilities, and every `tests/suites/*.test.cjs` |
 
-> Counts are live-verified (`test-all-hooks.cjs` = 224, `run-all-tests.cjs` = 539) and are now
+> Counts are live-verified (`test-all-hooks.cjs` = 224, `run-all-tests.cjs` = 540) and are now
 > GUARDED: each runner asserts the figures above against its own live total on every full run,
 > so a stale number fails the suite instead of sitting here. They previously drifted to 215/300
 > behind a single guarded sentence elsewhere. Derive counts from a live run, never a static table.
@@ -3505,7 +3505,7 @@ flowchart TB
 | **Subagents inherit project context**          | CLAUDE.md + lessons read contract baked into agent `.md` files                                           | Agents        |
 | **Safety boundaries**                          | path-boundary, privacy, scout blocks (exit code 2)                                                       | Hooks         |
 | **Task-gated edits**                           | Static CLAUDE.md rule: a TaskCreate item before edits (model-driven)                                     | Config        |
-| **Auto-formatting**                            | post-edit-prettier.cjs runs formatter after every edit                                                   | Hooks         |
+| **Auto-formatting**                            | post-edit-prettier.cjs runs formatter after every edit and reaps timed-out descendants                   | Hooks         |
 | **Doc staleness detection**                    | /watzup skill cross-references changes vs. docs/                                                         | Skills        |
 | **Unified test specification**                 | /spec [mode=tests] writes TCs to feature doc Section 8                                                   | Skills        |
 | **Spec-driven feature workflow**               | feature: specs + tests written and reviewed before implementation                                        | Workflows     |

@@ -15,6 +15,18 @@ Plan / generate / heal lean on the same mechanic: run `npx playwright test --deb
 
 Every action you perform with `playwright-cli` generates corresponding Playwright TypeScript code. This code appears in the output and can be copied directly into your test files.
 
+Generated actions are raw interaction material, not complete synchronization.
+Before writing the test, wrap every UI-control action in the project's one
+canonical, parameterized `waitUntil(condition, options)` utility: wait before
+the action for the control to be present, visible, enabled, and actionable and
+for an applicable blocking error alert to be absent; wait after the action for
+the expected positive or negative outcome. Include dropdown/menu visibility
+before selection, selected state after selection, and error-alert presence for
+expected failures or absence for expected successes. The predicate may be
+boolean/async; options must bound timeout/polling and describe the condition
+for diagnostics. Apply the exact 500ms presentation delay only after these
+waits; it is never a readiness or postcondition wait.
+
 ```bash
 # Start a session
 playwright-cli open https://example.com/login
@@ -43,13 +55,36 @@ Collect the generated code into a Playwright test:
 
 ```typescript
 import { test, expect } from '@playwright/test';
+import { waitUntil } from './support/wait-until'; // project-owned, bounded predicate helper
 
 test('login flow', async ({ page }) => {
   // Generated code from playwright-cli session:
   await page.goto('https://example.com/login');
-  await page.getByRole('textbox', { name: 'Email' }).fill('user@example.com');
-  await page.getByRole('textbox', { name: 'Password' }).fill('password123');
-  await page.getByRole('button', { name: 'Sign In' }).click();
+  const email = page.getByRole('textbox', { name: 'Email' });
+  const password = page.getByRole('textbox', { name: 'Password' });
+  const signIn = page.getByRole('button', { name: 'Sign In' });
+  const errorAlert = page.getByRole('alert');
+
+  await waitUntil(
+    async () => (await email.isVisible()) && (await email.isEditable()) && !(await errorAlert.isVisible()),
+    { description: 'Email control is ready and no blocking error is visible' },
+  );
+  await email.fill('user@example.com');
+  await waitUntil(
+    async () => (await password.isVisible()) && (await password.isEditable()) && !(await errorAlert.isVisible()),
+    { description: 'Password control is ready and no blocking error is visible' },
+  );
+  await password.fill('password123');
+  await waitUntil(
+    async () => (await signIn.isVisible()) && (await signIn.isEnabled()) && !(await errorAlert.isVisible()),
+    { description: 'Sign In control is actionable and no blocking error is visible' },
+  );
+  await signIn.click();
+  await waitUntil(
+    async () => (await page.getByRole('heading').isVisible()) && !(await errorAlert.isVisible()),
+    { description: 'Dashboard heading is visible after sign-in' },
+  );
+  await page.waitForTimeout(500); // presentation pacing, after the postcondition
 
   // Add assertions
   await expect(page).toHaveURL(/.*dashboard/);
@@ -254,9 +289,13 @@ Save under `specs/<feature>.plan.md`. Use this structure:
 
 **Steps:**
   1. <Concrete user step>
+    - wait-until: <bounded precondition and applicable error-alert absence>
+    - wait-until: <bounded positive/negative postcondition after the action>
     - expect: <observable outcome>
     - expect: <another observable outcome>
   2. <Next step>
+    - wait-until: <bounded precondition and applicable error-alert absence>
+    - wait-until: <bounded positive/negative postcondition after the action>
     - expect: <outcome>
 
 #### 1.2. <next-scenario>
@@ -275,6 +314,7 @@ Guidelines:
 - Cover happy path, edge cases, validation, negative flows, persistence.
 - Write steps at the user level ("Type 'Buy milk' into the input"), not the API level ("call `fill`").
 - Put observable outcomes in `- expect:` bullets; each becomes an assertion during generation.
+- Each interactive step must also state its bounded `WAIT_UNTIL` precondition and postcondition (including applicable error-alert present/absent conditions) so generation follows an observe → act → observe sequence.
 
 ---
 
@@ -300,7 +340,7 @@ playwright-cli attach tw-XXXX
 
 **Do not** just open the app url with playwright-cli, always go through the test to capture any custom setup done there.
 
-Walk the scenario's `Steps:` one by one with `playwright-cli`, treating the spec as the plan and the live app as the source of truth. If a step is vague ("click the button" — which button?), references an element that no longer exists, or contradicts the app's actual behaviour, use your judgement: update the spec to match what the app really does, then keep going. Editing the spec mid-generation is expected.
+Walk the scenario's `Steps:` one by one with `playwright-cli`, treating the spec as the plan and the live app as the source of truth. Before each generated interaction, satisfy its `WAIT_UNTIL` precondition; after it, satisfy the positive/negative postcondition and applicable error-alert condition before continuing. If a step is vague ("click the button" — which button?), references an element that no longer exists, or contradicts the app's actual behaviour, use your judgement: update the spec to match what the app really does, then keep going. Editing the spec mid-generation is expected.
 
 Every action prints the equivalent Playwright TypeScript (see [How generation works](#0-how-generation-works)):
 
@@ -345,6 +385,8 @@ Rules:
 - Prefix each numbered step with a `// N. <step text>` comment before its actions.
 - Use the describe group name verbatim from the spec (no `1.` ordinal).
 - Import from `./fixtures` if the project has one; otherwise `@playwright/test`.
+- Reuse or compose the project's Common → Domain-Shared → Page object model and its abstract/base wait utility; do not duplicate polling in each test. Keep the final business assertions in the test.
+- The generated test must retain the bounded `waitUntil` precondition/postcondition around every UI-control action, including select/dropdown transitions and applicable error-alert present/absent checks, followed by the exact 500ms pacing delay.
 - **Important**: close the CLI session and stop the background test before moving to the next scenario.
 
 ### 2.3 Generate multiple scenarios
@@ -402,7 +444,9 @@ Rehearse the corrected interaction with `playwright-cli` — the generated code 
 
 Edit the test file: update the locator, assertion, step order, or inputs to match the corrected behaviour. Stop the background debug run. Rerun the single test to confirm green.
 
-Never skip hooks or add sleeps as a fix. Never use `networkidle`.
+Never skip hooks or add sleeps as a fix. Replace timing guesses with the
+canonical bounded `waitUntil` predicate and diagnostics; never use
+`networkidle` as a substitute for the control's or journey's expected state.
 
 ### 3.4 Reconcile with the spec
 

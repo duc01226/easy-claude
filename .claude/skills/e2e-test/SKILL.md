@@ -20,8 +20,10 @@ description: '[Testing] Use when selecting, generating, updating, or maintaining
 - **Testability contract:** resolve Unit/Integration/System/E2E applicability from runner/config evidence; record owner/root/data, copy-ready full + focused commands, zero-match behavior, CI/simple-Windows entry, unique run/data identity, and repeat proof; unresolved applicable fields block handoff, while non-applicable tiers require evidence-backed `N/A`.
 
 - **Purpose:** turn recordings/specs/code changes into maintainable, spec-traceable E2E tests that break ONLY when intended business behavior breaks — never on cosmetic UI churn.
-- **Main steps (in order):** (1) resolve scope from the prompt/current context/spec/code and default whole-project intent; (2) read `docs/project-reference/e2e-test-reference.md` + the `e2eTesting` block of `docs/project-config.json` FIRST — never assume a stack or invent a TC-annotation marker; (3) resolve the optional `e2eTesting.execution` profile and linked `experienceVerification` surface; (4) load `TC-{MODULE}-E2E-{NNN}` specs from `docs/specs/`; (5) pass the Real-World Fidelity Gate BEFORE writing test code — can this flow, timing, and data actually occur in production?; (6) select a suitable existing test or generate/update one via Page Object Model (spawn the `e2e-runner` sub-agent); (7) bring up the configured whole system, authenticate/seed only through project-owned paths, and run visible web QC/evidence when applicable; (8) run tests with the project's configured command; (9) update `e2e-test-reference.md` with learnings.
-- Every test carries its `TC-{MODULE}-E2E-{NNN}` code traced to the §8 invariant/behavior it guards, structured with Page Object Model (locators/actions in the page class, assertions in the test).
+- **Main steps (in order):** (1) resolve scope from the prompt/current context/spec/code and default whole-project intent; (2) read `docs/project-reference/e2e-test-reference.md` + the `e2eTesting` block of `docs/project-config.json` FIRST — never assume a stack or invent a TC-annotation marker; (3) resolve the optional `e2eTesting.execution` profile and linked `experienceVerification` surface; (4) load `TC-{MODULE}-E2E-{NNN}` specs from `docs/specs/`; (5) pass the Real-World Fidelity Gate BEFORE writing test code — can this flow, timing, and data actually occur in production?; (6) select a suitable existing test or generate/update one via the tiered reusable Page/Component Object Model (spawn the `e2e-runner` sub-agent); (7) bring up the configured whole system, authenticate/seed only through project-owned paths, and run visible web QC/evidence when applicable; (8) run tests with the project's configured command; (9) update `e2e-test-reference.md` with learnings.
+- Every test carries its `TC-{MODULE}-E2E-{NNN}` code traced to the §8 invariant/behavior it guards, structured with a reusable tiered object model (locators/actions in component or page objects, assertions in the test).
+- For applicable browser/UI E2E, use one reusable bounded `waitUntil(condition, options)` helper before every UI-control operation for readiness/actionability and applicable error-alert absence, then after the operation for the expected positive/negative outcome or error-alert state; apply exactly **500ms at the end** after those waits and any real settle signal. Use an idiomatic abstract base, cohesive helpers/utilities, and Common → Domain-Shared → Page component reuse.
+- When the caller explicitly activates `--visual-review=true`, include stable screenshot checkpoints for the declared state × viewport matrix and hand off candidate evidence to `/experience-review`; do not update snapshots, baselines, or assertions automatically. The default is `false`.
 - Selector priority semantic/BEM > data-testid > ARIA/role > visible text; AVOID generated classes, `:nth-child`, XPath.
 - Generate unique self-sufficient data (GUID/timestamp); NEVER delete or reset persistent, reference, seeded, additive, or shared data. If the project declares opt-in cleanup, remove only current-run ephemeral resources after evidence capture and never use cleanup as repeat-proof. Auto-select the appropriate workflow when not already in one. If the requested prompt/context scope has no suitable test, generate a traceable Given/When/Then scenario; if a suitable test exists, reuse it and report why it covers the scope.
 
@@ -30,7 +32,7 @@ description: '[Testing] Use when selecting, generating, updating, or maintaining
 1. **Resolve** — classify prompt/current-context/spec/code scope, affected observable surfaces, and whole-project vs focused intent.
 2. **Read** — **MUST ATTENTION** load the E2E reference, `e2eTesting` config, optional `execution` profile, linked `experienceVerification` surfaces, and TC specs before writing.
 3. **Gate** — pass the Real-World Fidelity Gate for flow, pacing, data, and settle signals; resolve startup/auth/seed/evidence capability as `APPLICABLE`, `N/A`, or `ENVIRONMENT-BLOCKED`.
-4. **Select or generate** — reuse a suitable project test when one exists; otherwise use Page Object Model and the `e2e-runner` sub-agent with TC traceability and Given/When/Then intent.
+4. **Select or generate** — reuse a suitable project test when one exists; otherwise use the tiered reusable Page/Component Object Model and the `e2e-runner` sub-agent with TC traceability and Given/When/Then intent.
 5. **Exercise and verify** — bring up the real system, use the visible configured browser for web QC, capture/read evidence, run configured tests, confirm exact results, and record learnings.
 
 **Key Rules:**
@@ -103,7 +105,7 @@ When `docs/project-config.json` contains `e2eTesting.execution`, resolve it befo
 | `surfaceIds[]` | Match each ID to `experienceVerification.surfaces[]` | Matching surface owns `localRun`; an unknown/missing surface is `ENVIRONMENT-BLOCKED` until discovered and configured |
 | `auth` | Fixture, storage state, registration, manual, or none | Use only `credentialsRef`/`storageStateRef` references or a verified registration path; never copy secret values; missing capability blocks |
 | `data` | Seed command, project-relative working directory, reference/idempotent/additive mode, cleanup policy | Use supported public setup, unique run data, and current-run-only cleanup after evidence; never reset shared state |
-| `browser` | Configured runner/engine, headed visibility, action-delay policy | For web human QC use the configured visible Playwright CLI path when supported; readiness/actionability precedes a deterministic 200–300ms presentation delay |
+| `browser` | Configured runner/engine, headed visibility, action-delay policy | For web human QC use the configured visible Playwright CLI path when supported; a bounded `waitUntil` precondition/postcondition surrounds every UI-control operation, then a mandatory 500ms delay ends the operation |
 | `evidence` | Project-relative root, screenshot/console/request/trace/video kinds, redaction reference | Attach listeners before interaction, capture and read artifacts, redact sensitive values; unread or unredacted evidence is not verification |
 | `convergence` | Max attempts, consecutive-green requirement, settle timeout | Use a bounded loop; cap, non-shrinking/rising failures, or missing capability escalates rather than retrying forever |
 
@@ -120,13 +122,25 @@ GIVEN <verified actor, fixture/data, and starting state>
 WHEN <real user actions through the configured interface>
 THEN <visible/persisted/business outcome and relevant error/recovery state>
 INVARIANT <the spec/code rule this journey protects>
+WAIT_UNTIL <bounded positive/negative condition before and after each meaningful action>
 SETTLE <observable readiness/state signal after each meaningful action>
 ```
 
 For a web run, keep the browser visible when `headed` is true or human-QC is
-requested, and record the viewport/device/locale/network conditions. A pacing
-delay is for observation only; it never replaces a real readiness or assertion
+requested, and record the viewport/device/locale/network conditions. Use the
+shared bounded `waitUntil(condition, options)` helper for each control's
+readiness/actionability and post-action positive/negative condition, including
+applicable error-alert presence/absence. The 500ms pacing delay is for
+observation only; it never replaces a readiness, postcondition, or real settle
 signal.
+
+When `--visual-review=true` is present in the caller's mode, record the exact
+visual state × viewport capture plan and emit captures after the required
+wait-until postconditions and 500ms presentation pacing. `/experience-review`
+opens and reads those images and classifies objective UI-floor defects; it is
+the visual evidence path, not `/ask` (which is an architecture consultation
+skill). Keep candidate captures under the configured evidence root or `tmp/`
+and preserve accepted expectations.
 
 ---
 
@@ -202,6 +216,45 @@ All frameworks use Page Object pattern:
 - Methods represent user actions
 - Assertions in test file, not page object
 
+### 2.1 Reusable Component and Page Object Architecture
+
+When E2E is applicable, organize test objects into three explicit tiers:
+
+- **Common components** — cross-feature controls and design-system primitives
+- **Domain-Shared components** — reusable behavior within a business domain
+- **Page components/objects** — page-specific composition, navigation, and flow entry points
+
+Use an idiomatic abstract base class or language-equivalent protocol/trait for
+shared browser context, lifecycle, locator, readiness, and 500ms pacing behavior.
+Keep data, authentication, evidence, and readiness helpers cohesive and
+purpose-specific; do not create catch-all utility classes. Reuse or compose an
+existing lower-tier object before creating a new one, keep one canonical owner
+for each selector/action/wait, and record the constraint when reuse does not
+fit. Test reusable Common and Domain-Shared contracts once; Page tests cover
+page-specific composition and outcomes instead of copying lower-tier cases.
+
+### 2.2 Wait-Until Synchronization
+
+E2E tests must read like a human: observe → act → observe. Expose one
+reusable, parameterized helper such as `waitUntil(condition, options)` where
+`condition` is a positive or negative boolean/async predicate and `options`
+carry a bounded timeout, poll interval, and diagnostic description. Reuse the
+same helper from Common, Domain-Shared, and Page objects; do not duplicate
+polling or create a catch-all utility.
+
+Before every UI-control action, call `waitUntil` for the page/control to be
+present, visible, enabled, and actionable, and for any blocking error alert to
+be absent when success is expected. After the action, call `waitUntil` for the
+expected positive or negative outcome before proceeding: page loading until
+the next control appears, clicking until the resulting content appears,
+opening a select/dropdown until its menu/options are visible before choosing,
+and choosing until the selected value or next state appears. If the page
+exposes an error alert, wait until it is present for an expected failure and
+absent for an expected success, then keep the final assertion in the test. A
+timeout is a test failure with diagnostics, not a reason to weaken an
+assertion. Apply the mandatory exact 500ms presentation delay only after the
+post-action wait; it never replaces readiness, postcondition, or settle waits.
+
 ### 3. Selector Strategy (Priority Order)
 
 1. **Semantic classes** — BEM (`.block__element`), component classes
@@ -235,7 +288,7 @@ Document what must exist before test runs:
 2. **Detect framework** from project files and the configured profile; a skill-local browser helper is never project evidence.
 3. **Read project E2E docs** and `e2eTesting.execution`/linked surface data for conventions, setup, auth, data, runner, evidence, and convergence.
 4. **Load test specs** with TC codes from feature docs; when no spec exists, trace the intended behavior from the prompt and source and mark the scenario as needing a spec-feedback entry.
-5. **Write Given/When/Then intent** with the invariant, realistic actor pacing, and observable settle signal for every meaningful action.
+5. **Write Given/When/Then intent** with the invariant, realistic actor pacing, a bounded `waitUntil` precondition/postcondition, and an observable settle signal for every meaningful action.
 6. **Check real-world fidelity** — BEFORE any test code is written, answer *"Can this flow, timing, and data actually occur in production?"* Any "no" → fix the SCENARIO, never the assertion. Full contract: `SYNC:real-world-fidelity-testing` below.
 7. **Select or generate/update tests** following Page Object pattern; spawn `e2e-runner` for generation/maintenance.
 8. **Bring up and exercise** the configured whole system, authenticate/seed through supported project paths, use a visible web browser when applicable, capture/read evidence, and classify missing capability honestly.
@@ -314,7 +367,9 @@ Generate and maintain E2E tests using project's configured testing framework.
 > A test earns trust by reproducing a situation the system can actually meet in production. A scenario that could never occur in real life proves nothing when it passes, and wastes hours when it fails.
 >
 > 1. **Ask the fidelity question BEFORE writing the setup:** *"Can this sequence, timing, and data actually occur in production?"* If no, the test is mis-specified — fix the SCENARIO, never the assertion.
-> 2. **Model real pacing between actor steps.** Two distinct actor actions that production separates by seconds, minutes, or hours MUST NOT be fired back-to-back in the same millisecond. Compressed pacing manufactures races the system was never designed to survive, then reports them as product defects. For visible web human-QC, a configured deterministic 200–300ms post-action presentation delay is acceptable after actionability; it is pacing, not readiness, and automation may explicitly use zero.
+> 2. **Model real pacing between actor steps.** Two distinct actor actions that production separates by seconds, minutes, or hours MUST NOT be fired back-to-back in the same millisecond. Compressed pacing manufactures races the system was never designed to survive, then reports them as product defects. For every browser/UI E2E or human-QC actor operation on a UI control — click/tap, fill/type, key press, select, check/uncheck, drag/drop, upload, or hover used to exercise behavior — wait exactly **500ms at the end of the operation** after its readiness and postcondition waits. This is presentation pacing, never readiness; observe any real settle signal separately, and do not let configuration reduce this delay to zero.
+> 2a. **Default to a reusable, parameterized wait-until utility.** Before every UI-control action, call one canonical `waitUntil(condition, options)` helper with a boolean/async predicate for the page/control to be present, visible, enabled, and actionable, and for any blocking error alert to be absent when success is expected. `options` MUST bound the timeout and poll interval and carry a diagnostic condition description. Reuse the helper through Common, Domain-Shared, and Page objects; do not duplicate polling or replace it with an arbitrary sleep.
+> 2b. **Observe → act → observe.** After every UI-control action, call the same `waitUntil` for the expected positive or negative postcondition before the next action: loading until the next control shows, clicking until the result appears, opening a select/dropdown until its menu/options are visible before choosing, and choosing until the selected value/next state appears. If the page exposes an error alert, wait until it is present for an expected failure or absent for an expected success, then keep the final assertion in the test. A timeout is a test failure with diagnostics, not permission to weaken the assertion.
 > 3. **Wait on a real signal, never a blind sleep.** Find an observable proving the prior step finished — a persisted state change, an audit/version stamp, a queue/worker idle marker, a completion event — and poll until it settles (unchanged across a short stability window). Use a fixed delay ONLY when no observable exists, and say so in a comment. A browser action delay MUST never replace a readiness/actionability wait.
 > 4. **Barriers belong in ARRANGE, never in ASSERT.** Waiting for a precondition is fidelity. Widening an assertion's timeout, loosening a comparison, adding a retry around a failing assertion, or skipping the test is masking. NEVER do the latter to force green.
 > 5. **Distinguish harness-amplified from real.** Test topologies (shared infra, fan-out consumers, parallel suites, cold starts) can make a rare production race routine locally. Before filing a product defect, state whether the trigger exists in production and at what likelihood.
@@ -349,8 +404,8 @@ Generate and maintain E2E tests using project's configured testing framework.
 
 > **AI Mistake Prevention** — Failure modes to avoid on every task:
 >
-> **FIX GATE — INVESTIGATE FIRST.** Before applying any project-related fix, always invoke `$investigate` or `$debug-investigate` and establish the root cause; the failure site may be only a symptom.
-> **FAILED-TEST GATE.** For any failed or flaky test, `$debug-investigate` is mandatory before editing source or tests; never change either side merely to force green.
+> **ROOT-CAUSE GATE — INVESTIGATE FIRST.** Before applying any project-related correction, always use the project's root-cause investigation protocol and establish the cause; the failure site may be only a symptom.
+> **FAILED-TEST GATE.** For any failed or unstable test, use the project's test-investigation protocol before editing source or tests; never change either side merely to force green.
 > **Re-read files after context changes.** Context compaction, resume, or long-running work can make memory stale; verify current files before acting.
 > **Verify generated content against source evidence.** AI hallucinates APIs, names, claims, and document facts. Check the relevant source before documenting or referencing.
 > **Check downstream references before deleting or renaming.** Removing an artifact can stale docs, generated mirrors, configs, and callers; map references first.
@@ -377,7 +432,11 @@ Generate and maintain E2E tests using project's configured testing framework.
 >
 > 1. **Matrix before implementation:** Record applicability, owner, runner/framework, test root, fixture/data strategy, full command, focused/partial command, zero-match behavior, CI gate, a simple/Windows entry point (a `.cmd` when the project needs one), the **host-mode AND container-mode commands** where the project supports both, and the **environment reach** (which of local / CI / production-shaped this tier can target).
 > 1a. **E2E profile handoff:** For E2E, also record the selected `surfaceIds[]`, the linked `localRun` owner, auth mode/reference, seed/data mode, browser runner/engine/headed setting, action-delay policy, evidence root/capture/redaction policy, and convergence cap. Missing fields remain explicit blockers or N/A; they are never filled from generic browser defaults.
-> 2. **Runnable scopes:** Full and focused commands must be copy-ready, fail on invalid or zero-match selections, report exact counts and exit status, and be safe to repeat. E2E uses only configured browser/service commands. A visible human-QC web run waits on readiness/actionability first and may add a deterministic 200–300ms post-action delay for presentation; the delay is never a readiness mechanism.
+> 2. **Runnable scopes:** Full and focused commands must be copy-ready, fail on invalid or zero-match selections, report exact counts and exit status, and be safe to repeat. E2E uses only configured browser/service commands. Before every browser/UI E2E operation on a UI control, use the canonical bounded `waitUntil(condition, options)` helper for readiness/actionability and applicable blocking error-alert absence; after the operation, use it for the expected positive/negative postcondition or error-alert state, then wait exactly **500ms** at the end. The delay is presentation pacing, never a readiness or settle mechanism, and applies to automation as well as visible human-QC.
+> 2a. **E2E object-model gate (when E2E is applicable):** Build and reuse a three-tier test object model — **Common components** for cross-feature controls, **Domain-Shared components** for reusable domain behavior, and **Page components/objects** for page-specific composition. Each object records its tier, owner, and base abstraction.
+> 2b. **E2E abstraction and DRY gate:** Use an idiomatic abstract base class or language-equivalent protocol/trait for shared lifecycle, locator, readiness, and pacing behavior; centralize purpose-specific utilities/helpers for data, auth, and evidence; keep assertions in tests. Reuse or compose existing objects before creating new ones, keep one canonical owner for each selector/action/wait, and treat duplicated wrappers or setup as a finding; extract at 3+ similar implementations.
+> 2c. **E2E test layering:** Test a reusable Common or Domain-Shared component contract once, then let Page tests cover page-specific composition and outcomes; do not copy lower-tier component cases into every Page test.
+> 2d. **E2E wait-until gate:** The object model MUST expose or compose one reusable `waitUntil(condition, options)` utility accepting a positive or negative boolean/async predicate, bounded timeout/poll settings, and a diagnostic description. Before each action wait for a ready/actionable control and the applicable error-free precondition; after each action wait for the expected state transition, dropdown/options visibility, selected state, or expected error-alert presence/absence. Keep the final business assertion in the test and fail with the wait diagnostics on timeout.
 > 3. **Fresh valid state:** Each run/test owns a unique run identity and business-data suffix, arranges through supported public paths, and uses realistic valid data. Reference setup is count-before-create, idempotent, and restart-safe. Intentional accumulation is additive, keyed, and integrity-checked; never hide contamination with destructive reset.
 >    Run-scoped cleanup, when supported, is opt-in and idempotent: after evidence capture it may remove only ephemeral resources owned by the current run; it must never delete persistent/additive data or another run's data, reset shared state, or replace no-reset proof.
 > 4. **Isolation and fidelity:** Isolate mutable roots and parallel workers; share only immutable/reference data. Preserve real actor pacing and observable arrange barriers. Do not widen retries or weaken assertions to make a scenario pass.
@@ -396,7 +455,7 @@ Generate and maintain E2E tests using project's configured testing framework.
 
 <!-- SYNC:ai-mistake-prevention:reminder -->
 
-**MUST ATTENTION** FIX GATE: before any project-related fix, invoke `$investigate` or `$debug-investigate`; failed/flaky tests require `$debug-investigate` before editing source/tests — never force green.
+**MUST ATTENTION** ROOT-CAUSE GATE: before any project-related correction, use the appropriate root-cause investigation protocol; failed/unstable tests require the test-investigation protocol before editing source/tests — never force green.
 
 <!-- /SYNC:ai-mistake-prevention:reminder -->
 
@@ -452,7 +511,7 @@ Generate and maintain E2E tests using project's configured testing framework.
 
 <!-- SYNC:test-architecture-execution-contract:reminder -->
 
-**MUST ATTENTION** Before implementation, record evidence-backed Unit/Integration/System/E2E **and Performance/Scale** (`T1+`/`B2+`) applicability (or explicit N/A), copy-ready full + focused commands, zero-match behavior, a simple/Windows entry point, **the host-mode AND container-mode commands where both are supported, plus each tier's environment reach (local / CI / production-shaped)**, unique run identity, realistic valid data, idempotent/restart-safe reference setup, intentional additive accumulation, parallel isolation, exact results, and two no-reset full runs for each applicable persistent-state suite. **Both claimed run modes must be EXERCISED** (an unexercised mode rots; a claimed-but-rotten mode is worse than one never claimed), the same suite reaches every target **parameterized by config, never by forked test code**, a missing capability reports `ENVIRONMENT-BLOCKED` rather than passing silently, and *"runs in prod"* means a safe, declared, **NON-MUTATING** subset excluded by an enforced mechanism, not by convention.
+**MUST ATTENTION** Before implementation, record evidence-backed Unit/Integration/System/E2E **and Performance/Scale** (`T1+`/`B2+`) applicability (or explicit N/A), copy-ready full + focused commands, zero-match behavior, a simple/Windows entry point, **the host-mode AND container-mode commands where both are supported, plus each tier's environment reach (local / CI / production-shaped)**, unique run identity, realistic valid data, idempotent/restart-safe reference setup, intentional additive accumulation, parallel isolation, exact results, and two no-reset full runs for each applicable persistent-state suite. **Both claimed run modes must be EXERCISED** (an unexercised mode rots; a claimed-but-rotten mode is worse than one never claimed), the same suite reaches every target **parameterized by config, never by forked test code**, a missing capability reports `ENVIRONMENT-BLOCKED` rather than passing silently, and *"runs in prod"* means a safe, declared, **NON-MUTATING** subset excluded by an enforced mechanism, not by convention. For applicable browser/UI E2E, every UI-control operation also uses the canonical bounded `waitUntil(condition, options)` helper before the action for readiness/actionability and applicable error-alert absence, then after the action for the expected positive/negative state, dropdown/options, selected state, or error-alert presence/absence, followed by the mandatory post-operation **500ms** presentation delay. The object model still requires three-tier Common/Domain-Shared/Page reuse with an idiomatic abstract base, cohesive helpers/utilities, and reusable lower-tier component tests.
 
 <!-- /SYNC:test-architecture-execution-contract:reminder -->
 
@@ -465,7 +524,7 @@ Generate and maintain E2E tests using project's configured testing framework.
 
 - **Sub-Agent Selection:** Route specialized domains to the matching specialist agent, NEVER `code-reviewer`.
 - **Source/Test Drift Check:** On source change, decide from evidence whether tests or source is wrong.
-- **Real-World Fidelity Gate:** only test flows, pacing, and data production can actually reach; wait on a real settle signal in ARRANGE — never a widened assertion.
+- **Real-World Fidelity Gate:** only test flows, pacing, and data production can actually reach; use the shared bounded `waitUntil` helper for control readiness, postconditions, and applicable error-alert presence/absence; wait on a real settle signal in ARRANGE — never a widened assertion.
 - **AI Mistake Prevention:** verify generated content against evidence, trace downstream references, verify all affected outputs, re-read after context loss, surface ambiguity.
 - **Critical Thinking:** Traced `file:line` proof per claim, confidence >80% to act, NEVER guess as fact.
 - **Parallel Sub-Agent Dispatch:** Tag tasks PAR/SEQ, group PAR into disjoint-write-set waves, spawn each wave in ONE message, barrier before advancing.
@@ -477,6 +536,7 @@ Generate and maintain E2E tests using project's configured testing framework.
 **MANDATORY IMPORTANT MUST ATTENTION** search the codebase for 3+ similar existing E2E tests/page objects before creating new code; follow the local pattern over generic framework docs — why: projects carry local selector/data conventions that differ from defaults.
 **IMPORTANT MUST ATTENTION** evaluate fit before copying a nearby test — verify the new scenario shares the same base page class, fixtures, and preconditions — why: closest example ≠ matching preconditions.
 **MANDATORY IMPORTANT MUST ATTENTION** every E2E test carries its `TC-{MODULE}-E2E-{NNN}` code traced to the §8 invariant/behavior it guards — name the protected business rule, not just the click path — so it fails on intended-behavior breaks, not cosmetic UI churn.
+**MANDATORY IMPORTANT MUST ATTENTION** every interactive browser/UI step uses the shared parameterized `waitUntil(condition, options)` helper before the action for readiness/actionability and applicable error-alert absence, and after the action for the expected positive/negative outcome or error-alert state; apply the exact 500ms presentation delay only at the end — why: human-like observe → act → observe sequencing exposes loading, dropdown, validation, and runtime-error failures without duplicated polling.
 **MANDATORY IMPORTANT MUST ATTENTION** apply the Real-World Fidelity Gate BEFORE writing setup — ask "can this flow, timing, and data actually occur in production?", model real pacing between distinct user actions instead of firing them in the same millisecond, and wait on an observable settle signal in ARRANGE; NEVER widen an assertion timeout, loosen a comparison, or retry around a failing assertion to compensate — why: a scenario production can never reach proves nothing when it passes and manufactures phantom "product defects" when it fails.
 **IMPORTANT MUST ATTENTION** use the repository's configured test-case annotation mechanism — NEVER invent a framework-specific marker.
 **MANDATORY IMPORTANT MUST ATTENTION** selector priority semantic/BEM > data-testid > ARIA/role > visible text; NEVER use generated classes (`.ng-star-inserted`, `.MuiButton-root`), positional selectors (`:nth-child`), or XPath — why: generated/positional selectors break on unrelated markup churn.
@@ -509,3 +569,4 @@ Generate and maintain E2E tests using project's configured testing framework.
 **IMPORTANT MUST ATTENTION** read `e2eTesting` config + `e2e-test-reference.md` FIRST and detect the framework — NEVER assume a stack.
 **IMPORTANT MUST ATTENTION** every test carries its `TC-{MODULE}-E2E-{NNN}` code traced to the §8 behavior it guards; selector priority semantic > data-attr > ARIA > text — NEVER generated/positional/XPath.
 **IMPORTANT MUST ATTENTION** generate unique self-sufficient data; never delete/reset persistent, seeded, additive, or shared data; use only configured current-run ephemeral cleanup after evidence capture; spawn `e2e-runner` for generation and only explicitly accepted baseline updates.
+**IMPORTANT MUST ATTENTION** when the caller passes `--visual-review=true` (default `false`), capture and preserve candidate screenshots for every declared state × viewport, let `/experience-review` open/read and adjudicate them, and never promote a baseline automatically; validated blocking UI findings require an owning-layer fix and a same-scope E2E rerun.

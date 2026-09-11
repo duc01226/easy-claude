@@ -18,7 +18,7 @@
 
 const fs = require('fs');
 const path = require('path');
-const { spawn } = require('child_process');
+const { execFile, spawn } = require('child_process');
 
 // ═══════════════════════════════════════════════════════════════════════════
 // CONFIGURATION
@@ -77,6 +77,7 @@ const PRETTIER_CONFIG_FILES = [
 ];
 
 const TIMEOUT_MS = 10000; // 10 seconds
+const PROCESS_KILL_GRACE_MS = 2000;
 
 // ═══════════════════════════════════════════════════════════════════════════
 // HELPER FUNCTIONS
@@ -122,7 +123,29 @@ function findPrettierBinary(fileDir) {
 }
 
 /**
- * Run Prettier on a file with timeout
+ * Terminate a formatter process and all descendants.
+ *
+ * `.cmd` formatters run through a Windows shell, so killing the direct child
+ * alone can leave npx/Prettier descendants holding the edited project open.
+ */
+function terminateProcessTree(child) {
+    if (!child.pid) return Promise.resolve();
+
+    if (process.platform !== 'win32') {
+        if (!child.killed) child.kill('SIGTERM');
+        return Promise.resolve();
+    }
+
+    return new Promise(resolve => {
+        execFile('taskkill', ['/PID', String(child.pid), '/T', '/F'], { windowsHide: true }, error => {
+            if (error && !child.killed) child.kill('SIGTERM');
+            resolve();
+        });
+    });
+}
+
+/**
+ * Run Prettier on a file with timeout.
  */
 function runPrettier(filePath, prettierBin) {
     return new Promise(resolve => {
@@ -141,25 +164,44 @@ function runPrettier(filePath, prettierBin) {
 
         const child = spawn(command, spawnArgs, {
             stdio: ['ignore', 'ignore', 'ignore'],
-            timeout: TIMEOUT_MS,
             windowsHide: true,
             shell: isWindows
         });
 
-        const timeout = setTimeout(() => {
-            child.kill('SIGTERM');
-            resolve(false);
-        }, TIMEOUT_MS);
+        let settled = false;
+        let timedOut = false;
+        let timeoutId;
+        let killGraceId;
 
-        child.on('close', code => {
-            clearTimeout(timeout);
-            resolve(code === 0);
-        });
+        const finish = result => {
+            if (settled) return;
+            settled = true;
+            clearTimeout(timeoutId);
+            clearTimeout(killGraceId);
+            resolve(result);
+        };
 
-        child.on('error', () => {
-            clearTimeout(timeout);
-            resolve(false);
-        });
+        const timeout = () => {
+            timedOut = true;
+            terminateProcessTree(child).then(() => {
+                if (settled) return;
+
+                // Prefer the close event so the promise represents the full
+                // child lifecycle. The bounded fallback prevents a broken
+                // platform command from hanging the hook forever.
+                if (child.exitCode !== null || child.signalCode !== null) {
+                    finish(false);
+                    return;
+                }
+
+                killGraceId = setTimeout(() => finish(false), PROCESS_KILL_GRACE_MS);
+            });
+        };
+
+        timeoutId = setTimeout(timeout, TIMEOUT_MS);
+
+        child.once('close', code => finish(!timedOut && code === 0));
+        child.once('error', () => finish(false));
     });
 }
 
@@ -235,7 +277,7 @@ async function main() {
         // Run Prettier (non-blocking, ignore result)
         await runPrettier(absolutePath, prettierBin);
 
-        process.exit(0);
+        return;
     } catch (error) {
         // Fail silently - formatting is non-critical
         process.exit(0);

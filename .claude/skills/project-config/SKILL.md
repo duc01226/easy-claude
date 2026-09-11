@@ -248,7 +248,7 @@ Rules MUST ATTENTION be specific: "Use the service-specific repository (e.g. `Or
 
 - `testing { frameworks[], filePatterns{}, commands{}, coverageTool, guideDoc, integrationRules[] }`
 - `e2eTesting { framework, language, configFile, testsPath, pageObjectsPath, fixturesPath, runCommands{}, tcCodeFormat, entryPoints[], execution{ surfaceIds[], auth{}, data{}, browser{}, evidence{}, convergence{} } }`
-- `e2eTesting.execution` is optional and E2E-specific. Link `surfaceIds[]` to `experienceVerification.surfaces[].id`; keep dependency/start/readiness/log/teardown commands in that surface's `localRun` object so there is one lifecycle owner. `auth` and `localRun.credentialsRef` store references only (`credentialsRef`/`storageStateRef`), never secret values; registration/seed commands must use environment, fixture, or secret-manager references for credentials. `data` records a verified seed/reference strategy; `browser` records the project runner/engine, visibility, and optional human-QC action delay; `evidence` records a project-relative root, capture kinds, and non-empty redaction reference when sensitive captures are enabled; `convergence` bounds the verify/fix loop. `--describe` is authoritative for exact nested field names and semantics.
+- `e2eTesting.execution` is optional and E2E-specific. Link `surfaceIds[]` to `experienceVerification.surfaces[].id`; keep dependency/start/readiness/log/teardown commands in that surface's `localRun` object so there is one lifecycle owner. `auth` and `localRun.credentialsRef` store references only (`credentialsRef`/`storageStateRef`), never secret values; registration/seed commands must use environment, fixture, or secret-manager references for credentials. `data` records a verified seed/reference strategy; `browser` records the project runner/engine, visibility, optional human-QC action delay, and the shared wait-until policy; `evidence` records a project-relative root, capture kinds, and non-empty redaction reference when sensitive captures are enabled; `convergence` bounds the verify/fix loop. `--describe` is authoritative for exact nested field names and semantics.
 - `integrationTestVerify { guidance, referenceDocs[], runScript, startupScript, quickRunCommand, systemCheckCommand, testProjectPattern, testProjects[] }`
 - `integrationTestVerify.referenceDocs[]` MUST contain project-specific docs that explain setup prerequisites before a verifier runs `systemCheckCommand` or test commands.
 
@@ -263,7 +263,7 @@ Rules MUST ATTENTION be specific: "Use the service-specific repository (e.g. `Or
 
 When `e2eTesting.execution` is absent or partial, preserve every verified fact and discover missing facts in this order: (1) `docs/project-config.json` and the linked `experienceVerification.surfaces[].localRun`; (2) the E2E reference and existing runner config; (3) package/task scripts, compose/Make targets, CI workflows, fixtures/seed scripts, and auth setup docs; (4) a bounded repository scan for the configured framework's entry points. Record each discovered value with `file:line` evidence. A missing startup, readiness, auth, seed, browser, or evidence capability is `ENVIRONMENT-BLOCKED` for execution, not a guessed command or a silent pass. This profile does not turn the framework repository's own E2E N/A state into an adopter default.
 
-For web human-QC, use the project's configured visible Playwright CLI path when the evidence supports it. Wait for real readiness and actionability first; a deterministic 200–300ms delay is only for actor pacing/presentation and never for readiness. Capture and read the configured screenshots, console/request logs, traces, or video, redact sensitive data, and keep accepted baselines human-owned.
+For web human-QC, use the project's configured visible Playwright CLI path when the evidence supports it. Resolve or document one reusable bounded `waitUntil(condition, options)` policy: before every UI-control operation wait for readiness/actionability and applicable error-alert absence; after it wait for the expected positive/negative outcome, dropdown/options, selected state, or error-alert presence/absence; then require exactly **500ms** for actor pacing/presentation. The delay never replaces readiness or a real settle signal. Capture and read the configured screenshots, console/request logs, traces, or video, redact sensitive data, and keep accepted baselines human-owned.
 
 ### 2k–2n. Databases, Messaging, API, Infrastructure
 
@@ -389,8 +389,8 @@ Include the project scale, the selected full-coverage task grouping, and confirm
 
 > **AI Mistake Prevention** — Failure modes to avoid on every task:
 >
-> **FIX GATE — INVESTIGATE FIRST.** Before applying any project-related fix, always invoke `$investigate` or `$debug-investigate` and establish the root cause; the failure site may be only a symptom.
-> **FAILED-TEST GATE.** For any failed or flaky test, `$debug-investigate` is mandatory before editing source or tests; never change either side merely to force green.
+> **ROOT-CAUSE GATE — INVESTIGATE FIRST.** Before applying any project-related correction, always use the project's root-cause investigation protocol and establish the cause; the failure site may be only a symptom.
+> **FAILED-TEST GATE.** For any failed or unstable test, use the project's test-investigation protocol before editing source or tests; never change either side merely to force green.
 > **Re-read files after context changes.** Context compaction, resume, or long-running work can make memory stale; verify current files before acting.
 > **Verify generated content against source evidence.** AI hallucinates APIs, names, claims, and document facts. Check the relevant source before documenting or referencing.
 > **Check downstream references before deleting or renaming.** Removing an artifact can stale docs, generated mirrors, configs, and callers; map references first.
@@ -419,7 +419,7 @@ Include the project scale, the selected full-coverage task grouping, and confirm
 
 <!-- SYNC:ai-mistake-prevention:reminder -->
 
-**MUST ATTENTION** FIX GATE: before any project-related fix, invoke `$investigate` or `$debug-investigate`; failed/flaky tests require `$debug-investigate` before editing source/tests — never force green.
+**MUST ATTENTION** ROOT-CAUSE GATE: before any project-related correction, use the appropriate root-cause investigation protocol; failed/unstable tests require the test-investigation protocol before editing source/tests — never force green.
 
 <!-- /SYNC:ai-mistake-prevention:reminder -->
 

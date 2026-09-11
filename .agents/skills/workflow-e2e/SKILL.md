@@ -1,6 +1,6 @@
 ---
 name: workflow-e2e
-description: '[Workflow] Use when generating, updating, or maintaining E2E/Playwright tests. Flag: --source={changes|recording|update-ui|prompt|context|whole}.'
+description: '[Workflow] Use when generating, updating, or maintaining E2E/Playwright tests. Flags: --source={changes|recording|update-ui|prompt|context|whole}, --visual-review={true|false} (default false).'
 disable-model-invocation: false
 ---
 
@@ -52,10 +52,11 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 
 ## Quick Summary
 
-**Goal:** [Workflow] Trigger the E2E testing workflow — one parameterized entry covering change, recording, UI, prompt/context, and whole-project verification. `--source` selects the protocol; prompt/context/whole verification hands off to the bounded green loop.
+**Goal:** [Workflow] Trigger the E2E testing workflow — one parameterized entry covering change, recording, UI, prompt/context, and whole-project verification. `--source` selects the protocol; prompt/context/whole verification hands off to the bounded green loop. `--visual-review=true` explicitly adds the screenshot visual gate and E2E rerun loop; the default is false.
 
-**Summary:** Resolve `--source={changes|recording|update-ui|prompt|context|whole}` (infer and state it when omitted). Existing source modes run the established sequence; prompt/context/whole invoke the config-first `$workflow-e2e-green` loop, which selects or generates scenarios, exercises visible web journeys, adjudicates failures, and repeats bounded remediation with evidence.
+**Summary:** Resolve `--source={changes|recording|update-ui|prompt|context|whole}` (infer and state it when omitted) and `--visual-review={true|false}` (default false; state the resolved value). Existing source modes run the established sequence; prompt/context/whole invoke the config-first `$workflow-e2e-green` loop, which selects or generates scenarios, exercises visible web journeys, adjudicates failures, and repeats bounded remediation with evidence. When visual review is true, the loop also captures/reads the screenshot matrix through `$experience-review --rounds=0`, fixes validated blocking UI findings, and reruns the same E2E scope.
 - **Testability contract:** resolve Unit/Integration/System/E2E applicability from runner/config evidence; record owner/root/data, copy-ready full + focused commands, zero-match behavior, CI/simple-Windows entry, unique run/data identity, and repeat proof; unresolved applicable fields block handoff, while non-applicable tiers require evidence-backed `N/A`.
+- **Browser interaction contract:** for every UI-control step, reuse one bounded parameterized `waitUntil(condition, options)` helper before the action for readiness/actionability and applicable error-alert absence, and after the action for the expected positive/negative outcome or error-alert state; apply the exact 500ms pacing delay only at the end.
 
 **Workflow:**
 
@@ -69,6 +70,8 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 - MUST ATTENTION keep task tracking updated as each step starts/completes.
 - MUST ATTENTION define success criteria before execution and loop until observable verification passes.
 - MUST ATTENTION when creating/reviewing specs or tests, name `Business Intent / Invariant Guarded` or the protected business intent/invariant and ensure the test would fail if that intent breaks.
+- MUST ATTENTION write browser journeys as observe → act → observe: use `waitUntil` for loading, controls, click results, dropdown/options, selected state, and applicable error-alert presence/absence; keep predicates, timeout/poll settings, and diagnostics reusable.
+- MUST ATTENTION when `--visual-review=true`, capture and open/read every declared screenshot state × viewport, use `$experience-review` as the visual adjudicator, route validated blocking UI findings through the owning UI fix, and rerun the same E2E scope; `$ask` is not a screenshot reviewer.
 - NEVER skip mandatory workflow or skill gates.
 
 **IMPORTANT MANDATORY Steps:** $investigate -> $e2e-test -> $experience-review -> $test -> $docs-update -> $workflow-end -> $watzup
@@ -79,7 +82,7 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 
 ## Source Dispatch (`--source`)
 
-Resolve `--source` from the invocation. If omitted, infer from the request (recording file present → `recording`; UI/SCSS/HTML diff → `update-ui`; otherwise `changes`) and state the chosen source before proceeding.
+Resolve `--source` from the invocation. If omitted, infer from the request (recording file present → `recording`; UI/SCSS/HTML diff → `update-ui`; otherwise `changes`) and state the chosen source before proceeding. Resolve `--visual-review=true|false` separately; default to `false`, and do not infer `true` merely because the target is a UI.
 
 | `--source`  | Use when                                                                 | When NOT to use                                                        |
 | ----------- | ------------------------------------------------------------------------ | ---------------------------------------------------------------------- |
@@ -90,9 +93,19 @@ Resolve `--source` from the invocation. If omitted, infer from the request (reco
 | `context`   | Current project/spec/code context should determine the E2E scope and cases. | A single known recording or baseline update. |
 | `whole`     | The user asks for a project-wide E2E/QC verification run. | A feature-local change that does not require the full configured suite. |
 
+| `--visual-review` | Behavior |
+| ----------------- | -------- |
+| `false` (default) | Run the selected source protocol and its existing evidence/acceptance gates; do not add the visual remediation loop. |
+| `true`            | Require a screenshot state × viewport matrix and image inspection through `$experience-review --rounds=0`; validated blocking visual findings enter the E2E failure set, are fixed at the owning UI layer, and force a fresh same-scope E2E rerun. |
+
 The `changes`, `recording`, and `update-ui` sources run the established sequence: `$investigate → $e2e-test → $experience-review (conditional) → $test → $docs-update → $workflow-end → $watzup`. The downstream `e2e-test` leaf is mode-aware and performs the per-source work; `experience-review` classifies and inspects relevant observable evidence before any expectation promotion.
 
 The `prompt`, `context`, and `whole` sources use `$workflow-e2e-green`: `$investigate` resolves project configuration and applicability, `$e2e-test-verify-loop` selects or generates Given/When/Then cases, exercises the configured lifecycle in a visible browser where applicable, evaluates human-QC evidence, and performs bounded debug/fix/retest rounds. `$docs-update`, `$workflow-end`, and `$watzup` remain mandatory after the loop.
+
+When `--visual-review=true`, forward the flag to `$workflow-e2e-green` and
+`$e2e-test-verify-loop`. The child loop, not `$ask`, owns visual adjudication,
+UI fixes, and the required rerun of the same configured E2E command after each
+validated blocking visual finding.
 
 ### `--source=changes` — E2E from Changes
 
@@ -103,7 +116,7 @@ E2E FROM CHANGES PROTOCOL:
    - Code changes -> Update existing test assertions
    - API changes -> Update test data and API mocks
 2. Load affected test specifications (TC-{FEATURE}-{NNN})
-3. Update or generate test implementations
+3. Update or generate test implementations with the shared bounded `waitUntil(condition, options)` helper before and after every interactive UI action; keep the final assertion in the test.
 4. Ensure traceability: each TC has corresponding test
 5. Run tests to verify changes work
 6. Report updated test coverage
@@ -118,9 +131,9 @@ E2E FROM RECORDING PROTOCOL:
 3. Run convert-recording.ts to generate initial test file
 4. Load test specifications from feature docs Section 8
 5. Map TC-{FEATURE}-{NNN} test cases to recording steps
-6. Enhance generated code with project CSS conventions (from docs/project-config.json → workflowPatterns.cssMethodology)
+6. Enhance generated code with project CSS conventions (from docs/project-config.json → workflowPatterns.cssMethodology) and rewrite generated timing into the shared `waitUntil` observe → act → observe sequence; do not retain ad-hoc sleeps.
 7. Add screenshot assertions at key states
-8. Generate Page Object if complex flow
+8. Generate Page Object if complex flow, reusing the Common → Domain-Shared → Page object tiers and one canonical wait-until utility.
 9. Run test to verify it passes
 10. Report generated files and any manual steps needed
 ```
@@ -145,8 +158,8 @@ E2E VERIFY GREEN PROTOCOL:
 1. Resolve the requested scope from the prompt, current context, feature/bugfix, or whole configured project.
 2. Read docs/project-config.json and the linked E2E reference before choosing a runner, startup command, port, account, seed, selector, or evidence path.
 3. If the E2E profile is absent or incomplete, perform bounded repository discovery; record N/A only when E2E is not applicable and ENVIRONMENT-BLOCKED when an applicable prerequisite cannot be verified.
-4. Select suitable existing cases or generate cases from the governing spec and code intent. Record Given/When/Then, protected invariant, and settle condition for every case.
-5. Exercise the configured project lifecycle. For web journeys use a visible Playwright CLI browser when the project supports it; use readiness/actionability waits for correctness and 200–300ms delays only after completed actions for human-QC presentation.
+4. Select suitable existing cases or generate cases from the governing spec and code intent. Record Given/When/Then, protected invariant, bounded `waitUntil` precondition/postcondition, and settle condition for every case.
+5. Exercise the configured project lifecycle. For web journeys use a visible Playwright CLI browser when the project supports it; before every UI-control action use the shared `waitUntil` for readiness/actionability and applicable error-alert absence, after it use `waitUntil` for the expected positive/negative result, dropdown/options, selected state, or error-alert presence/absence, and then wait exactly **500ms at the end** for automated and human-QC presentation. The delay never replaces a real settle signal.
 6. Capture, open, assess, and redact the configured evidence (screenshots, console/page errors, requests, trace, or video) as needed.
 7. Run bounded fresh rounds. Classify each failure before changing source or test, fix at the owning layer, review each fix, and re-run the same scope until the configured convergence contract is met or escalate with exact evidence.
 ```
@@ -155,10 +168,45 @@ E2E VERIFY GREEN PROTOCOL:
 
 - Goal-Driven Execution: define success criteria before execution; loop until observable checks pass.
 - Tests Verify Intent: when creating or reviewing specs/tests, name the protected business intent or invariant and ensure the test would fail if that intent breaks.
+- Browser/UI E2E: use a shared bounded `waitUntil(condition, options)` before and after every control action for readiness/actionability, expected positive/negative state, dropdown/options, and applicable error-alert presence/absence; apply the exact 500ms pacing delay last and keep real settle signals separate.
+- Optional visual gate: only when explicitly activated with `--visual-review=true`, require screenshot capture/read/visual adjudication and a same-scope E2E rerun after each validated blocking UI fix; keep advisory polish visible without creating an unbounded taste loop.
 
 Activate the `workflow-e2e` workflow for `changes`, `recording`, and `update-ui`. For `prompt`, `context`, or `whole`, run `$start-workflow workflow-e2e-green` with the user's prompt/current context and the resolved scope protocol above.
 
 **Steps:** Existing source modes: `$investigate → $e2e-test → $experience-review → $test → $docs-update → $workflow-end → $watzup`. Green sources: `$investigate → $e2e-test-verify-loop` (nested `$experience-review` report-only) → `$docs-update → $workflow-end → $watzup`.
+
+## Optional Combined Visual Review Mode
+
+`--visual-review=true` is an explicit opt-in for every `--source` value and
+defaults to `false`. Seeing or changing a UI does not activate this mode by
+itself. The default path keeps the source-specific workflow and its existing
+acceptance gates.
+
+When the mode is `true`:
+
+- For `changes`, `recording`, and `update-ui`, complete the source-specific
+  generation/update work, then run the configured same-scope E2E command and
+  capture the declared screenshot state × viewport matrix. Open/read every
+  image with `$experience-review --rounds=0`; its visual result is a required
+  gate, not a report-only note. Validated `BLOCKING` UI-floor findings enter
+  the E2E failure set and follow `$debug-investigate` → `$fix` at the owning
+  UI layer → `$changes-review`; then rerun the same E2E command and matrix.
+  Repeat until the E2E and blocking-visual counts converge. Never update a
+  snapshot, baseline, fixture, assertion, or expectation automatically.
+- For `prompt`, `context`, and `whole`, forward the flag to
+  `$workflow-e2e-green`, which forwards it to
+  `$e2e-test-verify-loop` and owns the complete run → capture → inspect → fix
+  → same-scope rerun loop.
+- Missing capture, unread images, or an incomplete state × viewport matrix is
+  `ENVIRONMENT-BLOCKED`; it is not a visual pass. `ADVISORY` identity, polish,
+  or non-contract spacing observations remain visible but do not create an
+  unbounded taste loop unless the governing design/acceptance contract makes
+  them objectively required.
+
+`$experience-review` is the image-evidence and visual-adjudication path.
+`$ask` remains architecture/technology consultation and is not a screenshot
+reviewer; `$ui-review` remains a static UI/source review when its own trigger
+applies.
 
 ## Experience Acceptance Handoff
 
@@ -180,6 +228,7 @@ Before `$e2e-test`, resolve and carry one evidence-backed contract record throug
 | `owner` | Name the delegated owner for setup, E2E implementation, execution evidence, and documentation; do not duplicate leaf responsibilities. |
 | `fullCommand` / `focusedCommand` | Provide copy-ready configured commands for the full suite and focused/partial scope; invalid or zero-match selections must exit non-zero, with a simple/Windows entry point when required. |
 | `runIdentity` / `dataStrategy` | Provide a unique non-sensitive run identity and business-data suffix, valid public-path setup, declared seed/accumulation mode, and parallel-worker isolation. |
+| `objectModel` | Provide the reusable Common → Domain-Shared → Page component/object tiers, the idiomatic abstract base or language-equivalent abstraction, one canonical parameterized `waitUntil` helper with bounded diagnostics, cohesive helpers/utilities, and the reason for any non-reuse. |
 | `repeatProof` / `result` | Carry exact counts, failing names, and exit status, plus repeat/parallel evidence and two consecutive no-reset full runs for each applicable persistent-state suite. |
 
 `$investigate` resolves applicability and scope; `$e2e-test` owns E2E setup and configured commands; `$test` receives the command/scope/data record and reports exact results read-only; `$docs-update` receives the final evidence. If E2E is not configured, `$e2e-test` records the evidence-backed `N/A` and does not substitute an invented runner; the delegated order and explicit acceptance gate remain unchanged.
@@ -192,8 +241,8 @@ Before `$e2e-test`, resolve and carry one evidence-backed contract record throug
 
 > **AI Mistake Prevention** — Failure modes to avoid on every task:
 >
-> **FIX GATE — INVESTIGATE FIRST.** Before applying any project-related fix, always invoke `$investigate` or `$debug-investigate` and establish the root cause; the failure site may be only a symptom.
-> **FAILED-TEST GATE.** For any failed or flaky test, `$debug-investigate` is mandatory before editing source or tests; never change either side merely to force green.
+> **ROOT-CAUSE GATE — INVESTIGATE FIRST.** Before applying any project-related correction, always use the project's root-cause investigation protocol and establish the cause; the failure site may be only a symptom.
+> **FAILED-TEST GATE.** For any failed or unstable test, use the project's test-investigation protocol before editing source or tests; never change either side merely to force green.
 > **Re-read files after context changes.** Context compaction, resume, or long-running work can make memory stale; verify current files before acting.
 > **Verify generated content against source evidence.** AI hallucinates APIs, names, claims, and document facts. Check the relevant source before documenting or referencing.
 > **Check downstream references before deleting or renaming.** Removing an artifact can stale docs, generated mirrors, configs, and callers; map references first.
@@ -294,7 +343,11 @@ Before `$e2e-test`, resolve and carry one evidence-backed contract record throug
 >
 > 1. **Matrix before implementation:** Record applicability, owner, runner/framework, test root, fixture/data strategy, full command, focused/partial command, zero-match behavior, CI gate, a simple/Windows entry point (a `.cmd` when the project needs one), the **host-mode AND container-mode commands** where the project supports both, and the **environment reach** (which of local / CI / production-shaped this tier can target).
 > 1a. **E2E profile handoff:** For E2E, also record the selected `surfaceIds[]`, the linked `localRun` owner, auth mode/reference, seed/data mode, browser runner/engine/headed setting, action-delay policy, evidence root/capture/redaction policy, and convergence cap. Missing fields remain explicit blockers or N/A; they are never filled from generic browser defaults.
-> 2. **Runnable scopes:** Full and focused commands must be copy-ready, fail on invalid or zero-match selections, report exact counts and exit status, and be safe to repeat. E2E uses only configured browser/service commands. A visible human-QC web run waits on readiness/actionability first and may add a deterministic 200–300ms post-action delay for presentation; the delay is never a readiness mechanism.
+> 2. **Runnable scopes:** Full and focused commands must be copy-ready, fail on invalid or zero-match selections, report exact counts and exit status, and be safe to repeat. E2E uses only configured browser/service commands. Before every browser/UI E2E operation on a UI control, use the canonical bounded `waitUntil(condition, options)` helper for readiness/actionability and applicable blocking error-alert absence; after the operation, use it for the expected positive/negative postcondition or error-alert state, then wait exactly **500ms** at the end. The delay is presentation pacing, never a readiness or settle mechanism, and applies to automation as well as visible human-QC.
+> 2a. **E2E object-model gate (when E2E is applicable):** Build and reuse a three-tier test object model — **Common components** for cross-feature controls, **Domain-Shared components** for reusable domain behavior, and **Page components/objects** for page-specific composition. Each object records its tier, owner, and base abstraction.
+> 2b. **E2E abstraction and DRY gate:** Use an idiomatic abstract base class or language-equivalent protocol/trait for shared lifecycle, locator, readiness, and pacing behavior; centralize purpose-specific utilities/helpers for data, auth, and evidence; keep assertions in tests. Reuse or compose existing objects before creating new ones, keep one canonical owner for each selector/action/wait, and treat duplicated wrappers or setup as a finding; extract at 3+ similar implementations.
+> 2c. **E2E test layering:** Test a reusable Common or Domain-Shared component contract once, then let Page tests cover page-specific composition and outcomes; do not copy lower-tier component cases into every Page test.
+> 2d. **E2E wait-until gate:** The object model MUST expose or compose one reusable `waitUntil(condition, options)` utility accepting a positive or negative boolean/async predicate, bounded timeout/poll settings, and a diagnostic description. Before each action wait for a ready/actionable control and the applicable error-free precondition; after each action wait for the expected state transition, dropdown/options visibility, selected state, or expected error-alert presence/absence. Keep the final business assertion in the test and fail with the wait diagnostics on timeout.
 > 3. **Fresh valid state:** Each run/test owns a unique run identity and business-data suffix, arranges through supported public paths, and uses realistic valid data. Reference setup is count-before-create, idempotent, and restart-safe. Intentional accumulation is additive, keyed, and integrity-checked; never hide contamination with destructive reset.
 >    Run-scoped cleanup, when supported, is opt-in and idempotent: after evidence capture it may remove only ephemeral resources owned by the current run; it must never delete persistent/additive data or another run's data, reset shared state, or replace no-reset proof.
 > 4. **Isolation and fidelity:** Isolate mutable roots and parallel workers; share only immutable/reference data. Preserve real actor pacing and observable arrange barriers. Do not widen retries or weaken assertions to make a scenario pass.
@@ -313,7 +366,7 @@ Before `$e2e-test`, resolve and carry one evidence-backed contract record throug
 
 <!-- SYNC:ai-mistake-prevention:reminder -->
 
-**MUST ATTENTION** FIX GATE: before any project-related fix, invoke `$investigate` or `$debug-investigate`; failed/flaky tests require `$debug-investigate` before editing source/tests — never force green.
+**MUST ATTENTION** ROOT-CAUSE GATE: before any project-related correction, use the appropriate root-cause investigation protocol; failed/unstable tests require the test-investigation protocol before editing source/tests — never force green.
 
 <!-- /SYNC:ai-mistake-prevention:reminder -->
 
@@ -340,7 +393,7 @@ Before `$e2e-test`, resolve and carry one evidence-backed contract record throug
 
 <!-- SYNC:test-architecture-execution-contract:reminder -->
 
-**MUST ATTENTION** Before implementation, record evidence-backed Unit/Integration/System/E2E **and Performance/Scale** (`T1+`/`B2+`) applicability (or explicit N/A), copy-ready full + focused commands, zero-match behavior, a simple/Windows entry point, **the host-mode AND container-mode commands where both are supported, plus each tier's environment reach (local / CI / production-shaped)**, unique run identity, realistic valid data, idempotent/restart-safe reference setup, intentional additive accumulation, parallel isolation, exact results, and two no-reset full runs for each applicable persistent-state suite. **Both claimed run modes must be EXERCISED** (an unexercised mode rots; a claimed-but-rotten mode is worse than one never claimed), the same suite reaches every target **parameterized by config, never by forked test code**, a missing capability reports `ENVIRONMENT-BLOCKED` rather than passing silently, and *"runs in prod"* means a safe, declared, **NON-MUTATING** subset excluded by an enforced mechanism, not by convention.
+**MUST ATTENTION** Before implementation, record evidence-backed Unit/Integration/System/E2E **and Performance/Scale** (`T1+`/`B2+`) applicability (or explicit N/A), copy-ready full + focused commands, zero-match behavior, a simple/Windows entry point, **the host-mode AND container-mode commands where both are supported, plus each tier's environment reach (local / CI / production-shaped)**, unique run identity, realistic valid data, idempotent/restart-safe reference setup, intentional additive accumulation, parallel isolation, exact results, and two no-reset full runs for each applicable persistent-state suite. **Both claimed run modes must be EXERCISED** (an unexercised mode rots; a claimed-but-rotten mode is worse than one never claimed), the same suite reaches every target **parameterized by config, never by forked test code**, a missing capability reports `ENVIRONMENT-BLOCKED` rather than passing silently, and *"runs in prod"* means a safe, declared, **NON-MUTATING** subset excluded by an enforced mechanism, not by convention. For applicable browser/UI E2E, every UI-control operation also uses the canonical bounded `waitUntil(condition, options)` helper before the action for readiness/actionability and applicable error-alert absence, then after the action for the expected positive/negative state, dropdown/options, selected state, or error-alert presence/absence, followed by the mandatory post-operation **500ms** presentation delay. The object model still requires three-tier Common/Domain-Shared/Page reuse with an idiomatic abstract base, cohesive helpers/utilities, and reusable lower-tier component tests.
 
 <!-- /SYNC:test-architecture-execution-contract:reminder -->
 
@@ -350,6 +403,10 @@ Before `$e2e-test`, resolve and carry one evidence-backed contract record throug
 **IMPORTANT MUST ATTENTION Goal:** [Workflow] Trigger the E2E testing workflow — one parameterized entry covering maintenance and green verification source modes. `--source` selects the protocol; every source conditionally reviews relevant observable experience before expectation promotion and regression verification.
 
 **IMPORTANT MUST ATTENTION Workflow:** Resolve and state `--source={changes|recording|update-ui|prompt|context|whole}`; apply the established source protocol or the config-first green loop through its declared sequence; preserve intent-named test assertions, evidence-backed task transitions, visible human-QC evidence, and explicit verification of generated/updated E2E artifacts.
+
+**IMPORTANT MUST ATTENTION** `--visual-review=true` is opt-in (default `false`): run the same configured E2E scope, capture and open/read the full screenshot state × viewport matrix through `$experience-review --rounds=0`, fix only validated blocking UI defects at the owning layer, and rerun the same scope; `$ask` is not the screenshot reviewer.
+
+**IMPORTANT MUST ATTENTION** every interactive browser/UI action uses the reusable bounded `waitUntil(condition, options)` before and after the action, including applicable error-alert states, followed by the exact 500ms presentation delay last.
 
 **IMPORTANT MUST ATTENTION — Protocols in force (concise digest of the SYNC/shared blocks this skill carries):**
 
@@ -430,8 +487,8 @@ Break work into small tasks (task tracking) before starting. Add final task: "An
 **Tests verify intent:** Tests must protect business rules/invariants and fail when the protected intent breaks, not only mirror current behavior.
 ## Common AI Mistake Prevention (System Lessons)
 
-- **FIX GATE — INVESTIGATE FIRST.** Before applying any project-related fix, always invoke `$investigate` or `$debug-investigate` and establish the root cause; the failure site may be only a symptom.
-- **FAILED-TEST GATE.** For any failed or flaky test, `$debug-investigate` is mandatory before editing source or tests; never change either side merely to force green.
+- **ROOT-CAUSE GATE — INVESTIGATE FIRST.** Before applying any project-related correction, always use the project's root-cause investigation protocol and establish the cause; the failure site may be only a symptom.
+- **FAILED-TEST GATE.** For any failed or unstable test, use the project's test-investigation protocol before editing source or tests; never change either side merely to force green.
 - **Re-read files after context compaction.** Edit requires prior Read in same context; compaction wipes read state. Re-read before editing.
 - **Grep for old terms after bulk replacements.** AI over-trusts find/replace completeness. Grep full repo after bulk edits for missed refs in docs/configs/catalogs.
 - **Check downstream references before deleting.** Deletions cascade doc/code staleness. Map referencing files before removal.
@@ -445,14 +502,14 @@ Break work into small tasks (task tracking) before starting. Add final task: "An
 - **Cross-check full target list against sub-agent assignments.** Parallel sub-agents by category miss boundary items. Reconcile union of assignments against target list before proceeding.
 - **Sub-agents inherit knowledge only from their agent .md definition — use custom agent types, not built-in Explore.** Tool adoption = permission + knowledge + enforcement (numbered workflow step).
 - **Persist sub-agent findings incrementally, not as a final batch.** Long sub-agents hit cutoffs before final write — findings lost. Instruct append-per-section to report file.
-- **When debugging, ask "whose responsibility?" before fixing.** Trace caller (wrong data) vs callee (wrong handling). Fix at responsible layer — never patch symptom site.
+- **Ownership before action.** When investigating a failure, ask which part owns the behavior before changing anything. Trace the wrong state to the component responsible for its invariant, then make one authoritative correction there.
 - **Test failure → record a provisional verdict before trace/edit, then investigate.** Use the full five-way taxonomy: SOURCE-WRONG (production violates intent), TEST-WRONG (assertion/setup is stale), TEST-NOT-OPTIMAL (valid but fragile or low-signal test), ENVIRONMENT-BLOCKED (external state prevents a verdict), or AMBIGUOUS (intent/evidence cannot choose safely). Then trace root cause and triangulate against the governing spec (`docs/specs/**` if one exists) AND source. NEVER weaken an assertion, add a skip, relax a timeout, or change source merely to force green.
 - **Grep ALL removed names after extraction/refactoring.** Primary file "done" ≠ secondary files clean. Grep entire scope for every removed symbol before declaring complete.
 - **Assume existing values are intentional — ask WHY before changing OR flagging one as a defect.** Pattern-matching as "wrong" skips context. Before changing or reporting any constant/limit/flag/cutoff: read comments, git blame, the CALLER's ordering (the guarantee that makes the value correct usually lives in code running immediately BEFORE the cited line), and 2+ sibling call sites of the same convention. A doc stating WHAT without WHY is missing rationale, not proof of a missing guard — and in a validation pass, an accurate `file:line` citation proves the transcription, never the defect.
 - **Verify ALL affected outputs, not just the first.** One build green ≠ all green. Multi-stack changes (backend/frontend/tests/docs) require verifying EVERY output.
 - **Evaluate fit before copying a nearby pattern.** Closest example ≠ matching preconditions — verify the new context shares the same constraints, base classes, scope, lifetime.
-- **Holistic-first debugging — resist nearest-attention trap.** Don't dive into first plausible cause. List EVERY precondition (config, env vars, paths, DB, endpoints, creds, versions, DI, data). Verify each against evidence (grep/query — not reasoning). Ask "what would falsify this?" — if nothing, it's not a hypothesis. Most expensive failure: going deeper in "obvious" layer while bug sits in layer never questioned.
-- **Surgical changes — apply the diff test (context-aware).** Two modes: (1) Bug fix → every line traces to the bug; no restyling; orphan cleanup only for imports YOUR changes made unused. (2) Review/enhancement → implement improvements AND announce as "Enhancement beyond main request: [what]". Never silently scope-creep. Diff test: "Would this line exist if I wasn't asked to do X?" — if no, delete or announce.
+- **Holistic analysis — resist the nearest-attention trap.** Do not dive into the first plausible cause. List every precondition (configuration, environment, inputs, dependencies, versions, permissions, and state). Verify each against evidence, not intuition. Ask "what would falsify this?" — if nothing, it is not a hypothesis. The most expensive failure is going deeper into an assumed area while the real issue sits in an unexamined condition.
+- **Minimal changes — apply the relevance test.** Every change must trace to the reported problem; avoid unrelated cleanup. For review or enhancement work, announce improvements beyond the main request rather than silently expanding scope. Ask: "Would this change exist if I were not addressing this request?" — if not, remove it or disclose it.
 - **Surface ambiguity before coding — don't pick silently.** Multiple valid interpretations → present each with effort: "[Request] could mean (1) [N h], (2) [N h]. Which matters?" List scope/format/volume/constraints assumptions first. If simpler path exists, say so. Never silently pick.
 - **[MANDATORY FIRST ACTION] ALWAYS activate a suitable skill or workflow BEFORE responding.** Match task against workflow catalog + skill list; invoke via skill invocation or `$start-workflow <workflowId>`. NEVER answer or write code before checking. Skip = protocol violation.
 - **Why-Review adversarial mindset — apply when reviewing any plan, decision, or design.** Default SKEPTIC not VALIDATOR: steel-man a rejected alternative, invert each stated reason ("what does it sacrifice?"), stress-test top 2-3 assumptions, run pre-mortem ("ships, fails in 3 months — what breaks?"), surface 1-2 alternatives author missed. Section presence ≠ quality; quality = causal reasoning + concrete mitigations + evidence, not "it's better" or "monitor closely".

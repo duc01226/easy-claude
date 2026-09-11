@@ -294,7 +294,7 @@ const validE2eExecution = {
         runner: 'playwright-cli',
         engine: 'chromium',
         headed: true,
-        actionDelayMs: 250
+        actionDelayMs: 500
     },
     evidence: {
         root: 'tmp/e2e',
@@ -352,7 +352,7 @@ test('TC-E2E-CONFIG-017: unsafe paths, unsupported modes, invalid pacing, and un
         surfaceIds: ['web'],
         auth: { mode: 'unknown' },
         data: { mode: 'reset-all', workingDir: '../shared' },
-        browser: { actionDelayMs: 2501 },
+        browser: { actionDelayMs: 250 },
         evidence: { root: '../outside', capture: ['dom-dump'] },
         convergence: { maxAttempts: 0, consecutiveGreen: 4, settleTimeoutSeconds: 601 }
     });
@@ -362,7 +362,7 @@ test('TC-E2E-CONFIG-017: unsafe paths, unsupported modes, invalid pacing, and un
         'auth.mode: unsupported mode',
         'data.mode: unsupported mode',
         'data.workingDir: must be a project-relative path',
-        'browser.actionDelayMs: expected an integer from 0 through 2000',
+        'browser.actionDelayMs: expected exactly 500',
         'evidence.root: must be a project-relative path',
         'evidence.capture[0]: unsupported capture',
         'convergence.maxAttempts: expected an integer from 1 through 10',

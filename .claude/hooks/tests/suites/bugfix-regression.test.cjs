@@ -35,6 +35,43 @@ const SESSION_END = getHookPath('session-end.cjs');
 // spawn-based test in this file a wider per-call ceiling, matching test-all-hooks.cjs:334/348.
 const SPAWN_TIMEOUT_MS = 20000;
 
+function writeLocalPrettierCommand(tmpDir, entryPoint) {
+    const binDir = path.join(tmpDir, 'node_modules', '.bin');
+    fs.mkdirSync(binDir, { recursive: true });
+
+    if (process.platform === 'win32') {
+        const commandFile = path.join(binDir, 'prettier.cmd');
+        fs.writeFileSync(commandFile, `@echo off\r\n"${process.execPath}" "${entryPoint}" %*\r\n`);
+        return commandFile;
+    }
+
+    const commandFile = path.join(binDir, 'prettier');
+    fs.writeFileSync(commandFile, `#!/usr/bin/env node\nrequire(${JSON.stringify(entryPoint)});\n`);
+    fs.chmodSync(commandFile, 0o755);
+    return commandFile;
+}
+
+function createLocalPrettierFixture(tmpDir) {
+    return writeLocalPrettierCommand(tmpDir, require.resolve('prettier/bin/prettier.cjs'));
+}
+
+function createSlowPrettierFixture(tmpDir) {
+    const lockFile = path.join(tmpDir, 'formatter-lock.txt');
+    const scriptFile = path.join(tmpDir, 'slow-prettier.cjs');
+    fs.writeFileSync(lockFile, 'held while the formatter is running');
+    fs.writeFileSync(
+        scriptFile,
+        [
+            "const fs = require('fs');",
+            "const path = require('path');",
+            "const handle = fs.openSync(path.join(__dirname, 'formatter-lock.txt'), 'r');",
+            "setTimeout(() => fs.closeSync(handle), 60000);",
+            ''
+        ].join('\n')
+    );
+    return writeLocalPrettierCommand(tmpDir, scriptFile);
+}
+
 // ============================================================================
 // BUG FIX 2: tmpclaude Cleanup in .claude Subdirectories
 // ============================================================================
@@ -420,7 +457,9 @@ const prettierSkipPatternTests = [
         fn: async () => {
             const tmpDir = createTempDir();
             try {
-                // Create a .js file in src/ directory (should be formatted if prettier is available)
+                createLocalPrettierFixture(tmpDir);
+
+                // Create a .js file in src/ directory and verify it is formatted.
                 const srcDir = path.join(tmpDir, 'src');
                 fs.mkdirSync(srcDir, { recursive: true });
                 const srcFile = path.join(srcDir, 'app.js');
@@ -435,9 +474,38 @@ const prettierSkipPatternTests = [
                     timeout: SPAWN_TIMEOUT_MS
                 });
 
-                // Should not crash - whether Prettier runs depends on config availability
+                // The local fixture makes this assertion independent of npx/cache state.
                 assertAllowed(result.code, 'Should not crash for regular files');
+                assertEqual(fs.readFileSync(srcFile, 'utf8'), 'const x = 1;\n', 'Regular project file should be formatted');
             } finally {
+                cleanupTempDir(tmpDir);
+            }
+        }
+    },
+    {
+        name: '[prettier-lifecycle] terminates timed-out formatter tree before cleanup',
+        fn: async () => {
+            const tmpDir = createTempDir();
+            try {
+                createSlowPrettierFixture(tmpDir);
+
+                const srcDir = path.join(tmpDir, 'src');
+                fs.mkdirSync(srcDir, { recursive: true });
+                const srcFile = path.join(srcDir, 'app.js');
+                fs.writeFileSync(srcFile, 'const x=1;');
+
+                const input = createPostToolUseInput('Edit', {
+                    file_path: srcFile
+                });
+
+                const result = await runHook(POST_EDIT_PRETTIER, input, {
+                    cwd: tmpDir,
+                    timeout: SPAWN_TIMEOUT_MS
+                });
+
+                assertAllowed(result.code, 'Timed-out formatting should remain non-blocking');
+            } finally {
+                // This must succeed without an EBUSY from a surviving formatter descendant.
                 cleanupTempDir(tmpDir);
             }
         }

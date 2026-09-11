@@ -266,6 +266,15 @@ Apply fixes per the resolved project styling rules doc.
 - All template elements MUST have BEM classes (WARN)
 - Logic in lowest layer: Model > Service > Component (WARN)
 
+**Component system and reuse checks (code-bearing UI scope):**
+
+- Every component MUST be classified as **Common**, **Domain-Shared**, or **Page**, with one owner and the project-documented base component/primitive recorded (WARN; BLOCKED when a documented base is bypassed).
+- Reuse or compose the closest existing component/base before creating a new component or variant; a non-reuse decision MUST name the constraint (WARN).
+- Shared markup, selectors, styling, lifecycle, and component-level test behavior MUST have one canonical owner; duplicated implementations or copied lower-tier cases are findings, and 3+ similar implementations require extraction (WARN).
+- Common and Domain-Shared behavior is tested once; Page tests cover page-specific composition and outcomes rather than repeating lower-tier component cases (WARN).
+
+**GOOD vs BAD:** a Page component composes a documented Common button and Domain-Shared editor through the project base abstractions, with one component contract test and a page-specific outcome test; copied button/editor markup, selectors, lifecycle, or assertions in every page is the anti-pattern. Cite the frontend-patterns, design-system, and test references for the project's real reuse targets.
+
 ---
 
 ### Category 6: Async UI States & Feedback — Loading / Error / Empty / Disabled — Severity: BLOCKED (HARD GATE when an async fetch or mutation renders NO loading indicator OR NO user-visible error surface)
@@ -739,7 +748,7 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 
 <!-- /OVERRIDE-NOTE:fresh-context-review -->
 
-> **Complexity Prevention (UI-scoped)** — measure code by cost of change: one UI change should map to one code change. The full backend-OOP treatise (anemic models, primitive obsession, value objects, repo leakage) does not apply to UI review and is intentionally not carried here. UI-relevant essence: (1) **extract repeated component lifecycle** — 3+ forms/list views reimplementing loading/dirty/submit/pagination → base component / hook / composable / mixin; (2) **keep derivations, formatting, and validation off the template** — move them onto the model / store / view-model / API service, not inline in the component. For deeper OOP/DRY structural review of any backend the UI calls, defer to `/changes-review` / `/architecture-review`.
+> **Complexity Prevention (UI-scoped)** — measure code by cost of change: one UI change should map to one code change. The full backend-OOP treatise (anemic models, primitive obsession, value objects, repo leakage) does not apply to UI review and is intentionally not carried here. UI-relevant essence: (1) **use the component system** — classify Common/Domain-Shared/Page, extend or compose the documented base, and record the owner; (2) **extract repeated component lifecycle** — 3+ forms/list views reimplementing loading/dirty/submit/pagination → base component / hook / composable / mixin; (3) **keep derivations, formatting, and validation off the template** — move them onto the model / store / view-model / API service, not inline in the component; (4) **keep one lower-tier test contract** — Page tests cover composition, not copied Common/Domain-Shared cases. For deeper OOP/DRY structural review of any backend the UI calls, defer to `/changes-review` / `/architecture-review`.
 
 <!-- SYNC:graph-assisted-investigation -->
 
@@ -1012,8 +1021,8 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 
 > **AI Mistake Prevention** — Failure modes to avoid on every task:
 >
-> **FIX GATE — INVESTIGATE FIRST.** Before applying any project-related fix, always invoke `$investigate` or `$debug-investigate` and establish the root cause; the failure site may be only a symptom.
-> **FAILED-TEST GATE.** For any failed or flaky test, `$debug-investigate` is mandatory before editing source or tests; never change either side merely to force green.
+> **ROOT-CAUSE GATE — INVESTIGATE FIRST.** Before applying any project-related correction, always use the project's root-cause investigation protocol and establish the cause; the failure site may be only a symptom.
+> **FAILED-TEST GATE.** For any failed or unstable test, use the project's test-investigation protocol before editing source or tests; never change either side merely to force green.
 > **Re-read files after context changes.** Context compaction, resume, or long-running work can make memory stale; verify current files before acting.
 > **Verify generated content against source evidence.** AI hallucinates APIs, names, claims, and document facts. Check the relevant source before documenting or referencing.
 > **Check downstream references before deleting or renaming.** Removing an artifact can stale docs, generated mirrors, configs, and callers; map references first.
@@ -1273,6 +1282,8 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 > | REVIEW UI code or a design artifact | Each clause is a fail-condition; every finding cites `UI-<clause>` + `file:line` + severity. NEVER a tick-box sweep — one focused pass per section                      |
 > | SCAN / document a UI system         | Record where the PROJECT deliberately deviates, so the overriding doc becomes the recorded authority                                                                    |
 >
+> **Component architecture contract (code-bearing UI work):** Classify every component as **Common**, **Domain-Shared**, or **Page** and record its base abstraction and owner. Reuse or compose the project component system before creating a component or variant, and record the constraint when reuse does not fit. Use an idiomatic base component/abstract class or language-equivalent protocol/trait for shared behavior; keep repeated markup, selectors, styling, and lifecycle in one reusable owner. A component test covers reusable lower-tier behavior once; Page tests cover only page-specific composition and outcomes. — why: a declared tier model and one source of behavior prevent component drift while keeping future changes cheap.
+>
 > **Skip ONLY** when the change has no user-facing surface (backend-only, tooling, docs) — state that explicitly so the skip is auditable, not an omission.
 
 <!-- /SYNC:ui-ux-design-principles -->
@@ -1335,6 +1346,8 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 >
 > **`CL-6` Report shape (§O).** Context (+ known gaps) → Verdict (Ship / Ship with fixes / Do not ship) → What works (2–4 specific strengths, cited) → Findings grouped `P0`→`P3`, each with Location · Evidence + tag · Impact · Principle (checklist ID) · Fix → Open questions → Coverage table. Any `P0` caps the grade at Fail regardless of score; report a score only ALONGSIDE findings, never instead of them.
 >
+> **Component architecture pass (§M6–§M9) when source code is in scope.** Verify the component tier (Common/Domain-Shared/Page), base abstraction and owner, reuse/composition decision, and absence of duplicated component markup, selectors, styling, lifecycle, or lower-tier test cases. Report the applicable checklist ID with `file:line` evidence; do not infer code architecture from a screenshot alone.
+>
 > **Precedence and no-double-counting.** The project's design-system / SCSS / frontend-pattern docs and accepted ADRs OUTRANK this checklist; the brief's stated direction outranks aesthetic judgment. A deliberate, documented convention is NEVER a defect — check intent before flagging, and surface a genuine conflict to the user with both sides, NEVER resolve it silently. This checklist is the review PROCEDURE, not a third set of taste rules: `UI-1.1`–`UI-9.4` ask "does it meet the usability floor?", `DD-1`–`DD-8` ask "is this THIS product's interface?", and these checks ask "did the review actually look, with evidence, and rank it?". Where a check restates a `UI-*` or `DD-*` clause, report the defect ONCE under whichever ID the consuming skill already uses.
 >
 > **For a PLAN or a PLAN REVIEW.** When the plan contains front-end work, the checklist binds the plan's ACCEPTANCE CRITERIA, not a built page: name the platform, the applicable conditional sections (§F/§G/§H, §L), the eight screen states each UI phase must deliver (§D2), and the §I accessibility floor — so the work is specified against the checklist before it is written. A UI phase whose acceptance criteria omit the states and the a11y floor is INCOMPLETE — say so.
@@ -1391,7 +1404,7 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 
 <!-- SYNC:ai-mistake-prevention:reminder -->
 
-**MUST ATTENTION** FIX GATE: before any project-related fix, invoke `$investigate` or `$debug-investigate`; failed/flaky tests require `$debug-investigate` before editing source/tests — never force green.
+**MUST ATTENTION** ROOT-CAUSE GATE: before any project-related correction, use the appropriate root-cause investigation protocol; failed/unstable tests require the test-investigation protocol before editing source/tests — never force green.
 
 <!-- /SYNC:ai-mistake-prevention:reminder -->
 
@@ -1519,7 +1532,7 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 
 <!-- SYNC:ui-ux-design-principles:reminder -->
 
-- **MUST ATTENTION** apply the 40 UI/UX Design Principles (`UI-1.1`–`UI-9.4`) to any user-facing surface: one focal point, proximity grouping, empty/loading/error designed FIRST (§1) · ≤2 families, 16px web / 17px mobile body, never <14px, 45–75ch, fixed 6-step scale (§2) · 4.5:1 text / 3:1 edges measured, one accent, colour never alone, dark mode ≠ inversion (§3) · one 4/8px unit, `gap` over margins, tighter-inside-looser-between, content-driven breakpoints (§4) · <100ms response, all 5 states, undo over confirm, 150–250ms ease-out honouring reduced-motion, visible focus ring (§5) · where-am-I/what's-here/where-next, ≤5 top-level destinations, user's words, URL or back path (§6) · fewer fields, visible labels, validate on blur, matched keyboard, NEVER lose input (§7) · ≥44×44pt targets 8px apart, bottom-third primaries, gestures never the only route, safe areas (§8) · structure before data, optimistic update with visible rollback, reserved space, slow-connection states (§9). Project design-system docs OUTRANK these clauses — a genuine conflict goes to the user, NEVER resolved silently. Cite every finding as `UI-<clause>` + `file:line`. Skip ONLY for changes with no user-facing surface, stated explicitly.
+- **MUST ATTENTION** apply the 40 UI/UX Design Principles (`UI-1.1`–`UI-9.4`) to any user-facing surface: one focal point, proximity grouping, empty/loading/error designed FIRST (§1) · ≤2 families, 16px web / 17px mobile body, never <14px, 45–75ch, fixed 6-step scale (§2) · 4.5:1 text / 3:1 edges measured, one accent, colour never alone, dark mode ≠ inversion (§3) · one 4/8px unit, `gap` over margins, tighter-inside-looser-between, content-driven breakpoints (§4) · <100ms response, all 5 states, undo over confirm, 150–250ms ease-out honouring reduced-motion, visible focus ring (§5) · where-am-I/what's-here/where-next, ≤5 top-level destinations, user's words, URL or back path (§6) · fewer fields, visible labels, validate on blur, matched keyboard, NEVER lose input (§7) · ≥44×44pt targets 8px apart, bottom-third primaries, gestures never the only route, safe areas (§8) · structure before data, optimistic update with visible rollback, reserved space, slow-connection states (§9). For code-bearing UI, also classify components as Common/Domain-Shared/Page, reuse the project base/component system, and keep shared behavior in one abstract/base owner with no duplicated component implementation or page-level copy. Project design-system docs OUTRANK these clauses — a genuine conflict goes to the user, NEVER resolved silently. Cite every finding as `UI-<clause>` + `file:line`. Skip ONLY for changes with no user-facing surface, stated explicitly.
 
 <!-- /SYNC:ui-ux-design-principles:reminder -->
 
@@ -1537,7 +1550,7 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 
 <!-- SYNC:design-review-checklist:reminder -->
 
-- **MUST ATTENTION** when the change/plan/artifact has a user-facing front-end surface, READ `.claude/docs/design-review-checklist.md` and run it: `CL-1` establish context first (platform · user · task · metric · constraints · scope · artifacts — fewer than four → state the gap, findings are low confidence) · `CL-2` evidence or nothing, cite a location per finding, NEVER invent a measurement (unmeasurable → `NOT VERIFIABLE`), tag `MEASURED`/`OBSERVED`/`HEURISTIC` · `CL-3` rank `P0`–`P4`, cap at top 10 by severity, NEVER pad, concrete fix on every `P0`/`P1` · `CL-4` sweep §A–§N in order, one focused pass each, with §F/§G/§H and §L applied only when the platform/product matches and §I (WCAG 2.2 AA) as a `P1` floor · `CL-5` short on time → run the 10-check §P triage · `CL-6` report in the §O shape. Project design-system docs and ADRs OUTRANK the checklist; report a defect ONCE across `UI-*`/`DD-*`/`CL-*`. For a plan, the checklist binds the UI phases' acceptance criteria (platform, conditional sections, the eight screen states, the a11y floor). Skip ONLY when the change has NO user-facing front-end surface, stated explicitly.
+- **MUST ATTENTION** when the change/plan/artifact has a user-facing front-end surface, READ `.claude/docs/design-review-checklist.md` and run it: `CL-1` establish context first (platform · user · task · metric · constraints · scope · artifacts — fewer than four → state the gap, findings are low confidence) · `CL-2` evidence or nothing, cite a location per finding, NEVER invent a measurement (unmeasurable → `NOT VERIFIABLE`), tag `MEASURED`/`OBSERVED`/`HEURISTIC` · `CL-3` rank `P0`–`P4`, cap at top 10 by severity, NEVER pad, concrete fix on every `P0`/`P1` · `CL-4` sweep §A–§N in order, one focused pass each, with §F/§G/§H and §L applied only when the platform/product matches and §I (WCAG 2.2 AA) as a `P1` floor · `CL-5` short on time → run the 10-check §P triage · `CL-6` report in the §O shape · for source code, run the §M6–§M9 component architecture pass (Common/Domain-Shared/Page tier, base/owner, reuse, and duplication). Project design-system docs and ADRs OUTRANK the checklist; report a defect ONCE across `UI-*`/`DD-*`/`CL-*`. For a plan, the checklist binds the UI phases' acceptance criteria (platform, conditional sections, the eight screen states, the a11y floor). Skip ONLY when the change has NO user-facing front-end surface, stated explicitly.
 
 <!-- /SYNC:design-review-checklist:reminder -->
 

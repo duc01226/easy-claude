@@ -19,14 +19,14 @@ license: Complete terms in LICENSE.txt
 1. **Decide Approach** — Static HTML (read selectors directly) vs dynamic app (use server helper)
 2. **Start Server** — Use `scripts/with_server.py` for automatic server lifecycle management
 3. **Reconnaissance** — Navigate, wait for `networkidle`, screenshot/inspect DOM
-4. **Execute Actions** — Write Playwright scripts using discovered selectors
+4. **Execute Actions** — Write Playwright scripts using discovered selectors and the reusable component/page object model
 
 **Key Rules:**
 
 - Always wait for `networkidle` before inspecting DOM on dynamic apps
 - Use bundled scripts as black boxes; run `--help` first, don't read source
 - This narrow helper defaults to headless page/component checks; a configured E2E profile may require the visible Playwright CLI path instead
-- Use readiness/actionability waits for correctness; `wait_for_timeout` is not a readiness signal and 200–300ms is only a post-action presentation delay for visible human-QC
+- Use one reusable, parameterized `wait_until(condition, timeout, poll_interval, description)` helper for every interactive step: before each UI-control operation wait for presence, visibility, enabled/actionable state, and any applicable blocking error-alert absence; after it wait for the expected positive/negative outcome, including dropdown/options, selected state, and error-alert presence/absence. Then wait exactly **500ms** as mandatory post-action presentation pacing for automated and visible human-QC paths. `wait_for_timeout` is never a readiness/postcondition signal and the delay never replaces a real settle signal.
 - Capture console/page errors, failed requests, and screenshots when the task requires runtime evidence; redact sensitive values before retaining them
 
 **Be skeptical. Apply critical thinking, sequential thinking. Every claim needs traced proof, confidence percentages (Idea should be more than 80%).**
@@ -118,7 +118,19 @@ with sync_playwright() as p:
 - Use `sync_playwright()` for synchronous scripts
 - Always close the browser when done
 - Use descriptive selectors: `text=`, `role=`, CSS selectors, or IDs
-- Add appropriate readiness/actionability waits: `page.wait_for_selector()` or a project-specific observable condition. Use `page.wait_for_timeout()` only for a deliberate post-action presentation delay, never to declare the app ready.
+- Define or reuse one bounded `wait_until(condition, timeout, poll_interval, description)` utility. Its condition may be a positive or negative boolean/async predicate and must produce useful timeout diagnostics. Use it before every UI-control operation for readiness/actionability and applicable error-alert absence, and after every operation for the expected positive/negative postcondition; wait for dropdown/options before selecting and selected state after selecting. Only after that wait exactly **500ms** with `page.wait_for_timeout()` as presentation pacing, never to declare the app ready or replace a settle signal.
+
+## Reusable E2E Object Model
+
+For multi-step browser tests, use an idiomatic abstract base page/component (or
+language-equivalent protocol/trait), cohesive purpose-specific helpers and
+utilities, and three reusable tiers: Common components, Domain-Shared
+components, and Page components. The abstract/base layer or one composed
+helper owns the bounded parameterized `wait_until` behavior and its diagnostic
+options. Reuse or compose existing objects before creating new ones, keep one
+canonical owner for each selector/action/wait, and record the constraint when
+reuse does not fit. Test reusable component behavior once; page tests cover
+page-specific composition and outcomes rather than copying lower-tier cases.
 
 ## Reference Files
 
@@ -185,8 +197,8 @@ with sync_playwright() as p:
 
 > **AI Mistake Prevention** — Failure modes to avoid on every task:
 >
-> **FIX GATE — INVESTIGATE FIRST.** Before applying any project-related fix, always invoke `$investigate` or `$debug-investigate` and establish the root cause; the failure site may be only a symptom.
-> **FAILED-TEST GATE.** For any failed or flaky test, `$debug-investigate` is mandatory before editing source or tests; never change either side merely to force green.
+> **ROOT-CAUSE GATE — INVESTIGATE FIRST.** Before applying any project-related correction, always use the project's root-cause investigation protocol and establish the cause; the failure site may be only a symptom.
+> **FAILED-TEST GATE.** For any failed or unstable test, use the project's test-investigation protocol before editing source or tests; never change either side merely to force green.
 > **Re-read files after context changes.** Context compaction, resume, or long-running work can make memory stale; verify current files before acting.
 > **Verify generated content against source evidence.** AI hallucinates APIs, names, claims, and document facts. Check the relevant source before documenting or referencing.
 > **Check downstream references before deleting or renaming.** Removing an artifact can stale docs, generated mirrors, configs, and callers; map references first.
@@ -214,7 +226,7 @@ with sync_playwright() as p:
 
 <!-- SYNC:ai-mistake-prevention:reminder -->
 
-**MUST ATTENTION** FIX GATE: before any project-related fix, invoke `$investigate` or `$debug-investigate`; failed/flaky tests require `$debug-investigate` before editing source/tests — never force green.
+**MUST ATTENTION** ROOT-CAUSE GATE: before any project-related correction, use the appropriate root-cause investigation protocol; failed/unstable tests require the test-investigation protocol before editing source/tests — never force green.
 
 <!-- /SYNC:ai-mistake-prevention:reminder -->
 

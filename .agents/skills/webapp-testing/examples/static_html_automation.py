@@ -1,5 +1,6 @@
 from playwright.sync_api import sync_playwright
 import os
+from wait_until import wait_until
 
 # Example: Automating interaction with static HTML files using file:// URLs
 
@@ -13,17 +14,53 @@ with sync_playwright() as p:
     # Navigate to local HTML file
     page.goto(file_url)
 
+    error_alert = page.get_by_role('alert')
+
+    def run_ui_action(control, action, description):
+        wait_until(
+            lambda: control.is_visible() and control.is_enabled(),
+            wait=page.wait_for_timeout,
+            description=f'{description} is visible and enabled',
+        )
+        wait_until(
+            lambda: not error_alert.is_visible(),
+            wait=page.wait_for_timeout,
+            description=f'no blocking error alert before {description}',
+        )
+        action()
+        wait_until(
+            lambda: not error_alert.is_visible(),
+            wait=page.wait_for_timeout,
+            description=f'no blocking error alert after {description}',
+        )
+        page.wait_for_timeout(500)
+
     # Take screenshot
     page.screenshot(path='/mnt/user-data/outputs/static_page.png', full_page=True)
 
     # Interact with elements
-    page.click('text=Click Me')
-    page.fill('#name', 'John Doe')
-    page.fill('#email', 'john@example.com')
+    run_ui_action(
+        page.get_by_text('Click Me'),
+        lambda: page.get_by_text('Click Me').click(),
+        'Click Me control',
+    )
+    run_ui_action(
+        page.locator('#name'),
+        lambda: page.locator('#name').fill('John Doe'),
+        'name field',
+    )
+    run_ui_action(
+        page.locator('#email'),
+        lambda: page.locator('#email').fill('john@example.com'),
+        'email field',
+    )
 
     # Submit form
-    page.click('button[type="submit"]')
-    page.wait_for_timeout(500)
+    run_ui_action(
+        page.locator('button[type="submit"]'),
+        lambda: page.locator('button[type="submit"]').click(),
+        'submit control',
+    )
 
     # Take final screenshot
     page.screenshot(path='/mnt/user-data/outputs/after_submit.png', full_page=True)

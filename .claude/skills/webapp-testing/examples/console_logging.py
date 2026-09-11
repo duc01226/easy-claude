@@ -1,4 +1,5 @@
 from playwright.sync_api import sync_playwright
+from wait_until import wait_until
 
 # Example: Capturing console logs during browser automation
 
@@ -21,9 +22,26 @@ with sync_playwright() as p:
     page.goto(url)
     page.wait_for_load_state('networkidle')
 
-    # Interact with the page (triggers console logs)
-    page.click('text=Dashboard')
-    page.wait_for_timeout(1000)
+    # Interact with the page (triggers console logs) through observe → act → observe.
+    dashboard = page.get_by_text('Dashboard')
+    error_alert = page.get_by_role('alert')
+    wait_until(
+        lambda: dashboard.is_visible() and dashboard.is_enabled(),
+        wait=page.wait_for_timeout,
+        description='Dashboard control is visible and enabled',
+    )
+    wait_until(
+        lambda: not error_alert.is_visible(),
+        wait=page.wait_for_timeout,
+        description='no blocking error alert before Dashboard action',
+    )
+    dashboard.click()
+    wait_until(
+        lambda: not error_alert.is_visible(),
+        wait=page.wait_for_timeout,
+        description='no blocking error alert after Dashboard action',
+    )
+    page.wait_for_timeout(500)
 
     browser.close()
 

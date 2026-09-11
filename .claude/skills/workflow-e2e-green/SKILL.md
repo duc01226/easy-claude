@@ -1,7 +1,7 @@
 ---
 name: workflow-e2e-green
 version: 1.0.0
-description: '[Workflow] Drive configured E2E and human-QC journeys to green with project-config setup, visible browser evidence, bounded adjudication, and fresh re-verification.'
+description: '[Workflow] Drive configured E2E and human-QC journeys to green with project-config setup, visible browser evidence, bounded adjudication, and fresh re-verification. Flag: --visual-review={true|false} (default false; true enables the screenshot visual gate).'
 disable-model-invocation: false
 ---
 
@@ -21,11 +21,27 @@ project-config, starts the real system, uses a visible browser for web human-QC,
 captures/read evidence, selects or generates tests, and delegates the bounded
 verify/adjudicate/fix/re-run contract to `e2e-test-verify-loop`.
 
-**Canonical sequence:** `/investigate` → `/e2e-test-verify-loop` → optional
+**Canonical sequence:** `/investigate` → `/e2e-test-verify-loop`
+(`--visual-review=true` is forwarded when explicitly requested) → optional
 report-only `/experience-review` is owned inside the loop → `/docs-update` →
 `/workflow-end` → `/watzup`.
 
 **IMPORTANT MANDATORY Steps:** /investigate -> /e2e-test-verify-loop -> /docs-update -> /workflow-end -> /watzup
+
+**Browser journey rule:** model every control step as observe → act → observe
+with one reusable bounded `waitUntil(condition, options)` before and after the
+action for readiness/actionability, expected positive/negative state,
+dropdown/options, and applicable error-alert presence/absence; apply the exact
+500ms presentation delay only after those waits.
+
+**Combined visual mode:** `--visual-review=true` is opt-in and defaults to
+`false`. In this mode the verify loop runs the configured E2E command, captures
+the declared screenshot state × viewport matrix, opens/reads every image, and
+uses `/experience-review --rounds=0` for visual adjudication. Validated
+`BLOCKING` UI findings route through the normal debug → owning UI fix → review
+path, then the same-scope E2E command and screenshot matrix run again. The
+mode converges only when E2E failures and blocking visual findings are both
+zero across the required fresh runs; advisory polish is recorded, not looped.
 
 ## Routing and scope
 
@@ -51,8 +67,10 @@ observable surface. Never narrow the scope because only one test failed.
 ## Non-negotiable gates
 
 - Project-config/reference is read before any E2E command; startup/readiness/auth/data/browser/evidence values are project facts or explicit blockers.
-- Web readiness/actionability precedes a deterministic 200–300ms post-action presentation delay. A fixed delay is never readiness.
+- Every browser/UI operation uses one reusable bounded `waitUntil(condition, options)` helper before the action for readiness/actionability and applicable error-alert absence, and after the action for the expected positive/negative outcome, dropdown/options, or expected error-alert presence/absence. The mandatory deterministic **500ms delay comes last** after every UI-control operation. It is presentation pacing, never readiness or a settle signal, and applies to automated and visible human-QC paths.
+- Applicable E2E tests use the project’s reusable tiered object model: idiomatic abstract base, cohesive helpers/utilities, and Common → Domain-Shared → Page component objects; reuse existing objects and test lower-tier contracts once instead of duplicating page cases.
 - Runtime errors, uncaught exceptions, unhandled rejections, journey-critical failed requests, unread evidence, scope shrink, test loss, assertion weakening, log suppression, and baseline auto-acceptance block convergence.
+- When `--visual-review=true`, missing screenshot capture, unread images, or missing visual inspection is `ENVIRONMENT-BLOCKED`; `/ask` is not the visual reviewer because it provides architecture consultation rather than image evidence.
 - Auth and storage state use references only. No credential/token/cookie/storage-state contents are pasted into prompts, reports, screenshots, traces, or video.
 - Every fix is adjudicated, made at the owning layer, reviewed in the same round, and re-run from a fresh setup. Cap/non-shrinking/rising/blocked/ambiguous outcomes escalate.
 
@@ -67,7 +85,8 @@ Carry this evidence record from `/investigate` to the loop:
 | `config` | `e2eTesting` and optional `execution` paths plus linked surface IDs |
 | `commands` | Copy-ready full/focused commands, zero-match behavior, simple/Windows entry point when applicable |
 | `setup` | localRun dependency/start/readiness/log/teardown, auth reference, seed/data mode |
-| `browserEvidence` | runner/engine/headed, pacing, viewport/device, capture/redaction/read policy |
+| `browserEvidence` | runner/engine/headed, reusable `waitUntil` conditions and bounded diagnostics, pacing, viewport/device, capture/redaction/read policy |
+| `visualReview` | explicit `--visual-review=true|false` value; when true, screenshot state × viewport matrix, image-inspection result, visual blocker count, and the E2E rerun evidence |
 | `repeatProof` | exact counts/exit status and configured consecutive-green fresh runs |
 
 If the project has no runnable E2E surface, complete the workflow with an
@@ -95,8 +114,8 @@ and the generated/accepted-baseline boundary remains human-owned.
 
 > **AI Mistake Prevention** — Failure modes to avoid on every task:
 >
-> **FIX GATE — INVESTIGATE FIRST.** Before applying any project-related fix, always invoke `$investigate` or `$debug-investigate` and establish the root cause; the failure site may be only a symptom.
-> **FAILED-TEST GATE.** For any failed or flaky test, `$debug-investigate` is mandatory before editing source or tests; never change either side merely to force green.
+> **ROOT-CAUSE GATE — INVESTIGATE FIRST.** Before applying any project-related correction, always use the project's root-cause investigation protocol and establish the cause; the failure site may be only a symptom.
+> **FAILED-TEST GATE.** For any failed or unstable test, use the project's test-investigation protocol before editing source or tests; never change either side merely to force green.
 > **Re-read files after context changes.** Context compaction, resume, or long-running work can make memory stale; verify current files before acting.
 > **Verify generated content against source evidence.** AI hallucinates APIs, names, claims, and document facts. Check the relevant source before documenting or referencing.
 > **Check downstream references before deleting or renaming.** Removing an artifact can stale docs, generated mirrors, configs, and callers; map references first.
@@ -124,7 +143,7 @@ and the generated/accepted-baseline boundary remains human-owned.
 
 <!-- SYNC:ai-mistake-prevention:reminder -->
 
-**MUST ATTENTION** FIX GATE: before any project-related fix, invoke `$investigate` or `$debug-investigate`; failed/flaky tests require `$debug-investigate` before editing source/tests — never force green.
+**MUST ATTENTION** ROOT-CAUSE GATE: before any project-related correction, use the appropriate root-cause investigation protocol; failed/unstable tests require the test-investigation protocol before editing source/tests — never force green.
 
 <!-- /SYNC:ai-mistake-prevention:reminder -->
 
@@ -135,3 +154,9 @@ and the generated/accepted-baseline boundary remains human-owned.
 <!-- /SYNC:project-protocol-overlay:reminder -->
 
 ## Closing Reminders
+
+**IMPORTANT MUST ATTENTION Goal:** Drive the fixed configured E2E scope through visible human-QC evidence and bounded debug/fix/retest convergence, preserving the protected invariant and reporting an honest terminal result.
+
+**IMPORTANT MUST ATTENTION** `--visual-review=true` is opt-in (default `false`): run E2E, capture and open/read the complete screenshot state × viewport matrix through `/experience-review --rounds=0`, fix validated blocking UI defects at the owning UI layer, and rerun the same scope; `/ask` is architecture consultation, not screenshot review.
+
+**IMPORTANT MUST ATTENTION** use the reusable bounded `waitUntil(condition, options)` before and after every interactive browser/UI action, including applicable error-alert states, then apply the exact 500ms presentation delay last; preserve scope, evidence, assertions, and accepted expectations.

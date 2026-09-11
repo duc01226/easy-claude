@@ -23,7 +23,7 @@ framework's own runtime:
 | `surfaceIds` | Links E2E execution to `experienceVerification.surfaces[]`; that surface's `localRun` owns dependencies, startup, readiness, teardown, runtime logs, and reference-only `credentialsRef`. |
 | `auth` | Declares `fixture`, `storage-state`, `registration`, `manual`, or `none` plus non-secret references. Never copy credentials, cookies, tokens, headers, or storage contents into a prompt, command, test, or report. |
 | `data` | Declares the verified seed command/working directory, `reference-only`/`idempotent`/`additive` mode, and cleanup policy. Use the project recipe; do not mutate a datastore as a UI shortcut. |
-| `browser` | Declares the configured runner/engine, headed visibility, and action delay. For web human QC, use the visible Playwright CLI path when configured; readiness/actionability is correctness, while 200–300ms is only post-action presentation pacing. |
+| `browser` | Declares the configured runner/engine, headed visibility, action delay, and wait-until policy. For web human QC, use the visible Playwright CLI path when configured; a bounded `waitUntil` condition surrounds each UI-control operation for readiness/actionability, expected positive/negative outcomes, and applicable error-alert states, followed by exactly 500ms of post-action presentation pacing. |
 | `evidence` | Declares the project-relative evidence root, capture kinds, and a non-empty redaction policy whenever sensitive captures are enabled. Attach console/page errors/failed requests before interaction when applicable; read screenshots/traces/video before judging them. |
 | `convergence` | Bounds attempts, consecutive green runs, and settle timeout. Keep the same scope; classify failures before edits, fix at the owning layer, review each fix, and rerun fresh. |
 
@@ -77,6 +77,35 @@ The project-owned test layer is the custom CJS hook harness (`docs/project-confi
 
 **N/A.** No project browser wait/retry or E2E assertion helper exists. The skill-local `page.wait_for_load_state('networkidle')` at `.claude/skills/webapp-testing/examples/element_discovery.py:9-12` is not evidence of an application testing standard.
 
+Portable adopter contract: when an E2E suite is introduced, define or reuse
+one parameterized `waitUntil(condition, options)` helper. The condition must
+support positive and negative boolean/async predicates; options must bound the
+timeout and poll interval and identify the condition for timeout diagnostics.
+Before each UI-control action, wait for the control to be present, visible,
+enabled, actionable, and free of a blocking error alert when success is
+expected. After each action, wait for the expected positive or negative state:
+loading until the next control appears, click results, dropdown/options before
+selection, selected state after selection, and error-alert presence for an
+expected failure or absence for an expected success. Keep final assertions in
+the test. Only after these waits apply the exact 500ms presentation delay; it
+never replaces readiness, postconditions, or real settle signals.
+
+### Optional combined visual review mode
+
+Use the explicit invocation flag `--visual-review=true` to combine E2E
+execution with screenshot inspection; the default is `false`. In this mode,
+each fresh round runs the configured E2E command, captures the declared state ×
+viewport matrix, opens/reads every image, and invokes `/experience-review
+--rounds=0` as the report-only visual adjudicator. Validated blocking UI-floor
+findings (for example clipping, overlap, unreadable content, unreachable
+controls, broken required states, accessibility-floor violations, or broken
+responsive layouts) enter the E2E failure set; fix them at the owning UI layer,
+review the fix, and rerun the same E2E scope and screenshot matrix. Convergence
+requires zero E2E failures and zero blocking visual findings across the
+configured fresh runs. Advisory identity, polish, or non-contract spacing
+preferences are recorded but do not create an unbounded loop. `/ask` is an
+architecture-consultation skill, not the screenshot reviewer.
+
 ## Configuration
 
 `docs/project-config.json` declares `framework: none`, `language: none`, no run commands or entry points, no dependencies, and a not-applicable architecture. Its `featureFilesGrepExpr` and `stepDefinitionFilesGrepExpr` fields preserve executable negative checks without stale totals.
@@ -103,6 +132,10 @@ rg -l --hidden "Given\(|When\(|Then\(|@given|@when|@then|\[Binding\]" . -g "*.cs
 - Add a conditional BDD/account/environment section only after its framework and source artifacts are verified.
 - When E2E is introduced, record real config paths, linked surfaces/localRun ownership, dependency versions, commands, selectors, waits, evidence/redaction, and non-secret credential references with `file:line` evidence.
 - Generate or reuse test cases from the governing spec/current context as Given/When/Then records with a named protected invariant; do not generate a duplicate suite when a suitable case already exists.
+- When E2E is introduced, use a reusable object model with an idiomatic abstract base (or language-equivalent protocol/trait), cohesive helpers/utilities, and Common, Domain-Shared, and Page component tiers; reuse or compose existing objects before creating new ones.
+- Keep one canonical owner for each selector/action/wait and test reusable lower-tier component behavior once; Page tests cover page-specific composition and outcomes, not copied lower-tier cases.
+- Model each interactive journey as observe → act → observe with the shared bounded `waitUntil` helper before and after every control action. Include applicable error-alert present/absent conditions and dropdown/menu visibility; a wait timeout fails with diagnostics and must not be hidden by a weaker assertion or ad-hoc sleep.
+- For every browser/UI-control operation, apply the exact 500ms delay only after the `waitUntil` postcondition and keep any real settle signal separate; never use this delay as readiness or a postcondition.
 - Treat hardcoded real E2E credentials as a **CRITICAL** security finding; none was verified in the current project surface.
 
 ## Closing Reminders

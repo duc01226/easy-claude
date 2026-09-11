@@ -244,7 +244,7 @@ function buildE2eTesting(config) {
     if (execution.browser) {
         const runner = execution.browser.runner ? ` runner \`${String(execution.browser.runner).replace(/[|\r\n]/g, ' ')}\`` : '';
         const headed = execution.browser.headed === true ? 'headed/visible' : execution.browser.headed === false ? 'headless' : 'configured visibility';
-        executionLines.push(`- **E2E browser:**${runner}; ${headed}. Use readiness/actionability waits; any 200–300ms delay is presentation pacing after a completed action.`);
+        executionLines.push(`- **E2E browser:**${runner}; ${headed}. Use the shared bounded waitUntil(condition, options) helper before and after every UI-control operation for readiness/actionability, expected positive/negative outcomes, and applicable error-alert states; apply exactly 500ms of post-operation presentation pacing only at the end for automation and human-QC. This is never a readiness or settle signal.`);
     }
     if (execution.evidence) {
         const capture = Array.isArray(execution.evidence.capture) ? execution.evidence.capture.join(', ') : 'configured capture set';

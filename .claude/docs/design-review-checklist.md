@@ -307,6 +307,10 @@ Treat every item here as **P1 minimum**; failures affecting task completion are 
 | M3 | The same task feels the same across web, mobile, and desktop where the user crosses platforms | P2 |
 | M4 | Patterns are internally consistent: same modal type for same purpose, same table behavior everywhere | P2 |
 | M5 | New work doesn't fork existing patterns without a documented reason | P3 |
+| M6 | Every code-bearing component has a declared Common, Domain-Shared, or Page tier, a single owner, and the project base abstraction/primitive appropriate to that tier | P2 |
+| M7 | Existing components and base abstractions are reused or composed before a new component or variant is created; a non-reuse decision names the constraint | P2 |
+| M8 | Shared component behavior is implemented once through a base component, helper, or composition; duplicated markup, selectors, styling, or lifecycle is consolidated | P2 |
+| M9 | Component tests cover reusable Common/Domain-Shared behavior once, while Page tests cover page-specific composition and outcomes | P2 |
 
 ---
 

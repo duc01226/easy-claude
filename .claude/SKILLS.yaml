@@ -1,7 +1,7 @@
 metadata:
   title: Skills Catalog
   description: Auto-generated catalog of all available skills in ClaudeKit Engineer
-  last_updated: '2026-09-10'
+  last_updated: '2026-09-11'
   total_skills: 170
   total_by_status:
     active: 168
@@ -450,7 +450,8 @@ skills:
       path: e2e-test-verify-loop/SKILL.md
       description: '[Testing] Use when driving a configured E2E suite or human-QC
         journey to green with project-config setup, evidence, fault adjudication,
-        and bounded re-verification.'
+        and bounded re-verification. Flag: --visual-review={true|false} (default false;
+        true enables the screenshot visual gate).'
       category: other
       has_scripts: false
       has_references: false
@@ -1411,7 +1412,8 @@ skills:
     - name: workflow-e2e
       path: workflow-e2e/SKILL.md
       description: '[Workflow] Use when generating, updating, or maintaining E2E/Playwright
-        tests. Flag: --source={changes|recording|update-ui|prompt|context|whole}.'
+        tests. Flags: --source={changes|recording|update-ui|prompt|context|whole},
+        --visual-review={true|false} (default false).'
       category: other
       has_scripts: false
       has_references: false
@@ -1423,7 +1425,8 @@ skills:
       path: workflow-e2e-green/SKILL.md
       description: '[Workflow] Drive configured E2E and human-QC journeys to green
         with project-config setup, visible browser evidence, bounded adjudication,
-        and fresh re-verification.'
+        and fresh re-verification. Flag: --visual-review={true|false} (default false;
+        true enables the screenshot visual gate).'
       category: other
       has_scripts: false
       has_references: false

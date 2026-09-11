@@ -323,12 +323,12 @@ const SCHEMA = {
                     browser: {
                         type: 'object',
                         required: false,
-                        describe: 'Browser runner and human-QC presentation settings. Readiness/actionability always precede pacing; headed human runs default to a deterministic 200–300ms action delay, while automation may explicitly use zero.',
+                        describe: 'Browser runner and human-QC presentation settings. Readiness/actionability always precede pacing; every browser/UI-control operation uses exactly 500ms of post-operation presentation pacing in both automation and human-QC.',
                         properties: {
                             runner: { type: 'string', required: false, describe: 'Project-configured browser runner hint, such as playwright-cli; do not infer a dependency from this field alone.' },
                             engine: { type: 'string', required: false, describe: 'Project-configured browser engine or target, such as chromium.' },
                             headed: { type: 'boolean', required: false, describe: 'Whether the browser is visible to the user during human-QC execution.' },
-                            actionDelayMs: { type: 'number', required: false, describe: 'Deterministic post-action presentation delay: zero for automation, otherwise normally 200–300ms; never a readiness substitute.' }
+                            actionDelayMs: { type: 'number', required: false, describe: 'Deterministic post-operation presentation delay; when configured, it must be exactly 500ms for every browser/UI-control operation and is never a readiness or settle substitute.' }
                         }
                     },
                     evidence: {
@@ -877,15 +877,9 @@ function validateE2eExecutionSemantics(config, errors, warnings) {
 
     const browser = execution.browser;
     if (browser && typeof browser === 'object' && !Array.isArray(browser)) {
-        if (typeof browser.actionDelayMs === 'number') {
-            if (!Number.isFinite(browser.actionDelayMs) || !Number.isInteger(browser.actionDelayMs) || browser.actionDelayMs < 0 || browser.actionDelayMs > 2000) {
-                errors.push('e2eTesting.execution.browser.actionDelayMs: expected an integer from 0 through 2000');
-            } else if (browser.actionDelayMs !== 0 && (browser.actionDelayMs < 200 || browser.actionDelayMs > 300)) {
-                warnings.push('e2eTesting.execution.browser.actionDelayMs: human-QC pacing is normally 200–300ms; this value is outside that guidance and is never a readiness signal');
-            }
-        }
-        if (browser.headed === true && browser.actionDelayMs === 0) {
-            warnings.push('e2eTesting.execution.browser.actionDelayMs: visible human-QC runs normally use 200–300ms; zero is intended for automation');
+        if (typeof browser.actionDelayMs === 'number' &&
+            (!Number.isFinite(browser.actionDelayMs) || !Number.isInteger(browser.actionDelayMs) || browser.actionDelayMs !== 500)) {
+            errors.push('e2eTesting.execution.browser.actionDelayMs: expected exactly 500');
         }
     }
 

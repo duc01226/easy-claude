@@ -44,10 +44,18 @@ runner dependency.
   video when configured. Capture starts before the first interaction, artifacts
   are inspected rather than merely created, and sensitive values are redacted
   before saving or reporting.
-- Wait for a real readiness/actionability or post-action settle signal. A
-  deterministic 200–300ms delay may follow a completed action in a visible
-  human-QC run so the user can observe it; it is never a readiness wait and
-  never wraps a failing assertion.
+- Use one reusable, parameterized `waitUntil(condition, options)` helper for
+  every interactive step. Before each browser operation that activates or
+  changes a UI control — click/tap, fill/type, key press, select, check/uncheck,
+  drag/drop, upload, or behavior-exercising hover — wait for readiness,
+  actionability, and any applicable blocking error-alert absence. After the
+  operation, wait for the expected positive/negative outcome, including
+  dropdown/menu options before selection, selected state after selection, or
+  an expected error alert present/absent; then wait exactly **500ms**. The
+  helper must use a bounded timeout/poll interval and diagnostic condition
+  description. This is mandatory presentation pacing for automated and visible
+  human-QC runs; it is never a readiness wait, never replaces a real settle
+  signal, and never wraps a failing assertion.
 - Load `storageStateRef` only from a project-owned secure reference/path. Do
   not paste cookies, tokens, passwords, localStorage, request headers, or raw
   storage state into prompts, reports, screenshots, traces, or shell history.
@@ -468,8 +476,8 @@ playwright-cli show --annotate
 
 > **AI Mistake Prevention** — Failure modes to avoid on every task:
 >
-> **FIX GATE — INVESTIGATE FIRST.** Before applying any project-related fix, always invoke `$investigate` or `$debug-investigate` and establish the root cause; the failure site may be only a symptom.
-> **FAILED-TEST GATE.** For any failed or flaky test, `$debug-investigate` is mandatory before editing source or tests; never change either side merely to force green.
+> **ROOT-CAUSE GATE — INVESTIGATE FIRST.** Before applying any project-related correction, always use the project's root-cause investigation protocol and establish the cause; the failure site may be only a symptom.
+> **FAILED-TEST GATE.** For any failed or unstable test, use the project's test-investigation protocol before editing source or tests; never change either side merely to force green.
 > **Re-read files after context changes.** Context compaction, resume, or long-running work can make memory stale; verify current files before acting.
 > **Verify generated content against source evidence.** AI hallucinates APIs, names, claims, and document facts. Check the relevant source before documenting or referencing.
 > **Check downstream references before deleting or renaming.** Removing an artifact can stale docs, generated mirrors, configs, and callers; map references first.
@@ -497,7 +505,7 @@ playwright-cli show --annotate
 
 <!-- SYNC:ai-mistake-prevention:reminder -->
 
-**MUST ATTENTION** FIX GATE: before any project-related fix, invoke `$investigate` or `$debug-investigate`; failed/flaky tests require `$debug-investigate` before editing source/tests — never force green.
+**MUST ATTENTION** ROOT-CAUSE GATE: before any project-related correction, use the appropriate root-cause investigation protocol; failed/unstable tests require the test-investigation protocol before editing source/tests — never force green.
 
 <!-- /SYNC:ai-mistake-prevention:reminder -->
 

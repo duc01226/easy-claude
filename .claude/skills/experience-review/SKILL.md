@@ -24,6 +24,7 @@ description: '[Testing] Use when reviewing a running user experience or observab
 - **Runtime logs and captured screens are evidence channels, not extras.** Capture them on every exercise and re-capture them every round. A runtime ERROR is BLOCKING. A WARNING is ADVISORY — attempt a bounded fix, never let one hold the review open. For a visual surface, capture each state/viewport and READ the images; unread captures are not observations.
 - **The loop converges on defects, never on taste.** Only a BLOCKING defect — objectively checkable against the stated purpose — opens a round. An ADVISORY finding (preference, polish, visual identity) is recorded, never looped on.
 - **Bounded: `--rounds=N`, default 3.** Every round adjudicates before editing, fixes at the owning layer through `/fix`, `/changes-review`s its own fix diff, and re-exercises from scratch. Cap reached, defects not shrinking across two rounds, defects increasing, or `ENVIRONMENT-BLOCKED` → STOP and escalate via `AskUserQuestion`. `--rounds=0` returns the single-pass report-only review.
+- **E2E visual-gate handoff:** when invoked as `/experience-review --rounds=0` by `e2e-test-verify-loop --visual-review=true`, open/read the complete screenshot matrix and return visual observations/classifications to the parent. The parent owns UI fixes and must rerun the same E2E command; this report-only invocation must not mutate snapshots, baselines, or expectations.
 - **Fix the defect, never the evidence of it.** Expectations, baselines, snapshots, fixtures, assertions, and acceptance criteria stay read-only in every round. A review that got clean by looking at less did not converge — it regressed.
 - Convergence yields `AGENT-RECOMMENDED-ACCEPT`, which is a named agent judgment, **not** an acceptance. The record stays `ACCEPTANCE-PENDING` until an owner signs; no baseline is promoted before that signature exists.
 - Record `NOT-APPLICABLE`, `ENVIRONMENT-BLOCKED`, and `UNVERIFIED` honestly. Do not claim success when the required runner, device, service, or inspection capability is unavailable.
@@ -104,12 +105,16 @@ bounded repository search in that order. Record `file:line` evidence; missing
 capability is `ENVIRONMENT-BLOCKED`, never a guessed default or pass.
 
 For a web surface whose profile requests human QC, open the browser visibly
-through the project's configured Playwright CLI path when supported. Wait for
-readiness and actionability before each actor action; a deterministic 200–300ms
-post-action delay may make the journey observable but never replaces a settle
-signal. Attach console/page-error/request capture before the first interaction,
-capture configured screenshots/trace/video, read them, and redact sensitive
-values before persistence.
+through the project's configured Playwright CLI path when supported. Before
+each UI-control operation, use one reusable bounded
+`waitUntil(condition, options)` helper for readiness/actionability and any
+applicable blocking error-alert absence; after the operation, use it for the
+expected positive/negative outcome, including dropdown/options, selected
+state, and expected error-alert presence/absence, then wait exactly **500ms**.
+This presentation delay applies to automated and visible human-QC paths and
+never replaces a real settle signal. Attach console/page-error/request capture
+before the first interaction, capture configured screenshots/trace/video, read
+them, and redact sensitive values before persistence.
 
 ### 2b. Bring the system up locally and instrument it
 
@@ -164,11 +169,13 @@ untouched; you did not start it, so it is not yours to stop.
 
 Run the configured feature through the narrowest representative journey. Use
 the available browser/device/desktop/terminal/API/client or project command;
-never substitute a skill-local demo. Exercise realistic actor pacing and wait
-on observable settle signals instead of blind sleeps.
+never substitute a skill-local demo. Exercise realistic actor pacing with a
+reusable bounded `waitUntil` predicate before and after each interactive
+action, and wait on observable settle signals instead of blind sleeps.
 
 For each action, record the action, expected observable, actual observable,
-settle signal, and evidence reference. The evidence must come from the running
+`waitUntil` condition/result, settle signal, and evidence reference. The
+evidence must come from the running
 or invoked feature:
 
 - visual surface: navigate, interact, and inspect the rendered screen at the
@@ -483,7 +490,8 @@ that the fix belongs elsewhere — stop the round and escalate.
 > 2. **Read intended purpose first:** use the governing spec, acceptance criteria, API/CLI/library contract, design artifact, or documented operator outcome. State the actor, job, expected result, important states, and unchanged behavior before exercising the implementation.
 > 3. **Exercise the running/observable feature when applicable:** bring the surface up as a WHOLE running system first — backing services, then the surface — gated on a POLLED readiness signal (a started process, an open port, or a fixed sleep is not readiness), then drive it through the real interface a user has, never an internal call or a direct state write. Use the project's configured entry point and runner/tool; perform the intended journey and relevant failure, empty, loading, offline, permission, recovery, or boundary states. For non-visual surfaces inspect the actual response, transcript, return value, persisted state, emitted message, or generated artifact. Never weaken the system to get it up — a stubbed dependency or disabled auth makes every later observation evidence about a system nobody ships — and tear down only what you started. Source reading, test-writing, and screenshot generation alone are not exercise evidence.
 > 3a. **Resolve E2E execution from one project contract:** when `e2eTesting.execution` exists, resolve `surfaceIds[]` to `experienceVerification.surfaces[]`, then use that surface's `localRun` for dependency/start/readiness/log/teardown. Use the E2E profile only for auth/data/browser/evidence/convergence facts. When a field is absent, derive it from repository evidence and cite the source; if the capability remains missing, record `ENVIRONMENT-BLOCKED` rather than inventing a port, account, seed, selector, or command.
-> 3b. **Human-QC browser path:** for an applicable web surface, use the project's configured visible Playwright CLI path when supported. Wait for readiness and actionability before each interaction; apply a deterministic 200–300ms post-action presentation delay for visible human-QC when configured, never as readiness. Attach console/page-error/request capture before the first interaction and redact sensitive evidence before persistence.
+> 3b. **Browser interaction pacing:** for an applicable web surface, use the project's configured visible Playwright CLI path when supported. Before every UI-control interaction, call the reusable bounded `waitUntil(condition, options)` helper for readiness/actionability and any blocking error-alert absence; after the interaction, call it for the expected positive/negative outcome, including dropdown/options and expected error-alert present/absent states. Only then wait exactly **500ms** at the end of the operation. Keep real settle signals separate from this presentation delay; it applies to automated and visible human-QC paths and cannot be reduced by configuration. Attach console/page-error/request capture before the first interaction and redact sensitive evidence before persistence.
+> 3c. **Human-like observation loop:** record the precondition, action, `waitUntil` postcondition, error expectation, and evidence for each interactive journey step. A passing final screen does not excuse a missing intermediate wait or an unread runtime error.
 > 4. **Inspect evidence, do not merely produce it:** a screenshot, video, DOM/tree dump, terminal transcript, API payload, or artifact must be opened/read and tied to an observation. Record exact command/tool, entry point, identity/fixture, platform/device/viewport/locale/network conditions, actions, settle signals, timestamps, and evidence references. Redact secrets.
 > 5. **Separate evidence levels:** `OBSERVED` is directly witnessed; `JUDGED` is an agent assessment against the stated purpose; `HUMAN-ACCEPTED` is an explicit named owner/human decision linked to the evidence and intent; `UNVERIFIED` means required evidence was not collected; `ENVIRONMENT-BLOCKED` means applicable review could not run; `NOT-APPLICABLE` means the surface does not exist. Agent confidence is metadata, never acceptance or proof.
 > 6. **First-run rule:** without an accepted expectation, report candidate evidence and `ACCEPTANCE-PENDING`. Never save the current screen/output as an expected baseline merely because it was generated or because an automated test passed. Promotion requires an explicit acceptance record naming the accepting person/role, timestamp, intent reference, evidence references, scope, and residual risk where relevant.
@@ -503,8 +511,8 @@ that the fix belongs elsewhere — stop the round and escalate.
 
 > **AI Mistake Prevention** — Failure modes to avoid on every task:
 >
-> **FIX GATE — INVESTIGATE FIRST.** Before applying any project-related fix, always invoke `$investigate` or `$debug-investigate` and establish the root cause; the failure site may be only a symptom.
-> **FAILED-TEST GATE.** For any failed or flaky test, `$debug-investigate` is mandatory before editing source or tests; never change either side merely to force green.
+> **ROOT-CAUSE GATE — INVESTIGATE FIRST.** Before applying any project-related correction, always use the project's root-cause investigation protocol and establish the cause; the failure site may be only a symptom.
+> **FAILED-TEST GATE.** For any failed or unstable test, use the project's test-investigation protocol before editing source or tests; never change either side merely to force green.
 > **Re-read files after context changes.** Context compaction, resume, or long-running work can make memory stale; verify current files before acting.
 > **Verify generated content against source evidence.** AI hallucinates APIs, names, claims, and document facts. Check the relevant source before documenting or referencing.
 > **Check downstream references before deleting or renaming.** Removing an artifact can stale docs, generated mirrors, configs, and callers; map references first.
@@ -554,7 +562,7 @@ that the fix belongs elsewhere — stop the round and escalate.
 
 <!-- SYNC:experience-acceptance-contract:reminder -->
 
-**MUST ATTENTION** classify the configured surface, read intended purpose, bring the whole system up locally and POLL readiness before observing, exercise the actual observable feature through the real interface, capture and READ the runtime log stream and the relevant screens, inspect evidence, separate OBSERVED/JUDGED/HUMAN-ACCEPTED/UNVERIFIED/ENVIRONMENT-BLOCKED/NOT-APPLICABLE, preserve old expectations on mismatch, and require explicit acceptance before baseline promotion. A runtime ERROR is a defect even when the output looked right; a WARNING is advisory. Never silence a log, invent a measurement, or infer acceptance from a screenshot, passing test, or agent confidence; ordinary tests remain model-free.
+**MUST ATTENTION** classify the configured surface, read intended purpose, bring the whole system up locally and POLL readiness before observing, exercise the actual observable feature through the real interface, use the reusable bounded `waitUntil(condition, options)` helper before and after every browser/UI-control operation for readiness/actionability, expected positive/negative outcomes, and applicable error-alert present/absent states, then wait exactly **500ms at the end of each operation**, capture and READ the runtime log stream and the relevant screens, inspect evidence, separate OBSERVED/JUDGED/HUMAN-ACCEPTED/UNVERIFIED/ENVIRONMENT-BLOCKED/NOT-APPLICABLE, preserve old expectations on mismatch, and require explicit acceptance before baseline promotion. A runtime ERROR is a defect even when the output looked right; a WARNING is advisory. Never silence a log, invent a measurement, or infer acceptance from a screenshot, passing test, or agent confidence; ordinary tests remain model-free.
 
 <!-- /SYNC:experience-acceptance-contract:reminder -->
 
