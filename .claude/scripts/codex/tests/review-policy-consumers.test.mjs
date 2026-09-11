@@ -257,6 +257,28 @@ test('R3-PROMPT-023/030: every existing carrier has exact updated body and balan
     for (const [tag, count] of seen) assert.ok(count > 0, `non-vacuous carrier inventory for ${tag}`);
 });
 
+test('R3-PROMPT-031: visual review consumers persist one artifact result before opening the next', async () => {
+    const canonical = await fs.readFile(canonicalPath, 'utf8');
+    const expected = canonicalBody(canonical, 'incremental-persistence');
+    assert.match(expected, /MANDATORY for every visual-artifact review/);
+    assert.match(expected, /open exactly ONE artifact, inspect it, and append its record BEFORE opening the next artifact/);
+    assert.match(expected, /an explicit `none` when no issue exists/);
+    assert.match(expected, /derive processed and remaining artifacts from the ordered inventory/);
+    assert.match(expected, /a missing record is incomplete review, never a clean result/);
+
+    const visualConsumers = [
+        '.claude/skills/experience-review/SKILL.md',
+        '.claude/skills/test-ui/SKILL.md',
+        '.claude/skills/e2e-test-verify-loop/SKILL.md',
+        '.claude/skills/workflow-e2e/SKILL.md',
+        '.claude/skills/workflow-e2e-green/SKILL.md'
+    ];
+    for (const relative of visualConsumers) {
+        const text = await fs.readFile(path.join(root, relative), 'utf8');
+        assert.equal(body(text, 'incremental-persistence'), expected, `${relative} must carry the canonical per-artifact persistence contract`);
+    }
+});
+
 test('R3-PROMPT-023: specialist overrides preserve role and durable budget', async () => {
     for (const [name, role] of [['architecture-review', /`architect` subagent_type/], ['integration-test-review', /`integration-tester` subagent_type/], ['ui-review', /UI\/UX-specialized subagent_type/]]) {
         const source = await fs.readFile(path.join(root, '.claude', 'skills', name, 'SKILL.md'), 'utf8');
