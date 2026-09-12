@@ -7,7 +7,7 @@
 | Goal                           | Document                                                                                                                           |
 | ------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------- |
 | **New to Claude Code?**        | [quick-start.md](./quick-start.md) - 5-minute onboarding                                                                           |
-| **Need a skill?**              | [skills/README.md](./skills/README.md) - 169 skills catalog                                                                        |
+| **Need a skill?**              | [skills/README.md](./skills/README.md) - 170 skills catalog                                                                        |
 | **Building a feature?**        | [skills/README.md](./skills/README.md) + `docs/project-reference/` patterns                                                        |
 | **Verifying user experience?** | [configuration/experience-verification.md](./configuration/experience-verification.md) - portable evidence and acceptance contract |
 | **Understanding hooks?**       | [hooks/README.md](./hooks/README.md) - 18 top-level hook files deep-dive                                                           |
@@ -24,7 +24,7 @@
 |-- README.md                 <- You are here (Navigation hub)
 |-- quick-start.md            5-minute onboarding guide
 |
-|-- skills/                   169 skills across 15+ domains
+|-- skills/                   170 skills across 15+ domains
 |   |-- README.md             Skills overview + full catalog
 |   +-- (patterns)           → docs/project-reference/
 |
@@ -145,7 +145,7 @@
 
 | Category               | Count |
 | ---------------------- | ----- |
-| Skills                 | 169   |
+| Skills                 | 170   |
 | Hook files (top-level) | 18    |
 | Lib Modules            | 31    |
 | Hook Events            | 8     |
