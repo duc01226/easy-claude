@@ -550,7 +550,7 @@ When editing files matching these path patterns, pre-read the listed context fir
 
 | Kind        | Count                                       |
 | ----------- | ------------------------------------------- |
-| Skills      | <!-- COUNT:skills -->169<!-- /COUNT -->     |
+| Skills      | <!-- COUNT:skills -->170<!-- /COUNT -->     |
 | Hooks       | <!-- COUNT:hooks -->18<!-- /COUNT -->       |
 | Agents      | <!-- COUNT:agents -->27<!-- /COUNT -->      |
 | Workflows   | <!-- COUNT:workflows -->19<!-- /COUNT -->   |

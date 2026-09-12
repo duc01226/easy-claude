@@ -157,7 +157,7 @@ DESIGN_DISTINCTIVENESS = [
     # review role — clauses are fail-conditions citing DD-<clause> + file:line
     "ui-review", "web-design-guidelines", "artifact-review", "test-ui",
     # design/author role — the gate shapes the artifact the skill authors
-    "design", "design-spec", "figma-design", "feature-presentation",
+    "design", "design-spec", "figma-design", "feature-presentation", "presentation-builder",
     # plan role — the design plan + generic test are decided here, before any code exists
     "plan", "scaffold",
     # build role — emits real markup/styles, so the clauses are build constraints

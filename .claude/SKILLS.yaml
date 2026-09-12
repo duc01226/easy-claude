@@ -2,9 +2,9 @@ metadata:
   title: Skills Catalog
   description: Auto-generated catalog of all available skills in ClaudeKit Engineer
   last_updated: '2026-09-12'
-  total_skills: 169
+  total_skills: 170
   total_by_status:
-    active: 166
+    active: 167
     deprecated: 3
     experimental: 0
 categories:
@@ -907,6 +907,19 @@ skills:
       category: other
       has_scripts: false
       has_references: false
+      status: active
+      deprecated_by: null
+      deprecated_since: null
+      removal_after: null
+    - name: presentation-builder
+      path: presentation-builder/SKILL.md
+      description: '[Documentation] Use when creating, revising, auditing, or generating
+        a presentation for any subject. Produces a narrative-led, self-contained HTML
+        deck with per-slide speaker notes, keyboard navigation, accessible controls,
+        persistent browser-local edit mode, reset, export, and validation.'
+      category: other
+      has_scripts: true
+      has_references: true
       status: active
       deprecated_by: null
       deprecated_since: null
