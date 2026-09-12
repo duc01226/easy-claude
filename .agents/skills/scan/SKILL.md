@@ -42,26 +42,33 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 
 ## Quick Summary
 
-**Goal:** Scan the codebase for ONE target reference doc and surgically (re)populate it with actual patterns — every example from real project files with `file:line`. The 4-phase engine below is shared; the per-target data (which doc, how many sub-agents, what to detect, what sections to write, what NOT to do) comes from the target's entry in `references/targets.md`.
+**Goal:** Scan one manifest-selected reference-doc target and deliver a surgical, evidence-backed update whose examples, coverage, and generated content are verified against the project without unsupported changes.
+
+**Summary:**
+
+- **Purpose:** Run one manifest-defined scan; its entry owns the doc, detection, agents, sections, exceptions, slivers, anti-rationalization, and final enhancement.
+- **Ordered path:** Resolve key/entry → assess mode/type/config/graph → derive strategy/tasks → run declared scans → analyze/generate → write/verify/report → final `$prompt-enhance <doc>`.
+- **Modes/gates:** Init/Sync and target-defined Force; `kind: orchestrator` uses its procedure; unknown key STOPs; confidence `<60%` reports uncertainty and follows manifest fallback.
+- **Evidence:** Use real `file:line` examples, incremental unique reports, surgical writes, all-path/name checks, target exceptions, and graph checks when `.code-graph/graph.db` exists.
 
 **Workflow:**
 
-1. **Resolve target** — Read `--target=<key>`; load its entry from `references/targets.md`
-2. **Assess** — Read target doc, detect init vs sync (vs force) mode, run the target's Phase-0 detection table(s)
-3. **Scan** — Launch the target's sub-agents in parallel; discover patterns with `file:line` evidence
-4. **Report** — Write structured findings to report file (incremental, not batched)
-5. **Generate** — Surgical update of the reference doc from report (apply target's Target Sections + Content Rules)
-6. **Verify** — Multi-round fresh-eyes review validates examples and coverage; then prompt-enhance the doc
+1. **Resolve** — Parse `--target=<key>`; load its `references/targets.md` entry.
+2. **Assess** — Read the doc; detect Init/Sync/Force; run manifest Phase-0 detection.
+3. **Scan** — Run declared sub-agents; discover patterns with `file:line` evidence.
+4. **Report** — Persist structured findings incrementally.
+5. **Generate** — Surgically update the reference doc using Target Sections + Content Rules.
+6. **Verify** — Fresh-eyes review validates examples/coverage; then prompt-enhance the doc.
 
 **Key Rules:**
 
-**MUST ATTENTION** resolve `--target` FIRST and load its manifest entry — every target-specific behavior (doc path, sub-agent count/roles, Phase-0 tables, Target Sections, Content Rules, special gates, anti-rationalization rows) comes from that entry, NOT from memory
-**MUST ATTENTION** detect framework/type FIRST (per the target's Phase-0 table) — scan strategy derives from detection, never hardcoded
-**MUST ATTENTION** every code example from actual project files with `file:line` — NEVER fabricate
-**MUST ATTENTION** run graph command on key files before concluding — grep finds text, graph finds structure
+**MUST ATTENTION** resolve `--target` FIRST; the manifest entry owns all target-specific behavior, never memory.
+**MUST ATTENTION** detect framework/type FIRST; derive scan terms and scopes from evidence, never hardcode.
+**MUST ATTENTION** use actual project examples with `file:line` — NEVER fabricate.
+**MUST ATTENTION** run graph command on key files before concluding; use it when `.code-graph/graph.db` exists.
 
-- Surgical update only — NEVER rewrite entire doc, NEVER remove a section without evidence it's obsolete
-- Some targets OVERRIDE shared output rules or add a branch (e.g. `feature-spec` intentionally includes directory trees; `design-system` has an init-mode Authoring branch with a sentinel-removal step). Always honor the target entry's "Content Rules / exceptions" and "Special slivers".
+- Update surgically — NEVER rewrite the whole doc or remove a section without evidence it is obsolete.
+- Honor target-entry Content Rules/exceptions and Special slivers, including target-specific branches.
 
 ---
 
@@ -280,6 +287,10 @@ Read the full report. Apply the fresh-eyes protocol:
 <!-- /SYNC:project-protocol-overlay:reminder -->
 
 ## Closing Reminders
+
+**IMPORTANT MUST ATTENTION Goal:** Scan one manifest-selected reference-doc target and deliver a surgical, evidence-backed update whose examples, coverage, and generated content are verified against the project without unsupported changes.
+
+**IMPORTANT MUST ATTENTION** verify every emitted path, example, coverage claim, and generated projection against the real repository before reporting success.
 
 **IMPORTANT MUST ATTENTION** resolve `--target` and load its manifest entry FIRST — never scan from memory of "what a backend/frontend/design scan does"
 
