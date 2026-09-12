@@ -93,7 +93,7 @@
 
 ## Workflow Catalog Reference
 
-All workflows are defined in `.claude/workflows.json` — the canonical catalog (20 workflows). Each workflow composes a subset of the phases above into a specific sequence. Tables below are regenerated from the live catalog.
+All workflows are defined in `.claude/workflows.json` — the canonical catalog (19 workflows). Each workflow composes a subset of the phases above into a specific sequence. Tables below are regenerated from the live catalog.
 
 ### Core Development Workflows
 

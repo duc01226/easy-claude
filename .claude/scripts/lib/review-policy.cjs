@@ -10,12 +10,12 @@
  * was performed by a trusted host.
  *
  * Policy:
- *   - maximum three rounds (a ceiling, not a target);
+ *   - maximum two rounds (a ceiling, not a target);
  *   - round 1 blocks on every validated finding;
- *   - rounds 2–3 block only CRITICAL/HIGH/MEDIUM findings;
- *   - failed binary gates always block, including round 2 and round 3;
+ *   - round 2 blocks only CRITICAL/HIGH/MEDIUM findings;
+ *   - failed binary gates always block, including round 2;
  *   - LOW findings deferred by the round-2 floor remain in the record;
- *   - an explicit minRounds may require two or three rounds, but a clean
+ *   - an explicit minRounds may require two rounds, but a clean
  *     review still ends as soon as that minimum is reached.
  *
  * CLI (JSON stdin, real clock):
@@ -31,8 +31,8 @@ const SCHEMA_VERSION = 1;
 // Bump whenever the round eligibility predicate changes.  Existing durable
 // records are intentionally invalidated rather than interpreted under a new
 // severity floor; callers must start a fresh run with the current policy.
-const POLICY_VERSION = 2;
-const MAX_ROUNDS = 3;
+const POLICY_VERSION = 3;
+const MAX_ROUNDS = 2;
 const SEVERITIES = Object.freeze(['CRITICAL', 'HIGH', 'MEDIUM', 'LOW']);
 const NON_SEVERITY_STATES = Object.freeze(['NOT VERIFIABLE']);
 const LOW_FINDING_FLOOR_ROUND = 2;
@@ -85,7 +85,7 @@ function validateRound(value, label = 'round') {
 function validateMinRounds(value, explicit = false) {
     const candidate = value === undefined ? 1 : value;
     if (!Number.isSafeInteger(candidate) || candidate < 1 || candidate > MAX_ROUNDS) {
-        throw new Error('minRounds must be an integer from 1 to 3');
+        throw new Error('minRounds must be an integer from 1 to 2');
     }
     return { value: candidate, explicit: explicit || value !== undefined };
 }

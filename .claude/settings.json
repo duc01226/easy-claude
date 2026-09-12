@@ -7,7 +7,7 @@
   "autoMemoryEnabled": false,
   "cleanupPeriodDays": 30,
   "disabledMcpjsonServers": ["chrome-devtools", "figma", "sequential-thinking"],
-  "effortLevel": "high",
+  "effortLevel": "medium",
   "enableAllProjectMcpServers": false,
   "enabledMcpjsonServers": ["context7", "github", "mongodb", "postgres"],
   "enabledPlugins": {

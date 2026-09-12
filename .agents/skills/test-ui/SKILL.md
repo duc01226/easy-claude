@@ -61,12 +61,12 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 - Save all screenshots in the report directory
 - Read `docs/project-config.json` and the linked E2E/experience references before choosing a runner, startup, authentication, data, viewport, or evidence strategy
 - Use only configured fixture, storage-state, registration, or manual-login procedures; never request, paste, print, or export raw cookies, tokens, passwords, headers, or browser storage
-- A feature/bugfix/whole-project E2E request belongs to `workflow-e2e-green`; this skill remains a report-only full-site QA/audit surface
+- A feature/bugfix/whole-project E2E request belongs to `workflow-e2e`; this skill remains a report-only full-site QA/audit surface
 - For web human-QC journeys, prefer the configured visible Playwright CLI path; use one reusable bounded `waitUntil(condition, options)` helper before each UI-control operation for readiness/actionability and applicable error-alert absence, and after it for the expected positive/negative outcome, dropdown/options, selected state, or error-alert presence/absence. Then wait exactly **500ms at the end** for post-action presentation. The delay never replaces readiness or a real settle signal.
 
 **Be skeptical. Apply critical thinking, sequential thinking. Every claim needs traced proof, confidence percentages (Idea should be more than 80%).**
 
-**Pre-read (design system):** Load `designSystem.canonicalDoc` + `tokenFiles` from `docs/project-config.json` so visual/style assertions reference real token names (`--brand-*`, `$brand-*`) instead of guesses.
+**Pre-read (design system):** Resolve `designSystem.canonicalDoc`, `tokenFiles`, and `appMappings[]` from `docs/project-config.json` before visual/style assertions. When a configured design authority or UI surface is absent, record evidence-backed `N/A`; when an applicable authority or inspection capability is missing, record `ENVIRONMENT-BLOCKED`. Never guess token names (`--brand-*`, `$brand-*`), components, breakpoints, or CSS conventions.
 
 Activate the browser automation tooling.
 
@@ -388,6 +388,21 @@ How to write reports:
 
 <!-- /SYNC:design-review-checklist -->
 
+<!-- SYNC:e2e-visual-design-contract -->
+
+> **E2E Visual Design Contract** — Binds when this skill or agent handles `--visual-review=true`, screenshot/recording evidence, human-QC of a user-facing UI, or visual expectation/baseline updates; for non-visual E2E/API/CLI work state `N/A — no user-facing visual surface` and do not invent a design review.
+>
+> 1. **Resolve authority first.** Read `docs/project-config.json`, its `designSystem.canonicalDoc`, `tokenFiles`, and `appMappings[]`, plus the resolved `design-system/README.md`, `frontend-patterns-reference.md`, `scss-styling-guide.md`, `.claude/docs/design-knowledge.md`, and `.claude/docs/design-review-checklist.md`; record `N/A` only for a proven absent surface or `ENVIRONMENT-BLOCKED` for an applicable missing capability — never invent tokens, components, breakpoints, type, CSS/BEM, or runner defaults.
+> 2. **Use project decisions.** Apply precedence: brief/accepted design contract → adopter project design-system/SCSS/frontend docs and ADRs → shared `UI-1.1`–`UI-9.4`, `DD-1`–`DD-8`, and `CL-1`–`CL-6`; surface a genuine conflict with both sides, never silently choose. Read and apply the full shared `SYNC:design-system-check`, `SYNC:ui-ux-design-principles`, `SYNC:design-distinctiveness-gate`, and `SYNC:design-review-checklist` bodies for their applicable roles. When UI generation or repair is in scope, consume the accepted `$design` decisions (or the adopter's equivalent professional design/component system); review-only E2E evidence must not invent a new visual language.
+> 3. **Map UI architecture before generation or UI fixes.** Inventory related screens, flows, and components; classify each relevant component `Common`, `Domain-Shared`, or `Page`; record its base abstraction and owner; reuse/compose before creating; record why reuse does not fit; keep one owner for markup, selectors, styling, lifecycle, and lower-tier test contracts. Page tests cover composition/outcomes, not copied lower-tier behavior.
+> 4. **Separate review owners.** Use `$experience-review` for the running surface and opened/read screenshot evidence; route source-only token, BEM/SCSS, z-index, component ownership, reuse, and static design findings to `$ui-review`. Never infer source architecture or design tokens from an image, and never treat a passing E2E command as visual/design approval.
+> 5. **Gate every visual round.** Capture every declared state × viewport (including loading, empty, error, permission, post-submit, and full-page where applicable), open/read each artifact, and record state, viewport, location, and measured values. `UI-*`/accessibility/layout-floor and `P0`–`P2` `CL-*` findings are `BLOCKING`; `DD-*` identity/polish is `ADVISORY` unless the governing brief/project contract makes it objectively required. Unmeasurable values are `NOT VERIFIABLE`; never promote a baseline/expectation automatically.
+> 6. **Report the contract.** Persist authority paths and resolution status, component tier/base/owner/reuse decisions, matrix coverage, `UI`/`DD`/`CL` coverage or skips, evidence/read status, and remaining human acceptance; preserve the protected business invariant and exact E2E scope.
+
+<!-- /SYNC:e2e-visual-design-contract -->
+
+
+
 <!-- SYNC:evidence-based-reasoning:reminder -->
 
 **IMPORTANT MUST ATTENTION** cite `file:line` evidence for every claim (confidence >80% to act). NEVER speculate without proof.
@@ -437,6 +452,12 @@ How to write reports:
 - **MUST ATTENTION** when the change/plan/artifact has a user-facing front-end surface, READ `.claude/docs/design-review-checklist.md` and run it: `CL-1` establish context first (platform · user · task · metric · constraints · scope · artifacts — fewer than four → state the gap, findings are low confidence) · `CL-2` evidence or nothing, cite a location per finding, NEVER invent a measurement (unmeasurable → `NOT VERIFIABLE`), tag `MEASURED`/`OBSERVED`/`HEURISTIC` · `CL-3` rank `P0`–`P4`, cap at top 10 by severity, NEVER pad, concrete fix on every `P0`/`P1` · `CL-4` sweep §A–§N in order, one focused pass each, with §F/§G/§H and §L applied only when the platform/product matches and §I (WCAG 2.2 AA) as a `P1` floor · `CL-5` short on time → run the 10-check §P triage · `CL-6` report in the §O shape · for source code, run the §M6–§M9 component architecture pass (Common/Domain-Shared/Page tier, base/owner, reuse, and duplication). Project design-system docs and ADRs OUTRANK the checklist; report a defect ONCE across `UI-*`/`DD-*`/`CL-*`. For a plan, the checklist binds the UI phases' acceptance criteria (platform, conditional sections, the eight screen states, the a11y floor). Skip ONLY when the change has NO user-facing front-end surface, stated explicitly.
 
 <!-- /SYNC:design-review-checklist:reminder -->
+
+<!-- SYNC:e2e-visual-design-contract:reminder -->
+
+**MUST ATTENTION** visual E2E/QC resolves the project design authority first, applies project design-system/SCSS/frontend decisions plus `UI-*`/`DD-*`/`CL-*` roles, classifies Common/Domain-Shared/Page ownership and reuse, sends static source findings to `$ui-review` and runtime image evidence to `$experience-review`, reads every state × viewport artifact, treats UI/accessibility-floor findings as blocking and DD identity/polish as advisory, never invents measurements, and never auto-promotes baselines; non-visual runs state `N/A`.
+
+<!-- /SYNC:e2e-visual-design-contract:reminder -->
 
 ## Closing Reminders
 

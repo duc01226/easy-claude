@@ -584,7 +584,7 @@ Pattern: Grep first → Graph expand → Grep verify. Iterative deepening encour
 - **Critical Thinking:** NEVER present a guess as fact; trace proof.
 - **Sequential Thinking:** Multi-step Thought N/M with confidence closer.
 - **AI Mistake Prevention:** verify generated content against evidence, trace downstream references, verify all affected outputs, re-read after context loss, surface ambiguity.
-- **Severity Rubric:** Classify findings Critical/High/Medium/Low by consequence using `SYNC:severity-rubric`; round 1 blocks on every validated finding, rounds 2–3 block only CRITICAL/HIGH/MEDIUM, and LOW is recorded/deferred. Failed binary gates always block.
+- **Severity Rubric:** Classify findings Critical/High/Medium/Low by consequence using `SYNC:severity-rubric`; round 1 blocks on every validated finding, round 2 blocks only CRITICAL/HIGH/MEDIUM, and LOW is recorded/deferred. Failed binary gates always block.
 - **Systematic Batching:** Large changeset → size-capped parallel sub-agent batches.
 - **Category Review Thinking:** Derive concerns from first principles, not checklists.
 - **Graph-Assisted Investigation:** Run one graph command before concluding.

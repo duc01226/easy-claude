@@ -1,4 +1,5 @@
 <!-- Last scanned: 2026-08-04 -->
+<!-- Last verified: 2026-09-12 (docs-update, impact-scoped) -->
 
 # Frontend Patterns Reference
 
@@ -27,8 +28,8 @@ This placeholder gives `/scan --target=frontend-patterns` a stable output path f
 
 easy-claude ships skill definitions and agents that produce frontend guidance for **other** projects — not for this repository:
 
-- **Skills:** `/design` (multi-mode/lane), `/ui-ux-pro-max`, `/figma-design`, `/design-spec`
-- **Shared protocols:** `ui-system-context.md`, `ui-wireframe-protocol.md`, `design-system-check.md`
+- **Skills:** `/design` (multi-mode/lane and local design intelligence), `/figma-design`, `/design-spec`
+- **Shared protocol blocks:** `SYNC:ui-system-context`, `SYNC:ui-wireframe-protocol`, and `SYNC:design-system-check` are defined in `.claude/skills/shared/sync-inline-versions.md:207,1079,1146`; consuming skills inline them.
 - **Agents:** `frontend-developer`, `fullstack-developer`, `ui-ux-designer`
 - **Scan skill:** `/scan --target=frontend-patterns` — run this after adopting easy-claude into a frontend project to populate this file with component patterns, service abstractions, state management conventions, and routing structure.
 

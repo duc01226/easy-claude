@@ -442,6 +442,6 @@ For more detail on specific topics:
 ## Related lanes & skills
 
 - Marketing/creative lane (landing pages, campaigns, screenshot replication): `design --lane=marketing` (`../lane-marketing/lane-guide.md`)
-- `ui-ux-pro-max` — searchable design DB (50 styles, 21 palettes, 50 font pairings)
+- `design` local `scripts/search.py` — searchable design-intelligence index (styles, palettes, typography, products, UX, charts, landing, prompts, and stack guidance)
 - `design-spec` — Create design specifications from requirements (incl. UX research notes, accessibility audit)
 - `web-design-guidelines` — WCAG 2.2, accessibility review

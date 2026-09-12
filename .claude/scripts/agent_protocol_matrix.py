@@ -353,6 +353,8 @@ AGENT_QUALITY_BLOCKS = {
         # wave 2 (twin: e2e-test)
         "test-failure-fault-adjudication", "real-world-fidelity-testing",
         "test-architecture-execution-contract",
+        # Visual baseline/generation handoff (twin: E2E visual-review skills).
+        "e2e-visual-design-contract",
         # Same author-side gap as `tester`: clause 5 "Tests verify intent"
         # (/why-review F-M1).
         "logic-and-intention-review",
@@ -502,7 +504,7 @@ AGENT_SKILL_CONNECTIONS = {
     ],
     "spec-compliance-reviewer": ["artifact-review", "spec", "spec-clarify"],
     "tester": ["test"],
-    "ui-ux-designer": ["design", "design-spec", "ui-review", "ui-ux-pro-max"],
+    "ui-ux-designer": ["design", "design-spec", "ui-review"],
 }
 
 # The test-architecture contract is intentionally connected across the full

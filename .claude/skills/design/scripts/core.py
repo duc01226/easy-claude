@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-UI/UX Pro Max Core - BM25 search engine for UI/UX style guides
+Design Intelligence Core - BM25 search engine for UI/UX design guidance
 """
 
 import csv

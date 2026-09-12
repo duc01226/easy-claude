@@ -4,18 +4,18 @@ Create immersive interactive 3D designs with Three.js.
 
 ## Prerequisites
 
-- Activate `ui-ux-pro-max` skill first
+- Use the `design` skill's local design-intelligence search first
 - Activate `threejs` skill for 3D and WebGL expertise
 - Have `visual analysis tooling` skill ready for asset generation
 
 ## Initial Research
 
-Run `ui-ux-pro-max` searches:
+Run focused `design` design-intelligence searches:
 
 ```bash
-python3 .claude/skills/ui-ux-pro-max/scripts/search.py "<product-type>" --domain product
-python3 .claude/skills/ui-ux-pro-max/scripts/search.py "immersive 3d" --domain style
-python3 .claude/skills/ui-ux-pro-max/scripts/search.py "animation" --domain ux
+py -3 .claude/skills/design/scripts/search.py "<product-type>" --domain product
+py -3 .claude/skills/design/scripts/search.py "immersive 3d" --domain style
+py -3 .claude/skills/design/scripts/search.py "animation" --domain ux
 ```
 
 ## Workflow Steps

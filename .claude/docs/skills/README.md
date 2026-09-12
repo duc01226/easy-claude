@@ -1,6 +1,6 @@
 # Skills Reference
 
-> 170 runnable skills across 15+ domains + 7 shared reference/protocol files for context-aware AI assistance (`_templates/template-skill` is a source template, not a runnable skill)
+> 169 runnable skills across 15+ domains + 8 shared reference/protocol files for context-aware AI assistance (`_templates/template-skill` is a source template, not a runnable skill)
 
 ## Overview
 
@@ -22,12 +22,12 @@ Skills Activated: fix, investigate
 
 ## Skill Domains
 
-> Curated highlights — the full catalog has 170 runnable skills; the tables below list selected skills per domain, not the complete set.
+> Curated highlights — the full catalog has 169 runnable skills; the tables below list selected skills per domain, not the complete set.
 
 | Domain                                            | Skills | Description                                    |
 | ------------------------------------------------- | ------ | ---------------------------------------------- |
 | [Development - Backend](#development---backend)   | 0      | Project-specific backend patterns              |
-| [Development - Frontend](#development---frontend) | 3      | Components, forms, state, styling, design      |
+| [Development - Frontend](#development---frontend) | 2      | Components, forms, state, styling, design      |
 | [Architecture](#architecture)                     | 3      | Architecture, performance, security            |
 | [Debugging/Testing](#debuggingtesting)            | 3      | Test generation, test specs                    |
 | [AI/ML Tools](#aiml-tools)                        | 1      | Structured reasoning                           |
@@ -42,7 +42,7 @@ Skills Activated: fix, investigate
 | [Document Processing](#document-processing)       | 4      | PDF, DOCX, Markdown conversions                |
 | [Utility](#utility)                               | 2      | Claude Code CLI, skill creation                |
 
-**Additional:** Shared reference/protocol files (7) -- see [Shared Protocols](#shared-protocols-sync-inline)
+**Additional:** Shared reference/protocol files (8) -- see [Shared Protocols](#shared-protocols-sync-inline)
 
 ---
 
@@ -57,7 +57,6 @@ See `docs/project-reference/backend-patterns-reference.md` for project-specific 
 | Skill                   | Triggers                           | Description                         |
 | ----------------------- | ---------------------------------- | ----------------------------------- |
 | `design`                | UI, design, screenshot             | UI implementation (multi-mode/lane) |
-| `ui-ux-pro-max`         | UX, design system                  | Advanced UX                         |
 | `web-design-guidelines` | accessibility, WCAG, visual review | UI compliance review                |
 
 See `docs/project-reference/frontend-patterns-reference.md` for project-specific frontend patterns.
@@ -314,4 +313,4 @@ Use `/skill-creator` to create a new skill:
 
 ---
 
-_Source: `.claude/skills/` | 170 runnable skills across 15+ domains + 7 shared reference/protocol files (the `_templates/template-skill` source is excluded from runtime discovery)_
+_Source: `.claude/skills/` | 169 runnable skills across 15+ domains + 8 shared reference/protocol files (the `_templates/template-skill` source is excluded from runtime discovery)_

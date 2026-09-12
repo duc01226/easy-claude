@@ -4,17 +4,17 @@ Rapid design creation with minimal planning overhead.
 
 ## Prerequisites
 
-- Activate `ui-ux-pro-max` skill first
+- Use the `design` skill's local design-intelligence search first
 
 ## Initial Research
 
-Run `ui-ux-pro-max` searches:
+Run focused `design` design-intelligence searches:
 
 ```bash
-python3 .claude/skills/ui-ux-pro-max/scripts/search.py "<product-type>" --domain product
-python3 .claude/skills/ui-ux-pro-max/scripts/search.py "<style-keywords>" --domain style
-python3 .claude/skills/ui-ux-pro-max/scripts/search.py "<mood>" --domain typography
-python3 .claude/skills/ui-ux-pro-max/scripts/search.py "<industry>" --domain color
+py -3 .claude/skills/design/scripts/search.py "<product-type>" --domain product
+py -3 .claude/skills/design/scripts/search.py "<style-keywords>" --domain style
+py -3 .claude/skills/design/scripts/search.py "<mood>" --domain typography
+py -3 .claude/skills/design/scripts/search.py "<industry>" --domain color
 ```
 
 ## Workflow Steps

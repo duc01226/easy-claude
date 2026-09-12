@@ -45,6 +45,16 @@ For full canonical detail, read `CLAUDE.md` and `.codex/CODEX_CONTEXT.md` direct
 
 
 
+
+
+
+
+
+
+
+
+
+
 # easy-claude - Code Instructions
 
 <!-- SECTION:tldr -->
@@ -454,7 +464,7 @@ Apply the shared AI-SDD contract from `shared/sdd-artifact-contract.md` and `SYN
 
 This compact pointer is auto-generated from `.codex/CODEX_CONTEXT.md` by `npm run codex:sync:context`.
 Read `.codex/CODEX_CONTEXT.md` before any non-trivial workflow or skill; it carries the full static catalog and protocol detail.
-Context fingerprint (SHA-256): 730cf2f544936f57d1631a8420d7904070c992902be1119c7aa48e80de8d0806
+Context fingerprint (SHA-256): 15616617f7b405804aca251f3866d16962a64ded61374286e34815e30a80830e
 Do not edit this pointer manually; update canonical Claude sources and re-sync.
 
 ## Codex Project Reference Gate (Hook-Independent)

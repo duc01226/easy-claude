@@ -380,7 +380,7 @@ Verify under `## Specification Validation`:
 > - Follows cycle: plan → implement → review → fix → verify
 > - Start Phase N+1 only after Phase N passes VERIFY — why: building on an unverified phase compounds errors downstream
 >
-> **Phase success = all TCs pass + code-reviewer agent approves + no blocking findings under the current review bar.** Round 1 requires zero validated findings at any severity; round 2+ requires zero validated CRITICAL/HIGH/MEDIUM findings, with LOW findings recorded as deferred. Failed binary gates remain blocking at every round.
+> **Phase success = all TCs pass + code-reviewer agent approves + no blocking findings under the current review bar.** Round 1 requires zero validated findings at any severity; round 2 requires zero validated CRITICAL/HIGH/MEDIUM findings, with LOW findings recorded as deferred. Failed binary gates remain blocking at every round.
 
 <!-- /SYNC:iterative-phase-quality -->
 

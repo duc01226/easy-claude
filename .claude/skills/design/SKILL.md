@@ -9,6 +9,13 @@ disable-model-invocation: false
 
 **Goal:** Create (or describe) a UI design using design-intelligence databases and subagents, dispatched by `--mode` (input carrier) × `--lane` (design lane).
 
+**Summary:**
+
+- **Route:** parse `--mode={fast|good|describe|screenshot|video}` and `--lane={product|marketing}`; default to `fast` × `product`.
+- **Spine:** resolve project authority and existing UI → query local design intelligence → ingest visual evidence when applicable → design with `ui-ux-designer` → implement unless `describe` → report and seek approval.
+- **Quality floor:** apply project tokens/components plus `UI-*`/`DD-*`/`CL-*`; design states, interaction feedback, declared scales, measured contrast, touch targets, responsive reflow, and subject-grounded copy before the happy path.
+- **Ownership:** `/design` authors the visual direction and implementation contract; `/ui-review` owns source findings and review evidence; the local index supplies candidates only.
+
 > **Renamed:** folds the former `/design-fast`, `/design-good`, `/design-describe`, `/design-screenshot`, `/design-video` skills into `--mode={fast|good|describe|screenshot|video}` — those names no longer resolve as slash commands; use `/design --mode=…`.
 >
 > **Absorbed lanes:** the former `frontend-design` (marketing/creative) and `interface-design` (product-UI) skills now fold into `--lane={marketing|product}` — those names no longer resolve as slash commands; use `/design --lane=…`. Each lane's full body lives under `references/lane-{marketing,product}/lane-guide.md`.
@@ -31,7 +38,7 @@ disable-model-invocation: false
 
 **Shared workflow (5-stage spine):**
 
-1. **Research** — Run `ui-ux-pro-max` searches for design intelligence (ALWAYS FIRST)
+1. **Research** — Resolve project authority, then run this skill's design-intelligence search (ALWAYS FIRST for generative research)
 2. **Ingest** — For visual modes (`describe`/`screenshot`/`video`), use `visual analysis tooling` to analyze the screenshot/video in super-detail
 3. **Design** — Use `ui-ux-designer` subagent to create the design (or, for `describe`, an implementation plan), applying the selected lane's craft body
 4. **Implement** — Build as code following the selected lane guide: `references/lane-product/lane-guide.md` (product UIs) or `references/lane-marketing/lane-guide.md` (marketing/creative). Skipped in `describe` mode.
@@ -39,7 +46,7 @@ disable-model-invocation: false
 
 **Key Rules:**
 
-- Always activate `ui-ux-pro-max` FIRST for design intelligence
+- Resolve the project's accepted design system and existing UI first; then use this skill's local design-intelligence index as candidate input.
 - Default to pure HTML/CSS/JS if the user doesn't specify a framework
 - Use `visual analysis tooling` for generating AND reviewing real visual assets
 - Use media processing tooling (RMBG) to remove backgrounds from generated assets when needed
@@ -64,7 +71,7 @@ Do NOT inline the lane bodies here — read the matching `lane-guide.md` when th
 
 ## Required Skills (Priority Order)
 
-1. **`ui-ux-pro-max`** — Design intelligence database (ALWAYS ACTIVATE FIRST)
+1. **In-skill design-intelligence search/data** — Query `scripts/search.py` after project authority and existing-UI research; results are candidate input, not project authority.
 2. **In-skill lane references** — `references/lane-{product|marketing}/lane-guide.md` (+ their reference files) own implementation, screenshot/video analysis, and design replication for the selected lane.
 
 **Ensure token efficiency while maintaining high quality.**
@@ -73,14 +80,27 @@ Do NOT inline the lane bodies here — read the matching `lane-guide.md` when th
 
 > **[BLOCKING] Step 0 — Understand the existing UI first** (per the `SYNC:existing-ui-research` protocol carried by this skill). Before designing or updating any screen/component, inventory the existing related UI (screens, pages, components already serving this feature/domain) and map every connected feature flow that links to / embeds / navigates to-or-from it, so the design faithfully matches the current UI system. Skip only for non-UI work (state it explicitly).
 
-**FIRST**, run `ui-ux-pro-max` searches to gather design intelligence:
+**FIRST**, after Step 0 and the project-authority pre-read, run focused design-intelligence searches to gather candidate input:
 
 ```bash
-python $HOME/.claude/skills/ui-ux-pro-max/scripts/search.py "<product-type>" --domain product
-python $HOME/.claude/skills/ui-ux-pro-max/scripts/search.py "<style-keywords>" --domain style
-python $HOME/.claude/skills/ui-ux-pro-max/scripts/search.py "<mood>" --domain typography
-python $HOME/.claude/skills/ui-ux-pro-max/scripts/search.py "<industry>" --domain color
+py -3 .claude/skills/design/scripts/search.py "<product-type>" --domain product
+py -3 .claude/skills/design/scripts/search.py "<style-keywords>" --domain style
+py -3 .claude/skills/design/scripts/search.py "<mood>" --domain typography
+py -3 .claude/skills/design/scripts/search.py "<industry>" --domain color
 ```
+
+## Design Intelligence Research Contract
+
+The local index is a research aid owned by this skill. It supplies structured candidates; it never outranks the adopter project's accepted brief, design system, tokens, components, frontend conventions, or accessibility requirements.
+
+1. **Frame the query.** Extract the product type, audience, job-to-be-done, industry, desired style, platform, implementation stack, and constraints before searching.
+2. **Search deliberately.** Query `product`, `style`, `typography`, and `color` first; add `landing`, `chart`, `ux`, `prompt`, and the relevant `--stack` query when the surface needs them. Use specific domain terms and more than one query when the brief has multiple concerns.
+3. **Resolve and record authority.** Read `docs/project-config.json` and resolve `designSystem.canonicalDoc`, `tokenFiles`, and `appMappings[]` when present. Reconcile candidates against the accepted brief, existing-UI inventory, shared `UI-*`/`DD-*`/`CL-*` contracts, and the selected lane. Record why important candidates were selected or rejected; never invent tokens, components, breakpoints, or stack defaults when the project has not declared them.
+4. **Keep implementation quality explicit.** Use the project's icon system or one consistent accessible SVG set; do not use emoji as UI icons; verify official brand marks. Define stable hover, focus, active, disabled, and loading feedback without layout shift, using the project's cursor and motion conventions.
+5. **Design state coverage before the happy path.** Specify `Default`, `Loading`, `Disabled`, `Error`, `Empty`, and `Success` where applicable. Errors need human-readable recovery, empty states need a meaningful next action, in-flight actions must prevent duplicate submission, and successful actions need acknowledgment.
+6. **Design for reachable reflow.** Use the project's content breakpoints. If none are declared, smoke-check 320, 768, 1024, and 1440 widths: rows reflow, grids collapse, non-reflow content has an intentional reachable scroll fallback, and nothing is clipped or unreachable. Surface any large refactor or new breakpoint as an explicit decision.
+
+`ui-review` remains the owner of source-level findings, evidence, severity, component ownership, and review procedure. This contract makes the same quality floor explicit while authoring a design; it does not duplicate or replace the review skill.
 
 ## Design Principles Contract (all modes)
 
@@ -100,7 +120,7 @@ The 40 UI/UX Design Principles (`UI-1.1`–`UI-9.4`) carried as the `SYNC:ui-ux-
 
 ### `--mode=fast` (default) — quick design
 
-1. Run the shared `ui-ux-pro-max` searches above.
+1. Run the shared design-intelligence searches above.
 2. Use `ui-ux-designer` subagent to start the design process.
 3. If the user doesn't specify, create the design in pure HTML/CSS/JS.
 4. Report back with a brief summary of the changes; ask the user to review and approve.
@@ -110,7 +130,7 @@ The 40 UI/UX Design Principles (`UI-1.1`–`UI-9.4`) carried as the `SYNC:ui-ux-
 
 Same spine as `fast`, raised to a higher quality bar (iterate on details):
 
-1. Run comprehensive `ui-ux-pro-max` searches across all domains.
+1. Run comprehensive design-intelligence searches across the applicable domains.
 2. Use `researcher` subagent to research design style, trends, fonts, colors, borders, spacing, elements' positions, etc.
 3. Use `ui-ux-designer` subagent to implement the design step by step based on the research.
 4. If the user doesn't specify, create the design in pure HTML/CSS/JS.
@@ -165,7 +185,7 @@ Treat `$ARGUMENTS` as the video to recreate exactly. Same as `--mode=screenshot`
 
 ## Notes (all modes)
 
-- **Design system (canonical):** When implementing UI — HTML, CSS, or SCSS — read the project canonical design-system doc `docs/project-reference/design-system/design-system-canonical.md` first for design tokens, component patterns, and BEM conventions. Prefer `designSystem.canonicalDoc` + `tokenFiles` (resolved from `docs/project-config.json`) over per-app docs for new design work.
+- **Design system (canonical):** When implementing UI — HTML, CSS, or SCSS — read `docs/project-config.json` first, then resolve `designSystem.canonicalDoc`, `tokenFiles`, and `appMappings[]`. Read every configured authority before choosing tokens, component patterns, breakpoints, or BEM conventions. If the project has no configured authority, record `N/A` and follow the selected lane plus the shared UI/DD/CL contracts; never invent a canonical path or token vocabulary.
 - Remember you have the capability to generate images, videos, edit images, etc. with `visual analysis tooling` skills. Use them to create the design and real assets.
 - Always review, analyze, and double-check generated assets with `visual analysis tooling` skills to verify quality.
 - Use media processing tooling (RMBG) to remove background from generated assets if needed (`good`/`screenshot`/`video`).
@@ -424,6 +444,10 @@ Think hard to plan & start working on these tasks follow the Orchestration Proto
 <!-- /SYNC:design-review-checklist:reminder -->
 
 ## Closing Reminders
+
+**IMPORTANT MUST ATTENTION Goal:** Create (or describe) a UI design using design-intelligence databases and subagents, dispatched by `--mode` (input carrier) × `--lane` (design lane).
+
+**IMPORTANT MUST ATTENTION** route `--mode={fast|good|describe|screenshot|video}` × `--lane={product|marketing}` → resolve project authority/existing UI → query local design intelligence → ingest visual evidence when applicable → design → implement unless `describe` → report and seek approval; project authority outranks candidates, `/ui-review` owns source review evidence.
 
 **MUST ATTENTION — Protocols in force (concise digest of the SYNC/shared blocks this skill carries):**
 

@@ -61,7 +61,7 @@ Define pass/fail criteria at each stage:
 #### Gate: QA → Release
 
 - [ ] All test cases executed
-- [ ] No open CRITICAL/HIGH/MEDIUM findings; any Round 2+ LOWs are recorded
+- [ ] No open CRITICAL/HIGH/MEDIUM findings; any Round 2 LOWs are recorded
       as deferred rather than treated as a reason to reopen a fix/review loop
 - [ ] Regression suite passed
 - [ ] PO sign-off received
@@ -227,7 +227,7 @@ Track artifact lifecycle:
 - [ ] All test cases executed
 - [ ] Pass rate: \_\_\_\_%
 - [ ] No open CRITICAL/HIGH/MEDIUM findings
-- [ ] Any Round 2+ LOW findings are listed as deferred with owner/follow-up
+- [ ] Any Round 2 LOW findings are listed as deferred with owner/follow-up
 
 ### Code Quality
 

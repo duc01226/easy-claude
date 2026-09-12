@@ -43,17 +43,22 @@ test("TC-EA-ROUTE-001: changes review routes the conditional experience gate aft
   });
 });
 
-test("TC-EA-ROUTE-002: E2E update-ui routes candidate evidence through acceptance before regression tests", () => {
+test("TC-EA-ROUTE-002: unified E2E workflow routes authoring into one convergence loop", () => {
   const workflow = workflows["workflow-e2e"];
-  const experience = occurrence(workflow.sequence, "experience-review");
+  const author = occurrence(workflow.sequence, "e2e-author");
   const e2eContext = workflow.preActions.injectContext;
 
-  assert.ok(experience, "workflow-e2e must declare an experience-review occurrence");
-  assert.ok(workflow.sequence.indexOf(experience) > indexOfSkill(workflow.sequence, "e2e-test"));
-  assert.ok(workflow.sequence.indexOf(experience) < indexOfSkill(workflow.sequence, "test"));
-  assert.match(e2eContext, /candidate evidence/i);
+  assert.ok(author, "workflow-e2e must declare the conditional E2E authoring occurrence");
+  assert.equal(author.skill, "e2e-test");
+  assert.match(author.applicability.when, /changes.*recording.*update-ui/i);
+  assert.match(author.applicability.skipReason, /prompt.*context.*whole/i);
+  assert.ok(workflow.sequence.indexOf(author) < indexOfSkill(workflow.sequence, "e2e-test-verify-loop"));
+  assert.ok(indexOfSkill(workflow.sequence, "e2e-test-verify-loop") < indexOfSkill(workflow.sequence, "docs-update"));
+  assert.match(e2eContext, /Do not invoke workflow-e2e-green/i);
+  assert.match(e2eContext, /same-scope.*rerun|same scope.*rerun/i);
   assert.match(e2eContext, /explicit acceptance/i);
-  assert.doesNotMatch(e2eContext, /regenerate screenshots \(--update-snapshots\)/i);
+  assert.match(e2eContext, /report-only.*experience-review/i);
+  assert.equal(workflow.sequence.some((step) => (typeof step === "string" ? step : step?.skill) === "test"), false);
 });
 
 test("TC-EA-ROUTE-003: feature, bugfix, refactor, and greenfield paths inherit the gate", () => {

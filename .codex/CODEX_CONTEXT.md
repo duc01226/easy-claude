@@ -125,7 +125,7 @@ Use this protocol for workflow execution on Claude or Codex (hooks are optional 
 5. Tasking: create tasks for each workflow/custom/skill step when the selected path has multiple steps.
 6. Execute: run steps in order, validate outputs, and report completion.
 
-Workflow source: `.claude/workflows.json` (20 workflows).
+Workflow source: `.claude/workflows.json` (19 workflows).
 
 ## Workflow Catalog
 
@@ -137,8 +137,7 @@ Workflow source: `.claude/workflows.json` (20 workflows).
 | implement a large, complex, or ambiguous feature that needs research | `workflow-big-feature` | Big Feature (Research + Implement) |
 | a bug, error, crash | `workflow-bugfix` | Bug Fix |
 | initial feature spec generation from zero, maintaining spec sync after code changes, quarterly spec health audits | `workflow-code-to-spec` | Code to Feature Spec |
-| generate, update, or maintain e2e/playwright tests from code/spec | `workflow-e2e` | E2E Testing |
-| user asks to test a feature, bugfix, whole project | `workflow-e2e-green` | E2E Green (Verify · Adjudicate · Fix · Loop) |
+| write, update, run | `workflow-e2e` | E2E Testing |
 | implement a well-defined feature, add a component, build a capability | `workflow-feature` | Feature Implementation |
 | create or update business feature documentation | `workflow-feature-spec` | Business Feature Documentation |
 | start a new project from scratch, init a greenfield project, plan a new application | `workflow-greenfield-init` | Greenfield Project Init |
@@ -176,9 +175,9 @@ ARCHITECTURE AUDIT (READ-ONLY, ONE PASS, PROGRESSIVE SYNTHESIS):
 ```
 
 ### workflow-big-feature — Big Feature (Research + Implement)
-- Description: Research-driven feature development for large, complex, or ambiguous features in an existing project — includes idea refinement, market research, business evaluation, domain analysis, tech stack research, and full implementation
+- Description: Research-driven feature development for large, complex, or ambiguous features in an existing project — includes idea refinement, market research, business evaluation, domain analysis, tech stack research, full implementation, and required near-end workflow-e2e verification
 - When To Use: User wants to implement a large, complex, or ambiguous feature that needs research, market analysis, business evaluation, domain modeling, or tech stack analysis before implementation. Big new module, major enhancement, cross-cutting capability, or feature where scope is unclear
-- Sequence: `idea -> web-research -> deep-research -> market-analysis -> business-evaluation -> spec-discovery -> domain-analysis -> why-review -> tech-stack-research -> architecture-design -> architecture-scalability-review -> why-review -> scenario -> plan -> plan-review -> refine -> why-review -> artifact-review --type=pbi -> story -> why-review -> artifact-review --type=story -> pbi-challenge -> dor-gate -> pbi-mockup -> spec -> spec [mode=tests] -> why-review -> artifact-review --type=spec-tests -> spec-clarify -> plan -> plan-review -> scaffold -> architecture-review-full -> plan-validate -> why-review -> plan-execute -> seed-test-data -> domain-entities-review -> integration-test -> integration-test-review -> integration-test-verify -> spec [mode=sync] -> workflow-review-changes -> security-review -> changelog -> test -> scan --target=domain-entities -> docs-update -> workflow-end -> watzup`
+- Sequence: `idea -> web-research -> deep-research -> market-analysis -> business-evaluation -> spec-discovery -> domain-analysis -> why-review -> tech-stack-research -> architecture-design -> architecture-scalability-review -> why-review -> scenario -> plan -> plan-review -> refine -> why-review -> artifact-review --type=pbi -> story -> why-review -> artifact-review --type=story -> pbi-challenge -> dor-gate -> pbi-mockup -> spec -> spec [mode=tests] -> why-review -> artifact-review --type=spec-tests -> spec-clarify -> plan -> plan-review -> scaffold -> architecture-review-full -> plan-validate -> why-review -> plan-execute -> seed-test-data -> domain-entities-review -> integration-test -> integration-test-review -> integration-test-verify -> spec [mode=sync] -> workflow-review-changes -> workflow-e2e --source=context -> security-review -> changelog -> test -> scan --target=domain-entities -> docs-update -> workflow-end -> watzup`
 
 Protocol:
 ```text
@@ -224,6 +223,7 @@ After workflow activation, auto-select the applicable steps and skip irrelevant 
 - [x] Domain Entity Review (domain-entities-review) — CONDITIONAL: skip if no domain entity files changed
 - [x] Integration Tests (integration-test)
 - [x] Review Changes (workflow-review-changes) — consolidated review + fix loop
+- [x] Near-end E2E verification (workflow-e2e --source=context) — REQUIRED after review; nested workflow owns configured E2E and default-on screenshot review, with evidence-backed N/A/ENVIRONMENT-BLOCKED when unavailable
 - [x] Changelog (changelog)
 - [x] Tests (test)
 - [x] Documentation (docs-update)
@@ -273,9 +273,9 @@ DOMAIN-ENTITY REFERENCE REFRESH (CONDITIONAL TERMINAL STEP):
 ```
 
 ### workflow-bugfix — Bug Fix
-- Description: Systematic debugging and fix workflow with end-to-start debugger trace before fix
+- Description: Systematic debugging and fix workflow with end-to-start debugger trace before fix and an explicit-request-only near-end workflow-e2e handoff
 - When To Use: User reports a bug, error, crash, failure, regression, stale/incorrect final output, or something not working; wants to fix/debug/troubleshoot an issue with end-to-start trace
-- Sequence: `investigate -> debug-investigate -> spec [mode=amend] -> plan -> plan-review -> plan-validate -> why-review -> spec [mode=tests] -> why-review -> artifact-review --type=spec-tests -> integration-test -> fix -> prove-fix -> integration-test -> integration-test-review -> integration-test-verify -> spec [mode=sync] -> workflow-review-changes -> changelog -> test -> scan --target=domain-entities -> docs-update -> demo-guide -> workflow-end -> watzup`
+- Sequence: `investigate -> debug-investigate -> spec [mode=amend] -> plan -> plan-review -> plan-validate -> why-review -> spec [mode=tests] -> why-review -> artifact-review --type=spec-tests -> integration-test -> fix -> prove-fix -> integration-test -> integration-test-review -> integration-test-verify -> spec [mode=sync] -> workflow-review-changes -> workflow-e2e --source=context -> changelog -> test -> scan --target=domain-entities -> docs-update -> demo-guide -> workflow-end -> watzup`
 
 Protocol:
 ```text
@@ -306,6 +306,7 @@ PROJECT CONTEXT: Apply the shared SDD Artifact Contract from shared/sdd-artifact
 12. RE-RUN INTEGRATION TESTS — GREEN phase: Run integration tests again — expect all to PASS. This confirms the fix resolves the bug AND regression guard is in place.
 13. Review integration tests with $integration-test-review — verify tests have real assertion value, not just smoke/existence checks.
 14. Code review for quality and regression risk
+14b. Optional $workflow-e2e --source=context runs only after an explicit user E2E request; otherwise skip with the manifest applicability reason.
 15. Update changelog
 16. Run full test suite to verify fix and no regressions
 17. Summary report of fix and verification results
@@ -357,41 +358,27 @@ UNIVERSAL RULES:
 ```
 
 ### workflow-e2e — E2E Testing
-- Description: Generate, update, or maintain E2E/Playwright tests and deliberately review affected observable experience — source-parameterized maintenance (changes | recording | update-ui); prompt/context/whole verification uses workflow-e2e-green; --visual-review=true is an explicit opt-in combined screenshot gate (default false)
-- When To Use: User wants to generate, update, or maintain E2E/Playwright tests from code/spec changes (--source=changes), a Chrome DevTools recording (--source=recording), or for UI screenshot baselines (--source=update-ui); prompt/context/whole-project verification routes to workflow-e2e-green; --visual-review=true explicitly adds the screenshot visual gate and same-scope E2E rerun loop, default false
-- Sequence: `investigate -> e2e-test -> experience-review -> test -> docs-update -> workflow-end -> watzup`
+- Description: Write, update, and verify E2E/Playwright tests through one source-parameterized lifecycle with bounded green fix/retest convergence; visual screenshot review is enabled by default (--visual-review=true), with --visual-review=false as the explicit opt-out
+- When To Use: User wants to write, update, run, verify, or fix E2E/Playwright coverage from code/spec changes, a recording, a UI change, a feature/bugfix/journey prompt, current context, or the whole configured project; visual screenshot review defaults to enabled and --visual-review=false explicitly opts out
+- Sequence: `investigate -> e2e-test -> e2e-test-verify-loop -> docs-update -> workflow-end -> watzup`
 
 Protocol:
 ```text
-E2E WORKFLOW (source-parameterized):
-Resolve --source={changes|recording|update-ui|prompt|context|whole} and --visual-review={true|false} separately; the visual mode defaults to false and is activated only by an explicit true value. Follow the matching protocol block in .claude/skills/workflow-e2e/SKILL.md. The maintenance sources changes, recording, and update-ui use this workflow's legacy sequence by default; prompt, context, and whole must hand off immediately to workflow-e2e-green and its bounded verify/adjudicate/fix/retest loop. When --visual-review=true, maintenance sources must run the configured same-scope E2E command, capture and open/read the complete screenshot state × viewport matrix through $experience-review --rounds=0, route validated blocking visual findings to the owning UI fix, and rerun the same E2E scope; prompt/context/whole forward the flag to workflow-e2e-green.
-- changes: detect change type from git diff (spec/code/API) -> load affected TC-{FEATURE}-{NNN} -> update/generate test implementations -> ensure each TC has a corresponding test -> run tests -> report coverage.
-- recording: validate recording JSON -> identify app/feature -> run convert-recording.ts -> map TCs to recording steps -> apply project CSS conventions (docs/project-config.json → workflowPatterns.cssMethodology) -> add screenshot assertions -> Page Object if complex -> run + report.
-- update-ui: identify visual diff (SCSS/HTML/TS) -> map to page objects -> find affected specs -> collect candidate evidence without changing accepted expectations -> run experience-review -> only after explicit acceptance update the affected snapshots/baselines -> report.
-- prompt|context|whole: resolve scope from the user request/current context/whole configured project, read the E2E profile and linked localRun contract, select or generate Given/When/Then cases, exercise the visible human-QC path where applicable, capture/read/redact evidence, and loop on the same scope through workflow-e2e-green until its convergence contract passes or an evidence-backed N/A/ENVIRONMENT-BLOCKED result is recorded.
-UNIVERSAL RULES:
-- Goal-Driven Execution: define success criteria before execution; loop until observable checks pass.
-- Tests Verify Intent: when creating or reviewing specs/tests, name the protected business intent or invariant and ensure the test would fail if that intent breaks.
-- Browser/UI E2E pacing: before every UI-control action use the shared bounded waitUntil(condition, options) helper for readiness/actionability and applicable error-alert absence; after the action use it for the expected positive/negative outcome, dropdown/options, selected state, or error-alert presence/absence; then wait exactly 500ms at the end for presentation pacing in automation and visible human-QC. Keep real settle signals separate and never reduce this delay through configuration.
-- E2E object model: reuse or compose a three-tier Common, Domain-Shared, and Page component/page-object system, with an idiomatic abstract base or language-equivalent protocol/trait, cohesive purpose-specific helpers/utilities, one canonical owner for selectors/actions/waits, and reusable lower-tier component contracts tested once.
-- Combined visual mode: --visual-review=true requires complete screenshot capture/read/inspection; $experience-review is the visual adjudicator, $ask is architecture consultation and not a screenshot reviewer, and missing/unread evidence is ENVIRONMENT-BLOCKED.
-- Spec-Loop Discipline (E2E tier — tailored): trace each E2E scenario to the §8 invariant/behavior it guards (name the protected rule, not just the click path) so a scenario fails only when that intended behavior breaks. Property/metamorphic generation and the MUTATION-SCORE assertion gate are scoped to unit/integration core-logic and are N/A at the E2E tier — do NOT force them here. Any coverage gap found feeds the Dual-Feedback Ledger into BOTH the spec (the missing/changed behavior) AND the tests (a blank Spec-feedback OR Test-feedback cell = INCOMPLETE), never a test-only fix.
-```
-
-### workflow-e2e-green — E2E Green (Verify · Adjudicate · Fix · Loop)
-- Description: Run config-first, human-QC E2E verification from a prompt, current context, feature/bugfix, or whole configured project with bounded adjudication and fix/retest convergence; --visual-review=true explicitly adds a screenshot visual gate and same-scope rerun loop, default false
-- When To Use: User asks to test a feature, bugfix, whole project, or journey end-to-end; prompt/current context and human-like visible web QC use generate/select, evidence, and bounded fix/retest looping; --visual-review=true explicitly activates screenshot inspection and UI-fix/retest convergence, default false
-- Sequence: `investigate -> e2e-test-verify-loop -> docs-update -> workflow-end -> watzup`
-
-Protocol:
-```text
-E2E GREEN PROTOCOL: Read project-config.json and the linked E2E reference first. Resolve --visual-review={true|false} separately; default false and never infer true from a UI surface. Resolve scope from the prompt/current context, select or generate Given/When/Then cases, preserve the protected invariant, use the configured localRun/auth/data/browser/evidence profile, and record N/A versus ENVIRONMENT-BLOCKED with evidence. When --visual-review=true, require the complete configured screenshot state × viewport matrix, open/read every image through $experience-review --rounds=0, count validated blocking visual findings with E2E failures, fix the owning UI layer, and rerun the same scope until both converge. For web use a visible Playwright CLI browser when configured; before every UI-control action use the shared bounded waitUntil(condition, options) helper for readiness/actionability and applicable error-alert absence; after the action use it for the expected positive/negative outcome, dropdown/options, selected state, or error-alert presence/absence; then wait exactly 500ms at the end for presentation pacing in automation and visible human-QC. Keep real settle signals separate and do not let configuration reduce this delay to zero. Reuse or compose the Common, Domain-Shared, and Page component/page-object tiers with an idiomatic abstract base or language-equivalent protocol/trait, cohesive helpers/utilities, one canonical owner for selectors/actions/waits, and reusable lower-tier component contracts tested once. Capture/read/redact evidence, classify failures before changing code or tests, fix at the owning layer, review every fix, and repeat the same scope until the bounded convergence contract passes or escalate. $ask is architecture consultation, not screenshot review; missing or unread visual evidence in active mode is ENVIRONMENT-BLOCKED.
+E2E WORKFLOW (canonical unified lifecycle):
+Resolve --source={changes|recording|update-ui|prompt|context|whole} and --visual-review={true|false} separately; visual review defaults to true and only an explicit false opts out. Follow .claude/skills/workflow-e2e/SKILL.md. Every source uses investigate -> conditional authoring/update -> e2e-test-verify-loop -> docs-update -> workflow-end -> watzup. For changes, recording, and update-ui, e2e-test prepares the artifact and hands its exact scope and traceability to the loop; for prompt, context, and whole, the loop selects or generates the required case. The loop is the sole owner of the configured E2E run, visible browser and screenshot evidence, report-only $experience-review, failure classification, owning-layer fixes, review, fresh bring-up, and same-scope reruns. Do not invoke workflow-e2e-green or add a duplicate $test or visual-fix pass.
+- changes: detect spec/code/API change -> load affected TC-{FEATURE}-{NNN} -> update/generate the implementation -> preserve traceability -> hand off the fixed scope to the loop.
+- recording: validate JSON -> identify app/feature -> convert -> map TCs -> apply project conventions -> add meaningful assertions/page objects -> hand off to the loop.
+- update-ui: map visual diff to page objects/specs -> collect candidate evidence without changing accepted expectations -> preserve explicit acceptance for any baseline update -> hand off to the loop.
+- prompt|context|whole: skip the authoring occurrence; the loop resolves scope and selects or generates Given/When/Then cases from verified project evidence.
+- Browser/UI: use bounded waitUntil before and after every control action, then exactly 500ms pacing; keep real settle signals separate.
+- Visual: when enabled, capture/open/read the complete state x viewport matrix; validated blocking findings enter the same failure set and require an owning-layer fix plus a fresh same-scope rerun. Missing or unread evidence is ENVIRONMENT-BLOCKED.
+- Evidence: classify SOURCE-WRONG, TEST-WRONG, TEST-NOT-OPTIMAL, ENVIRONMENT-BLOCKED, or AMBIGUOUS before edits; never weaken, skip, narrow, delete, silence, or auto-accept to obtain green.
 ```
 
 ### workflow-feature — Feature Implementation
-- Description: Full feature development workflow with search-first approach, planning, implementation, testing, and documentation
+- Description: Full feature development workflow with search-first approach, planning, implementation, testing, documentation, and an explicit-request-only near-end workflow-e2e handoff
 - When To Use: User wants to implement a well-defined feature, add a component, build a capability, develop a module, implement/execute an existing plan, create a new API endpoint, or design an API contract, TDD/test-first development, spec-driven feature implementation with test specs written before code
-- Sequence: `investigate -> spec-discovery -> domain-analysis -> why-review -> spec -> spec-clarify -> scenario -> plan -> plan-review -> plan-validate -> why-review -> spec [mode=tests] -> why-review -> artifact-review --type=spec-tests -> plan -> plan-review -> plan-execute -> seed-test-data -> domain-entities-review -> spec [mode=tests] -> why-review -> artifact-review --type=spec-tests -> spec [mode=sync] -> integration-test -> integration-test-review -> integration-test-verify -> workflow-review-changes -> security-review -> changelog -> test -> scan --target=domain-entities -> docs-update -> demo-guide -> workflow-end -> watzup`
+- Sequence: `investigate -> spec-discovery -> domain-analysis -> why-review -> spec -> spec-clarify -> scenario -> plan -> plan-review -> plan-validate -> why-review -> spec [mode=tests] -> why-review -> artifact-review --type=spec-tests -> plan -> plan-review -> plan-execute -> seed-test-data -> domain-entities-review -> spec [mode=tests] -> why-review -> artifact-review --type=spec-tests -> spec [mode=sync] -> integration-test -> integration-test-review -> integration-test-verify -> workflow-review-changes -> workflow-e2e --source=context -> security-review -> changelog -> test -> scan --target=domain-entities -> docs-update -> demo-guide -> workflow-end -> watzup`
 
 Protocol:
 ```text
@@ -419,6 +406,7 @@ FEATURE IMPLEMENTATION PROTOCOL:
 9b. UI-INTENT / INTERACTION-SURFACE REFRESH — CONDITIONAL: only when the feature adds or changes user-facing behavior (else state the skip reason — backend-only feature, no §6 change). When user-facing behavior is present, run $spec (ui-intent intent) alongside the spec [mode=sync] step to refresh the affected Feature Spec §6 interaction surface — View Inventory, Key UI States, and the per-story click-path — and link the governing $design-spec so the §6 interaction-surface and the design-spec stay coupled to what was actually built.
 10. Generate/update integration tests with $integration-test — creates actual test files from TC specifications — then verify with $integration-test-review and $integration-test-verify.
 11. Review the full change set with $workflow-review-changes (simplification, code quality, UI, architecture, and patterns compliance).
+11b. Optional $workflow-e2e --source=context runs only after an explicit user E2E request; otherwise skip with the manifest applicability reason.
 12. Security review for production readiness with $security-review.
 13. Update changelog with feature entry
 14. Run tests to verify no regressions
@@ -475,9 +463,9 @@ UNIVERSAL RULES:
 ```
 
 ### workflow-greenfield-init — Greenfield Project Init
-- Description: Full waterfall project inception from idea through implementation with integration testing
+- Description: Full waterfall project inception from idea through implementation with integration testing and required near-end workflow-e2e verification
 - When To Use: User wants to start a new project from scratch, init a greenfield project, plan a new application, research and plan before coding, bootstrap a new codebase, build something new
-- Sequence: `idea -> web-research -> deep-research -> market-analysis -> business-evaluation -> spec-discovery -> domain-analysis -> why-review -> tech-stack-research -> architecture-design -> architecture-scalability-review -> why-review -> scenario -> plan -> plan-review -> security-review -> performance-review -> plan-review -> refine -> why-review -> artifact-review --type=pbi -> story -> why-review -> artifact-review --type=story -> pbi-challenge -> dor-gate -> pbi-mockup -> plan-validate -> why-review -> spec [mode=tests] -> why-review -> artifact-review --type=spec-tests -> spec-clarify -> plan -> plan-review -> scaffold -> linter-setup -> harness-setup -> architecture-review-full -> scan --target=ui-system -> scan --target=backend-patterns -> scan --target=integration-tests -> scan --target=project-structure -> why-review -> plan-execute -> seed-test-data -> domain-entities-review -> spec [mode=tests] -> why-review -> artifact-review --type=spec-tests -> plan -> plan-review -> integration-test -> integration-test-review -> integration-test-verify -> e2e-test -> test -> workflow-review-changes -> security-review -> changelog -> test -> scan --target=domain-entities -> docs-update -> workflow-end -> watzup`
+- Sequence: `idea -> web-research -> deep-research -> market-analysis -> business-evaluation -> spec-discovery -> domain-analysis -> why-review -> tech-stack-research -> architecture-design -> architecture-scalability-review -> why-review -> scenario -> plan -> plan-review -> security-review -> performance-review -> plan-review -> refine -> why-review -> artifact-review --type=pbi -> story -> why-review -> artifact-review --type=story -> pbi-challenge -> dor-gate -> pbi-mockup -> plan-validate -> why-review -> spec [mode=tests] -> why-review -> artifact-review --type=spec-tests -> spec-clarify -> plan -> plan-review -> scaffold -> linter-setup -> harness-setup -> architecture-review-full -> scan --target=ui-system -> scan --target=backend-patterns -> scan --target=integration-tests -> scan --target=project-structure -> why-review -> plan-execute -> seed-test-data -> domain-entities-review -> spec [mode=tests] -> why-review -> artifact-review --type=spec-tests -> plan -> plan-review -> integration-test -> integration-test-review -> integration-test-verify -> e2e-test -> test -> workflow-review-changes -> workflow-e2e --source=context -> security-review -> changelog -> test -> scan --target=domain-entities -> docs-update -> workflow-end -> watzup`
 
 Protocol:
 ```text
@@ -526,6 +514,7 @@ After workflow activation, auto-select the applicable steps and skip irrelevant 
 - [x] Foundation Review (architecture-review-full) — post-scaffold gate: grade the built foundation (architecture + scalability + production-readiness) and fix BLOCKED/WARN findings BEFORE $plan-execute
 - [x] Reference Doc Set (scan --target=ui-system|backend-patterns|integration-tests|project-structure) — after Foundation Review, before $plan-execute: DERIVE the project-reference doc set from the reviewed foundation + golden-path examples; scaffold already seeded ui-review-principles.md. CONDITIONAL: skip scan --target=ui-system when no UI stack (log reason); the other three always apply
 - [x] E2E Evaluation (e2e-test) — CONDITIONAL: run immediately after integration-test-verify only when docs/project-config.json → e2eTesting has a runnable framework, entry point, and command; otherwise record explicit evidence-backed N/A
+- [x] Near-end E2E workflow handoff (workflow-e2e --source=context) — REQUIRED after workflow-review-changes; default-on screenshot review is owned by the nested workflow, with evidence-backed N/A/ENVIRONMENT-BLOCKED when unavailable
 
 Auto-skip steps that are irrelevant to the prompt; mark skipped steps as completed with a short reason.
 
@@ -563,6 +552,7 @@ After scaffolding, the workflow continues with full implementation and integrati
 11. $e2e-test runs only when docs/project-config.json → e2eTesting is configured; otherwise records evidence-backed N/A
 12. $test runs final full/focused verification and reports exact results and exit status
 13. $workflow-review-changes for quality (use the canonical changes-review workflow sequence from .claude/workflows.json: changes-review, why-review findings validation, parallel review batch, code-simplifier, verification, plan/plan-review/why-review/plan-execute, and full re-review restart)
+13b. $workflow-e2e --source=context is REQUIRED near the end and owns configured E2E plus default-on screenshot evidence; record N/A/ENVIRONMENT-BLOCKED when unavailable.
 14. $security-review for production readiness
 15. $changelog + final $test + $docs-update + $watzup to close
 This ensures greenfield projects ship with integration test coverage from day one.
@@ -1163,7 +1153,7 @@ UNIVERSAL RULES:
 
 Session-start reference derived from `.claude/workflows.json` — use it to pick a route on any prompt: run a standard workflow, compose a custom workflow from the step-skills, invoke a single skill, or execute directly.
 
-### Workflow Skills (66 composable steps)
+### Workflow Skills (67 composable steps)
 
 Distinct step-skills used across the workflows above — compose these into a custom workflow when no standard workflow fits.
 
@@ -1189,7 +1179,7 @@ Distinct step-skills used across the workflows above — compose these into a cu
 | `domain-entities-review` | [DDD Quality] Use when reviewing domain entities and value objects for DDD design quality. |
 | `dor-gate` | [Code Quality] Use when validating a PBI against Definition of Ready before grooming. |
 | `e2e-test` | [Testing] Use when selecting, generating, updating, or maintaining E2E tests from a prompt, current context, recordings, specs, or code changes. |
-| `e2e-test-verify-loop` | [Testing] Use when driving a configured E2E suite or human-QC journey to green with project-config setup, evidence, fault adjudication, and bounded re-verification. Flag: --visual-review={true\|false} (default false; true enables the screenshot visual gate). |
+| `e2e-test-verify-loop` | [Testing] Use when driving a configured E2E suite or human-QC journey to green with project-config setup, evidence, fault adjudication, and bounded re-verification. Flag: --visual-review={true\|false} (default true; false is the explicit opt-out from the screenshot visual gate). |
 | `excalidraw-diagram` | [Utilities] Use when visualizing workflows, architectures, or concepts as Excalidraw diagram JSON. |
 | `experience-review` | [Testing] Use when reviewing a running user experience or observable output (UI, API, CLI, service) — run it locally, drive it end to end like a user, gate on runtime/console logs and captured screens, set a baseline, or adjudicate a regression. Flag: --rounds=N (default 3; 0 = report-only). |
 | `feature-presentation` | [Documentation] Use when synthesizing specs, PBIs, ideas, and mockups into one standalone HTML slide deck for stakeholders. |
@@ -1233,6 +1223,7 @@ Distinct step-skills used across the workflows above — compose these into a cu
 | `watzup` | [Utilities] Use when reviewing recent changes and wrapping up the work. |
 | `web-research` | [Research] Use when starting web research — discover, gather, and triage candidate sources to feed deeper investigation. |
 | `why-review` | [Code Quality] Use when reviewing rationale and change quality for plans, PBIs, commits, diffs, docs, specs, or reports. |
+| `workflow-e2e` | [Workflow] Use when writing, updating, and verifying E2E/Playwright tests through a bounded green fix/retest loop. Flags: --source={changes\|recording\|update-ui\|prompt\|context\|whole}, --visual-review={true\|false} (default true; false is the explicit opt-out). |
 | `workflow-end` | [Process] Use when ending the active workflow and clearing its state. |
 | `workflow-review-changes` | [Workflow] Use when reviewing uncommitted, staged, or unstaged changes before committing — review, fix, and re-review until the severity bar clears. |
 <!-- /CK:WORKFLOW-SKILLS -->

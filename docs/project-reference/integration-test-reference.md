@@ -1,16 +1,15 @@
 # Integration Test Reference
 
 <!-- Last scanned: 2026-08-04 -->
+<!-- Last verified: 2026-09-12 (docs-update, impact-scoped) -->
 <!-- This file is referenced by Claude skills and agents for project-specific context. -->
-
-> **Goal:** Keep integration-test guidance aligned with the executable custom CJS harness, observable assertions, and repeatable local verification.
 
 ## Quick Summary
 
-- Run real hook entry points as Node child processes with JSON stdin; assert exit code, stdout/stderr, and state.
-- Isolate mutable state in unique OS-temp directories and restore environment changes in `finally`.
-- Run the canonical suite twice consecutively without resetting state before claiming repeatability.
-- Persist repeatable integration-test results, reports, logs, and captures under the project-root `tmp/` or `temp/` directory (prefer `tmp/integration`); the root `.gitignore` ignores both by default. OS-temp directories remain appropriate for private per-test setup that is removed during teardown.
+**Goal:** Keep integration-test guidance aligned with the executable custom CJS harness, observable assertions, and repeatable local verification.
+
+**Summary:**
+(1) Read project config, select commands, and run real hook/process boundaries with JSON while asserting exit code, output, and state. (2) Isolate and restore mutable state in `finally`; name and trace suites. (3) Use live coverage expressions; run a focused suite, then full verification twice without reset. (4) Persist results, reports, logs, and captures under project-root `tmp/`/`temp/`.
 
 ## Workflow
 
@@ -60,7 +59,7 @@ Source: `.claude/hooks/tests/suites/integration.test.cjs:66-76`.
 
 ## Configuration
 
-Canonical commands live in `docs/project-config.json:120-130` and `package.json:43-45`. No `integrationTestVerify` override, database connection, or startup/system-check command is configured.
+Canonical commands live in `docs/project-config.json:120-130` and `package.json:44-46`. No `integrationTestVerify` override, database connection, or startup/system-check command is configured.
 
 The suite runner sets `CLAUDE_PROJECT_DIR` before loading suites (`.claude/hooks/tests/run-all-tests.cjs:16-24`). Child-process helpers merge per-call `env`; parent-process mutations must use `createEnvSaver`/`setupClaudeEnvFile` and restore in `finally` (`.claude/hooks/tests/lib/test-utils.cjs:141-195`).
 
@@ -117,8 +116,8 @@ rg -n 'TC-[A-Z0-9-]+-[0-9]+' .claude/hooks/tests -g '*.cjs' -g '*.js'
 
 ## Closing Reminders
 
+**IMPORTANT MUST ATTENTION Goal:** Keep integration-test guidance aligned with the executable custom CJS harness, observable assertions, and repeatable local verification.
+**IMPORTANT MUST ATTENTION** Workflow: (1) read config and select commands; (2) run real process boundaries and assert observable outcomes; (3) isolate and restore mutable state; (4) trace suite names/tests and live coverage expressions; (5) run focused then full verification twice without reset; (6) persist results under project-root `tmp/`/`temp/`.
 - **MUST** run the complete integration command twice consecutively without reset.
 - **MUST** verify example paths, declarations, and filters against current source.
 - **NEVER** publish hardcoded test-file or pass totals; keep coverage queries executable.
-
-> **Goal:** Keep integration-test guidance aligned with the executable custom CJS harness, observable assertions, and repeatable local verification.

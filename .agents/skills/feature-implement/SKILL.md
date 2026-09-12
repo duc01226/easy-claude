@@ -223,12 +223,12 @@ mistakes compound through later tasks.
 
 - Use `code-reviewer` subagent
 - Apply the canonical review policy: Round 1 fixes every validated finding;
-  Round 2+ fixes only validated CRITICAL/HIGH/MEDIUM findings, while
+  Round 2 fixes only validated CRITICAL/HIGH/MEDIUM findings, while
   LOW-only findings are recorded as deferred and do not reopen the loop.
 - Failed binary gates (tests, required artifacts, security must-fix, parity)
   block at every round and are never relabeled LOW.
 - Re-run tests after fixes and start a fresh full review after every fix cycle.
-- Stop when the current round's severity bar is clear; cap at three rounds and
+- Stop when the current round's severity bar is clear; cap at two rounds and
   escalate repeated/no-progress CRITICAL/HIGH/MEDIUM findings rather than
   looping open-ended.
 

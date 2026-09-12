@@ -1,11 +1,11 @@
 metadata:
   title: Skills Catalog
   description: Auto-generated catalog of all available skills in ClaudeKit Engineer
-  last_updated: '2026-09-11'
-  total_skills: 170
+  last_updated: '2026-09-12'
+  total_skills: 169
   total_by_status:
-    active: 168
-    deprecated: 2
+    active: 166
+    deprecated: 3
     experimental: 0
 categories:
   ai-ml: AI & Machine Learning
@@ -450,8 +450,8 @@ skills:
       path: e2e-test-verify-loop/SKILL.md
       description: '[Testing] Use when driving a configured E2E suite or human-QC
         journey to green with project-config setup, evidence, fault adjudication,
-        and bounded re-verification. Flag: --visual-review={true|false} (default false;
-        true enables the screenshot visual gate).'
+        and bounded re-verification. Flag: --visual-review={true|false} (default true;
+        false is the explicit opt-out from the screenshot visual gate).'
       category: other
       has_scripts: false
       has_references: false
@@ -1411,22 +1411,9 @@ skills:
       removal_after: null
     - name: workflow-e2e
       path: workflow-e2e/SKILL.md
-      description: '[Workflow] Use when generating, updating, or maintaining E2E/Playwright
-        tests. Flags: --source={changes|recording|update-ui|prompt|context|whole},
-        --visual-review={true|false} (default false).'
-      category: other
-      has_scripts: false
-      has_references: false
-      status: active
-      deprecated_by: null
-      deprecated_since: null
-      removal_after: null
-    - name: workflow-e2e-green
-      path: workflow-e2e-green/SKILL.md
-      description: '[Workflow] Drive configured E2E and human-QC journeys to green
-        with project-config setup, visible browser evidence, bounded adjudication,
-        and fresh re-verification. Flag: --visual-review={true|false} (default false;
-        true enables the screenshot visual gate).'
+      description: '[Workflow] Use when writing, updating, and verifying E2E/Playwright
+        tests through a bounded green fix/retest loop. Flags: --source={changes|recording|update-ui|prompt|context|whole},
+        --visual-review={true|false} (default true; false is the explicit opt-out).'
       category: other
       has_scripts: false
       has_references: false
@@ -1810,7 +1797,7 @@ skills:
       description: '[Design] Use when creating or describing a UI design. Flags: --mode={fast|good|describe|screenshot|video}
         (default fast), --lane={product|marketing} (default product).'
       category: frontend
-      has_scripts: false
+      has_scripts: true
       has_references: true
       status: active
       deprecated_by: null
@@ -1873,17 +1860,6 @@ skills:
       deprecated_by: null
       deprecated_since: null
       removal_after: null
-    - name: ui-ux-pro-max
-      path: ui-ux-pro-max/SKILL.md
-      description: '[Frontend] Use when designing aesthetic interfaces with curated
-        UI styles, palettes, fonts, charts, and stacks.'
-      category: frontend
-      has_scripts: true
-      has_references: false
-      status: active
-      deprecated_by: null
-      deprecated_since: null
-      removal_after: null
     - name: web-design-guidelines
       path: web-design-guidelines/SKILL.md
       description: '[Code Quality] Use when reviewing UI code for accessibility, responsiveness,
@@ -1930,4 +1906,17 @@ skills:
       deprecated_by: release-notes
       deprecated_since: '2026-09-08'
       removal_after: '2026-12-07'
+    - name: workflow-e2e-green
+      path: workflow-e2e-green/SKILL.md
+      description: '[Workflow] Deprecated compatibility entry for E2E verification;
+        use workflow-e2e for writing, updating, and bounded green fix/retest. Flags:
+        --source={prompt|context|whole}, --visual-review={true|false} (default true;
+        false is the explicit opt-out).'
+      category: other
+      has_scripts: false
+      has_references: false
+      status: deprecated
+      deprecated_by: workflow-e2e
+      deprecated_since: '2026-09-12'
+      removal_after: '2026-12-12'
   experimental: {}

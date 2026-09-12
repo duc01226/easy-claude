@@ -126,7 +126,7 @@ const deadModuleVerificationTests = [
         }
     },
     {
-        name: '[workflow-e2e] pre-action covers maintenance and green source routes',
+        name: '[workflow-e2e] pre-action covers unified authoring and green source routes',
         fn: async () => {
             const configPath = path.resolve(__dirname, '..', '..', '..', 'workflows.json');
             const data = JSON.parse(fs.readFileSync(configPath, 'utf8'));
@@ -135,10 +135,12 @@ const deadModuleVerificationTests = [
             for (const source of ['changes', 'recording', 'update-ui', 'prompt', 'context', 'whole']) {
                 assertContains(context, source, `workflow-e2e pre-action must describe --source=${source}`);
             }
-            assertContains(context, 'workflow-e2e-green', 'prompt/context/whole must hand off to workflow-e2e-green');
+            assertContains(context, 'e2e-test-verify-loop', 'every source must hand off to the convergence loop');
+            assertContains(context, 'conditional authoring', 'workflow-e2e must describe the conditional authoring phase');
+            assertContains(context, 'same-scope reruns', 'workflow-e2e must preserve same-scope convergence');
             for (const requiredFile of [
                 '.claude/skills/e2e-test-verify-loop/SKILL.md',
-                '.claude/skills/workflow-e2e-green/SKILL.md'
+                '.claude/skills/workflow-e2e/SKILL.md'
             ]) {
                 assertTrue(
                     workflow?.preActions?.readFiles?.includes(requiredFile),
@@ -186,7 +188,6 @@ const EXPECTED_WORKFLOW_IDS = [
     'workflow-big-feature',
     'workflow-bugfix',
     'workflow-e2e',
-    'workflow-e2e-green',
     'workflow-feature',
     'workflow-feature-spec',
     'workflow-greenfield-init',

@@ -2393,116 +2393,116 @@
           "installedVersion": "v2.1.0"
         },
         {
-          "path": "skills/ui-ux-pro-max/data/charts.csv",
+          "path": "skills/design/data/charts.csv",
           "checksum": "3b0cc1b287ad48d6989e2caf8bf84d4bc434438da62feb08259ffde03d153877",
           "ownership": "user",
           "installedVersion": "v2.1.0"
         },
         {
-          "path": "skills/ui-ux-pro-max/data/colors.csv",
+          "path": "skills/design/data/colors.csv",
           "checksum": "bd1fd6cf7d93408c0250ba383e01bea2ad1f0a1c9dccd746636c6a80ed937fbf",
           "ownership": "user",
           "installedVersion": "v2.1.0"
         },
         {
-          "path": "skills/ui-ux-pro-max/data/landing.csv",
+          "path": "skills/design/data/landing.csv",
           "checksum": "7ac095129592c6c93f10ae3bc687b22bb051c33944597613f39e3a8f7646fe6e",
           "ownership": "user",
           "installedVersion": "v2.1.0"
         },
         {
-          "path": "skills/ui-ux-pro-max/data/products.csv",
+          "path": "skills/design/data/products.csv",
           "checksum": "5359e3037dcb84e99c792ea13dd44f5b78ab6a53557afb309cf19140512aaf5b",
           "ownership": "user",
           "installedVersion": "v2.1.0"
         },
         {
-          "path": "skills/ui-ux-pro-max/data/prompts.csv",
+          "path": "skills/design/data/prompts.csv",
           "checksum": "0f5acb17260f64fcc96668414d0e8b37418dcb5eec043f49b986b99399831ff3",
           "ownership": "user",
           "installedVersion": "v2.1.0"
         },
         {
-          "path": "skills/ui-ux-pro-max/data/stacks/flutter.csv",
+          "path": "skills/design/data/stacks/flutter.csv",
           "checksum": "e470e6bc2bcd8562667cc764d1e1afb0be0a30ca4dc9ec12fa18b19d46f156bd",
           "ownership": "user",
           "installedVersion": "v2.1.0"
         },
         {
-          "path": "skills/ui-ux-pro-max/data/stacks/html-tailwind.csv",
+          "path": "skills/design/data/stacks/html-tailwind.csv",
           "checksum": "d2a00672f4eeed8927ddad8939dde39767f2b496e5baba517988708d11116abc",
           "ownership": "user",
           "installedVersion": "v2.1.0"
         },
         {
-          "path": "skills/ui-ux-pro-max/data/stacks/nextjs.csv",
+          "path": "skills/design/data/stacks/nextjs.csv",
           "checksum": "06a8e8c13bd44696c6ebb4cb6c4d8dea440e3de8cce77616512529ed29258f0c",
           "ownership": "user",
           "installedVersion": "v2.1.0"
         },
         {
-          "path": "skills/ui-ux-pro-max/data/stacks/react-native.csv",
+          "path": "skills/design/data/stacks/react-native.csv",
           "checksum": "a08ca77fcf6b6d9531982dce465366296013bfcf12d2938ac72ad57cf0c4f085",
           "ownership": "user",
           "installedVersion": "v2.1.0"
         },
         {
-          "path": "skills/ui-ux-pro-max/data/stacks/react.csv",
+          "path": "skills/design/data/stacks/react.csv",
           "checksum": "b6e3eb0e4c9c01bd00ffb951d5ca224a19d488b4544c75436f48cf92ff12bf45",
           "ownership": "user",
           "installedVersion": "v2.1.0"
         },
         {
-          "path": "skills/ui-ux-pro-max/data/stacks/svelte.csv",
+          "path": "skills/design/data/stacks/svelte.csv",
           "checksum": "bc8d158994a8bdf412830a9dd5e5a5534edd2f367a6e50e0ebd4d76f592dfa3f",
           "ownership": "user",
           "installedVersion": "v2.1.0"
         },
         {
-          "path": "skills/ui-ux-pro-max/data/stacks/swiftui.csv",
+          "path": "skills/design/data/stacks/swiftui.csv",
           "checksum": "e87cb9eee208bb753bdab96d4a261c7f830c4317ee90ec098316b248fc32be85",
           "ownership": "user",
           "installedVersion": "v2.1.0"
         },
         {
-          "path": "skills/ui-ux-pro-max/data/stacks/vue.csv",
+          "path": "skills/design/data/stacks/vue.csv",
           "checksum": "9b793c3f4eec85f77a758c09322f2b62f3b3ca549bb713ccf0849ef885934395",
           "ownership": "user",
           "installedVersion": "v2.1.0"
         },
         {
-          "path": "skills/ui-ux-pro-max/data/styles.csv",
+          "path": "skills/design/data/styles.csv",
           "checksum": "899a7c3a7b07a16d783b4b2fa3662c3f01327f5bcffb634a68d2309bb3223a26",
           "ownership": "user",
           "installedVersion": "v2.1.0"
         },
         {
-          "path": "skills/ui-ux-pro-max/data/typography.csv",
+          "path": "skills/design/data/typography.csv",
           "checksum": "6c0cd9db74f75d384773b347e1ddac42692c8d00c56790e8a0e619bfa4b9537d",
           "ownership": "user",
           "installedVersion": "v2.1.0"
         },
         {
-          "path": "skills/ui-ux-pro-max/data/ux-guidelines.csv",
+          "path": "skills/design/data/ux-guidelines.csv",
           "checksum": "1870ee048f2a2bdd60709f8f7adf7f3b6dcad560bc005c8b2915a8ac8639820d",
           "ownership": "user",
           "installedVersion": "v2.1.0"
         },
         {
-          "path": "skills/ui-ux-pro-max/scripts/core.py",
-          "checksum": "eb919bff938ad33dacab17c573594825c3d73cae3d64634a0f4d90eb35c32572",
+          "path": "skills/design/scripts/core.py",
+          "checksum": "527ba96494358b1686d066abbc572e4659fa814cb05803079971cb2e4001b930",
           "ownership": "user",
           "installedVersion": "v2.1.0"
         },
         {
-          "path": "skills/ui-ux-pro-max/scripts/search.py",
-          "checksum": "322796a962eaf7db7d1ef15ce63c7c8b6a4ac8cb0233fb1124566bfb8cbed501",
+          "path": "skills/design/scripts/search.py",
+          "checksum": "26a7681ba80a72c6048b7ee0d226712eab7da6fc03e3fec89946b13dd30d46fe",
           "ownership": "user",
           "installedVersion": "v2.1.0"
         },
         {
-          "path": "skills/ui-ux-pro-max/SKILL.md",
-          "checksum": "08d51dd0c82b564e36db05d199bab77752e466ea15c6aa0d393f6d8dccb6cb58",
+          "path": "skills/design/SKILL.md",
+          "checksum": "14470359d643f8849639b6eadb0c73f9ea7e57dfeb5c8182a5668ae320c81ef2",
           "ownership": "user",
           "installedVersion": "v2.1.0"
         },

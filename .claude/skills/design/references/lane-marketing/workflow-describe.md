@@ -4,7 +4,7 @@ Create detailed design documentation from screenshot/video for developer impleme
 
 ## Prerequisites
 
-- Activate `ui-ux-pro-max` skill first
+- Use the `design` skill's local design-intelligence search first
 - Have `visual analysis tooling` skill ready
 
 ## Workflow Steps

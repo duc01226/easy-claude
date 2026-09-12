@@ -366,7 +366,7 @@
   description: '[Design] Use when creating or describing a UI design. Flags: --mode={fast|good|describe|screenshot|video}
     (default fast), --lane={product|marketing} (default product).'
   has_references: true
-  has_scripts: false
+  has_scripts: true
   name: design
   path: design/SKILL.md
   removal_after: null
@@ -496,12 +496,25 @@
 - category: other
   deprecated_by: null
   deprecated_since: null
-  description: '[Testing] Use when generating, updating, or maintaining E2E tests
-    from recordings, specs, or code changes.'
+  description: '[Testing] Use when selecting, generating, updating, or maintaining
+    E2E tests from a prompt, current context, recordings, specs, or code changes.'
   has_references: false
   has_scripts: false
   name: e2e-test
   path: e2e-test/SKILL.md
+  removal_after: null
+  status: active
+- category: other
+  deprecated_by: null
+  deprecated_since: null
+  description: '[Testing] Use when driving a configured E2E suite or human-QC journey
+    to green with project-config setup, evidence, fault adjudication, and bounded
+    re-verification. Flag: --visual-review={true|false} (default true; false is the
+    explicit opt-out from the screenshot visual gate).'
+  has_references: false
+  has_scripts: false
+  name: e2e-test-verify-loop
+  path: e2e-test-verify-loop/SKILL.md
   removal_after: null
   status: active
 - category: other
@@ -1015,6 +1028,17 @@
 - category: other
   deprecated_by: null
   deprecated_since: null
+  description: '[Testing] Automate browser interactions, test web pages, and work
+    with Playwright tests.'
+  has_references: true
+  has_scripts: false
+  name: playwright-cli
+  path: playwright-cli/SKILL.md
+  removal_after: null
+  status: active
+- category: other
+  deprecated_by: null
+  deprecated_since: null
   description: '[Git] Use when creating a pull request in the standard format.'
   has_references: false
   has_scripts: false
@@ -1516,17 +1540,6 @@
   path: ui-review/SKILL.md
   removal_after: null
   status: active
-- category: frontend
-  deprecated_by: null
-  deprecated_since: null
-  description: '[Frontend] Use when designing aesthetic interfaces with curated UI
-    styles, palettes, fonts, charts, and stacks.'
-  has_references: false
-  has_scripts: true
-  name: ui-ux-pro-max
-  path: ui-ux-pro-max/SKILL.md
-  removal_after: null
-  status: active
 - category: other
   deprecated_by: null
   deprecated_since: null
@@ -1653,14 +1666,27 @@
 - category: other
   deprecated_by: null
   deprecated_since: null
-  description: '[Workflow] Use when generating, updating, or maintaining E2E/Playwright
-    tests. Flag: --source={changes|recording|update-ui}.'
+  description: '[Workflow] Use when writing, updating, and verifying E2E/Playwright
+    tests through a bounded green fix/retest loop. Flags: --source={changes|recording|update-ui|prompt|context|whole},
+    --visual-review={true|false} (default true; false is the explicit opt-out).'
   has_references: false
   has_scripts: false
   name: workflow-e2e
   path: workflow-e2e/SKILL.md
   removal_after: null
   status: active
+- category: other
+  deprecated_by: workflow-e2e
+  deprecated_since: '2026-09-12'
+  description: '[Workflow] Deprecated compatibility entry for E2E verification; use
+    workflow-e2e for writing, updating, and bounded green fix/retest. Flags: --source={prompt|context|whole},
+    --visual-review={true|false} (default true; false is the explicit opt-out).'
+  has_references: false
+  has_scripts: false
+  name: workflow-e2e-green
+  path: workflow-e2e-green/SKILL.md
+  removal_after: '2026-12-12'
+  status: deprecated
 - category: other
   deprecated_by: null
   deprecated_since: null

@@ -22,7 +22,8 @@ function assertReportClosure(text) {
     assert.match(body, /retained target findings[^\n]+handoff/i);
     assert.match(body, /Review only — do NOT modify target files/);
     assert.match(body, /both Adversarial Rounds/);
-    assert.match(body, /max 2 re-do rounds/);
+    assert.match(body, /at most 1 re-do round/);
+    assert.doesNotMatch(body, /Max 2 re-do rounds|re-do validation until the findings set is reconciled \(max 2\)/i);
     assert.match(body, /TERMINAL[^\n]+NEVER[^\n]+sub-agent/);
     assert.match(body, /≥85%/);
     assert.match(body, /spec-drift verdict/);
@@ -35,7 +36,7 @@ function assertDurableBudget(text) {
     assert.match(body, /resume[^\n]+completed rounds/i);
     assert.match(body, /target[^\n]+preserve[^\n]+budget/i);
     assert.match(body, /2 full invocations with no progress/);
-    assert.match(body, /3 rounds MAX/);
+    assert.match(body, /2 rounds MAX/);
 }
 
 test('R2-14/15: local closure anchors preserve report handoff and durable rounds', () => {
@@ -74,10 +75,11 @@ test('R2-14/15: contradictory closure and session-reset mutants are rejected', (
 test('R2-15: CLEAN report with a retained HIGH hands off without clearing the outer target', () => {
     assertReportClosure(why);
     const findings = [{ id: 'supported-path', severity: 'HIGH', summary: 'validated defect' }];
-    for (const round of [1, 2, 3]) {
+    for (const round of [1, 2]) {
         assert.equal(policy.evaluateRound({ round, findings }).canComplete, false);
         assert.equal(policy.blockingFindings(round, findings).length, 1);
     }
+    assert.throws(() => policy.evaluateRound({ round: 3, findings }), /round/);
     assert.equal(policy.evaluateRound({ round: 2, findings: [{ id: 'polish', severity: 'LOW' }] }).canComplete, true);
     assert.equal(policy.evaluateRound({ round: 2, hardGates: [{ id: 'coverage', status: 'FAIL' }] }).canComplete, false);
 });

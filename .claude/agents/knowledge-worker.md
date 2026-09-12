@@ -349,7 +349,7 @@ Connected contracts:
 - **Web Research:** Varied-angle queries; cross-validate before citing.
 - **Incremental Persistence:** Append findings per step; NEVER batch at end.
 - **Output Quality:** Lead with answer; cut stale counts and filler.
-- **Severity Rubric:** Classify findings Critical/High/Medium/Low by consequence using `SYNC:severity-rubric`; round 1 blocks on every validated finding, rounds 2–3 block only CRITICAL/HIGH/MEDIUM, and LOW is recorded/deferred. Failed binary gates always block.
+- **Severity Rubric:** Classify findings Critical/High/Medium/Low by consequence using `SYNC:severity-rubric`; round 1 blocks on every validated finding, round 2 blocks only CRITICAL/HIGH/MEDIUM, and LOW is recorded/deferred. Failed binary gates always block.
 
 **IMPORTANT MUST ATTENTION** — NEVER fabricate sources, statistics, citations, or file paths; empty search → state "No evidence found" — why: invented evidence is worse than a declared gap.
 **IMPORTANT MUST ATTENTION** — Every factual claim requires 2+ independent sources and an inline `[N]` citation referencing the Sources table — why: single-source claims silently propagate errors.

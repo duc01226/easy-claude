@@ -7,7 +7,7 @@ const os = require('node:os');
 const path = require('node:path');
 const { spawnSync } = require('node:child_process');
 const {
-    MAX_ROUNDS, blockingFindings, blockingSeverities, SEVERITY_DEFINITIONS, NON_SEVERITY_STATES,
+    MAX_ROUNDS, POLICY_VERSION, blockingFindings, blockingSeverities, SEVERITY_DEFINITIONS, NON_SEVERITY_STATES,
     evaluateRound, startRun, getRun, recordRound,
     acceptRun, interruptRun, resumeRun, invalidateRun
 } = require('../lib/review-policy.cjs');
@@ -17,7 +17,7 @@ test('TC-HARNESS-006: shared predicate applies round floor and never waives bina
     const low = { id: 'L1', severity: 'LOW', summary: 'minor clarity' };
     assert.equal(blockingFindings(1, [low]).length, 1);
     assert.equal(blockingFindings(2, [low]).length, 0);
-    assert.equal(blockingFindings(3, [low]).length, 0);
+    assert.throws(() => blockingFindings(3, [low]), /round/);
     assert.equal(blockingFindings(2, [low], [{ id: 'tests', status: 'FAIL' }]).length, 1);
     assert.equal(evaluateRound({ round: 2, findings: [low] }).deferredLow.length, 1);
     assert.equal(evaluateRound({ round: 2, findings: [low] }).canComplete, true);
@@ -27,14 +27,14 @@ test('TC-HARNESS-006: shared predicate applies round floor and never waives bina
 test('TC-HARNESS-006: severity definitions and round eligibility are shared and explicit', () => {
     assert.deepEqual(blockingSeverities(1), ['CRITICAL', 'HIGH', 'MEDIUM', 'LOW']);
     assert.deepEqual(blockingSeverities(2), ['CRITICAL', 'HIGH', 'MEDIUM']);
-    assert.deepEqual(blockingSeverities(3), ['CRITICAL', 'HIGH', 'MEDIUM']);
+    assert.throws(() => blockingSeverities(3), /round/);
     for (const severity of ['CRITICAL', 'HIGH', 'MEDIUM', 'LOW']) {
         assert.ok(SEVERITY_DEFINITIONS[severity]);
         assert.match(SEVERITY_DEFINITIONS[severity], /risk|impact|immediate|non-blocking/i);
     }
 });
 
-test('TC-HARNESS-006: explicit minimum rounds is honored without a forced maximum', () => {
+test('TC-HARNESS-006: explicit minimum rounds is honored within the bounded maximum', () => {
     const clean = evaluateRound({ round: 1, minRounds: 2 });
     assert.equal(clean.minimumMet, false);
     assert.equal(clean.canComplete, false);
@@ -44,7 +44,7 @@ test('TC-HARNESS-006: explicit minimum rounds is honored without a forced maximu
 
 test('TC-HARNESS-006: bounded property domain keeps predicate symmetric for all severities', () => {
     // Exhaustive finite domain: each severity × round × gate state is checked.
-    for (const round of [1, 2, 3]) {
+    for (const round of [1, 2]) {
         for (const severity of ['CRITICAL', 'HIGH', 'MEDIUM', 'LOW']) {
             const result = blockingFindings(round, [{ id: severity, severity }]);
             assert.equal(result.length > 0, round < 2 || severity !== 'LOW', `${round}/${severity}`);
@@ -52,6 +52,7 @@ test('TC-HARNESS-006: bounded property domain keeps predicate symmetric for all 
         assert.equal(blockingFindings(round, [], [{ id: 'binary', status: 'FAIL' }]).length, 1);
         assert.equal(blockingFindings(round, [], [{ id: 'binary', status: 'PASS' }]).length, 0);
     }
+    assert.throws(() => evaluateRound({ round: 3 }), /round/);
 });
 
 test('TC-HARNESS-006: unresolved evidence is a blocking state, never a LOW escape hatch', () => {
@@ -152,6 +153,7 @@ test('TC-HARNESS-006: durable transitions are idempotent and preserve interrupti
     assert.equal(resumed.resumeCount, 1);
     const done = recordRound({ ...f, round: 2, findings: [], now: 1500 });
     assert.equal(done.status, 'ready');
+    assert.throws(() => recordRound({ ...f, round: 3, findings: [], now: 1550 }), /round/);
     const accepted = acceptRun({ ...f, round: 2, now: 1600 });
     assert.equal(accepted.status, 'accepted');
     assert.equal(getRun(f).acceptedRound, 2);
@@ -262,4 +264,5 @@ test('TC-HARNESS-PORT-014: project root resolves from nested cwd and copied bund
     assert.match(invalid.error, /absolute path/);
 });
 
-assert.equal(MAX_ROUNDS, 3);
+assert.equal(MAX_ROUNDS, 2);
+assert.equal(POLICY_VERSION, 3);

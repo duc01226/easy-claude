@@ -1,15 +1,18 @@
 # E2E Test Reference
 
 <!-- Last scanned: 2026-09-10 -->
+<!-- Last verified: 2026-09-12 (docs-update, impact-scoped) -->
 <!-- This file is referenced by Claude skills and agents for project-specific context. -->
-
-> **Goal:** Record the verified absence of a project E2E stack without turning skill-local browser tooling into application test conventions.
 
 ## Quick Summary
 
-- Project E2E framework: **none / N/A**.
-- BDD, Page Objects, browser configuration, credentials, and E2E run commands: **N/A**.
-- Browser-automation files under `.claude/skills/` are reusable tooling for adopter projects, not this repository's E2E suite.
+**Goal:** Record the verified absence of a project E2E stack without turning skill-local browser tooling into application test conventions.
+
+**Summary:**
+
+- Confirm `e2eTesting` is **none / N/A**; BDD, Page Objects, browser configuration, credentials, and project E2E commands remain N/A.
+- Keep skill-local browser tooling separate; when an adopter profile exists, read its linked surface and execution ownership before choosing a runner.
+- Search verified project evidence in order, record `file:line` proof, classify missing prerequisites as `ENVIRONMENT-BLOCKED`, and rerun the E2E scan before documenting future conventions.
 
 ## Portable adopter execution contract
 
@@ -40,11 +43,13 @@ bounded repository scan. Record the source file/line for each fact. Record
 `N/A` only when no applicable E2E surface exists; an applicable but unrunnable
 or uninspectable prerequisite is `ENVIRONMENT-BLOCKED`.
 
-The canonical execution surfaces are `.claude/skills/e2e-test-verify-loop/`,
-`.claude/skills/workflow-e2e-green/`, `.claude/skills/e2e-test/`, and
-`.claude/skills/playwright-cli/`. `experience-review` remains the report-only
-observable acceptance gate; it does not silently accept baselines or replace
-the project runner.
+The canonical execution surface is `.claude/skills/workflow-e2e/`, which
+conditionally uses `.claude/skills/e2e-test/` for authoring and always hands
+verification to `.claude/skills/e2e-test-verify-loop/`; `.claude/skills/playwright-cli/`
+provides the configured browser path. `experience-review` remains the
+report-only observable acceptance gate; it does not silently accept baselines
+or replace the project runner. The former `workflow-e2e-green` entry is a
+deprecated compatibility skill, not a registered workflow.
 
 ## Workflow
 
@@ -61,7 +66,7 @@ the project runner.
 
 ## Architecture Overview
 
-easy-claude is a JavaScript/Python Claude Code framework whose configured modules are hooks, libraries, skills, agents, scripts, workflows, and documentation (`docs/project-config.json:4-16`, `docs/project-config.json:23-73`). It has no application UI mapping, browser test project, or configured external infrastructure (`docs/project-config.json:106-119`, `docs/project-config.json:132-152`).
+easy-claude is a JavaScript/Python Claude Code framework whose configured modules are hooks, libraries, skills, agents, scripts, workflows, and documentation (`docs/project-config.json:4-16`, `docs/project-config.json:23-73`). It has no application UI mapping, browser test project, or configured external infrastructure (`docs/project-config.json:106-119`, `docs/project-config.json:132-161`).
 
 The project-owned test layer is the custom CJS hook harness (`docs/project-config.json:120-130`, `package.json:43-46`). Skill-local Playwright utilities are support assets for target projects and do not create an E2E dependency edge for this repository (`.claude/skills/webapp-testing/examples/element_discovery.py:5-39`, `.claude/skills/excalidraw-diagram/references/render_excalidraw.py:138-147`).
 
@@ -90,21 +95,53 @@ expected failure or absence for an expected success. Keep final assertions in
 the test. Only after these waits apply the exact 500ms presentation delay; it
 never replaces readiness, postconditions, or real settle signals.
 
-### Optional combined visual review mode
+### Default visual screenshot review
 
-Use the explicit invocation flag `--visual-review=true` to combine E2E
-execution with screenshot inspection; the default is `false`. In this mode,
-each fresh round runs the configured E2E command, captures the declared state ×
-viewport matrix, opens/reads every image, and invokes `/experience-review
---rounds=0` as the report-only visual adjudicator. Validated blocking UI-floor
-findings (for example clipping, overlap, unreadable content, unreachable
-controls, broken required states, accessibility-floor violations, or broken
-responsive layouts) enter the E2E failure set; fix them at the owning UI layer,
-review the fix, and rerun the same E2E scope and screenshot matrix. Convergence
-requires zero E2E failures and zero blocking visual findings across the
-configured fresh runs. Advisory identity, polish, or non-contract spacing
-preferences are recorded but do not create an unbounded loop. `/ask` is an
-architecture-consultation skill, not the screenshot reviewer.
+Visual screenshot review is enabled by default for applicable E2E execution,
+equivalent to `--visual-review=true`; `--visual-review=false` is the explicit
+opt-out. When an E2E run generates screenshots, each fresh round captures the
+declared state × viewport matrix, preserves the candidate artifacts,
+opens/reads every image, and invokes `/experience-review --rounds=0` as the
+report-only visual adjudicator. Validated blocking UI-floor findings (for
+example clipping, overlap, unreadable content, unreachable controls, broken
+required states, accessibility-floor violations, or broken responsive layouts)
+enter the E2E failure set; fix them at the owning UI layer, review the fix, and
+rerun the same E2E scope and screenshot matrix. Convergence requires zero E2E
+failures and zero blocking visual findings across the configured fresh runs.
+Missing capture or image inspection for an applicable visual surface is
+`ENVIRONMENT-BLOCKED`, not a pass. The explicit false opt-out suppresses this
+screenshot review only; it does not skip E2E execution or other evidence gates.
+Advisory identity, polish, or non-contract spacing preferences are recorded but
+do not create an unbounded loop. `/ask` is an architecture-consultation skill,
+not the screenshot reviewer.
+
+### Visual design protocol handoff
+
+When visual review is enabled (the default, or explicit `--visual-review=true`),
+or when an E2E/QC task handles screenshots, human-QC of a user-facing UI, or visual expectations, resolve the design
+authority before generating or judging evidence. Read `docs/project-config.json`
+and resolve `designSystem.canonicalDoc`, `tokenFiles`, and `appMappings[]`; then
+read the applicable design-system, frontend-patterns, SCSS, design-knowledge,
+and design-review-checklist references. A missing configured UI surface is
+`N/A`; a relevant surface with missing runner, design authority, or inspection
+capability is `ENVIRONMENT-BLOCKED`. Never invent tokens, breakpoints,
+typography, CSS/BEM conventions, components, or runner commands.
+
+Use project design decisions and accepted design direction first, then the
+shared `UI-1.1`–`UI-9.4`, `DD-1`–`DD-8`, and `CL-1`–`CL-6` protocols. Before
+generation or a UI fix, inventory related screens, flows, and components;
+classify components as `Common`, `Domain-Shared`, or `Page`; record the base
+abstraction and owner; reuse/compose before creating; and keep one owner for
+shared markup, selectors, styling, lifecycle, and lower-tier test contracts.
+Runtime screenshot observations belong to `/experience-review`; source-only
+token, SCSS/BEM, z-index, component-ownership, reuse, and static design findings
+belong to `/ui-review`. Capture and read every declared state × viewport;
+`UI-*`/accessibility/layout-floor and `P0`–`P2` checklist findings block the
+round, while `DD-*` identity/polish remains advisory unless the governing
+contract makes it objectively required. Browser helpers such as
+`/playwright-cli` and `/webapp-testing` may collect runtime evidence under this
+contract, but they do not replace `/experience-review` or `/ui-review`.
+Do not promote a baseline without an explicit human acceptance record.
 
 ## Configuration
 
@@ -140,8 +177,10 @@ rg -l --hidden "Given\(|When\(|Then\(|@given|@when|@then|\[Binding\]" . -g "*.cs
 
 ## Closing Reminders
 
+**IMPORTANT MUST ATTENTION Goal:** Record the verified absence of a project E2E stack without turning skill-local browser tooling into application test conventions.
+
+**IMPORTANT MUST ATTENTION** Read config/profile → search verified project evidence → record `file:line` proof → classify N/A versus `ENVIRONMENT-BLOCKED` → rerun the E2E scan before documenting new conventions.
+
 - **MUST** distinguish project-owned tests from skill-local browser utilities.
 - **MUST** rerun the framework gate before generating Page Objects or browser tests.
 - **NEVER** replace the verified **N/A** state with generic Playwright, Cypress, Selenium, or BDD boilerplate.
-
-> **Goal:** Record the verified absence of a project E2E stack without turning skill-local browser tooling into application test conventions.

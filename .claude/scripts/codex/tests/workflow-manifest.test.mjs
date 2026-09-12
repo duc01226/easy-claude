@@ -246,3 +246,44 @@ test("variants: shipped research/spec/visualize workflows resolve every complete
     assert.ok(manifests.every(manifest => manifest.fingerprint && manifest.occurrences.every(item => item.id)));
   }
 });
+
+test("production workflows declare required and opt-in near-end E2E handoffs", () => {
+  const registry = JSON.parse(fs.readFileSync(path.join(root, ".claude/workflows.json"), "utf8"));
+  const cases = [
+    ["workflow-greenfield-init", "security-review", true],
+    ["workflow-big-feature", "security-review", true],
+    ["workflow-feature", "security-review", false],
+    ["workflow-bugfix", "changelog", false],
+  ];
+  for (const [workflowId, nextSkill, required] of cases) {
+    const manifest = resolve(registry, workflowId, { rootDir: root });
+    const index = manifest.occurrences.findIndex(item => item.skill === "workflow-e2e");
+    assert.ok(index > 0, `${workflowId} must include workflow-e2e`);
+    assert.equal(manifest.occurrences[index - 1].skill, "workflow-review-changes");
+    assert.equal(manifest.occurrences[index].args, "--source=context");
+    assert.equal(manifest.occurrences[index + 1].skill, nextSkill);
+    if (required) {
+      assert.equal(manifest.occurrences[index].applicability.when, "always");
+      assert.equal(manifest.occurrences[index].applicability.skipReason, null);
+    } else {
+      assert.match(manifest.occurrences[index].applicability.when, /explicitly requests E2E/i);
+      assert.match(manifest.occurrences[index].applicability.skipReason, /disabled by default/i);
+    }
+  }
+});
+
+test("E2E visual review contracts default on and review generated screenshots", () => {
+  const skillFiles = [
+    ".claude/skills/e2e-test/SKILL.md",
+    ".claude/skills/workflow-e2e/SKILL.md",
+    ".claude/skills/workflow-e2e-green/SKILL.md",
+    ".claude/skills/e2e-test-verify-loop/SKILL.md",
+  ];
+  for (const relativePath of skillFiles) {
+    const source = fs.readFileSync(path.join(root, relativePath), "utf8");
+    assert.match(source, /visual (?:screenshot )?review is enabled by default|default true/i, relativePath);
+    assert.match(source, /--visual-review=false.*(?:opt-out|opts out)/is, relativePath);
+    assert.match(source, /open\/read.*(?:every|each).*image|every generated screenshot/is, relativePath);
+    assert.match(source, /experience-review/, relativePath);
+  }
+});

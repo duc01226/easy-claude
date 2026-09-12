@@ -52,14 +52,14 @@ test('R3-PROMPT-026: normal generation prepares a user-only sync handoff', () =>
 
 function assertReadiness(text) {
     assert.match(text, /a failed binary gate blocks PASS at every round regardless of score or owner risk acceptance/);
-    assert.match(text, /round 2\+ blocks CRITICAL\/HIGH\/MEDIUM and defers LOW/);
+    assert.match(text, /round 2 blocks CRITICAL\/HIGH\/MEDIUM and defers LOW/);
     assert.match(text, /Overall PASS\/FAIL is separate from the advisory score/);
     assert.doesNotMatch(text, /unaccepted CRITICAL\/HIGH|must be resolved or owner-accepted before PASS|Proceed to commit|VERDICT is advisory/);
 }
 
 function assertUi(text) {
-    assert.match(text, /any validated CRITICAL\/HIGH\/MEDIUM in round 2\+/);
-    assert.match(text, /Record round-2\+ LOW findings as deferred/);
+    assert.match(text, /any validated CRITICAL\/HIGH\/MEDIUM in round 2/);
+    assert.match(text, /Record round-2 LOW findings as deferred/);
     assert.match(text, /Any failed binary gate or unresolved evidence/);
     assert.match(text, /WARN \| MEDIUM when bounded but consequential \| Blocks every round/);
     assert.doesNotMatch(text, /Medium \/ Low → WARN\/INFO|0 BLOCKED, 0 WARN — UI compliant/);
@@ -71,13 +71,14 @@ test('R3-PROMPT-027/031: advisory scores and category labels cannot bypass eligi
     assertReadiness(readiness);
     assertUi(ui);
     rejects(assertReadiness, readiness, 'a failed binary gate blocks PASS at every round regardless of score or owner risk acceptance', 'an unaccepted CRITICAL/HIGH fail blocks PASS');
-    rejects(assertReadiness, readiness, 'round 2+ blocks CRITICAL/HIGH/MEDIUM and defers LOW', 'round 2+ blocks CRITICAL/HIGH only');
+    rejects(assertReadiness, readiness, 'round 2 blocks CRITICAL/HIGH/MEDIUM and defers LOW', 'round 2 blocks CRITICAL/HIGH only');
     rejects(assertUi, ui, 'WARN | MEDIUM when bounded but consequential | Blocks every round', 'WARN | Medium / Low → WARN/INFO | Review and decide');
     rejects(assertUi, ui, 'Any failed binary gate or unresolved evidence', 'Only category BLOCKED');
-    for (const round of [1, 2, 3]) {
+    for (const round of [1, 2]) {
         assert.equal(policy.evaluateRound({ round, findings: [{ id: 'bounded', severity: 'MEDIUM' }] }).canComplete, false);
         assert.equal(policy.evaluateRound({ round, hardGates: [{ id: 'binary', status: 'FAIL' }] }).canComplete, false);
     }
+    assert.throws(() => policy.evaluateRound({ round: 3, findings: [] }), /round/);
     assert.equal(policy.evaluateRound({ round: 1, findings: [{ id: 'polish', severity: 'LOW' }] }).canComplete, false);
     const deferred = policy.evaluateRound({ round: 2, findings: [{ id: 'polish', severity: 'LOW' }] });
     assert.equal(deferred.canComplete, true);

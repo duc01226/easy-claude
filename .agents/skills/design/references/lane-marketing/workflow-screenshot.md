@@ -4,7 +4,7 @@ Replicate a design exactly from a provided screenshot.
 
 ## Prerequisites
 
-- Activate `ui-ux-pro-max` skill first for design intelligence
+- Use the `design` skill's local design-intelligence search first
 - Have `visual analysis tooling` skill ready for visual analysis
 
 ## Workflow Steps

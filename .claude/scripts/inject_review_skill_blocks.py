@@ -23,6 +23,8 @@ Tags propagated (each with its `:reminder` sibling):
         design-distinctiveness-gate by changes-review + plan-review -- see the
         DESIGN_REVIEW_CHECKLIST comment for why those two grade-anything skills carry a
         procedure but not the taste clauses. Every body is self-gating on "has a UI surface".
+  - SYNC:e2e-visual-design-contract    -> the eight E2E/visual-review skill carriers
+        (design authority + component/reuse + runtime/source ownership + baseline gates).
   - SYNC:trade-off-interrogation-gate    -> ALL_REVIEW_SKILLS (all 20)
         (trade-off? worth it? material -> confirm with user; additive-safe,
          graders and loop-orchestrators included — see ALL_REVIEW_SKILLS comment)
@@ -124,7 +126,7 @@ TRADE_OFF = list(ALL_REVIEW_SKILLS)
 # The 40-clause UI/UX Design Principles. NOT an ALL_REVIEW_SKILLS tag — its carriers are the
 # UI-surface skills across THREE roles (review · design/plan · build), which is a different
 # population from "every review skill": most review skills never touch a user-facing surface,
-# and three of these carriers (design, ui-ux-pro-max, pbi-mockup) are not review skills at all.
+# and two of these carriers (design and pbi-mockup) are not review skills at all.
 # Declared here so a canonical-body edit auto-propagates to every carrier and
 # verify-sync-adoption-parity.mjs can sense drift; without the tag in MATRIX the bodies would
 # silently fossilize at whatever they were on the day they were embedded.
@@ -132,7 +134,7 @@ UI_DESIGN_PRINCIPLES = [
     # review role — clauses are fail-conditions citing UI-<clause> + file:line
     "ui-review", "web-design-guidelines", "artifact-review", "test-ui",
     # design/plan role — clauses shape the artifact the skill authors
-    "design", "design-spec", "ui-ux-pro-max", "figma-design",
+    "design", "design-spec", "figma-design",
     # build role — pbi-mockup emits real markup, so clauses are build constraints
     "pbi-mockup",
 ]
@@ -155,7 +157,7 @@ DESIGN_DISTINCTIVENESS = [
     # review role — clauses are fail-conditions citing DD-<clause> + file:line
     "ui-review", "web-design-guidelines", "artifact-review", "test-ui",
     # design/author role — the gate shapes the artifact the skill authors
-    "design", "design-spec", "ui-ux-pro-max", "figma-design", "feature-presentation",
+    "design", "design-spec", "figma-design", "feature-presentation",
     # plan role — the design plan + generic test are decided here, before any code exists
     "plan", "scaffold",
     # build role — emits real markup/styles, so the clauses are build constraints
@@ -169,7 +171,7 @@ DESIGN_DISTINCTIVENESS = [
 # voice), and `feature-presentation` (slide prose is not interface copy -- only its rule 6
 # would apply, and a block that is 5/6 inapplicable trains the reader to skim it).
 UI_COPYWRITING = [
-    "design", "design-spec", "ui-ux-pro-max", "figma-design",
+    "design", "design-spec", "figma-design",
     "pbi-mockup", "plan-execute", "feature-implement",
     "ui-review", "web-design-guidelines",
 ]
@@ -188,12 +190,21 @@ DESIGN_REVIEW_CHECKLIST = [
     "ui-review", "web-design-guidelines", "artifact-review", "test-ui",
     "changes-review", "plan-review",
     # design/author role — author against the checklist so the review finds nothing
-    "design", "design-spec", "ui-ux-pro-max", "figma-design",
+    "design", "design-spec", "figma-design",
     "pbi-mockup", "feature-presentation",
     # plan role — a plan containing front-end work binds the checklist into its acceptance criteria
     "plan", "scaffold",
     # build role — emits real markup/styles, so the checks are build constraints
     "plan-execute", "feature-implement", "fix",
+]
+
+# The E2E visual-design handoff. It is deliberately a separate bridge from the
+# full UI/DD/CL populations: E2E skills need the same design authority, tier/reuse,
+# runtime-vs-source ownership, and baseline gates, but most E2E invocations are
+# non-visual and must remain explicitly N/A rather than carrying a visual review.
+E2E_VISUAL_DESIGN = [
+    "e2e-test", "e2e-test-verify-loop", "workflow-e2e", "workflow-e2e-green",
+    "experience-review", "test-ui", "playwright-cli", "webapp-testing",
 ]
 
 TEST_ARCHITECTURE_CONTRACT = [
@@ -217,6 +228,7 @@ MATRIX = [
     ("SYNC:design-distinctiveness-gate", DESIGN_DISTINCTIVENESS),
     ("SYNC:ui-copywriting", UI_COPYWRITING),
     ("SYNC:design-review-checklist", DESIGN_REVIEW_CHECKLIST),
+    ("SYNC:e2e-visual-design-contract", E2E_VISUAL_DESIGN),
     ("SYNC:test-architecture-execution-contract", TEST_ARCHITECTURE_CONTRACT),
 ]
 

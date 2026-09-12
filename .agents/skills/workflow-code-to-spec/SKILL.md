@@ -245,7 +245,7 @@ $artifact-review
     - §8 every TC has Business Intent, abstract `[Source: ns/service/id]` anchor, CoveredBy field, Status
     - YAML frontmatter present; no line-count cap applied
   → PASS criteria: zero [UNVERIFIED] without exclusion reason + zero tech terms in §1-7
-  → Gap found → validate findings → fix only validated gaps that block the current round → restart full artifact-review pass from the first check; Round 2+ LOW-only gaps are recorded as deferred and do not trigger another cycle, while binary gates remain blocking
+  → Gap found → validate findings → fix only validated gaps that block the current round → restart full artifact-review pass from the first check; Round 2 LOW-only gaps are recorded as deferred and do not trigger another cycle, while binary gates remain blocking
 
 $docs-update
   → Near-final synchronization sweep across project docs, the Feature Spec(s), and Section 8
@@ -683,7 +683,7 @@ The Feature Spec stays in sync on every feature/bugfix/refactor workflow.
 - **[REQUIRED]** §1-7 STRICTLY tech-free (no framework names, no language constructs, no class names in prose); identifiers live only in §8 evidence carriers, `[Source: ns/service/id]`, and ` ```mermaid ``` ` blocks — mark `[UNVERIFIED]` not blank
 - **[REQUIRED]** Each sub-agent prompt MUST include: capability name, output path, tech-agnostic contract, SYNC protocols (critical-thinking, evidence-based, incremental-persistence, cross-scope boundary)
 - **[BLOCKING]** Context compaction / session resume → the current task list first, re-glob existing Feature Specs, skip done capabilities — NEVER re-run investigate or plan
-- **[BLOCKING]** artifact-review: PASS = zero `[UNVERIFIED]` without exclusion reason + zero tech terms in §1-7; gap found → validate findings → fix only validated gaps that block the current round → restart the full artifact-review pass from the first check; Round 2+ LOW-only findings are recorded as deferred and do not trigger another cycle, while binary gates remain blocking
+- **[BLOCKING]** artifact-review: PASS = zero `[UNVERIFIED]` without exclusion reason + zero tech terms in §1-7; gap found → validate findings → fix only validated gaps that block the current round → restart the full artifact-review pass from the first check; Round 2 LOW-only findings are recorded as deferred and do not trigger another cycle, while binary gates remain blocking
 - **[BLOCKING]** Verify the current task list count ≥ capability_count before any authoring begins — this is the plan completeness gate
 - **[REQUIRED]** Apply critical thinking — every claim needs traced proof, confidence >80% to act. Anti-hallucination: never present guess as fact.
 - **[REQUIRED]** Apply AI mistake prevention — holistic-first debugging, fix at responsible layer, surface ambiguity before coding, re-read files after compaction.

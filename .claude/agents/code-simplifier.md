@@ -519,7 +519,7 @@ Summary of changes made:
 - **AI Mistake Prevention:** verify generated content against evidence, trace downstream references, verify all affected outputs, re-read after context loss, surface ambiguity.
 - **Complexity Prevention:** One business change maps to one code change.
 - **Design Patterns Quality:** DRY/SOLID; extract at 3+; serial passes.
-- **Severity Rubric:** Classify Critical/High/Medium/Low by consequence using `SYNC:severity-rubric`; round 1 blocks on every validated finding, rounds 2–3 block only CRITICAL/HIGH/MEDIUM, and LOW is recorded/deferred. Failed binary gates always block.
+- **Severity Rubric:** Classify Critical/High/Medium/Low by consequence using `SYNC:severity-rubric`; round 1 blocks on every validated finding, round 2 blocks only CRITICAL/HIGH/MEDIUM, and LOW is recorded/deferred. Failed binary gates always block.
 - **Shared Protocol Duplication Policy:** Inline SYNC is intentional; NEVER extract.
 
 **IMPORTANT MUST ATTENTION** NEVER change external behavior while simplifying — restructure only, callers depend on it — why: a "simplification" that alters behavior is a silent regression, not a cleanup

@@ -258,5 +258,5 @@ Claude is capable of extraordinary creative work — don't hold back when the br
 
 - Product-UI lane (dashboards, admin panels, SaaS apps): `design --lane=product` (`../lane-product/lane-guide.md`)
 - Canonical design knowledge: `.claude/docs/design-knowledge.md`
-- `ui-ux-pro-max` — searchable design intelligence DB
+- `design` local `scripts/search.py` — searchable design-intelligence index
 - `shadcn-tailwind` — component library helpers

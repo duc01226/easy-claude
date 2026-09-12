@@ -118,7 +118,7 @@ test('TC-HARNESS-006: consumer-specific anchors preserve loop ownership and inde
 test('TC-HARNESS-006: changes-review fix prose cannot reopen a round for LOW-only findings', async () => {
     const changes = await fs.readFile(path.join(root, '.claude', 'skills', 'changes-review', 'SKILL.md'), 'utf8');
     assert.match(changes, /SELF-FIX each validated finding that blocks the current round/);
-    assert.match(changes, /round-2\+ LOW-only findings are recorded and deferred, not fixed/);
+    assert.match(changes, /round-2 LOW-only findings are recorded and deferred, not fixed/);
     assert.match(changes, /fixing only findings that block the current round and re-running until that bar is clear/);
     assert.doesNotMatch(changes, /SELF-FIX each validated finding →|fixing and re-running until it is clean/);
 });
@@ -148,7 +148,7 @@ test('TC-HARNESS-006: plan-execute does not collapse review acceptance to critic
     const planExecute = await fs.readFile(path.join(root, '.claude', 'skills', 'plan-execute', 'SKILL.md'), 'utf8');
     assert.match(planExecute, /current severity bar/);
     assert.match(planExecute, /Round 1[^\n]*zero validated findings/);
-    assert.match(planExecute, /Round 2\+[^\n]*zero validated CRITICAL\/HIGH\/MEDIUM/);
+    assert.match(planExecute, /Round 2[^\n]*zero validated CRITICAL\/HIGH\/MEDIUM/);
     assert.match(planExecute, /LOW findings (?:recorded|deferred)/i);
     assert.doesNotMatch(planExecute, /Repeat until no critical issues/);
     assert.doesNotMatch(planExecute, /Critical issues must be 0 \(Step 4 gate\)/);
@@ -182,7 +182,7 @@ test('TC-HARNESS-006: implementation and quality-gate surfaces use normalized se
         assert.match(text, /CRITICAL.*HIGH.*MEDIUM.*LOW/s, `${relative} must expose the canonical four-tier vocabulary`);
         assert.match(text, /failed binary gate|binary gates.*blocking/i, `${relative} must preserve hard-gate precedence`);
     }
-    assert.match(feature, /Round 2\+ fixes only validated CRITICAL\/HIGH\/MEDIUM findings/);
+    assert.match(feature, /Round 2 fixes only validated CRITICAL\/HIGH\/MEDIUM findings/);
     assert.match(feature, /LOW-only findings are recorded as deferred and do not reopen the loop/);
     assert.match(gate, /No open CRITICAL\/HIGH\/MEDIUM findings/);
 });
@@ -192,7 +192,7 @@ test('TC-HARNESS-006: seeded stale-policy mutant is rejected by exact-body parit
     const expected = canonicalBody(canonical, 'review-policy');
     const mutant = '<!-- SYNC:review-policy -->\n> maxRounds=2; LOW findings are discarded\n<!-- /SYNC:review-policy -->';
     assert.notEqual(body(mutant, 'review-policy'), expected);
-    assert.match(expected, /MAX_ROUNDS.*3/);
+    assert.match(expected, /MAX_ROUNDS.*2/);
     assert.match(expected, /Full reports remain on disk/);
 });
 

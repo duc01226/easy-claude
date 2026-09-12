@@ -4,7 +4,7 @@ Replicate a design including animations/interactions from a provided video.
 
 ## Prerequisites
 
-- Activate `ui-ux-pro-max` skill first
+- Use the `design` skill's local design-intelligence search first
 - Have `visual analysis tooling` skill ready for video analysis
 
 ## Workflow Steps

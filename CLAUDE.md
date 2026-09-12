@@ -30,19 +30,18 @@
 
 Session-start reference derived from `.claude/workflows.json` — use it to pick a route on any prompt: run a standard workflow, compose a custom workflow from the step-skills, invoke a single skill, or execute directly.
 
-### Workflows Index (20)
+### Workflows Index (19)
 
 | Workflow | When to use | Steps |
 | --- | --- | --- |
 | `workflow-architecture-audit` | review my project architecture, run an architecture health check, check is this production ready | investigate → architecture-review-full → why-review → docs-update → workflow-end → watzup |
-| `workflow-big-feature` | implement a large, complex, or ambiguous feature that needs research | idea → web-research → deep-research → market-analysis → business-evaluation → spec-discovery → domain-analysis → why-review → tech-stack-research → architecture-design → architecture-scalability-review → why-review → scenario → plan → plan-review → refine → why-review → artifact-review --type=pbi → story → why-review → artifact-review --type=story → pbi-challenge → dor-gate → pbi-mockup → spec → spec [mode=tests] → why-review → artifact-review --type=spec-tests → spec-clarify → plan → plan-review → scaffold → architecture-review-full → plan-validate → why-review → plan-execute → seed-test-data → domain-entities-review → integration-test → integration-test-review → integration-test-verify → spec [mode=sync] → workflow-review-changes → security-review → changelog → test → scan --target=domain-entities → docs-update → workflow-end → watzup |
-| `workflow-bugfix` | a bug, error, crash | investigate → debug-investigate → spec [mode=amend] → plan → plan-review → plan-validate → why-review → spec [mode=tests] → why-review → artifact-review --type=spec-tests → integration-test → fix → prove-fix → integration-test → integration-test-review → integration-test-verify → spec [mode=sync] → workflow-review-changes → changelog → test → scan --target=domain-entities → docs-update → demo-guide → workflow-end → watzup |
+| `workflow-big-feature` | implement a large, complex, or ambiguous feature that needs research | idea → web-research → deep-research → market-analysis → business-evaluation → spec-discovery → domain-analysis → why-review → tech-stack-research → architecture-design → architecture-scalability-review → why-review → scenario → plan → plan-review → refine → why-review → artifact-review --type=pbi → story → why-review → artifact-review --type=story → pbi-challenge → dor-gate → pbi-mockup → spec → spec [mode=tests] → why-review → artifact-review --type=spec-tests → spec-clarify → plan → plan-review → scaffold → architecture-review-full → plan-validate → why-review → plan-execute → seed-test-data → domain-entities-review → integration-test → integration-test-review → integration-test-verify → spec [mode=sync] → workflow-review-changes → workflow-e2e --source=context → security-review → changelog → test → scan --target=domain-entities → docs-update → workflow-end → watzup |
+| `workflow-bugfix` | a bug, error, crash | investigate → debug-investigate → spec [mode=amend] → plan → plan-review → plan-validate → why-review → spec [mode=tests] → why-review → artifact-review --type=spec-tests → integration-test → fix → prove-fix → integration-test → integration-test-review → integration-test-verify → spec [mode=sync] → workflow-review-changes → workflow-e2e --source=context → changelog → test → scan --target=domain-entities → docs-update → demo-guide → workflow-end → watzup |
 | `workflow-code-to-spec` | initial feature spec generation from zero, maintaining spec sync after code changes, quarterly spec health audits | init-full: investigate → plan → plan-review → plan-validate → spec [mode=init] → spec [mode=tests] → artifact-review --type=spec-tests → artifact-review → docs-update → workflow-end → watzup; update: workflow-review-changes → spec [mode=update] → spec [mode=tests] → artifact-review --type=spec-tests → spec [mode=sync] → changes-review → docs-update → workflow-end → watzup; audit: investigate → spec [mode=audit] → artifact-review → docs-update → workflow-end → watzup |
-| `workflow-e2e` | generate, update, or maintain e2e/playwright tests from code/spec | investigate → e2e-test → experience-review → test → docs-update → workflow-end → watzup |
-| `workflow-e2e-green` | user asks to test a feature, bugfix, whole project | investigate → e2e-test-verify-loop → docs-update → workflow-end → watzup |
-| `workflow-feature` | implement a well-defined feature, add a component, build a capability | investigate → spec-discovery → domain-analysis → why-review → spec → spec-clarify → scenario → plan → plan-review → plan-validate → why-review → spec [mode=tests] → why-review → artifact-review --type=spec-tests → plan → plan-review → plan-execute → seed-test-data → domain-entities-review → spec [mode=tests] → why-review → artifact-review --type=spec-tests → spec [mode=sync] → integration-test → integration-test-review → integration-test-verify → workflow-review-changes → security-review → changelog → test → scan --target=domain-entities → docs-update → demo-guide → workflow-end → watzup |
+| `workflow-e2e` | write, update, run | investigate → e2e-test → e2e-test-verify-loop → docs-update → workflow-end → watzup |
+| `workflow-feature` | implement a well-defined feature, add a component, build a capability | investigate → spec-discovery → domain-analysis → why-review → spec → spec-clarify → scenario → plan → plan-review → plan-validate → why-review → spec [mode=tests] → why-review → artifact-review --type=spec-tests → plan → plan-review → plan-execute → seed-test-data → domain-entities-review → spec [mode=tests] → why-review → artifact-review --type=spec-tests → spec [mode=sync] → integration-test → integration-test-review → integration-test-verify → workflow-review-changes → workflow-e2e --source=context → security-review → changelog → test → scan --target=domain-entities → docs-update → demo-guide → workflow-end → watzup |
 | `workflow-feature-spec` | create or update business feature documentation | investigate → plan → plan-review → plan-validate → why-review → docs-update → workflow-review-changes → workflow-end → watzup |
-| `workflow-greenfield-init` | start a new project from scratch, init a greenfield project, plan a new application | idea → web-research → deep-research → market-analysis → business-evaluation → spec-discovery → domain-analysis → why-review → tech-stack-research → architecture-design → architecture-scalability-review → why-review → scenario → plan → plan-review → security-review → performance-review → plan-review → refine → why-review → artifact-review --type=pbi → story → why-review → artifact-review --type=story → pbi-challenge → dor-gate → pbi-mockup → plan-validate → why-review → spec [mode=tests] → why-review → artifact-review --type=spec-tests → spec-clarify → plan → plan-review → scaffold → linter-setup → harness-setup → architecture-review-full → scan --target=ui-system → scan --target=backend-patterns → scan --target=integration-tests → scan --target=project-structure → why-review → plan-execute → seed-test-data → domain-entities-review → spec [mode=tests] → why-review → artifact-review --type=spec-tests → plan → plan-review → integration-test → integration-test-review → integration-test-verify → e2e-test → test → workflow-review-changes → security-review → changelog → test → scan --target=domain-entities → docs-update → workflow-end → watzup |
+| `workflow-greenfield-init` | start a new project from scratch, init a greenfield project, plan a new application | idea → web-research → deep-research → market-analysis → business-evaluation → spec-discovery → domain-analysis → why-review → tech-stack-research → architecture-design → architecture-scalability-review → why-review → scenario → plan → plan-review → security-review → performance-review → plan-review → refine → why-review → artifact-review --type=pbi → story → why-review → artifact-review --type=story → pbi-challenge → dor-gate → pbi-mockup → plan-validate → why-review → spec [mode=tests] → why-review → artifact-review --type=spec-tests → spec-clarify → plan → plan-review → scaffold → linter-setup → harness-setup → architecture-review-full → scan --target=ui-system → scan --target=backend-patterns → scan --target=integration-tests → scan --target=project-structure → why-review → plan-execute → seed-test-data → domain-entities-review → spec [mode=tests] → why-review → artifact-review --type=spec-tests → plan → plan-review → integration-test → integration-test-review → integration-test-verify → e2e-test → test → workflow-review-changes → workflow-e2e --source=context → security-review → changelog → test → scan --target=domain-entities → docs-update → workflow-end → watzup |
 | `workflow-idea-to-pbi` | po/ba wants a grooming-ready pbi backlog, user stories, tdd test specifications | web-research → deep-research → brainstorm → idea → spec-discovery → artifact-review → refine → why-review → spec [mode=draft] → spec [mode=tests] → why-review → artifact-review --type=spec-tests → spec-clarify → scenario → domain-analysis → why-review → plan → plan-review → plan-validate → why-review → artifact-review --type=pbi → story → why-review → artifact-review --type=story → pbi-challenge → dor-gate → pbi-mockup → design-spec → prioritize → docs-update → feature-presentation → workflow-end → watzup |
 | `workflow-idea-to-spec` | turn a raw product idea, vision, or problem statement into one canonical | web-research → deep-research → brainstorm → spec-discovery → scenario → domain-analysis → why-review → idea → spec [mode=draft] → spec [mode=tests] → artifact-review --type=spec-tests → artifact-review → design-spec → spec-clarify → why-review → docs-update → feature-presentation → workflow-end → watzup |
 | `workflow-integration-test-green` | make all integration tests pass, fix failing integration tests, drive the integration test suite to | investigate → integration-test-verify-loop → debug-investigate [on-failure] → fix [on-failure] → spec [mode=sync] → scan --target=integration-tests → docs-update → workflow-end → watzup |
@@ -55,7 +54,7 @@ Session-start reference derived from `.claude/workflows.json` — use it to pick
 | `workflow-visualize` | visualize, diagram, draw | codebase: investigate → excalidraw-diagram → workflow-end; knowledge: web-research → deep-research → excalidraw-diagram → workflow-end |
 | `workflow-write-integration-test` | write integration tests for a specific, add test coverage to an untested, update integration tests after code changes | investigate → spec [mode=tests] → why-review → artifact-review --type=spec-tests → integration-test → integration-test-review → integration-test-verify → spec [mode=sync] → docs-update → workflow-end → watzup |
 
-### Workflow Skills (66 composable steps)
+### Workflow Skills (67 composable steps)
 
 Distinct step-skills used across the workflows above — compose these into a custom workflow when no standard workflow fits.
 
@@ -81,7 +80,7 @@ Distinct step-skills used across the workflows above — compose these into a cu
 | `domain-entities-review` | [DDD Quality] Use when reviewing domain entities and value objects for DDD design quality. |
 | `dor-gate` | [Code Quality] Use when validating a PBI against Definition of Ready before grooming. |
 | `e2e-test` | [Testing] Use when selecting, generating, updating, or maintaining E2E tests from a prompt, current context, recordings, specs, or code changes. |
-| `e2e-test-verify-loop` | [Testing] Use when driving a configured E2E suite or human-QC journey to green with project-config setup, evidence, fault adjudication, and bounded re-verification. Flag: --visual-review={true\|false} (default false; true enables the screenshot visual gate). |
+| `e2e-test-verify-loop` | [Testing] Use when driving a configured E2E suite or human-QC journey to green with project-config setup, evidence, fault adjudication, and bounded re-verification. Flag: --visual-review={true\|false} (default true; false is the explicit opt-out from the screenshot visual gate). |
 | `excalidraw-diagram` | [Utilities] Use when visualizing workflows, architectures, or concepts as Excalidraw diagram JSON. |
 | `experience-review` | [Testing] Use when reviewing a running user experience or observable output (UI, API, CLI, service) — run it locally, drive it end to end like a user, gate on runtime/console logs and captured screens, set a baseline, or adjudicate a regression. Flag: --rounds=N (default 3; 0 = report-only). |
 | `feature-presentation` | [Documentation] Use when synthesizing specs, PBIs, ideas, and mockups into one standalone HTML slide deck for stakeholders. |
@@ -125,6 +124,7 @@ Distinct step-skills used across the workflows above — compose these into a cu
 | `watzup` | [Utilities] Use when reviewing recent changes and wrapping up the work. |
 | `web-research` | [Research] Use when starting web research — discover, gather, and triage candidate sources to feed deeper investigation. |
 | `why-review` | [Code Quality] Use when reviewing rationale and change quality for plans, PBIs, commits, diffs, docs, specs, or reports. |
+| `workflow-e2e` | [Workflow] Use when writing, updating, and verifying E2E/Playwright tests through a bounded green fix/retest loop. Flags: --source={changes\|recording\|update-ui\|prompt\|context\|whole}, --visual-review={true\|false} (default true; false is the explicit opt-out). |
 | `workflow-end` | [Process] Use when ending the active workflow and clearing its state. |
 | `workflow-review-changes` | [Workflow] Use when reviewing uncommitted, staged, or unstaged changes before committing — review, fix, and re-review until the severity bar clears. |
 <!-- /CK:WORKFLOW-SKILLS -->
@@ -187,6 +187,16 @@ Distinct step-skills used across the workflows above — compose these into a cu
 <!-- /CK:AI-MISTAKE-PREVENTION -->
 
 <!-- prettier-ignore-end -->
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -540,10 +550,10 @@ When editing files matching these path patterns, pre-read the listed context fir
 
 | Kind        | Count                                       |
 | ----------- | ------------------------------------------- |
-| Skills      | <!-- COUNT:skills -->170<!-- /COUNT -->     |
+| Skills      | <!-- COUNT:skills -->169<!-- /COUNT -->     |
 | Hooks       | <!-- COUNT:hooks -->18<!-- /COUNT -->       |
 | Agents      | <!-- COUNT:agents -->27<!-- /COUNT -->      |
-| Workflows   | <!-- COUNT:workflows -->20<!-- /COUNT -->   |
+| Workflows   | <!-- COUNT:workflows -->19<!-- /COUNT -->   |
 | Shared      | <!-- COUNT:shared -->8<!-- /COUNT -->       |
 | Lib modules | <!-- COUNT:lib-modules -->31<!-- /COUNT --> |
 
