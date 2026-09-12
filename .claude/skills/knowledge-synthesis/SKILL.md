@@ -4,49 +4,50 @@ version: 1.0.0
 description: '[Research] Use when synthesizing research findings into a structured report.'
 ---
 
+> **Web Research Protocol** — Factual claims need 2+ independent sources; rank Tier 1 authoritative > Tier 2 industry reports > Tier 3 credible blogs; Tier 4 unverified, NEVER cite as fact; declare confidence (95/80/60/<60%). Working files → `.claude/tmp/`; final output → `docs/knowledge/`.
+>
+> **MUST ATTENTION READ** `.claude/skills/web-research/SKILL.md` for canonical research rules.
+
 ## Quick Summary
 
-**Goal:** Produce a fully-cited, template-compliant research report by synthesizing the evidence base using the enforced template — whose confidence scores and gaps are honest enough to trust for decisions.
+**Goal:** Synthesize the existing evidence base into a fully cited, template-compliant research report with honest confidence and explicit gaps, trustworthy for decisions.
 
 **Summary:**
 
-- **Purpose:** consolidate an EXISTING evidence base (`.claude/tmp/_evidence-{slug}.md` + `_sources-{slug}.md` from deep-research) into one fully-cited report at `docs/knowledge/research/{slug}.md` — this skill does NOT gather sources, it synthesizes them — why: gathering already happened upstream; re-researching here invents findings.
-- **Main steps, in order:** (1) **Load evidence** — inventory findings, confidence scores, unresolved discrepancies, remaining gaps; (2) **Load template** (`.claude/templates/research-report-template.md`) — every section required; (3) **Synthesize** — map findings into each section with inline `[N]` citations + per-finding confidence, note cross-cutting patterns/contradictions in Analysis; (4) **Citation audit** — zero orphan citations, zero orphan sources; (5) **Confidence summary** — importance-weighted rollup flagging every <60% finding; then clean up `.claude/tmp/` working files.
-- Enforced template is non-negotiable — every section MUST appear, Knowledge Gaps NEVER omitted — why: a missing gaps section manufactures false confidence.
-- Citation discipline is the core gate — every claim inline `[N]`, every Sources-table row referenced ≥1×, Tier 4 (unverified) NEVER cited as fact, 2+ independent sources per factual claim.
-- Synthesize FROM evidence only — NEVER fabricate, add, or upgrade findings beyond gathered evidence — why: invented findings poison the report's trust.
+- **Purpose/input/output:** Synthesize `.claude/tmp/_evidence-{slug}.md` + `_sources-{slug}.md` from `deep-research` into `docs/knowledge/research/{slug}.md`; do not gather sources — upstream gathering already happened; no alternate mode or flag.
+- **Main path:** (1) create small tasks; (2) load evidence and inventory findings/confidence/discrepancies/gaps; (3) load template; (4) synthesize every section with `[N]` citations, per-finding confidence, and Analysis patterns/contradictions; (5) audit citations; (6) roll up confidence, flag `<60%`, run final review, then clean working files after success.
+- **Evidence gate:** Every factual claim MUST have inline `[N]` and 2+ independent sources; every Sources-table row needs a reference; Tier 4 is NEVER cited as fact; preserve gaps and discrepancies.
+- **Template/terminal gate:** Every enforced-template section, including Knowledge Gaps, MUST appear; final output is `docs/knowledge/research/{slug}.md`, with `.claude/tmp/` cleanup only after successful synthesis.
 
 **Workflow:**
 
-1. **Load evidence** — Read evidence base from deep-research
-2. **Load template** — Read enforced template from .claude/templates/
-3. **Synthesize** — Write report following template structure
-4. **Citation check** — Verify every claim has citation
-5. **Confidence summary** — Aggregate scores, flag gaps
+1. **Bootstrap** — Create small `TaskCreate` tasks; keep one `in_progress`; add a final review task.
+2. **Load evidence** — Read both evidence files; inventory total findings/confidence, discrepancies, and gaps.
+3. **Load template** — Read `.claude/templates/research-report-template.md`; retain every section.
+4. **Synthesize** — Write `docs/knowledge/research/{slug}.md`; map evidence into each section, cite `[N]`, declare confidence, and record patterns/contradictions in Analysis.
+5. **Citation audit** — Verify claim citations, Sources-table coverage, and no orphan citations.
+6. **Confidence and close** — Average scores, weight by importance, flag `<60%`; after successful synthesis, clean `.claude/tmp/` working files.
 
 **Key Rules:**
 
-- MUST ATTENTION use enforced template structure — all sections required
-- Every factual claim inline-cited: `[N]` referencing source table
-- Knowledge gaps section mandatory
+- **MUST ATTENTION** use enforced template structure; every section, including Knowledge Gaps, appears.
+- **MUST ATTENTION** cite every factual claim inline `[N]`; use 2+ independent sources; reference every Sources-table row; Tier 4 is NEVER fact.
+- **MUST ATTENTION** synthesize existing evidence only; NEVER gather sources, fabricate, add, or upgrade findings.
+- **MUST ATTENTION** declare confidence, preserve gaps/discrepancies, and flag every `<60%` finding.
 
-**Be skeptical. Apply critical thinking, sequential thinking. Every claim needs traced proof, confidence percentages (Idea should be more than 80%).**
+**Be skeptical; apply critical/sequential thinking; trace every claim; state confidence (>80% to act).**
 
 # Knowledge Synthesis
 
 ## Knowledge Work Rules
 
-> **Web Research Protocol** — Every factual claim needs 2+ independent sources. Source tiers: Tier 1 (authoritative .gov/.edu/official docs), Tier 2 (industry reports), Tier 3 (credible blogs — cross-validate), Tier 4 (unverified — NEVER cite as fact). Declare confidence (95/80/60/<60%) for all findings. Use the enforced template structure — all sections required. Working files → `.claude/tmp/`, final output → `docs/knowledge/`. Canonical protocol lives in the `web-research` skill.
+Apply the web-research protocol above: use its source tiers, cross-validation, confidence declarations, enforced template, and `.claude/tmp/` / `docs/knowledge/` paths.
 
 ## Step 1: Load Evidence
 
 Read `.claude/tmp/_evidence-{slug}.md` and `.claude/tmp/_sources-{slug}.md`.
 
-Inventory:
-
-- Total findings with confidence scores
-- Unresolved discrepancies
-- Remaining gaps
+Inventory total findings with confidence scores, unresolved discrepancies, and remaining gaps.
 
 ## Step 2: Load Template
 
@@ -67,7 +68,7 @@ Write to `docs/knowledge/research/{slug}.md`. For each template section:
 
 Verify:
 
-- Every factual claim has 1+ `[N]` citation
+- Every factual claim has inline `[N]` citations and 2+ independent sources
 - Every source in Sources table referenced 1+ time
 - No orphan citations (referencing non-existent source)
 
@@ -83,11 +84,9 @@ Calculate overall report confidence:
 
 Final report: `docs/knowledge/research/{descriptive-slug}.md`
 
-Clean up working files from `.claude/tmp/` after successful synthesis.
+Clean up `.claude/tmp/` working files after successful synthesis.
 
 ---
-
-> **[IMPORTANT]** Use `TaskCreate` to break ALL work into small tasks BEFORE starting.
 
 <!-- SYNC:ai-mistake-prevention -->
 
@@ -143,7 +142,11 @@ Clean up working files from `.claude/tmp/` after successful synthesis.
 
 ## Closing Reminders
 
-**IMPORTANT MUST ATTENTION Goal:** Produce a fully-cited, template-compliant research report by synthesizing the existing evidence base through the enforced template — whose confidence scores and Knowledge Gaps are honest enough to trust for decisions.
+**IMPORTANT MUST ATTENTION Goal:** Synthesize the existing evidence base into a fully cited, template-compliant research report with honest confidence and explicit gaps, trustworthy for decisions.
+
+**IMPORTANT MUST ATTENTION Main path:** (1) create small `TaskCreate` tasks; keep one `in_progress`; add a final review task; (2) load both evidence files and inventory findings/confidence/discrepancies/gaps; (3) load the enforced template and retain every section; (4) synthesize to `docs/knowledge/research/{slug}.md` with `[N]` citations, per-finding confidence, and Analysis patterns/contradictions; (5) audit claim citations, Sources-table coverage, and orphan citations; (6) average scores, weight by importance, flag `<60%`, run final review, then clean `.claude/tmp/` only after success.
+
+**IMPORTANT MUST ATTENTION Mode/boundary:** No alternate mode or flag; consume existing `deep-research` evidence; NEVER gather sources, fabricate, or upgrade findings; clean `.claude/tmp/` only after successful synthesis.
 
 **Protocols in force (concise digest of the SYNC/shared blocks this skill carries):** MUST ATTENTION honor every block below — each is a signpost to its canonical body above.
 
@@ -170,5 +173,3 @@ Clean up working files from `.claude/tmp/` after successful synthesis.
 | "Gaps section is empty, drop it"             | Empty ≠ omit. State "no unresolved gaps" explicitly — omission fakes completeness. |
 | "All findings strong, skip the rollup flag"  | Compute the weighted average; flag any <60%. One weak finding hides in the mean.   |
 | "Template section is N/A, delete it"         | Keep it, write "Not applicable — why". Missing sections fail the knowledge-review. |
-
-**IMPORTANT MUST ATTENTION Goal echo:** fully-cited, template-compliant report; NEVER omit Knowledge Gaps; zero orphan citations/sources — synthesize FROM evidence, never fabricate.

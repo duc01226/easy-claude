@@ -332,7 +332,7 @@ below — if a downstream rule would raise change cost, this principle wins.
 ## Closing Reminders
 
 **IMPORTANT MUST ATTENTION** Testability contract: resolve evidence-backed Unit/Integration/System/E2E rows, copy-ready full/focused commands, zero-match failures, owner/root/data, CI/simple-Windows entry, unique run identity, and repeat proof before claiming setup, review, or test completion.
-**IMPORTANT MUST ATTENTION Goal:** deliver an accurate, read-only pass/fail verdict — run tests via the `tester` subagent, analyze its summary report — with exact counts, failing-test names, report path, and Goal Contract evidence, so the user knows the true test state without any fix applied.
+**IMPORTANT MUST ATTENTION Goal:** Deliver an accurate, read-only pass/fail verdict — by running tests locally via the `tester` subagent and analyzing the summary report — with exact counts, failing-test names, report path, and Goal Contract evidence, so the user knows the true test state without any fix applied.
 
 **Protocols in force (concise digest of the SYNC/shared blocks this skill carries):**
 
@@ -375,7 +375,7 @@ below — if a downstream rule would raise change cost, this principle wins.
 
 **IMPORTANT MUST ATTENTION** READ-ONLY — report pass/fail, NEVER fix here (that is `$fix`'s job).
 **IMPORTANT MUST ATTENTION** ALWAYS run via the `tester` subagent; cite `file:line` + report path for every failure claim (confidence >80%).
-**IMPORTANT MUST ATTENTION Goal:** accurate read-only pass/fail verdict with exact counts, failing-test names, report path, and Goal Contract evidence — so the user knows the true test state without any fix applied.
+**IMPORTANT MUST ATTENTION Goal:** Deliver an accurate, read-only pass/fail verdict — by running tests locally via the `tester` subagent and analyzing the summary report — with exact counts, failing-test names, report path, and Goal Contract evidence, so the user knows the true test state without any fix applied.
 
 <!-- CODEX:SYNC-PROMPT-PROTOCOLS:START -->
 ## Static Prompt Protocol Mirror (Auto-Synced)

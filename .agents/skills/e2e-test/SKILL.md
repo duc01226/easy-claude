@@ -60,7 +60,7 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 - **Main steps (in order):** (1) resolve scope from the prompt/current context/spec/code and default whole-project intent; (2) read `docs/project-reference/e2e-test-reference.md` + the `e2eTesting` block of `docs/project-config.json` FIRST — never assume a stack or invent a TC-annotation marker; (3) resolve the optional `e2eTesting.execution` profile and linked `experienceVerification` surface; (4) load `TC-{MODULE}-E2E-{NNN}` specs from `docs/specs/`; (5) pass the Real-World Fidelity Gate BEFORE writing test code — can this flow, timing, and data actually occur in production?; (6) select a suitable existing test or generate/update one via the tiered reusable Page/Component Object Model (spawn the `e2e-runner` sub-agent); (7) bring up the configured whole system, authenticate/seed only through project-owned paths, and run visible web QC/evidence when applicable; (8) run tests with the project's configured command; (9) update `e2e-test-reference.md` with learnings.
 - Every test carries its `TC-{MODULE}-E2E-{NNN}` code traced to the §8 invariant/behavior it guards, structured with a reusable tiered object model (locators/actions in component or page objects, assertions in the test).
 - For applicable browser/UI E2E, use one reusable bounded `waitUntil(condition, options)` helper before every UI-control operation for readiness/actionability and applicable error-alert absence, then after the operation for the expected positive/negative outcome or error-alert state; apply exactly **500ms at the end** after those waits and any real settle signal. Use an idiomatic abstract base, cohesive helpers/utilities, and Common → Domain-Shared → Page component reuse.
-- When the caller explicitly activates `--visual-review=true`, include stable screenshot checkpoints for the declared state × viewport matrix and hand off candidate evidence to `$experience-review`; do not update snapshots, baselines, or assertions automatically. The default is `false`.
+- When visual review is enabled (the default, or an explicit `--visual-review=true`), include stable screenshot checkpoints for the declared state × viewport matrix and hand off candidate evidence to `$experience-review`; `--visual-review=false` is the explicit opt-out. Do not update snapshots, baselines, or assertions automatically.
 - Selector priority semantic/BEM > data-testid > ARIA/role > visible text; AVOID generated classes, `:nth-child`, XPath.
 - Generate unique self-sufficient data (GUID/timestamp); NEVER delete or reset persistent, reference, seeded, additive, or shared data. If the project declares opt-in cleanup, remove only current-run ephemeral resources after evidence capture and never use cleanup as repeat-proof. Auto-select the appropriate workflow when not already in one. If the requested prompt/context scope has no suitable test, generate a traceable Given/When/Then scenario; if a suitable test exists, reuse it and report why it covers the scope.
 
@@ -171,13 +171,25 @@ applicable error-alert presence/absence. The 500ms pacing delay is for
 observation only; it never replaces a readiness, postcondition, or real settle
 signal.
 
-When `--visual-review=true` is present in the caller's mode, record the exact
-visual state × viewport capture plan and emit captures after the required
-wait-until postconditions and 500ms presentation pacing. `$experience-review`
-opens and reads those images and classifies objective UI-floor defects; it is
-the visual evidence path, not `$ask` (which is an architecture consultation
-skill). Keep candidate captures under the configured evidence root or `tmp/`
-and preserve accepted expectations.
+When visual review is enabled (the default unless the caller explicitly passes
+`--visual-review=false`), record the exact visual state × viewport capture plan
+and emit captures after the required wait-until postconditions and 500ms
+presentation pacing. `$experience-review` opens and reads every generated
+image and classifies objective UI-floor defects; it is the visual evidence path,
+not `$ask` (which is an architecture consultation skill). Keep candidate
+captures under the configured evidence root or `tmp/` and preserve accepted
+expectations.
+
+## Default Visual Screenshot Review
+
+Visual screenshot review is enabled by default for applicable E2E runs. When
+the run generates screenshots, capture every declared state × viewport,
+preserve the candidate artifacts, open/read each image, and send the image
+evidence through `$experience-review --rounds=0` before any expectation or
+baseline decision. Missing capture, unread images, or missing inspection for an
+applicable visual surface is `ENVIRONMENT-BLOCKED`, not a pass. An explicit
+`--visual-review=false` opts out of this screenshot review only; it does not
+skip E2E execution, runtime evidence, or the other acceptance gates.
 
 ---
 
@@ -367,7 +379,7 @@ Spawn `e2e-runner` sub-agent for:
 
 ## Workflow Recommendation
 
-> When invoked standalone, auto-select the canonical route from the request and current context; do not ask the user to choose a workflow. Use `workflow-e2e-green` for prompt/context/feature/bugfix/journey/whole-project human-QC verification, and use `workflow-e2e` maintenance modes for changes/recording/update-ui. Honor an explicit workflow or source invocation. Ask the user only when the product intent or owner is genuinely ambiguous, not to choose between equivalent execution routes.
+> When invoked standalone, auto-select the canonical route from the request and current context; do not ask the user to choose a workflow. Use `workflow-e2e` for every E2E source: it conditionally writes or updates the artifact, then delegates configured verification and bounded fix/retest convergence to `e2e-test-verify-loop`. Honor an explicit workflow or source invocation. Ask the user only when the product intent or owner is genuinely ambiguous, not to choose between equivalent execution routes.
 
 ---
 
@@ -484,6 +496,21 @@ Generate and maintain E2E tests using project's configured testing framework.
 
 <!-- /SYNC:test-architecture-execution-contract -->
 
+<!-- SYNC:e2e-visual-design-contract -->
+
+> **E2E Visual Design Contract** — Binds when this skill or agent handles `--visual-review=true`, screenshot/recording evidence, human-QC of a user-facing UI, or visual expectation/baseline updates; for non-visual E2E/API/CLI work state `N/A — no user-facing visual surface` and do not invent a design review.
+>
+> 1. **Resolve authority first.** Read `docs/project-config.json`, its `designSystem.canonicalDoc`, `tokenFiles`, and `appMappings[]`, plus the resolved `design-system/README.md`, `frontend-patterns-reference.md`, `scss-styling-guide.md`, `.claude/docs/design-knowledge.md`, and `.claude/docs/design-review-checklist.md`; record `N/A` only for a proven absent surface or `ENVIRONMENT-BLOCKED` for an applicable missing capability — never invent tokens, components, breakpoints, type, CSS/BEM, or runner defaults.
+> 2. **Use project decisions.** Apply precedence: brief/accepted design contract → adopter project design-system/SCSS/frontend docs and ADRs → shared `UI-1.1`–`UI-9.4`, `DD-1`–`DD-8`, and `CL-1`–`CL-6`; surface a genuine conflict with both sides, never silently choose. Read and apply the full shared `SYNC:design-system-check`, `SYNC:ui-ux-design-principles`, `SYNC:design-distinctiveness-gate`, and `SYNC:design-review-checklist` bodies for their applicable roles. When UI generation or repair is in scope, consume the accepted `$design` decisions (or the adopter's equivalent professional design/component system); review-only E2E evidence must not invent a new visual language.
+> 3. **Map UI architecture before generation or UI fixes.** Inventory related screens, flows, and components; classify each relevant component `Common`, `Domain-Shared`, or `Page`; record its base abstraction and owner; reuse/compose before creating; record why reuse does not fit; keep one owner for markup, selectors, styling, lifecycle, and lower-tier test contracts. Page tests cover composition/outcomes, not copied lower-tier behavior.
+> 4. **Separate review owners.** Use `$experience-review` for the running surface and opened/read screenshot evidence; route source-only token, BEM/SCSS, z-index, component ownership, reuse, and static design findings to `$ui-review`. Never infer source architecture or design tokens from an image, and never treat a passing E2E command as visual/design approval.
+> 5. **Gate every visual round.** Capture every declared state × viewport (including loading, empty, error, permission, post-submit, and full-page where applicable), open/read each artifact, and record state, viewport, location, and measured values. `UI-*`/accessibility/layout-floor and `P0`–`P2` `CL-*` findings are `BLOCKING`; `DD-*` identity/polish is `ADVISORY` unless the governing brief/project contract makes it objectively required. Unmeasurable values are `NOT VERIFIABLE`; never promote a baseline/expectation automatically.
+> 6. **Report the contract.** Persist authority paths and resolution status, component tier/base/owner/reuse decisions, matrix coverage, `UI`/`DD`/`CL` coverage or skips, evidence/read status, and remaining human acceptance; preserve the protected business invariant and exact E2E scope.
+
+<!-- /SYNC:e2e-visual-design-contract -->
+
+
+
 <!-- SYNC:critical-thinking-mindset:reminder -->
 
 **MUST ATTENTION** apply critical + sequential thinking — every claim needs appropriate traced evidence (`file:line` for repo/code claims; source URL or artifact section for research, product, content, and docs claims); confidence >80% to act, <60% DO NOT recommend. Anti-hallucination: never present guess as fact, admit uncertainty freely, cross-reference independently, stay skeptical of own confidence.
@@ -552,10 +579,16 @@ Generate and maintain E2E tests using project's configured testing framework.
 
 <!-- /SYNC:test-architecture-execution-contract:reminder -->
 
+<!-- SYNC:e2e-visual-design-contract:reminder -->
+
+**MUST ATTENTION** visual E2E/QC resolves the project design authority first, applies project design-system/SCSS/frontend decisions plus `UI-*`/`DD-*`/`CL-*` roles, classifies Common/Domain-Shared/Page ownership and reuse, sends static source findings to `$ui-review` and runtime image evidence to `$experience-review`, reads every state × viewport artifact, treats UI/accessibility-floor findings as blocking and DD identity/polish as advisory, never invents measurements, and never auto-promotes baselines; non-visual runs state `N/A`.
+
+<!-- /SYNC:e2e-visual-design-contract:reminder -->
+
 ## Closing Reminders
 
 **IMPORTANT MUST ATTENTION** Testability contract: resolve evidence-backed Unit/Integration/System/E2E rows, copy-ready full/focused commands, zero-match failures, owner/root/data, CI/simple-Windows entry, unique run identity, and repeat proof before claiming setup, review, or test completion.
-**IMPORTANT MUST ATTENTION Goal:** Produce maintainable, spec-traceable E2E tests (`TC-{MODULE}-E2E-{NNN}`) from recordings, specs, or code changes with the project's configured framework (Playwright, Selenium, Cypress, or another), protecting business behavior so cosmetic UI changes do not break tests and intended behavior breaks do.
+**IMPORTANT MUST ATTENTION Goal:** Produce or select maintainable, spec-traceable E2E tests (`TC-{MODULE}-E2E-{NNN}`) from the user prompt/current context, recordings, specs, or code changes with the project's configured framework (Playwright, Selenium, Cypress, or another), then exercise the declared scope like a human QC tester and protect business behavior so cosmetic UI changes do not break tests and intended behavior breaks do.
 
 **IMPORTANT MUST ATTENTION — Protocols in force (concise digest of the SYNC/shared blocks this skill carries):**
 
@@ -606,7 +639,7 @@ Generate and maintain E2E tests using project's configured testing framework.
 **IMPORTANT MUST ATTENTION** read `e2eTesting` config + `e2e-test-reference.md` FIRST and detect the framework — NEVER assume a stack.
 **IMPORTANT MUST ATTENTION** every test carries its `TC-{MODULE}-E2E-{NNN}` code traced to the §8 behavior it guards; selector priority semantic > data-attr > ARIA > text — NEVER generated/positional/XPath.
 **IMPORTANT MUST ATTENTION** generate unique self-sufficient data; never delete/reset persistent, seeded, additive, or shared data; use only configured current-run ephemeral cleanup after evidence capture; spawn `e2e-runner` for generation and only explicitly accepted baseline updates.
-**IMPORTANT MUST ATTENTION** when the caller passes `--visual-review=true` (default `false`), capture and preserve candidate screenshots for every declared state × viewport, let `$experience-review` open/read and adjudicate them, and never promote a baseline automatically; validated blocking UI findings require an owning-layer fix and a same-scope E2E rerun.
+**IMPORTANT MUST ATTENTION** visual screenshot review is enabled by default (or by `--visual-review=true`); capture and preserve candidate screenshots for every declared state × viewport, let `$experience-review` open/read and adjudicate every image, and never promote a baseline automatically. `--visual-review=false` is the explicit opt-out; validated blocking UI findings require an owning-layer fix and a same-scope E2E rerun.
 
 <!-- CODEX:SYNC-PROMPT-PROTOCOLS:START -->
 ## Static Prompt Protocol Mirror (Auto-Synced)

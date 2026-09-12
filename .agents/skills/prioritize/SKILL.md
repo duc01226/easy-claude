@@ -53,62 +53,65 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 
 **Goal:** Produce a defensible ranked ordering of 3+ backlog items using RICE, MoSCoW, or Value-Effort frameworks so the team works highest-value items first — every rank backed by a score and tech-agnostic rationale (value/effort/risk/impact).
 
-**Summary:** PURPOSE — rank 3+ backlog items so the team works highest-value first; every rank = a score + tech-agnostic rationale. The main steps/tasks, in order:
+**Summary:**
 
-- **Step 1-2 Collect & Select** — require 3+ items FIRST (fewer → discuss directly, NEVER force a framework); pick framework by decision tree — RICE = quantitative data exists, MoSCoW = stakeholder must/should/could alignment, Value-Effort 2x2 = quick call; default RICE when unsure.
-- **Step 3 Score** — apply the EXACT framework formula (RICE = Reach×Impact×Confidence ÷ Effort, fixed Impact/Confidence scales, story-point Effort); NEVER invent ad-hoc scores.
-- **Step 4-5 Rank & Output** — rank descending (RICE) / by band (MoSCoW) / by quadrant (V-E); emit prioritized table with scores + Do-first/Plan-next/Defer recommendations.
-- **Step 6 Propagate (MANDATORY when PBI files exist)** — write rank (1-999, ascending) + priority label back into EACH PBI's frontmatter; `pbi-mockup`/`feature-presentation` read priority from there.
-- **Cross-cutting — tech-agnostic (M1):** justify every rank by value/effort/risk/business impact, NEVER by named stack/framework/pattern. **Tie gate:** near-tie (top-2 RICE within 15%, same-band MoSCoW overlap, flagged stakeholder disagreement) → ask the user directly offering `$llm-council`; else end without prompting.
+- **1. Track + detect/collect** — track each declared step (`in_progress` → `completed` + evidence); identify file/inline input and require ≥3 items; fewer → direct discussion, NEVER force a framework.
+- **2. Select + score** — honor a specified framework; otherwise RICE for quantitative data, MoSCoW for stakeholder alignment, Value-Effort 2x2 for a quick call; default RICE when unsure; apply exact criteria, formula, and scales.
+- **3. Rank + report** — rank by framework; emit a prioritized table with scores, tech-agnostic value/effort/risk/business-impact rationale, and Do-first/Plan-next/Defer recommendations.
+- **4. Propagate + tie gate** — when PBI files exist, write `rank` (1–999) + `priority` to EACH PBI frontmatter; near-tie/disagreement → ask the user directly for `$llm-council` vs accept, otherwise end without prompting.
 
 **Workflow:**
 
-1. **Collect Items** — read from files or parse inline list (minimum 3 items)
-2. **Select Framework** — RICE (quantitative), MoSCoW (stakeholder alignment), Value-Effort (quick decision)
-3. **Score Each Item** — apply framework criteria and calculate scores
-4. **Rank & Report** — output prioritized table with rationale and recommendations
-5. **Propagate Priority** — IF PBI files exist → MANDATORY: write `rank` + `priority` label back into EACH PBI frontmatter
-6. **Tie Gate** — near-tie → ask the user directly (`$llm-council` vs accept); else end without prompting
+1. **Collect Items** — read files or parse inline list; require ≥3 items
+2. **Select Framework** — use RICE for quantitative data, MoSCoW for stakeholder alignment, or Value-Effort for a quick decision
+3. **Score Each Item** — apply exact framework criteria and calculate scores
+4. **Rank & Report** — emit prioritized table, rationale, and recommendations
+5. **Propagate Priority** — if PBI files exist, MANDATORY write `rank` + `priority` to EACH PBI frontmatter
+6. **Tie Gate** — near-tie → ask the user directly (`$llm-council` vs accept); otherwise end without prompting
 
 **Key Rules:**
 
-- Minimum 3 items required; fewer than 3 should be discussed directly
-- Default to RICE if unsure; ask user if ambiguous
-- Optionally update PBI file priority fields after ranking
-- **Tech-agnostic rationale (M1):** See `.claude/skills/shared/sdd-artifact-contract.md` → "AI-SDD Mandates (M1-M7)" for BLOCKING criteria. Justify every ranking by value, effort, risk, and business impact — NOT by implementation technology. Rationale prose stays tech-agnostic per `docs/project-reference/spec-principles.md` §3: no framework/product/language/design-pattern names; effort may cite story points and relative complexity, never a named stack.
+- Require ≥3 items; fewer → discuss directly, NEVER force a framework.
+- Honor a user-specified framework; otherwise default to RICE when unsure and ask when ambiguous.
 
-**Be skeptical. Apply critical thinking, sequential thinking. Every claim needs traced proof, confidence percentages (Idea should be more than 80%).**
+> **AI-SDD Artifact Contract** — M1–M7 are blocking: M1/M2 keep rationale tech-agnostic and source identifiers in evidence carriers; M3 uses logical IDs with abstract anchors; M4–M5 require unambiguous, rebuildable behavior; M6 makes review violations explicit; M7 requires demoable business outcomes.
+> MUST ATTENTION READ `.claude/skills/shared/sdd-artifact-contract.md` for full mandate and carrier rules.
+
+- **Tech-agnostic rationale (M1):** justify every ranking by value, effort, risk, and business impact — NOT implementation technology. Rationale prose stays tech-agnostic per `docs/project-reference/spec-principles.md` §3: no framework/product/language/design-pattern names; effort may cite story points and relative complexity, never a named stack.
+- **PBI propagation:** when PBI files exist, write numeric `rank` (1–999, ascending) and `priority` label to EACH PBI frontmatter; this is mandatory, not optional.
+
+Apply critical/sequential thinking; every claim needs traced proof and confidence >80% to act.
 
 # Backlog Prioritization
 
-Order backlog items using data-driven frameworks → ranked list with scores and rationale.
+Use a data-driven framework → ranked list with scores + rationale.
 
 ## When to Use
 
-- Sprint planning needs ordered backlog (3+ items to rank)
-- Stakeholders need priority ranking with justification
-- Feature roadmap ordering with objective criteria
-- Comparing competing features or initiatives
+- Sprint planning needs ordered backlog (≥3 items)
+- Stakeholder priority ranking needs justification
+- Feature roadmap needs objective ordering
+- Competing features or initiatives need comparison
 
 ## When NOT to Use
 
-- Fewer than 3 items (discuss directly)
-- Creating PBIs or writing stories -- use `product-owner` or `story`
-- Full product strategy -- use `product-owner`
-- Project status tracking -- use `project-manager`
+- Fewer than 3 items → discuss directly
+- Creating PBIs or stories → use `product-owner` or `story`
+- Full product strategy → use `product-owner`
+- Project status tracking → use `project-manager`
 
-## Prerequisites
+## Phase 0: Detect & Prepare
 
-- List of 3+ backlog items (PBIs, features, user stories)
-- IF items exist as files: read from `team-artifacts/pbis/` or user-provided path
-- IF items provided inline: use provided descriptions
+- Input: ≥3 backlog items (PBIs, features, user stories), from `team-artifacts/pbis/`, a user path, or inline descriptions.
+- Record any specified framework and available quantitative, stakeholder-alignment, or quick-decision signal.
+- Fewer than 3 items → ask for more or discuss directly; NEVER force a framework.
 
 ## Workflow
 
-1. **Collect items** to prioritize
-    - IF file path provided -> read items from files
-    - IF inline list -> parse items from user message
-    - IF fewer than 3 items -> ask user for more or suggest direct discussion
+1. **Collect items**
+    - If a file path is provided, read items from files.
+    - If an inline list is provided, parse items from the user message.
+    - If fewer than 3 items, ask for more or suggest direct discussion.
 
 2. **Select framework** using decision tree:
 
@@ -262,7 +265,7 @@ If gate does NOT fire, the prioritization decision stands; do NOT prompt.
 
 ## Closing Reminders
 
-- **IMPORTANT MUST ATTENTION Goal:** produce a defensible ranked ordering of 3+ backlog items via RICE/MoSCoW/Value-Effort so the team works highest-value items first — every rank backed by a score and tech-agnostic rationale (value/effort/risk/impact)
+**IMPORTANT MUST ATTENTION Goal:** Produce a defensible ranked ordering of 3+ backlog items using RICE, MoSCoW, or Value-Effort frameworks so the team works highest-value items first — every rank backed by a score and tech-agnostic rationale (value/effort/risk/impact).
 
 **Protocols in force (concise digest of the SYNC/shared blocks this skill carries):**
 

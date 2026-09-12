@@ -741,7 +741,7 @@ Before completing:
 
 ## Closing Reminders
 
-**IMPORTANT MUST ATTENTION Goal:** Give stakeholders a self-contained, navigable mock app that demonstrates the PBI's complete releasable actor-facing outcome — every required page/view, navigation edge, component, state, and story flow — before implementation begins.
+**IMPORTANT MUST ATTENTION Goal:** Give stakeholders a clickable, self-narrating mock app for the PBI's complete releasable outcome — every required page/view, navigation path, component, state, and story flow — as one self-contained interactive HTML prototype built from finalized PBI/story artifacts before implementation begins.
 
 **IMPORTANT MUST ATTENTION Main steps:** locate and read the finalized PBI/stories → extract the UI and full-flow contract → plan views/components/states and demo flows → research the existing UI/domain → generate the connected mock app → save beside the PBI → run fidelity and releasable Demo-Quality gates.
 

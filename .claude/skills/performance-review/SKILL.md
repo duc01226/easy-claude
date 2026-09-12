@@ -6,11 +6,16 @@ description: '[Debugging] Use when analyzing or optimizing performance — slow 
 
 ## Quick Summary
 
-**Goal:** Find and remove a measured or statically evidenced performance bottleneck while preserving behavior, authorization, and resource bounds.
+**Goal:** Ensure every shipped performance fix removes a measured or static-risk-labeled bottleneck across data access, compute, runtime/GC, network, client delivery, and concurrency/resilience; calibrate every number against a known anchor, preserve behavior/authorization/semantics, prove before/after evidence, pass `/why-review` before any fix, and complete a clean full Phase-0 re-review — never hide waste or break correctness.
+
+**Summary:**
+
+- **Main path:** detect scope → discover local patterns → measure or label static risk → review all applicable performance dimensions → calibrate severity → plan → validate findings → fix at the owning layer → prove before/after → run a fresh full re-review.
+- **Gates:** count rows before row size, bound memory/queues/concurrency, preserve authorization and semantics, and treat failed binary gates as blocking; round 1 clears all validated findings, round 2 clears only CRITICAL/HIGH/MEDIUM and defers LOW.
 
 **Workflow:** Detect scope → discover local patterns → measure or label static risk → analyze all applicable dimensions → plan → validate findings → fix → run a full re-review.
 
-**Key Rules:** Evidence beats intuition; calibrate numbers against the local performance reference; bound rows, memory, queues, and concurrency; Round 1 fixes every validated severity, while Round 2+ fixes only CRITICAL/HIGH/MEDIUM and defers LOW-only findings; failed binary gates always block.
+**Key Rules:** Evidence beats intuition; calibrate numbers against the local performance reference; bound rows, memory, queues, and concurrency; Round 1 fixes every validated severity, while Round 2 fixes only CRITICAL/HIGH/MEDIUM and defers LOW-only findings; failed binary gates always block.
 
 > **[IMPORTANT]** MANDATORY MUST ATTENTION stay project-generic: discover local stack, conventions, query APIs, index definitions, metrics, and report paths before judging.
 > **[IMPORTANT]** MANDATORY MUST ATTENTION prove every performance claim with measurement or static evidence: `file:line`, query text/shape, row counts, query plan/explain output, trace, profile, or logs.
@@ -79,7 +84,7 @@ description: '[Debugging] Use when analyzing or optimizing performance — slow 
 - Evidence is the gate, not intuition: capture a runtime baseline (query plan/explain, row counts, p95/p99 distributions, pool acquire-wait, GC pauses, call count × RTT, field CWV, microbench at worst-case N) or label the finding `static risk` with the exact verify command — never recommend below 60% confidence, never average percentiles, always name the load model.
 - **Calibrate against the anchors in `references/performance-knowledge.md`** — latency ladder (`1 ns → 100 ns → 100 µs → 10 ms → 100 ms`), utilization knee ~70-80% (`ρ/(1−ρ)`), Little's Law, tail amplification, CWV thresholds, cache hit-ratio math — a breached anchor is a hypothesis to prove locally, NEVER a finding by itself.
 - Walk dimensions ONE pass at a time — (1) query shape/data-minimization → (2) index/access-path/data-topology → (3) N+1/fan-out → (4) aggregation/join/pipeline → (5) materialization/memory → (6) write/locks/transactions → (7) cache/reuse → (8) API payload/frontend/CWV → (9) compute/algorithmic → (10) network/protocol → (11) runtime/memory/GC → (12) distributed resilience/load — never all at once; reduce rows at the source before trimming columns or caching, and size pools by Little's Law (replica count × per-instance pool) when a fast op shows high p99.
-- No finding is fixable until `/why-review --validate-findings` confirms it (Phase 6); each validated fix that blocks the current round then restarts the FULL review from Phase 0 over the whole target (Phase 7). Round 1 fixes every validated severity; Round 2+ fixes CRITICAL/HIGH/MEDIUM, while LOW-only findings are recorded as deferred and end the loop; failed binary gates always block. A targeted before/after check alone never earns a PASS.
+- No finding is fixable until `/why-review --validate-findings` confirms it (Phase 6); each validated fix that blocks the current round then restarts the FULL review from Phase 0 over the whole target (Phase 7). Round 1 fixes every validated severity; Round 2 fixes CRITICAL/HIGH/MEDIUM, while LOW-only findings are recorded as deferred and end the loop; failed binary gates always block. A targeted before/after check alone never earns a PASS.
 
 > **Renamed:** formerly `/performance` — that name no longer resolves as a slash command; use `/performance-review`.
 
@@ -92,7 +97,7 @@ description: '[Debugging] Use when analyzing or optimizing performance — slow 
 5. **Plan** - Propose smallest fix preserving behavior.
 6. **Verify** - Re-measure, run tests, and record evidence.
 7. **Validate Findings** - Run `/why-review --validate-findings <report-path>` before any fix.
-8. **Fix + Full Re-Review** - Fix only validated findings that block the current round, then restart from Detect over the full target; Round 2+ LOW-only findings do not start another cycle.
+8. **Fix + Full Re-Review** - Fix only validated findings that block the current round, then restart from Detect over the full target; Round 2 LOW-only findings do not start another cycle.
 
 **Key Rules:**
 
@@ -103,7 +108,7 @@ description: '[Debugging] Use when analyzing or optimizing performance — slow 
 - MANDATORY ALWAYS count `call count × RTT` on a remote path, and check the timeout/retry/queue-bound before optimizing inside a call.
 - NEVER recommend caching until query shape, indexes, pagination, batching, and data volume are understood; NEVER call a cache done without its measured hit ratio and bound.
 - NEVER average percentiles, and NEVER trust a throughput number whose load model (open vs closed) is unstated.
-- Findings are not eligible for fix until `/why-review --validate-findings` confirms them; every validated fix that blocks the current round restarts the full performance review from Phase 0. Apply the shared severity bar: Round 1 = zero findings; Round 2+ = zero CRITICAL/HIGH/MEDIUM, with LOW deferred and binary gates still blocking.
+- Findings are not eligible for fix until `/why-review --validate-findings` confirms them; every validated fix that blocks the current round restarts the full performance review from Phase 0. Apply the shared severity bar: Round 1 = zero findings; Round 2 = zero CRITICAL/HIGH/MEDIUM, with LOW deferred and binary gates still blocking.
 
 <target>$ARGUMENTS</target>
 
@@ -530,7 +535,7 @@ Sub-agent prompt MUST include target, detected scope, local context evidence, re
 3. Re-measure or run the verification command named in the finding.
 4. Restart the full `/performance-review` review from Phase 0 over the complete current target, not only the fixed files.
 5. The restarted pass MUST create brand-new review tasks, re-detect scope, rediscover local context, rerun baseline/graph/profiler checks where applicable, and analyze all dimensions again from the beginning.
-6. Repeat validate → fix → full performance re-review until a complete pass clears the current round's exit bar (round 1: zero findings; round 2+: zero CRITICAL/HIGH/MEDIUM, LOW deferred).
+6. Repeat validate → fix → full performance re-review until a complete pass clears the current round's exit bar (round 1: zero findings; round 2: zero CRITICAL/HIGH/MEDIUM, LOW deferred).
 7. If the same validated blocker repeats across 2 full invocations with no progress, stop and ask the user for a decision.
 
 **Non-negotiable rules:**
@@ -673,18 +678,18 @@ If evidence insufficient, output: `Insufficient evidence. Verified: [...]. Not v
 
 > **Validated-Finding Fix + Full Re-Review Loop** — Re-review is triggered by a validated finding fix cycle or an explicitly declared independent-pass minimum, not by a round number alone. Review purpose: `review → validate findings → fix validated findings that block the current round → full re-review` until a complete review pass clears the round's exit bar (see **Severity floor** below). **A clean review ENDS the loop once the persisted `minRounds` is met (default 1); an explicitly declared minimum such as 2 still requires that independent pass.**
 >
-> _aka **Self-Review Convergence Loop**._ The name is historical — there is **NO 2-round cap**; "double-round-trip" only means a validated-finding fix cycle forces at least one fresh re-review. It runs until the current round's exit bar is clear (round 1: zero findings; round 2+: zero CRITICAL/HIGH/MEDIUM, LOW deferred), bounded by the **3-round ceiling** below.
+> _aka **Self-Review Convergence Loop**._ The name is historical — "double-round-trip" means a validated-finding fix cycle forces at least one fresh re-review. It runs until the current round's exit bar is clear (round 1: zero findings; round 2: zero CRITICAL/HIGH/MEDIUM, LOW deferred), bounded by the **2-round ceiling** below.
 >
-> **Round cap — 3 rounds MAX (a ceiling, NEVER a target).** A clean pass ENDS the loop at ANY round once `round >= minRounds` — round 1 included with the default minimum; the cap never obliges extra rounds. Hitting round 3 with blocking findings still open (severity floor applied) → **STOP and escalate via `AskUserQuestion`** with the still-open findings listed; NEVER emit a silent "good enough" PASS on cap exhaustion, and NEVER let the cap substitute for the clean-review requirement. The 2-repeated-no-progress blocker rule stays an EARLIER exit — escalate at whichever trips first.
+> **Round cap — 2 rounds MAX (a ceiling, NEVER a target).** A clean pass ENDS the loop at ANY round once `round >= minRounds` — round 1 included with the default minimum; the cap never obliges an extra round. Hitting round 2 with blocking findings still open (severity floor applied) → **STOP and escalate via `AskUserQuestion`** with the still-open findings listed; NEVER emit a silent "good enough" PASS on cap exhaustion, and NEVER let the cap substitute for the clean-review requirement. The 2-repeated-no-progress blocker rule stays an EARLIER exit — escalate at whichever trips first.
 >
 > **Severity floor — from round 2, LOW stops blocking.** The exit bar tightens after the first review pass, so the loop converges on consequence instead of spinning on polish:
 
-> Define one predicate everywhere: `blocking_findings(round, findings)` returns all validated findings in round 1 and only validated CRITICAL/HIGH/MEDIUM findings in rounds 2–3. A binary gate (test-green, security must-fix, required artifact) is exempt only when its owning invariant explicitly says so; in practice binary gates always remain blocking when they fail.
+> Define one predicate everywhere: `blocking_findings(round, findings)` returns all validated findings in round 1 and only validated CRITICAL/HIGH/MEDIUM findings in round 2. A binary gate (test-green, security must-fix, required artifact) is exempt only when its owning invariant explicitly says so; in practice binary gates always remain blocking when they fail.
 >
 > | Round | Exit bar — loop ENDS when the fresh full review has… | Must be fixed to continue |
 > | --- | --- | --- |
 > | 1 | zero validated findings at ANY severity | CRITICAL · HIGH · MEDIUM · LOW |
-> | 2–3 | zero validated CRITICAL / HIGH / MEDIUM findings — **LOW-only clears the severity bar** | CRITICAL · HIGH · MEDIUM only |
+> | 2 | zero validated CRITICAL / HIGH / MEDIUM findings — **LOW-only clears the severity bar** | CRITICAL · HIGH · MEDIUM only |
 >
 > From round 2 onward LOW findings are **NOT required to be fixed**: a round whose validated findings are ALL LOW **ENDS the loop once the persisted minimum is met** — do not open another fix/re-review round for them. Severity tiers are `SYNC:severity-rubric` (CRITICAL block-merge · HIGH must-fix · MEDIUM must clear the current round · LOW record/defer); round 1 remains strict, so a LOW found initially is still validated and fixed when warranted before the floor can apply.
 >
@@ -715,7 +720,7 @@ If evidence insufficient, output: `Insufficient evidence. Verified: [...]. Not v
 > - Subtle edge cases the prior round rationalized away
 > - Regressions introduced by the fixes themselves
 >
-> **Loop termination:** After each full re-review, repeat the same decision against **that round's exit bar**: bar cleared and persisted minimum met → END; blocking findings remain → validate findings → fix → restart from the first review phase. Round 1 clears only on zero findings at any severity; **from round 2 the bar is zero CRITICAL/HIGH/MEDIUM, so a LOW-only round ENDS the loop once the persisted minimum is met** (deferred LOWs go in the report). Capped at **3 rounds**. Escalate via `AskUserQuestion` at whichever comes first: the same validated finding repeats for 2 full invocations with no progress · a fix requires product/owner input · round 3 completes with CRITICAL/HIGH/MEDIUM still open. NEVER loop past 3 rounds, and NEVER convert cap exhaustion into a PASS.
+> **Loop termination:** After each full re-review, repeat the same decision against **that round's exit bar**: bar cleared and persisted minimum met → END; blocking findings remain → validate findings → fix → restart from the first review phase. Round 1 clears only on zero findings at any severity; **round 2's bar is zero CRITICAL/HIGH/MEDIUM, so a LOW-only round ENDS the loop once the persisted minimum is met** (deferred LOWs go in the report). Capped at **2 rounds**. Escalate via `AskUserQuestion` at whichever comes first: the same validated finding repeats for 2 full invocations with no progress · a fix requires product/owner input · round 2 completes with CRITICAL/HIGH/MEDIUM still open. NEVER loop past 2 rounds, and NEVER convert cap exhaustion into a PASS.
 >
 > **Rules:**
 >
@@ -727,12 +732,12 @@ If evidence insufficient, output: `Insufficient evidence. Verified: [...]. Not v
 > - NEVER skip the full re-review after a fix cycle (every fix invalidates the prior verdict)
 > - NEVER reuse a sub-agent across rounds — every iteration that uses sub-agents spawns NEW Agent calls
 > - Main agent READS sub-agent reports but MUST NOT filter, reinterpret, or override findings
-> - The 3-round cap NEVER replaces the clean-review requirement — it bounds runaway looping, it does not authorize shipping an un-clean review; a clean pass ends the loop early once the persisted minimum is met, and cap exhaustion escalates rather than passes
-> - Enforce the round cap of 3 alongside the 2 repeated-no-progress blocker rule; both are escalation triggers, neither is a completion criterion
+> - The 2-round cap NEVER replaces the clean-review requirement — it bounds runaway looping, it does not authorize shipping an un-clean review; a clean pass ends the loop early once the persisted minimum is met, and cap exhaustion escalates rather than passes
+> - Enforce the round cap of 2 alongside the 2 repeated-no-progress blocker rule; both are escalation triggers, neither is a completion criterion
 > - Persist completed rounds, repeated blockers, findings and the explicit minimum in the owning run's `review-policy.cjs` record. Resume that record after interruption; target changes invalidate evidence and acceptance but preserve the bounded round budget. In-flight attempt IDs may be session-local; they do not replace or reset completed-round state
 > - Final verdict must incorporate ALL rounds executed
 >
-> **Report must include `## Round N Findings (Fresh Sub-Agent)` for every round N≥2 that was executed, plus `## Deferred LOW Findings (severity floor, round ≥2)` whenever the loop ended on the round-2+ bar with LOWs still open.**
+> **Report must include `## Round N Findings (Fresh Sub-Agent)` for every round N≥2 that was executed, plus `## Deferred LOW Findings (severity floor, round ≥2)` whenever the loop ended on the round-2 bar with LOWs still open.**
 
 <!-- /SYNC:double-round-trip-review -->
 
@@ -811,7 +816,7 @@ If evidence insufficient, output: `Insufficient evidence. Verified: [...]. Not v
 
 - **MANDATORY IMPORTANT MUST ATTENTION** execute the review loop (aka **Self-Review Convergence Loop**): review → validate findings → fix validated blocking findings → full re-review. Round 1 ends only with zero findings and the persisted `minRounds` met; from round 2 onward, zero CRITICAL/HIGH/MEDIUM ends the loop once the persisted minimum is met and LOW findings are recorded as deferred. Any newly produced output/judgment gets ≥1 self-review; any new judgment gets ≥1 `/why-review --validate-findings` pass before it is treated as final.
 - **MANDATORY** apply the **severity floor**: round 1 exits on zero findings at any severity; **from round 2 the bar is zero CRITICAL/HIGH/MEDIUM — LOW findings are no longer required to be fixed, so a LOW-only round ENDS the loop once the persisted minimum is met.** List every deferred LOW in the report; NEVER re-tier a real CRITICAL/HIGH/MEDIUM down to LOW to reach the exit, and NEVER apply the floor to a binary gate (test-green, security must-fix).
-- **MANDATORY** enforce the **round cap of 3 — a ceiling, NEVER a target**: a clean pass ends the loop once the persisted `minRounds` is met (default 1; explicit 2 requires an independent pass), and round 3 completing with CRITICAL/HIGH/MEDIUM still open → **STOP & escalate via `AskUserQuestion`**, never a silent PASS. The 2-repeated-no-progress blocker rule is an earlier exit — escalate at whichever trips first. NEVER loop open-ended.
+- **MANDATORY** enforce the **round cap of 2 — a ceiling, NEVER a target**: a clean pass ends the loop once the persisted `minRounds` is met (default 1; explicit 2 requires an independent pass), and round 2 completing with CRITICAL/HIGH/MEDIUM still open → **STOP & escalate via `AskUserQuestion`**, never a silent PASS. The 2-repeated-no-progress blocker rule is an earlier exit — escalate at whichever trips first. NEVER loop past 2 rounds.
 
 <!-- /SYNC:double-round-trip-review:reminder -->
 
@@ -876,7 +881,7 @@ If evidence insufficient, output: `Insufficient evidence. Verified: [...]. Not v
 
 **IMPORTANT MUST ATTENTION Goal:** Ensure every shipped performance fix removes a measured or static-risk-labeled bottleneck across data access, compute, runtime/GC, network, client delivery, and concurrency/resilience; calibrate every number against a known anchor, preserve behavior/authorization/semantics, prove before/after evidence, pass `/why-review` before any fix, and complete a clean full Phase-0 re-review — never hide waste or break correctness.
 
-**IMPORTANT MUST ATTENTION — Main steps:** Detect scope and symptom→cause triage → discover local context and 3+ patterns → baseline evidence and calibrate anchors → run 12 serial dimension passes → order findings by severity → plan the smallest behavior-preserving optimization → validate findings with `/why-review --validate-findings` → fix only validated findings that block the current round and restart the full Phase-0 review (Round 1: all severities; Round 2+: CRITICAL/HIGH/MEDIUM; LOW-only deferred; binary gates always block).
+**IMPORTANT MUST ATTENTION — Main steps:** Detect scope and symptom→cause triage → discover local context and 3+ patterns → baseline evidence and calibrate anchors → run 12 serial dimension passes → order findings by severity → plan the smallest behavior-preserving optimization → validate findings with `/why-review --validate-findings` → fix only validated findings that block the current round and restart the full Phase-0 review (Round 1: all severities; Round 2: CRITICAL/HIGH/MEDIUM; LOW-only deferred; binary gates always block).
 
 **Protocols in force (concise digest of the SYNC/shared blocks this skill carries):**
 
@@ -920,7 +925,7 @@ If evidence insufficient, output: `Insufficient evidence. Verified: [...]. Not v
 | "Query is fast, so the endpoint is fast"      | Measure pool acquire-wait and queue depth. A 2ms query behind a saturated pool still yields a 200ms p99 — the wait is at the pool entrance, not in the query. |
 | "Found one similar pattern, good enough"      | Grep 3+ and verify preconditions match. One nearby example ≠ a fit; cite `file:line`.                                                                         |
 | "Fix it where it errors/spikes"               | Trace caller (wrong data) vs callee (wrong handling); fix at the layer owning the invariant, not the symptom site.                                            |
-| "Validated nothing, just fix the obvious one" | No fix until `/why-review --validate-findings` confirms it; then fix only the current round's blocking severities and restart the FULL review from Phase 0. Round 2+ LOW-only findings are deferred. |
+| "Validated nothing, just fix the obvious one" | No fix until `/why-review --validate-findings` confirms it; then fix only the current round's blocking severities and restart the FULL review from Phase 0. Round 2 LOW-only findings are deferred. |
 | "Every handler is fast, so the path is fast"  | Count `call count × RTT` and check connection reuse. 12 avoidable round trips beat any handler micro-optimization.                                             |
 | "Latency is high, optimize the code"          | Check the RTT/geography floor first (~1 ms per 100 km) — physics and handshakes are not fixable in code; only moving the endpoint is.                          |
 | "Spikes are random / just noise"              | Correlate against GC pauses, cold cache, deploys, and pool wait before calling anything random. Uncorrelated-with-load spikes are usually the runtime.         |

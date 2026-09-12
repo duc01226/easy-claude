@@ -913,7 +913,7 @@ Example for a "Create Invoice" story:
 
 ## Closing Reminders
 
-**IMPORTANT MUST ATTENTION Goal:** produce sprint-ready, INVEST-valid vertical stories that collectively deliver the parent PBI's independently releasable actor-facing outcome — tech-agnostic, testable GWT criteria, evidence-cited estimates, dependency-mapped, and full-flow/UI-surface aware.
+**IMPORTANT MUST ATTENTION Goal:** Produce sprint-ready, INVEST-valid user stories — tech-agnostic, testable GWT criteria, evidence-cited estimates, dependency-mapped — by breaking Product Backlog Items into implementable stories via vertical slicing and SPIDR splitting, so a team with zero codebase knowledge can implement on any stack.
 
 **IMPORTANT MUST ATTENTION Main steps (execute in order, NEVER skip):** read PBI + active plan + domain context → identify VERTICAL slices → SPIDR-split (SP >8 MUST / >5 SHOULD) → write INVEST stories with min 3 GWT + 1 auth scenario → estimate bottom-up (Blast-Radius pre-pass, SP DERIVED) + full frontmatter → emit Story Dependencies table (no orphans) → MANDATORY ask the user directly validation → save to `team-artifacts/pbis/stories/` → suggest `$spec [mode=tests]`.
 

@@ -13,28 +13,28 @@ description: '[Code Quality] Use when running an AI-assisted Dev BA PIC review o
 
 <!-- PROMPT-ENHANCE:STEP-TASK-ANCHOR:END -->
 
+> **AI-SDD Artifact Contract** — M1-M7 are hard gates: M1/M2 keep implementation identifiers in evidence carriers; M3 requires logical IDs plus abstract anchors; M4/M5 require unambiguous, rebuildable behavior; M7 requires demoable business outcomes.
+> MUST ATTENTION READ `.claude/skills/shared/sdd-artifact-contract.md` for full mandate definitions and carrier rules.
+
+> **Releasable PBI Contract** — One PBI names one actor-facing outcome with a complete entry → result → exit journey, visible/persisted truth, applicable access/error/recovery behavior, and evidence; UI PBIs require connected pages/views, navigation, components, states, and demo flow; technical work stays enabling work.
+> MUST ATTENTION READ `.claude/skills/shared/releasable-pbi-contract.md` for the full outcome and full-flow contract.
+
 ## Quick Summary
 
-**Goal:** Break drafter confirmation bias before grooming — by helping **Dev BA PIC** (Person In Charge — development Business Analyst responsible for technical review sign-off per squad) review BA drafters' PBI drafts with specific, actionable challenge prompts, surface every architectural-feasibility, vague-AC, missing-auth, cross-service, and M1-M7 gap so an INFEASIBLE or under-specified PBI never reaches grooming with a false APPROVE. AI provides analysis; human makes decision.
+**Goal:** Help a Dev BA PIC challenge a BA drafter's PBI before grooming, surfacing evidence-backed feasibility, AC, authorization, cross-service, M1-M7, releasable-outcome, and full-flow gaps so no infeasible or under-specified PBI reaches grooming as a false APPROVE; AI analyzes, human decides.
 
 **Summary:**
 
-- **Main steps (8):** (1) locate the BA drafter's PBI draft → (2) auto-detect module, **confirm via `AskUserQuestion` BEFORE loading domain docs** (domain-entities-reference + `docs/specs/{App}/` + BR-{MOD} rules) → (3) Technical Feasibility analysis (architecture fit, entity conflicts, cross-service, complexity vs SP) → (4) AC Quality analysis (vagueness detector + M1-M7 checks) → (5) Cross-Cutting Concerns (auth matrix, seed data, migration, performance, UI Layout, releasable outcome, full-flow surface) → (6) generate SPECIFIC challenge prompts with suggested answers → (7) present Challenge Prompts FIRST, THEN AI Verdict (APPROVE / REQUEST_REVISION / ESCALATE_TO_LEAD) → (8) human records final decision via `AskUserQuestion`.
-- CROSS-PERSON review, NOT self-review: a *different* reviewer (Dev BA PIC) challenges the BA drafter's PBI — NEVER your own draft (route self-review to `/artifact-review --type=pbi`). — why: external skepticism breaks blind spots that self-review rationalizes away.
-- M1-M7 Compliance Gate is BLOCKING and drives the verdict (runs inside Steps 4-5): any M1-M5 or M7 mandate failure forces REQUEST_REVISION with a challenge prompt naming the violated mandate ID + exact section/line/AC; an APPROVE over an M1-M5 or M7 violation is itself defective.
-- Releasable Outcome Gate is BLOCKING: challenge whether the PBI is one independently releasable actor-facing outcome with a complete entry-to-result journey. For UI PBIs, require the full page/view, navigation, component, state, and mock-app flow surface; a technical-only PBI or isolated screen forces REQUEST_REVISION.
-- Order fights automation bias: Challenge Prompts FIRST so the Dev BA PIC forms their own view, THEN the AI Verdict; challenges must be SPECIFIC with suggested answers, never vague.
-- AI provides ANALYSIS; the human makes the DECISION via `AskUserQuestion` — never auto-approve or auto-reject.
-
-**Key distinction:** Collaborative review tool (drafter → reviewer flow), NOT self-review (use `/artifact-review --type=pbi` for AI self-review).
+- **Purpose:** CROSS-PERSON review: a different Dev BA PIC challenges the BA drafter's PBI; NEVER review your own draft—use `/artifact-review --type=pbi`. — why: external skepticism breaks confirmation bias.
+- **Pipeline (8, in order):** (1) locate PBI → (2) detect + **confirm module via `AskUserQuestion` before domain docs** → (3) Technical Feasibility → (4) AC Quality + M1-M7 → (5) Cross-Cutting Concerns (auth/seed/migration/performance/UI Layout + releasable/full-flow surface) → (6) generate SPECIFIC challenge prompts with suggested answers → (7) Challenge Prompts FIRST, then AI Verdict → (8) human records final decision via `AskUserQuestion`.
+- **Blocking gates:** Any M1-M5 or M7 failure forces `REQUEST_REVISION` with mandate ID + exact section/line/AC; missing releasable outcome or full-flow surface also forces `REQUEST_REVISION`.
+- **Decision:** AI provides analysis; human decides via `AskUserQuestion`. Verdicts: `APPROVE` / `REQUEST_REVISION` / `ESCALATE_TO_LEAD`; technical veto is unilateral, non-technical decisions require 2/3 BA vote; Next Steps remains user-routed.
 
 **Be skeptical. Apply critical thinking, sequential thinking. Every claim needs traced proof, confidence percentages (Idea should be more than 80%).**
 
 ## Why This Skill Exists
 
-PBI drafts routinely pass informal review unchallenged on architectural feasibility, vague AC, missing auth scenarios, cross-service impact. `/refine` generates PBIs but does not adversarially challenge them — creation tool, not review tool. `/artifact-review --type=pbi` provides AI self-review for drafter, but drafter has inherent blind spots about own assumptions. Separate reviewer (Dev BA PIC) applying AI-assisted challenge prompts breaks drafter confirmation bias before grooming — catches gaps drafter cannot catch themselves.
-
-**Why not just `/artifact-review --type=pbi`?** Drafter runs it on own work; even with adversarial prompts, drafter rationalizes own choices. `pbi-challenge` invoked by different person with different mandate — external skepticism requires different author, not different tool on same author.
+Informal PBI review misses architecture feasibility, vague AC, auth, and cross-service gaps. `/refine` creates PBIs; `/artifact-review --type=pbi` self-reviews and leaves drafter blind spots. This skill gives a different Dev BA PIC specific, evidence-backed challenges before grooming.
 
 ## Alternatives Considered
 
@@ -57,7 +57,7 @@ PBI drafts routinely pass informal review unchallenged on architectural feasibil
 
 ### Frontend/UI Context (if applicable)
 
-> When this task involves frontend or UI changes,
+For frontend/UI changes, read:
 
 - Component patterns: `docs/project-reference/frontend-patterns-reference.md`
 - Styling/BEM guide: `docs/project-reference/scss-styling-guide.md`
@@ -65,35 +65,33 @@ PBI drafts routinely pass informal review unchallenged on architectural feasibil
 
 ## Workflow
 
-1. **Locate PBI draft** — Find BA drafters' draft PBI in `team-artifacts/pbis/` or path provided by user
-2. **Load domain context** — Auto-detect module from PBI content. **MANDATORY: Use `AskUserQuestion` to confirm detected module with Dev BA PIC before loading domain docs.** Wrong module = wrong entity context = false APPROVE risk. Then load:
+1. **Locate PBI draft** — Find BA drafter's draft in `team-artifacts/pbis/` or the user-provided path.
+2. **Load domain context** — Auto-detect module from PBI content. **MANDATORY: Use `AskUserQuestion` to confirm the module with the Dev BA PIC before loading domain docs.** Wrong module = wrong entity context = false APPROVE risk. Then load:
     - `docs/project-reference/domain-entities-reference.md` (entity definitions)
     - Relevant feature docs from `docs/specs/{App}/`
     - Existing business rules (BR-{MOD}-XXX) from feature docs
 3. **Technical Feasibility Analysis:**
-    - Can described features be built with the project's architecture?
-    - Any domain entity conflicts? (cross-reference entity definitions)
-    - Any cross-service implications? (message bus events, shared data between services)
-    - Estimated complexity alignment (does scope match story points?)
+     - Can the described feature fit the project architecture?
+     - Any domain entity conflicts? Cross-reference entity definitions.
+     - Any cross-service implications? Check message-bus events and shared data.
+     - Does estimated complexity align with story points?
 
 4. **AC Quality Analysis:**
-    - Vagueness detector: flag "should", "might", "TBD", "etc.", "various", "appropriate"
-    - Coverage check: happy path + edge case + error case + authorization scenario
-    - Missing scenarios: suggest specific additions based on feature type
+     - Vagueness detector: flag "should", "might", "TBD", "etc.", "various", "appropriate".
+     - Coverage: happy path + edge case + error case + authorization scenario.
+     - Missing scenarios: suggest specific additions for the feature type.
 5. **Cross-Cutting Concerns Check:**
-    - Authorization section present and complete? (roles × CRUD matrix)
-    - Seed data requirements addressed? (or explicit "N/A")
-    - Data migration implications? (schema changes)
-    - Performance considerations? (list/grid/export features)
-    - **Releasable outcome and full flow present?** The PBI must name the actor-facing result, entry → action → result → exit journey, visible/persisted truth, applicable recovery/access behavior, and no standalone technical/foundation/setup scope.
-    - **UI Layout/full-flow surface present?** If PBI involves UI: must have `## UI Layout` per UI wireframe protocol with all required pages/views, navigation map, common/domain/page components, states, and a connected mock-app journey. If backend-only: explicit "N/A" plus the observable no-UI reason. Flag an isolated screen or missing UI visualization as a gap.
-6. **Generate Challenge Prompts** — Output specific, actionable questions:
-    - NOT vague: "needs work" or "improve AC"
-    - SPECIFIC: "AC #2 says 'user can filter results' — which filters exactly? Suggest: status, date range, priority"
-7. **Present Challenge Prompts first, then AI Verdict** — Output challenge prompts BEFORE the verdict to prevent automation bias. Dev BA PIC reads and forms their preliminary view, THEN sees: APPROVE / REQUEST_REVISION / ESCALATE_TO_LEAD
-    - **Technical decisions** (feasibility, dependencies, cross-service impact, security): Dev BA PIC has unilateral veto power — no 2/3 vote needed
-    - **Non-technical decisions** (UI/UX design, visual design, business value): 2/3 majority vote required (Dev BA PIC + UX BA + Designer BA per `ba-team-decision-model`)
-8. **AskUserQuestion** — Dev BA PIC records their FINAL decision (APPROVE / REQUEST_REVISION / ESCALATE_TO_LEAD) in the Decision Record. This is the human decision step — NOT the workflow routing step (handled separately in Next Steps)
+     - Authorization section complete? Use roles × CRUD matrix.
+     - Seed data addressed, or explicit "N/A"?
+     - Data migration implications? Check schema changes.
+     - Performance considerations for list/grid/export features?
+     - **Releasable outcome and full flow present?** Name the actor-facing result, entry → action → result → exit journey, visible/persisted truth, applicable access/recovery behavior, and no standalone technical/foundation/setup scope.
+     - **UI Layout/full-flow surface present?** UI PBIs need `## UI Layout` per UI wireframe protocol with required pages/views, navigation map, common/domain/page components, states, and connected mock-app journey. Backend-only needs explicit "N/A" plus observable no-UI reason. Flag isolated screens or missing UI visualization.
+6. **Generate Challenge Prompts** — Output specific, actionable questions with suggested answers. Never write only "needs work" or "improve AC"; e.g., "AC #2 says 'user can filter results' — which filters? Suggest: status, date range, priority."
+7. **Present Challenge Prompts first, then AI Verdict** — Show prompts BEFORE the verdict so the Dev BA PIC forms an independent view, then show `APPROVE` / `REQUEST_REVISION` / `ESCALATE_TO_LEAD`.
+     - **Technical decisions** (feasibility, dependencies, cross-service impact, security): Dev BA PIC has unilateral veto power; no 2/3 vote.
+     - **Non-technical decisions** (UI/UX, visual design, business value): require 2/3 majority (Dev BA PIC + UX BA + Designer BA per `ba-team-decision-model`).
+8. **AskUserQuestion** — Dev BA PIC records the FINAL decision (`APPROVE` / `REQUEST_REVISION` / `ESCALATE_TO_LEAD`) in the Decision Record. This is human decision, not Next Steps routing.
 
 ## M1-M7 Compliance Gate (BLOCKING — drives the AI Verdict)
 
@@ -514,7 +512,7 @@ If ANY check fails → AI Verdict is REQUEST_REVISION; tag each violated mandate
 
 ## Closing Reminders
 
-**IMPORTANT MUST ATTENTION Goal:** Break drafter confirmation bias before grooming — surface every architectural-feasibility, vague-AC, missing-auth, cross-service, M1-M7, non-releasable-outcome, and incomplete-full-flow gap as a specific challenge prompt so an INFEASIBLE or under-specified PBI never reaches grooming with a false APPROVE.
+**IMPORTANT MUST ATTENTION Goal:** Help a Dev BA PIC challenge a BA drafter's PBI before grooming, surfacing evidence-backed feasibility, AC, authorization, cross-service, M1-M7, releasable-outcome, and full-flow gaps so no infeasible or under-specified PBI reaches grooming as a false APPROVE; AI analyzes, human decides.
 
 **IMPORTANT MUST ATTENTION Main steps (8, in order):** (1) locate PBI draft → (2) detect + **confirm module via `AskUserQuestion` before loading domain docs** → (3) Technical Feasibility → (4) AC Quality (+ M1-M7 checks) → (5) Cross-Cutting Concerns (auth/seed/migration/perf/UI Layout + Releasable Outcome/full-flow surface) → (6) generate SPECIFIC challenge prompts → (7) Challenge Prompts FIRST, then AI Verdict → (8) human records decision via `AskUserQuestion`. NEVER skip, reorder, or merge steps without explicit user approval — why: the prompts-before-verdict and module-confirm ordering is what defeats automation bias and false APPROVE.
 

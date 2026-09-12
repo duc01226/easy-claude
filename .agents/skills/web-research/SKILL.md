@@ -51,24 +51,24 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 
 ## Quick Summary
 
-**Goal:** Execute broad web search on a topic, collect and classify sources, and produce a tiered, deduplicated source map plus a gap list — the triaged candidate-source feedstock that `deep-research` dives into next — NOT a final research report.
+**Goal:** Run broad web research, classify and deduplicate candidate sources, and produce a tiered source map + gap list for `deep-research`, never a final report.
 
 **Summary:**
 
-- **Purpose:** breadth-first source discovery + triage for `deep-research` — produce a tiered, deduplicated source map, NOT a synthesized report.
-- **Main steps (all 5, in order):** (1) Define scope — parse topic, generate 5-10 angle-varied queries (overview, current-state, comparison, data, expert, criticism); (2) Execute searches — run `WebSearch` per query (≤10 calls), record title/URL/snippet/source-type; (3) Source triage — classify each result Tier 1-4, filter duplicates; (4) Build source map — write to `.claude/tmp/_sources-{slug}.md` (sources table + Gaps Identified); (5) Identify gaps — note underexplored angles for `deep-research`.
-- Hard-cap fan-out at 10 `WebSearch` calls per invocation — generate 5-10 angle-varied queries and stop at the cap; this is breadth-then-triage, not deep-dive.
-- Classify every result into Tier 1-4 (.gov/.edu/official > industry reports > established blogs/Wikipedia > forums/social) and dedupe by URL/syndicated content before it counts as a source.
-- The deliverable is the intermediate source map at `.claude/tmp/_sources-{slug}.md` (sources table + Gaps Identified), NOT a synthesized report — hand it off to `deep-research`.
-- Mine the source set for gaps (missing perspectives, missing quantitative data, stale recency) so the next step knows what to dig deeper on.
+- **Purpose:** Breadth-first discovery + triage for `deep-research`; produce a tiered, deduplicated source map, never synthesis.
+- **Main steps (all 5, in order):** (1) Define scope — parse topic; generate 5-10 angle-varied queries (overview, current-state, comparison, data, expert, criticism); (2) Execute searches — run `WebSearch` per query (≤10 calls); record title/URL/snippet/source type; (3) Triage — classify each result Tier 1-4; dedupe; (4) Build map — write `.claude/tmp/_sources-{slug}.md` (Sources + Gaps Identified); (5) Identify gaps — note underexplored angles for `deep-research`.
+- Hard-cap fan-out at 10 `WebSearch` calls/invocation; generate 5-10 varied queries, then stop; breadth then triage, not deep-dive.
+- Tier every result (.gov/.edu/official > industry reports > established blogs/Wikipedia > forums/social); dedupe URL/syndicated content before counting.
+- Deliverable: intermediate source map at `.claude/tmp/_sources-{slug}.md` (Sources + Gaps Identified), not synthesis; hand off to `deep-research`.
+- Mine gaps: missing perspectives, quantitative data, stale recency; guide the next deep dive.
 
 **Workflow:**
 
-1. **Define scope** — Parse topic, generate 5-10 search queries from varied angles
-2. **Execute searches** — Run WebSearch for each query, collect results
-3. **Source triage** — Classify each source by Tier (1-4), filter duplicates
+1. **Define scope** — Parse topic; generate 5-10 varied queries
+2. **Execute searches** — Run `WebSearch`; collect results
+3. **Source triage** — Classify each source Tier 1-4; dedupe
 4. **Build source map** — Write structured source list to working file
-5. **Identify gaps** — Note underexplored angles for deep-research
+5. **Identify gaps** — Note underexplored angles for `deep-research`
 
 **Key Rules:**
 
@@ -76,26 +76,26 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 - Follow source hierarchy: Official docs (Tier 1) > Peer-reviewed (Tier 2) > Industry blogs (Tier 3) > Forums (Tier 4)
 - Output intermediate source map, not final report
 
-**Be skeptical. Apply critical thinking, sequential thinking. Every claim needs traced proof, confidence percentages (Idea should be more than 80%).**
+**MUST ATTENTION** Apply skeptical, sequential thinking; trace every claim and state confidence (>80% to act).
 
 # Web Research
 
 ## Knowledge Work Rules (canonical)
 
-> **Web Research Protocol** — Every factual claim needs 2+ independent sources. Source tiers: Tier 1 (authoritative .gov/.edu/official docs), Tier 2 (industry reports), Tier 3 (credible blogs — cross-validate), Tier 4 (unverified — NEVER cite as fact). Declare confidence for all findings.
+> **Web Research Protocol** — Factual claims require 2+ independent sources. Rank sources Tier 1 (.gov/.edu/official) > Tier 2 (industry reports) > Tier 3 (credible blogs; cross-validate) > Tier 4 (unverified; NEVER cite as fact). Declare confidence (95/80/60/<60%) for every finding.
 
-1. Follow source hierarchy (official docs > peer-reviewed > industry blogs > forums) for all factual claims
-2. Include source citations with Tier classification (inline `[N]`)
+1. Follow source hierarchy (official docs > peer-reviewed > industry blogs > forums) for factual claims
+2. Cite sources with Tier classification (inline `[N]`)
 3. Cross-validate claims with 2+ independent sources
-4. Declare confidence level (95/80/60/<60%) for all findings
-5. Use enforced template structure — all sections required
-6. Working files → `.claude/tmp/`, final output → `docs/knowledge/`
+4. Declare confidence: 95/80/60/<60%
+5. Use enforced template; include all sections
+6. Working files → `.claude/tmp/`; final output → `docs/knowledge/`
 
-This protocol is the canonical home for the knowledge-work rules that apply to knowledge/research workspaces; `deep-research` and `knowledge-synthesis` reference it.
+This protocol is canonical for knowledge/research rules; `deep-research` and `knowledge-synthesis` reference it.
 
 ## Step 1: Define Search Scope
 
-Parse user's topic, generate 5-10 search queries covering:
+Parse topic; generate 5-10 queries:
 
 - **Definition/overview** — "what is {topic}"
 - **Current state** — "{topic} 2026" or "{topic} latest"
@@ -108,20 +108,20 @@ Parse user's topic, generate 5-10 search queries covering:
 
 For each query:
 
-1. Run `WebSearch` with the query
-2. Record: title, URL, snippet, apparent source type
-3. Stop at 10 WebSearch calls maximum
+1. Run `WebSearch`.
+2. Record title, URL, snippet, apparent source type.
+3. Stop after 10 calls.
 
 ## Step 3: Source Triage
 
-For each result, classify by Tier:
+For each result, classify Tier:
 
 - **Tier 1:** .gov, .edu, official docs, peer-reviewed
 - **Tier 2:** Industry reports, major publications
 - **Tier 3:** Established blogs, verified experts, Wikipedia
 - **Tier 4:** Forums, personal blogs, social media
 
-Filter out duplicates (same URL or syndicated content).
+Filter duplicate URLs and syndicated content.
 
 ## Step 4: Build Source Map
 
@@ -154,13 +154,13 @@ Review source map for:
 - Missing data types (no quantitative data? need statistics)
 - Recency issues (all sources old? need current data)
 
-Note gaps for the `deep-research` step.
+Note gaps for `deep-research`.
 
 ---
 
 ## Workflow Recommendation
 
-> **MANDATORY IMPORTANT MUST ATTENTION — NO EXCEPTIONS:** If you are NOT already in a workflow, you MUST ATTENTION use ask the user directly to ask the user. Do NOT judge task complexity or decide this is "simple enough to skip" — the user decides whether to use a workflow, not you:
+> **MANDATORY IMPORTANT MUST ATTENTION — NO EXCEPTIONS:** If NOT in a workflow, use ask the user directly; user chooses. NEVER decide it is "simple enough" to skip:
 >
 > 1. **Activate `workflow-research` workflow** (Recommended) — web-research → deep-research → synthesis → review
 > 2. **Execute `$web-research` directly** — run this skill standalone
@@ -169,18 +169,18 @@ Note gaps for the `deep-research` step.
 
 ## Next Steps
 
-**MANDATORY IMPORTANT MUST ATTENTION — NO EXCEPTIONS** after completing this skill, you MUST ATTENTION use ask the user directly to present these options. Do NOT skip because the task seems "simple" or "obvious" — the user decides:
+**MANDATORY IMPORTANT MUST ATTENTION — NO EXCEPTIONS:** After completion, use ask the user directly; user chooses:
 
 - **"$deep-research (Recommended)"** — Deep-dive into top sources
 - **"$market-analysis"** — If sizing the market (TAM/SAM/SOM), competitors, trends — required before `$business-evaluation`
 - **"$business-evaluation"** — If evaluating business viability. **Run `$market-analysis` first** — this skill consumes its sized-market output as evidence and MUST NOT re-derive market sizing.
 - **"Skip, continue manually"** — user decides
 
-> **[IMPORTANT]** Use task tracking to break ALL work into small tasks BEFORE starting.
+> **[IMPORTANT MUST ATTENTION]** Use task tracking to break work into small tasks BEFORE starting.
 
-> **External Memory:** For complex or lengthy work (research, analysis, scan, review), write intermediate findings and final results to a report file in `tmp/reports/` — prevents context loss and serves as deliverable.
+> **External Memory:** For complex/lengthy research, analysis, scans, or reviews, write intermediate + final results to `tmp/reports/`; prevents context loss and provides deliverable.
 
-> **Evidence Gate:** MANDATORY IMPORTANT MUST ATTENTION — every claim, finding, and recommendation requires `file:line` proof or traced evidence with confidence percentage (>80% to act, <80% must verify first).
+> **Evidence Gate:** **MANDATORY IMPORTANT MUST ATTENTION** Every claim, finding, recommendation needs `file:line` proof or traced evidence + confidence (>80% act; <80% verify first).
 
 <!-- SYNC:web-research -->
 
@@ -261,7 +261,7 @@ Note gaps for the `deep-research` step.
 
 ## Closing Reminders
 
-**IMPORTANT MUST ATTENTION Goal:** Produce a tiered, deduplicated source map plus a gap list — the triaged candidate-source feedstock that `deep-research` dives into next — NOT a final research report.
+**IMPORTANT MUST ATTENTION Goal:** Run broad web research, classify and deduplicate candidate sources, and produce a tiered source map + gap list for `deep-research`, never a final report.
 
 **IMPORTANT MUST ATTENTION — Protocols in force (concise digest of the SYNC/shared blocks this skill carries):**
 

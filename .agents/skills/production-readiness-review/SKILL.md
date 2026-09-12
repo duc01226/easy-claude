@@ -55,18 +55,18 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 
 **Summary:**
 
-- **Main steps (in order):** (1) **Resolve scope** — args else `git diff --name-only` uncommitted; backend service/API files only, skip frontend/tests/docs/config-only. (2) **Score 12 criteria 0-2** across the 4 dimensions (/24). (3) **Extended SRE Readiness gate** — 8 pass/fail deploy-time + operate-time items; any failed or unresolved binary gate blocks PASS regardless of score or owner risk acceptance. Gating, NOT scored — does not change the /24 math. (4) **Map score + gate → verdict**. (5) **Structural Impact Analysis** — graph gate (blast-radius, `tests_for`, downstream trace) when `graph.db` exists. (6) **Validated Fix + Full Re-Review** loop only while current-round blocking findings remain: Round 1 = all validated severities; Round 2+ = CRITICAL/HIGH/MEDIUM; LOW-only is deferred; failed binary gates always block. (7) **Emit the SRE Review Results report** — `file:line` evidence per score and per gate item. Execute in order; NEVER skip/merge a step — why: untracked steps get silently merged and gaps reach production.
+- **Main steps (in order):** (1) **Resolve scope** — args else `git diff --name-only` uncommitted; backend service/API files only, skip frontend/tests/docs/config-only. (2) **Score 12 criteria 0-2** across the 4 dimensions (/24). (3) **Extended SRE Readiness gate** — 8 pass/fail deploy-time + operate-time items; any failed or unresolved binary gate blocks PASS regardless of score or owner risk acceptance. Gating, NOT scored — does not change the /24 math. (4) **Map score + gate → verdict**. (5) **Structural Impact Analysis** — graph gate (blast-radius, `tests_for`, downstream trace) when `graph.db` exists. (6) **Validated Fix + Full Re-Review** loop only while current-round blocking findings remain: Round 1 = all validated severities; Round 2 = CRITICAL/HIGH/MEDIUM; LOW-only is deferred; failed binary gates always block. (7) **Emit the SRE Review Results report** — `file:line` evidence per score and per gate item. Execute in order; NEVER skip/merge a step — why: untracked steps get silently merged and gaps reach production.
 - Score 12 criteria 0-2 across four dimensions (Observability/8, Reliability/8, Data Integrity/4, DB Performance/4) for an advisory /24 readiness rating (strong 19-24 / needs work 13-18 / low 0-12), separate from overall PASS/FAIL — every score needs `file:line` evidence or it is 0.
 - The DB Performance Protocol is MANDATORY and non-advisory: ALL list queries must paginate (no unbounded GetAll/ToList) and ALL filter fields, foreign keys, and sort columns must have matching indexes.
 - The /24 rating is advisory only; overall PASS/FAIL follows the canonical round predicate and binary gates; the graph gate, validated-fix full re-review, and DB Performance Protocol are NEVER skippable regardless of change size — and when batched (≥10 files), re-score all 12 criteria holistically from combined cross-batch evidence, never by averaging per-batch scores.
-- After applying any fix, validate findings first, then rerun the FULL review (fresh sub-agent with zero prior-round memory); a pass clearing the current round's exit bar ENDS the loop (Round 1: zero findings; Round 2+: zero CRITICAL/HIGH/MEDIUM, LOW deferred). Do not start another round for LOW-only findings; failed binary gates remain blocking.
+- After applying any fix, validate findings first, then rerun the FULL review (fresh sub-agent with zero prior-round memory); a pass clearing the current round's exit bar ENDS the loop (Round 1: zero findings; Round 2: zero CRITICAL/HIGH/MEDIUM, LOW deferred). Do not start another round for LOW-only findings; failed binary gates remain blocking.
 
 **Workflow:**
 
 1. Resolve scope from arguments or uncommitted changes; review only backend service/API files.
 2. Score all 12 criteria across the four dimensions, then run the 8-item Extended SRE Readiness gate.
 3. Map score plus gate to a verdict; run Structural Impact Analysis when `graph.db` exists.
-4. Validate every finding, fix only validated findings that block the current round, and restart a full fresh review after fixes until the exit bar is clear; Round 2+ LOW-only findings are deferred without another cycle.
+4. Validate every finding, fix only validated findings that block the current round, and restart a full fresh review after fixes until the exit bar is clear; Round 2 LOW-only findings are deferred without another cycle.
 5. Emit the SRE Review Results report with `file:line` evidence for every score and gate item.
 
 **Key Rules:**
@@ -169,7 +169,7 @@ Score each criterion 0-2: **0** = not addressed, **1** = partially, **2** = full
 
 ## Extended SRE Readiness Gate (step-by-step, pass/fail — gating, NOT scored)
 
-> **Runs as main step 3, after scoring, before verdict mapping.** Deploy-time and operate-time SRE aspects the 12-criteria `/24` model does NOT score. Check each item **step by step**; record `pass` / `partial` / `fail` with `file:line` evidence or explicit `N/A — reason`. Gate does **not** change `/24` math — it overlays it: **a failed binary gate blocks PASS at every round regardless of score or owner risk acceptance; `partial` is unresolved, not a pass**. Separately apply the canonical review predicate: round 1 blocks every validated severity; round 2+ blocks CRITICAL/HIGH/MEDIUM and defers LOW. Owner risk acceptance is recorded but does not clear a failed gate or an open blocking finding. Read deployment context from `docs/project-config.json → infrastructure` (referenced above) to decide which items are `N/A` (e.g. no orchestration → readiness/liveness probes `N/A` with stated reason).
+> **Runs as main step 3, after scoring, before verdict mapping.** Deploy-time and operate-time SRE aspects the 12-criteria `/24` model does NOT score. Check each item **step by step**; record `pass` / `partial` / `fail` with `file:line` evidence or explicit `N/A — reason`. Gate does **not** change `/24` math — it overlays it: **a failed binary gate blocks PASS at every round regardless of score or owner risk acceptance; `partial` is unresolved, not a pass**. Separately apply the canonical review predicate: round 1 blocks every validated severity; round 2 blocks CRITICAL/HIGH/MEDIUM and defers LOW. Owner risk acceptance is recorded but does not clear a failed gate or an open blocking finding. Read deployment context from `docs/project-config.json → infrastructure` (referenced above) to decide which items are `N/A` (e.g. no orchestration → readiness/liveness probes `N/A` with stated reason).
 
 | # | Gate Item | What to Check | Status | Evidence |
 | - | --------- | ------------- | ------ | -------- |
@@ -486,18 +486,18 @@ _Any failed or unresolved binary gate above blocks PASS regardless of score or o
 
 > **Validated-Finding Fix + Full Re-Review Loop** — Re-review is triggered by a validated finding fix cycle or an explicitly declared independent-pass minimum, not by a round number alone. Review purpose: `review → validate findings → fix validated findings that block the current round → full re-review` until a complete review pass clears the round's exit bar (see **Severity floor** below). **A clean review ENDS the loop once the persisted `minRounds` is met (default 1); an explicitly declared minimum such as 2 still requires that independent pass.**
 >
-> _aka **Self-Review Convergence Loop**._ The name is historical — there is **NO 2-round cap**; "double-round-trip" only means a validated-finding fix cycle forces at least one fresh re-review. It runs until the current round's exit bar is clear (round 1: zero findings; round 2+: zero CRITICAL/HIGH/MEDIUM, LOW deferred), bounded by the **3-round ceiling** below.
+> _aka **Self-Review Convergence Loop**._ The name is historical — "double-round-trip" means a validated-finding fix cycle forces at least one fresh re-review. It runs until the current round's exit bar is clear (round 1: zero findings; round 2: zero CRITICAL/HIGH/MEDIUM, LOW deferred), bounded by the **2-round ceiling** below.
 >
-> **Round cap — 3 rounds MAX (a ceiling, NEVER a target).** A clean pass ENDS the loop at ANY round once `round >= minRounds` — round 1 included with the default minimum; the cap never obliges extra rounds. Hitting round 3 with blocking findings still open (severity floor applied) → **STOP and escalate by asking the user directly** with the still-open findings listed; NEVER emit a silent "good enough" PASS on cap exhaustion, and NEVER let the cap substitute for the clean-review requirement. The 2-repeated-no-progress blocker rule stays an EARLIER exit — escalate at whichever trips first.
+> **Round cap — 2 rounds MAX (a ceiling, NEVER a target).** A clean pass ENDS the loop at ANY round once `round >= minRounds` — round 1 included with the default minimum; the cap never obliges an extra round. Hitting round 2 with blocking findings still open (severity floor applied) → **STOP and escalate by asking the user directly** with the still-open findings listed; NEVER emit a silent "good enough" PASS on cap exhaustion, and NEVER let the cap substitute for the clean-review requirement. The 2-repeated-no-progress blocker rule stays an EARLIER exit — escalate at whichever trips first.
 >
 > **Severity floor — from round 2, LOW stops blocking.** The exit bar tightens after the first review pass, so the loop converges on consequence instead of spinning on polish:
 
-> Define one predicate everywhere: `blocking_findings(round, findings)` returns all validated findings in round 1 and only validated CRITICAL/HIGH/MEDIUM findings in rounds 2–3. A binary gate (test-green, security must-fix, required artifact) is exempt only when its owning invariant explicitly says so; in practice binary gates always remain blocking when they fail.
+> Define one predicate everywhere: `blocking_findings(round, findings)` returns all validated findings in round 1 and only validated CRITICAL/HIGH/MEDIUM findings in round 2. A binary gate (test-green, security must-fix, required artifact) is exempt only when its owning invariant explicitly says so; in practice binary gates always remain blocking when they fail.
 >
 > | Round | Exit bar — loop ENDS when the fresh full review has… | Must be fixed to continue |
 > | --- | --- | --- |
 > | 1 | zero validated findings at ANY severity | CRITICAL · HIGH · MEDIUM · LOW |
-> | 2–3 | zero validated CRITICAL / HIGH / MEDIUM findings — **LOW-only clears the severity bar** | CRITICAL · HIGH · MEDIUM only |
+> | 2 | zero validated CRITICAL / HIGH / MEDIUM findings — **LOW-only clears the severity bar** | CRITICAL · HIGH · MEDIUM only |
 >
 > From round 2 onward LOW findings are **NOT required to be fixed**: a round whose validated findings are ALL LOW **ENDS the loop once the persisted minimum is met** — do not open another fix/re-review round for them. Severity tiers are `SYNC:severity-rubric` (CRITICAL block-merge · HIGH must-fix · MEDIUM must clear the current round · LOW record/defer); round 1 remains strict, so a LOW found initially is still validated and fixed when warranted before the floor can apply.
 >
@@ -528,7 +528,7 @@ _Any failed or unresolved binary gate above blocks PASS regardless of score or o
 > - Subtle edge cases the prior round rationalized away
 > - Regressions introduced by the fixes themselves
 >
-> **Loop termination:** After each full re-review, repeat the same decision against **that round's exit bar**: bar cleared and persisted minimum met → END; blocking findings remain → validate findings → fix → restart from the first review phase. Round 1 clears only on zero findings at any severity; **from round 2 the bar is zero CRITICAL/HIGH/MEDIUM, so a LOW-only round ENDS the loop once the persisted minimum is met** (deferred LOWs go in the report). Capped at **3 rounds**. Escalate by asking the user directly at whichever comes first: the same validated finding repeats for 2 full invocations with no progress · a fix requires product/owner input · round 3 completes with CRITICAL/HIGH/MEDIUM still open. NEVER loop past 3 rounds, and NEVER convert cap exhaustion into a PASS.
+> **Loop termination:** After each full re-review, repeat the same decision against **that round's exit bar**: bar cleared and persisted minimum met → END; blocking findings remain → validate findings → fix → restart from the first review phase. Round 1 clears only on zero findings at any severity; **round 2's bar is zero CRITICAL/HIGH/MEDIUM, so a LOW-only round ENDS the loop once the persisted minimum is met** (deferred LOWs go in the report). Capped at **2 rounds**. Escalate by asking the user directly at whichever comes first: the same validated finding repeats for 2 full invocations with no progress · a fix requires product/owner input · round 2 completes with CRITICAL/HIGH/MEDIUM still open. NEVER loop past 2 rounds, and NEVER convert cap exhaustion into a PASS.
 >
 > **Rules:**
 >
@@ -540,12 +540,12 @@ _Any failed or unresolved binary gate above blocks PASS regardless of score or o
 > - NEVER skip the full re-review after a fix cycle (every fix invalidates the prior verdict)
 > - NEVER reuse a sub-agent across rounds — every iteration that uses sub-agents spawns NEW Agent calls
 > - Main agent READS sub-agent reports but MUST NOT filter, reinterpret, or override findings
-> - The 3-round cap NEVER replaces the clean-review requirement — it bounds runaway looping, it does not authorize shipping an un-clean review; a clean pass ends the loop early once the persisted minimum is met, and cap exhaustion escalates rather than passes
-> - Enforce the round cap of 3 alongside the 2 repeated-no-progress blocker rule; both are escalation triggers, neither is a completion criterion
+> - The 2-round cap NEVER replaces the clean-review requirement — it bounds runaway looping, it does not authorize shipping an un-clean review; a clean pass ends the loop early once the persisted minimum is met, and cap exhaustion escalates rather than passes
+> - Enforce the round cap of 2 alongside the 2 repeated-no-progress blocker rule; both are escalation triggers, neither is a completion criterion
 > - Persist completed rounds, repeated blockers, findings and the explicit minimum in the owning run's `review-policy.cjs` record. Resume that record after interruption; target changes invalidate evidence and acceptance but preserve the bounded round budget. In-flight attempt IDs may be session-local; they do not replace or reset completed-round state
 > - Final verdict must incorporate ALL rounds executed
 >
-> **Report must include `## Round N Findings (Fresh Sub-Agent)` for every round N≥2 that was executed, plus `## Deferred LOW Findings (severity floor, round ≥2)` whenever the loop ended on the round-2+ bar with LOWs still open.**
+> **Report must include `## Round N Findings (Fresh Sub-Agent)` for every round N≥2 that was executed, plus `## Deferred LOW Findings (severity floor, round ≥2)` whenever the loop ended on the round-2 bar with LOWs still open.**
 
 <!-- /SYNC:double-round-trip-review -->
 
@@ -571,7 +571,7 @@ _Any failed or unresolved binary gate above blocks PASS regardless of score or o
 > - SKIP fresh sub-agent when the prior full review found zero issues AND the persisted `minRounds` is met (no fixes or required independent pass = nothing new to verify)
 > - NEVER skip the full review restart after a fix cycle — every fix invalidates the prior verdict
 > - NEVER reuse a sub-agent across rounds — every fresh round spawns a NEW `spawn_agent` call
-> - Continue until a complete full review pass clears that round's exit bar per `SYNC:double-round-trip-review`: **round 1** → zero findings at any severity; **round 2+** → zero CRITICAL/HIGH/MEDIUM, so a round whose validated findings are ALL LOW ENDS the loop once the persisted minimum is met (list those LOWs as deferred instead of spawning another round). If the same validated blocker repeats across 2 full invocations with no progress, escalate by asking the user directly. **Read-only/report-only role boundary:** when this block is carried by a security auditor or another report-only role, “fix” means return the validated repair proposal to the parent; do not modify source, generated carriers, or user data and do not restart the review locally.
+> - Continue until a complete full review pass clears that round's exit bar per `SYNC:double-round-trip-review`: **round 1** → zero findings at any severity; **round 2** → zero CRITICAL/HIGH/MEDIUM, so a round whose validated findings are ALL LOW ENDS the loop once the persisted minimum is met (list those LOWs as deferred instead of spawning another round). If the same validated blocker repeats across 2 full invocations with no progress, escalate by asking the user directly. **Read-only/report-only role boundary:** when this block is carried by a security auditor or another report-only role, “fix” means return the validated repair proposal to the parent; do not modify source, generated carriers, or user data and do not restart the review locally.
 > - Persist completed rounds, repeated blockers, findings and the explicit minimum in the owning run's `review-policy.cjs` record. Resume that record after interruption; target changes invalidate evidence and acceptance but preserve the bounded round budget. In-flight attempt IDs may be session-local; they do not replace or reset completed-round state
 
 <!-- /SYNC:fresh-context-review -->
@@ -1005,7 +1005,7 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 
 - **MANDATORY IMPORTANT MUST ATTENTION** execute the review loop (aka **Self-Review Convergence Loop**): review → validate findings → fix validated blocking findings → full re-review. Round 1 ends only with zero findings and the persisted `minRounds` met; from round 2 onward, zero CRITICAL/HIGH/MEDIUM ends the loop once the persisted minimum is met and LOW findings are recorded as deferred. Any newly produced output/judgment gets ≥1 self-review; any new judgment gets ≥1 `$why-review --validate-findings` pass before it is treated as final.
 - **MANDATORY** apply the **severity floor**: round 1 exits on zero findings at any severity; **from round 2 the bar is zero CRITICAL/HIGH/MEDIUM — LOW findings are no longer required to be fixed, so a LOW-only round ENDS the loop once the persisted minimum is met.** List every deferred LOW in the report; NEVER re-tier a real CRITICAL/HIGH/MEDIUM down to LOW to reach the exit, and NEVER apply the floor to a binary gate (test-green, security must-fix).
-- **MANDATORY** enforce the **round cap of 3 — a ceiling, NEVER a target**: a clean pass ends the loop once the persisted `minRounds` is met (default 1; explicit 2 requires an independent pass), and round 3 completing with CRITICAL/HIGH/MEDIUM still open → **STOP & escalate by asking the user directly**, never a silent PASS. The 2-repeated-no-progress blocker rule is an earlier exit — escalate at whichever trips first. NEVER loop open-ended.
+- **MANDATORY** enforce the **round cap of 2 — a ceiling, NEVER a target**: a clean pass ends the loop once the persisted `minRounds` is met (default 1; explicit 2 requires an independent pass), and round 2 completing with CRITICAL/HIGH/MEDIUM still open → **STOP & escalate by asking the user directly**, never a silent PASS. The 2-repeated-no-progress blocker rule is an earlier exit — escalate at whichever trips first. NEVER loop past 2 rounds.
 
 <!-- /SYNC:double-round-trip-review:reminder -->
 
@@ -1170,7 +1170,7 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 
 **IMPORTANT MUST ATTENTION Goal:** Ensure service/API changes are production-ready across observability, reliability, data integrity, and database performance: score each dimension with evidence and expose operational gaps.
 
-**IMPORTANT MUST ATTENTION — Main steps (execute in order, NEVER skip/merge):** (1) Resolve scope (args else uncommitted `git diff`; backend service/API only, skip frontend/tests/docs/config-only) → (2) Score the 12 criteria 0-2 across the 4 dimensions (/24) → (3) Extended SRE Readiness gate — 8 pass/fail deploy/operate items; any failed or unresolved binary gate blocks PASS regardless of owner risk acceptance (gating, not scored, does not change /24) → (4) Map score + gate → verdict → (5) Structural Impact Analysis graph gate when `graph.db` exists → (6) Validated Fix + Full Re-Review only for current-round blocking findings (Round 1: all; Round 2+: CRITICAL/HIGH/MEDIUM; LOW-only deferred; binary gates always block) → (7) Emit the SRE Review Results report with `file:line` evidence per score and per gate item — why: AI repeatedly forgets the graph gate and the re-review loop and stops at scoring.
+**IMPORTANT MUST ATTENTION — Main steps (execute in order, NEVER skip/merge):** (1) Resolve scope (args else uncommitted `git diff`; backend service/API only, skip frontend/tests/docs/config-only) → (2) Score the 12 criteria 0-2 across the 4 dimensions (/24) → (3) Extended SRE Readiness gate — 8 pass/fail deploy/operate items; any failed or unresolved binary gate blocks PASS regardless of owner risk acceptance (gating, not scored, does not change /24) → (4) Map score + gate → verdict → (5) Structural Impact Analysis graph gate when `graph.db` exists → (6) Validated Fix + Full Re-Review only for current-round blocking findings (Round 1: all; Round 2: CRITICAL/HIGH/MEDIUM; LOW-only deferred; binary gates always block) → (7) Emit the SRE Review Results report with `file:line` evidence per score and per gate item — why: AI repeatedly forgets the graph gate and the re-review loop and stops at scoring.
 
 **IMPORTANT MUST ATTENTION — Protocols in force (concise digest of the SYNC/shared blocks this skill carries; each is a signpost — the canonical body above governs, NEVER skip one):**
 
@@ -1181,19 +1181,19 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 - **Task Tracking & External Report:** Bootstrap tasks; persist review findings to `tmp/reports/`.
 - **Critical Thinking Mindset:** Apply critical + sequential thinking; no guess as fact.
 - **Evidence-Based Reasoning:** Cite `file:line` for every claim; confidence >80% to act.
-- **Double Round-Trip Review:** Review → validate → fix blocking findings → full re-review; round 1 requires zero findings, round 2+ requires zero CRITICAL/HIGH/MEDIUM with LOW deferred.
+- **Double Round-Trip Review:** Review → validate → fix blocking findings → full re-review; round 1 requires zero findings, round 2 requires zero CRITICAL/HIGH/MEDIUM with LOW deferred.
 - **Fresh Context Review:** Spawn fresh zero-memory sub-agent after fixes; never reuse.
 - **Review Protocol Injection:** Embed all 11 protocol bodies verbatim in sub-agent prompts.
 - **AI Mistake Prevention:** verify generated content against evidence, trace downstream references, verify all affected outputs, re-read after context loss, surface ambiguity.
 - **Systematic Batching:** ≥10 files → size-capped parallel batches, then reduce.
-- **Severity Rubric:** Classify Critical/High/Medium/Low by consequence using `SYNC:severity-rubric`; map 0–2 scores onto it. Round 1 blocks on every validated finding, rounds 2–3 block only CRITICAL/HIGH/MEDIUM, LOW is recorded/deferred, and failed binary gates always block.
+- **Severity Rubric:** Classify Critical/High/Medium/Low by consequence using `SYNC:severity-rubric`; map 0–2 scores onto it. Round 1 blocks on every validated finding, round 2 blocks only CRITICAL/HIGH/MEDIUM, LOW is recorded/deferred, and failed binary gates always block.
 - **Category Review Thinking:** Derive each category's concerns from first principles, not a checklist.
 - **Scale-Technique Gate (advisory):** Derive scale tier from evidence, emit the Technique Applicability Matrix as guidance — NEVER mutate the `/24`, the `{n}/8` gate, or the verdict.
 - **Parallel Sub-Agent Dispatch:** Tag tasks PAR/SEQ, group PAR into disjoint-write-set waves, spawn each wave in ONE message, barrier before advancing.
 
 **IMPORTANT MUST ATTENTION** every score requires `file:line` evidence — unprovable score = 0; assume the worst without proof — why: an unverified "looks fine" is how silent operational gaps reach production.
 **IMPORTANT MUST ATTENTION** the DB Performance Protocol, graph gate, and validated-fix full re-review are NEVER skippable regardless of change size — the /24 rating is advisory, overall PASS/FAIL and these process steps are not — why: small changes are exactly where unbounded queries and missing re-reviews slip through.
-**IMPORTANT MUST ATTENTION** validate findings BEFORE any fix, then rerun the FULL review (fresh sub-agent, zero prior-round memory) before declaring PASS — a pass clearing the current round's exit bar ENDS the loop (round 1: zero findings; round 2+: zero CRITICAL/HIGH/MEDIUM, LOW deferred) — why: every fix invalidates the prior verdict.
+**IMPORTANT MUST ATTENTION** validate findings BEFORE any fix, then rerun the FULL review (fresh sub-agent, zero prior-round memory) before declaring PASS — a pass clearing the current round's exit bar ENDS the loop (round 1: zero findings; round 2: zero CRITICAL/HIGH/MEDIUM, LOW deferred) — why: every fix invalidates the prior verdict.
 
 The following are all MANDATORY:
 
@@ -1222,7 +1222,7 @@ The following are all MANDATORY:
 
 **IMPORTANT MUST ATTENTION** every score needs `file:line` evidence or it is `0`; assume worst without proof.
 **IMPORTANT MUST ATTENTION** DB Performance Protocol + graph gate + validated-fix full re-review are NEVER skippable regardless of change size.
-**IMPORTANT MUST ATTENTION** validate findings before fixing, then rerun the FULL review before PASS — a pass clearing the current round's exit bar ENDS the loop (round 1: zero findings; round 2+: zero CRITICAL/HIGH/MEDIUM, LOW deferred).
+**IMPORTANT MUST ATTENTION** validate findings before fixing, then rerun the FULL review before PASS — a pass clearing the current round's exit bar ENDS the loop (round 1: zero findings; round 2: zero CRITICAL/HIGH/MEDIUM, LOW deferred).
 
 <!-- CODEX:SYNC-PROMPT-PROTOCOLS:START -->
 ## Static Prompt Protocol Mirror (Auto-Synced)

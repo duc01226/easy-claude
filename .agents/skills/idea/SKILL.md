@@ -42,12 +42,17 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 
 <!-- PROMPT-ENHANCE:STEP-TASK-ANCHOR:START -->
 
-> **[BLOCKING]** Execute skill steps in declared order. NEVER skip, reorder, or merge steps without explicit user approval.
-> **[BLOCKING]** Before each step or sub-skill call, update task tracking: set `in_progress` when step starts, set `completed` when step ends.
-> **[BLOCKING]** Every completed/skipped step MUST include brief evidence or explicit skip reason.
-> **[BLOCKING]** If Task tools are unavailable, create and maintain an equivalent step-by-step plan tracker with the same status transitions.
+> **[BLOCKING]** Run declared skill steps in order. NEVER skip, reorder, or merge without explicit user approval.
+> **[BLOCKING]** Update task tracking before/after each step or sub-skill: `in_progress` → `completed`.
+> **[BLOCKING]** Completed steps need brief evidence; skipped steps need an explicit reason.
+> **[BLOCKING]** If Task tools are unavailable, maintain an equivalent tracker with synchronized statuses.
 
 <!-- PROMPT-ENHANCE:STEP-TASK-ANCHOR:END -->
+
+> **AI-SDD Artifact Contract (M1–M7):** Ideas stay tech-agnostic business intent; logical IDs belong downstream, and abstract `[Source: namespace/service/id]` anchors stay in a separate evidence carrier. Keep physical code coordinates and repository paths out of portable narrative.
+> MUST ATTENTION READ `.claude/skills/shared/sdd-artifact-contract.md` for full mandate and carrier rules.
+> **Project Protocol Overlay:** Resolve only the most-specific matching tier; derive body paths from overlay names, report malformed or missing bodies, and apply surviving rules additively without waiving framework or user-confirmation gates.
+> MUST ATTENTION READ `.claude/skills/project-skill-protocol/references/registry.md` for the full resolution contract.
 
 ## Quick Summary
 
@@ -55,74 +60,67 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 
 **Summary:**
 
-- **Purpose:** capture a raw idea as a structured, validated backlog artifact — preserve problem intent, leak no solution/stack, hand a clean narrative to `$refine`.
-- **Main steps/tasks (run in order):** (1) Gather info — problem/value/users/scope; (2) Generate artifact `IDEA-{YYMMDD}-{NNN}`, status `draft`, from `idea-template.md`; (3) Capture problem statement/value/users; (4) Detect project module via `Glob("docs/specs/*/README.md")` (silent; prompt only if ambiguous); (5) Load feature context (8-12K token budget — entities, BR-/TC- patterns); (6) Save to canonical path; (6.5) **Discovery Interview** — 3-5 ask the user directly; (7) **Validate** — 2-3 ask the user directly; (8) Suggest next → `$refine`.
-- Two interview gates are NON-NEGOTIABLE: Discovery Interview (Step 6.5, 3-5 ask the user directly items incl. the always-on testability question) AND Validation (Step 7, 2-3 items) — never skip either even for "simple" ideas.
-- Keep the problem statement strictly tech-agnostic (M1): name no framework/product/language/pattern, and do NOT assign logical IDs — the downstream PBI inherits the clean narrative and owns `FR-`/`BR-` assignment.
-- Auto-detect the project module silently via `Glob("docs/specs/*/README.md")` and load feature context (8-12K token budget); prompt only when ambiguous. Greenfield (no real code dirs) → skip module detection and NEVER ask about tech stack.
-- Persist to `team-artifacts/ideas/{YYMMDD}-{role}-idea-{slug}.md` with `t_shirt_size`, then hand off to `$refine` for PBI conversion.
+- **Purpose:** capture raw idea as structured, validated backlog artifact; preserve problem intent, keep the problem statement tech-agnostic with no solution/stack/IDs, and hand clean narrative to `$refine`.
+- **Main steps/tasks (run in order):** (1) Gather problem/value/users/scope; (2) Generate `IDEA-{YYMMDD}-{NNN}` draft from `idea-template.md`; (3) Capture problem/value/users; (4) Detect module via `Glob("docs/specs/*/README.md")` silently, prompting only if ambiguous/no match; (5) Load feature context (8-12K tokens: entities, BR-/TC patterns); (6) Save canonical artifact; (6.5) **Discovery Interview** — 3-5 ask the user directly; (7) **Validate** — 2-3 ask the user directly; (8) Suggest `$refine`.
+- **Modes/gates:** Existing repo → silently detect module and load context; Greenfield → skip module detection and structure reads, use market/WebSearch context, ask business questions more often, and NEVER ask about tech stack. Discovery Interview (Step 6.5: 3-5 questions incl. always-on testability) and Validation (Step 7: 2-3 questions) are NON-NEGOTIABLE.
+- **Output:** Persist to `team-artifacts/ideas/{YYMMDD}-{role}-idea-{slug}.md` with `t_shirt_size`; downstream PBI owns `FR-`/`BR-` IDs and inherits the clean narrative.
 
-> **MANDATORY IMPORTANT MUST ATTENTION** task tracking task to READ project-specific reference doc:
-> `project-structure-reference.md` — project patterns and structure. Not found → search: project documentation, coding standards, architecture docs.
+> **MANDATORY IMPORTANT MUST ATTENTION** task tracking task to READ `project-structure-reference.md` — project patterns and structure. Not found → search project documentation, coding standards, architecture docs.
 
 **Workflow:**
 
 1. **Gather Info** — Ask problem, value, scope, target users
-2. **Generate Artifact** — Create idea file with ID (`IDEA-YYMMDD-NNN`) + draft status
-3. **Detect Module** — Auto-match project module, load feature context from docs
-4. **Discovery Interview** — ask the user directly 3-5 structured questions (MANDATORY)
-5. **Validate** — Confirm problem statement, scope, stakeholders (MANDATORY)
-6. **Suggest Next** — Point to `$refine` for PBI creation
+2. **Generate Artifact** — Create `IDEA-YYMMDD-NNN` file from template with `draft` status
+3. **Capture Details** — Record problem statement, value, target users
+4. **Detect Module** — Auto-match module and load feature context from docs
+5. **Load Context** — Read related module/feature docs within the 8-12K budget
+6. **Save Artifact** — Persist to the canonical ideas path
+6.5. **Discovery Interview** — ask the user directly 3-5 structured questions (MANDATORY)
+7. **Validate** — ask the user directly 2-3 questions (MANDATORY)
+8. **Suggest Next** — Point to `$refine` for PBI creation
 
 **Key Rules:**
 
 - Output: `team-artifacts/ideas/{YYMMDD}-{role}-idea-{slug}.md`
-- Validation NEVER optional — MANDATORY step
-- Auto-detect module silently; prompt only when ambiguous
+- Validation NEVER optional — MANDATORY.
+- Auto-detect module silently; prompt only when ambiguous or no match.
 - MUST ATTENTION include `t_shirt_size` (XS/S/M/L/XL) in artifact for early sizing
-- **[BLOCKING] Tech-agnostic output (M1):** the problem statement stays tech-agnostic per `docs/project-reference/spec-principles.md` §3 (all modes, not only greenfield) — name no framework/product/language/design-pattern; defer any stack preference to the later tech-research phase.
-- **M3 Logical-ID Assignment (forward to PBI):** See `.claude/skills/shared/sdd-artifact-contract.md` → "AI-SDD Mandates (M1-M7)" for BLOCKING criteria. An idea is a tech-agnostic business-intent definition only — do NOT assign logical IDs yet. When the idea advances to a PBI (via `$refine`), the PBI assigns logical IDs (`FR-`/`BR-`) as the PRIMARY citation spine and tracks `[Source: namespace/service/id]` abstract-anchor evidence (never physical code coordinates or repository-root paths) in a SEPARATE carrier from the business-intent prose. Keep the idea's problem/value narrative free of source identifiers so the PBI can inherit it cleanly.
+- **[BLOCKING] Tech-agnostic output (M1):** Keep the problem statement tech-agnostic in all modes per `docs/project-reference/spec-principles.md` §3; name no framework/product/language/design-pattern; defer stack preference to tech research.
+- **M3 Logical-ID Assignment (forward to PBI):** Ideas assign no logical IDs. When advanced via `$refine`, the PBI assigns `FR-`/`BR-` IDs as the PRIMARY citation spine and carries `[Source: namespace/service/id]` abstract anchors separately from business-intent prose; never put physical code coordinates or repository-root paths in the idea. Keep problem/value narrative free of source identifiers so the PBI inherits it cleanly.
 
 ## Greenfield Mode
 
-> **Auto-detected:** No codebase found (no discovered source directories, no manifest files, no populated `project-config.json`) → greenfield mode. Planning artifacts (`docs/`, `plans/`, `.claude/`) don't count — repository must have actual code directories with content.
+> **Auto-detected:** No codebase means no discovered source directories, manifest files, or populated `project-config.json`; planning artifacts (`docs/`, `plans/`, `.claude/`) don't count. Require actual code directories with content.
 
-**When greenfield detected:**
+**Greenfield actions:**
 
-1. Skip module auto-detection (no modules exist yet)
-2. Skip `project-structure-reference.md` read (won't exist)
-3. Focus broader problem-space: market gap, competitors, differentiation
-4. Output tech-agnostic problem statement
+1. Skip module detection (no modules exist yet)
+2. Skip `project-structure-reference.md` (won't exist)
+3. Focus on market gap, competitors, differentiation
+4. Keep problem statement tech-agnostic
 5. Enable WebSearch for market/competitor context
 6. Increase ask the user directly frequency — capture vision, constraints, team profile, scale expectations
-7. **[CRITICAL] NEVER ask about tech stack during idea capture.** Tech stack = research-driven decision AFTER full business analysis (business-evaluation phase). User volunteers preference → acknowledge but defer to tech stack research phase.
+7. **[CRITICAL] NEVER ask about tech stack during idea capture.** Stack is a research-driven decision AFTER full business analysis (business-evaluation phase); acknowledge volunteered preferences, then defer to tech-stack research.
 
 ## Detailed Workflow
 
 ### Step 1: Gather Information
 
-- No title → ask: "What's the idea in one sentence?"
-- Ask: "What problem does this solve?"
-- Ask: "Who benefits from this?"
-- Ask: "Any initial scope thoughts?"
+- No title → ask: "What's the idea in one sentence?" Ask: "What problem does this solve?" "Who benefits from this?" "Any initial scope thoughts?"
 
 ### Step 2: Generate Artifact
 
-- Template: `.claude/docs/team-artifacts/templates/idea-template.md`
-- ID: `IDEA-{YYMMDD}-{NNN}` (sequential)
-- Status: `draft`
+- Template: `.claude/docs/team-artifacts/templates/idea-template.md`; ID: `IDEA-{YYMMDD}-{NNN}` (sequential); status: `draft`.
 
 ### Step 3: Capture Details
 
-- Document problem statement, expected value, target users
+- Document problem statement, expected value, and target users.
 
 ### Step 4: Detect Project Module
 
 **Dynamic Discovery:**
 
-1. Run: `Glob("docs/specs/*/README.md")`
-2. Extract module names from paths
-3. Match idea keywords against module keywords
+1. Run: `Glob("docs/specs/*/README.md")`; extract module names from paths; match idea keywords against module keywords.
 
 | Scenario             | Action                                                                          |
 | -------------------- | ------------------------------------------------------------------------------- |
@@ -132,30 +130,25 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 
 **If module detected:**
 
-1. Read `docs/specs/{module}/README.md` (first 200 lines)
-2. Extract feature list from Quick Navigation section
-3. Add to frontmatter: `module: {detected_module}`, `related_features: [Feature1, Feature2]`
+1. Read `docs/specs/{module}/README.md` (first 200 lines); extract its Quick Navigation feature list.
+2. Add frontmatter: `module: {detected_module}`, `related_features: [Feature1, Feature2]`.
 
 ### Step 5: Load Feature Context
 
-1. Read module README overview (~2K tokens)
-2. Identify closest matching feature(s)
-3. Read corresponding feature doc (3-5K tokens)
-4. Extract: related entities, existing business rules (BR-{MOD}-XXX), test case patterns (TC-{FEATURE}-{NNN})
+1. Read module README overview (~2K tokens); identify closest matching feature(s).
+2. Read corresponding feature doc (3-5K tokens); extract related entities, existing business rules (`BR-{MOD}-XXX`), and test patterns (`TC-{FEATURE}-{NNN}`).
 
 **Token Budget:** Target 8-12K tokens total.
 
 ### Step 6: Save Artifact
 
-- Path: `team-artifacts/ideas/{YYMMDD}-{role}-idea-{slug}.md`
-- Role: infer from context or ask
-- Include domain context if detected
+- Path: `team-artifacts/ideas/{YYMMDD}-{role}-idea-{slug}.md`; infer role from context or ask; include detected domain context.
 
 > **Artifact Path (canonical convention)** — Command `$idea` → base path `team-artifacts/ideas/`, role token `po`, type `idea`. Filename pattern: `{YYMMDD}-{role}-{type}-{slug}.md` → e.g. `260119-po-idea-dark-mode-toggle.md`. Slug = lowercased basename, non-alphanumeric → `-`, trimmed, max 50 chars.
 
 ### Step 6.5: Discovery Interview (MANDATORY)
 
-Use ask the user directly — 3-5 structured questions. Each MUST ATTENTION have 2-4 options with one marked "(Recommended)".
+Use ask the user directly for 3-5 structured questions. Each MUST ATTENTION have 2-4 options, one marked "(Recommended)".
 
 | Category        | Purpose                           | Example                                   |
 | --------------- | --------------------------------- | ----------------------------------------- |
@@ -167,16 +160,15 @@ Use ask the user directly — 3-5 structured questions. Each MUST ATTENTION have
 | Constraints     | Known blockers                    | "Any technical/business constraints?"     |
 | Scale           | Expected load/growth              | "How many users/transactions expected?"   |
 
-> **Greenfield:** NEVER include tech stack questions. Focus on business problem, users, scale, constraints.
+> **Greenfield:** NEVER include tech-stack questions; focus on business problem, users, scale, constraints.
 
-**Testability Question (ALWAYS include):**
-"How would you verify this feature works correctly?" — Options: manual test steps, automated test criteria, metric thresholds.
+**Testability Question (ALWAYS include):** "How would you verify this feature works correctly?" — Options: manual test steps, automated test criteria, metric thresholds.
 
 Document all answers under `## Discovery Interview`.
 
 ### Step 7: Validate Idea (MANDATORY)
 
-ask the user directly — 2-3 validation questions:
+Use ask the user directly for 2-3 validation questions:
 
 | Category     | Example Question                                      |
 | ------------ | ----------------------------------------------------- |
@@ -185,7 +177,7 @@ ask the user directly — 2-3 validation questions:
 | Scope        | "Any scope boundaries to clarify now?"                |
 | Stakeholders | "Who else should review this idea?"                   |
 
-Document under `## Validation Summary`. Update artifact based on answers.
+Document answers under `## Validation Summary`; update artifact from them.
 
 **Validation Output Format:**
 
@@ -205,14 +197,13 @@ Document under `## Validation Summary`. Update artifact based on answers.
 
 ### Step 8: Suggest Next Step
 
-ask the user directly after capture:
+After capture, use ask the user directly:
 
 1. `$refine` — Refine into PBI (Recommended)
 2. `$spec [mode=tests]` — Jump straight to test spec
 3. `$plan` — Start implementation planning
 
-Output: "Idea captured! To refine into a PBI, run: `$refine {filename}`"
-Module detected: "Module context from {module} will be used during refinement."
+Output: "Idea captured! To refine into a PBI, run: `$refine {filename}`". If detected, add: "Module context from {module} will be used during refinement."
 
 ## Output Formats
 
@@ -271,7 +262,7 @@ $idea "Add goal progress tracking notification"
 
 ## Workflow Recommendation
 
-> **MANDATORY IMPORTANT MUST ATTENTION — NO EXCEPTIONS:** Not already in workflow → MUST ATTENTION use ask the user directly:
+> **MANDATORY IMPORTANT MUST ATTENTION — NO EXCEPTIONS:** If not already in a workflow, MUST ATTENTION use ask the user directly:
 >
 > 1. **Activate `workflow-idea-to-pbi` workflow** (Recommended) — idea → refine → artifact-review --type=pbi → story → artifact-review --type=story → prioritize
 > 2. **Execute `$idea` directly** — run standalone
@@ -280,7 +271,7 @@ $idea "Add goal progress tracking notification"
 
 ## Next Steps
 
-**MANDATORY IMPORTANT MUST ATTENTION — NO EXCEPTIONS** after completing skill, use ask the user directly:
+**MANDATORY IMPORTANT MUST ATTENTION — NO EXCEPTIONS** After completion, use ask the user directly:
 
 - **"$refine (Recommended)"** — Transform idea into actionable PBI
 - **"$web-research"** — Idea needs market research first
@@ -288,11 +279,11 @@ $idea "Add goal progress tracking notification"
 
 ---
 
-> **[IMPORTANT]** task tracking break ALL work into small tasks BEFORE starting — including tasks each file read. Simple tasks: AI MUST ATTENTION ask user whether to skip.
+> **[IMPORTANT]** Before starting, use task tracking for small tasks, including each file read. For simple tasks, AI MUST ATTENTION ask whether to skip.
 
-> **External Memory:** Complex/lengthy work (research, analysis, scan, review) → write intermediate findings to `tmp/reports/` — prevents context loss, serves as deliverable.
+> **External Memory:** For complex/lengthy research, analysis, scans, or reviews, write intermediate findings to `tmp/reports/` — prevents context loss and preserves a deliverable.
 
-> **Evidence Gate:** MANDATORY IMPORTANT MUST ATTENTION — every claim, finding, recommendation requires `file:line` proof or traced evidence, confidence percentage (>80% act, <80% verify first).
+> **Evidence Gate:** MANDATORY IMPORTANT MUST ATTENTION — every claim, finding, or recommendation needs `file:line` proof or traced evidence; confidence >80% acts, <80% verifies first.
 
 <!-- SYNC:ui-wireframe -->
 
@@ -372,10 +363,10 @@ $idea "Add goal progress tracking notification"
 
 ## Prompt-Enhance Closing Anchors
 
-**IMPORTANT MUST ATTENTION** follow declared step order for this skill; NEVER skip, reorder, or merge steps without explicit user approval
-**IMPORTANT MUST ATTENTION** for every step/sub-skill call: set `in_progress` before execution, set `completed` after execution
-**IMPORTANT MUST ATTENTION** every skipped step MUST include explicit reason; every completed step MUST include concise evidence
-**IMPORTANT MUST ATTENTION** if Task tools unavailable, maintain an equivalent step-by-step plan tracker with synchronized statuses
+**IMPORTANT MUST ATTENTION** Run declared steps in order; NEVER skip, reorder, or merge without explicit user approval.
+**IMPORTANT MUST ATTENTION** Set task `in_progress` before each step/sub-skill; set `completed` after.
+**IMPORTANT MUST ATTENTION** Completed steps need concise evidence; skipped steps need explicit reasons.
+**IMPORTANT MUST ATTENTION** If Task tools unavailable, maintain an equivalent synchronized tracker.
 
 <!-- PROMPT-ENHANCE:STEP-TASK-CLOSING:END -->
 
@@ -399,9 +390,12 @@ $idea "Add goal progress tracking notification"
 
 **IMPORTANT MUST ATTENTION — Main steps (run in order, NEVER skip/reorder):** (1) Gather info; (2) Generate artifact `IDEA-{YYMMDD}-{NNN}` draft from `idea-template.md`; (3) Capture problem/value/users; (4) Detect module via `Glob("docs/specs/*/README.md")`; (5) Load feature context (8-12K budget); (6) Save to canonical path; (6.5) Discovery Interview (ask the user directly 3-5); (7) Validate (ask the user directly 2-3); (8) Suggest next → `$refine`. — why: AI keeps dropping the skill's own mid-pipeline steps; the two gates and module detection are the most-forgotten.
 
+**IMPORTANT MUST ATTENTION** Mode gate: existing codebase → detect module and load context; Greenfield → skip module and structure reads, use market/WebSearch context, ask business questions more often, and NEVER ask about tech stack.
+
 **IMPORTANT MUST ATTENTION — Protocols in force (concise digest of the SYNC/shared blocks this skill carries):**
 
 - **UI Wireframe:** classify each component into ONE tier; search libs first, reuse ≥80% match.
+- **AI-SDD M1–M3:** Keep idea prose tech-agnostic business intent; defer logical IDs and `[Source: ...]` carriers to the downstream PBI.
 - **AI Mistake Prevention:** verify generated content against evidence, trace downstream references, verify all affected outputs, re-read after context loss, surface ambiguity.
 - **Critical Thinking:** traced proof per claim; confidence >80% to act; never present guess as fact.
 - **Sequential Thinking:** multi-step Thought N/M with REVISION/BRANCH/HYPOTHESIS markers and confidence closer.

@@ -17,21 +17,20 @@ description: '[General] Use when (re)generating a DERIVED navigation index, cros
 
 > **Portability:** `docs/specs/` is the fixed Feature Spec root.
 
-**Goal:** Generate a regenerable, single-writer navigation layer (catalog, cross-capability ERD, and rebuild guide) from canonical tech-free 8-section Feature Specs, so derived aids never fork a second source of truth.
+**Goal:** Generate a regenerable, single-writer navigation layer (catalog, cross-capability ERD, and reimplementation guide) from canonical, tech-free 8-section Feature Specs, so derived aids never become a second source of truth.
 
 **Summary:**
 
-- **Purpose:** a DERIVED-aid assembler ONLY — reads §1 Overview, §5 Domain Model Mermaid, §8 TCs from existing Feature Specs to build `INDEX.md` (default) + optional cross-capability `{Bucket}.erd.md` + optional `{Bucket}.reimplementation-guide.md`; it NEVER authors business content. The Feature Spec stays the source of truth.
-- **Main steps (run in order):** **Step 0** Scope Gate — `AskUserQuestion` (bucket + mode + artifacts), BLOCKING before any read; no `README.*.md` specs → STOP, route to `/spec`. **Step 1** Read source specs — extract capability name+link, §1 summary, §8 feature code/TC count/status, §5 Mermaid entities+relationships. **Step 2** Assemble aids — 2a `INDEX.md` catalog, 2b cross-capability ERD, 2c reimplementation guide. **Step 3** Stamp & Write — DERIVED banner + date, write each artifact immediately (never accumulate in context). **Step 4** Verify — no retired artifacts, every link resolves, banner present, prose tech-free, no canonical claims.
-- **Modes:** `index` (default — regenerate derived aids) · `audit` (report which derived aids are stale vs their source specs).
-- Hard prohibition is the load-bearing rule: never emit the retired A-E engineering tree, `M##` dirs, `00-module-registry.md`, `01-domain-erd.md`, `06-reimplementation-guide.md`, or `docs/specs/README.md`/`PRIORITY-INDEX.md`. Use the `{Bucket}.*` filenames instead — why: an A-E bundle becomes a second source of truth competing with the Feature Spec.
-- Every generated file carries the `> DERIVED — regenerate via /spec-index; do NOT hand-edit` banner, links each row/entity back to its source spec, and keeps INDEX/ERD prose tech-free — only the reimplementation guide may name a target stack.
+- **Purpose:** DERIVED-aid assembler ONLY — read §1 Overview, §5 Domain Model Mermaid, and §8 TCs to build default `INDEX.md`, optional `{Bucket}.erd.md`, and optional `{Bucket}.reimplementation-guide.md`; NEVER author business content. Feature Specs remain canonical.
+- **Ordered run:** 0 Scope Gate — `AskUserQuestion` confirms bucket/mode/artifacts before reads; no `README.*.md` specs → STOP, route `/spec` → 1 read capability name+link, §1 summary, §8 feature code/TC count/status, §5 entities/relationships → 2 assemble 2a INDEX, 2b ERD, 2c guide → 3 stamp DERIVED banner/date and write each immediately → 4 verify retired outputs absent, links/banner valid, prose tech-free, no canonical claims.
+- **Modes:** `index` (default — regenerate derived aids) · `audit` (report derived aids stale vs source specs).
+- **Hard boundary:** NEVER emit retired A-E engineering tree, `M##` dirs, `00-module-registry.md`, `01-domain-erd.md`, `06-reimplementation-guide.md`, or `docs/specs/README.md`/`PRIORITY-INDEX.md`; use `{Bucket}.*` instead — why: an A-E bundle becomes a competing source of truth. Every generated file carries the DERIVED banner, links each row/entity to its source, and keeps INDEX/ERD prose tech-free; only the guide may name a target stack.
 
-> **Renamed:** repurposes the former `/spec-discovery` skill (v4.0.0 derived-aid rewrite) — `/spec-discovery` no longer resolves as a slash command; use `/spec-index`.
+> **Routing:** `/spec-index` owns derived index/ERD/reimplementation aids; `/spec` owns canonical Feature Specs.
 
-> **[SCOPE]** This skill assembles a **DERIVED** index / ERD / reimplementation guide over the canonical Feature Specs. It MUST NOT emit a per-module A-E engineering bundle (`A-domain-model`, `B-business-rules`, `C-api-contracts`, `D-events`, `E-user-journeys`), `M##` directories, `00-module-registry.md`, `01-domain-erd.md`, or `06-reimplementation-guide.md` — those are not part of the spec model; their content lives in the Feature Spec (thin-index-only contract: output is DERIVED — never emit A-E bundle files). Authority: [`docs/project-reference/spec-system-reference.md`](../../../docs/project-reference/spec-system-reference.md).
+> **[SCOPE]** Assemble a **DERIVED** index / ERD / reimplementation guide over canonical Feature Specs. MUST NOT emit per-module A-E engineering files (`A-domain-model`, `B-business-rules`, `C-api-contracts`, `D-events`, `E-user-journeys`), `M##` directories, `00-module-registry.md`, `01-domain-erd.md`, `06-reimplementation-guide.md`, or `docs/specs/README.md`/`PRIORITY-INDEX.md`; those contents live in the Feature Spec. Thin-index-only contract: output is DERIVED, never an A-E bundle. Authority: [`docs/project-reference/spec-system-reference.md`](../../../docs/project-reference/spec-system-reference.md).
 
-**Inputs:** the canonical 8-section Feature Specs (§1 Overview, §5 Domain Model Mermaid, §8 TCs). Code is the technical source of truth — read it ONLY to resolve cross-spec ERD relationships or a reimplementation build order, never to populate a parallel spec layer.
+**Inputs:** canonical 8-section Feature Specs (§1 Overview, §5 Domain Model Mermaid, §8 TCs). Code is the technical source of truth; read it ONLY for unresolved cross-spec ERD relationships or reimplementation build order, never to populate a parallel spec layer.
 
 **Modes:**
 
@@ -46,7 +45,7 @@ description: '[General] Use when (re)generating a DERIVED navigation index, cros
 
 - **[BLOCKING]** Output is **DERIVED and regenerable** — every generated file carries a `> DERIVED — regenerate via /spec-index; do NOT hand-edit` banner. It is NEVER a second source of truth.
 - **[BLOCKING]** MUST NOT emit `M##` dirs, `A-E` files, `00-module-registry.md`, `01-domain-erd.md`, `06-reimplementation-guide.md`, `docs/specs/README.md`, or `docs/specs/PRIORITY-INDEX.md` (all retired). See **Hard Prohibitions**.
-- §1-7 of a Feature Spec are tech-free; the derived INDEX/ERD inherit that. The **reimplementation guide is the sole artifact allowed to name a target stack** (it is a rebuild guide — `spec-principles.md` §3 exception).
+- §1-7 Feature Spec prose is tech-free; derived INDEX/ERD inherit that. The **reimplementation guide is the sole artifact allowed to name a target stack** (`spec-principles.md` §3 rebuild-guide exception).
 - Every catalog row / ERD entity links back to the source Feature Spec; mark `[UNVERIFIED]` rather than guessing.
 - Read [`docs/project-reference/spec-principles.md`](../../../docs/project-reference/spec-principles.md) §3 (tech-agnostic + banned-token list) before writing any prose.
 
@@ -54,13 +53,13 @@ description: '[General] Use when (re)generating a DERIVED navigation index, cros
 
 ## App Bucket Mapping
 
-Derived aids are organized by **App Bucket** (matches the single-home spec tree). Resolve service→bucket assignments from the canonical table in [`docs/project-reference/spec-system-reference.md`](../../../docs/project-reference/spec-system-reference.md) → **App Bucket Mapping** — do not inline project-specific bucket names in this skill.
+Derived aids use **App Bucket** (single-home spec tree). Resolve service→bucket assignments from the canonical table in [`docs/project-reference/spec-system-reference.md`](../../../docs/project-reference/spec-system-reference.md) → **App Bucket Mapping**; do not inline project-specific bucket names.
 
 ---
 
 ## Step 0 — Scope Gate (MANDATORY FIRST)
 
-Before reading anything, use `AskUserQuestion`. Confirm:
+Before any read, use `AskUserQuestion`. Confirm:
 
 | Dimension      | Question                                                                                                  | Auto-Default                  |
 | -------------- | -------------------------------------------------------------------------------------------------------- | ----------------------------- |
@@ -69,7 +68,7 @@ Before reading anything, use `AskUserQuestion`. Confirm:
 | **Artifacts**  | Which derived aids: bucket `INDEX.md` / cross-capability ERD / reimplementation guide?                    | `INDEX.md` only               |
 | **Stack note** | (reimplementation guide only) Name a target rebuild stack, or keep stack-neutral build order?            | Stack-neutral                 |
 
-> **[BLOCKING]** If the target bucket has **no** Feature Specs matching `docs/specs/{Bucket}/README.*.md`, STOP and route the user to `/spec` — there is nothing to derive from. NEVER fabricate a spec to index.
+> **[BLOCKING]** If the target bucket has **no** Feature Specs matching `docs/specs/{Bucket}/README.*.md`, STOP and route the user to `/spec`; there is nothing to derive. NEVER fabricate a spec to index.
 
 ---
 
@@ -83,7 +82,7 @@ Before reading anything, use `AskUserQuestion`. Confirm:
     - **Entities + relationships** from the `## 5. Domain Model` ` ```mermaid ` block (for ERD assembly)
 3. Do NOT re-derive business rules, API contracts, or events into new files — those live in the Feature Spec (§1-7) and in code. You are indexing, not extracting.
 
-> **Scale note:** For a bucket with many specs, you MAY spawn parallel reader sub-agents (one per spec) that each return the extracted fields above. This is an optimization, not a gate — there is no per-module A-E extraction to parallelize anymore.
+> **Scale:** For many specs, you MAY spawn one reader sub-agent per spec returning the fields above; optimization only, not a gate. No per-module A-E extraction.
 
 ---
 
@@ -103,39 +102,38 @@ Regenerate `docs/specs/{Bucket}/INDEX.md` as a feature catalog:
 | [{Name}](README.{Name}.md) | {one-line overview} | {FC} | {n} | {Active/Draft} |
 ```
 
-> `/spec` owns the canonical Feature Specs only. `/spec-index` owns this derived `INDEX.md` and regenerates it deterministically from the specs, so there is one writer for the derived navigation file.
+> `/spec` owns canonical Feature Specs; `/spec-index` deterministically regenerates derived `INDEX.md` from them (one writer).
 
 ### 2b. Cross-Capability ERD (on request)
 
 Assemble one Mermaid `erDiagram` from every spec's §5 block in the bucket:
 
-- Merge entities; dedupe by name; keep cross-capability relationships.
-- Resolve a relationship only present implicitly in code by reading the code — but the ERD stays tech-free (entity + relationship names only, no class/table identifiers in prose).
+- Merge/dedupe entities by name; keep cross-capability relationships.
+- Resolve code-only relationships by reading code; keep ERD prose tech-free (entity + relationship names only, no class/table identifiers).
 - Write to `docs/specs/{Bucket}/{Bucket}.erd.md` with the DERIVED banner. **Do NOT** name it `01-domain-erd.md` (retired).
 
 ### 2c. Reimplementation Guide (on explicit request only)
 
 A build-order narrative: capability dependency order, integration touchpoints, suggested rebuild sequence.
 
-- This is the **only** derived artifact permitted to name a target stack (rebuild-guide exception, `spec-principles.md` §3).
+- This is the **only** derived artifact permitted to name a target stack (`spec-principles.md` §3 rebuild-guide exception).
 - Write to `docs/specs/{Bucket}/{Bucket}.reimplementation-guide.md` with the DERIVED banner. **Do NOT** name it `06-reimplementation-guide.md` (retired).
 
 ---
 
 ## Step 3 — Stamp & Write
 
-- Every generated file opens with the `> DERIVED — regenerate via /spec-index; do NOT hand-edit` banner + a regenerate date.
-- Write each file immediately after assembling it; do NOT accumulate large outputs in context.
+- Every generated file opens with the `> DERIVED — regenerate via /spec-index; do NOT hand-edit` banner + regenerate date; write each file immediately after assembly. Do NOT accumulate large outputs in context.
 
 ---
 
 ## Step 4 — Verify (self-check before completing)
 
-- [ ] **No retired artifacts emitted** — grep your own output paths: zero `M[0-9]`, zero `A-domain-model`/`B-business-rules`/`C-api-contracts`/`D-events`/`E-user-journeys`, zero `00-module-registry`/`01-domain-erd`/`06-reimplementation-guide`, zero `docs/specs/README.md`/`PRIORITY-INDEX.md`.
-- [ ] **Every catalog row links to an existing Feature Spec** (no dangling links).
-- [ ] **DERIVED banner present** on each generated file.
-- [ ] **§1-7-derived prose is tech-free** (INDEX/ERD); only the reimplementation guide may name a stack.
-- [ ] **No canonical claims** — the derived files never assert they are the source of truth.
+- **MUST ATTENTION** No retired artifacts: grep output paths; require zero `M[0-9]`, zero `A-domain-model`/`B-business-rules`/`C-api-contracts`/`D-events`/`E-user-journeys`, zero `00-module-registry`/`01-domain-erd`/`06-reimplementation-guide`, zero `docs/specs/README.md`/`PRIORITY-INDEX.md`.
+- **MUST ATTENTION** Every catalog row links to an existing Feature Spec; no dangling links.
+- **MUST ATTENTION** DERIVED banner present on each generated file.
+- **MUST ATTENTION** §1-7-derived prose tech-free (INDEX/ERD); only the reimplementation guide may name a stack.
+- **MUST ATTENTION** No canonical claims; derived files never assert they are the source of truth.
 
 ---
 
@@ -187,9 +185,9 @@ If a user explicitly asks for an A-E bundle, explain it is retired and offer the
 | `/docs-update`      | **Orchestrator** — may call spec-index to refresh derived aids after a doc sync                       | After code/spec changes need a full doc sync              |
 | `/changes-review`   | **Trigger** — detects spec changes and surfaces stale derived aids                                    | After spec changes; it will suggest regenerating the index |
 
-## What Is Spec Discovery? (v4.0.0)
+## Purpose
 
-A **derived-index generator** over the single-home spec tree. The canonical knowledge is the tech-free 8-section Feature Spec; this skill assembles regenerable navigation aids (catalog, cross-capability ERD, rebuild guide) so readers can browse a bucket or plan a replatform without a second hand-maintained layer. It does NOT reverse-engineer code into a parallel spec bundle — that role was retired with the A-E tree.
+`/spec-index` is the derived-index generator over the single-home spec tree. It assembles regenerable catalog, cross-capability ERD, and rebuild guide for bucket browsing or replatform planning; the tech-free 8-section Feature Spec remains canonical. It never reverse-engineers code into a parallel spec bundle; code is read only for unresolved ERD relationships or rebuild order.
 
 ---
 
@@ -302,8 +300,8 @@ A **derived-index generator** over the single-home spec tree. The canonical know
 
 ## Closing Reminders
 
-- **IMPORTANT MUST ATTENTION Goal:** Generate a regenerable, single-writer navigation layer (catalog, cross-capability ERD, and rebuild guide) from canonical tech-free 8-section Feature Specs, so derived aids never fork a second source of truth.
-- **IMPORTANT MUST ATTENTION Main steps (in order):** Step 0 Scope Gate (`AskUserQuestion` bucket+mode+artifacts, BLOCKING) → Step 1 Read source specs (§1 summary, §8 code/TC count/status, §5 Mermaid) → Step 2 Assemble (2a `INDEX.md`, 2b ERD, 2c reimplementation guide) → Step 3 Stamp & Write (DERIVED banner + date, write each immediately) → Step 4 Verify (no retired artifacts, links resolve, banner present, prose tech-free) — why: AI keeps forgetting the skill owns this fixed sequence; NEVER skip or reorder without user approval
+**IMPORTANT MUST ATTENTION Goal:** Generate a regenerable, single-writer navigation layer (catalog, cross-capability ERD, and reimplementation guide) from canonical, tech-free 8-section Feature Specs, so derived aids never become a second source of truth.
+- **IMPORTANT MUST ATTENTION Main steps/modes/gates:** **Step 0 Scope Gate** — `AskUserQuestion` confirms bucket + mode (`index` default | `audit`) + artifacts (+ stack note for guide) before any read; no `README.*.md` specs → STOP and route `/spec` → **Step 1** read capability name+link, §1 summary, §8 feature code/TC count/status, §5 entities/relationships → **Step 2** assemble 2a `INDEX.md`, 2b ERD, 2c guide (explicit request only) → **Step 3** stamp DERIVED banner/date and write each immediately → **Step 4** verify no retired outputs, links resolve, banner present, INDEX/ERD prose tech-free, no canonical claims → after completion `AskUserQuestion` for `/docs-update`, `/watzup`, or skip. NEVER skip or reorder without user approval — why: this fixed sequence protects the single-writer contract.
 
 **Protocols in force (concise digest of the SYNC/shared blocks this skill carries — MUST ATTENTION each canonical body above):**
 
@@ -311,6 +309,7 @@ A **derived-index generator** over the single-home spec tree. The canonical know
 - **AI Mistake Prevention:** verify generated content against evidence, trace downstream references, verify all affected outputs, re-read after context loss, surface ambiguity.
 - **Critical Thinking:** NEVER present a guess as fact; traced proof, confidence >80% to act.
 
+- **IMPORTANT MUST ATTENTION** Feature Specs remain canonical; emit only derived aids, link every row/entity to its source, mark `[UNVERIFIED]` instead of guessing, and let only the reimplementation guide name a target stack.
 - **IMPORTANT MUST ATTENTION [BLOCKING]** Output is DERIVED — never emit `M##`/A-E/`00-module-registry`/`01-domain-erd`/`06-reimplementation-guide`/QA-dashboard files (see Hard Prohibitions); use `{Bucket}.*` filenames instead — why: an A-E bundle becomes a second source of truth competing with the Feature Spec
 - **IMPORTANT MUST ATTENTION [BLOCKING]** The Feature Spec (`docs/specs/{Bucket}/README.{Feature}.md`) is the source of truth — this skill assembles, never authors, business content — why: a derived aid that asserts canonical authority corrupts the single-writer contract
 - **IMPORTANT MUST ATTENTION [BLOCKING]** Confirm bucket + mode + artifacts via `AskUserQuestion` BEFORE Step 1 — NEVER auto-start; if the bucket has no `README.*.md` specs, STOP and route to `/spec` instead of fabricating a spec to index
@@ -343,5 +342,4 @@ A **derived-index generator** over the single-home spec tree. The canonical know
 **IMPORTANT MUST ATTENTION** Output is DERIVED + regenerable — never a second source of truth; the Feature Spec is canonical.
 **IMPORTANT MUST ATTENTION** Confirm bucket + mode + artifacts via `AskUserQuestion` BEFORE any read; no specs → STOP, route to `/spec`.
 **IMPORTANT MUST ATTENTION** Cite `file:line` for every extracted field; mark `[UNVERIFIED]` rather than guessing; never emit retired A-E/`M##`/QA-dashboard files.
-
----
+**IMPORTANT MUST ATTENTION** Keep Feature Specs canonical, confirm scope before reading, and verify every derived output before completion.

@@ -20,8 +20,8 @@ description: '[Implementation] Use when coding and testing an existing plan. Fla
 **Summary:**
 
 - **Purpose:** consume an EXISTING plan, one phase per run — Step 0 detects `plans/*.md` + selects the next incomplete phase (prefer IN_PROGRESS, else earliest Planned). Use `/feature-implement` instead when no plan exists yet — it creates plans, this consumes them.
-- **Ordered execution anchor (run in declared order; emit `✓ Step N:` each):** Step 0 detect/select the plan → Step 1 read the plan fully, read the Goal Contract and Trace Gate, seed `TaskCreate` 0–6 → Step 2 implement step-by-step (type-check + compile; UI → `ui-ux-designer`) → Step 3 test (`tester` → `debugger` until 100%) → Step 4 review (`code-reviewer` until the current severity bar is clear: round 1 zero findings, round 2+ zero CRITICAL/HIGH/MEDIUM with LOW deferred) → Step 5 explicit user approval (BLOCKING — stop and wait) → Step 6 finalize (`project-manager` + `docs-manager` status/docs; optional `git-manager` only for an explicit user request).
-- **Three BLOCKING gates cannot be faked-green:** Step 3 tests 100% pass, Step 4 has no blocking finding under the current round bar (round 1: no finding; round 2+: no CRITICAL/HIGH/MEDIUM; failed binary gates always block), Step 5 explicit user approval before Finalize. These gates never grant Git authority. — why: quality acceptance and operation authority protect different boundaries.
+- **Ordered execution anchor (run in declared order; emit `✓ Step N:` each):** Step 0 detect/select the plan → Step 1 read the plan fully, read the Goal Contract and Trace Gate, seed `TaskCreate` 0–6 → Step 2 implement step-by-step (type-check + compile; UI → `ui-ux-designer`) → Step 3 test (`tester` → `debugger` until 100%) → Step 4 review (`code-reviewer` until the current severity bar is clear: round 1 zero findings, round 2 zero CRITICAL/HIGH/MEDIUM with LOW deferred) → Step 5 explicit user approval (BLOCKING — stop and wait) → Step 6 finalize (`project-manager` + `docs-manager` status/docs; optional `git-manager` only for an explicit user request).
+- **Three BLOCKING gates cannot be faked-green:** Step 3 tests 100% pass, Step 4 has no blocking finding under the current round bar (round 1: no finding; round 2: no CRITICAL/HIGH/MEDIUM; failed binary gates always block), Step 5 explicit user approval before Finalize. These gates never grant Git authority. — why: quality acceptance and operation authority protect different boundaries.
 - **Two STOP-before-coding gates:** Pre-Implementation Granularity Gate (refuse planning verbs / unnamed files / unresolved decisions → sub-plan with `/plan`) + bugfix Trace Gate (require the End→Start debugger trace for any bug/regression/behavior-changing plan). Also the Spec-Loop Gate (property TC + mutation-killed test + Dual-Feedback) closes any behavior change.
 - **Step 2 is SEQUENTIAL by default; wave fan-out is OPT-IN.** `--parallel` / `--parallel=on` dispatches disjoint-write-set phases as one wave of `fullstack-developer` subagents in ONE message, barrier, then recomputes the next wave against the updated repo. `--parallel=auto` fans out ONLY when every in-scope phase carries the `## Parallel Execution` block (`PAR`/`SEQ` tag + declared write set) written by `/plan` — no block, no fan-out.
 - **Mode flags** add/remove ONE step, never relax a running gate: `--approval=off` (auto/trust, skip Step 5, optional `$ALL_PHASES` loop over every incomplete phase), `--tests=off` (skip Step 3), `--parallel={auto|on|off}` (`off` default = sequential; bare `--parallel`/`on` opts in to wave dispatch; `auto` fans out only on plan-declared `PAR`/`SEQ` metadata). No flags = full 7-step spine, run sequentially.
@@ -35,14 +35,14 @@ description: '[Implementation] Use when coding and testing an existing plan. Fla
 1. **Analysis & Tasks** — Read the phase file fully and extract tasks into TaskCreate
 2. **Implementation** — Implement step-by-step, run type checks
 3. **Testing** — Call tester subagent; must reach 100% pass before proceeding
-4. **Code Review** — Call code-reviewer subagent; must clear the current severity bar: Round 1 has zero validated findings of any severity; Round 2+ has zero validated CRITICAL/HIGH/MEDIUM findings, with LOW findings recorded/deferred. Failed binary gates always block.
+4. **Code Review** — Call code-reviewer subagent; must clear the current severity bar: Round 1 has zero validated findings of any severity; Round 2 has zero validated CRITICAL/HIGH/MEDIUM findings, with LOW findings recorded/deferred. Failed binary gates always block.
 5. **User Approval** — BLOCKING gate: wait for explicit user approval
 6. **Finalize** — Update status/docs, report implementation complete; optionally handle an explicit Git request
 
 **Key Rules:**
 
 - Tests must be 100% passing (Step 3 gate)
-- No blocking findings under the current Step 4 review bar (Round 1: all severities; Round 2+: CRITICAL/HIGH/MEDIUM; binary gates always block)
+- No blocking findings under the current Step 4 review bar (Round 1: all severities; Round 2: CRITICAL/HIGH/MEDIUM; binary gates always block)
 - User must explicitly approve before finalize (Step 5 gate)
 - Implementation completion, review approval, and `--approval=off` never authorize staging, committing, or pushing. Dispatch Git only with `operation`, `scope`, and `sourceRequest` from an explicit user request; NEVER `git commit --amend`.
 - One plan phase per command run — a multi-phase run requires `--approval=off` with `$ALL_PHASES=Yes`
@@ -190,11 +190,11 @@ Call `tester` subagent. ANY tests fail → STOP, call `debugger` subagent, fix, 
 
 ## Step 4: Code Review
 
-Call `code-reviewer` subagent. If the current round has validated blocking findings, stop and fix them at the owning layer, re-run `tester`, and run a fresh full `code-reviewer` pass. Round 1 blocks on every validated severity; Round 2+ blocks only CRITICAL/HIGH/MEDIUM, so LOW-only findings are recorded/deferred and do not reopen the cycle. Failed binary gates always block.
+Call `code-reviewer` subagent. If the current round has validated blocking findings, stop and fix them at the owning layer, re-run `tester`, and run a fresh full `code-reviewer` pass. Round 1 blocks on every validated severity; Round 2 blocks only CRITICAL/HIGH/MEDIUM, so LOW-only findings are recorded/deferred and do not reopen the cycle. Failed binary gates always block.
 
 **Output:** `✓ Step 4: Code reviewed - blocking findings: Critical=[n] | High=[n] | Medium=[n] | Low deferred=[n] | binary gates=[n]`
 
-**Validation:** Apply `.claude/scripts/lib/review-policy.cjs` before deciding whether to proceed. If the current round has any blocking finding, or any failed binary gate, Step 4 is INCOMPLETE — do not proceed. A Round 2+ LOW-only result is complete only when the LOWs are listed as deferred; it does not reopen the fix/review cycle.
+**Validation:** Apply `.claude/scripts/lib/review-policy.cjs` before deciding whether to proceed. If the current round has any blocking finding, or any failed binary gate, Step 4 is INCOMPLETE — do not proceed. A Round 2 LOW-only result is complete only when the LOWs are listed as deferred; it does not reopen the fix/review cycle.
 
 > **Severity classification (canonical `SYNC:severity-rubric`):** CRITICAL is immediate material security/safety/authority/data-loss risk or a failed binary gate; HIGH is material correctness, contract, privacy, or authority risk; MEDIUM is a bounded but consequential edge/resilience/maintainability gap; LOW is evidenced non-blocking polish with no credible present material impact. `NOT VERIFIABLE` is unresolved evidence, not LOW; if it could affect required behavior or a binary gate it remains blocking until proved or explicitly owner-accepted with residual risk. Classify by consequence and cite `file:line`, never by effort or proximity to the round cap.
 
@@ -272,7 +272,7 @@ below — if a downstream rule would raise change cost, this principle wins.
 **Blocking gates:**
 
 - Step 3: Tests must be 100% passing
-- Step 4: No blocking findings under the current review round bar (Round 1: all severities; Round 2+: CRITICAL/HIGH/MEDIUM; binary gates always block)
+- Step 4: No blocking findings under the current review round bar (Round 1: all severities; Round 2: CRITICAL/HIGH/MEDIUM; binary gates always block)
 - Step 5: User must explicitly approve
 
 Execute every step in declared order; proceed only when validation passes and the user has approved; run one plan phase per command. Do not skip steps, proceed on failed validation, or assume approval without a user response.
@@ -681,7 +681,7 @@ Execute every step in declared order; proceed only when validation passes and th
 - **AI Mistake Prevention:** verify generated content against evidence, trace downstream references, verify all affected outputs, re-read after context loss, surface ambiguity.
 - **Parallel Sub-Agent Dispatch:** Tag tasks PAR/SEQ, group PAR into disjoint-write-set waves, spawn each wave in ONE message, barrier before advancing.
 
-**IMPORTANT MUST ATTENTION** run the full step spine in declared order, emit `✓ Step N:` each: Step 0 detect plan + select next incomplete phase → Step 1 Analysis & Task Extraction (read plan, Goal-Contract read, Trace Gate, seed `TaskCreate`) → Step 2 Implementation (code + type-check/compile; UI → `ui-ux-designer`) → Step 3 Testing (`tester`→`debugger` until 100%) → Step 4 Code Review (`code-reviewer` until the current severity bar is clear: round 1 zero findings, round 2+ zero CRITICAL/HIGH/MEDIUM with LOW deferred) → Step 5 User Approval (BLOCKING, wait) → Step 6 Finalize (`project-manager` + `docs-manager`; optional `git-manager` only for an explicit user request).
+**IMPORTANT MUST ATTENTION** run the full step spine in declared order, emit `✓ Step N:` each: Step 0 detect plan + select next incomplete phase → Step 1 Analysis & Task Extraction (read plan, Goal-Contract read, Trace Gate, seed `TaskCreate`) → Step 2 Implementation (code + type-check/compile; UI → `ui-ux-designer`) → Step 3 Testing (`tester`→`debugger` until 100%) → Step 4 Code Review (`code-reviewer` until the current severity bar is clear: round 1 zero findings, round 2 zero CRITICAL/HIGH/MEDIUM with LOW deferred) → Step 5 User Approval (BLOCKING, wait) → Step 6 Finalize (`project-manager` + `docs-manager`; optional `git-manager` only for an explicit user request).
 **IMPORTANT MUST ATTENTION** execute Steps 0-6 in declared order; the three BLOCKING gates — tests 100% (Step 3), no blocking findings under the current severity bar (Step 4), explicit user approval (Step 5) — cannot be faked-green: NEVER skip a step, proceed on failed validation, or assume approval — why: a faked-green gate ships the regression the test exists to catch.
 **IMPORTANT MUST ATTENTION** cite `file:line` evidence for every claim, finding, and recommendation with confidence % — >80% to act, <80% verify first, <60% do NOT recommend — why: speculation passed as fact is the root of every hallucinated fix.
 **IMPORTANT MUST ATTENTION** break work into small `TaskCreate` todos BEFORE the first read/edit, keep exactly one `in_progress`, mark `completed` immediately after each step's evidence, add a final review todo — on context loss call `TaskList` first, never duplicate — why: long files exhaust context and silently lose findings.
@@ -704,7 +704,7 @@ Execute every step in declared order; proceed only when validation passes and th
 | Evasion                                          | Rebuttal                                                                                          |
 | ------------------------------------------------ | ------------------------------------------------------------------------------------------------- |
 | "Tests are basically passing"                    | 100% or Step 3 is INCOMPLETE — loop `tester`→`debugger` until X/X — partial green ships the bug.  |
-| "Code review found only minor issues"            | Apply the current round bar: Round 1 fixes every validated severity; Round 2+ defers LOW-only findings but still blocks on CRITICAL/HIGH/MEDIUM and failed binary gates. |
+| "Code review found only minor issues"            | Apply the current round bar: Round 1 fixes every validated severity; Round 2 defers LOW-only findings but still blocks on CRITICAL/HIGH/MEDIUM and failed binary gates. |
 | "Obviously approved / they'll approve"           | Step 5 is BLOCKING — stop and wait for an explicit user response, never assume approval.           |
 | "Phase is clear enough to start"                 | Run the Granularity Gate — planning verbs / unnamed files / open decisions → sub-plan, don't code. |
 | "It's a quick fix, skip the trace"               | Bug/regression plan needs the End→Start trace + hypothesis matrix BEFORE the fix.                  |
@@ -717,7 +717,7 @@ Execute every step in declared order; proceed only when validation passes and th
 
 ---
 
-**IMPORTANT MUST ATTENTION** the three BLOCKING gates (tests 100% · no blocking findings under the current review bar · explicit approval) cannot be faked-green — Round 1 blocks every validated severity, Round 2+ defers LOW-only findings but still blocks CRITICAL/HIGH/MEDIUM and failed binary gates; NEVER bypass a gate to declare done.
+**IMPORTANT MUST ATTENTION** the three BLOCKING gates (tests 100% · no blocking findings under the current review bar · explicit approval) cannot be faked-green — Round 1 blocks every validated severity, Round 2 defers LOW-only findings but still blocks CRITICAL/HIGH/MEDIUM and failed binary gates; NEVER bypass a gate to declare done.
 **IMPORTANT MUST ATTENTION** implementation completion, review approval and `--approval=off` never authorize Git: require explicit user operation/scope/sourceRequest, report completion independently, and NEVER `git commit --amend`.
 **IMPORTANT MUST ATTENTION** cite `file:line` + confidence % for every claim; search 3+ patterns and read code before writing.
 **IMPORTANT MUST ATTENTION** break work into small `TaskCreate` todos BEFORE starting; add a final review todo; on context loss call `TaskList` first.

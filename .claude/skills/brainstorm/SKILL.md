@@ -16,17 +16,33 @@ disable-model-invocation: false
 
 ## Quick Summary
 
-**Goal:** Facilitate a structured PO/BA brainstorming session via the Double Diamond process (diverge to discover problems and opportunities, then converge to validate and prioritize) to deliver a scored, ranked shortlist of 3-5 candidate ideas — each carrying a problem + value hypothesis, an identified riskiest assumption, and the cheapest validation test designed — so the team commits to the right problem AND the right solution before building, never to a flat unvalidated idea list. The default flow converges to ONE opinionated recommendation; the EXCEPTION is **Multi-Opportunity Discovery mode**, which instead outputs a ranked 3–8-item RICE opportunity map for user multi-select (each selected item becomes a separate PBI downstream).
+**Goal:** Facilitate evidence-backed PO/BA Double-Diamond ideation that separates problem discovery from solution evaluation and delivers either a validated, ranked 3–5-candidate shortlist with problem/value hypotheses, each riskiest assumption, and cheapest validation test plus one recommendation—or, in **Multi-Opportunity Discovery mode**, a ranked 3–8-item RICE map for user selection—so the team commits to the right problem and solution, never a flat idea list.
 
 **Summary:**
 
-- **Main steps (Phases 0→7) — the read-this-if-nothing-else map:** **P0 Session Setup** (`AskUserQuestion` to detect scenario + role + how-much-known) → **P1 Problem Framing / Diamond-1 diverge** (POV statement → 5 Whys/Fishbone → JTBD job stories → 5–10 HMW) → **P2 Opportunity Framing / Diamond-1 converge** (OST / Lean Canvas / Blue-Ocean ERRC / Value-Prop Canvas) → **P3 Ideation / Diamond-2 diverge** (SCAMPER → Crazy 8s → Brainwriting 6-3-5 → Impact Mapping → Analogy = 25–40 raw ideas, zero judgment) → **P4 Evaluation / Diamond-2 converge** (Dot Vote → RICE → Kano → 2×2 → MoSCoW = ranked 3–5 shortlist) → **P5 Hypothesis Validation** (Problem + Value card + Riskiest-Assumption Test + cheapest test + Build-Measure-Learn per top-3) → **P6 Decision** (ONE opinionated recommendation + trade-offs) → **P7 Documentation & Handoff**. Multi-Opportunity Discovery mode swaps P6 for a ranked 3–8-item RICE opportunity map.
-- Run `AskUserQuestion` Phase 0 FIRST to detect scenario (Problem-Solving / New Product / Enhancement / Multi-Opportunity Discovery), role (PO / BA / Mixed), and how-much-is-known — each scenario routes a different technique sequence (see Scenario Cheat Sheets) — why: misclassifying here derails every downstream phase.
-- Strictly separate diverge (Phases 1 & 3 — generate, "Yes, and…", zero judgment) from converge (Phases 2 & 4 — narrow, RICE/Kano/MoSCoW scoring); mixing the two modes is the Golden Rule violation that kills idea output.
-- Never stop at a raw or flat idea list: every top-3 candidate MUST carry a problem + value hypothesis card, an identified riskiest assumption (RAT), and the single cheapest validation test designed before any build commitment.
-- Close with an opinionated decision (Phase 6 — recommend ONE option with trade-offs, not a menu), every claim evidence-backed at >80% confidence, then offer handoff via `AskUserQuestion` to `/idea`, `/refine`, `/plan`, etc. — EXCEPT in **Multi-Opportunity Discovery mode**, where convergence RANKS the opportunity map (3–8 RICE-scored items) and hands off via multi-select to a per-opportunity PBI loop instead of picking ONE winner.
-- Apply the shared `isLargeIdea` rule during convergence. For any true signal, capture one complete `large_idea_decomposition` block in the owning idea/PBI/spec handoff: ordered releasable slices, dependency order, non-goals, risk/evidence owners, and deferred-work owners. This is embedded scope context; it does not create `docs/product-roadmap.md`.
-- If `--mode=roadmap`, frame product outcomes and milestone choices, then hand off to `/product-roadmap`; this explicit mode may create/update `docs/product-roadmap.md` and does not choose implementation. If `--mode=scope`, resolve and amend the selected stable scope brief in place, then stop before scenario/plan work.
+- **Ordered core:** P0 Setup (scenario/role/known + context) → P1 Problem Framing/diverge (POV, 5 Whys/Fishbone, JTBD, HMW) → P2 Opportunity Framing/converge (OST, Lean Canvas, ERRC, Value Proposition) → P3 Ideation/diverge (SCAMPER, Crazy 8s, Brainwriting, Impact Mapping, Analogy; 25–40 ideas) → P4 Evaluation/converge (Dot Vote, RICE, Kano, 2×2, MoSCoW; shortlist 3–5) → P5 Validation (problem/value cards, RAT, cheapest test, Build-Measure-Learn) → P6 Decision (one recommendation) → P7 Documentation/Handoff.
+- **Purpose and gates:** Run `AskUserQuestion` in P0 first; separate diverge from converge; test every top-3 candidate before build; Multi-Opportunity Discovery ranks 3–8 opportunities and uses multi-select.
+- **Routing:** Resolve `--mode=roadmap|scope` before P0. Roadmap hands outcome/milestone framing to `/product-roadmap`; scope amends one approved `plans/{plan-id}/scope-brief.md` and stops before scenario/plan work.
+- **Handoff boundary:** Apply `isLargeIdea`; when true, carry one complete `large_idea_decomposition` block in the owning handoff. Default mode offers user-selected handoff (`/idea`, `/refine`, `/plan`, etc.); Multi-Opportunity Discovery hands selected items to the per-opportunity PBI loop.
+
+**Workflow:**
+
+1. **Session Setup** — `AskUserQuestion` detects scenario, role, known context; load domain or market context.
+2. **Problem Framing/diverge** — POV, root cause when applicable, JTBD, HMW.
+3. **Opportunity Framing/converge** — scenario-specific OST, Lean Canvas, ERRC, Value Proposition.
+4. **Ideation/diverge** — SCAMPER, Crazy 8s, Brainwriting, Impact Mapping, Analogy; no judgment.
+5. **Evaluation/converge** — Dot Vote, RICE, Kano, 2×2, MoSCoW; rank 3–5 candidates or a 3–8 opportunity map.
+6. **Hypothesis Validation** — problem/value cards, RAT, cheapest test, Build-Measure-Learn for top 3.
+7. **Decision, Documentation & Handoff** — recommend one option by default; document and route user-approved next steps.
+
+**Key Rules:**
+
+- **Golden Rule:** NEVER evaluate ideas while generating them; diverge and converge stay separate.
+- **Evidence:** Every claim and recommendation needs `file:line`, source, or traced evidence; confidence >80% required.
+- **Output:** Scored, ranked shortlist with hypothesis validation—never a flat idea list.
+- **User decisions:** Use `AskUserQuestion` for scenario selection, prioritization, and handoff.
+- **Technique selection:** Derive the sequence from the detected scenario; use cheat sheets for routing, not a one-size-fits-all checklist.
+- **Risk profile:** Content skill; fresh-eyes review, specialist delegation, embedded sub-agent protocols, and recursive fix loops are N/A. Preserve the existing terminal state.
 
 **Four Scenarios:**
 
@@ -62,11 +78,11 @@ Resolve the flag before Phase 0:
 | `--mode=scope` | Clarify one selected roadmap milestone | Amend the exact selected `plans/{plan-id}/scope-brief.md` with in-scope behavior, non-goals, terms, source of truth, risks, decisions, and evidence; stop before `/scenario`/`/plan` |
 | default | Standard Double Diamond ideation | Existing idea shortlist or multi-opportunity map flow below |
 
-`--mode=roadmap` is not a shortcut around owner approval. Use `AskUserQuestion` for milestone boundaries and lifecycle terms. The product-roadmap skill owns the canonical artifact and selection gate; this mode supplies structured framing to it.
+`--mode=roadmap` still requires owner approval. Use `AskUserQuestion` for milestone boundaries and lifecycle terms. `/product-roadmap` owns the canonical artifact and selection gate; this mode supplies framing only.
 
-`--mode=scope` MUST resolve the existing scope-brief path from the product-roadmap handoff, `$ARGUMENTS`, or active plan context, then amend that file in place. If no stable `plans/{plan-id}/scope-brief.md` is available, stop and route to `/product-roadmap`; never create a competing scope brief or write one under `tmp/reports/`.
+`--mode=scope` MUST resolve an existing scope-brief path from the `/product-roadmap` handoff, `$ARGUMENTS`, or active plan, then amend that file in place. If no stable `plans/{plan-id}/scope-brief.md` exists, stop and route to `/product-roadmap`; NEVER create a competing brief or write one under `tmp/reports/`.
 
-For the default mode, do not route to `--mode=roadmap` merely because the idea is broad. Evaluate:
+Default mode does not route to `--mode=roadmap` merely because the idea is broad. Evaluate:
 
 ```text
 isLargeIdea = multipleIndependentOutcomes
@@ -75,7 +91,7 @@ isLargeIdea = multipleIndependentOutcomes
             || oversizedPbiThatMustSplit
 ```
 
-When true, the brainstorm handoff owns this portable block and downstream skills consume it read-only. When all four signals are false, omit the block and all roadmap/milestone placeholders. An existing roadmap is context only unless the user explicitly chose `--mode=roadmap`.
+When true, the brainstorm handoff owns this portable block; downstream skills consume it read-only. When all four signals are false, omit the block and roadmap/milestone placeholders. An existing roadmap is context unless the user explicitly chose `--mode=roadmap`.
 
 ## Answer this question:
 
@@ -85,7 +101,7 @@ When true, the brainstorm handoff owns this portable block and downstream skills
 
 ## Phase 0: Session Setup (MANDATORY)
 
-Use `AskUserQuestion` to detect scenario, role, and constraints before any technique.
+**MUST ATTENTION** Use `AskUserQuestion` to detect scenario, role, and constraints before any technique.
 
 ### 0.1 — Scenario Detection
 
@@ -98,7 +114,7 @@ Ask:
     - Multi-opportunity discovery — a raw product vision / problem statement spanning MULTIPLE distinct opportunities that should each become a separate PBI (do NOT converge to one — produce a ranked RICE opportunity map for multi-select; see [Multi-Opportunity Discovery Mode](#multi-opportunity-discovery-mode))
     - Mixed — multiple of the above
 
-> **Mode routing:** If the input is a broad vision/problem spanning several distinct opportunities (typically driven by `workflow-idea-to-pbi`'s MULTI-OPPORTUNITY DISCOVERY MODE), select **Multi-opportunity discovery** — it changes Phase 6 convergence from "pick ONE" to "rank a 3–8-item RICE opportunity map for multi-select." All other scenarios keep the single-recommendation default.
+> **Mode routing:** A broad vision/problem spanning distinct opportunities (typically from `workflow-idea-to-pbi`'s MULTI-OPPORTUNITY DISCOVERY MODE) selects **Multi-opportunity discovery**. It changes Phase 6 from "pick ONE" to "rank a 3–8-item RICE map for multi-select." All other scenarios keep the single-recommendation default.
 
 2. **"What is the primary role in this session?"**
     - Product Owner — outcome-focused, business value, user outcomes
@@ -114,18 +130,18 @@ Ask:
 
 ### 0.2 — Context Loading
 
-- If project codebase exists: read `docs/specs/` to understand domain
-- If greenfield: skip codebase reading; rely on user input and web research
-- Load `docs/project-reference/domain-entities-reference.md` if entity context needed
-- Use `WebSearch` for market/competitor context when scenario = New Product or Enhancement
+- Existing codebase: read `docs/specs/` for domain context.
+- Greenfield: skip codebase reading; use user input and web research.
+- Read `docs/project-reference/domain-entities-reference.md` only when entity context is needed.
+- Use `WebSearch` for market/competitor context in New Product or Enhancement scenarios.
 
 ---
 
 ## Phase 1: Problem Framing — Diamond 1 Diverge
 
-**Goal:** Fully understand problem space before jumping to solutions. #1 brainstorming failure: solving the wrong problem.
+**Goal:** Understand the problem space before solutions; the primary brainstorming failure is solving the wrong problem.
 
-**Time-box:** 20–45 minutes of session time.
+**Time-box:** 20–45 minutes.
 
 ### 1.1 — Problem Statement (POV Format)
 
@@ -145,7 +161,7 @@ because peak-season backlogs delay fulfillment,
 but the current system shows raw order data with no ranking or comparison.
 ```
 
-Use `AskUserQuestion` to validate:
+Use `AskUserQuestion` to validate the framing:
 
 - "Is this the core problem, or a symptom of a deeper problem?"
 - "Who specifically experiences this? How often? What's the cost?"
@@ -204,27 +220,22 @@ From the POV statement:
 
 **Rules:**
 
-- Each HMW covers ONE idea direction
-- Generate 5–10 HMW questions per problem
-- Too broad = "How might we improve HR?" (useless) → too narrow = "How might we add a sort button?" (skip ideation, just build it)
-- Sweet spot: one-concept questions that invite multiple solutions
+- Each HMW covers ONE idea direction.
+- Generate 5–10 HMW questions per problem.
+- Too broad = "How might we improve HR?" (useless); too narrow = "How might we add a sort button?" (skip ideation, just build it).
+- Sweet spot: one-concept questions inviting multiple solutions.
 
-**Output of Phase 1:**
-
-- [ ] Problem statement (POV format)
-- [ ] Root cause (5 Whys or Fishbone) — Problem-Solving only
-- [ ] 3–5 Job Stories
-- [ ] 5–10 HMW questions
+**Phase 1 output (all required):** Problem statement (POV); root cause (5 Whys or Fishbone, Problem-Solving only); 3–5 Job Stories; 5–10 HMW questions.
 
 ---
 
 ## Phase 2: Opportunity Framing — Diamond 1 Converge
 
-**Goal:** Narrow problem space to highest-opportunity focus areas before ideating solutions.
+**Goal:** Narrow the problem space to highest-opportunity focus areas before solution ideation.
 
 ### 2.1 — Opportunity Solution Tree (OST) — for Enhancement
 
-Teresa Torres' framework. Maps desired outcome → opportunities → solutions → experiments.
+Teresa Torres' framework: desired outcome → opportunities → solutions → experiments.
 
 ```
 Desired Outcome (business metric)
@@ -237,10 +248,10 @@ Desired Outcome (business metric)
 └── Opportunity 3 (deprioritized)
 ```
 
-**Step 1:** State ONE desired outcome (lagging metric the team owns — e.g., "Increase manager satisfaction with review process from 3.2 to 4.0 CSAT")
-**Step 2:** Map ALL known opportunities (pains, needs, wants) from research/interviews
-**Step 3:** For each top opportunity, generate solution directions (not detailed solutions yet)
-**Step 4:** Pick 1–2 opportunities to develop further in Phase 3
+**Step 1:** State ONE desired outcome (lagging metric the team owns — e.g., "Increase manager satisfaction with review process from 3.2 to 4.0 CSAT").
+**Step 2:** Map ALL known opportunities (pains, needs, wants) from research/interviews.
+**Step 3:** For each top opportunity, generate solution directions, not detailed solutions.
+**Step 4:** Pick 1–2 opportunities to develop in Phase 3.
 
 ### 2.2 — Lean Canvas — for New Product
 
@@ -258,7 +269,7 @@ One-page business model for greenfield ideas (Ash Maurya):
 | Key Metrics       | One number that measures success      |
 | Unfair Advantage  | What can't easily be copied?          |
 
-Fill one canvas per major target segment. Keep it to 20 min — speed is the point.
+Fill one canvas per major target segment. Time-box to 20 min; speed is the point.
 
 ### 2.3 — Blue Ocean ERRC Grid — for Enhancement or New Product
 
@@ -270,11 +281,11 @@ Eliminate-Reduce-Raise-Create grid (Chan Kim & Mauborgne):
 | **Raise**                   | **Create**                        |
 | Features users want more of | Features no competitor offers     |
 
-**Rule:** Every innovation should have at least ONE item in Create AND one in Eliminate. A product with only Raise entries is incremental — not differentiated.
+**Rule:** Every innovation needs at least ONE Create item and one Eliminate item. Raise-only products are incremental, not differentiated.
 
 ### 2.4 — Value Proposition Canvas
 
-Connects customer profile to product value:
+Connect customer profile to product value:
 
 **Customer Profile:**
 
@@ -288,26 +299,21 @@ Connects customer profile to product value:
 - Pain Relievers (how you reduce pains)
 - Gain Creators (how you produce gains)
 
-**Fit = where Pain Relievers match Pains + Gain Creators match Gains.**
+**Fit = Pain Relievers match Pains and Gain Creators match Gains.**
 
-**Output of Phase 2:**
-
-- [ ] OST with 2 selected opportunities (Enhancement)
-- [ ] Lean Canvas (New Product)
-- [ ] ERRC grid (New Product or Enhancement)
-- [ ] Value Proposition fit assessment
+**Phase 2 output (all required):** OST with 2 selected opportunities (Enhancement); Lean Canvas (New Product); ERRC grid (New Product or Enhancement); Value Proposition fit assessment.
 
 ---
 
 ## Phase 3: Ideation — Diamond 2 Diverge
 
-**Goal:** Generate maximum quantity of solution ideas without judgment. Quality comes Phase 4.
+**Goal:** Generate maximum solution quantity without judgment; quality comes in Phase 4.
 
-**Critical rule:** NO evaluation in this phase. Every idea is valid. "Yes, and..." not "Yes, but..."
+**Critical rule:** NO evaluation in this phase. Every idea is valid: "Yes, and...", not "Yes, but...".
 
 ### 3.1 — SCAMPER
 
-Apply each lens to the problem/existing product to generate solution directions:
+Apply each lens to the problem/existing product; generate solution directions:
 
 | Letter               | Prompt                     | Example for order-prioritization feature                  |
 | -------------------- | -------------------------- | --------------------------------------------------------- |
@@ -319,41 +325,41 @@ Apply each lens to the problem/existing product to generate solution directions:
 | **E**liminate        | What can be removed?       | Eliminate the nightly batch — replace with continuous signals |
 | **R**everse          | Flip the process?          | Let downstream stages pull orders instead of pushing      |
 
-Generate at least 2 ideas per SCAMPER letter = minimum 14 ideas.
+Generate at least 2 ideas per SCAMPER letter: minimum 14 ideas.
 
 ### 3.2 — Crazy 8s (Rapid Visual Ideation)
 
-**Time-box: 8 minutes. 8 ideas. No refinement.**
+**Time-box: 8 minutes; 8 ideas; no refinement.**
 
 Process:
 
-1. Fold paper into 8 sections (or create 8 boxes mentally)
-2. Sketch one idea concept per box — rough is fine
-3. Timer forces quantity over perfection
-4. Share and build on sketches
+1. Fold paper into 8 sections (or create 8 boxes mentally).
+2. Sketch one rough idea per box.
+3. Let the timer force quantity over perfection.
+4. Share and build on sketches.
 
 For AI-facilitated sessions:
 
-- AI generates 8 distinct solution directions in 2 minutes
-- User picks top 3 to explore deeper
-- Each direction = 1 sentence + 1 key differentiator
+- AI generates 8 distinct solution directions in 2 minutes.
+- User picks the top 3 to explore.
+- Each direction = 1 sentence + 1 key differentiator.
 
 ### 3.3 — Brainwriting 6-3-5
 
-For multi-stakeholder sessions (async-friendly):
+For multi-stakeholder, async-friendly sessions:
 
-- 6 participants, 3 ideas each, 5 rounds
-- Each round: read previous ideas → add 3 new ideas OR build on existing
-- Result: up to 108 ideas in 30 minutes (works async via shared doc)
+- 6 participants, 3 ideas each, 5 rounds.
+- Each round: read previous ideas → add 3 ideas OR build on an existing idea.
+- Result: up to 108 ideas in 30 minutes; works asynchronously in a shared doc.
 
 For AI-facilitated sessions:
 
-- AI plays all 6 roles across 3 rounds
-- Generates ideas from: PO perspective, BA perspective, End User perspective, Dev perspective, Ops perspective, Business perspective
+- AI plays all 6 roles across 3 rounds.
+- Generate from PO, BA, End User, Dev, Ops, and Business perspectives.
 
 ### 3.4 — Impact Mapping
 
-Gojko Adzic's technique. Maps Goal → Actors → Impacts → Deliverables:
+Gojko Adzic's technique: Goal → Actors → Impacts → Deliverables:
 
 ```
 GOAL: [business outcome with measurable target]
@@ -365,11 +371,11 @@ GOAL: [business outcome with measurable target]
 └── ACTOR: ...
 ```
 
-**Key insight:** Work backward from GOAL. If a deliverable doesn't trace to an actor behavior change, don't build it.
+**Key insight:** Work backward from GOAL. If a deliverable does not trace to an actor behavior change, do not build it.
 
 ### 3.5 — Analogical Thinking
 
-"How does [industry X] solve [similar problem Y]?"
+Ask: "How does [industry X] solve [similar problem Y]?"
 
 | Analogy Source                | Application to HR                      |
 | ----------------------------- | -------------------------------------- |
@@ -379,28 +385,22 @@ GOAL: [business outcome with measurable target]
 | Amazon recommendation engine  | Next goal suggestion                   |
 | Netflix "because you watched" | "Colleagues like you also achieved..." |
 
-**Output of Phase 3:**
-
-- [ ] SCAMPER grid with 14+ ideas
-- [ ] Crazy 8s — 8 solution directions
-- [ ] Impact Map (top 2 goals)
-- [ ] Analogy-inspired ideas (3–5)
-- [ ] Total raw idea count: target 25–40 ideas
+**Phase 3 output (all required):** SCAMPER grid with 14+ ideas; Crazy 8s with 8 directions; Impact Map for top 2 goals; 3–5 analogy-inspired ideas; 25–40 total raw ideas.
 
 ---
 
 ## Phase 4: Evaluation & Convergence — Diamond 2 Converge
 
-**Goal:** Reduce 25–40 raw ideas to a ranked shortlist of 3–5 candidates for hypothesis testing.
+**Goal:** Reduce 25–40 raw ideas to a ranked 3–5-candidate shortlist for hypothesis testing.
 
 ### 4.1 — Dot Voting (First Pass)
 
-Before scoring, do a quick gut-check elimination:
+Before scoring, run a quick gut-check elimination:
 
-- Each idea gets a ✅ (keep) / ❌ (drop) / 🔄 (merge with another)
-- Merge near-identical ideas
-- Drop ideas that violate hard constraints (budget, tech, legal)
-- Target: reduce to 10–15 candidates
+- Each idea gets ✅ (keep), ❌ (drop), or 🔄 (merge).
+- Merge near-identical ideas.
+- Drop ideas violating hard constraints (budget, tech, legal).
+- Target: 10–15 candidates.
 
 ### 4.2 — RICE Scoring
 
@@ -433,7 +433,7 @@ For each shortlisted idea, classify:
 
 ### 4.4 — Effort × Impact 2×2
 
-Quick visual triage:
+Use for quick visual triage:
 
 ```
 HIGH IMPACT
@@ -450,7 +450,7 @@ Plot each shortlisted idea. Quick Wins = default first picks unless Major Projec
 
 ### 4.5 — MoSCoW for Release Scope
 
-For each idea in the shortlist, assign release priority:
+Assign release priority to each shortlisted idea:
 
 | Priority        | Meaning                            | Threshold                              |
 | --------------- | ---------------------------------- | -------------------------------------- |
@@ -459,19 +459,13 @@ For each idea in the shortlist, assign release priority:
 | **Could Have**  | Nice to have, low risk to cut      | Include if effort ≤ 3 SP               |
 | **Won't Have**  | Explicitly out of scope this cycle | Document for future                    |
 
-**Output of Phase 4:**
-
-- [ ] Dot-voted shortlist (10–15 ideas)
-- [ ] RICE-scored table (top 5 ranked)
-- [ ] Kano classification for each shortlisted idea
-- [ ] 2×2 matrix placement
-- [ ] MoSCoW assignment per idea
+**Phase 4 output (all required):** Dot-voted shortlist (10–15 ideas); top-5 RICE table; Kano classification; 2×2 placement; MoSCoW assignment per idea.
 
 ---
 
 ## Phase 5: Hypothesis Validation
 
-**Goal:** Before committing to build, test riskiest assumptions. 42% of startups fail from no market need — validate before building.
+**Goal:** Test riskiest assumptions before build commitment. 42% of startups fail from no market need; validate first.
 
 ### 5.1 — Problem Hypothesis
 
@@ -507,7 +501,7 @@ Identify the ONE assumption whose failure kills the idea:
 1. List all assumptions: user behavior, technical feasibility, market demand, business model
 2. Score each: `Probability of being wrong (0–1) × Impact if wrong (0–1)`
 3. Highest score = Riskiest Assumption
-4. Design cheapest possible test to validate/invalidate it **before** full build:
+4. Design the cheapest possible test to validate/invalidate it **before** full build:
     - User interview (2–3 days)
     - Landing page / fake door test (1 week)
     - Prototype click-through (3–5 days)
@@ -516,7 +510,7 @@ Identify the ONE assumption whose failure kills the idea:
 
 ### 5.4 — Build-Measure-Learn Loop
 
-For each top idea, define the loop:
+Define the loop for each top idea:
 
 ```
 BUILD: Minimum experiment to test the assumption (not a full product)
@@ -525,19 +519,13 @@ LEARN: What decision do we make if metric is met / not met?
 PIVOT: If hypothesis invalidated — which alternative from Phase 3 do we try next?
 ```
 
-**Output of Phase 5:**
-
-- [ ] Problem hypothesis card per top-3 idea
-- [ ] Value hypothesis card per top-3 idea
-- [ ] Riskiest Assumption identified per idea
-- [ ] Cheapest test designed
-- [ ] Build-Measure-Learn loop defined
+**Phase 5 output (all required):** Problem and Value hypothesis cards per top-3 idea; Riskiest Assumption per idea; cheapest test; Build-Measure-Learn loop.
 
 ---
 
 ## Phase 6: Decision & Recommendations
 
-**Goal:** Present a clear, opinionated recommendation with trade-offs. Not "here are all the options" — "here's what we recommend and why."
+**Goal:** Present one clear, opinionated recommendation with trade-offs—not a menu—so the team knows what to do and why.
 
 ### 6.1 — Top 3 Options Table
 
@@ -562,21 +550,21 @@ Time to validation: [Days/weeks]
 
 ### 6.3 — Dependency & Sequencing Check
 
-- Does Option A depend on any existing feature/data/service not yet built?
+- Does Option A depend on an unbuilt feature, data source, or service?
 - Can experiments run in parallel?
-- What's the critical path to first validated learning?
+- What is the critical path to first validated learning?
 
 ---
 
 ## Multi-Opportunity Discovery Mode
 
-> **Selected in Phase 0.1 when the input is a raw product vision / problem statement spanning MULTIPLE distinct opportunities.** This is an ADDITIONAL mode, not a replacement — every other scenario keeps the single-recommendation default of Phase 6.
+> **Select in Phase 0.1 when the input is a raw product vision/problem spanning MULTIPLE distinct opportunities.** This is an additional mode; every other scenario keeps Phase 6's single-recommendation default.
 
-**When to use:** the user hands off a broad vision, problem statement, or "explore this whole area" brief where several distinct, independently-shippable opportunities are expected — and each opportunity should become its own PBI downstream. This is the mode `workflow-idea-to-pbi`'s **MULTI-OPPORTUNITY DISCOVERY MODE** drives.
+**When to use:** a broad vision, problem statement, or "explore this whole area" brief expects several distinct, independently shippable opportunities, each becoming its own downstream PBI. This is the mode driven by `workflow-idea-to-pbi`'s **MULTI-OPPORTUNITY DISCOVERY MODE**.
 
-**How convergence differs (the defining difference):** the default flow converges to ONE opinionated recommendation (Phase 6). This mode does NOT. Instead, the SAME convergence techniques (RICE / Kano / 2×2 from Phase 4) are used to **RANK and present a map of 3–8 distinct opportunities** — NOT to pick a single winner. The user then multi-selects which opportunities to develop. Picking one winner here would discard the other PBIs the downstream workflow exists to produce.
+**How convergence differs:** the default flow produces ONE opinionated recommendation (Phase 6); this mode does NOT. Use the SAME Phase 4 techniques (RICE / Kano / 2×2) to **RANK and present 3–8 distinct opportunities**, not a single winner. The user then multi-selects opportunities to develop; choosing one would discard downstream PBIs.
 
-**Technique flow:** run Phases 1–4 as normal (problem framing → opportunity framing → ideation → convergence), but in Phase 2 lean on JTBD / Opportunity Solution Tree to surface the FULL opportunity landscape (not a single focus area), and in Phase 4 use RICE / Kano / 2×2 to SCORE and RANK every distinct opportunity rather than collapse to a top recommendation.
+**Technique flow:** run Phases 1–4 normally (problem framing → opportunity framing → ideation → convergence). In Phase 2, use JTBD / Opportunity Solution Tree to surface the FULL landscape, not one focus; in Phase 4, use RICE / Kano / 2×2 to SCORE and RANK every distinct opportunity instead of collapsing to one recommendation.
 
 **Output contract (must match what `workflow-idea-to-pbi` consumes):**
 
@@ -593,7 +581,7 @@ Time to validation: [Days/weeks]
 | 2    | ...         | ...                    | ...   | ...    | ...        | ...    | ...  | ...  |
 ```
 
-**Multi-select handoff:** present the ranked map via `AskUserQuestion` with `multiSelect: true` — "Which opportunities should we develop into PBIs?". The selected opportunities feed the **per-opportunity PBI loop** in `workflow-idea-to-pbi` (each selected opportunity → idea → refine → review → story → challenge → DoR → mockup, then a final cross-PBI prioritize). Do NOT author PBIs, specs, or plans inside this skill — the discovery mode's deliverable is the scored, multi-selected opportunity map only.
+**Multi-select handoff:** present the ranked map with `AskUserQuestion` and `multiSelect: true`: "Which opportunities should we develop into PBIs?". Selected opportunities feed `workflow-idea-to-pbi`'s **per-opportunity PBI loop** (idea → refine → review → story → challenge → DoR → mockup, then final cross-PBI prioritization). Do NOT author PBIs, specs, or plans here; the deliverable is only the scored, multi-selected map.
 
 ---
 
@@ -601,9 +589,9 @@ Time to validation: [Days/weeks]
 
 ### Report Output
 
-Use naming pattern from `## Naming` section in injected context.
+Use the naming pattern from the injected `## Naming` section.
 
-Create markdown summary report:
+Create a Markdown summary report:
 
 ```markdown
 # Brainstorm Session Report: [Topic]
@@ -706,35 +694,35 @@ Create markdown summary report:
 
 ### PO Mode (Outcome Focus)
 
-- Lead with: desired business outcome → opportunities → experiments
-- Use: OST, Impact Mapping, RICE, Build-Measure-Learn
+- Lead with desired business outcome → opportunities → experiments.
+- Use OST, Impact Mapping, RICE, and Build-Measure-Learn.
 - Ask: "What behavior change do we need to see in users?"
-- Resist: jumping to features before validating the outcome
+- Resist jumping to features before validating the outcome.
 
 ### BA Mode (Requirements Focus)
 
-- Lead with: stakeholder needs → process gaps → requirements
-- Use: BABOK elicitation (interviews, workshops, document analysis), Fishbone, JTBD
+- Lead with stakeholder needs → process gaps → requirements.
+- Use BABOK elicitation (interviews, workshops, document analysis), Fishbone, and JTBD.
 - Ask: "What does the system need to do to enable that behavior?"
-- Resist: over-specifying before the PO validates the opportunity
+- Resist over-specifying before the PO validates the opportunity.
 
 ### Mixed PO + BA Mode
 
-- PO owns: problem statement, opportunity framing, prioritization, hypothesis
-- BA owns: requirements elicitation, acceptance criteria, edge cases, process mapping
-- Handoff point: after Phase 4 (scored shortlist) → BA writes acceptance criteria per idea
+- PO owns problem statement, opportunity framing, prioritization, and hypothesis.
+- BA owns requirements elicitation, acceptance criteria, edge cases, and process mapping.
+- Handoff: after Phase 4's scored shortlist; BA writes acceptance criteria per idea.
 
 ---
 
 ## Collaboration Tools
 
-- `planner` agent — research industry best practices for specific domain
-- `docs-manager` agent — understand existing feature constraints and domain context
-- `WebSearch` — market/competitor context for new product scenarios
-- `docs-seeker` skill — latest documentation for external plugins/APIs
-- `visual analysis tooling` skill — analyze visual mockups, screenshots, competitor UIs
-- `sequential-thinking` skill — complex problem decomposition requiring structured causal chains
-- `web-research` skill — deep market research for greenfield or competitive analysis
+- `planner` agent — research domain best practices.
+- `docs-manager` agent — understand existing feature constraints and domain context.
+- `WebSearch` — market/competitor context for New Product scenarios.
+- `docs-seeker` skill — latest external plugin/API documentation.
+- `visual analysis tooling` skill — analyze mockups, screenshots, competitor UIs.
+- `sequential-thinking` skill — complex decomposition requiring causal chains.
+- `web-research` skill — deep greenfield or competitive market research.
 
 ---
 
@@ -797,18 +785,18 @@ Create markdown summary report:
 
 ## Critical Constraints
 
-- **DO NOT implement solutions** — brainstorm and advise only
-- **DO validate hypotheses** before endorsing any approach
-- **DO prioritize long-term maintainability** over short-term convenience
-- **DO consider both technical excellence and business pragmatism**
-- **DO produce a scored, ranked shortlist** — never just a flat idea list
-- **DO always design the cheapest validation test** — RAT before full spec
+- **DO NOT implement solutions** — brainstorm and advise only.
+- **DO validate hypotheses** before endorsing an approach.
+- **DO prioritize long-term maintainability** over short-term convenience.
+- **DO consider technical excellence and business pragmatism.**
+- **DO produce a scored, ranked shortlist**—never a flat idea list.
+- **DO design the cheapest validation test**—RAT before full spec.
 
 ---
 
 ## Workflow Integration
 
-After brainstorm session concludes, use `AskUserQuestion` to present next steps:
+After the session, use `AskUserQuestion` to present next steps:
 
 | Next Step              | When                                                        | Skill/Workflow          |
 | ---------------------- | ----------------------------------------------------------- | ----------------------- |
@@ -820,7 +808,7 @@ After brainstorm session concludes, use `AskUserQuestion` to present next steps:
 | `/domain-analysis`     | Idea touches domain entities, need model first              | `domain-analysis` skill |
 | Continue brainstorming | More scenarios to explore                                   | Stay in this session    |
 
-**Multi-Opportunity Discovery handoff:** when run in discovery mode, do NOT pick a single next step — instead present the ranked 3–8-item RICE opportunity map (written to `plans/{plan-dir}/brainstorm-opportunity-map.md`) via `AskUserQuestion` with `multiSelect: true`, then hand the selected opportunities to `workflow-idea-to-pbi`'s per-opportunity PBI loop. `workflow-idea-to-pbi` consumes this opportunity map directly.
+**Multi-Opportunity Discovery handoff:** in discovery mode, do NOT pick one next step. Present the ranked 3–8-item RICE map (write to `plans/{plan-dir}/brainstorm-opportunity-map.md`) via `AskUserQuestion` with `multiSelect: true`, then hand selected opportunities to `workflow-idea-to-pbi`'s per-opportunity PBI loop. `workflow-idea-to-pbi` consumes this map directly.
 
 ---
 
@@ -923,12 +911,12 @@ After brainstorm session concludes, use `AskUserQuestion` to present next steps:
 
 ## Closing Reminders
 
-- **IMPORTANT MUST ATTENTION Goal:** Deliver a scored, ranked shortlist of 3-5 candidate ideas — each carrying a problem + value hypothesis, an identified riskiest assumption, and the cheapest validation test designed — so the team commits to the right problem AND the right solution before building, never to a flat unvalidated idea list.
+**IMPORTANT MUST ATTENTION Goal:** Facilitate evidence-backed PO/BA Double-Diamond ideation that separates problem discovery from solution evaluation and delivers either a validated, ranked 3–5-candidate shortlist with problem/value hypotheses, each riskiest assumption, and cheapest validation test plus one recommendation—or, in **Multi-Opportunity Discovery mode**, a ranked 3–8-item RICE map for user selection—so the team commits to the right problem and solution, never a flat idea list.
 - **IMPORTANT MUST ATTENTION Main steps:** detect scenario/role → frame the problem → frame opportunities → diverge ideas → converge and score → validate hypotheses → decide or rank the opportunity map → document and hand off.
 - **IMPORTANT MUST ATTENTION Roadmap mode:** `--mode=roadmap` is explicit-only; it frames outcome-based milestones, risks, non-goals, human decisions, and evidence, then hands off to `/product-roadmap`; it does not choose technology or implementation.
 - **IMPORTANT MUST ATTENTION Embedded decomposition:** when any shared `isLargeIdea` signal is true, write the complete five-field `large_idea_decomposition` block in the owning handoff and carry its stable slice IDs into PBIs, stories, mock-ups, and the all-PBI presentation; do not create a default roadmap file.
 - **IMPORTANT MUST ATTENTION Scope mode:** `--mode=scope` resolves and amends exactly one approved `plans/{plan-id}/scope-brief.md` in place, then stops before `/scenario` or `/plan`; it never creates a competing brief.
-- **IMPORTANT MUST ATTENTION Main steps (run in order, track each):** P0 Session Setup (detect scenario + role + known) → P1 Problem Framing/diverge (POV → 5 Whys/Fishbone → JTBD → HMW) → P2 Opportunity Framing/converge (OST / Lean Canvas / ERRC / Value-Prop) → P3 Ideation/diverge (SCAMPER → Crazy 8s → Brainwriting → Impact Map → Analogy, 25–40 ideas) → P4 Evaluation/converge (Dot Vote → RICE → Kano → 2×2 → MoSCoW, shortlist 3–5) → P5 Hypothesis Validation (Problem + Value card + RAT + cheapest test + Build-Measure-Learn) → P6 Decision (ONE recommendation) → P7 Documentation & Handoff — why: the skill's own phases are the steps AI most often forgets; re-anchor to them before each phase.
+- **IMPORTANT MUST ATTENTION Main steps (run in order, track each):** P0 Setup (detect scenario/role/known + context) → P1 Problem Framing/diverge (POV → 5 Whys/Fishbone → JTBD → HMW) → P2 Opportunity Framing/converge (OST / Lean Canvas / ERRC / Value Proposition) → P3 Ideation/diverge (SCAMPER → Crazy 8s → Brainwriting → Impact Mapping → Analogy, 25–40 ideas) → P4 Evaluation/converge (Dot Vote → RICE → Kano → 2×2 → MoSCoW, shortlist 3–5) → P5 Validation (problem/value cards + RAT + cheapest test + Build-Measure-Learn for top 3) → P6 Decision (one recommendation, or Multi-Opportunity map) → P7 Documentation/Handoff — why: phase steps are easy to forget in long sessions; re-anchor before each phase.
 
 **Protocols in force (concise digest of the SYNC/shared blocks this skill carries):**
 

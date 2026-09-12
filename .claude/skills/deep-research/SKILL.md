@@ -6,68 +6,65 @@ description: '[Research] Use when deeply researching the top sources surfaced by
 
 <!-- PROMPT-ENHANCE:STEP-TASK-ANCHOR:START -->
 
-> **[BLOCKING]** Execute skill steps in declared order. NEVER skip, reorder, or merge steps without explicit user approval.
-> **[BLOCKING]** Before each step or sub-skill call, update task tracking: set `in_progress` when step starts, set `completed` when step ends.
-> **[BLOCKING]** Every completed/skipped step MUST include brief evidence or explicit skip reason.
-> **[BLOCKING]** If Task tools are unavailable, create and maintain an equivalent step-by-step plan tracker with the same status transitions.
+> **[BLOCKING MUST ATTENTION]** Execute declared steps in order; NEVER skip, reorder, or merge without explicit user approval.
+> **[BLOCKING MUST ATTENTION]** Update task tracking before/after each step or sub-skill: `in_progress` at start, `completed` at end.
+> **[BLOCKING MUST ATTENTION]** Completed steps need brief evidence; skipped steps need explicit reason; if Task tools are unavailable, maintain an equivalent synchronized step tracker.
 
 <!-- PROMPT-ENHANCE:STEP-TASK-ANCHOR:END -->
 
 ## Quick Summary
 
-**Goal:** Deep-dive into top sources to produce a cross-validated, source-cited evidence base (`_evidence-{slug}.md`) where every finding carries a confidence score, traces to specific sources, and flags discrepancies — never an unverified single-source claim presented as fact.
+**Goal:** Deep-dive the prior source map into a cross-validated, source-cited evidence base (`.claude/tmp/_evidence-{slug}.md`) where every finding has source trace and confidence, discrepancies stay explicit, and no unverified single-source claim becomes fact.
 
 **Summary:**
 
-- **Purpose:** deep-dive stage that consumes the prior web-research source map (`.claude/tmp/_sources-{slug}.md`) and turns prioritized Tier 1-2 sources into structured findings — NOT a fresh search.
-- **Main steps (do in order):** (1) Load source map, prioritize Tier 1-2 / high-relevance / gap-covering sources; (2) Fetch top 5-8 sources via WebFetch (cap 8); (3) Extract findings — key claims, data points, quotes, methodology + date/author/source-type per source; (4) Cross-validate findings across sources; (5) Build evidence base at `.claude/tmp/_evidence-{slug}.md`.
-- **Discipline:** cap WebFetch at 8 calls, spend them on authoritative sources covering gaps, capture date/author/methodology per source — why: confidence must be defendable later, not asserted from memory.
-- **Cross-validation drives the confidence score:** 2+ sources agree = high confidence, disagreement = flagged discrepancy with both positions, lone source = "single source, unverified".
-- **Deliverable:** evidence base at `.claude/tmp/_evidence-{slug}.md` with inline citations, an `## Unresolved Discrepancies` section, and a `## Gaps Remaining` section — NEVER collapse conflicts or hide what couldn't be verified.
+- **Purpose/input:** Consume prior `.claude/tmp/_sources-{slug}.md`; prioritize Tier 1-2, high-relevance, gap-covering sources; NEVER start a fresh search.
+- **Ordered path:** (1) load/prioritize source map → (2) fetch 5-8 sources with `WebFetch` (hard cap 8) → (3) extract claims, data, quotes, methodology, publication date, author credentials, source type → (4) cross-validate → (5) write evidence base.
+- **Confidence gate:** 2+ independent sources agree = high confidence; disagreement = both positions + discrepancy; one source = `single source, unverified`; declare 95/80/60/<60% for every finding.
+- **Handoff/routes:** Write `.claude/tmp/_evidence-{slug}.md` with inline citations, `## Unresolved Discrepancies`, and `## Gaps Remaining`; standalone runs use `AskUserQuestion` for workflow/direct routing and post-completion choices.
 
 **Workflow:**
 
-1. **Read source map** — Load output from web-research step
-2. **Fetch top sources** — WebFetch top 5-8 Tier 1-2 sources
-3. **Extract findings** — Pull key facts, data points, quotes
-4. **Cross-validate** — Compare findings across sources
-5. **Build evidence base** — Structured findings with confidence scores
+1. **Read source map** — Load `.claude/tmp/_sources-{slug}.md`; prioritize Tier 1-2, high relevance, and gap coverage.
+2. **Fetch top sources** — Run `WebFetch` for prioritized URLs; maximum 8 calls.
+3. **Extract findings** — Capture claims, data points, quotes, methodology, publication date, author credentials, and source type.
+4. **Cross-validate** — Compare findings; distinguish agreement, discrepancy, and unique-source claims; assign confidence.
+5. **Build evidence base** — Write structured findings, citations, confidence, discrepancies, and gaps to the output path.
 
 **Key Rules:**
 
-- Maximum 8 WebFetch calls per invocation
-- Every finding must cite specific source
-- Conflicting claims → present both, flag discrepancy
+- **MUST ATTENTION** Maximum 8 `WebFetch` calls per invocation; prioritize Tier 1-2 sources covering gaps.
+- **MUST ATTENTION** Every finding cites a specific source and confidence percentage; factual claims need 2+ independent sources.
+- **MUST ATTENTION** Conflicting claims → present both + flag discrepancy; one source → `single source, unverified`.
+- **MUST ATTENTION** Output the intermediate evidence base, not final synthesis; preserve discrepancy and gap sections.
 
-**Be skeptical. Apply critical thinking, sequential thinking. Every claim needs traced proof, confidence percentages (Idea should be more than 80%).**
+**Critical thinking:** Be skeptical; apply critical/sequential thinking; trace every claim and state confidence (>80% to act).
 
 # Deep Research
 
 ## Knowledge Work Rules
 
-> **Web Research Protocol** — Every factual claim needs 2+ independent sources. Source tiers: Tier 1 (authoritative .gov/.edu/official docs), Tier 2 (industry reports), Tier 3 (credible blogs — cross-validate), Tier 4 (unverified — NEVER cite as fact). Declare confidence (95/80/60/<60%) for all findings. Working files → `.claude/tmp/`, final output → `docs/knowledge/`. Canonical protocol lives in the `web-research` skill.
+> **Web Research Protocol** — Factual claims require 2+ independent sources. Rank sources Tier 1 (authoritative `.gov`/`.edu`/official docs) > Tier 2 (industry reports) > Tier 3 (credible blogs, cross-validated); Tier 4 is unverified and NEVER cite it as fact. Declare 95/80/60/<60% confidence; working files → `.claude/tmp/`, final output → `docs/knowledge/`.
+>
+> **MUST ATTENTION READ** `.claude/skills/web-research/SKILL.md` for canonical research rules.
 
 ## Step 1: Load Source Map
 
-Read the source map from `.claude/tmp/_sources-{slug}.md` (output of web-research step).
+Read `.claude/tmp/_sources-{slug}.md` (web-research output). If missing or invalid, report missing input; NEVER start a fresh search.
 
-Prioritize sources for deep-dive:
-
-1. Tier 1-2 sources first
-2. High-relevance sources
-3. Sources covering identified gaps
+Prioritize: (1) Tier 1-2; (2) high relevance; (3) identified gap coverage.
 
 ## Step 2: Fetch Top Sources
 
-For each priority source (max 8):
+For each prioritized source (5-8 when available; maximum 8 total):
 
-1. Run `WebFetch` with the URL
-2. Extract: key claims, data points, quotes, methodology
-3. Note: publication date, author credentials, source type
+1. Run `WebFetch` with its URL
+2. Extract key claims, data points, quotes, and methodology
+3. Record publication date, author credentials, and source type
 
 ## Step 3: Extract Findings
 
-For each source, extract:
+For each fetched source, extract:
 
 - **Key claims** — factual statements with specific data
 - **Data points** — numbers, percentages, dates
@@ -78,13 +75,13 @@ For each source, extract:
 
 Compare findings across sources:
 
-- **Agreement** — 2+ sources say the same thing → high confidence
-- **Discrepancy** — sources disagree → note both positions
-- **Unique** — only 1 source → mark as "single source, unverified"
+- **Agreement** — 2+ independent sources agree → high confidence
+- **Discrepancy** — sources disagree → record both positions + flag discrepancy
+- **Unique** — one source only → mark `single source, unverified`; do not present as fact
 
 ## Step 5: Build Evidence Base
 
-Write to `.claude/tmp/_evidence-{slug}.md`:
+Write findings incrementally to `.claude/tmp/_evidence-{slug}.md`:
 
 ```markdown
 # Evidence Base: {Topic}
@@ -114,27 +111,25 @@ Write to `.claude/tmp/_evidence-{slug}.md`:
 
 ## Workflow Recommendation
 
-> **MANDATORY IMPORTANT MUST ATTENTION — NO EXCEPTIONS:** If you are NOT already in a workflow, you MUST ATTENTION use `AskUserQuestion` to ask the user. Do NOT judge task complexity or decide this is "simple enough to skip" — the user decides whether to use a workflow, not you:
+> **MANDATORY IMPORTANT MUST ATTENTION — NO EXCEPTIONS:** If not already in a workflow, use `AskUserQuestion`; the user chooses:
 >
 > 1. **Activate `workflow-research` workflow** (Recommended) — web-research → deep-research → synthesis → review
-> 2. **Execute `/deep-research` directly** — run this skill standalone
+> 2. **Execute `/deep-research` directly** — run standalone
 
 ---
 
 ## Next Steps
 
-**MANDATORY IMPORTANT MUST ATTENTION — NO EXCEPTIONS** after completing this skill, you MUST ATTENTION use `AskUserQuestion` to present these options. Do NOT skip because the task seems "simple" or "obvious" — the user decides:
+**MANDATORY IMPORTANT MUST ATTENTION — NO EXCEPTIONS:** After completion, use `AskUserQuestion` to offer:
 
 - **"/market-analysis (Recommended)"** — Size the market (TAM/SAM/SOM), competitors, trends, SWOT, segments — the producer `/business-evaluation` consumes
 - **"/business-evaluation"** — Evaluate business viability. **Run `/market-analysis` first** — this skill consumes its sized-market output as evidence and MUST NOT re-derive market sizing. Without it, every market figure must be marked N/A.
 - **"/knowledge-synthesis"** — If synthesizing research report
 - **"Skip, continue manually"** — user decides
 
-> **[IMPORTANT]** Use `TaskCreate` to break ALL work into small tasks BEFORE starting.
+> **External Memory:** For complex/lengthy research, analysis, scans, or reviews, write intermediate findings + final results to `tmp/reports/` — prevents context loss and serves as deliverable.
 
-> **External Memory:** For complex or lengthy work (research, analysis, scan, review), write intermediate findings and final results to a report file in `tmp/reports/` — prevents context loss and serves as deliverable.
-
-> **Evidence Gate:** MANDATORY IMPORTANT MUST ATTENTION — every claim, finding, and recommendation requires `file:line` proof or traced evidence with confidence percentage (>80% to act, <80% must verify first).
+> **Evidence Gate:** MANDATORY IMPORTANT MUST ATTENTION — every claim, finding, and recommendation requires `file:line` proof or traced evidence plus confidence percentage (>80% to act, <80% verify first).
 
 <!-- SYNC:ai-mistake-prevention -->
 
@@ -201,24 +196,25 @@ Write to `.claude/tmp/_evidence-{slug}.md`:
 
 ## Closing Reminders
 
-**IMPORTANT MUST ATTENTION Goal:** Produce a cross-validated, source-cited evidence base (`_evidence-{slug}.md`) where every finding carries a confidence score, traces to specific sources, and flags discrepancies — never an unverified single-source claim presented as fact.
+**IMPORTANT MUST ATTENTION Goal:** Deep-dive the prior source map into a cross-validated, source-cited evidence base (`.claude/tmp/_evidence-{slug}.md`) where every finding has source trace and confidence, discrepancies stay explicit, and no unverified single-source claim becomes fact.
+
+**IMPORTANT MUST ATTENTION Main path:** Run all 5 steps in order: (1) load/prioritize source map → (2) fetch 5-8 prioritized sources, maximum 8 `WebFetch` calls → (3) extract claims, data, quotes, methodology, publication date, author credentials, source type → (4) cross-validate → (5) write the evidence base incrementally.
+**IMPORTANT MUST ATTENTION Route gates:** Before standalone execution, use `AskUserQuestion` to choose `workflow-research` or `/deep-research`; after completion, offer `/market-analysis`, `/business-evaluation` (after `/market-analysis`), `/knowledge-synthesis`, or manual continuation.
+**IMPORTANT MUST ATTENTION Evidence gate:** Every finding cites a source number and confidence; 2+ independent sources support factual claims; disagreements show both positions; one source is `single source, unverified`.
 
 **IMPORTANT MUST ATTENTION — Protocols in force (concise digest of the SYNC/shared blocks this skill carries):**
 
 - **AI Mistake Prevention:** verify generated content against evidence, trace downstream references, verify all affected outputs, re-read after context loss, surface ambiguity.
 - **Critical Thinking:** traced proof per claim, confidence >80% to act, NEVER guess-as-fact.
 
-**IMPORTANT MUST ATTENTION** every finding cites a specific source by number; conflicting claims → present BOTH positions, flag as discrepancy; lone source → mark "single source, unverified" — why: an uncited or uncross-checked claim presented as fact is the failure this skill exists to prevent.
-**IMPORTANT MUST ATTENTION** cross-validation drives confidence — 2+ independent sources agree = high (95/80%), 1 source = "unverified", disagreement = discrepancy with both sides; NEVER collapse a conflict into one tidy answer — why: hidden conflicts ship as false certainty downstream.
-**IMPORTANT MUST ATTENTION** declare a confidence percentage (95/80/60/<60%) on EVERY finding; <60% evidence DO NOT present as fact — say "insufficient evidence, verified: … / not verified: …" instead.
-**IMPORTANT MUST ATTENTION** cap WebFetch at 8 calls per invocation; spend them on Tier 1-2 authoritative sources covering identified gaps, NEVER Tier 4 unverified content as fact — why: budget discipline forces prioritization over breadth.
-**IMPORTANT MUST ATTENTION** this is the deep-DIVE stage — consume the prior `_sources-{slug}.md` map; do NOT start a fresh search — why: the source map already triaged and tiered candidates, re-searching wastes the WebFetch budget.
-**IMPORTANT MUST ATTENTION** capture per source: publication date, author credentials, source type, methodology — why: confidence must be defendable later, not asserted from memory.
-**IMPORTANT MUST ATTENTION** the deliverable MUST include an `## Unresolved Discrepancies` section and a `## Gaps Remaining` section — NEVER hide what couldn't be verified.
-**IMPORTANT MUST ATTENTION** verify AI-generated facts/quotes/numbers against the actual fetched source before recording — NEVER fabricate a citation, stat, or quote — why: a hallucinated source corrupts the whole evidence base silently.
-**IMPORTANT MUST ATTENTION** break work into small `TaskCreate` todos BEFORE starting; keep one `in_progress`; add a final review todo verifying every finding is cited and confidence-scored.
-**IMPORTANT MUST ATTENTION** write intermediate findings incrementally to `.claude/tmp/_evidence-{slug}.md` (External Memory) — NEVER hold the full evidence base in context only — why: context loss before the final write loses all extracted findings.
-**IMPORTANT MUST ATTENTION** validate route decisions with the user via `AskUserQuestion` — never auto-decide whether to run the workflow vs. this skill standalone.
+**IMPORTANT MUST ATTENTION** Cross-validation drives confidence: 2+ independent sources agree → high (95/80%); disagreement → both positions + discrepancy; one source → `single source, unverified`; `<60%` → say `insufficient evidence, verified: … / not verified: …` — NEVER collapse conflicts.
+**IMPORTANT MUST ATTENTION** Cap `WebFetch` at 8 calls; spend them on Tier 1-2 authoritative sources covering gaps; NEVER cite Tier 4 as fact.
+**IMPORTANT MUST ATTENTION** This deep-dive consumes the prior `.claude/tmp/_sources-{slug}.md` map; NEVER start a fresh search.
+**IMPORTANT MUST ATTENTION** Capture publication date, author credentials, source type, and methodology per source; verify facts, quotes, and numbers against fetched sources before recording — NEVER fabricate citations.
+**IMPORTANT MUST ATTENTION** Deliverable MUST include `## Unresolved Discrepancies` and `## Gaps Remaining`; NEVER hide unverifiable content.
+**IMPORTANT MUST ATTENTION** Break work into `TaskCreate` todos BEFORE starting; keep one `in_progress`; add a final review todo checking citation and confidence coverage.
+**IMPORTANT MUST ATTENTION** Write findings incrementally to `.claude/tmp/_evidence-{slug}.md`; NEVER hold the full evidence base only in context.
+**IMPORTANT MUST ATTENTION** Validate standalone/workflow routing with `AskUserQuestion`; never auto-decide the route.
 
 **Anti-Rationalization:**
 
@@ -230,8 +226,10 @@ Write to `.claude/tmp/_evidence-{slug}.md`:
 | "I'll fetch a few more to be thorough"       | 8-call cap is the budget. Prioritize Tier 1-2 gap-coverage, not breadth.                    |
 | "I'll write the evidence base at the end"    | Persist findings incrementally to `_evidence-{slug}.md` — a context cutoff loses batched work. |
 
-**IMPORTANT MUST ATTENTION** every finding cites a specific source + carries a confidence % (95/80/60/<60%); conflicts → both positions flagged, lone source → "unverified".
-**IMPORTANT MUST ATTENTION** cap WebFetch at 8 Tier 1-2 calls and persist the evidence base incrementally to `.claude/tmp/_evidence-{slug}.md`.
-**IMPORTANT MUST ATTENTION** the deliverable must surface `## Unresolved Discrepancies` and `## Gaps Remaining` — never hide what couldn't be verified.
+**IMPORTANT MUST ATTENTION** Every finding cites a source + confidence (95/80/60/<60%); conflicts show both positions, lone source is `unverified`.
+**IMPORTANT MUST ATTENTION** Cap `WebFetch` at 8 Tier 1-2 calls and persist the evidence base incrementally to `.claude/tmp/_evidence-{slug}.md`.
+**IMPORTANT MUST ATTENTION** Surface `## Unresolved Discrepancies` and `## Gaps Remaining`; never hide unverifiable content.
 
-> **[IMPORTANT]** Use `TaskCreate` to break ALL work into small tasks BEFORE starting; add a final review todo to verify work quality.
+**IMPORTANT MUST ATTENTION** Follow ordered path: load/prioritize → fetch ≤8 → extract metadata → cross-validate → write required evidence sections; honor standalone route and post-completion user choices.
+**IMPORTANT MUST ATTENTION** Cite every finding and confidence-score it; preserve disagreements and gaps; NEVER fabricate or present a lone source as fact.
+**IMPORTANT MUST ATTENTION** Use the prior source map, cap `WebFetch` at 8, and persist output incrementally.

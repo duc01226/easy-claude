@@ -51,22 +51,21 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 
 ## Quick Summary
 
-**Goal:** Generate and validate the project's architecture scaffolding — all base classes, interfaces, infrastructure abstractions, and reusable foundation code — BEFORE any feature story implementation begins, producing a copy-ready, OOP/SOLID-compliant architecture foundation with quality-gate tooling that every feature story reuses before implementation starts.
+**Goal:** Generate a copy-ready, OOP/SOLID-compliant architecture foundation—base classes, interfaces, infrastructure abstractions, reusable examples, and quality gates—before feature implementation, so every feature story starts from a validated, maintainable foundation.
 
 **Summary:**
-- **Testability contract:** resolve Unit/Integration/System/E2E applicability from runner/config evidence; record owner/root/data, copy-ready full + focused commands, zero-match behavior, CI/simple-Windows entry, unique run/data identity, and repeat proof; unresolved applicable fields block handoff, while non-applicable tiers require evidence-backed `N/A`.
+- **Purpose + scope:** Build reusable architecture infrastructure and golden-path examples, not feature code; adapt checklist templates to the detected stack and plan, skip irrelevant items with evidence.
+- **Ordered main flow:** (1) Activation Guards → (2) Read Plan → (3) Generate Backend/Frontend/UI checklist → (4) Validate against Plan → (5) confirm by asking the user directly → (6) scaffold abstractions + 5 foundations + examples → (7) verify build/OOP-SOLID/testability/Verification Gate → (8) `$linter-setup` → `$harness-setup` → ask the user directly handoff.
+- **Testability gate:** Resolve Unit/Integration/System/E2E and warranted Performance/Scale applicability or evidence-backed `N/A`; record owner/root/data, copy-ready full/focused commands, zero-match failure, CI/simple-Windows entry, host/container modes, environment reach, identity, idempotent/additive isolation, and repeat proof. Unresolved applicable fields block; do not invent E2E coverage.
+- **Non-negotiables:** Existing scaffolding or wrong workflow → SKIP and mark completed; every plan decision maps to a checklist item; OOP/SOLID and all 5 foundations must pass; sensor setup only via `$linter-setup` then `$harness-setup`; block `$feature-implement` until verification passes; cite evidence and confidence.
 
-- **Gate-first:** check Activation Guards before any work — proceed ONLY in `workflow-greenfield-init` / `workflow-big-feature` AND when grep finds NO existing base/abstract/infrastructure scaffolding; otherwise SKIP and mark the step completed.
-- **Main steps (do ALL, in order):** (1) Read Plan — parse tech stack, architecture decisions, domain model; (2) Generate Scaffolding Checklist from the Backend + Frontend/UI categories; (3) Validate Against Plan — every architecture decision has a scaffolding item; (4) Present to User by asking the user directly to confirm the checklist; (5) Scaffold — create all base classes, interfaces, abstractions, infra code + the 5 production-readiness foundations; (6) Verify — build/compile + OOP/SOLID compliance + Verification Gate. Then invoke `$linter-setup` → `$harness-setup`, then ask the user directly handoff.
-- **Scope:** architecture-infrastructure creation (base classes, interfaces, DI, repos, cross-cutting), NOT feature implementation — checklists are TEMPLATES: adapt naming to the detected tech stack, skip irrelevant items, add plan-specific ones.
-- **Production-readiness:** stand up all 5 foundations (code-quality tooling, error handling, loading state, Docker, integration points) and delegate ALL sensor setup to `$linter-setup` then `$harness-setup` — never hand-configure linters/hooks here. — why: a checklist of installs is not a harness.
-- **Hard gate:** enforce OOP/SOLID on every base class and HARD-BLOCK the handoff to `$feature-implement` until the Verification Gate passes — all 5 foundations verified plus `$linter-setup` and `$harness-setup` complete.
+**Workflow (after Activation Guards, in order):** Read Plan → Generate Checklist → Validate Against Plan → ask the user directly confirmation → Scaffold → Verify → `$linter-setup` → `$harness-setup` → ask the user directly handoff.
 
-**Purpose:** Scaffolded project copy-ready as starter template. All base code, utilities, interfaces, infrastructure services created — best-practice setup, generic functions any feature story reuses.
+**Key Rules:**
 
-**Key distinction:** Architecture infrastructure creation, NOT feature implementation — the foundation layer all stories build upon.
-
-**Be skeptical. Apply critical thinking, sequential thinking. Every claim needs traced proof, confidence percentages (Idea should be more than 80%).**
+- **MUST ATTENTION** use evidence to resolve applicability, scope, and completion; **NEVER** guess missing runners, commands, or patterns.
+- **MUST ATTENTION** treat checklists as adaptable templates and confirm the final checklist before generating code.
+- **MUST ATTENTION** preserve OOP/SOLID, verify all 5 foundations, and keep `$feature-implement` blocked until the Verification Gate passes.
 
 ## Activation Guards (MANDATORY — Check Before Executing)
 
@@ -85,19 +84,18 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 
 ## When to Use
 
-- After the second `$plan` + `$plan-review` in greenfield-init or big-feature workflows
-- Before `$feature-implement` begins implementing feature stories
-- When a new service/module needs its own base architecture within an existing project
+- After the second `$plan` + `$plan-review` in greenfield-init or big-feature workflows, before `$feature-implement`.
+- When a new service/module needs its own base architecture and no foundation exists.
 - **NOT** when the project already has established base classes and infrastructure
 
 ## Workflow
 
-1. **Read Plan** — Parse the implementation plan for architecture decisions, tech stack, and domain model
-2. **Generate Scaffolding Checklist** — Produce a checklist of all required base classes and infrastructure from the Backend + Frontend checklists below
-3. **Validate Against Plan** — Ensure every architecture decision in the plan has corresponding scaffolding items
-4. **Present to User** — Use ask the user directly to confirm checklist before generating code
-5. **Scaffold** — Create all base classes, interfaces, abstractions, and infrastructure code
-6. **Verify** — Compile/build to ensure no syntax errors; validate OOP/SOLID compliance
+1. **Read Plan** — Parse architecture decisions, tech stack, and domain model.
+2. **Generate Scaffolding Checklist** — Cover required base classes and infrastructure from the Backend + Frontend checklists below.
+3. **Validate Against Plan** — Map every architecture decision to a scaffolding item.
+4. **Present to User** — Use ask the user directly to confirm the checklist before code generation.
+5. **Scaffold** — Create base classes, interfaces, abstractions, infrastructure, and required foundations/examples.
+6. **Verify** — Compile/build; validate OOP/SOLID, testability, and the Verification Gate; then invoke `$linter-setup` → `$harness-setup` and present the ask the user directly handoff.
 
 ## Backend Scaffolding Categories
 
@@ -684,7 +682,7 @@ Run ALL verification checklists from the production readiness protocol:
 ## Closing Reminders
 
 **IMPORTANT MUST ATTENTION** Testability contract: resolve evidence-backed Unit/Integration/System/E2E rows, copy-ready full/focused commands, zero-match failures, owner/root/data, CI/simple-Windows entry, unique run identity, and repeat proof before claiming setup, review, or test completion.
-**IMPORTANT MUST ATTENTION Goal:** Produce a copy-ready, OOP/SOLID-compliant architecture foundation — base classes, infrastructure abstractions, and quality-gate tooling — that every feature story reuses before implementation starts.
+**IMPORTANT MUST ATTENTION Goal:** Generate a copy-ready, OOP/SOLID-compliant architecture foundation—base classes, interfaces, infrastructure abstractions, reusable examples, and quality gates—before feature implementation, so every feature story starts from a validated, maintainable foundation.
 
 **MUST ATTENTION — Main steps (execute ALL, in order; AI keeps forgetting these):** (1) Read Plan → (2) Generate Scaffolding Checklist (Backend + Frontend/UI categories) → (3) Validate Against Plan → (4) Present to User by asking the user directly → (5) Scaffold base classes/interfaces/infra + 5 production-readiness foundations → (6) Verify (build + OOP/SOLID + Verification Gate) → invoke `$linter-setup` → `$harness-setup` → ask the user directly handoff. NEVER skip, reorder, or merge a step without explicit user approval.
 

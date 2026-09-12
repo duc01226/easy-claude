@@ -51,13 +51,14 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 
 ## Quick Summary
 
-**Goal:** Ensure every code change is caught by an automated quality sensor — both locally (fast feedback) AND in CI (enforcement gate) — before it reaches main, with zero divergence between the two, by installing the full computational feedback sensor layer for the tech stack (linters, formatters, type checkers, static analyzers, pre-commit hooks, and CI quality gates).
+**Goal:** Install a strict, stack-appropriate quality sensor layer—linter, formatter, type checker, static/dependency/architecture analysis, pre-commit, and CI—so every code change is checked locally and in CI with zero divergence before reaching main.
 
 **Summary:**
 
-- **Purpose** — install the full computational feedback sensor layer for the detected stack so no code change reaches main unguarded: strict-by-default, research-driven (NEVER hardcode tools), local-and-CI with zero divergence, proven to block.
-- **Main steps, in order:** (1) **Detect stack** — read `plan.md` → architecture report → tech-stack report, write `stack-profile.md`; ask the user directly if a critical field is undetectable. (2) **Research each tool category** — linter, formatter, type checker, static analyzer, dependency scanner, architecture fitness — via QUERY TEMPLATES; score top 3; present top 2-3 per category by asking the user directly, user picks. (3) **Install & configure** — STRICTEST reasonable defaults (loosen ONLY with explicit user approval), document what each rule catches, add cache dirs to `.gitignore`, ALWAYS emit a stack-agnostic `.editorconfig`. (4) **Wire the pre-commit hook** — formatter→linter→type-check, staged-files-only, <30s; document setup in `README.md`. (5) **Configure the CI quality gate** to MIRROR the hook (format→lint→type→static→dep-scan), coverage diagnostic-only. (6) **Verify** — fire the hook with an INTENTIONAL violation, confirm it blocks before declaring complete. (7) **Next steps** — ask the user directly to continue to `$harness-setup`.
-- **Non-negotiables** — research-driven tool choice (NEVER hardcode), strict-by-default, local↔CI zero divergence, prove the gate blocks before done.
+- **Purpose:** Research the current ecosystem per detected stack, let the user choose tools, then configure strict-by-default checks; NEVER hardcode quality-tool recommendations.
+- **Ordered path (no skip/reorder):** (1) detect stack/profile; (2) research six categories with QUERY TEMPLATES, score top 3, present 2–3 by asking the user directly; (3) install/configure strict settings, document rule purpose, update `.gitignore`, ALWAYS emit `.editorconfig`; (4) wire staged-files-only <30s formatter→linter→type-check hook and document `README.md`; (5) mirror format→lint→type→static→dep-scan in CI with coverage diagnostic-only; (6) prove the hook blocks an INTENTIONAL violation; (7) ask whether to continue to `$harness-setup`.
+- **Gates:** Track each step/sub-skill with status + evidence; use ask the user directly for unknown stack/CI fields, tool choices, or loosening; keep local/CI commands, config, and versions identical; line coverage stays diagnostic-only; architecture fitness is `N/A` without declared dependency directions.
+- **Output/context:** Root tool configs, pre-commit config, CI quality gate, `.editorconfig`, and README setup; invoked after `$scaffold`, before `$harness-setup`.
 
 **Output:** Config files at project root + pre-commit hook config + CI quality gate step + `.editorconfig`.
 
@@ -65,25 +66,19 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 
 **Design principles:**
 
-- **Generic** — No hardcoded tool names in the research protocol. AI researches the stack's ecosystem.
-- **Research-driven** — Per-stack research → present top 2-3 options → user picks → configure.
-- **Strict-by-default** — Propose strictest reasonable settings; loosen only with explicit user approval.
-- **Purpose-first** — Every category has a WHY; understanding purpose prevents cargo-culting.
-- **Integration-ready** — Every tool must work both locally (fast feedback) AND in CI (enforcement gate).
+- **Generic** — Research the detected stack ecosystem; never hardcode quality-tool names.
+- **Research-driven** — Score top 3, present 2–3, let the user choose, then configure.
+- **Strict-by-default** — Use strictest reasonable settings; loosen only with explicit approval.
+- **Purpose-first** — Explain each category's WHY to prevent cargo-cult configuration.
+- **Integration-ready** — Run chosen checks locally and in CI with zero divergence.
 
 ---
 
 ## Stack Detection Protocol
 
-Read from (in priority order):
+Read in priority order: (1) `plan.md` YAML frontmatter — `tech_stack`, `language`, `framework`; (2) architecture-design report — tech stack comparison table; (3) tech-stack-comparison report — chosen stack.
 
-1. `plan.md` YAML frontmatter — look for `tech_stack`, `language`, `framework` fields
-2. Architecture-design report — look for tech stack comparison table
-3. Tech-stack-comparison report — look for chosen stack
-
-Extract: primary language(s), framework(s), CI provider/tooling, test framework, package manager.
-
-Write detected profile to `tmp/linter-setup/stack-profile.md`:
+Extract primary language(s), framework(s), CI provider/tooling, test framework, package manager. Write profile to `tmp/linter-setup/stack-profile.md`:
 
 ```markdown
 # Stack Profile
@@ -101,7 +96,7 @@ If any critical field undetectable → ask the user directly to confirm before r
 
 ## Tool Research Protocol
 
-**MANDATORY IMPORTANT MUST ATTENTION** — This section uses QUERY TEMPLATES, not tool names. DO NOT hardcode specific tool recommendations. Research current ecosystem for the detected stack and present options.
+**MANDATORY IMPORTANT MUST ATTENTION** — Use QUERY TEMPLATES, not tool names. DO NOT hardcode recommendations; research the detected stack's current ecosystem and present options.
 
 For each tech stack layer detected, research these TOOL CATEGORIES using the query templates below:
 
@@ -116,15 +111,15 @@ For each tech stack layer detected, research these TOOL CATEGORIES using the que
 
 **Research process per category:**
 
-1. Search with query template (WebSearch if available, otherwise apply knowledge with explicit confidence %)
-2. Score top 3 candidates: community adoption, last release date, CI integration ease, config complexity
-3. Present by asking the user directly: "For {category} in {language}, which tool?" — top 2-3 as options + brief pros/cons
+1. Search with the query template (WebSearch if available; otherwise apply knowledge and state confidence %).
+2. Score top 3: community adoption, release recency, CI integration ease, config complexity.
+3. Present by asking the user directly: "For {category} in {language}, which tool?" — top 2–3 options with brief pros/cons.
 
 **IMPORTANT:** Confidence in current ecosystem <80% (fast-moving ecosystem, unfamiliar stack) → use WebSearch to verify before presenting options. — why: tool ecosystems churn fast; stale recommendations cargo-cult dead tools.
 
 ### Dependency-Boundary Enforcement (Architecture Fitness detail — options, not defaults)
 
-The **Architecture Fitness** category above is where **dependency-direction / module-boundary** enforcement is chosen. It consumes the `architecture-design` "Arch rules / fitness" scaffold handoff. Treat the following only as **example candidates to research and evaluate for stack fit** — never mandatory installs. Research the current ecosystem, then present the top 2-3 by asking the user directly and let the user confirm:
+The **Architecture Fitness** category chooses **dependency-direction / module-boundary** enforcement from the `architecture-design` "Arch rules / fitness" scaffold handoff. The following are **example candidates to research and evaluate for stack fit**, never mandatory installs. Research the current ecosystem, present the top 2–3 by asking the user directly, and let the user confirm:
 
 | Stack family | Example dependency-boundary tools (evaluate, do NOT hardcode) |
 | ------------ | ------------------------------------------------------------ |
@@ -134,19 +129,17 @@ The **Architecture Fitness** category above is where **dependency-direction / mo
 | Python | import-linter |
 | Go | go-arch-lint / depguard |
 
-Only add a boundary tool when the architecture actually declares dependency directions to enforce. If no cross-module rules are declared, record `N/A — no cross-module dependency rules declared` rather than installing a tool speculatively. Chosen rules MUST encode the architecture's dependency directions and fail CI on a violation, mirroring the pre-commit posture (local↔CI zero divergence). Init/audit grading of whether boundaries exist at all is owned by `architecture-scalability-review`; per-change boundary drift is owned by `architecture-review`. — why: a boundary tool with no declared rules is ceremony; enforcement without CI teeth is documentation.
+Add a boundary tool only when architecture declares dependency directions; otherwise record `N/A — no cross-module dependency rules declared`. Chosen rules MUST encode those directions and fail CI, matching pre-commit (local↔CI zero divergence). `architecture-scalability-review` owns init/audit grading; `architecture-review` owns per-change drift. — why: a boundary tool without declared rules is ceremony; enforcement without CI teeth is documentation.
 
 ---
 
 ## Installation & Configuration Protocol
 
-After user selects tools per category:
+After user selects tools:
 
 1. Generate install command for detected package manager
-2. Generate config file with STRICTEST reasonable defaults
-    - Rationale: starting strict is easier to loosen than starting loose is to tighten
-    - Loosen ONLY with explicit user approval by asking the user directly
-3. Document what each enabled rule catches and why (one line per rule group)
+2. Generate config file with STRICTEST reasonable defaults — starting strict is easier to loosen; loosen ONLY with explicit user approval by asking the user directly.
+3. Document what each enabled rule group catches and why (one line each)
 4. Generate sample config file: `.{tool}rc`, `{tool}.config.{ext}`, `pyproject.toml` section, etc.
 5. Add tool cache directories to `.gitignore`
 
@@ -164,13 +157,13 @@ trim_trailing_whitespace = true
 insert_final_newline = true
 ```
 
-Adjust `indent_size` and `end_of_line` for the detected stack's conventions.
+Adjust `indent_size` and `end_of_line` to detected stack conventions.
 
 ---
 
 ## Pre-Commit Hook Setup
 
-> **Note on framework names:** Pre-commit hook frameworks are ecosystem infrastructure standards, not research choices. Naming them here is correct — they are the glue layer, not the quality tools invoked through them. The quality tools (linter, formatter) invoked inside hooks are the research-driven selections from the Tool Research Protocol above.
+> **Framework names are glue, not quality-tool defaults.** Pre-commit framework selection may follow stack conventions; quality tools invoked inside hooks remain the research-driven selections above.
 
 Detect pre-commit framework for the stack:
 
@@ -182,13 +175,13 @@ Detect pre-commit framework for the stack:
 - Java / Kotlin → pre-commit framework or Maven/Gradle Git hooks plugin
 - Ruby → overcommit OR pre-commit framework
 
-Configure hooks to run in this order (fastest first to fail fast):
+Configure hooks in this order (fastest first):
 
 1. Formatter (check only — do not auto-fix in hook)
 2. Linter (fail on any error)
 3. Type-check (fail on any error)
 
-**Performance constraint:** Hooks MUST run in <30 seconds total for good DX. If slower:
+**Performance constraint:** Hooks MUST run in <30 seconds total. If slower:
 
 - Configure to run only on staged files (not full codebase)
 - Defer slow checks (static analysis, full type-check) to CI only
@@ -212,15 +205,15 @@ Detect CI provider/tooling from repository files:
 
 If not detected → ask the user directly: "Which CI provider/tooling does this repository use?"
 
-Generate CI job/step that:
+Generate a CI job/step that:
 
 1. Restores tool cache (install only on cache miss)
 2. Runs formatter check (fail on diff — `--check` mode, no auto-fix)
 3. Runs linter (fail on any error)
 4. Runs type checker (fail on any error)
-5. Runs static analyzer (fail on threshold: configurable complexity and duplication)
+5. Runs static analyzer (fail on configurable complexity/duplication threshold)
 6. Runs dependency vulnerability scanner (fail on HIGH/CRITICAL CVEs)
-7. Reports line-coverage as a DIAGNOSTIC only — NEVER fail the build on a coverage %. Low coverage is a useful untested-area signal; high coverage is not evidence of quality. If a test-strength gate is wanted, ask the user directly: "Configure a mutation-testing tool (e.g. Stryker / PITest / mutmut, per stack) as the CI test-quality gate?" — gate on mutation score (surviving mutant = missing/weak assertion), with line-coverage reported but ungated. Keep behavior/change-coverage (each behavior-changing file has a test asserting the changed outcome) as the meaningful coverage notion.
+7. Reports line coverage as DIAGNOSTIC only — NEVER fail on a coverage %. Low coverage signals untested areas; high coverage does not prove quality. If a test-strength gate is wanted, ask ask the user directly: "Configure a mutation-testing tool (e.g. Stryker / PITest / mutmut, per stack) as the CI test-quality gate?" Gate on mutation score (a surviving mutant = missing/weak assertion); report line coverage but do not gate on it. Keep behavior/change-coverage meaningful: each behavior-changing file tests the changed outcome.
 
 **MANDATORY:** CI gate must match pre-commit hooks. If a check runs locally, it runs in CI. No divergence.
 
@@ -333,9 +326,11 @@ ask the user directly:
 
 ## Closing Reminders
 
-**IMPORTANT MUST ATTENTION Goal:** Every code change is caught by an automated quality sensor — both locally (fast feedback) AND in CI (enforcement gate) — before it reaches main, with ZERO divergence between the two, by installing the full sensor layer (linter, formatter, type checker, static analyzer, dependency scanner, architecture fitness, pre-commit hook, CI gate) for the detected stack.
+**IMPORTANT MUST ATTENTION Goal:** Install a strict, stack-appropriate quality sensor layer—linter, formatter, type checker, static/dependency/architecture analysis, pre-commit, and CI—so every code change is checked locally and in CI with zero divergence before reaching main.
 
-**IMPORTANT MUST ATTENTION Main steps (in order — do not skip):** (1) detect stack → (2) research tool categories, present 2-3 per category by asking the user directly → (3) install & configure strict + `.editorconfig` + `.gitignore` → (4) wire pre-commit hook (format→lint→type, staged-only, <30s) → (5) mirror it in a CI quality gate → (6) verify the hook blocks an INTENTIONAL violation → (7) offer `$harness-setup` next.
+**IMPORTANT MUST ATTENTION Main steps (in order — no skip/reorder):** (1) detect stack/profile → (2) research six categories with QUERY TEMPLATES, score top 3, present 2–3 by asking the user directly → (3) install/configure strict settings, document rule purpose, update `.gitignore`, ALWAYS emit `.editorconfig` → (4) wire staged-files-only <30s formatter→linter→type-check hook and document `README.md` → (5) mirror format→lint→type→static→dep-scan in CI with coverage diagnostic-only → (6) prove the hook blocks an INTENTIONAL violation → (7) ask whether to continue to `$harness-setup`.
+
+**IMPORTANT MUST ATTENTION Gates:** Track each step/sub-skill with status + evidence; use ask the user directly for unknown stack/CI fields, tool choices, or loosening; keep local/CI commands, config, and versions identical; line coverage stays diagnostic-only; architecture fitness is `N/A` without declared dependency directions.
 
 **Protocols in force (concise digest of the SYNC/shared blocks this skill carries):**
 

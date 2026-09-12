@@ -14,16 +14,13 @@ description: '[Testing] Use when verifying integration tests pass after writing 
 
 ## Quick Summary
 
-**Goal:** Prove reviewed integration tests pass repeatably: run each relevant suite twice without DB reset using project-configured commands, after harvesting and verifying doc-declared environment preconditions; back every result with actual runner output, never assumptions.
+**Goal:** Prove reviewed integration tests pass repeatably: run each relevant suite twice without DB reset using configured commands and verified doc-declared preconditions, then report actual runner evidence or an owning-layer failure verdict.
 
-**Summary:** read-this-if-nothing-else digest of the 5 main steps —
-- **Testability contract:** resolve Unit/Integration/System/E2E applicability from runner/config evidence; record owner/root/data, copy-ready full + focused commands, zero-match behavior, CI/simple-Windows entry, unique run/data identity, and repeat proof; unresolved applicable fields block handoff, while non-applicable tiers require evidence-backed `N/A`.
-
-- **Step 1 — Read config + reference docs FIRST, then HARVEST preconditions:** load `docs/project-config.json` → `integrationTestVerify` and obey its `quickRunCommand`; READ every `referenceDocs` file (else the project's integration-test reference doc) and harvest from it an explicit **Environment Precondition Checklist** — whatever that doc actually declares (services/containers, DB + migration/seed state, env vars, ports, credentials, startup script, isolation rules). Language-agnostic, so NEVER hardcode `dotnet test`; missing section → Fallback Mode. — why: reading the doc without extracting its preconditions changes nothing — the run still starts blind.
-- **Step 2 — Gate on a healthy system AND every harvested precondition:** run `systemCheckCommand` AND verify each checklist item against real evidence; any unmet → STOP, mark ENVIRONMENT-BLOCKED, name the precondition + the doc line declaring it, point user at `startupScript`. — why: `systemCheckCommand` covers only what the config author thought to encode, so a doc-declared precondition it misses becomes a red suite blamed on the tests.
-- **Step 3 — Determine test projects:** discover via `testProjectPattern` glob > `testProjects` list > git auto-detect; run only projects the change touches.
-- **Step 4 — Run the 2-run gate, fan out when many isolated projects:** each relevant suite passes 2 consecutive green runs WITHOUT DB reset; any failure restarts from run 1. When several independent, per-DB-isolated projects exist, fan out one `integration-tester` sub-agent per project/group in parallel → barrier on ALL returns → aggregate; suites sharing a DB run sequentially. — why: parallel runs over a shared DB cross-contaminate and silently break the no-reset guarantee.
-- **Step 5 — Report from real output, fix at root, hand failures to the loop:** report Passed/Failed/Skipped counts + failing names (only actual runner output proves a result); on failure diagnose test-bug vs service-bug and fix at the owning layer — NEVER weaken assertions, add skips, or mutate domain data to force green. ANY failure → recommend `/workflow-integration-test-green`, which owns the converge-to-green loop this skill does not (skip that recommendation when this run IS a round of that loop). — why: a snapshot that reports red and stops leaves the user hand-carrying every failure.
+**Summary:** read-this-if-nothing-else digest —
+- **MUST ATTENTION — Contract first:** read `integrationTestVerify` and its docs; derive evidence-backed Unit/Integration/System/E2E applicability, owner/root/data, full/focused commands, zero-match behavior, CI/simple-Windows entry, run identity, repeat proof, and supported host/container/environment reach. Unresolved applicable fields block; non-applicable tiers need evidence-backed `N/A`.
+- **MUST ATTENTION — Steps 1–2:** harvest every documented environment precondition into a cited checklist, run `systemCheckCommand`, settle every row, and STOP `ENVIRONMENT-BLOCKED` on any unmet item; use `startupScript` or documented setup evidence.
+- **MUST ATTENTION — Steps 3–4:** discover touched projects by `testProjectPattern` > `testProjects` > git fallback; run applicable focused scope, then each relevant full suite twice without DB reset. Fan out one `integration-tester` per project/group only with isolated mutable state, wait for all returns before aggregation, and run shared-DB suites sequentially.
+- **MUST ATTENTION — Step 5 + failures:** report exact Passed/Failed/Skipped counts, names, exit status, checklist, identity, and Goal Contract evidence; adjudicate before edits, fix test faults at root, report service faults, and recommend `/workflow-integration-test-green` unless this run is already its round.
 
 **Workflow:**
 
@@ -55,27 +52,24 @@ description: '[Testing] Use when verifying integration tests pass after writing 
 
 ## First Principle — Easy to Change
 
-> **The success metric of every coding decision is _future change cost_.**
-> DRY, SRP, abstraction, design patterns, naming, layering, tests — every
-> technique exists to serve one goal: **making the next change cheaper**.
+> **Success metric: future change cost.** DRY, SRP, abstraction, patterns,
+> naming, layering, and tests serve one goal: **make the next change cheaper**.
 
-When evaluating code, refactor, test, or abstraction, ask:
-**does this make next change cheaper or more expensive?**
+Ask before applying any rule: **does this make the next change cheaper or more expensive?**
 
-- Reject "best practices" raising change cost (premature abstraction,
-  speculative generality, leaky indirection, ceremony without payoff).
-- Name real enemies in findings: **coupling, hidden state, duplicated
-  knowledge, unclear intent, irreversible decisions exposed too early**.
-- Simpler design easy to change beats sophisticated design that isn't.
+- Reject "best practices" that raise change cost: premature abstraction,
+  speculative generality, leaky indirection, or ceremony without payoff.
+- Name the real enemies: **coupling, hidden state, duplicated knowledge,
+  unclear intent, and irreversible decisions exposed too early**.
+- Prefer simple designs that are easy to change over sophisticated ones that are not.
 
-Apply this lens **before** invoking any specific rule, pattern, or checklist
-below — if downstream rule would raise change cost, this principle wins.
+Apply this lens **before** any rule, pattern, or checklist below; it wins when a downstream rule raises change cost.
 
 ---
 
 ## Step 1: Read Project Config + Reference Docs
 
-Read `docs/project-config.json` and extract the `integrationTestVerify` section.
+Read `docs/project-config.json`; extract `integrationTestVerify`.
 
 ```
 Expected config shape:
@@ -93,26 +87,26 @@ Expected config shape:
 }
 ```
 
-**Config priority:** `testProjectPattern` (auto-discovers via glob) > `testProjects` (explicit list) > git auto-detect (fallback).
+**Config priority:** `testProjectPattern` (glob) > `testProjects` (explicit list) > git auto-detect.
 
-**If `integrationTestVerify` section is missing:** proceed to [Fallback Mode](#fallback-mode-no-project-config).
+**Missing `integrationTestVerify`:** use [Fallback Mode](#fallback-mode-no-project-config).
 
-**If section exists:** display the `guidance` value to the user verbatim — it contains project-specific instructions the implementer wrote intentionally.
+**If present:** display `guidance` verbatim; it contains intentional project instructions.
 
-Then read the project-specific setup guidance before any system check or test command:
+Read project setup guidance before any system check or test command:
 
-1. Read every file listed in `integrationTestVerify.referenceDocs`, if present.
-2. If no `referenceDocs` list exists, read the integration-test reference doc indicated elsewhere in `docs/project-config.json` (for example a framework/testing integration test doc path), if present.
-3. If config names `runScript` or `startupScript`, read those scripts when needed to understand startup, health checks, arguments, or labels. Use them as project-specific evidence, not generic assumptions.
-4. If no project-specific reference exists, proceed only with the explicit config values and call out that the project should add reference docs to `integrationTestVerify`.
+1. Read every file in `integrationTestVerify.referenceDocs`, when present.
+2. Otherwise read any integration-test reference path elsewhere in `docs/project-config.json`.
+3. If `runScript` or `startupScript` is named, read it as evidence for startup, health checks, arguments, or labels.
+4. If no project reference exists, use only explicit config values and tell the user to add `referenceDocs`.
 
 ### Step 1b: Harvest the Environment Precondition Checklist (BLOCKING — before any command)
 
-Reading the reference doc is not the point; **extracting what it requires of the environment** is. From the docs and scripts just read, derive an explicit checklist of every precondition the test run depends on, then carry it into Step 2.
+**Extract environment requirements, not just read the reference.** From the docs/scripts, derive every test-run precondition and carry the checklist into Step 2.
 
-**Derive, never enumerate.** Take the items from what THIS project's doc actually declares — no fixed list here would survive a different stack. Typical shapes the doc may state: required services/containers up and healthy · database reachable, migrated, and seeded to a known baseline · message broker / queue / cache running · env vars, connection strings, ports, credentials, certificates · a startup or bootstrap script that must run first · build/restore performed before the run · per-suite isolation (own DB/schema/namespace) · required test data or fixtures · external dependency stubs.
+**Derive, never enumerate.** Use only what THIS project's docs declare; never apply a fixed stack-specific list. Possible declarations include healthy services/containers; reachable, migrated, seeded DB; broker/queue/cache; env vars, connections, ports, credentials, certificates; required startup/bootstrap; build/restore; per-suite isolation; fixtures; external stubs.
 
-Record it as a table before proceeding:
+Record before proceeding:
 
 ```
 ### Environment Precondition Checklist (harvested)
@@ -124,15 +118,15 @@ Record it as a table before proceeding:
 
 Rules:
 
-- MUST cite `file:line` (or script path) for every harvested item — an item with no source is an assumption, not a precondition.
-- No reference doc found, or the doc declares no environment prerequisites → record `No environment preconditions declared — proceeding on config values only` and say which doc was checked. NEVER invent preconditions to fill the table — why: a fabricated prerequisite blocks a healthy run and trains the user to ignore the gate.
-- A precondition you cannot verify by any command or observable is still recorded, marked `UNVERIFIABLE`, and surfaced to the user — why: an unverifiable prerequisite is a gap in the project's doc, not a reason to skip the gate.
+- MUST cite `file:line` or script path for every item; no source means assumption, not precondition.
+- No reference doc or no declared prerequisite → record `No environment preconditions declared — proceeding on config values only` and name the checked doc. NEVER invent rows — why: fabricated prerequisites block healthy runs and train users to ignore the gate.
+- Record unverifiable items as `UNVERIFIABLE` and surface them; a documentation gap is not permission to skip the gate.
 
 ---
 
 ## Step 2: System Check + Environment Precondition Gate
 
-**If `systemCheckCommand` exists in config:**
+**If config has `systemCheckCommand`:**
 
 Run the system check via Bash:
 
@@ -142,24 +136,24 @@ Run the system check via Bash:
 
 Evaluate output:
 
-- **Healthy** → proceed to the precondition gate below
-- **Partially healthy / no containers** → display startup instructions to user: > "System not fully ready. To start: run `{startupScript}` (or follow the guidance above). Wait for all services to be healthy, then re-run `/integration-test-verify`."
+- **Healthy** → proceed to the precondition gate.
+- **Partially healthy / no containers** → tell the user: > "System not fully ready. To start: run `{startupScript}` (or follow the guidance above). Wait for all services to be healthy, then re-run `/integration-test-verify`."
     > **STOP** — do not run tests against an unhealthy system. Results would be unreliable.
 
-**If no `systemCheckCommand`:**
+**If absent:**
 
-- If `guidance`, reference docs, `runScript`, or `startupScript` indicate required local infrastructure/services, STOP and tell the user the project config needs a concrete readiness check before AI verification can run.
-- Otherwise, proceed to the precondition gate and explicitly report that no system check was configured.
+- If `guidance`, reference docs, `runScript`, or `startupScript` require local infrastructure/services, STOP: config needs a concrete readiness check before AI verification.
+- Otherwise proceed to the precondition gate and report that no system check is configured.
 
 ### Precondition gate (BLOCKING — every harvested item, evidence-backed)
 
-A green `systemCheckCommand` does NOT discharge the Step 1b checklist: it verifies only what the config author thought to encode, while the reference doc is where the project wrote down what the runner silently assumes. Walk the checklist and settle every row.
+A green `systemCheckCommand` does NOT discharge Step 1b: it covers only encoded checks; docs contain runner assumptions. Settle every row.
 
-1. **Verify each item against real evidence** — a command's actual output, a port/process/container check, a config or env read, a query. NEVER mark an item met by reasoning that it "should" be up.
+1. **Verify each item with real evidence** — command output, port/process/container check, config/env read, or query. NEVER mark it met because it "should" be up.
 2. **Mark each row** `MET` (with the evidence) · `UNMET` (with what is missing) · `UNVERIFIABLE` (no observable exists — surface it).
-3. **Any `UNMET` → STOP before the first test command.** Report `ENVIRONMENT-BLOCKED`, name the unmet precondition and the `file:line` that declares it, and give the user the concrete setup step (`startupScript`, the doc's setup section, the missing env var). NEVER run the suite anyway — why: a suite run against a half-ready environment reports infrastructure faults as failing tests, which then get "fixed" in the test code.
-4. **Never fix an environment gap by editing tests.** An unmet precondition is a setup action for the user or a project-config gap to report — never a reason to weaken a test, add a skip, or relax a timeout.
-5. **Emit the settled checklist** (rows + statuses + evidence) into the Step 5 report, so the pass/fail result proves the environment was ready when it ran.
+3. **Any `UNMET` → STOP before the first test command.** Report `ENVIRONMENT-BLOCKED`, name the precondition and declaring `file:line`, and give the concrete setup step (`startupScript`, doc section, or missing env var). NEVER run the suite — why: half-ready infrastructure turns setup faults into test failures.
+4. **Never fix an environment gap in tests.** Report the user setup action or config gap; do not weaken assertions, add skips, or relax timeouts.
+5. **Emit the settled checklist** (rows, statuses, evidence) in the Step 5 report; it proves the run's environment was ready.
 
 All rows `MET` (or the explicit `no preconditions declared` record) → proceed to Step 3.
 
@@ -167,11 +161,11 @@ All rows `MET` (or the explicit `no preconditions declared` record) → proceed 
 
 ## Step 3: Determine Test Projects
 
-**Priority order:** `testProjectPattern` (glob auto-discover) > `testProjects` (explicit list) > git auto-detect (fallback).
+**Priority:** `testProjectPattern` (glob) > `testProjects` (explicit list) > git auto-detect.
 
-**If `testProjectPattern` exists in config:**
+**If `testProjectPattern` exists:**
 
-Discover test projects by running a glob search for the pattern:
+Run a glob search for the pattern:
 
 ```bash
 # Example (testProjectPattern from project config, e.g. "**/*.IntegrationTests.csproj")
@@ -179,11 +173,11 @@ find . -path "{testProjectPattern}" -type f
 # or use language-appropriate glob tool
 ```
 
-Use all discovered `.csproj` files (or equivalent) as the test project list. Exclude any paths outside the pattern scope.
+Use discovered `.csproj` files (or equivalent); exclude paths outside the pattern scope.
 
-**If no `testProjectPattern` but `testProjects` list exists:**
+**If no pattern but `testProjects` exists:**
 
-Use the explicit list from config directly.
+Use the config list.
 
 **If neither exists — auto-detect from git:**
 
@@ -192,13 +186,13 @@ Use the explicit list from config directly.
 git diff --name-only HEAD | grep -i "IntegrationTest" | sed 's|/[^/]*$||' | sort -u
 ```
 
-If auto-detect finds nothing (no uncommitted test changes), ask user: "No changed test files detected. Run all test projects or skip?"
+If auto-detect finds nothing, ask: "No changed test files detected. Run all test projects or skip?"
 
-**Filter rule:** Only run projects relevant to the current change. If user explicitly asks to run all → run all discovered/configured projects.
+**Filter:** Run only projects relevant to the current change, unless the user explicitly asks for all.
 
 ### Step 3b: Test Architecture Contract Scope (before Step 4)
 
-Before the first test command, record the applicable tier matrix and the execution evidence the report must carry:
+Before the first test command, record the applicable tier matrix and required report evidence:
 
 | Tier | Applicability + evidence | Full command | Focused/partial command | Zero-match behavior | Run identity / data mode | Parallel isolation |
 | ---- | ------------------------- | ------------ | ------------------------ | ------------------- | ------------------------ | ------------------ |
@@ -206,19 +200,19 @@ Before the first test command, record the applicable tier matrix and the executi
 | Integration/System | `APPLICABLE` + `{file:line}` or `N/A — {evidence}` | `{copy-ready command}` | `{copy-ready command or N/A + evidence}` | `{documented non-zero behavior}` | `{unique identity; reference/additive mode}` | `{worker/root strategy}` |
 | E2E | `APPLICABLE` + `{file:line}` or `N/A — {evidence}` | `{configured command or N/A + evidence}` | `{configured command or N/A + evidence}` | `{documented non-zero behavior}` | `{unique identity; reference/additive mode}` | `{worker/root strategy}` |
 
-- Use only commands discoverable in `docs/project-config.json`, the named reference docs, or existing runner scripts. If a focused/partial command or simple/Windows entry point is not configured, record `N/A — <evidence>`; do not invent a filter, browser stack, or `.cmd` wrapper.
-- When a focused/partial scope is applicable, execute it and capture its exact Passed/Failed/Skipped counts and process exit status. Verify that an invalid or zero-match selection fails or follows the runner's documented non-green behavior; a zero-match run is never a passing result.
-- Record the unique run identity/data suffix, supported public-path setup, realistic data, idempotent count-before-create reference setup, intentional keyed/additive persistence, and the isolation boundary for parallel workers. These fields supplement—not replace—the environment checklist and real-DI/use-case gates.
+- Use only commands from `docs/project-config.json`, named reference docs, or existing runner scripts. Missing focused/partial or simple/Windows command → record `N/A — <evidence>`; do not invent filters, browser stacks, or `.cmd` wrappers.
+- For applicable focused/partial scope, capture exact Passed/Failed/Skipped counts and exit status. Invalid or zero-match selection must fail or follow documented non-green behavior; zero matches never pass.
+- Record unique run identity/data suffix, supported public-path setup, realistic data, idempotent count-before-create setup, keyed/additive persistence, and parallel-worker isolation. These supplement—not replace—the environment and real-DI/use-case gates.
 
 ---
 
 ## Step 4: Run Tests
 
-Run this step only after Step 2 passed — system healthy AND every harvested precondition settled `MET` — or the config/reference docs explicitly state no external system is required.
+Run only after Step 2 passes — healthy system and every harvested precondition `MET` — or docs explicitly state no external system is required.
 
-Execute using `quickRunCommand` from config. When a focused/partial scope is applicable, run it first and record its exact result; it is diagnostic and never substitutes for the full scope. Then run each relevant suite/project 2 consecutive times without resetting data.
+Use config `quickRunCommand`. Run applicable focused/partial scope first and record its exact result; it is diagnostic, never a full-scope substitute. Then run each relevant suite/project twice consecutively without resetting data.
 
-**Two-run idempotency gate:** If any run fails, verification fails. Fix the root cause, then restart the 2-run sequence from run 1. If a test is red in one run and green in the other, it is INTERMITTENT — adjudicate the cause per [Intermittent (flaky) failure adjudication](#intermittent-flaky-failure-adjudication--verdict-before-any-change) and record the verdict BEFORE changing anything.
+**Two-run idempotency gate:** Any failed run fails verification. Fix the root cause, then restart at run 1. Red once and green once = INTERMITTENT; use [Intermittent (flaky) failure adjudication](#intermittent-flaky-failure-adjudication--verdict-before-any-change) and record the verdict BEFORE changing anything.
 
 Example for a configured integration-test suite:
 
@@ -235,19 +229,19 @@ Or run all at once using the solution filter if supported:
 {quickRunCommand} --filter "Category=integration"
 ```
 
-**Capture output for every run**: record the scope, command, process exit status, and exact Passed, Failed, and Skipped counts, plus failing names. Note: skipped tests marked with the configured framework's skip annotation are expected and not a failure.
+**Capture every run:** scope, command, exit status, exact Passed/Failed/Skipped counts, and failing names. Configured skip annotations are expected skips, not failures.
 
 ### Parallel execution across multiple test projects (sub-agent fan-out)
 
-> **AI agent note:** When the determined set (Step 3) has **many independent test projects**, do NOT run them one-by-one in the foreground — **fan out one `integration-tester` sub-agent per project (or per balanced group of projects)** in a single message so they run concurrently, then advance only after EVERY sub-agent returns (all-return barrier). This collapses wall-clock from sum-of-suites to slowest-single-suite.
+> **AI agent note:** When Step 3 yields **many independent projects**, NEVER run them one-by-one in the foreground. **Fan out one `integration-tester` sub-agent per project or balanced group in one message**, then advance only after EVERY sub-agent returns (all-return barrier); this reduces wall-clock to the slowest suite.
 
-Apply this only when it is actually safe and worthwhile:
+Apply fan-out only when safe and worthwhile:
 
-- **Threshold.** Skip the fan-out for 1–2 small projects (orchestration overhead outweighs the gain); use it once there are several projects or any long-running suite.
-- **Isolation is mandatory.** Parallel suites MUST NOT share mutable state. Fan out only when each project targets its **own isolated DB/schema/container/namespace** (or the project config / reference docs confirm per-suite isolation). If suites share one database, concurrent runs cross-contaminate state and silently break the "2 consecutive green runs without DB reset" guarantee → run those **sequentially** instead. When unsure, ask the user or default to sequential.
-- **Each sub-agent owns the full gate for its assignment.** Every sub-agent runs its project(s) through the complete **2-consecutive-green-runs-without-DB-reset** sequence, captures real runner output (Passed/Failed/Skipped counts + failing names), and returns that evidence — partial or single-run results are not acceptable.
-- **Each sub-agent inherits this same discipline.** No weakened assertions, no skip annotations, no domain-data hacks; on failure it diagnoses test-bug vs service-bug at the root layer (per the On Test Failure Protocol).
-- **Barrier + aggregate.** Wait for all sub-agents, then merge their per-project tables into the single Step 5 report. Any one project failing its 2-run gate fails the overall verification.
+- **Threshold:** Skip for 1–2 small projects; use for several projects or any long-running suite.
+- **Isolation is mandatory:** Parallel suites MUST NOT share mutable state. Fan out only with per-project isolated DB/schema/container/namespace confirmed by config/docs. Shared DB → run **sequentially**; when unsure, ask or default sequential.
+- **Each sub-agent owns its full gate:** complete **2-consecutive-green-runs-without-DB-reset**, real counts/names, and evidence; partial or single-run results do not pass.
+- **Same discipline:** no weakened assertions, skips, or domain-data hacks; failures use the On Test Failure Protocol.
+- **Barrier + aggregate:** wait for all, merge per-project tables into Step 5, and fail overall if any project fails its 2-run gate.
 
 ```
 # Conceptual fan-out (one sub-agent per project / balanced group), launched together:
@@ -261,7 +255,7 @@ integration-tester → {testProject3}  → 2-run gate → returns counts + faili
 
 ## Step 5: Report Results
 
-After all tests complete, report:
+After all tests complete, emit:
 
 ```
 ### Integration Test Verify Results
@@ -285,20 +279,20 @@ Status: ✅ ALL PASS | ❌ {N} FAILURES
 **On failure:**
 
 1. List each failing test name + failure message
-2. Diagnose: test bug (wrong assertion setup) or service bug (handler actually broken)?
-3. If test bug → fix in the test file (do NOT weaken assertions — fix setup/data)
-4. If service bug → report as finding, do NOT silently fix without telling user
-5. After fixing → re-run the full 2-run verify sequence
-6. **RECOMMEND `/workflow-integration-test-green` to the user whenever this run ends with ANY failure.** This skill reports a snapshot; it does not own convergence. That workflow runs the loop that clears the suite — each round re-verifies, adjudicates the fault with `/debug-investigate` + `/integration-test-review`, fixes at the owning layer, code-reviews the round's fix diff, and re-verifies from a FRESH full run until the whole suite passes its 2-run gate. Surface it as the recommended next step (see [Next Steps](#next-steps)) rather than hand-carrying failures one by one.
-    - **EXCEPTION — do NOT recommend it when this run IS a round of that loop** (invoked by `integration-test-verify-loop` or inside `workflow-integration-test-green`). Return the counts + failing names to the caller instead. — why: the loop already owns convergence; recommending it from inside itself is circular and would restart the very loop that is running.
+2. Diagnose test bug (wrong setup/assertion) vs service bug (broken handler).
+3. Test bug → fix setup/data in the test; NEVER weaken assertions.
+4. Service bug → report it; do NOT silently fix it.
+5. After any fix → rerun the full 2-run sequence.
+6. **RECOMMEND `/workflow-integration-test-green` whenever this run ends with ANY failure.** This skill reports a snapshot; it does not own convergence. The workflow repeatedly verifies, adjudicates with `/debug-investigate` + `/integration-test-review`, fixes at the owning layer, reviews the fix diff, and runs fresh until its 2-run gate passes. Surface it in [Next Steps](#next-steps).
+   - **EXCEPTION:** when this run IS a round of that loop (invoked by `integration-test-verify-loop` or inside `workflow-integration-test-green`), return counts and failing names instead; recommending the loop inside itself is circular.
 
-**Goal Contract evidence (after verify run):** Resolve the active Goal Contract per the goal-contract-satisfaction-loop protocol (active plan `goal.md` → `plans/goals/{YYMMDD-HHmm}-{slug}/goal.md`). When one exists, append the verification evidence to the goal file's Iteration Log — run command, per-run pass/fail counts, report path — mapped to the saved success criteria these tests verify, and update the matching Goal Satisfaction matrix rows (PASS on 2/2 green, FAIL with the failing-test list, BLOCKED with a user-facing reason). Record `No active goal — results reported inline only.` when none exists. Never copy raw sensitive fixture data into the goal file.
+**Goal Contract evidence:** Resolve the active Goal Contract (`goal.md` → `plans/goals/{YYMMDD-HHmm}-{slug}/goal.md`). If present, append command, per-run counts, report path, and mapped success-criteria evidence to its Iteration Log; update Goal Satisfaction rows (`PASS` on 2/2 green, `FAIL` with names, `BLOCKED` with user-facing reason). Otherwise record `No active goal — results reported inline only.` NEVER copy raw sensitive fixture data into the goal file.
 
 ---
 
 ## Fallback Mode (No Project Config)
 
-When `docs/project-config.json` has no `integrationTestVerify` section:
+When `docs/project-config.json` lacks `integrationTestVerify`:
 
 1. Detect project type from root files:
     - `*.sln` or `*.csproj` → `dotnet test`
@@ -306,13 +300,13 @@ When `docs/project-config.json` has no `integrationTestVerify` section:
     - `pytest.ini` / `setup.py` / `pyproject.toml` → `pytest`
     - `go.mod` → `go test ./...`
 
-2. Auto-detect changed test files from git:
+2. Auto-detect changed test files:
 
     ```bash
     git diff --name-only HEAD
     ```
 
-3. Run detected command on changed test projects.
+3. Run the detected command on changed test projects.
 
 4. Report results and recommend: "Add `integrationTestVerify` to `docs/project-config.json` for project-specific run guidance."
 
@@ -320,17 +314,21 @@ When `docs/project-config.json` has no `integrationTestVerify` section:
 
 ## CI-Style Full Run (Reference)
 
-When `runScript` is configured, reference it for the full CI-style run (not run by AI directly — Windows.cmd scripts and CI runners require user/pipeline execution):
+When `runScript` is configured, reference it for the full CI-style run; do not run it directly because Windows.cmd scripts and CI runners require user/pipeline execution:
 
 > "For a full CI-style run including Docker orchestration and health polling, execute: `{runScript}`"
 
-This script typically: creates networks → removes stale containers → builds images → starts infrastructure (wait healthy) → starts APIs (wait healthy) → runs all tests.
+Typical sequence: create networks → remove stale containers → build images → start infrastructure and wait healthy → start APIs and wait healthy → run all tests.
 
 ---
 
+> **SDD artifact contract** — Resolve spec/code/test disagreement to canonical intent; classify code-wrong, spec-stale, ambiguous, or spec-silent, and capture unwritten invariants in the spec, TC, and guarding test.
+>
+> **MUST ATTENTION READ `.claude/skills/shared/sdd-artifact-contract.md` → Drift Gates before adjudicating spec drift.**
+
 ## On Test Failure Protocol
 
-**NEVER** do these to make failures go away:
+**NEVER** do these to make failures disappear:
 
 - ❌ Remove or weaken assertions
 - ❌ Add skip annotations to hide failures
@@ -339,7 +337,7 @@ This script typically: creates networks → removes stale containers → builds 
 - ❌ Report "all passed" without showing actual runner output
 - ❌ Widen an assertion timeout, add a retry around a failing assertion, or mark a test flaky-and-skipped to make an intermittent failure go away
 
-**DO** this instead:
+**DO** this:
 
 1. Read the failing test method
 2. Read the handler/service the test targets
@@ -348,13 +346,13 @@ This script typically: creates networks → removes stale containers → builds 
 5. Re-run to confirm green
 6. **If step 3 found the CODE was wrong (SOURCE-WRONG) and your fix changed production/source code**, route that changed source into a fresh `/changes-review` (or emit a HIGH finding requiring it) BEFORE declaring the 2-run green PASS — a source fix that greens a test must not ship un-code-reviewed. (In `workflow-feature`/`workflow-bugfix` the downstream `workflow-review-changes` step already covers this; the route matters for standalone runs.)
 
-If a test fails because the system is unavailable → report as "system not ready" and reference `startupScript` / `runScript`. Never change the test.
+If the system is unavailable, report `system not ready` and reference `startupScript` / `runScript`. NEVER change the test.
 
 ### Intermittent (flaky) failure adjudication — verdict BEFORE any change
 
-A test that is red in one run of the 2-run gate and green in another has NOT told you what is wrong. **Emit a written verdict, with evidence, BEFORE editing test code, production code, or any timeout.** An unadjudicated flake gets "fixed" by whatever is nearest — which is almost always the assertion.
+A test red in one 2-run and green in the other has NOT identified the cause. **Emit an evidence-backed written verdict BEFORE editing tests, production code, or timeouts.** An unadjudicated flake gets fixed at the nearest site, usually the assertion.
 
-**Classify the cause into exactly one of three:**
+**Classify exactly one cause:**
 
 | Verdict                                  | What it means                                                                                                                                                                                                       | Evidence required to claim it                                                                                                                                                                                            | Resolution                                                                                                                                                     |
 | ---------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -374,28 +372,28 @@ A test that is red in one run of the 2-run gate and green in another has NOT tol
 
 ## Workflow Recommendation
 
-> **MANDATORY IMPORTANT MUST ATTENTION — NO EXCEPTIONS:** If you are NOT already in a workflow, you MUST ATTENTION use `AskUserQuestion` to ask the user. Do NOT judge task complexity or decide this is "simple enough to skip" — the user decides whether to use a workflow, not you:
+> **MANDATORY IMPORTANT MUST ATTENTION — NO EXCEPTIONS:** If not already in a workflow, use `AskUserQuestion`; the user chooses. Do NOT decide this is "simple enough to skip":
 >
-> 1. **Activate `workflow-write-integration-test` workflow** (Recommended) — investigate → spec-tests → why-review → artifact-review --type=spec-tests → integration-test → integration-test-review → integration-test-verify → spec-tests [direction=sync] → docs-update → workflow-end → watzup
+> 1. **Activate `workflow-write-integration-test` workflow** (Recommended) — investigate → `spec [mode=tests]` → why-review → artifact-review --type=spec-tests → integration-test → integration-test-review → integration-test-verify → `spec [mode=sync]` → docs-update → workflow-end → watzup
 > 2. **Execute `/integration-test-verify` directly** — run this skill standalone
 
 ---
 
 ## Next Steps
 
-**MANDATORY IMPORTANT MUST ATTENTION — NO EXCEPTIONS** after completing this skill, you MUST ATTENTION use `AskUserQuestion` to present these options. Do NOT skip because the task seems "simple" or "obvious" — the user decides:
+**MANDATORY IMPORTANT MUST ATTENTION — NO EXCEPTIONS:** after this skill, use `AskUserQuestion` to present these options. Do NOT skip because the task seems "simple" or "obvious":
 
-**Any failures in this run → `/workflow-integration-test-green` is the RECOMMENDED first option** (list it first), because it owns the converge-to-green loop this skill deliberately does not. All green → lead with `/workflow-review-changes` as before.
+**Any failure → list `/workflow-integration-test-green` first**; it owns the converge-to-green loop this snapshot skill does not. All green → lead with `/workflow-review-changes`.
 
-- **"/workflow-integration-test-green (Recommended when ANY test failed)"** — Drive the whole suite to green: verify → adjudicate the fault → fix at the owning layer → review the fix diff → fresh re-verify, looping until the 2-run gate passes. Omit this option when this run was itself a round of that loop, or when the suite is fully green.
+- **"/workflow-integration-test-green (Recommended when ANY test failed)"** — verify → adjudicate → fix at the owning layer → review the fix diff → fresh re-verify until the 2-run gate passes. Omit when this run was a round of that loop or the suite is fully green.
 - **"/workflow-review-changes (Recommended when all green)"** — Review all changes before committing
 - **"/integration-test-review"** — Review the failing tests only (report-only fault opinion), without entering the convergence loop
 - **"/docs-update"** — Update documentation if test counts changed
 - **"Skip, continue manually"** — user decides
 
 > **[IMPORTANT]** Use `TaskCreate` to break ALL work into small tasks BEFORE starting.
-> **A verify step that does not actually run tests 2 consecutive times is not repeatability verification. It is theater.**
-> Read project config FIRST to understand how to run tests for this specific project.
+> **[IMPORTANT]** A verify step without 2 consecutive test runs is not repeatability verification.
+> Read project config FIRST for this project's run command.
 
 <!-- SYNC:source-test-drift-check -->
 
@@ -651,42 +649,35 @@ A test that is red in one run of the 2-run gate and green in another has NOT tol
 
 ## Closing Reminders
 
-**IMPORTANT MUST ATTENTION** Testability contract: resolve evidence-backed Unit/Integration/System/E2E rows, copy-ready full/focused commands, zero-match failures, owner/root/data, CI/simple-Windows entry, unique run identity, and repeat proof before claiming setup, review, or test completion.
-**IMPORTANT MUST ATTENTION Goal:** Prove reviewed integration tests pass repeatably: run each relevant suite twice without DB reset using project-configured commands, after harvesting and verifying doc-declared environment preconditions; back every result with actual runner output, never assumptions.
+**IMPORTANT MUST ATTENTION Goal:** Prove reviewed integration tests pass repeatably: run each relevant suite twice without DB reset using configured commands and verified doc-declared preconditions, then report actual runner evidence or an owning-layer failure verdict.
 
-**IMPORTANT MUST ATTENTION — Main steps:** read config/reference docs → harvest a cited environment checklist → run the system and precondition gates → determine touched test projects → run two consecutive no-reset suites (parallel only when isolated) → report actual pass/fail/skip counts and names → adjudicate failures at the owning layer and route the convergence loop when needed.
+**IMPORTANT MUST ATTENTION** record exact scope, commands, exit status, counts, failure names, identity, and repeat proof from real runner output before reporting a verdict.
+**IMPORTANT MUST ATTENTION** preserve owned business-outcome assertions and diagnose the responsible layer; never substitute broker, scheduler, or other infrastructure bookkeeping for the system state this suite owns.
 
-**IMPORTANT MUST ATTENTION — Protocols in force (concise digest of the SYNC/shared blocks this skill carries):**
+**IMPORTANT MUST ATTENTION — Main steps (in order):** (1) read config/reference docs; (2) harvest a cited environment checklist; (3) run system + precondition gates; (4) record the tier matrix and determine touched projects; (5) run focused diagnostics, then two consecutive no-reset full runs; (6) report exact output and Goal Contract evidence; (7) adjudicate failures at the owning layer and route the convergence workflow when needed.
 
-- **Source/Test Drift:** On source change, reconcile affected tests vs source-bug from evidence.
-- **Spec↔Tests↔Code Triangulation:** judge the WHOLE PACKAGE (spec §3/§4/§8 + tests + code) for mutual consistency; a disagreeing or missing face is a logged finding, NEVER a silent pass.
-- **Spec Drift Adjudication:** on behavior divergence from a canonical spec, classify CODE-WRONG / SPEC-STALE / AMBIGUOUS / SPEC-SILENT and harvest unwritten invariants into §4/§8 + a guarding test — NEVER normalize drift to whichever side is green.
-- **Real-World Fidelity:** a scenario production could never reach proves nothing green and blames the product red; settle barriers on a real observable belong in ARRANGE — NEVER a widened assertion timeout, a blind sleep, or a retry around a failing assertion; distinguish harness-amplified from real before filing a product defect.
-- **AI Mistake Prevention:** verify generated content against evidence, trace downstream references, verify all affected outputs, re-read after context loss, surface ambiguity.
-- **Nested Task Creation:** Expand child phases and link parent when nested; one `in_progress`.
-- **Task Tracking & External Report:** Bootstrap tracking; persist plan/review findings to `tmp/reports/` incrementally.
-- **Critical Thinking:** Traced `file:line` proof per claim; confidence >80% to act.
-- **Project Reference Docs:** Read required project docs and `lessons.md` before target work; cite them.
+**IMPORTANT MUST ATTENTION — Modes/gates:** missing config → Fallback Mode and root-file runner detection; configured `runScript` → CI-style reference only; standalone failures → workflow recommendation, except when this run is already that loop's round. Applicable Unit/Integration/System/E2E/Performance tiers require runner evidence or `N/A`; record copy-ready full/focused commands, zero-match non-green behavior, simple-Windows and host/container entries when supported, environment reach, identity/data mode, and isolation.
 
-**IMPORTANT MUST ATTENTION** read `docs/project-config.json` → `integrationTestVerify` FIRST — project-specific guidance overrides defaults; missing section → Fallback Mode — why: hardcoded assumptions about the runner break on any non-default stack.
-**IMPORTANT MUST ATTENTION** use `quickRunCommand` from config — NEVER hardcode `dotnet test` or any language-specific command — why: this skill is language-agnostic and one repo's runner is another's wrong tool.
-**IMPORTANT MUST ATTENTION** read project-specific integration-test reference docs/scripts named by `referenceDocs` before any test command — hooks may point to context, but Claude and Codex must open these files directly when the gate requires them.
-**IMPORTANT MUST ATTENTION** harvest an Environment Precondition Checklist from those docs (Step 1b) BEFORE any command — derive every item from what the doc declares with a `file:line` citation, NEVER from a fixed list and NEVER invented; no declared prerequisites → record that explicitly — why: reading the doc without extracting its preconditions leaves the run just as blind as not reading it.
-**IMPORTANT MUST ATTENTION** gate on a healthy system before running — run `systemCheckCommand`, and STOP (point user at `startupScript`) when infrastructure/services aren't ready — why: an unreliable system produces unreliable green/red results that prove nothing.
-**IMPORTANT MUST ATTENTION** settle EVERY harvested precondition against real evidence before the first test command — any `UNMET` → STOP, report `ENVIRONMENT-BLOCKED` naming the precondition + its doc line + the setup step, and NEVER run the suite anyway or repair an environment gap by editing tests — why: a half-ready environment reports infrastructure faults as failing tests, which then get "fixed" in the test code.
-**IMPORTANT MUST ATTENTION** determine the test-project set BEFORE running — `testProjectPattern` glob > `testProjects` list > git auto-detect — and run only projects the change touches unless the user asks for all — why: running irrelevant suites wastes the gate and muddies the result.
-**IMPORTANT MUST ATTENTION** pass requires 2 consecutive green runs of each relevant suite WITHOUT DB reset; any single failure restarts the sequence from run 1 — why: a one-off green run hides order-dependent and state-leak flakiness.
-**IMPORTANT MUST ATTENTION** when the set has several independent, per-DB-isolated projects, fan out one `integration-tester` sub-agent per project/balanced group in parallel, barrier on ALL returns, then aggregate into the Step 5 report — each sub-agent owns its full 2-run gate and returns real counts + failing names; suites sharing a DB run sequentially — why: parallel runs over a shared DB cross-contaminate state and silently break the no-reset guarantee.
-**IMPORTANT MUST ATTENTION** show actual runner output (Passed/Failed/Skipped counts + failing names) — "all passed" without evidence is theater, not verification — confidence >80% to claim PASS, and that confidence rests on the captured output, never assumption.
-**IMPORTANT MUST ATTENTION** on failure, diagnose test-bug vs service-bug at the responsible layer BEFORE any edit — fix the root cause; report service bugs as findings, do NOT silently fix — why: patching the symptom site leaves the real defect live.
-**IMPORTANT MUST ATTENTION** the run ended with ANY failing test → RECOMMEND `/workflow-integration-test-green` as the user's next step, listed FIRST in the Next Steps options — it owns the converge-to-green loop (verify → adjudicate → fix → review → fresh re-verify) that this snapshot skill deliberately does not; do NOT recommend it when this run is itself a round of that loop (return counts + failing names to the caller instead) — why: reporting red and stopping leaves the user hand-carrying every failure, while recommending it from inside itself is circular.
-**IMPORTANT MUST ATTENTION** on a FAILED TEST, FIRST read the `/integration-test-review` skill protocol (assertion-quality, coverage & spec↔test↔code fault gates) to set investigation/fix direction — decide whether the fault is a source-code root cause or a test-code setup/assertion issue — why: fixing without that verdict patches the wrong side and can green a broken invariant.
-**IMPORTANT MUST ATTENTION** on an INTERMITTENT failure (red in one run, green in another) adjudicate the cause BEFORE any change and record the verdict with evidence — (a) unrealistic scenario / compressed actor pacing, (b) harness topology amplification (shared infra, fan-out consumers, suite parallelism, cold start), or (c) a genuine product race; do NOT file (c) until (a) and (b) are ruled out — why: reporting a test-fidelity defect as a product defect burns hours and erodes trust in the suite.
-**IMPORTANT MUST ATTENTION** NEVER resolve a flake by widening an assertion timeout, adding a retry around a failing assertion, or skipping the test — repair the SCENARIO (an ARRANGE-phase barrier on a real observable) or the product defect, then restart the 2-run gate from run 1 — why: those three hide all causes equally and destroy the only signal you had.
-**IMPORTANT MUST ATTENTION** to make red go green NEVER weaken/remove assertions, add skip annotations, or mutate domain data outside real use-case paths — instead fix the assertion setup or the handler, then re-run the full 2-run sequence — why: a test that no longer protects its invariant is worse than no test.
-**IMPORTANT MUST ATTENTION** before authoring or changing any test code, grep 3+ sibling integration tests and follow the local pattern (base fixtures, real DI, no mocks) — cite `file:line` — why: the closest example may not share the same preconditions; verify fit before copying.
-**IMPORTANT MUST ATTENTION** bootstrap task tracking before work and mark one task `in_progress` / `completed` at a time; on context loss call `TaskList` first and resume — never blindly duplicate tasks.
-**IMPORTANT MUST ATTENTION** resolve and update the active Goal Contract — append per-run pass/fail evidence to the goal file's Iteration Log and matrix; NEVER copy raw sensitive fixture data into goal files.
+**IMPORTANT MUST ATTENTION — SYNC protocol digest:**
+
+- **MUST ATTENTION — Source/test + spec/test/code drift:** reconcile to canonical intent; classify every disagreement and capture spec-silent invariants with a TC and guarding test — NEVER silently pass a missing or disagreeing face.
+- **Real-world fidelity:** use reachable pacing and real ARRANGE observables; NEVER widen assertion timeouts, add assertion retries, blind sleeps, skips, or weaker invariants.
+- **AI/task discipline:** use evidence-backed `file:line` claims, root-cause ownership, nested one-`in_progress` tracking, and `lessons.md`/project-reference routing.
+
+**IMPORTANT MUST ATTENTION** read `docs/project-config.json` → `integrationTestVerify` FIRST; missing section → Fallback Mode — why: runner assumptions do not transfer across stacks.
+**IMPORTANT MUST ATTENTION** use config `quickRunCommand` — NEVER hardcode a language-specific runner.
+**IMPORTANT MUST ATTENTION** read configured reference docs/scripts before any test command and harvest every declared precondition with `file:line` evidence; NEVER invent rows.
+**IMPORTANT MUST ATTENTION** run `systemCheckCommand`, settle every checklist row with real evidence, and STOP `ENVIRONMENT-BLOCKED` on any unmet row; point to `startupScript` and NEVER repair environment gaps in tests.
+**IMPORTANT MUST ATTENTION** determine projects by `testProjectPattern` > `testProjects` > git fallback; run only the touched set unless the user asks for all.
+**IMPORTANT MUST ATTENTION** pass requires two consecutive green full runs without DB reset; any failure restarts at run 1. Focused output is diagnostic, never a full-scope substitute.
+**IMPORTANT MUST ATTENTION** resolve the full/focused scope before any test command; record exact exit status and documented zero-match behavior.
+**IMPORTANT MUST ATTENTION** preserve unique run identity, realistic data, idempotent reference setup, additive state, and isolated mutable roots.
+**IMPORTANT MUST ATTENTION** use supported public use-case paths and keep the final business assertion intact; never substitute infrastructure bookkeeping for owned outcome evidence.
+**IMPORTANT MUST ATTENTION** fan out only independent projects with confirmed isolated mutable state; shared DBs run sequentially, and the all-return barrier precedes aggregation.
+**IMPORTANT MUST ATTENTION** report actual runner output: scope, command, exit status, exact Passed/Failed/Skipped counts, failing names, checklist, identity, and repeat proof.
+**IMPORTANT MUST ATTENTION** on failure, FIRST read `/integration-test-review`, diagnose test-vs-service fault; fix test faults at root, report service faults instead of silently fixing them, and NEVER weaken assertions, add skips, or mutate domain data through repositories.
+**IMPORTANT MUST ATTENTION** adjudicate intermittent failures before any change as (a) unrealistic pacing, (b) harness amplification, or (c) genuine product race; do NOT file (c) until (a)/(b) are ruled out.
+**IMPORTANT MUST ATTENTION** any standalone failure → recommend `/workflow-integration-test-green` first; omit that recommendation inside its own round. Resolve and update the active Goal Contract, and NEVER copy raw sensitive fixture data into it.
 
 **Anti-Rationalization:**
 
@@ -708,16 +699,10 @@ A test that is red in one run of the 2-run gate and green in another has NOT tol
 
 > **[IMPORTANT]** Use `TaskCreate` to break ALL work into small tasks BEFORE starting — analyze task size first.
 
----
-
-**IMPORTANT MUST ATTENTION Goal:** Prove reviewed integration tests pass repeatably — 2 consecutive green runs, no DB reset, every pass/fail claim backed by actual runner output.
-**IMPORTANT MUST ATTENTION** read `integrationTestVerify` config AND the project's integration-test reference docs FIRST, harvest their environment preconditions into a cited checklist, and settle every row before the first test command — use `quickRunCommand` from config, NEVER hardcode a language-specific runner.
-**IMPORTANT MUST ATTENTION** NEVER weaken assertions, add skips, or mutate domain data to force green — fix the root-cause layer (test bug vs service bug) and re-run the full 2-run sequence.
+> **Closing principle — Easy to Change:** judge every test, fix, or abstraction by whether it lowers future change cost; reject added coupling, hidden state, duplicated knowledge, or unclear intent.
 
 ---
 
-> **Closing reminder — Easy to Change is the success metric.** Every finding,
-> test, refactor, and abstraction must answer one question: _does this make
-> the next change cheaper or more expensive?_ If it doesn't reduce future
-> change cost, reject it. Coupling, hidden state, duplicated knowledge, and
-> unclear intent are the real enemies — call them out by name.
+**IMPORTANT MUST ATTENTION Goal:** Prove reviewed integration tests pass repeatably: run each relevant suite twice without DB reset using configured commands and verified doc-declared preconditions, then report actual runner evidence or an owning-layer failure verdict.
+**IMPORTANT MUST ATTENTION** read `integrationTestVerify` config and project reference docs FIRST, harvest cited preconditions, settle every row before the first test command, and use `quickRunCommand` — NEVER hardcode a language-specific runner.
+**IMPORTANT MUST ATTENTION** NEVER weaken assertions, add skips, or mutate domain data to force green — fix the root-cause layer and rerun the full 2-run sequence.

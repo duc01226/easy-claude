@@ -20,15 +20,14 @@ triggers:
 
 ## Quick Summary
 
-**Goal:** Produce a Keep-a-Changelog entry under `[Unreleased]` that tells users, in business terms, what changed and why it matters; cite affected logical IDs, flag breaking changes, and NEVER name files/classes.
+**Goal:** Produce a Keep-a-Changelog entry under `[Unreleased]` that tells users, in business terms, what changed and why it matters, cites affected logical IDs, flags breaking changes, and NEVER names files/classes in entry prose.
 
 **Summary:**
 
-- Translate every diff into business impact: name the user-facing capability, never the class/file/enum/migration (the "Business Focus" table is the lens — e.g. "Fixed pipeline loading error", not "Fixed null ref in GetById").
-- Drive the review through a throwaway `tmp/changelog-notes-*.md` notes file (categorize Added/Changed/Fixed/Deprecated/Removed/Security), then DELETE it in the final cleanup step — a leftover notes file is an anti-pattern.
-- Always write the entry under `[Unreleased]` (create the section if absent), grouped by module/feature rather than per-file, preserving existing entries.
-- Cite affected logical IDs (`FR-`/`BR-`/`TC-`) in `**Refs**` and prefix any breaking change with `**BREAKING:**` plus a one-line migration/impact note; omit the Breaking block when there is none.
-- **Main steps (in order):** locate `CHANGELOG.md` (root `./CHANGELOG.md` preferred, `./docs/CHANGELOG.md` fallback, else create at root) → gather changed files via `git diff` (PR / commit / range mode) → create categorized notes file → review EVERY changed file for business impact + categorize → holistic read of notes → write the grouped entry under `[Unreleased]` → update + preserve existing entries → delete the notes file. NEVER skip the per-file review — uncategorized changes get silently dropped.
+- MUST ATTENTION translate every diff into user impact; ALWAYS group related changes by module/feature; NEVER name files/classes/enums/migrations as business impact.
+- MUST ATTENTION before writing, find and read the changelog: root `./CHANGELOG.md` preferred, `./docs/CHANGELOG.md` fallback; ALWAYS create root only when neither exists; NEVER create `docs/CHANGELOG.md` when root exists.
+- **Main steps (in order):** MUST ATTENTION choose PR/commit/range scope → create `tmp/changelog-notes-{YYMMDD-HHMM}.md` with Added/Changed/Fixed/Deprecated/Removed/Security → review EVERY changed file and categorize → read notes holistically for the main change, beneficiaries, and new user capability → write a grouped entry under `[Unreleased]` → update while preserving existing entries → delete the notes file; NEVER skip review or cleanup.
+- Gates: MUST ATTENTION cite `FR-`/`BR-`/`TC-` IDs in `**Refs**`; ALWAYS prefix breaking changes with `**BREAKING:**` plus a migration/impact note; NEVER include Breaking when none; outside a workflow, ask the user to choose `workflow-feature` or `/changelog`, then after completion ask about `/test`, `/docs-update`, or manual continuation.
 
 **Workflow:**
 
@@ -43,28 +42,28 @@ triggers:
 - Use business-focused language, not technical jargon (e.g., "Added pipeline management" not "Added PipelineController.cs")
 - Group related changes by module/feature, not by file
 - Always insert under the `[Unreleased]` section; create it if missing
-- **Cite logical IDs + flag breaking changes (M3/M1):** See `.claude/skills/shared/sdd-artifact-contract.md` → "AI-SDD Mandates (M1-M7)" for BLOCKING criteria. Each entry cites the logical IDs it affects (`FR-`/`TC-`, plus `BR-` where relevant) and a business-level change description; keep implementation jargon and class/file names out of entry prose per `docs/project-reference/spec-principles.md` §3. Explicitly flag any breaking change with a `**BREAKING:**` prefix and a one-line migration/impact note.
+> **AI-SDD Artifact Contract** — M1/M2 keep business prose free of implementation identifiers; M3 makes logical IDs the primary traceability spine.
+> M6 requires review/gate skills to check applicable mandates and fail with specific violations.
+
+- **Cite logical IDs + flag breaking changes (M3/M1):** MUST ATTENTION READ `.claude/skills/shared/sdd-artifact-contract.md` → "AI-SDD Mandates (M1-M7)" for BLOCKING criteria. Each entry cites the logical IDs it affects (`FR-`/`TC-`, plus `BR-` where relevant) and a business-level change description; keep implementation jargon and class/file names out of entry prose per `docs/project-reference/spec-principles.md` §3. Explicitly flag any breaking change with a `**BREAKING:**` prefix and a one-line migration/impact note.
 
 **Be skeptical. Apply critical thinking, sequential thinking. Every claim needs traced proof, confidence percentages (Idea should be more than 80%).**
 
 # Changelog Skill
 
-Generate business-focused changelog entries by systematically reviewing file changes — name the user-facing capability, NEVER the class/file.
+Generate business-focused changelog entries by reviewing every changed file; name the user-facing capability, NEVER the class/file.
 
 ## Pre-Execution Checklist
 
-1. **Find existing CHANGELOG.md location**
-    - Check root: `./CHANGELOG.md` (preferred)
-    - Fallback: `./docs/CHANGELOG.md`
-    - Not found: create at root
+1. **Find `CHANGELOG.md`** — prefer root `./CHANGELOG.md`; fall back to `./docs/CHANGELOG.md`; if absent, create root.
 
-2. **Read current changelog** — understand format + last entries
+2. **Read current changelog** — preserve format and latest entries.
 
 ## Workflow
 
 ### Step 1: Gather Changes
 
-Determine change scope by mode:
+Determine scope by mode:
 
 ```bash
 # PR/Branch-based (default)
@@ -124,10 +123,9 @@ Create `tmp/changelog-notes-{YYMMDD-HHMM}.md`:
 
 For each changed file:
 
-1. Read file or diff
-2. Identify **business impact** (not just technical change)
-3. Check box, note in temp file
-4. Categorize into appropriate section
+1. Read file or diff.
+2. Identify **business impact**, not just technical change.
+3. Mark its notes item, then categorize it.
 
 **Business Focus Guidelines**:
 
@@ -179,18 +177,18 @@ Format (Keep a Changelog):
 
 ### Step 6: Update Changelog
 
-1. Read existing CHANGELOG.md
-2. Insert new entry under `[Unreleased]` section
-3. No `[Unreleased]` section → create it after header
-4. Preserve existing entries
+1. Read existing `CHANGELOG.md`.
+2. Insert new entry under `[Unreleased]`.
+3. If `[Unreleased]` is absent, create it after the header.
+4. Preserve existing entries.
 
 ### Step 7: Cleanup
 
-Delete temp notes file: `tmp/changelog-notes-*.md`
+Delete temp notes file: `tmp/changelog-notes-*.md`.
 
 ## Grouping Strategy
 
-Group related changes by module/feature:
+Group related changes by module/feature.
 
 ```markdown
 ### Your Service: Order Pipeline Management
@@ -213,12 +211,12 @@ Group related changes by module/feature:
 
 ## Anti-Patterns
 
-1. ❌ Creating new changelog in docs/ when root exists
-2. ❌ Skipping file review (leads to missed changes)
-3. ❌ Technical jargon without business context
-4. ❌ Forgetting to delete temp notes file
-5. ❌ Not using [Unreleased] section
-6. ❌ Listing every file instead of grouping by feature
+1. ❌ Create new changelog under `docs/` when root exists.
+2. ❌ Skip file review; changes get missed.
+3. ❌ Use technical jargon without business context.
+4. ❌ Leave the temp notes file.
+5. ❌ Omit the `[Unreleased]` section.
+6. ❌ List every file instead of grouping by feature.
 
 ## Examples
 
@@ -258,19 +256,13 @@ Group related changes by module/feature:
 
 ## Reference
 
-See `references/keep-a-changelog-format.md` for format specification.
-
-## Related
-
-- `documentation`
-- `release-notes`
-- `commit`
+See `references/keep-a-changelog-format.md` for format rules. Related: `documentation`, `release-notes`, `commit`.
 
 ---
 
 ## Workflow Recommendation
 
-> **MANDATORY IMPORTANT MUST ATTENTION — NO EXCEPTIONS:** If you are NOT already in a workflow, you MUST ATTENTION use `AskUserQuestion` to ask the user. Do NOT judge task complexity or decide this is "simple enough to skip" — the user decides whether to use a workflow, not you:
+> **MANDATORY IMPORTANT MUST ATTENTION — NO EXCEPTIONS:** If NOT already in a workflow, use `AskUserQuestion` first. Do NOT judge the task "simple enough to skip"; the user chooses:
 >
 > 1. **Activate `workflow-feature` workflow** (Recommended) — investigate → plan → feature-implement → review → changelog
 > 2. **Execute `/changelog` directly** — run this skill standalone
@@ -279,17 +271,17 @@ See `references/keep-a-changelog-format.md` for format specification.
 
 ## Next Steps
 
-**MANDATORY IMPORTANT MUST ATTENTION — NO EXCEPTIONS** after completing this skill, you MUST ATTENTION use `AskUserQuestion` to present these options. Do NOT skip because the task seems "simple" or "obvious" — the user decides:
+**MANDATORY IMPORTANT MUST ATTENTION — NO EXCEPTIONS** after this skill, use `AskUserQuestion` to present these options. Do NOT skip because the task seems "simple" or "obvious"; the user decides:
 
 - **"/test (Recommended)"** — Run tests after changelog update
 - **"/docs-update"** — Update docs if needed
 - **"Skip, continue manually"** — user decides
 
-> **[IMPORTANT]** Use `TaskCreate` to break ALL work into small tasks BEFORE starting — including tasks for each file read. This prevents context loss from long files. For simple tasks, AI MUST ATTENTION ask user whether to skip.
+> **[IMPORTANT]** Use `TaskCreate` to break ALL work into small tasks BEFORE starting, including each file read; this prevents context loss. For simple tasks, AI MUST ATTENTION ask the user whether to skip.
 
-> **External Memory:** For complex or lengthy work (research, analysis, scan, review), write intermediate findings and final results to a report file in `tmp/reports/` — prevents context loss and serves as deliverable.
+> **External Memory:** For complex or lengthy research, analysis, scans, or reviews, write intermediate findings and final results to `tmp/reports/`; this prevents context loss and preserves the deliverable.
 
-> **Evidence Gate:** MANDATORY IMPORTANT MUST ATTENTION — every claim, finding, and recommendation requires `file:line` proof or traced evidence with confidence percentage (>80% to act, <80% must verify first).
+> **Evidence Gate:** MANDATORY IMPORTANT MUST ATTENTION — every claim, finding, and recommendation needs `file:line` proof or traced evidence with a confidence percentage (>80% act; <80% verify first).
 
 <!-- SYNC:ai-mistake-prevention -->
 
@@ -378,7 +370,7 @@ See `references/keep-a-changelog-format.md` for format specification.
 
 ## Closing Reminders
 
-**IMPORTANT MUST ATTENTION Goal:** Produce a Keep-a-Changelog entry under `[Unreleased]` that tells users, in business terms, what changed and why it matters; cite affected logical IDs, flag breaking changes, and NEVER name files/classes.
+**IMPORTANT MUST ATTENTION Goal:** Produce a Keep-a-Changelog entry under `[Unreleased]` that tells users, in business terms, what changed and why it matters, cites affected logical IDs, flags breaking changes, and NEVER names files/classes in entry prose.
 
 **IMPORTANT MUST ATTENTION — Protocols in force (concise digest of the SYNC/shared blocks this skill carries):**
 
@@ -386,7 +378,7 @@ See `references/keep-a-changelog-format.md` for format specification.
 - **Critical Thinking:** Traced `file:line` proof per claim, confidence >80% to act.
 - **Project Reference Docs:** Read required project-reference docs (always `lessons.md`) before target work.
 
-**IMPORTANT MUST ATTENTION — main steps (run in order, NEVER skip/merge):** locate `CHANGELOG.md` → gather changed files (`git diff` PR/commit/range) → create categorized notes → review EVERY changed file + categorize Added/Changed/Fixed/Deprecated/Removed/Security → holistic read of notes → write grouped entry under `[Unreleased]` (preserve existing) → delete the notes file — why: AI keeps forgetting the skill's own steps and silently drops the review or cleanup.
+**IMPORTANT MUST ATTENTION — main steps (run in order, NEVER skip/merge):** find and read `CHANGELOG.md` (root preferred, docs fallback, else create root) → choose PR/commit/range scope → create `tmp/changelog-notes-{YYMMDD-HHMM}.md` with Added/Changed/Fixed/Deprecated/Removed/Security → review EVERY changed file for business impact and categorize → read notes holistically for the main change, beneficiaries, and new user capability → write a grouped entry under `[Unreleased]` with `**Refs**` IDs → update while preserving existing entries → delete the notes file — why: skipping review or cleanup silently drops changes and leaves artifacts.
 
 **IMPORTANT MUST ATTENTION** use business-focused language, group by module/feature — name the user-facing capability, NEVER the class/file/enum/migration — why: changelog readers track impact, not implementation (see Business Focus table).
 **IMPORTANT MUST ATTENTION** cite `FR-`/`BR-`/`TC-` logical IDs in `**Refs**`; prefix every breaking change with `**BREAKING:**` + one-line migration/impact note; omit the Breaking block when none — why: readers need traceability and a migration signal, not noise.
@@ -396,7 +388,7 @@ See `references/keep-a-changelog-format.md` for format specification.
 **IMPORTANT MUST ATTENTION** verify each business-impact claim against the actual diff (`file:line`), confidence >80% to act, <80% re-read the diff first — NEVER speculate impact from a filename — why: a misread diff ships a wrong user-facing claim.
 **IMPORTANT MUST ATTENTION** find the existing `CHANGELOG.md` before writing — root `./CHANGELOG.md` preferred, fallback `./docs/CHANGELOG.md` — NEVER create a new changelog in `docs/` when root exists — why: a split changelog fragments release history.
 **IMPORTANT MUST ATTENTION** break work into small `TaskCreate` todos BEFORE starting (one per file read), keep one `in_progress`, mark `completed` immediately, add a final review todo — why: long diffs exhaust context and lose findings.
-**IMPORTANT MUST ATTENTION** validate route/skip decisions with the user via `AskUserQuestion` — never auto-decide a workflow is "too simple to need".
+**IMPORTANT MUST ATTENTION** before execution, if outside a workflow, use `AskUserQuestion` for the user's choice (`workflow-feature` or `/changelog`); after completion, use it again to offer `/test`, `/docs-update`, or manual continuation — why: workflow and follow-up choices belong to the user.
 
 **Anti-Rationalization:**
 
@@ -407,9 +399,3 @@ See `references/keep-a-changelog-format.md` for format specification.
 | "Just list the files changed"            | Group by module/feature in business terms — file lists are the bad-entry anti-pattern. |
 | "No existing CHANGELOG, make one in docs"| Search root first; only create at root when truly absent.                           |
 | "Notes file is harmless, leave it"       | Delete it in cleanup — a leftover notes file is an anti-pattern.                     |
-
-**IMPORTANT MUST ATTENTION Goal echo:** business-language Keep-a-Changelog entry under `[Unreleased]`, logical IDs cited, breaking changes flagged, NEVER file/class names — temp notes file deleted.
-**IMPORTANT MUST ATTENTION** group by feature in business terms, cite logical IDs, flag `**BREAKING:**` — why: impact over implementation.
-**IMPORTANT MUST ATTENTION** break work into small `TaskCreate` todos before starting and delete the temp notes file in cleanup.
-
-> **[IMPORTANT]** Analyze how big the task is and break it into many small todo tasks systematically before starting — this is very important.

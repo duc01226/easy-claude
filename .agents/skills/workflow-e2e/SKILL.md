@@ -1,6 +1,6 @@
 ---
 name: workflow-e2e
-description: '[Workflow] Use when generating, updating, or maintaining E2E/Playwright tests. Flags: --source={changes|recording|update-ui|prompt|context|whole}, --visual-review={true|false} (default false).'
+description: '[Workflow] Use when writing, updating, and verifying E2E/Playwright tests through a bounded green fix/retest loop. Flags: --source={changes|recording|update-ui|prompt|context|whole}, --visual-review={true|false} (default true; false is the explicit opt-out).'
 disable-model-invocation: false
 ---
 
@@ -52,17 +52,18 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 
 ## Quick Summary
 
-**Goal:** [Workflow] Trigger the E2E testing workflow — one parameterized entry covering change, recording, UI, prompt/context, and whole-project verification. `--source` selects the protocol; prompt/context/whole verification hands off to the bounded green loop. `--visual-review=true` explicitly adds the screenshot visual gate and E2E rerun loop; the default is false.
+**Goal:** [Workflow] Provide one canonical E2E lifecycle: write or update the test when the source requires it, then verify the fixed scope through the configured system and repair failures in a bounded fresh-run loop until it is honestly green or escalated. Visual screenshot review is enabled by default, and `--visual-review=false` is the explicit opt-out from the screenshot visual gate and E2E rerun loop.
 
-**Summary:** Resolve `--source={changes|recording|update-ui|prompt|context|whole}` (infer and state it when omitted) and `--visual-review={true|false}` (default false; state the resolved value). Existing source modes run the established sequence; prompt/context/whole invoke the config-first `$workflow-e2e-green` loop, which selects or generates scenarios, exercises visible web journeys, adjudicates failures, and repeats bounded remediation with evidence. When visual review is true, the loop also captures/reads the screenshot matrix through `$experience-review --rounds=0`, fixes validated blocking UI findings, and reruns the same E2E scope.
+**Summary:** Resolve `--source={changes|recording|update-ui|prompt|context|whole}` (infer and state it when omitted) and `--visual-review={true|false}` (default true; state the resolved value). Authoring sources (`changes|recording|update-ui`) prepare the E2E artifact first; verification sources (`prompt|context|whole`) let the convergence engine select or generate it. Every source then enters the same config-first `e2e-test-verify-loop`, which exercises the declared scope, adjudicates failures, fixes the owning layer, and repeats fresh remediation with evidence. When visual review is enabled, the loop also captures/reads every generated screenshot in the declared matrix through `$experience-review --rounds=0`, fixes validated blocking UI findings, and reruns the same E2E scope.
 - **Testability contract:** resolve Unit/Integration/System/E2E applicability from runner/config evidence; record owner/root/data, copy-ready full + focused commands, zero-match behavior, CI/simple-Windows entry, unique run/data identity, and repeat proof; unresolved applicable fields block handoff, while non-applicable tiers require evidence-backed `N/A`.
 - **Browser interaction contract:** for every UI-control step, reuse one bounded parameterized `waitUntil(condition, options)` helper before the action for readiness/actionability and applicable error-alert absence, and after the action for the expected positive/negative outcome or error-alert state; apply the exact 500ms pacing delay only at the end.
 
 **Workflow:**
 
-1. **Detect** — read `--source={changes|recording|update-ui|prompt|context|whole}`; classify request scope and target artifacts.
-2. **Execute** — apply the source-specific protocol below with evidence-backed actions.
-3. **Verify** — confirm constraints, output quality, and completion evidence.
+1. **Detect** — resolve `--source`, scope, and visual mode from the request and repository evidence.
+2. **Prepare** — run the conditional `$e2e-test` authoring phase for `changes|recording|update-ui`; otherwise let the loop select or generate the required case.
+3. **Converge** — run `$e2e-test-verify-loop` over that exact scope; classify, fix, review, and rerun from fresh setup until the configured green contract passes or escalation is required.
+4. **Close** — update docs with the terminal evidence, then end and report the workflow.
 
 **Key Rules:**
 
@@ -71,18 +72,17 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 - MUST ATTENTION define success criteria before execution and loop until observable verification passes.
 - MUST ATTENTION when creating/reviewing specs or tests, name `Business Intent / Invariant Guarded` or the protected business intent/invariant and ensure the test would fail if that intent breaks.
 - MUST ATTENTION write browser journeys as observe → act → observe: use `waitUntil` for loading, controls, click results, dropdown/options, selected state, and applicable error-alert presence/absence; keep predicates, timeout/poll settings, and diagnostics reusable.
-- MUST ATTENTION when `--visual-review=true`, capture and open/read every declared screenshot state × viewport, use `$experience-review` as the visual adjudicator, route validated blocking UI findings through the owning UI fix, and rerun the same E2E scope; `$ask` is not a screenshot reviewer.
+- MUST ATTENTION when visual review is enabled (the default or explicit `--visual-review=true`), capture and open/read every generated screenshot in the declared state × viewport matrix, use `$experience-review` as the visual adjudicator, route validated blocking UI findings through the owning UI fix, and rerun the same E2E scope; `--visual-review=false` is the explicit opt-out and `$ask` is not a screenshot reviewer.
+- MUST ATTENTION treat `$e2e-test-verify-loop` as the single convergence/remediation owner after preparation; do not run a second green workflow, duplicate the configured E2E command, or create a separate visual-fix loop.
 - NEVER skip mandatory workflow or skill gates.
 
-**IMPORTANT MANDATORY Steps:** $investigate -> $e2e-test -> $experience-review -> $test -> $docs-update -> $workflow-end -> $watzup
-
-**Green source handoff Steps:** $investigate -> $e2e-test-verify-loop -> $docs-update -> $workflow-end -> $watzup.
+**IMPORTANT MANDATORY Steps:** $investigate -> $e2e-test -> $e2e-test-verify-loop -> $docs-update -> $workflow-end -> $watzup
 
 > **[BLOCKING]** Each step MUST ATTENTION invoke its skill invocation — marking a task `completed` without skill invocation is a workflow violation. NEVER batch-complete validation gates.
 
 ## Source Dispatch (`--source`)
 
-Resolve `--source` from the invocation. If omitted, infer from the request (recording file present → `recording`; UI/SCSS/HTML diff → `update-ui`; otherwise `changes`) and state the chosen source before proceeding. Resolve `--visual-review=true|false` separately; default to `false`, and do not infer `true` merely because the target is a UI.
+Resolve `--source` from the invocation and state the result before proceeding. An explicit value wins. When omitted, infer in this order: recording JSON present → `recording`; an explicit whole-project request → `whole`; a request to run/verify/QC a feature, bugfix, journey, or current context → `prompt` or `context`; a UI/SCSS/HTML diff with baseline intent → `update-ui`; a confirmed code/spec/API change → `changes`. If no source signal is evidenced, stop with an ambiguity record rather than silently choosing a maintenance mode. Resolve `--visual-review=true|false` separately; default to `true`, and record `false` only when the caller explicitly opts out. The default applies even when the target is not obviously a UI; a UI surface is not needed to infer the flag.
 
 | `--source`  | Use when                                                                 | When NOT to use                                                        |
 | ----------- | ------------------------------------------------------------------------ | ---------------------------------------------------------------------- |
@@ -95,17 +95,16 @@ Resolve `--source` from the invocation. If omitted, infer from the request (reco
 
 | `--visual-review` | Behavior |
 | ----------------- | -------- |
-| `false` (default) | Run the selected source protocol and its existing evidence/acceptance gates; do not add the visual remediation loop. |
-| `true`            | Require a screenshot state × viewport matrix and image inspection through `$experience-review --rounds=0`; validated blocking visual findings enter the E2E failure set, are fixed at the owning UI layer, and force a fresh same-scope E2E rerun. |
+| `true` (default)   | Require a screenshot state × viewport matrix for applicable generated screenshots and image inspection through `$experience-review --rounds=0`; validated blocking visual findings enter the E2E failure set, are fixed at the owning UI layer, and force a fresh same-scope E2E rerun. |
+| `false` (explicit opt-out) | Run the selected source protocol and its other evidence/acceptance gates without the screenshot visual remediation loop. |
 
-The `changes`, `recording`, and `update-ui` sources run the established sequence: `$investigate → $e2e-test → $experience-review (conditional) → $test → $docs-update → $workflow-end → $watzup`. The downstream `e2e-test` leaf is mode-aware and performs the per-source work; `experience-review` classifies and inspects relevant observable evidence before any expectation promotion.
+All sources use one lifecycle in this manifest: `$investigate -> $e2e-test -> $e2e-test-verify-loop -> $docs-update -> $workflow-end -> $watzup`. The `$e2e-test` occurrence is conditional authoring: `changes`, `recording`, and `update-ui` write or update the artifact and hand its exact scope and traceability to the loop; `prompt`, `context`, and `whole` skip it because the loop selects or generates Given/When/Then cases itself. The loop owns the configured E2E command, report-only `$experience-review`, failure adjudication, owning-layer fixes, review, fresh bring-up, and same-scope reruns; `$test` is not a second top-level run.
 
-The `prompt`, `context`, and `whole` sources use `$workflow-e2e-green`: `$investigate` resolves project configuration and applicability, `$e2e-test-verify-loop` selects or generates Given/When/Then cases, exercises the configured lifecycle in a visible browser where applicable, evaluates human-QC evidence, and performs bounded debug/fix/retest rounds. `$docs-update`, `$workflow-end`, and `$watzup` remain mandatory after the loop.
-
-When `--visual-review=true`, forward the flag to `$workflow-e2e-green` and
-`$e2e-test-verify-loop`. The child loop, not `$ask`, owns visual adjudication,
-UI fixes, and the required rerun of the same configured E2E command after each
-validated blocking visual finding.
+When visual review is enabled (the default or explicit `--visual-review=true`),
+forward the resolved true value to `$e2e-test-verify-loop`. When
+`--visual-review=false` is explicit, forward the resolved opt-out. The loop,
+not `$ask`, owns visual adjudication, UI fixes, and the required rerun of the
+same configured E2E command after each validated blocking visual finding.
 
 ### `--source=changes` — E2E from Changes
 
@@ -118,8 +117,8 @@ E2E FROM CHANGES PROTOCOL:
 2. Load affected test specifications (TC-{FEATURE}-{NNN})
 3. Update or generate test implementations with the shared bounded `waitUntil(condition, options)` helper before and after every interactive UI action; keep the final assertion in the test.
 4. Ensure traceability: each TC has corresponding test
-5. Run tests to verify changes work
-6. Report updated test coverage
+5. Run only the configured focused authoring check when useful; the final full green gate belongs to `$e2e-test-verify-loop`
+6. Report updated test coverage and the exact scope handed to the convergence loop
 ```
 
 ### `--source=recording` — E2E from Recording
@@ -131,11 +130,11 @@ E2E FROM RECORDING PROTOCOL:
 3. Run convert-recording.ts to generate initial test file
 4. Load test specifications from feature docs Section 8
 5. Map TC-{FEATURE}-{NNN} test cases to recording steps
-6. Enhance generated code with project CSS conventions (from docs/project-config.json → workflowPatterns.cssMethodology) and rewrite generated timing into the shared `waitUntil` observe → act → observe sequence; do not retain ad-hoc sleeps.
+6. Enhance generated code with the resolved project design-system/SCSS/frontend conventions from `docs/project-config.json` and linked reference docs; if no project convention is configured, record `N/A` rather than inventing one. Rewrite generated timing into the shared `waitUntil` observe → act → observe sequence; do not retain ad-hoc sleeps.
 7. Add screenshot assertions at key states
 8. Generate Page Object if complex flow, reusing the Common → Domain-Shared → Page object tiers and one canonical wait-until utility.
-9. Run test to verify it passes
-10. Report generated files and any manual steps needed
+9. Run only a configured focused authoring check when useful; the convergence loop performs the final full verification
+10. Report generated files, the exact scope handed off, and any manual steps needed
 ```
 
 ### `--source=update-ui` — E2E Update UI
@@ -146,7 +145,7 @@ E2E UPDATE UI PROTOCOL:
 2. Map changed files to affected page objects
 3. Find E2E specs using those page objects
 4. Run affected tests to collect candidate screenshots/evidence without changing accepted expectations
-5. Run $experience-review to exercise the intended journey, open and inspect the candidate evidence, and classify observed/judged/acceptance state
+5. Collect candidate evidence and record the observed/judged/acceptance state; the final report-only visual adjudication and any fix/retest loop belong to `$e2e-test-verify-loop`
 6. Update only the affected snapshots/baselines after an explicit acceptance record; otherwise preserve the previous accepted expectation and report ACCEPTANCE-PENDING, ENVIRONMENT-BLOCKED, or the applicable mismatch decision
 7. Report updated files, evidence references, decision, and any remaining limitation
 ```
@@ -169,20 +168,22 @@ E2E VERIFY GREEN PROTOCOL:
 - Goal-Driven Execution: define success criteria before execution; loop until observable checks pass.
 - Tests Verify Intent: when creating or reviewing specs/tests, name the protected business intent or invariant and ensure the test would fail if that intent breaks.
 - Browser/UI E2E: use a shared bounded `waitUntil(condition, options)` before and after every control action for readiness/actionability, expected positive/negative state, dropdown/options, and applicable error-alert presence/absence; apply the exact 500ms pacing delay last and keep real settle signals separate.
-- Optional visual gate: only when explicitly activated with `--visual-review=true`, require screenshot capture/read/visual adjudication and a same-scope E2E rerun after each validated blocking UI fix; keep advisory polish visible without creating an unbounded taste loop.
+- Default visual gate: unless `--visual-review=false` is explicit, require screenshot capture/read/visual adjudication and a same-scope E2E rerun after each validated blocking UI fix; keep advisory polish visible without creating an unbounded taste loop.
 
-Activate the `workflow-e2e` workflow for `changes`, `recording`, and `update-ui`. For `prompt`, `context`, or `whole`, run `$start-workflow workflow-e2e-green` with the user's prompt/current context and the resolved scope protocol above.
+Activate `workflow-e2e` for every source. The conditional `$e2e-test` occurrence is skipped for `prompt`, `context`, and `whole` because `$e2e-test-verify-loop` owns selection or generation there. There is no second `workflow-e2e-green` route.
 
-**Steps:** Existing source modes: `$investigate → $e2e-test → $experience-review → $test → $docs-update → $workflow-end → $watzup`. Green sources: `$investigate → $e2e-test-verify-loop` (nested `$experience-review` report-only) → `$docs-update → $workflow-end → $watzup`.
+**Steps:** `$investigate -> $e2e-test -> $e2e-test-verify-loop -> $docs-update -> $workflow-end -> $watzup`.
 
-## Optional Combined Visual Review Mode
+## Default Combined Visual Review Mode
 
-`--visual-review=true` is an explicit opt-in for every `--source` value and
-defaults to `false`. Seeing or changing a UI does not activate this mode by
-itself. The default path keeps the source-specific workflow and its existing
-acceptance gates.
+Visual review is enabled for every `--source` value by default, equivalent to
+`--visual-review=true`. An explicit `--visual-review=false` opts out. Seeing or
+changing a UI does not switch the mode off or on; the resolved flag is recorded
+before execution. The default path keeps the source-specific workflow and its
+existing acceptance gates, while adding screenshot inspection for every
+applicable run that generates screenshots.
 
-When the mode is `true`:
+When the mode is enabled:
 
 - For `changes`, `recording`, and `update-ui`, complete the source-specific
   generation/update work, then run the configured same-scope E2E command and
@@ -194,9 +195,8 @@ When the mode is `true`:
   Repeat until the E2E and blocking-visual counts converge. Never update a
   snapshot, baseline, fixture, assertion, or expectation automatically.
 - For `prompt`, `context`, and `whole`, forward the flag to
-  `$workflow-e2e-green`, which forwards it to
-  `$e2e-test-verify-loop` and owns the complete run → capture → inspect → fix
-  → same-scope rerun loop.
+  `$e2e-test-verify-loop`, which owns the complete run → capture → inspect →
+  fix → same-scope rerun loop.
 - Missing capture, unread images, or an incomplete state × viewport matrix is
   `ENVIRONMENT-BLOCKED`; it is not a visual pass. `ADVISORY` identity, polish,
   or non-contract spacing observations remain visible but do not create an
@@ -220,7 +220,7 @@ When the E2E source touches a configured or likely observable surface, carry the
 
 ## Test Architecture Contract Handoff
 
-Before `$e2e-test`, resolve and carry one evidence-backed contract record through the existing sequence:
+Before `$e2e-test` or `$e2e-test-verify-loop`, resolve and carry one evidence-backed contract record through the unified sequence:
 
 | Field | Required handoff |
 | --- | --- |
@@ -231,11 +231,7 @@ Before `$e2e-test`, resolve and carry one evidence-backed contract record throug
 | `objectModel` | Provide the reusable Common → Domain-Shared → Page component/object tiers, the idiomatic abstract base or language-equivalent abstraction, one canonical parameterized `waitUntil` helper with bounded diagnostics, cohesive helpers/utilities, and the reason for any non-reuse. |
 | `repeatProof` / `result` | Carry exact counts, failing names, and exit status, plus repeat/parallel evidence and two consecutive no-reset full runs for each applicable persistent-state suite. |
 
-`$investigate` resolves applicability and scope; `$e2e-test` owns E2E setup and configured commands; `$test` receives the command/scope/data record and reports exact results read-only; `$docs-update` receives the final evidence. If E2E is not configured, `$e2e-test` records the evidence-backed `N/A` and does not substitute an invented runner; the delegated order and explicit acceptance gate remain unchanged.
-
----
-
-**Green source handoff Steps:** $investigate -> $e2e-test-verify-loop -> $docs-update -> $workflow-end -> $watzup.
+`$investigate` resolves applicability and scope; `$e2e-test` owns only source-specific authoring/setup when its occurrence applies; `$e2e-test-verify-loop` owns the configured command, exact results, evidence, failure classification, fixes, and fresh reruns; `$docs-update` receives the terminal evidence. If E2E is not configured, the applicable owner records the evidence-backed `N/A` and does not substitute an invented runner.
 
 <!-- SYNC:ai-mistake-prevention -->
 
@@ -359,6 +355,21 @@ Before `$e2e-test`, resolve and carry one evidence-backed contract record throug
 
 <!-- /SYNC:test-architecture-execution-contract -->
 
+<!-- SYNC:e2e-visual-design-contract -->
+
+> **E2E Visual Design Contract** — Binds when this skill or agent handles `--visual-review=true`, screenshot/recording evidence, human-QC of a user-facing UI, or visual expectation/baseline updates; for non-visual E2E/API/CLI work state `N/A — no user-facing visual surface` and do not invent a design review.
+>
+> 1. **Resolve authority first.** Read `docs/project-config.json`, its `designSystem.canonicalDoc`, `tokenFiles`, and `appMappings[]`, plus the resolved `design-system/README.md`, `frontend-patterns-reference.md`, `scss-styling-guide.md`, `.claude/docs/design-knowledge.md`, and `.claude/docs/design-review-checklist.md`; record `N/A` only for a proven absent surface or `ENVIRONMENT-BLOCKED` for an applicable missing capability — never invent tokens, components, breakpoints, type, CSS/BEM, or runner defaults.
+> 2. **Use project decisions.** Apply precedence: brief/accepted design contract → adopter project design-system/SCSS/frontend docs and ADRs → shared `UI-1.1`–`UI-9.4`, `DD-1`–`DD-8`, and `CL-1`–`CL-6`; surface a genuine conflict with both sides, never silently choose. Read and apply the full shared `SYNC:design-system-check`, `SYNC:ui-ux-design-principles`, `SYNC:design-distinctiveness-gate`, and `SYNC:design-review-checklist` bodies for their applicable roles. When UI generation or repair is in scope, consume the accepted `$design` decisions (or the adopter's equivalent professional design/component system); review-only E2E evidence must not invent a new visual language.
+> 3. **Map UI architecture before generation or UI fixes.** Inventory related screens, flows, and components; classify each relevant component `Common`, `Domain-Shared`, or `Page`; record its base abstraction and owner; reuse/compose before creating; record why reuse does not fit; keep one owner for markup, selectors, styling, lifecycle, and lower-tier test contracts. Page tests cover composition/outcomes, not copied lower-tier behavior.
+> 4. **Separate review owners.** Use `$experience-review` for the running surface and opened/read screenshot evidence; route source-only token, BEM/SCSS, z-index, component ownership, reuse, and static design findings to `$ui-review`. Never infer source architecture or design tokens from an image, and never treat a passing E2E command as visual/design approval.
+> 5. **Gate every visual round.** Capture every declared state × viewport (including loading, empty, error, permission, post-submit, and full-page where applicable), open/read each artifact, and record state, viewport, location, and measured values. `UI-*`/accessibility/layout-floor and `P0`–`P2` `CL-*` findings are `BLOCKING`; `DD-*` identity/polish is `ADVISORY` unless the governing brief/project contract makes it objectively required. Unmeasurable values are `NOT VERIFIABLE`; never promote a baseline/expectation automatically.
+> 6. **Report the contract.** Persist authority paths and resolution status, component tier/base/owner/reuse decisions, matrix coverage, `UI`/`DD`/`CL` coverage or skips, evidence/read status, and remaining human acceptance; preserve the protected business invariant and exact E2E scope.
+
+<!-- /SYNC:e2e-visual-design-contract -->
+
+
+
 <!-- SYNC:critical-thinking-mindset:reminder -->
 
 **MUST ATTENTION** apply critical + sequential thinking — every claim needs appropriate traced evidence (`file:line` for repo/code claims; source URL or artifact section for research, product, content, and docs claims); confidence >80% to act, <60% DO NOT recommend. Anti-hallucination: never present guess as fact, admit uncertainty freely, cross-reference independently, stay skeptical of own confidence.
@@ -398,14 +409,20 @@ Before `$e2e-test`, resolve and carry one evidence-backed contract record throug
 
 <!-- /SYNC:test-architecture-execution-contract:reminder -->
 
+<!-- SYNC:e2e-visual-design-contract:reminder -->
+
+**MUST ATTENTION** visual E2E/QC resolves the project design authority first, applies project design-system/SCSS/frontend decisions plus `UI-*`/`DD-*`/`CL-*` roles, classifies Common/Domain-Shared/Page ownership and reuse, sends static source findings to `$ui-review` and runtime image evidence to `$experience-review`, reads every state × viewport artifact, treats UI/accessibility-floor findings as blocking and DD identity/polish as advisory, never invents measurements, and never auto-promotes baselines; non-visual runs state `N/A`.
+
+<!-- /SYNC:e2e-visual-design-contract:reminder -->
+
 ## Closing Reminders
 
 **IMPORTANT MUST ATTENTION** Testability contract: resolve evidence-backed Unit/Integration/System/E2E rows, copy-ready full/focused commands, zero-match failures, owner/root/data, CI/simple-Windows entry, unique run identity, and repeat proof before claiming setup, review, or test completion.
-**IMPORTANT MUST ATTENTION Goal:** [Workflow] Trigger the E2E testing workflow — one parameterized entry covering maintenance and green verification source modes. `--source` selects the protocol; every source conditionally reviews relevant observable experience before expectation promotion and regression verification.
+**IMPORTANT MUST ATTENTION Goal:** [Workflow] Provide one canonical E2E lifecycle: write or update the test when the source requires it, then verify the fixed scope through the configured system and repair failures in a bounded fresh-run loop until it is honestly green or escalated. Visual screenshot review is enabled by default, and `--visual-review=false` is the explicit opt-out from the screenshot visual gate and E2E rerun loop.
 
 **IMPORTANT MUST ATTENTION Workflow:** Resolve and state `--source={changes|recording|update-ui|prompt|context|whole}`; apply the established source protocol or the config-first green loop through its declared sequence; preserve intent-named test assertions, evidence-backed task transitions, visible human-QC evidence, and explicit verification of generated/updated E2E artifacts.
 
-**IMPORTANT MUST ATTENTION** `--visual-review=true` is opt-in (default `false`): run the same configured E2E scope, capture and open/read the full screenshot state × viewport matrix through `$experience-review --rounds=0`, fix only validated blocking UI defects at the owning layer, and rerun the same scope; `$ask` is not the screenshot reviewer.
+**IMPORTANT MUST ATTENTION** visual screenshot review is enabled by default (equivalent to `--visual-review=true`); run the same configured E2E scope, capture and open/read every generated screenshot in the full state × viewport matrix through `$experience-review --rounds=0`, fix only validated blocking UI defects at the owning layer, and rerun the same scope. `--visual-review=false` is the explicit opt-out; `$ask` is not the screenshot reviewer.
 
 **IMPORTANT MUST ATTENTION** every interactive browser/UI action uses the reusable bounded `waitUntil(condition, options)` before and after the action, including applicable error-alert states, followed by the exact 500ms presentation delay last.
 

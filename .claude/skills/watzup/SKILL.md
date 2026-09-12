@@ -346,7 +346,7 @@ After `/understand` completes, MUST ATTENTION use `AskUserQuestion` to present t
 
 ## Closing Reminders
 
-**IMPORTANT MUST ATTENTION Goal:** Hand the developer a complete, evidence-backed wrap-up — change summary, doc/spec staleness flags, root-cause lessons, and a `/understand` review guide — WITHOUT mutating any file, so they decide the next step from full context.
+**IMPORTANT MUST ATTENTION Goal:** Hand the developer a complete, evidence-backed wrap-up — by reviewing current branch changes and summarizing impact/quality — with a change summary, doc/spec staleness flags, root-cause lessons, and a `/understand` review guide (diagrams, user stories, a review path, and how to test/demo it), WITHOUT mutating any file, so they decide the next step from full context.
 
 **Protocols in force (concise digest of the SYNC/shared blocks this skill carries):**
 
@@ -379,4 +379,4 @@ After `/understand` completes, MUST ATTENTION use `AskUserQuestion` to present t
 | "I can just fix this stale doc while I'm here"    | READ-ONLY — flag only. Fixing here breaks the contract; the user decides.                      |
 | "Small change, skip `/understand`"               | `/understand` is the mandatory handoff — run it or report the blocker; never skip.             |
 
-**IMPORTANT MUST ATTENTION Goal echo:** evidence-backed READ-ONLY wrap-up — change summary + doc/spec staleness flags + root-cause lessons + mandatory `/understand` handoff, mutating NOTHING, so the user decides the next step.
+**IMPORTANT MUST ATTENTION Goal echo:** Hand the developer a complete, evidence-backed wrap-up — by reviewing current branch changes and summarizing impact/quality — with a change summary, doc/spec staleness flags, root-cause lessons, and a `/understand` review guide (diagrams, user stories, a review path, and how to test/demo it), WITHOUT mutating any file, so they decide the next step from full context.

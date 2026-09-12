@@ -6,32 +6,30 @@ description: '[Content] Use when evaluating business idea viability — Business
 
 <!-- PROMPT-ENHANCE:STEP-TASK-ANCHOR:START -->
 
-> **[BLOCKING]** Execute skill steps in declared order. NEVER skip, reorder, or merge steps without explicit user approval.
-> **[BLOCKING]** Before each step or sub-skill call, update task tracking: set `in_progress` when step starts, set `completed` when step ends.
+> **[BLOCKING]** Execute declared steps in order. NEVER skip, reorder, or merge without explicit user approval.
+> **[BLOCKING]** Before each step/sub-skill call, update task tracking: set `in_progress` at start, `completed` at end.
 > **[BLOCKING]** Every completed/skipped step MUST include brief evidence or explicit skip reason.
-> **[BLOCKING]** If Task tools are unavailable, create and maintain an equivalent step-by-step plan tracker with the same status transitions.
+> **[BLOCKING]** If Task tools unavailable, maintain equivalent step tracker with same status transitions.
 
 <!-- PROMPT-ENHANCE:STEP-TASK-ANCHOR:END -->
 
 ## Quick Summary
 
-**Goal:** Evaluate business idea viability to deliver an evidence-backed viability verdict — score + confidence + Pursue/Pivot/Pause/Pass recommendation — grounded in a complete 9-block BMC, 3-year financials with stated assumptions, 5+ risks with mitigation, and a phased execution + GTM plan, so the go/no-go decision rests on traced evidence, never optimism.
+**Goal:** Evaluate business idea viability; deliver evidence-backed viability verdict—score, confidence, Pursue/Pivot/Pause/Pass recommendation—grounded in complete 9-block BMC, 3-year financials + assumptions, 5+ risks with mitigation + residual risk, phased execution + GTM plan, so go/no-go rests on traced evidence, never optimism.
 
 **Summary:**
 
-- **Seven evaluation steps, preceded by a market-evidence precondition:** load market-analysis data first, then (1) capture idea (problem/solution/target), (2) Business Model Canvas — all 9 blocks, (3) 3-year financial projections + assumptions table, (4) risk assessment — 5+ risks, (5) phased execution plan, (6) go-to-market, (7) verdict. NEVER skip, reorder, or merge a step — why: AI forgets the skill's own steps and ships a partial evaluation.
-- Runs after market-analysis: pull its market data in as evidence rather than re-deriving market sizing here — this skill judges viability, it does not research the market.
-- Every artifact is evidence-gated — all 9 BMC blocks cite proof, every financial number carries an assumption + source, and each of the 5+ risks needs mitigation AND a residual-risk entry; an unbacked number or block fails the gate.
-- The verdict is the load-bearing output: a 1-10 viability score, an explicit confidence tier (95/80/60/<60%) with its evidence basis, a Pursue/Pivot/Pause/Pass call, and the single key condition that must hold to succeed — bias toward skepticism, never optimism.
-- Write the result to `docs/knowledge/strategy/business/{slug}.md` via the enforced `.claude/templates/business-evaluation-template.md`, then use `AskUserQuestion` to route next (domain-analysis recommended) — never auto-decide.
+- **Order:** Seven evaluation steps, preceded by a market-evidence precondition: load market evidence first, then run ALL 7 evaluation steps in order — detect idea/scope/evidence completeness; (1) capture idea (problem/solution/target), (2) 9-block BMC, (3) 3-year financials + assumptions, (4) 5+ risks + mitigation/residual risk, (5) phased execution, (6) GTM, (7) verdict. NEVER skip, reorder, or merge — why: partial evaluation invalidates the decision.
+- **Market gate:** In workflow parent, read exact `MARKET_ANALYSIS_PATH` (`{plan-dir}/research/market-analysis.md` only copy fallback); standalone, use supplied path. If absent, state `/market-analysis` did not run, mark TAM/SAM/SOM, share, and segment size N/A, cap verdict confidence at 60%; NEVER re-derive sizing.
+- **Evidence gate:** all 9 BMC blocks cite proof; every financial number has assumption + source; each 5+ risk has mitigation + residual risk; unbacked artifact fails.
+- **Decision/output:** verdict = 1-10 score + confidence tier (95/80/60/<60%) + basis + Pursue/Pivot/Pause/Pass + key success condition; write to `docs/knowledge/strategy/business/{descriptive-slug}.md` via enforced `.claude/templates/business-evaluation-template.md`, then `AskUserQuestion` for next route (domain-analysis recommended); NEVER auto-decide, favor skepticism.
 
 **Workflow:**
 
-**Precondition — load market analysis:** In `workflow-research` business-eval mode, read the exact
-parent-provided `MARKET_ANALYSIS_PATH` (with `{plan-dir}/research/market-analysis.md` only as the
-copy fallback). Standalone, use the explicitly supplied market-analysis path. **Absent → do NOT
-re-derive:** state that `/market-analysis` did not run, mark every market-sizing figure (TAM/SAM/SOM,
-share, segment size) N/A with that reason, and cap the verdict confidence tier at 60%.
+**Before evaluation — detect + reason:** classify supplied idea, scope, and market evidence as present, missing, or ambiguous; for each step run focused `Think: evidence / economics / execution / decision` passes. Derive concerns from idea + evidence; required blocks/categories guide coverage, not checklist recitation.
+
+**Precondition — load market analysis:** In `workflow-research` business-eval mode, read exact parent-provided `MARKET_ANALYSIS_PATH` (`{plan-dir}/research/market-analysis.md` only copy fallback); standalone, use explicitly supplied path.
+**Absent → do NOT re-derive:** state `/market-analysis` did not run; mark every market-sizing figure (TAM/SAM/SOM, share, segment size) N/A with that reason; cap verdict confidence at 60%.
 
 1. **Capture idea** — Problem, solution, target customer
 2. **Business Model Canvas** — All 9 blocks with evidence
@@ -43,18 +41,19 @@ share, segment size) N/A with that reason, and cap the verdict confidence tier a
 
 **Key Rules:**
 
-- All 9 BMC blocks required, each with evidence
-- Financial projections: explicit assumptions table
-- Minimum 5 risks with mitigation AND residual risk
-- Verdict must be evidence-backed with confidence declaration
+- Require all 9 BMC blocks; each cites evidence
+- Financial projections require explicit assumptions table
+- Require ≥5 risks, each with mitigation AND residual risk
+- Verdict requires evidence + confidence declaration
+- **Risk profile:** analysis. Fresh-eyes review, specialist routing, inline sub-agent protocols, and recursive quality loops: N/A — not required by this target contract; this skill does not delegate or own fix convergence.
 
-**Be skeptical. Apply critical thinking, sequential thinking. Every claim needs traced proof, confidence percentages (Idea should be more than 80%).**
+**Be skeptical; apply critical/sequential thinking. Every claim needs traced proof + confidence percentage (Idea should be more than 80%).**
 
 # Business Evaluation
 
 ## Step 1: Capture the Idea
 
-From user input, extract:
+Extract from user input:
 
 - **One-liner** — Elevator pitch in 1 sentence
 - **Problem** — What pain point does it solve?
@@ -63,7 +62,7 @@ From user input, extract:
 
 ## Step 2: Business Model Canvas
 
-All 9 blocks required:
+Require all 9 blocks:
 
 | Block                      | Key Question                      | Evidence Required    |
 | -------------------------- | --------------------------------- | -------------------- |
@@ -97,16 +96,16 @@ All 9 blocks required:
 
 ### Assumptions Table
 
-Every number must list its assumption and source.
+Every number lists its assumption + source.
 
 ## Step 4: Risk Assessment
 
-Minimum 5 risks:
+Require ≥5 risks:
 
 | Risk | Likelihood | Impact | Mitigation | Residual Risk |
 | ---- | ---------- | ------ | ---------- | ------------- |
 
-Categories to consider: market, execution, financial, competitive, regulatory, technical.
+Consider market, execution, financial, competitive, regulatory, technical.
 
 ## Step 5: Execution Plan
 
@@ -118,7 +117,7 @@ Categories to consider: market, execution, financial, competitive, regulatory, t
 
 ## Step 6: Go-to-Market
 
-- **Launch strategy** — How to enter the market
+- **Launch strategy** — How to enter market
 - **Initial channels** — Top 3 acquisition channels
 - **Pricing strategy** — Model + rationale + competitive comparison
 
@@ -137,17 +136,17 @@ Write to `docs/knowledge/strategy/business/{descriptive-slug}.md` using enforced
 
 ## Next Steps
 
-**MANDATORY IMPORTANT MUST ATTENTION — NO EXCEPTIONS** after completing this skill, you MUST ATTENTION use `AskUserQuestion` to present these options. Do NOT skip because the task seems "simple" or "obvious" — the user decides:
+**MANDATORY IMPORTANT MUST ATTENTION — NO EXCEPTIONS** After completion, use `AskUserQuestion` to present these options. Do NOT skip because the task seems "simple" or "obvious"—the user decides:
 
 - **"/domain-analysis (Recommended)"** — Analyze domain model from business evaluation
 - **"/plan"** — If ready to plan implementation
 - **"Skip, continue manually"** — user decides
 
-> **[IMPORTANT]** Use `TaskCreate` to break ALL work into small tasks BEFORE starting.
+> **[IMPORTANT]** Use `TaskCreate` to split ALL work into small tasks BEFORE starting.
 
-> **External Memory:** For complex or lengthy work (research, analysis, scan, review), write intermediate findings and final results to a report file in `tmp/reports/` — prevents context loss and serves as deliverable.
+> **External Memory:** For complex/lengthy research, analysis, scans, or reviews, write intermediate findings + final results to `tmp/reports/`—preserves context and serves as deliverable.
 
-> **Evidence Gate:** MANDATORY IMPORTANT MUST ATTENTION — every claim, finding, and recommendation requires `file:line` proof or traced evidence with confidence percentage (>80% to act, <80% must verify first).
+> **Evidence Gate:** MANDATORY IMPORTANT MUST ATTENTION—every claim, finding, and recommendation requires `file:line` proof or traced evidence + confidence percentage (>80% act; <80% verify first).
 
 <!-- SYNC:ai-mistake-prevention -->
 
@@ -214,7 +213,7 @@ Write to `docs/knowledge/strategy/business/{descriptive-slug}.md` using enforced
 
 ## Closing Reminders
 
-**IMPORTANT MUST ATTENTION Goal:** Deliver an evidence-backed viability verdict — score + confidence + Pursue/Pivot/Pause/Pass recommendation — grounded in a complete 9-block BMC, 3-year financials with stated assumptions, 5+ risks with mitigation, and a phased execution + GTM plan, so the go/no-go decision rests on traced evidence, never optimism.
+**IMPORTANT MUST ATTENTION Goal:** Evaluate business idea viability; deliver evidence-backed viability verdict—score, confidence, Pursue/Pivot/Pause/Pass recommendation—grounded in complete 9-block BMC, 3-year financials + assumptions, 5+ risks with mitigation + residual risk, phased execution + GTM plan, so go/no-go rests on traced evidence, never optimism.
 
 **MUST ATTENTION — Protocols in force (concise digest of the SYNC/shared blocks this skill carries):**
 
@@ -229,9 +228,9 @@ Write to `docs/knowledge/strategy/business/{descriptive-slug}.md` using enforced
 **MANDATORY IMPORTANT MUST ATTENTION** consume market data FROM market-analysis as evidence — NEVER re-derive market sizing here; if that producer did not run, mark the market figures N/A with the reason and cap verdict confidence at 60% rather than inventing them — why: this skill judges viability, it does not research the market; duplicated sizing diverges from the source.
 **MANDATORY IMPORTANT MUST ATTENTION** all 9 BMC blocks present, each citing proof; every financial number lists its assumption + source in the assumptions table — why: a missing block or bare number is a silent gap the verdict then rests on.
 **MANDATORY IMPORTANT MUST ATTENTION** minimum 5 risks, each with mitigation AND a residual-risk entry across market/execution/financial/competitive/regulatory/technical — why: a risk without residual pretends mitigation is total.
-**MANDATORY IMPORTANT MUST ATTENTION** load market evidence first, then run ALL 7 evaluation steps in order — idea → 9-block BMC → 3-year financials → 5+ risks → 3-phase execution plan (Validation/Build/Growth milestones) → go-to-market (launch + top-3 channels + pricing rationale) → verdict; NEVER drop financials, execution, or GTM because the idea "feels" decided — why: the verdict is only as sound as the weakest step it rests on.
+**MANDATORY IMPORTANT MUST ATTENTION** detect idea/scope/evidence completeness; load exact market-analysis evidence first (parent `MARKET_ANALYSIS_PATH`; `{plan-dir}/research/market-analysis.md` copy fallback; supplied standalone path; absent → market figures N/A + confidence cap 60%); then run ALL 7 steps in order: idea → 9-block BMC → 3-year financials → 5+ risks → 3-phase execution → GTM → verdict; output via template; `AskUserQuestion` for next route. NEVER re-derive sizing, skip/reorder/merge steps, drop financials/execution/GTM, or auto-decide — why: verdict quality follows the weakest step/evidence.
 **MANDATORY IMPORTANT MUST ATTENTION** before writing any figure or claim, search market-analysis output + prior evaluations for 3+ comparable patterns and cite them — why: a number with no comparable anchor is a fabrication.
-**MANDATORY IMPORTANT MUST ATTENTION** write the result to `docs/knowledge/strategy/business/{slug}.md` via the enforced `.claude/templates/business-evaluation-template.md` — NEVER hand-roll the structure — why: the template is the contract downstream skills (domain-analysis/plan) read.
+**MANDATORY IMPORTANT MUST ATTENTION** write the result to `docs/knowledge/strategy/business/{descriptive-slug}.md` via the enforced `.claude/templates/business-evaluation-template.md` — NEVER hand-roll the structure — why: the template is the contract downstream skills (domain-analysis/plan) read.
 **MANDATORY IMPORTANT MUST ATTENTION** persist intermediate findings to `tmp/reports/` for lengthy evaluations — why: external memory survives context loss and serves as the deliverable.
 
 **Anti-Rationalization:**

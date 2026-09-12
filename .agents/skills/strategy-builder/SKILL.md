@@ -44,6 +44,11 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 
 **Goal:** Build comprehensive marketing strategy with positioning, channels, messaging, campaigns, budget, and KPIs.
 
+**Summary:**
+
+- **Main path:** load the market-analysis artifact → define positioning and differentiation → plan channels with budget and ROI → craft messaging → build the campaign roadmap with KPIs → assess risks and mitigations.
+- **Evidence gate:** base positioning on competitive analysis, label market evidence, and make KPIs specific, measurable, and time-bound.
+
 **Workflow:**
 
 1. **Load market analysis** — Read market-analysis output
@@ -174,6 +179,10 @@ Write to `docs/knowledge/strategy/marketing/{descriptive-slug}.md` using enforce
 <!-- /SYNC:project-protocol-overlay:reminder -->
 
 ## Closing Reminders
+
+**IMPORTANT MUST ATTENTION Goal:** Build comprehensive marketing strategy with positioning, channels, messaging, campaigns, budget, and KPIs.
+
+**IMPORTANT MUST ATTENTION Main steps:** load market analysis → define positioning → plan channels, budget, and ROI → craft messaging → build campaign roadmap and KPIs → assess risks and mitigations.
 
 **IMPORTANT MUST ATTENTION** break work into small todo tasks using task tracking BEFORE starting
 

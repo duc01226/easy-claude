@@ -6,13 +6,20 @@ description: '[Research] Use when analyzing the market landscape — competitors
 
 ## Quick Summary
 
-**Goal:** Analyze market landscape with competitive analysis, sizing, trends, SWOT, and customer segmentation.
+**Goal:** Analyze a market landscape and deliver an evidence-backed market-analysis artifact—competitors, TAM/SAM/SOM, trends, SWOT, and customer segments—that downstream skills can consume as evidence.
+
+**Summary:**
+
+- **Purpose:** Produce evidence-backed market landscape analysis for `business-evaluation` and `strategy-builder`, not unsupported opinion.
+- **Ordered path:** Classify and clarify scope; then (1) research 5-10 competitors, (2) size TAM/SAM/SOM, (3) analyze growth, disruption, regulation, and behavior trends, (4) evidence-link SWOT, and (5) segment customers by demographics, psychographics, behavior, and jobs-to-be-done.
+- **Evidence gate:** Prefer Tier 1-2 sizing sources; every factual claim, number, table row, and inference ends `[N]` mapped to Sources or `N/A — {reason}`; every size claim cites source/year/methodology; never invent source metadata; SWOT requires evidence.
+- **Handoff:** Use the enforced template; `workflow-research` `business-eval`/`marketing` uses parent `ARTIFACT_SLUG` + `MARKET_ANALYSIS_PATH` exactly; otherwise use the fallback path; return the exact written path and copy the plan-dir path when required.
 
 **Workflow:**
 
 1. **Define scope** — Industry, geography, segment, timeframe
-2. **Research competitors** — WebSearch for players, positioning, strengths/weaknesses
-3. **Size the market** — TAM/SAM/SOM from industry reports
+2. **Research competitors** — WebSearch players, positioning, strengths/weaknesses
+3. **Size market** — TAM/SAM/SOM from industry reports
 4. **Identify trends** — Growth drivers, disruptions, regulatory changes
 5. **SWOT analysis** — Synthesize Strengths/Weaknesses/Opportunities/Threats
 6. **Segment customers** — Demographics, psychographics, jobs-to-be-done
@@ -21,21 +28,28 @@ description: '[Research] Use when analyzing the market landscape — competitors
 
 - Prefer Tier 1-2 sources for market sizing
 - Every factual claim, number, table row, and inference must end with an inline `[N]` citation that maps to one Sources row; use `N/A — {reason}` when evidence is unavailable
-- Every market size claim must cite source + methodology
-- The Sources table must provide Title, URL, Author/Publisher, Date, and Tier for every source; never invent missing metadata
-- SWOT items linked to evidence, not speculation
+- Cite source + methodology for every market-size claim
+- Sources table must provide Title, URL, Author/Publisher, Date, and Tier for every source; never invent missing metadata
+- Link SWOT items to evidence; no speculation
+- **Risk profile:** analysis. Fresh-eyes review, specialist routing, inline sub-agent protocols, and recursive quality loops: N/A — this skill does not delegate or own fix convergence.
 
 **Be skeptical. Apply critical thinking, sequential thinking. Every claim needs traced proof, confidence percentages (Idea should be more than 80%).**
 
 # Market Analysis
 
+## Precondition: Classify Inputs
+
+Before research, classify scope and available evidence as present, missing, or ambiguous; clarify missing or ambiguous industry, geography, timeframe, and focus with user.
+
+**Analysis lens:** For each step, run one focused `Think:` pass: what evidence supports, limits, or falsifies each finding?
+
 ## Step 1: Define Market Scope
 
-Clarify with user:
+Confirm scope with user:
 
-- **Industry/vertical** — What market segment?
+- **Industry/vertical** — Market segment?
 - **Geography** — Global, regional, or local?
-- **Timeframe** — Current state? 3-year projection?
+- **Timeframe** — Current state or 3-year projection?
 - **Focus** — B2B, B2C, or both?
 
 ## Step 2: Competitive Research
@@ -56,20 +70,20 @@ For each competitor (identify 5-10):
 
 Use Tier 1-2 sources (Gartner, Statista, IBISWorld, government data):
 
-- **TAM** (Total Addressable Market) — Maximum possible revenue if 100% market share
-- **SAM** (Serviceable Addressable Market) — Portion accessible given constraints
-- **SOM** (Serviceable Obtainable Market) — Realistic capture in 3 years
+- **TAM** (Total Addressable Market) — Maximum possible revenue at 100% market share
+- **SAM** (Serviceable Addressable Market) — Accessible portion given constraints
+- **SOM** (Serviceable Obtainable Market) — Realistic 3-year capture
 
-Every number must cite: source, year, methodology.
+Every number must cite source, year, methodology.
 
 ## Step 4: Trend Analysis
 
 Research and categorize:
 
-- **Growth drivers** — What's fueling market growth?
-- **Disruptions** — Technology shifts, new entrants, business model innovations
+- **Growth drivers** — Forces fueling market growth
+- **Disruptions** — Technology shifts, new entrants, business-model innovations
 - **Regulatory** — New laws, compliance requirements, policy changes
-- **Consumer behavior** — Changing preferences, demographics shifts
+- **Consumer behavior** — Preference changes, demographic shifts
 
 ## Step 5: SWOT Analysis
 
@@ -89,13 +103,13 @@ For each segment:
 - **Demographics** — Age, role, income, company size
 - **Psychographics** — Values, pain points, aspirations
 - **Behavior** — Buying patterns, media consumption
-- **Jobs-to-be-Done** — What are they trying to accomplish?
+- **Jobs-to-be-Done** — Desired accomplishment
 
 ## Output
 
-**MANDATORY IMPORTANT MUST ATTENTION** write the result via the enforced `.claude/templates/market-analysis-template.md` to the parent-provided `MARKET_ANALYSIS_PATH` when one exists; otherwise use `docs/knowledge/strategy/market-analysis/{descriptive-slug}.md` — why: downstream skills consume this as EVIDENCE, and evidence with no deterministic location and no known shape cannot be loaded, so an informal "working file or inline" handoff fails silently and leaves the consumer with nothing to cite.
+**MANDATORY IMPORTANT MUST ATTENTION** Write the result via enforced `.claude/templates/market-analysis-template.md` to parent-provided `MARKET_ANALYSIS_PATH` when present; otherwise use `docs/knowledge/strategy/market-analysis/{descriptive-slug}.md` — why: downstream skills consume this as EVIDENCE; an informal or inline handoff without deterministic location and known shape fails silently, leaving consumers nothing to cite.
 
-When invoked by `workflow-research` in `business-eval` or `marketing` mode, use the parent-provided
+When invoked by `workflow-research` in `business-eval` or `marketing` mode, use parent-provided
 `ARTIFACT_SLUG` and `MARKET_ANALYSIS_PATH` exactly; do not derive a new slug. Return the exact written
 path in the completion handoff so the next skill can verify it before reading.
 
@@ -104,7 +118,7 @@ Consumed by:
 - `business-evaluation` skill (business viability) — reads Sizing, Competitors, Trends, SWOT, Segments
 - `strategy-builder` skill (marketing strategy)
 
-When invoked inside a workflow that also writes to a plan directory, additionally copy the file to `{plan-dir}/research/market-analysis.md` so the plan artifact set stays self-contained.
+When invoked inside a workflow that also writes to a plan directory, copy the file to `{plan-dir}/research/market-analysis.md` so the plan artifact set stays self-contained.
 
 ---
 
@@ -164,14 +178,20 @@ When invoked inside a workflow that also writes to a plan directory, additionall
 
 ## Closing Reminders
 
-**IMPORTANT MUST ATTENTION — Protocols in force (concise digest of the SYNC/shared blocks this skill carries):**
+**IMPORTANT MUST ATTENTION Goal:** Analyze a market landscape and deliver an evidence-backed market-analysis artifact—competitors, TAM/SAM/SOM, trends, SWOT, and customer segments—that downstream skills can consume as evidence.
 
-- **AI Mistake Prevention:** verify generated content against evidence, trace downstream references, verify all affected outputs, re-read after context loss, surface ambiguity.
-- **Critical Thinking:** Apply critical + sequential thinking; trace proof for every claim; confidence >80% to act.
+**IMPORTANT MUST ATTENTION Main path:** Classify and clarify scope/evidence; then run in order: (1) research 5-10 competitors, (2) size TAM/SAM/SOM, (3) analyze growth, disruption, regulation, and behavior trends, (4) evidence-link SWOT, and (5) segment customers by demographics, psychographics, behavior, and jobs-to-be-done. Write via the enforced template and complete the exact handoff path. NEVER skip, reorder, or merge steps.
+**IMPORTANT MUST ATTENTION Modes/gates:** In `workflow-research` `business-eval`/`marketing`, use parent `ARTIFACT_SLUG` + `MARKET_ANALYSIS_PATH` exactly; otherwise use the fallback path; return the exact written path; copy the plan-dir artifact when required. Prefer Tier 1-2 sizing sources; every factual claim, number, table row, and inference ends `[N]` mapped to Sources or `N/A — {reason}`; cite size source/year/methodology; never invent metadata; link every SWOT item to evidence.
+**IMPORTANT MUST ATTENTION** Apply critical/sequential thinking; run one focused `Think:` pass per step; cite source evidence and confidence; preserve uncertainty; never present unsupported findings as fact.
+**IMPORTANT MUST ATTENTION** Create `TaskCreate` todos before starting; keep one `in_progress`, mark each completed with evidence, and add a final review todo. If task tools are unavailable, maintain equivalent synchronized statuses.
 
-**IMPORTANT MUST ATTENTION** break work into small todo tasks using `TaskCreate` BEFORE starting
-**IMPORTANT MUST ATTENTION** search codebase for 3+ similar patterns before creating new code
-**IMPORTANT MUST ATTENTION** cite `file:line` evidence for every claim (confidence >80% to act)
-**IMPORTANT MUST ATTENTION** add a final review todo task to verify work quality
+**Anti-Rationalization:**
 
-**[TASK-PLANNING]** Before acting, analyze task scope and systematically break it into small todo tasks and sub-tasks using TaskCreate.
+| Evasion | Rebuttal |
+| --- | --- |
+| "Market size is obvious; source later." | Cite source, year, and methodology now; use `N/A — {reason}` when unavailable. |
+| "One competitor or source is enough." | Research 5-10 competitors; prefer Tier 1-2 sources and preserve metadata. |
+| "SWOT is just judgment." | Link every item to evidence; label unavailable support `N/A — {reason}`. |
+| "Output path is optional." | Use the enforced template/path contract, return the exact written path, and copy the plan-dir artifact when required. |
+
+**IMPORTANT MUST ATTENTION** verify all claims, numbers, source metadata, and handoff paths before completion; NEVER guess, skip evidence, or weaken the output contract.

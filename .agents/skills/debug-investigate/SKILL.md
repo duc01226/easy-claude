@@ -51,15 +51,14 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 
 ## Quick Summary
 
-**Goal:** Deliver a `$why-review`-validated root cause at the invariant-owning layer, pinned to `file:line`; investigate only so `$fix` corrects causes, not symptoms — or report an honest "hypothesis, not confirmed" with evidence gaps.
+**Goal:** Deliver a `$why-review`-validated root cause at the lowest invariant-owning layer with `file:line` proof; investigate only so `$fix` corrects causes, not symptoms, or report "hypothesis, not confirmed" with evidence gaps.
 
 **Summary:**
 
-- **Purpose — investigation-ONLY:** pin the root cause, NEVER patch here; the deliverable is a `$why-review`-validated cause handed to `$fix`, or an honest "hypothesis, not confirmed."
-- **Main steps in order (the digest):** (0) **Classify** bug type — Phase 0, BLOCKING — routes to `debugger` / `performance-optimizer` / `security-auditor` and decides which evidence matters; (0.5) **Adjudicate fault** — failing/flaky integration test ONLY: READ the `$integration-test-review` gate protocol (never invoke it) and emit one verdict — TEST-WRONG · TEST-NOT-OPTIMAL · SOURCE-WRONG · ENVIRONMENT · AMBIGUOUS — BEFORE any trace, because tracing the source first silently assumes the test is right; (1) **Reproduce** with evidence (error/stack/screenshot); (2) **Hypothesize** 2-3 ranked theories + the evidence that confirms/contradicts each; (3) **Trace END-to-START** — name Frame 0 (observed final state), walk reader → storage/projection → writer → consumer/job → producer, enumerate ALL feeder paths; (4) **Confirm** one cause explains ALL symptoms via the hypothesis matrix, no bypass paths; (5) **Validate** through the `$why-review` gate; (6) **Report** the confidence-tagged finding + hand off to `$fix` → `$prove-fix` runs after the fix.
-- **Core discipline:** the bug enters where bad state is WRITTEN, not where it crashes — fix at the LOWEST invariant-owning layer, NEVER the crash site.
-- **Evidence law:** every root-cause claim carries `Confidence: X%` + `file:line` proof; below 60% report "hypothesis, not confirmed" with named gaps, NEVER a guess. Run a graph trace when `graph.db` exists — it surfaces bus/event consumers grep cannot see.
-- **`$why-review` gate is non-negotiable:** run it in the SAME session/main agent before declaring confirmed; 2 rounds without passing → STOP and escalate by asking the user directly.
+- **Purpose — investigation-ONLY:** Find/pin cause; NEVER patch here. Deliver a `$why-review`-validated cause to `$fix`, or "hypothesis, not confirmed" with evidence gaps.
+- **Ordered phases:** (0) Classify bug type and route `debugger` / `performance-optimizer` / `security-auditor`; (0.5) failing/flaky integration test ONLY: READ the protocol (never invoke) and emit one verdict; (1) Reproduce; (2) Hypothesize 2-3 ranked theories; (3) Trace END-to-START from Frame 0 through reader → storage/projection → writer → consumer/job → producer, including ALL feeder paths; (4) Confirm one cause explains ALL symptoms and no bypasses; (5) validate via `$why-review`; (6) report the confidence-tagged finding, then `$fix` → `$prove-fix` after the fix.
+- **Modes and gates:** Phase 0 is BLOCKING; Phase 0.5 applies only to failing integration tests; `graph.db` requires graph trace; `$why-review` runs in the SAME main session, 2 failed rounds → STOP/ask the user directly; after `$fix`, `$prove-fix` is required; outside a workflow ask the user to choose `workflow-bugfix` or direct `$debug-investigate`, and standalone completion asks `workflow`, `$fix`, `$plan`, or manual continuation.
+- **Core evidence:** Bad state enters where written, so fix at the LOWEST invariant-owning layer, NEVER the crash site. Every root-cause claim needs `Confidence: X%` + `file:line`; below 60% report an unconfirmed hypothesis with named gaps.
 
 **Workflow:**
 
@@ -81,7 +80,7 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 
 ## Phase 0: Classify Bug Scenario (BLOCKING — Do Before ANY Investigation)
 
-**Think:** What type of failure is this? Classification routes to the right agent and determines which evidence matters most.
+**Think:** Which failure type? Classification routes the agent and evidence priorities.
 
 | Bug Type                    | Signals                                                 | Specialized Agent                  |
 | --------------------------- | ------------------------------------------------------- | ---------------------------------- |
@@ -92,14 +91,17 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 | Security / auth             | Access denied, token issues, permission bypass          | `security-auditor`                 |
 | **Failing / flaky integration test** | A test that was green now fails, fails intermittently, or fails only in a full-suite run | `debugger` + **READ the `$integration-test-review` protocol FIRST** (see Fault Adjudication below) |
 
-**Cross-service bugs:** Run graph trace FIRST — grep alone misses implicit bus connections.
-**OOM / memory exhaustion:** Check row COUNT before row SIZE. Unbounded query loading thousands of records is more common cause. Triage: (1) missing DB-level filter? (2) excessive row size?
+**Cross-service bugs:** Run graph trace FIRST — grep misses implicit bus connections; **OOM / memory exhaustion:** check row COUNT before row SIZE because unbounded queries are the more common cause; triage (1) missing DB filter? (2) excessive row size?
 
 ### Phase 0.5: Fault Adjudication — failing integration tests (BLOCKING for that bug type)
 
-> **Think:** a failing test has TWO candidate defendants — source and test. Tracing source first ASSUMES the test is right; that assumption produces the "fix" rationalizing a broken invariant into green. Decide *whose fault* before deciding *where to trace*.
+> **Think:** A failing test has TWO defendants: source or test. Tracing source first ASSUMES the test is right and can rationalize a broken invariant into green. Decide *whose fault* before *where to trace*.
 
-**Step 1 — READ the protocol; NEVER invoke the skill.** Read `.claude/skills/integration-test-review/SKILL.md` §"The 8 Quality Gates" into context. Gates 1 (assertion value), 3 (repeatability), 4 (domain logic), 8 (scenario fidelity) reveal whether the TEST is the faulty party — dead/always-true assertion, non-unique ID, assertion on fields the handler never writes, unreachable setup.
+> **Integration Test Review** — Eight gates check assertion value, data state, repeatability, handler/domain alignment, spec traceability, test/code/docs sync, changed-behavior coverage, and scenario fidelity. Use them to distinguish TEST-WRONG, TEST-NOT-OPTIMAL, SOURCE-WRONG, ENVIRONMENT-BLOCKED, and AMBIGUOUS before source tracing; never weaken assertions or mask timing.
+>
+> **MUST ATTENTION READ** `.claude/skills/integration-test-review/SKILL.md` §"The 8 Quality Gates" for full details.
+
+**Step 1 — NEVER invoke the skill.** Apply the protocol read above. Gates 1 (assertion value), 3 (repeatability), 4 (domain logic), and 8 (scenario fidelity) expose faulty tests: dead/always-true assertion, non-unique ID, assertion on fields the handler never writes, or unreachable setup.
 
 > **MUST NOT invoke `$integration-test-review` from here — READ its protocol instead.** Inside `integration-test-verify-loop`, this skill already runs in the SAME round as an explicit `$integration-test-review` call (`integration-test-verify-loop/SKILL.md:110`, `:495`); invoking it again runs a 9-phase audit twice per round — the duplicate-ownership defect that loop removes (`:31`). The loop OWNS the invocation. — why: standalone, reading also suffices — investigation is this skill's only deliverable.
 
@@ -113,17 +115,19 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 | **ENVIRONMENT-BLOCKED** | Config, DB, credentials, ports, versions | Mark BLOCKED — do not trace application code |
 | **AMBIGUOUS** | Spec silent or contradictory about which side is correct | **STOP and ask the user** by asking the user directly — never self-resolve |
 
-**Step 3 — governing law.** The rule is the project's *"Test failure → record a provisional verdict before trace/edit, then investigate"* lesson, canonical in `CLAUDE.md` and restated in `.claude/docs/development-rules.md`, which states in full: *"NEVER weaken an assertion, add a skip, relax a timeout, or change source merely to force green."* (`AGENTS.md` is the GENERATED Codex mirror of `CLAUDE.md` — it carries the same rule once `$sync-codex` has run, so cite the canonical source, never the mirror.) A green-again suite is not the goal; the correct verdict on what was actually wrong is. Fix the faulty party the verdict named, at its owning layer. Spec silent or ambiguous → STOP and ask.
+> **Development Rules** — Task steps need observable verification; changes stay surgical; tests protect intent; failed tests require fault adjudication; NEVER weaken assertions, add skips, relax timeouts, or alter source merely to force green.
+>
+> **MUST ATTENTION READ** `.claude/docs/development-rules.md` for full project rules.
+
+**Step 3 — governing law.** Project lesson: *"Test failure → record a provisional verdict before trace/edit, then investigate"*, canonical in `CLAUDE.md` and restated in `.claude/docs/development-rules.md`: *"NEVER weaken an assertion, add a skip, relax a timeout, or change source merely to force green."* (`AGENTS.md` is the GENERATED Codex mirror; cite canonical `CLAUDE.md`, never the mirror.) Green is not the goal; fix the verdict-named party at its owning layer. Silent/ambiguous spec → STOP and ask.
 
 ## Debug Mindset (NON-NEGOTIABLE)
 
-**Skeptical. Sequential. Every claim needs traced proof, confidence >80%.**
+**Skeptical. Sequential. Every claim needs traced proof; confidence >80%.**
 
-- NEVER assume first hypothesis correct — verify with actual code traces
-- Every root cause claim MUST include `file:line` evidence
-- Cannot prove root cause → state "hypothesis, not confirmed"
-- Challenge assumptions: "Is this really the cause?" → trace actual execution path
-- Challenge completeness: "Other contributing factors?" → check related code paths
+- NEVER assume first hypothesis — verify with actual code traces; every root-cause claim MUST include `file:line` evidence
+- Cannot prove cause → state "hypothesis, not confirmed"
+- Challenge cause and completeness → trace execution and related paths
 
 ## Confidence & Evidence Gate
 
@@ -138,49 +142,39 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 
 ## Investigation Dimensions
 
-Reason through each dimension — state what fails if weak, then apply with evidence.
+For each dimension: state failure if weak, then apply with evidence.
 
 ### Dim 1: Reproduce
 
-**Think:** What exact conditions trigger this? Data state? User action? Timing? Environment delta?
-
-- Confirm issue exists with evidence (error message, stack trace, screenshot)
-- Identify trigger: user action, data state, timing, env difference
+**Think:** What exact data, action, timing, or environment triggers this?
+- Confirm issue exists with evidence (error message, stack trace, screenshot); identify trigger: user action, data state, timing, env difference
 
 ### Dim 2: Hypothesize
 
-**Think:** Given symptoms, what are the most plausible failure modes? What would confirm vs contradict each?
-
-- Form 2-3 theories ranked by likelihood
-- Note evidence needed to confirm/contradict each theory before investigating
+**Think:** Which failure modes fit symptoms? What confirms or contradicts each?
+- Form 2-3 theories ranked by likelihood; note evidence needed to confirm/contradict each before investigating
 
 ### Dim 3: End-to-Start Trace
 
-**Think:** What exact final output proves the bug? Which reader produced it? Which storage/projection/write path fed that reader? Where does bad state ENTER the system — not where it CRASHES? Which layer owns this invariant?
+**Think:** What final output proves the bug? Which reader and storage/projection/write path fed it? Where does bad state ENTER, not CRASH? Which layer owns the invariant?
 
 - Name Frame 0: observed final state (UI, API response, log, persisted value, assertion, aggregate)
-- Identify the final reader/query/renderer/assertion and the state it consumes
+- Identify final reader/query/renderer/assertion and consumed state
 - Walk backward: reader -> storage/projection/cache -> writer -> consumer/handler/job -> producer/origin
-- Enumerate every feeder path that can write the same final state
-- Check error handling paths
-- Collect `file:line` evidence per hypothesis
-- Use graph trace for implicit connections (event handlers, bus consumers)
+- Enumerate every feeder path writing the same final state
+- Check error paths; collect `file:line` evidence per hypothesis; use graph trace for implicit connections (event handlers, bus consumers)
 
 ### Dim 4: Confirm
 
-**Think:** Does this root cause explain ALL symptoms? Are there bypass paths that skip the fix point?
+**Think:** Does one cause explain ALL symptoms? Do bypass paths skip the fix point?
 
-- Match evidence to single root cause
-- Verify root cause explains ALL observed symptoms
-- Check secondary contributing factors
-- Build hypothesis matrix: primary, contributing, ruled out, latent, unknown
-- Resolve or disclose competing causes before proposing a fix
-- Verify no bypass paths (direct construction, clone/spread without re-validation, mutations outside model layer)
+- Match evidence to one root cause; verify it explains ALL observed symptoms
+- Check secondary factors; build hypothesis matrix: primary, contributing, ruled out, latent, unknown
+- Resolve or disclose competing causes before proposing a fix; verify no bypass paths (direct construction, clone/spread without re-validation, mutations outside model layer)
 
 ### Dim 5: Report
 
-- Output: confirmed root cause + evidence chain
-- Include: affected files, Debugger Trace: End -> Start, feeder paths, hypothesis matrix, data flow summary, owning fix layer, fix recommendation, forward convergence proof
+- Output confirmed root cause + evidence chain; include affected files, Debugger Trace: End -> Start, feeder paths, hypothesis matrix, data flow, owning fix layer, fix recommendation, forward convergence proof
 - Hand off to `$fix` for implementation
 
 ## Dependency Tracing (MANDATORY when graph.db exists)
@@ -204,15 +198,15 @@ python .claude/scripts/code_graph trace <suspect-file> --direction both --json
 python .claude/scripts/code_graph trace <suspect-file> --direction upstream --json
 ```
 
-Graph reveals implicit connections (MESSAGE_BUS, event handlers) that propagate issues across services — invisible to grep.
+Graph reveals implicit MESSAGE_BUS/event-handler connections across services — invisible to grep.
 
 ## Root Cause Validation (`$why-review` Gate)
 
-NEVER declare a confirmed root cause straight from investigation. Run `$why-review` as a quality validation gate on the findings and root cause — in the SAME session, SAME main agent (do NOT spawn a sub-agent) — before handing off to `$fix`.
+NEVER declare a confirmed root cause straight from investigation. Run `$why-review` on findings and cause — SAME session, SAME main agent (do NOT spawn a sub-agent) — before `$fix`.
 
-**Step 1 — Investigate (main agent):** Identify root cause + full evidence chain. Write findings to report file.
+**Step 1 — Investigate (main agent):** Identify root cause + full evidence chain; write findings to report.
 
-**Step 2 — Validate (`$why-review`, same main agent):** Trigger `$why-review` on the findings/root cause. The gate must confirm:
+**Step 2 — Validate (`$why-review`, same main agent):** Trigger it on findings/cause. The gate must confirm:
 
 - Root cause is correct and reasonable, with `file:line` evidence that conclusively supports it
 - Evidence has no gaps and explains ALL symptoms
@@ -226,7 +220,7 @@ NEVER declare a confirmed root cause straight from investigation. Run `$why-revi
 
 ## ⚠️ MANDATORY: Post-Fix Verification
 
-After `$fix` applies changes, `$prove-fix` MUST be run — builds code proof traces per change with confidence scores. Non-negotiable in all fix workflows.
+After `$fix`, `$prove-fix` MUST run — it builds per-change proof traces with confidence scores. Required in all fix workflows.
 
 ## Anti-Rationalization (Red Flags)
 
@@ -247,7 +241,7 @@ After `$fix` applies changes, `$prove-fix` MUST be run — builds code proof tra
 
 ## Workflow Recommendation
 
-**MUST ATTENTION — NO EXCEPTIONS:** Not in workflow? Use ask the user directly:
+**MUST ATTENTION — NO EXCEPTIONS:** Outside a workflow, use ask the user directly:
 
 1. **Activate `workflow-bugfix` workflow** (Recommended) — investigate → debug → plan → fix → prove-fix → review → test
 2. **Execute `$debug-investigate` directly** — standalone
@@ -256,7 +250,7 @@ After `$fix` applies changes, `$prove-fix` MUST be run — builds code proof tra
 
 ## Next Steps (Standalone only — skip if inside workflow)
 
-**MUST ATTENTION** use ask the user directly after completing. NEVER auto-decide next step:
+**MUST ATTENTION** after completion, use ask the user directly; NEVER auto-decide next step:
 
 - **"Proceed with full workflow (Recommended)"** — detect best workflow to continue from here
 - **"$fix"** — apply fix based on debug findings
@@ -265,7 +259,7 @@ After `$fix` applies changes, `$prove-fix` MUST be run — builds code proof tra
 
 ---
 
-> **[IMPORTANT]** Use task tracking to break ALL work into small tasks BEFORE starting — including tasks for each file read. This prevents context loss from long files.
+> **[IMPORTANT]** Use task tracking to break ALL work into small tasks BEFORE starting, including each file read — prevents long-file context loss.
 
 - `docs/project-reference/domain-entities-reference.md` — Domain entity catalog, relationships, cross-service sync (read when task involves business entities/models)
 
@@ -833,7 +827,10 @@ After `$fix` applies changes, `$prove-fix` MUST be run — builds code proof tra
 
 ## Closing Reminders
 
-**IMPORTANT MUST ATTENTION Goal:** Deliver a `$why-review`-validated root cause at the invariant-owning layer, pinned to `file:line`; investigate only so `$fix` corrects causes, not symptoms — or report an honest "hypothesis, not confirmed" with evidence gaps.
+**IMPORTANT MUST ATTENTION Goal:** Deliver a `$why-review`-validated root cause at the lowest invariant-owning layer with `file:line` proof; investigate only so `$fix` corrects causes, not symptoms, or report "hypothesis, not confirmed" with evidence gaps.
+
+**IMPORTANT MUST ATTENTION — Main steps/modes/gates:** Investigation-only: (0) Classify bug type and route specialist → (0.5) failing/flaky integration test ONLY: read the integration-test-review protocol, never invoke it, emit one verdict → (1) Reproduce → (2) Hypothesize 2-3 ranked theories → (3) Trace END-to-START from Frame 0 through reader → storage/projection → writer → consumer/job → producer and ALL feeder paths → (4) Confirm one cause explains ALL symptoms and no bypasses → (5) validate with `$why-review` → (6) report confidence-tagged finding → `$fix` → `$prove-fix`.
+**IMPORTANT MUST ATTENTION — Routing/terminal behavior:** Phase 0 is BLOCKING; Phase 0.5 is conditional; `graph.db` requires graph trace; `$why-review` runs in the SAME main session, 2 failed rounds → STOP/ask the user directly; outside a workflow ask the user to choose `workflow-bugfix` or direct `$debug-investigate`; standalone completion asks `workflow`, `$fix`, `$plan`, or manual continuation.
 
 **Protocols in force (concise digest of the SYNC/shared blocks this skill carries):**
 

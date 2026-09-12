@@ -1,6 +1,6 @@
 ---
 name: e2e-test-verify-loop
-description: '[Testing] Use when driving a configured E2E suite or human-QC journey to green with project-config setup, evidence, fault adjudication, and bounded re-verification. Flag: --visual-review={true|false} (default false; true enables the screenshot visual gate).'
+description: '[Testing] Use when driving a configured E2E suite or human-QC journey to green with project-config setup, evidence, fault adjudication, and bounded re-verification. Flag: --visual-review={true|false} (default true; false is the explicit opt-out from the screenshot visual gate).'
 ---
 
 > Codex compatibility note:
@@ -51,15 +51,28 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 
 **Goal:** Drive a configured E2E suite or real-user journey to a truthful green result over a fixed scope. Resolve the project contract first, select an existing test or generate a traceable Given/When/Then test, bring up the whole system, use a visible browser for web human-QC, inspect runtime/visual evidence, adjudicate every failure, fix the owning layer, and re-run fresh until the declared scope converges or a bounded blocker is escalated.
 
-**Default scope:** the whole discovered E2E scope — every configured E2E project and linked observable surface. A named feature, bugfix, spec, test project, or code change narrows the scope only when the prompt explicitly names it. Scope is recorded once and never shrinks silently.
+**Summary:**
+
+- **Main path:** resolve scope/contract → read config/reference → resolve readiness/auth/data/browser/evidence → select or generate tests → run and inspect → adjudicate/fix → rerun fresh → report or escalate.
+- **Visual gate:** default `--visual-review=true`; capture/read every screenshot state × viewport through `$experience-review --rounds=0`; explicit `--visual-review=false` opts out; preserve baselines.
+
+**Role in `workflow-e2e`:** This is the internal convergence engine, not a
+second E2E workflow. `workflow-e2e` calls it after source-specific authoring
+when a test must be written or updated, and calls it directly when an existing
+test can be selected or a case must be generated from the request. The loop
+owns the configured run, failure classification, owning-layer repair, review,
+fresh bring-up, and same-scope reruns for every source.
+
+**Default scope:** the whole discovered E2E scope — every configured E2E project and linked observable surface. A named feature, bugfix, spec, test project, code change, or upstream authoring handoff narrows the scope only when it explicitly names or supplies that mapping. Scope is recorded once and never shrinks silently; an inherited `workflow-e2e` handoff is authoritative.
 
 **Workflow:** resolve scope and Goal Contract → read project-config/reference → resolve startup/readiness/auth/data/browser/evidence → select or generate tests → run and inspect → adjudicate failures → fix/review/re-run → require fresh consecutive green runs → report or escalate.
 
-**Visual review mode:** `--visual-review=true` is an explicit opt-in. It changes
-each round to `E2E run → capture screenshots → open/read and judge the images
-through $experience-review → fix blocking UI defects → re-run the same E2E
-scope`. The default `--visual-review=false` preserves the normal E2E loop;
-seeing a UI surface does not silently activate visual remediation.
+**Visual review mode:** Visual screenshot review is enabled by default,
+equivalent to `--visual-review=true`. It changes each round to `E2E run →
+capture screenshots → open/read and judge every image through
+$experience-review → fix blocking UI defects → re-run the same E2E scope`. An
+explicit `--visual-review=false` preserves the non-visual E2E loop; a UI
+surface is not required to infer the default.
 
 **Key rules:**
 
@@ -68,18 +81,24 @@ seeing a UI surface does not silently activate visual remediation.
 - Use project-owned auth and data paths. Never copy credentials, storage state, cookies, tokens, or seed values into prompts/reports; never bypass the UI with direct datastore mutation.
 - Reuse a suitable existing test and its reusable Common/Domain-Shared/Page objects. Generate through `$e2e-test` → `e2e-runner` only when coverage is missing or the current test does not protect the requested invariant; generated objects must use the project's idiomatic abstract base and cohesive helpers/utilities.
 - A passing screen is not enough: runtime errors, uncaught exceptions, unhandled rejections, journey-critical failed requests, unread evidence, and baseline mismatches remain visible findings.
-- When `--visual-review=true`, the screenshot matrix and image inspection are a required part of the E2E gate. Use `$experience-review --rounds=0` as the report-only visual adjudicator inside this loop; this parent loop owns UI fixes and the subsequent E2E rerun. `$ask` is architecture consultation and is not a substitute for image inspection.
+- When visual review is enabled (the default or explicit `--visual-review=true`), the screenshot matrix and image inspection are a required part of the E2E gate. Use `$experience-review --rounds=0` as the report-only visual adjudicator inside this loop; this parent loop owns UI fixes and the subsequent E2E rerun. `--visual-review=false` is the explicit opt-out. `$ask` is architecture consultation and is not a substitute for image inspection.
 - Never delete, skip, narrow, weaken, retry-wrap an assertion, silence logs, or auto-promote a baseline to obtain green.
 
 ## Why this skill exists
 
-E2E generation, local bring-up, browser evidence, and bounded failure repair otherwise live in separate skills. That separation makes it easy to run only a changed test, skip the missing auth/data setup, call a screen that looks correct despite a console error, or stop after one green run. This skill owns the convergence contract while delegating specialized work to the existing E2E, experience, debug, fix, and review skills.
+E2E authoring, local bring-up, browser evidence, and bounded failure repair
+otherwise live in separate skills. That separation makes it easy to run only a
+changed test, skip the missing auth/data setup, call a screen that looks
+correct despite a console error, or stop after one green run. This skill is the
+single convergence contract used by `workflow-e2e`; it delegates specialized
+authoring, experience, debug, fix, and review work without becoming another
+user-facing workflow.
 
 ## Step 0 — Resolve visual mode, scope, and Goal Contract
 
 Before any test command or edit:
 
-1. Resolve `--visual-review=true|false`. The default is `false`; an invalid or ambiguous value is a blocker, not permission to guess. Record the resolved mode before the first command.
+1. Resolve `--visual-review=true|false`. The default is `true`; an invalid or ambiguous value is a blocker, not permission to guess. Record the resolved mode before the first command. Only an explicit `--visual-review=false` opts out.
 2. Read `docs/project-config.json`, `docs/project-reference/docs-index-reference.md`, `docs/project-reference/lessons.md`, `docs/project-reference/e2e-test-reference.md`, and the relevant feature/spec/code contract.
 3. Resolve `{scope}`:
 
@@ -91,7 +110,7 @@ Before any test command or edit:
    | Code diff/branch named | The E2E projects/surfaces affected by that explicit change set |
 
 4. Record the scope as a stable list. If no runnable E2E framework exists, record `N/A — <config and scan evidence>` and do not substitute a generic browser runner. If a relevant surface exists but cannot run or be inspected, record `ENVIRONMENT-BLOCKED — <missing capability and evidence>`.
-5. When visual mode is `true`, add the required capability that every applicable visual surface has a configured screenshot matrix, an evidence root, and an image-inspection path; missing capability is `ENVIRONMENT-BLOCKED`.
+5. When visual mode is enabled (the default unless explicitly false), add the required capability that every applicable visual surface has a configured screenshot matrix, an evidence root, and an image-inspection path; missing capability is `ENVIRONMENT-BLOCKED`.
 6. Create a Goal Contract whose required criterion is:
 
    > A fresh full E2E verification over the fixed scope reports zero failed scenarios across the configured consecutive-green requirement (default 2), with exact runner output, no scope shrink, no test deletion/skip/weakening, and no automatic baseline acceptance.
@@ -154,7 +173,7 @@ For every `APPLICABLE` surface, in order:
 3. Start the surface and poll its declared readiness signal. A started process, open port, or fixed sleep is not readiness.
 4. Attach server logs and browser console/page-error/request capture before the first interaction.
 5. For web, open the configured browser visibly when human-QC is requested. Use semantic/accessible actions and stable locators. Before every UI-control operation, call the reusable bounded `waitUntil(condition, options)` helper for readiness/actionability and applicable blocking error-alert absence; after the operation, call it for the expected positive/negative outcome, including dropdown/options and expected error-alert present/absent states; then wait exactly **500ms**. Observe any real settle signal separately.
-6. Drive the Given/When/Then path through the real interface. Capture screenshots for relevant states and trace/video/console/requests when configured; when visual mode is `true`, capture every matrix state at every matrix viewport, including loading, empty, error, permission, and post-submit states plus a full-page capture where the surface scrolls. Store captures under the configured evidence root, open/read every image, record the visual observation, and redact sensitive content.
+6. Drive the Given/When/Then path through the real interface. Capture screenshots for relevant states and trace/video/console/requests when configured; when visual review is enabled (the default unless explicitly false), capture every matrix state at every matrix viewport, including loading, empty, error, permission, and post-submit states plus a full-page capture where the surface scrolls. Store captures under the configured evidence root, open/read every image, record the visual observation, and redact sensitive content.
 7. Tear down only processes/services started by this run. Preserve accepted baselines and record candidate evidence separately.
 
 If any precondition fails, preserve the logs and classify the branch
@@ -168,7 +187,7 @@ Each round is a fresh full verification over the exact recorded scope:
 1. Snapshot scope, test/scenario IDs, executed/passed/failed/skipped counts, and the working tree.
 2. Run the configured full command; use the focused command only in addition to, never instead of, the declared full scope. Record command, exit status, counts, failing names, run identity, data mode, and evidence paths.
 3. Invoke `$experience-review --rounds=0` report-only for configured observable surfaces. It may classify evidence and runtime/UI findings but must not fix, update baselines, or change expectations inside this loop.
-4. When `--visual-review=true`, make the experience-review result a required visual gate: every screenshot in the declared state × viewport matrix must be opened/read and classified. Add validated `BLOCKING` visual findings—clipping, overlap, unreadability, unreachable/off-screen controls, broken required states, accessibility-floor violations, or broken responsive layouts—to the round's failure set. Record `ADVISORY` identity, polish, or non-contract spacing preferences without reopening the loop unless the governing design/acceptance contract makes the issue objectively required.
+4. When visual review is enabled (the default unless explicitly false), make the experience-review result a required visual gate: every generated screenshot in the declared state × viewport matrix must be opened/read and classified. Add validated `BLOCKING` visual findings—clipping, overlap, unreadability, unreachable/off-screen controls, broken required states, accessibility-floor violations, or broken responsive layouts—to the round's failure set. Record `ADVISORY` identity, polish, or non-contract spacing preferences without reopening the loop unless the governing design/acceptance contract makes the issue objectively required.
 5. If green, compare counts and visual-blocker totals to the previous round. Require the configured consecutive-green runs without a reset; each must be fresh, same-scope, and, in visual mode, have fresh screenshots that were opened/read.
 6. If anything fails, record a provisional verdict before editing:
 
@@ -194,9 +213,9 @@ decision; never convert it to a partial pass.
 
 Convergence requires all of: fixed scope, exact runner output, zero failed
 scenarios, required consecutive fresh green runs, Round Integrity Check pass,
-and no open runtime-error/evidence/security finding. When visual mode is true,
-the same fresh runs must also contain zero validated `BLOCKING` visual findings;
-visual `ADVISORY` findings remain visible in the handoff. `HUMAN-ACCEPTED`
+and no open runtime-error/evidence/security finding. When visual review is
+enabled, the same fresh runs must also contain zero validated `BLOCKING` visual
+findings; visual `ADVISORY` findings remain visible in the handoff. `HUMAN-ACCEPTED`
 remains distinct from `AGENT-RECOMMENDED-ACCEPT`; current evidence never
 promotes a baseline automatically.
 
@@ -285,6 +304,21 @@ evidence, after every fix was adjudicated, reviewed, and re-run fresh.
 
 <!-- /SYNC:project-protocol-overlay -->
 
+<!-- SYNC:e2e-visual-design-contract -->
+
+> **E2E Visual Design Contract** — Binds when this skill or agent handles `--visual-review=true`, screenshot/recording evidence, human-QC of a user-facing UI, or visual expectation/baseline updates; for non-visual E2E/API/CLI work state `N/A — no user-facing visual surface` and do not invent a design review.
+>
+> 1. **Resolve authority first.** Read `docs/project-config.json`, its `designSystem.canonicalDoc`, `tokenFiles`, and `appMappings[]`, plus the resolved `design-system/README.md`, `frontend-patterns-reference.md`, `scss-styling-guide.md`, `.claude/docs/design-knowledge.md`, and `.claude/docs/design-review-checklist.md`; record `N/A` only for a proven absent surface or `ENVIRONMENT-BLOCKED` for an applicable missing capability — never invent tokens, components, breakpoints, type, CSS/BEM, or runner defaults.
+> 2. **Use project decisions.** Apply precedence: brief/accepted design contract → adopter project design-system/SCSS/frontend docs and ADRs → shared `UI-1.1`–`UI-9.4`, `DD-1`–`DD-8`, and `CL-1`–`CL-6`; surface a genuine conflict with both sides, never silently choose. Read and apply the full shared `SYNC:design-system-check`, `SYNC:ui-ux-design-principles`, `SYNC:design-distinctiveness-gate`, and `SYNC:design-review-checklist` bodies for their applicable roles. When UI generation or repair is in scope, consume the accepted `$design` decisions (or the adopter's equivalent professional design/component system); review-only E2E evidence must not invent a new visual language.
+> 3. **Map UI architecture before generation or UI fixes.** Inventory related screens, flows, and components; classify each relevant component `Common`, `Domain-Shared`, or `Page`; record its base abstraction and owner; reuse/compose before creating; record why reuse does not fit; keep one owner for markup, selectors, styling, lifecycle, and lower-tier test contracts. Page tests cover composition/outcomes, not copied lower-tier behavior.
+> 4. **Separate review owners.** Use `$experience-review` for the running surface and opened/read screenshot evidence; route source-only token, BEM/SCSS, z-index, component ownership, reuse, and static design findings to `$ui-review`. Never infer source architecture or design tokens from an image, and never treat a passing E2E command as visual/design approval.
+> 5. **Gate every visual round.** Capture every declared state × viewport (including loading, empty, error, permission, post-submit, and full-page where applicable), open/read each artifact, and record state, viewport, location, and measured values. `UI-*`/accessibility/layout-floor and `P0`–`P2` `CL-*` findings are `BLOCKING`; `DD-*` identity/polish is `ADVISORY` unless the governing brief/project contract makes it objectively required. Unmeasurable values are `NOT VERIFIABLE`; never promote a baseline/expectation automatically.
+> 6. **Report the contract.** Persist authority paths and resolution status, component tier/base/owner/reuse decisions, matrix coverage, `UI`/`DD`/`CL` coverage or skips, evidence/read status, and remaining human acceptance; preserve the protected business invariant and exact E2E scope.
+
+<!-- /SYNC:e2e-visual-design-contract -->
+
+
+
 <!-- SYNC:critical-thinking-mindset:reminder -->
 **MUST ATTENTION** apply critical + sequential thinking — every claim needs appropriate traced evidence (`file:line` for repo/code claims; source URL or artifact section for research, product, content, and docs claims); confidence >80% to act, <60% DO NOT recommend. Anti-hallucination: never present guess as fact, admit uncertainty freely, cross-reference independently, stay skeptical of own confidence.
 <!-- /SYNC:critical-thinking-mindset:reminder -->
@@ -301,11 +335,17 @@ evidence, after every fix was adjudicated, reviewed, and re-run fresh.
 
 <!-- /SYNC:project-protocol-overlay:reminder -->
 
+<!-- SYNC:e2e-visual-design-contract:reminder -->
+
+**MUST ATTENTION** visual E2E/QC resolves the project design authority first, applies project design-system/SCSS/frontend decisions plus `UI-*`/`DD-*`/`CL-*` roles, classifies Common/Domain-Shared/Page ownership and reuse, sends static source findings to `$ui-review` and runtime image evidence to `$experience-review`, reads every state × viewport artifact, treats UI/accessibility-floor findings as blocking and DD identity/polish as advisory, never invents measurements, and never auto-promotes baselines; non-visual runs state `N/A`.
+
+<!-- /SYNC:e2e-visual-design-contract:reminder -->
+
 ## Closing Reminders
 
-**IMPORTANT MUST ATTENTION Goal:** Drive the fixed E2E scope to a truthful, repeatable green result with exact evidence, preserved intent, and bounded remediation; when visual mode is active, the same result also requires a clean screenshot review.
+**IMPORTANT MUST ATTENTION Goal:** Drive a configured E2E suite or real-user journey to a truthful green result over a fixed scope. Resolve the project contract first, select an existing test or generate a traceable Given/When/Then test, bring up the whole system, use a visible browser for web human-QC, inspect runtime/visual evidence, adjudicate every failure, fix the owning layer, and re-run fresh until the declared scope converges or a bounded blocker is escalated.
 
-**IMPORTANT MUST ATTENTION** resolve `--visual-review=true|false` before the first command; default `false`. When `true`, run E2E → capture the full state × viewport matrix → open/read every image through `$experience-review --rounds=0` → fix validated blocking UI defects at the owning layer → rerun the same E2E scope until the visual blocker count and E2E failure count converge to zero; `$ask` is not the image reviewer.
+**IMPORTANT MUST ATTENTION** resolve `--visual-review=true|false` before the first command; default `true`, with `--visual-review=false` as the explicit opt-out. When enabled, run E2E → capture the full state × viewport matrix → open/read every generated image through `$experience-review --rounds=0` → fix validated blocking UI defects at the owning layer → rerun the same E2E scope until the visual blocker count and E2E failure count converge to zero; `$ask` is not the image reviewer.
 
 **IMPORTANT MUST ATTENTION** use one reusable bounded `waitUntil(condition, options)` before and after every UI-control action, including applicable error-alert presence/absence, then wait exactly 500ms at the end; never shrink scope, weaken assertions, hide evidence, or promote baselines automatically.
 

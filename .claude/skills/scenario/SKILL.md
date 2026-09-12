@@ -152,7 +152,7 @@ Report:
 
 ## Closing Reminders
 
-**IMPORTANT MUST ATTENTION Goal:** Produce a high-signal adversarial scenario artifact for one selected embedded slice, explicit roadmap milestone, framework/library scope, or explicitly accepted isolated change so implementation plans protect real business/operational truth before code starts.
+**IMPORTANT MUST ATTENTION Goal:** Turn one selected embedded outcome slice, explicit roadmap milestone, framework/library scope, or explicitly accepted isolated change into an adversarial, observable scenario set that exposes data corruption, misleading states, access leaks, and recovery gaps before an implementation plan can be approved.
 **IMPORTANT MUST ATTENTION Main steps:** resolve the applicable scope → reconstruct the journey and source of truth → generate adversarial scenarios → resolve owner decisions → write the analysis → run the Scenario Gate → hand off to `/plan` or record the conditional skip.
 **IMPORTANT MUST ATTENTION** run resolve → journey → scenarios → decisions → write → gate → plan handoff in order.
 **IMPORTANT MUST ATTENTION** derive scenarios from the journey and source-of-truth state; test replay, persistence, validation, concurrency, lifecycle, access, deletion, recovery, and evidence as applicable.

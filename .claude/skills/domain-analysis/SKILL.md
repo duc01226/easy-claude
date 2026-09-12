@@ -15,16 +15,14 @@ description: '[Architecture] Use when analyzing the business domain — bounded 
 
 ## Quick Summary
 
-**Goal:** Analyze business domain (bounded contexts, aggregates, entities, VOs, domain events, cross-context relationships) and generate a domain model report + ERD — producing a user-validated DDD domain model with correct bounded contexts, aggregate boundaries, and event flows so downstream implementation builds on the right invariants and avoids costly boundary rework after consumers depend on them.
+**Goal:** Analyze business artifacts into a user-validated DDD domain model and ERD covering bounded contexts, aggregates, entities, value objects, relationships, and domain events, so downstream implementation uses correct invariants and avoids boundary rework after consumers depend on them.
 
 **Summary:**
 
-- **Purpose:** turn business artifacts into a user-validated DDD domain model (bounded contexts, aggregates, entities, VOs, domain events, ERD) so downstream code builds on correct invariants — never re-cut boundaries after consumers depend on them.
-- **Ten ordered steps (do all, none skippable):** 0 locate active plan + `domain-entities-reference.md` → 1 load business context (nouns→entities, verbs→events) → 2 identify bounded contexts → 3 model entities & aggregates → 4 map relationships → 5 domain events → 6 generate Mermaid ERD → 7 user-validation interview → 8 entity-change assessment vs reference doc → 9 update `plan.md` `## Domain Model`.
-- Drive the model from business artifacts, not guesses: load plan/PBI/business-eval inputs and `domain-entities-reference.md`, then extract nouns→entities, verbs→events, roles, and processes before classifying anything.
-- Every concept passes the Entity-vs-VO matrix and aggregate boundary rules (≤5 entities, one transaction, reference-by-ID only, root is the sole mutation entry) — flag primitive obsession and anemic models as you go.
-- User validation is non-skippable: present bounded contexts and the Mermaid ERD, then run the 5-8 question `AskUserQuestion` interview to confirm boundaries, aggregate roots, and event flows before marking the model confirmed.
-- Close the loop on persistence: reconcile findings against `domain-entities-reference.md` (new/modified/deprecated), update the `## Domain Model` section of `plan.md`, and keep cross-context communication event-driven with `{AggregateNoun}{PastTenseVerb}` naming and no cross-service FKs.
+- **Purpose:** turn business artifacts into a user-validated DDD model; derive nouns→entities, verbs→events, roles, and processes before classification — NEVER model from guesses.
+- **Ordered flow (all steps):** `0` locate active plan, prior research, domain reference, set `{plan-dir}` → `1` load business context → `2` identify contexts and validate boundaries → `3` model entities/VOs/aggregates → `4` map relationships → `5` identify events → `6` generate Mermaid ERD → `7` run 5-8-question user validation → `8` assess new/modified/deprecated reference entities and request approval → `9` update `{plan-dir}/plan.md` `## Domain Model`.
+- **Model gates:** apply Entity-vs-VO and aggregate rules (≤5 entities, one transaction, ID-only cross-aggregate references, root-only mutation); flag primitive obsession, anemic models, and cross-service FKs.
+- **Closure:** persist the report, confirmed model, approved reference changes, and plan update; keep cross-context communication event-driven with `{AggregateNoun}{PastTenseVerb}` naming.
 
 **Workflow:**
 
@@ -36,7 +34,7 @@ description: '[Architecture] Use when analyzing the business domain — bounded 
 5. **Domain Events** — Identify events crossing context boundaries, `{AggregateNoun}{PastTenseVerb}`
 6. **Generate ERD** — Mermaid ER diagram with all entities and relationships
 7. **User Validation** — Present model, ask 5-8 questions, confirm decisions → `status: confirmed`
-8. **Domain Entity Change Assessment** — Compare against `domain-entities-reference.md`, update/create if needed
+8. **Domain Entity Change Assessment** — Compare new/modified/deprecated entities against `domain-entities-reference.md`; update/create only after approval
 9. **Update Main Plan** — Append/update `## Domain Model` section of `{plan-dir}/plan.md`
 
 **Key Rules:**
@@ -81,9 +79,9 @@ description: '[Architecture] Use when analyzing the business domain — bounded 
 | One upstream, many downstream consumers                | Open Host Service + Published Language |
 | Integration cost exceeds integration value             | Separate Ways                          |
 
-**ACL — when to use:** Upstream is external/legacy/third-party (Salesforce, SAP, Workday). Upstream types NEVER cross ACL into domain model.
+**ACL — use when:** upstream is external, legacy, or third-party (Salesforce, SAP, Workday); upstream types NEVER cross ACL into domain model.
 
-**Shared Kernel — when NOT to use:** Teams cannot coordinate on every change → use Customer-Supplier + Published Language instead.
+**Shared Kernel — avoid when:** teams cannot coordinate every change → use Customer-Supplier + Published Language.
 
 ---
 
@@ -135,7 +133,7 @@ description: '[Architecture] Use when analyzing the business domain — bounded 
 
 ### Value Object Construction Pattern
 
-A VO is self-validating: invariants enforced at construction via a factory (no public constructor that can produce an invalid instance), immutable, and equality-by-value. The base class and factory names below are one illustrative instantiation — translate to your language's equivalents.
+VO self-validates invariants at construction via a factory; no public constructor may produce an invalid instance; immutable; equality-by-value. Base class and factory names below are illustrative; adapt to your language.
 
 **Example (illustrative — adapt to your language):**
 
@@ -211,7 +209,7 @@ public sealed class Email : ValueObject<Email>
 
 ### Entity Invariant Enforcement
 
-A rich entity guards its own state: a private constructor reserved for ORM/persistence hydration, named factory methods for valid creation, and intent-named mutation methods that reject invalid transitions and emit domain events. The base class, guard helper, and ID generator below are one illustrative instantiation — substitute your language's equivalents.
+Rich entity guards its state: private constructor for ORM/persistence hydration, valid-creation factories, and intent-named mutation methods that reject invalid transitions and emit domain events. Base class, guard, and ID-generator names below are illustrative; adapt to your language.
 
 **Example (illustrative — adapt to your language):**
 
@@ -286,7 +284,7 @@ Active → Archived (Archive())
 
 ### Factory Methods on Entities
 
-Use when: construction requires domain logic, multiple paths, raises domain events, or object graph initialization.
+Use when construction requires domain logic, multiple creation paths, domain events, or object-graph initialization.
 
 **Naming:**
 
@@ -349,7 +347,7 @@ Use when: regulatory compliance, retroactive corrections, "as-of" queries.
 
 ### Aggregate Invariant Enforcement
 
-All mutation flows through the aggregate root, which checks every invariant before applying a change and recomputes derived state so no member can be left inconsistent. The throw-on-violation idiom below is one illustrative instantiation — your language may surface invariant breaches differently (exceptions, result types).
+Aggregate root owns mutation: check every invariant before change and recompute derived state to prevent inconsistency. Throw-on-violation example is illustrative; language may use exceptions or result types.
 
 **Example (illustrative — adapt to your language):**
 
@@ -383,7 +381,7 @@ public void AddLineItem(ProductId productId, int quantity, Money unitPrice)
 | Performance — 1-query load         | Embed child data as VO/owned type rather than separate aggregate |
 | Legacy schema migration            | Accept cross-aggregate FK temporarily, document as debt          |
 
-**Rule:** Breaking aggregate rules acceptable ONLY when explicitly documented as technical debt with mitigation plan.
+**Rule:** Break aggregate rules ONLY with explicit technical-debt documentation and mitigation plan.
 
 ---
 
@@ -397,9 +395,9 @@ public void AddLineItem(ProductId productId, int quantity, Money unitPrice)
 | 1:N         | `\|o--{`   | Parent-child, one entity owns many dependent records           |
 | M:N         | `}o--o{`   | Peer relationship; ALWAYS use explicit join/association entity |
 
-**M:N rule:** Relationship has attributes (date joined, role) → make join table explicit named entity.
+**M:N rule:** Attributes (date joined, role) → explicit named join entity.
 
-**1:1 decision:** Same concept with optional attributes → same table. Different concepts with independent lifecycles → separate tables with FK.
+**1:1 decision:** Same concept + optional attributes → same table; different concepts with independent lifecycles → separate tables with FK.
 
 ### Normalization Targets
 
@@ -523,9 +521,7 @@ public void AddLineItem(ProductId productId, int quantity, Money unitPrice)
 
 ### Query Objects — When to Use Specification
 
-Use when: rule used in multiple places, warrants naming + testing, needs composition.
-
-A specification names a query predicate as a reusable, composable, testable unit owned by the domain. The expression-tree form below is one illustrative instantiation — your language may model it as a predicate function, query builder, or specification object.
+Use when a rule repeats, needs a name/test, or needs composition. A specification is a reusable, composable, testable domain-owned query predicate. The expression-tree form below is illustrative; adapt to your language's predicate, query-builder, or specification-object equivalent.
 
 **Example (illustrative — adapt to your language):**
 
@@ -590,7 +586,7 @@ Extract and list:
 
 ### Step 2: Identify Bounded Contexts
 
-Group related entities using DDD principles. Apply context boundary signals from reference table above.
+Group related entities by DDD principles; apply context-boundary signals above.
 
 ```markdown
 ### Bounded Context: {Name}
@@ -664,7 +660,7 @@ Per bounded context: classify each concept using Entity vs VO matrix above, then
 | Order | Product  | M:N  | via OrderLine   | Non-identifying (assoc) | Orders contain products  |
 ```
 
-Apply identifying vs non-identifying rule:
+Apply identifying vs non-identifying relationship rule:
 
 - Identifying relationship (child FK is part of PK) → child entity inside parent aggregate
 - Non-identifying FK → likely separate aggregates
@@ -677,7 +673,7 @@ Apply identifying vs non-identifying rule:
 | Sales            | Order              | ACL     | Cart becomes Order         | Domain event   |
 ```
 
-Integration patterns to apply (see context map reference table above):
+Apply context-map patterns above:
 
 - **Anti-Corruption Layer** — external/hostile upstream model
 - **Customer-Supplier** — downstream can negotiate with upstream
@@ -686,7 +682,7 @@ Integration patterns to apply (see context map reference table above):
 
 ### Step 5: Domain Events
 
-Identify events crossing bounded context boundaries. Apply naming: `{AggregateNoun}{PastTenseVerb}`.
+Identify cross-context events; name them `{AggregateNoun}{PastTenseVerb}`.
 
 | Event            | Source Context | Target Context(s)    | Payload (minimal)            | Trigger        |
 | ---------------- | -------------- | -------------------- | ---------------------------- | -------------- |
@@ -762,7 +758,7 @@ erDiagram
 - "Which entities change most frequently under concurrent load? (impacts aggregate design)"
 - "Any concepts domain experts name that I haven't modeled explicitly?"
 
-After user confirms, update report with final decisions and mark as `status: confirmed`.
+After confirmation, update report with final decisions; set `status: confirmed`.
 
 ### Step 8: Domain Entity Change Assessment (MANDATORY)
 
@@ -780,7 +776,7 @@ If `docs/project-reference/domain-entities-reference.md` does NOT exist, ask use
 - "No domain-entities-reference.md found. Create it with all entities from this analysis?"
 - Options: Yes, create it (Recommended) | No, skip
 
-**After user confirms:** update/create `docs/project-reference/domain-entities-reference.md` following existing format. Append new entities to appropriate bounded context section. Update field lists + relationships for modified entities.
+**After approval:** update/create `docs/project-reference/domain-entities-reference.md` in its existing format; append new entities to the appropriate bounded-context section; update fields + relationships for modified entities.
 
 ### Step 9: Update Main Plan (MANDATORY)
 
@@ -925,14 +921,14 @@ After the existing `## Next Steps` prompt above resolves, present a **second**, 
 
 ## Closing Reminders
 
-**IMPORTANT MUST ATTENTION Goal:** Produce a user-validated DDD domain model — correct bounded contexts, aggregate boundaries, and event flows — so downstream implementation builds on the right invariants and avoids costly boundary rework after consumers depend on them.
+**IMPORTANT MUST ATTENTION Goal:** Analyze business artifacts into a user-validated DDD domain model and ERD covering bounded contexts, aggregates, entities, value objects, relationships, and domain events, so downstream implementation uses correct invariants and avoids boundary rework after consumers depend on them.
 
 **Protocols in force (concise digest of the SYNC/shared blocks this skill carries):**
 
 - **AI Mistake Prevention:** verify generated content against evidence, trace downstream references, verify all affected outputs, re-read after context loss, surface ambiguity.
 - **Critical Thinking:** Traced proof per claim; confidence >80% to act, NEVER guess as fact.
 
-**IMPORTANT MUST ATTENTION** run ALL ten ordered steps, none skippable: 0 locate plan + reference → 1 load context → 2 bounded contexts → 3 entities/aggregates → 4 relationships → 5 domain events → 6 Mermaid ERD → 7 user-validation interview → 8 entity-change assessment → 9 update `plan.md` — why: AI keeps dropping Step 0 (plan load) and Step 9 (plan update), leaving the model un-anchored and un-persisted.
+**IMPORTANT MUST ATTENTION** run ALL 10 ordered steps, none skippable: (0) locate active plan + prior research + domain reference, set `{plan-dir}` → (1) load business artifacts and derive nouns→entities, verbs→events, roles, processes → (2) identify contexts + validate boundaries → (3) model entities/VOs/aggregates → (4) map relationships/context map → (5) identify events → (6) generate Mermaid ERD → (7) run 5-8-question user validation → (8) assess new/modified/deprecated reference entities + request approval → (9) update `{plan-dir}/plan.md` `## Domain Model` — why: dropped steps leave the model un-anchored or un-persisted.
 **IMPORTANT MUST ATTENTION** validate EVERY bounded context + key relationship with user via `AskUserQuestion` — NEVER auto-decide a boundary — why: DDD boundaries are hard to reverse once consumers depend on them; one wrong cut costs days of rework.
 **IMPORTANT MUST ATTENTION** domain events ALWAYS follow `{AggregateNoun}{PastTenseVerb}` naming — NEVER command-style (`CancelOrder`) or generic (`OrderStatusChanged`) — why: command/generic names hide what happened and break consumer routing.
 **IMPORTANT MUST ATTENTION** NEVER place cross-service FK in the ERD — use ID reference (`{Entity}Id` string/ULID) + event-driven sync only — why: cross-service FK couples schemas and blocks independent deployment.
@@ -945,6 +941,7 @@ After the existing `## Next Steps` prompt above resolves, present a **second**, 
 **MUST ATTENTION** every aggregate passes boundary rules — ≤5 entities, one transaction, reference-by-ID only, root is the sole mutation entry; >5 entities → decompose or justify as documented debt.
 **MUST ATTENTION** include the Mermaid ERD and a confidence % (>80% to act, <80% verify first) for EVERY architectural decision; cite `file:line` / artifact evidence — NEVER present a boundary or classification as fact without traced proof.
 **MUST ATTENTION** persist intermediate findings to `tmp/reports/` incrementally and add a final review task to verify work quality — why: long analysis hits context cutoffs; batched writes lose findings.
+**MUST ATTENTION** apply conditional gates: create a plan only when none exists; if the domain reference is missing, ask whether to create it; update it only after approval; present both independent post-analysis `AskUserQuestion` prompts (Next Steps, then council) — why: user decisions control mutation and terminal routing.
 
 **Anti-Rationalization:**
 
@@ -956,8 +953,6 @@ After the existing `## Next Steps` prompt above resolves, present a **second**, 
 | "Small model, skip task tracking"                | Still `TaskCreate` first. Skip depth, never skip tracking.                         |
 | "Cross-service link is just one FK"              | Never — ID reference + event-driven sync. One FK couples two schemas permanently. |
 
-**[TASK-PLANNING]** Before acting, analyze task scope and systematically break it into small todo tasks and sub-tasks using TaskCreate.
-
-**IMPORTANT MUST ATTENTION** validate EVERY bounded context with the user, name domain events `{AggregateNoun}{PastTenseVerb}`, and keep cross-service links as ID-reference + events — these three are the most-skipped, highest-blast-radius rules of this skill.
-
-> **[IMPORTANT]** Analyze how big the task is and break it into many small todo tasks systematically before starting — this is very important.
+**IMPORTANT MUST ATTENTION** re-anchor the highest-blast-radius rules: create all tasks before acting; run all ten steps in order; validate every bounded context and key relationship; produce the Mermaid ERD; persist approved domain changes and the plan update.
+**IMPORTANT MUST ATTENTION** derive from business artifacts with traced evidence; name events `{AggregateNoun}{PastTenseVerb}`; keep cross-service links ID-only + event-driven — NEVER model from guesses or add cross-service FKs.
+**IMPORTANT MUST ATTENTION** preserve approval-dependent reference updates and both independent post-analysis user prompts; do not silently choose a terminal route.

@@ -15,35 +15,33 @@ description: '[Project Management] Use when creating UI/UX design specs from req
 
 ## Quick Summary
 
-**Goal:** Produce a structured, tech-agnostic UI/UX design specification from a requirement/PBI/story/wireframe so a developer can rebuild the UI on ANY stack — every component, state, design token, responsive rule, and accessibility need documented and linked back to the governing Feature Spec.
+**Goal:** Produce a complete, tech-agnostic UI/UX design spec that lets a developer rebuild the source outcome on ANY stack, preserving every required view, navigation path, component, state, token, responsive rule, accessibility need, demo journey, and governing-spec link.
 
 **Summary:**
 
-- **Purpose** — translate requirements into a developer-ready UI/UX spec (component inventory, states, design tokens, responsive behavior, accessibility), tech-agnostic: name components by UX role, never by framework/library class.
-- **Step 0–0b — research first:** inventory existing related screens/components + map connected flows, record in §1 so the spec matches the live UI system; if a governing Feature Spec exists, seed from its §6 interaction surface and reuse its view + observable-state vocabulary verbatim. — why: divergent vocabulary breaks the navigable spec↔design hub.
-- **Step 1–2 — read & route input, set complexity:** Figma URL → `/figma-design`; image/screenshot → visual analysis tooling; wireframe/sketch → `--mode=wireframe`; PBI/text → extract requirements. Pick Quick Spec (§1–4) vs Full Spec (§1–7, +Flow Diagram for multi-page).
-- **Step 3–6 — author the body:** build component inventory (new vs existing), define all 7 states + interactions, extract design tokens (reuse design-system), document responsive breakpoints (mobile 320–767 / tablet 768–1023 / desktop 1024+).
-- For a UI PBI, preserve the parent releasable outcome's complete surface: every required page/view, navigation path, common/domain/page component, applicable state, and end-to-end demo journey. Multi-page outcomes require Full Spec + Flow Diagram; do not collapse them into one screen.
-- **Step 7–8 — save & link back:** write the artifact to `team-artifacts/design-specs/`, then set the governing Feature Spec's `design_spec:`/`mockup:` frontmatter to the saved path — frontmatter only, never the §1–8 body. — why: `artifact-review --type=design` fails if the path is not recorded.
+- **Step 0–0b — ground context:** inventory related UI and connected flows; if a governing Feature Spec exists, seed from §6 and reuse its view/state vocabulary verbatim; otherwise state that no governing spec exists.
+- **Step 1–2 — route + size:** Figma→`/figma-design`; image→visual analysis; wireframe/sketch→`--mode=wireframe` plus confidence/human review; PBI/text→requirements; choose Quick (§1–4) or Full (§1–7, plus Flow Diagram for multi-page).
+- **Step 3–6 — specify the surface:** inventory new/existing components; define interactions and all 7 observable states where applicable; extract design-system tokens; document content-driven responsive behavior and the complete releasable page/view/navigation/full-flow surface.
+- **Step 7–8 — close the chain:** save under `team-artifacts/design-specs/`; when a governing Feature Spec exists, update only its `design_spec:`/`mockup:` frontmatter; satisfy M1–M5/M7 and logical-ID traceability.
 
 **Workflow:**
 
-1. **Read Source** — Extract UI requirements from PBI, story, or Figma URL
-2. **Determine Complexity** — Quick Spec (sections 1-4) vs Full Spec (all 7 sections)
-3. **Build Component Inventory** — List new vs existing components
-4. **Define States & Tokens** — Interactions, design tokens, responsive breakpoints
-5. **Save Artifact** — Output to `team-artifacts/design-specs/`
+1. **Ground Source** — Inventory UI/flows; seed governing §6 vocabulary
+2. **Route Input** — Choose Figma, visual, wireframe, PBI, or text path
+3. **Set Scope** — Choose Quick / Full / Flow Diagram
+4. **Specify** — Components, 7 states, tokens, responsive/accessibility/full-flow rules
+5. **Save + Link** — Save artifact; update Feature Spec frontmatter only
 
 **Key Rules:**
 
-- If Figma URL provided → auto-routes to `/figma-design` for context extraction
-- If wireframe image provided (hand-drawn/digital/tool-export) → handled internally via `--mode=wireframe` (see "Mode: wireframe" below)
-- If screenshot provided → uses `visual analysis tooling` for design extraction
-- Reference existing design system tokens from `docs/project-reference/design-system/`
-- Component patterns: `docs/project-reference/frontend-patterns-reference.md`
-- Include accessibility requirements (keyboard nav, ARIA labels, contrast)
+- Input routing: Figma→`/figma-design`; wireframe/sketch→`--mode=wireframe`; screenshot→visual analysis.
+- Reuse `docs/project-reference/design-system/` tokens and `docs/project-reference/frontend-patterns-reference.md` component patterns; include keyboard navigation, ARIA labels, and contrast.
 - **[BLOCKING] Tech-agnostic output:** spec prose/headings follow `docs/project-reference/spec-principles.md` §3 — describe components by UX role, not framework/library names; source paths and class names appear ONLY in evidence fields (`**Evidence**`, `[Source:]`), frontmatter, and Mermaid.
 - **[BLOCKING] Releasable UI surface:** apply `.claude/skills/shared/releasable-pbi-contract.md`; the design spec must deepen, not reduce, the PBI/mockup page/view, navigation, component, state, and full-flow inventories.
+
+> **Releasable outcome contract** — Preserve one complete actor-facing journey (entry/context → action/input → validation/decision → visible or persisted result → exit/next path) with every required view, navigation edge, component, and state; incomplete or ambiguous outcomes stay blocked.
+>
+> **MUST ATTENTION READ** `.claude/skills/shared/releasable-pbi-contract.md` for the full contract.
 
 **Be skeptical. Apply critical thinking, sequential thinking. Every claim needs traced proof, confidence percentages (Idea should be more than 80%).**
 
@@ -54,15 +52,14 @@ Create structured UI/UX design specification documents from requirements or PBIs
 ## When to Use
 
 - A PBI or user story needs a design spec before implementation
-- Translating requirements into concrete UI layout, states, and tokens
-- Documenting component inventory and interaction patterns
-- Creating responsive breakpoint specifications
+- Requirements need concrete layout, states, tokens, and responsive behavior
+- A component inventory and interaction patterns need documentation
 
 ## When NOT to Use
 
-- This skill auto-routes Figma URLs to `/figma-design`; wireframes are handled internally via `--mode=wireframe` — no need to call a separate skill
-- Building the actual UI -- use `design --lane=marketing` (marketing/creative) or `design --lane=product` (product UIs)
-- Reviewing existing UI code -- use `web-design-guidelines`
+- Figma URLs auto-route to `/figma-design`; wireframes run internally via `--mode=wireframe` — no separate skill call
+- Building UI — use `design --lane=marketing` (marketing/creative) or `design --lane=product` (product UIs)
+- Reviewing UI code — use `web-design-guidelines`
 
 ## Prerequisites
 
@@ -74,7 +71,7 @@ Read before executing:
 
 ### Frontend/UI Context
 
-> When this task involves frontend or UI changes,
+> For frontend/UI work, read:
 
 - Frontend patterns: `docs/project-reference/frontend-patterns-reference.md`
 - Styling/BEM guide: `docs/project-reference/scss-styling-guide.md`
@@ -82,15 +79,15 @@ Read before executing:
 
 ## Workflow
 
-> **[BLOCKING] Step 0 — Inventory existing UI + map connected flows** (per the `SYNC:existing-ui-research` protocol carried by this skill). Before authoring the spec, inventory the existing related screens / components / pages already serving this feature or domain, and map every connected feature flow that links to / embeds / navigates to-or-from the new screen. Record the matched screens + flows in §1 Overview so the spec faithfully matches the current UI system. Skip only for backend-only work (state it explicitly).
+> **[BLOCKING] Step 0 — Inventory existing UI + map connected flows** (per `SYNC:existing-ui-research`). Before authoring, inventory related existing screens/components/pages and every connected feature flow (links, embeds, navigates to/from); record matched UI + flows in §1 so the spec fits the live UI system. Skip only backend-only work; state that explicitly.
 
-> **[BLOCKING] Step 0b — Seed from the governing Feature Spec's §6 interaction surface (when one exists).** Detect whether a canonical Feature Spec already governs this feature (look under `docs/specs/**` for a spec covering the same capability). If one exists, READ its **§6 Process Flows & Interaction Surface** — the **View Inventory** (§6.2), **Navigation Map** (§6.3), **Key UI States** (§6.4), and **Per-Story Interaction Flow** (§6.5) — and use it as this design-spec's starting frame:
+> **[BLOCKING] Step 0b — Seed from governing Feature Spec §6 (when one exists).** Search `docs/specs/**` for a canonical spec covering this capability. If found, READ **§6 Process Flows & Interaction Surface** — **View Inventory** (§6.2), **Navigation Map** (§6.3), **Key UI States** (§6.4), and **Per-Story Interaction Flow** (§6.5) — as this design-spec's starting frame:
 >
-> - **Reuse the spec's vocabulary verbatim** — carry over the SAME UX-role view names from §6.2 and the SAME observable-state names from §6.4 (the Default / Loading / Disabled / Error / Empty / Success vocabulary in this skill's "Observable State Definitions" table is the shared language). NEVER rename or re-partition what the spec already named — the two artifacts MUST speak the same language or the navigable hub breaks.
-> - **Deepen, do not diverge or contradict.** The spec stays tech-agnostic; this design-spec is the companion that adds visual fidelity (layout, tokens, pixel detail) ON TOP of the spec's intent. Map each §6.5 step and each §6.4 state into concrete visual treatment, preserving the `US-`/`OP-`/`BR-` logical-ID cross-refs the spec already owns.
-> - This coupling is the `SYNC:ui-intent-layer` contract carried below — see that block for the full rule; do not restate it here.
+> - **Reuse vocabulary verbatim:** carry over the SAME UX-role view names from §6.2 and observable-state names from §6.4 (Default / Loading / Disabled / Error / Empty / Success). NEVER rename or repartition; both artifacts MUST use one language so the navigable hub works.
+> - **Deepen, never diverge:** keep the spec tech-agnostic; add visual fidelity (layout, tokens, pixel detail) on top of its intent. Map each §6.5 step and §6.4 state to visual treatment; preserve its `US-`/`OP-`/`BR-` logical-ID cross-refs.
+> - This coupling is the `SYNC:ui-intent-layer` contract below; use that block for the full rule instead of restating it.
 >
-> **Skip ONLY** when no governing Feature Spec exists (author the interaction frame from the source PBI/story instead) — state which case applies.
+> **Skip ONLY** when no governing Feature Spec exists; author the interaction frame from the source PBI/story and state which case applies.
 
 1. **Read source input & route by type**
 
@@ -102,7 +99,7 @@ Read before executing:
     | PBI/story text           | Acceptance criteria present                    | Extract UI requirements from text, continue                              |
     | Verbal/text requirements | No image, no URL, no PBI                       | Clarify with user, then continue                                         |
 
-For ANY visual input: extract design context FIRST, then proceed to spec generation.
+For ANY visual input, extract design context FIRST, then generate the spec.
 
 2. **Determine spec complexity**
 
@@ -113,22 +110,16 @@ For ANY visual input: extract design context FIRST, then proceed to spec generat
     ```
 
 3. **Build component inventory**
-    - List all UI components needed
-    - Identify reusable vs feature-specific components
-    - Note existing components from shared component library or design system
+    - List needed UI components; classify reusable vs feature-specific; note existing shared-library/design-system components.
 
 4. **Define states and interactions**
-    - Default, hover, active, disabled, error, loading, empty states
-    - User interactions (click, drag, keyboard shortcuts)
-    - Transitions and animations
+    - Default, hover, active, disabled, error, loading, and empty states; user interactions (click, drag, keyboard shortcuts); transitions and animations.
 
 5. **Extract design tokens**
-    - Colors, typography, spacing, shadows, border-radius
-    - Reference existing design system tokens where possible
+    - Colors, typography, spacing, shadows, and border-radius; reference existing design-system tokens where possible.
 
 6. **Document responsive behavior**
-    - Mobile (320-767px), Tablet (768-1023px), Desktop (1024px+)
-    - What changes at each breakpoint (layout, visibility, sizing)
+    - Mobile (320-767px), Tablet (768-1023px), Desktop (1024px+); document layout, visibility, and sizing changes at each breakpoint.
     - **Small-screen minimum bar (spec it explicitly):** the layout MUST stay usable on mobile. Preferred = reflow (rows `flex-wrap` / `row → column`, grids collapse to one column). Where a component genuinely can't reflow (data tables, canvases, wide grids), specify a `min-width`/`min-height` + `overflow: auto` scroll as the accepted fallback — scrolling is OK. Hard requirement = nothing broken (no clipped, cut-off, or unreachable content/controls). If a component needs a large redesign to work on mobile, flag it for the user rather than assuming a rewrite.
 
 7. **Save artifact** — pick the filename variant by artifact type:
@@ -140,7 +131,7 @@ For ANY visual input: extract design context FIRST, then proceed to spec generat
 
 ### Role Context & Artifact Path (canonical)
 
-> Applies to Writes under `team-artifacts/design-specs/`.
+> Applies to writes under `team-artifacts/design-specs/`.
 
 - **Active Role:** ui-ux-designer · **Skill:** design-spec
 - **Path:** `team-artifacts/design-specs/` · **Type:** designspec · **Role token:** ux
@@ -151,7 +142,7 @@ For ANY visual input: extract design context FIRST, then proceed to spec generat
 
 ## Mode: wireframe (image → spec)
 
-> **Invoke with `--mode=wireframe`** (or whenever a hand-drawn wireframe, digital wireframe, or UI sketch is the input). This mode is an INPUT adapter: it analyzes the image, then flows into the normal spec sections (Output Format) and the M1-M5/M7 compliance gate. `design-spec` is the canonical owner of wireframe→spec conversion.
+> **Mode flag:** use `--mode=wireframe` for hand-drawn/digital wireframes or UI sketches. This INPUT adapter analyzes the image, then continues through the normal Output Format and M1-M5/M7 gate; `design-spec` owns wireframe→spec conversion.
 
 ### Input Routing (wireframe)
 
@@ -173,7 +164,7 @@ Use `visual analysis tooling` with these prompts:
 
 ### Wireframe Output Generation
 
-After image analysis, generate (per the `SYNC:ui-wireframe-protocol` block below):
+After image analysis, generate (per `SYNC:ui-wireframe-protocol`):
 
 1. **ASCII Wireframe** — Recreate layout using box-drawing characters
 2. **Component Inventory** — List with tier classification (Common/Domain-Shared/Page)
@@ -181,7 +172,7 @@ After image analysis, generate (per the `SYNC:ui-wireframe-protocol` block below
 4. **Component Decomposition Tree** — If detail level warrants (refine/story)
 5. **Responsive Suggestions** — Based on layout complexity
 
-Apply the **M1-M5/M7 Compliance for UI Specs** gate (below) to all wireframe-derived prose: business-level component names, no code-prop refs, map to feature logic by logical ID, observable state transitions, rebuild-from-spec, business-visible subject matter.
+Apply the **M1-M5/M7** gate to all wireframe-derived prose: business-level component names, no code-prop refs, logical-ID feature mapping, observable transitions, rebuildability, and business-visible subject matter.
 
 Wireframe-derived specs carry the same **Design-Principles Obligations** (below): the States Table (item 3) is authored empty/loading/error FIRST (`UI-1.5`) and covers all 5 interaction states per interactive element (`UI-5.2`); the Responsive Suggestions (item 5) break where the CONTENT breaks, not at device names (`UI-4.4`); and where the sketch is silent on type scale, spacing unit, or contrast (`UI-2.5`, `UI-4.1`, `UI-3.1`), record them in §4 as `[UNVERIFIED — needs design-system mapping]` rather than inventing one-off values measured off the drawing.
 
@@ -297,7 +288,11 @@ Keep every clause obligation written in observable UX language so it survives th
 
 ## M1-M5/M7 Compliance for UI Specs
 
-See `.claude/skills/shared/sdd-artifact-contract.md` → "AI-SDD Mandates (M1-M7)" for BLOCKING criteria. A UI spec MUST satisfy these before handoff:
+> **AI-SDD artifact contract** — M1-M7 require tech-agnostic, traceable, observable, rebuildable specs; logical IDs lead prose, implementation identifiers stay in evidence carriers, and business-tree cases must be demoable.
+>
+> **MUST ATTENTION READ** `.claude/skills/shared/sdd-artifact-contract.md` for the full "AI-SDD Mandates (M1-M7)" gate.
+
+A UI spec MUST satisfy these criteria before handoff:
 
 - **M1 — Business-level component names.** Name every component by its UX role — Primary Button, Secondary Button, Modal Dialog, Data Table, Dropdown, Toast — NEVER by a framework component class name or library import. FAIL on tech-term prose.
 - **M2 — No code-prop refs in prose.** Describe behavior and appearance in plain UX language. NEVER reference component-state props, CSS class names, framework directives, or selectors in prose. Those belong only in `**Evidence**`/`[Source:]` carriers, frontmatter, and Mermaid.
@@ -740,16 +735,15 @@ For an accessibility-audit deliverable, produce this checklist report and save i
 
 ## Closing Reminders
 
-**IMPORTANT MUST ATTENTION Goal:** Produce a structured, tech-agnostic UI/UX design specification that preserves the PBI's complete releasable UI outcome — every required page/view, navigation path, component, state, responsive rule, accessibility need, and end-to-end demo journey — so a developer can rebuild it on ANY stack.
+**IMPORTANT MUST ATTENTION Goal:** Produce a complete, tech-agnostic UI/UX design spec that lets a developer rebuild the source outcome on ANY stack, preserving every required view, navigation path, component, state, token, responsive rule, accessibility need, demo journey, and governing-spec link.
 
-**IMPORTANT MUST ATTENTION main steps (do not forget any):**
+**IMPORTANT MUST ATTENTION main steps, modes, and gates:**
 
-- **Step 0–0b first** — inventory existing related UI + map connected flows (record in §1); seed from the governing Feature Spec's §6 and reuse its view/state vocabulary verbatim — why: reinventing what exists or renaming spec terms breaks the navigable hub.
-- **Step 1–2** — route by input type (Figma→`/figma-design`, image→visual analysis, wireframe→`--mode=wireframe`, PBI/text→extract), then set Quick (§1–4) vs Full (§1–7) complexity.
-- **Step 3–6** — author component inventory (new vs existing), all 7 states + interactions, design tokens (reuse design-system), responsive breakpoints.
-- **Releasable full-flow surface** — never collapse a multi-page PBI/mockup into one screen; carry the complete page/view, navigation, common/domain/page component, state, and flow inventories forward and deepen them.
-- **Step 7–8** — save to `team-artifacts/design-specs/`, then set the governing Feature Spec's `design_spec:`/`mockup:` frontmatter to the saved path (frontmatter only) — why: the link-back gate fails without it.
-- **M1–M5 gate (BLOCKING)** — business-level component names, no code-prop refs in prose, cross-ref behavior by logical ID (`OP-`/`BR-`/`FR-`), one testable interpretation per state, rebuildable from spec alone — why: a tech-leaking spec cannot be rebuilt on another stack.
+- **Step 0–0b first** — inventory existing UI + connected flows in §1; seed governing Feature Spec §6 and reuse its view/state vocabulary verbatim, or state no governing spec — why: divergence breaks the navigable hub.
+- **Step 1–2** — route Figma→`/figma-design`, image→visual analysis, wireframe/sketch→`--mode=wireframe`, PBI/text→requirements; for wireframes, emit PBI-section or standalone format, show confidence, recommend human review, and ask clarification below 70%; choose Quick (§1–4), Full (§1–7), or Full + Flow Diagram for multi-page.
+- **Step 3–6** — inventory new/existing components; define interactions and all 7 states; extract tokens; document content-driven responsive/accessibility behavior.
+- **Releasable full flow** — preserve every required page/view, navigation edge, Common/Domain-Shared/Page component, state, and end-to-end demo journey; never collapse a multi-page outcome into one screen.
+- **Step 7–8** — save the correct design-spec/audit/component variant under `team-artifacts/design-specs/`; update governing Feature Spec `design_spec:`/`mockup:` frontmatter only; satisfy M1–M5/M7 and logical-ID traceability.
 
 **Protocols in force (concise digest of the SYNC/shared blocks this skill carries):**
 
@@ -774,6 +768,8 @@ For an accessibility-audit deliverable, produce this checklist report and save i
 | "Saved the file — done"                           | Step 8 link-back is required; set the spec's `design_spec:` frontmatter or `artifact-review` fails.   |
 | "'Show feedback' describes the error state"       | M4 FAIL — every state needs one observable completion marker, not a vague phrase.                     |
 
-**[TASK-PLANNING]** Before acting, analyze task scope and systematically break it into small todo tasks and sub-tasks using TaskCreate.
+**[TASK-PLANNING]** Before acting, use `TaskCreate` to break the work into small tasks, including each file read; update statuses per step and add a final review task. For simple tasks, ask whether the user wants to skip workflow depth, never task tracking.
 
-> **[IMPORTANT]** Analyze how big the task is and break it into many small todo tasks systematically before starting — this is very important.
+**IMPORTANT MUST ATTENTION** create tracked tasks before execution; route input and choose Quick/Full/Flow Diagram before authoring; preserve wireframe confidence/review and M1–M5/M7 gates.
+**IMPORTANT MUST ATTENTION** save the correct artifact variant, link back through Feature Spec frontmatter only, and verify complete releasable full-flow coverage.
+**IMPORTANT MUST ATTENTION** cite `file:line` evidence for every claim, preserve all 7 states/tokens/responsive/accessibility rules, and complete the final review task.

@@ -15,16 +15,13 @@ description: '[Architecture] Use when grading architecture and scalability — b
 
 ## Quick Summary
 
-**Goal:** Grade a project or planned architecture against the full architecture + scalability quality scorecard, routing deep checks to the existing owner skills instead of duplicating them — so the project earns an evidence-backed `/20` verdict (STRONG / NEEDS WORK / HIGH RISK) before scale or delivery hardens the decisions.
+**Goal:** Grade a project or planned architecture against architecture + scalability criteria and produce an evidence-backed `/20` verdict (`STRONG` / `NEEDS WORK` / `HIGH RISK`) before scale or delivery decisions harden; route deep checks to owner skills.
 
 **Summary:**
-- **Testability contract:** resolve Unit/Integration/System/E2E applicability from runner/config evidence; record owner/root/data, copy-ready full + focused commands, zero-match behavior, CI/simple-Windows entry, unique run/data identity, and repeat proof; unresolved applicable fields block handoff, while non-applicable tiers require evidence-backed `N/A`.
-
-- This skill is the scorecard OWNER, not the deep owner — it scores 10 areas 0-2 (`/20`), then routes sibling-owned depth (architecture-design/review, domain-analysis, performance-review, production-readiness-review, security-review, linter-setup, scaffold) via the Ownership Matrix; NEVER expand into a sibling's checklist.
-- Scoring is evidence-gated — `file:line`/command/artifact proof or explicit `N/A - reason`, else `0`; then 7 pass/fail gates (G1-G7) overlay the score without changing the `/20` math.
-- Before emitting, self-audit every grade against the 11 thinking red flags (`architecture-knowledge.md` §20.3) — a deduction for unevidenced scale, a tool named before the requirement, or a recommendation whose sacrifice you cannot state is re-derived or dropped, NEVER reworded. **A `— VERIFY` row or section banner in `architecture-knowledge.md` §3/§8/§9/§10 is UNVERIFIED** — it can never be the sole basis for a deduction; confirm against the named source or the project's own docs.
-- Two conditional advisory gates ride along — Technique Applicability + Scenario Stress — emitting guidance ONLY; NEVER mutate the `/20` score, verdict band, or gate pass/fail.
-- Runs in `mode=init` (planned greenfield architecture) or `mode=audit` (existing brownfield source/config/CI/ADR evidence).
+- **Purpose/ownership:** score 10 areas, apply G1-G7 and TVC, route sibling-owned depth, and emit one report; this skill owns the scorecard, not sibling checklists.
+- **Ordered run:** (1) resolve `mode=init`/`mode=audit` + scope; (2) load context/evidence; (3) read `references/scorecard.md`; (4) score all 10 areas 0-2; (5) run G1-G7, then TVC; (6) emit the report under `tmp/reports/`; (7) validate sub-80/risk findings with `/why-review` (max 2 passes), or record the zero-risk skip.
+- **Evidence/TVC:** every score needs `file:line`, command/artifact proof, or `N/A - reason`; otherwise score `0`. Resolve Unit/Integration/System/E2E applicability plus owner/root/data, full+focused commands, zero-match behavior, CI/simple-Windows entry, unique run/data identity, and repeat proof; unresolved applicable fields block handoff.
+- **Modes/advisories:** `init` scores planned greenfield evidence; `audit` scores existing evidence. Self-audit 11 red flags before emission; treat `— VERIFY` rows/section banners as unverified and confirm named sources or project docs. Technique + Scenario are advice-only and never change `/20`, verdict, or gates; new tools require user confirmation.
 
 **Workflow (run in order):**
 
@@ -32,38 +29,36 @@ description: '[Architecture] Use when grading architecture and scalability — b
 2. Load project context and evidence.
 3. Read `references/scorecard.md`.
 4. Score all 10 areas 0-2 with evidence.
-5. Run pass/fail gates (G1-G7).
+5. Run pass/fail gates (G1-G7), then the non-scoring TVC.
 6. Emit the architecture scalability review report under `tmp/reports/`.
+7. When triggered, validate sub-80 grades/risk findings with `/why-review` (maximum 2 passes); otherwise record the zero-risk skip.
 
 **Key Rules:**
 
 - MUST ATTENTION every score carries `file:line`, command output, architecture-artifact evidence, or explicit `N/A - reason`; unproven criteria score `0`.
 - MUST ATTENTION this skill owns the scorecard, not the deep review of every concern — route depth to the sibling skills named in the Ownership Matrix; NEVER duplicate their checklists.
-- New Tech/Lib: `N/A` by default. If the audit recommends Nx, Turborepo, Bazel, a new message broker, a new observability stack, or any other tool, present it for user confirmation before implementation.
+- New Tech/Lib: `N/A` by default. If the audit recommends Nx, Turborepo, Bazel, a new message broker, a new observability stack, or another tool, present it for user confirmation before implementation.
 - `mode=init` scores planned architecture from greenfield artifacts before implementation planning; `mode=audit` scores an existing brownfield project from real source, config, CI, docs, and ADR evidence.
 
 ## When To Use
 
 - Greenfield/project-init flow after `architecture-design`, before implementation planning hardens decisions.
-- On demand against an existing repository when the user asks to review project quality, architecture scalability, distributed-monolith risk, module boundaries, build scalability, or setup quality.
+- On demand for project quality, architecture scalability, distributed-monolith risk, module boundaries, build scalability, or setup quality.
 - Periodic architecture health check for a growing codebase.
 
 NEVER use this as the every-change diff reviewer. Per-change regression checks belong in `architecture-review`, `performance-review`, `production-readiness-review`, and other sibling reviewers already wired into `workflow-review-changes`.
 
-> **Combined audit:** For a whole-project architecture + compliance + production-readiness audit in one pass, run `/architecture-review-full` (or `/start-workflow workflow-architecture-audit`) — it fans out this skill, `architecture-review`, and `production-readiness-review` as parallel sub-agents and synthesizes one consolidated report.
+> **Combined audit:** For a whole-project architecture + compliance + production-readiness audit, run `/architecture-review-full` (or `/start-workflow workflow-architecture-audit`); it fans out this skill, `architecture-review`, and `production-readiness-review` as parallel sub-agents and synthesizes one report.
 
 ## Scope And Modes
 
 ### `mode=init`
 
-Score intended architecture before implementation exists. Evidence may include architecture reports, ADRs, tech-stack decisions, domain-analysis outputs, build/CI plans, deployment plans, and scaffold handoff tables.
-
-Use `planned` evidence labels when implementation is not yet present. Score `2` only when the plan names enforceable mechanisms, not intent alone.
-
+Score intended architecture before implementation. Evidence may include architecture reports, ADRs, tech-stack decisions, domain-analysis outputs, build/CI plans, deployment plans, and scaffold handoff tables.
+Use `planned` labels when implementation is absent. Score `2` only when the plan names enforceable mechanisms, not intent alone.
 ### `mode=audit`
 
-Score an existing repository. Evidence must come from source files, build config, CI config, ADRs, reference docs, tests, dependency-boundary tooling, deployment/IaC files, and graph/grep commands.
-
+Score an existing repository. Evidence must come from source, build/CI config, ADRs, reference docs, tests, dependency-boundary tooling, deployment/IaC files, and graph/grep commands.
 If `.code-graph/graph.db` exists, run at least one graph command on key architecture files before concluding.
 
 ## Required Context
@@ -93,27 +88,22 @@ Read these before scoring:
 | Clean Architecture | init / audit + every-change | Score dependency-rule fit, business logic placement, and architecture style enforcement | `architecture-review`, `scaffold` |
 | Observability & Delivery | init / audit + production readiness | Score monitoring, logging, metrics, DevOps/deployment, CI/CD, IaC, rollback posture | `production-readiness-review`, `linter-setup` |
 
-When a concern belongs to a sibling, record a one-line route pointer and continue scoring from evidence. NEVER expand into the sibling's full checklist.
+When a concern belongs to a sibling, record a one-line route pointer and continue scoring from evidence; NEVER expand into the sibling's checklist.
 
 ## Workflow
 
+Run in order; scorecard validation follows report emission when its trigger applies.
+
 ### Step 1: Resolve Mode And Scope
 
-Determine:
-
-- Mode: `mode=init` or `mode=audit`
-- Target: current repo, plan directory, specific service/module, or architecture artifact set
-- Evidence roots: source paths, CI/build files, ADRs, reference docs, workflow outputs
-- Report slug: project/module name
-
+Determine mode (`mode=init` or `mode=audit`), target (repo, plan directory, service/module, or artifact set), evidence roots (source, CI/build, ADRs, reference docs, workflow outputs), and report slug (project/module name).
 If mode is missing, infer from context:
-
 - Greenfield/project-init/plan artifacts only -> `mode=init`
 - Existing repo/source/config review -> `mode=audit`
 
 ### Step 2: Gather Evidence
 
-Use narrow grep/glob searches first. For brownfield audits, collect at least:
+Use narrow grep/glob searches first. For brownfield audits, collect:
 
 - Build files and CI pipeline config
 - Workspace/monorepo config, if present
@@ -123,11 +113,11 @@ Use narrow grep/glob searches first. For brownfield audits, collect at least:
 - Deployment, IaC, observability, and runtime config
 - ADRs and architecture reports
 
-Run graph trace on key architecture or module-boundary files when `.code-graph/graph.db` exists. If the graph lacks relevant files, record that limitation and continue with grep/file evidence.
+When `.code-graph/graph.db` exists, run a graph trace on key architecture/module-boundary files. If relevant files are absent, record the limitation and continue with grep/file evidence.
 
 ### Step 3: Score The 10 Areas
 
-Read `references/scorecard.md` and score each area:
+Read `references/scorecard.md`, then score each area:
 
 - `0` = absent, contradicted, or unproven
 - `1` = partially addressed, documented but weakly enforced, or implemented in only some areas
@@ -143,13 +133,13 @@ Total score: `/20`.
 
 #### Technique Applicability (advisory — NON-SCORING)
 
-After scoring, invoke `SYNC:scale-technique-gate`: derive the system's scale tier from evidence (users/RPS, SLO, data volume, tenancy, topology — cite `file:line`/config/infra + confidence), then emit the **Technique Applicability Matrix** (`technique | tier-warranted? | present? | verdict | advice | evidence`) across the 10 concern groups. Surface warranted-but-missing techniques as advice AND flag `OVER-ENGINEERED` techniques the tier does not warrant (anti-over-engineering).
+After scoring, invoke `SYNC:scale-technique-gate`: derive the scale tier from users/RPS, SLO, data volume, tenancy, and topology with `file:line`/config/infra evidence + confidence; emit the **Technique Applicability Matrix** (`technique | tier-warranted? | present? | verdict | advice | evidence`) for all 10 concern groups; advise on warranted gaps and flag unwarranted `OVER-ENGINEERED` techniques.
 
 > **Advisory only — does NOT change the `/20` score or any verdict band.** A `MISSING-WARRANTED` technique is guidance, never a deduction; a correctly-lean small system stays a PASS. Full catalog → `.claude/docs/scale-technique-catalog.md`.
 
 ### Step 4: Run Pass/Fail Gates
 
-Run these gates after scoring. Gates are pass/fail overlays and do not change the `/20` math.
+Run these pass/fail overlays after scoring; they do not change `/20` math.
 
 | Gate | Blocks STRONG when failing | Check |
 | --- | --- | --- |
@@ -165,20 +155,18 @@ Critical/high gate failures require an owner-accepted risk or follow-up plan bef
 
 ### Testability & Verification Contract (TVC — non-scoring gate)
 
-Run this cross-cutting setup gate after G1-G7 and before emitting the report. Consume the architecture-design matrix plus scaffold/harness evidence; do not re-implement their tier-specific test checklists.
+Run this cross-cutting setup gate after G1-G7 and before report emission. Consume architecture-design plus scaffold/harness evidence; do not re-implement tier-specific child checklists.
 
 1. Verify one row each for Unit, Integration/System, and E2E. Each row is `APPLICABLE` only with runner/framework/configuration/root evidence, or `N/A — {specific evidence}`. An E2E `N/A` must cite the verified absence of a browser runner/configuration/command, never the absence of a preferred tool.
 2. For every applicable row, verify copy-ready full and focused commands, invalid/zero-match non-zero behavior, CI gate, simple/Windows entry point where needed, owner, and exact result fields.
 3. Verify the declared run identity and business-data suffix, supported public setup path, realistic valid data, idempotent/restart-safe reference setup, additive persistent-data policy, mutable-root/parallel-worker isolation, pacing/arrange barrier, and two consecutive no-reset full runs for each applicable persistent-state suite. Missing or placeholder evidence is `BLOCKED`, not a guessed pass.
 4. Emit `TVC: PASS | PARTIAL | BLOCKED` with the matrix, evidence, owner, and follow-up. `PASS` means every tier is resolved and every applicable field is evidenced; `PARTIAL` records the bounded gap without inventing a tier or command.
 
-TVC is a setup/verification status, not an eighth score area: it MUST NOT change any 0-2 grade, the `/20` denominator, score total, verdict band, G1-G7 status, or either advisory matrix. A `BLOCKED` TVC prevents a `setup complete` claim and remains a follow-up in this report; it does not become a score deduction.
+TVC is setup/verification status, not an eighth score area. It MUST NOT change any 0-2 grade, `/20` denominator or total, verdict band, G1-G7 status, or advisory matrix. `BLOCKED` prevents a `setup complete` claim and remains a report follow-up, not a score deduction.
 
 ### Step 5: Emit Report
 
-Write:
-
-`tmp/reports/architecture-scalability-review-{YYMMDD}-{HHmm}-{slug}.md`
+Write `tmp/reports/architecture-scalability-review-{YYMMDD}-{HHmm}-{slug}.md`.
 
 Report structure:
 
@@ -228,20 +216,24 @@ This section is copied from the owner evidence and remains separate from the sco
 List only user-confirmed recommendations or mark `N/A`.
 ```
 
-## Scorecard Validation Gate (why-review, MANDATORY when the scorecard has any sub-80 grade or risk finding)
+## Scorecard Validation Gate (why-review; required for any sub-80 grade or risk finding)
 
-> **Purpose:** A scorecard is a JUDGMENT. Validate it adversarially before emitting it so a mis-scored area or an inflated risk finding does not ship as ground truth. This gate validates findings only — it routes any fix to the owning sibling review, it does NOT self-converge a fix-loop.
+> **Purpose:** A scorecard is a JUDGMENT. Validate it adversarially before handoff so a mis-scored area or inflated risk finding does not become ground truth. This gate validates findings only; fixes route to the owning sibling and this skill does not self-converge a fix-loop.
 
-**Trigger:** Any area graded below 80, or any risk/gap finding. Skip ONLY when every area scored ≥80 with zero risk findings.
+**Trigger:** Any area below 80 or any risk/gap finding. Skip ONLY when every area is ≥80 with zero risk findings.
 
 **Protocol:**
 
-1. Read the finalized scorecard report from `tmp/reports/{skill}-{date}-{slug}.md` (or the exact report path written).
-2. Invoke `/why-review --validate-findings <report-path>` — verify each sub-80 grade and each risk finding has `file:line` evidence and clears why-review's finding-survival bar.
-3. **If why-review demotes/removes any grade or finding:** update the scorecard with the revised grade/severity and add a `## Why-Review Validation Notes` section citing what changed and why.
-4. **If the scorecard changed after validation:** re-run this gate — maximum 2 validation passes — until the remaining grades/findings are validated. No fix-loop: this skill grades and routes fixes to siblings; it never restarts a full review over its own fixes.
+1. Read the finalized report from `tmp/reports/{skill}-{date}-{slug}.md` (or the exact path written).
+2. Invoke `/why-review --validate-findings <report-path>`; verify every sub-80 grade/risk finding has `file:line` evidence and clears the finding-survival bar.
+3. **If why-review demotes/removes a grade or finding:** update the scorecard, add `## Why-Review Validation Notes`, and cite what changed + why.
+4. **If validation changes the scorecard:** re-run this gate, maximum 2 passes, until remaining grades/findings are validated. No fix-loop: route fixes to siblings; do not restart this review over its own fixes.
 
-**Anti-bias (MANDATORY before emitting):** steel-man each grade — argue the score should be one band better AND one band worse; a grade that survives its own steel-man ships. A scorecard whose grades were never challenged is not validated.
+**Anti-bias (MANDATORY before emitting):** steel-man each grade one band better and one band worse; only a grade surviving both arguments ships. An unchallenged grade is not validated.
+
+> **Architecture self-audit (§20.3):** Reject tool-first choices, unevidenced scale, unnamed sacrifices/forces, unjustified layers/splits, mishandled reversibility/consistency, unknown first load break, and decisions the maintainer cannot explain.
+>
+> **MUST ATTENTION READ** `.claude/docs/architecture-knowledge.md` §20.3 before applying this audit.
 
 **Self-audit against the thinking red flags (MANDATORY before emitting):** run the 11 red flags in `.claude/docs/architecture-knowledge.md` §20.3 against every grade, gap and recommendation. The four that fire most often in a scorecard: **grading down for a scale you cannot evidence** · **recommending a tool before stating the requirement** · **"best practice" with no named forces** · **cannot say what your recommendation SACRIFICES**. Any hit invalidates the GRADE's reasoning — re-derive it from evidence or drop the finding; NEVER just reword it. — why: an unevidenced deduction reads as rigour and sends the team to fix a problem they do not have.
 
@@ -515,17 +507,24 @@ List only user-confirmed recommendations or mark `N/A`.
 
 ## Closing Reminders
 
-**IMPORTANT MUST ATTENTION** Testability contract: resolve evidence-backed Unit/Integration/System/E2E rows, copy-ready full/focused commands, zero-match failures, owner/root/data, CI/simple-Windows entry, unique run identity, and repeat proof before claiming setup, review, or test completion.
-**IMPORTANT MUST ATTENTION Goal:** Grade project architecture & scalability quality on the evidence-backed scorecard — build/CI scalability, distributed-monolith risk, module isolation, dependency discipline, loose coupling, horizontal scaling, DRY, abstraction, clean architecture, observability, and delivery — routing sibling-owned depth (security, performance, production-readiness) rather than duplicating it.
+**IMPORTANT MUST ATTENTION Goal:** Grade a project or planned architecture against architecture + scalability criteria and produce an evidence-backed `/20` verdict (`STRONG` / `NEEDS WORK` / `HIGH RISK`) before scale or delivery decisions harden; route deep checks to owner skills.
+**IMPORTANT MUST ATTENTION scorecard scope:** assess all 10 areas — Build & CI Scalability, Architecture Pattern/distributed-monolith, Module Isolation, Dependency Discipline, Loose Coupling, Horizontal Scaling, DRY, Abstraction/Easy-to-Change, Clean Architecture, and Observability & Delivery — then route sibling-owned depth instead of duplicating it.
+**IMPORTANT MUST ATTENTION main steps (same order):** (1) resolve `mode=init`/`mode=audit` + scope; (2) load project context + evidence; (3) read `references/scorecard.md`; (4) score all 10 areas 0-2 with evidence; (5) run G1-G7, then TVC; (6) emit the report under `tmp/reports/`; (7) validate sub-80/risk findings with `/why-review` (maximum 2 passes), or record the zero-risk skip.
+**IMPORTANT MUST ATTENTION modes/gates:** `mode=init` scores planned greenfield evidence; `mode=audit` scores existing evidence. Every score needs proof or explicit `N/A - reason`; unproven criteria score `0`. `TVC: BLOCKED` prevents a `setup complete` claim but never changes `/20`.
+**IMPORTANT MUST ATTENTION** Testability contract: resolve evidence-backed Unit/Integration/System/E2E rows, owner/root/data, copy-ready full/focused commands, zero-match failures, CI/simple-Windows entry, unique run identity, and repeat proof before claiming setup, review, or test completion.
+**IMPORTANT MUST ATTENTION advisory boundaries:** derive scale and business-criticality from evidence; Technique and Scenario matrices advise only and NEVER mutate `/20`, verdict, or G1-G7. Engineering Foundation `MISSING-WARRANTED` blocks when creating a foundation and stays advisory when auditing. A correctly-lean system is a PASS; new Tech/Lib recommendations require user confirmation.
+**IMPORTANT MUST ATTENTION scale-technique gate:** derive T0 internal/single-instance, T1 small SaaS (<10k users), T2 high-scale (10k–1M), or T3 massive/multi-region (millions+) from evidence, then emit `PRESENT`/`MISSING-WARRANTED`/`N/A-by-scale`/`OVER-ENGINEERED`. Advise against unwarranted heavyweight techniques.
+**IMPORTANT MUST ATTENTION scenario-stress gate:** reuse `T0`–`T3`, derive `B0`–`B3` with the criticality-signal floor, select warranted scenarios, trace stimulus → break path → failure signature → self-heal/MTTR → trade-off, and emit the advisory matrix. NEVER turn it into a score, verdict, or gate result.
+**IMPORTANT MUST ATTENTION** self-audit every grade, gap, and recommendation against the 11 thinking red flags in `.claude/docs/architecture-knowledge.md` §20.3 BEFORE emitting. A scale deduction without evidence, tool-first recommendation, unnamed forces/sacrifice, or `— VERIFY` source is re-derived or dropped, NEVER reworded.
+**IMPORTANT MUST ATTENTION** G5 requires a named ESCAPE HATCH from a metastable high-load state (shed / drain / warm / restart at lower concurrency). NEVER accept a latency number without its load-generation method; coordinated omission can delete the worst samples.
+**IMPORTANT MUST ATTENTION trade-offs:** ALWAYS ask the 3 trade-off questions before every verdict, score, finding, or recommendation; name sacrifice, weigh gain vs cost, decide materiality, and confirm material choices with the user or hand them off. A material unconfirmed trade-off can NEVER be an unqualified PASS.
 
-**IMPORTANT MUST ATTENTION main steps (run in order):** (1) resolve `mode=init`/`mode=audit` + scope; (2) load project context + evidence; (3) read `references/scorecard.md`; (4) score all 10 areas 0-2 with evidence; (5) run pass/fail gates G1-G7; (6) emit the report under `tmp/reports/`.
+**Anti-Rationalization:**
 
-**Protocols in force (concise digest of the SYNC/shared blocks this skill carries):**
-
-- **Scale-Technique Gate (advisory):** Derive the scale tier from evidence FIRST (T0 internal · T1 <10k · T2 10k–1M · T3 millions+), then judge each warranted technique `PRESENT`/`MISSING-WARRANTED`/`N/A-by-scale`/`OVER-ENGINEERED`. **ADVICE-ONLY — surface the Technique Applicability Matrix as guidance; NEVER mutate the scorecard score, a verdict band, or a pass/fail gate.**
-
-**IMPORTANT MUST ATTENTION** every score carries `file:line`/config/infra evidence or an explicit `N/A - reason`; confidence >80% to act, <60% do NOT recommend — NEVER present a guess as fact.
-**IMPORTANT MUST ATTENTION** the Technique Applicability Matrix is ADVISORY guidance only — advise on warranted-but-missing gaps AND advise AGAINST over-engineering below tier, but it NEVER changes the scorecard score, a verdict band, or a gate result (per user decision 2026-07-06).
-**IMPORTANT MUST ATTENTION** anti-over-engineering is first-class — a correctly-lean small system is a PASS, never a gap; do NOT recommend Kubernetes, sharding, multi-region, or service mesh below their warranting tier.
-**IMPORTANT MUST ATTENTION** self-audit every grade, gap and recommendation against the 11 thinking red flags (`.claude/docs/architecture-knowledge.md` §20.3) BEFORE emitting — a deduction for a scale you cannot evidence, a tool named before the requirement, "best practice" with no named forces, or a recommendation whose SACRIFICE you cannot state is re-derived from evidence or dropped, NEVER reworded — why: an unevidenced deduction reads as rigour and sends the team to fix a problem they do not have.
-**IMPORTANT MUST ATTENTION** G5 requires a named ESCAPE HATCH out of a metastable high-load state (shed / drain / warm / restart at lower concurrency) — a self-sustaining retry-cache-queue loop OUTLIVES its trigger, so load removal alone does not recover the system; and NEVER accept a latency number without knowing how the load was generated (coordinated omission deletes the worst samples).
+| Evasion | Rebuttal |
+| --- | --- |
+| “This is only a diff.” | Keep the project-level `/20` scorecard; this skill is not the every-change diff reviewer. |
+| “The plan names it.” | Require `file:line`/command/artifact proof or explicit `N/A - reason`; otherwise score `0`. |
+| “The tool is standard.” | State the requirement, trade-off, and user confirmation before recommending new Tech/Lib. |
+| “A lean system lacks scale tooling.” | Derive `T`/`B` from evidence and apply the anti-over-engineering guard; do not invent a scale gap. |
+| “A latency number proves capacity.” | Require the load-generation method; G5 is at most `Partial` without it. |

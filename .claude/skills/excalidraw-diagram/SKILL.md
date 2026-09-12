@@ -14,15 +14,14 @@ description: '[Utilities] Use when visualizing workflows, architectures, or conc
 
 ## Quick Summary
 
-**Goal:** Produce `.excalidraw` JSON diagrams that visualize workflows, architectures, or concepts and visually ARGUE a concept — where the structure itself carries the meaning and (for technical diagrams) concrete evidence artifacts teach — validated through the render-view-fix loop until the rendered image matches the conceptual design.
+**Goal:** Produce `.excalidraw` JSON that visually ARGUES workflows, architectures, or concepts — so structure carries meaning, technical diagrams teach with evidence artifacts, and rendered output matches the design after mandatory render-view-fix validation.
 
 **Summary:**
 
-- Diagrams must ARGUE not DISPLAY: pass the Isomorphism Test (structure alone communicates the concept) — map each major concept to a DIFFERENT visual pattern (fan-out, convergence, timeline, tree, cycle) and default text to free-floating (<30% inside containers).
-- Assess depth FIRST: simple/conceptual (abstract shapes) vs comprehensive/technical — technical diagrams MUST research real specs (actual event names, JSON formats, API/method names) and embed evidence artifacts across the three zoom levels (summary flow + section boundaries + concrete detail).
-- Build comprehensive JSON section-by-section, never in one pass (hard ~32k-token output limit) — use descriptive string IDs, namespace seeds per section (100xxx, 200xxx), and update cross-section `boundElements` as you go; pull all colors from `references/color-palette.md` and never invent new ones.
-- The Render & Validate loop is MANDATORY, not a final check: render to PNG via `render_excalidraw.py`, Read the image, audit against your planned vision plus visual defects (clipping, overlaps, arrows crossing shapes), fix, and re-render — typically 2-4 iterations until it matches the conceptual design.
-- Main steps (Design Process — never skip one): **0 Assess depth → 1 Understand deeply → 2 Map concepts to patterns → 3 Ensure variety → 4 Sketch the flow → 5 Generate JSON (section-by-section) → 6 Render & Validate (mandatory loop)**.
+- **0 Assess depth:** choose simple/conceptual vs comprehensive/technical; technical diagrams research real specs and show evidence at summary, section, and detail zooms.
+- **1 Understand deeply → 2 Map concepts to patterns → 3 Ensure variety → 4 Sketch flow:** understand what each concept does, map each to a distinct pattern, ensure variety, then trace eye flow; default text free-floating (<30% boxed).
+- **5 Generate JSON:** build comprehensive diagrams section-by-section with descriptive IDs, namespaced seeds, updated cross-section bindings; use only `references/color-palette.md` colors.
+- **6 Render & Validate:** render PNG, Read it, compare vision and defects, fix, and re-render until balanced/readable (usually 2–4 iterations).
 
 **Workflow:**
 
@@ -37,12 +36,13 @@ description: '[Utilities] Use when visualizing workflows, architectures, or conc
 
 - MUST ATTENTION keep claims evidence-based (`file:line`) with confidence >80% to act.
 - MUST ATTENTION keep task tracking updated as each step starts/completes.
+- MUST ATTENTION read `references/color-palette.md` before generating any diagram; use palette colors only.
+- MUST ATTENTION render, Read, audit, fix, and re-render generated JSON until vision and defect checks pass.
 - NEVER skip mandatory workflow or skill gates.
 
 ## Customization
 
 **All colors and brand-specific styles live in one file:** `references/color-palette.md`. Read it before generating any diagram; use it as single source of truth for all color choices — shape fills, strokes, text colors, evidence artifact backgrounds, everything.
-
 To produce diagrams in your own brand style, edit `color-palette.md`. Everything else in this file is universal design methodology and Excalidraw best practices.
 
 ---
@@ -50,18 +50,16 @@ To produce diagrams in your own brand style, edit `color-palette.md`. Everything
 ## Core Philosophy
 
 **Diagrams should ARGUE, not DISPLAY.**
+A diagram isn't formatted text; it's a visual argument showing relationships, causality, and flow that words alone can't express. Make the shape carry the meaning.
 
-A diagram isn't formatted text. It's a visual argument showing relationships, causality, and flow that words alone can't express. The shape should BE the meaning.
-
-**The Isomorphism Test**: If you removed all text, would the structure alone communicate the concept? If not, redesign.
-
-**The Education Test**: Could someone learn something concrete from this diagram, or does it just label boxes? A good diagram teaches—it shows actual formats, real event names, concrete examples.
+**The Isomorphism Test:** Remove all text. If structure alone doesn't communicate the concept, redesign.
+**The Education Test:** Can someone learn something concrete, or does the diagram only label boxes? Good diagrams teach actual formats, real event names, and concrete examples.
 
 ---
 
 ## Depth Assessment (Do This First)
 
-Before designing, determine what level of detail this diagram needs:
+Determine required detail before designing:
 
 ### Simple/Conceptual Diagrams
 
@@ -86,27 +84,25 @@ Use concrete examples when:
 
 ## Research Mandate (For Technical Diagrams)
 
-**Before drawing anything technical, research the actual specifications.**
-
-If you're diagramming a protocol, API, or framework:
+**Before drawing technical content, research actual specifications.**
+For a protocol, API, or framework:
 
 1. Look up the actual JSON/data formats
-2. Find the real event names, method names, or API endpoints
-3. Understand how the pieces actually connect
+2. Find real event names, method names, or API endpoints
+3. Understand how pieces connect
 4. Use real terminology, not generic placeholders
 
 Bad: "Protocol" → "Frontend"
 Good: "AG-UI streams events (RUN_STARTED, STATE_DELTA, A2UI_UPDATE)" → "CopilotKit renders via createA2UIMessageRenderer()"
 
-**Research makes diagrams accurate AND educational.**
+**Research makes diagrams accurate and educational.**
 
 ---
 
 ## Evidence Artifacts
 
-Evidence artifacts are concrete examples that prove your diagram is accurate and help viewers learn. Include them in technical diagrams.
-
-**Types of evidence artifacts** (choose what's relevant to your diagram):
+Evidence artifacts are concrete examples that prove accuracy and teach viewers. Include them in technical diagrams.
+**Evidence artifact types** (choose what's relevant):
 
 | Artifact Type            | When to Use                                | How to Render                                                                         |
 | ------------------------ | ------------------------------------------ | ------------------------------------------------------------------------------------- |
@@ -117,45 +113,37 @@ Evidence artifacts are concrete examples that prove your diagram is accurate and
 | **Real input content**   | Showing what goes IN to a system           | Rectangle with sample content visible                                                 |
 | **API/method names**     | Real function calls, endpoints             | Use actual names from docs, not placeholders                                          |
 
-**Example**: For a diagram about a streaming protocol, you might show:
+For a streaming-protocol diagram, show:
+- Actual event names from the spec, not just "Event 1", "Event 2"
+- A code snippet showing connection
+- Actual streamed data shape
 
-- The actual event names from the spec (not just "Event 1", "Event 2")
-- A code snippet showing how to connect
-- What the streamed data actually looks like
+For a data-transformation pipeline, show:
+- Sample input data in its actual format, not "Input"
+- Sample output data in its actual format, not "Output"
+- Intermediate states when relevant
 
-**Example**: For a diagram about a data transformation pipeline:
-
-- Show sample input data (actual format, not "Input")
-- Show sample output data (actual format, not "Output")
-- Show intermediate states if relevant
-
-The key principle: **show what things actually look like**, not just what they're called.
+Key principle: **show what things actually look like**, not just what they're called.
 
 ---
 
 ## Multi-Zoom Architecture
 
-Comprehensive diagrams operate at multiple zoom levels simultaneously. Think of it like a map that shows both the country borders AND the street names.
+Comprehensive diagrams operate at three zoom levels: map-like borders plus street-level detail.
 
 ### Level 1: Summary Flow
 
-A simplified overview showing the full pipeline or process at a glance. Often placed at the top or bottom of the diagram.
-
-_Example_: `Input → Processing → Output` or `Client → Server → Database`
+Simplified overview of the full pipeline or process at a glance; often top or bottom. _Example_: `Input → Processing → Output` or `Client → Server → Database`
 
 ### Level 2: Section Boundaries
 
-Labeled regions that group related components. These create visual "rooms" that help viewers understand what belongs together.
-
-_Example_: Grouping by responsibility (Backend / Frontend), by phase (Setup / Execution / Cleanup), or by team (User / System / External)
+Labeled regions group related components into visual "rooms". _Example_: Group by responsibility (Backend / Frontend), phase (Setup / Execution / Cleanup), or team (User / System / External).
 
 ### Level 3: Detail Inside Sections
 
-Evidence artifacts, code snippets, and concrete examples within each section. This is where the educational value lives.
+Evidence artifacts, code snippets, and concrete examples inside each section; this is the educational layer. _Example_: Inside a "Backend" section, show the actual API response format, not only a box labeled "API Response".
 
-_Example_: Inside a "Backend" section, you might show the actual API response format, not just a box labeled "API Response"
-
-**For comprehensive diagrams, aim to include all three levels.** The summary gives context, the sections organize, and the details teach.
+**For comprehensive diagrams, include all three levels:** summary gives context, sections organize, details teach.
 
 ### Bad vs Good
 
@@ -184,7 +172,7 @@ _Example_: Inside a "Backend" section, you might show the actual API response fo
 
 ## Container vs. Free-Floating Text
 
-**Not every piece of text needs a shape around it.** Default to free-floating text. Add containers only when they serve a purpose.
+**Not every text element needs a shape.** Default to free-floating text; add containers only when they serve a purpose.
 
 | Use a Container When...                                   | Use Free-Floating Text When...                |
 | --------------------------------------------------------- | --------------------------------------------- |
@@ -194,9 +182,9 @@ _Example_: Inside a "Backend" section, you might show the actual API response fo
 | The shape itself carries meaning (decision diamond, etc.) | Typography alone creates sufficient hierarchy |
 | It represents a distinct "thing" in the system            | It's a section title, subtitle, or annotation |
 
-**Typography as hierarchy**: Use font size, weight, and color to create visual hierarchy without boxes. A 28px title doesn't need a rectangle around it.
+**Typography as hierarchy:** Use font size, weight, and color without boxes. A 28px title needs no rectangle.
 
-**The container test**: For each boxed element, ask "Would this work as free-floating text?" If yes, remove the container.
+**Container test:** For each boxed element, ask "Would this work as free-floating text?" If yes, remove the container.
 
 ---
 
@@ -242,62 +230,62 @@ For multi-concept diagrams: **each major concept must use a different visual pat
 
 ### Step 4: Sketch the Flow
 
-Before JSON, mentally trace how the eye moves through the diagram. There should be a clear visual story.
+Before JSON, trace the eye's movement. Ensure a clear visual story.
 
 ### Step 5: Generate JSON
 
-Only now create the Excalidraw elements. **See below for how to handle large diagrams.**
+Then create Excalidraw elements. **See below for large diagrams.**
 
 ### Step 6: Render & Validate (MANDATORY)
 
-After generating the JSON, you MUST ATTENTION run the render-view-fix loop until the diagram looks right. This is not optional — see the **Render & Validate** section below for the full process.
+After generating JSON, you MUST ATTENTION run the render-view-fix loop until the diagram looks right. This is mandatory; see **Render & Validate** below.
 
 ---
 
 ## Large / Comprehensive Diagram Strategy
 
-**For comprehensive or technical diagrams, you MUST ATTENTION build the JSON one section at a time.** Do NOT attempt to generate the entire file in a single pass. This is a hard constraint — Claude Code has a ~32,000 token output limit per response, and a comprehensive diagram easily exceeds that in one shot. Even if it didn't, generating everything at once leads to worse quality. Section-by-section is better in every way.
+**For comprehensive or technical diagrams, you MUST ATTENTION build JSON one section at a time.** Do NOT generate the entire file in one pass. Claude Code has a ~32,000-token response limit; comprehensive diagrams can exceed it, and one-pass generation lowers quality. Section-by-section is required.
 
 ### The Section-by-Section Workflow
 
 **Phase 1: Build each section**
 
-1. **Create the base file** with the JSON wrapper (`type`, `version`, `appState`, `files`) and the first section of elements.
-2. **Add one section per edit.** Each section gets its own dedicated pass — take your time with it. Think carefully about the layout, spacing, and how this section connects to what's already there.
+1. **Create the base file** with JSON wrapper (`type`, `version`, `appState`, `files`) and first section elements.
+2. **Add one section per edit.** Give each section a dedicated pass; review layout, spacing, and connections to existing sections.
 3. **Use descriptive string IDs** (e.g., `"trigger_rect"`, `"arrow_fan_left"`) so cross-section references are readable.
 4. **Namespace seeds by section** (e.g., section 1 uses 100xxx, section 2 uses 200xxx) to avoid collisions.
-5. **Update cross-section bindings** as you go. When a new section's element needs to bind to an element from a previous section (e.g., an arrow connecting sections), edit the earlier element's `boundElements` array at the same time.
+5. **Update cross-section bindings** as you go. When a new element binds to a previous element (e.g., an arrow connecting sections), update the earlier element's `boundElements` array at the same time.
 
 **Phase 2: Review the whole**
 
-After all sections are in place, read through the complete JSON and check:
+After all sections are in place, read complete JSON and check:
 
 - Are cross-section arrows bound correctly on both ends?
 - Is the overall spacing balanced, or are some sections cramped while others have too much whitespace?
 - Do IDs and bindings all reference elements that actually exist?
 
-Fix any alignment or binding issues before rendering.
+Fix alignment or binding issues before rendering.
 
 **Phase 3: Render & validate**
 
-Now run the render-view-fix loop from the Render & Validate section. This is where you'll catch visual issues that aren't obvious from JSON — overlaps, clipping, imbalanced composition.
+Run the Render & Validate loop. It catches issues not obvious from JSON: overlaps, clipping, imbalanced composition.
 
 ### Section Boundaries
 
-Plan your sections around natural visual groupings from the diagram plan. A typical large diagram might split into:
+Plan sections around natural visual groupings. A typical large diagram might split into:
 
 - **Section 1**: Entry point / trigger
 - **Section 2**: First decision or routing
 - **Section 3**: Main content (hero section — may be the largest single section)
 - **Section 4-N**: Remaining phases, outputs, etc.
 
-Each section should be independently understandable: its elements, internal arrows, and any cross-references to adjacent sections.
+Each section must be independently understandable: elements, internal arrows, and cross-references to adjacent sections.
 
 ### What NOT to Do
 
-- **Don't generate the entire diagram in one response.** You will hit the output token limit and produce truncated, broken JSON. Even if the diagram is small enough to fit, splitting into sections produces better results.
-- **Don't use a coding agent** to generate the JSON. The agent won't have sufficient context about the skill's rules, and the coordination overhead negates any benefit.
-- **Don't write a Python generator script.** The templating and coordinate math seem helpful but introduce a layer of indirection that makes debugging harder. Hand-crafted JSON with descriptive IDs is more maintainable.
+- **Don't generate the entire diagram in one response.** The output token limit can produce truncated, broken JSON; section splits also improve quality.
+- **Don't use a coding agent** to generate JSON. It lacks sufficient context for this skill's rules, and coordination overhead negates the benefit.
+- **Don't write a Python generator script.** Templating and coordinate math add indirection that complicates debugging; hand-crafted JSON with descriptive IDs is more maintainable.
 
 ---
 
@@ -305,7 +293,7 @@ Each section should be independently understandable: its elements, internal arro
 
 ### Fan-Out (One-to-Many)
 
-Central element with arrows radiating to multiple targets. Use for: sources, PRDs, root causes, central hubs.
+Central element with arrows radiating to targets. Use for sources, PRDs, root causes, and hubs.
 
 ```
         ○
@@ -317,7 +305,7 @@ Central element with arrows radiating to multiple targets. Use for: sources, PRD
 
 ### Convergence (Many-to-One)
 
-Multiple inputs merging through arrows to single output. Use for: aggregation, funnels, synthesis.
+Multiple inputs merge through arrows to one output. Use for aggregation, funnels, and synthesis.
 
 ```
   ○ ↘
@@ -327,7 +315,7 @@ Multiple inputs merging through arrows to single output. Use for: aggregation, f
 
 ### Tree (Hierarchy)
 
-Parent-child branching with connecting lines and free-floating text (no boxes needed). Use for: file systems, org charts, taxonomies.
+Parent-child branching with connecting lines and free-floating text; no boxes needed. Use for file systems, org charts, and taxonomies.
 
 ```
   label
@@ -337,11 +325,11 @@ Parent-child branching with connecting lines and free-floating text (no boxes ne
   └── label
 ```
 
-Use `line` elements for the trunk and branches, free-floating text for labels.
+Use `line` elements for trunk/branches and free-floating text labels.
 
 ### Spiral/Cycle (Continuous Loop)
 
-Elements in sequence with arrow returning to start. Use for: feedback loops, iterative processes, evolution.
+Sequence with an arrow returning to start. Use for feedback loops, iteration, and evolution.
 
 ```
   □ → □
@@ -351,11 +339,11 @@ Elements in sequence with arrow returning to start. Use for: feedback loops, ite
 
 ### Cloud (Abstract State)
 
-Overlapping ellipses with varied sizes. Use for: context, memory, conversations, mental states.
+Overlapping ellipses of varied sizes. Use for context, memory, conversations, and mental states.
 
 ### Assembly Line (Transformation)
 
-Input → Process Box → Output with clear before/after. Use for: transformations, processing, conversion.
+Input → Process Box → Output with clear before/after. Use for transformations, processing, and conversion.
 
 ```
   ○○○ → [PROCESS] → □□□
@@ -364,20 +352,20 @@ Input → Process Box → Output with clear before/after. Use for: transformatio
 
 ### Side-by-Side (Comparison)
 
-Two parallel structures with visual contrast. Use for: before/after, options, trade-offs.
+Two parallel structures with visual contrast. Use for before/after, options, and trade-offs.
 
 ### Gap/Break (Separation)
 
-Visual whitespace or barrier between sections. Use for: phase changes, context resets, boundaries.
+Whitespace or barrier between sections. Use for phase changes, context resets, and boundaries.
 
 ### Lines as Structure
 
-Use lines (type: `line`, not arrows) as primary structural elements instead of boxes:
+Use lines (type: `line`, not arrows) as primary structure instead of boxes:
 
-- **Timelines**: Vertical or horizontal line with small dots (10-20px ellipses) at intervals, free-floating labels beside each dot
-- **Tree structures**: Vertical trunk line + horizontal branch lines, with free-floating text labels (no boxes needed)
-- **Dividers**: Thin dashed lines to separate sections
-- **Flow spines**: A central line that elements relate to, rather than connecting boxes
+- **Timelines**: Vertical or horizontal line with small dots (10-20px ellipses) at intervals; free-floating labels beside dots
+- **Tree structures**: Vertical trunk + horizontal branches with free-floating labels; no boxes needed
+- **Dividers**: Thin dashed lines separating sections
+- **Flow spines**: Central line that elements relate to, rather than box-to-box connections
 
 ```
 Timeline:           Tree:
@@ -388,7 +376,7 @@ Timeline:           Tree:
   ●─── Label 3        └── item
 ```
 
-Lines + free-floating text often creates a cleaner result than boxes + contained text.
+Lines + free-floating text often create cleaner results than boxes + contained text.
 
 ---
 
@@ -414,14 +402,14 @@ Choose shape based on what it represents—or use no shape at all:
 
 ## Color as Meaning
 
-Colors encode information, not decoration. Every color choice should come from `references/color-palette.md` — the semantic shape colors, text hierarchy colors, and evidence artifact colors are all defined there.
+Colors encode information, not decoration. Pull every choice from `references/color-palette.md`, which defines semantic shape, text-hierarchy, and evidence-artifact colors.
 
 **Key principles:**
 
 - Each semantic purpose (start, end, decision, AI, error, etc.) has a specific fill/stroke pair
-- Free-floating text uses color for hierarchy (titles, subtitles, details — each at a different level)
-- Evidence artifacts (code snippets, JSON examples) use their own dark background + colored text scheme
-- Always pair a darker stroke with a lighter fill for contrast
+- Free-floating text uses color for hierarchy (titles, subtitles, details at different levels)
+- Evidence artifacts (code snippets, JSON examples) use a dark background + colored text scheme
+- Pair a darker stroke with a lighter fill for contrast
 
 **Do not invent new colors.** If a concept doesn't fit an existing semantic category, use Primary/Neutral or Secondary.
 
@@ -450,7 +438,7 @@ For clean, professional diagrams:
 
 ### Small Markers Instead of Shapes
 
-Instead of full shapes, use small dots (10-20px ellipses) as:
+Use small dots (10-20px ellipses) instead of full shapes for:
 
 - Timeline markers
 - Bullet points
@@ -470,46 +458,46 @@ Instead of full shapes, use small dots (10-20px ellipses) as:
 
 ### Whitespace = Importance
 
-The most important element has the most empty space around it (200px+).
+Give the most important element the most empty space (200px+).
 
 ### Flow Direction
 
-Guide the eye: typically left→right or top→bottom for sequences, radial for hub-and-spoke.
+Guide the eye left→right or top→bottom for sequences, radial for hub-and-spoke.
 
 ### Connections Required
 
-Position alone doesn't show relationships. If A relates to B, there must be an arrow.
+Position alone doesn't show relationships; if A relates to B, add an arrow.
 
 ---
 
 ## Arrow Routing (Preventing Overlap)
 
-**Straight arrows are the default, but they cause overlaps in dense diagrams.** When arrows cross through other elements, use curved or elbowed routing to clear obstacles. This is especially critical in ERDs, architecture diagrams, and any layout with many connections.
+**Straight arrows are the default, but dense diagrams create overlaps.** When arrows cross elements, use curved or elbowed routing to clear obstacles—especially in ERDs, architecture diagrams, and connection-heavy layouts.
 
 ### Strategy Selection
 
-1. **Straight** — Only for direct neighbors with a clear, unobstructed path between them. Use 2 points: `[[0,0], [dx, dy]]`.
+1. **Straight** — Only for direct neighbors with a clear path. Use 2 points: `[[0,0], [dx, dy]]`.
 
-2. **Curved** (primary overlap fix) — Use when a straight arrow would cross through other elements. Add `"roundness": {"type": 2}` and a 3-point arc: `[[0,0], [midX, -arcHeight], [endX, endY]]`. The midpoint's Y offset creates a smooth parabola that clears obstacles. Use 15-30px offset for short arrows, 30-50px for long ones. Negative Y = arc above, positive Y = arc below.
+2. **Curved** (primary overlap fix) — Use when a straight arrow crosses elements. Add `"roundness": {"type": 2}` and a 3-point arc: `[[0,0], [midX, -arcHeight], [endX, endY]]`. Midpoint Y offset creates a smooth obstacle-clearing parabola: 15-30px for short arrows, 30-50px for long ones. Negative Y = above; positive Y = below.
 
-3. **Elbowed** — Use when curved isn't enough (same-row entities with many obstacles between). Set `"elbowed": true` with a 4-point right-angle path: `[[0,0], [0, -offset], [targetX, -offset], [targetX, 0]]`. Add `"fixedSegments"` to pin the horizontal segment.
+3. **Elbowed** — Use when curved isn't enough (same-row entities with many obstacles). Set `"elbowed": true` with a 4-point right-angle path: `[[0,0], [0, -offset], [targetX, -offset], [targetX, 0]]`. Add `"fixedSegments"` to pin the horizontal segment.
 
 ### Binding Modes
 
-Use the modern binding format with `mode` and `fixedPoint` (not the legacy `focus`/`gap` format):
+Use modern binding with `mode` and `fixedPoint`, not legacy `focus`/`gap`:
 
 - **`"orbit"`** — Arrow attaches to shape's outer edge. Best for most connections. `fixedPoint: [xRatio, yRatio]` where `[0,0.5]` = left, `[1,0.5]` = right, `[0.5,0]` = top, `[0.5,1]` = bottom.
 - **`"inside"`** — Arrow starts/ends from inside the shape. Use for vertical drops within a column.
 
-See `references/element-templates.md` for full JSON templates of each arrow type.
+See `references/element-templates.md` for full JSON templates for each arrow type.
 
 ### When to Audit Arrows
 
-During the render-view-fix loop, specifically check:
+During the render-view-fix loop, check:
 
 - Do any arrows cross through shapes they shouldn't?
 - Are parallel arrows distinguishable (not overlapping each other)?
-- For fan-out patterns (one entity with 5+ outgoing arrows), consider reducing to essential relationships or using varied arc heights to separate paths.
+- For fan-out patterns (one entity with 5+ outgoing arrows), consider reducing to essential relationships or varying arc heights to separate paths.
 
 ---
 
@@ -553,7 +541,7 @@ See `references/element-templates.md` for copy-paste JSON templates for each ele
 
 ## Render & Validate (MANDATORY)
 
-You cannot judge a diagram from JSON alone. After generating or editing the Excalidraw JSON, you MUST ATTENTION render it to PNG, view the image, and fix what you see — in a loop until it's right. This is a core part of the workflow, not a final check.
+JSON alone can't judge a diagram. After generating or editing Excalidraw JSON, you MUST ATTENTION render PNG, view it, fix what you see, and loop until right; this is core workflow, not a final check.
 
 ### How to Render
 
@@ -561,33 +549,33 @@ You cannot judge a diagram from JSON alone. After generating or editing the Exca
 cd .claude/skills/excalidraw-diagram/references && uv run python render_excalidraw.py <path-to-file.excalidraw>
 ```
 
-This outputs a PNG next to the `.excalidraw` file. Then use the **Read tool** on the PNG to actually view it.
+PNG appears beside the `.excalidraw` file; use the **Read tool** to view it.
 
 ### The Loop
 
-After generating the initial JSON, run this cycle:
+After initial JSON, repeat this cycle:
 
 **1. Render & View** — Run the render script, then Read the PNG.
 
-**2. Audit against your original vision** — Before looking for bugs, compare the rendered result to what you designed in Steps 1-4. Ask:
+**2. Audit against your original vision** — Before bug hunting, compare the render to Steps 1-4:
 
-- Does the visual structure match the conceptual structure you planned?
-- Does each section use the pattern you intended (fan-out, convergence, timeline, etc.)?
-- Does the eye flow through the diagram in the order you designed?
-- Is the visual hierarchy correct — hero elements dominant, supporting elements smaller?
-- For technical diagrams: are the evidence artifacts (code snippets, data examples) readable and properly placed?
+- Visual structure matches planned conceptual structure
+- Each section uses its intended pattern (fan-out, convergence, timeline, etc.)
+- Eye flow follows the designed order
+- Visual hierarchy is correct: hero elements dominate, supporting elements are smaller
+- Technical evidence artifacts (code snippets, data examples) are readable and well placed
 
 **3. Check for visual defects:**
 
 - Text clipped by or overflowing its container
-- Text or shapes overlapping other elements
-- Arrows crossing through elements instead of routing around them
-- Arrows landing on the wrong element or pointing into empty space
-- Labels floating ambiguously (not clearly anchored to what they describe)
-- Uneven spacing between elements that should be evenly spaced
-- Sections with too much whitespace next to sections that are too cramped
-- Text too small to read at the rendered size
-- Overall composition feels lopsided or unbalanced
+- Text or shapes overlap unintentionally
+- Arrows cross elements instead of routing around them
+- Arrows land on the wrong element or point into empty space
+- Labels float ambiguously, without clear anchors
+- Uneven spacing between elements that should be even
+- Excess whitespace beside cramped sections
+- Text too small at rendered size
+- Lopsided or unbalanced composition
 
 **4. Fix** — Edit the JSON to address everything you found. Common fixes:
 
@@ -599,7 +587,7 @@ After generating the initial JSON, run this cycle:
 
 **5. Re-render & re-view** — Run the render script again and Read the new PNG.
 
-**6. Repeat** — Keep cycling until the diagram passes both the vision check (Step 2) and the defect check (Step 3). Typically takes 2-4 iterations. Don't stop after one pass just because no critical bugs — if the composition could be better, improve it.
+**6. Repeat** — Cycle until both vision (Step 2) and defect (Step 3) checks pass. Typically takes 2-4 iterations. Don't stop after one pass because no critical bugs; improve composition when needed.
 
 ### When to Stop
 
@@ -613,7 +601,7 @@ The loop is done when:
 
 ### First-Time Setup
 
-If the render script hasn't been set up yet:
+If the render script isn't set up:
 
 ```bash
 cd .claude/skills/excalidraw-diagram/references
@@ -748,7 +736,7 @@ Generate `.excalidraw` JSON files that **argue visually**, not just display info
 
 ## Closing Reminders
 
-**IMPORTANT MUST ATTENTION Goal:** Produce `.excalidraw` JSON diagrams that visually ARGUE a concept — where the structure itself carries the meaning and (for technical diagrams) concrete evidence artifacts teach — validated through the render-view-fix loop until the rendered image matches the conceptual design.
+**IMPORTANT MUST ATTENTION Goal:** Produce `.excalidraw` JSON that visually ARGUES workflows, architectures, or concepts — so structure carries meaning, technical diagrams teach with evidence artifacts, and rendered output matches the design after mandatory render-view-fix validation.
 
 **Protocols in force (concise digest of the SYNC/shared blocks this skill carries) — MUST ATTENTION honor each canonical body:**
 

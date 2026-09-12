@@ -51,21 +51,20 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 
 ## Quick Summary
 
-**Goal:** [Process] Close the active workflow cleanly — complete the closure gates and print a one-way developer-comprehension recap (what / purpose / how / why) of what the workflow changed. Normal completion leaves the per-session workflow tracking intact for recovery; explicit `/clear` owns state deletion.
+**Goal:** Close the active workflow with evidence-backed coverage, spec-sync, graph, and baseline checks; deliver a diff-gated one-way comprehension recap, then retain per-session recovery state until explicit `/clear` (which alone deletes it).
 
 **Summary:**
 
-- **Purpose:** penultimate state-closure step (runs before `$watzup`) — close the active workflow cleanly so the next prompt gets fresh detection, AND leave the developer understanding what changed without re-reading the diff.
-- **Main steps (ordered):** (1) integration-test coverage check on changed business-logic files; (2) spec ↔ TDD-test sync gate (`spec-tdd-test-sync-gate`) BEFORE task-completion verification; (3) sync knowledge graph if `.code-graph/` exists; (4) verify the workflow-owned baseline and classify unowned/ambiguous changes; (5) verify all preceding tasks completed; (6) print the diff-gated one-way comprehension recap (what / purpose / how / why); (7) close only the recorded owned baseline run and verify deletion results; (8) announce `Workflow [name] completed`; (9) confirm per-session state is retained until explicit `/clear`.
-- **Blocking gates:** coverage gap (changed handler/command/service/controller with no matching test) OR unadjudicated spec-vs-code drift → MUST surface by asking the user directly, NEVER silent-skip; workflow MUST NOT report `completed` while drift is unadjudicated.
-- **Model-driven close:** completes once ALL the current task list items done, the sync gate recorded synced-or-accepted-as-is, and the exact owned baseline run closed successfully or was explicitly not applicable. NO hook clears the actual `CK_TMP_DIR/workflow/{sessionId}.json` on normal completion; `session-init` cleans it only on explicit `/clear`.
-- **Recap depth** throttled by `codingLevel` (`CK_CODING_LEVEL` → `.claude/.ck.json` → default 3); skip recap ONLY when there is no diff. The recap never quizzes and never blocks — deeper explanation is the standalone `$understand` skill.
+- **Purpose:** Penultimate closure step before `$watzup`: close workflow evidence, trigger fresh detection next prompt, and explain changes without a diff reread.
+- **Main steps (ordered):** (1) integration-test coverage check; (2) spec ↔ TDD-test sync gate (`spec-tdd-test-sync-gate`) BEFORE task-completion verification; (3) sync graph if `.code-graph/` exists; (4) verify owned baseline and classify unowned/ambiguous changes; (5) verify preceding tasks; (6) print diff-gated recap (what / purpose / how / why); (7) close only exact owned baseline and verify `closed`/`deletionFailures`; (8) announce `Workflow [name] completed`; (9) confirm state retained until explicit `/clear`.
+- **Blocking gates:** coverage gap OR unadjudicated spec-vs-code drift → MUST surface by asking the user directly; NEVER silent-skip or report `completed` while drift is unadjudicated. Baseline closure requires qualified, user-accepted ambiguity, or explicit N/A.
+- **Modes and terminal behavior:** recap only with a diff; depth `CK_CODING_LEVEL` → `.claude/.ck.json` → default `3`; recap one-way/no quiz/no block; deeper explanation → `$understand`. Completion is model-driven only after all tasks, sync recorded synced-or-accepted-as-is, and baseline closure qualified, user-accepted, or N/A; per-session state is retained until explicit `/clear` (which alone deletes it); no hook clears `CK_TMP_DIR/workflow/{sessionId}.json` except `session-init` on explicit `/clear`.
 
 **Workflow:**
 
-1. **Detect** — classify request scope and target artifacts.
-2. **Execute** — apply required steps with evidence-backed actions.
-3. **Explain** — print the diff-gated comprehension recap (skip only when no changes).
+1. **Detect** — classify scope and target artifacts.
+2. **Execute** — perform required evidence-backed steps.
+3. **Explain** — print diff-gated recap (skip only with no changes).
 4. **Verify** — confirm constraints, output quality, and completion evidence.
 
 **Key Rules:**
@@ -82,9 +81,9 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 
 ## When This Runs
 
-This skill is the **workflow state-closure step**. In workflows including `$watzup`, runs after final verification/docs work and before `$watzup`, so the active workflow closes before post-workflow summary and `$understand` handoff. As the penultimate action — after all workflow work is done and before the developer handoff — it prints a one-way comprehension recap; the actual per-session tracking file remains until explicit `/clear`. Use `$understand` for a deep standalone explainer of any target.
+This skill closes workflow state. In workflows with `$watzup`, it runs after final verification/docs and before `$watzup`: print a one-way recap, then retain per-session tracking until explicit `/clear`. Use `$understand` for deep standalone explanation.
 
-**NOT for**: Manual invocation mid-workflow (use workflow switching via `$start-workflow` instead).
+**NOT for:** manual mid-workflow invocation; switch via `$start-workflow`.
 
 ---
 
@@ -266,7 +265,7 @@ Finalize and close the active workflow while retaining per-session recovery stat
 
 ## Closing Reminders
 
-**IMPORTANT MUST ATTENTION Goal:** Close the active workflow cleanly — complete closure evidence and leave the developer understanding what the workflow changed via the diff-gated one-way comprehension recap. Normal completion retains per-session tracking; explicit `/clear` owns deletion.
+**IMPORTANT MUST ATTENTION Goal:** Close the active workflow with evidence-backed coverage, spec-sync, graph, and baseline checks; deliver a diff-gated one-way comprehension recap, then retain per-session recovery state until explicit `/clear` (which alone deletes it).
 
 **Protocols in force (concise digest of the SYNC/shared blocks this skill carries):**
 
@@ -274,7 +273,7 @@ Finalize and close the active workflow while retaining per-session recovery stat
 - **Critical Thinking:** MUST ATTENTION traced `file:line` proof per claim; confidence >80% to act; NEVER guess as fact.
 - **Project Reference Docs Guide:** MUST ATTENTION read required project-reference docs (ALWAYS `lessons.md`) before target work.
 
-**IMPORTANT MUST ATTENTION Main steps (run in order, NEVER skip/merge):** (1) integration-test coverage check → (2) spec ↔ TDD-test sync gate BEFORE task-completion verification → (3) sync knowledge graph if `.code-graph/` exists → (4) verify owned baseline and persist final report → (5) verify preceding tasks → (6) diff-gated comprehension recap → (7) close only the recorded owned baseline run, check `closed` and `deletionFailures`, preserve parent/sibling runs → (8) mark this task completed and announce `Workflow [name] completed` → (9) confirm closure evidence without claiming residual tracking was deleted — why: AI keeps forgetting the skill's own steps; surfacing the ordered list prevents silent step-loss under long context.
+**IMPORTANT MUST ATTENTION Main steps (run in order, NEVER skip/merge):** (1) integration-test coverage check; (2) spec ↔ TDD-test sync gate (`spec-tdd-test-sync-gate`) BEFORE task-completion verification; (3) sync graph if `.code-graph/` exists; (4) verify owned baseline and classify unowned/ambiguous changes; (5) verify preceding tasks; (6) print diff-gated recap (what / purpose / how / why); (7) close only exact owned baseline and verify `closed`/`deletionFailures`; (8) announce `Workflow [name] completed`; (9) confirm state retained until explicit `/clear`.
 **IMPORTANT MUST ATTENTION** when the workflow changed code (diff present), print the comprehension recap — what changed / purpose / how it works / why — grouped by behaviour not file, optimized for easiest learning; depth throttled by `codingLevel` (`CK_CODING_LEVEL` → `.claude/.ck.json` → default 3), NEVER fully skip when changes exist — why: the developer must understand the work without re-reading the diff
 **IMPORTANT MUST ATTENTION** the spec ↔ TDD-test sync gate runs BEFORE task-completion verification — NEVER report the workflow `completed` while a behavior-vs-spec divergence is unadjudicated; reconcile via `$spec [mode=sync]` or capture an explicit accept-as-is reason — why: green tests do not normalize spec drift; the feedback half of the loop closes here
 **IMPORTANT MUST ATTENTION** run the integration-test coverage check on changed business-logic files (handlers/commands/queries/services/controllers/resolvers/event processors) — if ANY lacks a matching test, surface by asking the user directly; NEVER silent-skip — why: business-logic change without coverage ships an unguarded regression path
@@ -294,13 +293,12 @@ Finalize and close the active workflow while retaining per-session recovery stat
 | "Business file changed but I'm sure it's covered" | Show the matching test `file:line`. No proof → surface coverage gap by asking the user directly.        |
 | "Workflow feels done, clear state now"            | Model-driven: confirm ALL the current task list items done + sync gate recorded before announcing completion.  |
 
-**IMPORTANT MUST ATTENTION Goal echo:** close the workflow cleanly — diff-gated recap delivered, sync gate adjudicated, closure evidence recorded, and per-session state retained until explicit `/clear`.
-**IMPORTANT MUST ATTENTION** NEVER silent-skip the integration-test coverage gate or the spec↔TDD-test sync gate — surface gaps by asking the user directly.
+**IMPORTANT MUST ATTENTION Goal echo:** Close the active workflow with evidence-backed coverage, spec-sync, graph, and baseline checks; deliver a diff-gated one-way comprehension recap, then retain per-session recovery state until explicit `/clear` (which alone deletes it).
+**IMPORTANT MUST ATTENTION** NEVER silent-skip integration-test coverage or the spec↔TDD-test sync gate — surface gaps by asking the user directly; baseline closure requires qualified, user-accepted ambiguity, or explicit N/A.
 **IMPORTANT MUST ATTENTION** cite `file:line` evidence (confidence >80%); print the diff-gated recap; NEVER report `completed` with unadjudicated drift.
+**IMPORTANT MUST ATTENTION Modes/terminal:** recap only with a diff; depth `CK_CODING_LEVEL` → `.claude/.ck.json` → default `3`; recap one-way/no quiz/no block. Completion is model-driven; no hook clears `CK_TMP_DIR/workflow/{sessionId}.json` except `session-init` on explicit `/clear`.
 
 **[TASK-PLANNING]** Before acting, analyze task scope and systematically break it into small todo tasks and sub-tasks using task tracking.
-
-> **[IMPORTANT]** Analyze how big the task is and break it into many small todo tasks systematically before starting — this is very important.
 
 <!-- CODEX:SYNC-PROMPT-PROTOCOLS:START -->
 ## Static Prompt Protocol Mirror (Auto-Synced)

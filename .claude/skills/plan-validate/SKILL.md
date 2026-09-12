@@ -6,10 +6,10 @@ description: '[Planning] Use when validating a plan through a critical-questions
 
 <!-- PROMPT-ENHANCE:STEP-TASK-ANCHOR:START -->
 
-> **[BLOCKING]** Execute skill steps in declared order. NEVER skip, reorder, or merge steps without explicit user approval.
-> **[BLOCKING]** Before each step or sub-skill call, update task tracking: set `in_progress` when step starts, set `completed` when step ends.
-> **[BLOCKING]** Every completed/skipped step MUST include brief evidence or explicit skip reason.
-> **[BLOCKING]** If Task tools are unavailable, create and maintain an equivalent step-by-step plan tracker with the same status transitions.
+> **[BLOCKING]** Run declared steps in order. NEVER skip, reorder, or merge without explicit user approval.
+> **[BLOCKING]** Before each step/sub-skill, update task tracking: `in_progress` at start, `completed` at end.
+> **[BLOCKING]** Every completed/skipped step MUST include brief evidence or an explicit skip reason.
+> **[BLOCKING]** If Task tools unavailable, maintain an equivalent step tracker with the same status transitions.
 
 <!-- PROMPT-ENHANCE:STEP-TASK-ANCHOR:END -->
 
@@ -45,27 +45,27 @@ description: '[Planning] Use when validating a plan through a critical-questions
 
 ## First Principle — Easy to Change
 
-> **The success metric of every coding decision is _future change cost_.**
-> DRY, SRP, abstraction, design patterns, naming, layering, tests — every
-> technique exists to serve one goal: **making the next change cheaper**.
+> **Success metric for every coding decision: _future change cost._** DRY, SRP,
+> abstraction, design patterns, naming, layering, and tests serve one goal:
+> **make the next change cheaper**.
 
-Evaluating code, refactor, test, abstraction, ask:
-**does this make next change cheaper or more expensive?**
+When evaluating code, refactors, tests, abstractions, or questions, ask:
+**does this make the next change cheaper or more expensive?**
 
-- Reject "best practices" raising change cost (premature abstraction,
-  speculative generality, leaky indirection, ceremony without payoff).
-- Name real enemies in findings: **coupling, hidden state, duplicated
-  knowledge, unclear intent, irreversible decisions exposed too early**.
-- Simpler design easy to change beats sophisticated design that isn't.
+- Reject "best practices" that raise change cost: premature abstraction,
+  speculative generality, leaky indirection, ceremony without payoff.
+- Name real enemies: **coupling, hidden state, duplicated knowledge, unclear
+  intent, irreversible decisions exposed too early**.
+- Prefer simple designs easy to change over sophisticated designs that are not.
 
-Apply this lens **before** invoking any specific rule, pattern, or checklist
-below — if a downstream rule raises change cost, this principle wins.
+Apply this lens before downstream rules; if a rule raises change cost, this
+principle wins.
 
 ---
 
 ## Phase 0: Detect Plan Type
 
-Classify plan type BEFORE generating questions — drives question category weighting:
+Classify plan type BEFORE generating questions; it drives category weighting:
 
 | Plan Type     | Detection                                                         | Mandatory Extra Categories            |
 | ------------- | ----------------------------------------------------------------- | ------------------------------------- |
@@ -80,28 +80,28 @@ Classify plan type BEFORE generating questions — drives question category weig
 ## Plan Resolution
 
 1. `$ARGUMENTS` provided → use that path
-2. Check `## Plan Context` section → use active plan path
-3. No plan found → ask user to specify path or run `/plan` first
+2. Else use the active path from `## Plan Context`
+3. No plan → ask user for a path or run `/plan` first
 
 ## Phase 0.5: Applicability / Plan Gate
 
-Before extracting technical questions, read `.claude/skills/shared/product-roadmap-contract.md` and classify the plan's branch.
+Before extracting technical questions, classify the plan's branch.
 
-- For an embedded large-idea plan, read the owning PBI/spec and verify the complete `large_idea_decomposition` block, selected slice, non-goals/deferred owners, and conditional scenario artifact when needed. Do not require `docs/product-roadmap.md` or a product milestone.
-- For an explicit-roadmap plan, read `docs/product-roadmap.md`, the selected milestone's scope brief, and `scenario-analysis.md`.
-- For a framework/library plan, read the technical scope, operational scenarios, generated-carrier evidence, and commands.
-- Verify `plan.md` contains one `## Plan Gate` with matching branch/outcome/boundaries, explicit non-goals, defined lifecycle terms when applicable, the branch decision state, known or explicitly inapplicable skeleton/configuration, build/test/run commands, redacted evidence, and `Human approval: APPROVED`.
-- Missing upstream artifacts or `BLOCKED`/`OPEN`/`MISSING`/`REQUIRED` values create a blocking Applicability question. Do not begin implementation or recommend `implement` while it remains unresolved.
-- For an isolated brownfield change or bugfix, verify the shared contract's EXEMPT branch: the scope brief and plan contain the reason/owner, the sibling scenario exists when required, roadmap/milestone are explicitly `EXEMPT`, product decisions use explicit `N/A` rationale, and commands/evidence/approval are known. Retain all existing preservation/spec/test/review questions.
+- Embedded large-idea: read the owning PBI/spec; verify complete `large_idea_decomposition`, selected slice, non-goals/deferred owners, and conditional scenario artifact when needed. Do not require `docs/product-roadmap.md` or a product milestone.
+- Explicit roadmap: read `docs/product-roadmap.md`, selected milestone scope brief, and `scenario-analysis.md`.
+- Framework/library: read technical scope, operational scenarios, generated-carrier evidence, and commands.
+- Verify one `## Plan Gate` in `plan.md`: matching branch/outcome/boundaries; explicit non-goals; lifecycle terms when applicable; branch decision state; known or explicitly inapplicable skeleton/configuration; build/test/run commands; redacted evidence; `Human approval: APPROVED`.
+- Missing upstream artifacts or `BLOCKED`/`OPEN`/`MISSING`/`REQUIRED` values create a blocking Applicability question. Do not implement or recommend `implement` while unresolved.
+- Isolated brownfield/bugfix: verify the shared contract's EXEMPT branch: scope brief and plan reason/owner, required sibling scenario, explicit `EXEMPT` roadmap/milestone, explicit `N/A` product-decision rationale, known commands/evidence/approval. Retain preservation/spec/test/review questions.
 
 ## Configuration (from injected context)
 
 Check `## Plan Context` section:
 
-- `mode` — auto/prompt/off behavior
-- `questions` — range like `3-8` (min-max)
+- `mode` — auto/prompt/off
+- `questions` — MIN-MAX range (e.g. `3-8`)
 
-Use as hard constraints.
+Treat both as hard constraints.
 
 ## Workflow
 
