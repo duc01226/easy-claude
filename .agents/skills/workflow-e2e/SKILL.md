@@ -170,7 +170,7 @@ E2E VERIFY GREEN PROTOCOL:
 - Browser/UI E2E: use a shared bounded `waitUntil(condition, options)` before and after every control action for readiness/actionability, expected positive/negative state, dropdown/options, and applicable error-alert presence/absence; apply the exact 500ms pacing delay last and keep real settle signals separate.
 - Default visual gate: unless `--visual-review=false` is explicit, require screenshot capture/read/visual adjudication and a same-scope E2E rerun after each validated blocking UI fix; keep advisory polish visible without creating an unbounded taste loop.
 
-Activate `workflow-e2e` for every source. The conditional `$e2e-test` occurrence is skipped for `prompt`, `context`, and `whole` because `$e2e-test-verify-loop` owns selection or generation there. There is no second `workflow-e2e-green` route.
+Activate `workflow-e2e` for every source. The conditional `$e2e-test` occurrence is skipped for `prompt`, `context`, and `whole` because `$e2e-test-verify-loop` owns selection or generation there.
 
 **Steps:** `$investigate -> $e2e-test -> $e2e-test-verify-loop -> $docs-update -> $workflow-end -> $watzup`.
 

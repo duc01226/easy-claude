@@ -271,7 +271,6 @@ test('R3-PROMPT-031: visual review consumers persist one artifact result before 
         '.claude/skills/test-ui/SKILL.md',
         '.claude/skills/e2e-test-verify-loop/SKILL.md',
         '.claude/skills/workflow-e2e/SKILL.md',
-        '.claude/skills/workflow-e2e-green/SKILL.md'
     ];
     for (const relative of visualConsumers) {
         const text = await fs.readFile(path.join(root, relative), 'utf8');

@@ -1,11 +1,11 @@
 metadata:
   title: Skills Catalog
   description: Auto-generated catalog of all available skills in ClaudeKit Engineer
-  last_updated: '2026-09-12'
-  total_skills: 170
+  last_updated: '2026-09-13'
+  total_skills: 169
   total_by_status:
     active: 167
-    deprecated: 3
+    deprecated: 2
     experimental: 0
 categories:
   ai-ml: AI & Machine Learning
@@ -1919,17 +1919,4 @@ skills:
       deprecated_by: release-notes
       deprecated_since: '2026-09-08'
       removal_after: '2026-12-07'
-    - name: workflow-e2e-green
-      path: workflow-e2e-green/SKILL.md
-      description: '[Workflow] Deprecated compatibility entry for E2E verification;
-        use workflow-e2e for writing, updating, and bounded green fix/retest. Flags:
-        --source={prompt|context|whole}, --visual-review={true|false} (default true;
-        false is the explicit opt-out).'
-      category: other
-      has_scripts: false
-      has_references: false
-      status: deprecated
-      deprecated_by: workflow-e2e
-      deprecated_since: '2026-09-12'
-      removal_after: '2026-12-12'
   experimental: {}

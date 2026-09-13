@@ -1,27 +1,30 @@
 ---
 name: learn
-version: 4.0.0
+version: 4.1.0
 description: '[Utilities] Use when teaching Claude a lesson that persists across sessions.'
 disable-model-invocation: false
 ---
 
 ## Quick Summary
 
-**Goal:** Teach Claude lessons that persist across sessions by generalizing each lesson to its failure mode and saving it to the carrier a future session will actually read — the best-fit prose reference doc, or `docs/project-config.json` when the lesson is really a machine-readable project fact.
+**Goal:** Teach Claude lessons that persist across sessions by generalizing each lesson to its failure mode and routing it to the carrier a future session will actually read — the matching skill's project protocol when the lesson is skill-specific, otherwise the best-fit prose reference doc or `docs/project-config.json` when the lesson is really a machine-readable project fact.
 
 **Summary:** read-this-if-nothing-else digest of the main steps —
 
 - **Generalize before anything else** — climb from the incident to the reusable failure mode; a lesson naming this ticket's files/services/tools is not a lesson yet.
 - **Triage (recurrence + auto-fix) BEFORE routing** — a lesson a review skill already catches is noise.
+- **Skill-specific lessons use the project protocol route:** when a user asks to learn something during an active skill invocation, or a lesson arises from a task whose route matched a skill, treat it as a candidate overlay for that skill; call `$project-skill-protocol` with `add` for a new overlay or `update <exact-name>` only after exact-name resolution, never save only to generic lessons/prose.
+- **Keep ordinary routing for ordinary lessons:** when the lesson is not skill-specific or no active/matching skill exists, use the existing FACT/RULE carrier route and confirmation flow.
 - **Classify the carrier, don't default to prose:** a lesson stating a project FACT (path, run-command, module map, convention, tooling choice) belongs in `docs/project-config.json`, the machine-readable map every skill reads first; a lesson stating a RULE or pattern belongs in the matching `docs/project-reference/` doc. Both can apply — write the fact to config AND the rule to prose. To learn what the config holds and its exact field names, read the file or use `/project-config` (it runs `--describe`).
+- **Delegate overlay correctness:** `$project-skill-protocol` retains its mode resolution, target/scope resolution, additive-only constraint, collision/contradiction handling, proposal/user-confirmation gate, three-write contract, and mirror-sync rule; Learn must not bypass or replace it.
 - **Assess prevention depth** — doc/config update, prompt rule, static protocol lesson, hook, test, or skill update.
 - **Confirm target with the user, save, then run the 3 mandatory end tasks** — Learn Review → `/why-review` → `/prompt-enhance`.
 
 **Workflow:**
 
 1. **Capture** -- Identify the lesson from user instruction or experience
-2. **Route** -- Analyze lesson content against the Reference Doc Catalog AND `docs/project-config.json`, select the best target carrier (prose doc, config field, or both)
-3. **Save** -- Append lesson to the selected file
+2. **Route** -- Analyze lesson content against any active/matching skill, the Reference Doc Catalog, AND `docs/project-config.json`; select the project-protocol route for skill-specific lessons, otherwise the best target carrier (prose doc, config field, or both)
+3. **Save** -- After the applicable confirmation gates, delegate skill-specific lessons to `$project-skill-protocol`; otherwise append the lesson to the selected file
 4. **Confirm** -- Acknowledge what was saved and where
 5. **Learn Review** -- Run the mandatory 2-step end gate (`Learn Review` + `/why-review`)
 6. **Enhance** -- Run `/prompt-enhance` on modified file(s) to optimize AI attention anchoring
@@ -36,6 +39,10 @@ disable-model-invocation: false
 - Use exact config schema field names (`node .claude/hooks/lib/project-config-schema.cjs --describe`) and prefer an existing field — NEVER invent a key, and route config writes through `/project-config`
 - Check for existing entries before creating duplicates
 - Confirm target file with user before writing
+- **Skill-specific route:** When a user asks to learn something during an active skill invocation, or a lesson is learned while performing a task whose route matched a skill, treat the lesson as a candidate extension of that skill's project protocol. Call `$project-skill-protocol add ...` for a new overlay; call `$project-skill-protocol update <exact-name> ...` only after exact-name resolution identifies an existing overlay. Do not save that candidate only to generic lessons/prose.
+- **Protocol authority:** Preserve `$project-skill-protocol`'s mode resolution, target/scope resolution, additive-only constraint, target-collision and contradiction handling, proposal/user-confirmation gate, three-write contract, and mirror-sync rule. Learn must not bypass or replace any of them.
+- **Confirmation remains required:** Keep Learn's existing user confirmation and mandatory end-task flow; delegating a skill-specific candidate does not waive the project protocol's own proposal/user-confirmation gate.
+- **Ordinary-route fallback:** When no active/matching skill exists or the lesson is not skill-specific, keep the existing FACT/RULE classification, carrier routing, confirmation, save, and end-task flow.
 
 **Be skeptical. Apply critical thinking, sequential thinking. Every claim needs traced proof, confidence percentages (Idea should be more than 80%).**
 
@@ -127,6 +134,25 @@ Rules:
 | **Auto-fix**   | "Could `/code-review`, `/simplify`, `/security-review`, or `/lint` catch this automatically?" | No → continue  | Yes → skip `/learn`; update the review skill instead |
 
 **Both gates must pass.** A lesson review skills already catch adds noise without value. A one-off situational mistake won't be prevented by a persisted rule.
+
+---
+
+### Skill-Specific Project-Protocol Route (BLOCKING)
+
+Before applying the generic Routing Table, detect whether either condition holds:
+
+- the user asks to learn something during an active skill invocation; or
+- the lesson is learned while performing a task whose route matched a skill.
+
+When either condition holds:
+
+1. Identify the active/matching skill by its exact skill name.
+2. Treat the lesson as a candidate extension of that skill's project protocol.
+3. **MUST ATTENTION** Preserve Learn's existing confirmation before writing, then call `$project-skill-protocol add ...` for a new overlay or `$project-skill-protocol update <exact-name> ...` only after exact-name resolution identifies an existing overlay.
+4. **MUST ATTENTION** Let `$project-skill-protocol` perform its own mode resolution, target/scope resolution, additive-only screen, target-collision and contradiction handling, proposal/user-confirmation gate, three-write contract, and mirror sync. Do not write overlay bodies, index rows, or the `CLAUDE.md` protocol block directly from Learn.
+5. Do not save the candidate only to `docs/project-reference/lessons.md` or another generic prose carrier.
+
+If neither condition holds, continue with the generic Routing Table and existing Learn confirmation flow.
 
 ---
 
@@ -265,12 +291,13 @@ Run these 2 tasks at the end of every `/learn` operation:
 1. **Run Triage Gate** — recurrence + auto-fix filters; stop here if either fails
 2. **Read the lesson text** — identify keywords and domain
 3. **Apply Lesson Quality Gate** — analyze root cause, generalize, verify universality
-4. **Classify the carrier — FACT vs RULE (do this BEFORE the Routing Table).** Ask: *"Is this a machine-readable project fact, or a rule an agent must reason with?"* Fact → `docs/project-config.json`; rule → a prose reference doc; both → both. To decide, read the config or use `/project-config` (`--describe`) so the judgment rests on the real schema, never on a guess about what the config holds. — why: skipping this step is how a project fact ends up as prose that no tooling reads and the next regeneration contradicts.
-5. **Run Prevention Depth Assessment** — determine if doc/config-only or deeper prevention needed
-6. **Match against Routing Table** — pick the best-fit file (or config field)
-7. **Tell the user:** "This lesson fits best in `docs/{file}`. Confirm? [Y/n]"
-8. **On confirm** — read target file, find the right section, append the lesson (config target → route through `/project-config`)
-9. **On reject** — ask user which file to use instead
+4. **Detect skill-specific route.** If the active/matching skill condition holds, follow the Skill-Specific Project-Protocol Route and do not continue with the generic carrier steps below; otherwise continue.
+5. **Classify the carrier — FACT vs RULE (do this BEFORE the generic Routing Table).** Ask: *"Is this a machine-readable project fact, or a rule an agent must reason with?"* Fact → `docs/project-config.json`; rule → a prose reference doc; both → both. To decide, read the config or use `/project-config` (`--describe`) so the judgment rests on the real schema, never on a guess about what the config holds. — why: skipping this step is how a project fact ends up as prose that no tooling reads and the next regeneration contradicts.
+6. **Run Prevention Depth Assessment** — determine if doc/config-only or deeper prevention needed
+7. **Match against the generic Routing Table** — pick the best-fit file (or config field)
+8. **Tell the user:** "This lesson fits best in `docs/{file}`. Confirm? [Y/n]"
+9. **On confirm** — read target file, find the right section, append the lesson (config target → route through `/project-config`)
+10. **On reject** — ask user which file to use instead
 
 ### Format by Target File
 
@@ -320,7 +347,7 @@ Run these 2 tasks at the end of every `/learn` operation:
 
 ## Behavior
 
-1. **`/learn <text>`** — Route and append lesson to the best-fit file (check budget if target is `lessons.md`)
+1. **`/learn <text>`** — Run the existing triage and quality gates; for a skill-specific lesson, call `$project-skill-protocol add ...` or `$project-skill-protocol update <exact-name> ...` through the Skill-Specific Project-Protocol Route, otherwise route and append to the best-fit file (check budget if target is `lessons.md`)
 2. **`/learn list`** — Read and display lessons from ALL 12 target files (show file grouping + char count for `lessons.md`)
 3. **`/learn remove <N>`** — Remove lesson from `docs/project-reference/lessons.md` by line number
 4. **`/learn clear`** — Clear all lessons from `docs/project-reference/lessons.md` only (confirm first)
@@ -329,7 +356,7 @@ Run these 2 tasks at the end of every `/learn` operation:
 
 ## Auto-Inferred Activation
 
-When Claude detects correction phrases in conversation (e.g., "always use X", "remember this", "never do Y", "from now on"), this skill auto-activates. When auto-inferred (not explicit `/learn`), **confirm with the user before saving**: "Save this as a lesson? [Y/n]"
+When Claude detects correction phrases in conversation (e.g., "always use X", "remember this", "never do Y", "from now on"), this skill auto-activates. When auto-inferred (not explicit `/learn`), **confirm with the user before saving**: "Save this as a lesson? [Y/n]". If the detection occurs during an active/matching skill route, use the Skill-Specific Project-Protocol Route; otherwise use ordinary routing.
 
 ## How Lessons Reach the AI
 
@@ -434,14 +461,18 @@ After saving a lesson to any target file, run `/prompt-enhance` on the modified 
 
 **IMPORTANT MUST ATTENTION** GENERALIZE FIRST — extract the generic, many-cases rule; NEVER persist the specific incident as written. Strip all ticket/file/service/tool names before saving.
 
+**IMPORTANT MUST ATTENTION** Skill-specific route: when a user asks to learn during an active skill invocation, or a lesson is learned during a task whose route matched a skill, treat it as a candidate project protocol extension and call `$project-skill-protocol` — `add` for a new overlay, `update <exact-name>` only after exact-name resolution — instead of saving only to generic lessons/prose.
+
+**IMPORTANT MUST ATTENTION** Preserve `$project-skill-protocol`'s mode resolution, target/scope resolution, additive-only constraint, collision/contradiction handling, proposal/user-confirmation gate, three-write contract, and mirror-sync rule; Learn must not bypass or replace that protocol. Keep ordinary carrier routing when no active/matching skill exists or the lesson is not skill-specific.
+
 **MUST ATTENTION Protocols in force (concise digest of the SYNC/shared blocks this skill carries — full bodies above are canonical):**
 
 - **AI Mistake Prevention:** verify generated content against evidence, trace downstream references, verify all affected outputs, re-read after context loss, surface ambiguity.
 - **Critical Thinking:** critical + sequential thinking, traced proof, confidence >80%, NEVER guess as fact.
 
-**IMPORTANT MUST ATTENTION Goal:** Persist each lesson at its failure-mode level into the carrier a future session will actually read — the best-fit prose reference doc, or `docs/project-config.json` when the lesson is really a machine-readable project fact.
+**IMPORTANT MUST ATTENTION Goal:** Persist each lesson at its failure-mode level into the carrier a future session will actually read — the matching skill's project protocol when the lesson is skill-specific, otherwise the best-fit prose reference doc or `docs/project-config.json` when the lesson is really a machine-readable project fact.
 
-**IMPORTANT MUST ATTENTION** main steps, in order: generalize → Triage Gate → Lesson Quality Gate → **classify carrier (FACT → config · RULE → prose · both → both)** → Prevention Depth Assessment → Routing Table → confirm with user → save → Learn Review → `/why-review` → `/prompt-enhance`.
+**IMPORTANT MUST ATTENTION** main steps, in order: generalize → Triage Gate → Lesson Quality Gate → detect skill-specific route (**delegate to `$project-skill-protocol`**) OR **classify carrier (FACT → config · RULE → prose · both → both)** → Prevention Depth Assessment → confirm with user → save → Learn Review → `/why-review` → `/prompt-enhance`.
 **IMPORTANT MUST ATTENTION** run Triage Gate FIRST — if recurrence is low OR review skills can catch it, skip `/learn` entirely
 **IMPORTANT MUST ATTENTION** check Reference Doc Catalog to find the best target file — NOT always `lessons.md`
 **IMPORTANT MUST ATTENTION** consider `docs/project-config.json` as a candidate carrier on EVERY routing decision, alongside the prose docs — read it directly or use `/project-config` to learn its sections and exact field names first — why: a project fact written only as prose is invisible to the tooling that reads the config and is contradicted the next time the generated docs regenerate from it.

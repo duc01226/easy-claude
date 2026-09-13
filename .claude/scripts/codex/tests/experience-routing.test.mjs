@@ -54,7 +54,7 @@ test("TC-EA-ROUTE-002: unified E2E workflow routes authoring into one convergenc
   assert.match(author.applicability.skipReason, /prompt.*context.*whole/i);
   assert.ok(workflow.sequence.indexOf(author) < indexOfSkill(workflow.sequence, "e2e-test-verify-loop"));
   assert.ok(indexOfSkill(workflow.sequence, "e2e-test-verify-loop") < indexOfSkill(workflow.sequence, "docs-update"));
-  assert.match(e2eContext, /Do not invoke workflow-e2e-green/i);
+  assert.doesNotMatch(e2eContext, /workflow-e2e-green/i);
   assert.match(e2eContext, /same-scope.*rerun|same scope.*rerun/i);
   assert.match(e2eContext, /explicit acceptance/i);
   assert.match(e2eContext, /report-only.*experience-review/i);

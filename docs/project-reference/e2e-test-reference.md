@@ -48,8 +48,7 @@ conditionally uses `.claude/skills/e2e-test/` for authoring and always hands
 verification to `.claude/skills/e2e-test-verify-loop/`; `.claude/skills/playwright-cli/`
 provides the configured browser path. `experience-review` remains the
 report-only observable acceptance gate; it does not silently accept baselines
-or replace the project runner. The former `workflow-e2e-green` entry is a
-deprecated compatibility skill, not a registered workflow.
+or replace the project runner.
 
 ## Workflow
 

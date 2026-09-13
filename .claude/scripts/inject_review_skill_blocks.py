@@ -23,7 +23,7 @@ Tags propagated (each with its `:reminder` sibling):
         design-distinctiveness-gate by changes-review + plan-review -- see the
         DESIGN_REVIEW_CHECKLIST comment for why those two grade-anything skills carry a
         procedure but not the taste clauses. Every body is self-gating on "has a UI surface".
-  - SYNC:e2e-visual-design-contract    -> the eight E2E/visual-review skill carriers
+  - SYNC:e2e-visual-design-contract    -> the E2E/visual-review skill carriers
         (design authority + component/reuse + runtime/source ownership + baseline gates).
   - SYNC:trade-off-interrogation-gate    -> ALL_REVIEW_SKILLS (all 20)
         (trade-off? worth it? material -> confirm with user; additive-safe,
@@ -203,7 +203,7 @@ DESIGN_REVIEW_CHECKLIST = [
 # runtime-vs-source ownership, and baseline gates, but most E2E invocations are
 # non-visual and must remain explicitly N/A rather than carrying a visual review.
 E2E_VISUAL_DESIGN = [
-    "e2e-test", "e2e-test-verify-loop", "workflow-e2e", "workflow-e2e-green",
+    "e2e-test", "e2e-test-verify-loop", "workflow-e2e",
     "experience-review", "test-ui", "playwright-cli", "webapp-testing",
 ]
 

@@ -1049,6 +1049,19 @@
 - category: other
   deprecated_by: null
   deprecated_since: null
+  description: '[Documentation] Use when creating, revising, auditing, or generating
+    a presentation for any subject. Produces a narrative-led, self-contained HTML
+    deck with per-slide speaker notes, keyboard navigation, accessible controls, persistent
+    browser-local edit mode, reset, export, and validation.'
+  has_references: true
+  has_scripts: true
+  name: presentation-builder
+  path: presentation-builder/SKILL.md
+  removal_after: null
+  status: active
+- category: other
+  deprecated_by: null
+  deprecated_since: null
   description: '[Project Management] Use when prioritizing backlog items with RICE,
     MoSCoW, or Value-Effort.'
   has_references: false
@@ -1675,18 +1688,6 @@
   path: workflow-e2e/SKILL.md
   removal_after: null
   status: active
-- category: other
-  deprecated_by: workflow-e2e
-  deprecated_since: '2026-09-12'
-  description: '[Workflow] Deprecated compatibility entry for E2E verification; use
-    workflow-e2e for writing, updating, and bounded green fix/retest. Flags: --source={prompt|context|whole},
-    --visual-review={true|false} (default true; false is the explicit opt-out).'
-  has_references: false
-  has_scripts: false
-  name: workflow-e2e-green
-  path: workflow-e2e-green/SKILL.md
-  removal_after: '2026-12-12'
-  status: deprecated
 - category: other
   deprecated_by: null
   deprecated_since: null

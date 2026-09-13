@@ -276,7 +276,6 @@ test("E2E visual review contracts default on and review generated screenshots", 
   const skillFiles = [
     ".claude/skills/e2e-test/SKILL.md",
     ".claude/skills/workflow-e2e/SKILL.md",
-    ".claude/skills/workflow-e2e-green/SKILL.md",
     ".claude/skills/e2e-test-verify-loop/SKILL.md",
   ];
   for (const relativePath of skillFiles) {
