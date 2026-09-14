@@ -1,7 +1,7 @@
 # Integration Test Reference
 
 <!-- Last scanned: 2026-08-04 -->
-<!-- Last verified: 2026-09-12 (docs-update, impact-scoped) -->
+<!-- Last verified: 2026-09-14 (docs-update, impact-scoped) -->
 <!-- This file is referenced by Claude skills and agents for project-specific context. -->
 
 ## Quick Summary
@@ -9,7 +9,7 @@
 **Goal:** Keep integration-test guidance aligned with the executable custom CJS harness, observable assertions, and repeatable local verification.
 
 **Summary:**
-(1) Read project config, select commands, and run real hook/process boundaries with JSON while asserting exit code, output, and state. (2) Isolate and restore mutable state in `finally`; name and trace suites. (3) Use live coverage expressions; run a focused suite, then full verification twice without reset. (4) Persist results, reports, logs, and captures under project-root `tmp/`/`temp/`.
+(1) Read project config, select commands, and run real hook/process boundaries with JSON while naming the guarded business intent/invariant or technical contract, exposing explicit Given/When/Then phases, and asserting exit code, output, and state. (2) Isolate and restore mutable state in `finally`; name and trace suites. (3) Use live coverage expressions; run a focused suite, then full verification twice without reset. (4) Persist results, reports, logs, and captures under project-root `tmp/`/`temp/`.
 
 ## Workflow
 
@@ -20,6 +20,7 @@
 ## Key Rules
 
 - **MUST** assert meaningful outputs or state; a smoke-only “does not throw” check is insufficient.
+- **MUST** make every assertion-bearing case explicit `Given` → `When` → `Then` (comments or named helpers are valid), name the guarded business intent/invariant or technical contract, and assert an owned observable outcome; bare Arrange/Act/Assert is insufficient unless all three GWT phases are labeled.
 - **MUST** use unique temp directories and deterministic cleanup for mutable tests.
 - **NEVER** recommend `--parallel` for suite-level concurrency while the runner still executes suites sequentially.
 
@@ -80,7 +81,7 @@ Use payload builders for valid lifecycle inputs and assert the observable contra
 1. Copy the structure of `.claude/hooks/tests/suites/integration.test.cjs` into a topic-named file beneath `.claude/hooks/tests/suites/`; the runner discovers the .test.cjs suffix automatically (`.claude/hooks/tests/run-all-tests.cjs:87-99`).
 2. Import the real hook runner, payload builder, and focused assertion helpers.
 3. Name tests with a behavioral bracket prefix such as `[security-chain]`; include the governing `TC-*` ID when a canonical spec supplies one (`.claude/hooks/tests/suites/integration.test.cjs:47-77`, `.claude/hooks/tests/suites/workflow.test.cjs:197-198`).
-4. Arrange isolated input, act through the real process boundary, assert specific output/state, and clean up in `finally`.
+4. Label explicit Given/When/Then phases (comments or named helpers are valid), name the guarded business intent/invariant or technical contract, arrange isolated input, act through the real process boundary, assert the owned output/state, and clean up in `finally`.
 5. Run a matching suite filter, then the full repeatability gate.
 
 ## Running Tests

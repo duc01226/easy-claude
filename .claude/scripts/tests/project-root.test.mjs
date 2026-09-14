@@ -14,7 +14,7 @@ const writers = [
     '.claude/scripts/codex/sync-hooks.mjs',
     '.claude/scripts/codex/migrate-claude-to-codex.mjs',
     '.claude/scripts/codex/sync-context-workflows.mjs',
-    '.claude/skills/claude-md-init/scripts/generate-claude-md.cjs',
+    '.claude/skills/ai-context-refresh/scripts/generate-claude-md.cjs',
     '.claude/skills/tech-spec/scripts/generate-tech-specs.mjs',
 ];
 

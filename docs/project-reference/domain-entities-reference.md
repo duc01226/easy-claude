@@ -292,7 +292,7 @@ A named sequence of skill steps that orchestrates a multi-step process (feature 
 
 ## 5. Context Group
 
-A configuration value record in `docs/project-config.json` mapping file paths/extensions to guidance and rules. The Claude-MD generator converts context-group rules and documents into Golden Rules and path-based pre-read routing (`.claude/skills/claude-md-init/scripts/section-builders.cjs:43-51,194-207`).
+A configuration value record in `docs/project-config.json` mapping file paths/extensions to guidance and rules. The AI-context generator converts context-group rules and documents into Golden Rules and path-based pre-read routing (`.claude/skills/ai-context-refresh/scripts/section-builders.cjs:43-51,194-207`).
 
 **Location:** `docs/project-config.json` under `contextGroups[]`
 
@@ -319,7 +319,7 @@ A configuration value record in `docs/project-config.json` mapping file paths/ex
 
 ### Relationships
 
-- Context groups map paths to the guide or patterns document a reader should open (`.claude/skills/claude-md-init/scripts/section-builders.cjs:194-207`)
+- Context groups map paths to the guide or patterns document a reader should open (`.claude/skills/ai-context-refresh/scripts/section-builders.cjs:194-207`)
 - Context groups reference documentation files that **Skills** and **Agents** read directly
 - Context groups complement **Modules** (modules identify _what_ a component is; context groups define _what rules apply_)
 

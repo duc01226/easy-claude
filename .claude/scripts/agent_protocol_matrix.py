@@ -227,6 +227,7 @@ AGENT_QUALITY_BLOCKS = {
         # taxonomy exists to forbid. Read-only role is not a counter-argument:
         # a reviewer that reaches the WRONG verdict recommends the wrong fix.
         "test-failure-fault-adjudication",
+        "review-principle-awareness",
     ],
     "security-auditor": [
         "severity-rubric", "systematic-review-batching", "category-review-thinking",
@@ -234,12 +235,14 @@ AGENT_QUALITY_BLOCKS = {
         "source-test-drift-check",
         # wave 2 (twin: security-review)
         "trade-off-interrogation-gate", "double-round-trip-review",
+        "review-principle-awareness",
     ],
     "performance-optimizer": [
         "severity-rubric", "systematic-review-batching", "category-review-thinking",
         "graph-assisted-investigation", "graph-impact-analysis",
         # wave 2 (twin: performance-review)
         "trade-off-interrogation-gate", "scenario-stress-eval",
+        "review-principle-awareness",
     ],
     "spec-compliance-reviewer": [
         "severity-rubric", "double-round-trip-review", "fresh-context-review",
@@ -250,6 +253,7 @@ AGENT_QUALITY_BLOCKS = {
         # Judges spec<->test alignment, so it meets red tests and must reach a
         # verdict on the same five-way scale as the author (/why-review F-M2).
         "test-failure-fault-adjudication",
+        "review-principle-awareness",
     ],
     "quality-gate-review": [
         "severity-rubric", "review-policy", "double-round-trip-review", "fresh-context-review",
@@ -259,6 +263,7 @@ AGENT_QUALITY_BLOCKS = {
         # A gate whose input is a failing suite decides PASS/FAIL on it; the
         # five-way verdict is the scale that decision needs (/why-review F-M2).
         "test-failure-fault-adjudication",
+        "review-principle-awareness",
     ],
 
     # --- investigation / research family ---------------------------------
@@ -276,6 +281,7 @@ AGENT_QUALITY_BLOCKS = {
         "severity-rubric",
         # wave 2 (twin: knowledge-review)
         "trade-off-interrogation-gate",
+        "review-principle-awareness",
     ],
 
     # --- planning / product / architecture family ------------------------
@@ -288,6 +294,7 @@ AGENT_QUALITY_BLOCKS = {
         "trade-off-interrogation-gate",
         # wave 3 (twin: plan Domain Entity Gate / plan-review Dimension 8)
         "domain-entity-change-gate",
+        "review-principle-awareness",
     ],
     "architect": [
         "severity-rubric", "systematic-review-batching", "category-review-thinking",
@@ -302,6 +309,10 @@ AGENT_QUALITY_BLOCKS = {
         # system's DESIGN, this one judges the project's engineering FOUNDATION
         # (build/run/test/change). Twin: architecture-design / architecture-review-full.
         "engineering-foundation-gate",
+        # AI agents are a potential system actor; this is relevant to the
+        # architecture-review/architecture-design agent's evidence-based audit.
+        "ai-agent-as-user-access",
+        "review-principle-awareness",
     ],
     "solution-architect": [
         "design-patterns-quality", "scaffold-production-readiness",
@@ -313,6 +324,9 @@ AGENT_QUALITY_BLOCKS = {
         # wave 3 -- greenfield inception CREATES the foundation, so this gate is in
         # its blocking mode here, not its advisory mode (twin: scaffold).
         "engineering-foundation-gate",
+        # Greenfield architecture must decide whether and how non-human agents
+        # can use the application before feature fan-out.
+        "ai-agent-as-user-access",
     ],
     "business-analyst": [
         "estimation-framework", "refinement-dor-checklist", "ba-team-decision-model",
@@ -334,6 +348,7 @@ AGENT_QUALITY_BLOCKS = {
         "spec-drift-adjudication", "test-data-isolation",
         "real-world-fidelity-testing",
         "test-architecture-execution-contract",
+        "review-principle-awareness",
     ],
     "tester": [
         "source-test-drift-check", "repeatable-test-principle",
@@ -379,6 +394,7 @@ AGENT_QUALITY_BLOCKS = {
         # design-spec / ui-review). This agent AUTHORS the direction, so it owns both the
         # design plan + generic test (DD-3) and the interface voice.
         "design-distinctiveness-gate", "ui-copywriting", "design-review-checklist",
+        "review-principle-awareness",
     ],
     "code-simplifier": [
         "complexity-prevention", "design-patterns-quality", "severity-rubric",

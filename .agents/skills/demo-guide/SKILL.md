@@ -24,7 +24,7 @@ When coding, planning, debugging, testing, or reviewing, open project docs expli
 - `docs/project-reference/docs-index-reference.md` (routes to the full `docs/project-reference/*` catalog)
 - `docs/project-reference/lessons.md` (always-on guardrails and anti-patterns)
 
-**Missing/stale context route:** If `docs/project-config.json`, the docs index, `lessons.md`, `CLAUDE.md`, `AGENTS.md`, or any task-required reference doc is missing or stale, auto-run `$project-init` or the narrow setup route (`$project-config`, `$docs-init`, `$scan-all`, `$scan --target=<key>`, `$claude-md-init`) before ordinary project-specific work. If Codex mirrors or `AGENTS.md` are missing/stale, ask the user to run `$sync-codex`; do not auto-run it.
+**Missing/stale context route:** If `docs/project-config.json`, the docs index, `lessons.md`, `CLAUDE.md`, `AGENTS.md`, or any task-required reference doc is missing or stale, auto-run `$project-init` or the narrow setup route (`$project-config`, `$docs-init`, `$scan-all`, `$scan --target=<key>`, `$ai-context-refresh`) before ordinary project-specific work. A full `$sync-codex` run preflights `CLAUDE.md`; a completed `$ai-context-refresh` run may invoke the standalone runner with `--skip=claude-md` after final source edits. Markerless roots need AI smart-merge unless `portability.requireUniversalGuides: false` is explicit.
 
 **Situation-based docs:**
 - Project structure/architecture/tech-stack/deployment/setup (any layer — backend, frontend, or infra): `project-structure-reference.md`
@@ -56,7 +56,7 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 **Summary:** Read this if nothing else.
 
 - **Purpose:** MUST ATTENTION investigate before scripting; prove behaviour, user path, storage, and solution with `file:line`; ALWAYS state blockers instead of inventing missing evidence.
-- **Main steps (in order):** MUST ATTENTION (0) resolve scope → load contract → size S0–S4 → decompose → task; (1) clear the six-question gate + write the Understanding Brief; (2) gather five inventories; (3) map/persist real cases + classify channels; (4) trace storage/solution; (5) open guide + ledger and accumulate; (6) write four-part cases; (7) assign proof rungs + transparency; (8) validate.
+- **Main steps (in order):** MUST ATTENTION (0) resolve scope → load contract → size S0–S4 → decompose → task; (1) clear the six-question gate + write the Understanding Brief; (2) gather five inventories; (3) map/persist real cases + classify channels; (4) trace storage/solution; (5) open guide + ledger and accumulate; (6) write four-part cases; (7) compose the backlog-item (PBI) block at the top; (8) assign proof rungs + transparency; (9) validate.
 - **Case contract:** setup + numbered flow + discriminator + domain storage/solution + proof rung/chain. UI cases lead each story; technical cases keep full rigour in the closing appendix.
 - **Modes and boundaries:** `feature-or-scope`, `--context`, `--output`, `--lang`, `--html`, `--stories`; `--lang` emits a translated copy and `--html` follows post-approval Artifact flow; a no-front-end project names its primary demo surface; delegates gather read-only input only; secrets are redacted; deferred work is named in the header and chat summary.
 
@@ -69,16 +69,18 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 4. **Trace Domain Storage & Solution** — per case, identify persisted/changed data, owner, migration/handler, consuming rule, and `file:line` evidence.
 5. **Open the Guide + Ledger, Accumulate** — write the spine first; add one block per story group; update the ledger as each lands.
 6. **Write Each Case** — setup → numbered flow → discriminator → domain storage/solution.
-7. **Prove** — assign the proof rung and write the test-execution transparency note.
-8. **Validate** — pass the gate below before declaring done.
+7. **Compose the Backlog-Item (PBI) Block** — prepend a copy-paste-ready PBI at the very top: purpose, overall requirements, ALL acceptance criteria / user stories, authorization requirements, and a bottom-up estimate (story points + man-days) per `SYNC:estimation-framework`.
+8. **Prove** — assign the proof rung and write the test-execution transparency note.
+9. **Validate** — pass the gate below before declaring done.
 
 **Key Rules (the contract):**
 
 - **UNDERSTAND BEFORE YOU SCRIPT.** The Step 1 comprehension bar is a **[BLOCKING] gate**: until you can answer all six questions with `file:line`, you have no demo to write. — why: a demo step invented from a screen name is a demo that fails live, in front of the people it was written for.
+- **THE GUIDE OPENS WITH A COPY-PASTE-READY BACKLOG ITEM.** Before the demo guide body, the document carries a PBI block (Step 7) a developer pastes straight into the tracker: purpose/business value · overall requirements (in/out of scope) · **ALL** acceptance criteria and user stories · authorization requirements (or an explicit `None`) · estimation with **story points AND man-days** derived bottom-up per `SYNC:estimation-framework`. Its content is **sourced, never invented** — copied from the governing spec/PBI where one exists, else derived from the traced cases with the source stated. — why: the demo and the backlog record describe the same item; a developer who must re-type it by hand ends up with two different truths.
 - **Scope precedence is prompt → current context → ASK.** An explicit feature in the prompt wins; else derive from current work; else ask the user directly — NEVER invent a feature.
 - **Every case carries four parts:** setup/preconditions · numbered **step-by-step demo flow** · **expected result phrased as the discriminator** vs the old behaviour · **how the domain stores/changes data & solves the feature**. A case missing the storage/solution part is incomplete.
 - **DEMO THROUGH THE UI — the audience is a normal user / QC, not an engineer.** Every main case is staged AND observed in the product's front-end. A case whose steps or expected result need an API client, CLI, script, manual job/queue trigger, DB query, log tail, or config edit is a **🔧 technical case**: marked as such and collected in the closing `Appendix — Technical demo (non-UI)` (after the last story, before the transparency note), NEVER among the important cases to test. **Resolve the front-end rung FIRST (Step 3.1)** — a project with no front-end states `No front-end in this project — primary demo surface is {API / CLI / library / background job}`, and that surface REPLACES "front-end" throughout this rule. — why: the room believes what it watches happen in the app; a terminal-driven step proves the code to engineers and proves nothing to the stakeholders the guide was written for.
-- **PROOF IS EARNED, NEVER ASSERTED.** Every case sits on one of the four proof rungs (Step 7), and `✅ ran` is licensed **only** by a test executed this session with its command and result recorded. There is no fifth rung: a case you cannot place is a **stated blocker**.
+- **PROOF IS EARNED, NEVER ASSERTED.** Every case sits on one of the four proof rungs (Step 8), and `✅ ran` is licensed **only** by a test executed this session with its command and result recorded. There is no fifth rung: a case you cannot place is a **stated blocker**.
 - **REAL IDs ONLY — NEVER invent a test case ID.** A story with no case says *"no test covers this"* and is recorded as a coverage gap. — why: a fabricated ID retires a risk that is still live.
 - **Cite `file:line` for every storage/behaviour claim** — read the entity, the mapping, and the migration. NEVER infer persistence from a field name.
 - **A demo step is traced to a real user path, or it is a stated blocker** — NEVER an invented click, endpoint, or screen, and never state faked by a path a user could not reach.
@@ -129,7 +131,7 @@ $demo-guide [feature-or-scope] [--context] [--output path] [--lang xx] [--html] 
 
 State the resolved scope and its source in one line (e.g. `Scope: <feature> — derived from branch diff (7 changed files)`).
 
-**0.2 Load the output contract BEFORE gathering.** Read `references/demo-guide-template.md` for structure, case blocks, proof rungs, storage fields, and translation/HTML rules. **If missing**, name the absent file and use this file's inline Step 6/7 contract; still deliver the full guide, with only template elaboration unavailable.
+**0.2 Load the output contract BEFORE gathering.** Read `references/demo-guide-template.md` for structure, case blocks, proof rungs, storage fields, and translation/HTML rules. **If missing**, name the absent file and use this file's inline Step 6–8 contract; still deliver the full guide, with only template elaboration unavailable.
 
 **0.3 Size the target into a tier (count, do not estimate).** Count in-scope **files**, user-facing **capabilities/flows**, **modules/bounded contexts** (`docs/project-config.json` → modules), and changed lines when a diff exists. Use the first matching row top-down. Announce it: `Scope: S2 · Multi — 14 files, 3 capabilities → 3 story groups`.
 
@@ -240,7 +242,7 @@ For a display-only case, state **explicitly** that persistence does not change a
 
 **Create the guide file BEFORE case one** and append as you produce it. NEVER hold the whole guide in context for one final write.
 
-**Write order is fixed:** header FIRST — scope/source, sources, delegations, tier/group count, **group ledger** rows `pending`, and empty `Appendix — Technical demo (non-UI)` heading → each group (trace → write main cases → **append 🔧 technical cases to the appendix** → mark its ledger row `written` with `main / technical` split → complete task) → guide-level sections (storage summary, quick-reference table, transparency note) **from written blocks** → chat summary. NEVER hold more than the current group; read finished blocks from disk — why: the appendix is last in the document but technical cases are written per group, preventing context loss.
+**Write order is fixed:** title + a `<!-- PBI:START -->` / `<!-- PBI:END -->` placeholder marked `pending` (filled in Step 7) → header — scope/source, sources, delegations, tier/group count, **group ledger** rows `pending`, and empty `Appendix — Technical demo (non-UI)` heading → each group (trace → write main cases → **append 🔧 technical cases to the appendix** → mark its ledger row `written` with `main / technical` split → complete task) → guide-level sections (storage summary, quick-reference table, transparency note) **from written blocks** → chat summary. NEVER hold more than the current group; read finished blocks from disk — why: the appendix is last in the document but technical cases are written per group, preventing context loss.
 
 **After a cutoff, compaction, or resume:** the current task list → read the ledger → **verify every `written` row against the filesystem** — a group's cases live in **TWO** places, so check BOTH: the file exists AND carries that group's main-channel cases AND its 🔧 technical cases in the appendix; an absent or truncated block in **either** location resets the row to `pending` → re-read the contract and the Understanding Brief → continue at the first unfinished group. NEVER restart a finished group and never re-derive a written block from memory.
 
@@ -263,7 +265,41 @@ Also include: scope/source header with `{n} UI · {n} technical` split, story gr
 
 `--lang` given → emit a translated copy (prose translated; code identifiers, `file:line`, `TC-*` IDs, and numeric values kept verbatim). `--html` given → follow the Artifact flow to render a self-contained runbook **after** the markdown is approved.
 
-## Step 7 — Prove (the proof ladder)
+## Step 7 — Compose the Backlog-Item (PBI) Block (top of the guide)
+
+**Purpose:** a developer/PO copies this block straight into the backlog tool (Jira/ADO/Linear) without re-typing anything. It sits **above** the demo-guide body, immediately under the document title, fenced by `<!-- PBI:START -->` / `<!-- PBI:END -->` so it can be selected and copied in one go.
+
+**[BLOCKING] SOURCE IT, NEVER INVENT IT.** Fill every field from evidence already gathered in Steps 1–6:
+
+1. **A governing PBI / spec / story exists** (`docs/specs/**`, a PBI or story artifact, a tracker item found in Step 2) → **copy its wording** for requirements, stories, and acceptance criteria; normalize formatting only. Cite the source path in the block header.
+2. **No such artifact** → derive from the traced cases and code, and label the block `derived from code + demo cases this session — not yet reviewed by the PO`.
+3. **A field has no evidence** → write the explicit negative (`None — no authorization behaviour in this item`), NEVER a plausible filler. An invented acceptance criterion is worse than an absent one: it enters the tracker as a commitment nobody agreed to.
+
+**Mandatory fields (all present; an inapplicable one states why):**
+
+| Field | Content | Sourced from |
+| --- | --- | --- |
+| **Title + type** | One-line item title · `Feature \| Enhancement \| Bug \| Tech` | Resolved scope (Step 0.1) |
+| **Purpose / business value** | Why the item exists, for whom, and the outcome it buys — 2–4 sentences, no implementation detail | Spec/PBI, or Step 1 bar Q1 (before → after) |
+| **Overall requirements** | What the item must deliver, as a short numbered list, plus explicit **In scope** / **Out of scope** lines | Spec/PBI, Step 3 story→case map |
+| **User stories (ALL)** | Every main story in scope, `As a {role}, I want {capability} so that {value}` — the same stories the guide demos, none omitted | Step 3 map (one per story group) |
+| **Acceptance criteria (ALL)** | Every AC, numbered `AC-1…`, each in Given/When/Then, each traced to its demo case and REAL `TC-*` ID (`↔ A1 · TC-042`) | Spec ACs where they exist, else the Step 6 discriminators |
+| **Authorization requirements** | Roles/permissions required to exercise the item, tenancy or data-visibility scoping, and any audit obligation — each with `file:line` from a read guard/policy/attribute. No such behaviour → `None — no authorization behaviour in this item` | Code read in Step 4 (guards, policies, role checks) |
+| **Estimation** | `story_points` + `man_days_traditional` + `man_days_ai` and the supporting frontmatter, per `SYNC:estimation-framework` (inlined below) | Bottom-up over the traced scope |
+| **Dependencies / prerequisites** | Blocking items, migrations, configuration, or external systems — or `None` | Steps 2 and 4 |
+| **Definition of Done** | The item's DoD, including the coverage gaps this guide reports as open | Steps 3 and 8 |
+
+**Estimation — apply the shared protocol, do not improvise one.** Use `SYNC:estimation-framework` exactly as `$plan`, `$refine`, `$story` and `$dor-gate` apply it:
+
+- **Bottom-up first:** decompose the in-scope work into phases → hours → `likely_days = ceil(Σ hours / 6) × productivity_factor`; add the risk margin; emit a **min–max range** whenever `likely_days ≥ 3`.
+- **Story points are DERIVED from days, never the driver.** Disagreement > 50% → trust bottom-up and downgrade SP.
+- **Emit the full frontmatter** the protocol mandates — `story_points`, `complexity`, `man_days_traditional`, `man_days_ai`, `risk_margin_pct`, `risk_factors`, `blast_radius`, `estimate_scope_included`, `estimate_scope_excluded`, `estimate_reasoning` — inside a fenced `yaml` block so it survives the copy-paste.
+- **State the estimate's nature honestly.** A demo guide is normally written **after** the work is done, so the number is a **retrospective sizing for the backlog record**, not a forecast; say which it is in one line. When the item's own PBI already carries an estimate, **reuse that estimate verbatim** and note any delta against this bottom-up pass instead of silently replacing it — why: overwriting a groomed team estimate with a private re-derivation corrupts velocity data.
+- Estimate the **item**, not the demo. Writing this guide is never part of the number.
+
+**Write order:** the PBI block is composed **after** the cases exist (its ACs and stories are read back from the written blocks) but **prepended** to the file — open the guide's spine in Step 5 with a `<!-- PBI:START -->` / `<!-- PBI:END -->` placeholder carrying `pending`, and fill it here from disk. NEVER re-derive stories or ACs from memory.
+
+## Step 8 — Prove (the proof ladder)
 
 Every case sits on exactly one rung. State it per case AND in the quick-reference table.
 
@@ -280,7 +316,7 @@ Every case sits on exactly one rung. State it per case AND in the quick-referenc
 
 **Transparency note (mandatory, at the end of the guide):** what was proven this session (suites/cases executed + pass/fail counts), what was not and why (runner blocker, environment, no coverage), and which cases are therefore being shown live rather than via a green run. NEVER imply a run that did not happen.
 
-## Step 8 — Validate
+## Step 9 — Validate
 
 Before declaring done, verify each — evidence, not assertion:
 
@@ -292,6 +328,9 @@ Before declaring done, verify each — evidence, not assertion:
 - **MUST ATTENTION** no numbered demo step of a UI case requires a terminal, API client, DB console, log tail, or config edit — such a confirmation belongs on the case's `Deeper confirmation (optional, non-UI)` line — never on the proof chain — or the case belongs in the technical appendix.
 - **MUST ATTENTION** a story with no UI demo path says so explicitly (`no UI demo path — technical only`) — no invented screen, button, or admin page anywhere in the guide.
 - **MUST ATTENTION** every storage/behaviour claim cites `file:line` from a read entity/migration/handler — nothing inferred from a name.
+- **MUST ATTENTION** the PBI block is at the TOP of the guide, fenced by `<!-- PBI:START -->` / `<!-- PBI:END -->`, and carries every mandatory field — purpose · overall requirements with in/out of scope · ALL user stories · ALL acceptance criteria (each traced to a demo case and a REAL `TC-*` ID) · authorization requirements or an explicit `None` · estimation · dependencies · DoD.
+- **MUST ATTENTION** the PBI block names its source (governing spec/PBI path, or `derived from code + demo cases this session`), and **no requirement, story, or acceptance criterion in it is invented** — each traces to a read artifact or a traced case.
+- **MUST ATTENTION** the estimate carries BOTH `story_points` and man-days (`man_days_traditional` + `man_days_ai`), was derived **bottom-up per `SYNC:estimation-framework`** with SP derived from days, emits the mandated frontmatter fields inside a fenced `yaml` block, states whether it is a retrospective sizing or a forecast, and reuses an existing groomed estimate verbatim where one exists (noting any delta).
 - **MUST ATTENTION** every case carries a proof rung and a proof chain; `✅ ran` appears only where a command was executed and recorded.
 - **MUST ATTENTION** no secret value appears anywhere — settings, files, and account roles named; credentials rendered `<redacted:…>`.
 - **MUST ATTENTION** anything deferred, sampled, or dropped is named in the guide header AND the chat summary.
@@ -319,6 +358,8 @@ Block or file absent → degrade gracefully: default `outputDir` to the project'
 - **`$understand`** — reuse its Purpose→How→Why framing for the "how the domain solves the feature" explanation. ⚠️ **Boundary — decide by audience, not by overlap:** `$understand` §11 *Test & Demo* is **reviewer-facing** — how to run and see the change you are about to review, scoped to that change. This skill is **presenter-facing** — a standalone, stakeholder-ready script that walks a room through a whole feature. The per-case block is deliberately the same shape in both so they converge instead of drifting; showing finished work to people → here, preparing to review it → `$understand`.
 - **`$investigate`** / **`$debug-investigate`** / **`$graph-trace`** — the Step 1 gate's read-only gather delegates. Their output is INPUT, re-verified at `file:line`; they never author a case block.
 - **`$spec`** — the canonical source of user stories + `TC-*` IDs when the project maintains feature specs. **A business `TC-*` and a demo case are the SAME event for two audiences** — the spec states it as intent, this guide stages it for a room. So they converge by construction: reuse the TC's demo flow and expected result rather than re-deriving them, and **cite the `TC-*` ID per case** so the two cannot drift apart. ⚠️ **A `TC-*` you cannot stage as a live demo on any surface is a finding, not a formatting problem** — it means a non-demoable (technical) case reached the business spec, which violates **M7**. Report it; do NOT invent a demo to cover for it. ⚠️ **Business-visible ≠ UI-demoable — do not conflate the two gates:** a genuinely business-visible outcome reachable only through a non-UI surface (API, CLI, or the business state a job produces — NEVER the job firing itself, which still fails M7's invocation-`When` rule) passes M7 and is still a 🔧 **technical case here** — appendix, not M7 finding. Only a case with no observable business outcome at all is the M7 violation.
+- **`$refine`** / **`$story`** / **`$dor-gate`** — the owners of the PBI artifact itself. The Step 7 block is a **backlog-ready summary of an item this guide demos**, sized with the SAME `SYNC:estimation-framework` protocol so the two cannot drift; when one of those skills has already produced the PBI, **copy it** rather than re-author it, and never overwrite its groomed estimate.
+- **`$plan`** — the canonical consumer of `SYNC:estimation-framework`; if a plan for this item exists, reuse its bottom-up phase hours as the estimate's input instead of re-deriving them.
 - **`$release-notes`** / **`$changelog`** — sibling generators; `demo-guide` is presenter-facing (how to show it), they are change-facing (what changed).
 - **`$commit`** — commit the generated guide when the user wants it version-controlled.
 
@@ -326,7 +367,7 @@ Block or file absent → degrade gracefully: default `outputDir` to the project'
 
 > **[IMPORTANT]** Use task tracking to break ALL work into small tasks BEFORE starting — one per story group (understand → trace → write) so a long feature can't overflow context. Persist the Understanding Brief and the story→case map early; NEVER hold them only in memory.
 
-**IMPORTANT MANDATORY Steps:** resolve-scope-load-contract-size-and-task-first -> understand-the-feature-blocking-gate-six-question-bar -> gather-five-inventories-with-ladders -> map-stories-to-real-case-ids-and-classify-ui-vs-technical-channel -> trace-domain-storage-and-solution -> open-guide-and-ledger-accumulate-story-by-story -> write-each-case-four-parts -> place-every-case-on-the-proof-ladder -> validate
+**IMPORTANT MANDATORY Steps:** resolve-scope-load-contract-size-and-task-first -> understand-the-feature-blocking-gate-six-question-bar -> gather-five-inventories-with-ladders -> map-stories-to-real-case-ids-and-classify-ui-vs-technical-channel -> trace-domain-storage-and-solution -> open-guide-and-ledger-accumulate-story-by-story -> write-each-case-four-parts -> compose-the-backlog-item-pbi-block-at-the-top -> place-every-case-on-the-proof-ladder -> validate
 
 **Be skeptical. Apply critical thinking, sequential thinking. Every claim needs traced proof, confidence >80% to act.**
 
@@ -440,6 +481,170 @@ Block or file absent → degrade gracefully: default `outputDir` to the project'
 
 <!-- /SYNC:ai-mistake-prevention -->
 
+<!-- SYNC:estimation-framework -->
+
+> **Estimation Framework** — Bottom-up first; SP DERIVED; output min-max range when likely ≥3d. Stack-agnostic. Baseline: 3-5yr dev, 6 productive hrs/day. AI estimate assumes Claude Code + project context.
+>
+> **Method:**
+>
+> 1. **Blast Radius pass** (below) — drives code AND test cost
+> 2. Decompose phases → hours/phase → `bottom_up_hours = Σ phase_hours`
+> 3. `likely_days = ceil(bottom_up_hours / 6) × productivity_factor`
+> 4. Sum **Risk Margin** (base + add-ons) → `max_days = likely_days × (1 + margin)`
+> 5. `min_days = likely_days × 0.9`
+> 6. Output as range when `likely_days ≥3`; single point allowed `<3` (still record margin)
+> 7. `man_days_ai` = same range × AI speedup
+> 8. `story_points` DERIVED from `likely_days` via SP-Days — NEVER driver. Disagreement >50% → trust bottom-up
+>
+> **Productivity factor:** 0.8 strong scaffolding+codegen+AI hooks · 1.0 mature default · 1.2 weak patterns · 1.5 greenfield
+>
+> **Cost Driver Heuristic (apply BEFORE work-type row):**
+>
+> - **UI dominates** in CRUD/business apps — 1.5-3x backend (states, validation, responsive, a11y, polish)
+> - **Backend dominates ONLY:** multi-aggregate invariants, cross-service contracts, schema migrations, heavy query/perf, new event flows
+>
+> **Reuse-vs-Create axis (PRIMARY lever, per layer):**
+>
+> | UI tier                                      | Cost     |
+> | -------------------------------------------- | -------- |
+> | Reuse component on existing screen           | 0.1-0.3d |
+> | Add control/column to existing screen        | 0.3-0.8d |
+> | Compose components into NEW screen           | 1-2d     |
+> | NEW screen, custom layout/states/validation  | 2-4d     |
+> | NEW shared/common component (themed, tested) | 3-6d+    |
+>
+> | Backend tier                                         | Cost      |
+> | ---------------------------------------------------- | --------- |
+> | Reuse query/handler from new place                   | 0.1-0.3d  |
+> | Small update existing handler/entity                 | 0.3-0.8d  |
+> | NEW query on existing repo/model                     | 0.5-1d    |
+> | NEW command/handler on existing aggregate (additive) | 1-2d      |
+> | NEW aggregate/entity (repo, validation, events)      | 2-4d      |
+> | NEW cross-service contract OR schema migration       | 2-4d each |
+> | Multi-aggregate invariant / heavy domain rule        | 3-5d      |
+>
+> **Rule:** Sum tiers across UI+backend+tests, apply productivity factor. Reuse short-circuits tiers — call out.
+>
+> **Test-Scope drivers (compute test_count EXPLICITLY — "+tests" hand-wave is #1 failure):**
+>
+> | Driver                            | Count                                                  |
+> | --------------------------------- | ------------------------------------------------------ |
+> | Happy-path journeys               | 1 per story / AC main flow                             |
+> | State-machine transitions         | reachable transitions × allowed actors                 |
+> | Multi-entity state combos         | state(A) × state(B) — REACHABLE only, not Cartesian    |
+> | Authorization matrix              | (owner, non-owner, elevated, unauth) × each mutation   |
+> | Validation rules                  | 1 per required field / boundary / format / cross-field |
+> | UI states (per new screen/dialog) | happy, loading, empty, error, partial — present only   |
+> | Negative paths / invariants       | 1 per violatable business rule                         |
+>
+> | Test tier (Trad, incl. setup+assert+flake) | Cost     |
+> | ------------------------------------------ | -------- |
+> | 1-5 cases, fixtures reused                 | 0.3-0.5d |
+> | 6-12 cases, 1 new fixture                  | 0.5-1d   |
+> | 13-25 cases, multi-entity setup            | 1-2d     |
+> | 26-50 cases OR new state-machine coverage  | 2-3d     |
+> | >50 cases OR full E2E journey              | 3-5d     |
+>
+> **Test multipliers:** new fixture/seed harness +0.5d · cross-service/bus assertion +0.3d each · UI E2E ×1.5 · each new role +1-2 cases
+>
+> **Blast Radius (mandatory pre-pass — affects code AND test):**
+>
+> 1. Files/components directly modified — count
+> 2. Of those, "complex" (>500 LOC, multi-handler, central, frequently-modified) — count
+> 3. Downstream consumers (callers, event subscribers, cross-service) — list
+> 4. Shared/common code touched (multi-app blast) — yes/no
+> 5. Regression scope — areas needing re-test
+>
+> **Rule:** Complex touch → add `risk_factors`. Each downstream consumer → +1-3 regression cases. Blast >5 areas OR >2 complex → re-evaluate SPLIT before estimating.
+>
+> **Risk Margin (drives max bound):**
+>
+> | likely_days         | Base margin                     |
+> | ------------------- | ------------------------------- |
+> | <1d trivial         | +10%                            |
+> | 1-2d small additive | +20%                            |
+> | 3-4d real feature   | +35%                            |
+> | 5-7d large          | +50%                            |
+> | 8-10d very large    | +75%                            |
+> | >10d                | +100% AND **flag SHOULD SPLIT** |
+>
+> **Risk-factor add-ons (additive — enumerate in `risk_factors`):**
+>
+> | Factor                                                                | +margin |
+> | --------------------------------------------------------------------- | ------- |
+> | `touches-complex-existing-feature` (>500 LOC, multi-handler, central) | +20%    |
+> | `cross-service-contract` change                                       | +25%    |
+> | `schema-migration-on-populated-data`                                  | +25%    |
+> | `new-tech-or-unfamiliar-pattern`                                      | +30%    |
+> | `regression-fan-out` (≥3 downstream areas re-test)                    | +20%    |
+> | `performance-or-latency-critical`                                     | +20%    |
+> | `concurrency-race-event-ordering`                                     | +25%    |
+> | `shared-common-code` (multi-consumer/multi-app)                       | +25%    |
+> | `unclear-requirements-or-design`                                      | +30%    |
+>
+> **Collapse rule:** total margin >100% → STOP, split (padding past 2x is dishonesty). Margin <15% on `likely_days ≥5` → under-estimated, widen.
+>
+> **Work-Type Caps (hard ceilings on `likely_days`):**
+> | Work type | Max SP | Max likely |
+> | --- | --- | --- |
+> | Single field / config flag / style fix | 1 | 0.5d |
+> | Add property to existing model + bind to existing UI | 2 | 1d |
+> | **Additive endpoint + minor UI control** (button/menu/column), reuses fixtures | **3** | **2-3d** |
+> | Additive endpoint + **NEW UI surface** OR additive multi-layer + new domain rule + 2+ test files | 5 | 3-5d |
+> | NEW model/aggregate OR migration OR cross-module contract OR heavy test (>1.5d) OR NEW UI + non-trivial backend | 8 | 5-7d |
+> | NEW UI surface + (NEW aggregate OR migration OR cross-service contract) | 13 | SHOULD split |
+> | Cross-service contract + migration combined | 13 | SHOULD split |
+> | Beyond | 21 | MUST split |
+>
+> **SP→Days (validation only):** 1=0.5d/0.25d · 2=1d/0.35d · 3=2d/0.65d · 5=4d/1.0d · 8=6d/1.5d · 13=10d/2.0d (Trad/AI likely)
+> **AI speedup:** SP 1≈2x · 2-3≈3x · 5-8≈4x · 13+≈5x. AI cost = `(code_gen × 1.3) + (test_gen × 1.3)` (30% review overhead).
+>
+> **MANDATORY frontmatter:**
+>
+> ```yaml
+> story_points: <n>
+> complexity: low | medium | high | critical
+> man_days_traditional: '<min>-<max>d' # range when likely ≥3d; '<N>d' when <3d
+> man_days_ai: '<min>-<max>d'
+> risk_margin_pct: <n> # base + add-ons
+> risk_factors: [touches-complex-existing-feature, regression-fan-out] # closed-list from add-ons; [] if none
+> blast_radius:
+>     touched_areas: <n>
+>     complex_touched: <n>
+>     downstream_consumers: [list or count]
+>     shared_common_code: yes | no
+> estimate_scope_included: [code, integration-tests, frontend, i18n, docs]
+> estimate_scope_excluded: [unit-tests, e2e, perf, deployment, code-review-rounds]
+> estimate_reasoning: |
+>     5-7 lines covering:
+>     (a) UI tier — row applied
+>     (b) Backend tier — row applied
+>     (c) Test scope — case breakdown by driver, file count, fixtures, tier row
+>     (d) Cost driver — dominant tier + why
+>     (e) Blast radius — touched, complex, regression scope
+>     (f) Risk factors — list driving margin; why not larger/smaller
+>     Example: "UI: compose Form/Table/Dialog → NEW screen (~1.5d). Backend: NEW command on existing aggregate,
+>     reuses validation+repo (~1d). Tests: 4 transitions × 2 actors + 3 validation + 2 UI states = 13 cases,
+>     1 new fixture → tier 13-25 ~1.5d. Driver: UI composition + new states. Blast: 4 areas, 1 complex.
+>     Risk: base 35% + touches-complex +20% = 55% → max 3.9d → range 2.5-4d."
+> ```
+>
+> **Sanity self-check:**
+>
+> - `likely_days ≥3d` and single-point? → reject, must be range
+> - Margin <15% on `likely_days ≥5d`? → under-estimated, widen
+> - Margin >100%? → STOP, split instead of buffer
+> - Complex existing feature touched, no regression budget in `(c)`? → reject
+> - Blast `>5` areas OR `>2` complex, no split discussion? → reject
+> - Purely additive on existing model AND existing UI? → cap SP 3 unless tests >1.5d
+> - NEW UI surface (page/complex form/dashboard)? → SP 5+ even if backend one endpoint
+> - Backend cross-service / migration / multi-aggregate? → SP 8+ regardless of UI
+> - `bottom_up_hours / 6` vs SP-Days disagreement >50%? → trust bottom-up, downgrade SP
+> - Without tests, SP drops ≥1 bucket? → tests dominate; state explicitly
+> - Reasoning called out UI vs backend vs blast vs risk factors? → if missing, add
+
+<!-- /SYNC:estimation-framework -->
+
 <!-- SYNC:critical-thinking-mindset:reminder -->
 
 **MUST ATTENTION** apply critical + sequential thinking — every claim needs appropriate traced evidence (`file:line` for repo/code claims; source URL or artifact section for research, product, content, and docs claims); confidence >80% to act, <60% DO NOT recommend. Anti-hallucination: never present guess as fact, admit uncertainty freely, cross-reference independently, stay skeptical of own confidence.
@@ -473,6 +678,11 @@ Block or file absent → degrade gracefully: default `outputDir` to the project'
 **IMPORTANT MUST ATTENTION** follow output quality principles: token efficiency, lead with answer, no filler.
 
 <!-- /SYNC:output-quality-principles:reminder -->
+
+<!-- SYNC:estimation-framework:reminder -->
+
+- **MANDATORY MUST ATTENTION** estimation: bottom-up phase hours drive `man_days_traditional` (`Σh/6 × productivity_factor`); SP DERIVED. UI cost usually dominates — bump SP one bucket if NEW UI surface (page/complex form/dashboard). Frontmatter MUST include `story_points`, `complexity`, `man_days_traditional`, `man_days_ai`, `estimate_scope_included`, `estimate_scope_excluded`, `estimate_reasoning` (UI vs backend cost driver). Cap SP 3 for additive-on-existing-model+existing-UI unless test scope >1.5d. SP 13 SHOULD split, SP 21 MUST split.
+<!-- /SYNC:estimation-framework:reminder -->
 
 <!-- SYNC:parallel-subagent-dispatch -->
 
@@ -522,10 +732,11 @@ Block or file absent → degrade gracefully: default `outputDir` to the project'
 - **Graph-Assisted Investigation:** run a graph command on key files when `graph.db` exists — grep → trace → grep verify.
 - **Incremental Persistence:** create the guide file BEFORE case one; append per case and per story group; NEVER hold results in memory.
 - **Output Quality:** token efficiency, lead with the answer, no filler.
+- **Estimation Framework:** bottom-up hours drive man-days; story points DERIVED, never the driver; emit the full estimate frontmatter.
 - **Critical Thinking:** traced proof per claim, confidence >80% to act, NEVER guess.
 - **AI Mistake Prevention:** verify against evidence, re-read after context loss, surface ambiguity.
 
-- **MUST ATTENTION** run the main steps in order, none skipped: (0) Resolve scope + load contract + size + task → (1) **UNDERSTAND the feature [BLOCKING gate]** → (2) Gather five inventories → (3) Map stories → REAL case IDs → (4) Trace domain storage/solution → (5) Open guide + ledger and accumulate → (6) Write each case's four parts → (7) Place every case on the proof ladder → (8) Validate.
+- **MUST ATTENTION** run the main steps in order, none skipped: (0) Resolve scope + load contract + size + task → (1) **UNDERSTAND the feature [BLOCKING gate]** → (2) Gather five inventories → (3) Map stories → REAL case IDs → (4) Trace domain storage/solution → (5) Open guide + ledger and accumulate → (6) Write each case's four parts → (7) Compose the backlog-item (PBI) block at the top → (8) Place every case on the proof ladder → (9) Validate.
 - **MUST ATTENTION** Step 1 is a **[BLOCKING] gate, not a preamble** — until all six comprehension questions are answered with `file:line` per story group, NO demo step, expected result, or storage claim may be written. Unanswerable question → keep investigating, delegate, or **state it as a blocker**; NEVER paper over it with a plausible step.
 - **MUST ATTENTION** scope precedence is **prompt → current context → ASK** — NEVER silently invent the feature.
 - **MUST ATTENTION** DELEGATE the GATHERING to read-only skills (`$investigate`, `$debug-investigate`, `$graph-trace`, `$spec-index`) when read + grep + trace cannot clear the bar — NEVER to a mutating or findings-emitting skill, never let a delegate author a case block, and re-verify every delegated claim at `file:line` first. At S3+ delegation runs inside the group's sub-agent, not the orchestrator.
@@ -536,6 +747,8 @@ Block or file absent → degrade gracefully: default `outputDir` to the project'
 - **MUST ATTENTION** any case whose step or expected result needs a non-UI surface (API/HTTP client, CLI, script, manual job/queue trigger, DB query, log or file inspection, config edit) is a 🔧 **technical case**: it keeps the full four-part block and its proof rung but moves to the closing `Appendix — Technical demo (non-UI)`, and is NEVER an important case to test, never opens a story, never heads the quick-reference table, and never forms a story group. A hybrid (UI demo + optional DB/log confirmation) stays a UI case — the confirmation goes on its own `Deeper confirmation (optional, non-UI)` line, never on the proof chain and never in a numbered step. A story with NO UI path says `no UI demo path — technical only`; NEVER invent a screen to cover for it — **silent under the no-front-end rung**, where that finding fires only when a case is not demoable on the primary surface either.
 - **MUST ATTENTION** every case — UI and 🔧 technical alike — = setup/preconditions + numbered **step-by-step demo flow** + **expected result phrased as the discriminator** + **how the domain stores/changes data & solves the feature**. A case missing the storage/solution part is incomplete; a display-only case states *"no storage change"* and describes the computed representation.
 - **MUST ATTENTION** PROOF IS EARNED: every case sits on one of four rungs — `✅ ran` (executed THIS session, command + result recorded) · `⚠️ trace-verified` · `📄 spec-only` · `❌ no coverage` — plus a proof chain (written → read → seen, `file:line` each). **There is no fifth rung**; an unplaceable case is a stated blocker. NEVER imply a green run that did not happen.
+- **MUST ATTENTION** the guide OPENS with the copy-paste-ready **PBI block** (`<!-- PBI:START -->` … `<!-- PBI:END -->`, above the demo body): purpose/business value · overall requirements with in/out of scope · **ALL** user stories · **ALL** acceptance criteria in Given/When/Then, each traced to its demo case and REAL `TC-*` ID · authorization requirements with `file:line` or an explicit `None` · estimation · dependencies · DoD. Every field is COPIED from the governing spec/PBI where one exists and otherwise derived from traced cases with the source stated — **NEVER invented**.
+- **MUST ATTENTION** the PBI estimate applies `SYNC:estimation-framework` and nothing else: bottom-up hours → `likely_days` → risk margin → min–max range when `likely_days ≥ 3`, with **story points DERIVED from days** and the mandated frontmatter (`story_points`, `complexity`, `man_days_traditional`, `man_days_ai`, `risk_margin_pct`, `risk_factors`, `blast_radius`, `estimate_scope_*`, `estimate_reasoning`) emitted in a fenced `yaml` block. State whether it is a retrospective sizing or a forecast; an existing groomed estimate is reused verbatim with any delta noted, NEVER silently replaced. Never size the writing of the guide.
 - **MUST ATTENTION** use the project's REAL user stories and `TC-*` / test IDs — **NEVER invent a case number**. No coverage → say so; an admitted gap is a finding, a fabricated ID retires a live risk.
 - **MUST ATTENTION** stage every precondition through a REAL user path and trace every demo step to real code — an untraceable step is a **stated blocker**, never an invented click, endpoint, or faked state.
 - **MUST ATTENTION** cite `file:line` for every storage/behaviour claim from a read entity/mapping/migration/handler — NEVER infer persistence from a field name.
@@ -563,13 +776,17 @@ Block or file absent → degrade gracefully: default `outputDir` to the project'
 | "I'll investigate everything first, then write the guide"   | Never. Header + ledger before case one, a block per group, ledger updated as each lands. Investigation held in context is one cutoff from gone. |
 | "The sub-agent reported it wrote the block"                 | Verify the FILE. A summary is evidence of a reply, never of a block — check it exists, carries its cases, and cites REAL IDs.                |
 | "I'll call $changes-review to gather faster"                | Delegates are READ-ONLY and gather-only. This skill emits a script, not findings — never delegate to a mutating or verdict-issuing skill.    |
+| "No PBI exists, so I'll write reasonable acceptance criteria"  | NEVER invent an AC — it enters the tracker as a commitment nobody agreed to. Derive from the traced cases and LABEL the block as derived, or write the explicit gap. |
+| "I'll ballpark the story points — it's just a backlog note"    | SP is DERIVED from bottom-up hours, never guessed. Run `SYNC:estimation-framework`: hours → days → margin → range → SP. |
+| "The PBI already has an estimate but mine is better"           | Reuse the groomed estimate verbatim and note the delta. Overwriting a team estimate with a private re-derivation corrupts velocity data. |
+| "Authorization? I'll write 'admin only' — it's probably right"  | Cite the guard/policy at `file:line` or write `None — no authorization behaviour in this item`. A guessed permission ships as a requirement. |
 | "The demo needs the admin password to be runnable"          | Name the role and the setting; render the value `<redacted:…>`. A guide is shared — a credential in it is a leak.                            |
 | "Most stories are covered — close enough"                   | Name every deferred story in the header AND the chat summary. Bounded coverage that reads as complete is how a presenter gets ambushed.      |
 
 **[TASK-PLANNING]** Before acting, analyze task scope and systematically break it into small todo tasks and sub-tasks using task tracking.
 
 **IMPORTANT MUST ATTENTION Goal:** Investigate an in-scope feature end-to-end, then produce a stakeholder-ready, proof-carrying demo guide with real stories/IDs, runnable user flows, domain storage/solution, and honest proof levels — UI-first, with technical cases in the closing appendix — so presenters can show behaviour, explain its data, and never claim unearned proof.
-**IMPORTANT MUST ATTENTION** Main order: resolve scope → load contract → size/decompose → task → clear six-question gate + write Understanding Brief → gather five inventories → map/persist real cases + channels → trace storage/solution → open guide + ledger and accumulate → write four-part cases → assign proof rungs + transparency → validate. Preserve the [BLOCKING] understanding and UI-first channel gates.
+**IMPORTANT MUST ATTENTION** Main order: resolve scope → load contract → size/decompose → task → clear six-question gate + write Understanding Brief → gather five inventories → map/persist real cases + channels → trace storage/solution → open guide + ledger and accumulate → write four-part cases → compose the backlog-item (PBI) block at the top (sourced content; estimate per `SYNC:estimation-framework`) → assign proof rungs + transparency → validate. Preserve the [BLOCKING] understanding and UI-first channel gates.
 **IMPORTANT MUST ATTENTION** Modes/flags: `feature-or-scope`, `--context`, `--output`, `--lang`, `--html`, `--stories`; `--lang` translates, `--html` follows the post-approval Artifact flow, and no-front-end projects state a primary demo surface.
 **IMPORTANT MUST ATTENTION** Preserve real IDs, `file:line` evidence, earned proof, read-only gathering, redacted secrets, UI-first placement, full technical appendix cases, and named blockers; NEVER invent paths, states, or evidence.
 

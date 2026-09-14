@@ -62,7 +62,7 @@ Read the first 512 bytes of each file. If it contains `<!-- Fill in your project
 
 Use `AskUserQuestion` to present:
 
-1. **"Run /claude-md-init + all configured scan skills" (Recommended for first-time init)** -- Generates CLAUDE.md from config, then runs scan skills for configured docs
+1. **"Run /ai-context-refresh + all configured scan skills" (Recommended for first-time init)** -- Generates root AI context from config, then runs scan skills for configured docs
 2. **"Run configured scan skills only"** -- Runs scan skills without CLAUDE.md generation
 3. **"Select specific skills"** -- Let user choose which ones to run
 4. **"Skip -- docs are already populated"** -- Exit if all docs have content

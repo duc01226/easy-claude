@@ -81,7 +81,7 @@ test('session recovery documentation and ignore rules match the OS-temp state ow
 test('disposable generated-artifact policy reaches Claude and Codex source/mirror surfaces (TC-PROMPT-008)', async () => {
     const [shared, template, claude, agents, context] = await Promise.all([
         read('.claude/skills/shared/sync-inline-versions.md'),
-        read('.claude/skills/claude-md-init/references/claude-md-template.md'),
+        read('.claude/skills/ai-context-refresh/references/claude-md-template.md'),
         read('CLAUDE.md'),
         read('AGENTS.md'),
         read('.codex/CODEX_CONTEXT.md'),

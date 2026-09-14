@@ -13,25 +13,33 @@ function runnerStageIds(source) {
     return [...source.matchAll(/\bid:\s*["']([\w-]+)["']/g)].map(match => match[1]);
 }
 
-test('TC-PIPE-WIRE-001: freshness and registry gates follow tooling tests in the 18-stage runner', () => {
+test('TC-PIPE-WIRE-001: CLAUDE preflight precedes freshness and registry gates in the 19-stage runner', () => {
+    // Given the runner source defines the canonical sync stage roster.
     const runner = read('.claude/skills/sync-codex/scripts/run-codex-sync.mjs');
     const ids = runnerStageIds(runner);
 
-    assert.equal(ids.length, 18, `source docs and runner contract require 18 stages, got ${ids.length}`);
-    assert.deepEqual(ids.slice(3, 7), ['tests', 'scripts-tests', 'tech-spec-freshness', 'feature-registry']);
+    // When the roster order is inspected.
+    assert.equal(ids.length, 19, `source docs and runner contract require 19 stages, got ${ids.length}`);
+    assert.deepEqual(ids.slice(0, 5), ['claude-md', 'migrate', 'hooks', 'context', 'tests']);
+    assert.deepEqual(ids.slice(4, 8), ['tests', 'scripts-tests', 'tech-spec-freshness', 'feature-registry']);
     assert.match(runner, /generate-tech-specs\.mjs[\s\S]*id:\s*["']tech-spec-freshness["'][\s\S]*["']--check["']/);
     assert.match(runner, /id:\s*["']feature-registry["'][^\n]*verify-feature-registry\.mjs/);
+    // Then CLAUDE.md reconciliation is before mirror generation and the later release gates.
 });
 
 test('TC-PIPE-WIRE-002: source skill docs expose the read-only commands and the complete stage roster', () => {
+    // Given the source skill documentation is the human-readable pipeline contract.
     const techSpec = read('.claude/skills/tech-spec/SKILL.md');
     const syncCodex = read('.claude/skills/sync-codex/SKILL.md');
 
+    // When the documented commands and stage table are inspected.
     assert.match(techSpec, /npm run tech-spec:check/);
     assert.match(techSpec, /generate-tech-specs\.mjs --check/);
-    assert.match(syncCodex, /18 stages, sequential/);
-    assert.match(syncCodex, /\| 6\s+\| tech-spec-freshness/);
-    assert.match(syncCodex, /\| 7\s+\| feature-registry/);
+    assert.match(syncCodex, /19 stages, sequential/);
+    assert.match(syncCodex, /\| 1\s+\| claude-md/);
+    assert.match(syncCodex, /\| 7\s+\| tech-spec-freshness/);
+    assert.match(syncCodex, /\| 8\s+\| feature-registry/);
+    // Then the docs describe the same 19-stage order as the executable runner.
 });
 
 test('TC-PIPE-WIRE-003: framework npm surface names both gates and includes them in verify:all', () => {

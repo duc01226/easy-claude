@@ -6,10 +6,22 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const vm = require('node:vm');
 const { SCHEMA, validateConfig } = require('../../hooks/lib/project-config-schema.cjs');
+const { getConfiguredProjectConfigPath } = require('../../hooks/lib/project-config-loader.cjs');
 const { SKELETON } = require('../../hooks/lib/session-init-helpers.cjs');
 
 const repoRoot = path.resolve(__dirname, '..', '..', '..');
-const realConfig = JSON.parse(fs.readFileSync(path.join(repoRoot, 'docs/project-config.json'), 'utf8'));
+function loadRealConfig() {
+    try {
+        return JSON.parse(fs.readFileSync(getConfiguredProjectConfigPath(), 'utf8'));
+    } catch (error) {
+        // `.claude` is deliberately exportable before project-init creates a config file. Keep
+        // malformed or unreadable present files fail-closed; only an absent optional file uses the
+        // runtime-owned defaults that this suite already validates below.
+        if (error?.code === 'ENOENT') return SKELETON;
+        throw error;
+    }
+}
+const realConfig = loadRealConfig();
 
 test('TC-EXP-CONFIG-001: the optional experienceVerification contract is declared and real config validates', () => {
     assert.equal(SCHEMA.experienceVerification.type, 'object');
@@ -17,8 +29,14 @@ test('TC-EXP-CONFIG-001: the optional experienceVerification contract is declare
     assert.equal(validateConfig(SKELETON).valid, true);
 });
 
-test('TC-EXP-CONFIG-001a: disposable experience evidence defaults to a project-root temp directory', () => {
-    assert.equal(realConfig.experienceVerification.evidenceRoot, 'tmp/experience');
+test('TC-EXP-CONFIG-001a: optional experience verification defaults to a project-root temp directory', () => {
+    // Given: raw project configuration may omit the optional block and the runtime skeleton owns defaults.
+    // When: inspect the configured raw value when present and the generated skeleton.
+    // Then: disposable evidence remains rooted at the project temp directory without a missing-property throw.
+    // The raw project config may omit this optional block; runtime defaults live in the skeleton.
+    if (realConfig.experienceVerification) {
+        assert.equal(realConfig.experienceVerification.evidenceRoot, 'tmp/experience');
+    }
     assert.equal(SKELETON.experienceVerification.evidenceRoot, 'tmp/experience');
     const description = require('../../hooks/lib/project-config-schema.cjs').describeSchema();
     assert.match(description, /project-root tmp\/ or temp\//);

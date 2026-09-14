@@ -55,6 +55,26 @@ For full canonical detail, read `CLAUDE.md` and `.codex/CODEX_CONTEXT.md` direct
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 # easy-claude - Code Instructions
 
 <!-- SECTION:tldr -->
@@ -155,7 +175,7 @@ For full canonical detail, read `CLAUDE.md` and `.codex/CODEX_CONTEXT.md` direct
 
 ## Workflow Step Advancement & Parallel Phases
 
-<!-- Universal portable rule shipped by claude-md-init into every project — model-driven workflow progression, identical across Claude, Codex (AGENTS.md whole-file mirror), and Copilot (baked common-protocol), none of which depend on a hook. The runtime workflow-protocol injector and any step-tracker hook are accelerators only. -->
+<!-- Universal portable rule shipped by ai-context-refresh into every project — model-driven workflow progression, identical across Claude, Codex (AGENTS.md whole-file mirror), and Copilot (baked common-protocol), none of which depend on a hook. The runtime workflow-protocol injector and any step-tracker hook are accelerators only. -->
 
 Workflow progression is **model-driven** — your responsibility, not a tool/hook/harness signal:
 
@@ -464,7 +484,7 @@ Apply the shared AI-SDD contract from `shared/sdd-artifact-contract.md` and `SYN
 
 This compact pointer is auto-generated from `.codex/CODEX_CONTEXT.md` by `npm run codex:sync:context`.
 Read `.codex/CODEX_CONTEXT.md` before any non-trivial workflow or skill; it carries the full static catalog and protocol detail.
-Context fingerprint (SHA-256): 6e9e3a52df227579f630a6f3a744ade816d46698d2901baeac0180be77828924
+Context fingerprint (SHA-256): 4d27af8a91852e17310177cb5de4285839d18994662e7b177f984a7e0311973b
 Do not edit this pointer manually; update canonical Claude sources and re-sync.
 
 ## Codex Project Reference Gate (Hook-Independent)
@@ -475,7 +495,7 @@ Codex uses static project-reference loading instead of runtime-injected project 
 - Read `docs/project-reference/docs-index-reference.md` to route to the right project-reference files.
 - Read `docs/project-reference/lessons.md` for always-on project guardrails.
 - For spec, test-case, `docs/specs/`, behavior-change, or public-contract work, read the spec routing set named by the docs index: `feature-spec-reference.md`, `spec-system-reference.md`, `spec-principles.md`, and `workflow-spec-test-code-cycle-reference.md` when specs/tests/code must stay synchronized.
-- If `docs/project-config.json`, the docs index, `lessons.md`, `CLAUDE.md`, `AGENTS.md`, or any task-required reference doc is missing or stale, auto-run `$project-init` or the narrow setup route (`$project-config`, `$docs-init`, `$scan-all`, `$scan --target=<key>`, `$claude-md-init`) before ordinary project-specific work. If Codex mirrors or `AGENTS.md` are missing/stale, ask the user to run `$sync-codex`; do not auto-run it.
+- If `docs/project-config.json`, the docs index, `lessons.md`, `CLAUDE.md`, `AGENTS.md`, or any task-required reference doc is missing or stale, auto-run `$project-init` or the narrow setup route (`$project-config`, `$docs-init`, `$scan-all`, `$scan --target=<key>`, `$ai-context-refresh`) before ordinary project-specific work. A full `$sync-codex` run preflights `CLAUDE.md`; a completed `$ai-context-refresh` run may invoke the standalone runner with `--skip=claude-md` after final source edits. Markerless roots need AI smart-merge unless `portability.requireUniversalGuides: false` is explicit.
 - For situation-specific work, open the referenced project doc directly; do not rely on prior conversation text as proof that the doc is loaded.
 - Load context just in time: classify the target and operation, open only the matching reference docs immediately before the first target read/grep/edit/test, and after compaction, resume, delegation, or a context change re-read them and restate `Reference docs read: ... | Not applicable: ...`.
 

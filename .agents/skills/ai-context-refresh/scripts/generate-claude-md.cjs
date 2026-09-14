@@ -100,7 +100,7 @@ function loadWorkflowSkillsCatalog() {
             // A malformed/incomplete copied registry must not stamp a false
             // catalog. The pointer still directs the model to the required
             // canonical files and the builder/verifier reports the detail loss.
-            process.stderr.write(`[claude-md-init] workflow catalog unavailable: ${error.message}\n`);
+            process.stderr.write(`[ai-context-refresh] workflow catalog unavailable: ${error.message}\n`);
         }
     }
     return '<!-- CK:WORKFLOW-SKILLS -->\n' +
@@ -554,7 +554,7 @@ function updateMarkedSections(existing, sections, onWarn = msg => console.warn(m
                             `the builder does not reproduce:\n` +
                             dropped.map(l => `    - ${l}`).join('\n') +
                             `\n  If intentional, ignore. Otherwise move the content into docs/project-config.json ` +
-                            `(config-sourced) or the claude-md template static prose so regeneration preserves it.`
+                            `(config-sourced) or the AI-context template static prose so regeneration preserves it.`
                     );
                 }
             }
@@ -606,6 +606,82 @@ function backfillGeneratedE2eSection(content, sections) {
         return `${content.slice(0, firstHeading).replace(/\s+$/, '')}\n\n${block}\n\n${content.slice(firstHeading)}`;
     }
     return `${content.replace(/\s+$/, '')}\n\n${block}\n`;
+}
+
+/**
+ * Render the exact marker-managed update without writing it. The sync runner uses this
+ * function through `--check` to decide whether CLAUDE.md needs an update before it writes
+ * any Codex mirror. Keeping the check and update paths on one renderer prevents a dry-run
+ * from approving bytes that the real update would not produce.
+ *
+ * @param {string} existing
+ * @param {Record<string, string>} sections
+ * @param {{ report?: boolean }} options
+ * @returns {string}
+ */
+function buildUpdateOutput(existing, sections, { report = true } = {}) {
+    let output = updateMarkedSections(existing, sections, report ? undefined : () => {});
+
+    const withE2e = backfillGeneratedE2eSection(output, sections);
+    if (withE2e !== output) {
+        output = withE2e;
+        if (report) console.log('[OK] Back-filled generated E2E section from project configuration');
+    }
+
+    // Marker-managed files only: markerless roots are project-owned and require an AI
+    // smart-merge so the preflight cannot overwrite custom instructions accidentally.
+    if (hasMarkers(existing) && fs.existsSync(TEMPLATE_PATH)) {
+        const merged = backfillPortableGuides(output, fs.readFileSync(TEMPLATE_PATH, 'utf-8'));
+        if (merged !== output) {
+            output = merged;
+            if (report) console.log('[OK] Back-filled missing universal-guide section(s) from template');
+        }
+    }
+
+    return stampFooter(stampHeader(output));
+}
+
+function universalGuidesRequired(config) {
+    return config?.portability?.requireUniversalGuides !== false;
+}
+
+/**
+ * Read-only state probe for the portable sync coordinator.
+ *
+ * Exit meanings are intentionally distinct from ordinary failures:
+ *   0  current (or explicit universal-guide opt-out)
+ *   10 missing — init required
+ *   11 marker-managed and stale — update required
+ *   12 markerless — manual AI smart-merge required
+ */
+function checkClaudeMd() {
+    if (!fs.existsSync(CLAUDE_MD_PATH)) {
+        console.log('[CHECK] CLAUDE.md missing (init required)');
+        return 10;
+    }
+
+    const existing = fs.readFileSync(CLAUDE_MD_PATH, 'utf-8');
+    const config = loadConfig();
+    if (!hasMarkers(existing)) {
+        if (!universalGuidesRequired(config)) {
+            console.log('[CHECK] CLAUDE.md is markerless; universal-guide enforcement is opted out');
+            return 0;
+        }
+        console.error('[CHECK] CLAUDE.md is markerless (manual smart-merge required)');
+        return 12;
+    }
+
+    const expected = buildUpdateOutput(existing, buildSections(config), { report: false });
+    // Line endings are formatting, not a managed-content signal. The real update path preserves
+    // user-owned mixed/legacy line endings around generated content, so the probe compares the
+    // same rendered bytes after normalizing only CRLF-vs-LF representation.
+    const normalizeLineEndings = value => value.replace(/\r\n/g, '\n');
+    if (normalizeLineEndings(expected) === normalizeLineEndings(existing)) {
+        console.log('[CHECK] CLAUDE.md is current');
+        return 0;
+    }
+    console.log('[CHECK] CLAUDE.md requires marker-managed update');
+    return 11;
 }
 
 function parseBackupPath(args) {
@@ -671,6 +747,11 @@ function main() {
         process.exit(0);
     }
 
+    if (args.includes('--check')) {
+        process.exitCode = checkClaudeMd();
+        return;
+    }
+
     const mode = modeFlag || detectMode();
     console.log(`[MODE] ${mode}`);
 
@@ -705,36 +786,14 @@ function main() {
             process.exit(1);
         }
         const existing = fs.readFileSync(CLAUDE_MD_PATH, 'utf-8');
-        let output = updateMarkedSections(existing, sections);
-
-        const withE2e = backfillGeneratedE2eSection(output, sections);
-        if (withE2e !== output) {
-            output = withE2e;
-            console.log('[OK] Back-filled generated E2E section from project configuration');
-        }
-
-        // Back-fill universal-guide sections that drifted out of a managed file (e.g. a
-        // CLAUDE.md authored before the current template version). Marker-managed files
-        // only — a markerless file is project-only/pre-marker and must not be force-
-        // converted (preserves the bootstrap-gate F1 content-presence invariant). The
-        // back-fill is what lets ensureSentinel() stamp; without it the gate keeps
-        // flagging the file incomplete forever and --mode update is a dead end.
-        if (hasMarkers(existing) && fs.existsSync(TEMPLATE_PATH)) {
-            const merged = backfillPortableGuides(output, fs.readFileSync(TEMPLATE_PATH, 'utf-8'));
-            if (merged !== output) {
-                output = merged;
-                console.log('[OK] Back-filled missing universal-guide section(s) from template');
-            }
-        }
-
-        const stamped = stampFooter(stampHeader(output));
+        const stamped = buildUpdateOutput(existing, sections);
         reportRootSize(stamped);
         createBackup(backupPath);
         fs.writeFileSync(CLAUDE_MD_PATH, stamped, 'utf-8');
         console.log(`[OK] CLAUDE.md updated (${generated.length} sections synced)`);
     } else if (mode === 'smart-merge') {
         console.log('[INFO] Smart-merge: CLAUDE.md has no markers. AI should handle migration.');
-        console.log('[INFO] Run /claude-md-init in update mode after AI adds markers.');
+        console.log('[INFO] Run /ai-context-refresh in update mode after AI adds markers.');
         process.exit(0);
     } else if (mode === 'refactor') {
         console.log('[INFO] Refactor mode is AI-only. No script action needed.');
@@ -761,4 +820,11 @@ if (require.main === module) {
     }
 }
 
-module.exports = { updateMarkedSections, SECTION_OPEN, SECTION_CLOSE, CURATED_CALLOUT };
+module.exports = {
+    updateMarkedSections,
+    buildUpdateOutput,
+    checkClaudeMd,
+    SECTION_OPEN,
+    SECTION_CLOSE,
+    CURATED_CALLOUT,
+};

@@ -5,7 +5,7 @@
  * (`.claude/skills/shared/sync-inline-versions.md`).
  *
  * Single source of truth for both static-context generators:
- *   - `.claude/skills/claude-md-init/scripts/generate-claude-md.cjs` (CLAUDE.md bake)
+ *   - `.claude/skills/ai-context-refresh/scripts/generate-claude-md.cjs` (CLAUDE.md bake)
  *   - `.claude/scripts/codex/sync-context-workflows.mjs`            (AGENTS.md bake)
  *
  * Lifted from the inline copy that used to live in `sync-context-workflows.mjs`.

@@ -1,10 +1,10 @@
 metadata:
   title: Skills Catalog
   description: Auto-generated catalog of all available skills in ClaudeKit Engineer
-  last_updated: '2026-09-13'
-  total_skills: 169
+  last_updated: '2026-09-14'
+  total_skills: 170
   total_by_status:
-    active: 167
+    active: 168
     deprecated: 2
     experimental: 0
 categories:
@@ -26,6 +26,18 @@ legend:
   status_experimental: Opt-in; may break without deprecation window
 skills:
   active:
+    ai-ml:
+    - name: ai-context-refresh
+      path: ai-context-refresh/SKILL.md
+      description: '[Documentation] Use when initializing, updating, smart-merging,
+        or refactoring portable project AI context and its Claude/Codex projections.'
+      category: ai-ml
+      has_scripts: true
+      has_references: true
+      status: active
+      deprecated_by: null
+      deprecated_since: null
+      removal_after: null
     other:
     - name: architecture-design
       path: architecture-design/SKILL.md
@@ -190,17 +202,6 @@ skills:
       category: other
       has_scripts: false
       has_references: false
-      status: active
-      deprecated_by: null
-      deprecated_since: null
-      removal_after: null
-    - name: claude-md-init
-      path: claude-md-init/SKILL.md
-      description: '[Documentation] Use when initializing, updating, or refactoring
-        CLAUDE.md from project-config and codebase scans.'
-      category: other
-      has_scripts: true
-      has_references: true
       status: active
       deprecated_by: null
       deprecated_since: null
@@ -439,6 +440,18 @@ skills:
       path: e2e-test/SKILL.md
       description: '[Testing] Use when selecting, generating, updating, or maintaining
         E2E tests from a prompt, current context, recordings, specs, or code changes.'
+      category: other
+      has_scripts: false
+      has_references: false
+      status: active
+      deprecated_by: null
+      deprecated_since: null
+      removal_after: null
+    - name: e2e-test-verify
+      path: e2e-test-verify/SKILL.md
+      description: '[Testing] Use when verifying an existing E2E, browser, or user-flow
+        test scope with exact runner output, evidence, and report-only quality-gate
+        results.'
       category: other
       has_scripts: false
       has_references: false

@@ -8,6 +8,13 @@ The structure the `demo-guide` skill writes. Fill from real project evidence; ke
 - **Understand before you script.** Nothing here is written until the skill's Step 1 comprehension bar is
   cleared with `file:line` per answer. A step derived from a screen name instead of the code is a step that
   fails live — in front of the room the guide was written for.
+- **Open with the backlog item, not the demo.** The document's first block is a copy-paste-ready PBI
+  (purpose · overall requirements · ALL user stories · ALL acceptance criteria · authorization requirements ·
+  estimation · dependencies · DoD), fenced by `<!-- PBI:START -->` / `<!-- PBI:END -->` so a developer selects
+  it in one go and pastes it into the tracker. Its content is COPIED from the governing spec/PBI where one
+  exists, else derived from the traced demo cases and LABELLED as derived — never invented. The estimate is
+  produced with the shared `SYNC:estimation-framework` protocol (bottom-up hours → man-days → derived story
+  points), the same one `/plan`, `/refine`, `/story`, and `/dor-gate` use, so the two artifacts cannot drift.
 - **Show, then explain the data.** A demo is credible when the presenter shows the behaviour AND can point
   to the stored/changed data that makes it true. Every case pairs an observable step with a domain explanation.
 - **Steps are live-runnable.** Write action-level steps a presenter follows in the running app: who acts,
@@ -49,6 +56,86 @@ a **stated blocker**, never a quiet promotion.
 
 ```markdown
 # Demo Guide — {Feature name}
+
+<!-- PBI:START -->
+
+## Backlog item — copy this block into the tracker
+
+**Title:** {item title}
+**Type:** {Feature | Enhancement | Bug | Tech}
+**Source of this block:** {docs/specs/{x}.md §{n} | PBI {id} | `derived from code + demo cases this session — not yet reviewed by the PO`}
+
+### Purpose / business value
+
+{Why the item exists, for whom, and the outcome it buys — 2–4 sentences, outcome language, no implementation detail.}
+
+### Overall requirements
+
+1. {requirement — what the item must deliver}
+2. {…}
+
+**In scope:** {bullets}
+**Out of scope:** {bullets — or `nothing explicitly excluded`}
+
+### User stories
+
+- **{A}** — *As a {role}, I want {capability} so that {value}.*
+- **{B}** — *…*
+
+### Acceptance criteria
+
+| # | Criterion (Given / When / Then) | Demo case · test ID |
+| - | ------------------------------- | ------------------- |
+| AC-1 | **Given** {precondition} **When** {action} **Then** {observable outcome} | {A1} · `{REAL-TC-ID}` |
+| AC-2 | … | {A2} · `{REAL-TC-ID}` — or `❌ no coverage` |
+
+### Authorization requirements
+
+- **Roles / permissions:** {role → what it may do} `{file:line}`
+- **Data scoping:** {tenancy / ownership / visibility rule} `{file:line}`
+- **Audit:** {what is recorded, where} `{file:line}`
+
+_{or}_ `None — no authorization behaviour in this item`
+
+### Estimation
+
+_{Retrospective sizing for the backlog record — the work is already implemented}_ **|** _{Forecast — work not yet done}_
+_{When the item's own PBI already carries an estimate: reuse it verbatim and note the delta here.}_
+
+```yaml
+story_points: <n>                      # DERIVED from likely_days — never the driver
+complexity: low | medium | high | critical
+man_days_traditional: '<min>-<max>d'   # range when likely_days >= 3d; '<N>d' when < 3d
+man_days_ai: '<min>-<max>d'
+risk_margin_pct: <n>                   # base + add-ons
+risk_factors: [<closed-list add-ons>]  # [] if none
+blast_radius:
+    touched_areas: <n>
+    complex_touched: <n>
+    downstream_consumers: [<list or count>]
+    shared_common_code: yes | no
+estimate_scope_included: [code, integration-tests, frontend, i18n, docs]
+estimate_scope_excluded: [unit-tests, e2e, perf, deployment, code-review-rounds]
+estimate_reasoning: |
+    (a) UI tier — row applied
+    (b) Backend tier — row applied
+    (c) Test scope — case breakdown by driver, fixtures, tier row
+    (d) Cost driver — dominant tier + why
+    (e) Blast radius — touched, complex, regression scope
+    (f) Risk factors — what drives the margin; why not larger/smaller
+```
+
+### Dependencies / prerequisites
+
+{blocking items, migrations, configuration, external systems — or `None`}
+
+### Definition of Done
+
+- {… including any coverage gap this guide reports as still open}
+
+<!-- PBI:END -->
+
+---
 
 **Scope:** {feature} — resolved from {prompt | current working context | user-confirmed}
 **Tier / story groups:** {S0–S4} · {n} groups
@@ -145,6 +232,26 @@ demoted in order and prominence only. Omit the whole section when every case is 
 
 _Generated: {DATE} · Scope source: {source} · Evidence: {spec/test/migration paths}_
 ```
+
+## Filling the PBI block (the copy-paste contract)
+
+- **Every field is sourced.** A governing spec/PBI/story exists → copy its wording and cite the path; none
+  exists → derive from the traced cases and code and LABEL the block `derived from code + demo cases this
+  session — not yet reviewed by the PO`. A field with no evidence gets the explicit negative
+  (`None — no authorization behaviour in this item`), never a plausible filler — an invented acceptance
+  criterion enters the tracker as a commitment nobody agreed to.
+- **ALL of them, not a sample.** Every in-scope user story and every acceptance criterion appears; a story
+  the guide demos but the PBI omits is a drift the tracker will never catch.
+- **Trace each AC to its demo case and REAL test ID.** `AC-3 ↔ B2 · TC-118`. No test → `❌ no coverage`,
+  never a plausible ID.
+- **Authorization is read from code, not assumed.** Cite the guard, policy, attribute, or scoping filter at
+  `file:line`, or state there is none. A guessed permission ships as a requirement.
+- **Estimation follows `SYNC:estimation-framework` and nothing else** — the same protocol `/plan`, `/refine`,
+  `/story`, and `/dor-gate` apply: bottom-up hours → `likely_days` → risk margin → min–max range when
+  `likely_days ≥ 3`; **story points are DERIVED from days**, never chosen first; the full frontmatter goes in
+  a fenced `yaml` block so it survives the paste. Size the ITEM, never the writing of this guide. State
+  whether the number is a retrospective sizing or a forecast; reuse a groomed estimate verbatim and note the
+  delta rather than silently replacing it.
 
 ## Filling the "domain storage / solution" block (the distinctive value)
 

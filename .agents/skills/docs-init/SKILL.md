@@ -25,7 +25,7 @@ When coding, planning, debugging, testing, or reviewing, open project docs expli
 - `docs/project-reference/docs-index-reference.md` (routes to the full `docs/project-reference/*` catalog)
 - `docs/project-reference/lessons.md` (always-on guardrails and anti-patterns)
 
-**Missing/stale context route:** If `docs/project-config.json`, the docs index, `lessons.md`, `CLAUDE.md`, `AGENTS.md`, or any task-required reference doc is missing or stale, auto-run `$project-init` or the narrow setup route (`$project-config`, `$docs-init`, `$scan-all`, `$scan --target=<key>`, `$claude-md-init`) before ordinary project-specific work. If Codex mirrors or `AGENTS.md` are missing/stale, ask the user to run `$sync-codex`; do not auto-run it.
+**Missing/stale context route:** If `docs/project-config.json`, the docs index, `lessons.md`, `CLAUDE.md`, `AGENTS.md`, or any task-required reference doc is missing or stale, auto-run `$project-init` or the narrow setup route (`$project-config`, `$docs-init`, `$scan-all`, `$scan --target=<key>`, `$ai-context-refresh`) before ordinary project-specific work. A full `$sync-codex` run preflights `CLAUDE.md`; a completed `$ai-context-refresh` run may invoke the standalone runner with `--skip=claude-md` after final source edits. Markerless roots need AI smart-merge unless `portability.requireUniversalGuides: false` is explicit.
 
 **Situation-based docs:**
 - Project structure/architecture/tech-stack/deployment/setup (any layer — backend, frontend, or infra): `project-structure-reference.md`
@@ -98,7 +98,7 @@ Read the first 512 bytes of each file. If it contains `<!-- Fill in your project
 
 Use ask the user directly to present:
 
-1. **"Run $claude-md-init + all configured scan skills" (Recommended for first-time init)** -- Generates CLAUDE.md from config, then runs scan skills for configured docs
+1. **"Run $ai-context-refresh + all configured scan skills" (Recommended for first-time init)** -- Generates root AI context from config, then runs scan skills for configured docs
 2. **"Run configured scan skills only"** -- Runs scan skills without CLAUDE.md generation
 3. **"Select specific skills"** -- Let user choose which ones to run
 4. **"Skip -- docs are already populated"** -- Exit if all docs have content

@@ -4,7 +4,7 @@
 
 ## What is this?
 
-**easy-claude** is a portable `.claude` template you copy into any project to supercharge Claude Code with **18 top-level hook files**, **169 skills**, **19 workflows**, and **27 specialized agents**. It covers the entire software development lifecycle — from idea capture and test specification through implementation, code review, and documentation. The Claude-authored source also syncs to Codex mirrors under `.agents/` and `.codex/`, with Copilot instruction generation available through sync skills and scripts.
+**easy-claude** is a portable `.claude` template you copy into any project to supercharge Claude Code with **18 top-level hook files**, **170 skills**, **19 workflows**, and **27 specialized agents**. It covers the entire software development lifecycle — from idea capture and test specification through implementation, code review, and documentation. The Claude-authored source also syncs to Codex mirrors under `.agents/` and `.codex/`.
 
 **Core insight:** LLMs forget, hallucinate, and drift. Instead of hoping the AI "just gets it right," this framework uses **programmatic guardrails** (hooks) and **prompt-engineered protocols** (skills/workflows) to enforce correctness at every stage.
 
@@ -58,7 +58,7 @@ Three core execution layers solve different failure modes. Specialized agents pl
 
 **1. Copy the framework folders into your project root.**
 
-The framework ships three sibling folders — one per AI tool. Copy whichever you use; copy all three to get Claude Code, Codex, and the Codex skill mirror in one shot:
+The framework ships one canonical folder and two generated Codex-compatibility folders. Copy whichever surfaces you use; copy all three to get Claude Code and both Codex compatibility surfaces in one shot:
 
 ```bash
 cp -r .claude  /path/to/your-project/.claude    # Claude Code — the source of truth (required)
@@ -66,9 +66,9 @@ cp -r .codex   /path/to/your-project/.codex     # Codex agents, hooks, context p
 cp -r .agents  /path/to/your-project/.agents    # Codex skill mirror generated from .claude/skills (optional)
 ```
 
-`.claude/` is the canonical source. `.codex/` and `.agents/` (plus the root `AGENTS.md` and `.github/copilot-instructions.md`) are **generated mirrors** — never edit them by hand; they are re-synced from `.claude/` by the AI-sync skills below.
+`.claude/` is the canonical source. `.codex/` and `.agents/` (plus the root `AGENTS.md`) are **generated mirrors** — never edit them by hand; they are re-synced from `.claude/` by the AI-sync skills below.
 
-> No Codex/Copilot? Copy only `.claude/`. The mirrors are regenerated on demand by `/sync-codex` and `/sync-to-copilot`.
+> No Codex? Copy only `.claude/`. The mirrors are regenerated on demand by `/sync-codex`.
 
 **2. Run `/project-init` first — always the first command in a new project.**
 
@@ -83,19 +83,18 @@ cp -r .agents  /path/to/your-project/.agents    # Codex skill mirror generated f
 | `/project-config`                 | `docs/project-config.json` — tech stack, modules, directory structure, build commands |
 | `/scan-all`                       | `docs/project-reference/` docs the project-reference-docs gate reads on demand        |
 | `/workflow-code-to-spec`          | canonical Feature Specs under `docs/specs/` (seed or audit from code)                 |
-| `/claude-md-init`                 | `CLAUDE.md` (generated, or smart-merged to preserve your content)                     |
+| `/ai-context-refresh`             | project AI context (`CLAUDE.md` plus Codex mirror handoff; generated or smart-merged) |
 | `/changes-review` → `/why-review` | review gates over the generated setup                                                 |
 | background `/graph-build`         | the structural code graph (`.code-graph/graph.db`)                                    |
 
-`/project-init` surfaces the Codex/Copilot mirror sync as a follow-up — run the AI-sync skills (step 3) when prompted.
+`/project-init` surfaces the Codex mirror sync as a follow-up — run the AI-sync skill (step 3) when prompted.
 
-**3. Sync the AI dev-tool mirrors (only if you copied `.codex` / use Copilot).**
+**3. Sync the Codex mirrors (only if you copied `.codex` or `.agents`).**
 
 The mirrors are derived from `.claude/`. After `/project-init` (or any time `.claude/` changes), regenerate them:
 
 ```
 /sync-codex          # regenerate AGENTS.md, .agents/, .codex/ from .claude/ (migrate → hooks → context → verify)
-/sync-to-copilot     # regenerate .github/copilot-instructions.md from .claude/ knowledge
 ```
 
 Equivalent CLI (no slash command needed):
@@ -132,7 +131,6 @@ npm run codex:sync                                          # same via package.j
 | `/scan-all`             | Regenerate **all** `docs/project-reference/` docs after large code changes                                                                |
 | `/scan --target=<key>`  | Regenerate **one** reference doc when scope is narrow                                                                                     |
 | `/sync-codex`           | Re-sync the Codex mirror (`AGENTS.md`, `.agents/`, `.codex/`) from `.claude/`                                                             |
-| `/sync-to-copilot`      | Re-sync the GitHub Copilot instructions from `.claude/`                                                                                   |
 | `/scan-codebase-health` | Audit for unused exports, doc drift, and orphan files                                                                                     |
 
 ## What's Inside
@@ -157,15 +155,15 @@ Runtime Node.js scripts that fire on Claude Code lifecycle events.
 > large-output externalization (`tool-output-swap`), sub-agent validation
 > (`post-agent-validator`), and temp cleanup (`bash-cleanup`). Those hooks were **removed**;
 > the discipline they enforced and the guidance they injected now live **statically** in
-> `CLAUDE.md`, agent `.md`, and skill `SKILL.md` files, so a hookless harness (Codex /
-> Copilot) reads identical instructions.
+> `CLAUDE.md`, agent `.md`, and skill `SKILL.md` files, so a hookless harness reads identical
+> instructions.
 
 **Context re-anchoring:** Critical rules are carried as static SYNC-tagged invariants in
 `CLAUDE.md` / agent / skill bodies; the workflow catalog is baked statically into `CLAUDE.md`
 (and the `AGENTS.md` mirror). Re-reading these static files restores rules and lessons after
 compaction. This stateless-per-turn design prevents context drift over long sessions.
 
-### Skills (169 definitions)
+### Skills (170 definitions)
 
 Markdown-based prompts with YAML frontmatter that guide AI behavior.
 
@@ -254,7 +252,7 @@ easy-claude/
 │   │   ├── notifications/    # Multi-channel notification system
 │   │   ├── scout-block/      # Broad search prevention
 │   │   └── tests/            # Hook test suites
-│   ├── skills/               # 169 skill definitions
+│   ├── skills/               # 170 skill definitions
 │   │   ├── <skill>/          # Each skill directory contains:
 │   │   │   ├── SKILL.md      # Entry point (prompt + frontmatter)
 │   │   │   ├── scripts/      # Optional automation scripts
@@ -286,7 +284,7 @@ The entire framework is **project-agnostic**. All project-specific knowledge liv
 ```
 ┌─────────────────────────────────────┐
 │     Generic Framework (reusable)    │
-│ 18 Hook Files + 169 Skills + 19 Flows │
+│ 18 Hook Files + 170 Skills + 19 Flows │
 └──────────────┬──────────────────────┘
                │
         ┌──────┴──────┐
@@ -349,7 +347,7 @@ Seven principles that make this framework work reliably across any project:
 | Agents (`.claude/agents/`) | Yes       | Role definitions, not project logic                                  |
 | Hooks (`.claude/hooks/`)   | Yes       | Context injection reads from config                                  |
 | Workflows                  | Yes       | Process definitions, not implementation                              |
-| `CLAUDE.md`                | **No**    | Generated/merged per project via `/project-init` (`/claude-md-init`) |
+| `CLAUDE.md`                | **No**    | Generated/merged per project via `/project-init` (`/ai-context-refresh`) |
 | `docs/project-config.json` | **No**    | Generated per project via `/project-init` (`/project-config`)        |
 | `docs/project-reference/`  | **No**    | Generated per project via `/project-init` (`/scan-all`)              |
 

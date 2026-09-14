@@ -46,6 +46,8 @@
 -   Use `/why-review` to validate design rationale before implementation
 -   Use `/spec [mode=tests]` to write test specifications (feature doc Section 8) — CREATE mode before implementation, UPDATE mode after
 -   Use `/artifact-review --type=spec-tests` to review test specs for coverage and correctness
+-   Every assertion-bearing test uses explicit `Given` → `When` → `Then` phases, names the guarded business intent/invariant or technical contract, and asserts an owned outcome; framework-native BDD, named helpers, or comments are valid, while bare Arrange/Act/Assert is insufficient unless all three GWT phases are also labeled
+-   Every `/changes-review` or specialist `*review` call first applies `SYNC:review-principle-awareness`; route only contextually applicable scale-ready foundation, GWT test, AI-agent-as-user, and UI/component obligations to their detailed skill protocols, recording evidence-backed N/A/defer/block/unverified status rather than inventing findings or expanding scope
 -   For features: two planning rounds — PLAN1 (architecture) then PLAN2 (incorporating test strategy)
 
 ## Phase 3: Implementation

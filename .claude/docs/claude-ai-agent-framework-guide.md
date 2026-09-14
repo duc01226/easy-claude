@@ -5,7 +5,7 @@
 **Audience:** AI engineers, tech leads, and teams wanting to build reliable AI-assisted development systems.
 **Scope:** What each layer does, why it exists, how the pieces compose, the design principles behind every decision, and which AI agent best practices each addresses.
 
-> **Document Sync Status** — Current local verification (2026-09-10): **18 top-level hook files · 169 skills · 19 workflows · 27 agents** using the ADR-0002 filesystem metrics. Codex mirrors are committed under `.agents/`, `.codex/`, and `AGENTS.md`. Notable mechanisms documented here include multi-AI-tool portability (§13), behavioral-principle injection (§8.21), self-validating review (§8.20), and embedded sequential-thinking.
+> **Document Sync Status** — Current local verification (2026-09-10): **18 top-level hook files · 170 skills · 19 workflows · 27 agents** using the ADR-0002 filesystem metrics. Codex mirrors are committed under `.agents/`, `.codex/`, and `AGENTS.md`. Notable mechanisms documented here include multi-AI-tool portability (§13), behavioral-principle injection (§8.21), self-validating review (§8.20), and embedded sequential-thinking.
 
 ---
 
@@ -45,7 +45,7 @@
 
 ## 1. Executive Summary
 
-This framework wraps Claude Code in a three-pillar execution framework — **18 top-level hook files**, **169 skills**, **19 registered workflows**, and **27 specialized agents** — that transforms a generic LLM into a project-aware, quality-enforced, hallucination-resistant development agent. The framework covers the **entire software development lifecycle** — from idea capture and TDD test specification through implementation, testing, E2E testing, code review, and documentation — with AI as a first-class participant at every stage.
+This framework wraps Claude Code in a three-pillar execution framework — **18 top-level hook files**, **170 skills**, **19 registered workflows**, and **27 specialized agents** — that transforms a generic LLM into a project-aware, quality-enforced, hallucination-resistant development agent. The framework covers the **entire software development lifecycle** — from idea capture and TDD test specification through implementation, testing, E2E testing, code review, and documentation — with AI as a first-class participant at every stage.
 
 It is also **harness- and project-agnostic**: the `.claude/` source compiles to verified OpenAI Codex mirrors (`AGENTS.md`, `.agents/`, `.codex/`), while all project-specific knowledge is factored into `project-config.json` + reference docs — so the same behavior runs on any supported AI tool and ports to any codebase (Section 13).
 
@@ -117,8 +117,8 @@ graph TB
         end
     end
 
-    subgraph "Intelligence Layer — 169 Skills"
-        SP[Shared Protocols<br/>8 files]
+    subgraph "Intelligence Layer — 170 Skills"
+        SP[Shared Protocols<br/>9 files]
         IS[Implementation Skills<br/>feature-implement, fix, refactor]
         QS[Quality Skills<br/>code-review, prove-fix]
         PS[Planning Skills<br/>plan, investigate]
@@ -455,11 +455,11 @@ allowed-tools: Read, Grep, Glob, Bash, Write, TaskCreate
 2. Declare confidence level...
 ```
 
-### 5.2 Skill Categories (169 skills)
+### 5.2 Skill Categories (170 skills)
 
 ```mermaid
 mindmap
-  root((169 Skills))
+  root((170 Skills))
     Quality & Verification
       code-review
       prove-fix
@@ -546,7 +546,7 @@ mindmap
 
 ### 5.3 Shared Protocols — The Foundation
 
-8 shared reference/protocol files provide canonical reusable behavior for skills. Protocol blocks are **inlined** into each skill via `<!-- SYNC:tag -->` blocks (not file-read references) for maximum AI compliance.
+9 shared reference/protocol files provide canonical reusable behavior for skills. Inline protocol blocks are **inlined** into each skill via `<!-- SYNC:tag -->` blocks (not file-read references) for maximum AI compliance; the shared E2E quality protocol remains a direct reference because it is consumed as a common gate by E2E writers and reviewers.
 
 **Architecture:** The canonical source is `.claude/skills/shared/sync-inline-versions.md`. Each protocol is wrapped in `<!-- SYNC:protocol-name -->` / `<!-- /SYNC:protocol-name -->` HTML comment tags. Closing Reminders use `:reminder` suffix variants. To update a protocol: edit the canonical file first, then `grep SYNC:protocol-name` and update all copies.
 
@@ -877,7 +877,7 @@ The hook and skill system is **project-agnostic**. All project-specific knowledg
 graph LR
     subgraph "Generic Framework (reusable)"
         H[18 Hook Files]
-        S[169 Skills]
+        S[170 Skills]
         W[19 Workflows]
     end
 
@@ -3490,7 +3490,7 @@ flowchart TB
 | **Context injection at decision points**       | Static path→patternsDoc guidance in CLAUDE.md / SKILL.md (was hook-injected)                             | Skills/Config |
 | **Reminder rules prevent forgetting**          | Static SYNC rules + the workflow catalog baked into CLAUDE.md, re-read every prompt                      | Skills/Config |
 | **Generic & configurable via config**          | project-config.json drives path→patternsDoc routing                                                      | Config        |
-| **Prompt engineering quality**                 | 169 skills with YAML frontmatter + behavior protocols                                                    | Skills        |
+| **Prompt engineering quality**                 | 170 skills with YAML frontmatter + behavior protocols                                                    | Skills        |
 | **Auto-select workflow path before acting**    | Model reads the static catalog → direct/skill/workflow/custom path                                       | Workflows     |
 | **Confirm plan with questions**                | /plan-validate asks 3-8 questions before implementation                                                  | Skills        |
 | **Sequential thinking for complex problems**   | /sequential-thinking skill + /debug-investigate skill                                                    | Skills        |
@@ -3544,9 +3544,9 @@ flowchart TB
 │   │   ├── todo-state.cjs
 │   │   └── ...
 │   └── tests/ ────────── Test suites
-├── skills/ ────────────── 169 skill definitions
+├── skills/ ────────────── 170 skill definitions
 │   ├── {skill-name}/SKILL.md
-│   ├── shared/ ───────── 8 shared reference/protocol files
+│   ├── shared/ ───────── 9 shared reference/protocol files
 │   └── _templates/ ───── Skill scaffolding
 ├── agents/ ────────────── 27 agent definitions
 ├── docs/ ─────────────── Framework documentation (co-located)
@@ -3689,7 +3689,7 @@ This is the answer to two questions the rest of the guide raises: _"does this on
 │  .claude/workflows.json · CLAUDE.md (project instructions) ·          │
 │  .claude/skills/shared/sync-inline-versions.md                        │
 └──────────────────────────────────────────────────────────────────────┘
-            │  npm run codex:sync   (18-stage pipeline, fail-fast)
+            │  npm run codex:sync   (19-stage pipeline, fail-fast)
             ▼
 ┌──────────────────────────────────────────────────────────────────────┐
 │  GENERATED MIRRORS  (never hand-edited — sync overwrites them)        │
@@ -3725,9 +3725,9 @@ So the mirror is not a copy — it is a **transform** that converts host-specifi
 
 | Skill            | Scope                      | Mechanics                                                                                                                                                 |
 | ---------------- | -------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **`sync-codex`** | Full Claude → Codex mirror | `npm run codex:sync` (or the skill without npm). `disable-model-invocation: true` — **user-invoked only, never auto-runs.** Sequential, fail-fast stages. |
+| **`sync-codex`** | Full Claude → Codex mirror | `npm run codex:sync` (or the skill without npm). `disable-model-invocation: true` — user-invoked only; an explicit `ai-context-refresh` completion may call the standalone runner with `--skip=claude-md`. Sequential, fail-fast stages. |
 
-**`sync-codex`'s stages** (mutate first, verify-only after, configured failures abort): **migrate** → **hooks** → **context** → **tests** → **scripts-tests** → **tech-spec-freshness** → **feature-registry** → **hooks-count-drift** → **hooks-parity** → **hooks-doc-sync** → **wf-cycle** → **sk-proto** → **residue** → **sdd** → **review-validate-coverage** → **sync-adoption-parity** → **provenance-markers** → **sync-divergence**. The tech-spec and feature-registry stages are optional capabilities: when their project-config contracts are absent, the runner records an explicit skip; when declared, they fail closed on invalid or stale data. The feature-registry stage reads `specSystem.featureRegistryRoots` from project config and automatically includes continuation parts. The sync is not "done" until every configured read-only gate passes — a stale derived view, invalid adopted registry root, or non-portable mirror **fails the pipeline** rather than shipping silently.
+**`sync-codex`'s stages** (CLAUDE preflight, mutate mirrors, verify-only after, configured failures abort): **claude-md** → **migrate** → **hooks** → **context** → **tests** → **scripts-tests** → **tech-spec-freshness** → **feature-registry** → **hooks-count-drift** → **hooks-parity** → **hooks-doc-sync** → **wf-cycle** → **sk-proto** → **residue** → **sdd** → **review-validate-coverage** → **sync-adoption-parity** → **provenance-markers** → **sync-divergence**. The first stage initializes a missing `CLAUDE.md`, updates a marker-managed stale root, and stops for markerless smart-merge unless `portability.requireUniversalGuides: false` is explicit. The tech-spec and feature-registry stages are optional capabilities: when their project-config contracts are absent, the runner records an explicit skip; when declared, they fail closed on invalid or stale data. The feature-registry stage reads `specSystem.featureRegistryRoots` from project config and automatically includes continuation parts. The sync is not "done" until every configured read-only gate passes — a stale derived view, invalid adopted registry root, or non-portable mirror **fails the pipeline** rather than shipping silently.
 
 Mirror parity also enables **multi-AI execution**, not just portability: the **`dual-ai`** skill fans a single prompt out to **two fresh parallel sessions** — Claude Code and Codex CLI — each launched at xhigh reasoning effort in full-permission mode, with an `--orchestrate` mode that supervises both runs and collects a result comparison. It also accepts a workflow id, so `dual-ai workflow-review-changes` gives Claude `/workflow-review-changes` and Codex `$workflow-review-changes`, producing two independent reviews of the same working tree — possible only because the verified mirrors guarantee both tools execute the same workflow. The skill is `disable-model-invocation: true` — strictly user-invoked, since it spawns external sessions that consume quota.
 
@@ -3867,7 +3867,7 @@ The framework succeeds because it aligns with how LLMs actually fail:
 
 ### The Result
 
-**18 top-level hook files**, **169 skills**, **19 registered workflows**, and **27 specialized agents** working in concert to deliver:
+**18 top-level hook files**, **170 skills**, **19 registered workflows**, and **27 specialized agents** working in concert to deliver:
 
 -   **Fewer hallucinations** — Evidence gates and proof traces catch AI fabrications before they reach files
 -   **Better code quality** — Pattern injection ensures AI follows project conventions, not generic training data
@@ -3875,7 +3875,7 @@ The framework succeeds because it aligns with how LLMs actually fail:
 -   **Consistent adherence** — Programmatic enforcement means quality doesn't degrade in long sessions or complex tasks
 -   **Recovery from amnesia** — External state persistence means context compaction doesn't lose progress
 -   **Persistent learning** — Mistakes captured once prevent recurrence across all future sessions
--   **Prompt engineering depth** — Role prompting, chain-of-thought, few-shot, negative prompting, and iterative refinement applied systematically across 169 skills (Section 8.15)
+-   **Prompt engineering depth** — Role prompting, chain-of-thought, few-shot, negative prompting, and iterative refinement applied systematically across 170 skills (Section 8.15)
 -   **Context engineering precision** — JIT injection, dedup, external memory, budget management, and recovery keep the AI informed without overwhelming its context window (Section 8.16)
 
 The framework is **generic and reusable**. Replace `project-config.json` with your project's specifics, and the entire system adapts — different tech stack, different patterns, different conventions, same quality enforcement.

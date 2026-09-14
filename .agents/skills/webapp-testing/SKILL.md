@@ -24,7 +24,7 @@ When coding, planning, debugging, testing, or reviewing, open project docs expli
 - `docs/project-reference/docs-index-reference.md` (routes to the full `docs/project-reference/*` catalog)
 - `docs/project-reference/lessons.md` (always-on guardrails and anti-patterns)
 
-**Missing/stale context route:** If `docs/project-config.json`, the docs index, `lessons.md`, `CLAUDE.md`, `AGENTS.md`, or any task-required reference doc is missing or stale, auto-run `$project-init` or the narrow setup route (`$project-config`, `$docs-init`, `$scan-all`, `$scan --target=<key>`, `$claude-md-init`) before ordinary project-specific work. If Codex mirrors or `AGENTS.md` are missing/stale, ask the user to run `$sync-codex`; do not auto-run it.
+**Missing/stale context route:** If `docs/project-config.json`, the docs index, `lessons.md`, `CLAUDE.md`, `AGENTS.md`, or any task-required reference doc is missing or stale, auto-run `$project-init` or the narrow setup route (`$project-config`, `$docs-init`, `$scan-all`, `$scan --target=<key>`, `$ai-context-refresh`) before ordinary project-specific work. A full `$sync-codex` run preflights `CLAUDE.md`; a completed `$ai-context-refresh` run may invoke the standalone runner with `--skip=claude-md` after final source edits. Markerless roots need AI smart-merge unless `portability.requireUniversalGuides: false` is explicit.
 
 **Situation-based docs:**
 - Project structure/architecture/tech-stack/deployment/setup (any layer — backend, frontend, or infra): `project-structure-reference.md`
@@ -47,6 +47,8 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 > **For full-site QA audits (accessibility, performance, security, SEO), use `test-ui` instead.**
 >
 > **For feature/bugfix/whole-project human-QC E2E, use `workflow-e2e`; its `e2e-test-verify-loop` convergence engine does not invent project startup, auth, seed, or browser configuration.**
+>
+> **Shared E2E gate:** For any executable browser/user-flow assertion, read `.claude/skills/shared/e2e-quality-protocol.md` first and preserve its Given → When → Then, invariant, locator/object ownership, isolation, auth, evidence, cleanup, and honest-verdict contract. This helper remains a narrow page/component runner; broader scope belongs to `workflow-e2e`.
 
 **Workflow:**
 
@@ -58,6 +60,7 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 **Key Rules:**
 
 - Always wait for `networkidle` before inspecting DOM on dynamic apps
+- For every assertion-bearing script, record the protected intent/invariant as Given → When → Then and apply the shared E2E quality protocol; a passing browser command alone is not a quality verdict
 - Use bundled scripts as black boxes; run `--help` first, don't read source
 - This narrow helper defaults to headless page/component checks; a configured E2E profile may require the visible Playwright CLI path instead
 - Use one reusable, parameterized `wait_until(condition, timeout, poll_interval, description)` helper for every interactive step: before each UI-control operation wait for presence, visibility, enabled/actionable state, and any applicable blocking error-alert absence; after it wait for the expected positive/negative outcome, including dropdown/options, selected state, and error-alert presence/absence. Then wait exactly **500ms** as mandatory post-action presentation pacing for automated and visible human-QC paths. `wait_for_timeout` is never a readiness/postcondition signal and the delay never replaces a real settle signal.

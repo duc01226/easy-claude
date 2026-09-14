@@ -20,7 +20,7 @@ import { AGENTS_ROOT_LIMIT_BYTES } from '../sync-context-workflows.mjs';
 //
 // This file holds TWO related portability-contract groups — the filename names the headline guarantee,
 // not the only one, so do NOT split or rename it:
-//   • No-package-json group (PORT-001/002/006/007/009): pure bare-`.claude` behavior — the pipeline
+//   • No-package-json group (PORT-001/002/006/007/009/015): pure bare-`.claude` behavior — the pipeline
 //     imports only `node:` built-ins, npm-auto-install no-ops, the runner self-locates + fails fast,
 //     and the export payload ships NO root package.json. None of these read a package.json.
 //   • npm-delegation group (PORT-003/004/005/008/010): the inverse guarantee — WHEN THIS REPO'S root
@@ -28,7 +28,7 @@ import { AGENTS_ROOT_LIMIT_BYTES } from '../sync-context-workflows.mjs';
 //     delegate to the in-`.claude` runner and never under-verify relative to it. These read
 //     package.json by design, and are therefore GUARDED by `frameworkPkg()` — an adopting project has
 //     its own package.json (or none), and asserting easy-claude's script names against it aborted the
-//     sync pipeline at stage 4 of 18 in every adopting project, after stages 1-3 had already written
+//     sync pipeline at stage 5 of 19 in every adopting project, after stages 1-4 had already written
 //     `.agents/`, `.codex/` and `AGENTS.md`. Runner-side assertions in this group stay UNCONDITIONAL.
 //   • Guard integrity (PORT-011): the conditional self-checks above can pass by not running, so this
 //     locks the guard to resolve true in this repo. Without it, a package rename silently disables the
@@ -315,6 +315,67 @@ test('PORT-007 export-claude payload contains the full pipeline and no package.j
     assert.ok(!(await exists(path.join(target, 'package.json'))), 'export must copy only .claude — no root package.json');
 });
 
+// ── PORT-015 — the copied runner owns CLAUDE.md preflight before mirror sync ─────────
+// This is the end-to-end regression for the adoption case: copy only `.claude` into a project with
+// no package.json, let the in-bundle runner resolve that project from its own path, and verify the
+// preflight's three safe states. The test deliberately selects only `claude-md`, so a failure names
+// the source-root handoff rather than a later mirror prerequisite.
+test('PORT-015 copied runner initializes missing CLAUDE.md and protects markerless roots', async () => {
+    // Given a copied .claude bundle and a consuming project with no root package.json
+    const target = await fs.mkdtemp(path.join(os.tmpdir(), 'port-preflight-'));
+    createdDirs.push(target);
+    const exporter = path.join(repoRoot, '.claude', 'scripts', 'export-claude.mjs');
+    const exported = await run(process.execPath, [exporter, target, '--include-untracked'], { cwd: repoRoot });
+    assert.equal(exported.code, 0, `export-claude must succeed: ${exported.stderr || exported.stdout}`);
+    await fs.mkdir(path.join(target, 'docs'), { recursive: true });
+    await fs.writeFile(
+        path.join(target, 'docs', 'project-config.json'),
+        JSON.stringify({ project: { name: 'Portable preflight' } }) + '\n',
+        'utf8'
+    );
+    await fs.mkdir(path.join(target, 'nested', 'work'), { recursive: true });
+    const runner = path.join(target, ...runnerRel.split('/'));
+
+    // When the runner preflights a missing root from a nested cwd, Then it initializes CLAUDE.md
+    const init = await run(process.execPath, [runner, '--only=claude-md'], {
+        cwd: path.join(target, 'nested', 'work'),
+        env: { ...process.env, CLAUDE_PROJECT_DIR: repoRoot },
+    });
+    assert.equal(init.code, 0, `missing-root preflight must initialize successfully: ${init.stderr || init.stdout}`);
+    assert.match(init.stdout, /CLAUDE\.md missing.*init required/i);
+    assert.match(init.stdout, /all 1 stage\(s\) passed/i);
+    const initialized = await fs.readFile(path.join(target, 'CLAUDE.md'), 'utf8');
+    assert.match(initialized, /CK:UNIVERSAL-GUIDES/);
+
+    // Given a project-owned markerless root, When the preflight runs with default enforcement,
+    // Then it fails closed without overwriting the root or creating a backup.
+    const markerless = '# Project-owned instructions\n\nKeep this exact text.\n';
+    await fs.writeFile(path.join(target, 'CLAUDE.md'), markerless, 'utf8');
+    const blocked = await run(process.execPath, [runner, '--only=claude-md'], {
+        cwd: path.join(target, 'nested', 'work'),
+        env: { ...process.env, CLAUDE_PROJECT_DIR: repoRoot },
+    });
+    assert.equal(blocked.code, 1, 'markerless root must stop the mirror pipeline');
+    assert.match(blocked.stderr + blocked.stdout, /markerless.*smart-merge/i);
+    assert.equal(await fs.readFile(path.join(target, 'CLAUDE.md'), 'utf8'), markerless);
+    assert.equal(await exists(path.join(target, '.claude-md.backup')), false, 'blocked preflight must not create a backup');
+
+    // Given an explicit portability opt-out, When the same markerless root is checked,
+    // Then the runner accepts it while preserving the project-owned bytes.
+    await fs.writeFile(
+        path.join(target, 'docs', 'project-config.json'),
+        JSON.stringify({ project: { name: 'Portable preflight' }, portability: { requireUniversalGuides: false } }) + '\n',
+        'utf8'
+    );
+    const accepted = await run(process.execPath, [runner, '--only=claude-md'], {
+        cwd: path.join(target, 'nested', 'work'),
+        env: { ...process.env, CLAUDE_PROJECT_DIR: repoRoot },
+    });
+    assert.equal(accepted.code, 0, `explicit opt-out must let the runner continue: ${accepted.stderr || accepted.stdout}`);
+    assert.match(accepted.stdout, /universal-guide enforcement is opted out/i);
+    assert.equal(await fs.readFile(path.join(target, 'CLAUDE.md'), 'utf8'), markerless);
+});
+
 test('PORT-001 sync/verify pipeline scripts import only node: built-ins and relative files', async () => {
     await assertPortableDependencies();
 });
@@ -401,7 +462,7 @@ test('PORT-013 relocated .claude and .codex bundles resolve from the consuming p
 // ── PORT-011 — the framework-repo guard must resolve TRUE here (anti-silent-skip lock) ────────────
 // PORT-003/004/005/008/010 (and TC-MWG-001/002/003, the adoption-parity npm half, TC-PROV-011b) are
 // now conditional on `frameworkPkg()`, because an adopting project supplies its own package.json and
-// an unconditional read aborted the pipeline at stage 4 of 18 in EVERY adopting project.
+// an unconditional read aborted the pipeline at stage 5 of 19 in EVERY adopting project.
 //
 // The cost of a conditional self-check is that it can pass by not running. If this repo's package
 // `name` is ever changed, all of those tests would skip and the suite would still report green — the

@@ -1,6 +1,6 @@
 ---
-name: claude-md-init
-description: '[Documentation] Use when initializing, updating, or refactoring CLAUDE.md from project-config and codebase scans.'
+name: ai-context-refresh
+description: '[Documentation] Use when initializing, updating, smart-merging, or refactoring portable project AI context and its Claude/Codex projections.'
 ---
 
 > Codex compatibility note:
@@ -24,7 +24,7 @@ When coding, planning, debugging, testing, or reviewing, open project docs expli
 - `docs/project-reference/docs-index-reference.md` (routes to the full `docs/project-reference/*` catalog)
 - `docs/project-reference/lessons.md` (always-on guardrails and anti-patterns)
 
-**Missing/stale context route:** If `docs/project-config.json`, the docs index, `lessons.md`, `CLAUDE.md`, `AGENTS.md`, or any task-required reference doc is missing or stale, auto-run `$project-init` or the narrow setup route (`$project-config`, `$docs-init`, `$scan-all`, `$scan --target=<key>`, `$claude-md-init`) before ordinary project-specific work. If Codex mirrors or `AGENTS.md` are missing/stale, ask the user to run `$sync-codex`; do not auto-run it.
+**Missing/stale context route:** If `docs/project-config.json`, the docs index, `lessons.md`, `CLAUDE.md`, `AGENTS.md`, or any task-required reference doc is missing or stale, auto-run `$project-init` or the narrow setup route (`$project-config`, `$docs-init`, `$scan-all`, `$scan --target=<key>`, `$ai-context-refresh`) before ordinary project-specific work. A full `$sync-codex` run preflights `CLAUDE.md`; a completed `$ai-context-refresh` run may invoke the standalone runner with `--skip=claude-md` after final source edits. Markerless roots need AI smart-merge unless `portability.requireUniversalGuides: false` is explicit.
 
 **Situation-based docs:**
 - Project structure/architecture/tech-stack/deployment/setup (any layer — backend, frontend, or infra): `project-structure-reference.md`
@@ -42,15 +42,22 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 
 ## Quick Summary
 
-**Goal:** Automate CLAUDE.md lifecycle — generate from project-config.json + template, incrementally update marked sections, or refactor for token efficiency.
+**Goal:** Refresh the portable project AI-context lifecycle — generate or update the Claude root context from project-config.json + template, preserve project instructions through smart merge/refactor, and refresh Codex projections.
+
+**Summary:**
+
+- Preflight config and detect `init`, `update`, markerless `smart-merge`, or AI-only `refactor` mode.
+- Generate/update root context from config + template while preserving unmanaged project instructions.
+- AI-fill and verify markers, placeholders, portability, and project-specific content.
+- After final root edits, run the standalone sync runner with `--skip=claude-md`; verify every Codex mirror and report failures.
 
 **Workflow:**
 
-1. **Detect Mode** — init (no CLAUDE.md or `--mode init`), update (`--mode update`), refactor (`--mode refactor`)
-2. **Run Generator** — `node .claude/skills/claude-md-init/scripts/generate-claude-md.cjs --mode <mode>`
+1. **Detect Mode** — init (no root context or `--mode init`), update (`--mode update`), refactor (`--mode refactor`)
+2. **Run Generator** — `node .claude/skills/ai-context-refresh/scripts/generate-claude-md.cjs --mode <mode>`
 3. **AI Fill** — Review output, fill creative sections (project description, golden rules inference)
 4. **Verify** — Confirm output is valid, no project-specific leaks from template
-5. **Prepare Mirror Handoff** — After CLAUDE.md changes (init/update/refactor), name the stale `AGENTS.md` + Codex mirror surfaces and instruct the user to run `$sync-codex`; this skill never authorizes or auto-runs it.
+5. **Sync Codex Mirrors** — After the final AI edits and verification, run the shared standalone runner with `--skip=claude-md` so `AGENTS.md`, `.agents/`, and `.codex/` are regenerated from the finished `CLAUDE.md`.
 
 **Key Rules:**
 
@@ -58,6 +65,7 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 - Section markers (`<!-- SECTION:key -->`) enable incremental updates without overwriting user content
 - Conditional sections — generated ONLY when config has matching data; empty config = section omitted
 - Static framework sections (8 total) are portable across all projects
+- `$sync-codex` owns Codex mirror generation; this skill owns the root AI-context lifecycle and calls the same runner only after its explicit init/update/refactor work is complete
 
 ## Bootstrap Gate (when CLAUDE.md is missing or incomplete)
 
@@ -73,12 +81,12 @@ and routes here (shared detection lib: `.claude/hooks/lib/agent-files-state.cjs`
 **Three-state detection** per root file: `missing` → routes to `--mode init` (fresh from template);
 `incomplete` → routes to `--mode update` (smart-merge — preserves your project content, injects the
 guides); `ok` → no block. Completeness is decided by `hasUniversalGuides()`: a current-or-newer
-sentinel (`<!-- CK:UNIVERSAL-GUIDES v1 -->`) → complete; an older sentinel → flag for update; no
+sentinel (`<!-- CK:UNIVERSAL-GUIDES v6 -->`) → complete; an older sentinel → flag for update; no
 sentinel → fall back to scanning required anchors (First Action Decision, Workflow Step Advancement,
 Task Planning Rules, Code Responsibility Hierarchy, Evidence-Based Reasoning) so legacy/hand-written
 complete files still pass.
 
-Run `$claude-md-init` (or the generator directly) to produce `CLAUDE.md` from
+Run `$ai-context-refresh` (or the generator directly) to produce `CLAUDE.md` from
 `docs/project-config.json` + template. The generated file ships the universal session-start guides
 (workflow ask-confirm gate, workflow step-advancement + parallel-phase barrier, task-planning rules,
 code hierarchy, naming, evidence/confidence rules) and stamps the sentinel at the top so the gate
@@ -91,7 +99,23 @@ mirrors into `AGENTS.md` and survives when hooks are absent, disabled, or stale.
 universal guides), set `portability.requireUniversalGuides: false` in `docs/project-config.json`
 (persistent; default `true`). The gate then checks only existence, never completeness. The transient
 `skip init` escape still dismisses both hooks for 24h. The gate is dormant in empty/greenfield folders
-and before config is populated. `AGENTS.md` is generated separately by `$sync-codex` (user-invoke-only).
+and before config is populated. `AGENTS.md` and the other Codex surfaces are generated by the shared runner owned by
+`$sync-codex`; this skill invokes that runner directly after its final source edit, rather than recursively invoking
+the skill. A full `$sync-codex` invocation performs its own CLAUDE.md preflight before mirror generation.
+
+## Coordination with sync-codex
+
+`ai-context-refresh` and `sync-codex` remain separate user-facing skills with one executable pipeline:
+
+- `ai-context-refresh` owns root-context authoring and the AI smart-merge/refactor decision. After init/update/refactor and the
+  final AI fill, it runs `node .claude/skills/sync-codex/scripts/run-codex-sync.mjs --skip=claude-md`.
+- `sync-codex` owns generated outputs and verification. Its full run starts with a `claude-md` preflight: missing
+  `CLAUDE.md` is initialized, marker-managed content is updated, and `portability.requireUniversalGuides: false`
+  may accept a markerless project-only root.
+- A markerless root with universal guides required is never overwritten by preflight. Run
+  `$ai-context-refresh --mode update`, preserve the project instructions through AI smart-merge, then rerun sync.
+- The handoff uses the runner directly, not a nested `$sync-codex` skill call, so there is no recursion or duplicate
+  source generation. If the runner fails, report the failing stage and do not claim that Codex mirrors are current.
 
 ## Modes
 
@@ -110,7 +134,7 @@ and before config is populated. `AGENTS.md` is generated separately by `$sync-co
 
 ```bash
 # Check CLAUDE.md state
-node .claude/skills/claude-md-init/scripts/generate-claude-md.cjs --detect
+node .claude/skills/ai-context-refresh/scripts/generate-claude-md.cjs --detect
 ```
 
 **Decision logic:**
@@ -124,10 +148,10 @@ node .claude/skills/claude-md-init/scripts/generate-claude-md.cjs --detect
 
 ```bash
 # Init mode: generate fresh CLAUDE.md
-node .claude/skills/claude-md-init/scripts/generate-claude-md.cjs --mode init
+node .claude/skills/ai-context-refresh/scripts/generate-claude-md.cjs --mode init
 
 # Update mode: sync marked sections only
-node .claude/skills/claude-md-init/scripts/generate-claude-md.cjs --mode update
+node .claude/skills/ai-context-refresh/scripts/generate-claude-md.cjs --mode update
 ```
 
 **Script behavior:**
@@ -162,27 +186,31 @@ After the script generates the mechanical parts, AI reviews and fills:
 - [ ] CLAUDE.md is valid markdown
 - [ ] All section markers are properly paired (open + close)
 - [ ] No template placeholder text remains (e.g., `{project-name}`, `TODO`)
-- [ ] No `.claude/skills/claude-md-init/` references leak into output (self-reference)
+- [ ] No `.claude/skills/ai-context-refresh/` implementation paths leak into generated project context (self-reference)
 - [ ] Conditional sections with no data are omitted (not empty stubs)
 
-## Phase 5: Prepare Mirror Handoff (after CLAUDE.md is written)
+## Phase 5: Sync Codex mirrors (after the final CLAUDE.md edit)
 
-Writing/updating CLAUDE.md leaves the generated mirror surfaces stale — `AGENTS.md` (Codex), the
-`.codex/` mirrors, and other downstream surfaces are derived FROM CLAUDE.md and
-do not update on their own.
+Writing/updating CLAUDE.md makes the generated mirror surfaces stale — `AGENTS.md` (Codex), the
+`.codex/` mirrors, and other downstream surfaces are derived FROM CLAUDE.md. They must be regenerated
+only after the final AI fill/refactor and verification, otherwise the mirrors can capture an intermediate
+source state.
 
-**MUST add a final todo task — "Report stale Codex mirrors and request $sync-codex" — after
-init/update/refactor completes.** Name the stale generated surfaces and instruct the user to
-run `$sync-codex`. Normal source generation is not sync authorization: NEVER auto-run the
-mutating pipeline. Create this as the LAST task tracking item after verification:
+**MUST add a final todo task — "Sync Codex mirrors from updated CLAUDE.md" — after
+init/update/refactor and verification complete.** When CLAUDE.md content changed, execute the shared
+standalone runner directly:
 
 ```text
-Task tracking: "Report stale Codex mirrors → instruct user to run $sync-codex"
+Task tracking: "Sync Codex mirrors from updated CLAUDE.md → invoke $sync-codex"
+node .claude/skills/sync-codex/scripts/run-codex-sync.mjs --skip=claude-md
 ```
 
-Skip only when no CLAUDE.md content actually changed (e.g. generator reported all sections preserved /
-no diff). Otherwise the AGENTS.md mirror drifts from CLAUDE.md and Codex runs against stale
-guidance.
+`--skip=claude-md` is intentional: this skill has just completed the root-source lifecycle, so the
+runner must start at mirror generation and still execute every configured verification stage. The
+direct node call is the authorized completion handoff of an explicit `$ai-context-refresh` request; it is
+not an autonomous invocation of the user-facing `$sync-codex` skill. Skip the task only when no
+CLAUDE.md content actually changed. If the runner fails, keep this task incomplete and report the
+failing stage and exact recovery command.
 
 ## Refactor Mode (AI-Only)
 
@@ -316,6 +344,8 @@ node .claude/hooks/tests/run-all-tests.cjs --filter=agent-files
 
 ## Closing Reminders
 
+**IMPORTANT MUST ATTENTION Goal:** Refresh the portable project AI-context lifecycle — generate or update the Claude root context from project-config.json + template, preserve project instructions through smart merge/refactor, and refresh Codex projections.
+
 **Protocols in force (concise digest of the SYNC/shared blocks this skill carries):** MUST ATTENTION honor every protocol below.
 
 - **Critical Thinking:** apply critical + sequential thinking; traced proof, confidence >80% to act.
@@ -326,6 +356,13 @@ node .claude/hooks/tests/run-all-tests.cjs --filter=agent-files
 **IMPORTANT MUST ATTENTION** search codebase for 3+ similar patterns before creating new code
 **IMPORTANT MUST ATTENTION** cite `file:line` evidence for every claim (confidence >80% to act)
 **IMPORTANT MUST ATTENTION** add a final review todo task to verify work quality
+**IMPORTANT MUST ATTENTION** execute in order: preflight config and detect mode → generate/update or AI smart-merge/refactor while preserving unmanaged content → AI-fill and verify markers/placeholders/portability → run the standalone `$sync-codex` runner with `--skip=claude-md` after final root edits and verify every Codex mirror
+
+| Evasion | Rebuttal |
+| --- | --- |
+| "It is only a rename" | Trace canonical sources, generated mirrors, catalogs, routes, and tests. |
+| "The mirrors are already current" | Run the sync and divergence gates; stale derived output is not completion. |
+| "Hand-fix the Codex copy" | Edit `.claude/**` sources, then regenerate `.agents/`, `.codex/`, and `AGENTS.md`. |
 
 **[TASK-PLANNING]** Before acting, analyze task scope and systematically break it into small todo tasks and sub-tasks using task tracking.
 

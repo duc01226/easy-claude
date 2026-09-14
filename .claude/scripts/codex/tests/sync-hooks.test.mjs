@@ -199,7 +199,7 @@ test("sync-hooks launches project-root Node hooks from Git and bare .claude root
   }
 });
 
-test("sync-hooks omits Claude SessionStart hooks and writes a skip report", async () => {
+test("sync-hooks omits Claude SessionStart hooks and writes a skip report under tmp", async () => {
   const tempRoot = await fs.mkdtemp(path.join(os.tmpdir(), "codex-sync-hooks-skip-"));
   try {
     await fs.mkdir(path.join(tempRoot, ".claude"), { recursive: true });
@@ -241,7 +241,12 @@ test("sync-hooks omits Claude SessionStart hooks and writes a skip report", asyn
     assert.deepEqual(Object.keys(hooksConfig), ["hooks"]);
     assert.equal(hooks.SessionStart, undefined);
 
-    const rawReport = await fs.readFile(path.join(tempRoot, ".codex", "hooks.sync.report.json"), "utf8");
+    await assert.rejects(
+      fs.access(path.join(tempRoot, ".codex", "hooks.sync.report.json")),
+      { code: "ENOENT" },
+      "disposable reports must not be written into the generated Codex mirror"
+    );
+    const rawReport = await fs.readFile(path.join(tempRoot, "tmp", "hooks.sync.report.json"), "utf8");
     const report = JSON.parse(rawReport);
     assert.ok(
       report.skipped_events.some(

@@ -15,7 +15,7 @@
  *
  * Consumers (keep in lockstep):
  *   - .claude/scripts/codex/sync-context-workflows.mjs       (via createRequire)
- *   - .claude/skills/claude-md-init/scripts/generate-claude-md.cjs
+ *   - .claude/skills/ai-context-refresh/scripts/generate-claude-md.cjs
  */
 
 const fs = require("fs");

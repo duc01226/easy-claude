@@ -214,7 +214,7 @@ const tests = [
                     assertTrue(
                         !(blockStart > openAt && blockStart < closeEnd),
                         `CK:PROJECT-PROTOCOLS sits inside <!-- SECTION:${openName} -->. ` +
-                            'claude-md-init --mode update replaces SECTION bodies, so the block ' +
+                            'ai-context-refresh --mode update replaces SECTION bodies, so the block ' +
                             `would be silently destroyed on the next regeneration.\n${FIX}`
                     );
                     openAt = null;

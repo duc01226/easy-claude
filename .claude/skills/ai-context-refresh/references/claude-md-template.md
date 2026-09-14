@@ -24,7 +24,7 @@ Read `docs/project-config.json` first, then `docs/project-reference/docs-index-r
 | Behavior/public contract or spec-test-code sync | Spec docs above plus `workflow-spec-test-code-cycle-reference.md` |
 | Review/audit | `code-review-rules.md` plus applicable domain docs |
 
-If config, root instructions or required docs are missing or stale, run `/project-init` or the narrow `/project-config`, `/docs-init`, `/scan-all`, `/scan --target=<key>`, `/claude-md-init` setup route before ordinary work. If Codex mirrors or `AGENTS.md` are missing/stale, ask the user to run `/sync-codex`; never auto-run it. If required detail remains unavailable, stop and report its exact path; never invent rules or completion.
+If config, root instructions or required docs are missing or stale, run `/project-init` or the narrow `/project-config`, `/docs-init`, `/scan-all`, `/scan --target=<key>`, `/ai-context-refresh` setup route before ordinary work. A full `/sync-codex` run preflights `CLAUDE.md` before regenerating Codex mirrors; a completed `/ai-context-refresh` run invokes the same standalone runner with `--skip=claude-md` after final source edits. Markerless roots remain a manual smart-merge boundary unless `portability.requireUniversalGuides: false` is explicit. If required detail remains unavailable, stop and report its exact path; never invent rules or completion.
 
 ## Task Planning Rules
 
@@ -71,7 +71,7 @@ When `.code-graph/graph.db` exists, run at least one graph command on key files 
 
 ## Canonical Ownership
 
-Edit framework source `.claude/**` and root source `CLAUDE.md`. Never hand-edit generated `.agents/`, `.codex/` or `AGENTS.md`; fix their source. Never auto-run `/sync-codex`; after source changes name stale mirrors and instruct the user to run it. Shared SYNC protocols remain inline: change `sync-inline-versions.md` first, propagate every consumer and verify exact bodies/fences. Regenerate affected catalogs and validate every output; no project-specific names in portable surfaces. Root regeneration preserves unmanaged prose or reports overflow explicitly; it never truncates it.
+Edit framework source `.claude/**` and root source `CLAUDE.md`. Never hand-edit generated `.agents/`, `.codex/` or `AGENTS.md`; fix their source. `/sync-codex` owns mirror generation, while an explicit `/ai-context-refresh` completion may invoke its standalone runner after final source edits; unrelated work must not auto-run the mutating pipeline. Shared SYNC protocols remain inline: change `sync-inline-versions.md` first, propagate every consumer and verify exact bodies/fences. Regenerate affected catalogs and validate every output; no project-specific names in portable surfaces. Root regeneration preserves unmanaged prose or reports overflow explicitly; it never truncates it.
 
 ## Project Protocol Overlays
 

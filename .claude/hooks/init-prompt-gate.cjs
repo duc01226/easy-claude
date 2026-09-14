@@ -82,7 +82,7 @@ const ALLOWLIST_PATTERNS = [
     /\/project-config/i, // The skill that populates config
     /\/scan[-\w]*/i, // The /scan host (incl. /scan --target=<key>) + /scan-* orchestrators that populate reference docs
     /\/graph-build/i, // The skill that builds the knowledge graph
-    /\/claude-md-init/i, // Generates CLAUDE.md (fixes missing-agent-file state)
+    /\/ai-context-refresh/i, // Generates root AI context (fixes missing-agent-file state)
     /\/sync-codex/i, // Generates AGENTS.md mirror (fixes missing-agent-file state)
     /\/init/i, // Any init-related command
     /skip\s*init/i, // User wants to dismiss the gate
@@ -285,12 +285,12 @@ function handleStalenessGate(userPrompt) {
 /**
  * Check the agent-files gate after config is populated.
  *
- * Runs only in the config-populated branch by design: /claude-md-init reads
+ * Runs only in the config-populated branch by design: /ai-context-refresh reads
  * docs/project-config.json to generate CLAUDE.md, so offering it before config
  * is populated would produce a meaningless file. Empty/uninitialized projects
  * are already short-circuited by the hasProjectContent() guard in main().
  *
- * Missing CLAUDE.md → /claude-md-init (AI-runnable).
+ * Missing CLAUDE.md → /ai-context-refresh (AI-runnable).
  * Missing AGENTS.md → /sync-codex (AI-runnable mirror generator with script fallback).
  *
  * @param {string} userPrompt - The user's prompt text
@@ -478,7 +478,7 @@ function main() {
 
         // Fast path: config already populated → check agent-files, staleness, graph gates.
         // Agent-files first: CLAUDE.md/AGENTS.md are the most foundational artifacts and
-        // /claude-md-init depends on the (now-populated) config.
+        // /ai-context-refresh depends on the (now-populated) config.
         if (isConfigPopulated()) {
             handleAgentFilesGate(userPrompt);
             handleStalenessGate(userPrompt);

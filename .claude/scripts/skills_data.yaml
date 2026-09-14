@@ -1,3 +1,14 @@
+- category: ai-ml
+  deprecated_by: null
+  deprecated_since: null
+  description: '[Documentation] Use when initializing, updating, smart-merging, or
+    refactoring portable project AI context and its Claude/Codex projections.'
+  has_references: true
+  has_scripts: true
+  name: ai-context-refresh
+  path: ai-context-refresh/SKILL.md
+  removal_after: null
+  status: active
 - category: other
   deprecated_by: null
   deprecated_since: null
@@ -173,17 +184,6 @@
   has_scripts: false
   name: claude-code
   path: claude-code/SKILL.md
-  removal_after: null
-  status: active
-- category: other
-  deprecated_by: null
-  deprecated_since: null
-  description: '[Documentation] Use when initializing, updating, or refactoring CLAUDE.md
-    from project-config and codebase scans.'
-  has_references: true
-  has_scripts: true
-  name: claude-md-init
-  path: claude-md-init/SKILL.md
   removal_after: null
   status: active
 - category: utilities
@@ -502,6 +502,17 @@
   has_scripts: false
   name: e2e-test
   path: e2e-test/SKILL.md
+  removal_after: null
+  status: active
+- category: other
+  deprecated_by: null
+  deprecated_since: null
+  description: '[Testing] Use when verifying an existing E2E, browser, or user-flow
+    test scope with exact runner output, evidence, and report-only quality-gate results.'
+  has_references: false
+  has_scripts: false
+  name: e2e-test-verify
+  path: e2e-test-verify/SKILL.md
   removal_after: null
   status: active
 - category: other

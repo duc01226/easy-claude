@@ -12,6 +12,9 @@ description: '[Testing] Use when selecting, generating, updating, or maintaining
 
 <!-- PROMPT-ENHANCE:STEP-TASK-ANCHOR:END -->
 
+> **E2E Quality Protocol** — the shared gate covers user-flow intent, stable locators/page objects, isolated fixtures/data, auth/permissions, applicable accessibility/responsive/visual checks, bounded waits, readable failure evidence, cleanup, and test-to-spec traceability.
+> **MUST ATTENTION READ** `.claude/skills/shared/e2e-quality-protocol.md` before writing or updating an executable E2E/browser/user-flow case; keep the detailed gate there and record only its result here.
+
 ## Quick Summary
 
 **Goal:** Produce or select maintainable, spec-traceable E2E tests (`TC-{MODULE}-E2E-{NNN}`) from the user prompt/current context, recordings, specs, or code changes with the project's configured framework (Playwright, Selenium, Cypress, or another), then exercise the declared scope like a human QC tester and protect business behavior so cosmetic UI changes do not break tests and intended behavior breaks do.
@@ -24,6 +27,7 @@ description: '[Testing] Use when selecting, generating, updating, or maintaining
 - Every test carries its `TC-{MODULE}-E2E-{NNN}` code traced to the §8 invariant/behavior it guards, structured with a reusable tiered object model (locators/actions in component or page objects, assertions in the test).
 - For applicable browser/UI E2E, use one reusable bounded `waitUntil(condition, options)` helper before every UI-control operation for readiness/actionability and applicable error-alert absence, then after the operation for the expected positive/negative outcome or error-alert state; apply exactly **500ms at the end** after those waits and any real settle signal. Use an idiomatic abstract base, cohesive helpers/utilities, and Common → Domain-Shared → Page component reuse.
 - When visual review is enabled (the default, or an explicit `--visual-review=true`), include stable screenshot checkpoints for the declared state × viewport matrix and hand off candidate evidence to `/experience-review`; `--visual-review=false` is the explicit opt-out. Do not update snapshots, baselines, or assertions automatically.
+- **Shared quality gate:** Before authoring, apply `.claude/skills/shared/e2e-quality-protocol.md` to the scenario and preserve its Given/When/Then, invariant, gate-row, evidence, and owner records; this skill owns test selection/generation, not the detailed cross-skill checklist.
 - Selector priority semantic/BEM > data-testid > ARIA/role > visible text; AVOID generated classes, `:nth-child`, XPath.
 - Generate unique self-sufficient data (GUID/timestamp); NEVER delete or reset persistent, reference, seeded, additive, or shared data. If the project declares opt-in cleanup, remove only current-run ephemeral resources after evidence capture and never use cleanup as repeat-proof. Auto-select the appropriate workflow when not already in one. If the requested prompt/context scope has no suitable test, generate a traceable Given/When/Then scenario; if a suitable test exists, reuse it and report why it covers the scope.
 
@@ -40,6 +44,7 @@ description: '[Testing] Use when selecting, generating, updating, or maintaining
 - MUST ATTENTION keep claims evidence-based (`file:line`), confidence >80% to act.
 - MUST ATTENTION apply the Real-World Fidelity Gate before writing setup — a flow, pacing, or data shape production can never reach proves nothing; fix the SCENARIO, never the assertion.
 - MUST ATTENTION keep task tracking updated as each step starts/completes.
+- MUST ATTENTION apply the shared E2E quality protocol before writing and carry every applicable gate verdict into the report.
 - NEVER skip mandatory workflow or skill gates.
 
 ## ⚠️ MANDATORY: Read Project E2E Reference (FIRST)
@@ -282,7 +287,7 @@ Tests MUST generate unique data to be repeatable:
 
 - Append GUIDs/timestamps to test data
 - Make each test self-sufficient with own generated data; NEVER depend on specific pre-existing database state
-- Leave seeded data in place after run, NEVER clean up — why: teardown across shared runs creates side effects for parallel/repeat tests
+- Preserve seeded, reference, additive, and shared data. If the project declares opt-in cleanup, remove only current-run ephemeral resources after evidence capture — why: teardown across shared runs creates side effects for parallel/repeat tests
 
 ### 5. Preconditions Documentation
 
@@ -442,6 +447,9 @@ Generate and maintain E2E tests using project's configured testing framework.
 
 > **Test Architecture & Execution Contract** — Treat testability as a setup/architecture acceptance condition. For every potentially applicable tier — Unit, Integration/System, E2E, and Performance/Scale (warranted at `T1+`/`B2+`) — record `APPLICABLE` only with evidence of its runner/framework/configuration; otherwise record `N/A — <evidence>` and never fabricate coverage.
 >
+> 0. **Given / When / Then is mandatory for every assertion-bearing test.** Every Unit, Integration/System, E2E, Performance/Scale, contract, architecture, security, accessibility, visual, property, mutation, and harness test must expose one explicit scenario: `Given` = actor/input/precondition/fixture/environment · `When` = the behavior, request, event, check, or workload trigger · `Then` = the observable business/technical outcome, invariant, error/access decision, visual state, or asserted budget. Use `And` only as a continuation. Framework-native BDD blocks, named helpers, or comments are valid representations; bare `Arrange/Act/Assert` is insufficient unless those three phases are also labeled `Given/When/Then`.
+>    Record `Business Intent / Invariant Guarded` (or the technical contract being checked), keep one behavior per case, and split unrelated outcomes. `Then` asserts the outcome the test owns, not only an internal call, delivery bookkeeping, or setup side effect. Fixture/runner glue is exempt only when it contains no test assertion; every assertion-bearing test entry point is in scope. Convert legacy brownfield cases when touched; a broader migration is a named owned opportunity, while a safety-critical case without clear phases is `BLOCKED`.
+>
 > 1. **Matrix before implementation:** Record applicability, owner, runner/framework, test root, fixture/data strategy, full command, focused/partial command, zero-match behavior, CI gate, a simple/Windows entry point (a `.cmd` when the project needs one), the **host-mode AND container-mode commands** where the project supports both, and the **environment reach** (which of local / CI / production-shaped this tier can target).
 > 1a. **E2E profile handoff:** For E2E, also record the selected `surfaceIds[]`, the linked `localRun` owner, auth mode/reference, seed/data mode, browser runner/engine/headed setting, action-delay policy, evidence root/capture/redaction policy, and convergence cap. Missing fields remain explicit blockers or N/A; they are never filled from generic browser defaults.
 > 2. **Runnable scopes:** Full and focused commands must be copy-ready, fail on invalid or zero-match selections, report exact counts and exit status, and be safe to repeat. E2E uses only configured browser/service commands. Before every browser/UI E2E operation on a UI control, use the canonical bounded `waitUntil(condition, options)` helper for readiness/actionability and applicable blocking error-alert absence; after the operation, use it for the expected positive/negative postcondition or error-alert state, then wait exactly **500ms** at the end. The delay is presentation pacing, never a readiness or settle mechanism, and applies to automation as well as visible human-QC.
@@ -538,6 +546,8 @@ Generate and maintain E2E tests using project's configured testing framework.
 
 <!-- SYNC:test-architecture-execution-contract:reminder -->
 
+**MUST ATTENTION** Every assertion-bearing test entry point — Unit, Integration/System, E2E, Performance/Scale, contract, architecture, security, accessibility, visual, property, mutation, and harness — uses explicit `Given` → `When` → `Then` sections (framework-native BDD, named helpers, or comments; bare AAA is insufficient), names `Business Intent / Invariant Guarded` or the technical contract, and asserts an owned outcome rather than only internal calls, setup side effects, or infrastructure bookkeeping. Convert touched brownfield cases; assign an owner and next step for broad legacy migration; block safety-critical cases with an ambiguous or missing phase.
+
 **MUST ATTENTION** Before implementation, record evidence-backed Unit/Integration/System/E2E **and Performance/Scale** (`T1+`/`B2+`) applicability (or explicit N/A), copy-ready full + focused commands, zero-match behavior, a simple/Windows entry point, **the host-mode AND container-mode commands where both are supported, plus each tier's environment reach (local / CI / production-shaped)**, unique run identity, realistic valid data, idempotent/restart-safe reference setup, intentional additive accumulation, parallel isolation, exact results, and two no-reset full runs for each applicable persistent-state suite. **Both claimed run modes must be EXERCISED** (an unexercised mode rots; a claimed-but-rotten mode is worse than one never claimed), the same suite reaches every target **parameterized by config, never by forked test code**, a missing capability reports `ENVIRONMENT-BLOCKED` rather than passing silently, and *"runs in prod"* means a safe, declared, **NON-MUTATING** subset excluded by an enforced mechanism, not by convention. For applicable browser/UI E2E, every UI-control operation also uses the canonical bounded `waitUntil(condition, options)` helper before the action for readiness/actionability and applicable error-alert absence, then after the action for the expected positive/negative state, dropdown/options, selected state, or error-alert presence/absence, followed by the mandatory post-operation **500ms** presentation delay. The object model still requires three-tier Common/Domain-Shared/Page reuse with an idiomatic abstract base, cohesive helpers/utilities, and reusable lower-tier component tests.
 
 <!-- /SYNC:test-architecture-execution-contract:reminder -->
@@ -563,6 +573,7 @@ Generate and maintain E2E tests using project's configured testing framework.
 - **Parallel Sub-Agent Dispatch:** Tag tasks PAR/SEQ, group PAR into disjoint-write-set waves, spawn each wave in ONE message, barrier before advancing.
 
 **IMPORTANT MUST ATTENTION — Main steps (execute in order, track each):** (1) detect E2E framework from project files; (2) read `e2e-test-reference.md` + `e2eTesting` config FIRST; (3) load `TC-{MODULE}-E2E-{NNN}` specs from `docs/specs/`; (4) pass the Real-World Fidelity Gate BEFORE writing test code; (5) generate/update tests via Page Object Model through the `e2e-runner` sub-agent; (6) run tests with the configured command; (7) update `e2e-test-reference.md` with learnings — why: AI keeps dropping the skill's own step sequence under long context.
+**IMPORTANT MUST ATTENTION** apply `.claude/skills/shared/e2e-quality-protocol.md` before authoring; record its GWT + invariant, gate-row verdicts, exact evidence, cleanup, and test-to-spec traceability without duplicating the detailed checklist.
 **IMPORTANT MUST ATTENTION** read `docs/project-reference/e2e-test-reference.md` + the `e2eTesting` block of `docs/project-config.json` FIRST, then detect the framework from project files — NEVER assume a stack — why: the configured framework, paths, run commands, and TC format are project-specific, not framework defaults.
 **IMPORTANT MUST ATTENTION** cite `file:line` evidence for every claim (confidence >80% to act, <60% DO NOT recommend) — NEVER speculate without proof.
 **MANDATORY IMPORTANT MUST ATTENTION** break work into small todo tasks using `TaskCreate` BEFORE starting; mark one `in_progress`, set `completed` immediately after each finishes; add a final review todo.

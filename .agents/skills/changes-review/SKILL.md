@@ -24,7 +24,7 @@ When coding, planning, debugging, testing, or reviewing, open project docs expli
 - `docs/project-reference/docs-index-reference.md` (routes to the full `docs/project-reference/*` catalog)
 - `docs/project-reference/lessons.md` (always-on guardrails and anti-patterns)
 
-**Missing/stale context route:** If `docs/project-config.json`, the docs index, `lessons.md`, `CLAUDE.md`, `AGENTS.md`, or any task-required reference doc is missing or stale, auto-run `$project-init` or the narrow setup route (`$project-config`, `$docs-init`, `$scan-all`, `$scan --target=<key>`, `$claude-md-init`) before ordinary project-specific work. If Codex mirrors or `AGENTS.md` are missing/stale, ask the user to run `$sync-codex`; do not auto-run it.
+**Missing/stale context route:** If `docs/project-config.json`, the docs index, `lessons.md`, `CLAUDE.md`, `AGENTS.md`, or any task-required reference doc is missing or stale, auto-run `$project-init` or the narrow setup route (`$project-config`, `$docs-init`, `$scan-all`, `$scan --target=<key>`, `$ai-context-refresh`) before ordinary project-specific work. A full `$sync-codex` run preflights `CLAUDE.md`; a completed `$ai-context-refresh` run may invoke the standalone runner with `--skip=claude-md` after final source edits. Markerless roots need AI smart-merge unless `portability.requireUniversalGuides: false` is explicit.
 
 **Situation-based docs:**
 - Project structure/architecture/tech-stack/deployment/setup (any layer — backend, frontend, or infra): `project-structure-reference.md`
@@ -71,6 +71,11 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 
 > **Shared engine (keep in sync):** `changes-review` and `code-review` share the same review-protocol `SYNC:` blocks. Canonical source: `.claude/skills/shared/sync-inline-versions.md`; policy: `SYNC:shared-protocol-duplication-policy`. When you change a shared block in one skill, update the canonical file AND the sibling skill so the two never drift. The skills differ only in entry intent (diff vs explicit scope) and diff-specific gates (integration-test-sync, translation-sync, the Phase 3.7 integration-test-review coverage gate) — not in review quality.
 
+> **Current-principles applicability:** At Phase 0.1/0.7, apply `SYNC:review-principle-awareness` and route only relevant scale-ready foundation, Given → When → Then test, AI-agent-as-user, or UI/component obligations to their detailed protocols. Record evidence-backed applicability/status and owner/next step; do not invent unrelated findings or expand a diff review into an unowned refactor.
+
+> **E2E Quality Protocol** — the shared gate covers user-flow intent, stable locators/page objects, isolated fixtures/data, auth/permissions, applicable accessibility/responsive/visual checks, bounded waits, readable failure evidence, cleanup, and test-to-spec traceability.
+> **MUST ATTENTION READ** `.claude/skills/shared/e2e-quality-protocol.md` when the diff contains an executable E2E/browser/user-flow surface; trigger the report-only leaf only when the protocol's applicability evidence is positive.
+
 **Workflow:**
 
 0. **Phase -1: Bind the Self-Recursive Review Loop (FIRST ACTION — standalone-only; protocol-first, `/goal` optional)** — Before any other work, in standalone mode bind the review loop as a standing protocol obligation you self-drive — and, WHEN available, invoke the `/goal` command as an ACTUAL call — with a self-recursive review-loop condition so stopping is BLOCKED until the loop converges: *review the full diff → validate findings (Phase 6) → SELF-FIX validated findings that block the current round (Phase 7) → restart `$changes-review` from Phase 0 over the WHOLE updated diff (combined with the prior fixes, never just re-checking the last fix) → loop until one complete pass clears that round's exit bar — **zero findings in round 1, zero CRITICAL/HIGH/MEDIUM from round 2 (a LOW-only round ENDS the loop; list those LOWs as deferred, never fix-and-loop for them)**, then docs-update*. Skip this gate when running as step 1 inside `$workflow-review-changes` (the parent owns the goal). Full procedure in **Phase -1**.
@@ -86,6 +91,7 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 10. **Phase 3.5: Code-Simplifier Optimization (MANDATORY when code files changed)** — Invoke `$code-simplifier` scoped to the changed code files to surface clarity/consistency/maintainability simplifications; record them as findings that flow into the same validation/fix loop (skip docs-only diffs)
 11. **Phase 3.7: Integration-Test-Review Coverage Gate (MANDATORY when behavior-bearing code changed)** — Invoke `$integration-test-review` over the full diff; its 8 quality gates audit changed tests AND its Gate 7 (Change Coverage) maps every behavior-changing production file to a covering test (integration-first; unit fallback needs justification) and a spec TC. GAP/SPEC-GAP results become findings for the same validation/fix loop (skip docs-only diffs; deferred to the parent's dedicated step inside `$workflow-review-changes`)
 12. **Phase 3.8: Domain Entity Gate (MANDATORY when the diff touches an entity/VO/aggregate)** — Apply `SYNC:domain-entity-change-gate` over the changed domain types; Mode A reviews inline, Mode B delegates to `$domain-entities-review` (its A–P checklist owns the gate). Findings flow into the same validation/fix loop (skip when no domain-entity surface)
+12.5. **Phase 3.9: Conditional E2E Quality Gate (MANDATORY only when Phase 0.7 detects an executable E2E/browser/user-flow surface)** — Invoke `$e2e-test-verify` report-only over the fixed E2E scope; apply the shared GWT/invariant and quality-gate record; findings flow into the same validation/fix loop (skip with evidence-backed `NOT-APPLICABLE` when no trigger)
 13. **Phase 4: Finalize** — Generate critical issues, recommendations, suggested commit message
 14. **Phase 5: Docs Triage** — Record stale-doc findings for validation/fix loop
 15. **Phase 6: Why-Review Findings Validation (standalone-only; REQUIRED before any standalone fix)** — Whenever the report contains one or more findings, you MUST invoke the `$why-review` skill (an actual skill invocation-tool call) with `--validate-findings` to verify every finding is correct, proof-backed, reasonable, and best-practice before fixing. This is a genuine skill invocation — re-reading the cited lines yourself, "self-validating," or any inline/manual substitute does NOT satisfy this gate. When this skill is step 1 inside `$workflow-review-changes`, stop after the report; parent step 2 owns findings validation.
@@ -95,8 +101,11 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 
 **Key Rules:**
 
+- **Conditional E2E review lane:** Phase 0.7 detects executable E2E/browser/user-flow artifacts; only a positive trigger runs Phase 3.9 `$e2e-test-verify` report-only with the shared quality protocol. No trigger is an evidence-backed `NOT-APPLICABLE`; this lane is separate from the workflow's conditional runtime/visual `experience-review` step.
+
 - Report-driven: ALWAYS write findings to `tmp/reports/code-review-{date}-{slug}.md`
 - MUST ATTENTION create todo tasks for ALL phases before starting
+- MUST ATTENTION run `SYNC:review-principle-awareness` during change-context and surface detection; check the detailed protocol only when applicable and record `NOT-APPLICABLE`, `DEFER-AS-OPPORTUNITY`, `UNVERIFIED`, or `BLOCKED` with evidence and ownership.
 - Skeptical: every claim needs `file:line` proof
 - Verify convention by grepping 3+ existing examples before flagging violations
 - Actively check DRY violations, YAGNI/KISS over-engineering, correctness bugs
@@ -431,6 +440,15 @@ For EACH identified category:
 
 > **UI/frontend dimension (OWNED by this skill):** When a _Client-side logic_ or _Styles/Assets_ category surfaces frontend files matching the project's configured frontend/UI file patterns, `$changes-review` owns the UI review and invokes `$ui-review` as its UI dimension — preferably as a dedicated `ui-ux-designer` sub-agent spawned in the same parallel batch as the other dimensional agents (inline-fold its checklist only when sub-agent spawning is unavailable). The checklist: long-content overflow (wrap vs ellipsis+tooltip), responsive multi-screen via flex, flex-grow vs fixed sizing (prefer min/max + flex over fixed px), z-index scale discipline (no raw numbers, no `!important`), and SCSS/BEM quality. This is the SAME behavior in both standalone and workflow contexts — `$ui-review` is NOT a separate workflow step; it always runs here. Skip entirely if no frontend files changed.
 
+### Conditional E2E/browser/user-flow trigger
+
+Apply `.claude/skills/shared/e2e-quality-protocol.md` after deriving categories and before spawning the dimensional wave:
+
+- **Trigger only** for changed executable E2E test/spec files, browser configuration, fixtures, page/component objects, browser helpers, recordings, or source changes that alter an exercised user journey. A `.claude/skills/**` or documentation file that merely mentions E2E is not a trigger.
+- Record trigger paths and config/reference evidence. Positive evidence creates `[Review-E2E] Shared E2E quality gate — intent, object model, isolation, auth, visual/accessibility, waits, evidence, cleanup, traceability` and marks the lane `APPLICABLE`.
+- With no trigger, record `E2E quality gate: NOT-APPLICABLE — no executable E2E/browser/user-flow surface in the diff` and do not invoke an E2E verifier. This keeps the lane optional for ordinary reviews.
+- A positive trigger with a missing runnable framework, auth/data path, browser, service, or evidence capability remains `ENVIRONMENT-BLOCKED`; never downgrade it to `NOT-APPLICABLE` or PASS.
+
 **Step 2.5: Declare the Dimensional Wave (MANDATORY before spawning any reviewer)**
 
 > **Purpose:** the dimensional reviewers are read-only over the same frozen diff and share no write target — they are ONE wave, not a queue. This declaration lives in the SKILL, not only in a parent workflow's injected context, because standalone runs receive no injected context at all and would otherwise serialize the batch.
@@ -695,6 +713,20 @@ For each changed file, identify related documentation:
 5. Set the `[Review Phase 3.8]` task to `completed`.
 
 **Parent workflow boundary:** When this skill is invoked as step 1 inside `$workflow-review-changes`, do NOT run Phase 3.8 locally — the parent workflow's dedicated `$domain-entities-review` step 5 owns the A–P audit. Record `Phase 3.8 deferred to parent workflow $domain-entities-review step 5.` — why: running both duplicates a parallel-batch member and closes a review cycle.
+
+**Phase 3.9: Conditional E2E Quality Gate (report-only)**
+
+**Entry gate:** Run only when the Phase 0.7 E2E trigger is positive. Otherwise record the exact `NOT-APPLICABLE` reason and continue the existing phase order. This lane is not a second workflow step.
+
+**Protocol:**
+
+1. Set the `[Review Phase 3.9]` task to `in_progress`.
+2. Read `.claude/skills/shared/e2e-quality-protocol.md`, freeze the E2E scope from the diff, and record one `Given` → `When` → `Then` scenario with its protected invariant and TC/spec trace.
+3. Invoke `$e2e-test-verify` in report-only mode over that fixed scope. It applies the shared gate, runs the configured verification command when available, and writes exact output/evidence; it does not edit source, tests, fixtures, baselines, or user data.
+4. Integrate its full report under `## E2E Quality Gate Findings`: gate-row verdicts, exact command/counts/exit status, readable redacted artifacts, cleanup result, failure classification, `file:line`/config evidence, confidence, owner, and next step. A report-only `ENVIRONMENT-BLOCKED` result stays an open finding.
+5. Set the `[Review Phase 3.9]` task to `completed` only after the report is persisted and reconciled.
+
+**Pipeline boundary:** Phase 3.9 produces ordinary findings for Phase 4 → Phase 6 validation → Phase 7 fixing. It never repairs E2E code and never replaces `$experience-review`: step 17 owns runtime/visual exercise and acceptance for configured or likely observable surfaces. In `$workflow-review-changes`, Phase 3.9 remains inside inline step 1; the parent validates and owns any fix cycle.
 
 **Phase 4: Generate Final Review Result**
 
@@ -1839,7 +1871,7 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 > **Project Reference Docs Gate (static JIT)** — Run after task-tracking bootstrap and immediately before target/source file reads, grep, edits, tests, or analysis. Project docs override generic framework assumptions; hooks may remind or accelerate this gate, but never prove that it ran.
 >
 > 1. Identify scope: file types, domain area, and operation.
-> 2. **Read `docs/project-config.json` first — the project's machine-readable map.** It is the single source of truth for THIS repo (modules/paths, framework + search keywords, test/E2E/integration run-commands, design system, architecture rules, workflow patterns); ground exact paths, run-commands, and conventions on it **before investigating, planning, or coding** — never assume framework defaults (`CLAUDE.md` + reference docs are derived from it). If it — or the docs index, `lessons.md`, `CLAUDE.md`, `AGENTS.md`, or any required reference doc — is missing or stale, auto-run `$project-init` or the narrow route (`$project-config`, `$docs-init`, `$scan-all`, `$scan --target=<key>`, `$claude-md-init`) first; if Codex mirrors or `AGENTS.md` are stale, ask the user to run `$sync-codex` (never auto-run it).
+> 2. **Read `docs/project-config.json` first — the project's machine-readable map.** It is the single source of truth for THIS repo (modules/paths, framework + search keywords, test/E2E/integration run-commands, design system, architecture rules, workflow patterns); ground exact paths, run-commands, and conventions on it **before investigating, planning, or coding** — never assume framework defaults (`CLAUDE.md` + reference docs are derived from it). If it — or the docs index, `lessons.md`, `CLAUDE.md`, `AGENTS.md`, or any required reference doc — is missing or stale, auto-run `$project-init` or the narrow route (`$project-config`, `$docs-init`, `$scan-all`, `$scan --target=<key>`, `$ai-context-refresh`) first; if Codex mirrors or `AGENTS.md` are stale, use the explicit `$sync-codex` route, or the documented `$ai-context-refresh` completion handoff when that is the active source-authoring task.
 > 3. Required docs by trigger: always `docs/project-reference/lessons.md`; doc lookup `docs-index-reference.md`; review `code-review-rules.md`; backend/CQRS/API `backend-patterns-reference.md`; domain/entity `domain-entities-reference.md`; frontend/UI `frontend-patterns-reference.md`; styles/design `scss-styling-guide.md` + `design-system/design-system-canonical.md`; integration tests `integration-test-reference.md`; E2E `e2e-test-reference.md`; feature docs/specs `feature-spec-reference.md` + `spec-system-reference.md` + `spec-principles.md`; behavior/public-contract/spec-test-code sync `workflow-spec-test-code-cycle-reference.md`; derived spec index/ERD/reimplementation guides `spec-system-reference.md` + source Feature Specs under `docs/specs/`; architecture/new area `project-structure-reference.md`.
 > 4. Read every required doc, then before target work state: `Reference docs read: ... | Not applicable: ...`. After compaction, resume, delegation, or a material context change, repeat the route and restate the set; prior conversation and hook output are not proof of current loading.
 >
@@ -2266,6 +2298,32 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 
 <!-- /SYNC:design-review-checklist:reminder -->
 
+<!-- SYNC:review-principle-awareness -->
+
+> **Review Applicability / Current-Principles Awareness** — Every review must first classify the change context (greenfield foundation, brownfield feature/refactor, test/docs/config/UI/infra, or actor-facing/machine surface) and take notice of the applicable current principles below. This is an evidence-gated applicability check, not a mandate to flag or build every item.
+>
+> **Detailed protocol routing — read/apply only when warranted:**
+> - `SYNC:scale-ready-foundation` — greenfield foundation is blocking; big-feature brownfield fit/adapt/defer; architecture review is advisory when auditing. Detailed carriers: `workflow-greenfield-init`, `workflow-big-feature`.
+> - `SYNC:test-architecture-execution-contract` — assertion-bearing tests use explicit `Given` → `When` → `Then`, name the guarded intent/technical contract, and assert an owned outcome. Detailed carriers: `integration-test`, `workflow-greenfield-init`, and the test-architecture review path.
+> - `SYNC:ai-agent-as-user-access` — when an AI/machine actor or future contract is evidenced, inspect identity/delegation, capability boundaries, selected API/CLI/MCP/WebMCP/event/SDK surface, safety/consent, audit/observability, and GWT contract tests. Detailed carriers: `workflow-greenfield-init`, `workflow-big-feature`, `architecture-review`.
+> - `SYNC:design-system-check` — when UI changes, inspect the design-system and component-contract obligations; route visual/UX depth to the owning UI review.
+>
+> **Review behavior:** Check only principles applicable to the reviewed scope; record `APPLY-NOW`, `ADAPT-IN-SLICE`, `DEFER-AS-OPPORTUNITY`, `NOT-APPLICABLE`, `BLOCKED`, or `UNVERIFIED` with `file:line`/config/CI evidence, status/severity, owner/route, and next step/revisit trigger. Do not invent findings from a generic checklist, flag unrelated pre-existing gaps as regressions, silently expand the requested scope, or mutate a parent gate merely because advice exists.
+>
+> **Ownership:** `changes-review` coordinates the applicability pass and routes depth to the owning specialist (`architecture-review`, `integration-test-review`, `security-review`, `performance-review`, `ui-review`, `production-readiness-review`, or another matching review). A specialist reports its own lens and does not duplicate or override another review's verdict; existing brownfield gaps stay advisory unless new, safety-relevant, or explicitly in scope.
+>
+> **Required review note:** `context/scope | principle/protocol checked | evidence | status/verdict | severity | owner/route | next step/revisit trigger`.
+>
+> **BLOCKED when:** an applicable principle is required for safety/correctness but missing, unowned, or untestable. Otherwise record an evidence-backed `NOT-APPLICABLE`, advisory, `DEFER-AS-OPPORTUNITY`, or `UNVERIFIED` result according to the lifecycle and change context; creating a greenfield foundation remains subject to its own blocking protocol.
+
+<!-- /SYNC:review-principle-awareness -->
+
+<!-- SYNC:review-principle-awareness:reminder -->
+
+**IMPORTANT MUST ATTENTION** Every review first checks the change context and routes only applicable principles to their detailed protocols: scale-ready foundation, explicit Given → When → Then test intent, AI-agent-as-user access, and UI/component design when relevant. Record evidence-backed apply/adapt/defer/N/A/block/unverified status with owner and next step; do not invent unrelated findings or expand scope.
+
+<!-- /SYNC:review-principle-awareness:reminder -->
+
 ## Closing Reminders
 
 **IMPORTANT MUST ATTENTION Goal:** Review current working-tree, staged, branch, or commit diffs across code, docs, config, infra, and non-code artifacts — finding correctness bugs, flaws, missing updates, stale docs, and convention drift with evidence — so every reviewed change is defect-free, evidence-backed, convention-aligned, and synchronized with required tests/docs before handoff; when code files changed, also prove the code stays easy to change.
@@ -2387,6 +2445,7 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 **IMPORTANT MUST ATTENTION** graph blast-radius runs first when `.code-graph/graph.db` exists.
 **IMPORTANT MUST ATTENTION** every claim needs `file:line` proof; every stale docs/tests decision needs evidence.
 **IMPORTANT MUST ATTENTION** ANY finding in standalone mode (Critical / High / Medium / OR Low) → you MUST invoke the `$why-review` skill via the skill invocation with `--validate-findings <report-path>` BEFORE any fix, docs-update, commit, or handoff; an actual skill call is the ONLY way to pass — inline self-validation, re-reading the cited lines, or declaring findings "already validated" do NOT count; task tracking the `[Review Phase 6]` gate the moment the first finding lands. Inside `$workflow-review-changes`, defer to parent step 2. — why: an unvalidated finding inherits the reviewer's confirmation bias and severity inflation, so fixing it before validation ships the wrong change.
+**IMPORTANT MUST ATTENTION** when Phase 0.7 finds executable E2E/browser/user-flow artifacts, read `.claude/skills/shared/e2e-quality-protocol.md` and invoke `$e2e-test-verify` report-only in Phase 3.9; when no trigger exists, record `NOT-APPLICABLE` and do not run an E2E lane — why: optional routing preserves review cost while preventing unverified user-flow changes from hiding inside a generic code review.
 **IMPORTANT MUST ATTENTION Goal:** Review current working-tree, staged, branch, or commit diffs across code, docs, config, infra, and non-code artifacts — finding correctness bugs, flaws, missing updates, stale docs, and convention drift with evidence — so every reviewed change is defect-free, evidence-backed, convention-aligned, and synchronized with required tests/docs before handoff; when code files changed, also prove the code stays easy to change.
 
 <!-- CODEX:SYNC-PROMPT-PROTOCOLS:START -->

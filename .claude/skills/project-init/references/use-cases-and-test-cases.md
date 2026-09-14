@@ -14,10 +14,10 @@ Use this matrix when planning, implementing, or reviewing portable project initi
 | UC-PI-006 | Populated config, reference docs missing | `/project-init` or missing-doc route | Run `/scan-all` after config; use `/docs-init` or targeted scans only for follow-up repair. |
 | UC-PI-007 | Reference docs exist but are placeholders | `/project-init` | Detect placeholders and run `/scan-all` after config. |
 | UC-PI-008 | Reference docs stale | Staleness gate or re-evaluation | Run `/scan-all`, refresh stale flag, then queue the final background `/graph-build` sub-agent task. |
-| UC-PI-009 | `CLAUDE.md` missing | Root instruction gate | Run `/claude-md-init --mode init`. |
-| UC-PI-010 | `CLAUDE.md` marker-managed but missing universal guides | Root instruction gate | Run `/claude-md-init --mode update`; verify sentinel and anchors. |
+| UC-PI-009 | `CLAUDE.md` missing | Root instruction gate | Run `/ai-context-refresh --mode init`. |
+| UC-PI-010 | `CLAUDE.md` marker-managed but missing universal guides | Root instruction gate | Run `/ai-context-refresh --mode update`; verify sentinel and anchors. |
 | UC-PI-011 | `CLAUDE.md` markerless/project-only | Root instruction gate | Preserve content, merge universal guide blocks, then update. |
-| UC-PI-012 | `AGENTS.md` missing | Codex static-context setup | Ask the user to run `/sync-codex` or its standalone node runner. |
+| UC-PI-012 | `AGENTS.md` missing | Codex static-context setup | Consume the `/ai-context-refresh` completion handoff when available; otherwise ask the user to run `/sync-codex` or its standalone node runner. |
 | UC-PI-013 | `AGENTS.md` stale/incomplete | Codex setup or re-evaluation | Regenerate mirror from current `CLAUDE.md` and Codex context. |
 | UC-PI-014 | Custom `.claude/.ck.json` portability paths | `/project-init` | Use configured project-config and docs-index paths, not hardcoded defaults. |
 | UC-PI-015 | Already initialized project | Re-run `/project-init` | No destructive edits; verify and report idempotent status. |
@@ -55,12 +55,12 @@ Use this matrix when planning, implementing, or reviewing portable project initi
 | TC-PI-010 | Placeholder detection CSS/SCSS | Generated token stubs | CSS/SCSS sentinel is detected without invalid comments. |
 | TC-PI-011 | Placeholder false-positive defense | Real doc mentions placeholder text in prose | `isPlaceholderFile()` returns false. |
 | TC-PI-012 | Stale docs | Doc has old `Last scanned` marker | `getStaleReferenceDocs()` returns the doc and scan route. |
-| TC-PI-013 | CLAUDE missing | Populated config, no `CLAUDE.md` | Route is `/claude-md-init --mode init`. |
+| TC-PI-013 | CLAUDE missing | Populated config, no `CLAUDE.md` | Route is `/ai-context-refresh --mode init`. |
 | TC-PI-014 | CLAUDE complete sentinel | File has current universal-guides sentinel | No CLAUDE issue is reported. |
 | TC-PI-015 | CLAUDE old sentinel | File has older universal-guides sentinel | Issue reason is `incomplete`, mode `update`. |
 | TC-PI-016 | CLAUDE legacy complete anchors | No sentinel but all required anchors present | File is accepted as complete. |
 | TC-PI-017 | CLAUDE project-only | No sentinel and missing anchors | File is flagged incomplete. |
-| TC-PI-018 | AGENTS missing | Complete CLAUDE, no AGENTS | Route asks the user to run `/sync-codex` or standalone node runner; user confirmation is required. |
+| TC-PI-018 | AGENTS missing | Complete CLAUDE, no AGENTS | Completed `/ai-context-refresh` refreshes the mirror; otherwise route asks the user to run `/sync-codex` or standalone node runner. |
 | TC-PI-019 | Universal guides opt-out | Config has `portability.requireUniversalGuides=false` | Existing project-only root files are accepted, missing files still flagged. |
 | TC-PI-020 | Skill gate allowlist | Missing root files and skill is `project-init` | Gate allows `project-init` so setup does not deadlock. |
 | TC-PI-021 | Prompt gate allowlist | Config missing and prompt mentions `/project-init` | Prompt gate allows the setup route. |

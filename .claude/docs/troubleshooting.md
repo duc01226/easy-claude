@@ -288,7 +288,7 @@ Some files are generated from canonical sources. Fix the source and then run the
 | ---------------------------------------------------- | ------------------------------------------------------------------ |
 | Skill catalog does not match `.claude/skills/`       | Run `generate_catalogs.py --skills`                                |
 | Project reference docs are missing or generic        | Run `/project-init` or the relevant `/scan --target=<key>`         |
-| `CLAUDE.md` sections are stale                       | Run `/claude-md-init` through the project setup route              |
+| `CLAUDE.md` sections are stale                       | Run `/ai-context-refresh` through the project setup route           |
 | `AGENTS.md` or `.codex/` differs from Claude sources | Run `/sync-codex` after updating the canonical Claude-side sources |
 | Graph state does not match the current checkout      | Run the graph `sync` command or `/graph-build`                     |
 

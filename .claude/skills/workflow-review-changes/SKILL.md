@@ -13,16 +13,21 @@ description: '[Workflow] Use when reviewing uncommitted, staged, or unstaged cha
 
 <!-- PROMPT-ENHANCE:STEP-TASK-ANCHOR:END -->
 
+> **E2E Quality Protocol** — the shared gate covers user-flow intent, stable locators/page objects, isolated fixtures/data, auth/permissions, applicable accessibility/responsive/visual checks, bounded waits, readable failure evidence, cleanup, and test-to-spec traceability.
+> **MUST ATTENTION READ** `.claude/skills/shared/e2e-quality-protocol.md` when step 1's diff surface contains executable E2E/browser/user-flow artifacts; the route is conditional and does not add a workflow step.
+
 ## Quick Summary
 
 **Goal:** Ensure changed work reaches a defensible review pass through an initial whole-target adversarial pass run in parallel with dimensional review, validated findings, verified fixes, full re-review, and synchronized docs/tests — review all uncommitted changes, fix only validated blocking findings, then repeat the plan→plan-execute→changes-review loop until the current severity bar is clear (round 1: zero findings; round 2: zero CRITICAL/HIGH/MEDIUM, with LOWs recorded as deferred).
 
 **Summary:**
 
+- **Conditional E2E handoff:** step 1 runs `/changes-review` inline; its Phase 0.7/3.9 route invokes report-only `/e2e-test-verify` only for an evidenced executable E2E/browser/user-flow surface, while step 17 `/experience-review` remains the separate configured/likely runtime and visual gate.
 - **Step 0 (FIRST ACTION, pre-sequence):** bind the self-recursive review loop — an always-on protocol loop you self-drive (the BINDING mechanism, hook/command-independent) PLUS, when available, a `/goal` Stop-hook gate as an optional accelerator — so the review→self-fix→whole-diff-re-review loop is unabandonable until it clears the current round's bar (round 1: zero findings; round 2: zero CRITICAL/HIGH/MEDIUM, with LOWs deferred) — why: a soft "loop until clean" directive gets rationalized away after one fix cycle, and the protocol loop holds even where `/goal` is absent. Session-level wrapper, NOT one of the 21 canonical steps. ALWAYS runs — including as a step inside a parent workflow — because this workflow always runs INLINE in the main session (never a sub-agent), so it owns the loop directly in every case.
 - **Initial parallel phase (steps 1–2, all-return barrier):** launch step 2 `/why-review --target=whole-review-target` as a fresh read-only `code-reviewer` sub-agent, then immediately run step 1 `/changes-review` INLINE while it is active. Step 1 owns the dimensional baseline (surface analysis, integration-test/translation/spec-drift gaps, internal UI review); step 2 independently reviews the WHOLE review target + current changes in FULL mode. Neither consumes the other's output. Advance only after BOTH return, then consolidate both reports.
 - Step 3 `/why-review` validates the step-1 `/changes-review` findings to drop false positives BEFORE the specialist batch fires. The initial whole-target step 2 already validates its own findings through `/why-review`'s full-mode closing gate.
 - Steps 4–10 (`/architecture-review`, `/domain-entities-review` [if entity files], `/performance-review`, `/integration-test-review`, `/security-review`, `/production-readiness-review`, `/ui-review` [if frontend files]) are read-only sub-agents: spawn ALL in ONE message and advance ONLY after every member returns (all-return barrier); the mutating `/code-simplifier` (step 11) waits until the barrier clears and self-reviews its own changes via `/code-review`. (`/ui-review` runs here as a DEDICATED conditional batch member AND still runs internally inside step 1's `/changes-review` — both by design; see the UI-review note below.)
+- Before the initial `/changes-review` baseline and specialist batch, apply `SYNC:review-principle-awareness`: classify the change context and route only applicable scale-ready foundation, Given → When → Then test, AI-agent-as-user, and UI/component principles to their detailed protocols; preserve evidence, ownership, and severity gates.
 - Fix cycle (steps 12–15 `/plan`→`/plan-review`→`/plan-execute`→`/changes-review`) runs ONLY when validated findings exist; the step-15 re-review runs ONLY if `/plan-execute` changed files, re-reading the full diff from scratch INLINE to counter orchestrator confirmation bias, and loops until the round's exit bar is clear — **zero findings in round 1, zero CRITICAL/HIGH/MEDIUM in round 2 (a LOW-only round ENDS the loop, deferred not fixed)** — bounded at **2 rounds MAX** (escalate via `AskUserQuestion` at whichever trips first: 2 no-progress repeats of the same blocker, or round 2 completing with CRITICAL/HIGH/MEDIUM still open — cap exhaustion escalates, never PASSes).
 - **Step 16 `/why-review` (ALWAYS runs, FULL mode, standalone)** — near-final HOLISTIC review of the settled WHOLE target + current changes as ONE artifact. It remains mandatory even though step 2 uses the same lens at startup: step 2 finds whole-package risks early; step 16 proves the final post-fix state. On blocking findings → re-enter `/plan`→`/plan-execute`→`/changes-review`, then re-run step 16 until the current round bar is clear (round 1: zero findings; round 2: zero CRITICAL/HIGH/MEDIUM, with LOWs deferred; bounded by `/why-review`'s own review loop: at most 1 re-do / 2 full review cycles total / 2-repeat-blocker → escalate).
 - **Step 17 `/experience-review` (CONDITIONAL, INLINE)** — when the changed target includes a configured or likely observable surface, exercise the running/observable feature, inspect evidence, classify the result, and leave a candidate or accepted expectation record. It is skipped only with an evidence-backed `NOT-APPLICABLE` reason; a relevant surface that cannot run or be inspected is `ENVIRONMENT-BLOCKED`, and no expectation is rewritten automatically. **This step MAY LAND FIXES** — it runs a bounded remediation loop (`--rounds=N`, default 3) in which each round adjudicates the BLOCKING defects, fixes at the owning layer, `/changes-review`s that round's own fix diff, and re-exercises from scratch. Its internal per-round `/changes-review` is what keeps this workflow's convergence guarantee intact after step 16; any fix it lands is therefore already code-reviewed. Only objectively-checkable defects open a round — ADVISORY/taste findings are recorded, never looped on — and it converges to `AGENT-RECOMMENDED-ACCEPT`/`ACCEPTANCE-PENDING`, never to a signed acceptance. Cap reached, defect count not shrinking, count rising, or `ENVIRONMENT-BLOCKED` → `NOT-CONVERGED` + escalate, never a partial pass. Pass `--rounds=0` to keep the step report-only.
@@ -32,11 +37,13 @@ description: '[Workflow] Use when reviewing uncommitted, staged, or unstaged cha
 
 **Key Rules:**
 
+- MUST ATTENTION preserve the conditional E2E route inside step 1: read `.claude/skills/shared/e2e-quality-protocol.md` and invoke report-only `/e2e-test-verify` only when the diff contains executable E2E/browser/user-flow evidence; record `NOT-APPLICABLE` otherwise and keep step 17 `/experience-review` independent.
 - MUST ATTENTION define success criteria before execution and loop until observable verification passes.
 - MUST ATTENTION when creating/reviewing specs or tests, name `Business Intent / Invariant Guarded` or the protected business intent/invariant and ensure the test would fail if that intent breaks.
 - MUST ATTENTION carry every unresolved finding or unaccepted risk into validation/fix planning; do not close until fixed or explicitly accepted.
 - MUST ATTENTION include unresolved risk register, generated mirror drift, and spec/test/docs drift in the fresh review prompt when relevant.
 - MUST ATTENTION launch the whole-target full-mode `/why-review` sub-agent before starting step 1 inline, then advance only after BOTH initial-phase members return; run step 3 `/why-review --validate-findings` on the step-1 findings before spawning the specialist reviewers.
+- MUST ATTENTION run `SYNC:review-principle-awareness` at the start of `/changes-review` and before the specialist batch; each reviewer consumes a detailed protocol only when its change context warrants it and records `NOT-APPLICABLE`, `DEFER-AS-OPPORTUNITY`, `UNVERIFIED`, or `BLOCKED` with evidence instead of inventing unrelated findings or expanding scope.
 
 - After `/plan-execute` applies validated fixes (and ONLY if `/plan-execute` changed files) → re-run `/changes-review` INLINE over the current full diff from the first phase; re-read the diff from scratch to counter orchestrator confirmation bias
 - Main-agent re-review (with knowledge of its own fixes) is NOT sufficient — orchestrator-level confirmation bias
@@ -143,6 +150,15 @@ NEVER consolidate, rename, or omit steps. If reviews PASS, mark conditional task
 > **Spec enrichment per cycle (MANDATORY — closes the feedback loop):** Every confirmed finding fixed in the loop (steps 12–15) that changed observable behavior MUST produce a new or updated §8 regression/preservation TC via `/spec [mode=tests]` before the workflow is clean — a code-only fix with no covering §8 TC is an INCOMPLETE cycle, not a clean pass. This applies to EVERY confirmed behavior-changing fix, not only SPEC-STALE drift verdicts or bugfix-workflow paths: a CODE-WRONG fix owes a regression TC describing the now-correct behavior; a behavior change owes a preservation/regression TC guarding the new behavior. So each recursive cycle ENRICHES the spec rather than only mutating code — the inline re-review (step 15) and the `/workflow-end` spec ↔ TDD-test sync gate both treat a behavior-changing fix that left no §8 TC as an open finding.
 
 ---
+
+## Conditional E2E Quality Handoff (inside step 1; no sequence change)
+
+Step 1 runs `/changes-review` inline and therefore inherits its conditional Phase 0.7 E2E trigger and Phase 3.9 report-only gate. Read `.claude/skills/shared/e2e-quality-protocol.md` when the diff contains changed executable E2E test/spec files, browser configuration, fixtures, page/component objects, browser helpers, recordings, or source that changes an exercised user journey. A skill or documentation file that merely mentions E2E is not a trigger.
+
+- On positive trigger evidence, `/changes-review` invokes `/e2e-test-verify` in report-only mode over the fixed E2E scope and carries its GWT/invariant/TC, gate-row, exact-result, artifact, cleanup, owner, and next-step records into the parent finding set.
+- With no trigger, step 1 records `E2E quality gate: NOT-APPLICABLE — no executable E2E/browser/user-flow surface in the diff` and does not invoke the verifier. This keeps E2E review optional for ordinary changes.
+- A positive trigger with missing runner, auth/data setup, browser/service, or evidence capability stays `ENVIRONMENT-BLOCKED` and remains visible to the parent validation/fix gates.
+- This handoff adds no `workflows.json` step and never replaces step 17 `/experience-review`, which independently owns configured/likely runtime and visual exercise, acceptance state, and its existing bounded remediation semantics.
 
 ## Initial Parallel Phase (Steps 1–2) — EXECUTION PROTOCOL
 
@@ -551,7 +567,7 @@ Activate the `workflow-review-changes` workflow. Run `/start-workflow workflow-r
 > **Project Reference Docs Gate (static JIT)** — Run after task-tracking bootstrap and immediately before target/source file reads, grep, edits, tests, or analysis. Project docs override generic framework assumptions; hooks may remind or accelerate this gate, but never prove that it ran.
 >
 > 1. Identify scope: file types, domain area, and operation.
-> 2. **Read `docs/project-config.json` first — the project's machine-readable map.** It is the single source of truth for THIS repo (modules/paths, framework + search keywords, test/E2E/integration run-commands, design system, architecture rules, workflow patterns); ground exact paths, run-commands, and conventions on it **before investigating, planning, or coding** — never assume framework defaults (`CLAUDE.md` + reference docs are derived from it). If it — or the docs index, `lessons.md`, `CLAUDE.md`, `AGENTS.md`, or any required reference doc — is missing or stale, auto-run `/project-init` or the narrow route (`/project-config`, `/docs-init`, `/scan-all`, `/scan --target=<key>`, `/claude-md-init`) first; if Codex mirrors or `AGENTS.md` are stale, ask the user to run `/sync-codex` (never auto-run it).
+> 2. **Read `docs/project-config.json` first — the project's machine-readable map.** It is the single source of truth for THIS repo (modules/paths, framework + search keywords, test/E2E/integration run-commands, design system, architecture rules, workflow patterns); ground exact paths, run-commands, and conventions on it **before investigating, planning, or coding** — never assume framework defaults (`CLAUDE.md` + reference docs are derived from it). If it — or the docs index, `lessons.md`, `CLAUDE.md`, `AGENTS.md`, or any required reference doc — is missing or stale, auto-run `/project-init` or the narrow route (`/project-config`, `/docs-init`, `/scan-all`, `/scan --target=<key>`, `/ai-context-refresh`) first; if Codex mirrors or `AGENTS.md` are stale, use the explicit `/sync-codex` route, or the documented `/ai-context-refresh` completion handoff when that is the active source-authoring task.
 > 3. Required docs by trigger: always `docs/project-reference/lessons.md`; doc lookup `docs-index-reference.md`; review `code-review-rules.md`; backend/CQRS/API `backend-patterns-reference.md`; domain/entity `domain-entities-reference.md`; frontend/UI `frontend-patterns-reference.md`; styles/design `scss-styling-guide.md` + `design-system/design-system-canonical.md`; integration tests `integration-test-reference.md`; E2E `e2e-test-reference.md`; feature docs/specs `feature-spec-reference.md` + `spec-system-reference.md` + `spec-principles.md`; behavior/public-contract/spec-test-code sync `workflow-spec-test-code-cycle-reference.md`; derived spec index/ERD/reimplementation guides `spec-system-reference.md` + source Feature Specs under `docs/specs/`; architecture/new area `project-structure-reference.md`.
 > 4. Read every required doc, then before target work state: `Reference docs read: ... | Not applicable: ...`. After compaction, resume, delegation, or a material context change, repeat the route and restate the set; prior conversation and hook output are not proof of current loading.
 >
@@ -751,6 +767,32 @@ Activate the `workflow-review-changes` workflow. Run `/start-workflow workflow-r
 
 <!-- /SYNC:severity-rubric:reminder -->
 
+<!-- SYNC:review-principle-awareness -->
+
+> **Review Applicability / Current-Principles Awareness** — Every review must first classify the change context (greenfield foundation, brownfield feature/refactor, test/docs/config/UI/infra, or actor-facing/machine surface) and take notice of the applicable current principles below. This is an evidence-gated applicability check, not a mandate to flag or build every item.
+>
+> **Detailed protocol routing — read/apply only when warranted:**
+> - `SYNC:scale-ready-foundation` — greenfield foundation is blocking; big-feature brownfield fit/adapt/defer; architecture review is advisory when auditing. Detailed carriers: `workflow-greenfield-init`, `workflow-big-feature`.
+> - `SYNC:test-architecture-execution-contract` — assertion-bearing tests use explicit `Given` → `When` → `Then`, name the guarded intent/technical contract, and assert an owned outcome. Detailed carriers: `integration-test`, `workflow-greenfield-init`, and the test-architecture review path.
+> - `SYNC:ai-agent-as-user-access` — when an AI/machine actor or future contract is evidenced, inspect identity/delegation, capability boundaries, selected API/CLI/MCP/WebMCP/event/SDK surface, safety/consent, audit/observability, and GWT contract tests. Detailed carriers: `workflow-greenfield-init`, `workflow-big-feature`, `architecture-review`.
+> - `SYNC:design-system-check` — when UI changes, inspect the design-system and component-contract obligations; route visual/UX depth to the owning UI review.
+>
+> **Review behavior:** Check only principles applicable to the reviewed scope; record `APPLY-NOW`, `ADAPT-IN-SLICE`, `DEFER-AS-OPPORTUNITY`, `NOT-APPLICABLE`, `BLOCKED`, or `UNVERIFIED` with `file:line`/config/CI evidence, status/severity, owner/route, and next step/revisit trigger. Do not invent findings from a generic checklist, flag unrelated pre-existing gaps as regressions, silently expand the requested scope, or mutate a parent gate merely because advice exists.
+>
+> **Ownership:** `changes-review` coordinates the applicability pass and routes depth to the owning specialist (`architecture-review`, `integration-test-review`, `security-review`, `performance-review`, `ui-review`, `production-readiness-review`, or another matching review). A specialist reports its own lens and does not duplicate or override another review's verdict; existing brownfield gaps stay advisory unless new, safety-relevant, or explicitly in scope.
+>
+> **Required review note:** `context/scope | principle/protocol checked | evidence | status/verdict | severity | owner/route | next step/revisit trigger`.
+>
+> **BLOCKED when:** an applicable principle is required for safety/correctness but missing, unowned, or untestable. Otherwise record an evidence-backed `NOT-APPLICABLE`, advisory, `DEFER-AS-OPPORTUNITY`, or `UNVERIFIED` result according to the lifecycle and change context; creating a greenfield foundation remains subject to its own blocking protocol.
+
+<!-- /SYNC:review-principle-awareness -->
+
+<!-- SYNC:review-principle-awareness:reminder -->
+
+**IMPORTANT MUST ATTENTION** Every review first checks the change context and routes only applicable principles to their detailed protocols: scale-ready foundation, explicit Given → When → Then test intent, AI-agent-as-user access, and UI/component design when relevant. Record evidence-backed apply/adapt/defer/N/A/block/unverified status with owner and next step; do not invent unrelated findings or expand scope.
+
+<!-- /SYNC:review-principle-awareness:reminder -->
+
 ## Closing Reminders
 
 **IMPORTANT MUST ATTENTION Goal:** Ensure changed work reaches a defensible review pass through an initial whole-target adversarial pass run in parallel with dimensional review, validated findings, verified fixes, full re-review, and synchronized docs/tests — review all uncommitted changes, fix only validated blocking findings, then repeat the plan→plan-execute→changes-review loop until the current severity bar is clear (round 1: zero findings; round 2: zero CRITICAL/HIGH/MEDIUM, with LOWs recorded as deferred).
@@ -789,6 +831,8 @@ Activate the `workflow-review-changes` workflow. Run `/start-workflow workflow-r
 **IMPORTANT MUST ATTENTION** Easy to Change is the success metric — every finding/test/refactor must answer "does this make the next change cheaper?"; name the real enemies (coupling, hidden state, duplicated knowledge, unclear intent) — reject best practices that raise change cost.
 
 **Anti-Rationalization:**
+
+**IMPORTANT MUST ATTENTION** when the inline step-1 diff route detects executable E2E/browser/user-flow code, apply the shared E2E quality protocol and invoke report-only `/e2e-test-verify`; when it does not, record `NOT-APPLICABLE`. Keep this conditional handoff separate from step 17 `/experience-review`.
 
 | Evasion                                          | Rebuttal                                                                                                          |
 | ------------------------------------------------ | --------------------------------------------------------------------------------------------------------------- |

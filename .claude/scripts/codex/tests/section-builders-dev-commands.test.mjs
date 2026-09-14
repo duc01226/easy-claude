@@ -13,7 +13,7 @@ const require = createRequire(import.meta.url);
 const thisDir = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(thisDir, "..", "..", "..", "..");
 const { buildDevCommands } = require(
-  path.join(repoRoot, ".claude", "skills", "claude-md-init", "scripts", "section-builders.cjs")
+  path.join(repoRoot, ".claude", "skills", "ai-context-refresh", "scripts", "section-builders.cjs")
 );
 
 const NOTE = "**Platform (Windows):** invoke Python via `py -3` — NEVER `python3`.";

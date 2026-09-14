@@ -18,6 +18,7 @@ import url from "node:url";
 const here = path.dirname(url.fileURLToPath(import.meta.url));
 const rootDir = path.resolve(here, "..", "..", "..", "..");
 const sourceScriptsDir = path.join(rootDir, ".claude", "scripts", "codex");
+const claudeMdGenerator = path.join(rootDir, ".claude", "skills", "ai-context-refresh", "scripts", "generate-claude-md.cjs");
 const techSpecGenerator = path.join(rootDir, ".claude", "skills", "tech-spec", "scripts", "generate-tech-specs.mjs");
 
 const args = process.argv.slice(2);
@@ -94,7 +95,66 @@ async function optionalStageSkipReason(stageId) {
     return null;
 }
 
-// SYNC stages (1-3, mutate) then VERIFY stages (read-only). This runner's non-mutate stage set IS
+function runCaptured(cmd, argv, env = process.env) {
+    return new Promise((resolve, reject) => {
+        const child = spawn(cmd, argv, {
+            cwd: rootDir,
+            env,
+            stdio: ["ignore", "pipe", "pipe"],
+        });
+        let stdout = "";
+        let stderr = "";
+        child.stdout.on("data", data => { stdout += data.toString(); });
+        child.stderr.on("data", data => { stderr += data.toString(); });
+        child.on("error", reject);
+        child.on("close", code => resolve({ code, stdout, stderr }));
+    });
+}
+
+function relay(result) {
+    if (result.stdout) process.stdout.write(result.stdout);
+    if (result.stderr) process.stderr.write(result.stderr);
+}
+
+async function runClaudeMdPreflight() {
+    // Force the child to use the same root that this script resolved from its own path. This
+    // prevents an inherited CLAUDE_PROJECT_DIR from redirecting a copied bundle to another
+    // project when the runner is launched from an unrelated working directory.
+    const env = { ...process.env, CLAUDE_PROJECT_DIR: rootDir };
+    const check = await runCaptured(process.execPath, [claudeMdGenerator, "--check"], env);
+    relay(check);
+
+    if (check.code === 0) return;
+    const mode = check.code === 10 ? "init" : check.code === 11 ? "update" : null;
+    if (!mode) {
+        const reason = check.code === 12
+            ? "CLAUDE.md is markerless; run /ai-context-refresh --mode update for an AI smart-merge, then rerun sync-codex"
+            : `CLAUDE.md preflight failed with exit ${check.code}`;
+        throw Object.assign(new Error(reason), { exitCode: 1 });
+    }
+
+    process.stdout.write(`[claude-md] applying --mode ${mode}\n`);
+    const write = await runCaptured(process.execPath, [claudeMdGenerator, "--mode", mode], env);
+    relay(write);
+    if (write.code !== 0) {
+        throw Object.assign(new Error(`CLAUDE.md ${mode} failed`), { exitCode: write.code || 1 });
+    }
+}
+
+// `--test-concurrency` was backported only to Node 18.19+, Node 20.10+, and Node 21+.
+// Keep the framework's declared Node 18.0+ floor runnable: older test runners never accepted the
+// flag, and therefore must receive the legacy invocation rather than fail before discovering tests.
+const [nodeMajor, nodeMinor] = process.versions.node.split(".").map(Number);
+const supportsTestConcurrencyFlag = nodeMajor >= 21
+    || (nodeMajor === 20 && nodeMinor >= 10)
+    || (nodeMajor === 18 && nodeMinor >= 19);
+const scriptsTestConcurrencyArgs = supportsTestConcurrencyFlag ? ["--test-concurrency=1"] : [];
+// Test flags are selected from this process's version, so test children must use this exact Node
+// executable rather than a potentially different `node` found later on PATH (npx/absolute launches
+// can otherwise make the gate and its child disagree).
+const testNodeCommand = process.execPath;
+
+// SYNC stages (1-4, mutate) then VERIFY stages (read-only). This runner's non-mutate stage set IS
 // the canonical definition of "verify everything" — do NOT re-declare that roster anywhere else.
 // `npm run verify:all` passes it as an `--only=` allowlist, and `codex:verify:all` now delegates
 // straight to `verify:all` rather than maintaining a parallel `&&` chain (it drifted one verifier
@@ -117,14 +177,19 @@ const claudeTestsDir = path.join(rootDir, ".claude", "scripts", "tests");
 // than one, and therefore the only one whose coverage could silently halve.
 const hooksRunner = path.join(rootDir, ".claude", "hooks", "tests", "run-all-tests.cjs");
 const stages = [
+    { id: "claude-md", label: "ensure-claude-md", mutate: true, run: runClaudeMdPreflight },
     { id: "migrate",  label: "migrate",          cmd: "node", mutate: true, args: [path.join(sourceScriptsDir, "migrate-claude-to-codex.mjs"), ...migrateFlags] },
     { id: "hooks",    label: "sync-hooks",       cmd: "node", mutate: true, args: [path.join(sourceScriptsDir, "sync-hooks.mjs")] },
     { id: "context",  label: "sync-context",     cmd: "node", mutate: true, args: [path.join(sourceScriptsDir, "sync-context-workflows.mjs")] },
-    { id: "tests",    label: "test-codex",       cmd: "node", argsAsync: async () => ["--test", ...await listTestFiles(codexTestsDir)] },
+    { id: "tests",    label: "test-codex",       cmd: testNodeCommand, argsAsync: async () => ["--test", ...await listTestFiles(codexTestsDir)] },
     // General .claude tooling unit tests (*.test.mjs and *.test.cjs).
     // Listed via readdir so the stage works without shell glob expansion (PowerShell does not expand
     // globs the way POSIX shells do; the npm script relied on that, the runner does not).
-    { id: "scripts-tests", label: "test-scripts", cmd: "node", argsAsync: async () => ["--test", ...await listTestFiles(claudeTestsDir)] },
+    // Process-heavy tooling tests spawn validator and graph child processes; serialize top-level
+    // files where the runtime supports it so per-child timeout guards measure the child rather than
+    // runner contention. On older supported Node 18 releases, the legacy runner receives no unknown
+    // flag and retains its pre-existing execution behavior.
+    { id: "scripts-tests", label: "test-scripts", cmd: testNodeCommand, argsAsync: async () => ["--test", ...scriptsTestConcurrencyArgs, ...await listTestFiles(claudeTestsDir)] },
     // Live read-only release gates run only after their tooling/fixture tests have passed. The
     // tech-spec generator's --check mode compares a fresh in-memory render with committed derived
     // views; the feature registry validates canonical spec identity, links, ranges, and coverage.
@@ -198,7 +263,7 @@ function validateStageSelectors() {
 // Same fail-fast reasoning one level up, for the FLAG rather than the stage id. An
 // unrecognized flag used to be ignored, which silently degraded to "no filter" — so a
 // plausible-looking `--help`, or the `--mode update` an advisory elsewhere suggested, ran
-// all 18 stages INCLUDING the three mutating ones (migrate, sync-hooks, sync-context)
+// all 19 stages INCLUDING the four mutating ones (CLAUDE.md preflight, migrate, sync-hooks, sync-context)
 // instead of doing the narrow thing the reader asked for. A runner that can rewrite the
 // tree must never treat "I did not understand you" as "run everything".
 const KNOWN_FLAGS = ["--verbose", "-v", "--copy-skills"];
@@ -218,13 +283,17 @@ async function runStage(stage, index, total) {
     // Resolve async argv OUTSIDE the Promise executor: a throw here must reject
     // runStage's promise, not vanish into a discarded async-executor promise
     // (which would leave the orchestrator awaiting a Promise that never settles).
-    const argv = stage.argsAsync ? await stage.argsAsync() : stage.args;
-    if (stage.argsAsync && argv.length === 1 && argv[0] === "--test") {
+    const argv = stage.argsAsync ? await stage.argsAsync() : stage.args ?? [];
+    const hasTestTarget = argv.some(argument => typeof argument === "string" && !argument.startsWith("--"));
+    if (stage.argsAsync && argv.includes("--test") && !hasTestTarget) {
         throw Object.assign(new Error(`No tests discovered for ${stage.id}`), { stage: stage.id });
     }
     const label = `[${index}/${total}] ${stage.label}`;
     process.stdout.write(`${label} ...`);
-    if (verbose) process.stdout.write(`\n  $ ${stage.cmd} ${argv.join(" ")}\n`);
+    if (verbose) {
+        const command = stage.cmd ? `${stage.cmd} ${argv.join(" ")}` : `${stage.label} (internal coordinator)`;
+        process.stdout.write(`\n  $ ${command}\n`);
+    }
 
     try {
         const skipReason = await optionalStageSkipReason(stage.id);
@@ -235,6 +304,21 @@ async function runStage(stage, index, total) {
     } catch (error) {
         error.stage = stage.id;
         throw error;
+    }
+
+    if (stage.run) {
+        const startedAt = Date.now();
+        try {
+            await stage.run();
+            const ms = Date.now() - startedAt;
+            process.stdout.write(verbose ? `${label} ✓ pass (${ms}ms)\n` : ` ✓ pass (${ms}ms)\n`);
+            return { stage: stage.id, code: 0, ms };
+        } catch (error) {
+            const ms = Date.now() - startedAt;
+            process.stdout.write(verbose ? `${label} ✗ FAIL (${ms}ms)\n` : ` ✗ FAIL (${ms}ms)\n`);
+            error.stage = stage.id;
+            throw error;
+        }
     }
 
     const startedAt = Date.now();

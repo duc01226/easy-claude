@@ -33,8 +33,8 @@ const CONFIG_LOADER_PATH = path.resolve(__dirname, '../../lib/project-config-loa
 const CKCONFIG_LOADER_PATH = path.resolve(__dirname, '../../lib/ck-config-loader.cjs');
 
 // Universal-guides producer (generator) + template — used by the sentinel sync test.
-const GENERATOR_PATH = path.resolve(__dirname, '../../../skills/claude-md-init/scripts/generate-claude-md.cjs');
-const TEMPLATE_PATH = path.resolve(__dirname, '../../../skills/claude-md-init/references/claude-md-template.md');
+const GENERATOR_PATH = path.resolve(__dirname, '../../../skills/ai-context-refresh/scripts/generate-claude-md.cjs');
+const TEMPLATE_PATH = path.resolve(__dirname, '../../../skills/ai-context-refresh/references/claude-md-template.md');
 
 const STATE_DEP_PATHS = [STATE_PATH, CKPATHS_PATH, CONFIG_LOADER_PATH, CKCONFIG_LOADER_PATH];
 
@@ -261,7 +261,7 @@ const libTests = [
                     const { getMissingAgentFiles, buildOfferMessage } = freshState(tmpDir);
                     const msg = buildOfferMessage(getMissingAgentFiles());
                     assertContains(msg, '/project-init', 'Offers unified project init route');
-                    assertContains(msg, '/claude-md-init', 'Offers CLAUDE.md route');
+                    assertContains(msg, '/ai-context-refresh', 'Offers root AI-context route');
                     assertContains(msg, '/sync-codex', 'Offers AGENTS.md route');
                     assertContains(msg, 'node .claude/skills/sync-codex/scripts/run-codex-sync.mjs', 'Documents standalone Codex sync fallback');
                 });
@@ -282,7 +282,7 @@ const libTests = [
                     assertTrue(!!claudeEntry, 'CLAUDE.md among missing');
                     assertEqual(claudeEntry.aiRunnable, true, 'CLAUDE.md route is AI-runnable');
                     const msg = buildOfferMessage(missing);
-                    assertContains(msg, 'run /claude-md-init', 'aiRunnable=true → "run {route}" phrasing');
+                    assertContains(msg, 'run /ai-context-refresh', 'aiRunnable=true → "run {route}" phrasing');
                     assertContains(msg, 'ask the user to run /sync-codex', 'AGENTS.md route uses user-invoked phrasing');
                     assertContains(msg, 'node .claude/skills/sync-codex/scripts/run-codex-sync.mjs', 'AGENTS.md route includes node fallback');
                 });
@@ -310,7 +310,7 @@ const promptGateIntegration = [
                 });
                 assertAllowed(result.code, 'Missing root files → warning emitted but prompt allowed');
                 assertContains(result.stdout, '/project-init', 'Offer surfaces the unified project init route');
-                assertContains(result.stdout, '/claude-md-init', 'Offer surfaces the CLAUDE.md route');
+                assertContains(result.stdout, '/ai-context-refresh', 'Offer surfaces the root AI-context route');
             } finally {
                 cleanupTempDir(tmpDir);
             }

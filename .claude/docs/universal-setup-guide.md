@@ -36,7 +36,7 @@ This assesses the folder state and routes the required lower-level setup steps:
 
 - `/project-config` for `docs/project-config.json`
 - `/docs-init`, `/scan-all`, or targeted `/scan --target=<key>` for project-reference docs
-- `/claude-md-init` for `CLAUDE.md`
+- `/ai-context-refresh` for the root AI context and its Codex mirror handoff
 - `/sync-codex` for `AGENTS.md`, `.agents`, and `.codex` mirrors
 - `/graph-build` after config/docs are populated
 
@@ -72,7 +72,7 @@ Optional scans (run if applicable):
 /scan --target=feature-spec         # Business feature documentation index
 ```
 
-`/claude-md-init`, when routed by `/project-init`, reads project config and generates a `CLAUDE.md` with:
+`/ai-context-refresh`, when routed by `/project-init`, reads project config and generates the root AI context in `CLAUDE.md` with:
 
 - Project description and architecture overview (from config)
 - Golden rules (from contextGroups[].rules)

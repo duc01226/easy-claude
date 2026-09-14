@@ -366,7 +366,7 @@ Merge section-by-section. Overwrite only with concrete scan findings. Large proj
 | `e2e-test-reference.md`                                                       | `/scan --target=e2e-tests`                 |
 | `domain-entities-reference.md`                                                | `/scan --target=domain-entities`           |
 
-Then: `/claude-md-init` (LAST). Optionally: `/graph-build`.
+Then: `/ai-context-refresh` (LAST). Optionally: `/graph-build`.
 
 ## Phase 6: Enhance Generated Docs (MANDATORY)
 

@@ -24,7 +24,7 @@ When coding, planning, debugging, testing, or reviewing, open project docs expli
 - `docs/project-reference/docs-index-reference.md` (routes to the full `docs/project-reference/*` catalog)
 - `docs/project-reference/lessons.md` (always-on guardrails and anti-patterns)
 
-**Missing/stale context route:** If `docs/project-config.json`, the docs index, `lessons.md`, `CLAUDE.md`, `AGENTS.md`, or any task-required reference doc is missing or stale, auto-run `$project-init` or the narrow setup route (`$project-config`, `$docs-init`, `$scan-all`, `$scan --target=<key>`, `$claude-md-init`) before ordinary project-specific work. If Codex mirrors or `AGENTS.md` are missing/stale, ask the user to run `$sync-codex`; do not auto-run it.
+**Missing/stale context route:** If `docs/project-config.json`, the docs index, `lessons.md`, `CLAUDE.md`, `AGENTS.md`, or any task-required reference doc is missing or stale, auto-run `$project-init` or the narrow setup route (`$project-config`, `$docs-init`, `$scan-all`, `$scan --target=<key>`, `$ai-context-refresh`) before ordinary project-specific work. A full `$sync-codex` run preflights `CLAUDE.md`; a completed `$ai-context-refresh` run may invoke the standalone runner with `--skip=claude-md` after final source edits. Markerless roots need AI smart-merge unless `portability.requireUniversalGuides: false` is explicit.
 
 **Situation-based docs:**
 - Project structure/architecture/tech-stack/deployment/setup (any layer — backend, frontend, or infra): `project-structure-reference.md`
@@ -47,6 +47,9 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 
 <!-- PROMPT-ENHANCE:STEP-TASK-ANCHOR:END -->
 
+> **E2E Quality Protocol** — the shared gate covers user-flow intent, stable object ownership, isolated fixtures/data, auth/permissions, applicable accessibility/responsive/visual checks, bounded waits, readable failure evidence, cleanup, and test-to-spec traceability.
+> **MUST ATTENTION READ** `.claude/skills/shared/e2e-quality-protocol.md` when the observed surface is E2E/browser/user-flow-backed; apply only its relevant rows and keep this skill's runtime/visual ownership.
+
 ## Quick Summary
 
 **Goal:** Exercise and inspect an applicable running/observable feature against its intended purpose, drive its BLOCKING defects to zero in a bounded remediation loop, then leave durable evidence and a truthful acceptance or limitation status.
@@ -55,6 +58,7 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 
 - **Main path:** set round budget → read intent → classify surface → start/instrument the whole system → exercise actual behavior → inspect logs/screens → judge → remediate and re-exercise → preserve expectations → tear down → report.
 - **Modes and gates:** `--rounds=0` is report-only; other rounds fix only validated blocking defects; `ENVIRONMENT-BLOCKED`/`UNVERIFIED` stays honest and human acceptance is required.
+- **E2E quality handoff:** For an E2E/browser/user-flow surface, apply the shared protocol's GWT/invariant, auth/data, evidence, cleanup, and traceability rows; this skill owns runtime/console/screenshot observation and visual acceptance, while static test-code findings route to the test/UI owner.
 
 **Workflow:** Resolve round budget → read intent → classify surface/capability → **bring the system up locally and instrument it** → exercise actual behavior end to end → inspect evidence (including runtime logs and captured screens) → judge against purpose → **remediate and re-exercise until zero BLOCKING defects or the budget is spent** → compare/preserve expectations → tear down → recommend acceptance and request an explicit human decision.
 
@@ -66,6 +70,7 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 - **The loop converges on defects, never on taste.** Only a BLOCKING defect — objectively checkable against the stated purpose — opens a round. An ADVISORY finding (preference, polish, visual identity) is recorded, never looped on.
 - **Bounded: `--rounds=N`, default 3.** Every round adjudicates before editing, fixes at the owning layer through `$fix`, `$changes-review`s its own fix diff, and re-exercises from scratch. Cap reached, defects not shrinking across two rounds, defects increasing, or `ENVIRONMENT-BLOCKED` → STOP and escalate by asking the user directly. `--rounds=0` returns the single-pass report-only review.
 - **E2E visual-gate handoff:** when invoked as `$experience-review --rounds=0` by `e2e-test-verify-loop --visual-review=true`, open/read the complete screenshot matrix and return visual observations/classifications to the parent. The parent owns UI fixes and must rerun the same E2E command; this report-only invocation must not mutate snapshots, baselines, or expectations.
+- MUST ATTENTION apply `.claude/skills/shared/e2e-quality-protocol.md` for E2E/browser/user-flow observations and record each applicable gate row; do not duplicate or replace its detailed checklist.
 - **Fix the defect, never the evidence of it.** Expectations, baselines, snapshots, fixtures, assertions, and acceptance criteria stay read-only in every round. A review that got clean by looking at less did not converge — it regressed.
 - Convergence yields `AGENT-RECOMMENDED-ACCEPT`, which is a named agent judgment, **not** an acceptance. The record stays `ACCEPTANCE-PENDING` until an owner signs; no baseline is promoted before that signature exists.
 - Record `NOT-APPLICABLE`, `ENVIRONMENT-BLOCKED`, and `UNVERIFIED` honestly. Do not claim success when the required runner, device, service, or inspection capability is unavailable.
@@ -115,6 +120,8 @@ Inspect the change and identify:
   re-review when the changed surface and protected behavior are unaffected.
 
 ### 2. Build the evidence matrix
+
+When the surface is E2E/browser/user-flow-backed, read `.claude/skills/shared/e2e-quality-protocol.md` before building the matrix and carry its GWT/invariant, auth/data, evidence, cleanup, and traceability fields into the report.
 
 For every configured surface, create one row before execution:
 
@@ -620,6 +627,32 @@ that the fix belongs elsewhere — stop the round and escalate.
 
 <!-- /SYNC:e2e-visual-design-contract:reminder -->
 
+<!-- SYNC:review-principle-awareness -->
+
+> **Review Applicability / Current-Principles Awareness** — Every review must first classify the change context (greenfield foundation, brownfield feature/refactor, test/docs/config/UI/infra, or actor-facing/machine surface) and take notice of the applicable current principles below. This is an evidence-gated applicability check, not a mandate to flag or build every item.
+>
+> **Detailed protocol routing — read/apply only when warranted:**
+> - `SYNC:scale-ready-foundation` — greenfield foundation is blocking; big-feature brownfield fit/adapt/defer; architecture review is advisory when auditing. Detailed carriers: `workflow-greenfield-init`, `workflow-big-feature`.
+> - `SYNC:test-architecture-execution-contract` — assertion-bearing tests use explicit `Given` → `When` → `Then`, name the guarded intent/technical contract, and assert an owned outcome. Detailed carriers: `integration-test`, `workflow-greenfield-init`, and the test-architecture review path.
+> - `SYNC:ai-agent-as-user-access` — when an AI/machine actor or future contract is evidenced, inspect identity/delegation, capability boundaries, selected API/CLI/MCP/WebMCP/event/SDK surface, safety/consent, audit/observability, and GWT contract tests. Detailed carriers: `workflow-greenfield-init`, `workflow-big-feature`, `architecture-review`.
+> - `SYNC:design-system-check` — when UI changes, inspect the design-system and component-contract obligations; route visual/UX depth to the owning UI review.
+>
+> **Review behavior:** Check only principles applicable to the reviewed scope; record `APPLY-NOW`, `ADAPT-IN-SLICE`, `DEFER-AS-OPPORTUNITY`, `NOT-APPLICABLE`, `BLOCKED`, or `UNVERIFIED` with `file:line`/config/CI evidence, status/severity, owner/route, and next step/revisit trigger. Do not invent findings from a generic checklist, flag unrelated pre-existing gaps as regressions, silently expand the requested scope, or mutate a parent gate merely because advice exists.
+>
+> **Ownership:** `changes-review` coordinates the applicability pass and routes depth to the owning specialist (`architecture-review`, `integration-test-review`, `security-review`, `performance-review`, `ui-review`, `production-readiness-review`, or another matching review). A specialist reports its own lens and does not duplicate or override another review's verdict; existing brownfield gaps stay advisory unless new, safety-relevant, or explicitly in scope.
+>
+> **Required review note:** `context/scope | principle/protocol checked | evidence | status/verdict | severity | owner/route | next step/revisit trigger`.
+>
+> **BLOCKED when:** an applicable principle is required for safety/correctness but missing, unowned, or untestable. Otherwise record an evidence-backed `NOT-APPLICABLE`, advisory, `DEFER-AS-OPPORTUNITY`, or `UNVERIFIED` result according to the lifecycle and change context; creating a greenfield foundation remains subject to its own blocking protocol.
+
+<!-- /SYNC:review-principle-awareness -->
+
+<!-- SYNC:review-principle-awareness:reminder -->
+
+**IMPORTANT MUST ATTENTION** Every review first checks the change context and routes only applicable principles to their detailed protocols: scale-ready foundation, explicit Given → When → Then test intent, AI-agent-as-user access, and UI/component design when relevant. Record evidence-backed apply/adapt/defer/N/A/block/unverified status with owner and next step; do not invent unrelated findings or expand scope.
+
+<!-- /SYNC:review-principle-awareness:reminder -->
+
 ## Closing Reminders
 
 **IMPORTANT MUST ATTENTION Goal:** Exercise and inspect an applicable running/observable feature against its intended purpose, drive its BLOCKING defects to zero in a bounded remediation loop, then leave durable evidence and a truthful acceptance or limitation status.
@@ -649,6 +682,7 @@ that the fix belongs elsewhere — stop the round and escalate.
 <!-- /SYNC:experience-acceptance-contract:reminder -->
 
 **IMPORTANT MUST ATTENTION** if the runner, device, service, or inspection tool is unavailable, record `ENVIRONMENT-BLOCKED` or `UNVERIFIED`; never present incomplete evidence as successful verification.
+**IMPORTANT MUST ATTENTION** for E2E/browser/user-flow surfaces, apply the shared E2E quality protocol and preserve its gate-row verdicts alongside runtime and visual evidence; static test-code findings route to the owning test/UI review.
 
 <!-- CODEX:SYNC-PROMPT-PROTOCOLS:START -->
 ## Static Prompt Protocol Mirror (Auto-Synced)

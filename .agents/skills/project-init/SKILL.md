@@ -25,7 +25,7 @@ When coding, planning, debugging, testing, or reviewing, open project docs expli
 - `docs/project-reference/docs-index-reference.md` (routes to the full `docs/project-reference/*` catalog)
 - `docs/project-reference/lessons.md` (always-on guardrails and anti-patterns)
 
-**Missing/stale context route:** If `docs/project-config.json`, the docs index, `lessons.md`, `CLAUDE.md`, `AGENTS.md`, or any task-required reference doc is missing or stale, auto-run `$project-init` or the narrow setup route (`$project-config`, `$docs-init`, `$scan-all`, `$scan --target=<key>`, `$claude-md-init`) before ordinary project-specific work. If Codex mirrors or `AGENTS.md` are missing/stale, ask the user to run `$sync-codex`; do not auto-run it.
+**Missing/stale context route:** If `docs/project-config.json`, the docs index, `lessons.md`, `CLAUDE.md`, `AGENTS.md`, or any task-required reference doc is missing or stale, auto-run `$project-init` or the narrow setup route (`$project-config`, `$docs-init`, `$scan-all`, `$scan --target=<key>`, `$ai-context-refresh`) before ordinary project-specific work. A full `$sync-codex` run preflights `CLAUDE.md`; a completed `$ai-context-refresh` run may invoke the standalone runner with `--skip=claude-md` after final source edits. Markerless roots need AI smart-merge unless `portability.requireUniversalGuides: false` is explicit.
 
 **Situation-based docs:**
 - Project structure/architecture/tech-stack/deployment/setup (any layer — backend, frontend, or infra): `project-structure-reference.md`
@@ -73,7 +73,7 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 - MUST ATTENTION invoke `$workflow-code-to-spec` for every content-bearing project; it may run in parallel with `$scan-all` after config exists, but do not treat "handoff suggested" as completion.
 - MUST ATTENTION end every setup run with final task-plan rows, in order: `Call $changes-review`, `Call $why-review`, `Spawn background $graph-build sub-agent`, after the scan/spec parallel group is resolved.
 - MUST ATTENTION run `$graph-build` as a required final background sub-agent task after setup/review/verification work is otherwise done; do not run this final graph refresh inline in the main context.
-- MUST ATTENTION ask the user to run `$sync-codex` or its standalone node runner when Codex mirrors/root files are missing or stale; do not auto-run this user-invoked-only sync route.
+- MUST ATTENTION resolve Codex mirrors through the `$ai-context-refresh` completion handoff when that root route runs; if it is skipped or blocked, ask the user to run the full `$sync-codex` route or its standalone runner, whose preflight handles `CLAUDE.md` first.
 
 ## Scope
 
@@ -84,8 +84,8 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 | Project config | `$project-config`, including the optional `e2eTesting.execution` profile linked to the `experienceVerification` surface matrix, then post-config parallel group: `$scan-all` + `$workflow-code-to-spec` |
 | User/downstream experience | `$experience-review` after a runnable outcome exists; during setup, configure the matrix or record evidence-backed `NOT-APPLICABLE`/`ENVIRONMENT-BLOCKED` |
 | Project reference docs | `$scan-all` after config initialization; `$docs-init` or `$scan --target=<key>` only for stubs/focused repairs |
-| Root Claude instructions | `$claude-md-init` |
-| Codex mirror, `AGENTS.md`, `.agents`, `.codex` | Ask the user to run `$sync-codex` or its standalone node runner |
+| Root AI context | `$ai-context-refresh` |
+| Codex mirror, `AGENTS.md`, `.agents`, `.codex` | Consume the `$ai-context-refresh` completion handoff; if unavailable, ask the user to run the full `$sync-codex` route or its standalone node runner |
 | `docs/specs` Feature Specs + Section 8 TCs | Mandatory `$workflow-code-to-spec` gate in the post-config parallel group; outcome must resolve before final review/report |
 | Knowledge graph | Final background sub-agent running `$graph-build` after setup/review/verification is otherwise done |
 
@@ -105,8 +105,8 @@ Minimum required task rows:
 5. Call `$scan-all` after config initialization or mark skipped only for empty/no-content evidence.
 6. Call `$workflow-code-to-spec` after config initialization and complete its Step 0 mode/scope route, or record the exact blocking user confirmation needed.
 7. Wait at a barrier until both post-config parallel tasks are completed, blocked, or evidence-deferred.
-8. Run required root-instruction route (`$claude-md-init`) or mark skipped with evidence.
-9. Resolve Codex mirror route by asking for `$sync-codex` when required.
+8. Run required root-instruction route (`$ai-context-refresh`) or mark skipped with evidence.
+9. Resolve the Codex mirror through the completed `$ai-context-refresh` handoff when the root route ran; otherwise ask for the full `$sync-codex` route when required.
 10. Resolve `experienceVerification`: configure project-observable surfaces and their evidence/baseline roots, or record evidence-backed `NOT-APPLICABLE`/`ENVIRONMENT-BLOCKED`; do not claim live review before a runnable outcome exists.
 11. Call `$changes-review` after the scan/spec barrier.
 12. Call `$why-review` after `$changes-review`.
@@ -151,9 +151,9 @@ Also check:
 | Configured observable surface is relevant but cannot run or be inspected | Record `ENVIRONMENT-BLOCKED` with the missing capability and evidence. Do not substitute a screenshot, source review, or passing automated test for the missing exercise. |
 | Config populated, reference docs missing/placeholders | Run `$scan-all` after config initialization. Use `$docs-init` or targeted `$scan --target=<key>` only as follow-up repair if `$scan-all` identifies missing/stub files. |
 | Config present but `referenceDocs` drifted (legacy filenames, missing canonical entries, or wrong order per the Phase 0 normalize probe) | Run **Reference-doc normalization** (Phase 2 step 1a) BEFORE the scan/spec barrier: rewrite `config.referenceDocs` to `normalizeReferenceDocs(...).normalized`, `git mv` each `renames[]` legacy file to its canonical name (or `git rm` a stale duplicate), migrate downstream textual refs, then let the SessionStart hook / `$scan --target=<key>` create the `added[]` docs. Re-run the probe until `changed:false`. |
-| Config/docs populated, `CLAUDE.md` missing | Run `$claude-md-init --mode init` after the scan/spec barrier is resolved or explicitly blocked/deferred. |
-| `CLAUDE.md` exists but lacks universal guides | Run `$claude-md-init --mode update` if marker-managed. If markerless/project-only, manually merge the universal-guide blocks from `claude-md-init/references/claude-md-template.md` while preserving project content, then rerun update. |
-| `AGENTS.md` missing or incomplete | Ask the user to run `$sync-codex` or `node .claude/skills/sync-codex/scripts/run-codex-sync.mjs`, then verify mirrors. |
+| Config/docs populated, `CLAUDE.md` missing | Run `$ai-context-refresh --mode init` after the scan/spec barrier is resolved or explicitly blocked/deferred. |
+| `CLAUDE.md` exists but lacks universal guides | Run `$ai-context-refresh --mode update` if marker-managed. If markerless/project-only, manually merge the universal-guide blocks from `ai-context-refresh/references/claude-md-template.md` while preserving project content, then rerun update. |
+| `AGENTS.md` missing or incomplete | Consume the `$ai-context-refresh` completion handoff when available; otherwise ask the user to run `$sync-codex` or `node .claude/skills/sync-codex/scripts/run-codex-sync.mjs`, then verify mirrors. |
 | Config/docs/root ready but `docs/specs/` is missing or empty | The post-config `$workflow-code-to-spec` task suggests `init-full` and completes Step 0 mode/bucket/capability confirmation before `$project-init` can report complete. |
 | Config/docs/root ready and Feature Specs exist | The post-config `$workflow-code-to-spec` task suggests `audit`, unless an active diff/new requirement implies `update`. Then run `$changes-review` and `$why-review`. |
 | Docs stale or graph missing | Run `$scan-all` in the post-config parallel group; queue the required final background `$graph-build` sub-agent task after setup/review/verification is otherwise done. Still resolve the mandatory spec workflow task before final verification. |
@@ -174,8 +174,8 @@ Run phases sequentially except the explicit post-config parallel group. After ea
    - `$scan-all`: required for content-bearing projects after config initialization. Skip only empty/no-content projects with evidence. Use `$docs-init` or targeted `$scan --target=<key>` only as follow-up repair when scan output proves it is needed.
    - `$workflow-code-to-spec`: required for content-bearing projects after config initialization. It may complete Step 0/mode selection in parallel with `$scan-all`; if it needs scan results for capability enumeration, pause inside that workflow until `$scan-all` evidence is available.
    - **Barrier:** do not proceed to root instruction updates, mirrors, final review, verification, or report until both sibling tasks have an outcome: completed, explicit blocker, or evidence-backed deferral.
-3. **Root instructions** - `$claude-md-init --mode init|update`.
-4. **Codex mirror** - ask the user to run `$sync-codex` or `node .claude/skills/sync-codex/scripts/run-codex-sync.mjs`.
+3. **Root instructions** - `$ai-context-refresh --mode init|update`.
+4. **Codex mirror** - consume the `$ai-context-refresh` completion handoff; if the root route was skipped or blocked, ask the user to run `$sync-codex` or `node .claude/skills/sync-codex/scripts/run-codex-sync.mjs`.
 5. **Spec workflow outcome (MANDATORY)** - confirm the existing `Call $workflow-code-to-spec` task has one of these outcomes before review:
    - Empty/no-content folder: do not deep-scan or fabricate capabilities; mark this task `Deferred: no project content or accepted capability scope`, and report the next trigger (`$workflow-idea-to-spec` or `$greenfield`, then `$workflow-code-to-spec init-full`).
    - Greenfield with accepted product/capability scope or real code scaffold: invoke `$workflow-code-to-spec`, suggest `init-full`, and let its Step 0 confirm mode/bucket/capability.
@@ -241,7 +241,7 @@ Spec workflow verification before declaring setup complete:
 - Confirm `$why-review` ran after `$changes-review`, or stopped with an explicit missing-tool blocker.
 - Confirm `Spawn background $graph-build sub-agent` ran after setup/review/verification was otherwise done, or stopped with an explicit missing-tool/dependency blocker.
 - Confirm the Feature Spec root is the fixed path `docs/specs/`.
-- Confirm the hook-independent Workflow-First Gate (`<!-- CK:WORKFLOW-GATE -->` block) is present at the TOP of `CLAUDE.md` and `AGENTS.md` so routing survives without hooks. If missing, re-run `$claude-md-init` (CLAUDE.md), then ask the user to run `$sync-codex` (AGENTS.md mirror).
+- Confirm the hook-independent Workflow-First Gate (`<!-- CK:WORKFLOW-GATE -->` block) is present at the TOP of `CLAUDE.md` and `AGENTS.md` so routing survives without hooks. If missing, re-run `$ai-context-refresh` (root AI context); its completion handoff refreshes the AGENTS.md mirror.
 - For grown projects, confirm large scope is split per `$workflow-code-to-spec` (`>10` capabilities grouped; `4-10` capabilities sub-agented).
 
 If Codex mirrors were changed, run:

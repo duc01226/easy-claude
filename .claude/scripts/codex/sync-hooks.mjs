@@ -16,7 +16,7 @@ const rootDir = rootResolution.rootDir;
 export const claudeSettingsPath = path.join(rootDir, ".claude", "settings.json");
 export const codexDir = path.join(rootDir, ".codex");
 const codexHooksPath = path.join(codexDir, "hooks.json");
-const reportPath = path.join(codexDir, "hooks.sync.report.json");
+const reportPath = path.join(rootDir, "tmp", "hooks.sync.report.json");
 
 const disabledCodexEvents = new Map([
   ["SessionStart", "static-startup-context-authoritative"],
@@ -89,14 +89,15 @@ function pushSkip(report, eventName, groupIndex, reason, matcher) {
 }
 
 /**
- * Write the Codex hook mirror into `targetDir`.
+ * Write the Codex hook mirror into `targetDir`; the default sync report is
+ * stored under the consuming project's `tmp` directory.
  *
  * Exported so the divergence oracle can materialize a FRESH mirror with THIS
  * function — the same writer the real sync uses — instead of re-deriving what
  * the output "should" look like. A second derivation is a second implementation
  * that drifts from this one, and then the guard passes while the mirror is
  * wrong.
- * @param {string} targetDir - Directory to write hooks.json and the report into
+ * @param {string} targetDir - Directory to write hooks.json and, for staging targets, the report into
  * @returns {Promise<object>} The sync report
  */
 export async function materializeHookMirror(targetDir = codexDir) {
@@ -105,7 +106,7 @@ export async function materializeHookMirror(targetDir = codexDir) {
 
 async function main(targetDir = codexDir) {
   const hooksPath = path.join(targetDir, "hooks.json");
-  const hooksReportPath = path.join(targetDir, "hooks.sync.report.json");
+  const hooksReportPath = targetDir === codexDir ? reportPath : path.join(targetDir, "hooks.sync.report.json");
   const rawSettings = await fs.readFile(claudeSettingsPath, "utf8");
   const claudeSettings = JSON.parse(rawSettings);
   const claudeHooks = claudeSettings?.hooks ?? {};
@@ -199,6 +200,7 @@ async function main(targetDir = codexDir) {
   }
 
   await fs.mkdir(targetDir, { recursive: true });
+  await fs.mkdir(path.dirname(hooksReportPath), { recursive: true });
   await fs.writeFile(hooksPath, `${JSON.stringify({ hooks: codexHooks }, null, 2)}\n`, "utf8");
   await fs.writeFile(hooksReportPath, `${JSON.stringify(report, null, 2)}\n`, "utf8");
 

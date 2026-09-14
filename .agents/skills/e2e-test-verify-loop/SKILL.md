@@ -24,7 +24,7 @@ When coding, planning, debugging, testing, or reviewing, open project docs expli
 - `docs/project-reference/docs-index-reference.md` (routes to the full `docs/project-reference/*` catalog)
 - `docs/project-reference/lessons.md` (always-on guardrails and anti-patterns)
 
-**Missing/stale context route:** If `docs/project-config.json`, the docs index, `lessons.md`, `CLAUDE.md`, `AGENTS.md`, or any task-required reference doc is missing or stale, auto-run `$project-init` or the narrow setup route (`$project-config`, `$docs-init`, `$scan-all`, `$scan --target=<key>`, `$claude-md-init`) before ordinary project-specific work. If Codex mirrors or `AGENTS.md` are missing/stale, ask the user to run `$sync-codex`; do not auto-run it.
+**Missing/stale context route:** If `docs/project-config.json`, the docs index, `lessons.md`, `CLAUDE.md`, `AGENTS.md`, or any task-required reference doc is missing or stale, auto-run `$project-init` or the narrow setup route (`$project-config`, `$docs-init`, `$scan-all`, `$scan --target=<key>`, `$ai-context-refresh`) before ordinary project-specific work. A full `$sync-codex` run preflights `CLAUDE.md`; a completed `$ai-context-refresh` run may invoke the standalone runner with `--skip=claude-md` after final source edits. Markerless roots need AI smart-merge unless `portability.requireUniversalGuides: false` is explicit.
 
 **Situation-based docs:**
 - Project structure/architecture/tech-stack/deployment/setup (any layer — backend, frontend, or infra): `project-structure-reference.md`
@@ -47,6 +47,9 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 
 <!-- PROMPT-ENHANCE:STEP-TASK-ANCHOR:END -->
 
+> **E2E Quality Protocol** — the shared gate covers intent, stable object ownership, isolated fixtures/data, auth/permissions, applicable accessibility/responsive/visual checks, bounded waits, readable failure evidence, cleanup, and test-to-spec traceability.
+> **MUST ATTENTION READ** `.claude/skills/shared/e2e-quality-protocol.md` before the first round and reapply it after each fresh run; this loop owns convergence, while the report-only verifier owns one attempt.
+
 ## Quick Summary
 
 **Goal:** Drive a configured E2E suite or real-user journey to a truthful green result over a fixed scope. Resolve the project contract first, select an existing test or generate a traceable Given/When/Then test, bring up the whole system, use a visible browser for web human-QC, inspect runtime/visual evidence, adjudicate every failure, fix the owning layer, and re-run fresh until the declared scope converges or a bounded blocker is escalated.
@@ -55,6 +58,7 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 
 - **Main path:** resolve scope/contract → read config/reference → resolve readiness/auth/data/browser/evidence → select or generate tests → run and inspect → adjudicate/fix → rerun fresh → report or escalate.
 - **Visual gate:** default `--visual-review=true`; capture/read every screenshot state × viewport through `$experience-review --rounds=0`; explicit `--visual-review=false` opts out; preserve baselines.
+- **Shared quality gate:** every fixed scope and round carries the canonical GWT/invariant and gate-row record from `.claude/skills/shared/e2e-quality-protocol.md`; `$e2e-test-verify` is the report-only attempt, while this loop owns repeats, fixes, and integrity.
 
 **Role in `workflow-e2e`:** This is the internal convergence engine, not a
 second E2E workflow. `workflow-e2e` calls it after source-specific authoring
@@ -82,6 +86,7 @@ surface is not required to infer the default.
 - Reuse a suitable existing test and its reusable Common/Domain-Shared/Page objects. Generate through `$e2e-test` → `e2e-runner` only when coverage is missing or the current test does not protect the requested invariant; generated objects must use the project's idiomatic abstract base and cohesive helpers/utilities.
 - A passing screen is not enough: runtime errors, uncaught exceptions, unhandled rejections, journey-critical failed requests, unread evidence, and baseline mismatches remain visible findings.
 - When visual review is enabled (the default or explicit `--visual-review=true`), the screenshot matrix and image inspection are a required part of the E2E gate. Use `$experience-review --rounds=0` as the report-only visual adjudicator inside this loop; this parent loop owns UI fixes and the subsequent E2E rerun. `--visual-review=false` is the explicit opt-out. `$ask` is architecture consultation and is not a substitute for image inspection.
+- MUST ATTENTION apply the shared E2E quality protocol to every round and carry its gate verdicts into the persisted report; keep test-code verification report-only and route fixes through the owning layer.
 - Never delete, skip, narrow, weaken, retry-wrap an assertion, silence logs, or auto-promote a baseline to obtain green.
 
 ## Why this skill exists
@@ -142,6 +147,8 @@ storage-state value.
 
 ## Step 2 — Build the scenario and choose generate-or-use
 
+Read `.claude/skills/shared/e2e-quality-protocol.md` and create its GWT + invariant + TC record before selecting or generating a test; the detailed cross-skill gate is canonical there.
+
 For each requested behavior, write a scenario record before execution:
 
 ```text
@@ -185,7 +192,7 @@ claim a pass.
 Each round is a fresh full verification over the exact recorded scope:
 
 1. Snapshot scope, test/scenario IDs, executed/passed/failed/skipped counts, and the working tree.
-2. Run the configured full command; use the focused command only in addition to, never instead of, the declared full scope. Record command, exit status, counts, failing names, run identity, data mode, and evidence paths.
+2. Run the configured full command for the fixed scope; use a focused command only in addition to, never instead of, the declared full scope. The standalone `$e2e-test-verify` leaf may supply a report-only attempt when a caller needs one. Record command, exit status, counts, failing names, run identity, data mode, and evidence paths.
 3. Invoke `$experience-review --rounds=0` report-only for configured observable surfaces. It may classify evidence and runtime/UI findings but must not fix, update baselines, or change expectations inside this loop.
 4. When visual review is enabled (the default unless explicitly false), make the experience-review result a required visual gate: every generated screenshot in the declared state × viewport matrix must be opened/read and classified. Add validated `BLOCKING` visual findings—clipping, overlap, unreadability, unreachable/off-screen controls, broken required states, accessibility-floor violations, or broken responsive layouts—to the round's failure set. Record `ADVISORY` identity, polish, or non-contract spacing preferences without reopening the loop unless the governing design/acceptance contract makes the issue objectively required.
 5. If green, compare counts and visual-blocker totals to the previous round. Require the configured consecutive-green runs without a reset; each must be fresh, same-scope, and, in visual mode, have fresh screenshots that were opened/read.
@@ -348,6 +355,7 @@ evidence, after every fix was adjudicated, reviewed, and re-run fresh.
 **IMPORTANT MUST ATTENTION** resolve `--visual-review=true|false` before the first command; default `true`, with `--visual-review=false` as the explicit opt-out. When enabled, run E2E → capture the full state × viewport matrix → open/read every generated image through `$experience-review --rounds=0` → fix validated blocking UI defects at the owning layer → rerun the same E2E scope until the visual blocker count and E2E failure count converge to zero; `$ask` is not the image reviewer.
 
 **IMPORTANT MUST ATTENTION** use one reusable bounded `waitUntil(condition, options)` before and after every UI-control action, including applicable error-alert presence/absence, then wait exactly 500ms at the end; never shrink scope, weaken assertions, hide evidence, or promote baselines automatically.
+**IMPORTANT MUST ATTENTION** read and reapply `.claude/skills/shared/e2e-quality-protocol.md` for every round; preserve its GWT/invariant, gate-row, evidence, auth/data, cleanup, and test-to-spec records while this loop owns only convergence and owning-layer repair.
 
 <!-- CODEX:SYNC-PROMPT-PROTOCOLS:START -->
 ## Static Prompt Protocol Mirror (Auto-Synced)

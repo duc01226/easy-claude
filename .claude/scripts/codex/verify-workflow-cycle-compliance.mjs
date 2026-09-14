@@ -200,7 +200,7 @@ const REVIEW_CHANGES_INLINE_SURFACES = [
     ],
   },
   {
-    rel: ".claude/skills/claude-md-init/references/claude-md-template.md",
+    rel: ".claude/skills/ai-context-refresh/references/claude-md-template.md",
     require: [
       {
         label: "§3 workflow-review-changes inline-in-main-session exception",

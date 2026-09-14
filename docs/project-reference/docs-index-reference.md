@@ -1,4 +1,5 @@
-<!-- Last scanned: 2026-09-07 -->
+<!-- Last scanned: 2026-09-14 -->
+<!-- Last verified: 2026-09-14 (docs-update, impact-scoped) -->
 
 # Documentation Index Reference
 
@@ -16,7 +17,7 @@
 - Diff the broad `docs/**/*.md` set against the category union and expose every remainder.
 - Keep relationships and lookup paths real, unique, and traceable to the current tree.
 
-- 386 unique authored/tracked markdown files are indexed across 11 whitelist categories.
+- 403 unique authored/tracked markdown files are indexed across 11 whitelist categories.
 - `docs/` contains 22 markdown files; the whitelist union leaves 0 uncategorized.
 - Design System is a one-file subset of Project Reference and is counted once in the unique total.
 
@@ -34,7 +35,7 @@
 
 ## Documentation System
 
-386 unique authored/tracked markdown files across 11 indexed categories. Last scanned: 2026-09-07.
+403 unique authored/tracked markdown files across 11 indexed categories. Last scanned: 2026-09-14.
 
 | Category               | Verified count | Reproducible scope                                                                    |
 | ---------------------- | -------------: | ------------------------------------------------------------------------------------- |
@@ -47,8 +48,8 @@
 | Architecture Decisions |              2 | `docs/adr/**/*.md`                                                                    |
 | Templates              |              1 | `docs/templates/**/*.md`                                                              |
 | Release Notes          |              1 | `docs/release/**/*.md`                                                                |
-| Framework Docs         |             35 | `.claude/docs/**/*.md`                                                                |
-| Skill Markdown         |            326 | `rg --files .claude/skills -g '*.md'`                                                 |
+| Framework Docs         |             36 | `.claude/docs/**/*.md`                                                                |
+| Skill Markdown         |            342 | `rg --files .claude/skills -g '*.md'`                                                 |
 
 The unique total is the normalized union returned by `rg --files` for Root-Level Docs, all `docs/**/*.md`, Framework Docs, and Skill Markdown. Design System is nested inside Project Reference, so its count is informative rather than additive. Ignored dependency artifacts such as skill-local `.venv/` files are excluded.
 
@@ -84,14 +85,14 @@ easy-claude/
 │   │   └── design-system/README.md                # Design System subset
 │   ├── release/                                   # 1 release-note archive
 │   └── templates/                                 # 1 Feature Spec template
-├── .claude/docs/                                  # 35 framework docs
-│   ├── 17 direct framework guides
+├── .claude/docs/                                  # 36 framework docs
+│   ├── 18 direct framework guides
 │   ├── agents/                                    # 2
 │   ├── configuration/                             # 5
 │   ├── hooks/                                     # 3
 │   ├── skills/                                    # 2
 │   └── team-artifacts/templates/                  # 6
-└── .claude/skills/                                # 326 authored/tracked markdown assets
+└── .claude/skills/                                # 342 authored/tracked markdown assets
 ```
 
 Absent whitelist branches: Operations, Feature Specs, and Spec Catalogs.

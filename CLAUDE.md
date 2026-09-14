@@ -218,6 +218,26 @@ Distinct step-skills used across the workflows above — compose these into a cu
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 <!-- CK:PROJECT-PROTOCOLS -->
 
 > **[PROJECT-PROTOCOL-OVERLAY] — resolve before executing ANY skill.** Hook-independent: binds Claude and Codex equally.
@@ -246,7 +266,7 @@ Distinct step-skills used across the workflows above — compose these into a cu
 
 ## Workflow Step Advancement & Parallel Phases
 
-<!-- Universal portable rule shipped by claude-md-init into every project — model-driven workflow progression, identical across Claude, Codex (AGENTS.md whole-file mirror), and Copilot (baked common-protocol), none of which depend on a hook. The runtime workflow-protocol injector and any step-tracker hook are accelerators only. -->
+<!-- Universal portable rule shipped by ai-context-refresh into every project — model-driven workflow progression, identical across Claude, Codex (AGENTS.md whole-file mirror), and Copilot (baked common-protocol), none of which depend on a hook. The runtime workflow-protocol injector and any step-tracker hook are accelerators only. -->
 
 Workflow progression is **model-driven** — your responsibility, not a tool/hook/harness signal:
 
@@ -550,11 +570,11 @@ When editing files matching these path patterns, pre-read the listed context fir
 
 | Kind        | Count                                       |
 | ----------- | ------------------------------------------- |
-| Skills      | <!-- COUNT:skills -->169<!-- /COUNT -->     |
+| Skills      | <!-- COUNT:skills -->170<!-- /COUNT -->     |
 | Hooks       | <!-- COUNT:hooks -->18<!-- /COUNT -->       |
 | Agents      | <!-- COUNT:agents -->27<!-- /COUNT -->      |
 | Workflows   | <!-- COUNT:workflows -->19<!-- /COUNT -->   |
-| Shared      | <!-- COUNT:shared -->8<!-- /COUNT -->       |
+| Shared      | <!-- COUNT:shared -->9<!-- /COUNT -->       |
 | Lib modules | <!-- COUNT:lib-modules -->31<!-- /COUNT --> |
 
 ---

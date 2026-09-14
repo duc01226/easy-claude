@@ -19,7 +19,7 @@ const require = createRequire(import.meta.url);
 const execFileAsync = promisify(execFile);
 const thisDir = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(thisDir, "..", "..", "..", "..");
-const generatorPath = path.join(repoRoot, ".claude", "skills", "claude-md-init", "scripts", "generate-claude-md.cjs");
+const generatorPath = path.join(repoRoot, ".claude", "skills", "ai-context-refresh", "scripts", "generate-claude-md.cjs");
 const buildersPath = path.join(path.dirname(generatorPath), "section-builders.cjs");
 
 // Importing the generator must NOT regenerate CLAUDE.md (require.main guard). If the guard were
@@ -83,7 +83,7 @@ test("TC-CLG-005 unmanaged sections (no builder content) never warn", () => {
 });
 
 test("TC-CLG-007 init mode bakes former hook guidance into CLAUDE.md static carrier", async () => {
-  const tempRoot = await fs.mkdtemp(path.join(os.tmpdir(), "claude-md-init-hookless-"));
+  const tempRoot = await fs.mkdtemp(path.join(os.tmpdir(), "ai-context-refresh-hookless-"));
 
   try {
     await fs.mkdir(path.join(tempRoot, "docs"), { recursive: true });
@@ -273,7 +273,7 @@ const ROOT_SENTINELS = [
   /Preserve unrelated\/user work/,
   /Never hand-edit.*\.agents\/.*\.codex\/.*AGENTS\.md/,
   /Generated Artifact Storage/,
-  /Never auto-run.*sync-codex/,
+  /completed `\/ai-context-refresh` run invokes the same standalone runner.*skip=claude-md/,
   /required quality gates.*cannot be waived/i,
   /before investigating, planning, or coding/,
   /docs\/project-reference\/lessons\.md/,
@@ -304,6 +304,81 @@ async function fixture(t, config = {}) {
     read: () => fs.readFile(path.join(root, "CLAUDE.md"), "utf8"),
   };
 }
+
+async function runCheck(f, executable = generatorPath) {
+  try {
+    const result = await f.run(["--check"], executable);
+    return { code: 0, stdout: result.stdout ?? "", stderr: result.stderr ?? "" };
+  } catch (error) {
+    return { code: error.code, stdout: error.stdout ?? "", stderr: error.stderr ?? "" };
+  }
+}
+
+test("TC-CLG-009 Given a missing root, When the read-only preflight runs, Then it requests init without writing", async t => {
+  // Given a portable project with configuration but no CLAUDE.md.
+  const f = await fixture(t);
+
+  // When the generator's coordination probe runs.
+  const result = await runCheck(f);
+
+  // Then init is required and the probe has not created or backed up the root.
+  assert.equal(result.code, 10);
+  assert.match(result.stdout, /CLAUDE\.md missing.*init required/);
+  await assert.rejects(fs.stat(path.join(f.root, "CLAUDE.md")), { code: "ENOENT" });
+  await assert.rejects(fs.stat(path.join(f.root, ".claude-md.backup")), { code: "ENOENT" });
+});
+
+test("TC-CLG-010 Given a markerless root, When preflight runs, Then it fails closed and preserves custom bytes", async t => {
+  // Given a project-only CLAUDE.md and the default requirement for portable guides.
+  const f = await fixture(t);
+  const original = "# Project-owned instructions\n\nKeep this exact λ text.\n";
+  await fs.writeFile(path.join(f.root, "CLAUDE.md"), original, "utf8");
+
+  // When the generator's coordination probe runs.
+  const result = await runCheck(f);
+
+  // Then AI smart-merge is required and neither the root nor a backup is mutated.
+  assert.equal(result.code, 12);
+  assert.match(result.stderr, /markerless.*manual smart-merge required/i);
+  assert.equal(await fs.readFile(path.join(f.root, "CLAUDE.md"), "utf8"), original);
+  await assert.rejects(fs.stat(path.join(f.root, ".claude-md.backup")), { code: "ENOENT" });
+});
+
+test("TC-CLG-011 Given an explicit guide opt-out, When a markerless root is probed, Then sync may continue", async t => {
+  // Given a project-only root and an explicit portability opt-out.
+  const f = await fixture(t, { portability: { requireUniversalGuides: false } });
+  const original = "# Project-only instructions\n";
+  await fs.writeFile(path.join(f.root, "CLAUDE.md"), original, "utf8");
+
+  // When the generator's coordination probe runs.
+  const result = await runCheck(f);
+
+  // Then the root is accepted without changing its bytes.
+  assert.equal(result.code, 0);
+  assert.match(result.stdout, /markerless.*opted out/i);
+  assert.equal(await fs.readFile(path.join(f.root, "CLAUDE.md"), "utf8"), original);
+});
+
+test("TC-CLG-012 Given a marker-managed root, When content is current or stale, Then preflight distinguishes both states", async t => {
+  // Given a root produced by the same generator that the sync runner invokes.
+  const f = await fixture(t);
+  await f.run(["--mode", "init"]);
+
+  // When the probe runs once before and once after a managed-section drift.
+  const current = await runCheck(f);
+  const original = await f.read();
+  const drifted = original.replace(/(<!-- SECTION:tldr -->\r?\n)/, "$1MANUAL MANAGED-SECTION DRIFT\r\n");
+  assert.notEqual(drifted, original);
+  await fs.writeFile(path.join(f.root, "CLAUDE.md"), drifted, "utf8");
+  const stale = await runCheck(f);
+
+  // Then current is green, stale is update-required, and the read-only probe preserves drifted bytes.
+  assert.equal(current.code, 0);
+  assert.match(current.stdout, /CLAUDE\.md is current/);
+  assert.equal(stale.code, 11);
+  assert.match(stale.stdout, /marker-managed update/);
+  assert.equal(await fs.readFile(path.join(f.root, "CLAUDE.md"), "utf8"), drifted);
+});
 
 test("TC-HARNESS-008 root preserves inline authority and quality with one automatic router", async t => {
   const f = await fixture(t);
@@ -538,9 +613,9 @@ test("TC-HARNESS-008 current root COPY updates with one router and owned backup;
 
 async function copiedGenerator(f, changes = {}) {
   const files = [
-    ".claude/skills/claude-md-init/scripts/generate-claude-md.cjs",
-    ".claude/skills/claude-md-init/scripts/section-builders.cjs",
-    ".claude/skills/claude-md-init/references/claude-md-template.md",
+    ".claude/skills/ai-context-refresh/scripts/generate-claude-md.cjs",
+    ".claude/skills/ai-context-refresh/scripts/section-builders.cjs",
+    ".claude/skills/ai-context-refresh/references/claude-md-template.md",
     ".claude/skills/shared/workflow-first-gate.md",
     ".claude/skills/shared/sync-inline-versions.md",
     ".claude/scripts/lib/extract-sync-block.cjs",
@@ -633,8 +708,8 @@ test("TC-HARNESS-008 exact legacy route migration preserves changed user-owned l
 });
 
 test("TC-HARNESS-008/015 semantic mutants are killed by observable output/backup assertions", async t => {
-  const generator = ".claude/skills/claude-md-init/scripts/generate-claude-md.cjs";
-  const template = ".claude/skills/claude-md-init/references/claude-md-template.md";
+  const generator = ".claude/skills/ai-context-refresh/scripts/generate-claude-md.cjs";
+  const template = ".claude/skills/ai-context-refresh/references/claude-md-template.md";
   for (const mutation of ["ignored-backup-option", "nonexclusive-backup", "authority-loss", "preservation-loss", "quality-gate-loss"]) {
     const f = await fixture(t);
     const changes = mutation === "ignored-backup-option" ? { [generator]: s => s.replaceAll("createBackup(backupPath);", "createBackup();") }

@@ -5,6 +5,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { spawn } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
+import { frameworkPkg } from './framework-repo.helper.mjs';
 
 // Pipeline stage integrity: a runner stage must never report PASS having executed nothing.
 //
@@ -149,4 +150,34 @@ test('STAGE-002 --filter=parity selects exactly protocol-text-parity and sync-ca
 
     assert.deepEqual(selected, ['protocol-text-parity', 'sync-carrier-parity'],
         `the hooks-parity stage must cover BOTH parity suites.\n  selected: ${selected.join(', ') || '(none)'}`);
+});
+
+// ── STAGE-005 — process-heavy scripts tests must not compete for child-process capacity ─────────
+test('STAGE-005 scripts-tests uses bounded concurrency at the runner and framework aliases', async () => {
+    // Given: the standalone runner is portable, while package aliases are an authoring-repo surface.
+    // When: inspect the runner and any framework package aliases that delegate to this stage.
+    // Then: the runner serializes top-level files where supported, remains runnable on the declared
+    // Node 18.0+ floor, and every applicable alias delegates to that runner.
+    const runnerSource = await fs.readFile(path.join(repoRoot, ...syncRunnerRel.split('/')), 'utf8');
+    assert.match(runnerSource,
+        /const supportsTestConcurrencyFlag = nodeMajor >= 21[\s\S]*?\(nodeMajor === 18 && nodeMinor >= 19\);/,
+        'the runner must gate the newer test-concurrency flag by the supported Node release');
+    assert.match(runnerSource,
+        /const scriptsTestConcurrencyArgs = supportsTestConcurrencyFlag \? \["--test-concurrency=1"\] : \[\];[\s\S]*?id: "scripts-tests"[\s\S]*?argsAsync: async \(\) => \["--test", \.\.\.scriptsTestConcurrencyArgs, \.\.\.await listTestFiles\(claudeTestsDir\)\]/,
+        'the sync runner must serialize process-heavy scripts tests without breaking older Node 18');
+    assert.match(runnerSource,
+        /const testNodeCommand = process\.execPath;[\s\S]*?id: "tests"[\s\S]*?cmd: testNodeCommand[\s\S]*?id: "scripts-tests"[\s\S]*?cmd: testNodeCommand/,
+        'both Node test stages must use the same executable whose version selected the test flags');
+
+    const packageJson = frameworkPkg(repoRoot);
+    if (!packageJson) return;
+
+    const delegatedScripts = Object.entries(packageJson.scripts ?? {}).filter(([, command]) =>
+        typeof command === 'string' && command.includes('--only=scripts-tests'));
+    assert.ok(delegatedScripts.length > 0,
+        'the framework package must retain at least one scripts-tests alias');
+    for (const [name, command] of delegatedScripts) {
+        assert.match(command, /run-codex-sync\.mjs\s+--only=scripts-tests/,
+            `${name} must delegate scripts-tests to the standalone runner`);
+    }
 });

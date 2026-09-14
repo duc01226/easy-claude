@@ -17,7 +17,9 @@ const { resolveWorkflowManifest } = createRequire(import.meta.url)('../../lib/wo
 // instruction. It must fail the SAME assertion used on the real source.
 function rejects(check, source, before, after) {
     assert.ok(source.includes(before), `mutation anchor exists: ${before}`);
-    const mutant = source.replace(before, after);
+    // Replace every occurrence so repeated operational instructions cannot leave a surviving copy
+    // that makes a weakened contract appear valid.
+    const mutant = source.replaceAll(before, after);
     assert.notEqual(mutant, source);
     assert.throws(() => check(mutant), { code: 'ERR_ASSERTION' });
 }
@@ -36,18 +38,28 @@ test('R3-PROMPT-025: visual candidates cannot redefine expectations without acce
 });
 
 function assertSyncHandoff(text) {
-    assert.match(text, /this skill never authorizes or auto-runs it/);
-    assert.match(text, /Normal source generation is not sync authorization: NEVER auto-run the/);
-    assert.match(text, /TaskCreate: "Report stale Codex mirrors → instruct user to run \/sync-codex"/);
-    assert.doesNotMatch(text, /TaskCreate: "Sync Codex mirrors from updated CLAUDE.md → invoke \/sync-codex"/);
+    assert.match(text, /Sync Codex Mirrors/);
+    assert.match(text, /one executable pipeline/);
+    assert.match(text, /--skip=claude-md/);
+    assert.match(text, /not a nested `\/sync-codex` skill call/);
+    assert.match(text, /TaskCreate: "Sync Codex mirrors from updated CLAUDE\.md → invoke \/sync-codex"/);
+    assert.doesNotMatch(text, /Report stale Codex mirrors → instruct user/);
 }
 
-test('R3-PROMPT-026: normal generation prepares a user-only sync handoff', () => {
-    const source = local(skill('claude-md-init'));
+test('R3-PROMPT-026: CLAUDE.md completion invokes the shared mirror runner after final edits', () => {
+    // Given the canonical AI-context source and its generated template.
+    const source = local(skill('ai-context-refresh'));
+
+    // When the source contract and mutation guards are evaluated.
     assertSyncHandoff(source);
-    rejects(assertSyncHandoff, source, 'this skill never authorizes or auto-runs it', 'this skill automatically invokes sync');
-    rejects(assertSyncHandoff, source, 'TaskCreate: "Report stale Codex mirrors → instruct user to run /sync-codex"', 'TaskCreate: "Sync Codex mirrors from updated CLAUDE.md → invoke /sync-codex"');
-    assert.match(read('skills/claude-md-init/references/claude-md-template.md'), /Never auto-run `\/sync-codex`/);
+    rejects(assertSyncHandoff, source, 'one executable pipeline', 'two unrelated pipelines');
+    rejects(assertSyncHandoff, source, '--skip=claude-md', '--skip=wrong-stage');
+    rejects(assertSyncHandoff, source, 'TaskCreate: "Sync Codex mirrors from updated CLAUDE.md → invoke /sync-codex"', 'TaskCreate: "Report stale Codex mirrors → instruct user"');
+    const template = read('skills/ai-context-refresh/references/claude-md-template.md');
+    assert.match(template, /full `\/sync-codex` run preflights `CLAUDE\.md`/);
+    assert.match(template, /completed `\/ai-context-refresh` run invokes the same standalone runner/);
+    assert.doesNotMatch(template, /Never auto-run `\/sync-codex`/);
+    // Then final CLAUDE.md authoring has one safe, non-recursive mirror handoff.
 });
 
 function assertReadiness(text) {

@@ -371,7 +371,7 @@ test('TC-CODEXSYNC-001: the remediation command regenerates every surface this g
     const runner = await fs.readFile(runnerPath, 'utf8');
 
     // Slice the literal roster out of the SOURCE instead of importing it: importing the runner would
-    // execute the pipeline, and its three mutating stages would rewrite the real tree from a test.
+    // execute the pipeline, and its four mutating stages would rewrite the real tree from a test.
     const open = runner.indexOf('const stages = [');
     assert.notEqual(open, -1, 'run-codex-sync.mjs must define a `stages` roster — it is the remediation every FAIL branch prints');
     const close = runner.indexOf('\n];', open);
