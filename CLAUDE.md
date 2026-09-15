@@ -188,56 +188,6 @@ Distinct step-skills used across the workflows above — compose these into a cu
 
 <!-- prettier-ignore-end -->
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 <!-- CK:PROJECT-PROTOCOLS -->
 
 > **[PROJECT-PROTOCOL-OVERLAY] — resolve before executing ANY skill.** Hook-independent: binds Claude and Codex equally.
@@ -574,7 +524,7 @@ When editing files matching these path patterns, pre-read the listed context fir
 | Hooks       | <!-- COUNT:hooks -->18<!-- /COUNT -->       |
 | Agents      | <!-- COUNT:agents -->27<!-- /COUNT -->      |
 | Workflows   | <!-- COUNT:workflows -->19<!-- /COUNT -->   |
-| Shared      | <!-- COUNT:shared -->9<!-- /COUNT -->       |
+| Shared      | <!-- COUNT:shared -->10<!-- /COUNT -->       |
 | Lib modules | <!-- COUNT:lib-modules -->31<!-- /COUNT --> |
 
 ---

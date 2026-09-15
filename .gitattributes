@@ -1,0 +1,24 @@
+# Line endings are a checkout policy, not content. Source-mutation oracles and parity suites
+# compare file text against literals written with LF, so a CRLF checkout under core.autocrlf
+# would make them report a phantom drift. Normalize on commit and check out LF everywhere.
+* text=auto eol=lf
+# Windows command scripts need CRLF to run under cmd.exe.
+*.cmd text eol=crlf
+*.bat text eol=crlf
+
+# Binary assets must never be normalized.
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.webp binary
+*.pdf binary
+*.zip binary
+*.db binary
+*.woff binary
+*.woff2 binary
+*.ttf binary
+*.otf binary
+*.mp4 binary
+*.webm binary

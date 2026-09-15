@@ -21,14 +21,14 @@ Adopter projects may opt into an `e2eTesting.execution` profile in
 fields below describe the portable handoff and are not facts about this
 framework's own runtime:
 
-| Profile area | Contract |
-| --- | --- |
-| `surfaceIds` | Links E2E execution to `experienceVerification.surfaces[]`; that surface's `localRun` owns dependencies, startup, readiness, teardown, runtime logs, and reference-only `credentialsRef`. |
-| `auth` | Declares `fixture`, `storage-state`, `registration`, `manual`, or `none` plus non-secret references. Never copy credentials, cookies, tokens, headers, or storage contents into a prompt, command, test, or report. |
-| `data` | Declares the verified seed command/working directory, `reference-only`/`idempotent`/`additive` mode, and cleanup policy. Use the project recipe; do not mutate a datastore as a UI shortcut. |
-| `browser` | Declares the configured runner/engine, headed visibility, action delay, and wait-until policy. For web human QC, use the visible Playwright CLI path when configured; a bounded `waitUntil` condition surrounds each UI-control operation for readiness/actionability, expected positive/negative outcomes, and applicable error-alert states, followed by exactly 500ms of post-action presentation pacing. |
-| `evidence` | Declares the project-relative evidence root, capture kinds, and a non-empty redaction policy whenever sensitive captures are enabled. Attach console/page errors/failed requests before interaction when applicable; read screenshots/traces/video before judging them. |
-| `convergence` | Bounds attempts, consecutive green runs, and settle timeout. Keep the same scope; classify failures before edits, fix at the owning layer, review each fix, and rerun fresh. |
+| Profile area  | Contract                                                                                                                                                                                                                                                                                                                                                                                                     |
+| ------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `surfaceIds`  | Links E2E execution to `experienceVerification.surfaces[]`; that surface's `localRun` owns dependencies, startup, readiness, teardown, runtime logs, and reference-only `credentialsRef`.                                                                                                                                                                                                                    |
+| `auth`        | Declares `fixture`, `storage-state`, `registration`, `manual`, or `none` plus non-secret references. Never copy credentials, cookies, tokens, headers, or storage contents into a prompt, command, test, or report.                                                                                                                                                                                          |
+| `data`        | Declares the verified seed command/working directory, `reference-only`/`idempotent`/`additive` mode, and cleanup policy. Use the project recipe; do not mutate a datastore as a UI shortcut.                                                                                                                                                                                                                 |
+| `browser`     | Declares the configured runner/engine, headed visibility, action delay, and wait-until policy. For web human QC, use the visible Playwright CLI path when configured; a bounded `waitUntil` condition surrounds each UI-control operation for readiness/actionability, expected positive/negative outcomes, and applicable error-alert states, followed by exactly 500ms of post-action presentation pacing. |
+| `evidence`    | Declares the project-relative evidence root, capture kinds, and a non-empty redaction policy whenever sensitive captures are enabled. Attach console/page errors/failed requests before interaction when applicable; read screenshots/traces/video before judging them.                                                                                                                                      |
+| `convergence` | Bounds attempts, consecutive green runs, and settle timeout. Keep the same scope; classify failures before edits, fix at the owning layer, review each fix, and rerun fresh.                                                                                                                                                                                                                                 |
 
 Candidate E2E evidence and repeatable run output belong under the project-root
 `tmp/` or `temp/` directory (prefer `tmp/e2e`), which the root `.gitignore`
@@ -114,6 +114,103 @@ Advisory identity, polish, or non-contract spacing preferences are recorded but
 do not create an unbounded loop. `/ask` is an architecture-consultation skill,
 not the screenshot reviewer.
 
+### UI state transition capture (auto-capture every state change)
+
+Full contract: `.claude/skills/shared/ui-state-capture-protocol.md`. When an
+adopter project introduces an E2E stack, the visual gate covers two capture
+sources; under the default `uiStateCapture.mode: every-action` they are additive
+(`declared-only` keeps the matrix and records transitions as blind spots; `off`
+keeps the matrix and records transition coverage as `N/A` — see the configuration
+below):
+
+1. the **declared state x viewport matrix** — guarantees the required states
+   (loading, empty, error, permission, post-submit, full-page) are seen even
+   when the journey never reaches them naturally; and
+2. **transition captures** — one capture after every UI-state-changing action,
+   so every state the journey _does_ reach is seen.
+
+Wire transition capture as a single project-owned `captureUiState(descriptor)`
+helper inside the shared base page/component action primitives (`click`,
+`select`, `toggle`, `navigate`, `submit`), fired after the `waitUntil`
+postcondition and the 500ms presentation pacing. Instrumenting the action layer
+rather than the test body is the whole point: a per-test `screenshot()` call is
+one somebody must remember and copy forward, it decays within a sprint, and the
+decay is invisible because the suite still passes — it just stops seeing.
+Capturing before the postcondition records a transition instead of a state, and
+every reviewer then reports the resulting spinner as a defect that is not real.
+
+Triggers: navigation; activation (button, link, row, submit); select/dropdown
+open **and** option chosen; toggle, switch, checkbox, radio; tab, wizard step,
+accordion, tree expand/collapse; modal, drawer, popover, tooltip on open **and**
+close; filter, search, sort, pagination; drag/reorder, resize, inline edit enter
+and commit; theme, locale, density, read/edit mode, role switch, viewport
+change; async boundary resolution; toast, banner, inline validation; login,
+logout, session expiry. Not triggers: assertions, pure reads, no-op hovers,
+per-keystroke typing (capture on commit/blur), polling ticks.
+
+Bounding keeps the set reviewable: dedupe by post-action fingerprint (still emit
+the manifest row), cap per test and per run with an escalation naming the
+untaken captures instead of silent truncation, sample loops (first/middle/last),
+mask clocks and GUIDs and avatars, and capture full-page wherever the surface
+scrolls. **Failure captures are never deduped or capped.**
+
+Every capture gets one row in
+`{evidenceRoot}/ui-captures/{runId}/capture-manifest.json` — `seq`, `tc`,
+`gwt_step`, `source` (`matrix|transition`), `phase` (`pre|post|failure`),
+`action_type`, `action_label`, `target`, `route`, `viewport`, `full_page`,
+`expected_delta`, `path`, `masked`, `deduped_from`, `console_since_last`,
+`read`. The manifest is what makes the review reconcilable: without it nobody
+can tell a clean run from an unfinished one, `expected_delta` is the only oracle
+for "this action changed nothing", and `console_since_last` attributes a runtime
+error to the exact transition that caused it.
+
+Configure it under `e2eTesting.execution.evidence.uiStateCapture`:
+
+```jsonc
+"uiStateCapture": {
+  "mode": "every-action",          // every-action | declared-only | off
+  "helper": "<path/symbol of the capture helper in the base action primitives>",
+  "manifestPath": "tmp/e2e-evidence/ui-captures/{runId}/capture-manifest.json",
+  "maxPerTest": 60,
+  "maxPerRun": 400,
+  "fullPageWhenScrollable": true,
+  "maskSelectors": ["<volatile region selectors>"]
+}
+```
+
+`mode: "off"` is an explicit opt-out of transition capture only, never a silent
+default: the declared matrix is still captured, indexed, and reviewed. An applicable UI
+surface with no capture capability is `ENVIRONMENT-BLOCKED`.
+
+### Case-by-case review and synthesis
+
+The capture set exists so an agent can find UI defects a passing assertion never
+looks at. `/experience-review` adjudicates it in three passes:
+
+- **Pass 0 — reload the authority.** Before opening the first image, read the
+  project's design-system doc, `frontend-patterns-reference.md`,
+  `scss-styling-guide.md`, `.claude/docs/design-knowledge.md`, and
+  `.claude/docs/design-review-checklist.md`, and cite which resolved. Judging
+  from memory is how a deliberate house convention gets reported as a bug, and a
+  sub-agent inherits none of this from the calling conversation.
+- **Pass 1 — one capture at a time.** Open ONE image, record
+  `CASE / IMAGE / EXPECTED / OBSERVED / CONSOLE / FINDINGS / VERDICT`, then open
+  the next. Taxonomy: `UIX-BROKEN`, `UIX-UNSTYLED`, `UIX-OVERFLOW`,
+  `UIX-OVERLAP`, `UIX-LAYOUT`, `UIX-STATE`, `UIX-A11Y`, `UIX-CONVENTION` (cite
+  the authority clause it breaks), `UIX-FLOW`, `UIX-POLISH` (advisory). An
+  explicit `none` is required for a clean capture.
+- **Pass 2 — synthesize.** Reconcile records against the manifest and report
+  `reviewed/total`; cluster a repeated defect into ONE finding owned by its
+  `Common`/`Domain-Shared`/`Page` component so it is fixed once at the owning
+  layer; report sequence-level findings (no feedback between an action and its
+  result, layout shift between steps, a component rendered inconsistently across
+  surfaces, convention drift through a flow); and list uncaptured, deduped, or
+  capped transitions as recorded coverage gaps.
+
+A manifest row with no per-case record is `UNVERIFIED`, never clean. Blocking
+findings are fixed at the owning layer and force a fresh same-scope rerun;
+advisory findings are recorded and never loop.
+
 ### Visual design protocol handoff
 
 When visual review is enabled (the default, or explicit `--visual-review=true`),
@@ -172,6 +269,8 @@ rg -l --hidden "Given\(|When\(|Then\(|@given|@when|@then|\[Binding\]" . -g "*.cs
 - Keep one canonical owner for each selector/action/wait and test reusable lower-tier component behavior once; Page tests cover page-specific composition and outcomes, not copied lower-tier cases.
 - Model each interactive journey as observe → act → observe with the shared bounded `waitUntil` helper before and after every control action. Include applicable error-alert present/absent conditions and dropdown/menu visibility; a wait timeout fails with diagnostics and must not be hidden by a weaker assertion or ad-hoc sleep.
 - For every browser/UI-control operation, apply the exact 500ms delay only after the `waitUntil` postcondition and keep any real settle signal separate; never use this delay as readiness or a postcondition.
+- When E2E is introduced with a UI surface, wire the `captureUiState` helper into the shared action primitives so every UI-state-changing action auto-captures after its postcondition and pacing (per `uiStateCapture.mode`, default `every-action`), index every capture in `capture-manifest.json`, and never hand-place screenshots in test bodies — an instrumented action layer cannot be forgotten, a per-test call can.
+- Review the capture set case by case before synthesizing, after reloading the project's design/UI convention docs; cluster a repeated defect to its owning component and fix it once there; record uncaptured transitions as coverage gaps rather than implicit passes.
 - Treat hardcoded real E2E credentials as a **CRITICAL** security finding; none was verified in the current project surface.
 
 ## Closing Reminders

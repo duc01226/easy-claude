@@ -75,11 +75,15 @@ test('R2-14/15: contradictory closure and session-reset mutants are rejected', (
 test('R2-15: CLEAN report with a retained HIGH hands off without clearing the outer target', () => {
     assertReportClosure(why);
     const findings = [{ id: 'supported-path', severity: 'HIGH', summary: 'validated defect' }];
-    for (const round of [1, 2]) {
+    for (const round of [1, 2, 3]) {
         assert.equal(policy.evaluateRound({ round, findings }).canComplete, false);
         assert.equal(policy.blockingFindings(round, findings).length, 1);
     }
-    assert.throws(() => policy.evaluateRound({ round: 3, findings }), /round/);
+    // A retained HIGH buys the single extension round at the base cap, and
+    // nothing at the hard cap: round 3 hands off to a human instead.
+    assert.equal(policy.evaluateRound({ round: 2, findings }).status, 'CONTINUE');
+    assert.equal(policy.evaluateRound({ round: 3, findings }).status, 'ESCALATE');
+    assert.equal(policy.evaluateRound({ round: 4, findings }).status, 'ESCALATE');
     assert.equal(policy.evaluateRound({ round: 2, findings: [{ id: 'polish', severity: 'LOW' }] }).canComplete, true);
     assert.equal(policy.evaluateRound({ round: 2, hardGates: [{ id: 'coverage', status: 'FAIL' }] }).canComplete, false);
 });

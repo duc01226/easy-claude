@@ -260,7 +260,11 @@ def inject_counts(file_path, verbose=True):
     path = Path(file_path)
     if not path.exists():
         raise FileNotFoundError(f"inject target does not exist: {file_path}")
-    text = path.read_text(encoding='utf-8')
+    # newline='' keeps the file's own line endings byte-for-byte. Text mode would rewrite every
+    # EOL to os.linesep on Windows, turning a one-digit count refresh into a whole-file CRLF
+    # churn that downstream generators then mistake for content.
+    with path.open(encoding='utf-8', newline='') as handle:
+        text = handle.read()
     matches = list(COUNT_MARKER_RE.finditer(text))
     changes = []  # list of (kind, filter, old, new)
 
@@ -276,7 +280,8 @@ def inject_counts(file_path, verbose=True):
 
     new_text = COUNT_MARKER_RE.sub(replacer, text)
     if new_text != text:
-        path.write_text(new_text, encoding='utf-8')
+        with path.open('w', encoding='utf-8', newline='') as handle:
+            handle.write(new_text)
         if verbose:
             print(f"✓ Updated {len(changes)} marker(s) in {file_path}:", file=sys.stderr)
             for kind, filt, old, new in changes:

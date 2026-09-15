@@ -248,7 +248,10 @@ function stampHeader(content) {
     const m = text.match(SENTINEL_RE);
     if (m) {
         const at = text.indexOf(m[0]) + m[0].length;
-        return `${text.slice(0, at)}\n\n${header}\n\n${text.slice(at).replace(/^\n+/, '')}`;
+        // CRLF-aware for the same reason as the strip above: the separators each stripped block
+        // leaves behind are `\r\n` once any writer has touched the file in text mode, and an
+        // LF-only pattern keeps them, so every re-stamp would append another blank run.
+        return `${text.slice(0, at)}\n\n${header}\n\n${text.slice(at).replace(/^(?:\r?\n)+/, '')}`;
     }
     return `${header}\n\n${text}`;
 }

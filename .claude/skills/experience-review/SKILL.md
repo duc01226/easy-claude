@@ -33,7 +33,7 @@ description: '[Testing] Use when reviewing a running user experience or observab
 - **Runtime logs and captured screens are evidence channels, not extras.** Capture them on every exercise and re-capture them every round. A runtime ERROR is BLOCKING. A WARNING is ADVISORY — attempt a bounded fix, never let one hold the review open. For a visual surface, capture each state/viewport and READ the images; unread captures are not observations.
 - **The loop converges on defects, never on taste.** Only a BLOCKING defect — objectively checkable against the stated purpose — opens a round. An ADVISORY finding (preference, polish, visual identity) is recorded, never looped on.
 - **Bounded: `--rounds=N`, default 3.** Every round adjudicates before editing, fixes at the owning layer through `/fix`, `/changes-review`s its own fix diff, and re-exercises from scratch. Cap reached, defects not shrinking across two rounds, defects increasing, or `ENVIRONMENT-BLOCKED` → STOP and escalate via `AskUserQuestion`. `--rounds=0` returns the single-pass report-only review.
-- **E2E visual-gate handoff:** when invoked as `/experience-review --rounds=0` by `e2e-test-verify-loop --visual-review=true`, open/read the complete screenshot matrix and return visual observations/classifications to the parent. The parent owns UI fixes and must rerun the same E2E command; this report-only invocation must not mutate snapshots, baselines, or expectations.
+- **E2E visual-gate handoff:** when invoked as `/experience-review --rounds=0` by `e2e-test-verify-loop --visual-review=true`, apply `.claude/skills/shared/ui-state-capture-protocol.md`: reload the project's design/UI convention authority, then open and record EVERY capture in the manifest — declared matrix states and per-action transition captures alike, as the resolved `uiStateCapture.mode` produced them (a `declared-only` run lists every state-changing action as an uncaptured transition; `off` keeps the matrix and records transition coverage as `N/A`) — one at a time, case by case, before synthesizing clustered owner-routed findings and coverage gaps for the parent. The parent owns UI fixes and must rerun the same E2E command; this report-only invocation must not mutate snapshots, baselines, or expectations.
 - MUST ATTENTION apply `.claude/skills/shared/e2e-quality-protocol.md` for E2E/browser/user-flow observations and record each applicable gate row; do not duplicate or replace its detailed checklist.
 - **Fix the defect, never the evidence of it.** Expectations, baselines, snapshots, fixtures, assertions, and acceptance criteria stay read-only in every round. A review that got clean by looking at less did not converge — it regressed.
 - Convergence yields `AGENT-RECOMMENDED-ACCEPT`, which is a named agent judgment, **not** an acceptance. The record stays `ACCEPTANCE-PENDING` until an owner signs; no baseline is promoted before that signature exists.
@@ -289,6 +289,59 @@ observably fails to do X, which the intent requires", it is ADVISORY.
   filtering the capture, or wrapping the call in a catch that swallows is fixing
   the EVIDENCE, which the boundary rule forbids in every round.
 
+**Capture-set review — case by case, then synthesis.** When the surface produced
+a capture set with a `capture-manifest.json` (see
+`.claude/skills/shared/ui-state-capture-protocol.md`), the visual judgment is a
+two-pass job, and the order is not optional.
+
+*Pass 0 — reload the authority, before the first image.* Read the project's own
+UI convention sources and cite which resolved: `docs/project-config.json`
+→ `designSystem.canonicalDoc`, `tokenFiles`, `appMappings[]`; the resolved
+design-system doc, `frontend-patterns-reference.md`, `scss-styling-guide.md`;
+`.claude/docs/design-knowledge.md` and `.claude/docs/design-review-checklist.md`;
+and the governing brief or accepted `/design` decision. Judging a design from
+memory is how a deliberate house convention gets reported as a bug — and a
+sub-agent inherits none of this from the calling conversation.
+
+*Pass 1 — one capture at a time.* Open exactly ONE image, inspect it, append its
+record, and only then open the next (per `SYNC:incremental-persistence`):
+
+```text
+CASE {seq} — {tc} · {action_label} · {surface} @ {viewport} · {phase}
+IMAGE      {path}   READ: yes
+EXPECTED   {expected_delta from the manifest}
+OBSERVED   <facts visible in the image, with locations>
+CONSOLE    <errors/warnings attributed to this transition, or none>
+FINDINGS   <UIX code · BLOCKING|ADVISORY · location · what IN the image shows it>  |  none
+VERDICT    PASS | FAIL | PARTIAL | NOT-VERIFIABLE
+```
+
+An explicit `none` is required for a clean capture. Taxonomy: `UIX-BROKEN`
+(blank/error boundary/failed render), `UIX-UNSTYLED` (styles not applied, raw
+controls, persisted FOUC), `UIX-OVERFLOW` (clipped, truncated, escaping its
+container, unintended horizontal scroll), `UIX-OVERLAP` (occlusion, z-index,
+sticky element covering content), `UIX-LAYOUT` (collapsed grid, broken
+responsive reflow, off-scale spacing), `UIX-STATE` (the action produced no
+visible change where `expected_delta` required one; missing
+loading/empty/error/disabled/selected feedback; stale data after a mutation),
+`UIX-A11Y` (measurable floor only), `UIX-CONVENTION` (deviates from the
+project's own tokens/components/pattern — **cite the authority clause it
+breaks**), `UIX-FLOW` (dead end, context loss, missing confirmation, no
+feedback between action and result), `UIX-POLISH` (identity and taste).
+
+*Pass 2 — synthesis.* Reconcile the records against the manifest and report
+`reviewed/total`; a row with no record is `UNVERIFIED`, never clean. Cluster a
+defect repeating across captures into ONE finding owned by its
+`Common`/`Domain-Shared`/`Page` component — a header overflowing on nine screens
+is one shared-component fix, and reporting it nine times hides that. Report the
+findings that exist only in the sequence: no feedback between an action and its
+result, layout shifting between consecutive steps, the same component rendered
+inconsistently across surfaces, convention drift accumulating through a flow, a
+state the journey never reached. Then list the state-changing actions that
+produced no capture (under `uiStateCapture.mode: off`, record transition coverage
+once as `N/A — uiStateCapture off: {reason}` instead), plus anything deduped,
+sampled, or capped out — a recorded blind spot, never an implicit pass.
+
 **Visual verdict — separate the floor from the taste.** Judge the captured
 images, not a memory of the design:
 
@@ -410,8 +463,12 @@ local-run recipe actually used + where each command came from + readiness
 actions and settle signals
 runtime-log summary: capture window and channels, every ERROR with its
   disposition, every WARNING with its emitter and why it stands or was fixed
-screenshot inventory: one entry per state x viewport, with the observation each
-  image supports
+screenshot inventory: one entry per capture — matrix state x viewport and
+  per-action transition alike — with the observation each image supports
+capture-set record (when a manifest exists): manifest path, row count,
+  reviewed/total reconciliation, design-authority sources reloaded, one CASE
+  record per row, clustered findings with their owning component, sequence-level
+  findings, and uncaptured/deduped/capped coverage gaps
 OBSERVED observations + evidence references
 JUDGED judgments + BLOCKING/ADVISORY class + rationale + confidence metadata
 remediation verdicts, fix paths, and each round's /changes-review outcome
@@ -572,10 +629,12 @@ that the fix belongs elsewhere — stop the round and escalate.
 > 2. **Use project decisions.** Apply precedence: brief/accepted design contract → adopter project design-system/SCSS/frontend docs and ADRs → shared `UI-1.1`–`UI-9.4`, `DD-1`–`DD-8`, and `CL-1`–`CL-6`; surface a genuine conflict with both sides, never silently choose. Read and apply the full shared `SYNC:design-system-check`, `SYNC:ui-ux-design-principles`, `SYNC:design-distinctiveness-gate`, and `SYNC:design-review-checklist` bodies for their applicable roles. When UI generation or repair is in scope, consume the accepted `/design` decisions (or the adopter's equivalent professional design/component system); review-only E2E evidence must not invent a new visual language.
 > 3. **Map UI architecture before generation or UI fixes.** Inventory related screens, flows, and components; classify each relevant component `Common`, `Domain-Shared`, or `Page`; record its base abstraction and owner; reuse/compose before creating; record why reuse does not fit; keep one owner for markup, selectors, styling, lifecycle, and lower-tier test contracts. Page tests cover composition/outcomes, not copied lower-tier behavior.
 > 4. **Separate review owners.** Use `/experience-review` for the running surface and opened/read screenshot evidence; route source-only token, BEM/SCSS, z-index, component ownership, reuse, and static design findings to `/ui-review`. Never infer source architecture or design tokens from an image, and never treat a passing E2E command as visual/design approval.
-> 5. **Gate every visual round.** Capture every declared state × viewport (including loading, empty, error, permission, post-submit, and full-page where applicable), open/read each artifact, and record state, viewport, location, and measured values. `UI-*`/accessibility/layout-floor and `P0`–`P2` `CL-*` findings are `BLOCKING`; `DD-*` identity/polish is `ADVISORY` unless the governing brief/project contract makes it objectively required. Unmeasurable values are `NOT VERIFIABLE`; never promote a baseline/expectation automatically.
-> 6. **Report the contract.** Persist authority paths and resolution status, component tier/base/owner/reuse decisions, matrix coverage, `UI`/`DD`/`CL` coverage or skips, evidence/read status, and remaining human acceptance; preserve the protected business invariant and exact E2E scope.
+> 5. **Capture every UI state the journey reaches, not only the declared ones.** Apply `.claude/skills/shared/ui-state-capture-protocol.md`. Instrument one project-owned capture helper in the shared page/component action primitives so every UI-state-changing action — navigation, activation, selection, toggle, tab/step, overlay open and close, filter/sort/paginate, direct manipulation, mode/theme/role switch, async boundary resolution, feedback, session change — emits a capture automatically after its `waitUntil` postcondition and the 500ms pacing; a screenshot call written per test decays invisibly. The resolved `uiStateCapture.mode` decides which captures are produced: `every-action` is the default described here, `declared-only` keeps the matrix and records every transition as a blind spot, and `off` keeps the matrix and records transition coverage as `N/A` — it never waives or weakens this gate. Transition captures are ADDITIVE to the declared state × viewport matrix (loading, empty, error, permission, post-submit, full-page where applicable), never a replacement. Index every capture (including deduped and capped rows) in a `capture-manifest.json` under the evidence root; dedupe by fingerprint, bound per test/run with an escalation record instead of silent truncation, sample repetition, mask volatile regions, capture full-page where the surface scrolls, and never dedupe or cap a failure capture.
+> 6. **Gate every visual round case by case, then synthesize.** Reload the design/UI convention authority BEFORE judging the first image. Open/read ONE capture at a time and append its record — image path, expected delta, observed facts with locations, attributed console output, taxonomy findings or an explicit `none`, verdict — before opening the next. Then reconcile records against the manifest, cluster a repeated defect into ONE finding owned by its `Common`/`Domain-Shared`/`Page` component, report sequence-level findings only visible across captures, and list uncaptured transitions as recorded coverage gaps. `UIX-BROKEN`/`UNSTYLED`/`OVERFLOW`/`OVERLAP`/`STATE`, `UI-*`/accessibility/layout-floor, and `P0`–`P2` `CL-*` findings are `BLOCKING`; `UIX-POLISH`/`DD-*` identity is `ADVISORY` unless the governing brief/project contract makes it objectively required. A `UIX-CONVENTION` finding cites the authority clause it breaks. Unmeasurable values are `NOT VERIFIABLE`; a missing record is incomplete review, never a clean result; never promote a baseline/expectation automatically.
+> 7. **Report the contract.** Persist authority paths and resolution status, component tier/base/owner/reuse decisions, matrix plus transition-capture coverage (`reviewed/total` and gaps), `UI`/`DD`/`CL`/`UIX` coverage or skips, manifest path, evidence/read status, and remaining human acceptance; preserve the protected business invariant and exact E2E scope.
 
 <!-- /SYNC:e2e-visual-design-contract -->
+
 
 
 
@@ -587,9 +646,10 @@ that the fix belongs elsewhere — stop the round and escalate.
 
 <!-- SYNC:e2e-visual-design-contract:reminder -->
 
-**MUST ATTENTION** visual E2E/QC resolves the project design authority first, applies project design-system/SCSS/frontend decisions plus `UI-*`/`DD-*`/`CL-*` roles, classifies Common/Domain-Shared/Page ownership and reuse, sends static source findings to `/ui-review` and runtime image evidence to `/experience-review`, reads every state × viewport artifact, treats UI/accessibility-floor findings as blocking and DD identity/polish as advisory, never invents measurements, and never auto-promotes baselines; non-visual runs state `N/A`.
+**MUST ATTENTION** visual E2E/QC resolves the project design authority first, applies project design-system/SCSS/frontend decisions plus `UI-*`/`DD-*`/`CL-*` roles, classifies Common/Domain-Shared/Page ownership and reuse, sends static source findings to `/ui-review` and runtime image evidence to `/experience-review`, auto-captures every UI-state-changing action from the shared action layer into a manifest additive to the state × viewport matrix per the resolved `uiStateCapture.mode` (`.claude/skills/shared/ui-state-capture-protocol.md`), reloads the convention docs then reads and records EVERY capture one at a time before synthesizing clustered, owner-routed findings with coverage gaps, treats `UIX`/UI/accessibility-floor findings as blocking and `UIX-POLISH`/DD identity as advisory, never invents measurements, and never auto-promotes baselines; non-visual runs state `N/A`.
 
 <!-- /SYNC:e2e-visual-design-contract:reminder -->
+
 
 <!-- SYNC:review-principle-awareness -->
 

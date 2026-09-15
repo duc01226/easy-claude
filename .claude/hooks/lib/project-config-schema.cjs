@@ -338,7 +338,21 @@ const SCHEMA = {
                         properties: {
                             root: { type: 'string', required: false, describe: 'Project-relative disposable candidate-evidence root; use tmp/ or temp/ unless explicitly versioned.' },
                             capture: { type: 'array', required: false, itemType: 'string', describe: 'Capture kinds: screenshot, console, requests, trace, or video.' },
-                            redaction: { type: 'string', required: false, describe: 'Project-defined redaction rule/tool reference; never a secret value.' }
+                            redaction: { type: 'string', required: false, describe: 'Project-defined redaction rule/tool reference; never a secret value.' },
+                            uiStateCapture: {
+                                type: 'object',
+                                required: false,
+                                describe: 'Auto-capture of every UI-state-changing action, emitted from the shared page/component action layer after each waitUntil postcondition and the 500ms pacing. Additive to the declared state x viewport matrix, never a replacement. Contract: .claude/skills/shared/ui-state-capture-protocol.md',
+                                properties: {
+                                    mode: { type: 'string', required: false, describe: 'One of every-action, declared-only, or off. Default every-action when visual review is enabled; off is an explicit opt-out, never a silent default.' },
+                                    helper: { type: 'string', required: false, describe: 'Project-relative path/symbol of the capture helper wired into the base action primitives; discovered from the repository, never invented.' },
+                                    manifestPath: { type: 'string', required: false, describe: 'Project-relative capture-manifest.json path under the disposable evidence root; one row per capture including deduped and capped rows.' },
+                                    maxPerTest: { type: 'number', required: false, describe: 'Positive bounded per-test capture cap; reaching it records an escalation naming the untaken captures, never a silent truncation.' },
+                                    maxPerRun: { type: 'number', required: false, describe: 'Positive bounded per-run capture cap; reaching it records an escalation naming the untaken captures, never a silent truncation.' },
+                                    fullPageWhenScrollable: { type: 'boolean', required: false, describe: 'Capture full-page in addition to viewport wherever the surface scrolls; a viewport-only capture hides the overflow defects this capture set exists to find.' },
+                                    maskSelectors: { type: 'array', required: false, itemType: 'string', describe: 'Selectors for volatile regions (clocks, GUIDs, avatars) masked so an unchanged UI yields an unchanged image.' }
+                                }
+                            }
                         }
                     },
                     convergence: {
@@ -803,6 +817,7 @@ function validateExperienceVerificationSemantics(config, errors, warnings) {
 const E2E_AUTH_MODES = new Set(['fixture', 'storage-state', 'registration', 'manual', 'none']);
 const E2E_DATA_MODES = new Set(['reference-only', 'idempotent', 'additive']);
 const E2E_CAPTURE_KINDS = new Set(['screenshot', 'console', 'requests', 'trace', 'video']);
+const E2E_UI_STATE_CAPTURE_MODES = new Set(['every-action', 'declared-only', 'off']);
 
 function isAbsoluteProjectPath(value) {
     return value.startsWith('/') || value.startsWith('\\') || /^[A-Za-z]:[\\/]/.test(value) || value.split(/[\\/]/).includes('..');
@@ -828,7 +843,11 @@ function validateE2eExecutionSemantics(config, errors, warnings) {
 
     const pathFields = [
         ['e2eTesting.execution.data.workingDir', execution.data && execution.data.workingDir],
-        ['e2eTesting.execution.evidence.root', execution.evidence && execution.evidence.root]
+        ['e2eTesting.execution.evidence.root', execution.evidence && execution.evidence.root],
+        // The manifest indexes screenshots; outside the project-relative evidence root they can
+        // escape the gitignored disposable tmp/ tree. `helper` stays out: it may name a symbol.
+        ['e2eTesting.execution.evidence.uiStateCapture.manifestPath',
+            execution.evidence && execution.evidence.uiStateCapture && execution.evidence.uiStateCapture.manifestPath]
     ];
     for (const [path, value] of pathFields) {
         if (typeof value === 'string' && isAbsoluteProjectPath(value)) {
@@ -893,6 +912,35 @@ function validateE2eExecutionSemantics(config, errors, warnings) {
             });
             if (evidence.capture.some(kind => E2E_CAPTURE_KINDS.has(kind)) && !isNonEmptyString(evidence.redaction)) {
                 warnings.push('e2eTesting.execution.evidence.redaction: configure redaction before persisting screenshot, console, request, trace, or video evidence');
+            }
+        }
+
+        const uiStateCapture = evidence.uiStateCapture;
+        if (uiStateCapture && typeof uiStateCapture === 'object' && !Array.isArray(uiStateCapture)) {
+            // Any string, including blank, is checked: a blank mode would otherwise read as active
+            // capture instead of an error (same convention as auth.mode).
+            if (typeof uiStateCapture.mode === 'string' && !E2E_UI_STATE_CAPTURE_MODES.has(uiStateCapture.mode)) {
+                errors.push(`e2eTesting.execution.evidence.uiStateCapture.mode: unsupported mode "${uiStateCapture.mode}"; expected one of ${Array.from(E2E_UI_STATE_CAPTURE_MODES).join(', ')}`);
+            }
+            // Caps bound the capture set; a non-positive cap would silently disable capture
+            // instead of producing the escalation record the protocol requires.
+            [['maxPerTest', 1, 1000], ['maxPerRun', 1, 20000]].forEach(([field, min, max]) => {
+                const value = uiStateCapture[field];
+                if (value === undefined || value === null) return;
+                if (typeof value !== 'number' || !Number.isInteger(value) || value < min || value > max) {
+                    errors.push(`e2eTesting.execution.evidence.uiStateCapture.${field}: expected an integer from ${min} through ${max}`);
+                }
+            });
+            if (typeof uiStateCapture.maxPerTest === 'number' && typeof uiStateCapture.maxPerRun === 'number' &&
+                uiStateCapture.maxPerTest > uiStateCapture.maxPerRun) {
+                errors.push('e2eTesting.execution.evidence.uiStateCapture.maxPerTest: cannot exceed uiStateCapture.maxPerRun');
+            }
+            // `off` still captures and indexes the declared matrix, so every mode needs the manifest path.
+            if (!isNonEmptyString(uiStateCapture.manifestPath)) {
+                warnings.push('e2eTesting.execution.evidence.uiStateCapture.manifestPath: configure the capture-manifest.json path; an unindexed capture set cannot be reconciled case by case and reads as UNVERIFIED');
+            }
+            if (uiStateCapture.mode !== 'off' && !isNonEmptyString(uiStateCapture.helper)) {
+                warnings.push('e2eTesting.execution.evidence.uiStateCapture.helper: name the capture helper wired into the shared action primitives; a per-test screenshot call decays invisibly while the suite still passes');
             }
         }
     }

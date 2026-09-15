@@ -737,3 +737,44 @@ test("TC-HARNESS-008/015 semantic mutants are killed by observable output/backup
     t.diagnostic(`${mutation}: KILLED (syntax valid, semantic assertion)`);
   }
 });
+
+// A text-mode writer on Windows (e.g. a count refresh) rewrites every EOL to CRLF. The re-stamp
+// strips its managed blocks and must also drop the CRLF separators they leave behind; an LF-only
+// pattern kept them, so each rewrite + update cycle appended ~10 blank lines under the header.
+test("TC-HARNESS-015 re-stamp after a CRLF text-mode rewrite is idempotent and adds no blank run", async t => {
+  const longestBlankRun = text => {
+    let best = 0, run = 0;
+    for (const line of text.replace(/\r\n/g, "\n").split("\n")) {
+      run = line.trim() === "" ? run + 1 : 0;
+      best = Math.max(best, run);
+    }
+    return best;
+  };
+  const toCrlf = text => text.replace(/\r?\n/g, "\r\n");
+  const lf = text => text.replace(/\r\n/g, "\n");
+  const cycle = async (f, executable) => {
+    await fs.writeFile(path.join(f.root, "CLAUDE.md"), toCrlf(await f.read()));
+    await f.run(["--mode", "update"], executable);
+    return f.read();
+  };
+
+  const f = await fixture(t);
+  const executable = await copiedGenerator(f);
+  await f.run(["--mode", "init"], executable);
+  const baseline = await f.read();
+  assert.match(baseline, /CK:UNIVERSAL-GUIDES/, "fixture must stamp the managed header under test");
+  const first = await cycle(f, executable);
+  const second = await cycle(f, executable);
+  assert.equal(longestBlankRun(first), longestBlankRun(baseline), "a CRLF rewrite must not leave a blank run behind");
+  assert.equal(lf(second), lf(first), "repeated rewrite + update cycles converge to the same content");
+
+  // Mutant: the LF-only strip after the sentinel. The same oracle must observe the growth.
+  const generator = ".claude/skills/ai-context-refresh/scripts/generate-claude-md.cjs";
+  const m = await fixture(t);
+  const mutant = await copiedGenerator(m, { [generator]: s => s.replace("text.slice(at).replace(/^(?:\\r?\\n)+/, '')", "text.slice(at).replace(/^\\n+/, '')") });
+  await m.run(["--mode", "init"], mutant);
+  const mutantBaseline = longestBlankRun(await m.read());
+  await cycle(m, mutant);
+  const mutantSecond = await cycle(m, mutant);
+  assert.ok(longestBlankRun(mutantSecond) > mutantBaseline, "LF-only strip mutant must accumulate blank lines");
+});

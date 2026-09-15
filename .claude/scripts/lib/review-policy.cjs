@@ -10,11 +10,21 @@
  * was performed by a trusted host.
  *
  * Policy:
- *   - maximum two rounds (a ceiling, not a target);
+ *   - base budget of two rounds (a ceiling, not a target);
  *   - round 1 blocks on every validated finding;
- *   - round 2 blocks only CRITICAL/HIGH/MEDIUM findings;
- *   - failed binary gates always block, including round 2;
- *   - LOW findings deferred by the round-2 floor remain in the record;
+ *   - from round 2 only CRITICAL/HIGH/MEDIUM findings block;
+ *   - failed binary gates always block, at every round;
+ *   - LOW findings deferred by the severity floor remain in the record;
+ *   - a round-2 evaluation still blocked by a CRITICAL or HIGH review
+ *     blocker (a finding, or a failed non-test binary gate carried as a
+ *     synthetic CRITICAL) grants exactly ONE extra round (round 3, the
+ *     review hard cap); blockers that are only MEDIUM or NOT VERIFIABLE
+ *     grant nothing and escalate;
+ *   - the extension is granted at most once per run and never renews;
+ *   - a failing TEST gate (kind: 'test') is outside the review budget: it
+ *     never earns the extension and never escalates, so a run whose only
+ *     blockers are failing tests keeps looping - past round 3 - until the
+ *     tests pass (bounded physically only by MAX_RECORD_BYTES);
  *   - an explicit minRounds may require two rounds, but a clean
  *     review still ends as soon as that minimum is reached.
  *
@@ -31,11 +41,24 @@ const SCHEMA_VERSION = 1;
 // Bump whenever the round eligibility predicate changes.  Existing durable
 // records are intentionally invalidated rather than interpreted under a new
 // severity floor; callers must start a fresh run with the current policy.
-const POLICY_VERSION = 3;
+const POLICY_VERSION = 4;
+// Base budget every run starts with. A round-2 evaluation still blocked by a
+// CRITICAL/HIGH review blocker (a finding, or a failed non-test binary gate
+// carried as synthetic CRITICAL) raises this run's budget to HARD_MAX_ROUNDS
+// exactly once; nothing raises it beyond that.
 const MAX_ROUNDS = 2;
+const HARD_MAX_ROUNDS = 3;
 const SEVERITIES = Object.freeze(['CRITICAL', 'HIGH', 'MEDIUM', 'LOW']);
 const NON_SEVERITY_STATES = Object.freeze(['NOT VERIFIABLE']);
 const LOW_FINDING_FLOOR_ROUND = 2;
+// Only these tiers can unlock the single extension round.  MEDIUM and the
+// NOT VERIFIABLE evidence state keep a round blocked without buying another.
+const EXTENSION_SEVERITIES = Object.freeze(['CRITICAL', 'HIGH']);
+// Hard-gate kinds. A `test` gate (a suite that must actually pass) loops
+// until green with no round cap; every other binary gate is a review blocker
+// bounded by the round budget like a CRITICAL finding.
+const TEST_GATE_KIND = 'test';
+const HARD_GATE_KINDS = Object.freeze(['binary', TEST_GATE_KIND]);
 const SEVERITY_DEFINITIONS = Object.freeze({
     CRITICAL: 'Immediate material risk: security/authorization bypass, data loss or corruption, unsafe destructive action, or (as a separate hard-gate condition) a failed gate that makes the result untrustworthy.',
     HIGH: 'Material correctness or contract risk: wrong behavior on a supported path, a violated invariant, a meaningful privacy/authority gap, or a defect likely to harm users or downstream systems.',
@@ -76,16 +99,21 @@ function validateFingerprint(value) {
 }
 
 function validateRound(value, label = 'round') {
-    if (!Number.isSafeInteger(value) || value < 1 || value > MAX_ROUNDS) {
-        throw new Error(`${label} must be an integer from 1 to ${MAX_ROUNDS}`);
+    // No upper bound here: the review budget (MAX_ROUNDS/HARD_MAX_ROUNDS) is
+    // enforced by evaluateRound/recordRound, while failing test gates may
+    // continue past it.
+    if (!Number.isSafeInteger(value) || value < 1) {
+        throw new Error(`${label} must be a positive integer`);
     }
     return value;
 }
 
 function validateMinRounds(value, explicit = false) {
     const candidate = value === undefined ? 1 : value;
+    // The extension is earned by evidence, so a caller may never declare a
+    // minimum above the base budget.
     if (!Number.isSafeInteger(candidate) || candidate < 1 || candidate > MAX_ROUNDS) {
-        throw new Error('minRounds must be an integer from 1 to 2');
+        throw new Error(`minRounds must be an integer from 1 to ${MAX_ROUNDS}`);
     }
     return { value: candidate, explicit: explicit || value !== undefined };
 }
@@ -129,13 +157,15 @@ function normalizeHardGates(gates) {
     if (!Array.isArray(gates)) throw new Error('hardGates must be an array');
     return gates.map((gate, index) => {
         if (typeof gate === 'boolean' || typeof gate === 'string') {
-            return { id: `hard-gate-${index + 1}`, status: gatePassed(gate) ? 'PASS' : 'FAIL' };
+            return { id: `hard-gate-${index + 1}`, kind: 'binary', status: gatePassed(gate) ? 'PASS' : 'FAIL' };
         }
         requireObject(gate, `hardGates[${index}]`);
         const id = gate.id === undefined ? `hard-gate-${index + 1}` : boundedText(gate.id, `hardGates[${index}].id`, 128);
+        const kind = gate.kind === undefined ? 'binary' : String(gate.kind).toLowerCase();
+        if (!HARD_GATE_KINDS.includes(kind)) throw new Error(`hardGates[${index}].kind must be one of ${HARD_GATE_KINDS.join(', ')}`);
         const status = gate.status === undefined ? (gatePassed(gate) ? 'PASS' : 'FAIL') :
             boundedText(String(gate.status).toUpperCase(), `hardGates[${index}].status`, 32);
-        return { id, status, ...(gate.reason === undefined ? {} : { reason: boundedText(String(gate.reason), `hardGates[${index}].reason`, 1024) }) };
+        return { id, kind, status, ...(gate.reason === undefined ? {} : { reason: boundedText(String(gate.reason), `hardGates[${index}].reason`, 1024) }) };
     });
 }
 
@@ -163,9 +193,32 @@ function blockingFindings(round, findings = [], hardGates = []) {
         id: gate.id,
         severity: 'CRITICAL',
         kind: 'hard-gate',
+        gateKind: gate.kind,
         summary: gate.reason || `Binary gate ${gate.id} did not pass`
     }));
     return [...blockers, ...failedGates];
+}
+
+function isFailingTestGate(blocker) {
+    return blocker.kind === 'hard-gate' && blocker.gateKind === TEST_GATE_KIND;
+}
+
+/**
+ * Blockers bounded by the review budget: every finding plus every failed
+ * non-test binary gate. Failing test gates are excluded; they loop until green.
+ */
+function reviewBlockers(blocking = []) {
+    return blocking.filter(blocker => !isFailingTestGate(blocker));
+}
+
+/**
+ * The single conditional extension: a spent base budget that is still blocked
+ * by a CRITICAL or HIGH review blocker (a failed non-test binary gate counts,
+ * since the policy represents it as a synthetic CRITICAL) buys round 3 and
+ * nothing more. A failing test gate never buys it: tests are not budgeted.
+ */
+function grantsExtension(round, blocking = []) {
+    return round === MAX_ROUNDS && reviewBlockers(blocking).some(finding => EXTENSION_SEVERITIES.includes(finding.severity));
 }
 
 function evaluateRound({ round, findings = [], hardGates = [], minRounds } = {}) {
@@ -176,6 +229,17 @@ function evaluateRound({ round, findings = [], hardGates = [], minRounds } = {})
     const blocking = blockingFindings(round, normalizedFindings, normalizedGates);
     const deferredLow = round >= LOW_FINDING_FLOOR_ROUND ? normalizedFindings.filter(finding => finding.severity === 'LOW') : [];
     const minimumMet = round >= minimum;
+    const canComplete = minimumMet && blocking.length === 0;
+    const bounded = reviewBlockers(blocking);
+    const failingTestGates = blocking.filter(isFailingTestGate);
+    const extensionGranted = grantsExtension(round, blocking);
+    // The review budget in force for this round: the base cap, or the hard cap
+    // once round 3 is reached (by extension or by test-gate continuation).
+    const roundBudget = (extensionGranted || round > MAX_ROUNDS) ? HARD_MAX_ROUNDS : MAX_ROUNDS;
+    // A spent review budget with review blockers left is never a pass: the
+    // caller stops and escalates to a human. Failing test gates alone never
+    // escalate; the loop keeps fixing until the tests pass.
+    const mustEscalate = bounded.length > 0 && round >= roundBudget;
     return {
         round,
         minRounds: minimum,
@@ -184,8 +248,16 @@ function evaluateRound({ round, findings = [], hardGates = [], minRounds } = {})
         hardGates: normalizedGates,
         blocking,
         deferredLow,
-        canComplete: minimumMet && blocking.length === 0,
-        status: minimumMet && blocking.length === 0 ? 'PASS' : 'CONTINUE'
+        extensionGranted,
+        extensionFindings: extensionGranted
+            ? bounded.filter(finding => EXTENSION_SEVERITIES.includes(finding.severity))
+            : [],
+        failingTestGates,
+        testLoopContinues: failingTestGates.length > 0 && !mustEscalate,
+        roundBudget,
+        mustEscalate,
+        canComplete,
+        status: canComplete ? 'PASS' : (mustEscalate ? 'ESCALATE' : 'CONTINUE')
     };
 }
 
@@ -244,8 +316,10 @@ function validState(state) {
     return isObject(state) && state.schemaVersion === SCHEMA_VERSION && state.policyVersion === POLICY_VERSION &&
         RUN_ID.test(state.runId) && FINGERPRINT.test(state.targetFingerprint) &&
         Number.isSafeInteger(state.minRounds) && state.minRounds >= 1 && state.minRounds <= MAX_ROUNDS &&
-        Number.isSafeInteger(state.roundsCompleted) && state.roundsCompleted >= 0 && state.roundsCompleted <= MAX_ROUNDS &&
-        Array.isArray(state.rounds) && state.rounds.every(record => isObject(record) && validateRecordShape(record)) &&
+        Number.isSafeInteger(state.maxRounds) && state.maxRounds >= MAX_ROUNDS && state.maxRounds <= HARD_MAX_ROUNDS &&
+        Number.isSafeInteger(state.roundsCompleted) && state.roundsCompleted >= 0 &&
+        Array.isArray(state.rounds) && state.roundsCompleted === state.rounds.length &&
+        state.rounds.every(record => isObject(record) && validateRecordShape(record)) &&
         (state.status === 'in_progress' || state.status === 'interrupted' || state.status === 'ready' || state.status === 'accepted') &&
         Number.isSafeInteger(state.targetRevision) && state.targetRevision >= 0;
 }
@@ -316,6 +390,7 @@ function startRun(options) {
             minRounds: minimum.value,
             minRoundsExplicit: minimum.explicit,
             maxRounds: MAX_ROUNDS,
+            extension: null,
             roundsCompleted: 0,
             rounds: [],
             status: 'in_progress',
@@ -347,11 +422,23 @@ function invalidateState(state, targetFingerprint, now) {
     state.acceptedRound = null;
     state.status = 'in_progress';
     state.interruption = null;
-    // Keep roundsCompleted/maxRounds: changing the target invalidates evidence,
-    // but may not reset the caller's bounded review budget.
+    // Keep roundsCompleted/maxRounds/extension: changing the target invalidates
+    // evidence, but may not reset — or re-grant — the bounded review budget.
     for (const record of state.rounds) record.valid = false;
     state.updatedAt = now;
     return true;
+}
+
+/**
+ * True when the latest recorded round was blocked solely by failing test
+ * gates. Recomputed from recorded evidence, never from the stored status.
+ */
+function continuesOnFailingTests(state) {
+    const last = state.rounds[state.rounds.length - 1];
+    if (!last) return false;
+    const evaluation = evaluateRound({ round: last.round, findings: last.evaluation.findings,
+        hardGates: last.evaluation.hardGates, minRounds: state.minRounds });
+    return evaluation.testLoopContinues && reviewBlockers(evaluation.blocking).length === 0;
 }
 
 function recordRound(options) {
@@ -372,7 +459,11 @@ function recordRound(options) {
         }
         const expected = state.roundsCompleted + 1;
         if (round !== expected) throw new Error(`Expected next round ${expected}, received ${round}`);
-        if (round > MAX_ROUNDS) throw new Error('Review round budget exhausted');
+        // Round 3 exists only because a recorded round 2 was still blocked by a
+        // CRITICAL/HIGH review blocker; the grant lives on the run, so a target
+        // change cannot silently re-open or re-grant it. The one way past the
+        // review budget is a previous round blocked ONLY by failing test gates.
+        if (round > state.maxRounds && !continuesOnFailingTests(state)) throw new Error('Review round budget exhausted');
         const record = {
             round,
             targetFingerprint,
@@ -384,6 +475,14 @@ function recordRound(options) {
         };
         state.rounds.push(record);
         state.roundsCompleted = round;
+        if (evaluation.extensionGranted && !state.extension) {
+            state.extension = {
+                grantedAtRound: round,
+                grantedAt: now,
+                findings: evaluation.extensionFindings.map(finding => finding.id)
+            };
+            state.maxRounds = HARD_MAX_ROUNDS;
+        }
         state.acceptedRound = null;
         state.status = evaluation.canComplete ? 'ready' : 'in_progress';
         state.interruption = null;
@@ -468,12 +567,18 @@ module.exports = {
     SCHEMA_VERSION,
     POLICY_VERSION,
     MAX_ROUNDS,
+    HARD_MAX_ROUNDS,
     SEVERITIES,
     NON_SEVERITY_STATES,
     LOW_FINDING_FLOOR_ROUND,
+    EXTENSION_SEVERITIES,
+    TEST_GATE_KIND,
+    HARD_GATE_KINDS,
     SEVERITY_DEFINITIONS,
     blockingSeverities,
     blockingFindings,
+    grantsExtension,
+    reviewBlockers,
     evaluateRound,
     startRun,
     getRun,

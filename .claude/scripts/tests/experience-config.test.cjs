@@ -173,6 +173,16 @@ test('TC-EXP-CONFIG-008: disabled configured surfaces warn without rejecting val
     assert.equal(enabled.warnings.includes(disabledWarning), false, 'enabled routing must not report disabled');
 });
 
+// Mutation anchors below are written with LF newlines, but a Windows checkout under
+// `core.autocrlf=true` materializes the schema with CRLF. Normalizing on read keeps every
+// multi-line anchor matching the same text the repository stores, so an oracle reports a real
+// mutation-site change instead of the checkout's line-ending policy.
+function readSchemaSource() {
+    return fs
+        .readFileSync(path.resolve(__dirname, '../../hooks/lib/project-config-schema.cjs'), 'utf8')
+        .replace(/\r\n/g, '\n');
+}
+
 function loadSchemaSource(source) {
     const module = { exports: {} };
     vm.runInNewContext(source, { module, exports: module.exports, require: { main: null } }, { filename: 'project-config-schema.cjs', timeout: 5000 });
@@ -180,7 +190,7 @@ function loadSchemaSource(source) {
 }
 
 test('TC-EXP-CONFIG-009: actual required-field and type weakenings are killed by surface oracles', () => {
-    const source = fs.readFileSync(path.resolve(__dirname, '../../hooks/lib/project-config-schema.cjs'), 'utf8');
+    const source = readSchemaSource();
     const start = source.indexOf('    experienceVerification: {');
     const end = source.indexOf('            notApplicableReason:', start);
     assert.ok(start >= 0 && end > start, 'the owning schema block must exist');
@@ -207,7 +217,7 @@ test('TC-EXP-CONFIG-009: actual required-field and type weakenings are killed by
 });
 
 test('TC-EXP-CONFIG-010: actual disabled-warning deletion is killed by its diagnostic oracle', () => {
-    const source = fs.readFileSync(path.resolve(__dirname, '../../hooks/lib/project-config-schema.cjs'), 'utf8');
+    const source = readSchemaSource();
     const anchor = `warnings.push('${disabledWarning}');`;
     assert.equal(source.split(anchor).length, 2, 'one warning mutation site');
     const mutant = loadSchemaSource(source.replace(anchor, '/* warning removed */'));
@@ -263,7 +273,7 @@ test('TC-EXP-CONFIG-012: each local bring-up field is type-checked at its own pa
 });
 
 test('TC-EXP-CONFIG-013: actual freeform weakening of the bring-up recipe is killed by its type oracle', () => {
-    const source = fs.readFileSync(path.resolve(__dirname, '../../hooks/lib/project-config-schema.cjs'), 'utf8');
+    const source = readSchemaSource();
     const anchor = "                    localRun: {\n                        type: 'object',\n                        required: false,";
     assert.equal(source.split(anchor).length, 2, 'one localRun mutation site');
     const mutant = loadSchemaSource(source.replace(anchor, `${anchor}\n                        freeform: true,`));
@@ -444,4 +454,237 @@ test('TC-E2E-CONFIG-020: the real project configuration keeps its explicit E2E s
     }
 
     assert.equal(validateConfig(realConfig).valid, true);
+});
+
+const validUiStateCapture = {
+    mode: 'every-action',
+    helper: 'e2e/support/capture-ui-state.ts#captureUiState',
+    manifestPath: 'tmp/e2e/ui-captures/run/capture-manifest.json',
+    maxPerTest: 60,
+    maxPerRun: 400,
+    fullPageWhenScrollable: true,
+    maskSelectors: ['[data-volatile]']
+};
+
+function uiStateCaptureConfig(overrides) {
+    return e2eConfig({ ...validE2eExecution, evidence: { ...validE2eExecution.evidence, uiStateCapture: { ...validUiStateCapture, ...overrides } } });
+}
+
+function uiStateCaptureErrors(result) {
+    return result.errors.filter(error => error.includes('uiStateCapture'));
+}
+
+test('TC-E2E-CONFIG-021: uiStateCapture rejects unknown modes, unbounded caps, and inverted caps', () => {
+    const valid = validateConfig(uiStateCaptureConfig({}));
+    assert.equal(valid.valid, true, valid.errors.join('; '));
+    assert.deepEqual(valid.warnings.filter(warning => warning.includes('uiStateCapture')), []);
+
+    const cases = [
+        [{ mode: 'on-failure' }, 'uiStateCapture.mode: unsupported mode "on-failure"'],
+        // A zero cap would silently disable capture instead of recording an escalation.
+        [{ maxPerTest: 0 }, 'uiStateCapture.maxPerTest: expected an integer from 1 through 1000'],
+        [{ maxPerTest: 1.5 }, 'uiStateCapture.maxPerTest: expected an integer from 1 through 1000'],
+        [{ maxPerTest: 1001, maxPerRun: 20000 }, 'uiStateCapture.maxPerTest: expected an integer from 1 through 1000'],
+        [{ maxPerRun: 20001 }, 'uiStateCapture.maxPerRun: expected an integer from 1 through 20000'],
+        [{ maxPerTest: 100, maxPerRun: 50 }, 'uiStateCapture.maxPerTest: cannot exceed uiStateCapture.maxPerRun'],
+        // A blank mode is a typo, not an implicit every-action default.
+        [{ mode: '' }, 'uiStateCapture.mode: unsupported mode ""'],
+        [{ mode: '  ' }, 'uiStateCapture.mode: unsupported mode "  "'],
+        // The manifest indexes screenshots; it must stay inside the project so evidence cannot
+        // leave the gitignored disposable root.
+        [{ manifestPath: '../shared/capture-manifest.json' }, 'uiStateCapture.manifestPath: must be a project-relative path without parent traversal'],
+        [{ manifestPath: 'C:/evidence/capture-manifest.json' }, 'uiStateCapture.manifestPath: must be a project-relative path without parent traversal'],
+        [{ manifestPath: '/var/evidence/capture-manifest.json' }, 'uiStateCapture.manifestPath: must be a project-relative path without parent traversal']
+    ];
+    for (const [overrides, fragment] of cases) {
+        const result = validateConfig(uiStateCaptureConfig(overrides));
+        assert.equal(result.valid, false, `${JSON.stringify(overrides)} must fail`);
+        assert.ok(uiStateCaptureErrors(result).some(error => error.includes(fragment)), `${fragment}: ${result.errors.join('; ')}`);
+    }
+
+    // Boundaries stay accepted so the range check cannot drift into an off-by-one rejection.
+    assert.deepEqual(uiStateCaptureErrors(validateConfig(uiStateCaptureConfig({ maxPerTest: 1000, maxPerRun: 20000 }))), []);
+    assert.deepEqual(uiStateCaptureErrors(validateConfig(uiStateCaptureConfig({ maxPerTest: 1, maxPerRun: 1 }))), []);
+});
+
+test('TC-E2E-CONFIG-022: a missing manifest is warned in every mode; a missing helper while mode is not off', () => {
+    for (const mode of ['every-action', 'declared-only', undefined]) {
+        const result = validateConfig(uiStateCaptureConfig({ mode, helper: undefined, manifestPath: ' ' }));
+        assert.equal(result.valid, true, result.errors.join('; '));
+        assert.ok(result.warnings.some(warning => warning.includes('uiStateCapture.manifestPath')), `${mode}: ${result.warnings.join('; ')}`);
+        assert.ok(result.warnings.some(warning => warning.includes('uiStateCapture.helper')), `${mode}: ${result.warnings.join('; ')}`);
+    }
+
+    // `off` drops the action-layer helper but still captures and indexes the declared matrix,
+    // so an unindexed matrix would read as UNVERIFIED and weaken the visual gate.
+    const off = validateConfig(uiStateCaptureConfig({ mode: 'off', helper: undefined, manifestPath: undefined }));
+    assert.equal(off.valid, true, off.errors.join('; '));
+    const offWarnings = off.warnings.filter(warning => warning.includes('uiStateCapture'));
+    assert.ok(offWarnings.some(warning => warning.includes('uiStateCapture.manifestPath')), offWarnings.join('; '));
+    assert.equal(offWarnings.some(warning => warning.includes('uiStateCapture.helper')), false, offWarnings.join('; '));
+});
+
+test('TC-E2E-CONFIG-023: every schema-accepted uiStateCapture mode and field has a defined meaning in the protocol', () => {
+    const protocol = fs.readFileSync(path.join(repoRoot, '.claude', 'skills', 'shared', 'ui-state-capture-protocol.md'), 'utf8').replace(/\r\n/g, '\n');
+    const section = protocol.split('\n## Configuration\n')[1]?.split('\n---\n')[0];
+    assert.ok(section, 'protocol must keep a Configuration section');
+    assert.ok(section.includes('e2eTesting.execution.evidence.uiStateCapture'), 'Configuration must name the config key it documents');
+
+    const modeTable = section.split('**Modes**')[1]?.split('**Validation**')[0];
+    assert.ok(modeTable, 'Configuration must keep its mode table');
+    // Body rows only: the header row's first cell is the `mode` column name, not a mode.
+    const modeRows = modeTable.split(/^\| --- .*$/m)[1] ?? '';
+    const documentedModes = [...modeRows.matchAll(/^\| `([a-z-]+)` \|/gm)].map(match => match[1]);
+    assert.deepEqual([...documentedModes].sort(), ['declared-only', 'every-action', 'off'], 'each mode is defined exactly once');
+    for (const mode of documentedModes) {
+        assert.deepEqual(uiStateCaptureErrors(validateConfig(uiStateCaptureConfig({ mode }))), [], `${mode} is documented but rejected`);
+    }
+    // `off` has one meaning that keeps the visual gate whole: the matrix is still captured and indexed.
+    const offRow = modeRows.split('\n').find(row => row.startsWith('| `off` |')) ?? '';
+    assert.match(offRow, /The §1\.4 matrix only \(`source: matrix`\), still indexed in the manifest; no transition captures/);
+    assert.match(offRow, /a missing matrix capture stays `ENVIRONMENT-BLOCKED`\/`UNVERIFIED`/);
+    assert.doesNotMatch(offRow, /No captures from this protocol/);
+
+    for (const field of Object.keys(SCHEMA.e2eTesting.properties.execution.properties.evidence.properties.uiStateCapture.properties)) {
+        assert.ok(section.includes(`| \`${field}\` |`), `Configuration must define the ${field} field`);
+    }
+});
+
+// A carrier that tells an agent to capture every action without naming the mode makes
+// `declared-only` and `off` read as a gate failure instead of a recorded blind spot or N/A.
+// Units are prose paragraphs (a numbered list continues the paragraph that introduces it) and
+// single table rows, so one qualified row cannot vouch for an unqualified sibling row.
+function captureContractUnits(text) {
+    const tableRow = line => /^\s*\|/.test(line);
+    return text.replace(/\r\n/g, '\n').split(/\n\s*\n(?!\d+\. )/).flatMap(paragraph => {
+        const lines = paragraph.split('\n');
+        const prose = lines.filter(line => !tableRow(line)).join('\n');
+        return [...lines.filter(tableRow), ...(prose.trim() ? [prose] : [])];
+    });
+}
+
+// Any quantifier over the transition inventory, including "each relevant state, viewport, and
+// state-changing transition"; the gap excludes sentence, cell, and clause boundaries.
+const QUANTIFIED_TRANSITIONS = /\b(every|each|all|any)\b[^.|;\n]{0,40}\bstate-changing (action|transition|trigger)/i;
+// The same contract phrased as a capture trigger or as a per-action gap listing; under `off` a gap
+// listing would record every action as a blind spot instead of one N/A. Hard-wrapped prose is
+// matched across line breaks.
+const TRANSITION_CAPTURE_PHRASES = [
+    /\bcapture after\s+(\*\*)?(any|every|each)(\*\*)?\s+action\b/i,
+    /\bstate-changing\s+actions?\s+(in\s+the\s+journey\s+)?that\s+produced\s+(\*\*)?no(\*\*)?\s+capture/i,
+    /\buncaptured\s+(state-changing\s+actions?|transitions?)\b/i
+];
+const MODE_TABLE_ROW = /^\s*\| `(every-action|declared-only|off)` \|/;
+const MODE_DISMISSED = /\b(regardless of|irrespective of|whatever)\b[^.|\n]{0,20}`?uiStateCapture\.mode/i;
+
+function unqualifiedCaptureImperatives(text) {
+    return captureContractUnits(text).filter(unit => (QUANTIFIED_TRANSITIONS.test(unit) || TRANSITION_CAPTURE_PHRASES.some(phrase => phrase.test(unit)))
+        && (MODE_DISMISSED.test(unit) || !(unit.includes('uiStateCapture.mode') || MODE_TABLE_ROW.test(unit))));
+}
+
+// Wording that makes `off` drop the matrix, which would leave the default visual gate with
+// nothing to review while it still reports a missing capture as ENVIRONMENT-BLOCKED.
+const OFF_DROPS_MATRIX = [
+    /`off` records `N\/A`/,
+    /`off`[^.|\n]{0,40}\b(captures nothing|takes no (captures|screenshots)|skips (the|all) (captures|screenshots|matrix))/,
+    /`off` (also )?drops the (§1\.4 )?(state × viewport )?matrix/,
+    /No captures from this protocol/
+];
+
+// Carriers are discovered rather than listed: every framework document that speaks about
+// state-changing actions consumes the capture contract. The named floor keeps a broken walk
+// from silently scanning nothing.
+const CAPTURE_CARRIER_FLOOR = [
+    '.claude/skills/shared/ui-state-capture-protocol.md',
+    '.claude/skills/shared/e2e-quality-protocol.md',
+    '.claude/skills/e2e-test/SKILL.md',
+    '.claude/skills/e2e-test-verify/SKILL.md',
+    '.claude/skills/e2e-test-verify-loop/SKILL.md',
+    '.claude/skills/workflow-e2e/SKILL.md',
+    '.claude/skills/experience-review/SKILL.md',
+    '.claude/agents/e2e-runner.md',
+    'docs/project-reference/e2e-test-reference.md'
+];
+
+// A manual walk: `readdirSync({ recursive: true })` needs Node 18.17, below the declared engines floor.
+function markdownFiles(dir) {
+    return fs.readdirSync(path.join(repoRoot, dir), { withFileTypes: true }).flatMap(entry => {
+        const relative = path.posix.join(dir, entry.name);
+        if (entry.isDirectory()) return markdownFiles(relative);
+        return entry.isFile() && entry.name.endsWith('.md') ? [relative] : [];
+    });
+}
+
+function captureCarriers() {
+    return ['.claude/skills', '.claude/agents', 'docs/project-reference'].flatMap(markdownFiles)
+        .filter(carrier => /state-changing (action|transition|trigger)/.test(fs.readFileSync(path.join(repoRoot, carrier), 'utf8')))
+        .sort();
+}
+
+test('TC-E2E-CONFIG-024: every capture-every-action imperative is qualified by uiStateCapture.mode', () => {
+    const carriers = captureCarriers();
+    for (const floor of CAPTURE_CARRIER_FLOOR) assert.ok(carriers.includes(floor), `carrier discovery must reach ${floor}`);
+    for (const carrier of carriers) {
+        const text = fs.readFileSync(path.join(repoRoot, carrier), 'utf8');
+        assert.deepEqual(unqualifiedCaptureImperatives(text).map(unit => unit.slice(0, 160)), [], carrier);
+        for (const wording of OFF_DROPS_MATRIX) assert.doesNotMatch(text, wording, carrier);
+    }
+    // The consumer that grades the contract must say what the non-default modes record.
+    const verify = fs.readFileSync(path.join(repoRoot, '.claude/skills/e2e-test-verify/SKILL.md'), 'utf8');
+    assert.match(verify, /Under `declared-only`[^.]*blind spot — never a FAIL/);
+    assert.match(verify, /Under `off`, verify the matrix rows, manifest, and reads exactly as under `declared-only`, and record transition coverage once as `N\/A — uiStateCapture off: \{reason\}`/);
+    assert.match(verify, /a missing matrix capture still fails it/);
+
+    // Mutants: an unqualified imperative in any wording, a real carrier with its qualifier
+    // deleted, and the pre-decision `off` wording must all be caught.
+    for (const mutant of [
+        'Instrument the helper so every UI-state-changing action emits a capture.',
+        '**3. Cover every state-changing trigger**: navigation/route change.',
+        'Capture each state-changing transition after its postcondition wait.',
+        'Screenshots are taken for all state-changing actions in the journey.',
+        'Missing any state-changing trigger is a gate failure.',
+        'Capture every state-changing action regardless of `uiStateCapture.mode`.',
+        // Round-5 R5-06: the capture trigger and the per-action gap listing, including hard-wrapped prose.
+        'Capture after **any** action that can change what a user sees.',
+        '4. **Report coverage gaps.** List the state-changing actions in the journey that produced **no** capture.',
+        'Then list the state-changing actions that\nproduced no capture, plus anything capped out.',
+        'Carry capture coverage (`reviewed/total`, uncaptured state-changing actions, caps hit).',
+        // The pre-fix shared quality-gate row (round-4 F-4).
+        '| Accessibility/responsive/visual (when relevant) | Applicable states are declared | Each relevant state, viewport, and state-changing transition is observed | Captures are emitted from the shared action layer |'
+    ]) {
+        assert.equal(unqualifiedCaptureImperatives(mutant).length, 1, `an unqualified imperative must be caught: ${mutant}`);
+    }
+    // One qualified row must not vouch for an unqualified sibling in the same table.
+    const table = [
+        '| Gate | Then |',
+        '| --- | --- |',
+        '| Visual | Follow the resolved `uiStateCapture.mode` for transitions |',
+        '| Evidence | Capture every state-changing action |'
+    ].join('\n');
+    assert.deepEqual(unqualifiedCaptureImperatives(table), ['| Evidence | Capture every state-changing action |']);
+    const e2eTest = fs.readFileSync(path.join(repoRoot, '.claude/skills/e2e-test/SKILL.md'), 'utf8');
+    assert.ok(unqualifiedCaptureImperatives(e2eTest.replaceAll('uiStateCapture.mode', 'capture setting')).length > 0,
+        'deleting the mode qualifier from a real carrier must be caught');
+    // Restoring the pre-fix shared quality-gate row inside the real table must be caught in place.
+    const qualityGate = fs.readFileSync(path.join(repoRoot, '.claude/skills/shared/e2e-quality-protocol.md'), 'utf8');
+    const visualRow = qualityGate.split(/\r?\n/).find(line => line.startsWith('| Accessibility/responsive/visual (when relevant) |'));
+    assert.ok(visualRow, 'the shared quality gate keeps its visual row');
+    assert.ok(unqualifiedCaptureImperatives(qualityGate.replace(visualRow,
+        '| Accessibility/responsive/visual (when relevant) | Applicable states, viewports/devices, design authority, and the UI-state-changing action inventory are declared | Each relevant state, viewport, and state-changing transition is observed | Controls remain usable/readable/responsive; captures are emitted from the shared action layer and indexed in a manifest |')).length > 0,
+        'the pre-fix quality-gate row must be caught inside the real table');
+    // Deleting the `off` qualifier from the protocol's own gap-listing pass must be caught in place.
+    const captureProtocol = fs.readFileSync(path.join(repoRoot, '.claude/skills/shared/ui-state-capture-protocol.md'), 'utf8');
+    const gapQualifier = ' — under `uiStateCapture.mode: off`, record transition coverage once as `N/A — uiStateCapture off: {reason}` instead of listing each action, and still list capped/sampled-out matrix captures';
+    assert.ok(captureProtocol.includes(gapQualifier), 'the protocol gap-listing pass carries its off qualifier');
+    assert.ok(unqualifiedCaptureImperatives(captureProtocol.replace(gapQualifier, '')).length > 0,
+        'an unqualified per-action gap listing must be caught inside the real protocol');
+    for (const wording of [
+        '`declared-only` records blind spots; `off` records `N/A`)',
+        'Under `off` the suite captures nothing.',
+        '`off` also drops the §1.4 matrix and its manifest.'
+    ]) {
+        assert.ok(OFF_DROPS_MATRIX.some(pattern => pattern.test(wording)), `the pre-decision off wording must be caught: ${wording}`);
+    }
+    // The decided `off` meaning itself must never read as a matrix drop.
+    assert.equal(OFF_DROPS_MATRIX.some(pattern => pattern.test('`off` records transition coverage once as `N/A — uiStateCapture off: {reason}`')), false);
 });

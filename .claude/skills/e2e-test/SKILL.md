@@ -14,6 +14,7 @@ description: '[Testing] Use when selecting, generating, updating, or maintaining
 
 > **E2E Quality Protocol** — the shared gate covers user-flow intent, stable locators/page objects, isolated fixtures/data, auth/permissions, applicable accessibility/responsive/visual checks, bounded waits, readable failure evidence, cleanup, and test-to-spec traceability.
 > **MUST ATTENTION READ** `.claude/skills/shared/e2e-quality-protocol.md` before writing or updating an executable E2E/browser/user-flow case; keep the detailed gate there and record only its result here.
+> **UI State Capture Protocol** — when the case touches a user-facing UI and visual review is enabled, also **MUST ATTENTION READ** `.claude/skills/shared/ui-state-capture-protocol.md`: it owns the action-layer auto-capture instrumentation, the capture manifest, and the case-by-case review the captures feed.
 
 ## Quick Summary
 
@@ -26,7 +27,7 @@ description: '[Testing] Use when selecting, generating, updating, or maintaining
 - **Main steps (in order):** (1) resolve scope from the prompt/current context/spec/code and default whole-project intent; (2) read `docs/project-reference/e2e-test-reference.md` + the `e2eTesting` block of `docs/project-config.json` FIRST — never assume a stack or invent a TC-annotation marker; (3) resolve the optional `e2eTesting.execution` profile and linked `experienceVerification` surface; (4) load `TC-{MODULE}-E2E-{NNN}` specs from `docs/specs/`; (5) pass the Real-World Fidelity Gate BEFORE writing test code — can this flow, timing, and data actually occur in production?; (6) select a suitable existing test or generate/update one via the tiered reusable Page/Component Object Model (spawn the `e2e-runner` sub-agent); (7) bring up the configured whole system, authenticate/seed only through project-owned paths, and run visible web QC/evidence when applicable; (8) run tests with the project's configured command; (9) update `e2e-test-reference.md` with learnings.
 - Every test carries its `TC-{MODULE}-E2E-{NNN}` code traced to the §8 invariant/behavior it guards, structured with a reusable tiered object model (locators/actions in component or page objects, assertions in the test).
 - For applicable browser/UI E2E, use one reusable bounded `waitUntil(condition, options)` helper before every UI-control operation for readiness/actionability and applicable error-alert absence, then after the operation for the expected positive/negative outcome or error-alert state; apply exactly **500ms at the end** after those waits and any real settle signal. Use an idiomatic abstract base, cohesive helpers/utilities, and Common → Domain-Shared → Page component reuse.
-- When visual review is enabled (the default, or an explicit `--visual-review=true`), include stable screenshot checkpoints for the declared state × viewport matrix and hand off candidate evidence to `/experience-review`; `--visual-review=false` is the explicit opt-out. Do not update snapshots, baselines, or assertions automatically.
+- When visual review is enabled (the default, or an explicit `--visual-review=true`), include stable screenshot checkpoints for the declared state × viewport matrix **and** wire the action-layer capture helper so every UI-state-changing action emits a manifest-indexed capture (under the resolved `uiStateCapture.mode`: `every-action` by default; `declared-only` records transitions as blind spots; `off` keeps the matrix and records transition coverage as `N/A`), then hand the whole capture set off to `/experience-review` for case-by-case adjudication; `--visual-review=false` is the explicit opt-out. Do not update snapshots, baselines, or assertions automatically.
 - **Shared quality gate:** Before authoring, apply `.claude/skills/shared/e2e-quality-protocol.md` to the scenario and preserve its Given/When/Then, invariant, gate-row, evidence, and owner records; this skill owns test selection/generation, not the detailed cross-skill checklist.
 - Selector priority semantic/BEM > data-testid > ARIA/role > visible text; AVOID generated classes, `:nth-child`, XPath.
 - Generate unique self-sufficient data (GUID/timestamp); NEVER delete or reset persistent, reference, seeded, additive, or shared data. If the project declares opt-in cleanup, remove only current-run ephemeral resources after evidence capture and never use cleanup as repeat-proof. Auto-select the appropriate workflow when not already in one. If the requested prompt/context scope has no suitable test, generate a traceable Given/When/Then scenario; if a suitable test exists, reuse it and report why it covers the scope.
@@ -151,13 +152,88 @@ expectations.
 ## Default Visual Screenshot Review
 
 Visual screenshot review is enabled by default for applicable E2E runs. When
-the run generates screenshots, capture every declared state × viewport,
-preserve the candidate artifacts, open/read each image, and send the image
-evidence through `/experience-review --rounds=0` before any expectation or
-baseline decision. Missing capture, unread images, or missing inspection for an
-applicable visual surface is `ENVIRONMENT-BLOCKED`, not a pass. An explicit
+the run generates screenshots, capture every declared state × viewport **and
+every UI-state-changing transition** (next section; per the resolved `uiStateCapture.mode`), preserve the candidate
+artifacts, open/read each image, and send the image evidence through
+`/experience-review --rounds=0` before any expectation or baseline decision.
+Missing capture, unread images, an unindexed capture, or missing inspection for
+an applicable visual surface is `ENVIRONMENT-BLOCKED`, not a pass. An explicit
 `--visual-review=false` opts out of this screenshot review only; it does not
 skip E2E execution, runtime evidence, or the other acceptance gates.
+
+**E2E here is two jobs, not one.** The configured run proves the business
+journey behaves; the capture set proves the interface the journey passed
+through is actually usable — not broken, overflowing, unstyled, overlapping, or
+off the project's own design conventions. A green suite says nothing about the
+second job, which is why the captures and their per-case adjudication are a
+required part of the gate rather than an attachment to it.
+
+## UI State Transition Capture (auto-capture, not hand-placed screenshots)
+
+Full contract: `.claude/skills/shared/ui-state-capture-protocol.md`. Generate
+tests so the capture set is produced by the framework, never by remembering.
+
+**1. Instrument the action layer.** Add exactly one project-owned helper —
+conceptually `captureUiState(actionDescriptor)` — inside the shared base
+page/component object's action primitives (`click`, `select`, `toggle`,
+`navigate`, `submit`). Every existing and future test then emits captures with
+no change to any test body. A `page.screenshot()` written per test is a call
+someone must remember and copy forward; it decays inside a sprint, and the
+decay is invisible because the run still passes — it just stops seeing.
+
+**2. Keep the fixed order inside the primitive:**
+
+```text
+waitUntil(<readiness / actionability>)          # precondition
+<perform the action>
+waitUntil(<expected positive/negative outcome>) # postcondition
+wait 500ms                                      # presentation pacing
+captureUiState({ tc, gwtStep, actionType, actionLabel, target, route, viewport, expectedDelta })
+```
+
+Capturing before the postcondition records a transition rather than a state,
+and a reviewer will report the resulting spinner or half-painted layout as a
+defect that does not exist.
+
+**3. Cover every state-changing trigger** (under the resolved `uiStateCapture.mode`:
+`every-action` is the default; `declared-only` captures the matrix only and
+records these triggers as blind spots; `off` keeps the matrix, captures no transitions, and records transition coverage as `N/A`): navigation/route change; button,
+link, row, and submit activation; select/dropdown open **and** option chosen;
+toggle, switch, checkbox, radio; tab, wizard step, accordion, tree expand and
+collapse; modal, drawer, popover, tooltip — on open **and** on close; filter,
+search, sort, pagination; drag/reorder, resize, inline edit enter and commit;
+theme, locale, density, read/edit mode, role switch, viewport change; async
+boundary resolution (loading → loaded/empty/error); toast, banner, inline
+validation; login, logout, session expiry. Do **not** capture assertions, pure
+reads, no-op hovers, per-keystroke typing (capture on commit/blur), or polling
+ticks. Capture a `pre` frame only where the defect is "nothing changed" — drag,
+destructive confirm, inline-edit commit; elsewhere the previous capture is the
+before.
+
+**4. Bound it so the output stays reviewable:** dedupe by post-action
+fingerprint (still emit the manifest row with `deduped_from`); cap at 60 per
+test / 400 per run or the project's configured `uiStateCapture` values, and
+record an escalation naming the untaken captures instead of truncating
+silently; sample loops (first, middle, last); mask clocks, GUIDs, and avatars
+so an unchanged UI yields an unchanged image; capture full-page as well as
+viewport wherever the surface scrolls unless `fullPageWhenScrollable` is `false`
+(then list each such surface as a coverage gap). **Failure captures are exempt from
+dedupe and caps** — capture unconditionally on a timed-out postcondition or a
+failed assertion and mark the row `phase: failure`.
+
+**5. Emit the manifest.** Write it to the configured `uiStateCapture.manifestPath`,
+defaulting to `{evidenceRoot}/ui-captures/{runId}/capture-manifest.json`, with one row per
+capture (`seq`, `tc`, `gwt_step`, `source: matrix|transition`, `phase`,
+`action_type`, `action_label`, `target`, `route`, `viewport`, `full_page`,
+`expected_delta`, `path`, `masked`, `deduped_from`, `console_since_last`,
+`read`). The manifest is what makes the downstream review reconcilable: without
+it a reviewer cannot distinguish a clean run from an unfinished one, and
+`expected_delta` is the only oracle for "this action changed nothing".
+
+Under the default `uiStateCapture.mode: every-action`, transition captures are
+**additive** to the declared state × viewport matrix.
+The matrix guarantees the required states are seen even when the journey never
+reaches them; transition capture guarantees every state it does reach is seen.
 
 ---
 
@@ -271,6 +347,9 @@ absent for an expected success, then keep the final assertion in the test. A
 timeout is a test failure with diagnostics, not a reason to weaken an
 assertion. Apply the mandatory exact 500ms presentation delay only after the
 post-action wait; it never replaces readiness, postcondition, or settle waits.
+When visual review is enabled, the action-layer capture call is the LAST step of
+this primitive — after the postcondition wait and the 500ms pacing — so every
+UI-state-changing action produces one settled, manifest-indexed capture.
 
 ### 3. Selector Strategy (Priority Order)
 
@@ -475,10 +554,12 @@ Generate and maintain E2E tests using project's configured testing framework.
 > 2. **Use project decisions.** Apply precedence: brief/accepted design contract → adopter project design-system/SCSS/frontend docs and ADRs → shared `UI-1.1`–`UI-9.4`, `DD-1`–`DD-8`, and `CL-1`–`CL-6`; surface a genuine conflict with both sides, never silently choose. Read and apply the full shared `SYNC:design-system-check`, `SYNC:ui-ux-design-principles`, `SYNC:design-distinctiveness-gate`, and `SYNC:design-review-checklist` bodies for their applicable roles. When UI generation or repair is in scope, consume the accepted `/design` decisions (or the adopter's equivalent professional design/component system); review-only E2E evidence must not invent a new visual language.
 > 3. **Map UI architecture before generation or UI fixes.** Inventory related screens, flows, and components; classify each relevant component `Common`, `Domain-Shared`, or `Page`; record its base abstraction and owner; reuse/compose before creating; record why reuse does not fit; keep one owner for markup, selectors, styling, lifecycle, and lower-tier test contracts. Page tests cover composition/outcomes, not copied lower-tier behavior.
 > 4. **Separate review owners.** Use `/experience-review` for the running surface and opened/read screenshot evidence; route source-only token, BEM/SCSS, z-index, component ownership, reuse, and static design findings to `/ui-review`. Never infer source architecture or design tokens from an image, and never treat a passing E2E command as visual/design approval.
-> 5. **Gate every visual round.** Capture every declared state × viewport (including loading, empty, error, permission, post-submit, and full-page where applicable), open/read each artifact, and record state, viewport, location, and measured values. `UI-*`/accessibility/layout-floor and `P0`–`P2` `CL-*` findings are `BLOCKING`; `DD-*` identity/polish is `ADVISORY` unless the governing brief/project contract makes it objectively required. Unmeasurable values are `NOT VERIFIABLE`; never promote a baseline/expectation automatically.
-> 6. **Report the contract.** Persist authority paths and resolution status, component tier/base/owner/reuse decisions, matrix coverage, `UI`/`DD`/`CL` coverage or skips, evidence/read status, and remaining human acceptance; preserve the protected business invariant and exact E2E scope.
+> 5. **Capture every UI state the journey reaches, not only the declared ones.** Apply `.claude/skills/shared/ui-state-capture-protocol.md`. Instrument one project-owned capture helper in the shared page/component action primitives so every UI-state-changing action — navigation, activation, selection, toggle, tab/step, overlay open and close, filter/sort/paginate, direct manipulation, mode/theme/role switch, async boundary resolution, feedback, session change — emits a capture automatically after its `waitUntil` postcondition and the 500ms pacing; a screenshot call written per test decays invisibly. The resolved `uiStateCapture.mode` decides which captures are produced: `every-action` is the default described here, `declared-only` keeps the matrix and records every transition as a blind spot, and `off` keeps the matrix and records transition coverage as `N/A` — it never waives or weakens this gate. Transition captures are ADDITIVE to the declared state × viewport matrix (loading, empty, error, permission, post-submit, full-page where applicable), never a replacement. Index every capture (including deduped and capped rows) in a `capture-manifest.json` under the evidence root; dedupe by fingerprint, bound per test/run with an escalation record instead of silent truncation, sample repetition, mask volatile regions, capture full-page where the surface scrolls, and never dedupe or cap a failure capture.
+> 6. **Gate every visual round case by case, then synthesize.** Reload the design/UI convention authority BEFORE judging the first image. Open/read ONE capture at a time and append its record — image path, expected delta, observed facts with locations, attributed console output, taxonomy findings or an explicit `none`, verdict — before opening the next. Then reconcile records against the manifest, cluster a repeated defect into ONE finding owned by its `Common`/`Domain-Shared`/`Page` component, report sequence-level findings only visible across captures, and list uncaptured transitions as recorded coverage gaps. `UIX-BROKEN`/`UNSTYLED`/`OVERFLOW`/`OVERLAP`/`STATE`, `UI-*`/accessibility/layout-floor, and `P0`–`P2` `CL-*` findings are `BLOCKING`; `UIX-POLISH`/`DD-*` identity is `ADVISORY` unless the governing brief/project contract makes it objectively required. A `UIX-CONVENTION` finding cites the authority clause it breaks. Unmeasurable values are `NOT VERIFIABLE`; a missing record is incomplete review, never a clean result; never promote a baseline/expectation automatically.
+> 7. **Report the contract.** Persist authority paths and resolution status, component tier/base/owner/reuse decisions, matrix plus transition-capture coverage (`reviewed/total` and gaps), `UI`/`DD`/`CL`/`UIX` coverage or skips, manifest path, evidence/read status, and remaining human acceptance; preserve the protected business invariant and exact E2E scope.
 
 <!-- /SYNC:e2e-visual-design-contract -->
+
 
 
 
@@ -554,9 +635,10 @@ Generate and maintain E2E tests using project's configured testing framework.
 
 <!-- SYNC:e2e-visual-design-contract:reminder -->
 
-**MUST ATTENTION** visual E2E/QC resolves the project design authority first, applies project design-system/SCSS/frontend decisions plus `UI-*`/`DD-*`/`CL-*` roles, classifies Common/Domain-Shared/Page ownership and reuse, sends static source findings to `/ui-review` and runtime image evidence to `/experience-review`, reads every state × viewport artifact, treats UI/accessibility-floor findings as blocking and DD identity/polish as advisory, never invents measurements, and never auto-promotes baselines; non-visual runs state `N/A`.
+**MUST ATTENTION** visual E2E/QC resolves the project design authority first, applies project design-system/SCSS/frontend decisions plus `UI-*`/`DD-*`/`CL-*` roles, classifies Common/Domain-Shared/Page ownership and reuse, sends static source findings to `/ui-review` and runtime image evidence to `/experience-review`, auto-captures every UI-state-changing action from the shared action layer into a manifest additive to the state × viewport matrix per the resolved `uiStateCapture.mode` (`.claude/skills/shared/ui-state-capture-protocol.md`), reloads the convention docs then reads and records EVERY capture one at a time before synthesizing clustered, owner-routed findings with coverage gaps, treats `UIX`/UI/accessibility-floor findings as blocking and `UIX-POLISH`/DD identity as advisory, never invents measurements, and never auto-promotes baselines; non-visual runs state `N/A`.
 
 <!-- /SYNC:e2e-visual-design-contract:reminder -->
+
 
 ## Closing Reminders
 
@@ -613,4 +695,4 @@ Generate and maintain E2E tests using project's configured testing framework.
 **IMPORTANT MUST ATTENTION** read `e2eTesting` config + `e2e-test-reference.md` FIRST and detect the framework — NEVER assume a stack.
 **IMPORTANT MUST ATTENTION** every test carries its `TC-{MODULE}-E2E-{NNN}` code traced to the §8 behavior it guards; selector priority semantic > data-attr > ARIA > text — NEVER generated/positional/XPath.
 **IMPORTANT MUST ATTENTION** generate unique self-sufficient data; never delete/reset persistent, seeded, additive, or shared data; use only configured current-run ephemeral cleanup after evidence capture; spawn `e2e-runner` for generation and only explicitly accepted baseline updates.
-**IMPORTANT MUST ATTENTION** visual screenshot review is enabled by default (or by `--visual-review=true`); capture and preserve candidate screenshots for every declared state × viewport, let `/experience-review` open/read and adjudicate every image, and never promote a baseline automatically. `--visual-review=false` is the explicit opt-out; validated blocking UI findings require an owning-layer fix and a same-scope E2E rerun.
+**IMPORTANT MUST ATTENTION** visual screenshot review is enabled by default (or by `--visual-review=true`); wire the capture helper into the shared action primitives so every UI-state-changing action auto-captures after its postcondition wait and 500ms pacing (per the resolved `uiStateCapture.mode`), index every capture (deduped and capped rows included) in `capture-manifest.json`, never dedupe or cap a failure capture, preserve candidate screenshots for the declared state × viewport matrix too, let `/experience-review` open/read and adjudicate every image case by case before synthesizing, and never promote a baseline automatically. `--visual-review=false` is the explicit opt-out; validated blocking UI findings require an owning-layer fix and a same-scope E2E rerun.

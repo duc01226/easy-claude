@@ -90,7 +90,13 @@ test('R3-PROMPT-027/031: advisory scores and category labels cannot bypass eligi
         assert.equal(policy.evaluateRound({ round, findings: [{ id: 'bounded', severity: 'MEDIUM' }] }).canComplete, false);
         assert.equal(policy.evaluateRound({ round, hardGates: [{ id: 'binary', status: 'FAIL' }] }).canComplete, false);
     }
-    assert.throws(() => policy.evaluateRound({ round: 3, findings: [] }), /round/);
+    // Round 3 exists only as the single extension a round-2 CRITICAL/HIGH earns.
+    assert.equal(policy.evaluateRound({ round: 2, findings: [{ id: 'material', severity: 'HIGH' }] }).extensionGranted, true);
+    assert.equal(policy.evaluateRound({ round: 2, findings: [{ id: 'bounded', severity: 'MEDIUM' }] }).status, 'ESCALATE');
+    assert.equal(policy.evaluateRound({ round: 3, findings: [{ id: 'material', severity: 'HIGH' }] }).status, 'ESCALATE');
+    // Past the hard cap a review blocker still escalates; only failing test gates continue.
+    assert.equal(policy.evaluateRound({ round: 4, findings: [{ id: 'material', severity: 'HIGH' }] }).status, 'ESCALATE');
+    assert.equal(policy.evaluateRound({ round: 4, hardGates: [{ id: 'suite', kind: 'test', status: 'FAIL' }] }).status, 'CONTINUE');
     assert.equal(policy.evaluateRound({ round: 1, findings: [{ id: 'polish', severity: 'LOW' }] }).canComplete, false);
     const deferred = policy.evaluateRound({ round: 2, findings: [{ id: 'polish', severity: 'LOW' }] });
     assert.equal(deferred.canComplete, true);
@@ -169,4 +175,196 @@ test('R3-PROMPT-041: final report and recap precede exact owned-run close with v
         'Never call `cleanup-expired` or delete a store directory',
         'N/A — no recorded baseline run',
     ]) rejects(assertOwnedClose, source, anchor, 'missing closure instruction');
+});
+
+// Each loop's own convergence signal: a review loop converges on a clear bar, the workflow loop
+// only on a round that applied zero fixes (a clean review whose simplifier still edits is not done).
+const CONVERGENCE_ROW = {
+    'why-review-loop': '(6) the current round bar is clear',
+    'changes-review-loop': '(6) the current round bar is clear',
+    'workflow-review-changes-loop': '(6) the round applied ZERO fixes'
+};
+// The zero-fix predicate leaves "edits landed but no review blocker is open" (a simplifier-only
+// round) needing its own row: the user-decided rule proves a zero-fix pass within budget and
+// escalates at a spent budget, so the workflow loop has one extra row before the blocker row.
+const PROOF_ROW = {
+    'why-review-loop': String.raw`\(7\)`,
+    'changes-review-loop': String.raw`\(7\)`,
+    'workflow-review-changes-loop': String.raw`\(7\) the round applied fixes but no review blocker is open and no test gate is failing [^;]+→ run the next round to prove a zero-fix pass while within budget, and STOP & escalate once the review budget is spent; \(8\)`
+};
+const EXTENSION_FIRST = 'checked only after the round-2 CRITICAL/HIGH extension, which is granted first';
+const lineStarting = (text, prefix) => text.split(/\r?\n/).find(line => line.startsWith(prefix)) ?? '';
+const convergedRows = text => text.split(/\r?\n/).filter(line => /^\|.*\| \*\*CONVERGED/.test(line));
+
+function assertLoopBudget(text, name) {
+    const loopRule = local(text);
+    // The binding Step 0b protocol sentence and the /goal condition both carry the cap.
+    const caps = loopRule.split(/\r?\n/).filter(line => /Cap at `?\{N=2\}`? rounds/.test(line));
+    assert.equal(caps.length, 2, 'protocol loop and /goal condition both state the cap');
+    for (const line of caps) {
+        assert.match(line, /extendable ONCE to round 3 only when round 2 leaves a validated CRITICAL\/HIGH open/);
+        assert.match(line, /failing test gate is outside the cap/);
+        assert.match(line, /checked only after the round-2 CRITICAL\/HIGH extension, which is granted first/);
+        assert.doesNotMatch(line, /cap is hit with/);
+    }
+    assert.match(loopRule, /\*\*ONE extension round is granted\*\*[^|]*even when the blocker count did not shrink\. Granted once per loop/);
+    assert.match(loopRule, /\*\*Keep looping — NO round cap\.\*\*/);
+    // The Step 2 rows overlap (a repeated HIGH is both "no progress" and "round-2 HIGH"), so the
+    // table is only deterministic with one stated precedence. The user-chosen precedence grants the
+    // round-2 CRITICAL/HIGH extension BEFORE the loop's stricter count-based stops, which is what
+    // SYNC:double-round-trip-review and review-policy.cjs grant; the list must not claim the count
+    // stops come from them. Every row carries the predicate the helper enforces: a spent budget
+    // escalates even beside a red suite, and failing tests continue only when no review blocker is open.
+    assert.match(loopRule, /\*\*in this order — the first matching row decides\*\*/);
+    assert.doesNotMatch(loopRule, /the order `SYNC:double-round-trip-review` and `review-policy\.cjs` use/);
+    assert.match(loopRule, /the count-based stops \(2\) and \(3\) are this loop's stricter exit on top of them, evaluated after the extension so they never pre-empt it/);
+    assert.match(loopRule, /count only review blockers — validated findings at each round's own bar plus failed non-test binary gates, never failing test gates\)/);
+    assert.match(loopRule, /\(1\) round 2 left a validated CRITICAL\/HIGH review blocker open → the one extension round, even when the blocker count did not shrink; \(2\) review blockers increased vs the prior round → STOP & escalate; \(3\) review blockers are still open and did not shrink across 2 consecutive rounds → STOP & escalate \(the EARLIER exit before the budget\); \(4\) the review budget is spent with a review blocker still open [^;]+→ STOP & escalate, even while a test gate is also red; \(5\) a test gate is failing and no review blocker is open → keep looping with no round cap, and never converge while it is red; \(6\) [^;]+and no test gate is failing → CONVERGED; /);
+    assert.match(loopRule, new RegExp(String.raw`and no test gate is failing → CONVERGED; ${PROOF_ROW[name]} review blockers are open within budget`));
+    assert.ok(loopRule.includes(CONVERGENCE_ROW[name]), `${name} row (6) states its own convergence signal`);
+    assert.match(loopRule, /Review blockers are still open and did \*\*not shrink\*\*[^|]*a round-2 CRITICAL\/HIGH takes the extension row first\) \|/);
+    // A red suite keeps the loop open at every round, not only once the budget is spent, and no
+    // CONVERGED row may be read on its own while a test gate is red.
+    assert.match(loopRule, /no review blocker is open, at any round within or past the budget \| \*\*Keep looping — NO round cap\.\*\*/);
+    const converged = convergedRows(loopRule);
+    assert.equal(converged.length, 2, `${name} keeps a clean-pass row and a severity-floor row`);
+    for (const row of converged) assert.match(row.split(' | **CONVERGED')[0], /AND no test gate is failing$/, row);
+    assert.match(loopRule, /round 2 blocked by MEDIUM or an unresolved `NOT VERIFIABLE` alone/);
+    // The regression stop counts the same review blockers the ordered list counts, so a LOW-only
+    // round 2 after a HIGH round 1 converges instead of reading as an increase.
+    assert.match(loopRule, /\*\*Increasing review blockers = STOP\.\*\* If round `R` surfaces MORE review blockers \(validated findings at its own bar plus failed non-test binary gates\)/);
+    assert.match(loopRule, /A LOW-only round 2 has zero review blockers, so it is never an increase\./);
+    assert.doesNotMatch(loopRule, /Increasing findings = STOP/);
+    // Every summary copy an agent reads first or last carries the extension-first order too.
+    assert.ok(lineStarting(loopRule, '- **Bounded:**').includes(EXTENSION_FIRST), `${name} Bounded line`);
+    assert.match(lineStarting(loopRule, '- **Round cap (default 2, extendable ONCE to 3)**'), /is checked before the count-based stops/);
+    assert.ok(loopRule.includes('stop shrinking, that is a signal to **escalate**, not to spin another round — except the one round-2 CRITICAL/HIGH extension, which is granted first.'), `${name} First Principle`);
+    assert.ok(lineStarting(loopRule, '**IMPORTANT MUST ATTENTION** enforce the **round cap').includes(`(${EXTENSION_FIRST})`), `${name} closing reminder`);
+    if (name === 'workflow-review-changes-loop') {
+        assert.match(loopRule, /\| Round applied fixes but \*\*no review blocker is open\*\* AND no test gate is failing[^|]*\| Within budget: [^|]*run round `R\+1` to prove a zero-fix pass\. At a spent review budget: \*\*STOP & escalate\*\*/);
+        assert.match(loopRule, /\*\*ALL LOW\*\* \(zero CRITICAL\/HIGH\/MEDIUM\) AND the round applied zero fixes/);
+    }
+}
+
+test('R3-PROMPT-042: loop skills state one budget — round-3 extension for review blockers, uncapped failing tests', () => {
+    for (const name of ['why-review-loop', 'changes-review-loop', 'workflow-review-changes-loop']) {
+        const source = skill(name);
+        const check = text => assertLoopBudget(text, name);
+        check(source);
+        rejects(check, source, 'extendable ONCE to round 3 only when round 2 leaves a validated CRITICAL/HIGH open', 'with no extension');
+        rejects(check, source, 'a failing test gate is outside the cap', 'a failing test gate escalates at the cap');
+        rejects(check, source, '**Keep looping — NO round cap.**', '**STOP & escalate.**');
+        rejects(check, source, '**in this order — the first matching row decides**', 'using any matching row');
+        rejects(check, source, 'keep looping with no round cap, and never converge while it is red', 'keep looping with no round cap');
+        // Each dropped predicate re-opens a wrong outcome: a red suite at round 3 looping to round 4,
+        // a 0 → 0 review count with red tests stopping, or a LOW-only round 2 reading as an increase.
+        rejects(check, source, '→ STOP & escalate, even while a test gate is also red; (5)', '→ STOP & escalate; (5)');
+        rejects(check, source, '(5) a test gate is failing and no review blocker is open →', '(5) a test gate is failing →');
+        rejects(check, source, '(3) review blockers are still open and did not shrink', '(3) review blockers did not shrink');
+        rejects(check, source, 'validated findings at each round\'s own bar', 'validated findings');
+        rejects(check, source, 'and no test gate is failing → CONVERGED', '→ CONVERGED');
+        rejects(check, source, 'no review blocker is open, at any round within or past the budget', 'no review blocker is open at a spent budget');
+        // R5-02: a CONVERGED table row without the test predicate converges on a red suite.
+        rejects(check, source, ' AND no test gate is failing | **CONVERGED on the severity floor**', ' | **CONVERGED on the severity floor**');
+        // R5-04: the summary copies are read first and last; each must keep the extension-first order.
+        const bounded = lineStarting(source, '- **Bounded:**');
+        rejects(check, source, bounded, bounded.replace(` Both count-based stops are ${EXTENSION_FIRST}.`, '').replace(` (${EXTENSION_FIRST})`, ''));
+        rejects(check, source, ', is checked before the count-based stops,', ',');
+        rejects(check, source, ' — except the one round-2 CRITICAL/HIGH extension, which is granted first.', '.');
+        const closing = lineStarting(source, '**IMPORTANT MUST ATTENTION** enforce the **round cap');
+        rejects(check, source, closing, closing.replace(` (${EXTENSION_FIRST})`, ''));
+        rejects(check, source, 'MEDIUM or an unresolved `NOT VERIFIABLE` alone', 'MEDIUM alone');
+        // F-1: the pre-decision order let a same-count round-2 HIGH (HIGH-A fixed, HIGH-B found)
+        // stop on "no shrink" although SYNC and the helper grant round 3.
+        rejects(check, source,
+            '(1) round 2 left a validated CRITICAL/HIGH review blocker open → the one extension round, even when the blocker count did not shrink; (2) review blockers increased vs the prior round → STOP & escalate; (3) review blockers are still open and did not shrink across 2 consecutive rounds → STOP & escalate (the EARLIER exit before the budget);',
+            '(1) review blockers increased vs the prior round → STOP & escalate; (2) review blockers are still open and did not shrink across 2 consecutive rounds → STOP & escalate (the EARLIER exit); (3) round 2 left a validated CRITICAL/HIGH review blocker open → the one extension round;');
+        rejects(check, source, 'the one extension round, even when the blocker count did not shrink;', 'the one extension round;');
+        rejects(check, source, '; a round-2 CRITICAL/HIGH takes the extension row first) |', ') |');
+        rejects(check, source, '(checked only after the round-2 CRITICAL/HIGH extension, which is granted first)', '');
+        rejects(check, source, '**in this order — the first matching row decides** (',
+            '**in this order — the first matching row decides** (the order `SYNC:double-round-trip-review` and `review-policy.cjs` use; ');
+        // F-3: a raw-count regression stop turns HIGH → LOW, LOW into a STOP.
+        rejects(check, source, 'MORE review blockers (validated findings at its own bar plus failed non-test binary gates)', 'MORE findings');
+        rejects(check, source, '(validated findings at its own bar plus failed non-test binary gates) than', '(validated findings at its own bar) than');
+        rejects(check, source, 'A LOW-only round 2 has zero review blockers, so it is never an increase.', '');
+    }
+    // F-2: the workflow loop may not converge on a clear review bar while a round still applies fixes.
+    const workflowSource = skill('workflow-review-changes-loop');
+    const workflowCheck = text => assertLoopBudget(text, 'workflow-review-changes-loop');
+    rejects(workflowCheck, workflowSource, '(6) the round applied ZERO fixes', '(6) the current round bar is clear');
+    // R5-03: a simplifier-only round with no review blocker proves a zero-fix pass within budget and
+    // escalates at a spent budget; dropping the row, converging at the cap, or letting the severity
+    // floor converge over landed edits all re-open the unbounded or unreviewed outcome.
+    rejects(workflowCheck, workflowSource,
+        '(7) the round applied fixes but no review blocker is open and no test gate is failing (for example only `/code-simplifier` edited) → run the next round to prove a zero-fix pass while within budget, and STOP & escalate once the review budget is spent; (8)',
+        '(7)');
+    rejects(workflowCheck, workflowSource, 'and STOP & escalate once the review budget is spent;', 'and CONVERGED once the review budget is spent;');
+    rejects(workflowCheck, workflowSource, 'At a spent review budget: **STOP & escalate**', 'At a spent review budget: **CONVERGED**');
+    rejects(workflowCheck, workflowSource, ' AND the round applied zero fixes (no simplifier or other edit landed either)', '');
+    // A same-count round 2 still earns the extension from the helper: it carries no prior-round count.
+    const round2SameCount = policy.evaluateRound({ round: 2, findings: [{ id: 'high-b', severity: 'HIGH' }] });
+    assert.equal(round2SameCount.extensionGranted, true, 'row (1): a round-2 HIGH earns the extension before any count-based stop');
+    assert.equal(round2SameCount.status, 'CONTINUE');
+    // The prose outcomes the ordered list promises are the helper's outcomes.
+    const redSuite = [{ id: 'suite', kind: 'test', status: 'FAIL' }];
+    const round3Medium = policy.evaluateRound({ round: 3, findings: [{ id: 'm', severity: 'MEDIUM' }], hardGates: redSuite });
+    assert.equal(round3Medium.status, 'ESCALATE', 'row (4): a spent budget escalates even beside a red suite');
+    assert.equal(round3Medium.testLoopContinues, false);
+    const redOnly = policy.evaluateRound({ round: 2, findings: [], hardGates: redSuite });
+    assert.equal(redOnly.status, 'CONTINUE', 'row (5): zero review blockers with a red suite keeps looping');
+    assert.equal(redOnly.testLoopContinues, true);
+    assert.equal(policy.evaluateRound({ round: 2, findings: [{ id: 'l', severity: 'LOW' }] }).blocking.length, 0,
+        'a LOW-only round 2 has zero review blockers at its own bar, so it is never an increase');
+    // A zero-fix pass is not convergence while a test gate is still red.
+    const zeroFix = /\| Round applied \*\*ZERO fixes\*\* \(clean no-op pass\) AND no test gate is failing \|/;
+    const workflowLoop = skill('workflow-review-changes-loop');
+    assert.match(local(workflowLoop), zeroFix);
+    assert.doesNotMatch(local(workflowLoop.replaceAll(' AND no test gate is failing', '')), zeroFix);
+});
+
+function assertInnerBudget(text) {
+    const body = local(text);
+    assert.match(body, /bounded at \*\*2 rounds MAX\*\*, extendable ONCE to round 3 when round 2 leaves a validated CRITICAL\/HIGH open/);
+    assert.doesNotMatch(body, /round 2 completing with CRITICAL\/HIGH\/MEDIUM still open/);
+    assert.match(body, /\*\*Review blockers increasing\*\* — if round N finds MORE review blockers \(validated findings at its own bar plus failed non-test binary gates; round-2 LOWs and failing test gates never count\) than round N-1, STOP and escalate via `AskUserQuestion` — unless round 2 left a validated CRITICAL\/HIGH open, which takes the one extension round first\./);
+    assert.doesNotMatch(body, /MORE issues than round N-1|issues increase/);
+    // Every copy of the increase stop is ordered after the extension, like the loops that run it.
+    const increaseStops = body.split(/\r?\n/).filter(line => /review blockers (increase|increasing)|MORE review blockers/.test(line));
+    assert.equal(increaseStops.length, 5, 'summary, rule, cap block, closing reminder, and rationalization row');
+    for (const line of increaseStops) assert.match(line, new RegExp(`${EXTENSION_FIRST.replace(/[/]/g, '\\/')}|takes the one extension round first`), line.slice(0, 120));
+}
+
+test('R3-PROMPT-044: the inner review workflow orders its increase stop after the round-2 extension', () => {
+    const source = skill('workflow-review-changes');
+    assertInnerBudget(source);
+    rejects(assertInnerBudget, source, 'bounded at **2 rounds MAX**, extendable ONCE to round 3 when round 2 leaves a validated CRITICAL/HIGH open (', 'bounded at **2 rounds MAX** (');
+    rejects(assertInnerBudget, source,
+        'review blockers increasing round-over-round (checked only after the round-2 CRITICAL/HIGH extension, which is granted first), or the review budget spent with a review blocker still open — round 2 blocked by MEDIUM/`NOT VERIFIABLE` alone, or round 3 by any review blocker',
+        'round 2 completing with CRITICAL/HIGH/MEDIUM still open');
+    rejects(assertInnerBudget, source,
+        '**Review blockers increasing** — if round N finds MORE review blockers (validated findings at its own bar plus failed non-test binary gates; round-2 LOWs and failing test gates never count) than round N-1, STOP and escalate via `AskUserQuestion` — unless round 2 left a validated CRITICAL/HIGH open, which takes the one extension round first.',
+        '**Issue count increasing** — if round N finds MORE issues than round N-1, STOP and escalate via `AskUserQuestion`');
+    rejects(assertInnerBudget, source, ` (${EXTENSION_FIRST})`, '');
+    // The helper outcomes the prose promises: HIGH → HIGH, HIGH extends; MEDIUM, LOW → LOW ×3 is clean.
+    assert.equal(policy.evaluateRound({ round: 2, findings: [{ id: 'a', severity: 'HIGH' }, { id: 'b', severity: 'HIGH' }] }).extensionGranted, true);
+    assert.equal(policy.evaluateRound({ round: 2, findings: ['a', 'b', 'c'].map(id => ({ id, severity: 'LOW' })) }).canComplete, true);
+});
+
+function assertGateBudget(text) {
+    assert.match(text, /record a test-green gate with `kind: 'test'`/);
+    assert.match(text, /a failed non-test binary gate carried as synthetic CRITICAL/);
+    assert.match(text, /\*\*Failing test gates are outside the review budget:\*\*/);
+}
+
+test('R3-PROMPT-043: SYNC:review-policy states the gate → budget rule the helper enforces', () => {
+    const source = read('skills/shared/sync-inline-versions.md');
+    assertGateBudget(source);
+    rejects(assertGateBudget, source, '**Failing test gates are outside the review budget:**', 'Failing test gates spend the review budget:');
+    rejects(assertGateBudget, source, 'a failed non-test binary gate carried as synthetic CRITICAL', 'a finding only');
+    // The prose and the executable helper agree on both halves of the rule.
+    assert.equal(policy.evaluateRound({ round: 2, hardGates: [{ id: 'security', status: 'FAIL' }] }).extensionGranted, true);
+    const red = policy.evaluateRound({ round: 3, hardGates: [{ id: 'suite', kind: 'test', status: 'FAIL' }] });
+    assert.equal(red.status, 'CONTINUE');
+    assert.equal(red.extensionGranted, false);
 });

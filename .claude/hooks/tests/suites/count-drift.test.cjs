@@ -326,6 +326,31 @@ const tests = [
         }
     },
     {
+        // A text-mode rewrite turns every EOL into os.linesep on Windows. On CLAUDE.md that churn
+        // fed the header re-stamp CRLF separators it could not strip, growing a blank run per sync.
+        name: '[count-drift] --inject-counts rewrites only the marker value and preserves mixed line endings',
+        fn: () => {
+            const dir = fs.mkdtempSync(path.join(require('os').tmpdir(), 'count-inject-'));
+            try {
+                const file = path.join(dir, 'mixed-eol.md');
+                const marker = value => `<!-- COUNT:hooks -->${value}<!-- /COUNT -->`;
+                const render = value => `# LF header\n\n| Hooks | ${marker(value)} |\r\ncrlf body\r\n\r\nlf tail\n`;
+                fs.writeFileSync(file, render(0));
+                const result = runPython([SCRIPT, '--inject-counts', file], `--inject-counts ${file}`);
+                if (result.status !== 0) {
+                    throw new Error(`--inject-counts exited ${result.status}: ${(result.stderr || '').trim()}`);
+                }
+                const expected = render(countTopLevelHooks());
+                const actual = fs.readFileSync(file, 'utf8');
+                if (actual !== expected) {
+                    throw new Error(`--inject-counts changed bytes beyond the marker value.\nexpected: ${JSON.stringify(expected)}\nactual:   ${JSON.stringify(actual)}`);
+                }
+            } finally {
+                fs.rmSync(dir, { recursive: true, force: true });
+            }
+        }
+    },
+    {
         name: '[count-drift] docs-index uses host-neutral skill invocation syntax',
         skip: !HAS_PROJECT_REFERENCE_INDEX,
         fn: () => {

@@ -31,7 +31,8 @@ Connected contracts:
 - Use Page Object Model; derive stable selectors from `data-testid`/BEM/ARIA, never positional/generated ones; keep assertions out of page objects.
 - Deterministic runs — unique GUID test data, one reusable bounded `waitUntil(condition, options)` predicate before and after every browser/UI-control interaction for readiness/actionability, expected positive/negative outcomes, and applicable error-alert presence/absence, followed by an exact 500ms post-operation presentation delay, reused configured auth session; after fixing failures, record the learning back in the E2E reference doc.
 - Reusable E2E architecture — Common, Domain-Shared, and Page component/page-object tiers; idiomatic abstract base or language-equivalent protocol/trait; cohesive helpers/utilities; one canonical owner for selectors, actions, waits, and lower-tier contracts.
-- Combined visual mode is explicit: when the parent passes `--visual-review=true`, emit stable screenshots for the declared state × viewport matrix after the required wait-until postconditions and 500ms pacing, preserve them as candidate evidence for `/experience-review`, and never promote a baseline automatically. The default is `false`.
+- Visual mode is ON by default (`--visual-review=true`; only an explicit `--visual-review=false` from the parent opts out). When enabled, emit stable screenshots for the declared state × viewport matrix **and** wire the action-layer capture helper so every UI-state-changing action auto-captures after its wait-until postcondition and 500ms pacing (per the resolved `uiStateCapture.mode`: `every-action` by default, `declared-only` records transitions as blind spots, `off` keeps the matrix and records transition coverage as `N/A`); index every capture in `capture-manifest.json`, preserve them as candidate evidence for `/experience-review`, and never promote a baseline automatically.
+- **UI state capture is generated, not hand-placed.** Apply `.claude/skills/shared/ui-state-capture-protocol.md`: put one `captureUiState(actionDescriptor)` call inside the shared base page/component action primitives (`click`, `select`, `toggle`, `navigate`, `submit`) so every current and future test emits captures with no test-body change — a per-test `screenshot()` call decays invisibly while the suite still passes. Cover navigation, activation, selection, toggles, tab/step changes, overlay open and close, filter/sort/paginate, direct manipulation, mode/theme/role switches, async boundary resolution, feedback, and session changes; skip assertions, no-op hovers, per-keystroke typing, and polling. Dedupe by fingerprint, bound per test/run with an escalation record, sample loops, mask volatile regions, capture full-page where the surface scrolls, and never dedupe or cap a failure capture.
 
 **Workflow:**
 
@@ -89,6 +90,8 @@ generic Playwright defaults.
 | `from-changes`   | Changed test specs or code | Updated test implementations |
 | `from-spec`      | TC codes from test specs   | New tests matching specs     |
 | `from-prompt-context` | User prompt or current context | Given/When/Then scenario and Page Object/test mapped to a named invariant |
+
+When visual mode is enabled, every mode above also produces the UI capture set: per-transition screenshots under `{evidenceRoot}/ui-captures/{runId}/` plus the `capture-manifest.json` index that `/experience-review` adjudicates case by case.
 
 ---
 
@@ -160,6 +163,14 @@ invariant, files created/modified, whether existing coverage was reused, TC
 codes covered, resolved project-config profile, run command, exact counts and
 exit status, evidence/redaction references, preconditions, and any
 `N/A`/`ENVIRONMENT-BLOCKED`/`ACCEPTANCE-PENDING` limitation.
+
+In visual mode the report also names: the resolved `--visual-review` value and
+`uiStateCapture.mode`, the trigger set instrumented and where the capture helper
+was wired (N/A under `off`), the manifest path and row count, caps/sampling/dedupe
+applied with any escalation for untaken captures, and the state-changing actions
+that produced no capture (a single `N/A — uiStateCapture off: {reason}` under `off`).
+A captured-but-unindexed image, or an applicable UI surface with no capture
+capability, is `ENVIRONMENT-BLOCKED` — never a pass.
 
 <!-- SYNC:agent-code-standards -->
 
@@ -444,10 +455,12 @@ exit status, evidence/redaction references, preconditions, and any
 > 2. **Use project decisions.** Apply precedence: brief/accepted design contract → adopter project design-system/SCSS/frontend docs and ADRs → shared `UI-1.1`–`UI-9.4`, `DD-1`–`DD-8`, and `CL-1`–`CL-6`; surface a genuine conflict with both sides, never silently choose. Read and apply the full shared `SYNC:design-system-check`, `SYNC:ui-ux-design-principles`, `SYNC:design-distinctiveness-gate`, and `SYNC:design-review-checklist` bodies for their applicable roles. When UI generation or repair is in scope, consume the accepted `/design` decisions (or the adopter's equivalent professional design/component system); review-only E2E evidence must not invent a new visual language.
 > 3. **Map UI architecture before generation or UI fixes.** Inventory related screens, flows, and components; classify each relevant component `Common`, `Domain-Shared`, or `Page`; record its base abstraction and owner; reuse/compose before creating; record why reuse does not fit; keep one owner for markup, selectors, styling, lifecycle, and lower-tier test contracts. Page tests cover composition/outcomes, not copied lower-tier behavior.
 > 4. **Separate review owners.** Use `/experience-review` for the running surface and opened/read screenshot evidence; route source-only token, BEM/SCSS, z-index, component ownership, reuse, and static design findings to `/ui-review`. Never infer source architecture or design tokens from an image, and never treat a passing E2E command as visual/design approval.
-> 5. **Gate every visual round.** Capture every declared state × viewport (including loading, empty, error, permission, post-submit, and full-page where applicable), open/read each artifact, and record state, viewport, location, and measured values. `UI-*`/accessibility/layout-floor and `P0`–`P2` `CL-*` findings are `BLOCKING`; `DD-*` identity/polish is `ADVISORY` unless the governing brief/project contract makes it objectively required. Unmeasurable values are `NOT VERIFIABLE`; never promote a baseline/expectation automatically.
-> 6. **Report the contract.** Persist authority paths and resolution status, component tier/base/owner/reuse decisions, matrix coverage, `UI`/`DD`/`CL` coverage or skips, evidence/read status, and remaining human acceptance; preserve the protected business invariant and exact E2E scope.
+> 5. **Capture every UI state the journey reaches, not only the declared ones.** Apply `.claude/skills/shared/ui-state-capture-protocol.md`. Instrument one project-owned capture helper in the shared page/component action primitives so every UI-state-changing action — navigation, activation, selection, toggle, tab/step, overlay open and close, filter/sort/paginate, direct manipulation, mode/theme/role switch, async boundary resolution, feedback, session change — emits a capture automatically after its `waitUntil` postcondition and the 500ms pacing; a screenshot call written per test decays invisibly. The resolved `uiStateCapture.mode` decides which captures are produced: `every-action` is the default described here, `declared-only` keeps the matrix and records every transition as a blind spot, and `off` keeps the matrix and records transition coverage as `N/A` — it never waives or weakens this gate. Transition captures are ADDITIVE to the declared state × viewport matrix (loading, empty, error, permission, post-submit, full-page where applicable), never a replacement. Index every capture (including deduped and capped rows) in a `capture-manifest.json` under the evidence root; dedupe by fingerprint, bound per test/run with an escalation record instead of silent truncation, sample repetition, mask volatile regions, capture full-page where the surface scrolls, and never dedupe or cap a failure capture.
+> 6. **Gate every visual round case by case, then synthesize.** Reload the design/UI convention authority BEFORE judging the first image. Open/read ONE capture at a time and append its record — image path, expected delta, observed facts with locations, attributed console output, taxonomy findings or an explicit `none`, verdict — before opening the next. Then reconcile records against the manifest, cluster a repeated defect into ONE finding owned by its `Common`/`Domain-Shared`/`Page` component, report sequence-level findings only visible across captures, and list uncaptured transitions as recorded coverage gaps. `UIX-BROKEN`/`UNSTYLED`/`OVERFLOW`/`OVERLAP`/`STATE`, `UI-*`/accessibility/layout-floor, and `P0`–`P2` `CL-*` findings are `BLOCKING`; `UIX-POLISH`/`DD-*` identity is `ADVISORY` unless the governing brief/project contract makes it objectively required. A `UIX-CONVENTION` finding cites the authority clause it breaks. Unmeasurable values are `NOT VERIFIABLE`; a missing record is incomplete review, never a clean result; never promote a baseline/expectation automatically.
+> 7. **Report the contract.** Persist authority paths and resolution status, component tier/base/owner/reuse decisions, matrix plus transition-capture coverage (`reviewed/total` and gaps), `UI`/`DD`/`CL`/`UIX` coverage or skips, manifest path, evidence/read status, and remaining human acceptance; preserve the protected business invariant and exact E2E scope.
 
 <!-- /SYNC:e2e-visual-design-contract -->
+
 
 
 
@@ -501,9 +514,10 @@ exit status, evidence/redaction references, preconditions, and any
 
 <!-- SYNC:e2e-visual-design-contract:reminder -->
 
-**MUST ATTENTION** visual E2E/QC resolves the project design authority first, applies project design-system/SCSS/frontend decisions plus `UI-*`/`DD-*`/`CL-*` roles, classifies Common/Domain-Shared/Page ownership and reuse, sends static source findings to `/ui-review` and runtime image evidence to `/experience-review`, reads every state × viewport artifact, treats UI/accessibility-floor findings as blocking and DD identity/polish as advisory, never invents measurements, and never auto-promotes baselines; non-visual runs state `N/A`.
+**MUST ATTENTION** visual E2E/QC resolves the project design authority first, applies project design-system/SCSS/frontend decisions plus `UI-*`/`DD-*`/`CL-*` roles, classifies Common/Domain-Shared/Page ownership and reuse, sends static source findings to `/ui-review` and runtime image evidence to `/experience-review`, auto-captures every UI-state-changing action from the shared action layer into a manifest additive to the state × viewport matrix per the resolved `uiStateCapture.mode` (`.claude/skills/shared/ui-state-capture-protocol.md`), reloads the convention docs then reads and records EVERY capture one at a time before synthesizing clustered, owner-routed findings with coverage gaps, treats `UIX`/UI/accessibility-floor findings as blocking and `UIX-POLISH`/DD identity as advisory, never invents measurements, and never auto-promotes baselines; non-visual runs state `N/A`.
 
 <!-- /SYNC:e2e-visual-design-contract:reminder -->
+
 
 ## Closing Reminders
 

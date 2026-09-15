@@ -55,7 +55,7 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 **Goal:** [Workflow] Provide one canonical E2E lifecycle: write or update the test when the source requires it, then verify the fixed scope through the configured system and repair failures in a bounded fresh-run loop until it is honestly green or escalated. Visual screenshot review is enabled by default, and `--visual-review=false` is the explicit opt-out from the screenshot visual gate and E2E rerun loop.
 
 **Summary:** Resolve `--source={changes|recording|update-ui|prompt|context|whole}` (infer and state it when omitted) and `--visual-review={true|false}` (default true; state the resolved value). Authoring sources (`changes|recording|update-ui`) prepare the E2E artifact first; verification sources (`prompt|context|whole`) let the convergence engine select or generate it. Every source then enters the same config-first `e2e-test-verify-loop`, which exercises the declared scope, adjudicates failures, fixes the owning layer, and repeats fresh remediation with evidence. When visual review is enabled, the loop also captures/reads every generated screenshot in the declared matrix through `$experience-review --rounds=0`, fixes validated blocking UI findings, and reruns the same E2E scope.
-- **Shared quality gate:** Before authoring, verification, convergence, or visual review, read `.claude/skills/shared/e2e-quality-protocol.md` and apply its single GWT/invariant, ownership, isolation, auth, accessibility/visual, wait, evidence, cleanup, and spec-traceability contract. This workflow owns sequencing; the shared protocol owns the common E2E quality rows.
+- **Shared quality gate:** Before authoring, verification, convergence, or visual review, read `.claude/skills/shared/e2e-quality-protocol.md` and apply its single GWT/invariant, ownership, isolation, auth, accessibility/visual, wait, evidence, cleanup, and spec-traceability contract. When visual review is enabled and the scope touches a UI, also read `.claude/skills/shared/ui-state-capture-protocol.md` for the action-layer auto-capture, manifest, per-case review, and synthesis contract. This workflow owns sequencing; the shared protocols own the common rows.
 - **Testability contract:** resolve Unit/Integration/System/E2E applicability from runner/config evidence; record owner/root/data, copy-ready full + focused commands, zero-match behavior, CI/simple-Windows entry, unique run/data identity, and repeat proof; unresolved applicable fields block handoff, while non-applicable tiers require evidence-backed `N/A`.
 - **Browser interaction contract:** for every UI-control step, reuse one bounded parameterized `waitUntil(condition, options)` helper before the action for readiness/actionability and applicable error-alert absence, and after the action for the expected positive/negative outcome or error-alert state; apply the exact 500ms pacing delay only at the end.
 
@@ -74,7 +74,7 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 - MUST ATTENTION define success criteria before execution and loop until observable verification passes.
 - MUST ATTENTION when creating/reviewing specs or tests, name `Business Intent / Invariant Guarded` or the protected business intent/invariant and ensure the test would fail if that intent breaks.
 - MUST ATTENTION write browser journeys as observe → act → observe: use `waitUntil` for loading, controls, click results, dropdown/options, selected state, and applicable error-alert presence/absence; keep predicates, timeout/poll settings, and diagnostics reusable.
-- MUST ATTENTION when visual review is enabled (the default or explicit `--visual-review=true`), capture and open/read every generated screenshot in the declared state × viewport matrix, use `$experience-review` as the visual adjudicator, route validated blocking UI findings through the owning UI fix, and rerun the same E2E scope; `--visual-review=false` is the explicit opt-out and `$ask` is not a screenshot reviewer.
+- MUST ATTENTION when visual review is enabled (the default or explicit `--visual-review=true`), capture per the resolved `uiStateCapture.mode` (default `every-action`: every UI-state-changing action alongside the declared state × viewport matrix; `declared-only` records transitions as blind spots; `off` keeps the matrix and records transition coverage as `N/A`), index them all in `capture-manifest.json`, use `$experience-review` as the visual adjudicator to read and record EVERY capture case by case before synthesizing clustered findings and coverage gaps, route validated blocking UI findings through one owning-layer fix, and rerun the same E2E scope; `--visual-review=false` is the explicit opt-out and `$ask` is not a screenshot reviewer.
 - MUST ATTENTION treat `$e2e-test-verify-loop` as the single convergence/remediation owner after preparation; do not run a second green workflow, duplicate the configured E2E command, or create a separate visual-fix loop.
 - NEVER skip mandatory workflow or skill gates.
 
@@ -97,7 +97,7 @@ Resolve `--source` from the invocation and state the result before proceeding. A
 
 | `--visual-review` | Behavior |
 | ----------------- | -------- |
-| `true` (default)   | Require a screenshot state × viewport matrix for applicable generated screenshots and image inspection through `$experience-review --rounds=0`; validated blocking visual findings enter the E2E failure set, are fixed at the owning UI layer, and force a fresh same-scope E2E rerun. |
+| `true` (default)   | Require the screenshot state × viewport matrix **plus** an auto-captured, manifest-indexed capture for every UI-state-changing action (per the resolved `uiStateCapture.mode`; `declared-only` records transitions as blind spots, `off` keeps the matrix and records transition coverage as `N/A`), then case-by-case image inspection and synthesis through `$experience-review --rounds=0`; validated blocking visual findings enter the E2E failure set, are clustered to their owning component, fixed once at the owning UI layer, and force a fresh same-scope E2E rerun. |
 | `false` (explicit opt-out) | Run the selected source protocol and its other evidence/acceptance gates without the screenshot visual remediation loop. |
 
 All sources use one lifecycle in this manifest: `$investigate -> $e2e-test -> $e2e-test-verify-loop -> $docs-update -> $workflow-end -> $watzup`. The `$e2e-test` occurrence is conditional authoring: `changes`, `recording`, and `update-ui` write or update the artifact and hand its exact scope and traceability to the loop; `prompt`, `context`, and `whole` skip it because the loop selects or generates Given/When/Then cases itself. The loop owns the configured E2E command, report-only `$experience-review`, failure adjudication, owning-layer fixes, review, fresh bring-up, and same-scope reruns; `$test` is not a second top-level run.
@@ -182,28 +182,43 @@ Visual review is enabled for every `--source` value by default, equivalent to
 `--visual-review=true`. An explicit `--visual-review=false` opts out. Seeing or
 changing a UI does not switch the mode off or on; the resolved flag is recorded
 before execution. The default path keeps the source-specific workflow and its
-existing acceptance gates, while adding screenshot inspection for every
-applicable run that generates screenshots.
+existing acceptance gates, while adding capture and inspection for every
+applicable run that drives a UI.
+
+**The mode exists because a green suite and a usable interface are different
+claims.** The configured run proves the journey behaves; the capture set proves
+the screens it passed through are not broken, overflowing, unstyled,
+overlapping, or off the project's own conventions. Nothing in a passing
+assertion looks at the second claim, so the captures and their per-case
+adjudication are part of the gate, not an attachment to it.
 
 When the mode is enabled:
 
 - For `changes`, `recording`, and `update-ui`, complete the source-specific
-  generation/update work, then run the configured same-scope E2E command and
-  capture the declared screenshot state × viewport matrix. Open/read every
-  image with `$experience-review --rounds=0`; its visual result is a required
-  gate, not a report-only note. Validated `BLOCKING` UI-floor findings enter
-  the E2E failure set and follow `$debug-investigate` → `$fix` at the owning
-  UI layer → `$changes-review`; then rerun the same E2E command and matrix.
-  Repeat until the E2E and blocking-visual counts converge. Never update a
+  generation/update work — including wiring the action-layer capture helper
+  through `$e2e-test` when the suite is not yet instrumented — then run the
+  configured same-scope E2E command and capture the declared state × viewport
+  matrix **plus**, while the resolved `uiStateCapture.mode` is `every-action`
+  (the default), one capture per UI-state-changing action, all indexed in
+  `capture-manifest.json`. Open/read every capture with
+  `$experience-review --rounds=0`, which records each case individually before
+  synthesizing; its visual result is a required gate, not a report-only note.
+  Validated `BLOCKING` findings enter the E2E failure set, are clustered to
+  their owning component, and follow `$debug-investigate` → `$fix` at that
+  owning layer → `$changes-review`; then rerun the same E2E command and capture
+  set. Repeat until the E2E and blocking-visual counts converge. Never update a
   snapshot, baseline, fixture, assertion, or expectation automatically.
 - For `prompt`, `context`, and `whole`, forward the flag to
-  `$e2e-test-verify-loop`, which owns the complete run → capture → inspect →
-  fix → same-scope rerun loop.
-- Missing capture, unread images, or an incomplete state × viewport matrix is
-  `ENVIRONMENT-BLOCKED`; it is not a visual pass. `ADVISORY` identity, polish,
-  or non-contract spacing observations remain visible but do not create an
-  unbounded taste loop unless the governing design/acceptance contract makes
-  them objectively required.
+  `$e2e-test-verify-loop`, which owns the complete run → capture → reconcile →
+  inspect → synthesize → fix → same-scope rerun loop.
+- Missing capture, unread images, an unindexed capture, a manifest row with no
+  per-case record, or an incomplete state × viewport matrix is
+  `ENVIRONMENT-BLOCKED` or `UNVERIFIED`; none of them is a visual pass.
+  Uncaptured state-changing actions are recorded coverage gaps, not implicit
+  passes (under `off`, transition coverage is one
+  `N/A — uiStateCapture off: {reason}` record). `ADVISORY` identity, polish, or non-contract spacing observations
+  remain visible but do not create an unbounded taste loop unless the governing
+  design/acceptance contract makes them objectively required.
 
 `$experience-review` is the image-evidence and visual-adjudication path.
 `$ask` remains architecture/technology consultation and is not a screenshot
@@ -368,10 +383,12 @@ Before `$e2e-test` or `$e2e-test-verify-loop`, resolve and carry one evidence-ba
 > 2. **Use project decisions.** Apply precedence: brief/accepted design contract → adopter project design-system/SCSS/frontend docs and ADRs → shared `UI-1.1`–`UI-9.4`, `DD-1`–`DD-8`, and `CL-1`–`CL-6`; surface a genuine conflict with both sides, never silently choose. Read and apply the full shared `SYNC:design-system-check`, `SYNC:ui-ux-design-principles`, `SYNC:design-distinctiveness-gate`, and `SYNC:design-review-checklist` bodies for their applicable roles. When UI generation or repair is in scope, consume the accepted `$design` decisions (or the adopter's equivalent professional design/component system); review-only E2E evidence must not invent a new visual language.
 > 3. **Map UI architecture before generation or UI fixes.** Inventory related screens, flows, and components; classify each relevant component `Common`, `Domain-Shared`, or `Page`; record its base abstraction and owner; reuse/compose before creating; record why reuse does not fit; keep one owner for markup, selectors, styling, lifecycle, and lower-tier test contracts. Page tests cover composition/outcomes, not copied lower-tier behavior.
 > 4. **Separate review owners.** Use `$experience-review` for the running surface and opened/read screenshot evidence; route source-only token, BEM/SCSS, z-index, component ownership, reuse, and static design findings to `$ui-review`. Never infer source architecture or design tokens from an image, and never treat a passing E2E command as visual/design approval.
-> 5. **Gate every visual round.** Capture every declared state × viewport (including loading, empty, error, permission, post-submit, and full-page where applicable), open/read each artifact, and record state, viewport, location, and measured values. `UI-*`/accessibility/layout-floor and `P0`–`P2` `CL-*` findings are `BLOCKING`; `DD-*` identity/polish is `ADVISORY` unless the governing brief/project contract makes it objectively required. Unmeasurable values are `NOT VERIFIABLE`; never promote a baseline/expectation automatically.
-> 6. **Report the contract.** Persist authority paths and resolution status, component tier/base/owner/reuse decisions, matrix coverage, `UI`/`DD`/`CL` coverage or skips, evidence/read status, and remaining human acceptance; preserve the protected business invariant and exact E2E scope.
+> 5. **Capture every UI state the journey reaches, not only the declared ones.** Apply `.claude/skills/shared/ui-state-capture-protocol.md`. Instrument one project-owned capture helper in the shared page/component action primitives so every UI-state-changing action — navigation, activation, selection, toggle, tab/step, overlay open and close, filter/sort/paginate, direct manipulation, mode/theme/role switch, async boundary resolution, feedback, session change — emits a capture automatically after its `waitUntil` postcondition and the 500ms pacing; a screenshot call written per test decays invisibly. The resolved `uiStateCapture.mode` decides which captures are produced: `every-action` is the default described here, `declared-only` keeps the matrix and records every transition as a blind spot, and `off` keeps the matrix and records transition coverage as `N/A` — it never waives or weakens this gate. Transition captures are ADDITIVE to the declared state × viewport matrix (loading, empty, error, permission, post-submit, full-page where applicable), never a replacement. Index every capture (including deduped and capped rows) in a `capture-manifest.json` under the evidence root; dedupe by fingerprint, bound per test/run with an escalation record instead of silent truncation, sample repetition, mask volatile regions, capture full-page where the surface scrolls, and never dedupe or cap a failure capture.
+> 6. **Gate every visual round case by case, then synthesize.** Reload the design/UI convention authority BEFORE judging the first image. Open/read ONE capture at a time and append its record — image path, expected delta, observed facts with locations, attributed console output, taxonomy findings or an explicit `none`, verdict — before opening the next. Then reconcile records against the manifest, cluster a repeated defect into ONE finding owned by its `Common`/`Domain-Shared`/`Page` component, report sequence-level findings only visible across captures, and list uncaptured transitions as recorded coverage gaps. `UIX-BROKEN`/`UNSTYLED`/`OVERFLOW`/`OVERLAP`/`STATE`, `UI-*`/accessibility/layout-floor, and `P0`–`P2` `CL-*` findings are `BLOCKING`; `UIX-POLISH`/`DD-*` identity is `ADVISORY` unless the governing brief/project contract makes it objectively required. A `UIX-CONVENTION` finding cites the authority clause it breaks. Unmeasurable values are `NOT VERIFIABLE`; a missing record is incomplete review, never a clean result; never promote a baseline/expectation automatically.
+> 7. **Report the contract.** Persist authority paths and resolution status, component tier/base/owner/reuse decisions, matrix plus transition-capture coverage (`reviewed/total` and gaps), `UI`/`DD`/`CL`/`UIX` coverage or skips, manifest path, evidence/read status, and remaining human acceptance; preserve the protected business invariant and exact E2E scope.
 
 <!-- /SYNC:e2e-visual-design-contract -->
+
 
 
 
@@ -418,9 +435,10 @@ Before `$e2e-test` or `$e2e-test-verify-loop`, resolve and carry one evidence-ba
 
 <!-- SYNC:e2e-visual-design-contract:reminder -->
 
-**MUST ATTENTION** visual E2E/QC resolves the project design authority first, applies project design-system/SCSS/frontend decisions plus `UI-*`/`DD-*`/`CL-*` roles, classifies Common/Domain-Shared/Page ownership and reuse, sends static source findings to `$ui-review` and runtime image evidence to `$experience-review`, reads every state × viewport artifact, treats UI/accessibility-floor findings as blocking and DD identity/polish as advisory, never invents measurements, and never auto-promotes baselines; non-visual runs state `N/A`.
+**MUST ATTENTION** visual E2E/QC resolves the project design authority first, applies project design-system/SCSS/frontend decisions plus `UI-*`/`DD-*`/`CL-*` roles, classifies Common/Domain-Shared/Page ownership and reuse, sends static source findings to `$ui-review` and runtime image evidence to `$experience-review`, auto-captures every UI-state-changing action from the shared action layer into a manifest additive to the state × viewport matrix per the resolved `uiStateCapture.mode` (`.claude/skills/shared/ui-state-capture-protocol.md`), reloads the convention docs then reads and records EVERY capture one at a time before synthesizing clustered, owner-routed findings with coverage gaps, treats `UIX`/UI/accessibility-floor findings as blocking and `UIX-POLISH`/DD identity as advisory, never invents measurements, and never auto-promotes baselines; non-visual runs state `N/A`.
 
 <!-- /SYNC:e2e-visual-design-contract:reminder -->
+
 
 ## Closing Reminders
 
@@ -429,7 +447,7 @@ Before `$e2e-test` or `$e2e-test-verify-loop`, resolve and carry one evidence-ba
 
 **IMPORTANT MUST ATTENTION Workflow:** Resolve and state `--source={changes|recording|update-ui|prompt|context|whole}`; apply the established source protocol or the config-first green loop through its declared sequence; preserve intent-named test assertions, evidence-backed task transitions, visible human-QC evidence, and explicit verification of generated/updated E2E artifacts.
 
-**IMPORTANT MUST ATTENTION** visual screenshot review is enabled by default (equivalent to `--visual-review=true`); run the same configured E2E scope, capture and open/read every generated screenshot in the full state × viewport matrix through `$experience-review --rounds=0`, fix only validated blocking UI defects at the owning layer, and rerun the same scope. `--visual-review=false` is the explicit opt-out; `$ask` is not the screenshot reviewer.
+**IMPORTANT MUST ATTENTION** visual screenshot review is enabled by default (equivalent to `--visual-review=true`); run the same configured E2E scope, capture per the resolved `uiStateCapture.mode` (default `every-action`: every UI-state-changing action plus the full state × viewport matrix) into a manifest, have `$experience-review --rounds=0` read and record EVERY capture case by case then synthesize clustered owner-routed findings and coverage gaps, fix only validated blocking UI defects once at the owning layer, and rerun the same scope. `--visual-review=false` is the explicit opt-out; `$ask` is not the screenshot reviewer.
 
 **IMPORTANT MUST ATTENTION** every interactive browser/UI action uses the reusable bounded `waitUntil(condition, options)` before and after the action, including applicable error-alert states, followed by the exact 500ms presentation delay last.
 
