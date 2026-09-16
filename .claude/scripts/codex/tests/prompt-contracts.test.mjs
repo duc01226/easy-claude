@@ -100,6 +100,45 @@ test('disposable generated-artifact policy reaches Claude and Codex source/mirro
     }
 });
 
+// Extracts one `## Heading` section up to the next `## ` heading.
+function headingSection(markdown, heading) {
+    const text = markdown.replace(/\r\n?/g, '\n');
+    const start = text.indexOf(`\n## ${heading}\n`);
+    if (start === -1) return null;
+    const next = text.indexOf('\n## ', start + heading.length + 5);
+    return next === -1 ? text.slice(start) : text.slice(start, next);
+}
+
+test('task-graph analysis precedes execution in every root and defers parallel limits to one rule (TC-PROMPT-009)', async () => {
+    const [template, claude, agents, context] = await Promise.all([
+        read('.claude/skills/ai-context-refresh/references/claude-md-template.md'),
+        read('CLAUDE.md'),
+        read('AGENTS.md'),
+        read('.codex/CODEX_CONTEXT.md'),
+    ]);
+    const anchor = /Analyze the task graph BEFORE executing/g;
+
+    for (const [name, content] of [['CLAUDE.md', claude], ['AGENTS.md', agents], ['claude-md-template.md', template]]) {
+        assert.equal((content.match(anchor) || []).length, 1, `${name} carries the task-graph rule exactly once`);
+        const planning = headingSection(content, 'Task Planning Rules');
+        const parallel = headingSection(content, 'Workflow Step Advancement & Parallel Phases');
+        assert.ok(planning && parallel, `${name} keeps both task-planning and parallel-phase sections`);
+        assert.match(planning, anchor, `${name}: the rule lives in Task Planning Rules`);
+        assert.match(planning, /dependencies[\s\S]*write target[\s\S]*waves[\s\S]*`SEQ`/, `${name}: dependency → wave ordering`);
+        assert.match(planning, /re-run (this|the) analysis/i, `${name}: re-analysis when tasks are added`);
+        assert.match(planning, /Serial execution of independent tasks is a defect/, `${name}: serial default is a defect`);
+        // No second copy of the parallel-dispatch contract: its limits stay owned by the parallel section.
+        assert.doesNotMatch(planning, /Do NOT parallelize:|Never parallelize shared writers/, `${name}: exclusions are referenced, not restated`);
+        assert.match(parallel, /Do NOT parallelize:|Never parallelize shared writers/, `${name}: parallel section still owns the exclusions`);
+    }
+    for (const [name, content] of [['CLAUDE.md', claude], ['AGENTS.md', agents]]) {
+        const planning = headingSection(content, 'Task Planning Rules');
+        assert.match(planning, /\[Workflow Step Advancement\]\(#workflow-step-advancement--parallel-phases\) rule 5/, `${name}: rule defers to Workflow Step Advancement rule 5`);
+        assert.match(headingSection(content, 'Workflow Step Advancement & Parallel Phases'), /`Parallel plan: wave 1 = \[\.\.\.\]/, `${name}: the declared plan format stays in rule 5`);
+    }
+    assert.match(context, /\[TASK-PLANNING\] \[MANDATORY\][^\n]*parallel waves[^\n]*before starting any task/, 'Codex context one-liner carries the task-graph analysis');
+});
+
 test('active-plan and workflow-end prompts agree with live state ownership (TC-PROMPT-006)', async () => {
     const [presentation, accumulation, activePlan, workflowEnd] = await Promise.all([
         read('.claude/skills/feature-presentation/SKILL.md'),

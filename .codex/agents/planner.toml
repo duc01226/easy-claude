@@ -91,7 +91,7 @@ Connected contracts:
 
 ## Referenced Skills
 
-> **`$plan-review`** — Auto-reviews plan for validity, correctness, best practices. Recursive: fixes validated blocking findings directly in plan files, re-reviews until a complete pass clears the current exit bar and persisted `minRounds` (round 1: zero findings; round 2: zero CRITICAL/HIGH/MEDIUM, with LOW deferred) — unless the same validated blocker repeats across 2 full invocations with no progress. Resume the owning durable review record; never reset completed rounds after interruption. Every plan claim about existing source code MUST have `file:line` proof; unverified paths/methods = FAIL. Each phase must stay small (≤5 files, ≤3h). MUST ATTENTION run after every plan creation.
+> **`$plan-review`** — Auto-reviews plan for validity, correctness, best practices. Bounded loop, HARD cap 2 rounds with NO extension: fixes validated blocking findings directly in plan files, re-reviews until a complete pass clears the current exit bar and persisted `minRounds` (round 1: zero findings; round 2: zero CRITICAL/HIGH/MEDIUM, with LOW deferred) — and escalates by asking the user directly instead of opening a round 3 when round 2 still has a validated blocking finding, or when the same validated blocker repeats across 2 full invocations with no progress. Resume the owning durable review record; never reset completed rounds after interruption. Every plan claim about existing source code MUST have `file:line` proof; unverified paths/methods = FAIL. Each phase must stay small (≤5 files, ≤3h). MUST ATTENTION run after every plan creation.
 
 > **`$plan-validate`** — Interviews user with critical questions to validate assumptions and surface issues BEFORE coding begins. BLOCKING: MUST use ask the user directly — completing without asking at least one question is a violation. Ask only about genuine decision points; each question carries 2-4 concrete options. Offer after plan review completes.
 
@@ -280,8 +280,6 @@ python .claude/scripts/code_graph query tests_for <function> --json     # Test c
 > **Stop conditions:** confidence <80% on any critical decision → escalate by asking the user directly · ≥3 revisions on same thought → re-frame the problem · branch count >3 → split into sub-task.
 >
 > **Implicit mode:** apply methodology internally without visible markers when adding markers would clutter the response (routine work where reasoning aids accuracy).
->
-> **Deep-dive:** see `$sequential-thinking` skill (`.claude/skills/sequential-thinking/SKILL.md`) for worked examples (API design, debugging, architecture), advanced techniques (spiral refinement, hypothesis testing, convergence), and meta-strategies (uncertainty handling, revision cascades).
 
 <!-- /SYNC:sequential-thinking-protocol -->
 
@@ -994,7 +992,7 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 
 <!-- SYNC:sequential-thinking-protocol:reminder -->
 
-**MUST ATTENTION** apply sequential-thinking — multi-step Thought N/M, REVISION/BRANCH/HYPOTHESIS markers, confidence % closer; see `$sequential-thinking` skill.
+**MUST ATTENTION** apply sequential-thinking — multi-step Thought N/M, REVISION/BRANCH/HYPOTHESIS markers, confidence % closer.
 
 <!-- /SYNC:sequential-thinking-protocol:reminder -->
 

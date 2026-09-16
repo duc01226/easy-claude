@@ -426,8 +426,9 @@ export async function loadFeatureRegistry({ rootDir = process.cwd(), specPaths, 
     const configuredScopes = canonicalRootPaths?.length
         ? canonicalRootPaths.map(configuredPath => resolveInsideRepository(rootDir, configuredPath))
         : [];
+    // Sibling file roots share one discovery directory; dedupe so each document is parsed once.
     const allSpecPaths = canonicalRootPaths?.length
-        ? (await Promise.all(configuredScopes.map(collectFeatureSpecScopePaths))).flat()
+        ? [...new Set((await Promise.all(configuredScopes.map(collectFeatureSpecScopePaths))).flat())]
         : null;
     const absolutePaths = specPaths?.length
         ? specPaths.map(filePath => resolveInsideRepository(rootDir, filePath))

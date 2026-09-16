@@ -121,7 +121,6 @@ const GOAL_CONTRACT_SKILL_IDS = [
   "plan-execute", // reads the goal during analysis/task extraction
   "feature", // maps success validation to saved criteria
   "fix", // active-goal read before root-cause work (ci/issue/logs/test/ui are --target branches)
-  "prove-fix", // goal satisfaction update after fix verdict
 ];
 
 // Review gates: must additionally emit Goal Satisfaction status before PASS.
@@ -135,8 +134,8 @@ const GOAL_CONTRACT_REVIEW_SKILL_IDS = [
 // Workflow wrappers + verification/audit surfaces (Phases 05-06). The planned
 // workflow-verification / workflow-quality-audit / workflow-tdd-feature / workflow-test-verify
 // wrappers do not exist as files; their intent maps to: test (verification evidence),
-// quality-gate (audit goal status), workflow-feature (covers TDD/test-first), and
-// integration-test-verify (test verification evidence).
+// workflow-feature (covers TDD/test-first), and integration-test-verify (test
+// verification evidence).
 const GOAL_CONTRACT_WORKFLOW_SKILL_IDS = [
   "workflow-feature",
   "workflow-bugfix",
@@ -144,7 +143,6 @@ const GOAL_CONTRACT_WORKFLOW_SKILL_IDS = [
   "workflow-write-integration-test",
   "workflow-code-to-spec",
   "test",
-  "quality-gate",
   "integration-test-verify",
 ];
 

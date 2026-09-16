@@ -44,7 +44,7 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 
 **Goal:** Generate a professional release document from git history at **any scope** — tag-to-tag, branch-to-branch, or a time range ("last 30 days") — with automated categorization, thematic AI analysis, service detection, and validation, **plus a rich standalone HTML release presentation written FOR REAL USERS** — user-visible features and enhancements only, with faithful mock-ups of the project's REAL screens for any UI change — which auto-opens in the browser. Both outputs are produced by default; the markdown carries the engineering detail, the HTML carries the user story.
 
-> **This is the single release skill.** It absorbed `$release-doc` (2026-09-08), which is now a deprecated alias. Use `$release-notes` for every release-summary need; `$changelog` remains separate for per-feature changelog entries.
+> **This is the single release skill.** Use `$release-notes` for every release-summary need.
 
 **Workflow:**
 
@@ -99,7 +99,7 @@ $release-notes v1.0.0 HEAD --version v1.1.0
 # Compare branches
 $release-notes main feature/new-auth --version v2.0.0-beta
 
-# Time range — "what changed in the last 30 days" (absorbed from $release-doc)
+# Time range — "what changed in the last 30 days"
 $release-notes --days 30
 
 # Since a specific date
@@ -573,9 +573,6 @@ Generated release notes are **Draft** status by default:
 
 - **`$commit`** - After generating notes, commit them
 - **`/git-manager`** - Create PR for release notes review
-- **`$docs-update`** - Update CHANGELOG.md with new release
-- **`$release-doc`** - **Deprecated alias of this skill** (superseded 2026-09-08). It resolves here; do not route work to it. Its time-range scope, artifact dumping, thematic analysis, `--focus`, and HTML presentation all live here now.
-- **`$changelog`** - Still separate: per-feature changelog entries. This skill is for multi-commit release summaries.
 - **`$pbi-mockup`** - **Owns the mock-up protocol this skill's R6.3 defers to** — its Steps 3 (design system), 3b (inventory the real existing UI), 3c (real domain entities) and 7 (fidelity gate) govern HOW a screen is reproduced; R6.3 governs WHAT gets rendered. Borrow the fidelity contract, not the clickable-prototype machinery. And when a shipped feature already has a `team-artifacts/pbis/*-mockup.html`, R6.3 REUSES it via `<iframe srcdoc>` instead of rebuilding the screen.
 
 ## Troubleshooting
@@ -734,7 +731,9 @@ Source: `.claude/skills/shared/sync-inline-versions.md`
 - **MANDATORY** Code-to-spec extraction is reference-only until canonical acceptance; any supported AI tool may execute with synced context.
 - **MANDATORY** Update `.claude` source before syncing generated mirrors; do not manually edit `.agents`, `.codex`, or `AGENTS.md`.
 - **MANDATORY** Missing or stale project config, root instruction files, or required reference docs route project-specific work through `$project-init` or the narrow setup route automatically.
-**[TASK-PLANNING] [MANDATORY]** BEFORE executing any workflow or skill step, create/update task tracking for all planned steps, then keep it synchronized as each step starts/completes.
+**[TASK-PLANNING] [MANDATORY]** BEFORE executing any workflow or skill step, create/update task tracking for all planned steps, analyze the task graph (output dependencies, shared write targets) into ordered parallel waves per PARALLELIZE before starting any task, then keep it synchronized as each step starts/completes.
+- **MANDATORY** Pin `Original goal:` before the first action and keep `User prompts this session: P1…Pn` current; re-read both at every step, before delegation, and after compaction.
+- **MANDATORY** Before claiming done, map the result to the original goal and every prompt (`P# → done | deferred | n/a`); never store secrets in them.
 ## [LESSON-LEARNED-REMINDER] [BLOCKING] Task Planning & Continuous Improvement — MANDATORY. Do not skip.
 
 Break work into small tasks (task tracking) before starting. Add final task: "Analyze AI mistakes & lessons learned".
@@ -745,7 +744,7 @@ Break work into small tasks (task tracking) before starting. Add final task: "An
 3. Write as a universal rule — strip project-specific names/paths/classes. Useful on any codebase.
 4. Consolidate: multiple mistakes sharing one failure mode → ONE lesson.
 5. **Recurrence gate:** "Would this recur in future session WITHOUT this reminder?" — No → skip `$learn`.
-6. **Auto-fix gate:** "Could `$code-review`/`$code-simplifier`/`$security-review`/`$lint` catch this?" — Yes → improve review skill instead.
+6. **Auto-fix gate:** "Could `$code-review`/`$code-simplifier`/`$security-review`/a linter catch this?" — Yes → improve review skill instead.
 7. BOTH gates pass → ask user to run `$learn`.
 **[CRITICAL-THINKING-MINDSET]** Apply critical thinking, sequential thinking. Every claim needs traced proof, confidence >80% to act.
 **Anti-hallucination principle:** Never present guess as fact — cite sources for every claim, admit uncertainty freely, self-check output for errors, cross-reference independently, stay skeptical of own confidence — certainty without evidence root of all hallucination.

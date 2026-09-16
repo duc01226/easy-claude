@@ -57,12 +57,12 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 **Summary:**
 
 - PLANNING ONLY — NEVER implement/execute code; produce `plan.md` + per-phase `phase-XX` files + a `goal.md` Goal Contract, then hand off.
-- **Ordered pipeline (run in order; NEVER skip or reorder):** pre-check active/suggested plan + applicability branch → bootstrap Goal Contract (`goal.md`) → ONE `researcher` wave (spawn together; barrier before synthesis) → project-reference/codebase/pattern analysis + convention alignment → `planner` writes `plan.md` + `phase-XX` files (Alternatives, Rationale, UI Layout, Test Specs) → tag PAR/SEQ write sets + `## Execution Waves` → granularity self-check → Test Specs → `$plan-validate` → `$plan-review` → standalone `$why-review` → re-estimate → ask the user directly handoff.
+- **Ordered pipeline (run in order; NEVER skip or reorder):** pre-check active/suggested plan + applicability branch → bootstrap Goal Contract (`goal.md`) → ONE `researcher` wave (spawn together; barrier before synthesis) → project-reference/codebase/pattern analysis + convention alignment → `planner` writes `plan.md` + `phase-XX` files (Alternatives, Rationale, UI Layout, Test Specs) → tag PAR/SEQ write sets + `## Execution Waves` → granularity self-check → Test Specs → `$plan-validate` → `$plan-review` (every round runs a parallel `$why-review` rationale sub-agent) → re-estimate → ask the user directly handoff.
 - **The plan output itself carries parallelism metadata** — every phase tagged `PAR`/`SEQ` with the write set it owns, every `SEQ` naming its forcing dependency (see [Plan Parallelism Metadata](#plan-parallelism-metadata-mandatory--every-plan-output)). Omitting it is a defect of THIS skill: `$plan-execute` fans out only on what the plan declares.
 - **`--mode={ci|cro}` routing:** `ci` plans a fix from a GitHub Actions run/log (loads `references/mode-ci.md`); `cro` plans conversion-rate optimization (25-item framework, `references/mode-cro.md`); default (no flag) = standard flow. Mode only ADDS a reference payload — SAME engine, SAME `$plan-review` gate, SAME `planner` agent.
-- Default mode HARD (parallel subagents, project-reference docs, the `$plan-review` convergence loop under its 2-round ceiling, +1 extension round when round 2 leaves CRITICAL/HIGH open); fast mode ONLY when EVERY trivial-task condition holds. Every phase passes the 5-point granularity check ("Can I start coding RIGHT NOW?"), carries `## Test Specifications` with TC IDs, uses bottom-up estimation (phase-hours drive man-days; SP DERIVED).
+- Default mode HARD (parallel subagents, project-reference docs, the `$plan-review` convergence loop under its HARD 2-round cap, no extension round); fast mode ONLY when EVERY trivial-task condition holds. Every phase passes the 5-point granularity check ("Can I start coding RIGHT NOW?"), carries `## Test Specifications` with TC IDs, uses bottom-up estimation (phase-hours drive man-days; SP DERIVED).
 - **Conditional Project Pattern Alignment is mandatory:** always read `docs/project-config.json`, `docs/project-reference/docs-index-reference.md`, `docs/project-reference/lessons.md`, and `docs/project-reference/code-review-rules.md`; if the plan edits frontend/UI, also read `frontend-patterns-reference.md` PLUS the project's styling and design-system docs (`scss-styling-guide.md`, `design-system/design-system-canonical.md`) — a UI plan written without the design system re-decides axes the project already settled; if it edits backend/hook code, also read `backend-patterns-reference.md`; if it edits both, read both. These pattern docs and their documented examples are the authority — there is no separate project-reference example-code file to assume. Cite corroborating source examples (`file:line`) when that scope has implementation code; explicit N/A/scarcity evidence is required otherwise.
-- **Mandatory final tasks + gates:** write Test Specs per phase → `$plan-validate` → `$plan-review` (convergence loop, 2-round ceiling, +1 extension round when round 2 leaves CRITICAL/HIGH open) → `$why-review` (standalone) → re-estimate vs finalized phases; New Tech/Lib gate before approval; **Domain Entity Gate (MANDATORY when the plan touches an entity/VO/aggregate)** — apply `SYNC:domain-entity-change-gate` so the plan DECIDES classification, invariant ownership, aggregate boundary, concurrency, construction, events, and the test obligation (each naming its owning file) instead of deferring them to implementation; ask the user directly confirm before any next step.
+- **Mandatory final tasks + gates:** write Test Specs per phase → `$plan-validate` → `$plan-review` (convergence loop, HARD 2-round cap with no extension — round 2 still blocking escalates by asking the user directly; its review wave always includes a `$why-review` rationale sub-agent, so no separate why-review task) → re-estimate vs finalized phases; New Tech/Lib gate before approval; **Domain Entity Gate (MANDATORY when the plan touches an entity/VO/aggregate)** — apply `SYNC:domain-entity-change-gate` so the plan DECIDES classification, invariant ownership, aggregate boundary, concurrency, construction, events, and the test obligation (each naming its owning file) instead of deferring them to implementation; ask the user directly confirm before any next step.
 - **Applicability Gate:** before research or planner handoff, load `.claude/skills/shared/product-roadmap-contract.md`. For a large idea, verify the complete embedded `large_idea_decomposition` block and slice/conditional-scenario evidence; for an explicit roadmap request, resolve the approved roadmap milestone, scope brief, and scenario analysis; for a framework/library or isolated change, resolve its complete technical/EXEMPT branch. The emitted `plan.md` MUST contain the applicable `## Plan Gate` with decisions or explicit `N/A`, skeleton, commands, evidence, and human approval. A missing or open decision is `BLOCKED`, not an invitation to infer.
 
 **Workflow:**
@@ -104,7 +104,7 @@ below — if a downstream rule raises change cost, this principle wins.
 
 ## Default Mode Policy
 
-> **Default mode HARD (full rigor).** Every section below — parallel researcher subagents, the full `$plan-review` convergence loop (2-round ceiling, +1 extension round when round 2 leaves CRITICAL/HIGH open), base-class greps, microservices/event-driven analysis, mandatory user approval — applies by default.
+> **Default mode HARD (full rigor).** Every section below — parallel researcher subagents, the full `$plan-review` convergence loop (HARD 2-round cap, no extension), base-class greps, microservices/event-driven analysis, mandatory user approval — applies by default.
 >
 > **Opt out to fast mode ONLY when ALL true** (task genuinely trivial):
 >
@@ -162,7 +162,6 @@ MUST ATTENTION state **paradigm** (OO-mutable / type-driven-immutable / event-so
 Run the planning methodology engine. Load the relevant `references/engine-*.md` for each phase (skip a phase per its own skip rule):
 
 - `references/engine-research.md` — Research & Analysis (skip if given researcher reports)
-- `references/engine-figma.md` — Design Context Extraction (skip if no Figma URLs / backend-only)
 - `references/engine-codebase-understanding.md` — Codebase Understanding (skip if given investigate reports)
 - `references/engine-solution-design.md` — Solution Design (trade-offs, security, performance, edge cases, architecture)
 - `references/engine-plan-organization.md` — Plan Creation, Organization & Output Standards
@@ -397,9 +396,8 @@ After plan creation, offer validation interview to confirm decisions before impl
 - **MANDATORY FINAL TASKS:** After all planning todos, ALWAYS add these final tasks:
     1. **Task: "Write test specifications for each phase"** — Add `## Test Specifications` with TC-{FEATURE}-{NNN} IDs to every phase file. Use `$spec [mode=tests]` if feature docs exist; `Evidence: TBD` for TDD-first mode.
     2. **Task: "Run $plan-validate"** — `$plan-validate` skill interviews user with critical questions, validates plan assumptions.
-    3. **Task: "Run $plan-review"** — `$plan-review` skill, convergence loop (review → validate findings → fix → fresh full re-review) bounded by a **2-round ceiling plus ONE conditional extension round, NEVER a target**: a clean pass ENDS the loop at ANY round once the persisted `minRounds` is met; round 2 completing with a validated CRITICAL/HIGH still open grants exactly one extra round (round 3, the hard cap), while round 2 blocked by MEDIUM alone — or round 3 blocked by anything — escalates by asking the user directly, never a silent PASS. SP raises the RIGOR of each round, never a round floor: ≤3 → checklist + code-proof trace; 4-8 → + adversarial simulation; >8 → code-proof trace mandatory in every round.
-    4. **Task: "Run $why-review (standalone only)"** — If NOT inside a workflow, `$why-review` validates design rationale, alternatives considered, risk assessment. Skip if a workflow already includes `$why-review`.
-    5. **Task: "Re-evaluate estimation against finalized plan"** — Pre-completion estimates anchor on scope guesses; finalized phases reveal true cost. After phases/TCs/decisions locked: (a) re-derive `bottom_up_hours = Σ phase_hours` from finalized phase files; (b) recompute `likely_days`, `risk_margin_pct`, `min-max range` per `SYNC:estimation-framework`; (c) compare to current frontmatter `man_days_traditional` / `story_points`. If `|delta| > 20%` → UPDATE frontmatter, add `reestimate_delta_pct: <signed>` + 1-line `reestimate_reason`. If `|delta| > 50%` → flag `SHOULD-RESCOPE` and surface to user by asking the user directly before implementation.
+    3. **Task: "Run $plan-review"** — `$plan-review` skill, convergence loop (review → validate findings → fix → fresh full re-review) bounded by a **HARD 2-round cap with NO extension round, NEVER a target**: a clean pass ENDS the loop at ANY round once the persisted `minRounds` is met; round 2 is the LAST round, so round 2 completing with ANY validated blocking finding open — CRITICAL, HIGH or MEDIUM — escalates by asking the user directly with every open finding listed, never a round 3 and never a silent PASS. SP raises the RIGOR of each round, never a round floor: ≤3 → checklist + code-proof trace; 4-8 → + adversarial simulation; >8 → code-proof trace mandatory in every round. Every round's review wave includes an unconditional `$why-review` rationale sub-agent (design rationale, alternatives, trade-offs), so no separate `$why-review` task follows.
+    4. **Task: "Re-evaluate estimation against finalized plan"** — Pre-completion estimates anchor on scope guesses; finalized phases reveal true cost. After phases/TCs/decisions locked: (a) re-derive `bottom_up_hours = Σ phase_hours` from finalized phase files; (b) recompute `likely_days`, `risk_margin_pct`, `min-max range` per `SYNC:estimation-framework`; (c) compare to current frontmatter `man_days_traditional` / `story_points`. If `|delta| > 20%` → UPDATE frontmatter, add `reestimate_delta_pct: <signed>` + 1-line `reestimate_reason`. If `|delta| > 50%` → flag `SHOULD-RESCOPE` and surface to user by asking the user directly before implementation.
 
 ## Important Notes
 
@@ -420,7 +418,7 @@ After plan creation, offer validation interview to confirm decisions before impl
 **MANDATORY IMPORTANT MUST ATTENTION — NO EXCEPTIONS** after completing this skill, MUST ATTENTION use ask the user directly to present these options. Do NOT skip because task seems "simple" or "obvious" — user decides:
 
 - **"Proceed with full workflow (Recommended)"** — Detect best workflow to continue (plan created). Ensures review, validation, implementation, testing not skipped.
-- **"$why-review"** — Validate design rationale before implementation (standalone only — skipped when workflow includes it)
+- **"$why-review"** — Extra standalone design-rationale review of the plan (every `$plan-review` round already runs one as a parallel sub-agent)
 - **"$plan-review"** — Validate plan before implementation
 - **"$plan-validate"** — Interview user to confirm plan decisions
 - **"$plan-execute"** — Start coding & testing the finalized plan. Recommended implementation route after plan validated.
@@ -541,8 +539,6 @@ After creating all phase files, run **recursive decomposition loop**:
 > **Stop conditions:** confidence <80% on any critical decision → escalate by asking the user directly · ≥3 revisions on same thought → re-frame the problem · branch count >3 → split into sub-task.
 >
 > **Implicit mode:** apply methodology internally without visible markers when adding markers would clutter the response (routine work where reasoning aids accuracy).
->
-> **Deep-dive:** see `$sequential-thinking` skill (`.claude/skills/sequential-thinking/SKILL.md`) for worked examples (API design, debugging, architecture), advanced techniques (spiral refinement, hypothesis testing, convergence), and meta-strategies (uncertainty handling, revision cascades).
 
 <!-- /SYNC:sequential-thinking-protocol -->
 
@@ -977,7 +973,7 @@ After creating all phase files, run **recursive decomposition loop**:
 
 <!-- SYNC:sequential-thinking-protocol:reminder -->
 
-**MUST ATTENTION** apply sequential-thinking — multi-step Thought N/M, REVISION/BRANCH/HYPOTHESIS markers, confidence % closer; see `$sequential-thinking` skill.
+**MUST ATTENTION** apply sequential-thinking — multi-step Thought N/M, REVISION/BRANCH/HYPOTHESIS markers, confidence % closer.
 
 <!-- /SYNC:sequential-thinking-protocol:reminder -->
 
@@ -1072,7 +1068,7 @@ After creating all phase files, run **recursive decomposition loop**:
 
 **IMPORTANT MUST ATTENTION Goal:** Research the codebase and collaborate with the user to deliver a validated, implementation-ready phased plan — every phase startable immediately (exact file paths, zero open decisions, mapped TC IDs) — so coding proceeds without rework at minimum future change cost.
 
-**IMPORTANT MUST ATTENTION Main steps:** pre-check active/suggested plan + applicability → bootstrap Goal Contract → one `researcher` wave + barrier → project-reference/codebase/pattern analysis + convention alignment → run New Tech/Lib and conditional Domain Entity gates → planner authors plan/phases → tag PAR/SEQ write sets + `## Execution Waves` → granularity self-check → Test Specs → `$plan-validate` → `$plan-review` → standalone `$why-review` → re-estimate → ask the user directly approval/handoff.
+**IMPORTANT MUST ATTENTION Main steps:** pre-check active/suggested plan + applicability → bootstrap Goal Contract → one `researcher` wave + barrier → project-reference/codebase/pattern analysis + convention alignment → run New Tech/Lib and conditional Domain Entity gates → planner authors plan/phases → tag PAR/SEQ write sets + `## Execution Waves` → granularity self-check → Test Specs → `$plan-validate` → `$plan-review` (every round runs a parallel `$why-review` rationale sub-agent) → re-estimate → ask the user directly approval/handoff.
 
 **IMPORTANT MUST ATTENTION Applicability:** a plan is not ready to cook until its `## Plan Gate` proves the applicable branch: complete embedded decomposition and slice evidence, one approved explicit roadmap outcome, complete framework technical evidence, or complete EXEMPT scope. Every branch still needs explicit non-goals, scenario coverage where applicable, known skeleton/commands, redacted evidence, and human approval; missing product intent is BLOCKED, never silently inferred.
 
@@ -1111,7 +1107,7 @@ After creating all phase files, run **recursive decomposition loop**:
 **MANDATORY IMPORTANT MUST ATTENTION** run the full main pipeline in order — pre-check plan → bootstrap `goal.md` → ONE research wave (`researcher` + `investigate` in one message) → barrier → codebase + conditional pattern-doc analysis → convention matrix → `planner` writes `plan.md` + `phase-XX` → parallelism pass (PAR/SEQ + write sets + `## Execution Waves`) → granularity self-check → mandatory final tasks; NEVER skip a triggered pattern doc or silently require a nonexistent example-code file — why: the skipped reference or invented convention is the one AI silently drops.
 **MANDATORY IMPORTANT MUST ATTENTION** dispatch the research threads as ONE wave in ONE message (declare `Parallel plan:` first, one report path per agent) and synthesize only after EVERY member returns — why: dripping researchers one per turn serializes the cheapest-to-parallelize half of planning.
 **MANDATORY IMPORTANT MUST ATTENTION** the emitted plan MUST carry parallelism metadata — every phase tagged `PAR`/`SEQ`, its write set declared, every `SEQ` naming the exact artifact it waits on, and `## Execution Waves` in `plan.md` — why: `$plan-execute` fans out only on what the plan declares, so an untagged plan silently forces sequential execution.
-**MANDATORY IMPORTANT MUST ATTENTION** queue the final-task block on EVERY plan — Test Specs per phase → `$plan-validate` → `$plan-review` (convergence loop, 2-round ceiling +1 extension round when round 2 leaves CRITICAL/HIGH open — a clean pass ends it once the persisted `minRounds` is met) → `$why-review` (standalone only) → re-estimate vs finalized phases (flag `SHOULD-RESCOPE` when delta >50%).
+**MANDATORY IMPORTANT MUST ATTENTION** queue the final-task block on EVERY plan — Test Specs per phase → `$plan-validate` → `$plan-review` (convergence loop, HARD 2-round cap with NO extension — round 2 still blocking escalates by asking the user directly, and a clean pass ends it once the persisted `minRounds` is met; every round's wave includes a parallel `$why-review` rationale sub-agent) → re-estimate vs finalized phases (flag `SHOULD-RESCOPE` when delta >50%).
 **IMPORTANT MUST ATTENTION** `--mode={ci|cro}` only ADDS a domain reference load (`references/mode-ci.md` / `mode-cro.md`) + intake on top of the SAME engine, gate, and `planner` agent — default (no flag) runs the standard flow byte-for-byte; NEVER let a mode replace the engine or skip `$plan-review`.
 
 **Anti-Rationalization:**
@@ -1126,7 +1122,7 @@ After creating all phase files, run **recursive decomposition loop**:
 | "I'll just estimate SP directly"   | SP is DERIVED from bottom-up phase hours, never the driver. Σh/6 × productivity first.   |
 | "It's a `.claude` change, no sync" | State the mirror action or explicit no-sync evidence — stale mirrors fail the oracle.    |
 | "`--mode=ci`, so skip the normal flow" | Mode only ADDS a reference payload — same engine, same `$plan-review`, same `planner` agent. |
-| "Plan's done, skip the final tasks"| Test Specs → `$plan-validate` → `$plan-review` → `$why-review` → re-estimate are MANDATORY, not optional. |
+| "Plan's done, skip the final tasks"| Test Specs → `$plan-validate` → `$plan-review` (with its parallel `$why-review` rationale sub-agent) → re-estimate are MANDATORY, not optional. |
 | "Phases feel sequential, skip the tags" | "Feels sequential" is not a dependency. Tag `PAR`/`SEQ`, declare write sets, and name the artifact each `SEQ` waits on. |
 | "The executor can work the order out"  | It can't — `$plan-execute` fans out only on declared write sets. No tags = sequential execution you caused.        |
 
@@ -1184,7 +1180,9 @@ Source: `.claude/skills/shared/sync-inline-versions.md`
 - **MANDATORY** Code-to-spec extraction is reference-only until canonical acceptance; any supported AI tool may execute with synced context.
 - **MANDATORY** Update `.claude` source before syncing generated mirrors; do not manually edit `.agents`, `.codex`, or `AGENTS.md`.
 - **MANDATORY** Missing or stale project config, root instruction files, or required reference docs route project-specific work through `$project-init` or the narrow setup route automatically.
-**[TASK-PLANNING] [MANDATORY]** BEFORE executing any workflow or skill step, create/update task tracking for all planned steps, then keep it synchronized as each step starts/completes.
+**[TASK-PLANNING] [MANDATORY]** BEFORE executing any workflow or skill step, create/update task tracking for all planned steps, analyze the task graph (output dependencies, shared write targets) into ordered parallel waves per PARALLELIZE before starting any task, then keep it synchronized as each step starts/completes.
+- **MANDATORY** Pin `Original goal:` before the first action and keep `User prompts this session: P1…Pn` current; re-read both at every step, before delegation, and after compaction.
+- **MANDATORY** Before claiming done, map the result to the original goal and every prompt (`P# → done | deferred | n/a`); never store secrets in them.
 ## [LESSON-LEARNED-REMINDER] [BLOCKING] Task Planning & Continuous Improvement — MANDATORY. Do not skip.
 
 Break work into small tasks (task tracking) before starting. Add final task: "Analyze AI mistakes & lessons learned".
@@ -1195,7 +1193,7 @@ Break work into small tasks (task tracking) before starting. Add final task: "An
 3. Write as a universal rule — strip project-specific names/paths/classes. Useful on any codebase.
 4. Consolidate: multiple mistakes sharing one failure mode → ONE lesson.
 5. **Recurrence gate:** "Would this recur in future session WITHOUT this reminder?" — No → skip `$learn`.
-6. **Auto-fix gate:** "Could `$code-review`/`$code-simplifier`/`$security-review`/`$lint` catch this?" — Yes → improve review skill instead.
+6. **Auto-fix gate:** "Could `$code-review`/`$code-simplifier`/`$security-review`/a linter catch this?" — Yes → improve review skill instead.
 7. BOTH gates pass → ask user to run `$learn`.
 **[CRITICAL-THINKING-MINDSET]** Apply critical thinking, sequential thinking. Every claim needs traced proof, confidence >80% to act.
 **Anti-hallucination principle:** Never present guess as fact — cite sources for every claim, admit uncertainty freely, self-check output for errors, cross-reference independently, stay skeptical of own confidence — certainty without evidence root of all hallucination.

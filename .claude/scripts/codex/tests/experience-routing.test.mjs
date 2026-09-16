@@ -52,8 +52,12 @@ test("TC-EA-ROUTE-002: unified E2E workflow routes authoring into one convergenc
   assert.equal(author.skill, "e2e-test");
   assert.match(author.applicability.when, /changes.*recording.*update-ui/i);
   assert.match(author.applicability.skipReason, /prompt.*context.*whole/i);
-  assert.ok(workflow.sequence.indexOf(author) < indexOfSkill(workflow.sequence, "e2e-test-verify-loop"));
-  assert.ok(indexOfSkill(workflow.sequence, "e2e-test-verify-loop") < indexOfSkill(workflow.sequence, "docs-update"));
+  const converge = occurrence(workflow.sequence, "e2e-converge");
+  assert.ok(converge, "workflow-e2e must declare the e2e-test-verify --fix-loop convergence occurrence");
+  assert.equal(converge.skill, "e2e-test-verify");
+  assert.equal(converge.args, "--fix-loop");
+  assert.ok(workflow.sequence.indexOf(author) < workflow.sequence.indexOf(converge));
+  assert.ok(workflow.sequence.indexOf(converge) < indexOfSkill(workflow.sequence, "docs-update"));
   assert.doesNotMatch(e2eContext, /workflow-e2e-green/i);
   assert.match(e2eContext, /same-scope.*rerun|same scope.*rerun/i);
   assert.match(e2eContext, /explicit acceptance/i);

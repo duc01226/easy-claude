@@ -119,6 +119,9 @@ test('TC-CTXMIRROR-003: gate passes against the committed repo (skills + context
 // must call the REAL writer (materializeHookMirror), never a second derivation.
 
 const syncHooksPath = path.resolve(thisDir, '..', 'sync-hooks.mjs');
+// `mapMatcherForCodex` is deliberately NOT imported here: this oracle must not check
+// the renderer against its own translator. Matcher translation is unit-tested in
+// tests/sync-hooks.test.mjs; here only the literal table and the prefix property judge it.
 const { materializeHookMirror, claudeSettingsPath } = await import(pathToFileURL(syncHooksPath).href);
 const { unexpectedHookSkips } = await import(pathToFileURL(gatePath).href);
 
@@ -234,18 +237,55 @@ test('TC-HOOKMIRROR-002: hooks.json materializes deterministically; the report d
 //
 // Rows are `[event, matcher-or-null, hook-count]`; null means the group carries no
 // matcher (the renderer omits `*`, so the group still applies to everything).
+// Matcher translation (2026-09-16): every matcher naming a Claude MUTATION tool is
+// widened with `apply_patch`, the tool Codex performs ALL file mutation through.
+// Rendering the Claude names verbatim gated these groups on tools that host never
+// emits, so on Codex they could not fire at all — silently, since presence in
+// hooks.json looks like parity.
+//
+// WHAT THE WIDENING DOES, AND WHAT IT DOES NOT DO — measured, not inferred.
+// It makes the event REACH the hook. It does not make the hook handle it. A hook acts
+// only on tool names its own code parses, so a matcher can name `apply_patch` while
+// the hook behind it ignores every such event.
+//   * GAINED: `file-convention-inject` — the only registered hook that names
+//     `apply_patch` in its own trigger set (`file-convention-inject.cjs:25`). Its
+//     per-file convention reminder now fires on Codex edits.
+//   * NOT GAINED: `path-boundary-block.cjs` and `privacy-block.cjs` contain NO
+//     `apply_patch` branch. Both read a target from `tool_input.file_path`, which an
+//     `apply_patch` event does not carry, and both shell-parse `tool_input.command`,
+//     which on that event is PATCH TEXT rather than a shell command — so each
+//     concludes "no write, no sensitive path" and returns allow before any boundary
+//     or privacy check. Measured on identical targets: Claude `Write` exits 2
+//     (blocked) while Codex `apply_patch` exits 0 (allowed), for BOTH hooks.
+// CONSEQUENCE: Codex file writes remain UNGATED by the path-boundary and privacy
+// gates. That is a recorded and accepted state, not an oversight — closing it needs
+// an `apply_patch` parser INSIDE those hooks, which a matcher in this mirror cannot
+// supply. Do not re-derive "the security gates now cover Codex" from this table:
+// the widened matcher only routes events to hooks that must still learn the tool to
+// act on it.
+// Matchers with no Claude mutation tool (`Bash`, `TodoWrite|…|update_plan`, `mcp__*`)
+// are untouched, as are matchers naming only read tools.
 const EXPECTED_RENDERED_GROUPS = [
-    ['PostToolUse', 'Edit|Write|MultiEdit', 1],
-    ['PostToolUse', 'Edit|Write|MultiEdit', 1],
+    ['PostToolUse', 'Edit|Write|MultiEdit|apply_patch', 1],
+    ['PostToolUse', 'Edit|Write|MultiEdit|apply_patch', 1],
+    // file-convention-inject (2026-09-16): per-file convention reminder; its SessionStart
+    // compact|clear group renders no Codex row (condensation re-arm is Claude-only).
+    ['PostToolUse', 'Read|Edit|Write|MultiEdit|NotebookEdit|apply_patch', 1],
+    // prompt-ledger (2026-09-16): task-checkpoint goal re-anchor; its SessionStart
+    // compact|resume|clear group renders no Codex row (SessionStart is Claude-only).
+    // Already carries Codex's own `update_plan`, so no file-tool widening applies.
+    ['PostToolUse', 'TodoWrite|TaskCreate|TaskUpdate|update_plan', 1],
     ['PreToolUse', 'AskUserQuestion', 1],
     ['PreToolUse', 'Bash', 4],
-    ['PreToolUse', 'Bash|Glob|Grep|Read|Edit|Write|NotebookEdit', 2],
-    ['PreToolUse', 'Bash|Edit|Write|MultiEdit|NotebookEdit', 1],
-    ['PreToolUse', 'Write|Edit|MultiEdit', 1],
+    ['PreToolUse', 'Bash|Glob|Grep|Read|Edit|Write|NotebookEdit|apply_patch', 2],
+    ['PreToolUse', 'Bash|Edit|Write|MultiEdit|NotebookEdit|apply_patch', 1],
+    ['PreToolUse', 'Write|Edit|MultiEdit|apply_patch', 1],
     ['PreToolUse', 'mcp__filesystem__*', 1],
     ['PreToolUse', 'mcp__github__*', 1],
     ['Stop', null, 1],
     ['UserPromptSubmit', null, 1],
+    ['UserPromptSubmit', null, 1],
+    // prompt-ledger (2026-09-16): records every prompt and re-anchors the original goal.
     ['UserPromptSubmit', null, 1]
 ];
 
@@ -267,13 +307,23 @@ test('TC-HOOKMIRROR-003: a fresh render produces exactly the expected hook surfa
         // Every matcher the source configures still has to survive. The table above
         // would also catch this, but only as an opaque array diff; this names the
         // matcher, which is the sentence a reader needs when it fails.
+        //
+        // Checked against an INDEPENDENT property, never by calling the renderer's own
+        // `mapMatcherForCodex`: re-deriving the expectation from the implementation
+        // asserts only that the implementation agrees with itself, which no bug can
+        // fail. The property instead: translation may only APPEND Codex aliases, so a
+        // configured matcher must still appear as the literal PREFIX of some rendered
+        // matcher — every tool present, in order, same `|` separator. A dropped,
+        // reordered, renamed, or re-separated tool fails this; a widening does not.
         const settings = JSON.parse(await fs.readFile(claudeSettingsPath, 'utf8'));
-        const renderedMatchers = new Set(actual.map(([, matcher]) => matcher).filter(Boolean));
+        const renderedMatchers = actual.map(([, matcher]) => matcher).filter(Boolean);
         for (const group of settings.hooks.PreToolUse || []) {
             if (!group.matcher || group.matcher === '*') continue;
             assert.ok(
-                renderedMatchers.has(group.matcher),
-                `PreToolUse matcher "${group.matcher}" is configured in settings.json but missing from the Codex mirror`
+                renderedMatchers.some(
+                    rendered => rendered === group.matcher || rendered.startsWith(`${group.matcher}|`)
+                ),
+                `PreToolUse matcher "${group.matcher}" is configured in settings.json but no rendered Codex matcher preserves it as a prefix (rendered: ${renderedMatchers.join(', ')})`
             );
         }
     } finally {

@@ -56,6 +56,8 @@ Connected contracts:
 > - `docs/project-reference/project-structure-reference.md` — module/service list, database type(s), build tooling
 >
 > Files missing? Run `/scan --target=backend-patterns`, `/scan --target=frontend-patterns`, `/scan --target=project-structure` FIRST, then proceed.
+>
+> **Exception — read-only review leaf:** when the brief invokes `/performance-review --report-only` or spawns you as a member of a parallel review wave/barrier, NEVER run `/scan`, `/project-init`, or any other writer for a missing or stale doc (this also overrides the auto-run route in the Project Reference Docs Gate below) — record it as a `NOT VERIFIABLE` assumption in the report and continue. — why: a leaf regenerating shared docs races its barrier siblings and adds a second fan-out level.
 
 ## Investigation Checklist
 
@@ -249,8 +251,6 @@ Pattern: Grep first → Graph expand → Grep verify. Iterative deepening encour
 > **Stop conditions:** confidence <80% on any critical decision → escalate via AskUserQuestion · ≥3 revisions on same thought → re-frame the problem · branch count >3 → split into sub-task.
 >
 > **Implicit mode:** apply methodology internally without visible markers when adding markers would clutter the response (routine work where reasoning aids accuracy).
->
-> **Deep-dive:** see `/sequential-thinking` skill (`.claude/skills/sequential-thinking/SKILL.md`) for worked examples (API design, debugging, architecture), advanced techniques (spiral refinement, hypothesis testing, convergence), and meta-strategies (uncertainty handling, revision cascades).
 
 <!-- /SYNC:sequential-thinking-protocol -->
 
@@ -486,7 +486,7 @@ Pattern: Grep first → Graph expand → Grep verify. Iterative deepening encour
 
 <!-- SYNC:sequential-thinking-protocol:reminder -->
 
-**MUST ATTENTION** apply sequential-thinking — multi-step Thought N/M, REVISION/BRANCH/HYPOTHESIS markers, confidence % closer; see `/sequential-thinking` skill.
+**MUST ATTENTION** apply sequential-thinking — multi-step Thought N/M, REVISION/BRANCH/HYPOTHESIS markers, confidence % closer.
 
 <!-- /SYNC:sequential-thinking-protocol:reminder -->
 

@@ -7,6 +7,8 @@
 
 {Verbatim or faithfully condensed user request. Redact any secrets.}
 
+{Later prompts that extend, narrow, or change the request — one line each (`P2 changes: …`), per `SYNC:session-goal-ledger`.}
+
 ## Purpose
 
 {Why the user wants this — the outcome that makes the work worthwhile, independent of implementation details.}

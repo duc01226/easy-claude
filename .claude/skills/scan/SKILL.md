@@ -113,7 +113,8 @@ Read the full report. Apply the fresh-eyes protocol:
 4. Verify (Grep check): class/token/variable names in examples match actual declarations.
 5. Verify any target-mandated section is real, not hypothetical (Anti-Patterns / Coverage gaps / M1-M2 leaks / ports-from-config / etc.).
 6. Run a graph command on 2-3 key files to validate call-chain accuracy.
-7. Report: sections updated / unchanged / coverage gaps / violations found.
+7. **Convention classes (main agent only, never a worker):** when `docs/project-config.json` exists, run `node .claude/hooks/lib/convention-merge.cjs --detect --merge` (dry run); if it reports `added`/`refreshed`, apply with `--detect --merge --write` (additive — maintainer and edited classes kept, nothing removed; see `/project-config` 2r). Workers keep writing only their unique shard; the main agent stays the sole writer.
+8. Report: sections updated / unchanged / coverage gaps / violations found / convention classes added-refreshed-kept.
 
 > **Output-rule overrides:** apply the target entry's "Content Rules / exceptions" — e.g. `feature-spec` intentionally INCLUDES a directory tree (overriding the shared no-trees rule); `docs-index` intentionally OUTPUTS glob-verified counts (its counts are the deliverable); `e2e-tests`/`integration-tests` forbid hardcoded counts and use grep-expression statistics.
 

@@ -7,13 +7,13 @@
 | Goal                           | Document                                                                                                                           |
 | ------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------- |
 | **New to Claude Code?**        | [quick-start.md](./quick-start.md) - 5-minute onboarding                                                                           |
-| **Need a skill?**              | [skills/README.md](./skills/README.md) - 170 skills catalog                                                                        |
+| **Need a skill?**              | [skills/README.md](./skills/README.md) - 123 skills catalog                                                                        |
 | **Building a feature?**        | [skills/README.md](./skills/README.md) + `docs/project-reference/` patterns                                                        |
 | **Verifying user experience?** | [configuration/experience-verification.md](./configuration/experience-verification.md) - portable evidence and acceptance contract |
-| **Understanding hooks?**       | [hooks/README.md](./hooks/README.md) - 18 top-level hook files deep-dive                                                           |
+| **Understanding hooks?**       | [hooks/README.md](./hooks/README.md) - 20 top-level hook files deep-dive                                                           |
 | **Understanding workflows?**   | `CLAUDE.md` workflow catalog (project root) - 19 workflows                                                                         |
 | **Configuring Claude?**        | [configuration/README.md](./configuration/README.md)                                                                               |
-| **Team collaboration?**        | [team-collaboration-guide.md](./team-collaboration-guide.md) - PO, BA, QA, QC, UX, PM workflows                                    |
+| **Team collaboration?**        | [team-collaboration-guide.md](./team-collaboration-guide.md) - PO, BA, QA, QC, UX workflows                                    |
 | **Graph intelligence?**        | [code-graph-mechanism.md](./code-graph-mechanism.md) - How structural code analysis works                                          |
 | **Setup graph?**               | [code-graph-setup.md](./code-graph-setup.md) - Install Python deps + build graph                                                   |
 
@@ -24,11 +24,11 @@
 |-- README.md                 <- You are here (Navigation hub)
 |-- quick-start.md            5-minute onboarding guide
 |
-|-- skills/                   170 skills across 15+ domains
+|-- skills/                   123 skills across 15+ domains
 |   |-- README.md             Skills overview + full catalog
 |   +-- (patterns)           → docs/project-reference/
 |
-|-- hooks/                    18 top-level hook files, 31 lib modules
+|-- hooks/                    20 top-level hook files, 35 lib modules
 |   |-- README.md             Hooks overview, lessons system, session lifecycle
 |   +-- extending-hooks.md    How to create custom hooks
 |
@@ -64,10 +64,12 @@
 | Run tests                | `/test`                    | `test`                    |
 | Review code              | `/review`                  | `code-review`             |
 | Debug issues             | `/debug-investigate`       | `debug-investigate`       |
-| Create user story        | `/story`                   | `business-analyst`        |
-| Prioritize backlog       | `/prioritize`              | `product-owner`           |
+| Create user story        | `/story`                   | `story`                   |
+| Prioritize backlog       | `/prioritize`              | `prioritize`              |
+| Quality gate (pre-dev)   | `/dor-gate`                | `dor-gate`                |
+| Quality gate (pre-qa)    | `/artifact-review --type=spec-tests` | `artifact-review` |
+| Quality gate (pre-release) | `/production-readiness-review` | `production-readiness-review` |
 | Create test cases        | `/spec [mode=tests]`       | `spec [mode=tests]`       |
-| Quality checkpoint       | `/quality-gate-review`     | `quality-gate-review`     |
 | Create design spec       | `/design-spec`             | `design-spec`             |
 | Analyze blast radius     | `/graph-blast-radius`      | `graph-blast-radius`      |
 | Build code graph         | `/graph-build`             | `graph-build`             |
@@ -145,11 +147,11 @@
 
 | Category               | Count |
 | ---------------------- | ----- |
-| Skills                 | 170   |
-| Hook files (top-level) | 18    |
-| Lib Modules            | 31    |
+| Skills                 | 123   |
+| Hook files (top-level) | 20    |
+| Lib Modules            | 35    |
 | Hook Events            | 8     |
-| Agents                 | 27    |
+| Agents                 | 23    |
 | Workflows              | 19    |
 | Hook Tests             | 224   |
 | Documentation Files    | 28    |

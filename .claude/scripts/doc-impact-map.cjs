@@ -193,10 +193,18 @@ function collectChangedFiles(baseRef) {
     // Untracked files never appear in `git diff`, yet a brand-new file is the
     // single most common reason a reference doc is INCOMPLETE rather than wrong.
     const untracked = git(['ls-files', '--others', '--exclude-standard']);
+    let untrackedCount = 0;
     for (const line of untracked.split('\n')) {
         const file = toRepoRel(line);
-        if (file && !rows.some(r => r.file === file)) rows.push({ status: 'A', file });
+        if (file && !rows.some(r => r.file === file)) {
+            rows.push({ status: 'A', file });
+            untrackedCount += 1;
+        }
     }
+    // The label must name every source it actually drew from. Reporting only the `git diff` range
+    // while silently folding in untracked files invites a reader to conclude the map is BLIND to
+    // new files and to go re-derive them by hand — which is exactly the misread this line caused.
+    if (untrackedCount > 0) source += ` + ${untrackedCount} untracked`;
 
     return { rows, source };
 }

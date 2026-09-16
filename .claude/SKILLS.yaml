@@ -1,11 +1,11 @@
 metadata:
   title: Skills Catalog
   description: Auto-generated catalog of all available skills in ClaudeKit Engineer
-  last_updated: '2026-09-14'
-  total_skills: 170
+  last_updated: '2026-09-16'
+  total_skills: 123
   total_by_status:
-    active: 168
-    deprecated: 2
+    active: 123
+    deprecated: 0
     experimental: 0
 categories:
   ai-ml: AI & Machine Learning
@@ -98,42 +98,10 @@ skills:
       deprecated_by: null
       deprecated_since: null
       removal_after: null
-    - name: ask
-      path: ask/SKILL.md
-      description: '[Utilities] Use when answering a technical or architectural question.'
-      category: other
-      has_scripts: false
-      has_references: false
-      status: active
-      deprecated_by: null
-      deprecated_since: null
-      removal_after: null
     - name: brainstorm
       path: brainstorm/SKILL.md
       description: '[Content] Use when brainstorming as a PO/BA — ideation for problem-solving,
         new products, feature enhancement, or outcome-roadmap framing. Flag: --mode={roadmap|scope}.'
-      category: other
-      has_scripts: false
-      has_references: false
-      status: active
-      deprecated_by: null
-      deprecated_since: null
-      removal_after: null
-    - name: branch-comparison
-      path: branch-comparison/SKILL.md
-      description: '[Git] Use when comparing branches, analyzing git diffs, or reviewing
-        what changed between two refs.'
-      category: other
-      has_scripts: false
-      has_references: false
-      status: active
-      deprecated_by: null
-      deprecated_since: null
-      removal_after: null
-    - name: business-analyst
-      path: business-analyst/SKILL.md
-      description: '[Project Management] Use when creating user stories, writing acceptance
-        criteria, analyzing requirements, or mapping business processes.'
       category: other
       has_scripts: false
       has_references: false
@@ -153,42 +121,11 @@ skills:
       deprecated_by: null
       deprecated_since: null
       removal_after: null
-    - name: changelog
-      path: changelog/SKILL.md
-      description: '[Documentation] Use when generating or updating changelog entries.'
-      category: other
-      has_scripts: false
-      has_references: true
-      status: active
-      deprecated_by: null
-      deprecated_since: null
-      removal_after: null
     - name: changes-review
       path: changes-review/SKILL.md
       description: '[Code Quality] Use when reviewing current changes, staged or unstaged
-        diffs, or branch-to-branch diffs.'
-      category: other
-      has_scripts: false
-      has_references: false
-      status: active
-      deprecated_by: null
-      deprecated_since: null
-      removal_after: null
-    - name: changes-review-loop
-      path: changes-review-loop/SKILL.md
-      description: '[Code Quality] Use when looping /changes-review + /fix recursively
-        over a fixed diff scope until one full pass clears the severity bar.'
-      category: other
-      has_scripts: false
-      has_references: false
-      status: active
-      deprecated_by: null
-      deprecated_since: null
-      removal_after: null
-    - name: checkpoint
-      path: checkpoint/SKILL.md
-      description: '[Utilities] Use when saving analysis context to a checkpoint file
-        for recovery.'
+        diffs, or branch-to-branch diffs. Flag: --fix-loop reviews, fixes and re-reviews
+        until converged.'
       category: other
       has_scripts: false
       has_references: false
@@ -232,48 +169,6 @@ skills:
       path: commit/SKILL.md
       description: '[Git] Use when asked to commit, stage and commit, or save changes.
         Flag: --push also pushes to remote.'
-      category: other
-      has_scripts: false
-      has_references: false
-      status: active
-      deprecated_by: null
-      deprecated_since: null
-      removal_after: null
-    - name: compact
-      path: compact/SKILL.md
-      description: '[Utilities] Use when compressing context to reduce token usage.'
-      category: other
-      has_scripts: false
-      has_references: false
-      status: active
-      deprecated_by: null
-      deprecated_since: null
-      removal_after: null
-    - name: context
-      path: context/SKILL.md
-      description: '[Utilities] Use when loading project context for the current session.'
-      category: other
-      has_scripts: false
-      has_references: false
-      status: active
-      deprecated_by: null
-      deprecated_since: null
-      removal_after: null
-    - name: context-optimization
-      path: context-optimization/SKILL.md
-      description: '[Utilities] Use when managing context window usage, compressing
-        long sessions, or optimizing tokens.'
-      category: other
-      has_scripts: false
-      has_references: false
-      status: active
-      deprecated_by: null
-      deprecated_since: null
-      removal_after: null
-    - name: copywriting
-      path: copywriting/SKILL.md
-      description: '[Content] Use when writing high-converting copy for marketing,
-        social, landing pages, email, or product descriptions.'
       category: other
       has_scripts: false
       has_references: false
@@ -336,17 +231,6 @@ skills:
       deprecated_by: null
       deprecated_since: null
       removal_after: null
-    - name: dependency
-      path: dependency/SKILL.md
-      description: '[Project Management] Use when mapping or visualizing feature dependencies
-        between modules, services, and work items.'
-      category: other
-      has_scripts: false
-      has_references: false
-      status: active
-      deprecated_by: null
-      deprecated_since: null
-      removal_after: null
     - name: docs-init
       path: docs-init/SKILL.md
       description: '[Documentation] Use when initializing project reference docs via
@@ -369,21 +253,11 @@ skills:
       deprecated_by: null
       deprecated_since: null
       removal_after: null
-    - name: documentation
-      path: documentation/SKILL.md
-      description: '[Code Quality] Use when enhancing documentation, adding code comments,
-        creating API docs, or updating READMEs.'
-      category: other
-      has_scripts: false
-      has_references: false
-      status: active
-      deprecated_by: null
-      deprecated_since: null
-      removal_after: null
-    - name: docx-to-markdown
-      path: docx-to-markdown/SKILL.md
-      description: '[Document Processing] Use when converting Word DOCX files to Markdown
-        with GFM support.'
+    - name: docx-convert
+      path: docx-convert/SKILL.md
+      description: '[Document Processing] Use when converting between Word DOCX and
+        Markdown — DOCX to Markdown with GFM support, or Markdown to DOCX with GFM
+        and math rendering. Flag: --to={markdown|docx}.'
       category: other
       has_scripts: true
       has_references: false
@@ -424,18 +298,6 @@ skills:
       deprecated_by: null
       deprecated_since: null
       removal_after: null
-    - name: dual-ai
-      path: dual-ai/SKILL.md
-      description: '[User-Invoked] Use ONLY when the user explicitly types /dual-ai
-        — fans one prompt or workflow out to parallel Claude Code + Codex CLI sessions.
-        NEVER auto-activate.'
-      category: other
-      has_scripts: true
-      has_references: false
-      status: active
-      deprecated_by: null
-      deprecated_since: null
-      removal_after: null
     - name: e2e-test
       path: e2e-test/SKILL.md
       description: '[Testing] Use when selecting, generating, updating, or maintaining
@@ -451,31 +313,10 @@ skills:
       path: e2e-test-verify/SKILL.md
       description: '[Testing] Use when verifying an existing E2E, browser, or user-flow
         test scope with exact runner output, evidence, and report-only quality-gate
-        results.'
-      category: other
-      has_scripts: false
-      has_references: false
-      status: active
-      deprecated_by: null
-      deprecated_since: null
-      removal_after: null
-    - name: e2e-test-verify-loop
-      path: e2e-test-verify-loop/SKILL.md
-      description: '[Testing] Use when driving a configured E2E suite or human-QC
-        journey to green with project-config setup, evidence, fault adjudication,
-        and bounded re-verification. Flag: --visual-review={true|false} (default true;
-        false is the explicit opt-out from the screenshot visual gate).'
-      category: other
-      has_scripts: false
-      has_references: false
-      status: active
-      deprecated_by: null
-      deprecated_since: null
-      removal_after: null
-    - name: estimate-actual
-      path: estimate-actual/SKILL.md
-      description: '[Planning] Use when calibrating estimates against actual code,
-        diff, PR scope, and developer time.'
+        results. Flags: --fix-loop drives a configured suite or human-QC journey to
+        green with project-config setup, fault adjudication, and bounded re-verification;
+        --visual-review={true|false} (with --fix-loop; default true, false opts out
+        of the screenshot visual gate).'
       category: other
       has_scripts: false
       has_references: false
@@ -561,16 +402,6 @@ skills:
       deprecated_by: null
       deprecated_since: null
       removal_after: null
-    - name: git-merge
-      path: git-merge/SKILL.md
-      description: '[Git] Use when merging code from one branch to another.'
-      category: other
-      has_scripts: false
-      has_references: false
-      status: active
-      deprecated_by: null
-      deprecated_since: null
-      removal_after: null
     - name: graph-blast-radius
       path: graph-blast-radius/SKILL.md
       description: '[Code Intelligence] Use when analyzing the blast radius of current
@@ -637,17 +468,6 @@ skills:
       deprecated_by: null
       deprecated_since: null
       removal_after: null
-    - name: greenfield
-      path: greenfield/SKILL.md
-      description: '[Planning] Use when starting a new project from scratch — idea,
-        research, domain modeling, tech stack, implementation plan.'
-      category: other
-      has_scripts: false
-      has_references: false
-      status: active
-      deprecated_by: null
-      deprecated_since: null
-      removal_after: null
     - name: harness-setup
       path: harness-setup/SKILL.md
       description: '[Quality] Use when setting up an agent quality harness with feedforward
@@ -695,19 +515,8 @@ skills:
     - name: integration-test-verify
       path: integration-test-verify/SKILL.md
       description: '[Testing] Use when verifying integration tests pass after writing
-        and reviewing them.'
-      category: other
-      has_scripts: false
-      has_references: false
-      status: active
-      deprecated_by: null
-      deprecated_since: null
-      removal_after: null
-    - name: integration-test-verify-loop
-      path: integration-test-verify-loop/SKILL.md
-      description: '[Testing] Use when driving an integration-test suite to fully
-        green — verify, adjudicate each failure, fix at the owning layer, re-verify,
-        until 2 consecutive green runs.'
+        and reviewing them. Flag: --fix-loop adjudicates, fixes and re-verifies until
+        2 consecutive green runs.'
       category: other
       has_scripts: false
       has_references: false
@@ -719,17 +528,6 @@ skills:
       path: investigate/SKILL.md
       description: '[Fix & Debug] Use when investigating and explaining how existing
         features or logic work. Flag: --mode=explain gives a developer-narrative walkthrough.'
-      category: other
-      has_scripts: false
-      has_references: false
-      status: active
-      deprecated_by: null
-      deprecated_since: null
-      removal_after: null
-    - name: journal
-      path: journal/SKILL.md
-      description: '[Utilities] Use when recording an engineering journal entry —
-        decisions, blockers, lessons, progress notes.'
       category: other
       has_scripts: false
       has_references: false
@@ -770,17 +568,6 @@ skills:
       deprecated_by: null
       deprecated_since: null
       removal_after: null
-    - name: lint
-      path: lint/SKILL.md
-      description: '[Code Quality] Use when running linters and fixing issues on backend
-        or frontend.'
-      category: other
-      has_scripts: false
-      has_references: false
-      status: active
-      deprecated_by: null
-      deprecated_since: null
-      removal_after: null
     - name: linter-setup
       path: linter-setup/SKILL.md
       description: '[Quality] Use when configuring code quality tooling for a tech
@@ -792,54 +579,10 @@ skills:
       deprecated_by: null
       deprecated_since: null
       removal_after: null
-    - name: markdown-novel-viewer
-      path: markdown-novel-viewer/SKILL.md
-      description: '[Content] Use when serving markdown files in a calm, book-like
-        reading view over local HTTP.'
-      category: other
-      has_scripts: true
-      has_references: false
-      status: active
-      deprecated_by: null
-      deprecated_since: null
-      removal_after: null
-    - name: markdown-to-docx
-      path: markdown-to-docx/SKILL.md
-      description: '[Document Processing] Use when converting Markdown to Word DOCX
-        with GFM and math rendering.'
-      category: other
-      has_scripts: true
-      has_references: false
-      status: active
-      deprecated_by: null
-      deprecated_since: null
-      removal_after: null
-    - name: markdown-to-pdf
-      path: markdown-to-pdf/SKILL.md
-      description: '[Document Processing] Use when converting Markdown to PDF with
-        syntax highlighting and custom CSS.'
-      category: other
-      has_scripts: true
-      has_references: false
-      status: active
-      deprecated_by: null
-      deprecated_since: null
-      removal_after: null
     - name: market-analysis
       path: market-analysis/SKILL.md
       description: '[Research] Use when analyzing the market landscape — competitors,
         TAM/SAM/SOM sizing, trends, SWOT, customer segments.'
-      category: other
-      has_scripts: false
-      has_references: false
-      status: active
-      deprecated_by: null
-      deprecated_since: null
-      removal_after: null
-    - name: memory-management
-      path: memory-management/SKILL.md
-      description: '[Utilities] Use when saving or recovering task progress across
-        sessions via file checkpoints, especially before compaction.'
       category: other
       has_scripts: false
       has_references: false
@@ -880,10 +623,12 @@ skills:
       deprecated_by: null
       deprecated_since: null
       removal_after: null
-    - name: pdf-to-markdown
-      path: pdf-to-markdown/SKILL.md
-      description: '[Document Processing] Use when converting PDFs to Markdown, including
-        scanned documents via OCR.'
+    - name: pdf-convert
+      path: pdf-convert/SKILL.md
+      description: '[Document Processing] Use when converting between PDF and Markdown
+        — text-extractable PDFs to Markdown (scanned PDFs are detected and reported,
+        not OCR''d), or Markdown to PDF with syntax highlighting and custom CSS. Flag:
+        --to={markdown|pdf}.'
       category: other
       has_scripts: true
       has_references: false
@@ -914,16 +659,6 @@ skills:
       deprecated_by: null
       deprecated_since: null
       removal_after: null
-    - name: pr
-      path: pr/SKILL.md
-      description: '[Git] Use when creating a pull request in the standard format.'
-      category: other
-      has_scripts: false
-      has_references: false
-      status: active
-      deprecated_by: null
-      deprecated_since: null
-      removal_after: null
     - name: presentation-builder
       path: presentation-builder/SKILL.md
       description: '[Documentation] Use when creating, revising, auditing, or generating
@@ -941,17 +676,6 @@ skills:
       path: prioritize/SKILL.md
       description: '[Project Management] Use when prioritizing backlog items with
         RICE, MoSCoW, or Value-Effort.'
-      category: other
-      has_scripts: false
-      has_references: false
-      status: active
-      deprecated_by: null
-      deprecated_since: null
-      removal_after: null
-    - name: product-owner
-      path: product-owner/SKILL.md
-      description: '[Project Management] Use when capturing ideas, managing backlogs,
-        applying prioritization frameworks, or facilitating stakeholder communication.'
       category: other
       has_scripts: false
       has_references: false
@@ -1005,17 +729,6 @@ skills:
       deprecated_by: null
       deprecated_since: null
       removal_after: null
-    - name: project-manager
-      path: project-manager/SKILL.md
-      description: '[Project Management] Use when generating project status reports,
-        tracking dependencies, managing risk registers, or facilitating team syncs.'
-      category: other
-      has_scripts: false
-      has_references: true
-      status: active
-      deprecated_by: null
-      deprecated_since: null
-      removal_after: null
     - name: project-skill-protocol
       path: project-skill-protocol/SKILL.md
       description: '[Utilities] Use when a project adds, changes, lists, or removes
@@ -1032,51 +745,6 @@ skills:
       path: prompt-enhance/SKILL.md
       description: '[Skill Management] Use when enhancing, compressing, or expanding
         prompts, docs, or skills. Flag: --op={compress|expand|enhance} (default enhance).'
-      category: other
-      has_scripts: false
-      has_references: false
-      status: active
-      deprecated_by: null
-      deprecated_since: null
-      removal_after: null
-    - name: prove-fix
-      path: prove-fix/SKILL.md
-      description: '[Code Quality] Use when proving a fix is correct via adversarial
-        proof traces — a skeptic tries to DISPROVE it first, with confidence scoring
-        and evidence chains.'
-      category: other
-      has_scripts: false
-      has_references: false
-      status: active
-      deprecated_by: null
-      deprecated_since: null
-      removal_after: null
-    - name: quality-gate-review
-      path: quality-gate-review/SKILL.md
-      description: '[Project Management] Use when enforcing quality gates, verifying
-        standards compliance, tracking metrics, or generating audit trails.'
-      category: other
-      has_scripts: false
-      has_references: false
-      status: active
-      deprecated_by: null
-      deprecated_since: null
-      removal_after: null
-    - name: recover
-      path: recover/SKILL.md
-      description: '[Utilities] Use when restoring workflow context from a checkpoint
-        after session loss.'
-      category: other
-      has_scripts: false
-      has_references: false
-      status: active
-      deprecated_by: null
-      deprecated_since: null
-      removal_after: null
-    - name: refactoring
-      path: refactoring/SKILL.md
-      description: '[Code Quality] Use when restructuring code without changing behavior
-        — extract method/class, rename, move, inline.'
       category: other
       has_scripts: false
       has_references: false
@@ -1356,32 +1024,11 @@ skills:
       deprecated_by: null
       deprecated_since: null
       removal_after: null
-    - name: webapp-testing
-      path: webapp-testing/SKILL.md
-      description: '[Testing] Use when testing an individual page or component with
-        Python Playwright scripts.'
-      category: other
-      has_scripts: true
-      has_references: false
-      status: active
-      deprecated_by: null
-      deprecated_since: null
-      removal_after: null
     - name: why-review
       path: why-review/SKILL.md
       description: '[Code Quality] Use when reviewing rationale and change quality
-        for plans, PBIs, commits, diffs, docs, specs, or reports.'
-      category: other
-      has_scripts: false
-      has_references: false
-      status: active
-      deprecated_by: null
-      deprecated_since: null
-      removal_after: null
-    - name: why-review-loop
-      path: why-review-loop/SKILL.md
-      description: '[Code Quality] Use when looping /why-review + /fix recursively
-        over a target until a fresh full review clears the severity bar.'
+        for plans, PBIs, commits, diffs, docs, specs, or reports. Flag: --fix-loop
+        fixes validated findings and re-reviews until the severity bar clears.'
       category: other
       has_scripts: false
       has_references: false
@@ -1542,18 +1189,8 @@ skills:
       path: workflow-review-changes/SKILL.md
       description: '[Workflow] Use when reviewing uncommitted, staged, or unstaged
         changes before committing — review, fix, and re-review until the severity
-        bar clears.'
-      category: other
-      has_scripts: false
-      has_references: false
-      status: active
-      deprecated_by: null
-      deprecated_since: null
-      removal_after: null
-    - name: workflow-review-changes-loop
-      path: workflow-review-changes-loop/SKILL.md
-      description: '[Workflow] Use when running /workflow-review-changes repeatedly
-        until a complete pass applies zero fixes.'
+        bar clears. Flag: --fix-loop re-runs the whole workflow until a round applies
+        zero fixes.'
       category: other
       has_scripts: false
       has_references: false
@@ -1616,51 +1253,6 @@ skills:
       deprecated_by: null
       deprecated_since: null
       removal_after: null
-    - name: worktree
-      path: worktree/SKILL.md
-      description: '[Git] Use when creating an isolated git worktree for parallel
-        development.'
-      category: other
-      has_scripts: false
-      has_references: false
-      status: active
-      deprecated_by: null
-      deprecated_since: null
-      removal_after: null
-    dev-tools:
-    - name: claude-code
-      path: claude-code/SKILL.md
-      description: '[Utilities] Use when setting up, configuring, or troubleshooting
-        the Claude Code CLI and its features.'
-      category: dev-tools
-      has_scripts: false
-      has_references: true
-      status: active
-      deprecated_by: null
-      deprecated_since: null
-      removal_after: null
-    - name: docs-seeker
-      path: docs-seeker/SKILL.md
-      description: '[Documentation] Use when finding technical documentation for a
-        library, framework, repository, or implementation topic.'
-      category: dev-tools
-      has_scripts: true
-      has_references: true
-      status: active
-      deprecated_by: null
-      deprecated_since: null
-      removal_after: null
-    - name: skill-creator
-      path: skill-creator/SKILL.md
-      description: '[Skill Management] Use when creating a skill, adding skill references
-        or scripts, fixing invalid skill headers, or packaging skills.'
-      category: dev-tools
-      has_scripts: true
-      has_references: true
-      status: active
-      deprecated_by: null
-      deprecated_since: null
-      removal_after: null
     utilities:
     - name: code-review
       path: code-review/SKILL.md
@@ -1718,17 +1310,6 @@ skills:
       deprecated_by: null
       deprecated_since: null
       removal_after: null
-    - name: plan-analysis
-      path: plan-analysis/SKILL.md
-      description: '[Planning] Use when the user supplies a plan file and asks to
-        analyze it, assess impact, or verify planned changes.'
-      category: utilities
-      has_scripts: false
-      has_references: false
-      status: active
-      deprecated_by: null
-      deprecated_since: null
-      removal_after: null
     - name: plan-execute
       path: plan-execute/SKILL.md
       description: '[Implementation] Use when coding and testing an existing plan.
@@ -1743,7 +1324,7 @@ skills:
     - name: plan-review
       path: plan-review/SKILL.md
       description: '[Planning] Use when auto-reviewing a plan for validity, correctness,
-        and best practices — recursive until the severity exit bar clears.'
+        and best practices — bounded at 2 rounds MAX, no extension.'
       category: utilities
       has_scripts: false
       has_references: false
@@ -1758,39 +1339,6 @@ skills:
       category: utilities
       has_scripts: false
       has_references: false
-      status: active
-      deprecated_by: null
-      deprecated_since: null
-      removal_after: null
-    - name: problem-solving
-      path: problem-solving/SKILL.md
-      description: '[Utilities] Use when applying structured problem-solving frameworks
-        to complex, blocked, recurring, or uncertain decisions.'
-      category: utilities
-      has_scripts: false
-      has_references: true
-      status: active
-      deprecated_by: null
-      deprecated_since: null
-      removal_after: null
-    - name: research
-      path: research/SKILL.md
-      description: '[Planning] Use when researching and planning technical solutions
-        that are scalable, secure, and maintainable.'
-      category: utilities
-      has_scripts: false
-      has_references: false
-      status: active
-      deprecated_by: null
-      deprecated_since: null
-      removal_after: null
-    - name: sequential-thinking
-      path: sequential-thinking/SKILL.md
-      description: '[AI & Tools] Use when applying structured, reflective problem-solving
-        to complex multi-step analysis needing revision and hypothesis verification.'
-      category: utilities
-      has_scripts: true
-      has_references: true
       status: active
       deprecated_by: null
       deprecated_since: null
@@ -1841,39 +1389,6 @@ skills:
       deprecated_by: null
       deprecated_since: null
       removal_after: null
-    - name: figma-design
-      path: figma-design/SKILL.md
-      description: '[Frontend] Use when extracting design context from Figma URLs
-        via MCP, REST API, or screenshot fallback.'
-      category: frontend
-      has_scripts: false
-      has_references: true
-      status: active
-      deprecated_by: null
-      deprecated_since: null
-      removal_after: null
-    - name: test-ui
-      path: test-ui/SKILL.md
-      description: '[Testing] Use when running a full-site QA audit (accessibility,
-        performance, security, SEO) with visual reports.'
-      category: frontend
-      has_scripts: false
-      has_references: false
-      status: active
-      deprecated_by: null
-      deprecated_since: null
-      removal_after: null
-    - name: threejs
-      path: threejs/SKILL.md
-      description: '[General] Use when building 3D web apps with ThreeJS, WebGL, or
-        WebGPU.'
-      category: frontend
-      has_scripts: true
-      has_references: true
-      status: active
-      deprecated_by: null
-      deprecated_since: null
-      removal_after: null
     - name: ui-review
       path: ui-review/SKILL.md
       description: '[Code Quality] Use when reviewing UI/frontend changes for content
@@ -1897,39 +1412,17 @@ skills:
       deprecated_by: null
       deprecated_since: null
       removal_after: null
-    infrastructure:
-    - name: devops
-      path: devops/SKILL.md
-      description: '[DevOps] Use when deploying to Cloudflare (Workers, R2, D1, KV,
-        Pages), Docker, or GCP (Compute Engine, GKE, Cloud Run).'
-      category: infrastructure
+    dev-tools:
+    - name: skill-creator
+      path: skill-creator/SKILL.md
+      description: '[Skill Management] Use when creating a skill, adding skill references
+        or scripts, fixing invalid skill headers, or packaging skills.'
+      category: dev-tools
       has_scripts: true
       has_references: true
       status: active
       deprecated_by: null
       deprecated_since: null
       removal_after: null
-  deprecated:
-    other:
-    - name: quality-gate
-      path: quality-gate/SKILL.md
-      description: '[Code Quality] Use when running the quality gate checklist.'
-      category: other
-      has_scripts: false
-      has_references: false
-      status: deprecated
-      deprecated_by: quality-gate-review
-      deprecated_since: '2026-06-14'
-      removal_after: '2026-09-12'
-    - name: release-doc
-      path: release-doc/SKILL.md
-      description: '[Documentation] DEPRECATED — use /release-notes instead for any
-        release document or release notes, at any scope.'
-      category: other
-      has_scripts: false
-      has_references: false
-      status: deprecated
-      deprecated_by: release-notes
-      deprecated_since: '2026-09-08'
-      removal_after: '2026-12-07'
+  deprecated: {}
   experimental: {}

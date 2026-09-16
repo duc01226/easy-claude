@@ -100,7 +100,10 @@ interface HookInput {
         command?: string; // For Bash
         // ... other tool-specific fields
     };
-    tool_result?: string; // Tool output (PostToolUse only)
+    tool_response?: unknown; // Tool output (PostToolUse) — the field name Claude Code documents; payload shape varies by tool
+    tool_result?: unknown; // Legacy name read by lib/stdin-parser.cjs and the test helpers; do not rely on it for Claude input
+    agent_id?: string; // Present when the event comes from a helper (sub-)agent
+    transcript_path?: string; // Conversation history file of the main session
     session_id: string; // Unique session identifier
     cwd: string; // Current working directory
 }
@@ -471,6 +474,21 @@ runHook(
     { outputResult: false }
 );
 ```
+
+---
+
+## Pattern: PostToolUse Context Accelerator
+
+Use this shape only for a reminder that ALSO exists statically (CLAUDE.md/AGENTS.md or a lookup CLI) — the hook speeds delivery up, it never becomes the source of truth. Reference implementation: `file-convention-inject.cjs` (lib `file-conventions.cjs` / `convention-ledger.cjs`).
+
+-   **Output:** one JSON object on stdout, exit `0`, no decision fields:
+    `{"hookSpecificOutput":{"hookEventName":"PostToolUse","additionalContext":"…"}}`. The tool call has already run; the text reaches the model before its next step.
+-   **Opt-in + fast no-op:** read one config switch first and return silently when it is off; keep heavy `require`s behind that check.
+-   **Fail-open:** any parse/config/IO error ⇒ empty stdout, exit `0`, no stderr noise (a reminder must never disrupt the tool flow).
+-   **Deliver only what is missing:** key delivery memory by `session_id` + working context (`agent_id` when present, else main); write the record only in the `process.stdout.write` callback so an undelivered reminder is retried; re-arm after condensation (SessionStart `compact|clear`, transcript marks) and after enough conversation growth.
+-   **Concurrency:** claim with an exclusive-create lock (`fs.openSync(file, 'wx')`), treat an old lock as stale, and re-check presence after acquiring it.
+-   **Budget:** cap the text, put the must-do lines first and last, and degrade lowest-precedence content first.
+-   **Codex:** `run-codex-sync.mjs` mirrors the registration; Codex runs the hook via a `node -e` launcher where `require.main` is undefined, so gate the entry point on `require.main === module || (!require.main && resolved argv[1] === __filename)`.
 
 ---
 

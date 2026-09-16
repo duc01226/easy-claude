@@ -404,8 +404,7 @@ Spawn `git-manager` after committing when the user says "push", "create PR", or 
 
 ## Related
 
-- `changelog`
-- `branch-comparison`
+- `changes-review` (branch-to-branch diffs)
 
 ---
 

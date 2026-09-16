@@ -264,32 +264,115 @@ function buildE2eTesting(config) {
     return `E2E testing framework(s): ${frameworks.join(', ')}${executionProfile}`;
 }
 
-function buildSkillActivation(config) {
+// Per-file convention classes share one renderer with the file-convention-inject hook and the
+// `--lookup` CLI (static parity). Resolution: the sibling framework lib (canonical
+// `.claude/skills/...` layout), then the consuming project's `.claude/hooks/lib` (a mirrored
+// copy such as `.agents/skills/...` has no sibling hooks/lib). Only when neither exists does a
+// compact copied skill keep the historical guide-doc-only table. The project root is the
+// generator's resolved project directory when given, else CLAUDE_PROJECT_DIR, else the cwd.
+function loadFileConventions(env = process.env, cwd = process.cwd(), projectDir) {
+    const envRoot = env && typeof env.CLAUDE_PROJECT_DIR === 'string' && env.CLAUDE_PROJECT_DIR.trim()
+        ? env.CLAUDE_PROJECT_DIR.trim()
+        : null;
+    const projectRoot = typeof projectDir === 'string' && projectDir.trim() ? projectDir : (envRoot || cwd);
+    const candidates = [
+        path.join(__dirname, '..', '..', '..', 'hooks', 'lib', 'file-conventions.cjs'),
+        path.join(projectRoot, '.claude', 'hooks', 'lib', 'file-conventions.cjs')
+    ];
+    const usable = lib => lib
+        && ['injectableEntries', 'sortEntries', 'conventionTag', 'normalizedExtensions'].every(name => typeof lib[name] === 'function')
+        && typeof lib.LOOKUP_COMMAND === 'string';
+    for (const candidate of candidates) {
+        try {
+            if (!fs.existsSync(candidate)) continue;
+            const lib = require(candidate);
+            if (usable(lib)) return lib;
+        } catch {
+            /* try the next location */
+        }
+    }
+    return null;
+}
+
+/** Display form of a path regex in the static table (approximate; the lookup CLI is exact). */
+function activationPattern(regex) {
+    return regex.replace(/\[\\\\\/\]/g, '/').replace(/\\\\/g, '') + '**';
+}
+
+const nonBlank = value => typeof value === 'string' && value.trim();
+
+function tableCell(text) {
+    return String(text).replace(/[|\r\n]/g, char => char === '|' ? '\\|' : ' ');
+}
+
+const SKILL_ACTIVATION_INTRO = 'When editing files matching these path patterns, pre-read the listed context first:';
+
+function buildSkillActivation(config, projectDir) {
     const groups = config.contextGroups || [];
     if (groups.length === 0) return null;
+    const header = '| Path Pattern | Skill / Auto-Context | Pre-Read Files |\n|---|---|---|';
+    const conventions = loadFileConventions(process.env, process.cwd(), projectDir);
 
-    const rows = groups
-        .filter(g => g.patternsDoc || g.guideDoc)
-        .map(g => {
-            const patterns = g.pathRegexes?.map(r => r.replace(/\[\\\\\/\]/g, '/').replace(/\\\\/g, '') + '**') || [];
-            const doc = g.patternsDoc || g.guideDoc || '';
-            return `| ${patterns.length ? patterns.map(p => `\`${p}\``).join(', ') : g.name} | _(auto-context)_ | \`${doc}\` |`;
-        });
+    if (!conventions) {
+        const legacyRows = groups
+            .filter(g => g.patternsDoc || g.guideDoc)
+            .map(g => {
+                const patterns = g.pathRegexes?.map(activationPattern) || [];
+                const doc = g.patternsDoc || g.guideDoc || '';
+                return `| ${patterns.length ? patterns.map(p => `\`${p}\``).join(', ') : g.name} | _(auto-context)_ | \`${doc}\` |`;
+            });
+        if (legacyRows.length === 0) return null;
+        return `${SKILL_ACTIVATION_INTRO}\n\n${header}\n${legacyRows.join('\n')}`;
+    }
 
-    if (rows.length === 0) return null;
-    return `When editing files matching these path patterns, pre-read the listed context first:\n\n| Path Pattern | Skill / Auto-Context | Pre-Read Files |\n|---|---|---|\n${rows.join('\n')}`;
+    const entries = conventions.sortEntries(conventions.injectableEntries(config));
+    if (entries.length === 0) return null;
+    const rows = entries.map(entry => {
+        const group = entry.group;
+        const list = value => (Array.isArray(value) ? value.filter(nonBlank) : []);
+        const patterns = list(group.pathRegexes).map(activationPattern)
+            .concat(list(group.pathGlobs))
+            .concat(list(group.fileNameRegexes).map(r => `name:${r}`));
+        const excludes = list(group.excludePathRegexes).map(activationPattern).concat(list(group.excludePathGlobs));
+        const extensions = conventions.normalizedExtensions(group);
+        // Membership is extension filter AND any include AND no exclude (BR-PFCI-02): a row that
+        // omitted the filter or the exclusions would claim files the hook never matches.
+        let patternCell = patterns.length ? patterns.map(p => `\`${tableCell(p)}\``).join(', ') : tableCell(entry.name);
+        if (extensions.length) patternCell += ` ext ${extensions.map(e => `\`${tableCell(e)}\``).join(', ')}`;
+        if (excludes.length) patternCell += ` · not ${excludes.map(p => `\`${tableCell(p)}\``).join(', ')}`;
+        const skillCell = entry.skills.length ? entry.skills.map(s => `\`${tableCell(s)}\``).join(', ') : '_(auto-context)_';
+        const docCell = entry.docs.map(d => `\`${tableCell(d)}\``).concat(`\`${conventions.conventionTag(entry)}\``).join(', ');
+        return `| ${patternCell} | ${skillCell} | ${docCell} |`;
+    });
+    return `${SKILL_ACTIVATION_INTRO} (no hook: \`${conventions.LOOKUP_COMMAND} <path>\`)\n\n${header}\n${rows.join('\n')}`;
 }
 
 function buildDocIndex(config, projectDir) {
     const docsDir = path.join(projectDir, 'docs');
     if (!fs.existsSync(docsDir)) return null;
 
+    // Count markdown at ANY depth, not just the top level. A one-level count is correct only for
+    // a flat docs folder, which every `docs/<x>/` here happened to be EXCEPT `docs/specs/` — whose
+    // canonical layout is always nested (`<Capability>/README.*.md`). That folder therefore
+    // reported `(0 files)` permanently while holding three specs, contradicting two other lines of
+    // the same generated file. Depth-capped so a stray deep tree cannot make generation expensive.
+    const countMarkdownDeep = (dir, depth = 0) => {
+        if (depth > 4) return 0;
+        let total = 0;
+        for (const item of fs.readdirSync(dir, { withFileTypes: true })) {
+            if (item.name.startsWith('.')) continue;
+            if (item.isDirectory()) total += countMarkdownDeep(path.join(dir, item.name), depth + 1);
+            else if (item.name.endsWith('.md')) total += 1;
+        }
+        return total;
+    };
+
     const tree = [];
     const entries = fs.readdirSync(docsDir, { withFileTypes: true });
     for (const entry of entries.sort((a, b) => a.name.localeCompare(b.name))) {
         if (entry.name.startsWith('.')) continue;
         if (entry.isDirectory()) {
-            const subfiles = fs.readdirSync(path.join(docsDir, entry.name)).filter(f => f.endsWith('.md')).length;
+            const subfiles = countMarkdownDeep(path.join(docsDir, entry.name));
             tree.push(`docs/${entry.name}/  (${subfiles} files)`);
         } else if (entry.name.endsWith('.md')) {
             tree.push(`docs/${entry.name}`);
@@ -340,6 +423,7 @@ module.exports = {
     buildIntegrationTesting,
     buildE2eTesting,
     buildSkillActivation,
+    activationPattern,
     buildDocIndex,
     buildDocLookup
 };

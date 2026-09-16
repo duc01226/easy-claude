@@ -1,6 +1,6 @@
 ---
 name: workflow-big-feature
-version: 1.0.0
+version: 1.1.0
 description: '[Workflow] Use when implementing a large, ambiguous, or research-driven feature.'
 disable-model-invocation: false
 ---
@@ -20,7 +20,7 @@ disable-model-invocation: false
 - Every generated PBI in this workflow MUST pass the Releasable Outcome Gate: one independently releasable actor-facing outcome with a complete entry-to-result journey; technical/foundation/setup work is attached enabling work, never a standalone PBI. UI PBIs require the full page/view, navigation, component, state, and mock-app flow surface.
 - Execute the canonical steps in order, with reviewed scaffolding before feature work and evidence-backed verification at the end.
 
- - **Main steps:** classify/decompose → research/evaluate → domain/architecture/scenario → plan/review → PBI/story/mock-up/spec gates → scaffold/review → implementation/integration verification → final review → required near-end `workflow-e2e` verification → security/test/docs/handoff.
+ - **Main steps:** classify/decompose → research/evaluate → domain/architecture/scenario → plan/review → PBI/story/mock-up/spec gates → scaffold/review/reference refresh → implementation/integration verification → final review → required near-end `workflow-e2e` verification → security/test/docs/handoff.
 
 **Workflow:**
 
@@ -48,11 +48,28 @@ This workflow has steps that appear multiple times. When creating tasks, use the
 | Step           | Occurrence   | Task Description                                                                  |
 | -------------- | ------------ | --------------------------------------------------------------------------------- |
 | `/plan`        | 1st (pos 14) | PLAN₁: High-level architecture plan (after architecture-design and scenario gate) |
-| `/plan`        | 2nd (pos 30) | PLAN₂: Sprint-ready implementation plan (after artifact-review --type=spec-tests) |
+| `/plan`        | 2nd (pos 27) | PLAN₂: Sprint-ready implementation plan (after artifact-review --type=spec-tests) |
 | `/plan-review` | 1st (pos 15) | Review PLAN₁ architecture                                                         |
-| `/plan-review` | 2nd (pos 31) | Review PLAN₂ implementation                                                       |
+| `/plan-review` | 2nd (pos 28) | Review PLAN₂ implementation                                                       |
 
 **NEVER deduplicate** — each occurrence is a distinct task with a different purpose.
+
+## Architecture Gates Parallel Phase (`architecture-scalability-review` + design-rationale `/why-review`)
+
+Declared as the `architecture-gates` all-return barrier in `workflows.json`. Both gates read the same finished `/architecture-design` artifacts and neither consumes the other's output:
+
+1. Launch `/architecture-scalability-review` FIRST as a fresh read-only `architect` sub-agent (brief: architecture-design, domain-analysis and tech-stack-research artifact paths). It writes its scorecard to `tmp/reports/` and validates its own sub-80 findings.
+2. Immediately run the design-rationale `/why-review` INLINE in FULL mode over the architecture-design rationale — inline so its Trade-Off Interrogation Gate can reach the user.
+3. Advance only after BOTH return. Reconcile: a scalability risk or sub-80 grade touching a decision the why-review passed becomes a WARN carried into `/scenario` and PLAN₁; a why-review FAIL — or a user Trade-Off answer that changes an architecture decision — blocks `/scenario` until the decision is revised, then re-run both gates.
+
+## Foundation Reference Doc Refresh (pos 31–34, conditional)
+
+New foundations need project references BEFORE feature fan-out. After `/architecture-review-full` and before `/plan-validate` → `/plan-execute`:
+
+1. **When `/scaffold` ran**, run `/scan --target=ui-system` → `/scan --target=backend-patterns` → `/scan --target=integration-tests` → `/scan --target=project-structure` INLINE in that order — each scan fans out its own sub-agents from the orchestrator, so a scan is never dispatched as a sub-agent (`stepMeta` marks them `inline`). The four scans write disjoint reference docs and consume the reviewed-and-fixed foundation, so they run sequentially, not as a parallel barrier.
+2. **Refresh, not regenerate** — this is an existing codebase: each scan reads the existing `docs/project-reference/` doc first and surgically adds what the foundation introduced (new base abstractions, golden-path examples, the isolated examples tree, a new module, UI foundation), creating a doc only when it does not exist yet and preserving unchanged sections and manual annotations.
+3. **Skip rules** — skip `/scan --target=ui-system` (log the reason) when `/scaffold` created no UI/frontend foundation; the other three apply whenever `/scaffold` ran. When `/scaffold` was skipped (existing foundation reused), mark all four completed with a cited skip reason — the existing reference docs already describe that foundation.
+4. If `/plan-validate` or a later pre-implementation fix changes the foundation, re-run every `/scan` whose reference doc covers the changed area before `/plan-execute`.
 
 ---
 
@@ -62,9 +79,9 @@ Every non-skipped step = `TaskUpdate in_progress` → `Skill` tool → complete 
 
 ---
 
-**IMPORTANT MANDATORY Steps:** /idea -> /web-research -> /deep-research -> /market-analysis -> /business-evaluation -> /spec-discovery -> /domain-analysis -> /why-review -> /tech-stack-research -> /architecture-design -> /architecture-scalability-review -> /why-review -> /scenario -> /plan -> /plan-review -> /refine -> /why-review -> /artifact-review --type=pbi -> /story -> /why-review -> /artifact-review --type=story -> /pbi-challenge -> /dor-gate -> /pbi-mockup -> /spec -> /spec [mode=tests] -> /why-review -> /artifact-review --type=spec-tests -> /spec-clarify -> /plan -> /plan-review -> /scaffold -> /architecture-review-full -> /plan-validate -> /why-review -> /plan-execute -> /seed-test-data -> /domain-entities-review -> /integration-test -> /integration-test-review -> /integration-test-verify -> /spec [mode=sync] -> /workflow-review-changes -> /workflow-e2e --source=context -> /security-review -> /changelog -> /test -> /scan --target=domain-entities -> /docs-update -> /workflow-end -> /watzup
+**IMPORTANT MANDATORY Steps:** /idea -> /web-research -> /deep-research -> /market-analysis -> /business-evaluation -> /spec-discovery -> /domain-analysis -> /why-review -> /tech-stack-research -> /architecture-design -> /architecture-scalability-review -> /why-review -> /scenario -> /plan -> /plan-review -> /refine -> /artifact-review --type=pbi -> /story -> /artifact-review --type=story -> /pbi-challenge -> /dor-gate -> /pbi-mockup -> /spec -> /spec [mode=tests] -> /artifact-review --type=spec-tests -> /spec-clarify -> /plan -> /plan-review -> /scaffold -> /architecture-review-full -> /scan --target=ui-system -> /scan --target=backend-patterns -> /scan --target=integration-tests -> /scan --target=project-structure -> /plan-validate -> /plan-execute -> /seed-test-data -> /domain-entities-review -> /integration-test -> /integration-test-review -> /integration-test-verify -> /spec [mode=sync] -> /workflow-review-changes -> /workflow-e2e --source=context -> /security-review -> /test -> /scan --target=domain-entities -> /docs-update -> /workflow-end -> /watzup
 
-**IMPORTANT MANDATORY Steps:** /idea -> /web-research -> /deep-research -> /market-analysis -> /business-evaluation -> /spec-discovery -> /domain-analysis -> /why-review -> /tech-stack-research -> /architecture-design -> /architecture-scalability-review -> /why-review -> /scenario -> /plan -> /plan-review -> /refine -> /why-review -> /artifact-review --type=pbi -> /story -> /why-review -> /artifact-review --type=story -> /pbi-challenge -> /dor-gate -> /pbi-mockup -> /spec -> /spec [mode=tests] -> /why-review -> /artifact-review --type=spec-tests -> /spec-clarify -> /plan -> /plan-review -> /scaffold -> /architecture-review-full -> /plan-validate -> /why-review -> /plan-execute -> /seed-test-data -> /domain-entities-review -> /integration-test -> /integration-test-review -> /integration-test-verify -> /spec [mode=sync] -> /workflow-review-changes -> /workflow-e2e --source=context -> /security-review -> /changelog -> /test -> /scan --target=domain-entities -> /docs-update -> /workflow-end -> /watzup
+**IMPORTANT MANDATORY Steps:** /idea -> /web-research -> /deep-research -> /market-analysis -> /business-evaluation -> /spec-discovery -> /domain-analysis -> /why-review -> /tech-stack-research -> /architecture-design -> /architecture-scalability-review -> /why-review -> /scenario -> /plan -> /plan-review -> /refine -> /artifact-review --type=pbi -> /story -> /artifact-review --type=story -> /pbi-challenge -> /dor-gate -> /pbi-mockup -> /spec -> /spec [mode=tests] -> /artifact-review --type=spec-tests -> /spec-clarify -> /plan -> /plan-review -> /scaffold -> /architecture-review-full -> /scan --target=ui-system -> /scan --target=backend-patterns -> /scan --target=integration-tests -> /scan --target=project-structure -> /plan-validate -> /plan-execute -> /seed-test-data -> /domain-entities-review -> /integration-test -> /integration-test-review -> /integration-test-verify -> /spec [mode=sync] -> /workflow-review-changes -> /workflow-e2e --source=context -> /security-review -> /test -> /scan --target=domain-entities -> /docs-update -> /workflow-end -> /watzup
 
 > **[BLOCKING]** Each non-skipped step MUST ATTENTION invoke its `Skill` tool — marking a task `completed` without skill invocation is a workflow violation, except a cited conditional skip explicitly authorized by canonical `preActions.injectContext`. NEVER batch-complete validation gates.
 
@@ -115,7 +132,7 @@ Activate the `workflow-big-feature` workflow. Run `/start-workflow workflow-big-
 
 <!-- /SYNC:ai-agent-as-user-access -->
 
-**Steps:** /idea → /web-research → /deep-research → /market-analysis → /business-evaluation → /spec-discovery → /domain-analysis → /why-review → /tech-stack-research → /architecture-design → /architecture-scalability-review → /why-review → /scenario → /plan → /plan-review → /refine → /why-review → /artifact-review --type=pbi → /story → /why-review → /artifact-review --type=story → /pbi-challenge → /dor-gate → /pbi-mockup → /spec → /spec [mode=tests] → /why-review → /artifact-review --type=spec-tests → /spec-clarify → /plan → /plan-review → /scaffold → /architecture-review-full → /plan-validate → /why-review → /plan-execute → /seed-test-data → /domain-entities-review → /integration-test → /integration-test-review → /integration-test-verify → /spec [mode=sync] → /workflow-review-changes → /workflow-e2e --source=context → /security-review → /changelog → /test → /scan --target=domain-entities → /docs-update → /workflow-end → /watzup
+**Steps:** /idea → /web-research → /deep-research → /market-analysis → /business-evaluation → /spec-discovery → /domain-analysis → /why-review → /tech-stack-research → /architecture-design → /architecture-scalability-review → /why-review → /scenario → /plan → /plan-review → /refine → /artifact-review --type=pbi → /story → /artifact-review --type=story → /pbi-challenge → /dor-gate → /pbi-mockup → /spec → /spec [mode=tests] → /artifact-review --type=spec-tests → /spec-clarify → /plan → /plan-review → /scaffold → /architecture-review-full → /scan --target=ui-system → /scan --target=backend-patterns → /scan --target=integration-tests → /scan --target=project-structure → /plan-validate → /plan-execute → /seed-test-data → /domain-entities-review → /integration-test → /integration-test-review → /integration-test-verify → /spec [mode=sync] → /workflow-review-changes → /workflow-e2e --source=context → /security-review → /test → /scan --target=domain-entities → /docs-update → /workflow-end → /watzup
 
 > **[CONDITIONAL TERMINAL DOMAIN-ENTITY REFERENCE REFRESH]** After `/test` and before `/docs-update`, run `/scan --target=domain-entities` to refresh the project-reference entity catalog only when the final diff changes an entity/model, DTO/data contract, persistence schema/migration, or entity-sync evidence represented in `docs/project-reference/domain-entities-reference.md`. Otherwise mark the scan step completed with a cited skip reason naming the changed files and why they are outside this scope; this is the explicitly authorized exception to the per-step skill-invocation rule.
 
@@ -220,6 +237,20 @@ Activate the `workflow-big-feature` workflow. Run `/start-workflow workflow-big-
 
 <!-- /SYNC:subagent-return-contract -->
 
+<!-- SYNC:session-goal-ledger -->
+
+> **Session Goal Ledger** — Never lose the user's original request or any later prompt, however long the session runs. Hook-independent: binds every host; a prompt-ledger hook is only an accelerator.
+>
+> 1. **Pin before acting.** Before the first tool call, write `Original goal: <user's request, verbatim or faithfully condensed>` and keep it as the first task-list item. For workflow or plan work, copy it verbatim into the Goal Contract `## Original Request`.
+> 2. **Track every prompt.** Keep `User prompts this session: P1…Pn` — one line per user prompt or input, marked `extends` / `narrows` / `changes` / `answers`. A prompt that changes direction updates the goal explicitly — never silently.
+> 3. **Re-anchor.** Re-read the original goal and the prompt list at every workflow step, before delegating (the sub-agent brief carries the verbatim goal), and after compaction, resume, or a `[[prompt-ledger@…]]` reminder. When `tmp/prompt-ledger/<session>/ledger.md` exists it is the durable record — read it after compaction.
+> 4. **Verify before done.** Map the final result to the original goal and every prompt: `P# → done | deferred (reason) | not applicable`. An unaddressed prompt blocks completion.
+> 5. **Security.** NEVER copy secrets, tokens, or credentials into goal lines, task lists, briefs, or reports — redact them.
+>
+> **Blocked until:** original goal pinned · prompt list current · final result mapped to every prompt.
+
+<!-- /SYNC:session-goal-ledger -->
+
 <!-- SYNC:critical-thinking-mindset:reminder -->
 
 **MUST ATTENTION** apply critical + sequential thinking — every claim needs appropriate traced evidence (`file:line` for repo/code claims; source URL or artifact section for research, product, content, and docs claims); confidence >80% to act, <60% DO NOT recommend. Anti-hallucination: never present guess as fact, admit uncertainty freely, cross-reference independently, stay skeptical of own confidence.
@@ -265,10 +296,17 @@ Activate the `workflow-big-feature` workflow. Run `/start-workflow workflow-big-
 
 <!-- /SYNC:ai-agent-as-user-access:reminder -->
 
+<!-- SYNC:session-goal-ledger:reminder -->
+
+- **MANDATORY** Pin `Original goal:` before the first action and keep `User prompts this session: P1…Pn` current; re-read both at every step, before delegation, and after compaction.
+- **MANDATORY** Before claiming done, map the result to the original goal and every prompt (`P# → done | deferred | n/a`); never store secrets in them.
+
+<!-- /SYNC:session-goal-ledger:reminder -->
+
 ## Closing Reminders
 
 **IMPORTANT MUST ATTENTION Goal:** Complete the reviewed large-feature workflow with a bounded, independently releasable actor-facing outcome, embedded decomposition when triggered, scenario evidence, reviewed foundation, full-flow UI proof when applicable, implementation proof, and synchronized handoff; ordinary runs never create `docs/product-roadmap.md`.
-**IMPORTANT MUST ATTENTION Main steps:** classify/decompose → research → domain/architecture/scenario → plan/review → PBI/story/mock-up/spec gates → scaffold/review → implementation/integration verification → final review → required near-end `workflow-e2e` verification → security/test/docs/handoff.
+**IMPORTANT MUST ATTENTION Main steps:** classify/decompose → research → domain/architecture/scenario → plan/review → PBI/story/mock-up/spec gates → scaffold/review/reference refresh → implementation/integration verification → final review → required near-end `workflow-e2e` verification → security/test/docs/handoff.
 
 > **[REQUIRED NEAR-END E2E HANDOFF]** After `/workflow-review-changes` and before `/security-review`, invoke `/workflow-e2e --source=context`. Its nested workflow owns the configured E2E execution and default-on screenshot review, and must record evidence-backed `N/A` or `ENVIRONMENT-BLOCKED` where the repository cannot provide the applicable capability; this occurrence remains required even when the nested workflow reports that outcome.
 **IMPORTANT MUST ATTENTION** every generated PBI MUST pass `.claude/skills/shared/releasable-pbi-contract.md`; technical/foundation/setup work is enabling work under a releasable PBI, and UI PBIs require all pages/views, navigation, components, states, and a connected mock-app demo.

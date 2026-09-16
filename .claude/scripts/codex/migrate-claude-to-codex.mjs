@@ -667,7 +667,7 @@ async function writeAgentsSkillsMirrorSentinel() {
 // Single source of truth for materializing the Codex sub-agent mirror into `targetDir`.
 // Called by the real writer (migrateAgents → codexAgentsDir) AND by the sync-divergence
 // oracle gate (→ throwaway staging dir), for the same reason materializeSkillMirror is
-// shared: an oracle that re-implements the transform can drift from it, and the 27 agent
+// shared: an oracle that re-implements the transform can drift from it, and the 23 agent
 // TOMLs are the ENTIRE Codex sub-agent surface — previously the only committed mirror with
 // no divergence gate at all. Returns the number of agents written.
 export async function materializeAgentMirror(targetDir = codexAgentsDir) {

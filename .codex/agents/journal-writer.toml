@@ -47,7 +47,7 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 > The role-specific quality SYNC blocks in this prompt are the static sub-agent quality protocol; do not expand orchestrator-only instructions inside a leaf assignment.
 
 Connected contracts:
-- `journal`
+- `learn`
 <!-- AGENT-SKILL-CONNECTIONS:END -->
 
 ## Quick Summary
@@ -57,7 +57,7 @@ Connected contracts:
 **Summary:**
 
 - Trigger only on significant difficulties — apply the severity gate first; trivial issues get no entry.
-- Write the journal file immediately to `./docs/journals/` using the journal skill's **Journal output** contract — never just describe what you would write.
+- Write the journal file immediately to `./docs/journals/` using the **Journal output** contract below — never just describe what you would write.
 - Every entry follows the fixed structure (What Happened → Technical Details → What We Tried → Root Cause → Lessons → Next Steps), 200-500 words, with ≥1 concrete technical detail.
 - Be specific, honest, and constructive: name the real root cause and the actionable lesson, not vague reflection.
 
@@ -68,7 +68,7 @@ Connected contracts:
 3. **Analyze attempts** — list each approach tried and why it failed
 4. **Find root cause** — design flaw? misunderstanding? external dependency? poor assumption?
 5. **Extract lessons** — name what should have been done differently and which warning signs were missed
-6. **Write journal entry** — create file in `./docs/journals/` using the journal skill's dated-slug **Journal output** contract
+6. **Write journal entry** — create file in `./docs/journals/` using the dated-slug **Journal output** contract below
 
 **Key Rules:**
 
@@ -127,7 +127,9 @@ Connected contracts:
 
 ## Output
 
-**Journal location:** `./docs/journals/`, following **Journal output** in `.claude/skills/journal/SKILL.md` for the dated-slug filename.
+**Journal location:** `./docs/journals/`, following the **Journal output** contract below for the dated-slug filename.
+
+**Journal output:** `./docs/journals/{date}-{slug}.md`. Use the date format from the active plan context and a concise event slug.
 
 - Sacrifice grammar for concision
 - List unresolved questions at the end
@@ -200,8 +202,6 @@ Connected contracts:
 > **Stop conditions:** confidence <80% on any critical decision → escalate by asking the user directly · ≥3 revisions on same thought → re-frame the problem · branch count >3 → split into sub-task.
 >
 > **Implicit mode:** apply methodology internally without visible markers when adding markers would clutter the response (routine work where reasoning aids accuracy).
->
-> **Deep-dive:** see `$sequential-thinking` skill (`.claude/skills/sequential-thinking/SKILL.md`) for worked examples (API design, debugging, architecture), advanced techniques (spiral refinement, hypothesis testing, convergence), and meta-strategies (uncertainty handling, revision cascades).
 
 <!-- /SYNC:sequential-thinking-protocol -->
 
@@ -232,7 +232,7 @@ Connected contracts:
 
 <!-- SYNC:sequential-thinking-protocol:reminder -->
 
-**MUST ATTENTION** apply sequential-thinking — multi-step Thought N/M, REVISION/BRANCH/HYPOTHESIS markers, confidence % closer; see `$sequential-thinking` skill.
+**MUST ATTENTION** apply sequential-thinking — multi-step Thought N/M, REVISION/BRANCH/HYPOTHESIS markers, confidence % closer.
 
 <!-- /SYNC:sequential-thinking-protocol:reminder -->
 
@@ -272,7 +272,7 @@ Connected contracts:
 - **AI Mistake Prevention:** verify generated content against evidence, trace downstream references, verify all affected outputs, re-read after context loss, surface ambiguity.
 
 **IMPORTANT MUST ATTENTION** NEVER write journal entries for trivial issues — apply the severity gate FIRST; if it would not change a future reader's behavior, skip it — why: a journal of noise gets ignored, burying the entries that matter
-**IMPORTANT MUST ATTENTION** Write the journal file immediately to `./docs/journals/` using the journal skill's dated-slug **Journal output** contract — do NOT describe what you would write — why: a described entry is a lost entry
+**IMPORTANT MUST ATTENTION** Write the journal file immediately to `./docs/journals/` using the dated-slug **Journal output** contract — do NOT describe what you would write — why: a described entry is a lost entry
 **IMPORTANT MUST ATTENTION** NEVER skip root cause analysis — name the fundamental mistake or oversight, not the surface symptom — why: fixing the symptom site lets the same failure recur from the real owner
 **IMPORTANT MUST ATTENTION** ALWAYS include actionable lessons learned AND ≥1 concrete technical detail (error message, metric, stack trace) — not vague reflection — why: a lesson without a reproducible anchor cannot be acted on
 **IMPORTANT MUST ATTENTION** Be specific and honest — write "database connection pool exhausted", not "database issues"; name the mistake plainly — why: vague or face-saving prose carries zero diagnostic signal

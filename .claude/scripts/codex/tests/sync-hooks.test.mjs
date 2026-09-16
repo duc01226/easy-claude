@@ -7,10 +7,61 @@ import { execFile, spawn } from "node:child_process";
 import { promisify } from "node:util";
 import { fileURLToPath } from "node:url";
 
+import { mapMatcherForCodex } from "../sync-hooks.mjs";
+
 const execFileAsync = promisify(execFile);
 const thisDir = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(thisDir, "..", "..", "..", "..");
 const syncHooksScript = path.join(repoRoot, ".claude", "scripts", "codex", "sync-hooks.mjs");
+
+// Matcher translation, unit-tested directly. The renderer applies this to every group,
+// so a wrong row is only visible here or as an opaque diff in the divergence table.
+// Each alias row gets its OWN case: a row exercised only inside a multi-tool group is
+// indistinguishable from a missing row, because any one mutation tool in the group
+// already contributes `apply_patch`.
+test("mapMatcherForCodex widens each Claude mutation tool with Codex's patch tool", () => {
+  for (const tool of ["Edit", "Write", "MultiEdit", "NotebookEdit"]) {
+    assert.equal(
+      mapMatcherForCodex(tool),
+      `${tool}|apply_patch`,
+      `${tool} is a Claude mutation tool, so a matcher naming only it must still reach Codex`
+    );
+  }
+});
+
+// The read/mutate boundary. `apply_patch` MUTATES, so aliasing a read-only tool to it
+// would deliver write events to a read-gated hook. This pins the absence of that row:
+// if someone re-adds `["Read", ["apply_patch"]]`, this fails and names the reason.
+test("mapMatcherForCodex never widens a read-only tool with the mutation tool", () => {
+  assert.equal(mapMatcherForCodex("Read"), "Read", "a read-gated matcher must not receive write events");
+  assert.equal(mapMatcherForCodex("Glob|Grep|Read"), "Glob|Grep|Read", "an all-read matcher is left alone");
+  // A matcher mixing read and mutation tools is widened because of the MUTATION tool.
+  assert.equal(mapMatcherForCodex("Read|Edit"), "Read|Edit|apply_patch");
+});
+
+test("mapMatcherForCodex leaves non-file matchers, existing aliases, and empty input alone", () => {
+  // No Claude mutation tool: mirrored verbatim, not blanket-widened.
+  assert.equal(mapMatcherForCodex("Bash"), "Bash");
+  assert.equal(mapMatcherForCodex("TodoWrite|TaskCreate|TaskUpdate|update_plan"), "TodoWrite|TaskCreate|TaskUpdate|update_plan");
+  assert.equal(mapMatcherForCodex("mcp__filesystem__*"), "mcp__filesystem__*");
+
+  // Already carries the alias: appended once, never twice, wherever it sits.
+  assert.equal(mapMatcherForCodex("Edit|apply_patch"), "Edit|apply_patch");
+  assert.equal(mapMatcherForCodex("apply_patch|Write"), "apply_patch|Write");
+  assert.equal(mapMatcherForCodex("Edit|Write|MultiEdit|apply_patch"), "Edit|Write|MultiEdit|apply_patch");
+
+  // Absent or empty matcher: passed through untouched, so the renderer's own
+  // `matcher && matcher !== '*'` guard stays the only place that decides omission.
+  assert.equal(mapMatcherForCodex(undefined), undefined);
+  assert.equal(mapMatcherForCodex(""), "");
+  assert.equal(mapMatcherForCodex(null), null);
+
+  // Order and separator survive: the source order is preserved and aliases append.
+  assert.equal(mapMatcherForCodex("Bash|Glob|Grep|Read|Edit|Write|NotebookEdit"), "Bash|Glob|Grep|Read|Edit|Write|NotebookEdit|apply_patch");
+  assert.equal(mapMatcherForCodex("Write|Edit|MultiEdit"), "Write|Edit|MultiEdit|apply_patch");
+  // One alias for the whole group, even when several tools map to it.
+  assert.equal(mapMatcherForCodex("Edit|Write").split("|").filter(tool => tool === "apply_patch").length, 1);
+});
 
 function runSync(cwd, ambient = process.env) {
   return execFileAsync(process.execPath, [syncHooksScript], { cwd, env: { ...ambient, CLAUDE_PROJECT_DIR: cwd } });
@@ -69,6 +120,14 @@ test("sync-hooks preserves non-bash and prompt-event matchers", async () => {
             matcher: "Bash",
             hooks: [{ type: "command", command: "node ./scripts/pre-bash.cjs" }],
           },
+          {
+            matcher: "Glob|Grep|Read",
+            hooks: [{ type: "command", command: "node ./scripts/pre-read.cjs" }],
+          },
+          {
+            matcher: "NotebookEdit",
+            hooks: [{ type: "command", command: "node ./scripts/pre-notebook.cjs" }],
+          },
         ],
         UserPromptSubmit: [
           {
@@ -99,11 +158,20 @@ test("sync-hooks preserves non-bash and prompt-event matchers", async () => {
     assert.ok(hooks);
     assert.deepEqual(Object.keys(hooksConfig), ["hooks"]);
     const preMatchers = (hooks.PreToolUse ?? []).map((group) => group.matcher);
-    assert.ok(preMatchers.includes("Edit|Write|MultiEdit"));
-    assert.ok(preMatchers.includes("Bash"));
-    assert.equal(hooks.UserPromptSubmit?.[0]?.matcher, "manual|auto");
+    // A Claude file-tool matcher is preserved AND widened with Codex's patch tool: Codex
+    // performs every file mutation through `apply_patch`, so mirroring the Claude names
+    // verbatim would gate the hook on tools that host never emits.
+    assert.ok(preMatchers.includes("Edit|Write|MultiEdit|apply_patch"), "file-tool matcher gains the Codex patch tool");
+    // Widening is per-mutation-tool, so a lone NotebookEdit group must reach Codex too.
+    assert.ok(preMatchers.includes("NotebookEdit|apply_patch"), "a single-mutation-tool matcher is widened");
+    // Targeted, not blanket: a matcher with no Claude file tool is mirrored unchanged.
+    assert.ok(preMatchers.includes("Bash"), "Bash is not widened");
+    // Read-only group stays read-only through the REAL renderer: `apply_patch` mutates,
+    // so widening a read matcher with it would hand write events to a read-gated hook.
+    assert.ok(preMatchers.includes("Glob|Grep|Read"), "a read-only matcher is never widened with the mutation tool");
+    assert.equal(hooks.UserPromptSubmit?.[0]?.matcher, "manual|auto", "prompt-event matchers are not tool names");
     assert.equal(hooks.UserPromptSubmit?.[0]?.hooks?.[0]?.command, "node ./scripts/user-prompt.cjs");
-    assert.equal(hooks.Stop?.[0]?.matcher, "clear|exit");
+    assert.equal(hooks.Stop?.[0]?.matcher, "clear|exit", "stop-event matchers are not tool names");
   } finally {
     await fs.rm(tempRoot, { recursive: true, force: true });
   }

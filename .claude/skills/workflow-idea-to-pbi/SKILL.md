@@ -89,7 +89,6 @@ After confirming the workflow, present the full step list and let the user desel
 - [x] Refinement rationale review (why-review)
 - [x] Feature Spec draft (spec [mode=draft])        — DEEP MODE ONLY; §1-7 Feature Spec (provisional) before §8 tests
 - [x] Test specifications (spec [mode=tests])       — DEEP MODE ONLY; idea → draft → specs
-- [x] Test-spec rationale review (why-review)       — deep mode
 - [x] Test specification review (artifact-review --type=spec-tests)  — deep mode
 - [x] Scenario analysis (scenario)                  — SINGLE-PBI DEEP MODE ONLY: adversarial replay, persistence, state, access, recovery, and evidence cases before the plan; skip with the plan cycle in discovery mode
 - [ ] Domain analysis (domain-analysis)            — CONDITIONAL; discovery mode runs it ONCE up front
@@ -97,10 +96,8 @@ After confirming the workflow, present the full step list and let the user desel
 - [x] Implementation plan (plan)                    — DEEP MODE ONLY
 - [x] Plan review (plan-review)                     — deep mode
 - [x] Plan validation (plan-validate)               — deep mode
-- [x] Plan rationale review (why-review)            — deep mode
 - [x] PBI review (artifact-review --type=pbi)       — from specs to PBI; REPEATS per opportunity
 - [x] User stories (story)                          — REPEATS per opportunity
-- [x] Story rationale review (why-review)
 - [x] Story review (artifact-review --type=story)   — REPEATS per opportunity
 - [x] Dev BA PIC challenge (pbi-challenge)          — REPEATS per opportunity
 - [x] Definition of Ready gate (dor-gate)           — REPEATS per opportunity
@@ -141,17 +138,14 @@ TaskCreate: "Releasable Outcome Gate (inside refine)"
 TaskCreate: "Refinement rationale review (why-review after refine)"
 TaskCreate: "Feature Spec draft (spec [mode=draft])"
 TaskCreate: "Test specifications (spec [mode=tests])"
-TaskCreate: "Test-spec rationale review (why-review after spec [mode=tests])"
 TaskCreate: "Test specification review (artifact-review --type=spec-tests)"
 TaskCreate: "Domain analysis (domain-analysis)" [if domain entities change]
 TaskCreate: "Domain rationale review (why-review after domain-analysis)"
 TaskCreate: "Implementation plan (plan)"
 TaskCreate: "Plan review (plan-review)"
 TaskCreate: "Plan validation (plan-validate)"
-TaskCreate: "Plan rationale review (why-review after plan-validate)"
 TaskCreate: "PBI review (artifact-review --type=pbi)"
 TaskCreate: "User stories (story)"
-TaskCreate: "Story rationale review (why-review after story)"
 TaskCreate: "Story review"
 TaskCreate: "Dev BA PIC challenge"
 TaskCreate: "Definition of Ready gate"
@@ -167,8 +161,12 @@ One task per step. Mark each completed immediately when done — never batch.
 
 This is the adversarial design rationale check. Purpose: validate the **WHY** of each artifact before investing in the next.
 
-The workflow contains repeated `/why-review` gates after the non-review artifact steps. Use purpose-specific labels in sequence: refinement rationale (after refine), test-spec rationale (after spec [mode=tests]), domain rationale (after domain-analysis), plan rationale (after plan-validate), and story rationale (after story). Do not deduplicate them.
+The workflow contains repeated `/why-review` gates after the non-review artifact steps. Use purpose-specific labels in sequence: refinement rationale (after refine) and domain rationale (after domain-analysis). Do not deduplicate them.
 
+> The standalone gates before `artifact-review --type=spec-tests` and before `artifact-review --type=story` are intentionally omitted: `artifact-review` runs the same adversarial rationale techniques (steel-man, assumption stress test, pre-mortem, unseen alternatives, contrarian pass) plus the Trade-Off Interrogation Gate on that exact artifact and self-invokes `/why-review --validate-findings`, so a why-review immediately before it would review the same artifact twice.
+>
+> The standalone gate after `plan-validate` is intentionally omitted: every `plan-review` round runs a full-mode `/why-review` rationale sub-agent over the plan in its parallel review wave (it owns techniques 7-10) and then runs `/why-review --validate-findings` on the merged findings, so a separate why-review step after the plan cycle would be duplicate work.
+>
 > The standalone gate after `artifact-review --type=pbi` is intentionally omitted: `artifact-review --type=pbi` (like every review skill) already self-invokes `/why-review --validate-findings` as an internal Findings Validation Gate, so a separate why-review step right after it would be duplicate work.
 
 **Challenge prompts:**
@@ -262,7 +260,7 @@ Purpose:
 
 ---
 
-**IMPORTANT MANDATORY Steps:** /web-research -> /deep-research -> /brainstorm -> /idea -> /spec-discovery -> /artifact-review -> /refine -> /why-review -> /spec [mode=draft] -> /spec [mode=tests] -> /why-review -> /artifact-review --type=spec-tests -> /spec-clarify -> /scenario -> /domain-analysis -> /why-review -> /plan -> /plan-review -> /plan-validate -> /why-review -> /artifact-review --type=pbi -> /story -> /why-review -> /artifact-review --type=story -> /pbi-challenge -> /dor-gate -> /pbi-mockup -> /design-spec -> /prioritize -> /docs-update -> /feature-presentation -> /workflow-end -> /watzup
+**IMPORTANT MANDATORY Steps:** /web-research -> /deep-research -> /brainstorm -> /idea -> /spec-discovery -> /artifact-review -> /refine -> /why-review -> /spec [mode=draft] -> /spec [mode=tests] -> /artifact-review --type=spec-tests -> /spec-clarify -> /scenario -> /domain-analysis -> /why-review -> /plan -> /plan-review -> /plan-validate -> /artifact-review --type=pbi -> /story -> /artifact-review --type=story -> /pbi-challenge -> /dor-gate -> /pbi-mockup -> /design-spec -> /prioritize -> /docs-update -> /feature-presentation -> /workflow-end -> /watzup
 
 > **Mode gating of the canonical sequence above** — **Single-PBI deep mode:** skip /brainstorm + /web-research + /deep-research; run the full deep track (one PBI). **Discovery mode:** run /brainstorm (optionally /web-research → /deep-research), skip /spec [mode=draft], /spec [mode=tests], /artifact-review --type=spec-tests, /spec-clarify, /plan, /plan-review, /plan-validate; loop /idea→/refine→/artifact-review --type=pbi→/story→/artifact-review --type=story→/pbi-challenge→/dor-gate→/pbi-mockup→/design-spec per selected opportunity, then /prioritize cross-PBI.
 
@@ -271,7 +269,7 @@ Purpose:
 Activate the `workflow-idea-to-pbi` workflow. Run `/start-workflow workflow-idea-to-pbi` with the user's prompt as context.
 
 **Steps:**
-/web-research → /deep-research → /brainstorm → /idea → /spec-discovery → /artifact-review → /refine → /why-review → /spec [mode=draft] → /spec [mode=tests] → /why-review → /artifact-review --type=spec-tests → /spec-clarify → /scenario → /domain-analysis → /why-review → /plan → /plan-review → /plan-validate → /why-review → /artifact-review --type=pbi → /story → /why-review → /artifact-review --type=story → /pbi-challenge → /dor-gate → /pbi-mockup → /design-spec → /prioritize → /docs-update → /feature-presentation → /workflow-end → /watzup
+/web-research → /deep-research → /brainstorm → /idea → /spec-discovery → /artifact-review → /refine → /why-review → /spec [mode=draft] → /spec [mode=tests] → /artifact-review --type=spec-tests → /spec-clarify → /scenario → /domain-analysis → /why-review → /plan → /plan-review → /plan-validate → /artifact-review --type=pbi → /story → /artifact-review --type=story → /pbi-challenge → /dor-gate → /pbi-mockup → /design-spec → /prioritize → /docs-update → /feature-presentation → /workflow-end → /watzup
 
 > **Conditional / mode-gated steps:**
 >
@@ -402,6 +400,20 @@ Activate the `workflow-idea-to-pbi` workflow. Run `/start-workflow workflow-idea
 
 <!-- /SYNC:ui-intent-layer -->
 
+<!-- SYNC:session-goal-ledger -->
+
+> **Session Goal Ledger** — Never lose the user's original request or any later prompt, however long the session runs. Hook-independent: binds every host; a prompt-ledger hook is only an accelerator.
+>
+> 1. **Pin before acting.** Before the first tool call, write `Original goal: <user's request, verbatim or faithfully condensed>` and keep it as the first task-list item. For workflow or plan work, copy it verbatim into the Goal Contract `## Original Request`.
+> 2. **Track every prompt.** Keep `User prompts this session: P1…Pn` — one line per user prompt or input, marked `extends` / `narrows` / `changes` / `answers`. A prompt that changes direction updates the goal explicitly — never silently.
+> 3. **Re-anchor.** Re-read the original goal and the prompt list at every workflow step, before delegating (the sub-agent brief carries the verbatim goal), and after compaction, resume, or a `[[prompt-ledger@…]]` reminder. When `tmp/prompt-ledger/<session>/ledger.md` exists it is the durable record — read it after compaction.
+> 4. **Verify before done.** Map the final result to the original goal and every prompt: `P# → done | deferred (reason) | not applicable`. An unaddressed prompt blocks completion.
+> 5. **Security.** NEVER copy secrets, tokens, or credentials into goal lines, task lists, briefs, or reports — redact them.
+>
+> **Blocked until:** original goal pinned · prompt list current · final result mapped to every prompt.
+
+<!-- /SYNC:session-goal-ledger -->
+
 <!-- SYNC:critical-thinking-mindset:reminder -->
 
 **MUST ATTENTION** apply critical + sequential thinking — every claim needs appropriate traced evidence (`file:line` for repo/code claims; source URL or artifact section for research, product, content, and docs claims); confidence >80% to act, <60% DO NOT recommend. Anti-hallucination: never present guess as fact, admit uncertainty freely, cross-reference independently, stay skeptical of own confidence.
@@ -466,6 +478,13 @@ Activate the `workflow-idea-to-pbi` workflow. Run `/start-workflow workflow-idea
 
 <!-- /SYNC:project-protocol-overlay:reminder -->
 
+<!-- SYNC:session-goal-ledger:reminder -->
+
+- **MANDATORY** Pin `Original goal:` before the first action and keep `User prompts this session: P1…Pn` current; re-read both at every step, before delegation, and after compaction.
+- **MANDATORY** Before claiming done, map the result to the original goal and every prompt (`P# → done | deferred | n/a`); never store secrets in them.
+
+<!-- /SYNC:session-goal-ledger:reminder -->
+
 ## Closing Reminders
 
 **IMPORTANT MUST ATTENTION Goal:** Produce a reviewed, prioritized PBI backlog in which every generated PBI is an independently releasable actor-facing outcome, preserving embedded large-idea decomposition, explicit non-goals, full-flow UI evidence, and required human gates. A roadmap artifact is produced only by an explicit standalone request.
@@ -480,7 +499,7 @@ Activate the `workflow-idea-to-pbi` workflow. Run `/start-workflow workflow-idea
 - **Sub-Agent Return Contract:** Sub-agents return summary only; full detail to report on disk.
 
 - **MANDATORY IMPORTANT MUST ATTENTION** break work into small todo tasks using `TaskCreate` BEFORE starting — one task per step
-- **MANDATORY IMPORTANT MUST ATTENTION** run all five purpose-specific why-review gates: after refine, after spec [mode=tests], after domain-analysis, after plan-validate, and after story; FAIL blocks the next artifact step, WARN requires user acknowledgment
+- **MANDATORY IMPORTANT MUST ATTENTION** run both purpose-specific why-review gates: after refine and after domain-analysis (none before artifact-review — it owns test-spec/story rationale; none after plan-validate — every plan-review round runs its own parallel why-review rationale sub-agent); FAIL blocks the next artifact step, WARN requires user acknowledgment
 - **MANDATORY IMPORTANT MUST ATTENTION** spec [mode=draft] authors the §1-7 Feature Spec (provisional) right after refine, then spec [mode=tests] and artifact-review --type=spec-tests run before the PBI is drafted (idea → draft Feature Spec → specs → from those specs to PBI); both spec [mode=draft] and spec [mode=tests] are SINGLE-PBI DEEP MODE ONLY (never per opportunity in discovery mode)
 - **MANDATORY IMPORTANT MUST ATTENTION** pbi-challenge must be run by a reviewer different from the drafter
 - **MANDATORY IMPORTANT MUST ATTENTION** dor-gate must pass (PASS or WARN) before pbi-mockup is finalized; for UI PBIs, pbi-mockup AND design-spec both run (mockup first, then UI specs) so the PBI carries a faithful mockup matching the current UI system PLUS UI specs — both skip for backend-only PBIs and both are gated by SYNC:existing-ui-research; the code-producing design lanes are reference-only, not part of this workflow

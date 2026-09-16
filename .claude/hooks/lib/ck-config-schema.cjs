@@ -48,6 +48,19 @@ const CK_SCHEMA = {
       staleDays: { type: "number", required: false, min: 1, max: 365 },
     },
   },
+  // Session prompt ledger (docs/specs/ContextDelivery/README.SessionPromptLedger.md).
+  // Recording is on by default; `enabled: false` (or CK_PROMPT_LEDGER=0) switches it off.
+  promptLedger: {
+    type: "object",
+    required: false,
+    properties: {
+      enabled: { type: "boolean", required: false },
+      maxPromptChars: { type: "number", required: false, min: 200, max: 20000 },
+      maxEntries: { type: "number", required: false, min: 2, max: 1000 },
+      reinjectAfterBytes: { type: "number", required: false, min: 50000, max: 1000000000 },
+      reinjectAfterMinutes: { type: "number", required: false, min: 1, max: 1440 },
+    },
+  },
   portability: {
     type: "object",
     required: false,

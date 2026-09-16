@@ -61,4 +61,4 @@ Use the skill on real tasks, notice struggles, update SKILL.md / resources, rete
 
 ## Combining Skills
 
-Group narrow topics into one skill by domain — e.g. `cloudflare`, `cloudflare-r2`, `cloudflare-workers`, `docker`, `gcloud` → a single `devops` skill. Prefer extending an existing skill over creating a near-duplicate.
+Group narrow topics into one skill by domain — e.g. `cloudflare`, `cloudflare-r2`, `cloudflare-workers`, `docker`, `gcloud` → a single `cloud-deploy` skill. Prefer extending an existing skill over creating a near-duplicate.

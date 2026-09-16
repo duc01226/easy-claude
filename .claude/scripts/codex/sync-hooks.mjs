@@ -22,6 +22,49 @@ const disabledCodexEvents = new Map([
   ["SessionStart", "static-startup-context-authoritative"],
 ]);
 
+// A matcher is written against the HOST's tool names, so mirroring one verbatim
+// silently gates a hook on tools Codex never emits. Codex performs every file
+// mutation through `apply_patch` (see `.claude/hooks/lib/file-conventions.cjs`
+// `case 'apply_patch'` and `file-convention-inject.cjs` TRIGGER_TOOLS), so a
+// matcher naming a Claude MUTATION tool must also name it on the Codex side.
+//
+// What widening buys is DELIVERY, not coverage. The matcher decides which events
+// reach a hook; the hook acts only on tools its own code parses. Exactly one
+// registered hook names `apply_patch` — file-convention-inject
+// (`.claude/hooks/file-convention-inject.cjs:25`). Every other hook sitting on a
+// widened matcher (path-boundary-block, privacy-block, scout-block, doc-sync-gate,
+// post-edit-prettier, graph-auto-update) has no `apply_patch` branch and allows or
+// ignores the event. So widening is SAFE — no hook fires on work it cannot parse —
+// and is NOT a security gain. Never read a widened matcher as proof a gate covers
+// Codex writes; see TC-HOOKMIRROR-003 in tests/verify-sync-divergence.test.mjs.
+//
+// MUTATION TOOLS ONLY — this map must never key a read-only tool. `apply_patch`
+// mutates, so aliasing (say) `Read` to it hands write events to a read-gated hook
+// and encodes a read/mutate equivalence that no hook honors. `Read` is deliberately
+// absent: no configured matcher names a Claude read tool without also naming a
+// mutation tool, so the row bought nothing and only carried that risk.
+const codexToolAliases = new Map([
+  ["Edit", ["apply_patch"]],
+  ["Write", ["apply_patch"]],
+  ["MultiEdit", ["apply_patch"]],
+  ["NotebookEdit", ["apply_patch"]],
+]);
+
+export function mapMatcherForCodex(matcher) {
+  if (typeof matcher !== "string" || matcher.length === 0) return matcher;
+  const tools = matcher.split("|");
+  const seen = new Set(tools);
+  const added = [];
+  for (const tool of tools) {
+    for (const alias of codexToolAliases.get(tool) ?? []) {
+      if (seen.has(alias)) continue;
+      seen.add(alias);
+      added.push(alias);
+    }
+  }
+  return added.length === 0 ? matcher : [...tools, ...added].join("|");
+}
+
 const supportedEvents = new Set([
   "PreToolUse",
   "PermissionRequest",
@@ -179,7 +222,7 @@ async function main(targetDir = codexDir) {
 
       const mappedGroup = { hooks: mappedHooks };
       if (matcher && matcher !== "*") {
-        mappedGroup.matcher = matcher;
+        mappedGroup.matcher = mapMatcherForCodex(matcher);
       }
       mappedGroups.push(mappedGroup);
     }

@@ -69,7 +69,7 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 - **Runtime logs and captured screens are evidence channels, not extras.** Capture them on every exercise and re-capture them every round. A runtime ERROR is BLOCKING. A WARNING is ADVISORY — attempt a bounded fix, never let one hold the review open. For a visual surface, capture each state/viewport and READ the images; unread captures are not observations.
 - **The loop converges on defects, never on taste.** Only a BLOCKING defect — objectively checkable against the stated purpose — opens a round. An ADVISORY finding (preference, polish, visual identity) is recorded, never looped on.
 - **Bounded: `--rounds=N`, default 3.** Every round adjudicates before editing, fixes at the owning layer through `$fix`, `$changes-review`s its own fix diff, and re-exercises from scratch. Cap reached, defects not shrinking across two rounds, defects increasing, or `ENVIRONMENT-BLOCKED` → STOP and escalate by asking the user directly. `--rounds=0` returns the single-pass report-only review.
-- **E2E visual-gate handoff:** when invoked as `$experience-review --rounds=0` by `e2e-test-verify-loop --visual-review=true`, apply `.claude/skills/shared/ui-state-capture-protocol.md`: reload the project's design/UI convention authority, then open and record EVERY capture in the manifest — declared matrix states and per-action transition captures alike, as the resolved `uiStateCapture.mode` produced them (a `declared-only` run lists every state-changing action as an uncaptured transition; `off` keeps the matrix and records transition coverage as `N/A`) — one at a time, case by case, before synthesizing clustered owner-routed findings and coverage gaps for the parent. The parent owns UI fixes and must rerun the same E2E command; this report-only invocation must not mutate snapshots, baselines, or expectations.
+- **E2E visual-gate handoff:** when invoked as `$experience-review --rounds=0` by `e2e-test-verify --fix-loop --visual-review=true`, apply `.claude/skills/shared/ui-state-capture-protocol.md`: reload the project's design/UI convention authority, then open and record EVERY capture in the manifest — declared matrix states and per-action transition captures alike, as the resolved `uiStateCapture.mode` produced them (a `declared-only` run lists every state-changing action as an uncaptured transition; `off` keeps the matrix and records transition coverage as `N/A`) — one at a time, case by case, before synthesizing clustered owner-routed findings and coverage gaps for the parent. The parent owns UI fixes and must rerun the same E2E command; this report-only invocation must not mutate snapshots, baselines, or expectations.
 - MUST ATTENTION apply `.claude/skills/shared/e2e-quality-protocol.md` for E2E/browser/user-flow observations and record each applicable gate row; do not duplicate or replace its detailed checklist.
 - **Fix the defect, never the evidence of it.** Expectations, baselines, snapshots, fixtures, assertions, and acceptance criteria stay read-only in every round. A review that got clean by looking at less did not converge — it regressed.
 - Convergence yields `AGENT-RECOMMENDED-ACCEPT`, which is a named agent judgment, **not** an acceptance. The record stays `ACCEPTANCE-PENDING` until an owner signs; no baseline is promoted before that signature exists.
@@ -243,7 +243,7 @@ skips exactly the layer the review exists to check: the wiring between the
 interface and the logic. Use whatever control mechanism the host actually
 offers for the surface — a browser automation/devtools driver (for a web
 surface, use the project's configured visible `playwright-cli` path when
-supported; `webapp-testing` remains a fast page/component helper), a device/desktop driver, the real CLI in a
+supported), a device/desktop driver, the real CLI in a
 terminal, an HTTP client for an API. Chain the journey's steps so later steps
 consume what earlier steps really produced, and cover the states the matrix
 lists, not only the happy path.
@@ -786,7 +786,9 @@ Source: `.claude/skills/shared/sync-inline-versions.md`
 - **MANDATORY** Code-to-spec extraction is reference-only until canonical acceptance; any supported AI tool may execute with synced context.
 - **MANDATORY** Update `.claude` source before syncing generated mirrors; do not manually edit `.agents`, `.codex`, or `AGENTS.md`.
 - **MANDATORY** Missing or stale project config, root instruction files, or required reference docs route project-specific work through `$project-init` or the narrow setup route automatically.
-**[TASK-PLANNING] [MANDATORY]** BEFORE executing any workflow or skill step, create/update task tracking for all planned steps, then keep it synchronized as each step starts/completes.
+**[TASK-PLANNING] [MANDATORY]** BEFORE executing any workflow or skill step, create/update task tracking for all planned steps, analyze the task graph (output dependencies, shared write targets) into ordered parallel waves per PARALLELIZE before starting any task, then keep it synchronized as each step starts/completes.
+- **MANDATORY** Pin `Original goal:` before the first action and keep `User prompts this session: P1…Pn` current; re-read both at every step, before delegation, and after compaction.
+- **MANDATORY** Before claiming done, map the result to the original goal and every prompt (`P# → done | deferred | n/a`); never store secrets in them.
 ## [LESSON-LEARNED-REMINDER] [BLOCKING] Task Planning & Continuous Improvement — MANDATORY. Do not skip.
 
 Break work into small tasks (task tracking) before starting. Add final task: "Analyze AI mistakes & lessons learned".
@@ -797,7 +799,7 @@ Break work into small tasks (task tracking) before starting. Add final task: "An
 3. Write as a universal rule — strip project-specific names/paths/classes. Useful on any codebase.
 4. Consolidate: multiple mistakes sharing one failure mode → ONE lesson.
 5. **Recurrence gate:** "Would this recur in future session WITHOUT this reminder?" — No → skip `$learn`.
-6. **Auto-fix gate:** "Could `$code-review`/`$code-simplifier`/`$security-review`/`$lint` catch this?" — Yes → improve review skill instead.
+6. **Auto-fix gate:** "Could `$code-review`/`$code-simplifier`/`$security-review`/a linter catch this?" — Yes → improve review skill instead.
 7. BOTH gates pass → ask user to run `$learn`.
 **[CRITICAL-THINKING-MINDSET]** Apply critical thinking, sequential thinking. Every claim needs traced proof, confidence >80% to act.
 **Anti-hallucination principle:** Never present guess as fact — cite sources for every claim, admit uncertainty freely, self-check output for errors, cross-reference independently, stay skeptical of own confidence — certainty without evidence root of all hallucination.

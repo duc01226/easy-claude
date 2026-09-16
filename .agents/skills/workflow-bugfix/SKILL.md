@@ -45,7 +45,7 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 
 **Goal:** [Workflow] Trigger Bug Fix workflow — systematic debugging with root cause investigation, fix, and verification.
 
-**Summary:** Execute the complete bug-fix sequence `$investigate` → `$debug-investigate` → `$spec [mode=amend]` → `$plan` → `$plan-review` → `$plan-validate` → `$why-review` → `$spec [mode=tests]` → `$why-review` → `$artifact-review --type=spec-tests` → RED `$integration-test` → `$fix` → `$prove-fix` → GREEN `$integration-test` → `$integration-test-review` → `$integration-test-verify` → `$spec [mode=sync]` → `$workflow-review-changes` → optional `$workflow-e2e --source=context` → `$changelog` → `$test` → conditional `$scan --target=domain-entities` → `$docs-update` → `$demo-guide` → `$workflow-end` → `$watzup`, with spec-drift adjudication, end-to-start tracing, Goal Contract evidence, and explicit conditional skip reasons; E2E runs only on an explicit user request.
+**Summary:** Execute the complete bug-fix sequence `$investigate` → `$debug-investigate` → `$spec [mode=amend]` → `$plan` → `$plan-review` → `$plan-validate` → `$spec [mode=tests]` → `$artifact-review --type=spec-tests` → RED `$integration-test` → `$fix` → GREEN `$integration-test` → `$integration-test-review` → `$integration-test-verify` → `$spec [mode=sync]` → `$workflow-review-changes` → optional `$workflow-e2e --source=context` → `$test` → conditional `$scan --target=domain-entities` → `$docs-update` → `$demo-guide` → `$workflow-end` → `$watzup`, with spec-drift adjudication, end-to-start tracing, Goal Contract evidence, and explicit conditional skip reasons; E2E runs only on an explicit user request.
 
 **Workflow:**
 
@@ -77,7 +77,7 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 
 > **[IMPORTANT]** Analyze how big the task is and break it into many small todo tasks systematically before starting — this is very important.
 
-**IMPORTANT MANDATORY Steps:** $investigate -> $debug-investigate -> $spec [mode=amend] -> $plan -> $plan-review -> $plan-validate -> $why-review -> $spec [mode=tests] -> $why-review -> $artifact-review --type=spec-tests -> $integration-test -> $fix -> $prove-fix -> $integration-test -> $integration-test-review -> $integration-test-verify -> $spec [mode=sync] -> $workflow-review-changes -> $workflow-e2e --source=context -> $changelog -> $test -> $scan --target=domain-entities -> $docs-update -> $demo-guide -> $workflow-end -> $watzup
+**IMPORTANT MANDATORY Steps:** $investigate -> $debug-investigate -> $spec [mode=amend] -> $plan -> $plan-review -> $plan-validate -> $spec [mode=tests] -> $artifact-review --type=spec-tests -> $integration-test -> $fix -> $integration-test -> $integration-test-review -> $integration-test-verify -> $spec [mode=sync] -> $workflow-review-changes -> $workflow-e2e --source=context -> $test -> $scan --target=domain-entities -> $docs-update -> $demo-guide -> $workflow-end -> $watzup
 
 > **[EXPERIENCE ACCEPTANCE HANDOFF]** `$workflow-review-changes` carries the conditional `$experience-review` gate after the fix and final rationale review. A changed observable result is exercised and inspected before expectation changes; a missing capability is `ENVIRONMENT-BLOCKED`, not a green regression result.
 
@@ -85,7 +85,7 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 
 ---
 
-**IMPORTANT MANDATORY Steps:** $investigate -> $debug-investigate -> $spec [mode=amend] -> $plan -> $plan-review -> $plan-validate -> $why-review -> $spec [mode=tests] -> $why-review -> $artifact-review --type=spec-tests -> $integration-test -> $fix -> $prove-fix -> $integration-test -> $integration-test-review -> $integration-test-verify -> $spec [mode=sync] -> $workflow-review-changes -> $workflow-e2e --source=context -> $changelog -> $test -> $scan --target=domain-entities -> $docs-update -> $demo-guide -> $workflow-end -> $watzup
+**IMPORTANT MANDATORY Steps:** $investigate -> $debug-investigate -> $spec [mode=amend] -> $plan -> $plan-review -> $plan-validate -> $spec [mode=tests] -> $artifact-review --type=spec-tests -> $integration-test -> $fix -> $integration-test -> $integration-test-review -> $integration-test-verify -> $spec [mode=sync] -> $workflow-review-changes -> $workflow-e2e --source=context -> $test -> $scan --target=domain-entities -> $docs-update -> $demo-guide -> $workflow-end -> $watzup
 
 > **Single-pass steps are self-loop-backed (convergence lives in the skill, not the sequence):** the `$artifact-review --type=spec-tests` step appears once in the flat sequence with no repeat wired — intentionally. It carries the full `SYNC:double-round-trip-review` self-loop (review → validate findings → fix validated findings → full re-review until the current exit bar is clear; round-2 LOW-only findings are deferred), so a single occurrence still converges without spinning on polish; the workflow relies on that per-skill loop rather than re-listing the step. Code-change convergence is delegated to `$workflow-review-changes` (whose specialist scoped-re-run note lives in that skill).
 
@@ -109,9 +109,9 @@ Activate the `workflow-bugfix` workflow. Run `$start-workflow workflow-bugfix` w
 
 > **[BLOCKING] End-to-start trace before fix plan:** Before `$plan`, `$spec [mode=tests]`, or `$fix`, the investigation must include observed final state, final reader/query/renderer/assertion, backward hops through storage/projection/writer/consumer/producer, all feeder paths, hypothesis matrix, owning fix layer, and forward convergence proof. Missing trace evidence blocks the fix path.
 
-> **Goal Contract propagation (workflow-owned):** At workflow start, resolve the active Goal Contract per `SYNC:goal-contract-satisfaction-loop` (active plan `goal.md` → `plans/goals/{YYMMDD-HHmm}-{slug}/goal.md` → create from the bug report). Map root cause, regression-test evidence (RED fail + GREEN pass), and `$prove-fix` proof to the saved success criteria — each criterion gets `file:line`/command/report evidence in the Iteration Log. Pass the same goal file reference to every child step. Before `$workflow-end`, emit the final Goal Satisfaction matrix (PASS/FAIL/BLOCKED); workflow completion requires every required criterion PASS or BLOCKED with a user-facing escalation.
+> **Goal Contract propagation (workflow-owned):** At workflow start, resolve the active Goal Contract per `SYNC:goal-contract-satisfaction-loop` (active plan `goal.md` → `plans/goals/{YYMMDD-HHmm}-{slug}/goal.md` → create from the bug report). Map root cause and regression-test evidence (RED fail + GREEN pass) to the saved success criteria — each criterion gets `file:line`/command/report evidence in the Iteration Log. Pass the same goal file reference to every child step. Before `$workflow-end`, emit the final Goal Satisfaction matrix (PASS/FAIL/BLOCKED); workflow completion requires every required criterion PASS or BLOCKED with a user-facing escalation.
 
-**Steps:** $investigate → $debug-investigate → $spec [mode=amend] → $plan → $plan-review → $plan-validate → $why-review → $spec [mode=tests] → $why-review → $artifact-review --type=spec-tests → $integration-test → $fix → $prove-fix → $integration-test → $integration-test-review → $integration-test-verify → $spec [mode=sync] → $workflow-review-changes → $workflow-e2e --source=context → $changelog → $test → $scan --target=domain-entities → $docs-update → $demo-guide → $workflow-end → $watzup
+**Steps:** $investigate → $debug-investigate → $spec [mode=amend] → $plan → $plan-review → $plan-validate → $spec [mode=tests] → $artifact-review --type=spec-tests → $integration-test → $fix → $integration-test → $integration-test-review → $integration-test-verify → $spec [mode=sync] → $workflow-review-changes → $workflow-e2e --source=context → $test → $scan --target=domain-entities → $docs-update → $demo-guide → $workflow-end → $watzup
 
 > **[CONDITIONAL TERMINAL DOMAIN-ENTITY REFERENCE REFRESH]** After `$test` and before `$docs-update`, run `$scan --target=domain-entities` to refresh the project-reference entity catalog only when the final diff changes an entity/model, DTO/data contract, persistence schema/migration, or entity-sync evidence represented in `docs/project-reference/domain-entities-reference.md`. Otherwise mark the scan step completed with a cited skip reason naming the changed files and why they are outside this scope; this is the explicitly authorized exception to the per-step skill-invocation rule.
 >
@@ -181,7 +181,7 @@ Activate the `workflow-bugfix` workflow. Run `$start-workflow workflow-bugfix` w
 >
 > Reconcile to intended behavior, never to whichever side currently passes — green can encode the very bug.
 >
-> **Read-only/report-only role boundary:** when this block is carried by a report-only role (`code-reviewer`, `quality-gate-review`, `spec-compliance-reviewer`, `tester`, and any other agent whose definition declares it never edits source), "fix the wrong side" means RETURN the adjudicated verdict and the proposed repair to the parent — do not modify source, tests, generated carriers, or user data. The adjudication is the deliverable; the edit is the caller's. Without this sentence the block's step-3 imperatives read as write authority and directly contradict those agents' own declarations (e.g. `tester.md` "NEVER implement fixes"), which is the sibling `SYNC:double-round-trip-review` boundary applied to the same class of carrier.
+> **Read-only/report-only role boundary:** when this block is carried by a report-only role (`code-reviewer`, `spec-compliance-reviewer`, `tester`, and any other agent whose definition declares it never edits source), "fix the wrong side" means RETURN the adjudicated verdict and the proposed repair to the parent — do not modify source, tests, generated carriers, or user data. The adjudication is the deliverable; the edit is the caller's. Without this sentence the block's step-3 imperatives read as write authority and directly contradict those agents' own declarations (e.g. `tester.md` "NEVER implement fixes"), which is the sibling `SYNC:double-round-trip-review` boundary applied to the same class of carrier.
 
 <!-- /SYNC:test-failure-fault-adjudication -->
 
@@ -318,6 +318,20 @@ Activate the `workflow-bugfix` workflow. Run `$start-workflow workflow-bugfix` w
 
 <!-- /SYNC:severity-rubric -->
 
+<!-- SYNC:session-goal-ledger -->
+
+> **Session Goal Ledger** — Never lose the user's original request or any later prompt, however long the session runs. Hook-independent: binds every host; a prompt-ledger hook is only an accelerator.
+>
+> 1. **Pin before acting.** Before the first tool call, write `Original goal: <user's request, verbatim or faithfully condensed>` and keep it as the first task-list item. For workflow or plan work, copy it verbatim into the Goal Contract `## Original Request`.
+> 2. **Track every prompt.** Keep `User prompts this session: P1…Pn` — one line per user prompt or input, marked `extends` / `narrows` / `changes` / `answers`. A prompt that changes direction updates the goal explicitly — never silently.
+> 3. **Re-anchor.** Re-read the original goal and the prompt list at every workflow step, before delegating (the sub-agent brief carries the verbatim goal), and after compaction, resume, or a `[[prompt-ledger@…]]` reminder. When `tmp/prompt-ledger/<session>/ledger.md` exists it is the durable record — read it after compaction.
+> 4. **Verify before done.** Map the final result to the original goal and every prompt: `P# → done | deferred (reason) | not applicable`. An unaddressed prompt blocks completion.
+> 5. **Security.** NEVER copy secrets, tokens, or credentials into goal lines, task lists, briefs, or reports — redact them.
+>
+> **Blocked until:** original goal pinned · prompt list current · final result mapped to every prompt.
+
+<!-- /SYNC:session-goal-ledger -->
+
 <!-- SYNC:end-to-start-debugger-trace:reminder -->
 
 **IMPORTANT MUST ATTENTION** debugger trace gate: for non-trivial bug/fix/investigation/review work, start at the observed final output and trace backward through reader -> storage/projection -> writer -> consumer/job -> producer/trigger. Enumerate all feeder paths and hypotheses before fixing. **BLOCKED until** trace, hypothesis matrix, owning fix layer, and forward convergence proof exist.
@@ -366,11 +380,18 @@ Activate the `workflow-bugfix` workflow. Run `$start-workflow workflow-bugfix` w
 
 <!-- /SYNC:severity-rubric:reminder -->
 
+<!-- SYNC:session-goal-ledger:reminder -->
+
+- **MANDATORY** Pin `Original goal:` before the first action and keep `User prompts this session: P1…Pn` current; re-read both at every step, before delegation, and after compaction.
+- **MANDATORY** Before claiming done, map the result to the original goal and every prompt (`P# → done | deferred | n/a`); never store secrets in them.
+
+<!-- /SYNC:session-goal-ledger:reminder -->
+
 ## Closing Reminders
 
 **IMPORTANT MUST ATTENTION Goal:** [Workflow] Trigger Bug Fix workflow — systematic debugging with root cause investigation, fix, and verification.
 
-**IMPORTANT MUST ATTENTION Workflow:** Execute `$investigate` → `$debug-investigate` → `$spec [mode=amend]` → `$plan` → `$plan-review` → `$plan-validate` → `$why-review` → `$spec [mode=tests]` → `$why-review` → `$artifact-review --type=spec-tests` → RED `$integration-test` → `$fix` → `$prove-fix` → GREEN `$integration-test` → `$integration-test-review` → `$integration-test-verify` → `$spec [mode=sync]` → `$workflow-review-changes` → optional `$workflow-e2e --source=context` → `$changelog` → `$test` → conditional `$scan --target=domain-entities` → `$docs-update` → `$demo-guide` → `$workflow-end` → `$watzup`; preserve the spec-drift gate, end-to-start trace, Goal Contract matrix, conditional performance/UI/domain-entity gates, and evidence-backed task transitions.
+**IMPORTANT MUST ATTENTION Workflow:** Execute `$investigate` → `$debug-investigate` → `$spec [mode=amend]` → `$plan` → `$plan-review` → `$plan-validate` → `$spec [mode=tests]` → `$artifact-review --type=spec-tests` → RED `$integration-test` → `$fix` → GREEN `$integration-test` → `$integration-test-review` → `$integration-test-verify` → `$spec [mode=sync]` → `$workflow-review-changes` → optional `$workflow-e2e --source=context` → `$test` → conditional `$scan --target=domain-entities` → `$docs-update` → `$demo-guide` → `$workflow-end` → `$watzup`; preserve the spec-drift gate, end-to-start trace, Goal Contract matrix, conditional performance/UI/domain-entity gates, and evidence-backed task transitions.
 
 **IMPORTANT MUST ATTENTION Protocols in force (concise digest of the SYNC/shared blocks this skill carries) — NEVER skip a listed protocol; ALWAYS honor each canonical body:**
 
@@ -428,7 +449,9 @@ Source: `.claude/skills/shared/sync-inline-versions.md`
 - **MANDATORY** Code-to-spec extraction is reference-only until canonical acceptance; any supported AI tool may execute with synced context.
 - **MANDATORY** Update `.claude` source before syncing generated mirrors; do not manually edit `.agents`, `.codex`, or `AGENTS.md`.
 - **MANDATORY** Missing or stale project config, root instruction files, or required reference docs route project-specific work through `$project-init` or the narrow setup route automatically.
-**[TASK-PLANNING] [MANDATORY]** BEFORE executing any workflow or skill step, create/update task tracking for all planned steps, then keep it synchronized as each step starts/completes.
+**[TASK-PLANNING] [MANDATORY]** BEFORE executing any workflow or skill step, create/update task tracking for all planned steps, analyze the task graph (output dependencies, shared write targets) into ordered parallel waves per PARALLELIZE before starting any task, then keep it synchronized as each step starts/completes.
+- **MANDATORY** Pin `Original goal:` before the first action and keep `User prompts this session: P1…Pn` current; re-read both at every step, before delegation, and after compaction.
+- **MANDATORY** Before claiming done, map the result to the original goal and every prompt (`P# → done | deferred | n/a`); never store secrets in them.
 ## [LESSON-LEARNED-REMINDER] [BLOCKING] Task Planning & Continuous Improvement — MANDATORY. Do not skip.
 
 Break work into small tasks (task tracking) before starting. Add final task: "Analyze AI mistakes & lessons learned".
@@ -439,7 +462,7 @@ Break work into small tasks (task tracking) before starting. Add final task: "An
 3. Write as a universal rule — strip project-specific names/paths/classes. Useful on any codebase.
 4. Consolidate: multiple mistakes sharing one failure mode → ONE lesson.
 5. **Recurrence gate:** "Would this recur in future session WITHOUT this reminder?" — No → skip `$learn`.
-6. **Auto-fix gate:** "Could `$code-review`/`$code-simplifier`/`$security-review`/`$lint` catch this?" — Yes → improve review skill instead.
+6. **Auto-fix gate:** "Could `$code-review`/`$code-simplifier`/`$security-review`/a linter catch this?" — Yes → improve review skill instead.
 7. BOTH gates pass → ask user to run `$learn`.
 **[CRITICAL-THINKING-MINDSET]** Apply critical thinking, sequential thinking. Every claim needs traced proof, confidence >80% to act.
 **Anti-hallucination principle:** Never present guess as fact — cite sources for every claim, admit uncertainty freely, self-check output for errors, cross-reference independently, stay skeptical of own confidence — certainty without evidence root of all hallucination.

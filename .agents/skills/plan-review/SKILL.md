@@ -1,6 +1,6 @@
 ---
 name: plan-review
-description: '[Planning] Use when auto-reviewing a plan for validity, correctness, and best practices — recursive until the severity exit bar clears.'
+description: '[Planning] Use when auto-reviewing a plan for validity, correctness, and best practices — bounded at 2 rounds MAX, no extension.'
 ---
 
 > Codex compatibility note:
@@ -51,29 +51,30 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 
 ## Quick Summary
 
-**Goal:** Block implementation until each plan is hallucination-free (existing-code claims have `file:line` proof) and implementation-ready (every phase is concrete and small enough to code immediately); recursively validate findings, fix only validated plan issues, and full-re-review until the round's exit bar is clear.
+**Goal:** Block implementation until each plan is hallucination-free (existing-code claims have `file:line` proof) and implementation-ready (every phase is concrete and small enough to code immediately); validate findings, fix only validated plan issues, and full-re-review until the round's exit bar is clear — within a HARD cap of 2 review rounds, escalating to the user instead of opening a round 3 (a failing test gate is outside that budget and loops until green).
 
 Every phase review treats **Mode, Wave, write set, and SEQ dependency** as one indivisible metadata contract; a mismatch in any field blocks approval.
 
 **Summary:** AI self-review (automatic, NOT a user interview like `$plan-validate`) that gates a plan before implementation.
 
 - **Purpose:** review as a SKEPTIC, not validator — every existing-code claim needs `file:line` proof (Anti-Hallucination Gate); every phase must clear the "Detailed & Small Enough" granularity gate (≤5 files, ≤3h, no planning verbs) — too vague → detail it, too big → break it.
-- **Main steps (run in order):** Phase 0 detect plan type → Step 1 read `plan.md` + `goal.md` + all `phase-*.md`, extract requirements/steps/files/risks and the convention matrix → Step 2 evaluate the 4 checklist groups: **Validity** (summary, requirements, steps, files) · **Correctness** (Granularity Gate + Anti-Hallucination/Code-Proof Gate + Project Convention & Example Alignment + spec/TC coverage + Goal-Contract mapping) · **Best Practices** (YAGNI/KISS/DRY/architecture) · **Completeness** (risks, testing, success criteria, security, graph-dependency) → run the 11 Adversarial techniques + Anti-Bias Gate + 9 Plan Dimensions → graph-trace each modified file (when graph.db exists) → Step 3 score PASS/WARN/FAIL → Step 4 output result → Step 5 recursive validate-fix-re-review loop.
+- **Main steps (run in order):** Phase 0 detect plan type → Step 1 read `plan.md` + `goal.md` + all `phase-*.md`, extract requirements/steps/files/risks and the convention matrix → Step 2 dispatch the **Parallel Review Wave** (unconditional `$why-review` rationale sub-agent + triggered lens sub-agents, ONE message) and, while it runs, evaluate the 4 checklist groups: **Validity** (summary, requirements, steps, files) · **Correctness** (Granularity Gate + Anti-Hallucination/Code-Proof Gate + Project Convention & Example Alignment + spec/TC coverage + Goal-Contract mapping) · **Best Practices** (YAGNI/KISS/DRY/architecture) · **Completeness** (risks, testing, success criteria, security, graph-dependency) → run Adversarial Techniques 1-6 + 11 + 9 Plan Dimensions → graph-trace each modified file (when graph.db exists) → all-return barrier: merge the why-review (Techniques 7-10) and lens reports, close the Anti-Bias Gate → Step 3 score PASS/WARN/FAIL → Step 4 output result → the **Findings Validation Gate** + **Recursive Fix-and-Review Protocol** (validate → fix → full re-review).
 - **Applicability is Dimension 0:** before scoring implementation detail, read `.claude/skills/shared/product-roadmap-contract.md` and verify the plan's applicable `## Plan Gate` branch: complete decomposition/slice evidence for embedded large ideas, approved milestone/scope brief for an explicit roadmap request, technical scope for framework/library work, or the complete EXEMPT scope/scenario branch for an isolated change. Check explicit non-goals, known skeleton/commands, evidence plan, and owner approval. Missing or open upstream intent/evidence is a blocking finding; an AI PASS cannot substitute for owner approval.
 - **Detect plan type FIRST (Phase 0)** so the right focus applies — bugfix MANDATES the Behavioral Delta Matrix; security/performance/refactor/contract/infra/data-schema each add targeted checks.
 - **Impact-aware quality gates:** derive the plan's UI, domain, backend, data, security, integration, E2E, performance, dependency, and framework surfaces; run every triggered review lens and record evidence for each N/A decision.
-- **Findings are never fixed blindly:** run the `$why-review --validate-findings` gate BEFORE editing any `plan.md`/`phase-*.md`, fix only validated findings that block the current round at the smallest responsible location, then restart the FULL review with a fresh, zero-memory sub-agent — Round 1 requires zero findings; Round 2 requires zero CRITICAL/HIGH/MEDIUM, so LOW-only findings are recorded as deferred and do not start another cycle.
-- **Severity floor — from round 2, LOW stops blocking.** Round 1 require zero findings at any severity. **From round 2 the bar is zero validated CRITICAL/HIGH/MEDIUM — a review round whose validated findings are ALL LOW ENDS the loop.** Do NOT restart the full review for LOW findings alone: record them under `## Deferred LOW Findings (severity floor, round ≥2)` in the report and PASS. NEVER re-tier a real CRITICAL/HIGH/MEDIUM down to LOW to reach the exit, and NEVER apply the floor to a hallucinated-code claim or a missing-evidence finding — those are HIGH by definition, not deferrable LOW. Severity tiers per `SYNC:severity-rubric`.
-- **Round cap 2, extendable ONCE to round 3 — a ceiling, NEVER a target;** a clean pass ends the loop once the persisted `minRounds` is met. Round 2 completing with a validated CRITICAL/HIGH still open grants exactly one extra round (round 3, the hard cap). Escalate by asking the user directly when the same blocker survives 2 consecutive full re-reviews with no progress, when round 2 completes with only MEDIUM/`NOT VERIFIABLE` blocking, when round 3 completes with blocking findings still open, or when a finding needs product/owner judgment — cap exhaustion escalates, it NEVER becomes a PASS.
+- **Parallel Review Wave — `$why-review` sub-agent ALWAYS in it:** every full review pass (round 1 AND every re-review round) is ONE parallel wave spawned in ONE message: the core checklist pass + an UNCONDITIONAL full-mode `$why-review` rationale sub-agent over the plan dir (`plan.md`, `goal.md`, `phase-*.md`) + every triggered Impact-Aware lens sub-agent. Wait for ALL to return (all-return barrier), merge every report into the plan-review report, THEN close the Anti-Bias Gate, score, and emit the verdict. The why-review member is never N/A, never skipped, never deferred to after findings exist — it owns the rationale lens (Techniques 7-10). — why: a buildable plan resting on an unchallenged design decision is still a failed plan, and a rationale pass run after scoring cannot change the verdict it should have shaped.
+- **Findings are never fixed blindly:** run the `$why-review --validate-findings` gate on the MERGED findings (core + why-review + specialist) BEFORE editing any `plan.md`/`phase-*.md`, fix only validated findings that block the current round at the smallest responsible location, then restart the FULL review wave — a fresh, zero-memory core sub-agent plus a fresh `$why-review` rationale sub-agent plus the triggered lenses — Round 1 requires zero findings; Round 2 requires zero CRITICAL/HIGH/MEDIUM, so LOW-only findings are recorded as deferred and do not start another cycle.
+- **Severity floor — from round 2, LOW stops blocking.** Round 1 requires zero findings at any severity. **From round 2 the bar is zero validated CRITICAL/HIGH/MEDIUM — a review round whose validated findings are ALL LOW ENDS the loop.** Do NOT restart the full review for LOW findings alone: record them under `## Deferred LOW Findings (severity floor, round ≥2)` in the report and PASS. NEVER re-tier a real CRITICAL/HIGH/MEDIUM down to LOW to reach the exit, and NEVER apply the floor to a hallucinated-code claim or a missing-evidence finding — those are HIGH by definition, not deferrable LOW. Severity tiers per `SYNC:severity-rubric`.
+- **Round cap 2 — HARD, with NO extension; a ceiling, NEVER a target.** Round 1 is the initial review; round 2 is the at-most-one re-review after fixes. For review blockers there is NEVER a round 3 — no severity and no evidence buys one. A clean pass ends the loop earlier once the persisted `minRounds` is met. **The one carve-out is a failing TEST gate**, which sits outside the round budget entirely: while failing tests are the ONLY blockers, keep fixing and re-running past round 2 until they pass (never forcing green). That is a test-green continuation, NOT a review round — any review blocker open beside it still escalates. **Round 2 completing with ANY validated blocking finding still open (CRITICAL, HIGH, or MEDIUM) → STOP and escalate by asking the user directly listing every open finding.** Escalate equally when the same blocker survives 2 consecutive full re-reviews with no progress, or when a finding needs product/owner judgment. NEVER open round 3, NEVER weaken the severity bar or re-tier a finding to reach the exit, and NEVER convert cap exhaustion into a PASS — cap exhaustion escalates.
 
 **Workflow:**
 
 1. **Resolve Plan** — Use $ARGUMENTS path or active plan from `## Plan Context`
 2. **Read Files** — plan.md + all phase-\*.md files, extract requirements/steps/files/risks, reference-doc evidence, and convention-alignment matrix
-3. **Evaluate Checklist** — Validity (summary, requirements, steps, files), Correctness (specific, paths, no conflicts, conditional project-pattern alignment), Best Practices (YAGNI/KISS/DRY, architecture), Completeness (risks, testing, success, security)
-4. **Score & Classify** — PASS (all Required + ≥50% Recommended), WARN (all Required + <50% Recommended), FAIL (any Required fails)
+3. **Evaluate Checklist in the Parallel Review Wave** — in ONE message spawn the unconditional `$why-review` rationale sub-agent + every triggered lens sub-agent; meanwhile evaluate Validity (summary, requirements, steps, files), Correctness (specific, paths, no conflicts, conditional project-pattern alignment), Best Practices (YAGNI/KISS/DRY, architecture), Completeness (risks, testing, success, security); wait for ALL members, then merge their findings into the report
+4. **Score & Classify** (only after the wave barrier + merge) — PASS (all Required + ≥50% Recommended), WARN (all Required + <50% Recommended), FAIL (any Required fails)
 5. **Output Result** — Status, checks passed, issues, recommendations, verdict
-6. **If any findings remain** — Run `$why-review --validate-findings` on the plan-review report first; fix only validated actionable issues in plan files, then re-review (loop back to step 2 until the round's bar is clear — zero findings in round 1, zero CRITICAL/HIGH/MEDIUM from round 2 — unless the repeated-blocker rule or the 2-round cap applies)
+6. **If any findings remain** — Run `$why-review --validate-findings` on the merged plan-review report first; fix only validated actionable issues in plan files, then re-review with a fresh full wave (loop back to step 2 until the round's bar is clear — zero findings in round 1, zero CRITICAL/HIGH/MEDIUM in round 2 — unless the repeated-blocker rule or the 2-round hard cap applies; round 2 is the LAST round, so anything still blocking there escalates)
 
 **Core Principle — Detailed & Small Enough:**
 
@@ -87,8 +88,8 @@ Every phase review treats **Mode, Wave, write set, and SEQ dependency** as one i
 - **Conditional Project Pattern Alignment is required:** always independently read `code-review-rules.md`; if the plan edits frontend/UI, also read `frontend-patterns-reference.md`; if it edits backend/hook code, also read `backend-patterns-reference.md`; if it edits both, read both. Verify the plan's cited sections and inspect corroborating source examples when implementation code exists. Do not require a separate project-reference example-code file. Missing, stale, generic-only, or contradictory evidence = FAIL; an explicit N/A/scarcity exception must be supported by the plan scope and reference docs.
 - **PASS**: Proceed to implementation
 - **WARN**: Proceed with caution, note gaps
-- **FAIL (any findings)**: Validate findings with `$why-review --validate-findings`, fix only validated blocking plan issues, then **re-run the FULL review from the start**. Repeat this self-loop — default `minRounds=1`, honor an explicitly declared independent-pass minimum, capped at 2 rounds MAX, extendable ONCE to round 3 when round 2 leaves a validated CRITICAL/HIGH open — until a complete pass clears the current round's exit bar (round 1: zero findings; round 2 and the conditional round 3: zero CRITICAL/HIGH/MEDIUM, LOW deferred).
-- **Bounded loop — two escalation triggers, neither a completion criterion**: (a) **no-progress safety** — the SAME blocker surviving 2 consecutive full re-reviews with no progress; (b) **round cap** — round 2 completing with findings still open, unless a validated CRITICAL/HIGH buys the single extension round (round 3, the hard cap), which then escalates on anything still open. Whichever trips first → STOP and escalate to user by asking the user directly, never a silent "good enough" PASS. A clean pass ends the loop once the persisted `minRounds` is met — the cap is a ceiling, not a quota.
+- **FAIL (any findings)**: Validate findings with `$why-review --validate-findings`, fix only validated blocking plan issues, then **re-run the FULL review from the start**. Repeat this self-loop — default `minRounds=1`, honor an explicitly declared independent-pass minimum, capped at **2 rounds MAX with NO extension** — until a complete pass clears the current round's exit bar (round 1: zero findings; round 2: zero CRITICAL/HIGH/MEDIUM, LOW deferred). Round 2 still blocking → escalate; never a round 3 on review blockers (a failing test gate is outside the budget and keeps looping until green).
+- **Bounded loop — two escalation triggers, neither a completion criterion**: (a) **no-progress safety** — the SAME blocker surviving 2 consecutive full re-reviews with no progress; (b) **round cap** — round 2 (the LAST round) completing with any validated blocking finding still open. No severity buys an extension round and no evidence opens a round 3. Whichever trips first → STOP and escalate to user by asking the user directly with every open finding listed, never a silent "good enough" PASS. A clean pass ends the loop once the persisted `minRounds` is met — the cap is a ceiling, not a quota.
 - **Constructive**: Focus on implementation-blocking issues, not pedantic details
 
 **Be skeptical. Apply critical thinking, sequential thinking. Every claim needs traced proof, confidence percentages (Idea should be more than 80%).**
@@ -99,6 +100,7 @@ Before scoring, build an impact matrix from the plan's files, behaviors, contrac
 
 | Plan impact / trigger | Required review lens | Verify in the plan |
 | --- | --- | --- |
+| **Every plan, every review round — UNCONDITIONAL, never N/A** | `$why-review` (FULL mode, rationale sub-agent — see **Parallel Review Wave**) | Decision quality: steel-manned rejected alternatives, what each choice sacrifices, unseen alternatives, pros/cons symmetry, assumption stress, and a design pre-mortem. |
 | Frontend page, component, store, UX flow, HTML, CSS/SCSS, accessibility, responsiveness, or browser-visible state | `$ui-review` (including web-design guidelines) | Design-system conventions; loading, empty, error, and permission states; keyboard/screen-reader behavior; responsive/long-content layouts; selectors/page objects; and E2E coverage. |
 | Domain entity, value object, aggregate, invariant, lifecycle rule, domain event, or business-rule ownership | `$domain-entities-review` (apply its A–P checklist inline; delegate only under its escalation rule) | Domain/subdomain fit; aggregate boundary; invariant ownership; lifecycle/events; validation; persistence; and regression/invariant tests. |
 | Backend endpoint, command/query, handler, service, repository, API, or public contract | `$architecture-review` + `$production-readiness-review` | Lowest responsible layer; validation/error contracts; auth; compatibility and consumers; observability; performance; and operational safety. |
@@ -110,7 +112,38 @@ Before scoring, build an impact matrix from the plan's files, behaviors, contrac
 | Dependency/runtime/toolchain upgrade or generated artifact | `$package-upgrade` | Compatibility; lockfile/security impact; build/test effects; upgrade sequence; and rollback. |
 | Hook, skill, agent, workflow, shared protocol, or generated Claude/Codex carrier | Framework-maintainer review | Source of truth; required sync/generation; catalog/protocol compatibility; and framework regression tests. |
 
-Report the completed matrix, including evidence for every N/A row. Run independent selected reviews in one read-only parallel wave, wait for all results, then merge findings before verdict. Validate specialist findings through the existing `$why-review --validate-findings` gate before editing plan artifacts; this adds scope-specific depth and never replaces existing gates.
+Report the completed matrix, including evidence for every N/A row (the `$why-review` row has none). Run the selected lens reviews as sub-agents in the SAME read-only **Parallel Review Wave** as the core pass and the unconditional `$why-review` rationale sub-agent, wait for ALL results, then merge findings before verdict. Validate the merged findings (core + why-review + specialist) through the existing `$why-review --validate-findings` gate before editing plan artifacts; this adds scope-specific depth and never replaces existing gates.
+
+## Parallel Review Wave (NON-NEGOTIABLE — every full review pass)
+
+Every full review pass — round 1 AND every round N≥2 re-review — is ONE read-only parallel wave with an all-return barrier. No member edits plan files; each persists findings to its own `tmp/reports/` file. — why: the members read the same frozen plan and share no write target, so running them as a queue only costs wall-clock, while running the rationale member after scoring lets a wrong design decision pass unchallenged.
+
+| Wave member | Round 1 | Round N≥2 | Owns |
+| --- | --- | --- | --- |
+| Core plan-review checklist pass | INLINE in the orchestrator, while the sub-agents run | Fresh zero-memory `general-purpose` sub-agent (Round N≥2 template in **Recursive Fix-and-Review Protocol**) | Phase 0, Steps 1-2 checklists, Adversarial Techniques 1-6 + 11, Anti-Bias Gate items 1-6, Plan Dimensions 0-9, graph trace |
+| `$why-review` rationale review — **ALWAYS, unconditional** | Fresh `general-purpose` sub-agent (brief below) | NEW fresh `general-purpose` sub-agent (never reused) | Adversarial Techniques 7-10, Anti-Bias Gate items 7-9, Trade-Off Interrogation |
+| Each triggered Impact-Aware lens | Fresh sub-agent routed per `.claude/skills/shared/sub-agent-selection-guide.md` | NEW fresh sub-agent | That lens's scope-specific checks |
+
+**Dispatch protocol:**
+
+1. After Step 1 builds the impact matrix, declare `Parallel plan: wave = [core pass, $why-review rationale, {triggered lenses}] · SEQ = [merge → Anti-Bias Gate close → score → verdict → $why-review --validate-findings → fix] (each consumes the whole wave)`.
+2. Spawn every sub-agent member in ONE message — NEVER drip them across turns, NEVER make the why-review member wait for the core pass.
+3. **All-return barrier:** advance to merge ONLY after EVERY member returns. A lens whose trigger is absent was never spawned and counts as returned; the why-review member has no absent trigger.
+4. **Merge** each returned report into the plan-review report — `## Why-Review Rationale Findings (parallel wave, round {N})` and `## Specialist Lens Findings (round {N})` — preserving each finding's `file:line`, severity per `SYNC:severity-rubric`, and confidence. NEVER filter, re-tier, or override a member's findings.
+5. **Missing rationale result = incomplete review, never a silent PASS.** If the why-review sub-agent fails, times out, or returns no verdict, re-dispatch it once; if it fails again, run Techniques 7-10 and Anti-Bias Gate items 7-9 INLINE and record `why-review sub-agent failed → rationale lens run inline`.
+6. **Trade-off questions reach the user through the orchestrator.** The sub-agent cannot ask the user, so it returns material Trade-Off / owner-judgment questions UNANSWERED. After the barrier and before the verdict, ask them by asking the user directly; NEVER self-approve a one-way door. An unanswered material trade-off keeps the verdict open.
+
+**Why-review sub-agent brief.** Copy the Agent call shape from the `SYNC:review-protocol-injection` template, then set:
+
+- `agent_type: "general-purpose"` (plan rationale review; `code-reviewer` is for source diffs).
+- **Protocols:** embed, verbatim from the template, the same plan-applicable protocol sections the Round N≥2 core sub-agent receives — Evidence-Based Reasoning, Rationalization Prevention, Graph-Assisted Investigation, and Understand Code First (omit the code-specific sections).
+- **Task:** `"Invoke $why-review in FULL mode (a real Skill call, NOT --validate-findings, NEVER --fix-loop) over the plan directory {plan-dir}. Review decision quality only: steel-man every rejected alternative, name what each chosen approach sacrifices, surface 1-2 viable alternatives the plan never mentions, check pros/cons symmetry, stress-test the top 3 assumptions, and write one concrete pre-mortem failure of the chosen design. Buildability (paths, granularity, code proof) belongs to the core pass — do not duplicate it."`
+- **Round:** `Round {N}. ZERO memory of prior rounds — re-read every target file via your own tool calls.`
+- **Target Files:** `plan.md`, `goal.md` (when present), and every `phase-*.md` under `{plan-dir}`.
+- **Output:** `tmp/reports/plan-review-why-review-round{N}-{date}.md`, written incrementally. Return a summary plus every finding with `file:line`, severity per `SYNC:severity-rubric`, and confidence, plus a separate list of UNANSWERED Trade-Off / owner-judgment questions.
+- **Binding constraints (include verbatim):** READ-ONLY — NEVER edit `plan.md`, `goal.md`, `phase-*.md`, or any other file except its own report · NEVER pass or honor `--fix-loop` (it mutates the target; plan-review owns plan fixes) · NEVER bind the `/goal` gate — record `/goal accelerator unavailable — sub-agent context` and rely on why-review's protocol loop · NEVER call ask the user directly or run why-review's Next Steps — return the questions unanswered · NEVER invoke `$plan-review` (the caller — a callback closes a cycle) · record `Linkage deferred — plan-review Impact-Aware wave owns $integration-test-review.` for the Integration-Test-Review Linkage.
+
+**Execution host and fan-out (one level deep).** plan-review dispatches this wave, so it runs INLINE wherever it is a workflow step — NEVER dispatch plan-review itself as a sub-agent. When sub-agent dispatch is unavailable (plan-review is already running inside a sub-agent, or the host or permissions provide no sub-agent tool), run the identical wave members sequentially INLINE in the same order — core pass, then the why-review rationale lens (full-mode Techniques 7-10 + Anti-Bias Gate items 7-9 + Trade-Off Interrogation), then each triggered lens — merge exactly as above, and record once `host/sub-agent fan-out unavailable → inline fallback`. Slower, never weaker: the why-review rationale lens still runs every round.
 
 ## Conditional Project Pattern Alignment (MANDATORY)
 
@@ -152,7 +185,7 @@ Apply this lens **before** any rule, pattern, or checklist below — a downstrea
 
 ### Adversarial Techniques (apply ALL before concluding)
 
-> Techniques 1-6 stress **whether the plan can be built** (reality, effort, scope, dependencies). Techniques 7-10 stress **whether the chosen design is the right one** — the decision-quality lens shared with `$why-review`'s rationale review. Apply both groups: a buildable plan built on the wrong decision is still a failed plan.
+> Techniques 1-6 stress **whether the plan can be built** (reality, effort, scope, dependencies). Techniques 7-10 stress **whether the chosen design is the right one** — the decision-quality lens OWNED by the unconditional `$why-review` rationale sub-agent in the **Parallel Review Wave**. The core pass applies 1-6 and 11 itself and merges the why-review member's 7-10 results; it applies 7-10 inline ONLY under the wave's failed-member or no-fan-out fallback. Both groups must be satisfied before any verdict: a buildable plan built on the wrong decision is still a failed plan.
 
 **1. Implementation Reality Check**
 Per phase: _"a developer starts implementing this right now — what breaks FIRST?"_ Walk the critical path concretely. A vague phase ("implement the service layer") untraceable to specific files/classes FAILS.
@@ -205,13 +238,21 @@ Complete ALL checks before writing the final verdict (MUST ATTENTION):
 - run pre-mortem (one concrete production failure scenario)
 - scan for scope creep (tasks not required for stated feature)
 - verify dependency blindspots are addressed
-- steel-man at least one rejected design alternative (argue FOR it)
-- name at least 1 viable alternative the plan does not mention
-- check pros/cons symmetry on the plan's primary design decision
+- steel-man at least one rejected design alternative (argue FOR it) — satisfied by the merged why-review wave report
+- name at least 1 viable alternative the plan does not mention — satisfied by the merged why-review wave report
+- check pros/cons symmetry on the plan's primary design decision — satisfied by the merged why-review wave report
+
+The first six checks are the core pass's own work. The last three close ONLY on the merged why-review sub-agent report for the current round; confirm that report covers each one. A missing, failed, or silent why-review return leaves them incomplete — re-dispatch the sub-agent or run the rationale lens inline per the wave protocol, never a silent PASS.
 
 If any check is incomplete → you have NOT completed the adversarial review. Go back.
 
-> **Why-review relationship:** Techniques 7-10 + these gate checks are the *rationale* lens applied DURING the review pass (does the plan's design hold up?). The separate `$why-review --validate-findings` gate runs AFTER findings exist (are the findings themselves correct before we fix them?). Both stay — they validate different things and must not be collapsed.
+> **Why-review relationship — three roles, none collapsed:**
+>
+> 1. **Core plan-review pass** (inline in round 1, fresh sub-agent from round 2) — *can the plan be built?* Techniques 1-6 + 11, Anti-Bias Gate items 1-6, all checklists and dimensions.
+> 2. **Parallel rationale review** — an unconditional full-mode `$why-review` sub-agent in the SAME wave, every round — *is the plan's design the right one?* Techniques 7-10, Anti-Bias Gate items 7-9, and Trade-Off Interrogation over `plan.md` / `goal.md` / `phase-*.md`. Its findings merge before scoring.
+> 3. **Findings validation after the merge** — `$why-review --validate-findings` over the MERGED report (core + why-review + specialist) before any plan edit — *are the findings themselves correct?*
+>
+> Roles 2 and 3 invoke the same skill for different targets: role 2 reviews the PLAN and runs in parallel; role 3 validates the FINDINGS and is sequential. Neither substitutes for the other.
 
 ## Plan Dimension Thinking Framework
 
@@ -354,7 +395,7 @@ Before ANY checklist, read `plan.md` and classify the plan — why: the type dec
 
 **Plan type drives:**
 
-- Which sub-agent type to use (see "Subagent Type Selection" above)
+- Which sub-agent type to use (see "Subagent Type Selection" below, under `SYNC:review-protocol-injection`)
 - Which sections of the Adversarial Review Mindset to emphasize
 - Whether Behavioral Delta Matrix is mandatory (bugfix only)
 
@@ -372,6 +413,8 @@ Read the plan directory:
 If `{plan-dir}/goal.md` is missing, resolve `plans/goals/{YYMMDD-HHmm}-{slug}/goal.md`; if no Goal Contract exists at all, record `No active goal — plan reviewed against plan.md requirements only.`
 
 ### Step 2: Evaluate Against Checklist
+
+**Dispatch the Parallel Review Wave FIRST** — in ONE message spawn the unconditional `$why-review` rationale sub-agent and every triggered Impact-Aware lens sub-agent, then work through the checklists below inline while they run (round 1). Do not start Step 3 until every wave member has returned and its report is merged.
 
 #### Validity (Required - all must pass)
 
@@ -466,6 +509,8 @@ PASSES after split: `"Phase 2A: Data Schema (1h, 3 files) — Create {source-roo
 
 ### Step 3: Score and Classify
 
+Score the MERGED finding set only — core pass + why-review rationale report + every triggered lens report. A Required check that a why-review or lens finding invalidates fails here exactly as a core finding would.
+
 | Status   | Criteria                            | Action                            |
 | -------- | ----------------------------------- | --------------------------------- |
 | **PASS** | All Required pass, ≥50% Recommended | Proceed to implementation         |
@@ -523,15 +568,15 @@ When graph DB is available, verify the plan covers all affected files:
 
 ## Recursive Fix-and-Review Protocol (CRITICAL)
 
-> **Protocol:** `SYNC:double-round-trip-review` + `SYNC:fresh-context-review` + `SYNC:review-protocol-injection` (all inlined above in this file).
+> **Protocol:** `OVERRIDE:double-round-trip-review` + `OVERRIDE:fresh-context-review` + `OVERRIDE:review-policy` + `SYNC:review-protocol-injection` (all inlined in this file), plus the carrier-local scope note on `SYNC:severity-rubric`. All THREE OVERRIDE blocks replace their canonical counterparts on ONE point only — plan-review's round cap is a HARD 2 with no extension round — and the severity-rubric scope note marks that block's two round-3-extension clauses inert for the same reason. Canonical grants a conditional round-3 extension to the carriers that honor it; plan-review does not, and `review-policy.cjs` cannot express that cap (its only caller-settable value, `minRounds`, may not exceed 2), so the cap is enforced by this skill rather than by the helper.
 
-When the review results in **FAIL, WARN, or any non-zero findings**, plan-review MUST run the Findings Validation Gate before editing any plan file. Only findings validated by `$why-review --validate-findings` may be fixed. After fixing validated actionable findings, rerun the full plan-review protocol from the first review step over the current plan. Do not spawn a fresh sub-agent just to re-review known findings before fixing them. If the restarted full review uses a sub-agent, it uses the canonical Agent template from `SYNC:review-protocol-injection` below and re-reads ALL plan files from scratch with ZERO memory of prior fixes.
+When the review results in **FAIL, WARN, or any non-zero findings**, plan-review MUST run the Findings Validation Gate before editing any plan file. Only findings validated by `$why-review --validate-findings` may be fixed. After fixing validated actionable findings, rerun the full plan-review protocol from the first review step over the current plan. Do not spawn a fresh sub-agent just to re-review known findings before fixing them. The restarted full review is a full **Parallel Review Wave**: the core pass as a fresh sub-agent using the canonical Agent template from `SYNC:review-protocol-injection` below, dispatched in the SAME message as a NEW `$why-review` rationale sub-agent and every triggered lens sub-agent — each re-reads ALL plan files from scratch with ZERO memory of prior fixes.
 
 ## Findings Validation Gate (MANDATORY before fixing plan findings)
 
 Trigger this gate whenever the plan-review output contains **any finding**: FAIL, WARN, recommendation requiring a plan edit, missing evidence, unresolved risk, or implementation-blocking ambiguity. Skip this gate only when the completed review pass has zero findings — or, from round 2, when its only validated findings are LOW (record them as deferred and PASS).
 
-1. Finalize the plan-review report with every finding and enough evidence for another reviewer to validate it.
+1. Finalize the MERGED plan-review report — core, why-review rationale, and specialist lens findings from the completed wave — with every finding and enough evidence for another reviewer to validate it.
 2. Call `$why-review --validate-findings` against that report in the main review flow before editing plan files.
 3. If why-review returns CLEAN, fix only the validated actionable findings at the smallest responsible plan location.
 4. If why-review challenges, rejects, or narrows findings, reconcile the plan-review report first, then rerun `$why-review --validate-findings` before any fix.
@@ -544,14 +589,15 @@ Trigger this gate whenever the plan-review output contains **any finding**: FAIL
 1. Copy the Agent call shape from the `SYNC:review-protocol-injection` template verbatim
 2. Use `agent_type: "general-purpose"` (this is a plan review, not a code review)
 3. Embed the full verbatim body of these SYNC blocks (inlined above in this skill file): `SYNC:evidence-based-reasoning`, `SYNC:rationalization-prevention`, `SYNC:graph-assisted-investigation`, `SYNC:understand-code-first` (omit code-specific protocols like `SYNC:bug-detection`, `SYNC:test-spec-verification` which are not applicable to plan files)
-4. Set the Task as `"Review plan files under {plan-dir}. Validate structural completeness, code-proof anti-hallucination (every file:line claim about existing source code must exist), and adversarial simulation (imagine implementing each phase right now — what fails first?)."`
+4. Set the Task as `"Review plan files under {plan-dir}. Validate structural completeness, code-proof anti-hallucination (every file:line claim about existing source code must exist), and adversarial simulation (imagine implementing each phase right now — what fails first?) using Adversarial Techniques 1-6 + 11. The design-rationale lens (Techniques 7-10) is owned by a parallel $why-review sub-agent — do not duplicate it."`
 5. Set Target Files as `"read plan.md and all phase-*.md files under {plan-dir}"`
 6. Set report path as `tmp/reports/plan-review-round{N}-{date}.md`
+7. **In the SAME message**, spawn a NEW `$why-review` rationale sub-agent per the **Parallel Review Wave** brief (report `tmp/reports/plan-review-why-review-round{N}-{date}.md`) and a NEW sub-agent for every triggered Impact-Aware lens — NEVER reuse a prior round's agents, NEVER omit the why-review member.
 
-After the sub-agent returns:
+After ALL wave members return (all-return barrier):
 
-1. **Read** the sub-agent's report
-2. **Integrate** findings as `## Re-Review {N} Findings` in the main report — DO NOT filter or override
+1. **Read** every wave report — core, why-review rationale, and each lens
+2. **Integrate** findings as `## Re-Review {N} Findings`, `## Re-Review {N} Why-Review Rationale Findings`, and `## Re-Review {N} Specialist Lens Findings` in the main report — DO NOT filter or override; ask any returned UNANSWERED Trade-Off / owner-judgment questions by asking the user directly before the verdict
 3. **If the current round has blocking findings:** run the Findings Validation Gate, fix only validated actionable findings in plan files, then restart the full plan-review protocol from the first review step. Round 2 LOW-only findings are recorded as deferred and do not trigger a restart.
 4. **Repeated blocker cap:** if the same blocker repeats across 2 full invocations with no progress, escalate by asking the user directly
 5. **Final verdict** must incorporate findings from ALL review passes that actually ran
@@ -559,12 +605,15 @@ After the sub-agent returns:
 ### Flow
 
 ```
-┌──────────────────────────────────┐
-│  Round 1: Main-session review    │
-│  (structural checklist + basic   │
-│   code-proof trace)              │
-│  Output: PASS / WARN / FAIL      │
-└──────────────┬───────────────────┘
+┌──────────────────────────────────────────┐
+│  Round 1: PARALLEL REVIEW WAVE (1 msg)   │
+│  • core checklist pass — INLINE          │
+│  • $why-review rationale — sub-agent,    │
+│    ALWAYS (Techniques 7-10)              │
+│  • each triggered lens — sub-agent       │
+│  ALL-RETURN BARRIER → merge reports      │
+│  → Anti-Bias Gate → PASS / WARN / FAIL   │
+└──────────────┬───────────────────────────┘
                │
         ┌──────▼──────┐
         │ ZERO        │
@@ -573,8 +622,9 @@ After the sub-agent returns:
                │ NO
         ┌──────▼──────────────────────────────────┐
         │  VALIDATE: Run $why-review              │
-        │  --validate-findings on the report.     │
-        │  Only validated findings may be fixed.  │
+        │  --validate-findings on the MERGED      │
+        │  report. Only validated findings may    │
+        │  be fixed.                              │
         └──────┬──────────────────────────────────┘
                │
         ┌──────▼──────────────────────────────────┐
@@ -584,20 +634,21 @@ After the sub-agent returns:
         └──────┬──────────────────────────────────┘
                │
         ┌──────▼──────────────────────────────────┐
-        │  Round 2: FULL PLAN RE-REVIEW          │
-        │  Re-run the complete plan-review        │
-        │  protocol from the first review step.   │
-        │  If the protocol uses agents, spawn     │
-        │  new agents for that restarted pass.    │
+        │  Round 2: FULL RE-REVIEW WAVE (1 msg)   │
+        │  NEW fresh core sub-agent + NEW         │
+        │  $why-review rationale sub-agent +      │
+        │  NEW triggered lens sub-agents, from    │
+        │  the first review step; ALL-RETURN      │
+        │  barrier → merge → verdict.             │
         └──────┬──────────────────────────────────┘
                │
-               └──→ Loop until the round's bar is clear (zero findings round 1; zero CRITICAL/HIGH/MEDIUM from round 2), repeated-blocker rule, or the round cap (2, +1 extension round when round 2 leaves CRITICAL/HIGH open)
+               └──→ Loop ENDS at round 2 — bar clear (zero findings round 1; zero CRITICAL/HIGH/MEDIUM round 2), repeated-blocker rule, or the HARD round cap of 2 (no extension; still blocking at round 2 → ask the user directly). There is NO round 3 for review blockers — only a failing TEST gate continues past round 2, and that is outside the round budget.
 ```
 
 ### Iteration Rules
 
 1. **Repeated blocker cap** — continue until a complete full review pass clears the round's bar (zero findings in round 1; zero CRITICAL/HIGH/MEDIUM from round 2, LOW-only ends it); if the same blocker repeats across 2 full invocations with no progress, STOP and escalate to user by asking the user directly
-2. **Track round count** — log "Plan review Round N (full re-review)" at the start of each cycle
+2. **Track round count** — log "Plan review Round N (full re-review)" at the start of each cycle. **N NEVER exceeds 2 for review rounds**: round 1 is the initial review, round 2 is the single re-review after fixes. Reaching the end of round 2 with any validated blocking finding open is an escalation, not a round 3. A test-green continuation (failing TEST gates as the sole blocker) may log rounds past 2 — it is outside the review budget and must be labelled as such, never used to re-open review findings.
 3. **Current-bar clear = exit** — proceed when a complete plan-review pass has zero findings in round 1, or zero CRITICAL/HIGH/MEDIUM from round 2 onward with LOWs recorded as deferred. WARN remains blocking when it represents a CRITICAL/HIGH/MEDIUM consequence; a LOW WARN is non-blocking from round 2 onward but must remain visible.
 4. **Diminishing scope** — each round should find FEWER issues. If Round N finds MORE than Round N-1, STOP and escalate
 5. **Fix scope** — fix only why-review-validated actionable findings at the smallest responsible plan location. Do NOT rewrite the plan.
@@ -607,22 +658,22 @@ After the sub-agent returns:
     - Conflicting steps → resolve conflicts, document rationale
     - Over-engineering → simplify, remove unnecessary complexity
     - Missing TC mappings → add TC references or "TBD" with rationale
-7. **After each validated fix cycle** — rerun the full plan-review protocol from the first review step; when that restarted protocol uses agents, spawn NEW Agent calls and never reuse prior agents
+7. **After each validated fix cycle** — rerun the full plan-review protocol from the first review step as a full Parallel Review Wave; spawn NEW Agent calls for every member (core, `$why-review` rationale, triggered lenses) and never reuse prior agents
 8. **No silent fallback** — if the same blocker repeats across 2 full invocations with no progress, escalate by asking the user directly. NEVER fall back to any prior protocol.
 
 ## Next Steps
 
 - **If the current bar is clear** (PASS with zero findings in round 1, or from round 2 PASS with only deferred LOW findings listed): Announce "Plan review complete. Proceeding with next workflow step."
 - **If WARN or other blocking findings remain**: Run the Findings Validation Gate; fix only validated actionable findings in plan files, or ask the user to explicitly accept non-actionable risk before proceeding. From Round 2 onward, LOW-only findings are deferred and do not trigger another loop.
-- **If FAIL**: Run the Findings Validation Gate, fix only validated actionable findings that block the current round, then rerun the full plan-review protocol recursively.
-- **If repeated blocker cap is reached**: List remaining issues. STOP. Ask user to fix or regenerate plan by asking the user directly.
+- **If FAIL**: Run the Findings Validation Gate, fix only validated actionable findings that block the current round, then rerun the full plan-review protocol — but only while `round < 2`.
+- **If the 2-round cap or the repeated blocker cap is reached**: List every remaining issue with `file:line` and severity. STOP. Ask the user to fix, accept, or regenerate the plan by asking the user directly. NEVER open a third round and NEVER pass instead.
 
 ## Important Notes
 
 - Be constructive, not pedantic — focus on issues that would cause implementation problems
 - WARN is not an automatic exit condition; fix it when actionable, or document explicit non-actionable acceptance before proceeding.
 - FAIL remains for genuinely missing required content; lower-severity findings still remain tracked until resolved or explicitly accepted.
-- **NEVER do a quick review** — even "simple" plans had 13 bugs in real testing. Always run the complete declared review protocol; do not stop because of an arbitrary round count.
+- **NEVER do a quick review** — even "simple" plans had 13 bugs in real testing. Always run the COMPLETE declared review protocol for every round you do run: never truncate a round, skip a wave member, or shortcut the checklist because the plan looks simple or because the round budget is nearly spent. The 2-round cap bounds how many rounds run; it never licenses a thinner round — and when round 2 ends with a blocker still open, the answer is escalation to the user, never a third round.
 
 ---
 
@@ -647,17 +698,37 @@ After the sub-agent returns:
 
 > **OOP & DRY Enforcement:** MANDATORY — flag duplicated patterns that should be extracted to a base class, generic, or helper. Classes in the same group (same suffix, same lifecycle, same purpose) must share a common base (even if empty now — enables future shared logic and child overrides). Verify project has code linting/analyzer configured for the stack.
 
-<!-- SYNC:review-policy -->
+<!-- OVERRIDE:review-policy -->
+
+<!-- Diverges from canonical `SYNC:review-policy` on ONE point only: the round budget.
+     Canonical mandates the helper's `HARD_MAX_ROUNDS` of 3 and its conditional round-3 extension
+     (`extensionGranted`); plan-review's budget is a HARD 2 with NO extension. The helper exposes no
+     caller-declarable maximum — the only caller-settable value is `minRounds`, which may not exceed
+     the base budget of 2 — so plan-review's cap is NOT expressible through the mandated executable
+     and is stated here instead (see `OVERRIDE:fresh-context-review` and
+     `OVERRIDE:double-round-trip-review` below, which narrow the same budget, plus the scope note on
+     `SYNC:severity-rubric`). The helper remains the durable bookkeeping record; plan-review simply
+     refuses the extension it may grant.
+     Everything else in this block — the predicate, the severity floor, the durable run record and
+     the CLI boundary — is the canonical body, BYTE-EXACT. The block is four blockquote paragraphs;
+     only the second ("Round and minimum rules") diverges. The other three are pinned against
+     canonical by `TC-HARNESS-006: plan-review declares its review-policy divergence`
+     (`.claude/scripts/codex/tests/review-policy-consumers.test.mjs`), which fails when canonical
+     moves — that test, not this comment, is what keeps the non-budget prose re-synced. Note that
+     paragraphs 1 and 3 still describe the helper's `extensionGranted` and its round-3 extension:
+     those are facts about the SHARED helper, true for every consumer. Deleting them here would be a
+     second, undeclared divergence — plan-review REFUSES the extension the helper grants, it does not
+     claim the helper stopped granting it. -->
 
 > **Executable review policy — one predicate, one durable transition model.** Review skills and their tooling MUST use the canonical helper `.claude/scripts/lib/review-policy.cjs` (policy version 4) for round eligibility. The helper's `blockingFindings(round, findings, hardGates)` predicate returns every validated finding in round 1, and only CRITICAL/HIGH/MEDIUM findings from round 2 onward; `NOT VERIFIABLE` is a separate unresolved-evidence state that remains blocking at every round. Failed binary gates are synthetic CRITICAL blocking findings at every round; record a test-green gate with `kind: 'test'` and every other gate with `kind: 'binary'` (the default). `evaluateRound` retains floor-round LOWs in `deferredLow`, never treats a LOW-only round as blocked after the floor applies, reports `extensionGranted` plus an `ESCALATE` status when the review budget is spent with review blockers open, and reports `failingTestGates` / `testLoopContinues` when failing test gates keep the round open. Severity is assigned before the predicate and never changed to obtain a PASS.
 >
-> **Round and minimum rules.** `MAX_ROUNDS` (the base budget) is 2 and `HARD_MAX_ROUNDS` is 3; both are ceilings, never targets. Round 3 is an EXTENSION, not part of the default budget: the helper grants it only when the recorded round-2 evaluation still has a validated CRITICAL or HIGH review blocker — a finding, or a failed non-test binary gate carried as synthetic CRITICAL — (`extensionGranted`), grants it at most once per run, and rejects any attempt to reach round 3 without that evidence, except the failing-test continuation below, when round 2's only blockers are failing test gates. **Failing test gates are outside the review budget:** they never earn the extension and never escalate, so while failing `kind: 'test'` gates are the ONLY blockers the helper keeps the run in `CONTINUE` and accepts the next round — past round 3 if needed — until the tests pass. A review blocker past the budget still escalates, and a round with no failing test gate never re-opens the run past its budget. A round-2 evaluation whose blockers are only MEDIUM or `NOT VERIFIABLE` ends the budget and escalates. A clean review ends once `round >= minRounds`; the default minimum is 1 and an explicit `minRounds` may not exceed the base budget of 2 — the extension is earned by evidence, never declared up front. The declaration is persisted and cannot be inferred from a round counter. A failing test-green, security-must-fix, required-artifact, or other binary gate is never waived by the severity floor.
+> **Round and minimum rules — plan-review's budget is a HARD 2 with NO extension.** `MAX_ROUNDS` (the base budget) is 2 and it is the ONLY round ceiling that applies here: round 1 is the initial review, round 2 is the single re-review after the validated-fix cycle, and round 2 is the LAST review round. The helper's `HARD_MAX_ROUNDS` of 3 and its conditional extension are NOT honored by plan-review. **When the helper reports `extensionGranted` for an open round-2 CRITICAL/HIGH, plan-review does NOT take that round — it STOPS and escalates by asking the user directly**, listing every open finding with its `file:line`, severity, and confidence. Round 2 completing with ANY validated blocking finding still open — CRITICAL, HIGH, MEDIUM, or an unresolved `NOT VERIFIABLE` — escalates to the user; a failed non-test binary gate escalates the same way. No severity and no evidence buys a further review round. — why: a plan is cheap to regenerate and expensive to half-fix, so a plan still blocked after one full re-review needs an owner decision, not a third machine round. **Failing test gates stay outside the budget:** while failing `kind: 'test'` gates are the ONLY blockers, the run stays in `CONTINUE` and accepts the next round — past round 2 if needed — until the tests pass; they never earn an extension and never escalate for budget or no-progress. A review blocker open beside them still escalates. A clean review ENDS the loop once the persisted `minRounds` is met; the default minimum is 1 and an explicit `minRounds` may not exceed the budget of 2. The declaration is persisted and cannot be inferred from a round counter. A failing test-green, security-must-fix, required-artifact, or other binary gate is never waived by the severity floor.
 >
 > **Durable run record.** A review run MUST identify `runId`, target fingerprint, policy version, target revision, minimum/maximum rounds, completed rounds, full findings/gate evidence, interruption/resume metadata, and acceptance. Use the atomic, lock-serialized transitions in `review-policy.cjs`: `start`, `record`, `accept`, `interrupt`, `resume`, `invalidate`, and `check`. Repeating an identical completed round is idempotent and MUST NOT consume budget twice. A changed target fingerprint invalidates prior evidence and acceptance but MUST preserve the bounded round budget; stale evidence cannot be accepted. A policy-version change (including the round-2 LOW floor and the conditional round-3 extension) invalidates old records; start a new run rather than interpreting old evidence under new semantics. Interrupted/resumed runs retain completed rounds and findings. The record is bookkeeping, not consent, native permission, or proof that a host actually performed the review.
 >
 > **CLI boundary.** The helper CLI accepts JSON on stdin and uses its own real clock; a supplied `now` is rejected. State directories must be absolute, non-root real directories, records are size-bounded, and malformed/locked state fails closed for the transition. Full reports remain on disk; an inline result envelope is only a transport summary. Any new review policy consumer must add a semantic fixture, boundary counter-cases, a seeded mutant, and a report with the target fingerprint and command exit status.
 
-<!-- /SYNC:review-policy -->
+<!-- /OVERRIDE:review-policy -->
 
 <!-- SYNC:behavioral-delta-matrix -->
 
@@ -712,7 +783,13 @@ After the sub-agent returns:
 
 <!-- /SYNC:cross-service-check -->
 
-<!-- SYNC:fresh-context-review -->
+<!-- OVERRIDE:fresh-context-review -->
+
+<!-- Diverges from canonical `SYNC:fresh-context-review` on ONE point only: the round budget.
+     Canonical grants a conditional extension to round 3; plan-review's round cap is a HARD 2 with
+     no extension (see `OVERRIDE:review-policy` above and `OVERRIDE:double-round-trip-review` below,
+     which narrow the same budget, plus the scope note on `SYNC:severity-rubric`). Everything else in
+     this block is the canonical body. Re-sync the non-budget prose by hand when canonical changes. -->
 
 > **Fresh Context Re-Review** — Eliminate orchestrator confirmation bias after fixes by restarting the full review with isolated sub-agents where applicable. A report-only/read-only reviewer never edits source, generated output, or user data: it validates and records the finding/repair handoff, then returns to the caller, which owns the fix and any re-review.
 >
@@ -733,10 +810,10 @@ After the sub-agent returns:
 > - SKIP fresh sub-agent when the prior full review found zero issues AND the persisted `minRounds` is met (no fixes or required independent pass = nothing new to verify)
 > - NEVER skip the full review restart after a fix cycle — every fix invalidates the prior verdict
 > - NEVER reuse a sub-agent across rounds — every fresh round spawns a NEW `spawn_agent` call
-> - Continue until a complete full review pass clears that round's exit bar per `SYNC:double-round-trip-review`: **round 1** → zero findings at any severity; **round 2 (and the conditional round 3)** → zero CRITICAL/HIGH/MEDIUM, so a round whose validated findings are ALL LOW ENDS the loop once the persisted minimum is met (list those LOWs as deferred instead of spawning another round). The budget is 2 rounds plus ONE extension to round 3, granted only when round 2 leaves a validated CRITICAL/HIGH open (a failed non-test binary gate counts as CRITICAL); round 3 is the review hard cap. A failing test gate is not budgeted — keep fixing and re-running until the tests pass. If the same validated blocker repeats across 2 full invocations with no progress, escalate by asking the user directly. **Read-only/report-only role boundary:** when this block is carried by a security auditor or another report-only role, “fix” means return the validated repair proposal to the parent; do not modify source, generated carriers, or user data and do not restart the review locally.
+> - Continue until a complete full review pass clears that round's exit bar per `OVERRIDE:double-round-trip-review` below: **round 1** → zero findings at any severity; **round 2** → zero CRITICAL/HIGH/MEDIUM, so a round whose validated findings are ALL LOW ENDS the loop once the persisted minimum is met (list those LOWs as deferred instead of spawning another round). The budget is a **HARD 2 rounds with NO extension** — round 2 is the LAST review round, and any review blocker still open there ESCALATES by asking the user directly instead of opening a round 3. A failing test gate is not budgeted — keep fixing and re-running until the tests pass. If the same validated blocker repeats across 2 full invocations with no progress, escalate by asking the user directly. **Read-only/report-only role boundary:** when this block is carried by a security auditor or another report-only role, “fix” means return the validated repair proposal to the parent; do not modify source, generated carriers, or user data and do not restart the review locally.
 > - Persist completed rounds, repeated blockers, findings and the explicit minimum in the owning run's `review-policy.cjs` record. Resume that record after interruption; target changes invalidate evidence and acceptance but preserve the bounded round budget. In-flight attempt IDs may be session-local; they do not replace or reset completed-round state
 
-<!-- /SYNC:fresh-context-review -->
+<!-- /OVERRIDE:fresh-context-review -->
 
 <!-- SYNC:nested-task-creation -->
 
@@ -957,8 +1034,6 @@ After the sub-agent returns:
 > **Stop conditions:** confidence <80% on any critical decision → escalate by asking the user directly · ≥3 revisions on same thought → re-frame the problem · branch count >3 → split into sub-task.
 >
 > **Implicit mode:** apply methodology internally without visible markers when adding markers would clutter the response (routine work where reasoning aids accuracy).
->
-> **Deep-dive:** see `$sequential-thinking` skill (`.claude/skills/sequential-thinking/SKILL.md`) for worked examples (API design, debugging, architecture), advanced techniques (spiral refinement, hypothesis testing, convergence), and meta-strategies (uncertainty handling, revision cascades).
 
 <!-- /SYNC:sequential-thinking-protocol -->
 
@@ -991,20 +1066,27 @@ After the sub-agent returns:
 
 <!-- /SYNC:understand-code-first -->
 
-<!-- SYNC:double-round-trip-review -->
+<!-- OVERRIDE:double-round-trip-review -->
+
+<!-- Diverges from canonical `SYNC:double-round-trip-review` on ONE point only: the round budget.
+     Canonical grants one conditional extension to round 3 when a validated CRITICAL/HIGH survives
+     round 2; plan-review's cap is a HARD 2 with no extension, so that round-2 state escalates to
+     the owner by asking the user directly instead (see `OVERRIDE:review-policy` and
+     `OVERRIDE:fresh-context-review` above, which narrow the same budget). The failing-test-gate
+     carve-out is canonical and survives: a failing test gate is outside the round budget entirely.
+     Everything else in this block is the canonical body. Re-sync the non-budget prose by hand when
+     canonical changes. -->
 
 > **Validated-Finding Fix + Full Re-Review Loop** — Re-review is triggered by a validated finding fix cycle or an explicitly declared independent-pass minimum, not by a round number alone. Review purpose: `review → validate findings → fix validated findings that block the current round → full re-review` until a complete review pass clears the round's exit bar (see **Severity floor** below). **A clean review ENDS the loop once the persisted `minRounds` is met (default 1); an explicitly declared minimum such as 2 still requires that independent pass.**
 >
-> _aka **Self-Review Convergence Loop**._ The name is historical — "double-round-trip" means a validated-finding fix cycle forces at least one fresh re-review. It runs until the current round's exit bar is clear (round 1: zero findings; round 2: zero CRITICAL/HIGH/MEDIUM, LOW deferred), bounded by the **2-round ceiling — extendable ONCE to round 3 when CRITICAL/HIGH remain** — defined below. A failing **test gate** (a suite that must actually pass) is outside that ceiling: the loop keeps fixing and re-running until the tests pass.
+> _aka **Self-Review Convergence Loop**._ A validated-finding fix cycle forces at least one fresh re-review. It runs until the current round's exit bar is clear (round 1: zero findings; round 2: zero CRITICAL/HIGH/MEDIUM, LOW deferred), bounded by the **HARD 2-round cap with NO extension round** defined below. A failing **test gate** (a suite that must actually pass) is outside that cap: the loop keeps fixing and re-running until the tests pass.
 >
-> **Round cap — 2 rounds MAX, extendable ONCE to round 3 (a ceiling, NEVER a target).** A clean pass ENDS the loop at ANY round once `round >= minRounds` — round 1 included with the default minimum; the cap never obliges an extra round. What happens when round 2 completes with blocking findings still open (severity floor applied) depends on WHAT is still open:
+> **Round cap — 2 rounds MAX, HARD, NO extension (a ceiling, NEVER a target).** Round 1 is the initial review; round 2 is the at-most-one re-review after the validated-fix cycle, and round 2 is the LAST review round. A clean pass ENDS the loop at ANY round once the persisted `minRounds` is met — round 1 included with the default minimum; the cap never obliges an extra round. When round 2 completes with blocking findings still open (severity floor applied):
 >
-> - **Validated CRITICAL or HIGH still open → ONE extra round is granted (round 3, the review hard cap).** A failed non-test binary gate (security must-fix, required artifact, generated parity, policy compliance) counts as a CRITICAL blocker here. The extension is earned by that evidence alone, is never a default, is granted at most once per run, and never renews. Record the granting findings in the run record and report.
-> - **Only MEDIUM (or an unresolved `NOT VERIFIABLE`) still open → NO extension.** → **STOP and escalate by asking the user directly** with the still-open findings listed.
-> - **Round 3 completes with ANY review blocker still open → STOP and escalate by asking the user directly.** Round 3 is the review hard cap; no review finding or non-test gate opens a round 4.
-> - **A failing TEST gate → NO round cap, at any round.** Failing tests never escalate for budget or no-progress and never buy or spend the extension: run the failed-test investigation gate, fix at the owning layer, and re-run until the tests pass — past round 3 if needed. NEVER weaken an assertion, add a skip, or relax a timeout to force green. Review blockers open beside failing tests still follow the bullets above.
+> - **ANY validated blocking finding still open — CRITICAL, HIGH, MEDIUM, or an unresolved `NOT VERIFIABLE` → STOP and escalate by asking the user directly**, listing every still-open finding with its `file:line`, severity, and confidence. A failed non-test binary gate (security must-fix, required artifact, generated parity, policy compliance) escalates the same way. No severity and no evidence earns an extra round: for review blockers there is NEVER a round 3. — why: a plan is cheap to regenerate and expensive to half-fix, so a plan still blocked after one full re-review needs an owner decision, not a third machine round.
+> - **A failing TEST gate → NO round cap, at any round.** Failing tests never escalate for budget or no-progress: run the failed-test investigation gate, fix at the owning layer, and re-run until the tests pass — past round 2 if needed. NEVER weaken an assertion, add a skip, or relax a timeout to force green. Review blockers open beside failing tests still follow the bullet above.
 >
-> NEVER emit a silent "good enough" PASS on cap exhaustion, NEVER let the cap substitute for the clean-review requirement, and NEVER loop past round 3 on review blockers — only failing test gates continue beyond it. The 2-repeated-no-progress blocker rule stays an EARLIER exit — escalate at whichever trips first.
+> NEVER emit a silent "good enough" PASS on cap exhaustion, NEVER let the cap substitute for the clean-review requirement, and NEVER loop past round 2 on review blockers — only failing test gates continue beyond it. The 2-repeated-no-progress blocker rule stays an EARLIER exit — escalate at whichever trips first.
 >
 > **Severity floor — from round 2, LOW stops blocking.** The exit bar tightens after the first review pass, so the loop converges on consequence instead of spinning on polish:
 
@@ -1013,9 +1095,8 @@ After the sub-agent returns:
 > | Round | Exit bar — loop ENDS when the fresh full review has… | Must be fixed to continue |
 > | --- | --- | --- |
 > | 1 | zero validated findings at ANY severity | CRITICAL · HIGH · MEDIUM · LOW |
-> | 2 | zero validated CRITICAL / HIGH / MEDIUM findings — **LOW-only clears the severity bar** | CRITICAL · HIGH · MEDIUM only |
-> | 3 — extension round, reachable ONLY when round 2 left CRITICAL/HIGH open (or failing tests were the only blocker) | zero validated CRITICAL / HIGH / MEDIUM findings — **LOW-only clears the severity bar** | CRITICAL · HIGH · MEDIUM only |
-> | 4+ — test-gate continuation, reachable ONLY while failing test gates were the sole blocker | the tests pass and no review blocker is open | failing tests; any review blocker here escalates |
+> | 2 — the LAST review round | zero validated CRITICAL / HIGH / MEDIUM findings — **LOW-only clears the severity bar** | CRITICAL · HIGH · MEDIUM only; anything still open here ESCALATES instead of opening round 3 |
+> | 3+ — test-gate continuation, reachable ONLY while failing test gates are the sole blocker | the tests pass and no review blocker is open | failing tests; any review blocker here escalates |
 >
 > From round 2 onward LOW findings are **NOT required to be fixed**: a round whose validated findings are ALL LOW **ENDS the loop once the persisted minimum is met** — do not open another fix/re-review round for them. Severity tiers are `SYNC:severity-rubric` (CRITICAL block-merge · HIGH must-fix · MEDIUM must clear the current round · LOW record/defer); round 1 remains strict, so a LOW found initially is still validated and fixed when warranted before the floor can apply.
 >
@@ -1023,7 +1104,7 @@ After the sub-agent returns:
 >
 > - **Never silently drop a deferred LOW.** Every unfixed LOW is listed in the final report under `## Deferred LOW Findings (severity floor, round ≥2)` with file, line, and description, so the owner can schedule it. Dropping it from the report is a protocol violation, not a clean pass.
 > - **Never re-tier a finding to trigger the exit.** Downgrading a real CRITICAL/HIGH/MEDIUM to LOW so the loop can end is a FALSE PASS. Severity is set by consequence per `SYNC:severity-rubric` before the round bar is applied — never after, and never with the exit in view. — why: a floor that can be reached by relabeling is not a floor.
-> - **Never re-tier a finding to reach — or to dodge — the extension.** The extension is unlocked by a real CRITICAL/HIGH, so promoting a MEDIUM to HIGH to buy round 3, or demoting a real CRITICAL/HIGH to MEDIUM to force an earlier escalation, are both FALSE classifications. Severity is set by consequence before the round bar and the extension test are applied. — why: an extension that can be reached by relabeling bounds nothing.
+> - **Never re-tier a finding to change what the cap does.** There is no extension round to buy or dodge, so at round 2 severity decides exactly one thing: whether the round exits clean or escalates to the owner. Promoting or demoting a finding to steer that outcome is a FALSE classification. — why: a cap that can be reached by relabeling bounds nothing.
 > - **The floor bounds the loop, not the standard.** It ends *iteration*; it never authorizes shipping a known CRITICAL/HIGH/MEDIUM, and it never lowers the finding-survival bar that admits a finding in the first place.
 > - **The floor never applies to a hard gate.** Test-green gates (a suite must actually pass), security must-fix gates, and any gate whose criterion is binary rather than severity-rated are unaffected — a failing test is a failure, not a LOW finding.
 >
@@ -1038,7 +1119,7 @@ After the sub-agent returns:
 > - **No issues found (PASS, zero findings)** → review ENDS if `round >= minRounds`; otherwise perform the explicitly required independent pass. Do NOT invent a confirmation pass.
 > - **`blocking_findings(round, findings)` is non-empty** → run the active review skill's findings-validation gate first; for review skills the default gate is `$why-review --validate-findings <report-path>`. Fix only validated findings that block the current round, then restart the full review protocol from the beginning with a fresh task breakdown.
 >
-> **Fresh full re-review after every fix cycle:** Re-run the whole review protocol over the current full target. When sub-agents are part of that protocol, spawn NEW `spawn_agent` calls — never reuse prior agents. Reviewers re-read ALL files from scratch with ZERO memory of prior rounds. See `SYNC:fresh-context-review` for the spawn mechanism and `SYNC:review-protocol-injection` for the canonical Agent prompt template. Each fresh full review must catch:
+> **Fresh full re-review after every fix cycle:** Re-run the whole review protocol over the current full target. When sub-agents are part of that protocol, spawn NEW `spawn_agent` calls — never reuse prior agents. Reviewers re-read ALL files from scratch with ZERO memory of prior rounds. See `OVERRIDE:fresh-context-review` for the spawn mechanism and `SYNC:review-protocol-injection` for the canonical Agent prompt template. Each fresh full review must catch:
 >
 > - Cross-cutting concerns missed in the prior round
 > - Interaction bugs between changed files
@@ -1047,11 +1128,11 @@ After the sub-agent returns:
 > - Subtle edge cases the prior round rationalized away
 > - Regressions introduced by the fixes themselves
 >
-> **Loop termination:** After each full re-review, repeat the same decision against **that round's exit bar**: bar cleared and persisted minimum met → END; blocking findings remain → validate findings → fix → restart from the first review phase. Round 1 clears only on zero findings at any severity; **from round 2 the bar is zero CRITICAL/HIGH/MEDIUM, so a LOW-only round ENDS the loop once the persisted minimum is met** (deferred LOWs go in the report). Capped at **2 rounds, extendable ONCE to round 3 when round 2 leaves validated CRITICAL/HIGH open**. Escalate by asking the user directly at whichever comes first: the same validated finding repeats for 2 full invocations with no progress · a fix requires product/owner input · round 2 completes with MEDIUM-only (or `NOT VERIFIABLE`) blocking, which earns no extension · round 3 completes with any review blocker still open. A failing test gate triggers none of these escalations — it loops until green. NEVER loop past round 3 on review blockers, and NEVER convert cap exhaustion into a PASS.
+> **Loop termination:** After round 1's full re-review, repeat the same decision against **round 2's exit bar**: bar cleared and persisted minimum met → END; blocking findings remain → STOP and escalate. Round 1 clears only on zero findings at any severity; **from round 2 the bar is zero CRITICAL/HIGH/MEDIUM, so a LOW-only round ENDS the loop once the persisted minimum is met** (deferred LOWs go in the report). Capped at **2 rounds, HARD, with no extension**. Escalate by asking the user directly at whichever comes first: the same validated finding repeats for 2 full invocations with no progress · a fix requires product/owner input · round 2 completes with ANY validated review blocker still open. A failing test gate triggers none of these escalations — it loops until green. NEVER loop past round 2 on review blockers, and NEVER convert cap exhaustion into a PASS.
 >
 > **Rules:**
 >
-> - A clean Round 1 ENDS the review when `minRounds=1`; an explicitly declared `minRounds=2` requires the independent second pass
+> - A clean Round 1 ENDS the review once the persisted `minRounds` is met (default 1); an explicitly declared `minRounds=2` requires the independent second pass
 > - From round 2 on, a round whose validated findings are ALL LOW ENDS the loop once the persisted minimum is met — never open round N+1 to fix LOW alone; list those LOWs as deferred instead
 > - NEVER re-tier a CRITICAL/HIGH/MEDIUM down to LOW to reach the round-2 exit — severity is assigned by consequence before the bar is applied
 > - NEVER fix unvalidated findings; validate first using the caller's validation gate
@@ -1059,16 +1140,15 @@ After the sub-agent returns:
 > - NEVER skip the full re-review after a fix cycle (every fix invalidates the prior verdict)
 > - NEVER reuse a sub-agent across rounds — every iteration that uses sub-agents spawns NEW Agent calls
 > - Main agent READS sub-agent reports but MUST NOT filter, reinterpret, or override findings
-> - The round cap NEVER replaces the clean-review requirement — it bounds runaway looping, it does not authorize shipping an un-clean review; a clean pass ends the loop early once the persisted minimum is met, and cap exhaustion escalates rather than passes
-> - Enforce the base cap of 2 rounds, the single conditional extension to round 3 (unlocked ONLY by validated CRITICAL/HIGH open at round 2; a failed non-test binary gate counts as CRITICAL), and the 2 repeated-no-progress blocker rule together; all three are escalation triggers for review blockers, none is a completion criterion
-> - The extension is granted at most ONCE per run and never renews — round 3 is the review hard cap regardless of what it finds
-> - Failing test gates are outside the round budget: never escalate them for budget or no-progress, never let them buy the extension, and keep fixing and re-running until the tests pass — never forcing green
+> - The round cap NEVER replaces the clean-review requirement — it bounds runaway looping, it does not authorize shipping an un-clean review; a clean pass ends the loop early once the persisted `minRounds` is met, and cap exhaustion escalates rather than passes
+> - Enforce the HARD cap of 2 rounds (no extension round exists — round 2 is the last review round) together with the 2 repeated-no-progress blocker rule; both are escalation triggers for review blockers, neither is a completion criterion
+> - Failing test gates are outside the round budget: never escalate them for budget or no-progress, and keep fixing and re-running until the tests pass — never forcing green
 > - Persist completed rounds, repeated blockers, findings and the explicit minimum in the owning run's `review-policy.cjs` record. Resume that record after interruption; target changes invalidate evidence and acceptance but preserve the bounded round budget. In-flight attempt IDs may be session-local; they do not replace or reset completed-round state
 > - Final verdict must incorporate ALL rounds executed
 >
-> **Report must include `## Round N Findings (Fresh Sub-Agent)` for every round N≥2 that was executed, plus `## Deferred LOW Findings (severity floor, round ≥2)` whenever the loop ended on the severity floor with LOWs still open. When round 3 ran, the report must name the CRITICAL/HIGH findings that granted the extension; when rounds continued on failing tests, it must name the failing test gates of each such round.**
+> **Report must include `## Round 2 Findings (Fresh Sub-Agent)` when round 2 was executed, plus `## Deferred LOW Findings (severity floor, round ≥2)` whenever the loop ended on the severity floor with LOWs still open. When the loop escalated at the cap, the report must name every review blocker that was still open; when rounds continued on failing tests, it must name the failing test gates of each such round.**
 
-<!-- /SYNC:double-round-trip-review -->
+<!-- /OVERRIDE:double-round-trip-review -->
 
 <!-- SYNC:review-protocol-injection -->
 
@@ -1270,6 +1350,19 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 
 <!-- /SYNC:ai-mistake-prevention -->
 
+<!-- Carrier-local SCOPE NOTE for the canonical `SYNC:severity-rubric` block below — deliberately a
+     scoped note and NOT an `OVERRIDE:`. plan-review carries the rubric body in exact canonical
+     parity; its substance (the four tiers, the consequence decision tree, `NOT VERIFIABLE`, the
+     hard-gate rule, domain-vocabulary normalization) is correct here verbatim. Exactly two clauses
+     mention the conditional round-3 extension — "never counts toward the round-3 extension" in the
+     LOW row, and "unlocks the single conditional extension round" in the closing paragraph. Under
+     plan-review's HARD 2-round cap NO extension round exists, so both clauses are INERT here and
+     NEVER a grant: read them as "LOW never reopens a round" and "an open CRITICAL/HIGH at round 2
+     escalates to the user by asking the user directly". Scoped rather than OVERRIDEn because the divergence
+     is two inert clauses, while the rubric body is the shared drift guard every severity carrier
+     holds in byte-exact parity — converting it would drop plan-review out of that guard forever to
+     restate text that already agrees with the cap in effect. -->
+
 <!-- SYNC:severity-rubric -->
 
 > **Severity Rubric** — Classify every finding by consequence, not by effort, reviewer preference, or how annoying the fix is. One scale applies to every review, skill, agent, workflow, and host so a tier has the same meaning everywhere. Choose the highest credible consequence supported by evidence; do not lower a tier to make a round pass.
@@ -1308,6 +1401,11 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 
 <!-- /SYNC:severity-rubric -->
 
+> **Scope in plan-review (carrier-local):** the rubric above is adopted VERBATIM, with its two
+> references to the conditional round-3 extension INERT — plan-review's cap is a HARD 2 rounds with
+> NO extension, so no tier can ever unlock a third review round. At round 2, severity decides exactly
+> one thing: whether the round exits clean or **escalates to the user by asking the user directly**. LOW is
+> recorded as deferred and never reopens a round from round 2 onward.
 
 <!-- SYNC:goal-contract-satisfaction-loop -->
 
@@ -1463,13 +1561,13 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 - **MANDATORY IMPORTANT MUST ATTENTION** cite `file:line` evidence for every claim. Confidence >80% to act, <60% = do NOT recommend.
 <!-- /SYNC:evidence-based-reasoning:reminder -->
 
-<!-- SYNC:double-round-trip-review:reminder -->
+<!-- OVERRIDE:double-round-trip-review:reminder -->
 
-- **MANDATORY IMPORTANT MUST ATTENTION** execute the review loop (aka **Self-Review Convergence Loop**): review → validate findings → fix validated blocking findings → full re-review. Round 1 ends only with zero findings and the persisted `minRounds` met; from round 2 onward, zero CRITICAL/HIGH/MEDIUM ends the loop once the persisted minimum is met and LOW findings are recorded as deferred. Any newly produced output/judgment gets ≥1 self-review; any new judgment gets ≥1 `$why-review --validate-findings` pass before it is treated as final.
-- **MANDATORY** apply the **severity floor**: round 1 exits on zero findings at any severity; **from round 2 the bar is zero CRITICAL/HIGH/MEDIUM — LOW findings are no longer required to be fixed, so a LOW-only round ENDS the loop once the persisted minimum is met.** List every deferred LOW in the report; NEVER re-tier a real CRITICAL/HIGH/MEDIUM down to LOW to reach the exit, and NEVER apply the floor to a binary gate (test-green, security must-fix).
-- **MANDATORY** enforce the **round cap of 2, extendable ONCE to round 3 — a ceiling, NEVER a target**: a clean pass ends the loop once the persisted `minRounds` is met (default 1; explicit 2 requires an independent pass). Round 2 completing with validated **CRITICAL/HIGH** still open (a failed non-test binary gate counts as CRITICAL) grants exactly ONE extra round (round 3); round 2 completing with only MEDIUM/`NOT VERIFIABLE` open, or round 3 completing with any review blocker still open → **STOP & escalate by asking the user directly**, never a silent PASS. The 2-repeated-no-progress blocker rule is an earlier exit — escalate at whichever trips first. A **failing test gate has NO round cap** — keep fixing and re-running until the tests pass, never forcing green; it never escalates for budget and never buys the extension. NEVER loop past round 3 on review blockers, and NEVER re-tier a finding to buy or dodge the extension.
+- **MANDATORY IMPORTANT MUST ATTENTION** execute the review loop (aka **Self-Review Convergence Loop**): review → validate findings → fix validated blocking findings → full re-review. Round 1 ends only with zero findings and the persisted `minRounds` met; in round 2, zero CRITICAL/HIGH/MEDIUM ends the loop once the persisted minimum is met and LOW findings are recorded as deferred. Any newly produced output/judgment gets ≥1 self-review; any new judgment gets ≥1 `$why-review --validate-findings` pass before it is treated as final.
+- **MANDATORY** apply the **severity floor**: round 1 exits on zero findings at any severity; **in round 2 the bar is zero CRITICAL/HIGH/MEDIUM — LOW findings are no longer required to be fixed, so a LOW-only round ENDS the loop once the persisted minimum is met.** List every deferred LOW in the report; NEVER re-tier a real CRITICAL/HIGH/MEDIUM down to LOW to reach the exit, and NEVER apply the floor to a binary gate (test-green, security must-fix).
+- **MANDATORY** enforce the **HARD round cap of 2 with NO extension — a ceiling, NEVER a target**: a clean pass ends the loop once the persisted `minRounds` is met (default 1; explicit 2 requires an independent pass). Round 2 is the LAST review round, so round 2 completing with ANY validated review blocker still open — CRITICAL, HIGH, MEDIUM, an unresolved `NOT VERIFIABLE`, or a failed non-test binary gate → **STOP & escalate by asking the user directly** with every open finding listed, never a silent PASS and never a round 3. The 2-repeated-no-progress blocker rule is an earlier exit — escalate at whichever trips first. A **failing test gate has NO round cap** — keep fixing and re-running until the tests pass, never forcing green; it never escalates for budget. NEVER loop past round 2 on review blockers, and NEVER re-tier a finding to steer what the cap does.
 
-<!-- /SYNC:double-round-trip-review:reminder -->
+<!-- /OVERRIDE:double-round-trip-review:reminder -->
 
 <!-- SYNC:graph-assisted-investigation:reminder -->
 
@@ -1496,7 +1594,7 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 
 <!-- SYNC:sequential-thinking-protocol:reminder -->
 
-**MUST ATTENTION** apply sequential-thinking — multi-step Thought N/M, REVISION/BRANCH/HYPOTHESIS markers, confidence % closer; see `$sequential-thinking` skill.
+**MUST ATTENTION** apply sequential-thinking — multi-step Thought N/M, REVISION/BRANCH/HYPOTHESIS markers, confidence % closer.
 
 <!-- /SYNC:sequential-thinking-protocol:reminder -->
 
@@ -1610,20 +1708,20 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 
 ## Closing Reminders
 
-**IMPORTANT MUST ATTENTION Goal:** Block implementation until each plan is hallucination-free (existing-code claims have `file:line` proof) and implementation-ready (every phase is concrete and small enough to code immediately); recursively validate findings, fix only validated plan issues, and full-re-review until the round's exit bar is clear.
+**IMPORTANT MUST ATTENTION Goal:** Block implementation until each plan is hallucination-free (existing-code claims have `file:line` proof) and implementation-ready (every phase is concrete and small enough to code immediately); validate findings, fix only validated plan issues, and full-re-review until the round's exit bar is clear — within a HARD cap of 2 review rounds, escalating to the user instead of opening a round 3 (a failing test gate is outside that budget and loops until green).
 
 **IMPORTANT MUST ATTENTION Applicability:** review Dimension 0 before implementation detail. An embedded plan without the complete decomposition block/slice evidence, an explicit-roadmap plan without an approved milestone/scope/scenario chain, a framework plan without technical evidence, or an isolated plan without its reason/owner is BLOCKED.
 
-**IMPORTANT MUST ATTENTION Main steps (run in order, one task each):** Phase 0 detect plan type → Step 1 read `plan.md`/`goal.md`/all `phase-*.md` → Step 2 evaluate the 4 checklist groups (Validity · Correctness [Granularity + Anti-Hallucination + conditional Project Pattern Alignment + spec/TC coverage + Goal-Contract mapping] · Best Practices · Completeness) + 11 Adversarial techniques + Anti-Bias Gate + 9 Plan Dimensions + graph-trace each modified file → Step 3 score PASS/WARN/FAIL → Step 4 output result → Step 5 recursive `$why-review`-validate → fix validated blocking findings → full re-review until the current round's exit bar is clear (round 1: zero findings; round 2: zero CRITICAL/HIGH/MEDIUM, LOW deferred) — why: AI keeps forgetting the skill's own step pipeline; this is the read-this-if-nothing-else order.
+**IMPORTANT MUST ATTENTION Main steps (run in order, one task each):** Phase 0 detect plan type → Step 1 read `plan.md`/`goal.md`/all `phase-*.md` → Step 2 dispatch the Parallel Review Wave in ONE message (unconditional `$why-review` rationale sub-agent + triggered lens sub-agents) and meanwhile evaluate the 4 checklist groups (Validity · Correctness [Granularity + Anti-Hallucination + conditional Project Pattern Alignment + spec/TC coverage + Goal-Contract mapping] · Best Practices · Completeness) + Adversarial Techniques 1-6 + 11 + 9 Plan Dimensions + graph-trace each modified file → all-return barrier, merge why-review (Techniques 7-10) + lens reports, close the Anti-Bias Gate → Step 3 score PASS/WARN/FAIL → Step 4 output result → the **Findings Validation Gate** + **Recursive Fix-and-Review Protocol**: `$why-review --validate-findings` → fix validated blocking findings → full re-review until the current round's exit bar is clear (round 1: zero findings; round 2: zero CRITICAL/HIGH/MEDIUM, LOW deferred) — why: AI keeps forgetting the skill's own step pipeline; this is the read-this-if-nothing-else order.
 
-**IMPORTANT MUST ATTENTION Impact-aware review:** before scoring, derive every affected surface, run its required review lens (`$ui-review` for frontend, `$domain-entities-review` for entity changes, plus backend, data, security, integration, E2E, performance, dependency, or framework review when triggered), and record evidence for every N/A row — why: base-plan quality cannot catch a specialist concern that was never selected.
+**IMPORTANT MUST ATTENTION Impact-aware review:** before scoring, derive every affected surface, run its required review lens (`$ui-review` for frontend, `$domain-entities-review` for entity changes, plus backend, data, security, integration, E2E, performance, dependency, or framework review when triggered) as sub-agents in the same wave as the always-on `$why-review` rationale sub-agent, and record evidence for every N/A row — why: base-plan quality cannot catch a specialist concern that was never selected.
 
 **IMPORTANT MUST ATTENTION** Protocols in force (concise digest of the SYNC/shared blocks this skill carries) — each line is a signpost to its canonical body above; NEVER treat the digest as a substitute for the full block, and ALWAYS apply every protocol below in full:
 
 - **Behavioral Delta Matrix:** bugfix reviews need input × pre × post × delta table before verdict.
 - **Graph-Assisted Investigation:** run one graph command on key files when graph.db exists.
 - **Cross-Service Check:** scan producers, consumers, sagas, contracts; missing consumer = silent regression.
-- **Fresh Context Review:** spawn zero-memory sub-agent re-reading from scratch after each fix cycle.
+- **Fresh Context Review:** spawn zero-memory sub-agents (core + `$why-review` rationale + lenses) re-reading from scratch after each fix cycle.
 - **Nested Task Creation:** expand child phase tasks; link the parent workflow row when nested.
 - **Task Tracking & External Report:** bootstrap task breakdown; persist findings to `tmp/reports/` incrementally.
 - **Critical Thinking:** every claim needs traced `file:line` proof; never present guess as fact.
@@ -1635,16 +1733,16 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 - **Review Protocol Injection:** embed all 11 protocol bodies verbatim into every fresh review prompt.
 - **AI Mistake Prevention:** verify generated content against evidence, trace downstream references, verify all affected outputs, re-read after context loss, surface ambiguity.
 - **Severity Rubric:** classify Critical/High/Medium/Low by consequence using `SYNC:severity-rubric`; round 1 blocks on every validated finding, round 2 blocks only CRITICAL/HIGH/MEDIUM, and LOW is recorded/deferred. Failed binary gates always block.
-- **Parallel Sub-Agent Dispatch:** Tag tasks PAR/SEQ, group PAR into disjoint-write-set waves, spawn each wave in ONE message, barrier before advancing.
+- **Parallel Sub-Agent Dispatch:** Tag tasks PAR/SEQ, group PAR into disjoint-write-set waves, spawn each wave in ONE message, barrier before advancing — every plan-review pass is one such wave with the `$why-review` rationale sub-agent always a member.
 
-**IMPORTANT MUST ATTENTION** review as SKEPTIC not validator — your job: find what cannot work, not confirm what looks right; run the full Anti-Bias Gate (reality check, assumption stress-test, pre-mortem, steel-man rejected alternative, contrarian pass) BEFORE any verdict — why: confirmation bias rubber-stamps well-structured plans.
+**IMPORTANT MUST ATTENTION** review as SKEPTIC not validator — your job: find what cannot work, not confirm what looks right; run the full Anti-Bias Gate (reality check, assumption stress-test, pre-mortem, contrarian pass in the core pass; steel-man rejected alternative, unseen alternative, pros/cons symmetry from the merged `$why-review` wave report) BEFORE any verdict — why: confirmation bias rubber-stamps well-structured plans.
 **MANDATORY IMPORTANT MUST ATTENTION** Anti-Hallucination Gate — every plan claim about existing source code needs `file:line` proof (file exists, symbol grepped, behavior code-traced); "should be"/"probably"/"typically" about existing code = FAIL. Greenfield-only plans → PASS.
 **MANDATORY IMPORTANT MUST ATTENTION** Conditional Project Pattern Alignment Gate — independently read `docs/project-config.json`, `docs-index-reference.md`, `lessons.md`, `code-review-rules.md`, and the frontend/backend pattern reference(s) triggered by plan scope; verify every major decision against the applicable documented pattern and source examples when implementation code exists (≥3 when 3 exist, otherwise explicit scarcity/N/A). Generic framework guidance, dead citations, stale docs, or unexplained deviation = FAIL.
 **MANDATORY IMPORTANT MUST ATTENTION** Granularity Gate "Detailed & Small Enough" — FAIL any phase >5 files OR >3h OR carrying planning verbs (research/determine/decide/evaluate/explore/investigate); too vague → detail it (file paths, exact method names), too big → break it into sibling phases/sub-plans — why: a plan you can't immediately code from is NOT ready.
 **MANDATORY IMPORTANT MUST ATTENTION** detect plan type FIRST (Phase 0) — bugfix MANDATES the Behavioral Delta Matrix (≥3 rows, ≥1 outside the bug report, any REGRESSION → FAIL until a preservation test covers it); security/perf/refactor/contract/infra each add their own focus.
 **MANDATORY IMPORTANT MUST ATTENTION** spec-loop scheduling — plan must schedule property/invariant test specs for every `[HARD]` §4 rule / §5 invariant + a MUTATION-SCORE quality bar; FAIL a plan targeting a line-coverage % instead of a mutation-score bar.
-**MANDATORY IMPORTANT MUST ATTENTION** when ANY finding exists, run `$why-review --validate-findings` BEFORE editing any `plan.md`/`phase-*.md`; fix ONLY validated blocking findings at the smallest responsible location, then restart the FULL review with a fresh zero-memory sub-agent — loop until the current round's bar is clear (round 1: zero findings; round 2: zero CRITICAL/HIGH/MEDIUM, LOW deferred); NEVER edit plan files before this gate passes — why: unvalidated fixes corrupt the plan and waste review rounds.
-**MANDATORY IMPORTANT MUST ATTENTION** round cap 2, extendable ONCE to round 3 — a CEILING, never a target: a clean pass ends the loop once the persisted `minRounds` is met; round 2 completing with a validated CRITICAL/HIGH still open grants exactly ONE extra round, and escalate by asking the user directly when the SAME blocker survives 2 consecutive full re-reviews with no progress, when round 2 completes with only MEDIUM/`NOT VERIFIABLE` open, when round 3 completes with findings still open, or when a finding needs product/owner judgment. NEVER loop past round 3 and NEVER convert cap exhaustion into a PASS.
+**MANDATORY IMPORTANT MUST ATTENTION** when ANY finding exists, run `$why-review --validate-findings` BEFORE editing any `plan.md`/`phase-*.md`; fix ONLY validated blocking findings at the smallest responsible location, then restart the FULL review wave with a fresh zero-memory core sub-agent + a fresh `$why-review` rationale sub-agent + triggered lenses — loop until the current round's bar is clear (round 1: zero findings; round 2: zero CRITICAL/HIGH/MEDIUM, LOW deferred); NEVER edit plan files before this gate passes — why: unvalidated fixes corrupt the plan and waste review rounds.
+**MANDATORY IMPORTANT MUST ATTENTION** round cap 2 — HARD, NO extension, a CEILING never a target: round 1 = initial review, round 2 = the single re-review after fixes, and for review blockers there is NEVER a round 3 (the canonical extension is refused here — see `OVERRIDE:review-policy`, `OVERRIDE:double-round-trip-review`, `OVERRIDE:fresh-context-review`, and the scope note on `SYNC:severity-rubric`). A failing TEST gate is the sole carve-out: it sits OUTSIDE the round budget and loops until green, never forcing green. A clean pass ends the loop once the persisted `minRounds` is met; escalate by asking the user directly — listing every open finding — when round 2 completes with ANY validated blocking finding open (CRITICAL, HIGH, MEDIUM, or an unresolved `NOT VERIFIABLE`), when the SAME blocker survives 2 consecutive full re-reviews with no progress, or when a finding needs product/owner judgment. NEVER open round 3, NEVER re-tier or weaken the bar to exit, and NEVER convert cap exhaustion into a PASS.
 **MANDATORY IMPORTANT MUST ATTENTION** bootstrap task tracking task breakdown BEFORE reads/grep/edits (one task per file read); persist findings to `tmp/reports/{skill}-{YYMMDD}-{HHmm}-{slug}.md` incrementally and synthesize from disk; add a final review task — why: long plan files exhaust context, the report file is ground truth.
 **MANDATORY IMPORTANT MUST ATTENTION** run a graph trace on each "files to modify" entry when `.code-graph/graph.db` exists; flag any downstream file NOT listed in the plan as "potentially missed" — why: catches cross-service/event-handler impact the author overlooked.
 **MANDATORY IMPORTANT MUST ATTENTION** Dimension 7 — Estimation Drift: re-derive `bottom_up_hours = Σ phase_hours` from the FINALIZED phase files per the carried `SYNC:estimation-framework` and compare against frontmatter. `|delta| > 20%` → frontmatter MUST carry `reestimate_delta_pct` + a 1-line `reestimate_reason`, and a missing update is a FAIL; `|delta| > 50%` → flag `SHOULD-RESCOPE` and surface the rescope decision to the user BEFORE implementation — why: pre-completion estimates anchor on a scope guess, and locked phases are the first place the real cost is visible.
@@ -1675,9 +1773,10 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 > change cost, reject it. Coupling, hidden state, duplicated knowledge, and
 > unclear intent are the real enemies — call them out by name.
 
-**IMPORTANT MUST ATTENTION Goal:** Block implementation until each plan is hallucination-free (existing-code claims have `file:line` proof) and implementation-ready (every phase is concrete and small enough to code immediately); recursively validate findings, fix only validated plan issues, and full-re-review until the round's exit bar is clear.
+**IMPORTANT MUST ATTENTION Goal:** Block implementation until each plan is hallucination-free (existing-code claims have `file:line` proof) and implementation-ready (every phase is concrete and small enough to code immediately); validate findings, fix only validated plan issues, and full-re-review until the round's exit bar is clear — within a HARD cap of 2 review rounds, escalating to the user instead of opening a round 3 (a failing test gate is outside that budget and loops until green).
 **IMPORTANT MUST ATTENTION** review as SKEPTIC — `file:line` proof for every existing-code claim; FAIL vague/oversized phases; bugfix → Behavioral Delta Matrix.
 **IMPORTANT MUST ATTENTION** validate findings via `$why-review --validate-findings` before editing plan files; fix only validated blocking findings; restart full review until the current round's exit bar is clear (round 1: zero findings; round 2: zero CRITICAL/HIGH/MEDIUM, LOW deferred).
+**IMPORTANT MUST ATTENTION** EVERY review pass (round 1 and every re-review) is ONE parallel wave: core pass + an UNCONDITIONAL full-mode `$why-review` rationale sub-agent over `plan.md`/`goal.md`/`phase-*.md` + each triggered lens sub-agent, spawned in ONE message; wait for ALL, merge, then verdict — the why-review member is never N/A, and a missing return means re-dispatch or inline rationale lens, never a silent PASS; no sub-agent capability → run the same members inline sequentially and record `host/sub-agent fan-out unavailable → inline fallback`.
 
 <!-- CODEX:SYNC-PROMPT-PROTOCOLS:START -->
 ## Static Prompt Protocol Mirror (Auto-Synced)
@@ -1721,7 +1820,9 @@ Source: `.claude/skills/shared/sync-inline-versions.md`
 - **MANDATORY** Code-to-spec extraction is reference-only until canonical acceptance; any supported AI tool may execute with synced context.
 - **MANDATORY** Update `.claude` source before syncing generated mirrors; do not manually edit `.agents`, `.codex`, or `AGENTS.md`.
 - **MANDATORY** Missing or stale project config, root instruction files, or required reference docs route project-specific work through `$project-init` or the narrow setup route automatically.
-**[TASK-PLANNING] [MANDATORY]** BEFORE executing any workflow or skill step, create/update task tracking for all planned steps, then keep it synchronized as each step starts/completes.
+**[TASK-PLANNING] [MANDATORY]** BEFORE executing any workflow or skill step, create/update task tracking for all planned steps, analyze the task graph (output dependencies, shared write targets) into ordered parallel waves per PARALLELIZE before starting any task, then keep it synchronized as each step starts/completes.
+- **MANDATORY** Pin `Original goal:` before the first action and keep `User prompts this session: P1…Pn` current; re-read both at every step, before delegation, and after compaction.
+- **MANDATORY** Before claiming done, map the result to the original goal and every prompt (`P# → done | deferred | n/a`); never store secrets in them.
 ## [LESSON-LEARNED-REMINDER] [BLOCKING] Task Planning & Continuous Improvement — MANDATORY. Do not skip.
 
 Break work into small tasks (task tracking) before starting. Add final task: "Analyze AI mistakes & lessons learned".
@@ -1732,7 +1833,7 @@ Break work into small tasks (task tracking) before starting. Add final task: "An
 3. Write as a universal rule — strip project-specific names/paths/classes. Useful on any codebase.
 4. Consolidate: multiple mistakes sharing one failure mode → ONE lesson.
 5. **Recurrence gate:** "Would this recur in future session WITHOUT this reminder?" — No → skip `$learn`.
-6. **Auto-fix gate:** "Could `$code-review`/`$code-simplifier`/`$security-review`/`$lint` catch this?" — Yes → improve review skill instead.
+6. **Auto-fix gate:** "Could `$code-review`/`$code-simplifier`/`$security-review`/a linter catch this?" — Yes → improve review skill instead.
 7. BOTH gates pass → ask user to run `$learn`.
 **[CRITICAL-THINKING-MINDSET]** Apply critical thinking, sequential thinking. Every claim needs traced proof, confidence >80% to act.
 **Anti-hallucination principle:** Never present guess as fact — cite sources for every claim, admit uncertainty freely, self-check output for errors, cross-reference independently, stay skeptical of own confidence — certainty without evidence root of all hallucination.

@@ -1,5 +1,5 @@
 <!-- Last scanned: 2026-09-14 -->
-<!-- Last verified: 2026-09-14 (docs-update, impact-scoped) -->
+<!-- Last verified: 2026-09-16 (docs-update, impact-scoped) -->
 
 # Documentation Index Reference
 
@@ -17,8 +17,8 @@
 - Diff the broad `docs/**/*.md` set against the category union and expose every remainder.
 - Keep relationships and lookup paths real, unique, and traceable to the current tree.
 
-- 403 unique authored/tracked markdown files are indexed across 11 whitelist categories.
-- `docs/` contains 22 markdown files; the whitelist union leaves 0 uncategorized.
+- 289 unique authored/tracked markdown files are indexed across 11 whitelist categories.
+- `docs/` contains 25 markdown files; the whitelist union leaves 0 uncategorized.
 - Design System is a one-file subset of Project Reference and is counted once in the unique total.
 
 ## Workflow
@@ -35,7 +35,7 @@
 
 ## Documentation System
 
-403 unique authored/tracked markdown files across 11 indexed categories. Last scanned: 2026-09-14.
+289 unique authored/tracked markdown files across 11 indexed categories. Last scanned: 2026-09-14.
 
 | Category               | Verified count | Reproducible scope                                                                    |
 | ---------------------- | -------------: | ------------------------------------------------------------------------------------- |
@@ -43,13 +43,13 @@
 | Project Reference      |             18 | `docs/project-reference/**/*.md`                                                      |
 | Operations             |              0 | direct getting-started/deployment/operations/runbook/setup/install/configuration docs |
 | Design System          |              1 | `docs/project-reference/design-system/**/*.md`                                        |
-| Feature Specs          |              0 | `docs/specs/*/README.*.md`                                                            |
-| Spec Catalogs          |              0 | `docs/specs/*/INDEX.md`                                                               |
+| Feature Specs          |              2 | `docs/specs/*/README.*.md`                                                            |
+| Spec Catalogs          |              1 | `docs/specs/*/INDEX.md`                                                               |
 | Architecture Decisions |              2 | `docs/adr/**/*.md`                                                                    |
 | Templates              |              1 | `docs/templates/**/*.md`                                                              |
 | Release Notes          |              1 | `docs/release/**/*.md`                                                                |
-| Framework Docs         |             36 | `.claude/docs/**/*.md`                                                                |
-| Skill Markdown         |            342 | `rg --files .claude/skills -g '*.md'`                                                 |
+| Framework Docs         |             35 | `.claude/docs/**/*.md`                                                                |
+| Skill Markdown         |            226 | `rg --files .claude/skills -g '*.md'`                                                 |
 
 The unique total is the normalized union returned by `rg --files` for Root-Level Docs, all `docs/**/*.md`, Framework Docs, and Skill Markdown. Design System is nested inside Project Reference, so its count is informative rather than additive. Ignored dependency artifacts such as skill-local `.venv/` files are excluded.
 
@@ -60,7 +60,7 @@ easy-claude/
 ├── AGENTS.md                                      # Codex/agent instructions
 ├── CLAUDE.md                                      # Claude project instructions
 ├── README.md                                      # Project overview and adoption entry point
-├── docs/                                          # 22 markdown files
+├── docs/                                          # 25 markdown files
 │   ├── adr/                                       # 2 architecture decisions
 │   │   ├── 0001-skill-lifecycle.md
 │   │   └── 0002-canonical-count-metrics.md
@@ -84,18 +84,23 @@ easy-claude/
 │   │   ├── workflow-spec-test-code-cycle-reference.md
 │   │   └── design-system/README.md                # Design System subset
 │   ├── release/                                   # 1 release-note archive
+│   ├── specs/                                     # Canonical business Feature Specs
+│   │   └── ContextDelivery/                       # 2 Feature Specs + 1 bucket catalog
+│   │       ├── INDEX.md
+│   │       ├── README.PerFileConventionInjection.md
+│   │       └── README.SessionPromptLedger.md
 │   └── templates/                                 # 1 Feature Spec template
-├── .claude/docs/                                  # 36 framework docs
+├── .claude/docs/                                  # 35 framework docs
 │   ├── 18 direct framework guides
 │   ├── agents/                                    # 2
-│   ├── configuration/                             # 5
+│   ├── configuration/                             # 4
 │   ├── hooks/                                     # 3
 │   ├── skills/                                    # 2
 │   └── team-artifacts/templates/                  # 6
-└── .claude/skills/                                # 342 authored/tracked markdown assets
+└── .claude/skills/                                # 226 authored/tracked markdown assets
 ```
 
-Absent whitelist branches: Operations, Feature Specs, and Spec Catalogs.
+Absent whitelist branches: Operations only.
 
 ## Key Doc Relationships
 
@@ -154,8 +159,8 @@ Evidence: `README.md:395-401`, `CLAUDE.md:264-267`, `CLAUDE.md:357`, `CLAUDE.md:
 | Project Reference      | skill protocol overlays, project rules   | `docs/project-reference/skill-protocols-reference.md`               |
 | Design System          | tokens, components, app mapping          | `docs/project-reference/design-system/README.md`                    |
 | Operations             | getting started, deployment, runbook     | No authored Operations file                                         |
-| Feature Specs          | business capability specifications       | No Feature Spec bucket                                              |
-| Spec Catalogs          | bucket indexes, spec catalogs            | No Spec Catalog                                                     |
+| Feature Specs          | business capability specifications       | `docs/specs/ContextDelivery/README.*.md` (PFCI, SPL)                |
+| Spec Catalogs          | bucket indexes, spec catalogs            | `docs/specs/ContextDelivery/INDEX.md`                               |
 | Architecture Decisions | ADRs, architecture decisions             | `docs/adr/`                                                         |
 | Templates              | detailed Feature Spec template           | `docs/templates/detailed-feature-spec-template.md`                  |
 | Release Notes          | release history                          | `docs/release/`                                                     |
@@ -164,7 +169,7 @@ Evidence: `README.md:395-401`, `CLAUDE.md:264-267`, `CLAUDE.md:357`, `CLAUDE.md:
 
 ## Uncategorized Files
 
-None. A fresh broad `docs/**/*.md` scan returned 22 paths; the normalized union of Project Reference, Operations, Design System, Feature Specs, Spec Catalogs, Architecture Decisions, Templates, and Release Notes covered all 22.
+None. A fresh broad `docs/**/*.md` scan returned 25 paths; the normalized union of Project Reference, Operations, Design System, Feature Specs, Spec Catalogs, Architecture Decisions, Templates, and Release Notes covered all 25.
 
 ## Closing Reminders
 

@@ -1,6 +1,6 @@
 ---
 name: changes-review
-description: '[Code Quality] Use when reviewing current changes, staged or unstaged diffs, or branch-to-branch diffs.'
+description: '[Code Quality] Use when reviewing current changes, staged or unstaged diffs, or branch-to-branch diffs. Flag: --fix-loop reviews, fixes and re-reviews until converged.'
 ---
 
 > Codex compatibility note:
@@ -65,6 +65,7 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 - **Self-recursive loop is protocol-bound (goal-gated when available).** Standalone mode's FIRST action (Phase -1) binds the review loop as a standing protocol obligation you self-drive — and installs a `/goal` Stop-hook condition WHEN available — so stopping is BLOCKED until the loop converges. Findings are never auto-fixed on sight: validate (Phase 6 `$why-review --validate-findings`, an actual skill call) → SELF-FIX (Phase 7) → restart `$changes-review` from Phase 0 over the WHOLE updated diff (combined with prior fixes, not just the last fix), looping until one whole pass clears that round's exit bar — **zero findings in round 1, zero CRITICAL/HIGH/MEDIUM from round 2 (a LOW-only round ENDS the loop; list those LOWs as deferred, never fix-and-loop for them)**. Inside `$workflow-review-changes` you skip Phase -1, stop after the report, and hand findings to the parent (which owns the goal).
 - **When code changed, three delegated gates are MANDATORY:** Phase 3.5 `$code-simplifier` (clarity/maintainability), Phase 3.7 `$integration-test-review` Gate-7 coverage (every behavior change → covering test + spec TC), and — for every behavior change — Spec Drift Adjudication + the Dual-Feedback Ledger (the gap feeds BOTH spec AND tests).
 - **Docs-update is the unconditional terminal step.** Once the loop converges clean, Phase 8 `$docs-update` ALWAYS runs over the full changeset (deferred only to the parent inside the workflow).
+- **Optional `--fix-loop` mode (standalone-only) DECOUPLES find from fix.** Each round runs the default review pass INLINE report-only (Phase 0 → Phase 5, fresh task list, stop before Phase 6), then `$why-review --validate-findings` → `$fix` on validated blocking findings → a FRESH full re-review of the changed diff, under a Goal Contract and bound convergence loop (optional `/goal`). Exit bar, round cap 2 (+1 extension on an open round-2 CRITICAL/HIGH), uncapped failing tests, no-shrink/increasing-blocker escalation, and a terminal Phase 8 `$docs-update` all apply. No flag → default behavior unchanged. Full protocol in **Mode: Fix-Loop**.
 - **MUST ATTENTION — run ALL main phases in order (the steps AI keeps forgetting):** Phase -1 bind self-recursive review loop — protocol-primary, optional `/goal` gate when available (standalone, FIRST action) → 0 `$graph-blast-radius` → 0.1 change-context + full-pipeline trace (tier FE↔BE + cross-service/event) → 0.3 change-type risk tasks → 0.7 surface-detection dimension tasks → 0.8 parallel full-mode `$why-review` rationale sub-agent, spawned in the SAME batch as the 0.7 agents → 0.5 plan compliance → 1 collect diff + create report → 2 file-by-file review → 3 fresh-context gate (SKIP when findings exist) → 3.5 `$code-simplifier` (code diffs) → 3.7 `$integration-test-review` Gate-7 coverage (behavior diffs) → 4 finalize + Dual-Feedback Ledger → 5 docs triage → 6 `$why-review --validate-findings` → 7 self-fix + full restart from Phase 0 → 7.5 holistic full-mode `$why-review` → 8 `$docs-update` (unconditional terminal) — why: a skipped phase silently drops a guard (coverage, spec-drift, holistic review, or docs sync) and ships unreviewed work.
 
 > **Routing boundary:** This skill reviews a **git diff** — working-tree (default), staged, branch, or commit. For an explicit file-set or SHA-range review, processing received review feedback, or a pre-completion verification gate over already-known scope, use `code-review` instead.
@@ -82,22 +83,22 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 1. **Phase 0: Blast Radius** — Call `$graph-blast-radius` skill FIRST (if `.code-graph/graph.db` exists)
 2. **Phase 0.1: Change Context & Full-Pipeline Impact Trace (MANDATORY comprehension-first)** — Note the change context, then holistically trace the main affected area's full pipeline across BOTH boundaries — client↔server tier (FE↔BE) AND service/event/external — classifying each seam/touchpoint NONE/ADDITIVE/BREAKING (explicit N/A for single-tier or monolith)
 3. **Phase 0.3: Change Types** — Detect high-risk change types; create risk tasks
-4. **Phase 0.5: Plan Compliance** — Verify against active plan (conditional)
-5. **Phase 0.7: Surface Detection** — AI categorizes changed files; creates dimension tasks
-6. **Phase 0.8: Parallel Rationale Review** — Spawn a full-mode `$why-review` sub-agent in the SAME parallel batch as the 0.7 dimensional agents; its findings merge into the Phase 4 final evaluation (standalone-only)
+4. **Phase 0.7: Surface Detection** — AI categorizes changed files; creates dimension tasks
+5. **Phase 0.8: Parallel Rationale Review** — Spawn a full-mode `$why-review` sub-agent in the SAME parallel batch as the 0.7 dimensional agents; its findings merge into the Phase 4 final evaluation (standalone-only)
+6. **Phase 0.5: Plan Compliance** — Verify against active plan (conditional)
 7. **Phase 1: Collect** — Run git status/diff, create report file
 8. **Phase 2: File Review** — Review each changed file, update report incrementally
 9. **Phase 3: Fresh-Context Gate** — Skip when findings already exist; run a second-round sub-agent only for an explicit user/workflow/high-risk synthesis trigger
 10. **Phase 3.5: Code-Simplifier Optimization (MANDATORY when code files changed)** — Invoke `$code-simplifier` scoped to the changed code files to surface clarity/consistency/maintainability simplifications; record them as findings that flow into the same validation/fix loop (skip docs-only diffs)
 11. **Phase 3.7: Integration-Test-Review Coverage Gate (MANDATORY when behavior-bearing code changed)** — Invoke `$integration-test-review` over the full diff; its 8 quality gates audit changed tests AND its Gate 7 (Change Coverage) maps every behavior-changing production file to a covering test (integration-first; unit fallback needs justification) and a spec TC. GAP/SPEC-GAP results become findings for the same validation/fix loop (skip docs-only diffs; deferred to the parent's dedicated step inside `$workflow-review-changes`)
 12. **Phase 3.8: Domain Entity Gate (MANDATORY when the diff touches an entity/VO/aggregate)** — Apply `SYNC:domain-entity-change-gate` over the changed domain types; Mode A reviews inline, Mode B delegates to `$domain-entities-review` (its A–P checklist owns the gate). Findings flow into the same validation/fix loop (skip when no domain-entity surface)
-12.5. **Phase 3.9: Conditional E2E Quality Gate (MANDATORY only when Phase 0.7 detects an executable E2E/browser/user-flow surface)** — Invoke `$e2e-test-verify` report-only over the fixed E2E scope; apply the shared GWT/invariant and quality-gate record; findings flow into the same validation/fix loop (skip with evidence-backed `NOT-APPLICABLE` when no trigger)
-13. **Phase 4: Finalize** — Generate critical issues, recommendations, suggested commit message
-14. **Phase 5: Docs Triage** — Record stale-doc findings for validation/fix loop
-15. **Phase 6: Why-Review Findings Validation (standalone-only; REQUIRED before any standalone fix)** — Whenever the report contains one or more findings, you MUST invoke the `$why-review` skill (an actual skill invocation-tool call) with `--validate-findings` to verify every finding is correct, proof-backed, reasonable, and best-practice before fixing. This is a genuine skill invocation — re-reading the cited lines yourself, "self-validating," or any inline/manual substitute does NOT satisfy this gate. When this skill is step 1 inside `$workflow-review-changes`, stop after the report; parent step 2 owns findings validation.
-16. **Phase 7: Recursive Fix + Full Re-Review Loop (standalone-only)** — If validated findings that block the current round remain in standalone mode, auto-fix those findings, then re-invoke `$changes-review` from Phase 0 with a fresh task breakdown over the full current diff; repeat until an entire review pass clears that round's exit bar — **zero findings in round 1, zero CRITICAL/HIGH/MEDIUM from round 2 (a LOW-only round ENDS the loop; list those LOWs as deferred, never fix-and-loop for them)**. When inside `$workflow-review-changes`, parent steps 10-15 own plan/feature-implement/restart.
-17. **Phase 7.5: Holistic Standalone Full-Mode Why-Review Gate (standalone-only)** — Once the dimensional review/fix loop converges clean, invoke `$why-review` in **FULL mode** (NOT `--validate-findings`) ONCE over the WHOLE review target combined with the current changes as a single artifact — a real standalone `$why-review` call, the same as a user running `$why-review` against the target directly. The per-file/per-dimension reviewers and the Phase 6 validate-findings gate routinely miss holistic design-rationale and whole-package issues that a standalone full-mode review catches. If it surfaces findings, fix only those that block the current round and re-run Phase 7.5 (run→fix→run) until a full-mode pass clears that round's exit bar — **zero findings in round 1, zero CRITICAL/HIGH/MEDIUM from round 2 (a LOW-only round ENDS the loop; list those LOWs as deferred, never fix-and-loop for them)**. When inside `$workflow-review-changes`, SKIP this — the parent workflow's dedicated standalone `$why-review` step (step 13) owns the holistic pass.
-18. **Phase 8: Mandatory Final Docs-Update Gate (MANDATORY — runs once the review/fix loop clears its current exit bar)** — After the review reaches zero blocking findings for the current round (round 1: zero findings; round 2: zero CRITICAL/HIGH/MEDIUM, with LOW deferred) and all required fixes are applied, ALWAYS invoke `$docs-update` over the full changeset so no stale docs survive. This is unconditional (not gated on a flagged finding) — `$docs-update` independently detects impacted docs the review may not have surfaced. When inside `$workflow-review-changes`, the parent workflow's `$docs-update` step owns this; do not run it locally.
+13. **Phase 3.9: Conditional E2E Quality Gate (MANDATORY only when Phase 0.7 detects an executable E2E/browser/user-flow surface)** — Invoke `$e2e-test-verify` report-only over the fixed E2E scope; apply the shared GWT/invariant and quality-gate record; findings flow into the same validation/fix loop (skip with evidence-backed `NOT-APPLICABLE` when no trigger)
+14. **Phase 4: Finalize** — Generate critical issues, recommendations, suggested commit message
+15. **Phase 5: Docs Triage** — Record stale-doc findings for validation/fix loop
+16. **Phase 6: Why-Review Findings Validation (standalone-only; REQUIRED before any standalone fix)** — Whenever the report contains one or more findings, you MUST invoke the `$why-review` skill (an actual skill invocation-tool call) with `--validate-findings` to verify every finding is correct, proof-backed, reasonable, and best-practice before fixing. This is a genuine skill invocation — re-reading the cited lines yourself, "self-validating," or any inline/manual substitute does NOT satisfy this gate. When this skill is step 1 inside `$workflow-review-changes`, stop after the report; parent step 3 (`$why-review --validate-findings` over the step-1 findings) owns findings validation.
+17. **Phase 7: Recursive Fix + Full Re-Review Loop (standalone-only)** — If validated findings that block the current round remain in standalone mode, auto-fix those findings, then re-invoke `$changes-review` from Phase 0 with a fresh task breakdown over the full current diff; repeat until an entire review pass clears that round's exit bar — **zero findings in round 1, zero CRITICAL/HIGH/MEDIUM from round 2 (a LOW-only round ENDS the loop; list those LOWs as deferred, never fix-and-loop for them)**. When inside `$workflow-review-changes`, parent steps 12-15 (`$plan` → `$plan-review` → `$plan-execute` → inline `$changes-review` re-review) own plan/fix/restart.
+18. **Phase 7.5: Holistic Standalone Full-Mode Why-Review Gate (standalone-only)** — Once the dimensional review/fix loop converges clean, invoke `$why-review` in **FULL mode** (NOT `--validate-findings`) ONCE over the WHOLE review target combined with the current changes as a single artifact — a real standalone `$why-review` call, the same as a user running `$why-review` against the target directly. The per-file/per-dimension reviewers and the Phase 6 validate-findings gate routinely miss holistic design-rationale and whole-package issues that a standalone full-mode review catches. If it surfaces findings, fix only those that block the current round and re-run Phase 7.5 (run→fix→run) until a full-mode pass clears that round's exit bar — **zero findings in round 1, zero CRITICAL/HIGH/MEDIUM from round 2 (a LOW-only round ENDS the loop; list those LOWs as deferred, never fix-and-loop for them)**. When inside `$workflow-review-changes`, SKIP this — the parent workflow's dedicated standalone `$why-review` step (step 16) owns the holistic pass.
+19. **Phase 8: Mandatory Final Docs-Update Gate (MANDATORY — runs once the review/fix loop clears its current exit bar)** — After the review reaches zero blocking findings for the current round (round 1: zero findings; round 2: zero CRITICAL/HIGH/MEDIUM, with LOW deferred) and all required fixes are applied, ALWAYS invoke `$docs-update` over the full changeset so no stale docs survive. This is unconditional (not gated on a flagged finding) — `$docs-update` independently detects impacted docs the review may not have surfaced. When inside `$workflow-review-changes`, the parent workflow's `$docs-update` step owns this; do not run it locally.
 
 **Key Rules:**
 
@@ -243,6 +244,8 @@ Before starting, call task tracking with:
 
 Update todo status as each phase completes.
 
+> **`--fix-loop`:** plan the Fix-Loop Step 0 → Step 3 tasks first; inside every round create this Phase 0 → Phase 5 list FRESH and omit Phase -1 and Phases 6-8 (the mode's own steps own them).
+
 > **Note:** If Phase 1 reveals 10+ changed files, replace Phase 2-4 tasks with Systematic Review Protocol tasks:
 > `[Review Phase 2] Categorize and fire parallel sub-agents`, `[Review Phase 3] Synchronize and cross-reference`, `[Review Phase 3.5] Run $code-simplifier on changed code files`, `[Review Phase 3.7] Run $integration-test-review coverage gate`, `[Review Phase 4] Generate consolidated report`
 
@@ -254,6 +257,7 @@ Update todo status as each phase completes.
 
 - **Run** in standalone invocation (user called `$changes-review` directly).
 - **SKIP** when this skill is invoked as step 1 inside `$workflow-review-changes` — the parent workflow owns the loop goal (its own Phase -1 / step-0 goal gate). Record: `Phase -1 deferred to parent $workflow-review-changes goal gate.`
+- **SKIP** when `--fix-loop` is set — Fix-Loop Step 0b owns the single convergence binding and every round's review pass is report-only. Record: `Phase -1 deferred to --fix-loop Step 0b.`
 
 **Procedure:**
 
@@ -1084,6 +1088,113 @@ If `architectureRules` not present in project-config.json, skip silently.
 
 ---
 
+## Mode: Fix-Loop (`--fix-loop`)
+
+**Trigger:** `$changes-review --fix-loop [scope]`. Optional; standalone-only. Without the flag, every phase above runs exactly as documented. When this skill is step 1 inside `$workflow-review-changes`, the parent boundary wins — ignore the flag and record `--fix-loop ignored — parent $workflow-review-changes owns the loop`.
+
+**Goal:** Drive a fixed diff scope to a **clean pass** by DECOUPLING find from fix — each round runs this skill's default review pass INLINE in **report-only mode** to surface findings, validates them with `$why-review --validate-findings`, hands the VALIDATED blocking findings to a dedicated `$fix` half at the owning layer, then loops with a FRESH full review pass over the CHANGED diff — stopping when a complete review pass clears the round's exit bar: **zero validated findings** in round 1, and **zero validated CRITICAL/HIGH/MEDIUM** from round 2 (LOW-only ENDS the loop, deferred not fixed).
+
+**Why this mode exists:** the default standalone path COUPLES find + fix inside one invocation (Phase -1 binding → Phase 7 self-fix → restart) — the review and the fix share one context, one lens, and one confirmation bias. `--fix-loop` runs the review purely as a finder, validates the findings, gives them to `$fix` with its own intelligent routing at the lowest owning layer, then re-runs a **fresh full** review over the changed diff. That split plus the fresh-full re-review each round catches **fix-induced regressions** the coupled loop can rationalize away.
+
+**Mode summary:**
+
+- **Each round = report-only review pass + validate + `$fix`.** The pass is this skill's own default pass — Phase 0 → Phase 5 with a brand-new phase task list — run INLINE in this session and STOPPED after its findings report; it never re-invokes this skill with `--fix-loop`. The loop owns the validation gate and the `$fix` half, so the review pass never self-validates or self-fixes; one without the other never converges.
+- **Mode boundary (per round):** SKIP Phase -1 (Step 0b below owns the single convergence binding); RUN Phase 0 → Phase 5, including the review-producing Phases 0.8, 3.5, 3.7, 3.8, and 3.9 (report mode — they skip only inside `$workflow-review-changes`); STOP before Phase 6 / Phase 7 / Phase 7.5 / Phase 8. Step 1.3 owns validation, Step 1.4 owns fixing, and Step 3 runs the Phase 8 protocol once. Phase 7.5 does not run separately: every round's Phase 0.8 full-mode `$why-review` already reviews the CURRENT post-fix diff, so the converging round carries the holistic pass over the final package.
+- **Convergence:** stop ONLY when a **fresh full** review pass over the CURRENT (post-fix) diff clears the round's exit bar — not a stale clean report predating the last fix.
+- **Severity floor — from round 2, LOW stops blocking.** Same floor as the default Key Rules and `SYNC:severity-rubric`: never open another round to fix LOW alone; list every deferred LOW in the recap and Goal Contract, and NEVER re-tier a real CRITICAL/HIGH/MEDIUM down to LOW to reach the exit.
+- **Inline invariant:** run the review pass and `$why-review` in the main session (`$why-review` via the skill invocation), NEVER the `spawn_agent` tool — a sub-agent cannot own or carry back this loop's convergence obligation. The pass's own Phase 0.7/0.8 reviewers stay sub-agents by design, so context stays bounded.
+- **Apply ONLY validated findings:** every finding is validated to the ≥85% survival bar via `$why-review --validate-findings` before `$fix` touches it; apply THOSE at the lowest owning layer (Entity > Service > Handler), routed by change type — NEVER unvalidated findings.
+- **Scope base is FIXED; the working tree grows.** Recompute the diff scope each round (`branch-diff base` ∪ current uncommitted changes) so convergence is measured against a stable subject as fixes accumulate.
+- **Bounded:** round cap default 2 plus one conditional extension to round 3, granted ONLY when round 2 leaves a validated CRITICAL/HIGH open (round 3 is the review hard cap); a failing test gate has NO round cap — keep fixing and re-running until the tests pass; review blockers not shrinking across 2 rounds, or the budget spent with CRITICAL/HIGH/MEDIUM still open → **STOP & escalate** by asking the user directly. Increasing review blockers → STOP (fixes regressing). Both count-based stops are checked only after the round-2 CRITICAL/HIGH extension, which is granted first.
+- **Round cap (default 2, extendable ONCE to 3)** and **review-blockers-not-shrinking / increasing → STOP & escalate** by asking the user directly. NEVER loop open-ended. Round 3 is granted only when round 2 leaves a validated CRITICAL/HIGH open (a failed non-test binary gate counts as CRITICAL), is checked before the count-based stops, never renews, and round 2 blocked by MEDIUM alone escalates instead. A failing test gate is never capped: the loop keeps fixing and re-running until the tests pass. Cap exhaustion escalates only when CRITICAL/HIGH/MEDIUM remain — a LOW-only round converges via the severity floor.
+- **The severity floor bounds ITERATION, never the standard.** It ends the loop; it never authorizes shipping a known CRITICAL/HIGH/MEDIUM, never lowers the ≥85% finding-survival bar, and never applies to a binary gate (a failing test is a failure, not a LOW finding).
+
+**Mode sequence:** Step 0 (resolve diff scope + Goal Contract) → Step 0b (bind the convergence loop: protocol loop primary + optional `/goal` accelerator) → Step 1 (round loop: report-only review pass INLINE → `$why-review --validate-findings` → `$fix` on validated blocking findings → log) → Step 2 (converge when a fresh review clears the round's bar / escalate on non-progress) → Step 3 (terminal Phase 8 `$docs-update` + recap).
+
+### Fix-Loop First Principle — Convergence, Not Motion
+
+> A round that changes the diff is progress **only if** the next fresh review finds fewer things to fix.
+> The loop exists to reach a fixed point (no blocking findings), not to keep editing the code.
+> The bar tightens by round: everything blocks in round 1; from round 2 only CRITICAL/HIGH/MEDIUM block, so a LOW-only round is the fixed point.
+> If findings stop shrinking, that is a signal to **escalate**, not to spin another round — except the one round-2 CRITICAL/HIGH extension, which is granted first.
+
+### Fix-Loop Step 0 — Resolve Diff Scope + Goal Contract (FIRST ACTION)
+
+1. **Parse the review scope** from the user prompt into a stable, reusable scope string — exactly the diff kinds in [Review Scope](#review-scope). It has two parts UNIONed:
+   - **Branch-diff base** — a branch-to-branch or PR diff (e.g. `git diff develop...HEAD`, three-dot: changes on the feature branch since it forked from `develop`) so the base is a **fixed merge-base**, not a moving target. If the prompt names a commit range, capture it the same way.
+   - **Current changes** — the uncommitted working-tree changes (`git status --porcelain`, `git diff` + `git diff --staged`).
+   - **Scope string (recompute each round):** `{branch-diff base} ∪ {current uncommitted changes}`. The base commit is fixed for the whole loop; the uncommitted set legitimately grows as fixes land.
+   - If the prompt names no branch diff (pure "current changes" review), the scope is just the working-tree changes — the loop still applies. **NEVER silently convert the diff source type.**
+2. **Resolve/create the Goal Contract** per `SYNC:goal-contract-satisfaction-loop` (`plans/goals/{YYMMDD-HHmm}-{slug}/goal.md`, template `.claude/templates/goal-contract-template.md`). Its single **required** Success Criterion:
+   > *A fresh full report-only review pass over `{scope}` clears the round's exit bar: **round 1** → **zero validated findings** (no finding of any severity survives the loop's `$why-review --validate-findings` gate); **round 2** → **zero validated CRITICAL/HIGH/MEDIUM findings**, with any remaining LOW findings recorded as deferred rather than fixed.*
+   Record the round cap (default 2, extendable once to 3 on an open CRITICAL/HIGH at round 2; failing test gates uncapped until green) and the scope string in **Constraints**.
+3. **Plan the loop tasks FIRST.** Create a todo-task plan enumerating every step and the planned rounds; a round MUST NOT start until that round's fresh task plan exists, and every new round REGENERATES it — NEVER reuse the prior round's task list.
+
+### Fix-Loop Step 0b — Bind the Convergence Loop (protocol-first; `/goal` is an optional accelerator)
+
+The convergence loop is bound by TWO layers. The **protocol loop (Steps 1–2) is the BINDING mechanism** and MUST be self-driven by you, the running agent, on every host — with or without any command or hook. The **`/goal` command is an OPTIONAL accelerator** layered on top; it is never the primary mechanism, and its absence NEVER weakens the loop.
+
+**1. Protocol loop — ALWAYS binding (hook/command-independent).** You are personally responsible for not stopping until the loop converges or bounded-escalates. This binds Claude, Codex, and Copilot equally, whether or not `/goal` exists:
+
+> Repeatedly run the report-only review pass (Phase 0 → Phase 5) INLINE over `{scope}` (recomputed each round). After each review, validate its findings with `$why-review --validate-findings`, apply only the VALIDATED findings that block the current round via `$fix` at their owning layer, then re-run a FRESH full review pass over the CHANGED diff. Do NOT stop while the last review still produced findings that BLOCK at the current round's bar. Converge when a fresh full review pass clears that bar: **round 1** → zero validated findings; **round 2** → zero validated CRITICAL/HIGH/MEDIUM (LOW-only ENDS the loop, with the LOWs recorded as deferred). Cap at `{N=2}` rounds, extendable ONCE to round 3 only when round 2 leaves a validated CRITICAL/HIGH open (a failed non-test binary gate counts as CRITICAL); a failing test gate is outside the cap and the no-progress rule — keep fixing and re-running until the tests pass, never forcing green; if review blockers do not shrink across 2 consecutive rounds or increase (checked only after the round-2 CRITICAL/HIGH extension, which is granted first), or the review budget (round 2, or round 3 when extended) is spent with CRITICAL/HIGH/MEDIUM still open → STOP and escalate by asking the user directly. Never loop open-ended.
+
+Treat this as a standing obligation you re-read at every Step 2 checkpoint — NOT a one-time note you can rationalize away after the first fix cycle. The Goal Contract's required Success Criterion (Step 0) is its durable, host-independent record.
+
+**2. `/goal` command — invoke as an accelerator WHEN AVAILABLE.** If a `/goal` command exists and you are permitted to run it in this environment, ALSO invoke it (a real tool/command call, NOT a paraphrase, NOT a Goal Contract file substituted for it) with the SAME condition, so a session Stop hook mechanically enforces the loop:
+
+```
+/goal changes-review --fix-loop convergence loop: repeatedly run the report-only review pass (Phase 0 → Phase 5) INLINE over {scope} (recomputed each round). After each review, validate its findings with $why-review --validate-findings, apply only VALIDATED findings that block the current round via $fix at their owning layer, then re-run a FRESH full review pass over the CHANGED diff. If blocking validated findings>0 → apply fixes and run another round; if a fresh full review pass clears the round's bar (round 1: zero validated findings; round 2: zero validated CRITICAL/HIGH/MEDIUM, LOW-only counts as clear with the LOWs recorded as deferred) → CONVERGED, run the terminal Phase 8 $docs-update and clear the gate. Do NOT stop while the last review still produced blocking validated findings. Cap at {N=2} rounds, extendable ONCE to round 3 only when round 2 leaves a validated CRITICAL/HIGH open (a failed non-test binary gate counts as CRITICAL); a failing test gate is outside the cap and the no-progress rule — keep fixing and re-running until the tests pass, never forcing green; if review blockers do not shrink across 2 consecutive rounds or increase (checked only after the round-2 CRITICAL/HIGH extension, which is granted first), or the review budget (round 2, or round 3 when extended) is spent with CRITICAL/HIGH/MEDIUM still open → STOP and escalate by asking the user directly. Never loop open-ended.
+```
+
+The `/goal` Stop hook blocks stopping until the condition holds and auto-clears when met — do not tell the user to clear it.
+
+**If `/goal` is unavailable, unregistered, or not permitted** (e.g. Codex/Copilot, or a Claude run without the command): DO NOT error, DO NOT block, and DO NOT invent a stand-in gate. Record ONE line in the Goal Contract — `/goal accelerator unavailable — loop bound by protocol (Steps 1–2) + this Goal Contract` — and proceed. The protocol loop above plus the Goal Contract are the same gate, enforced by discipline instead of a hook.
+
+> **Nested gates (by design, safe):** the report-only pass skips Phase -1, so no inner self-fix gate is installed; THIS loop owns the single convergence gate. Each inner `$why-review --validate-findings` self-clears when that round's findings are all adjudicated. All self-clear on satisfaction — no orphaned gate. Do NOT tell the user to clear either.
+
+### Fix-Loop Step 1 — Round Loop (review → validate → `$fix` → log)
+
+Each round couples the two halves — **review to find, fix to resolve.** For each round `R` (starting at 1), do ALL of:
+
+1. **Snapshot before:** record the working-tree fingerprint — `git status --porcelain` + `git diff --stat`. This is the fixes-applied baseline for the round and the objective backstop for convergence detection (Step 2).
+2. **Run the report-only review pass INLINE** on the recomputed `{scope}`: a brand-new Phase 0 → Phase 5 task list, every changed file re-read from scratch (original changes AND prior-round fixes), the previous report treated as history only. STOP after the findings report (`tmp/reports/code-review-*.md`) — do NOT run Phase 6 validation, Phase 7 self-fix, Phase 7.5 holistic, or Phase 8 docs-update here. If the before-snapshot shows the pass mutated the working tree anyway, treat those edits as this round's fix half and skip Steps 1.3–1.4 for this round to avoid double-fixing; the next round's fresh pass still re-proves them.
+3. **Validate the findings — THE LOOP OWNS THIS GATE.** Run `$why-review --validate-findings <report-path>` INLINE via the skill invocation over the report the pass just produced, so every finding is confirmed correct, proof-backed, reasonable, and best-practice (≥85% survival bar) before any fix. Apply the Phase 6 protocol (reconcile the report, at most 1 re-do, then escalate). If the validated finding set is empty → no fix half is needed; go to Step 2, which converges only while no test gate is failing.
+4. **Run `$fix` on the validated blocking findings** (findings>0 only) — this is the half the loop owns. Resolve each validated blocking finding at its owning layer: code → `$fix` (its `--target` intelligent routing) or a direct edit at the lowest layer (Entity > Service > Handler); spec-drift (CODE-WRONG/SPEC-STALE/SPEC-SILENT) → route per the finding's Spec Drift Adjudication verdict (`$spec [update]` + `$spec [mode=tests]`); missing coverage (GAP/SPEC-GAP) → `$integration-test`; docs → defer to the terminal Step 3 docs-update; behavior-changing → honor the finding's Phase 4 Dual-Feedback Ledger (spec verdict + test action). Fix ONLY validated findings that block this round — never an unvalidated, demoted, or round-2 LOW-only finding.
+5. **Append an Iteration Log entry** to the Goal Contract: round number, validated findings count, files/artifacts changed this round (`file:line`), fixes applied, and remaining gaps.
+
+### Fix-Loop Step 2 — Convergence & Escalation Gate
+
+Evaluate after every round, **in this order — the first matching row decides** (rows (1), (4), (5) and (6) are the outcomes `SYNC:double-round-trip-review` and `review-policy.cjs` enforce; the count-based stops (2) and (3) are this loop's stricter exit on top of them, evaluated after the extension so they never pre-empt it; count only review blockers — validated findings at each round's own bar plus failed non-test binary gates, never failing test gates): (1) round 2 left a validated CRITICAL/HIGH review blocker open → the one extension round, even when the blocker count did not shrink; (2) review blockers increased vs the prior round → STOP & escalate; (3) review blockers are still open and did not shrink across 2 consecutive rounds → STOP & escalate (the EARLIER exit before the budget); (4) the review budget is spent with a review blocker still open (round 2 without a CRITICAL/HIGH, or round 3 and later) → STOP & escalate, even while a test gate is also red; (5) a test gate is failing and no review blocker is open → keep looping with no round cap, and never converge while it is red; (6) the current round bar is clear (LOW-only from round 2) and no test gate is failing → CONVERGED; (7) review blockers are open within budget and shrank (or this is round 1) → fix them and any failing test, then run the next round. A MATERIAL trade-off pauses the loop at any step before its fix lands.
+
+| Condition | Action |
+| --- | --- |
+| Fresh full review pass returned **zero validated findings** AND the working tree is unchanged by that final review pass AND no test gate is failing | **CONVERGED** → mark the required criterion PASS in the Goal Satisfaction matrix → clear the `/goal` gate → go to Step 3. |
+| Validated findings > 0 AND round `< N` AND findings shrank vs prior round | Apply the validated fixes (Step 1.4), recompute `{scope}`, then run round `R+1` (fresh full re-review of the changed diff). |
+| Review blockers are still open and did **not shrink** across 2 consecutive rounds (same/increasing count; failing tests excluded — they loop until green; a round-2 CRITICAL/HIGH takes the extension row first) | **STOP & escalate** by asking the user directly — a non-converging loop is a signal, not a reason to spin. |
+| Round `R ≥ 2` AND the fresh review's validated findings are **ALL LOW** (zero CRITICAL/HIGH/MEDIUM) AND no test gate is failing | **CONVERGED on the severity floor** → do NOT run another round for LOW alone → record every remaining LOW as a deferred finding in the recap + Goal Contract → mark the required criterion PASS → go to Step 3. |
+| Round 2 completed with a validated **CRITICAL or HIGH** still open | **ONE extension round is granted** → apply the validated fixes and run round 3 (fresh full re-review), even when the blocker count did not shrink. Granted once per loop; it never renews. A failed non-test binary gate counts as CRITICAL here. |
+| A **test gate** is failing (a suite that must actually pass) and no review blocker is open, at any round within or past the budget | **Keep looping — NO round cap.** Run the failed-test investigation gate, fix at the owning layer, re-run the tests, and continue past round 3 until they pass. NEVER weaken an assertion, add a skip, or relax a timeout to force green. A failing test never counts toward the no-progress escalation or the round-3 extension. |
+| Round cap `N` hit with CRITICAL/HIGH/MEDIUM still open — round 2 blocked by MEDIUM or an unresolved `NOT VERIFIABLE` alone, or round 3 (the review hard cap) blocked by any review blocker | **STOP & escalate** by asking the user directly — report the still-open findings; do not silently continue. (LOW-only at the cap converges via the severity-floor row above.) |
+
+> **Increasing review blockers = STOP.** If round `R` surfaces MORE review blockers (validated findings at its own bar plus failed non-test binary gates) than round `R-1`, the fixes are regressing the code — STOP and escalate immediately, unless round 2 left a validated CRITICAL/HIGH open, which takes the one extension round first. A LOW-only round 2 has zero review blockers, so it is never an increase. Never trade one fix for two new findings across rounds.
+
+### Fix-Loop Step 3 — Terminal Docs-Update + Recap
+
+1. **Terminal docs-update (MANDATORY once converged).** Each round's pass stopped before Phase 8, so run the **Phase 8 protocol** exactly once now — `$docs-update` INLINE over the full changeset, with any SPEC-STALE/SPEC-SILENT `$spec` updates first and its termination guarantee — once a fresh full review pass clears the round's exit bar (zero validated findings in round 1, or zero validated CRITICAL/HIGH/MEDIUM from round 2 onward with LOW deferred), so no stale docs survive.
+2. **Recap.** Emit a concise convergence recap: rounds run, validated findings per round (the shrinking sequence), the fixes applied at each round, the final zero-findings evidence, the deferred LOWs, and the Goal Satisfaction matrix (required criterion PASS). Point to each round's review report under `tmp/reports/` and the Goal Contract Iteration Log. Do NOT commit or push unless the user explicitly asks.
+
+### Fix-Loop Convergence Detection — Why a Fresh Full Re-Review Is Required
+
+A round converges ONLY when a review pass that ran over the **current, post-fix** diff clears the round's exit bar — zero validated findings in round 1, zero validated CRITICAL/HIGH/MEDIUM from round 2. Both properties are required because:
+
+- **Fresh over the changed diff** — a clean report from a review that predates the last fix proves nothing about the fix. Every applied fix invalidates the prior verdict (same rule as Phase 7); the loop MUST re-review after fixing, never reuse a stale clean report.
+- **Zero *validated* findings** — the loop's `$why-review --validate-findings` gate already dropped inflated/unproven findings below the ≥85% bar; convergence rides on that validated set, so the loop never chases a nit the review itself would demote.
+- **Working-tree unchanged backstop** — the objective `git`-diff comparison (Step 1.1 snapshot) confirms the converging review actually landed no fix; a "clean" verdict that still mutated files means the round DID fix things → run another round to re-prove clean.
+
+When validated findings remain but cannot be fixed (owner/product input needed) → **escalate**, do not loop. When a fix lands but the next fresh review still finds issues → run another round. Convergence is a fixed point, not a single clean read.
+
+---
+
 ## Next Steps
 
 **MANDATORY — NO EXCEPTIONS** after completing this skill, MUST use ask the user directly to present options. Do NOT skip because task seems "simple" or "obvious" — user decides:
@@ -1116,6 +1227,7 @@ If `architectureRules` not present in project-config.json, skip silently.
 | `$code-simplifier`         | **Quality-optimization dimension** — clarity/consistency/maintainability simplifications | Owned by this skill — invoked internally in Phase 3.5 (report mode) when the diff has code files; its findings flow through Phase 6 validation → Phase 7 fix |
 | `$domain-entities-review`  | **Domain entity gate (Phase 3.8)** — canonical owner of `SYNC:domain-entity-change-gate`; its Phase 2 A–P checklist IS the gate | Phase 3.8 Mode B, when the diff changes 3+ entity/VO/aggregate files; Mode A reviews inline against the same gate. Skip when the diff has no domain-entity surface |
 | `$code-review`             | **Code quality** — deeper review of changed code                            | Always follows changes-review quality pass                                                                  |
+| `$fix`                     | **Fix half of `--fix-loop`** — resolves validated blocking findings at the owning layer with its `--target` routing | Only in `--fix-loop` Step 1.4, after `$why-review --validate-findings`; the default path self-fixes in Phase 7 |
 
 ## Standalone Chain
 
@@ -1333,8 +1445,6 @@ changes-review (you are here)
 > **Stop conditions:** confidence <80% on any critical decision → escalate by asking the user directly · ≥3 revisions on same thought → re-frame the problem · branch count >3 → split into sub-task.
 >
 > **Implicit mode:** apply methodology internally without visible markers when adding markers would clutter the response (routine work where reasoning aids accuracy).
->
-> **Deep-dive:** see `$sequential-thinking` skill (`.claude/skills/sequential-thinking/SKILL.md`) for worked examples (API design, debugging, architecture), advanced techniques (spiral refinement, hypothesis testing, convergence), and meta-strategies (uncertainty handling, revision cascades).
 
 <!-- /SYNC:sequential-thinking-protocol -->
 
@@ -2207,7 +2317,7 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 
 <!-- SYNC:sequential-thinking-protocol:reminder -->
 
-**MUST ATTENTION** apply sequential-thinking — multi-step Thought N/M, REVISION/BRANCH/HYPOTHESIS markers, confidence % closer; see `$sequential-thinking` skill.
+**MUST ATTENTION** apply sequential-thinking — multi-step Thought N/M, REVISION/BRANCH/HYPOTHESIS markers, confidence % closer.
 
 <!-- /SYNC:sequential-thinking-protocol:reminder -->
 
@@ -2340,7 +2450,7 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 
 **IMPORTANT MUST ATTENTION Goal:** Review current working-tree, staged, branch, or commit diffs across code, docs, config, infra, and non-code artifacts — finding correctness bugs, flaws, missing updates, stale docs, and convention drift with evidence — so every reviewed change is defect-free, evidence-backed, convention-aligned, and synchronized with required tests/docs before handoff; when code files changed, also prove the code stays easy to change.
 
-**IMPORTANT MUST ATTENTION** follow the ordered review path: Phase -1 self-recursive loop → Phase 0 graph blast radius → Phase 0.1 full-pipeline trace → Phase 0.3 risk tasks → Phase 0.5 plan compliance → Phase 0.7 surface detection → Phase 0.8 rationale review → Phase 1 collect/report → Phase 2 file review → Phase 3 fresh-context gate → Phase 3.5 simplifier for code → Phase 3.7 behavior coverage → Phase 3.8 domain gate for entities → Phase 4 finalize → Phase 5 docs triage → Phase 6 why-review validation → Phase 7 validated fix/full restart → Phase 7.5 holistic why-review → Phase 8 docs-update.
+**IMPORTANT MUST ATTENTION** follow the ordered review path: Phase -1 self-recursive loop → Phase 0 graph blast radius → Phase 0.1 full-pipeline trace → Phase 0.3 risk tasks → Phase 0.7 surface detection → Phase 0.8 rationale review → Phase 0.5 plan compliance → Phase 1 collect/report → Phase 2 file review → Phase 3 fresh-context gate → Phase 3.5 simplifier for code → Phase 3.7 behavior coverage → Phase 3.8 domain gate for entities → Phase 4 finalize → Phase 5 docs triage → Phase 6 why-review validation → Phase 7 validated fix/full restart → Phase 7.5 holistic why-review → Phase 8 docs-update.
 
 **IMPORTANT MUST ATTENTION — Protocols in force (concise digest of the SYNC/shared blocks this skill carries; each line is a signpost to its canonical body above — MUST ATTENTION honor the full block, NEVER act on the digest alone):**
 
@@ -2454,6 +2564,9 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 > change cost, reject it. Coupling, hidden state, duplicated knowledge, and
 > unclear intent are the real enemies — call them out by name.
 
+**IMPORTANT MUST ATTENTION `--fix-loop` mode (optional, standalone-only; no flag → default unchanged):** (0) resolve the fixed diff scope + Goal Contract and plan the loop tasks → (0b) bind the convergence loop (protocol loop primary + optional `/goal` accelerator) → (1) round loop: report-only review pass INLINE (Phase 0 → Phase 5, fresh task list, stop before Phase 6) → `$why-review --validate-findings` → `$fix` on VALIDATED blocking findings at the owning layer → append Iteration Log → (2) converge when a FRESH full review pass over the post-fix diff clears the current round's bar (round 1: zero validated findings; round 2: zero validated CRITICAL/HIGH/MEDIUM, LOW deferred) with the working-tree-unchanged backstop / escalate on non-progress → (3) terminal Phase 8 `$docs-update` + recap; never commit or push unless asked.
+**IMPORTANT MUST ATTENTION** in `--fix-loop`, run the review pass and `$why-review` INLINE — NEVER as a sub-agent, NEVER re-invoke this skill with `--fix-loop` — regenerate a fresh loop task plan every round, apply ONLY validated findings, and keep the diff base fixed (`{scope}` = branch-diff base ∪ current uncommitted changes, recomputed each round).
+**IMPORTANT MUST ATTENTION** enforce the **round cap (default 2, extendable ONCE to round 3 when round 2 leaves a validated CRITICAL/HIGH open)** in `--fix-loop`; review blockers not shrinking across 2 rounds or increasing (checked only after the round-2 CRITICAL/HIGH extension, which is granted first), or the budget spent with blocking findings still open → **STOP & escalate** by asking the user directly. NEVER loop past round 3 on review blockers, or open-ended — only failing test gates continue, until green; round-2 LOW-only findings converge and are recorded as deferred.
 **IMPORTANT MUST ATTENTION** graph blast-radius runs first when `.code-graph/graph.db` exists.
 **IMPORTANT MUST ATTENTION** every claim needs `file:line` proof; every stale docs/tests decision needs evidence.
 **IMPORTANT MUST ATTENTION** ANY finding in standalone mode (Critical / High / Medium / OR Low) → you MUST invoke the `$why-review` skill via the skill invocation with `--validate-findings <report-path>` BEFORE any fix, docs-update, commit, or handoff; an actual skill call is the ONLY way to pass — inline self-validation, re-reading the cited lines, or declaring findings "already validated" do NOT count; task tracking the `[Review Phase 6]` gate the moment the first finding lands. Inside `$workflow-review-changes`, defer to parent step 2. — why: an unvalidated finding inherits the reviewer's confirmation bias and severity inflation, so fixing it before validation ships the wrong change.
@@ -2502,7 +2615,9 @@ Source: `.claude/skills/shared/sync-inline-versions.md`
 - **MANDATORY** Code-to-spec extraction is reference-only until canonical acceptance; any supported AI tool may execute with synced context.
 - **MANDATORY** Update `.claude` source before syncing generated mirrors; do not manually edit `.agents`, `.codex`, or `AGENTS.md`.
 - **MANDATORY** Missing or stale project config, root instruction files, or required reference docs route project-specific work through `$project-init` or the narrow setup route automatically.
-**[TASK-PLANNING] [MANDATORY]** BEFORE executing any workflow or skill step, create/update task tracking for all planned steps, then keep it synchronized as each step starts/completes.
+**[TASK-PLANNING] [MANDATORY]** BEFORE executing any workflow or skill step, create/update task tracking for all planned steps, analyze the task graph (output dependencies, shared write targets) into ordered parallel waves per PARALLELIZE before starting any task, then keep it synchronized as each step starts/completes.
+- **MANDATORY** Pin `Original goal:` before the first action and keep `User prompts this session: P1…Pn` current; re-read both at every step, before delegation, and after compaction.
+- **MANDATORY** Before claiming done, map the result to the original goal and every prompt (`P# → done | deferred | n/a`); never store secrets in them.
 ## [LESSON-LEARNED-REMINDER] [BLOCKING] Task Planning & Continuous Improvement — MANDATORY. Do not skip.
 
 Break work into small tasks (task tracking) before starting. Add final task: "Analyze AI mistakes & lessons learned".
@@ -2513,7 +2628,7 @@ Break work into small tasks (task tracking) before starting. Add final task: "An
 3. Write as a universal rule — strip project-specific names/paths/classes. Useful on any codebase.
 4. Consolidate: multiple mistakes sharing one failure mode → ONE lesson.
 5. **Recurrence gate:** "Would this recur in future session WITHOUT this reminder?" — No → skip `$learn`.
-6. **Auto-fix gate:** "Could `$code-review`/`$code-simplifier`/`$security-review`/`$lint` catch this?" — Yes → improve review skill instead.
+6. **Auto-fix gate:** "Could `$code-review`/`$code-simplifier`/`$security-review`/a linter catch this?" — Yes → improve review skill instead.
 7. BOTH gates pass → ask user to run `$learn`.
 **[CRITICAL-THINKING-MINDSET]** Apply critical thinking, sequential thinking. Every claim needs traced proof, confidence >80% to act.
 **Anti-hallucination principle:** Never present guess as fact — cite sources for every claim, admit uncertainty freely, self-check output for errors, cross-reference independently, stay skeptical of own confidence — certainty without evidence root of all hallucination.

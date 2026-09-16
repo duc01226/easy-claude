@@ -29,7 +29,7 @@ disable-model-invocation: false
 2. **Execute** — apply required steps with evidence-backed actions.
 3. **Verify** — confirm constraints, output quality, and completion evidence.
 
-**Ordered route:** `/investigate` → `/spec [mode=tests]` → `/why-review` → `/artifact-review --type=spec-tests` → `/integration-test` → `/integration-test-review` → `/integration-test-verify` → `/spec [mode=sync]` → `/docs-update` → `/workflow-end` → `/watzup`.
+**Ordered route:** `/investigate` → `/spec [mode=tests]` → `/artifact-review --type=spec-tests` → `/integration-test` → `/integration-test-review` → `/integration-test-verify` → `/spec [mode=sync]` → `/docs-update` → `/workflow-end` → `/watzup`.
 
 **Key Rules:**
 
@@ -42,7 +42,7 @@ disable-model-invocation: false
 - MUST ATTENTION verify integration suites with 2 consecutive passing runs without DB reset before declaring done.
 - NEVER skip mandatory workflow or skill gates.
 
-**IMPORTANT MANDATORY Steps:** /investigate -> /spec [mode=tests] -> /why-review -> /artifact-review --type=spec-tests -> /integration-test -> /integration-test-review -> /integration-test-verify -> /spec [mode=sync] -> /docs-update -> /workflow-end -> /watzup
+**IMPORTANT MANDATORY Steps:** /investigate -> /spec [mode=tests] -> /artifact-review --type=spec-tests -> /integration-test -> /integration-test-review -> /integration-test-verify -> /spec [mode=sync] -> /docs-update -> /workflow-end -> /watzup
 
 > **[BLOCKING]** Each step MUST ATTENTION invoke its `Skill` tool — marking a task `completed` without skill invocation is a workflow violation. NEVER batch-complete validation gates.
 
@@ -52,7 +52,7 @@ disable-model-invocation: false
 
 Activate the `workflow-write-integration-test` workflow. Run `/start-workflow workflow-write-integration-test` with the user's prompt as context.
 
-**Steps:** /investigate → /spec [mode=tests] → /why-review → /artifact-review --type=spec-tests → /integration-test → /integration-test-review → /integration-test-verify → /spec [mode=sync] → /docs-update → /workflow-end → /watzup
+**Steps:** /investigate → /spec [mode=tests] → /artifact-review --type=spec-tests → /integration-test → /integration-test-review → /integration-test-verify → /spec [mode=sync] → /docs-update → /workflow-end → /watzup
 
 ## Test Architecture Contract Handoff
 
@@ -76,12 +76,12 @@ Before `/integration-test`, `/investigate` must emit one evidence-backed contrac
 > **`/integration-test-review`** — 7-gate quality check (assertion value, data state, repeatability, domain logic, traceability, three-way sync, change coverage). Gate 7: every behavior-changing production file in the change set maps to a covering test (integration-first; unit fallback needs justification) AND a spec TC. Validate findings, fix only validated findings that block the current round, then restart the full integration-test review after fixes. Round 1 blocks on every validated severity; from round 2 onward CRITICAL/HIGH/MEDIUM remain blocking and LOW-only findings are recorded/deferred without another fix/review round. NEVER proceed with a blocking finding or failed binary gate outstanding; never relabel a material finding LOW to exit.
 > **`/integration-test-verify`** — Run tests via `quickRunCommand` from `docs/project-config.json` for 2 consecutive runs without DB reset. Report exact pass/fail counts with test runner output. NEVER mark complete without real output.
 > **`/spec [mode=sync]`** — Sync §8 TCs ↔ executing test code (`docs/specs/`). Update each TC's `CoveredBy` field with **all** covering `{File}::{MethodName}` links (one TC → many tests, 1:N; a test-filter expression when the set is large). Coverage = ≥1 annotation-tagged test; never force one test per TC.
-> **`/docs-update`** — Update feature doc evidence fields, version history, and changelog if test coverage changed materially.
+> **`/docs-update`** — Update feature doc evidence fields and version history if test coverage changed materially.
 > **`/workflow-end`** + **`/watzup`** — Close workflow state, then summarize and run the final `/understand` handoff.
 
 ---
 
-**IMPORTANT MANDATORY Steps:** /investigate -> /spec [mode=tests] -> /why-review -> /artifact-review --type=spec-tests -> /integration-test -> /integration-test-review -> /integration-test-verify -> /spec [mode=sync] -> /docs-update -> /workflow-end -> /watzup
+**IMPORTANT MANDATORY Steps:** /investigate -> /spec [mode=tests] -> /artifact-review --type=spec-tests -> /integration-test -> /integration-test-review -> /integration-test-verify -> /spec [mode=sync] -> /docs-update -> /workflow-end -> /watzup
 
 <!-- SYNC:integration-test-execution-discipline -->
 
@@ -285,6 +285,20 @@ Before `/integration-test`, `/investigate` must emit one evidence-backed contrac
 
 <!-- /SYNC:severity-rubric -->
 
+<!-- SYNC:session-goal-ledger -->
+
+> **Session Goal Ledger** — Never lose the user's original request or any later prompt, however long the session runs. Hook-independent: binds every host; a prompt-ledger hook is only an accelerator.
+>
+> 1. **Pin before acting.** Before the first tool call, write `Original goal: <user's request, verbatim or faithfully condensed>` and keep it as the first task-list item. For workflow or plan work, copy it verbatim into the Goal Contract `## Original Request`.
+> 2. **Track every prompt.** Keep `User prompts this session: P1…Pn` — one line per user prompt or input, marked `extends` / `narrows` / `changes` / `answers`. A prompt that changes direction updates the goal explicitly — never silently.
+> 3. **Re-anchor.** Re-read the original goal and the prompt list at every workflow step, before delegating (the sub-agent brief carries the verbatim goal), and after compaction, resume, or a `[[prompt-ledger@…]]` reminder. When `tmp/prompt-ledger/<session>/ledger.md` exists it is the durable record — read it after compaction.
+> 4. **Verify before done.** Map the final result to the original goal and every prompt: `P# → done | deferred (reason) | not applicable`. An unaddressed prompt blocks completion.
+> 5. **Security.** NEVER copy secrets, tokens, or credentials into goal lines, task lists, briefs, or reports — redact them.
+>
+> **Blocked until:** original goal pinned · prompt list current · final result mapped to every prompt.
+
+<!-- /SYNC:session-goal-ledger -->
+
 <!-- SYNC:critical-thinking-mindset:reminder -->
 
 **MUST ATTENTION** apply critical + sequential thinking — every claim needs appropriate traced evidence (`file:line` for repo/code claims; source URL or artifact section for research, product, content, and docs claims); confidence >80% to act, <60% DO NOT recommend. Anti-hallucination: never present guess as fact, admit uncertainty freely, cross-reference independently, stay skeptical of own confidence.
@@ -357,12 +371,19 @@ Before `/integration-test`, `/investigate` must emit one evidence-backed contrac
 
 <!-- /SYNC:severity-rubric:reminder -->
 
+<!-- SYNC:session-goal-ledger:reminder -->
+
+- **MANDATORY** Pin `Original goal:` before the first action and keep `User prompts this session: P1…Pn` current; re-read both at every step, before delegation, and after compaction.
+- **MANDATORY** Before claiming done, map the result to the original goal and every prompt (`P# → done | deferred | n/a`); never store secrets in them.
+
+<!-- /SYNC:session-goal-ledger:reminder -->
+
 ## Closing Reminders
 
 **IMPORTANT MUST ATTENTION** Testability contract: resolve evidence-backed Unit/Integration/System/E2E rows, copy-ready full/focused commands, zero-match failures, owner/root/data, CI/simple-Windows entry, unique run identity, and repeat proof before claiming setup, review, or test completion.
 **IMPORTANT MUST ATTENTION Goal:** Write or update spec-first integration tests from canonical TCs, review them through seven quality gates, and prove the relevant suite passes twice consecutively without DB reset.
 
-**IMPORTANT MUST ATTENTION Main steps:** `/investigate` (read domain source first) → `/spec [mode=tests]` → `/why-review` → `/artifact-review --type=spec-tests` → `/integration-test` → `/integration-test-review` → `/integration-test-verify` (whole relevant suite, two runs, no DB reset) → `/spec [mode=sync]` → `/docs-update` → `/workflow-end` → `/watzup`. **NEVER** write smoke-only tests, bypass real-use-case setup, or declare verification without runner output.
+**IMPORTANT MUST ATTENTION Main steps:** `/investigate` (read domain source first) → `/spec [mode=tests]` → `/artifact-review --type=spec-tests` → `/integration-test` → `/integration-test-review` → `/integration-test-verify` (whole relevant suite, two runs, no DB reset) → `/spec [mode=sync]` → `/docs-update` → `/workflow-end` → `/watzup`. **NEVER** write smoke-only tests, bypass real-use-case setup, or declare verification without runner output.
 
 **Protocols in force (concise digest of the SYNC/shared blocks this skill carries):** MUST ATTENTION honor every protocol below — each is a signpost to its canonical body above.
 

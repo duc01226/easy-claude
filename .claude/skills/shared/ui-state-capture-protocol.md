@@ -28,7 +28,7 @@ Binds when an executable browser/UI E2E or human-QC surface exists **and** visua
 | --- | --- |
 | `e2e-test` / `e2e-runner` | Instruments the capture helper into the base page/component objects, declares the trigger set and bounds, emits the manifest |
 | `e2e-test-verify` | Report-only: verifies the manifest exists, is complete against the journey, and that captures were read; never repairs |
-| `e2e-test-verify-loop` | Runs the round, reconciles manifest vs records, feeds validated `BLOCKING` visual defects into the round's failure set, fixes the owning layer, reruns the same scope |
+| `e2e-test-verify --fix-loop` | Runs the round, reconciles manifest vs records, feeds validated `BLOCKING` visual defects into the round's failure set, fixes the owning layer, reruns the same scope |
 | `experience-review` | Opens and judges each capture, owns the per-case records, the taxonomy verdicts, and the synthesis |
 | `ui-review` | Receives the static source findings the images point at (tokens, BEM/SCSS, z-index, component ownership, reuse) |
 | `workflow-e2e` | Sequences the above and forwards the resolved `--visual-review` mode |

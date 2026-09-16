@@ -45,7 +45,7 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 
 **Goal:** Run the Code Refactoring workflow to restructure existing code without changing behavior, with evidence-backed planning, validation, spec/test/docs synchronization, and a clean final review.
 
-**Summary:** Investigate → plan/review/validate → why-review → execute the behavior-preserving refactor → update specs/tests → review and verify integration → review changes/changelog/test/entity scan → sync docs and close with evidence.
+**Summary:** Investigate → plan/review/validate → execute the behavior-preserving refactor → update specs/tests → review and verify integration → review changes → test → entity scan → sync docs and close with evidence.
 
 **Workflow:**
 
@@ -53,7 +53,7 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 2. **Execute** — apply required steps with evidence-backed actions.
 3. **Verify** — confirm constraints, output quality, and completion evidence.
 
-**Ordered route:** `$investigate` → `$plan` → `$plan-review` → `$plan-validate` → `$why-review` → `$plan-execute` → specs/tests → integration review/verification → changes review → changelog/test/entity scan → `$docs-update` → `$workflow-end` → `$watzup`.
+**Ordered route:** `$investigate` → `$plan` → `$plan-review` → `$plan-validate` → `$plan-execute` → specs/tests → integration review/verification → changes review → `$test` → entity scan → `$docs-update` → `$workflow-end` → `$watzup`.
 
 **Key Rules:**
 
@@ -66,7 +66,7 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 
 ---
 
-**IMPORTANT MANDATORY Steps:** $investigate -> $plan -> $plan-review -> $plan-validate -> $why-review -> $plan-execute -> $spec [mode=tests] -> $why-review -> $artifact-review --type=spec-tests -> $spec [mode=sync] -> $integration-test -> $integration-test-review -> $integration-test-verify -> $workflow-review-changes -> $changelog -> $test -> $scan --target=domain-entities -> $docs-update -> $workflow-end -> $watzup
+**IMPORTANT MANDATORY Steps:** $investigate -> $plan -> $plan-review -> $plan-validate -> $plan-execute -> $spec [mode=tests] -> $artifact-review --type=spec-tests -> $spec [mode=sync] -> $integration-test -> $integration-test-review -> $integration-test-verify -> $workflow-review-changes -> $test -> $scan --target=domain-entities -> $docs-update -> $workflow-end -> $watzup
 
 > **[EXPERIENCE ACCEPTANCE HANDOFF]** `$workflow-review-changes` carries the conditional `$experience-review` gate after refactor review convergence. Behavior-preservation evidence is exercised and inspected for affected observable surfaces; unchanged surfaces retain their accepted protection.
 
@@ -74,7 +74,7 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 
 Activate the `workflow-refactor` workflow. Run `$start-workflow workflow-refactor` with the user's prompt as context.
 
-**Steps:** $investigate → $plan → $plan-review → $plan-validate → $why-review → $plan-execute → $spec [mode=tests] → $why-review → $artifact-review --type=spec-tests → $spec [mode=sync] → $integration-test → $integration-test-review → $integration-test-verify → $workflow-review-changes → $changelog → $test → $scan --target=domain-entities → $docs-update → $workflow-end → $watzup
+**Steps:** $investigate → $plan → $plan-review → $plan-validate → $plan-execute → $spec [mode=tests] → $artifact-review --type=spec-tests → $spec [mode=sync] → $integration-test → $integration-test-review → $integration-test-verify → $workflow-review-changes → $test → $scan --target=domain-entities → $docs-update → $workflow-end → $watzup
 
 > **[CONDITIONAL TERMINAL DOMAIN-ENTITY REFERENCE REFRESH]** After `$test` and before `$docs-update`, run `$scan --target=domain-entities` to refresh the project-reference entity catalog only when the final diff changes an entity/model, DTO/data contract, persistence schema/migration, or entity-sync evidence represented in `docs/project-reference/domain-entities-reference.md`. Otherwise mark the scan step completed with a cited skip reason naming the changed files and why they are outside this scope; this is the explicitly authorized exception to the per-step skill-invocation rule.
 
@@ -84,7 +84,7 @@ Activate the `workflow-refactor` workflow. Run `$start-workflow workflow-refacto
 
 > **[IMPORTANT]** Analyze how big the task is and break it into many small todo tasks systematically before starting — this is very important.
 
-**IMPORTANT MANDATORY Steps:** $investigate -> $plan -> $plan-review -> $plan-validate -> $why-review -> $plan-execute -> $spec [mode=tests] -> $why-review -> $artifact-review --type=spec-tests -> $spec [mode=sync] -> $integration-test -> $integration-test-review -> $integration-test-verify -> $workflow-review-changes -> $changelog -> $test -> $scan --target=domain-entities -> $docs-update -> $workflow-end -> $watzup
+**IMPORTANT MANDATORY Steps:** $investigate -> $plan -> $plan-review -> $plan-validate -> $plan-execute -> $spec [mode=tests] -> $artifact-review --type=spec-tests -> $spec [mode=sync] -> $integration-test -> $integration-test-review -> $integration-test-verify -> $workflow-review-changes -> $test -> $scan --target=domain-entities -> $docs-update -> $workflow-end -> $watzup
 
 <!-- SYNC:nested-task-creation -->
 
@@ -187,6 +187,20 @@ Activate the `workflow-refactor` workflow. Run `$start-workflow workflow-refacto
 
 <!-- /SYNC:subagent-return-contract -->
 
+<!-- SYNC:session-goal-ledger -->
+
+> **Session Goal Ledger** — Never lose the user's original request or any later prompt, however long the session runs. Hook-independent: binds every host; a prompt-ledger hook is only an accelerator.
+>
+> 1. **Pin before acting.** Before the first tool call, write `Original goal: <user's request, verbatim or faithfully condensed>` and keep it as the first task-list item. For workflow or plan work, copy it verbatim into the Goal Contract `## Original Request`.
+> 2. **Track every prompt.** Keep `User prompts this session: P1…Pn` — one line per user prompt or input, marked `extends` / `narrows` / `changes` / `answers`. A prompt that changes direction updates the goal explicitly — never silently.
+> 3. **Re-anchor.** Re-read the original goal and the prompt list at every workflow step, before delegating (the sub-agent brief carries the verbatim goal), and after compaction, resume, or a `[[prompt-ledger@…]]` reminder. When `tmp/prompt-ledger/<session>/ledger.md` exists it is the durable record — read it after compaction.
+> 4. **Verify before done.** Map the final result to the original goal and every prompt: `P# → done | deferred (reason) | not applicable`. An unaddressed prompt blocks completion.
+> 5. **Security.** NEVER copy secrets, tokens, or credentials into goal lines, task lists, briefs, or reports — redact them.
+>
+> **Blocked until:** original goal pinned · prompt list current · final result mapped to every prompt.
+
+<!-- /SYNC:session-goal-ledger -->
+
 <!-- SYNC:nested-task-creation:reminder -->
 
 - **MANDATORY** Parent workflow rows do not replace child phase tracking; expand phases and link the parent when nested.
@@ -208,11 +222,18 @@ Activate the `workflow-refactor` workflow. Run `$start-workflow workflow-refacto
 
 <!-- /SYNC:project-protocol-overlay:reminder -->
 
+<!-- SYNC:session-goal-ledger:reminder -->
+
+- **MANDATORY** Pin `Original goal:` before the first action and keep `User prompts this session: P1…Pn` current; re-read both at every step, before delegation, and after compaction.
+- **MANDATORY** Before claiming done, map the result to the original goal and every prompt (`P# → done | deferred | n/a`); never store secrets in them.
+
+<!-- /SYNC:session-goal-ledger:reminder -->
+
 ## Closing Reminders
 
 **IMPORTANT MUST ATTENTION Goal:** Run the Code Refactoring workflow to restructure existing code without changing behavior, with evidence-backed planning, validation, spec/test/docs synchronization, and a clean final review.
 
-**IMPORTANT MUST ATTENTION Main steps:** `$investigate` → `$plan` → `$plan-review` → `$plan-validate` → `$why-review` → `$plan-execute` → `$spec [mode=tests]` → `$why-review` → `$artifact-review --type=spec-tests` → `$spec [mode=sync]` → `$integration-test` → `$integration-test-review` → `$integration-test-verify` → `$workflow-review-changes` → `$changelog` → `$test` → conditional `$scan --target=domain-entities` → `$docs-update` → `$workflow-end` → `$watzup`. **NEVER** skip behavior-preservation evidence, required gates, or conditional skip reasons.
+**IMPORTANT MUST ATTENTION Main steps:** `$investigate` → `$plan` → `$plan-review` → `$plan-validate` → `$plan-execute` → `$spec [mode=tests]` → `$artifact-review --type=spec-tests` → `$spec [mode=sync]` → `$integration-test` → `$integration-test-review` → `$integration-test-verify` → `$workflow-review-changes` → `$test` → conditional `$scan --target=domain-entities` → `$docs-update` → `$workflow-end` → `$watzup`. **NEVER** skip behavior-preservation evidence, required gates, or conditional skip reasons.
 
 **IMPORTANT MUST ATTENTION Protocols in force (concise digest of the SYNC/shared blocks this skill carries):**
 
@@ -269,7 +290,9 @@ Source: `.claude/skills/shared/sync-inline-versions.md`
 - **MANDATORY** Code-to-spec extraction is reference-only until canonical acceptance; any supported AI tool may execute with synced context.
 - **MANDATORY** Update `.claude` source before syncing generated mirrors; do not manually edit `.agents`, `.codex`, or `AGENTS.md`.
 - **MANDATORY** Missing or stale project config, root instruction files, or required reference docs route project-specific work through `$project-init` or the narrow setup route automatically.
-**[TASK-PLANNING] [MANDATORY]** BEFORE executing any workflow or skill step, create/update task tracking for all planned steps, then keep it synchronized as each step starts/completes.
+**[TASK-PLANNING] [MANDATORY]** BEFORE executing any workflow or skill step, create/update task tracking for all planned steps, analyze the task graph (output dependencies, shared write targets) into ordered parallel waves per PARALLELIZE before starting any task, then keep it synchronized as each step starts/completes.
+- **MANDATORY** Pin `Original goal:` before the first action and keep `User prompts this session: P1…Pn` current; re-read both at every step, before delegation, and after compaction.
+- **MANDATORY** Before claiming done, map the result to the original goal and every prompt (`P# → done | deferred | n/a`); never store secrets in them.
 ## [LESSON-LEARNED-REMINDER] [BLOCKING] Task Planning & Continuous Improvement — MANDATORY. Do not skip.
 
 Break work into small tasks (task tracking) before starting. Add final task: "Analyze AI mistakes & lessons learned".
@@ -280,7 +303,7 @@ Break work into small tasks (task tracking) before starting. Add final task: "An
 3. Write as a universal rule — strip project-specific names/paths/classes. Useful on any codebase.
 4. Consolidate: multiple mistakes sharing one failure mode → ONE lesson.
 5. **Recurrence gate:** "Would this recur in future session WITHOUT this reminder?" — No → skip `$learn`.
-6. **Auto-fix gate:** "Could `$code-review`/`$code-simplifier`/`$security-review`/`$lint` catch this?" — Yes → improve review skill instead.
+6. **Auto-fix gate:** "Could `$code-review`/`$code-simplifier`/`$security-review`/a linter catch this?" — Yes → improve review skill instead.
 7. BOTH gates pass → ask user to run `$learn`.
 **[CRITICAL-THINKING-MINDSET]** Apply critical thinking, sequential thinking. Every claim needs traced proof, confidence >80% to act.
 **Anti-hallucination principle:** Never present guess as fact — cite sources for every claim, admit uncertainty freely, self-check output for errors, cross-reference independently, stay skeptical of own confidence — certainty without evidence root of all hallucination.

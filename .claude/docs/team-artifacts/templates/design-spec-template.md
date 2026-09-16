@@ -6,11 +6,9 @@ designer: '{Designer name}'
 created: { YYYY-MM-DD }
 updated: { YYYY-MM-DD }
 status: draft | review | approved | implemented
-figma_file: '{Figma file URL}' # Main file (no node-id)
-figma_nodes: # Specific frames/components
+design_links: # Design-tool links for the screens/components this spec covers
     - label: '{Screen/Component name}'
-      url: '{Figma URL with node-id}'
-      node_id: '{node-id in URL format, e.g., 1-3}'
+      url: '{Design link}'
 template_version: '2.0'
 ---
 
@@ -133,7 +131,7 @@ template_version: '2.0'
 
 ## 8. Handoff Checklist
 
-- [ ] All screens in Figma complete
+- [ ] All screens in design tool complete
 - [ ] Design tokens documented
 - [ ] Responsive breakpoints specified
 - [ ] Accessibility requirements noted
@@ -145,13 +143,13 @@ template_version: '2.0'
 
 ## 9. Related
 
-### Figma Links
+### Design Links
 
-| Design        | Link                            | Node ID     | Extract Status |
-| ------------- | ------------------------------- | ----------- | -------------- |
-| Main File     | [{File name}]({Figma file URL}) | -           | -              |
-| {Screen 1}    | [{Link text}]({Figma URL})      | `{node-id}` | Pending        |
-| {Component 1} | [{Link text}]({Figma URL})      | `{node-id}` | Pending        |
+| Design        | Link                        | Notes |
+| ------------- | --------------------------- | ----- |
+| Main File     | [{File name}]({File URL})   | -     |
+| {Screen 1}    | [{Link text}]({Design URL}) |       |
+| {Component 1} | [{Link text}]({Design URL}) |       |
 
 ### Other References
 

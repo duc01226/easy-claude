@@ -1,6 +1,6 @@
 /**
  * Telegram notification provider
- * Ported from telegram_notify.sh - uses Telegram Bot API
+ * Uses Telegram Bot API
  */
 'use strict';
 

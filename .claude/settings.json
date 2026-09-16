@@ -6,7 +6,7 @@
   },
   "autoMemoryEnabled": false,
   "cleanupPeriodDays": 30,
-  "disabledMcpjsonServers": ["chrome-devtools", "figma", "sequential-thinking"],
+  "disabledMcpjsonServers": ["chrome-devtools"],
   "effortLevel": "medium",
   "enableAllProjectMcpServers": false,
   "enabledMcpjsonServers": ["context7", "github", "mongodb", "postgres"],
@@ -60,6 +60,24 @@
           }
         ],
         "matcher": "Edit|Write|MultiEdit"
+      },
+      {
+        "hooks": [
+          {
+            "command": "node \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/file-convention-inject.cjs",
+            "type": "command"
+          }
+        ],
+        "matcher": "Read|Edit|Write|MultiEdit|NotebookEdit"
+      },
+      {
+        "hooks": [
+          {
+            "command": "node \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/prompt-ledger.cjs",
+            "type": "command"
+          }
+        ],
+        "matcher": "TodoWrite|TaskCreate|TaskUpdate|update_plan"
       }
     ],
     "PreToolUse": [
@@ -199,6 +217,24 @@
           }
         ],
         "matcher": "startup|resume"
+      },
+      {
+        "hooks": [
+          {
+            "command": "node \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/file-convention-inject.cjs",
+            "type": "command"
+          }
+        ],
+        "matcher": "compact|clear"
+      },
+      {
+        "hooks": [
+          {
+            "command": "node \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/prompt-ledger.cjs",
+            "type": "command"
+          }
+        ],
+        "matcher": "compact|resume|clear"
       }
     ],
     "Stop": [
@@ -224,6 +260,14 @@
         "hooks": [
           {
             "command": "node \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/graph-prompt-sync.cjs",
+            "type": "command"
+          }
+        ]
+      },
+      {
+        "hooks": [
+          {
+            "command": "node \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/prompt-ledger.cjs",
             "type": "command"
           }
         ]

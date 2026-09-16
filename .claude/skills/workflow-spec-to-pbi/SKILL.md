@@ -207,7 +207,7 @@ Workflow can close only when:
 - The generated PBIs carry the complete decomposition block and stable slice/dependency IDs when the spec is large; scenario proof is mapped to the appropriate PBI/TC or recorded in `deferred_work_owner`. No separate roadmap artifact is required.
 - `/feature-presentation` has run, producing one standalone HTML deck whose Scope & backlog slide surfaces each PBI's priority/rank.
 
-**IMPORTANT MANDATORY Steps:** /investigate -> /spec-index -> /domain-analysis -> /why-review -> /spec-clarify -> /scenario -> /plan -> /plan-review -> /plan-validate -> /why-review -> /refine -> /why-review -> /artifact-review --type=pbi -> /story -> /why-review -> /artifact-review --type=story -> /pbi-challenge -> /dor-gate -> /pbi-mockup -> /design-spec -> /prioritize -> /docs-update -> /feature-presentation -> /workflow-end -> /watzup
+**IMPORTANT MANDATORY Steps:** /investigate -> /spec-index -> /domain-analysis -> /why-review -> /spec-clarify -> /scenario -> /plan -> /plan-review -> /plan-validate -> /refine -> /artifact-review --type=pbi -> /story -> /artifact-review --type=story -> /pbi-challenge -> /dor-gate -> /pbi-mockup -> /design-spec -> /prioritize -> /docs-update -> /feature-presentation -> /workflow-end -> /watzup
 
 > **[BLOCKING]** Each selected step MUST invoke its Skill tool. `/scenario` is conditional: run it only when the selected decomposition/slice risks need adversarial replay, state, ownership, recovery, or evidence analysis; otherwise mark the step skipped with evidence and an explicit reason. Marking a selected workflow step completed without skill invocation is a workflow violation.
 
@@ -328,6 +328,20 @@ Workflow can close only when:
 
 <!-- /SYNC:ui-intent-layer -->
 
+<!-- SYNC:session-goal-ledger -->
+
+> **Session Goal Ledger** — Never lose the user's original request or any later prompt, however long the session runs. Hook-independent: binds every host; a prompt-ledger hook is only an accelerator.
+>
+> 1. **Pin before acting.** Before the first tool call, write `Original goal: <user's request, verbatim or faithfully condensed>` and keep it as the first task-list item. For workflow or plan work, copy it verbatim into the Goal Contract `## Original Request`.
+> 2. **Track every prompt.** Keep `User prompts this session: P1…Pn` — one line per user prompt or input, marked `extends` / `narrows` / `changes` / `answers`. A prompt that changes direction updates the goal explicitly — never silently.
+> 3. **Re-anchor.** Re-read the original goal and the prompt list at every workflow step, before delegating (the sub-agent brief carries the verbatim goal), and after compaction, resume, or a `[[prompt-ledger@…]]` reminder. When `tmp/prompt-ledger/<session>/ledger.md` exists it is the durable record — read it after compaction.
+> 4. **Verify before done.** Map the final result to the original goal and every prompt: `P# → done | deferred (reason) | not applicable`. An unaddressed prompt blocks completion.
+> 5. **Security.** NEVER copy secrets, tokens, or credentials into goal lines, task lists, briefs, or reports — redact them.
+>
+> **Blocked until:** original goal pinned · prompt list current · final result mapped to every prompt.
+
+<!-- /SYNC:session-goal-ledger -->
+
 <!-- SYNC:nested-task-creation:reminder -->
 
 - **MANDATORY** Parent workflow rows do not replace child phase tracking; expand phases and link the parent when nested.
@@ -355,10 +369,17 @@ Workflow can close only when:
 
 <!-- /SYNC:project-protocol-overlay:reminder -->
 
+<!-- SYNC:session-goal-ledger:reminder -->
+
+- **MANDATORY** Pin `Original goal:` before the first action and keep `User prompts this session: P1…Pn` current; re-read both at every step, before delegation, and after compaction.
+- **MANDATORY** Before claiming done, map the result to the original goal and every prompt (`P# → done | deferred | n/a`); never store secrets in them.
+
+<!-- /SYNC:session-goal-ledger:reminder -->
+
 ## Closing Reminders
 
 **IMPORTANT MUST ATTENTION Goal:** Convert canonical tech-free 8-section Feature Specs into a complete, prioritized, dependency-aware, sprint-ready PBI/story backlog with actor-facing outcomes, full UI flows, and evidence-backed review/sync gates.
-**IMPORTANT MUST ATTENTION Main steps:** `/investigate` → `/spec-index` (audit freshness) → `/domain-analysis` → `/why-review` → `/spec-clarify` → conditional `/scenario` → `/plan` → `/plan-review` → `/plan-validate` → `/why-review` → `/refine` → `/why-review` → `/artifact-review --type=pbi` → `/story` → `/why-review` → `/artifact-review --type=story` → `/pbi-challenge` → `/dor-gate` → conditional `/pbi-mockup` → conditional `/design-spec` → `/prioritize` → `/docs-update` → `/feature-presentation` → `/workflow-end` → `/watzup`. **NEVER** skip coverage, releasable-outcome, priority-propagation, or synchronization gates.
+**IMPORTANT MUST ATTENTION Main steps:** `/investigate` → `/spec-index` (audit freshness) → `/domain-analysis` → `/why-review` → `/spec-clarify` → conditional `/scenario` → `/plan` → `/plan-review` → `/plan-validate` → `/refine` → `/artifact-review --type=pbi` → `/story` → `/artifact-review --type=story` → `/pbi-challenge` → `/dor-gate` → conditional `/pbi-mockup` → conditional `/design-spec` → `/prioritize` → `/docs-update` → `/feature-presentation` → `/workflow-end` → `/watzup`. **NEVER** skip coverage, releasable-outcome, priority-propagation, or synchronization gates.
 
 **Protocols in force (concise digest of the SYNC/shared blocks this skill carries):**
 

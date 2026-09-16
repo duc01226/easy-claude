@@ -45,7 +45,7 @@ or uninspectable prerequisite is `ENVIRONMENT-BLOCKED`.
 
 The canonical execution surface is `.claude/skills/workflow-e2e/`, which
 conditionally uses `.claude/skills/e2e-test/` for authoring and always hands
-verification to `.claude/skills/e2e-test-verify-loop/`; `.claude/skills/playwright-cli/`
+verification to `.claude/skills/e2e-test-verify/` (`--fix-loop` mode); `.claude/skills/playwright-cli/`
 provides the configured browser path. `experience-review` remains the
 report-only observable acceptance gate; it does not silently accept baselines
 or replace the project runner.
@@ -67,7 +67,7 @@ or replace the project runner.
 
 easy-claude is a JavaScript/Python Claude Code framework whose configured modules are hooks, libraries, skills, agents, scripts, workflows, and documentation (`docs/project-config.json:4-16`, `docs/project-config.json:23-73`). It has no application UI mapping, browser test project, or configured external infrastructure (`docs/project-config.json:106-119`, `docs/project-config.json:132-161`).
 
-The project-owned test layer is the custom CJS hook harness (`docs/project-config.json:120-130`, `package.json:43-46`). Skill-local Playwright utilities are support assets for target projects and do not create an E2E dependency edge for this repository (`.claude/skills/webapp-testing/examples/element_discovery.py:5-39`, `.claude/skills/excalidraw-diagram/references/render_excalidraw.py:138-147`).
+The project-owned test layer is the custom CJS hook harness (`docs/project-config.json:120-130`, `package.json:43-46`). Skill-local Playwright utilities are support assets for target projects and do not create an E2E dependency edge for this repository (`.claude/skills/playwright-cli/references/playwright-tests.md`, `.claude/skills/excalidraw-diagram/references/render_excalidraw.py:138-147`).
 
 ## Base Classes
 
@@ -75,11 +75,11 @@ The project-owned test layer is the custom CJS hook harness (`docs/project-confi
 
 ## Page Object Pattern
 
-**N/A.** No project page-object hierarchy, reusable UI wrapper, selector strategy, navigation abstraction, or authentication state exists. Generic selectors and `page.goto` in `.claude/skills/webapp-testing/examples/element_discovery.py:5-33` demonstrate a reusable skill, not a project convention.
+**N/A.** No project page-object hierarchy, reusable UI wrapper, selector strategy, navigation abstraction, or authentication state exists. Generic selectors and `page.goto` in `.claude/skills/excalidraw-diagram/references/render_excalidraw.py:141` demonstrate a reusable skill asset, not a project convention.
 
 ## Wait & Assertion Patterns
 
-**N/A.** No project browser wait/retry or E2E assertion helper exists. The skill-local `page.wait_for_load_state('networkidle')` at `.claude/skills/webapp-testing/examples/element_discovery.py:9-12` is not evidence of an application testing standard.
+**N/A.** No project browser wait/retry or E2E assertion helper exists. The skill-local `page.wait_for_function(...)` at `.claude/skills/excalidraw-diagram/references/render_excalidraw.py:144` is not evidence of an application testing standard.
 
 Portable adopter contract: when an E2E suite is introduced, define or reuse
 one parameterized `waitUntil(condition, options)` helper. The condition must
@@ -111,8 +111,7 @@ Missing capture or image inspection for an applicable visual surface is
 `ENVIRONMENT-BLOCKED`, not a pass. The explicit false opt-out suppresses this
 screenshot review only; it does not skip E2E execution or other evidence gates.
 Advisory identity, polish, or non-contract spacing preferences are recorded but
-do not create an unbounded loop. `/ask` is an architecture-consultation skill,
-not the screenshot reviewer.
+do not create an unbounded loop.
 
 ### UI state transition capture (auto-capture every state change)
 
@@ -235,8 +234,8 @@ belong to `/ui-review`. Capture and read every declared state × viewport;
 `UI-*`/accessibility/layout-floor and `P0`–`P2` checklist findings block the
 round, while `DD-*` identity/polish remains advisory unless the governing
 contract makes it objectively required. Browser helpers such as
-`/playwright-cli` and `/webapp-testing` may collect runtime evidence under this
-contract, but they do not replace `/experience-review` or `/ui-review`.
+`/playwright-cli` may collect runtime evidence under this contract, but they do
+not replace `/experience-review` or `/ui-review`.
 Do not promote a baseline without an explicit human acceptance record.
 
 ## Configuration

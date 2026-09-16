@@ -17,7 +17,7 @@ disable-model-invocation: false
 2. **Execute** — apply required steps with evidence-backed actions.
 3. **Verify** — confirm constraints, output quality, and completion evidence.
 
-**Ordered route:** `/investigate` → `/plan` → `/plan-review` → `/plan-validate` → `/why-review` → `/docs-update` → `/workflow-review-changes` → `/workflow-end` → `/watzup`.
+**Ordered route:** `/investigate` → `/plan` → `/plan-review` → `/plan-validate` → `/docs-update` → `/workflow-review-changes` → `/workflow-end` → `/watzup`.
 
 **Key Rules:**
 
@@ -27,18 +27,18 @@ disable-model-invocation: false
 - MUST ATTENTION when creating/reviewing specs or tests, name `Business Intent / Invariant Guarded` or the protected business intent/invariant and ensure the test would fail if that intent breaks.
 - NEVER skip mandatory workflow or skill gates.
 
-**IMPORTANT MANDATORY Steps:** /investigate -> /plan -> /plan-review -> /plan-validate -> /why-review -> /docs-update -> /workflow-review-changes -> /workflow-end -> /watzup
+**IMPORTANT MANDATORY Steps:** /investigate -> /plan -> /plan-review -> /plan-validate -> /docs-update -> /workflow-review-changes -> /workflow-end -> /watzup
 
 > **[BLOCKING]** Each step MUST ATTENTION invoke its `Skill` tool — marking a task `completed` without skill invocation is a workflow violation. NEVER batch-complete validation gates.
 > **[BLOCKING]** Read `docs/project-reference/spec-principles.md` before starting this workflow — baseline for completeness, TC quality, and **tech-agnostic output (§3)**: generated prose/headings name no framework/product/language/design-pattern; source paths and class names appear ONLY in evidence fields (`**Evidence**`, `[Source:]`), frontmatter, and Mermaid.
 
 Activate the `workflow-feature-spec` workflow. Run `/start-workflow workflow-feature-spec` with the user's prompt as context.
 
-**Steps:** /investigate → /plan → /plan-review → /plan-validate → /why-review → /docs-update → /workflow-review-changes → /workflow-end → /watzup _(this workflow is differentiated by its injectContext domain: **tech-free 8-section Feature Spec** template enforcement + `TC-{FEATURE}-{NNN}` GIVEN/WHEN/THEN test cases + `[Source: namespace/service/id]` abstract evidence anchors — see `workflows.json` `workflow-feature-spec.injectContext`)._
+**Steps:** /investigate → /plan → /plan-review → /plan-validate → /docs-update → /workflow-review-changes → /workflow-end → /watzup _(this workflow is differentiated by its injectContext domain: **tech-free 8-section Feature Spec** template enforcement + `TC-{FEATURE}-{NNN}` GIVEN/WHEN/THEN test cases + `[Source: namespace/service/id]` abstract evidence anchors — see `workflows.json` `workflow-feature-spec.injectContext`)._
 
 ---
 
-**IMPORTANT MANDATORY Steps:** /investigate -> /plan -> /plan-review -> /plan-validate -> /why-review -> /docs-update -> /workflow-review-changes -> /workflow-end -> /watzup
+**IMPORTANT MANDATORY Steps:** /investigate -> /plan -> /plan-review -> /plan-validate -> /docs-update -> /workflow-review-changes -> /workflow-end -> /watzup
 
 <!-- SYNC:ai-mistake-prevention -->
 
@@ -141,6 +141,20 @@ Activate the `workflow-feature-spec` workflow. Run `/start-workflow workflow-fea
 
 <!-- /SYNC:subagent-return-contract -->
 
+<!-- SYNC:session-goal-ledger -->
+
+> **Session Goal Ledger** — Never lose the user's original request or any later prompt, however long the session runs. Hook-independent: binds every host; a prompt-ledger hook is only an accelerator.
+>
+> 1. **Pin before acting.** Before the first tool call, write `Original goal: <user's request, verbatim or faithfully condensed>` and keep it as the first task-list item. For workflow or plan work, copy it verbatim into the Goal Contract `## Original Request`.
+> 2. **Track every prompt.** Keep `User prompts this session: P1…Pn` — one line per user prompt or input, marked `extends` / `narrows` / `changes` / `answers`. A prompt that changes direction updates the goal explicitly — never silently.
+> 3. **Re-anchor.** Re-read the original goal and the prompt list at every workflow step, before delegating (the sub-agent brief carries the verbatim goal), and after compaction, resume, or a `[[prompt-ledger@…]]` reminder. When `tmp/prompt-ledger/<session>/ledger.md` exists it is the durable record — read it after compaction.
+> 4. **Verify before done.** Map the final result to the original goal and every prompt: `P# → done | deferred (reason) | not applicable`. An unaddressed prompt blocks completion.
+> 5. **Security.** NEVER copy secrets, tokens, or credentials into goal lines, task lists, briefs, or reports — redact them.
+>
+> **Blocked until:** original goal pinned · prompt list current · final result mapped to every prompt.
+
+<!-- /SYNC:session-goal-ledger -->
+
 <!-- SYNC:critical-thinking-mindset:reminder -->
 
 **MUST ATTENTION** apply critical + sequential thinking — every claim needs appropriate traced evidence (`file:line` for repo/code claims; source URL or artifact section for research, product, content, and docs claims); confidence >80% to act, <60% DO NOT recommend. Anti-hallucination: never present guess as fact, admit uncertainty freely, cross-reference independently, stay skeptical of own confidence.
@@ -174,11 +188,18 @@ Activate the `workflow-feature-spec` workflow. Run `/start-workflow workflow-fea
 
 <!-- /SYNC:project-protocol-overlay:reminder -->
 
+<!-- SYNC:session-goal-ledger:reminder -->
+
+- **MANDATORY** Pin `Original goal:` before the first action and keep `User prompts this session: P1…Pn` current; re-read both at every step, before delegation, and after compaction.
+- **MANDATORY** Before claiming done, map the result to the original goal and every prompt (`P# → done | deferred | n/a`); never store secrets in them.
+
+<!-- /SYNC:session-goal-ledger:reminder -->
+
 ## Closing Reminders
 
 **IMPORTANT MUST ATTENTION Goal:** Activate the Business Feature Documentation workflow to produce one tech-free 8-section Feature Spec with validated planning, mandatory business test coverage, and synchronized docs/change evidence.
 
-**IMPORTANT MUST ATTENTION Main steps:** `/investigate` → `/plan` → `/plan-review` → `/plan-validate` → `/why-review` → `/docs-update` → `/workflow-review-changes` → `/workflow-end` → `/watzup`. **NEVER** skip the spec-principles gate, invoke each Skill step, or batch-complete validation.
+**IMPORTANT MUST ATTENTION Main steps:** `/investigate` → `/plan` → `/plan-review` → `/plan-validate` → `/docs-update` → `/workflow-review-changes` → `/workflow-end` → `/watzup`. **NEVER** skip the spec-principles gate, invoke each Skill step, or batch-complete validation.
 
 **IMPORTANT MUST ATTENTION Protocols in force (concise digest of the SYNC/shared blocks this skill carries):**
 

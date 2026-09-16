@@ -76,7 +76,6 @@ TARGETS: list[tuple[str, list[str]]] = [
     ("workflow-review-changes", [r"^## Mandatory Task Creation"]),
     # --- Simplification / refactor ---
     ("code-simplifier", [r"^## Simplification Mindset"]),
-    ("refactoring", [r"^## Investigation Mindset \(NON-NEGOTIABLE\)"]),
     # --- Test authoring ---
     ("integration-test", [r"^## Project Pattern Discovery"]),
     ("integration-test-verify", [r"^## Step 1: Read Project Config"]),

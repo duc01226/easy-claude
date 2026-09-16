@@ -131,7 +131,7 @@ Rules:
 | Gate           | Question                                                                               | Pass           | Fail → Action                                        |
 | -------------- | -------------------------------------------------------------------------------------- | -------------- | ---------------------------------------------------- |
 | **Recurrence** | "Would this mistake recur in a future session WITHOUT this reminder?"                  | Yes → continue | No → skip `/learn`; mistake is situational           |
-| **Auto-fix**   | "Could `/code-review`, `/simplify`, `/security-review`, or `/lint` catch this automatically?" | No → continue  | Yes → skip `/learn`; update the review skill instead |
+| **Auto-fix**   | "Could `/code-review`, `/simplify`, `/security-review`, or a linter catch this automatically?" | No → continue  | Yes → skip `/learn`; update the review skill instead |
 
 **Both gates must pass.** A lesson review skills already catch adds noise without value. A one-off situational mistake won't be prevented by a persisted rule.
 
@@ -283,7 +283,7 @@ Run these 2 tasks at the end of every `/learn` operation:
 - Verify:
     - Why this lesson prevents repeated mistakes,
     - Why this should be a lesson instead of a one-time note,
-    - Why auto-checks (`/code-review`, `/simplify`, `/security-review`, `/lint`, hook/test) are insufficient.
+    - Why auto-checks (`/code-review`, `/simplify`, `/security-review`, linters, hook/test) are insufficient.
 - If rationale is weak, rewrite at higher abstraction or skip `/learn`.
 
 ### Routing Decision Process

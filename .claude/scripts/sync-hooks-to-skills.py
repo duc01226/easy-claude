@@ -90,8 +90,8 @@ BLOCKS = {
 
 > **AI Mistake Prevention** — Failure modes to avoid on every task:
 >
-> **FIX GATE — INVESTIGATE FIRST.** Before applying any project-related fix, always invoke `$investigate` or `$debug-investigate` and establish the root cause; the failure site may be only a symptom.
-> **FAILED-TEST GATE.** For any failed or flaky test, `$debug-investigate` is mandatory before editing source or tests; never change either side merely to force green.
+> **ROOT-CAUSE GATE — INVESTIGATE FIRST.** Before applying any project-related correction, always use the project's root-cause investigation protocol and establish the cause; the failure site may be only a symptom.
+> **FAILED-TEST GATE.** For any failed or unstable test, use the project's test-investigation protocol before editing source or tests; never change either side merely to force green.
 > **Re-read files after context changes.** Context compaction, resume, or long-running work can make memory stale; verify current files before acting.
 > **Verify generated content against source evidence.** AI hallucinates APIs, names, claims, and document facts. Check the relevant source before documenting or referencing.
 > **Check downstream references before deleting or renaming.** Removing an artifact can stale docs, generated mirrors, configs, and callers; map references first.
@@ -125,8 +125,6 @@ BLOCKS = {
 > **Stop conditions:** confidence <80% on any critical decision → escalate via AskUserQuestion · ≥3 revisions on same thought → re-frame the problem · branch count >3 → split into sub-task.
 >
 > **Implicit mode:** apply methodology internally without visible markers when adding markers would clutter the response (routine work where reasoning aids accuracy).
->
-> **Deep-dive:** see `/sequential-thinking` skill (`.claude/skills/sequential-thinking/SKILL.md`) for worked examples (API design, debugging, architecture), advanced techniques (spiral refinement, hypothesis testing, convergence), and meta-strategies (uncertainty handling, revision cascades).
 
 <!-- /SYNC:sequential-thinking-protocol -->""",
 
@@ -288,12 +286,12 @@ REMINDERS = {
 
     "ai-mistake-prevention": """\
   <!-- SYNC:ai-mistake-prevention:reminder -->
-**MUST ATTENTION** FIX GATE: before any project-related fix, invoke `$investigate` or `$debug-investigate`; failed/flaky tests require `$debug-investigate` before editing source/tests — never force green.
+**MUST ATTENTION** ROOT-CAUSE GATE: before any project-related correction, use the appropriate root-cause investigation protocol; failed/unstable tests require the test-investigation protocol before editing source/tests — never force green.
   <!-- /SYNC:ai-mistake-prevention:reminder -->""",
 
     "sequential-thinking-protocol": """\
   <!-- SYNC:sequential-thinking-protocol:reminder -->
-**MUST ATTENTION** apply sequential-thinking — multi-step Thought N/M, REVISION/BRANCH/HYPOTHESIS markers, confidence % closer; see `/sequential-thinking` skill.
+**MUST ATTENTION** apply sequential-thinking — multi-step Thought N/M, REVISION/BRANCH/HYPOTHESIS markers, confidence % closer.
   <!-- /SYNC:sequential-thinking-protocol:reminder -->""",
 
     "task-tracking-external-report": """\
@@ -341,7 +339,7 @@ REMINDERS = {
 # tier below — skills that actually dispatch sub-agents or drive a multi-step task
 # list. Measured cost of the universal alternative: ~793 tokens/skill x 163 skills
 # (~129k repo-wide, ~20k inside a single 25-step workflow), landing in skills like
-# `coding-level`, `ck-help` and `compact` that own no task list to partition and so
+# `coding-level` and `ck-help` that own no task list to partition and so
 # can never act on it. That violates the role-relevance rule in
 # `.claude/skills/shared/sync-inline-versions.md` ("Universal guidance must help
 # every receiving skill or agent"), which is the same lesson the agent tiers below
@@ -368,7 +366,7 @@ ORCHESTRATOR_SKILL_BLOCK_ORDER = SKILL_BLOCK_ORDER + ["parallel-subagent-dispatc
 ORCHESTRATOR_SKILLS = {
     "architecture-design", "architecture-review", "architecture-review-full", "artifact-review",
     "changes-review", "code-review", "code-simplifier", "commit",
-    "context-optimization", "db-migrate", "debug-investigate", "docs-update",
+    "db-migrate", "debug-investigate", "docs-update",
     "demo-guide", "domain-entities-review", "e2e-test", "feature-presentation", "integration-test",
     "integration-test-review", "investigate", "knowledge-review",
     "performance-review", "plan", "plan-execute", "plan-review",
@@ -438,8 +436,7 @@ READONLY_CODE_AGENTS = {
     "researcher", "ui-ux-designer",
 }
 CORE_ONLY_AGENTS = {
-    "business-analyst", "docs-manager", "git-manager", "journal-writer",
-    "knowledge-worker", "product-owner", "project-manager", "quality-gate-review",
+    "docs-manager", "git-manager", "journal-writer", "knowledge-worker",
 }
 
 # agent-code-standards audience — SEPARATE axis from CODE_AGENTS. Only agents that

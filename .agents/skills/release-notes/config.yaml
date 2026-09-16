@@ -141,8 +141,6 @@ exclude:
 output:
     directory: 'docs/release-notes'
     filename_format: 'YYMMDD-{version}.md'
-    changelog_root: 'CHANGELOG.md'
-    per_service_changelog: true
 
 # Template sections
 template:

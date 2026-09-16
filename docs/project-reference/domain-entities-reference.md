@@ -32,34 +32,34 @@ No entry below has a database ID, foreign key, ORM base class, or entity timesta
 
 ### hooks Entities
 
-| Entity | Key Properties | Base Class | Relationships | File |
-| --- | --- | --- | --- | --- |
+| Entity          | Key Properties                                    | Base Class                  | Relationships                                        | File                          |
+| --------------- | ------------------------------------------------- | --------------------------- | ---------------------------------------------------- | ----------------------------- |
 | Hook Definition | Lifecycle event, matcher, command, execution type | Conceptual definition; none | Event registration invokes one or more hook commands | `.claude/settings.json:32-52` |
 
 ### hooks-lib Entities
 
-| Entity | Key Properties | Base Class | Relationships | File |
-| --- | --- | --- | --- | --- |
-| Workflow State | External `sessionId`; workflow type, steps, current index, completed steps, todos, timestamps | Aggregate-like runtime plain object; none | Corresponds to a Workflow Definition; owns nested step/todo values | `.claude/hooks/lib/workflow-state.cjs:35-61,119-175` |
-| Module | Name, kind, path regex, description, tags, metadata | Configuration value record; none | Classifies a canonical path through regex lookup | `.claude/hooks/lib/project-config-schema.cjs:186-197`; `docs/project-config.json:23-73` |
-| Context Group | Name, path regexes, extensions, guide document, rules | Configuration value record; none | Routes matching paths to guidance | `.claude/hooks/lib/project-config-schema.cjs:198-210`; `docs/project-config.json:74-105` |
+| Entity         | Key Properties                                                                                | Base Class                                | Relationships                                                      | File                                                                                     |
+| -------------- | --------------------------------------------------------------------------------------------- | ----------------------------------------- | ------------------------------------------------------------------ | ---------------------------------------------------------------------------------------- |
+| Workflow State | External `sessionId`; workflow type, steps, current index, completed steps, todos, timestamps | Aggregate-like runtime plain object; none | Corresponds to a Workflow Definition; owns nested step/todo values | `.claude/hooks/lib/workflow-state.cjs:35-61,119-175`                                     |
+| Module         | Name, kind, path regex, description, tags, metadata                                           | Configuration value record; none          | Classifies a canonical path through regex lookup                   | `.claude/hooks/lib/project-config-schema.cjs:186-197`; `docs/project-config.json:23-73`  |
+| Context Group  | Name, path regexes, extensions, guide document, rules                                         | Configuration value record; none          | Routes matching paths to guidance                                  | `.claude/hooks/lib/project-config-schema.cjs:198-210`; `docs/project-config.json:74-105` |
 
 ### skills Entities
 
-| Entity | Key Properties | Base Class | Relationships | File |
-| --- | --- | --- | --- | --- |
+| Entity           | Key Properties                                                         | Base Class                  | Relationships                            | File                                                                             |
+| ---------------- | ---------------------------------------------------------------------- | --------------------------- | ---------------------------------------- | -------------------------------------------------------------------------------- |
 | Skill Definition | Name, path, description, category, lifecycle/supporting-asset metadata | Conceptual definition; none | Workflow sequences reference skill names | `.claude/scripts/scan_skills.py:70-115`; `.claude/workflows.schema.json:135-143` |
 
 ### agents Entities
 
-| Entity | Key Properties | Base Class | Relationships | File |
-| --- | --- | --- | --- | --- |
+| Entity           | Key Properties                                    | Base Class                  | Relationships                        | File                                                                                                                    |
+| ---------------- | ------------------------------------------------- | --------------------------- | ------------------------------------ | ----------------------------------------------------------------------------------------------------------------------- |
 | Agent Definition | Name, description, model, memory, optional skills | Conceptual definition; none | May declare Skill references by name | `.claude/agents/code-reviewer.md:1-10`; `.claude/agents/frontend-developer.md:1-11`; `.claude/agents/architect.md:1-12` |
 
 ### workflows Entities
 
-| Entity | Key Properties | Base Class | Relationships | File |
-| --- | --- | --- | --- | --- |
+| Entity              | Key Properties                                                                        | Base Class                                    | Relationships                                                | File                                                                  |
+| ------------------- | ------------------------------------------------------------------------------------- | --------------------------------------------- | ------------------------------------------------------------ | --------------------------------------------------------------------- |
 | Workflow Definition | Map-key identity, name, description, ordered sequence, nested actions/parallel groups | Aggregate-like configuration definition; none | Owns its sequence/group values and references Skills by name | `.claude/workflows.json:9-16`; `.claude/workflows.schema.json:71-164` |
 
 ### scripts Entities
@@ -100,12 +100,12 @@ Not applicable. The repository is one modular framework package: all configured 
 
 No named domain DTO, ViewModel, Request/Response, CQRS carrier, or entity round-trip mapper is implemented. The nearest real mapping boundaries are deliberately non-domain:
 
-| Source Carrier | Consumer Form | Mapping Owner | Classification | File |
-| --- | --- | --- | --- | --- |
-| Raw hook-event JSON | Normalized event object | `parseHookEvent`, delivered by hook runner | Infrastructure event adapter | `.claude/hooks/lib/stdin-parser.cjs:28-50,78-91`; `.claude/hooks/lib/hook-runner.cjs:56-73` |
-| Project configuration | Normalized module/pattern/localization objects | Project-config loader | Infrastructure configuration model | `.claude/hooks/lib/project-config-loader.cjs:128-198,292-320` |
-| Skill frontmatter | Catalog record/grouped YAML | Skill scanner and catalog generator | Application read-model projection | `.claude/scripts/scan_skills.py:70-115`; `.claude/scripts/generate_catalogs.py:124-175` |
-| Workflow JSON plus skill descriptions | Markdown workflow/skill catalog | Workflow catalog builder | Presentation projection | `.claude/scripts/lib/workflow-skills-catalog.cjs:95-115,137-206` |
+| Source Carrier                        | Consumer Form                                  | Mapping Owner                              | Classification                     | File                                                                                        |
+| ------------------------------------- | ---------------------------------------------- | ------------------------------------------ | ---------------------------------- | ------------------------------------------------------------------------------------------- |
+| Raw hook-event JSON                   | Normalized event object                        | `parseHookEvent`, delivered by hook runner | Infrastructure event adapter       | `.claude/hooks/lib/stdin-parser.cjs:28-50,78-91`; `.claude/hooks/lib/hook-runner.cjs:56-73` |
+| Project configuration                 | Normalized module/pattern/localization objects | Project-config loader                      | Infrastructure configuration model | `.claude/hooks/lib/project-config-loader.cjs:128-198,292-320`                               |
+| Skill frontmatter                     | Catalog record/grouped YAML                    | Skill scanner and catalog generator        | Application read-model projection  | `.claude/scripts/scan_skills.py:70-115`; `.claude/scripts/generate_catalogs.py:124-175`     |
+| Workflow JSON plus skill descriptions | Markdown workflow/skill catalog                | Workflow catalog builder                   | Presentation projection            | `.claude/scripts/lib/workflow-skills-catalog.cjs:95-115,137-206`                            |
 
 Mapping belongs to parsers/loaders/scanners/builders, not to hook handlers or a fictional DTO layer.
 
@@ -113,10 +113,10 @@ Mapping belongs to parsers/loaders/scanners/builders, not to hook handlers or a 
 
 ## Aggregate Boundaries
 
-| Boundary | Owns | Invariants / Logic Owner | Classification |
-| --- | --- | --- | --- |
-| Workflow Definition | Ordered steps, pre-actions, parallel groups, conditional members | JSON schema owns required shape and group/barrier constraints (`.claude/workflows.schema.json:71-164`) | Aggregate-like configuration definition |
-| Workflow State | One session's progression snapshot, completed steps, todos, timestamps | `workflow-state.cjs` owns initialization, persistence, idempotent completion, and advancement (`.claude/hooks/lib/workflow-state.cjs:68-175`) | Aggregate-like runtime plain object |
+| Boundary            | Owns                                                                   | Invariants / Logic Owner                                                                                                                      | Classification                          |
+| ------------------- | ---------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------- |
+| Workflow Definition | Ordered steps, pre-actions, parallel groups, conditional members       | JSON schema owns required shape and group/barrier constraints (`.claude/workflows.schema.json:71-164`)                                        | Aggregate-like configuration definition |
+| Workflow State      | One session's progression snapshot, completed steps, todos, timestamps | `workflow-state.cjs` owns initialization, persistence, idempotent completion, and advancement (`.claude/hooks/lib/workflow-state.cjs:68-175`) | Aggregate-like runtime plain object     |
 
 Formal aggregate roots, leaf entities, and value objects are not implemented. Do not infer them from nested JSON objects.
 
@@ -124,28 +124,28 @@ Formal aggregate roots, leaf entities, and value objects are not implemented. Do
 
 ## Naming Conventions
 
-| Artifact | Convention | Evidence |
-| --- | --- | --- |
-| Hook | kebab-case `.cjs`, referenced by canonical command path | `.claude/settings.json:37-52` |
-| Skill | kebab-case directory with uppercase `SKILL.md` entry point | `.claude/scripts/scan_skills.py:70-106` |
-| Agent | kebab-case `.md`; frontmatter `name` matches identity | `.claude/agents/code-reviewer.md:1-10`; `.claude/agents/frontend-developer.md:1-11`; `.claude/agents/architect.md:1-12` |
-| Workflow | `workflow-`-prefixed map key; separate display name | `.claude/workflows.json:9-16` |
-| Module / Context Group | kebab-case `name`; current context names use `-context` | `docs/project-config.json:23-104` |
-| Mapping function | Verb-led parser/loader/scanner/builder; camelCase object fields | `.claude/hooks/lib/stdin-parser.cjs:78-91`; `.claude/hooks/lib/project-config-loader.cjs:128-198` |
+| Artifact               | Convention                                                      | Evidence                                                                                                                |
+| ---------------------- | --------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
+| Hook                   | kebab-case `.cjs`, referenced by canonical command path         | `.claude/settings.json:37-52`                                                                                           |
+| Skill                  | kebab-case directory with uppercase `SKILL.md` entry point      | `.claude/scripts/scan_skills.py:70-106`                                                                                 |
+| Agent                  | kebab-case `.md`; frontmatter `name` matches identity           | `.claude/agents/code-reviewer.md:1-10`; `.claude/agents/frontend-developer.md:1-11`; `.claude/agents/architect.md:1-12` |
+| Workflow               | `workflow-`-prefixed map key; separate display name             | `.claude/workflows.json:9-16`                                                                                           |
+| Module / Context Group | kebab-case `name`; current context names use `-context`         | `docs/project-config.json:23-104`                                                                                       |
+| Mapping function       | Verb-led parser/loader/scanner/builder; camelCase object fields | `.claude/hooks/lib/stdin-parser.cjs:78-91`; `.claude/hooks/lib/project-config-loader.cjs:128-198`                       |
 
 ---
 
 ## Coverage Report
 
-| Configured Module | Formal Entities | Source-Backed Conceptual/State Coverage | Gap / N/A |
-| --- | --- | --- | --- |
-| hooks | None | Hook Definition | No ORM/entity persistence |
-| hooks-lib | None | Workflow State; Module and Context Group schemas/loaders | No formal aggregates or value objects |
-| skills | None | Skill Definition | Catalog projection is not a DTO |
-| agents | None | Agent Definition | Skill references are names, not FKs |
-| scripts | None | Derived Skill/Workflow read models; code-graph SQLite tooling | SQLite stores code topology, not domain records |
-| workflows | None | Workflow Definition | Nested values are not leaf entities |
-| docs-framework | None | Documentation only | No executable entity model |
+| Configured Module | Formal Entities | Source-Backed Conceptual/State Coverage                       | Gap / N/A                                       |
+| ----------------- | --------------- | ------------------------------------------------------------- | ----------------------------------------------- |
+| hooks             | None            | Hook Definition                                               | No ORM/entity persistence                       |
+| hooks-lib         | None            | Workflow State; Module and Context Group schemas/loaders      | No formal aggregates or value objects           |
+| skills            | None            | Skill Definition                                              | Catalog projection is not a DTO                 |
+| agents            | None            | Agent Definition                                              | Skill references are names, not FKs             |
+| scripts           | None            | Derived Skill/Workflow read models; code-graph SQLite tooling | SQLite stores code topology, not domain records |
+| workflows         | None            | Workflow Definition                                           | Nested values are not leaf entities             |
+| docs-framework    | None            | Documentation only                                            | No executable entity model                      |
 
 Configured modules: 7/7 scanned. Formal entities, entity DTOs, service entity databases, business indexes/migrations, and entity seeders: none. Code-graph SQLite (`.claude/scripts/code_graph/graph.py:26-71`) and operational JSON state are tooling persistence only.
 
@@ -165,15 +165,15 @@ A CJS executable registered for a Claude Code lifecycle event. Standard hooks re
 
 ### Hook Event Types
 
-| Event              | When it fires                                   | Typical use                                                                       |
-| ------------------ | ----------------------------------------------- | --------------------------------------------------------------------------------- |
-| `SessionStart`     | Session begins (`startup`, `resume`, `compact`) | Initialize state, inject CLAUDE.md, recover after compaction                      |
-| `SessionEnd`       | Session ends (`clear`, `exit`, `compact`)       | Persist state, cleanup                                                            |
-| `PreToolUse`       | Before a tool executes (matched by tool name)   | Block sensitive ops, guard path boundaries, command-syntax guard                  |
-| `PostToolUse`      | After a tool executes (matched by tool name)    | Output processing, task tracking, formatting                                      |
-| `UserPromptSubmit` | When user submits a prompt                      | Prompt gating, workflow routing                                                   |
-| `Notification`     | Idle/waiting events                             | Desktop notifications                                                             |
-| `Stop`             | Agent stops                                     | Notifications                                                                     |
+| Event              | When it fires                                   | Typical use                                                      |
+| ------------------ | ----------------------------------------------- | ---------------------------------------------------------------- |
+| `SessionStart`     | Session begins (`startup`, `resume`, `compact`) | Initialize state, inject CLAUDE.md, recover after compaction     |
+| `SessionEnd`       | Session ends (`clear`, `exit`, `compact`)       | Persist state, cleanup                                           |
+| `PreToolUse`       | Before a tool executes (matched by tool name)   | Block sensitive ops, guard path boundaries, command-syntax guard |
+| `PostToolUse`      | After a tool executes (matched by tool name)    | Output processing, task tracking, formatting                     |
+| `UserPromptSubmit` | When user submits a prompt                      | Prompt gating, workflow routing                                  |
+| `Notification`     | Idle/waiting events                             | Desktop notifications                                            |
+| `Stop`             | Agent stops                                     | Notifications                                                    |
 
 ### Key Properties
 
@@ -207,10 +207,10 @@ A reusable task-automation capability. Each skill is a directory with a `SKILL.m
 
 ### Skill Variants
 
-| Pattern         | Example                                    | Purpose                                         |
-| --------------- | ------------------------------------------ | ----------------------------------------------- |
-| Simple          | `.claude/skills/debug-investigate/SKILL.md` | Single markdown entry point |
-| With scripts    | `.claude/skills/docs-seeker/scripts/` | Has helper scripts alongside SKILL.md |
+| Pattern               | Example                                         | Purpose                                                |
+| --------------------- | ----------------------------------------------- | ------------------------------------------------------ |
+| Simple                | `.claude/skills/debug-investigate/SKILL.md`     | Single markdown entry point                            |
+| With scripts          | `.claude/skills/pdf-convert/scripts/`           | Has helper scripts alongside SKILL.md                  |
 | Shared protocol owner | `.claude/skills/shared/sync-inline-versions.md` | Canonical reusable protocol bodies and parity contract |
 
 ### Key Properties
@@ -269,11 +269,11 @@ A named sequence of skill steps that orchestrates a multi-step process (feature 
 
 ### Key Workflow Files
 
-| File                          | Purpose                                                            |
-| ----------------------------- | ------------------------------------------------------------------ |
-| `.claude/workflows/primary-workflow.md` | Standard dev flow: plan, implement, test, review, docs |
-| `.claude/workflows/orchestration-protocol.md` | Sequential chaining, parallel execution, and recovery |
-| `.claude/workflows/documentation-management.md` | Documentation update workflow |
+| File                                            | Purpose                                                |
+| ----------------------------------------------- | ------------------------------------------------------ |
+| `.claude/workflows/primary-workflow.md`         | Standard dev flow: plan, implement, test, review, docs |
+| `.claude/workflows/orchestration-protocol.md`   | Sequential chaining, parallel execution, and recovery  |
+| `.claude/workflows/documentation-management.md` | Documentation update workflow                          |
 
 ### Key Properties
 
@@ -308,18 +308,41 @@ A configuration value record in `docs/project-config.json` mapping file paths/ex
 }
 ```
 
+A context group is also a **convention class** (per-file convention injection):
+
+```json
+{
+    "name": "integration-test",
+    "pathRegexes": [],
+    "pathGlobs": ["**/*.test.cjs"],
+    "priority": 100,
+    "skills": ["integration-test"],
+    "referenceDocs": ["docs/project-reference/integration-test-reference.md"],
+    "origin": "detected",
+    "detectedFingerprint": "342fb4bf9f19054a"
+}
+```
+
 ### Key Properties
 
-- **`pathRegexes`** (required): Array of regex patterns matching file paths
-- **`fileExtensions`** (optional): File extension filter
+- **`name`** (required, unique, non-blank): Class identity; also keys delivery memory and the `[[convention:name@hash8]]` tag
+- **`pathRegexes`** (required key): Regexes on the `/`-prefixed repo-relative path; may be `[]` when `pathGlobs` or `fileNameRegexes` supplies the include (at least one include matcher is required)
+- **`pathGlobs`** / **`fileNameRegexes`** (optional): Glob on the repo-relative path / regex on the base name
+- **`excludePathRegexes`** / **`excludePathGlobs`** (optional): Exclusions — exclude wins over include
+- **`fileExtensions`** (optional): File extension filter (AND with the includes)
+- **`priority`** (optional, default 500): Precedence band — 100 specific · 500 default · 900 general; ties by declaration order
 - **`guideDoc`** (optional): Path to the primary guide document for this context
 - **`patternsDoc`** (optional): Path to coding patterns reference
-- **`stylingDoc`** / **`designSystemDoc`** (optional): UI-specific references
-- **`rules`** (optional): Rule strings used to build shared Golden Rules
+- **`referenceDocs`** (optional): Extra must-read documents
+- **`skills`** (optional): Skill protocols to follow (resolved to `.claude/skills/<name>/SKILL.md`)
+- **`stylingDoc`** / **`designSystemDoc`** (optional): UI-specific references (not delivered by the convention reminder)
+- **`rules`** (optional): Short rule strings — shared Golden Rules and reminder lines
+- **`origin`** / **`detectedFingerprint`** (optional): Setup-merge ownership — `detected` classes whose fingerprint still matches may be refreshed; anything else is maintainer-owned and never changed
 
 ### Relationships
 
-- Context groups map paths to the guide or patterns document a reader should open (`.claude/skills/ai-context-refresh/scripts/section-builders.cjs:194-207`)
+- Context groups map paths to the guide or patterns document a reader should open (`.claude/skills/ai-context-refresh/scripts/section-builders.cjs` `buildSkillActivation`)
+- Context groups with rules, skills or documents are delivered per file by `file-convention-inject.cjs` (opt-in `conventionInjection`) and printed by `node .claude/hooks/lib/file-conventions.cjs --lookup <path>`; setup detects/merges them via `.claude/hooks/lib/convention-merge.cjs`
 - Context groups reference documentation files that **Skills** and **Agents** read directly
 - Context groups complement **Modules** (modules identify _what_ a component is; context groups define _what rules apply_)
 

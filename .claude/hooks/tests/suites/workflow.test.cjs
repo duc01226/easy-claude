@@ -135,11 +135,11 @@ const deadModuleVerificationTests = [
             for (const source of ['changes', 'recording', 'update-ui', 'prompt', 'context', 'whole']) {
                 assertContains(context, source, `workflow-e2e pre-action must describe --source=${source}`);
             }
-            assertContains(context, 'e2e-test-verify-loop', 'every source must hand off to the convergence loop');
+            assertContains(context, 'e2e-test-verify --fix-loop', 'every source must hand off to the convergence loop');
             assertContains(context, 'conditional authoring', 'workflow-e2e must describe the conditional authoring phase');
             assertContains(context, 'same-scope reruns', 'workflow-e2e must preserve same-scope convergence');
             for (const requiredFile of [
-                '.claude/skills/e2e-test-verify-loop/SKILL.md',
+                '.claude/skills/e2e-test-verify/SKILL.md',
                 '.claude/skills/workflow-e2e/SKILL.md'
             ]) {
                 assertTrue(

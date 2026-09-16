@@ -58,7 +58,6 @@ const DEBUGGER_TRACE_REQUIRED_SOURCE_PATHS = [
     '.claude/skills/investigate/SKILL.md',
     '.claude/skills/debug-investigate/SKILL.md',
     '.claude/skills/fix/SKILL.md',
-    '.claude/skills/prove-fix/SKILL.md',
     '.claude/skills/plan-execute/SKILL.md',
     '.claude/skills/feature-implement/SKILL.md',
     '.claude/skills/changes-review/SKILL.md',

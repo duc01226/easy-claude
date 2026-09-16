@@ -29,7 +29,7 @@
 
 -   **File Naming**: kebab-case with meaningful names — LLMs must understand purpose from filename alone without reading content
 -   **File Size**: Keep code files under 200 lines — split into focused components, extract utilities, use composition over inheritance
--   Skills/tools: `docs-seeker` (docs via Context7), available image/video analysis tools, `sequential-thinking`/`debug-investigate` (analysis), `gh` (GitHub)
+-   Skills/tools: `/web-research` (library docs; Context7 MCP optional), `debug-investigate` (analysis), available image/video analysis tools, `gh` (GitHub)
 -   **[IMPORTANT]** Follow codebase structure and code standards in `./docs` during implementation
 -   **[IMPORTANT]** Always implement real code — never simulate or mock implementations
 -   **[CRITICAL] Class Responsibility Rule:**

@@ -28,12 +28,9 @@
 | Debugging                     | `debugger`                 | Root cause investigation, log analysis, CI/CD failures        |
 | Documentation                 | `docs-manager`             | Doc updates, doc-code sync, staleness detection               |
 | Journal/retro                 | `journal-writer`           | Lessons, retrospectives, post-mortem logging                  |
-| Product/backlog †             | `product-owner`            | PBI, prioritization, sprint planning                          |
-| Project status                | `project-manager`          | Progress tracking, cross-agent consolidation                  |
 | Spec compliance               | `spec-compliance-reviewer` | Verify implementation matches spec (before code-reviewer)     |
 | Codebase exploration (internal) | `/investigate`                  | Main-session file/symbol search with graph-backed tracing |
 | Codebase exploration (delegated) | `researcher`         | Read-only landscape research in a scoped report |
-| Business analysis †           | `business-analyst`         | Requirements, user stories, acceptance criteria               |
 | Greenfield / inception        | `solution-architect`       | New project DDD modeling, tech stack selection                |
 | Knowledge synthesis †         | `knowledge-worker`         | Research synthesis, structured reports, market analysis       |
 

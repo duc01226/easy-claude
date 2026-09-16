@@ -112,7 +112,6 @@ CATEGORY_GUIDES = {
         "workflow": [
             ("Commit", "`/commit`"),
             ("Push", "`/commit --push`"),
-            ("PR", "`/pr`"),
         ],
         "tip": "Commit often with clear messages",
     },

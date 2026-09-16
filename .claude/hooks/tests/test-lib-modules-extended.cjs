@@ -624,10 +624,12 @@ logSection('describeSchema');
     // Conciseness check — soft bound so `--describe` stays manageable in AI context.
     // Raised from 300 → 400 for specRoots + techSpecScan and their per-field
     // derivation notes, then to 450 for the optional e2eTesting.execution profile
-    // and its field-level derivation guidance. This remains a runaway-bloat guard,
-    // not a suppression of schema output.
+    // and its field-level derivation guidance, then to 475 for the per-file
+    // convention-class fields on contextGroups items and the optional
+    // conventionInjection section (+21 lines after trimming their notes to one line
+    // each). This remains a runaway-bloat guard, not a suppression of schema output.
     const lineCount = output.split('\n').length;
-    logResult('output under 450 lines', lineCount < 450, `${lineCount} lines`);
+    logResult('output under 475 lines', lineCount < 475, `${lineCount} lines`);
 }
 
 // ════════════════════════════════════════════════════════════════════════════

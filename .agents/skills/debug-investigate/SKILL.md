@@ -56,8 +56,8 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 **Summary:**
 
 - **Purpose — investigation-ONLY:** Find/pin cause; NEVER patch here. Deliver a `$why-review`-validated cause to `$fix`, or "hypothesis, not confirmed" with evidence gaps.
-- **Ordered phases:** (0) Classify bug type and route `debugger` / `performance-optimizer` / `security-auditor`; (0.5) failing/flaky integration test ONLY: READ the protocol (never invoke) and emit one verdict; (1) Reproduce; (2) Hypothesize 2-3 ranked theories; (3) Trace END-to-START from Frame 0 through reader → storage/projection → writer → consumer/job → producer, including ALL feeder paths; (4) Confirm one cause explains ALL symptoms and no bypasses; (5) validate via `$why-review`; (6) report the confidence-tagged finding, then `$fix` → `$prove-fix` after the fix.
-- **Modes and gates:** Phase 0 is BLOCKING; Phase 0.5 applies only to failing integration tests; `graph.db` requires graph trace; `$why-review` runs in the SAME main session, 2 failed rounds → STOP/ask the user directly; after `$fix`, `$prove-fix` is required; outside a workflow ask the user to choose `workflow-bugfix` or direct `$debug-investigate`, and standalone completion asks `workflow`, `$fix`, `$plan`, or manual continuation.
+- **Ordered phases:** (0) Classify bug type and route `debugger` / `performance-optimizer` / `security-auditor`; (0.5) failing/flaky integration test ONLY: READ the protocol (never invoke) and emit one verdict; (1) Reproduce; (2) Hypothesize 2-3 ranked theories; (3) Trace END-to-START from Frame 0 through reader → storage/projection → writer → consumer/job → producer, including ALL feeder paths; (4) Confirm one cause explains ALL symptoms and no bypasses; (5) validate via `$why-review`; (6) report the confidence-tagged finding, then `$fix`.
+- **Modes and gates:** Phase 0 is BLOCKING; Phase 0.5 applies only to failing integration tests; `graph.db` requires graph trace; `$why-review` runs in the SAME main session, 2 failed rounds → STOP/ask the user directly; outside a workflow ask the user to choose `workflow-bugfix` or direct `$debug-investigate`, and standalone completion asks `workflow`, `$fix`, `$plan`, or manual continuation.
 - **Core evidence:** Bad state enters where written, so fix at the LOWEST invariant-owning layer, NEVER the crash site. Every root-cause claim needs `Confidence: X%` + `file:line`; below 60% report an unconfirmed hypothesis with named gaps.
 
 **Workflow:**
@@ -103,7 +103,7 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 
 **Step 1 — NEVER invoke the skill.** Apply the protocol read above. Gates 1 (assertion value), 3 (repeatability), 4 (domain logic), and 8 (scenario fidelity) expose faulty tests: dead/always-true assertion, non-unique ID, assertion on fields the handler never writes, or unreachable setup.
 
-> **MUST NOT invoke `$integration-test-review` from here — READ its protocol instead.** Inside `integration-test-verify-loop`, this skill already runs in the SAME round as an explicit `$integration-test-review` call (`integration-test-verify-loop/SKILL.md:110`, `:495`); invoking it again runs a 9-phase audit twice per round — the duplicate-ownership defect that loop removes (`:31`). The loop OWNS the invocation. — why: standalone, reading also suffices — investigation is this skill's only deliverable.
+> **MUST NOT invoke `$integration-test-review` from here — READ its protocol instead.** Inside `integration-test-verify --fix-loop`, this skill already runs in the SAME round as an explicit `$integration-test-review` call (`integration-test-verify/SKILL.md` → FL-1 step 5); invoking it again runs a 9-phase audit twice per round — the duplicate-ownership defect that loop removes (its "Why this mode exists"). The loop OWNS the invocation. — why: standalone, reading also suffices — investigation is this skill's only deliverable.
 
 **Step 2 — emit ONE fault verdict before any trace.**
 
@@ -218,10 +218,6 @@ NEVER declare a confirmed root cause straight from investigation. Run `$why-revi
 - `$why-review` finds GAPS/risks → collect additional evidence, repeat
 - 2 validation rounds without passing → STOP, escalate to user by asking the user directly
 
-## ⚠️ MANDATORY: Post-Fix Verification
-
-After `$fix`, `$prove-fix` MUST run — it builds per-change proof traces with confidence scores. Required in all fix workflows.
-
 ## Anti-Rationalization (Red Flags)
 
 | Evasion                                | Rebuttal                                                                        |
@@ -243,7 +239,7 @@ After `$fix`, `$prove-fix` MUST run — it builds per-change proof traces with c
 
 **MUST ATTENTION — NO EXCEPTIONS:** Outside a workflow, use ask the user directly:
 
-1. **Activate `workflow-bugfix` workflow** (Recommended) — investigate → debug → plan → fix → prove-fix → review → test
+1. **Activate `workflow-bugfix` workflow** (Recommended) — investigate → debug → plan → fix → review → test
 2. **Execute `$debug-investigate` directly** — standalone
 
 ---
@@ -378,7 +374,7 @@ After `$fix`, `$prove-fix` MUST run — it builds per-change proof traces with c
 >
 > Reconcile to intended behavior, never to whichever side currently passes — green can encode the very bug.
 >
-> **Read-only/report-only role boundary:** when this block is carried by a report-only role (`code-reviewer`, `quality-gate-review`, `spec-compliance-reviewer`, `tester`, and any other agent whose definition declares it never edits source), "fix the wrong side" means RETURN the adjudicated verdict and the proposed repair to the parent — do not modify source, tests, generated carriers, or user data. The adjudication is the deliverable; the edit is the caller's. Without this sentence the block's step-3 imperatives read as write authority and directly contradict those agents' own declarations (e.g. `tester.md` "NEVER implement fixes"), which is the sibling `SYNC:double-round-trip-review` boundary applied to the same class of carrier.
+> **Read-only/report-only role boundary:** when this block is carried by a report-only role (`code-reviewer`, `spec-compliance-reviewer`, `tester`, and any other agent whose definition declares it never edits source), "fix the wrong side" means RETURN the adjudicated verdict and the proposed repair to the parent — do not modify source, tests, generated carriers, or user data. The adjudication is the deliverable; the edit is the caller's. Without this sentence the block's step-3 imperatives read as write authority and directly contradict those agents' own declarations (e.g. `tester.md` "NEVER implement fixes"), which is the sibling `SYNC:double-round-trip-review` boundary applied to the same class of carrier.
 
 <!-- /SYNC:test-failure-fault-adjudication -->
 
@@ -469,8 +465,6 @@ After `$fix`, `$prove-fix` MUST run — it builds per-change proof traces with c
 > **Stop conditions:** confidence <80% on any critical decision → escalate by asking the user directly · ≥3 revisions on same thought → re-frame the problem · branch count >3 → split into sub-task.
 >
 > **Implicit mode:** apply methodology internally without visible markers when adding markers would clutter the response (routine work where reasoning aids accuracy).
->
-> **Deep-dive:** see `$sequential-thinking` skill (`.claude/skills/sequential-thinking/SKILL.md`) for worked examples (API design, debugging, architecture), advanced techniques (spiral refinement, hypothesis testing, convergence), and meta-strategies (uncertainty handling, revision cascades).
 
 <!-- /SYNC:sequential-thinking-protocol -->
 
@@ -736,7 +730,7 @@ After `$fix`, `$prove-fix` MUST run — it builds per-change proof traces with c
 
 <!-- SYNC:sequential-thinking-protocol:reminder -->
 
-**MUST ATTENTION** apply sequential-thinking — multi-step Thought N/M, REVISION/BRANCH/HYPOTHESIS markers, confidence % closer; see `$sequential-thinking` skill.
+**MUST ATTENTION** apply sequential-thinking — multi-step Thought N/M, REVISION/BRANCH/HYPOTHESIS markers, confidence % closer.
 
 <!-- /SYNC:sequential-thinking-protocol:reminder -->
 
@@ -829,7 +823,7 @@ After `$fix`, `$prove-fix` MUST run — it builds per-change proof traces with c
 
 **IMPORTANT MUST ATTENTION Goal:** Deliver a `$why-review`-validated root cause at the lowest invariant-owning layer with `file:line` proof; investigate only so `$fix` corrects causes, not symptoms, or report "hypothesis, not confirmed" with evidence gaps.
 
-**IMPORTANT MUST ATTENTION — Main steps/modes/gates:** Investigation-only: (0) Classify bug type and route specialist → (0.5) failing/flaky integration test ONLY: read the integration-test-review protocol, never invoke it, emit one verdict → (1) Reproduce → (2) Hypothesize 2-3 ranked theories → (3) Trace END-to-START from Frame 0 through reader → storage/projection → writer → consumer/job → producer and ALL feeder paths → (4) Confirm one cause explains ALL symptoms and no bypasses → (5) validate with `$why-review` → (6) report confidence-tagged finding → `$fix` → `$prove-fix`.
+**IMPORTANT MUST ATTENTION — Main steps/modes/gates:** Investigation-only: (0) Classify bug type and route specialist → (0.5) failing/flaky integration test ONLY: read the integration-test-review protocol, never invoke it, emit one verdict → (1) Reproduce → (2) Hypothesize 2-3 ranked theories → (3) Trace END-to-START from Frame 0 through reader → storage/projection → writer → consumer/job → producer and ALL feeder paths → (4) Confirm one cause explains ALL symptoms and no bypasses → (5) validate with `$why-review` → (6) report confidence-tagged finding → `$fix`.
 **IMPORTANT MUST ATTENTION — Routing/terminal behavior:** Phase 0 is BLOCKING; Phase 0.5 is conditional; `graph.db` requires graph trace; `$why-review` runs in the SAME main session, 2 failed rounds → STOP/ask the user directly; outside a workflow ask the user to choose `workflow-bugfix` or direct `$debug-investigate`; standalone completion asks `workflow`, `$fix`, `$plan`, or manual continuation.
 
 **Protocols in force (concise digest of the SYNC/shared blocks this skill carries):**
@@ -862,7 +856,7 @@ After `$fix`, `$prove-fix` MUST run — it builds per-change proof traces with c
 **MUST ATTENTION** search 3+ existing patterns and READ the actual code before concluding — cite `file:line`; inference alone is insufficient — why: trial-and-error and assumed APIs hallucinate causes.
 **MUST ATTENTION** failing/flaky integration test → run **Phase 0.5 Fault Adjudication BEFORE any trace**: READ the `$integration-test-review` protocol (8 assertion-quality / repeatability / domain-logic / scenario-fidelity gates) — NEVER invoke that skill, the verify loop owns the invocation — then emit ONE verdict: TEST-WRONG · TEST-NOT-OPTIMAL · SOURCE-WRONG · ENVIRONMENT · AMBIGUOUS (→ STOP and ask) — why: without that verdict the trace targets the wrong side and can rationalize a broken invariant as green.
 **MUST ATTENTION** run a graph trace when `graph.db` exists — `callers_of` / `importers_of` / `tests_for` / `trace` reveal MESSAGE_BUS consumers and event handlers grep cannot see — why: cross-service chains are invisible to text search.
-**MUST ATTENTION** prove convergence FORWARD after choosing the fix layer — walk start → end, map each root cause to a fix part and each fix part to a test/proof; `$prove-fix` MUST run after `$fix` applies changes.
+**MUST ATTENTION** prove convergence FORWARD after choosing the fix layer — walk start → end, map each root cause to a fix part and each fix part to a test/proof.
 **MUST ATTENTION** OOM/memory → check row COUNT before row SIZE (unbounded query > large row); 3+ failed fixes → STOP, question the architecture, escalate to user.
 **MUST ATTENTION** bootstrap task tracking task tracking BEFORE first file read; persist findings incrementally to `tmp/reports/`; return the investigation findings without modifying target code or applying fixes.
 
@@ -926,7 +920,9 @@ Source: `.claude/skills/shared/sync-inline-versions.md`
 - **MANDATORY** Code-to-spec extraction is reference-only until canonical acceptance; any supported AI tool may execute with synced context.
 - **MANDATORY** Update `.claude` source before syncing generated mirrors; do not manually edit `.agents`, `.codex`, or `AGENTS.md`.
 - **MANDATORY** Missing or stale project config, root instruction files, or required reference docs route project-specific work through `$project-init` or the narrow setup route automatically.
-**[TASK-PLANNING] [MANDATORY]** BEFORE executing any workflow or skill step, create/update task tracking for all planned steps, then keep it synchronized as each step starts/completes.
+**[TASK-PLANNING] [MANDATORY]** BEFORE executing any workflow or skill step, create/update task tracking for all planned steps, analyze the task graph (output dependencies, shared write targets) into ordered parallel waves per PARALLELIZE before starting any task, then keep it synchronized as each step starts/completes.
+- **MANDATORY** Pin `Original goal:` before the first action and keep `User prompts this session: P1…Pn` current; re-read both at every step, before delegation, and after compaction.
+- **MANDATORY** Before claiming done, map the result to the original goal and every prompt (`P# → done | deferred | n/a`); never store secrets in them.
 ## [LESSON-LEARNED-REMINDER] [BLOCKING] Task Planning & Continuous Improvement — MANDATORY. Do not skip.
 
 Break work into small tasks (task tracking) before starting. Add final task: "Analyze AI mistakes & lessons learned".
@@ -937,7 +933,7 @@ Break work into small tasks (task tracking) before starting. Add final task: "An
 3. Write as a universal rule — strip project-specific names/paths/classes. Useful on any codebase.
 4. Consolidate: multiple mistakes sharing one failure mode → ONE lesson.
 5. **Recurrence gate:** "Would this recur in future session WITHOUT this reminder?" — No → skip `$learn`.
-6. **Auto-fix gate:** "Could `$code-review`/`$code-simplifier`/`$security-review`/`$lint` catch this?" — Yes → improve review skill instead.
+6. **Auto-fix gate:** "Could `$code-review`/`$code-simplifier`/`$security-review`/a linter catch this?" — Yes → improve review skill instead.
 7. BOTH gates pass → ask user to run `$learn`.
 **[CRITICAL-THINKING-MINDSET]** Apply critical thinking, sequential thinking. Every claim needs traced proof, confidence >80% to act.
 **Anti-hallucination principle:** Never present guess as fact — cite sources for every claim, admit uncertainty freely, self-check output for errors, cross-reference independently, stay skeptical of own confidence — certainty without evidence root of all hallucination.

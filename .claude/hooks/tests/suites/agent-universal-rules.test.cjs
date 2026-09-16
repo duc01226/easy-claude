@@ -61,7 +61,7 @@
  *   N (TC-UAR-016) — off-role protocol trim pins: architect carries NO
  *                    source-test-drift-check / scaffold-production-readiness;
  *                    refine carries NO scaffold-production-readiness /
- *                    cross-cutting-quality; test-ui carries NO source-test-drift-check.
+ *                    cross-cutting-quality.
  *                    Confirms the user-validated KEEPS survive: architect &
  *                    solution-architect keep fix-layer-accountability; architect &
  *                    ui-ux-designer keep graph-assisted-investigation. Guards the
@@ -120,8 +120,8 @@ const READONLY_CODE_AGENTS = new Set([
     'researcher', 'ui-ux-designer',
 ]);
 const CORE_ONLY_AGENTS = new Set([
-    'business-analyst', 'docs-manager', 'git-manager', 'journal-writer',
-    'knowledge-worker', 'product-owner', 'project-manager', 'quality-gate-review',
+    'docs-manager', 'git-manager', 'journal-writer',
+    'knowledge-worker',
 ]);
 
 // ── TC-UAR-017 agent-adoption triage gate ────────────────────────────────────
@@ -144,14 +144,15 @@ const AGENT_ADOPTION_EXEMPT = new Set([
     'sub-agent-selection',         // a dispatcher choosing which sub-agents to spawn
     'goal-contract-satisfaction-loop', // session goal file + convergence loop + user escalation
     'project-protocol-overlay',    // overlay resolution is performed by whoever INVOKES the skill; a headless leaf sub-agent receives one already-scoped brief whose overlay the dispatching orchestrator already resolved
+    'session-goal-ledger',         // tracks the USER's session prompts; a headless leaf never sees the user conversation (its brief already carries the goal) and the prompt-ledger hook injects nothing inside a helper agent
 ]);
 const AGENT_SKILL_CONNECTIONS_OPEN = '<!-- AGENT-SKILL-CONNECTIONS:START -->';
 const AGENT_SKILL_CONNECTIONS_CLOSE = '<!-- AGENT-SKILL-CONNECTIONS:END -->';
 const TEST_ARCHITECTURE_SKILLS = [
     'architecture-design', 'architecture-scalability-review', 'architecture-review-full',
-    'scaffold', 'harness-setup', 'greenfield', 'workflow-greenfield-init',
+    'scaffold', 'harness-setup', 'workflow-greenfield-init',
     'integration-test', 'integration-test-review', 'integration-test-verify',
-    'integration-test-verify-loop', 'e2e-test', 'workflow-e2e',
+    'e2e-test', 'workflow-e2e',
     'workflow-write-integration-test', 'workflow-integration-test-green', 'test',
     'seed-test-data',
 ];
@@ -174,7 +175,6 @@ const REVIEW_CYCLE_AGENTS = new Set([
     'code-reviewer',
     'integration-tester',
     'planner',
-    'quality-gate-review',
     'security-auditor',
     'spec-compliance-reviewer',
     'ui-ux-designer',
@@ -512,7 +512,6 @@ module.exports = {
                     { kind: 'agent', name: 'architect', tag: 'scaffold-production-readiness', label: 'Scaffold Production Readiness' },
                     { kind: 'skill', name: 'refine', tag: 'scaffold-production-readiness', label: 'Scaffold Production Readiness' },
                     { kind: 'skill', name: 'refine', tag: 'cross-cutting-quality', label: 'Cross-Cutting Quality' },
-                    { kind: 'skill', name: 'test-ui', tag: 'source-test-drift-check', labels: ['Source-Test Drift Check', 'Source Test Drift'] },
                 ];
                 for (const { kind, name, tag, label, labels } of removed) {
                     const body = kind === 'agent' ? read(name) : readSkill(name);

@@ -149,7 +149,6 @@
     "runTask": true,
     "searchResults": true,
     "sendCommand": true,
-    "sequentialthinking": true,
     "sonarqube_analyzeFile": true,
     "sonarqube_excludeFiles": true,
     "sonarqube_getPotentialSecurityIssues": true,

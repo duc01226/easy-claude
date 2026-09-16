@@ -60,9 +60,8 @@ Use a data-driven framework → ranked list with scores + rationale.
 ## When NOT to Use
 
 - Fewer than 3 items → discuss directly
-- Creating PBIs or stories → use `product-owner` or `story`
-- Full product strategy → use `product-owner`
-- Project status tracking → use `project-manager`
+- Creating PBIs or stories → use `refine` or `story`
+- Full product strategy → use `idea` then `refine`
 
 ## Phase 0: Detect & Prepare
 
@@ -195,10 +194,9 @@ If gate does NOT fire, the prioritization decision stands; do NOT prompt.
 
 | Skill             | When to use instead                |
 | ----------------- | ---------------------------------- |
-| `product-owner`   | Full product management workflow   |
+| `idea`            | Capturing product intent upfront   |
 | `story`           | Breaking PBIs into user stories    |
 | `refine`          | Refining ideas into PBIs           |
-| `project-manager` | Sprint/project status and tracking |
 
 ---
 

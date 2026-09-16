@@ -114,7 +114,7 @@ The workflow router injects the catalog; the model auto-selects and activates th
 For new projects with no existing code:
 
 ```
-/greenfield
+/workflow-greenfield-init
 ```
 
 This activates the greenfield workflow: idea → research → architecture → plan → scaffold → implement.

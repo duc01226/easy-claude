@@ -180,17 +180,19 @@ test('R3-PROMPT-041: final report and recap precede exact owned-run close with v
 // Each loop's own convergence signal: a review loop converges on a clear bar, the workflow loop
 // only on a round that applied zero fixes (a clean review whose simplifier still edits is not done).
 const CONVERGENCE_ROW = {
-    'why-review-loop': '(6) the current round bar is clear',
-    'changes-review-loop': '(6) the current round bar is clear',
-    'workflow-review-changes-loop': '(6) the round applied ZERO fixes'
+    // why-review carries the outer review/fix loop as its optional `--fix-loop` mode.
+    'why-review': '(6) the current round bar is clear',
+    'changes-review': '(6) the current round bar is clear',
+    // workflow-review-changes carries the outer zero-fix loop as its optional `--fix-loop` mode.
+    'workflow-review-changes': '(6) the round applied ZERO fixes'
 };
 // The zero-fix predicate leaves "edits landed but no review blocker is open" (a simplifier-only
 // round) needing its own row: the user-decided rule proves a zero-fix pass within budget and
 // escalates at a spent budget, so the workflow loop has one extra row before the blocker row.
 const PROOF_ROW = {
-    'why-review-loop': String.raw`\(7\)`,
-    'changes-review-loop': String.raw`\(7\)`,
-    'workflow-review-changes-loop': String.raw`\(7\) the round applied fixes but no review blocker is open and no test gate is failing [^;]+→ run the next round to prove a zero-fix pass while within budget, and STOP & escalate once the review budget is spent; \(8\)`
+    'why-review': String.raw`\(7\)`,
+    'changes-review': String.raw`\(7\)`,
+    'workflow-review-changes': String.raw`\(7\) the round applied fixes but no review blocker is open and no test gate is failing [^;]+→ run the next round to prove a zero-fix pass while within budget, and STOP & escalate once the review budget is spent; \(8\)`
 };
 const EXTENSION_FIRST = 'checked only after the round-2 CRITICAL/HIGH extension, which is granted first';
 const lineStarting = (text, prefix) => text.split(/\r?\n/).find(line => line.startsWith(prefix)) ?? '';
@@ -240,14 +242,14 @@ function assertLoopBudget(text, name) {
     assert.match(lineStarting(loopRule, '- **Round cap (default 2, extendable ONCE to 3)**'), /is checked before the count-based stops/);
     assert.ok(loopRule.includes('stop shrinking, that is a signal to **escalate**, not to spin another round — except the one round-2 CRITICAL/HIGH extension, which is granted first.'), `${name} First Principle`);
     assert.ok(lineStarting(loopRule, '**IMPORTANT MUST ATTENTION** enforce the **round cap').includes(`(${EXTENSION_FIRST})`), `${name} closing reminder`);
-    if (name === 'workflow-review-changes-loop') {
+    if (name === 'workflow-review-changes') {
         assert.match(loopRule, /\| Round applied fixes but \*\*no review blocker is open\*\* AND no test gate is failing[^|]*\| Within budget: [^|]*run round `R\+1` to prove a zero-fix pass\. At a spent review budget: \*\*STOP & escalate\*\*/);
         assert.match(loopRule, /\*\*ALL LOW\*\* \(zero CRITICAL\/HIGH\/MEDIUM\) AND the round applied zero fixes/);
     }
 }
 
 test('R3-PROMPT-042: loop skills state one budget — round-3 extension for review blockers, uncapped failing tests', () => {
-    for (const name of ['why-review-loop', 'changes-review-loop', 'workflow-review-changes-loop']) {
+    for (const name of ['why-review', 'changes-review', 'workflow-review-changes']) {
         const source = skill(name);
         const check = text => assertLoopBudget(text, name);
         check(source);
@@ -290,8 +292,8 @@ test('R3-PROMPT-042: loop skills state one budget — round-3 extension for revi
         rejects(check, source, 'A LOW-only round 2 has zero review blockers, so it is never an increase.', '');
     }
     // F-2: the workflow loop may not converge on a clear review bar while a round still applies fixes.
-    const workflowSource = skill('workflow-review-changes-loop');
-    const workflowCheck = text => assertLoopBudget(text, 'workflow-review-changes-loop');
+    const workflowSource = skill('workflow-review-changes');
+    const workflowCheck = text => assertLoopBudget(text, 'workflow-review-changes');
     rejects(workflowCheck, workflowSource, '(6) the round applied ZERO fixes', '(6) the current round bar is clear');
     // R5-03: a simplifier-only round with no review blocker proves a zero-fix pass within budget and
     // escalates at a spent budget; dropping the row, converging at the cap, or letting the severity
@@ -318,13 +320,17 @@ test('R3-PROMPT-042: loop skills state one budget — round-3 extension for revi
         'a LOW-only round 2 has zero review blockers at its own bar, so it is never an increase');
     // A zero-fix pass is not convergence while a test gate is still red.
     const zeroFix = /\| Round applied \*\*ZERO fixes\*\* \(clean no-op pass\) AND no test gate is failing \|/;
-    const workflowLoop = skill('workflow-review-changes-loop');
+    const workflowLoop = skill('workflow-review-changes');
     assert.match(local(workflowLoop), zeroFix);
     assert.doesNotMatch(local(workflowLoop.replaceAll(' AND no test gate is failing', '')), zeroFix);
 });
 
+// The optional `--fix-loop` mode section carries the OUTER loop's own ordered gate (checked by
+// R3-PROMPT-042); the inner-budget contract governs the default workflow prose outside it.
+const withoutFixLoopMode = text => text.replace(/<!-- FIX-LOOP-MODE:START -->[\s\S]*?<!-- FIX-LOOP-MODE:END -->/, '');
+
 function assertInnerBudget(text) {
-    const body = local(text);
+    const body = local(withoutFixLoopMode(text));
     assert.match(body, /bounded at \*\*2 rounds MAX\*\*, extendable ONCE to round 3 when round 2 leaves a validated CRITICAL\/HIGH open/);
     assert.doesNotMatch(body, /round 2 completing with CRITICAL\/HIGH\/MEDIUM still open/);
     assert.match(body, /\*\*Review blockers increasing\*\* — if round N finds MORE review blockers \(validated findings at its own bar plus failed non-test binary gates; round-2 LOWs and failing test gates never count\) than round N-1, STOP and escalate via `AskUserQuestion` — unless round 2 left a validated CRITICAL\/HIGH open, which takes the one extension round first\./);

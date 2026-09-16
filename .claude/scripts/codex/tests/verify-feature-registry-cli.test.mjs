@@ -84,6 +84,33 @@ test('TC-FREG-CLI-001: configured canonical roots include every continuation par
     assert.match(result.stdout, /PASS \(2 canonical TC definitions\)/);
 });
 
+test('TC-FREG-CLI-006: sibling configured roots in one directory parse each document once', async () => {
+    // Given: two canonical parents share a directory, so both roots discover the same files.
+    const configuredParent = 'docs/specs/Fixture/README.FixtureFeature.md';
+    const siblingParent = 'docs/specs/Fixture/README.SiblingFeature.md';
+    const root = await makeRoot([configuredParent, siblingParent]);
+    await fs.writeFile(path.join(root, configuredParent), parentSpec, 'utf8');
+    await fs.writeFile(path.join(root, 'docs', 'specs', 'Fixture', 'README.FixtureFeature-Part2.md'), continuationSpec, 'utf8');
+    await fs.writeFile(path.join(root, siblingParent), [
+        '---',
+        'feature_code: SIBLING',
+        '---',
+        '# Sibling',
+        '## 8. Test Specifications',
+        '### TC-SIBLING-001: Sibling case',
+        '> **CoveredBy:** Untested · **Status:** Untested',
+        ''
+    ].join('\n'), 'utf8');
+
+    // When: verify in configured-roots mode.
+    const result = runConfigured(root);
+
+    // Then: no DUPLICATE_TC_ID from repeated discovery; every definition counted exactly once.
+    assert.equal(result.status, 0, result.stderr);
+    assert.doesNotMatch(result.stderr, /DUPLICATE_(TC|BR)_ID/);
+    assert.match(result.stdout, /PASS \(3 canonical TC definitions\)/);
+});
+
 test('TC-FREG-CLI-002: a configured root with no canonical parent or parts fails closed', async () => {
     const missing = 'docs/specs/Fixture/README.MissingFeature.md';
     const root = await makeRoot([missing]);

@@ -15,6 +15,8 @@ The structure the `demo-guide` skill writes. Fill from real project evidence; ke
   exists, else derived from the traced demo cases and LABELLED as derived — never invented. The estimate is
   produced with the shared `SYNC:estimation-framework` protocol (bottom-up hours → man-days → derived story
   points), the same one `$plan`, `$refine`, `$story`, and `$dor-gate` use, so the two artifacts cannot drift.
+  It sizes ONLY the estimate target — the current changes by default, the target the user names for
+  estimation, or (no change set in scope) the labelled demo scope — never silently the entire feature.
 - **Show, then explain the data.** A demo is credible when the presenter shows the behaviour AND can point
   to the stored/changed data that makes it true. Every case pairs an observable step with a domain explanation.
 - **Steps are live-runnable.** Write action-level steps a presenter follows in the running app: who acts,
@@ -99,8 +101,10 @@ _{or}_ `None — no authorization behaviour in this item`
 
 ### Estimation
 
+**Estimate target:** _{current changes — {n} files on {diff source}}_ **|** _{user-named — {story / PBI / slice / whole feature}}_ **|** _{named scope (no change set) — {scope} ({scope source})}_
+_{When the target is narrower than the item above: `SP/man-days cover the estimate target only, not the full item above.`}_
 _{Retrospective sizing for the backlog record — the work is already implemented}_ **|** _{Forecast — work not yet done}_
-_{When the item's own PBI already carries an estimate: reuse it verbatim and note the delta here.}_
+_{When a groomed PBI estimate covers exactly this target: reuse it verbatim and note the delta here. When it covers a wider item, cite it as context only.}_
 
 ```yaml
 story_points: <n>                      # DERIVED from likely_days — never the driver
@@ -249,9 +253,14 @@ _Generated: {DATE} · Scope source: {source} · Evidence: {spec/test/migration p
 - **Estimation follows `SYNC:estimation-framework` and nothing else** — the same protocol `$plan`, `$refine`,
   `$story`, and `$dor-gate` apply: bottom-up hours → `likely_days` → risk margin → min–max range when
   `likely_days ≥ 3`; **story points are DERIVED from days**, never chosen first; the full frontmatter goes in
-  a fenced `yaml` block so it survives the paste. Size the ITEM, never the writing of this guide. State
-  whether the number is a retrospective sizing or a forecast; reuse a groomed estimate verbatim and note the
-  delta rather than silently replacing it.
+  a fenced `yaml` block so it survives the paste. Size the TARGET WORK, never the writing of this guide.
+- **Estimate the change, not the feature.** The estimate target is exactly what `--estimate` or an explicit
+  estimation instruction names (a demo scope alone never counts); else the current changes — the union of
+  branch commits vs the default branch and the staged + unstaged diff, narrowed to the demo scope; else, with
+  no change set in scope, the demo scope under the `named scope (no change set)` label. Unchanged feature code
+  is demo context — name it in `estimate_reasoning` (e), never inside the number. State whether the number is
+  a retrospective sizing or a forecast; reuse a groomed estimate verbatim (noting the delta) only when it
+  covers exactly this target.
 
 ## Filling the "domain storage / solution" block (the distinctive value)
 

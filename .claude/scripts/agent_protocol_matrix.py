@@ -125,6 +125,13 @@ EXCLUDED_ORCHESTRATION = {
     # sub-agent receives one already-scoped brief whose overlay the dispatching
     # orchestrator already resolved.
     "project-protocol-overlay",
+    # Tracks the USER's prompts for a session: pin the original request, keep the
+    # running P1..Pn list, re-anchor after compaction. A headless leaf sub-agent
+    # never sees the user conversation -- it receives one brief that already carries
+    # the goal verbatim -- and the prompt-ledger hook deliberately delivers nothing
+    # inside a helper agent (spec SessionPromptLedger BR-SPL-06). The orchestrator
+    # carries this block; the leaf would be told to track prompts it cannot see.
+    "session-goal-ledger",
 }
 
 # Per-agent exceptions: a normally-excluded block IS legitimate content for this
@@ -152,7 +159,6 @@ REVIEW_CYCLE_AGENTS = {
     "code-reviewer",
     "integration-tester",
     "planner",
-    "quality-gate-review",
     "security-auditor",
     "spec-compliance-reviewer",
     "ui-ux-designer",
@@ -169,8 +175,7 @@ CODE_TIER_TAGS = {
     "fix-layer-accountability",
 }
 CORE_ONLY_AGENTS = {
-    "business-analyst", "docs-manager", "git-manager", "journal-writer",
-    "knowledge-worker", "product-owner", "project-manager", "quality-gate-review",
+    "docs-manager", "git-manager", "journal-writer", "knowledge-worker",
 }
 
 # CODE_TIER_TAGS splits on a second axis (agent-universal-rules.test.cjs TC-UAR-004):
@@ -255,16 +260,6 @@ AGENT_QUALITY_BLOCKS = {
         "test-failure-fault-adjudication",
         "review-principle-awareness",
     ],
-    "quality-gate-review": [
-        "severity-rubric", "review-policy", "double-round-trip-review", "fresh-context-review",
-        "review-protocol-injection", "refinement-dor-checklist", "estimation-framework",
-        # wave 2 (twin: quality-gate-review / quality-gate)
-        "trade-off-interrogation-gate", "source-test-drift-check",
-        # A gate whose input is a failing suite decides PASS/FAIL on it; the
-        # five-way verdict is the scale that decision needs (/why-review F-M2).
-        "test-failure-fault-adjudication",
-        "review-principle-awareness",
-    ],
 
     # --- investigation / research family ---------------------------------
     "debugger": [
@@ -327,13 +322,6 @@ AGENT_QUALITY_BLOCKS = {
         # Greenfield architecture must decide whether and how non-human agents
         # can use the application before feature fan-out.
         "ai-agent-as-user-access",
-    ],
-    "business-analyst": [
-        "estimation-framework", "refinement-dor-checklist", "ba-team-decision-model",
-        "ai-sdd-artifact-contract", "ui-wireframe",
-    ],
-    "product-owner": [
-        "estimation-framework", "refinement-dor-checklist", "ui-wireframe",
     ],
 
     # --- test family -----------------------------------------------------
@@ -470,7 +458,6 @@ AGENT_QUALITY_BLOCKS = {
     # prevents silent tier drift when a new block is introduced.
     "git-manager": ["estimation-framework"],
     "journal-writer": [],
-    "project-manager": [],
 }
 
 # ---------------------------------------------------------------------------
@@ -487,14 +474,13 @@ AGENT_SKILL_CONNECTIONS = {
         "architecture-review-full", "security-review", "performance-review",
     ],
     "backend-developer": ["feature-implement", "fix"],
-    "business-analyst": ["business-analyst", "refine", "story"],
     "code-reviewer": [
         "code-review", "changes-review", "architecture-review-full", "seed-test-data", "ui-review",
     ],
     "code-simplifier": ["code-simplifier"],
     "database-admin": ["db-migrate", "seed-test-data"],
     "debugger": ["debug-investigate", "investigate"],
-    "docs-manager": ["docs-update", "documentation"],
+    "docs-manager": ["docs-update"],
     "e2e-runner": ["e2e-test", "workflow-e2e"],
     "framework-maintainer": ["custom-agent", "skill-creator", "sync-skills-shared-protocols"],
     "frontend-developer": ["feature-implement", "design"],
@@ -502,20 +488,17 @@ AGENT_SKILL_CONNECTIONS = {
     "git-manager": ["commit"],
     "integration-tester": [
         "integration-test", "integration-test-review", "integration-test-verify",
-        "integration-test-verify-loop", "workflow-write-integration-test",
+        "workflow-write-integration-test",
         "workflow-integration-test-green",
     ],
-    "journal-writer": ["journal"],
+    "journal-writer": ["learn"],
     "knowledge-worker": ["knowledge-review", "knowledge-synthesis"],
     "performance-optimizer": ["performance-review"],
     "planner": ["plan", "plan-review"],
-    "product-owner": ["product-owner", "prioritize", "product-roadmap"],
-    "project-manager": ["project-manager"],
-    "quality-gate-review": ["quality-gate-review", "quality-gate"],
-    "researcher": ["research", "web-research"],
+    "researcher": ["web-research"],
     "security-auditor": ["security-review"],
     "solution-architect": [
-        "architecture-design", "scaffold", "harness-setup", "greenfield",
+        "architecture-design", "scaffold", "harness-setup",
         "workflow-greenfield-init", "tech-stack-research",
     ],
     "spec-compliance-reviewer": ["artifact-review", "spec", "spec-clarify"],
@@ -528,9 +511,9 @@ AGENT_SKILL_CONNECTIONS = {
 # explicit so a future skill addition cannot silently become skill-only.
 TEST_ARCHITECTURE_SKILLS = {
     "architecture-design", "architecture-scalability-review", "architecture-review-full",
-    "scaffold", "harness-setup", "greenfield", "workflow-greenfield-init",
+    "scaffold", "harness-setup", "workflow-greenfield-init",
     "integration-test", "integration-test-review", "integration-test-verify",
-    "integration-test-verify-loop", "e2e-test", "workflow-e2e",
+    "e2e-test", "workflow-e2e",
     "workflow-write-integration-test", "workflow-integration-test-green", "test",
     "seed-test-data",
 }
@@ -546,13 +529,13 @@ TEST_ARCHITECTURE_AGENTS = {
 FAMILIES = {
     "review": [
         "code-reviewer", "security-auditor", "performance-optimizer",
-        "spec-compliance-reviewer", "quality-gate-review",
+        "spec-compliance-reviewer",
     ],
     "investigation": [
         "debugger", "researcher", "knowledge-worker",
     ],
     "planning": [
-        "planner", "architect", "solution-architect", "business-analyst", "product-owner",
+        "planner", "architect", "solution-architect",
     ],
     "test": [
         "integration-tester", "tester", "e2e-runner", "database-admin",
@@ -564,7 +547,7 @@ FAMILIES = {
         "backend-developer", "frontend-developer", "fullstack-developer",
     ],
     "operations": [
-        "git-manager", "journal-writer", "project-manager",
+        "git-manager", "journal-writer",
     ],
 }
 

@@ -24,8 +24,6 @@
  *               dev-rules guidance reaches code agents only.
  *   TC-CP-004 — design-system-canonical-guide hook's "read the canonical design-system
  *               doc first for tokens/components/BEM" guidance relocated into the design skill.
- *   TC-CP-005 — figma-context-extractor hook's Figma-URL→MCP extraction commands
- *               relocated into the figma-design skill.
  *   TC-CP-006 — ba-refinement-context hook's DoR / hypothesis-validation BA guidance
  *               relocated into the refine skill.
  *   TC-CP-007 — graph-grep-suggester hook's post-grep "run a graph trace, grep can't find
@@ -52,8 +50,8 @@
  *               enumerate the form set. Presence checks cannot catch two present-but-disagreeing
  *               statements, which is what drifted in three consecutive review rounds.
  *
- * The 4 per-context inject hooks (design-system-canonical-guide / figma-context-extractor /
- * ba-refinement-context / graph-grep-suggester) are now presence-asserted by TC-CP-004..007
+ * The 3 per-context inject hooks (design-system-canonical-guide / ba-refinement-context /
+ * graph-grep-suggester) are now presence-asserted by TC-CP-004, TC-CP-006 and TC-CP-007
  * against the verbatim load-bearing phrases their guidance relocated to. A future skill edit
  * that drops a relocated block fails the matching TC, restoring cross-host parity.
  */
@@ -139,7 +137,7 @@ module.exports = {
                     'tmp/ck-agent-',                      // progress-file path contract
                 ];
                 const missing = [];
-                for (const agent of ['backend-developer', 'product-owner']) {
+                for (const agent of ['backend-developer', 'docs-manager']) {
                     const body = readAgent(agent);
                     for (const p of phrases) {
                         if (!body.includes(p)) missing.push(`${agent} → "${p}"`);
@@ -157,7 +155,7 @@ module.exports = {
             name: '[content-presence] TC-CP-003 agent-code-standards reaches code agents, not non-code agents',
             fn: () => {
                 const codeBody = readAgent('backend-developer');
-                const nonCodeBody = readAgent('product-owner');
+                const nonCodeBody = readAgent('docs-manager');
                 const missing = [];
                 // Code agent MUST carry dev-rules + pattern-doc guidance. The meta-rationale
                 // header was removed; key on the actionable content ("Development rules" lead-in
@@ -172,16 +170,21 @@ module.exports = {
         },
         {
             name: '[content-presence] TC-CP-004 design-system-canonical guidance relocated into design skill',
+            // The relocated guidance was GENERALIZED, not lost: the deleted hook injected a
+            // hardcoded `design-system-canonical.md` filename, while the skill now resolves the
+            // authority from `docs/project-config.json` (`designSystem.canonicalDoc`) so a project
+            // declares its own. Keying on the retired literal filename asserted the old mechanism
+            // rather than the obligation, so it failed against a skill that carries the guidance in
+            // full — including against HEAD, which is why this was already red before this change.
+            // These two phrases pin the obligation itself: the read-before-choose ordering and the
+            // never-invent floor. Each was mutation-checked to BITE — deleting the relocated bullet
+            // fails both. `designSystem.canonicalDoc` was deliberately NOT included despite being
+            // the obvious key: it also appears in the authority-resolution step earlier in the
+            // skill, so it survives deleting this bullet entirely and would assert nothing here
+            // while reading as though it did.
             fn: () => assertRelocated('design-system-canonical-guide', 'design', [
-                'design-system-canonical.md',
-                'first for design tokens, component patterns, and BEM conventions',
-            ]),
-        },
-        {
-            name: '[content-presence] TC-CP-005 figma URL→MCP extraction relocated into figma-design skill',
-            fn: () => assertRelocated('figma-context-extractor', 'figma-design', [
-                'Figma URL Detection & MCP Extraction',
-                'mcp__figma__get_file_nodes',
+                'before choosing tokens, component patterns, breakpoints, or BEM conventions',
+                'never invent a canonical path or token vocabulary',
             ]),
         },
         {
@@ -251,21 +254,18 @@ module.exports = {
                     'classify-test-wrong': 'TEST-WRONG',
                     'ask-user-when-unclear': 'Ask the user when intended behavior is unclear',
                 };
-                // Every debug/fix/test-family skill — investigate, fix, prove-fix, the test runner,
-                // the integration-test trio, e2e, UI/webapp testing, and the bugfix workflow.
+                // Every debug/fix/test-family skill — investigate, fix, the test runner,
+                // the integration-test trio, e2e, and the bugfix workflow.
                 // Adding a family skill without these rules (or dropping one here) must surface as
                 // a failure, not a silent gap.
                 const familySkills = [
                     'debug-investigate',
                     'fix',
-                    'prove-fix',
                     'test',
                     'integration-test',
                     'integration-test-review',
                     'integration-test-verify',
                     'e2e-test',
-                    'test-ui',
-                    'webapp-testing',
                     'workflow-bugfix',
                 ];
                 const missing = [];
@@ -577,6 +577,74 @@ module.exports = {
                     `Fix — "SPLIT TRIGGER DELETED": removing a trigger does NOT remove a cap — it ` +
                     `removes the structure that keeps a large target readable. See ` +
                     `references/report-template.md → "Caps vs split triggers".`);
+            },
+        },
+        {
+            name: '[content-presence] TC-CP-014 no skill or framework config instructs CHANGELOG.md generation',
+            fn: () => {
+                // The framework generates release notes, never a changelog. This asserts the
+                // ABSENCE of a generation duty, which presence tests cannot cover: a skill that
+                // re-grows a "prepend to CHANGELOG.md" step, or a config that re-adds a
+                // changelog output key, fails here.
+                //
+                // Deliberately NOT flagged (and the regexes below must keep letting these pass):
+                //   - "history belongs in git / CHANGELOG.md / docs/adr/**" — says where a
+                //     consumer project's history lives; instructs no one to write one.
+                //   - "Check CHANGELOG.md" / "read the upstream CHANGELOG" — third-party.
+                //   - CHANGELOG.md listed as an example root doc to SCAN — reads, never creates.
+                //   - "[skip changelog]" — a commit-message marker excluding a commit from the
+                //     generated notes; an input filter, not an output.
+                const WRITE_VERBS =
+                    /\b(?:write|writes|writing|update|updates|updating|prepend|prepends|prepending|append|appends|appending|generate|generates|generating|create|creates|creating|maintain|maintains|maintaining)\s+(?:the\s+|a\s+|an\s+|to\s+|into\s+)*[`'"]?CHANGELOG\.md/i;
+                // The verb also shows up AFTER the filename ("Aggregated log: CHANGELOG.md
+                // (prepended)"), so match that shape too — same verb set, opposite order.
+                const WRITTEN_SUFFIX =
+                    /CHANGELOG\.md[^\n]{0,40}?\b(?:prepended|appended|generated|written|created|updated|maintained|auto-saved)\b/i;
+                const OUTPUT_KEYS = /\b(?:changelog_file|changelog_root|per_service_changelog)\b/;
+                const GENERATOR_REF = /\bupdate-changelog(?:\.cjs)?\b/;
+
+                const roots = [
+                    path.join(PROJECT_DIR, '.claude', 'skills'),
+                    path.join(PROJECT_DIR, '.claude', 'config'),
+                ];
+                const EXT = /\.(?:md|ya?ml|json|c?js|mjs)$/i;
+                const files = [];
+                const walk = dir => {
+                    if (!fs.existsSync(dir)) return;
+                    for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
+                        const p = path.join(dir, e.name);
+                        if (e.isDirectory()) walk(p);
+                        else if (EXT.test(e.name)) files.push(p);
+                    }
+                };
+                for (const r of roots) walk(r);
+
+                assertTrue(files.length >= 100,
+                    `TC-CP-014 scanned only ${files.length} file(s) under .claude/skills + ` +
+                    `.claude/config — expected at least 100. The walk is vacuous; fix it before ` +
+                    `trusting a green.`);
+
+                const problems = [];
+                for (const p of files) {
+                    const text = readFile(p);
+                    const rel = path.relative(PROJECT_DIR, p);
+                    for (const [label, rx] of [
+                        ['writes a CHANGELOG.md', WRITE_VERBS],
+                        ['declares a CHANGELOG.md as written output', WRITTEN_SUFFIX],
+                        ['changelog output config key', OUTPUT_KEYS],
+                        ['changelog generator script reference', GENERATOR_REF],
+                    ]) {
+                        const m = text.match(rx);
+                        if (m) problems.push(`${rel} → ${label}: "${m[0]}"`);
+                    }
+                }
+
+                assertTrue(problems.length === 0,
+                    `CHANGELOG generation re-introduced:\n  ${problems.join('\n  ')}\n` +
+                    `Fix: this framework produces release notes only — one dated file per release ` +
+                    `under the configured release-notes output dir. Remove the changelog step, key, ` +
+                    `or script; do not rename it. Reading an existing or third-party CHANGELOG is ` +
+                    `fine — writing one is not.`);
             },
         },
     ],

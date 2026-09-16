@@ -28,7 +28,7 @@ If config, root instructions or required docs are missing or stale, run `$projec
 
 ## Task Planning Rules
 
-Create a small task per change before edits; keep exactly one `in_progress`, complete it immediately after evidence, and include final consistency review. For non-trivial work resolve the active goal contract and observable acceptance criteria; persist findings incrementally to `tmp/reports/`. On compaction inspect existing tasks/state and re-read files before continuing. Required quality gates and native host permissions cannot be waived by routing, overlays, delegation or completion pressure.
+Create a small task per change before edits; keep exactly one `in_progress`, complete it immediately after evidence, and include final consistency review. **Analyze the task graph BEFORE executing** (every host, with or without hooks): once the list exists, split work into delegable tasks, map output dependencies and shared write targets, order them into waves (what runs first, what runs in parallel, what stays `SEQ` and why), declare the wave plan, then dispatch each parallel-safe wave together under the Workflow Step Advancement limits below; re-run the analysis when tasks are added. Serial execution of independent tasks is a defect. For non-trivial work resolve the active goal contract and observable acceptance criteria; persist findings incrementally to `tmp/reports/`. Pin `Original goal:` as the first task, keep a running `User prompts this session: P1…Pn` list, re-read both at each step, before delegation and after compaction, and map the finished result to every prompt before claiming done (`SYNC:session-goal-ledger`). On compaction inspect existing tasks/state and re-read files before continuing. Required quality gates and native host permissions cannot be waived by routing, overlays, delegation or completion pressure.
 
 ## Generated Artifact Storage
 
@@ -99,4 +99,4 @@ Add `Analyze AI mistakes & lessons learned` to non-trivial tasks. Extract the ro
 <!-- SECTION:doc-lookup -->
 <!-- /SECTION:doc-lookup -->
 
-Critical reminders: operate only within user authority; preserve user work and canonical ownership; verify evidence and every required gate before completion.
+Critical reminders: operate only within user authority; preserve user work and canonical ownership; map task dependencies and parallel waves before executing; verify evidence and every required gate before completion.

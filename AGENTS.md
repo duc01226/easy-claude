@@ -217,10 +217,12 @@ It is the single source of truth describing THIS repo: modules/paths, framework 
 
 1. Before editing files, MUST create a task tracking item per change.
 2. Break work into small todos; add a final review todo.
-3. Mark todos `completed` immediately after each one finishes. Keep exactly one `in_progress`.
-4. On context loss or compaction, call the current task list first — resume existing tasks, don't duplicate.
-5. Recommendations need traced evidence (`file:line`, grep, graph). No speculation.
-6. Recommendations that could break behavior require validation before proposing.
+3. **Analyze the task graph BEFORE executing** (every host, hooks or not). Once the list exists, before any task starts: (a) split work into delegable tasks; (b) map dependencies — output consumers, shared write targets; (c) order waves — what runs first, what runs in parallel per wave, what stays `SEQ` and why; (d) declare the plan in the `Parallel plan:` format of [Workflow Step Advancement](#workflow-step-advancement--parallel-phases) rule 5; (e) dispatch each parallel-safe wave as sub-agents in ONE message within that rule's limits. Re-run this analysis when tasks are added. Serial execution of independent tasks is a defect; parallelism never overrides those limits. — why: an unanalyzed list defaults to serial and hides ordering conflicts.
+4. Mark todos `completed` immediately after each one finishes. Keep exactly one `in_progress`.
+5. On context loss or compaction, call the current task list first — resume existing tasks, don't duplicate.
+6. Recommendations need traced evidence (`file:line`, grep, graph). No speculation.
+7. Recommendations that could break behavior require validation before proposing.
+8. **Pin the goal, track every prompt** (`SYNC:session-goal-ledger`): write `Original goal:` as task 1, keep `User prompts this session: P1…Pn`, re-read both each step, before delegation and after compaction (`tmp/prompt-ledger/<session>/ledger.md` when present), and map the result to every prompt before done. Never store secrets.
 
 ---
 
@@ -270,7 +272,7 @@ Entity/Model (Lowest)  >  Service  >  Component/Handler (Highest)
 /\.claude/hooks/lib/                     # Shared utility modules consumed by hooks
 /\.claude/skills/                        # Skill definitions for task automation (SKILL.md + scripts)
 /\.claude/agents/                        # Agent definitions for specialized subagent roles
-/\.claude/scripts/                       # Utility scripts for catalog generation, skill management, and worktree operations
+/\.claude/scripts/                       # Utility scripts for catalog generation, skill/agent management, shared-protocol sync, and code-graph tooling
 /\.claude/workflows/                     # Workflow definitions for orchestrating multi-step task sequences
 /\.claude/docs/                          # Framework documentation — agents, skills, hooks, configuration guides
 ```
@@ -336,7 +338,7 @@ Add a final task — "Analyze AI mistakes & lessons learned" — to every non-tr
 3. Write it as a **universal rule** — strip project-specific names/paths/classes so it is useful on any codebase.
 4. **Consolidate:** multiple mistakes sharing one failure mode → ONE lesson.
 5. **Recurrence gate:** "Would this recur in a future session WITHOUT this reminder?" — No → skip `$learn`.
-6. **Auto-fix gate:** "Could `$code-review` / `$code-simplifier` / `$security-review` / `$lint` catch this mechanically?" — Yes → improve that review skill instead of writing a lesson.
+6. **Auto-fix gate:** "Could `$code-review` / `$code-simplifier` / `$security-review` / a linter catch this mechanically?" — Yes → improve that review skill instead of writing a lesson.
 7. **Both gates pass → ask the user to run `$learn`** to capture the lesson durably. Never silently self-edit instruction files.
 
 ---
@@ -388,13 +390,16 @@ python .claude/scripts/code_graph search <keyword> --kind Function --json       
 
 <!-- SECTION:skill-activation -->
 
-When editing files matching these path patterns, pre-read the listed context first:
+When editing files matching these path patterns, pre-read the listed context first: (no hook: `node .claude/hooks/lib/file-conventions.cjs --lookup <path>`)
 
 | Path Pattern | Skill / Auto-Context | Pre-Read Files |
 |---|---|---|
-| `/\.claude/hooks/.*\.cjs$**` | _(auto-context)_ | `.claude/docs/hooks/README.md` |
-| `/\.claude/skills/.*SKILL\.md$**` | _(auto-context)_ | `.claude/docs/skills/README.md` |
-| `/\.claude/agents/.*\.md$**` | _(auto-context)_ | `.claude/docs/agents/README.md` |
+| `docs/specs/**/*.md` | `spec` | `docs/project-reference/feature-spec-reference.md`, `docs/project-reference/spec-system-reference.md`, `docs/project-reference/spec-principles.md`, `[[convention:feature-spec@e0967a10]]` |
+| `**/*.test.cjs` | `integration-test` | `docs/project-reference/integration-test-reference.md`, `[[convention:integration-test@f3af9787]]` |
+| `/\.claude/hooks/.*\.cjs$**` ext `.cjs` | _(auto-context)_ | `.claude/docs/hooks/README.md`, `[[convention:hooks-context@6ef66337]]` |
+| `/\.claude/skills/.*SKILL\.md$**` ext `.md` | _(auto-context)_ | `.claude/docs/skills/README.md`, `[[convention:skills-context@f15fc150]]` |
+| `/\.claude/agents/.*\.md$**` ext `.md` | _(auto-context)_ | `.claude/docs/agents/README.md`, `[[convention:agents-context@705ea67c]]` |
+| `**/*` ext `.js`, `.cjs`, `.mjs`, `.jsx`, `.py` · not `**/node_modules/**`, `**/dist/**`, `**/build/**`, `**/vendor/**`, `tmp/**`, `temp/**` | _(auto-context)_ | `docs/project-reference/code-review-rules.md`, `[[convention:general-code@487c3358]]` |
 
 <!-- /SECTION:skill-activation -->
 
@@ -434,7 +439,7 @@ Apply the shared AI-SDD contract from `shared/sdd-artifact-contract.md` and `SYN
 
 This compact pointer is auto-generated from `.codex/CODEX_CONTEXT.md` by `npm run codex:sync:context`.
 Read `.codex/CODEX_CONTEXT.md` before any non-trivial workflow or skill; it carries the full static catalog and protocol detail.
-Context fingerprint (SHA-256): 4d27af8a91852e17310177cb5de4285839d18994662e7b177f984a7e0311973b
+Context fingerprint (SHA-256): 5b24c2c3ce0c4d0faee48ee28b893c330bb0cd4c7477f3bd4970906851100b8a
 Do not edit this pointer manually; update canonical Claude sources and re-sync.
 
 ## Codex Project Reference Gate (Hook-Independent)

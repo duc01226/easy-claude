@@ -134,9 +134,8 @@ test('TC-WFADV-022: whole-target why-review starts in parallel with changes-revi
     const codexContextText = normalizeEol(
         await fs.readFile(path.join(repoRoot, '.codex', 'CODEX_CONTEXT.md'), 'utf8')
     );
-    const loopSkillText = normalizeEol(
-        await fs.readFile(path.join(repoRoot, '.claude', 'skills', 'workflow-review-changes-loop', 'SKILL.md'), 'utf8')
-    );
+    // The outer zero-fix loop lives in workflow-review-changes as its delimited optional `--fix-loop` mode.
+    const loopSkillText = skillText.match(/<!-- FIX-LOOP-MODE:START -->[\s\S]*?<!-- FIX-LOOP-MODE:END -->/)?.[0] ?? '';
     const workflowVerifierText = normalizeEol(
         await fs.readFile(path.join(repoRoot, '.claude', 'scripts', 'codex', 'verify-workflow-cycle-compliance.mjs'), 'utf8')
     );
@@ -183,8 +182,8 @@ test('TC-WFADV-022: whole-target why-review starts in parallel with changes-revi
         /plan-execute -> changes-review -> why-review -> experience-review -> scan --target=domain-entities -> docs-update/,
         'generated guidance must preserve the later conditional changes-review occurrence and optional experience evidence'
     );
-    assert.match(loopSkillText, /full 20-step sequence/);
-    assert.doesNotMatch(loopSkillText, /full 19-step sequence/);
+    assert.match(loopSkillText, /full 21-step sequence/);
+    assert.doesNotMatch(loopSkillText, /full (?:19|20)-step sequence/);
     assert.match(loopSkillText, /fix cycle, steps 12[–-]15/);
     assert.doesNotMatch(loopSkillText, /fix cycle, steps 11[–-]14/);
     assert.doesNotMatch(
@@ -194,6 +193,62 @@ test('TC-WFADV-022: whole-target why-review starts in parallel with changes-revi
     );
     assert.match(workflowVerifierText, /step-15 re-review is inline by design/);
     assert.doesNotMatch(workflowVerifierText, /step-12 re-review is inline by design/);
+});
+
+// Given the outer zero-fix convergence loop is an OPTIONAL `--fix-loop` mode of workflow-review-changes
+// (not a separate skill), When its documentation is read, Then the flag is advertised at the top and bottom,
+// the mode is delimited, and every gate that makes the outer loop safe is present — so dropping one gate,
+// recursing the flag into each round, or re-introducing the retired standalone loop skill fails here.
+// Built from parts so the residue grep for the retired id stays at zero hits in canonical sources.
+const RETIRED_LOOP_SKILL = ['workflow-review-changes', 'loop'].join('-');
+
+function assertFixLoopMode(text) {
+    const mode = text.match(/<!-- FIX-LOOP-MODE:START -->([\s\S]*?)<!-- FIX-LOOP-MODE:END -->/)?.[1] ?? '';
+    assert.equal(text.split('<!-- FIX-LOOP-MODE:START -->').length - 1, 1, 'exactly one delimited --fix-loop mode section');
+    assert.match(text, /^description: '[^'\n]*Flag: --fix-loop[^'\n]*'$/m, 'frontmatter description advertises the flag');
+    const quickSummary = text.slice(text.indexOf('## Quick Summary'), text.indexOf('## First Principle'));
+    assert.match(quickSummary, /\*\*`--fix-loop` \(OPTIONAL mode flag — absent by default, and absence changes nothing in this skill\):\*\*/);
+    const closing = text.slice(text.lastIndexOf('## Closing Reminders'));
+    assert.match(closing, /\*\*IMPORTANT MUST ATTENTION `--fix-loop` \(OPTIONAL mode — only when the flag is passed\):\*\*/);
+    // Key gates carried from the retired loop protocol.
+    assert.match(mode, /Converge a review scope to a \*\*clean no-op pass\*\*/);
+    assert.match(mode, /invoke `\/workflow-review-changes` \(default mode, WITHOUT `--fix-loop`\) via the `Skill` tool \(NEVER the `Agent` tool\)/);
+    assert.match(mode, /Scope base is FIXED across rounds; the working tree grows\./);
+    assert.match(mode, /git diff develop\.\.\.HEAD/);
+    assert.match(mode, /Snapshot before:\*\* record the working-tree fingerprint/);
+    assert.match(mode, /working tree is byte-identical to the before-snapshot/);
+    assert.match(mode, /Resolve\/create the Goal Contract/);
+    assert.match(mode, /\*\*1\. Protocol loop — ALWAYS binding \(hook\/command-independent\)\.\*\*/);
+    assert.match(mode, /\*\*2\. `\/goal` command — invoke as an accelerator WHEN AVAILABLE\.\*\*/);
+    assert.match(mode, /\/goal accelerator unavailable — loop bound by protocol/);
+    assert.match(mode, /\*\*Nested gates \(by design, safe\):\*\*/);
+    assert.match(mode, /\*\*in this order — the first matching row decides\*\*/);
+    assert.match(mode, /Why this mode exists \(READ FIRST/);
+    assert.match(mode, /Fix-Loop Convergence Detection — Why Two Conditions/);
+    assert.match(mode, /REGENERATE a fresh round task plan/);
+    assert.ok(!text.includes(RETIRED_LOOP_SKILL), 'no reference to the retired standalone loop skill');
+}
+
+test('TC-WFADV-023: workflow-review-changes documents the optional --fix-loop outer convergence mode with its gates', async () => {
+    const skillText = normalizeEol(
+        await fs.readFile(path.join(repoRoot, '.claude', 'skills', 'workflow-review-changes', 'SKILL.md'), 'utf8')
+    );
+    assertFixLoopMode(skillText);
+    await assert.rejects(
+        fs.access(path.join(repoRoot, '.claude', 'skills', RETIRED_LOOP_SKILL)),
+        'the standalone loop skill stays merged into the --fix-loop mode'
+    );
+    for (const [before, after] of [
+        ['(default mode, WITHOUT `--fix-loop`) via the `Skill` tool (NEVER the `Agent` tool)', 'via the `Agent` tool'],
+        ['working tree is byte-identical to the before-snapshot', 'reviews look clean'],
+        ['**in this order — the first matching row decides**', 'using any matching row'],
+        ['Scope base is FIXED across rounds; the working tree grows.', 'Scope is recomputed freely.'],
+        ['<!-- FIX-LOOP-MODE:END -->', ''],
+    ]) {
+        assert.ok(skillText.includes(before), `mutation anchor exists: ${before}`);
+        assert.throws(() => assertFixLoopMode(skillText.replaceAll(before, after)), { code: 'ERR_ASSERTION' });
+    }
+    assert.throws(() => assertFixLoopMode(`${skillText}\nSee /${RETIRED_LOOP_SKILL}.`), { code: 'ERR_ASSERTION' });
 });
 
 test('TC-WFADV-021: parallelGroups structural guards reject malformed barrier configs (no silent false-pass)', async () => {

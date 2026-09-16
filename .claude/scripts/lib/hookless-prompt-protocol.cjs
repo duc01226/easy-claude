@@ -84,7 +84,7 @@ function buildCanonicalProtocolText(rootDir, tag) {
 }
 
 function buildTaskPlanningProtocolText() {
-    return '**[TASK-PLANNING] [MANDATORY]** BEFORE executing any workflow or skill step, create/update task tracking for all planned steps, then keep it synchronized as each step starts/completes.';
+    return '**[TASK-PLANNING] [MANDATORY]** BEFORE executing any workflow or skill step, create/update task tracking for all planned steps, analyze the task graph (output dependencies, shared write targets) into ordered parallel waves per PARALLELIZE before starting any task, then keep it synchronized as each step starts/completes.';
 }
 
 function buildLessonLearnedReminderText() {
@@ -98,7 +98,7 @@ Break work into small tasks (task tracking) before starting. Add final task: "An
 3. Write as a universal rule — strip project-specific names/paths/classes. Useful on any codebase.
 4. Consolidate: multiple mistakes sharing one failure mode → ONE lesson.
 5. **Recurrence gate:** "Would this recur in future session WITHOUT this reminder?" — No → skip \`$learn\`.
-6. **Auto-fix gate:** "Could \`$code-review\`/\`$code-simplifier\`/\`$security-review\`/\`$lint\` catch this?" — Yes → improve review skill instead.
+6. **Auto-fix gate:** "Could \`$code-review\`/\`$code-simplifier\`/\`$security-review\`/a linter catch this?" — Yes → improve review skill instead.
 7. BOTH gates pass → ask user to run \`$learn\`.`;
 }
 
@@ -108,11 +108,16 @@ function buildPromptProtocolSections(rootDir, options = {}) {
     const includeAiSdd = options.includeAiSdd !== false;
     const includeUniversalRules = options.includeUniversalRules !== false;
     const includeLessonReminder = options.includeLessonReminder === true;
+    const includeSessionGoalLedger = options.includeSessionGoalLedger !== false;
 
     return [
         normalizePromptProtocolText(buildWorkflowProtocolText(portability)),
         includeAiSdd ? normalizePromptProtocolText(buildSharedAiSddMarkerSection(rootDir, options.sharedAiSddTags)) : null,
         normalizePromptProtocolText(buildTaskPlanningProtocolText()),
+        // Hookless goal tracking: pin the original request, track every prompt, verify against all of them.
+        includeSessionGoalLedger
+            ? normalizePromptProtocolText(buildCanonicalProtocolText(rootDir, 'session-goal-ledger:reminder'))
+            : null,
         includeLessonReminder ? normalizePromptProtocolText(buildLessonLearnedReminderText()) : null,
         includeUniversalRules
             ? normalizePromptProtocolText(buildCanonicalProtocolText(rootDir, 'critical-thinking-mindset:full'))

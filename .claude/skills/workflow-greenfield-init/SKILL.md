@@ -1,6 +1,6 @@
 ---
 name: workflow-greenfield-init
-version: 1.0.0
+version: 1.1.0
 description: '[Workflow] Use when starting a new project from scratch — full waterfall inception from idea through implementation and integration testing.'
 disable-model-invocation: false
 ---
@@ -57,39 +57,63 @@ This workflow has steps that appear multiple times. When creating tasks, use the
 | Step                                 | Occurrence   | Task Description                                                                          |
 | ------------------------------------ | ------------ | ----------------------------------------------------------------------------------------- |
 | `/plan`                              | 1st (pos 14) | PLAN₁: High-level architecture plan (after architecture-design and conditional decomposition scenario gate) |
-| `/plan`                              | 2nd (pos 34) | PLAN₂: Sprint-ready implementation plan (after artifact-review --type=spec-tests)         |
-| `/plan`                              | 3rd (pos 51) | PLAN₃: Integration test architecture plan (post-implementation)                           |
-| `/plan-review`                       | 1st (pos 15) | Review PLAN₁ architecture (immediate gate; replaces former rationale why-review)          |
-| `/plan-review`                       | 2nd (pos 18) | Re-review PLAN₁ after architecture-security + performance analysis                        |
-| `/plan-review`                       | 3rd (pos 35) | Review PLAN₂ implementation                                                               |
-| `/plan-review`                       | 4th (pos 52) | Review PLAN₃ integration tests                                                            |
-| `/security-review`                   | 1st (pos 16) | Architecture security review                                                              |
-| `/security-review`                   | 2nd (pos 60) | Production readiness security review                                                      |
-| `/spec [mode=tests]`                 | 1st (pos 30) | TDD-SPEC₁: Feature test specs (before implementation)                                     |
-| `/spec [mode=tests]`                 | 2nd (pos 48) | TDD-SPEC₂: Post-implementation test spec update                                           |
-| `/artifact-review --type=spec-tests` | 1st (pos 32) | Review TDD-SPEC₁                                                                          |
-| `/artifact-review --type=spec-tests` | 2nd (pos 50) | Review TDD-SPEC₂                                                                          |
-| `/e2e-test`                          | (conditional, pos 56) | Run after integration-test-verify only when E2E is configured; otherwise record evidence-backed N/A |
-| `/test`                              | 1st (pos 57) | Test after integration tests and conditional early E2E evaluation                         |
-| `/workflow-e2e --source=context`     | required (pos 59) | Near-end nested E2E workflow after workflow-review-changes; it owns visual screenshot review by default and records N/A/blocked evidence |
-| `/test`                              | 2nd (pos 62) | Final full/focused test verification                                                       |
-| `/domain-entities-review`            | 1st (pos 47) | DDD quality review — conditional: skip if no domain entity files in changeset             |
+| `/plan`                              | 2nd (pos 30) | PLAN₂: Sprint-ready implementation plan (after artifact-review --type=spec-tests)         |
+| `/plan`                              | 3rd (pos 46) | PLAN₃: Integration test architecture plan (post-implementation)                           |
+| `/plan-review`                       | 1st (pos 15) | Review PLAN₁ architecture (immediate gate; its parallel why-review sub-agent owns PLAN₁ rationale) |
+| `/plan-review`                       | 2nd (pos 18) | Re-review PLAN₁ after the parallel architecture-security + performance analysis; sole PLAN₁ writer                        |
+| `/plan-review`                       | 3rd (pos 31) | Review PLAN₂ implementation                                                               |
+| `/plan-review`                       | 4th (pos 47) | Review PLAN₃ integration tests                                                            |
+| `/security-review --report-only`     | 1st (pos 16) | Architecture security review (occurrence `architecture-security-review`; parallel with `/performance-review --report-only` pos 17, occurrence `architecture-performance-review`) |
+| `/security-review`                   | 2nd (pos 55) | Production readiness security review                                                      |
+| `/spec [mode=tests]`                 | 1st (pos 27) | TDD-SPEC₁: Feature test specs (before implementation)                                     |
+| `/spec [mode=tests]`                 | 2nd (pos 44) | TDD-SPEC₂: Post-implementation test spec update                                           |
+| `/artifact-review --type=spec-tests` | 1st (pos 28) | Review TDD-SPEC₁                                                                          |
+| `/artifact-review --type=spec-tests` | 2nd (pos 45) | Review TDD-SPEC₂                                                                          |
+| `/e2e-test`                          | (conditional, pos 51) | Run after integration-test-verify only when E2E is configured; otherwise record evidence-backed N/A |
+| `/test`                              | 1st (pos 52) | Test after integration tests and conditional early E2E evaluation                         |
+| `/workflow-e2e --source=context`     | required (pos 54) | Near-end nested E2E workflow after workflow-review-changes; it owns visual screenshot review by default and records N/A/blocked evidence |
+| `/test`                              | 2nd (pos 56) | Final full/focused test verification (occurrence `final-test`)                            |
+| `/domain-entities-review`            | 1st (pos 43) | DDD quality review — conditional: skip if no domain entity files in changeset             |
 | `/linter-setup`                      | (new)        | LINTER-SETUP: Install and configure computational feedback sensors                        |
 | `/harness-setup`                     | (new)        | HARNESS-SETUP: Full outer agent harness (feedforward guides + feedback sensors inventory) |
 
 **NEVER deduplicate** — each occurrence is a distinct task with a different purpose.
 
+## Architecture Gates Parallel Phase (`architecture-scalability-review` + design-rationale `/why-review`)
+
+Declared as the `architecture-gates` all-return barrier in `workflows.json`. Both gates read the same finished `/architecture-design` artifacts and neither consumes the other's output:
+
+1. Launch `/architecture-scalability-review` FIRST as a fresh read-only `architect` sub-agent (brief: architecture-design, domain-analysis and tech-stack-research artifact paths). It writes its scorecard to `tmp/reports/` and validates its own sub-80 findings.
+2. Immediately run the design-rationale `/why-review` INLINE in FULL mode over the architecture-design rationale — inline so its Trade-Off Interrogation Gate can reach the user.
+3. Advance only after BOTH return. Reconcile: a scalability risk or sub-80 grade touching a decision the why-review passed becomes a WARN carried into `/scenario` and PLAN₁; a why-review FAIL — or a user Trade-Off answer that changes an architecture decision — blocks `/scenario` until the decision is revised, then re-run both gates.
+
+## Architecture Risk Reviews Parallel Phase (pos 16–17)
+
+Declared as the `architecture-risk-reviews` all-return barrier in `workflows.json` (occurrences `architecture-security-review` and `architecture-performance-review`, both invoked with `--report-only`). Both review the same reviewed PLAN₁ + architecture-design artifacts and neither consumes the other's output:
+
+1. Launch BOTH in ONE message as fresh read-only sub-agents — `/security-review --report-only` via `security-auditor`, `/performance-review --report-only` via `performance-optimizer` (brief: PLAN₁, architecture-design, domain-analysis and tech-stack-research artifact paths).
+2. Each runs its skill's documented Report-Only Mode: it audits the architecture at design altitude, writes only its report to `tmp/reports/`, validates its own findings through its skill's findings-validation gate, and returns — no fix, no nested sub-agent, no user question, and no `/scan` or `/project-init` for reference docs that do not exist yet; neither edits PLAN₁.
+3. Advance only after BOTH return. The per-stage `AskUserQuestion` validation for both reviews runs after the barrier; the pos-18 `/plan-review` is the SOLE writer of PLAN₁ — it folds in both validated reports and surfaces any security-vs-performance conflict or trade-off question to the user, never resolving it silently.
+
+## Reference Docs + Pre-Coding Rationale Parallel Phase (pos 36–40)
+
+Declared as the `reference-docs-and-rationale` all-return barrier (`/scan --target=ui-system` is its conditional member):
+
+1. Launch the pre-coding `/why-review` (pos 40) FIRST as a fresh read-only `code-reviewer` sub-agent in FULL mode. Its inputs are PLAN₂, the reviewed foundation source, and the `/architecture-review-full` report — it does not read, wait on, or regenerate the `docs/project-reference/*` docs the in-flight scans derive; a missing or stale reference doc there is expected, recorded as `NOT VERIFIABLE`, and never a trigger for `/scan` or `/project-init`. It returns any Trade-Off Interrogation questions unanswered; the orchestrator asks them via `AskUserQuestion` after the barrier and never self-approves a one-way door.
+2. Run the four `/scan` steps INLINE in order while it is active — the barrier holds one spawned sub-agent plus this inline scan chain; each scan fans out its own sub-agents from the orchestrator, so a scan is never dispatched as a sub-agent. The four scans write disjoint reference docs. Skip `--target=ui-system` (with a logged reason) when the project has no UI stack.
+3. Advance to `/plan-execute` only after ALL members return. If the why-review FAILs and forces a foundation change, fix it and re-run every `/scan` whose reference doc covers the changed area before `/plan-execute`.
+
 ---
 
-**IMPORTANT MANDATORY Steps:** /idea -> /web-research -> /deep-research -> /market-analysis -> /business-evaluation -> /spec-discovery -> /domain-analysis -> /why-review -> /tech-stack-research -> /architecture-design -> /architecture-scalability-review -> /why-review -> /scenario -> /plan -> /plan-review -> /security-review -> /performance-review -> /plan-review -> /refine -> /why-review -> /artifact-review --type=pbi -> /story -> /why-review -> /artifact-review --type=story -> /pbi-challenge -> /dor-gate -> /pbi-mockup -> /plan-validate -> /why-review -> /spec [mode=tests] -> /why-review -> /artifact-review --type=spec-tests -> /spec-clarify -> /plan -> /plan-review -> /scaffold -> /linter-setup -> /harness-setup -> /architecture-review-full -> /scan --target=ui-system -> /scan --target=backend-patterns -> /scan --target=integration-tests -> /scan --target=project-structure -> /why-review -> /plan-execute -> /seed-test-data -> /domain-entities-review -> /spec [mode=tests] -> /why-review -> /artifact-review --type=spec-tests -> /plan -> /plan-review -> /integration-test -> /integration-test-review -> /integration-test-verify -> /e2e-test -> /test -> /workflow-review-changes -> /workflow-e2e --source=context -> /security-review -> /changelog -> /test -> /scan --target=domain-entities -> /docs-update -> /workflow-end -> /watzup
+**IMPORTANT MANDATORY Steps:** /idea -> /web-research -> /deep-research -> /market-analysis -> /business-evaluation -> /spec-discovery -> /domain-analysis -> /why-review -> /tech-stack-research -> /architecture-design -> /architecture-scalability-review -> /why-review -> /scenario -> /plan -> /plan-review -> /security-review --report-only -> /performance-review --report-only -> /plan-review -> /refine -> /artifact-review --type=pbi -> /story -> /artifact-review --type=story -> /pbi-challenge -> /dor-gate -> /pbi-mockup -> /plan-validate -> /spec [mode=tests] -> /artifact-review --type=spec-tests -> /spec-clarify -> /plan -> /plan-review -> /scaffold -> /linter-setup -> /harness-setup -> /architecture-review-full -> /scan --target=ui-system -> /scan --target=backend-patterns -> /scan --target=integration-tests -> /scan --target=project-structure -> /why-review -> /plan-execute -> /seed-test-data -> /domain-entities-review -> /spec [mode=tests] -> /artifact-review --type=spec-tests -> /plan -> /plan-review -> /integration-test -> /integration-test-review -> /integration-test-verify -> /e2e-test -> /test -> /workflow-review-changes -> /workflow-e2e --source=context -> /security-review -> /test -> /scan --target=domain-entities -> /docs-update -> /workflow-end -> /watzup
 
-**IMPORTANT MANDATORY Steps:** /idea -> /web-research -> /deep-research -> /market-analysis -> /business-evaluation -> /spec-discovery -> /domain-analysis -> /why-review -> /tech-stack-research -> /architecture-design -> /architecture-scalability-review -> /why-review -> /scenario -> /plan -> /plan-review -> /security-review -> /performance-review -> /plan-review -> /refine -> /why-review -> /artifact-review --type=pbi -> /story -> /why-review -> /artifact-review --type=story -> /pbi-challenge -> /dor-gate -> /pbi-mockup -> /plan-validate -> /why-review -> /spec [mode=tests] -> /why-review -> /artifact-review --type=spec-tests -> /spec-clarify -> /plan -> /plan-review -> /scaffold -> /linter-setup -> /harness-setup -> /architecture-review-full -> /scan --target=ui-system -> /scan --target=backend-patterns -> /scan --target=integration-tests -> /scan --target=project-structure -> /why-review -> /plan-execute -> /seed-test-data -> /domain-entities-review -> /spec [mode=tests] -> /why-review -> /artifact-review --type=spec-tests -> /plan -> /plan-review -> /integration-test -> /integration-test-review -> /integration-test-verify -> /e2e-test -> /test -> /workflow-review-changes -> /workflow-e2e --source=context -> /security-review -> /changelog -> /test -> /scan --target=domain-entities -> /docs-update -> /workflow-end -> /watzup
+**IMPORTANT MANDATORY Steps:** /idea -> /web-research -> /deep-research -> /market-analysis -> /business-evaluation -> /spec-discovery -> /domain-analysis -> /why-review -> /tech-stack-research -> /architecture-design -> /architecture-scalability-review -> /why-review -> /scenario -> /plan -> /plan-review -> /security-review --report-only -> /performance-review --report-only -> /plan-review -> /refine -> /artifact-review --type=pbi -> /story -> /artifact-review --type=story -> /pbi-challenge -> /dor-gate -> /pbi-mockup -> /plan-validate -> /spec [mode=tests] -> /artifact-review --type=spec-tests -> /spec-clarify -> /plan -> /plan-review -> /scaffold -> /linter-setup -> /harness-setup -> /architecture-review-full -> /scan --target=ui-system -> /scan --target=backend-patterns -> /scan --target=integration-tests -> /scan --target=project-structure -> /why-review -> /plan-execute -> /seed-test-data -> /domain-entities-review -> /spec [mode=tests] -> /artifact-review --type=spec-tests -> /plan -> /plan-review -> /integration-test -> /integration-test-review -> /integration-test-verify -> /e2e-test -> /test -> /workflow-review-changes -> /workflow-e2e --source=context -> /security-review -> /test -> /scan --target=domain-entities -> /docs-update -> /workflow-end -> /watzup
 
 > **[BLOCKING]** Each selected step MUST ATTENTION invoke its `Skill` tool — marking a selected task `completed` without skill invocation is a workflow violation. A declared conditional step such as `/scenario` may be marked skipped only with evidence and an explicit reason; NEVER batch-complete validation gates.
 
 Activate the `workflow-greenfield-init` workflow. Run `/start-workflow workflow-greenfield-init` with the user's prompt as context.
 
-**Steps:** /idea → /web-research → /deep-research → /market-analysis → /business-evaluation → /spec-discovery → /domain-analysis → /why-review → /tech-stack-research → /architecture-design → /architecture-scalability-review → /why-review → /scenario → /plan → /plan-review → /security-review → /performance-review → /plan-review → /refine → /why-review → /artifact-review --type=pbi → /story → /why-review → /artifact-review --type=story → /pbi-challenge → /dor-gate → /pbi-mockup → /plan-validate → /why-review → /spec [mode=tests] → /why-review → /artifact-review --type=spec-tests → /spec-clarify → /plan → /plan-review → /scaffold → /linter-setup → /harness-setup → /architecture-review-full → /scan --target=ui-system → /scan --target=backend-patterns → /scan --target=integration-tests → /scan --target=project-structure → /why-review → /plan-execute → /seed-test-data → /domain-entities-review → /spec [mode=tests] → /why-review → /artifact-review --type=spec-tests → /plan → /plan-review → /integration-test → /integration-test-review → /integration-test-verify → /e2e-test → /test → /workflow-review-changes → /workflow-e2e --source=context → /security-review → /changelog → /test → /scan --target=domain-entities → /docs-update → /workflow-end → /watzup
+**Steps:** /idea → /web-research → /deep-research → /market-analysis → /business-evaluation → /spec-discovery → /domain-analysis → /why-review → /tech-stack-research → /architecture-design → /architecture-scalability-review → /why-review → /scenario → /plan → /plan-review → /security-review --report-only → /performance-review --report-only → /plan-review → /refine → /artifact-review --type=pbi → /story → /artifact-review --type=story → /pbi-challenge → /dor-gate → /pbi-mockup → /plan-validate → /spec [mode=tests] → /artifact-review --type=spec-tests → /spec-clarify → /plan → /plan-review → /scaffold → /linter-setup → /harness-setup → /architecture-review-full → /scan --target=ui-system → /scan --target=backend-patterns → /scan --target=integration-tests → /scan --target=project-structure → /why-review → /plan-execute → /seed-test-data → /domain-entities-review → /spec [mode=tests] → /artifact-review --type=spec-tests → /plan → /plan-review → /integration-test → /integration-test-review → /integration-test-verify → /e2e-test → /test → /workflow-review-changes → /workflow-e2e --source=context → /security-review → /test → /scan --target=domain-entities → /docs-update → /workflow-end → /watzup
 
 > **[CONDITIONAL TERMINAL DOMAIN-ENTITY REFERENCE REFRESH]** After `/test` and before `/docs-update`, run `/scan --target=domain-entities` to refresh the project-reference entity catalog only when the final diff changes an entity/model, DTO/data contract, persistence schema/migration, or entity-sync evidence represented in `docs/project-reference/domain-entities-reference.md`. Otherwise mark the scan step completed with a cited skip reason naming the changed files and why they are outside this scope; this is the explicitly authorized exception to the per-step skill-invocation rule.
 
@@ -271,6 +295,20 @@ Activate the `workflow-greenfield-init` workflow. Run `/start-workflow workflow-
 
 <!-- /SYNC:test-architecture-execution-contract -->
 
+<!-- SYNC:session-goal-ledger -->
+
+> **Session Goal Ledger** — Never lose the user's original request or any later prompt, however long the session runs. Hook-independent: binds every host; a prompt-ledger hook is only an accelerator.
+>
+> 1. **Pin before acting.** Before the first tool call, write `Original goal: <user's request, verbatim or faithfully condensed>` and keep it as the first task-list item. For workflow or plan work, copy it verbatim into the Goal Contract `## Original Request`.
+> 2. **Track every prompt.** Keep `User prompts this session: P1…Pn` — one line per user prompt or input, marked `extends` / `narrows` / `changes` / `answers`. A prompt that changes direction updates the goal explicitly — never silently.
+> 3. **Re-anchor.** Re-read the original goal and the prompt list at every workflow step, before delegating (the sub-agent brief carries the verbatim goal), and after compaction, resume, or a `[[prompt-ledger@…]]` reminder. When `tmp/prompt-ledger/<session>/ledger.md` exists it is the durable record — read it after compaction.
+> 4. **Verify before done.** Map the final result to the original goal and every prompt: `P# → done | deferred (reason) | not applicable`. An unaddressed prompt blocks completion.
+> 5. **Security.** NEVER copy secrets, tokens, or credentials into goal lines, task lists, briefs, or reports — redact them.
+>
+> **Blocked until:** original goal pinned · prompt list current · final result mapped to every prompt.
+
+<!-- /SYNC:session-goal-ledger -->
+
 <!-- SYNC:critical-thinking-mindset:reminder -->
 
 **MUST ATTENTION** apply critical + sequential thinking — every claim needs appropriate traced evidence (`file:line` for repo/code claims; source URL or artifact section for research, product, content, and docs claims); confidence >80% to act, <60% DO NOT recommend. Anti-hallucination: never present guess as fact, admit uncertainty freely, cross-reference independently, stay skeptical of own confidence.
@@ -323,6 +361,13 @@ Activate the `workflow-greenfield-init` workflow. Run `/start-workflow workflow-
 **IMPORTANT MUST ATTENTION** Greenfield strongly recommends treating AI agents as first-class non-human actors from inception; choose evidence-backed API/CLI/MCP/WebMCP/event/SDK surfaces over one application capability core with authorization, consent, schemas, idempotency, audit, explicit Given → When → Then contract tests, and observability. Big feature and architecture review are optional/advisory: inspect evidence, adapt, defer as an owned opportunity, record `NOT-APPLICABLE`, or block safety gaps; never build every surface or assume agent = administrator.
 
 <!-- /SYNC:ai-agent-as-user-access:reminder -->
+
+<!-- SYNC:session-goal-ledger:reminder -->
+
+- **MANDATORY** Pin `Original goal:` before the first action and keep `User prompts this session: P1…Pn` current; re-read both at every step, before delegation, and after compaction.
+- **MANDATORY** Before claiming done, map the result to the original goal and every prompt (`P# → done | deferred | n/a`); never store secrets in them.
+
+<!-- /SYNC:session-goal-ledger:reminder -->
 
 ## Closing Reminders
 

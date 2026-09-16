@@ -127,9 +127,9 @@ DESCRIPTION_PREFIX_TO_CATEGORY = {
 def name_matches(lower_name: str, keyword: str) -> bool:
     """Match a category keyword against a hyphen/underscore-delimited skill name.
 
-    A bare keyword must match a whole name token, so 'ui' matches `test-ui` but
+    A bare keyword must match a whole name token, so 'ui' matches `ui-review` but
     not `demo-guide`. Keywords that are themselves prefixes ('ai-') or already
-    hyphenated ('claude-code') keep substring semantics.
+    hyphenated ('skill-creator') keep substring semantics.
     """
     if keyword.endswith('-'):
         return lower_name.startswith(keyword)
@@ -154,7 +154,7 @@ def categorize_skill(name: str, description: str, content: str) -> str:
         return 'ai-ml'
 
     # Frontend
-    if any(name_matches(lower_name, x) for x in ['frontend', 'ui', 'design', 'aesthetic', 'threejs']):
+    if any(name_matches(lower_name, x) for x in ['frontend', 'ui', 'design', 'aesthetic']):
         return 'frontend'
 
     # Backend
@@ -170,7 +170,7 @@ def categorize_skill(name: str, description: str, content: str) -> str:
         return 'database'
 
     # Development Tools
-    if any(name_matches(lower_name, x) for x in ['mcp', 'skill-creator', 'claude-code', 'repomix', 'docs-seeker']):
+    if any(name_matches(lower_name, x) for x in ['mcp', 'skill-creator', 'repomix']):
         return 'dev-tools'
 
     # Multimedia

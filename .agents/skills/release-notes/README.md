@@ -7,7 +7,7 @@ Generate or update release notes for project features.
 
 ## Trigger Keywords
 
-- "release notes", "changelog", "release documentation"
+- "release notes", "release documentation"
 - "add release note", "update release notes"
 - "document changes", "PR summary"
 
@@ -19,10 +19,7 @@ Generate or update release notes for project features.
 
 ## Output Location (Auto-Save)
 
-**Both files are saved automatically:**
-
-1. Individual note: `docs/release-notes/YYMMDD-{slug}.md`
-2. Aggregated log: `CHANGELOG.md` (prepended)
+The release note is saved automatically to `docs/release-notes/YYMMDD-{slug}.md`. Each release gets its own dated file; no aggregated log is written.
 
 ## Usage
 

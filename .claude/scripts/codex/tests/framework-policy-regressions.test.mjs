@@ -89,7 +89,8 @@ test("parallel and adjudication contracts retain fixed-order and exact artifact 
 test("review convergence uses one blocking predicate and byte-identical low-only exit (CR-017, CR-018)", async () => {
   const [canonical, loop] = await Promise.all([
     read(".claude/skills/shared/sync-inline-versions.md"),
-    read(".claude/skills/workflow-review-changes-loop/SKILL.md"),
+    // The outer zero-fix loop is workflow-review-changes' optional `--fix-loop` mode.
+    read(".claude/skills/workflow-review-changes/SKILL.md"),
   ]);
   assert.match(canonical, /blocking_findings\(round, findings\)/);
   assert.match(canonical, /binary gate/i);
@@ -102,7 +103,6 @@ test("review convergence uses one blocking predicate and byte-identical low-only
     ".claude/agents/code-reviewer.md",
     ".claude/agents/integration-tester.md",
     ".claude/agents/planner.md",
-    ".claude/agents/quality-gate-review.md",
     ".claude/agents/security-auditor.md",
     ".claude/agents/spec-compliance-reviewer.md",
     ".claude/agents/ui-ux-designer.md",
@@ -159,4 +159,269 @@ test("mutating workflow closures refresh domain-entity references immediately be
     assert.equal(sequence[scanIndex + 1], "docs-update");
     assert.match(workflows[id].preActions.domainEntityReferenceRefresh, /cited skip reason/);
   }
+});
+
+test("plan-review runs an unconditional why-review sub-agent in every review wave, primacy and recency", async () => {
+  const [review, whyReview, plan] = await Promise.all([
+    read(".claude/skills/plan-review/SKILL.md"),
+    read(".claude/skills/why-review/SKILL.md"),
+    read(".claude/skills/plan/SKILL.md"),
+  ]);
+  const text = review.replace(/\r\n/g, "\n");
+  const summary = text.slice(text.indexOf("## Quick Summary"), text.indexOf("## Impact-Aware Quality Review"));
+  const closing = text.slice(text.lastIndexOf("## Closing Reminders"));
+  const wave = text.slice(text.indexOf("## Parallel Review Wave"), text.indexOf("## Conditional Project Pattern Alignment"));
+  // Primacy + recency: the always-in-the-wave rule must survive at both ends of the long skill.
+  for (const [where, section] of [["Quick Summary", summary], ["Closing Reminders", closing]]) {
+    assert.match(section, /UNCONDITIONAL full-mode `\/why-review` rationale sub-agent/, `${where} must state the unconditional why-review member`);
+  }
+  // Wave contract: one message, all-return barrier, merge before verdict, never N/A, every round.
+  assert.ok(wave.length > 0, "plan-review must carry the Parallel Review Wave section");
+  assert.match(wave, /round 1 AND every round N≥2/);
+  assert.match(wave, /Spawn every sub-agent member in ONE message/);
+  assert.match(wave, /All-return barrier/);
+  assert.match(wave, /never a silent PASS/);
+  assert.match(wave, /UNANSWERED/);
+  assert.match(wave, /host\/sub-agent fan-out unavailable → inline fallback/);
+  assert.match(wave, /tmp\/reports\/plan-review-why-review-round\{N\}-\{date\}\.md/);
+  // Round N≥2 re-review dispatches a NEW why-review member beside the fresh core sub-agent.
+  assert.match(text, /In the SAME message\*\*, spawn a NEW `\/why-review` rationale sub-agent/);
+  // Validate-findings stays the separate post-merge gate.
+  assert.match(text, /`\/why-review --validate-findings` over the MERGED report/);
+  assert.doesNotMatch(text, /rationale\* lens applied DURING the review pass/);
+  // Callers and the plan skill agree: no duplicate standalone why-review task after plan-review.
+  assert.match(whyReview, /`\/plan-review`'s Parallel Review Wave spawns it on EVERY review round/);
+  assert.doesNotMatch(plan, /Run \/why-review \(standalone only\)|`\/plan-review` → standalone `\/why-review`/);
+});
+
+// plan-review's review→fix→re-review loop is capped at 2 rounds HARD: round 1 is the initial review,
+// round 2 is the single re-review after fixes, and round 2 still blocking escalates to the owner.
+// plan-review states this in an OVERRIDE:double-round-trip-review block (the sanctioned carrier-local
+// pattern ui-review/architecture-review use for fresh-context-review) rather than the shared SYNC
+// body, whose canonical text grants one conditional extension round for the carriers that DO grant
+// it. An OVERRIDE carrier is deliberately NOT a SYNC carrier, so this test pins both halves: the
+// SYNC fence must be gone, the OVERRIDE fence must own the text, and nothing may re-grant a round 3.
+test("plan-review caps its review loop at 2 rounds with no extension round", async () => {
+  const [review, planSkill, planner] = await Promise.all([
+    read(".claude/skills/plan-review/SKILL.md"),
+    read(".claude/skills/plan/SKILL.md"),
+    read(".claude/agents/planner.md"),
+  ]);
+  const text = review.replace(/\r\n/g, "\n");
+  const frontmatter = text.slice(0, text.indexOf("\n---", 4));
+  const summary = text.slice(text.indexOf("## Quick Summary"), text.indexOf("## Impact-Aware Quality Review"));
+  const closing = text.slice(text.lastIndexOf("## Closing Reminders"));
+  // Strip every SYNC body: the shared protocols still describe the extension for their other
+  // carriers, so only plan-review's own prose — its OVERRIDE blocks included — counts as its budget.
+  const localText = text.replace(/<!-- SYNC:([^\s>]+) -->[\s\S]*?<!-- \/SYNC:\1 -->/g, "");
+
+  // The catalog line callers read before loading the skill states the bound.
+  assert.match(frontmatter, /bounded at 2 rounds MAX, no extension/);
+  assert.doesNotMatch(frontmatter, /recursive until the severity exit bar clears/);
+
+  // Primacy + recency: the hard cap must survive at both ends of the long skill.
+  for (const [where, section] of [["Quick Summary", summary], ["Closing Reminders", closing]]) {
+    assert.match(section, /NEVER a round 3/i, `${where} must rule out a third round`);
+    assert.match(section, /NO extension/i, `${where} must state the cap has no extension`);
+    assert.match(section, /AskUserQuestion/, `${where} must route a still-blocked round 2 to the user`);
+  }
+
+  // The loop protocol is carrier-local: the SYNC fence is gone and the OVERRIDE fence owns the text.
+  // Both blocks convert together — leaving the `:reminder` on canonical would restore the extension
+  // in the recency position, which is exactly where a long skill is most likely to be obeyed.
+  for (const tag of ["double-round-trip-review", "double-round-trip-review:reminder"]) {
+    assert.doesNotMatch(text, new RegExp(`<!-- SYNC:${tag} -->`), `plan-review must not carry SYNC:${tag}`);
+    assert.match(text, new RegExp(`<!-- OVERRIDE:${tag} -->`), `plan-review must carry OVERRIDE:${tag}`);
+    assert.match(text, new RegExp(`<!-- /OVERRIDE:${tag} -->`), `plan-review must close OVERRIDE:${tag}`);
+  }
+  const override = text.slice(
+    text.indexOf("<!-- OVERRIDE:double-round-trip-review -->"),
+    text.indexOf("<!-- /OVERRIDE:double-round-trip-review -->"),
+  );
+  assert.match(override, /Round cap — 2 rounds MAX, HARD, NO extension/);
+  assert.match(override, /round 2 is the LAST review round/);
+  assert.match(override, /for review blockers there is NEVER a round 3/);
+  // The cap must never force green: a failing test gate stays outside the budget.
+  assert.match(override, /A failing TEST gate → NO round cap, at any round/);
+  assert.match(override, /NEVER weaken an assertion, add a skip, or relax a timeout to force green/);
+
+  // Nothing in plan-review's own prose may re-grant a third review round.
+  const GRANTING = [
+    /grants exactly one extra round/i,
+    /\+1 extension round/i,
+    /2-round ceiling/i,
+    /extendable ONCE to round 3/i,
+    /extension round is granted/i,
+  ];
+  // ONE oracle, applied to the real source AND to every mutant below. Routing mutants through THIS
+  // function is what makes the guard non-vacuous: drop a pattern from GRANTING and the mutant it
+  // existed to catch survives, failing the matching `assert.throws`. The earlier form asserted a
+  // single bare regex against a string built by inserting that regex's own text, so it could not go
+  // red and proved nothing about the loop it claimed to exercise.
+  const assertNoExtensionGrant = (text) => {
+    for (const granting of GRANTING) {
+      assert.doesNotMatch(text, granting, `plan-review local prose must not grant an extension: ${granting}`);
+    }
+  };
+
+  assertNoExtensionGrant(localText);
+
+  // Every granting clause is probed, not just the one that happened to be written here — so the
+  // guard covers the whole list rather than a single representative of it.
+  for (const clause of ["grants exactly one extra round", "+1 extension round", "extendable ONCE to round 3", "extension round is granted"]) {
+    const mutant = localText.replace("HARD, NO extension", clause);
+    assert.notEqual(mutant, localText, `mutation anchor exists for: ${clause}`);
+    assert.throws(() => assertNoExtensionGrant(mutant), { code: "ERR_ASSERTION" });
+  }
+
+  // The siblings that DO grant the extension keep it — this narrowing is plan-review-only.
+  const siblings = await Promise.all(
+    ["why-review", "changes-review", "workflow-review-changes"].map(n => read(`.claude/skills/${n}/SKILL.md`)),
+  );
+  for (const sibling of siblings) {
+    assert.match(sibling, /extendable ONCE to round 3/, "sibling loop skills keep the canonical extension");
+  }
+
+  // Callers describing plan-review's budget agree with it. Strip their SYNC bodies too: the shared
+  // convergence-loop block legitimately describes the extension for the carriers that DO grant it,
+  // so only a caller's OWN prose counts as a claim about plan-review.
+  for (const [name, source] of [["plan", planSkill], ["planner", planner]]) {
+    const callerLocal = source.replace(/\r\n/g, "\n").replace(/<!-- SYNC:([^\s>]+) -->[\s\S]*?<!-- \/SYNC:\1 -->/g, "");
+    assert.doesNotMatch(callerLocal, /\+1 extension round|2-round ceiling/, `${name} must not promise plan-review an extension round`);
+  }
+  assert.match(planSkill, /HARD 2-round cap/);
+  assert.match(planner, /HARD cap 2 rounds with NO extension/);
+});
+
+// The retired standalone loop skill now lives as `changes-review --fix-loop`: the mode must keep every
+// loop gate (scope + Goal Contract, convergence binding, round loop, convergence/escalation, fresh
+// re-review, terminal docs-update) while the flagless default path keeps its own self-fix loop.
+function assertChangesReviewFixLoop(text) {
+  const frontmatter = text.slice(0, text.indexOf("\n---", 4));
+  assert.match(frontmatter, /description: '[^'\n]*Flag: --fix-loop reviews, fixes and re-reviews until converged\.'/);
+  const summary = text.slice(text.indexOf("## Quick Summary"), text.indexOf("**Workflow:**"));
+  assert.match(summary, /Optional `--fix-loop` mode \(standalone-only\) DECOUPLES find from fix/);
+  const closing = text.slice(text.lastIndexOf("## Closing Reminders"));
+  assert.match(closing, /`--fix-loop` mode \(optional, standalone-only; no flag → default unchanged\)/);
+  const start = text.indexOf("## Mode: Fix-Loop (`--fix-loop`)");
+  assert.ok(start >= 0, "changes-review must carry the Fix-Loop mode section");
+  const mode = text.slice(start, text.indexOf("## Next Steps", start));
+  for (const heading of ["Step 0 — Resolve Diff Scope + Goal Contract", "Step 0b — Bind the Convergence Loop", "Step 1 — Round Loop", "Step 2 — Convergence & Escalation Gate", "Step 3 — Terminal Docs-Update + Recap", "Convergence Detection — Why a Fresh Full Re-Review Is Required"]) {
+    assert.ok(mode.includes(`### Fix-Loop ${heading}`), `missing Fix-Loop ${heading}`);
+  }
+  assert.match(mode, /SKIP Phase -1[^\n]*STOP before Phase 6 \/ Phase 7 \/ Phase 7\.5 \/ Phase 8/);
+  assert.match(mode, /it never re-invokes this skill with `--fix-loop`/);
+  assert.match(mode, /Resolve\/create the Goal Contract/);
+  assert.match(mode, /`\/goal` command is an OPTIONAL accelerator/);
+  assert.match(mode, /Run `\/why-review --validate-findings <report-path>` INLINE/);
+  assert.match(mode, /Run `\/fix` on the validated blocking findings/);
+  assert.match(mode, /\*\*in this order — the first matching row decides\*\*/);
+  assert.match(mode, /\*\*ONE extension round is granted\*\*/);
+  assert.match(mode, /\*\*Keep looping — NO round cap\.\*\*/);
+  assert.match(mode, /\*\*CONVERGED on the severity floor\*\*/);
+  assert.match(mode, /\*\*Increasing review blockers = STOP\.\*\*/);
+  assert.match(mode, /run the \*\*Phase 8 protocol\*\* exactly once/);
+  assert.match(mode, /never reuse a stale clean report/);
+  // The flagless default keeps its coupled loop and only defers Phase -1 when the flag is set.
+  assert.match(text, /\*\*SKIP\*\* when `--fix-loop` is set — Fix-Loop Step 0b owns the single convergence binding/);
+  assert.match(text, /## Phase 7: Recursive Auto-Fix \+ Full Re-Review Loop/);
+  assert.match(text, /SELF-FIX each validated finding that blocks the current round/);
+}
+
+test("changes-review --fix-loop carries the retired loop skill's gates without changing the default path", async () => {
+  const text = (await read(".claude/skills/changes-review/SKILL.md")).replace(/\r\n/g, "\n");
+  assertChangesReviewFixLoop(text);
+  for (const [before, after] of [
+    ["### Fix-Loop Step 2 — Convergence & Escalation Gate", "### Fix-Loop Step 2 — Wrap Up"],
+    ["Run `/why-review --validate-findings <report-path>` INLINE", "Optionally review the findings"],
+    ["run the **Phase 8 protocol** exactly once", "skip docs"],
+  ]) {
+    const mutant = text.replaceAll(before, after);
+    assert.notEqual(mutant, text, `mutation anchor exists: ${before}`);
+    assert.throws(() => assertChangesReviewFixLoop(mutant), { code: "ERR_ASSERTION" });
+  }
+  // Built from parts so the repo-wide "no retired skill id" grep stays at zero hits.
+  const retiredLoopSkill = ["changes", "review", "loop"].join("-");
+  await assert.rejects(fs.access(path.join(repoRoot, ".claude", "skills", retiredLoopSkill)), "the retired loop skill directory must stay removed");
+});
+
+// Given the integration-test convergence loop is an OPTIONAL `--fix-loop` mode of integration-test-verify
+// (not a separate skill), When its documentation and workflow wiring are read, Then the flag is advertised
+// top and bottom, the mode is delimited, every loop gate survives (five-way Fault Verdict, owning-layer fix,
+// per-round fix-diff review, Round Integrity, 2-consecutive-green exit, cap/escalation, Goal Contract binding),
+// each round is the flagless default pass, and the retired skill id stays gone — so dropping a gate,
+// recursing the flag, or re-introducing the standalone loop skill fails here.
+// Built from parts so the repo-wide "no retired skill id" grep stays at zero hits.
+const RETIRED_IT_LOOP_SKILL = ["integration", "test", "verify", "loop"].join("-");
+
+function assertIntegrationTestVerifyFixLoop(text) {
+  assert.equal(text.split("<!-- FIX-LOOP-MODE:START -->").length - 1, 1, "exactly one delimited --fix-loop mode opener");
+  assert.equal(text.split("<!-- FIX-LOOP-MODE:END -->").length - 1, 1, "exactly one delimited --fix-loop mode closer");
+  const mode = text.match(/<!-- FIX-LOOP-MODE:START -->([\s\S]*?)<!-- FIX-LOOP-MODE:END -->/)?.[1] ?? "";
+  assert.match(mode, /^\s*## Mode: `--fix-loop`/, "the delimited block is the --fix-loop mode section");
+  const frontmatter = text.slice(0, text.indexOf("\n---", 4));
+  assert.match(frontmatter, /^version: 1\.1\.0$/m);
+  assert.match(frontmatter, /^description: '[^'\n]*Flag: --fix-loop[^'\n]*'$/m, "frontmatter description advertises the flag");
+  const summary = text.slice(text.indexOf("## Quick Summary"), text.indexOf("## First Principle"));
+  assert.match(summary, /\*\*`--fix-loop` \(OPTIONAL mode flag — absent by default, and absence changes nothing in this skill\):\*\*/);
+  const closing = text.slice(text.lastIndexOf("## Closing Reminders"));
+  assert.match(closing, /\*\*IMPORTANT MUST ATTENTION `--fix-loop` \(OPTIONAL mode — only when the flag is passed\):\*\*/);
+  // Scope gate + no recursion: each round is this skill's own default pass, never the flag again.
+  assert.match(mode, /Without the flag, skip this whole section/);
+  assert.match(mode, /\*\*MUST ATTENTION NEVER self-invoke with the flag\.\*\* Each round's verification is THIS skill's default pass \(Steps 1–5\) WITHOUT `--fix-loop`/);
+  assert.match(mode, /Inside a round the default pass REPORTS; it does not fix\./);
+  for (const heading of ["FL-0 — Resolve Verification Scope + Goal Contract", "FL-0b — Bind the Convergence Loop", "FL-1 — Round Loop", "FL-2 — Convergence & Escalation Gate", "FL-3 — Terminal Spec/Doc Sync + Recap", "Fix-Loop Convergence Detection — Why Five Conditions"]) {
+    assert.ok(mode.includes(`### ${heading}`), `missing ${heading}`);
+  }
+  // Scope, Goal Contract, and convergence binding.
+  assert.match(mode, /Resolve `\{scope\}` — WHOLE SYSTEM by default/);
+  assert.match(mode, /Resolve\/create the Goal Contract/);
+  assert.match(mode, /\*\*1\. Protocol loop — ALWAYS binding \(hook\/command-independent\)\.\*\*/);
+  assert.match(mode, /\/goal accelerator unavailable — loop bound by protocol/);
+  // Adjudication: the five-way verdict taxonomy, written before any edit.
+  assert.match(mode, /Combine \(a\) \+ \(b\) into ONE written Fault Verdict per failure, BEFORE any edit/);
+  for (const verdict of ["TEST-WRONG", "TEST-NOT-OPTIMAL", "SOURCE-WRONG", "ENVIRONMENT-BLOCKED", "AMBIGUOUS"]) {
+    assert.match(mode, new RegExp(`\\| \\*\\*${verdict}\\*\\*\\s+\\|`), `verdict row ${verdict}`);
+  }
+  assert.match(mode, /`\/integration-test-review` — REPORT-ONLY/);
+  assert.match(mode, /Fix the source at the \*\*lowest owning layer\*\*/);
+  assert.match(mode, /CONDITIONAL — run `\/changes-review` on the round's fix diff only when ANY fix landed/);
+  assert.match(mode, /Round Integrity Check \(no fake green\) — BLOCKING/);
+  // Exit and escalation.
+  assert.match(mode, /reported \*\*zero failures across 2 consecutive runs without a DB reset\*\*, AND the Round Integrity Check passed/);
+  assert.match(mode, /Round cap `N` hit with failures still open/);
+  assert.match(mode, /\*\*Increasing failures = STOP\.\*\*/);
+  // Shared protocols referenced, not re-copied, and carried once in the skill body.
+  assert.match(mode, /are carried once below; never re-copy them into this section/);
+  assert.doesNotMatch(mode, /<!-- SYNC:/, "mode section references shared protocols instead of duplicating SYNC blocks");
+  for (const tag of ["goal-contract-satisfaction-loop", "trade-off-interrogation-gate", "test-failure-fault-adjudication", "integration-test-execution-discipline"]) {
+    assert.ok(text.includes(`<!-- SYNC:${tag} -->`), `carries SYNC:${tag}`);
+  }
+  assert.ok(!text.includes(RETIRED_IT_LOOP_SKILL), "no reference to the retired standalone loop skill");
+}
+
+test("integration-test-verify --fix-loop carries the retired loop skill's gates without changing the default path", async () => {
+  const text = (await read(".claude/skills/integration-test-verify/SKILL.md")).replace(/\r\n/g, "\n");
+  assertIntegrationTestVerifyFixLoop(text);
+  // The flagless default path keeps its own snapshot contract.
+  assert.match(text, /\*\*Filter:\*\* Run only projects relevant to the current change, unless the user explicitly asks for all\./);
+  assert.match(text, /6\. \*\*RECOMMEND `\/workflow-integration-test-green` whenever this run ends with ANY failure\.\*\*/);
+  for (const [before, after] of [
+    ["**MUST ATTENTION NEVER self-invoke with the flag.** Each round's verification is THIS skill's default pass (Steps 1–5) WITHOUT `--fix-loop`", "**Re-invoke with the flag each round.**"],
+    ["Round Integrity Check (no fake green) — BLOCKING", "Round Integrity Check (advisory)"],
+    ["| **AMBIGUOUS**           |", "| **UNCLEAR**             |"],
+    ["**Increasing failures = STOP.**", "**Increasing failures = continue.**"],
+    ["<!-- FIX-LOOP-MODE:END -->", ""],
+  ]) {
+    const mutant = text.replaceAll(before, after);
+    assert.notEqual(mutant, text, `mutation anchor exists: ${before}`);
+    assert.throws(() => assertIntegrationTestVerifyFixLoop(mutant), { code: "ERR_ASSERTION" });
+  }
+  assert.throws(() => assertIntegrationTestVerifyFixLoop(`${text}\nSee /${RETIRED_IT_LOOP_SKILL}.`), { code: "ERR_ASSERTION" });
+  await assert.rejects(fs.access(path.join(repoRoot, ".claude", "skills", RETIRED_IT_LOOP_SKILL)), "the retired loop skill directory must stay removed");
+  // The green workflow drives the loop through the flag on the surviving skill.
+  const workflows = JSON.parse(await read(".claude/workflows.json")).workflows;
+  const sequence = workflows["workflow-integration-test-green"].sequence;
+  assert.equal(sequence[1], "integration-test-verify --fix-loop");
+  assert.ok(!JSON.stringify(workflows).includes(RETIRED_IT_LOOP_SKILL), "workflows.json must not name the retired loop skill");
 });

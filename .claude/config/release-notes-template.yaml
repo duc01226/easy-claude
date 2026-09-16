@@ -7,8 +7,7 @@ version: 1.0.0
 metadata:
   output_dir: docs/release-notes
   filename_format: "YYMMDD-{slug}.md"
-  changelog_file: CHANGELOG.md
-  auto_save: true  # Both individual note and CHANGELOG are saved automatically
+  auto_save: true  # The release note is written to output_dir automatically
   legacy_dir: release-notes  # Historical notes location
 
 sections:

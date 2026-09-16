@@ -1,6 +1,6 @@
 ---
 name: release-notes
-version: 2.0.0
+version: 3.0.0
 description: '[Git] Use when creating release notes or a release document from git history at any scope (tag-to-tag, branch-to-branch, time range), producing markdown plus a standalone HTML presentation.'
 triggers:
     - release notes
@@ -20,7 +20,7 @@ triggers:
 
 **Goal:** Generate a professional release document from git history at **any scope** — tag-to-tag, branch-to-branch, or a time range ("last 30 days") — with automated categorization, thematic AI analysis, service detection, and validation, **plus a rich standalone HTML release presentation written FOR REAL USERS** — user-visible features and enhancements only, with faithful mock-ups of the project's REAL screens for any UI change — which auto-opens in the browser. Both outputs are produced by default; the markdown carries the engineering detail, the HTML carries the user story.
 
-> **This is the single release skill.** It absorbed `/release-doc` (2026-09-08), which is now a deprecated alias. Use `/release-notes` for every release-summary need; `/changelog` remains separate for per-feature changelog entries.
+> **This is the single release skill.** Use `/release-notes` for every release-summary need.
 
 **Workflow:**
 
@@ -75,7 +75,7 @@ Generate a professional release document from git history at any scope — tag-t
 # Compare branches
 /release-notes main feature/new-auth --version v2.0.0-beta
 
-# Time range — "what changed in the last 30 days" (absorbed from /release-doc)
+# Time range — "what changed in the last 30 days"
 /release-notes --days 30
 
 # Since a specific date
@@ -549,9 +549,6 @@ Generated release notes are **Draft** status by default:
 
 - **`/commit`** - After generating notes, commit them
 - **`/git-manager`** - Create PR for release notes review
-- **`/docs-update`** - Update CHANGELOG.md with new release
-- **`/release-doc`** - **Deprecated alias of this skill** (superseded 2026-09-08). It resolves here; do not route work to it. Its time-range scope, artifact dumping, thematic analysis, `--focus`, and HTML presentation all live here now.
-- **`/changelog`** - Still separate: per-feature changelog entries. This skill is for multi-commit release summaries.
 - **`/pbi-mockup`** - **Owns the mock-up protocol this skill's R6.3 defers to** — its Steps 3 (design system), 3b (inventory the real existing UI), 3c (real domain entities) and 7 (fidelity gate) govern HOW a screen is reproduced; R6.3 governs WHAT gets rendered. Borrow the fidelity contract, not the clickable-prototype machinery. And when a shipped feature already has a `team-artifacts/pbis/*-mockup.html`, R6.3 REUSES it via `<iframe srcdoc>` instead of rebuilding the screen.
 
 ## Troubleshooting

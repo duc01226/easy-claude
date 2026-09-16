@@ -6,7 +6,7 @@
 //   (1) the .agents/skills mirror (materializeSkillMirror),
 //   (2) the CONTEXT mirror — AGENTS.md + .codex/CODEX_CONTEXT.md (runContextSync),
 //   (3) the .codex/agents TOML mirror (materializeAgentMirror) — the ENTIRE Codex sub-agent
-//       surface, which until now was the one committed mirror with no gate at all: 27 files
+//       surface, which until now was the one committed mirror with no gate at all: 23 files
 //       that could be hand-edited or left stale with nothing to catch it, and
 //   (4) .codex/hooks.json (materializeHookMirror) — which decides which hooks a Codex
 //       session actually RUNS, so a stale copy silently downgrades the safety gates

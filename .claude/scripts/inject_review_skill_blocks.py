@@ -67,11 +67,9 @@ SEVERITY = [
     "performance-review", "production-readiness-review", "knowledge-review", "artifact-review",
     "spec-clarify",
     "plan-review", "why-review", "code-simplifier", "architecture-review-full",
-    "architecture-scalability-review", "feature-implement", "plan-execute", "fix", "quality-gate-review",
-    # Outer review/fix loops classify the findings they decide whether to fix, so they must
-    # carry the same consequence rubric instead of relying on a cross-file reference alone.
-    "changes-review-loop", "why-review-loop", "workflow-review-changes-loop",
-    # The main review workflow also emits and routes findings; keep its local
+    "architecture-scalability-review", "feature-implement", "plan-execute", "fix",
+    # The main review workflow also emits and routes findings (and, in its optional `--fix-loop`
+    # mode, classifies the findings its outer loop decides whether to fix); keep its local
     # round summaries pinned to the same canonical rubric as its child skills.
     "workflow-review-changes",
     # Workflow owners that summarize and route review findings must carry the same rubric as
@@ -81,34 +79,42 @@ SEVERITY = [
 CATEGORY = list(BATCHING)  # co-paired with batching
 
 # The review->validate->fix->full-re-review convergence loop. Finding-PRODUCER review
-# skills only. EXCLUDES graders (architecture-scalability-review, quality-gate-review):
+# skills only. EXCLUDES graders (architecture-scalability-review):
 # verify-review-validate-coverage.mjs forbids graders from carrying this fix-loop block
 # (a grader emits a grade, not a review->fix loop). EXCLUDES the loop-orchestrators
-# (why-review-loop, workflow-review-changes, workflow-review-changes-loop) — they own the
+# (workflow-review-changes, incl. its `--fix-loop` mode) — they own the
 # OUTER fix loop and each inner /why-review round self-binds this block already.
+# EXCLUDES plan-review: it carries an OVERRIDE:double-round-trip-review block instead,
+# because its loop is capped at 2 rounds HARD with no extension round, while the canonical
+# body grants one conditional extension. An OVERRIDE carrier is not a SYNC carrier, so
+# listing it here would fail verify-sync-adoption-parity.mjs as a MISSING CARRIER; the
+# trade-off accepted with that narrowing is that canonical edits to this protocol no longer
+# reach plan-review and must be re-applied to its OVERRIDE body by hand.
 DOUBLE_ROUND_TRIP = [
     "changes-review", "code-review", "architecture-review", "architecture-review-full",
     "domain-entities-review", "ui-review", "integration-test-review",
     "security-review", "performance-review", "production-readiness-review",
-    "knowledge-review", "artifact-review", "plan-review", "why-review",
+    "knowledge-review", "artifact-review", "why-review",
 ]
 # EVERY review skill — finding-producers, graders, AND loop-orchestrators. Declared ONCE
 # because two tags below adopt this exact population, and maintaining the roster twice is
 # how it drifts: GOAL_CONTRACT once fell a skill behind TRADE_OFF (missing
-# "changes-review-loop") and nothing detected it — verify-sync-adoption-parity.mjs compares
+# a loop-orchestrator skill) and nothing detected it — verify-sync-adoption-parity.mjs compares
 # declared carriers against injected blocks per tag, so two internally-consistent lists that
 # disagree with EACH OTHER both pass. One roster makes that class of drift unrepresentable.
 # Adding a review skill here adopts it into every ALL_REVIEW_SKILLS tag at once; a tag that
 # must genuinely diverge replaces its alias below with its own literal list.
 ALL_REVIEW_SKILLS = [
-    "changes-review", "changes-review-loop", "code-review", "architecture-review",
+    "changes-review", "code-review", "architecture-review",
     "architecture-review-full",
     "architecture-scalability-review", "domain-entities-review", "ui-review",
-    "integration-test-review", "integration-test-verify-loop",
+    "integration-test-review",
+    # Loop-orchestrator via its optional `--fix-loop` mode (Goal Contract + trade-off gated fixes).
+    "integration-test-verify",
     "security-review", "performance-review",
-    "production-readiness-review", "quality-gate-review", "knowledge-review",
-    "artifact-review", "plan-review", "why-review", "why-review-loop",
-    "workflow-review-changes", "workflow-review-changes-loop",
+    "production-readiness-review", "knowledge-review",
+    "artifact-review", "plan-review", "why-review",
+    "workflow-review-changes",
 ]
 # Save-goal-before-loop + read-goal-each-cycle + Goal-Satisfaction-matrix: every review skill
 # anchors its loop to a persisted Goal Contract. verify-workflow-cycle-compliance.mjs is
@@ -132,9 +138,9 @@ TRADE_OFF = list(ALL_REVIEW_SKILLS)
 # silently fossilize at whatever they were on the day they were embedded.
 UI_DESIGN_PRINCIPLES = [
     # review role — clauses are fail-conditions citing UI-<clause> + file:line
-    "ui-review", "web-design-guidelines", "artifact-review", "test-ui",
+    "ui-review", "web-design-guidelines", "artifact-review",
     # design/plan role — clauses shape the artifact the skill authors
-    "design", "design-spec", "figma-design",
+    "design", "design-spec",
     # build role — pbi-mockup emits real markup, so clauses are build constraints
     "pbi-mockup",
 ]
@@ -155,9 +161,9 @@ UI_DESIGN_PRINCIPLES = [
 # there is no user-facing visual surface" clause, so backend-only runs cost one stated line.
 DESIGN_DISTINCTIVENESS = [
     # review role — clauses are fail-conditions citing DD-<clause> + file:line
-    "ui-review", "web-design-guidelines", "artifact-review", "test-ui",
+    "ui-review", "web-design-guidelines", "artifact-review",
     # design/author role — the gate shapes the artifact the skill authors
-    "design", "design-spec", "figma-design", "feature-presentation", "presentation-builder",
+    "design", "design-spec", "feature-presentation", "presentation-builder",
     # plan role — the design plan + generic test are decided here, before any code exists
     "plan", "scaffold",
     # build role — emits real markup/styles, so the clauses are build constraints
@@ -167,11 +173,11 @@ DESIGN_DISTINCTIVENESS = [
 # Words-as-design-content. NARROWER than DESIGN_DISTINCTIVENESS on purpose: its body governs
 # interface STRINGS (labels, CTAs, toasts, empty/error text), so it binds only skills that
 # author or review such strings. Deliberately EXCLUDES `plan`/`scaffold` (they commit visual
-# direction, not final copy), `artifact-review`/`test-ui` (they grade structure and a11y, not
+# direction, not final copy), `artifact-review` (it grades structure and a11y, not
 # voice), and `feature-presentation` (slide prose is not interface copy -- only its rule 6
 # would apply, and a block that is 5/6 inapplicable trains the reader to skim it).
 UI_COPYWRITING = [
-    "design", "design-spec", "figma-design",
+    "design", "design-spec",
     "pbi-mockup", "plan-execute", "feature-implement",
     "ui-review", "web-design-guidelines",
 ]
@@ -187,10 +193,10 @@ UI_COPYWRITING = [
 # review costs one skipped line, not a spurious section.
 DESIGN_REVIEW_CHECKLIST = [
     # review role — the checklist IS the review protocol for any diff/artifact with a UI surface
-    "ui-review", "web-design-guidelines", "artifact-review", "test-ui",
+    "ui-review", "web-design-guidelines", "artifact-review",
     "changes-review", "plan-review",
     # design/author role — author against the checklist so the review finds nothing
-    "design", "design-spec", "figma-design",
+    "design", "design-spec",
     "pbi-mockup", "feature-presentation",
     # plan role — a plan containing front-end work binds the checklist into its acceptance criteria
     "plan", "scaffold",
@@ -203,15 +209,15 @@ DESIGN_REVIEW_CHECKLIST = [
 # runtime-vs-source ownership, and baseline gates, but most E2E invocations are
 # non-visual and must remain explicitly N/A rather than carrying a visual review.
 E2E_VISUAL_DESIGN = [
-    "e2e-test", "e2e-test-verify-loop", "workflow-e2e",
-    "experience-review", "test-ui", "playwright-cli", "webapp-testing",
+    "e2e-test", "e2e-test-verify", "workflow-e2e",
+    "experience-review", "playwright-cli",
 ]
 
 TEST_ARCHITECTURE_CONTRACT = [
     "architecture-design", "architecture-scalability-review", "architecture-review-full",
-    "scaffold", "harness-setup", "greenfield", "workflow-greenfield-init",
+    "scaffold", "harness-setup", "workflow-greenfield-init",
     "integration-test", "integration-test-review", "integration-test-verify",
-    "integration-test-verify-loop", "e2e-test", "workflow-e2e",
+    "e2e-test", "workflow-e2e",
     "workflow-write-integration-test", "workflow-integration-test-green", "test",
     "seed-test-data",
 ]

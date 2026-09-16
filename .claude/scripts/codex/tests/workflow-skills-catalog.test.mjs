@@ -248,6 +248,30 @@ test("TC-WSC-009 framework guide carries the current workflow count and conditio
   assert.match(guide, /otherwise complete the scan task with a cited skip reason/i);
 });
 
+// TC-WSC-011 — a declared all-return barrier is ONE parallel step in the catalog, so a reader
+// selecting a route sees the phase shape instead of a misleading step-to-step chain.
+test("TC-WSC-011 renders every declared parallel group as one bracketed step", () => {
+  const { resolveAllWorkflowManifests } = require(path.join(repoRoot, ".claude", "scripts", "lib", "workflow-manifest.cjs"));
+  const out = buildWorkflowSkillsCatalog({ rootDir: repoRoot, sections: ["workflows"] });
+  assert.match(out, /`\[a ∥ b\]` = one parallel phase \(all-return barrier\)/);
+  let groupCount = 0;
+  for (const workflowId of Object.keys(workflowsDoc.workflows)) {
+    const row = out.split("\n").find((line) => line.startsWith(`| \`${workflowId}\` |`));
+    for (const manifest of resolveAllWorkflowManifests(workflowsDoc, workflowId, { rootDir: repoRoot })) {
+      for (const group of manifest.parallelGroups || []) {
+        groupCount += 1;
+        const members = manifest.occurrences
+          .map((occurrence, index) => ({ occurrence, step: manifest.sequence[index] }))
+          .filter(({ occurrence }) => occurrence.barrier === group.id)
+          .map(({ occurrence, step }) => `${step}${group.conditionalMembers.includes(occurrence.id) ? "*" : ""}`);
+        const expected = `[${members.join(" ∥ ")}]`;
+        assert.ok(row.includes(expected), `${workflowId}/${manifest.mode}/${group.id}: expected ${expected}`);
+      }
+    }
+  }
+  assert.ok(groupCount > 0, "the shipped registry declares at least one parallel group");
+});
+
 // TC-WSC-010 (builder half) — block wraps cleanly with the exported markers
 test("exported CK markers are stable", () => {
   assert.equal(CK_SKILLS_START, "<!-- CK:WORKFLOW-SKILLS -->");

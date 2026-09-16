@@ -21,7 +21,7 @@ SessionStart -> UserPromptSubmit -> PreToolUse -> Tool -> PostToolUse
  PreCompact hook — compaction-state recovery is static model-driven guidance.)
 ```
 
-The framework registers hook events across `SessionStart`, `UserPromptSubmit`, `PreToolUse`, `PostToolUse`, `SessionEnd`, `Notification`, and `Stop`; there is no `SubagentStart` hook (sub-agent guidance is static in `.claude/agents/*.md`). Session hooks initialize project context and load routing/graph guidance. Prompt hooks enforce intake gates; workflow routing and the workflow catalog are model-driven from static `CLAUDE.md` context, not injected by a prompt hook. PreToolUse hooks enforce safety gates and block unsafe actions. PostToolUse hooks format outputs and update the code graph. Plan/skill/todo enforcement and compaction-state recovery are model-driven static guidance in `CLAUDE.md` / `SKILL.md`, not hooks.
+The framework registers hook events across `SessionStart`, `UserPromptSubmit`, `PreToolUse`, `PostToolUse`, `SessionEnd`, `Notification`, and `Stop`; there is no `SubagentStart` hook (sub-agent guidance is static in `.claude/agents/*.md`). Session hooks initialize project context and load routing/graph guidance. Prompt hooks enforce intake gates; workflow routing and the workflow catalog are model-driven from static `CLAUDE.md` context, not injected by a prompt hook. PreToolUse hooks enforce safety gates and block unsafe actions. PostToolUse hooks format outputs, update the code graph, and (opt-in) remind the model of the conventions of the file it just read or changed. Plan/skill/todo enforcement and compaction-state recovery are model-driven static guidance in `CLAUDE.md` / `SKILL.md`, not hooks.
 
 ## Layer Boundaries
 
@@ -34,6 +34,8 @@ The framework registers hook events across `SessionStart`, `UserPromptSubmit`, `
 ## Context Injection
 
 Per-edit/per-prompt context guidance lives statically in `CLAUDE.md`, `.claude/agents/*.md`, and skill `SKILL.md` files so Claude and Codex read identical instructions. Runtime context hooks are optional accelerators, not an authority boundary. Any hook that emits context (e.g. `session-init.cjs` / `graph-session-init.cjs` status guidance) should inject only the guidance needed for the current event, prefer a read-on-demand pointer over whole files for large references, and use stable dedup markers from `.claude/hooks/lib/dedup-constants.cjs` when a hook can fire repeatedly in one session.
+
+`file-convention-inject.cjs` is the per-file instance of this rule: the convention classes in `docs/project-config.json` `contextGroups[]` are rendered statically (CLAUDE.md/AGENTS.md "Automatic Skill Activation" table with `[[convention:name@hash8]]` tags, plus `node .claude/hooks/lib/file-conventions.cjs --lookup <path>`), and the hook only re-delivers a class that is missing from the current working context (new session or helper agent, condensation, changed class content or membership patterns, or long conversation growth). Deleting the hook loses timing, never content. Details: [README.md § Per-File Convention Injection](./README.md#per-file-convention-injection).
 
 ## Safety And Privacy
 

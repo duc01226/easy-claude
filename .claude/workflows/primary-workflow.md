@@ -10,9 +10,9 @@
 2. **Plan** — `/plan` + `/plan-review` + `/plan-validate`, save in `./plans/`
 3. **Design Review** — `/why-review` (rationale), `/spec [mode=tests]` + `/artifact-review --type=spec-tests` (test specs)
 4. **Implement** — `/feature-implement` or `/plan-execute`, compile-check after every file change
-5. **Verify** — `/prove-fix`, `/test`, `/integration-test`, `/spec [mode=sync]`
+5. **Verify** — `/test`, `/integration-test`, `/spec [mode=sync]`
 6. **Quality** — `/workflow-review-changes` (initial parallel phase: inline changes-review + whole-target why-review → findings validation → specialist parallel batch → code-simplifier → fix/re-review → final whole-target why-review)
-7. **Ship** — `/production-readiness-review`, `/security-review`, `/changelog`, `/docs-update`, `/watzup`, `/workflow-end`
+7. **Ship** — `/production-readiness-review`, `/security-review`, `/docs-update`, `/watzup`, `/workflow-end`
 
 **Key Rules:**
 
@@ -37,7 +37,7 @@
 ## Phase 1: Planning
 
 -   Use `/plan` skill to create an implementation plan with tasks in `./plans/`
--   Use `/research` skill for investigating technical topics before planning
+-   Use `/web-research` → `/deep-research` for investigating technical topics before planning
 -   Validate plan via `/plan-review` (recursive until its current severity bar is clear) and `/plan-validate` (critical questions)
 -   **DO NOT** create new enhanced files — update existing files directly
 
@@ -60,10 +60,10 @@
 
 ## Phase 4: Verification
 
--   Use `/prove-fix` to build code proof traces (confidence scores, stack-trace-style evidence) — MANDATORY for bugfixes
 -   Use `/test` skill to run tests and analyze results
 -   Use `/integration-test` to generate integration tests from specs
 -   Use `/spec [mode=sync]` to sync test spec dashboard
+-   **Bugfixes:** the regression `/integration-test` must FAIL before `/fix` (RED) and PASS after it (GREEN), then production-code changes get `/changes-review` (inside `workflow-review-changes` for `workflow-bugfix`; standalone `/fix` runs it before `/why-review`) — see `workflow-bugfix/SKILL.md` and `fix/SKILL.md`
 -   **IMPORTANT:** Never use fake data, mocks, cheats, or tricks just to pass the build
 -   **IMPORTANT:** Fix failing tests and re-run until all pass
 
@@ -78,7 +78,6 @@
 
 -   Use `/production-readiness-review` for production readiness (service-layer/API changes)
 -   Use `/security-review` for security review
--   Use `/changelog` to update changelog entries
 -   Use `/docs-update` to update documentation if needed
 -   Use `/watzup` for summary report of all changes
 -   Use `/workflow-end` to clear workflow state

@@ -1,6 +1,6 @@
 ---
 name: security-review
-version: 2.1.0
+version: 2.2.0
 description: '[Code Quality] Use when performing a security review or audit — OWASP Top 10, secrets exposure, dependency/supply-chain malware, infrastructure, CI/CD, AI-agent risks, host compromise.'
 disable-model-invocation: false
 execution-mode: subagent
@@ -28,6 +28,7 @@ context-budget: high
 - Code being clean is not the verdict — security spans ten domains (D1 OWASP app code, D2 secrets ALWAYS, D3 dependencies, D4 third-party vetting, D5 host/VPS, D6 frontend, D7 API boundaries, D8 infra, D9 CI/CD, D10 AI/agent); resolve the scope mode first (`changes`/`full`/`deps`/`vet`/`host`), then run the matching domain checklists. — why: nine non-code domains each can be the breach the clean-code verdict misses.
 - Every finding needs `file:line` or exact command+output evidence with severity and confidence; if you cannot prove exploitability with a trace, say "potential risk, not confirmed" — never "looks secure" without proof.
 - D4 third-party vetting is a hard gate BEFORE the first install/clone/run (install-time is infection-time), and D2 secrets runs in every mode regardless — automation does not bypass either.
+- **`--report-only`:** read-only leaf mode for a caller that owns every fix — steps 1–4 only, no nested sub-agents, no user prompt, no writer beyond the report; see [Report-Only Mode](#report-only-mode---report-only).
 - Findings are not fix-eligible until `/why-review --validate-findings` confirms them; after any validated fix that blocks the current round, restart the FULL review from Scope (fresh `security-auditor` sub-agent, not `code-reviewer`), never a targeted re-check of only the changed files. Round 2 LOW-only findings are recorded as deferred and do not trigger another cycle.
 
 > **Renamed:** consolidates the former `/security` and `/arch-security-review` skills — those names no longer resolve as slash commands; use `/security-review`.
@@ -38,7 +39,7 @@ context-budget: high
 2. **Audit** — Review every selected domain checklist (D1–D10) with file:line / command-output evidence
 3. **Report** — Document findings with severity, confidence, and remediation
 4. **Validate Findings** — Run `/why-review --validate-findings <report-path>` before any fix
-5. **Fix + Full Re-Review** — Fix only validated findings that block the current round, then restart full security review from Scope; Round 2 LOW-only findings end the loop without another cycle
+5. **Fix + Full Re-Review** — Fix only validated findings that block the current round, then restart full security review from Scope; Round 2 LOW-only findings end the loop without another cycle. Not run under `--report-only`.
 
 **Key Rules:**
 
@@ -49,6 +50,18 @@ context-budget: high
 - Findings are not eligible for fix until `/why-review --validate-findings` confirms them; every validated fix that blocks the current round restarts the full security review from the beginning. Round 1 requires zero findings; Round 2 requires zero CRITICAL/HIGH/MEDIUM, with LOW deferred and binary gates still blocking.
 
 <scope>$ARGUMENTS</scope>
+
+## Report-Only Mode (`--report-only`)
+
+> **Use when** a caller runs this skill as a read-only leaf — e.g. a workflow parallel review barrier over a plan or design, or a review batch — and another step owns every fix. `--report-only` in `$ARGUMENTS` is an execution flag, not a scope mode; without it every step below applies unchanged.
+>
+> 1. **Run steps 1–4 only.** Step 5, Phase 2, the Recursive Quality Loop restart, the fresh `security-auditor` spawn, the Workflow Recommendation and Next Steps questions, and the fix-approval prompt do not run: return the validated report; the caller owns fixes and any re-review. — why: two writers of one artifact inside a barrier race each other.
+> 2. **Resolve the scope mode from the caller's brief — never ask.** Record the chosen mode and domains in the report. A plan or design target is audited at design altitude: each in-scope domain checks the designed controls and trust boundaries, cites the plan/design section as `file:line`, and labels an unprovable risk "potential risk, not confirmed". D2 still always runs. — why: a leaf cannot reach the user, so an "else ask" branch would stall the barrier.
+> 3. **No nested fan-out.** Skip Systematic Review Batching; review sequentially in this context. — why: this skill is already a leaf of the caller's fan-out; a second level breaks the caller's barrier.
+> 4. **Write only the report** under `tmp/reports/`. A missing or stale project-reference doc is recorded in the report as a `NOT VERIFIABLE` assumption and returned — never a trigger to run `/scan`, `/project-init`, or any other writer. — why: a leaf that regenerates shared docs races its barrier siblings.
+> 5. **Return** the report path, validated findings by severity, and every unconfirmed material trade-off in the summary (the trade-off gate's non-asking handoff).
+>
+> For this mode the declared step order ends at step 4; stopping there is the mode's contract, not a skipped step.
 
 ## Analysis Mindset (NON-NEGOTIABLE)
 
@@ -62,7 +75,7 @@ context-budget: high
 - No "looks secure" without proof — state what you verified and how
 - "Keys are in .env, repo is on Git, no secrets committed" is NOT a security posture — it covers one domain out of ten
 
-**CRITICAL**: Present your security findings. Wait for explicit user approval before implementing fixes.
+**CRITICAL**: Present your security findings. Wait for explicit user approval before implementing fixes. (Under `--report-only`, return the validated report instead — no fix follows.)
 
 ---
 
@@ -450,7 +463,7 @@ When graph DB available, use `trace` to analyze data flow paths for security rev
 
 ## Phase 2: Validated Fix + Full Security Re-Review Loop (MANDATORY when validated findings remain)
 
-**Trigger:** Phase 1 returns CLEAN/validated and the security report still has one or more findings that must be fixed.
+**Trigger:** Phase 1 returns CLEAN/validated and the security report still has one or more findings that must be fixed. Under `--report-only` this phase never runs — the validated report is returned to the caller.
 
 **Protocol:**
 
@@ -1123,6 +1136,7 @@ When graph DB available, use `trace` to analyze data flow paths for security rev
 **IMPORTANT MUST ATTENTION** search 3+ existing patterns before flagging convention deviations; use project authorization attributes + entity-level access expressions (`docs/project-reference/backend-patterns-reference.md`), not generic framework defaults — why: local conventions differ and pattern fit must be evidence-confirmed.
 **IMPORTANT MUST ATTENTION** findings NOT fix-eligible until `/why-review --validate-findings` confirms them; after any validated fix that blocks the current round RESTART the FULL review from Scope — NEVER a targeted re-check of only changed files; from Round 2 onward, LOW-only findings are deferred instead of starting another cycle — why: a fix can open a new hole the targeted pass never sees, while low-consequence polish does not justify unbounded looping.
 **IMPORTANT MUST ATTENTION** restarted review spawns a fresh `security-auditor` sub-agent with zero memory — NEVER `code-reviewer` — why: `code-reviewer` lacks OWASP/auth-flow/injection/CVE/boundary protocols and misses security-specific issues.
+**IMPORTANT MUST ATTENTION** `--report-only` declares steps 1–4 only — scope resolved from the brief, no fix, no restart, no batching fan-out, no user question, no writer beyond the report; return the validated report — why: a read-only leaf that fixes, fans out, or regenerates docs races its barrier siblings.
 **IMPORTANT MUST ATTENTION** confirmed host compromise → isolate first, rotate EVERY credential that touched the host, rebuild from a clean image — NEVER trust an in-place "cleaned" rooted box — why: rootkits hide from the tools you would clean with.
 **IMPORTANT MUST ATTENTION** every confirmed finding that changes intended behavior feeds BOTH the spec (§4/§5 invariant) AND a guarding negative test — a code-only fix is INCOMPLETE — why: undocumented + untested security rules become tribal knowledge that regresses silently.
 **IMPORTANT MUST ATTENTION** break work into small todo tasks via `TaskCreate` BEFORE starting; persist findings incrementally to `tmp/reports/security-review-{YYMMDD}-{HHmm}-{slug}.md`; add a final review todo; validate workflow choice via `AskUserQuestion` — never auto-decide.

@@ -399,7 +399,7 @@ const BUILDER_MAP = {
     'api-ports': c => builders.buildApiPorts(c),
     'integration-testing': c => builders.buildIntegrationTesting(c),
     'e2e-testing': c => builders.buildE2eTesting(c),
-    'skill-activation': c => builders.buildSkillActivation(c),
+    'skill-activation': (c, d) => builders.buildSkillActivation(c, d),
     'doc-index': (c, d) => builders.buildDocIndex(c, d),
     'doc-lookup': c => builders.buildDocLookup(c)
 };

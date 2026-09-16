@@ -2,7 +2,7 @@
 
 ## Quick Summary
 
-**Goal:** Keep project documentation in `./docs/` synchronized with implementation progress — plans, changelogs, architecture, code standards.
+**Goal:** Keep project documentation in `./docs/` synchronized with implementation progress — plans, architecture, code standards.
 
 **Workflow:**
 
@@ -23,21 +23,19 @@
 Maintain project docs in `./docs/`. Create if the project needs them:
 
 - **Roadmap** — project phases, milestones, progress
-- **Changelog** — significant changes, features, fixes
 - **Architecture** — system design, component interactions
 - **Code Standards** — coding conventions, quality standards
 
 ### Automatic Updates Required
 
-- **After Feature Implementation**: Update relevant docs (roadmap, changelog, etc.)
+- **After Feature Implementation**: Update relevant docs (roadmap, architecture, etc.)
 - **After Major Milestones**: Review and adjust roadmap phases, update success metrics
-- **After Bug Fixes**: Document fixes in changelog with severity and impact
 - **After Security Updates**: Record security improvements and version updates
 - **Weekly Reviews**: Update progress percentages and milestone statuses
 
 ### Documentation Triggers
 
-The `project-manager` agent MUST ATTENTION update documents when:
+The `docs-manager` agent MUST ATTENTION update documents when:
 
 - A development phase status changes (e.g., "In Progress" → "Complete")
 - Major features are implemented or released
@@ -47,7 +45,7 @@ The `project-manager` agent MUST ATTENTION update documents when:
 
 ### Update Protocol
 
-1. **Before Updates**: Read current roadmap and changelog status
+1. **Before Updates**: Read current roadmap and affected doc status
 2. **During Updates**: Maintain version consistency and proper formatting
 3. **After Updates**: Verify links, dates, and cross-references are accurate
 4. **Quality Check**: Ensure updates align with actual implementation progress

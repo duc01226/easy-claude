@@ -93,33 +93,6 @@ Expected behavior:
 
 ---
 
-### refactoring
-
-Direct invocation:
-
-```
-/refactoring
-```
-
-Inference test prompts:
-
-```
-"Extract this validation logic into a separate method"
-"Move the mapping code from handler to DTO"
-"Rename getRawData to getOrderDetails across the codebase"
-"Decompose this large command handler"
-"Inline this helper method that's only used once"
-```
-
-Expected behavior:
-
-- Identifies refactoring type
-- Maps all usages before changing
-- Creates step-by-step plan
-- Verifies no behavior change
-
----
-
 ### database-optimization
 
 Direct invocation:

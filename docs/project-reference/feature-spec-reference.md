@@ -1,4 +1,5 @@
 <!-- Last scanned: 2026-08-04 -->
+<!-- Last verified: 2026-09-16 (docs-update, impact-scoped) -->
 <!-- Shared Feature Spec rules are extended below with the current project inventory maintained by /scan --target=feature-spec. -->
 
 <!-- CRITICAL RULES (primacy anchor):
@@ -20,7 +21,7 @@
 **Summary:**
 
 - The canonical capability path is `docs/specs/{Bucket}/README.{FeatureName}.md`; Section 8 is the canonical Test Specification registry.
-- The current Feature Spec corpus is absent, so use the project master template and never infer compliance, conventions, or a gold-standard exemplar from a zero-document sample.
+- The current Feature Spec corpus is the `ContextDelivery` bucket (`docs/specs/ContextDelivery/`): `README.SessionPromptLedger.md` and `README.PerFileConventionInjection.md`, plus a thin `INDEX.md`. It is small and recent, so treat it as a conformance reference for structure — not yet as a gold-standard exemplar — and keep the project master template authoritative where the two differ.
 - Enforce M1-M7, the complete canonical TC fields, and stack-portable evidence anchors before accepting a Feature Spec.
 
 **Decision sequence:** inspect the current corpus -> study the master template and any listed exemplars -> author through the spec owner -> verify all eight sections, M1-M7, TC fields, and evidence -> refresh derived indexes and technical views.
@@ -68,23 +69,25 @@ docs/                                      # Project-owned documentation
 │   └── workflow-spec-test-code-cycle-reference.md
 ├── release/                               # Release history
 │   └── release-notes-2026-03-15-to-2026-04-14.md
+├── specs/                                 # Canonical business Feature Specs (authored root)
+│   └── ContextDelivery/                   # Bucket: which guidance reaches an AI assistant, and when
 ├── templates/                             # Project authoring templates
 │   └── detailed-feature-spec-template.md
 ├── copilot-registry.json                  # Copilot registry data
 └── project-config.json                    # Machine-readable project map
 ```
 
-The configured authored and derived spec roots are absent from the current tree. **Evidence:** `docs/project-config.json:153-155`; `docs/project-reference/docs-index-reference.md:37-38,87,144-147`.
+The configured authored spec root exists and holds one bucket; the configured derived technical root is still absent from the tree. **Evidence:** `docs/project-config.json:200-203` (`specRoots.business` = `docs/specs`, `specRoots.technical` = `docs/specs-technical`); `docs/specs/ContextDelivery/` holds `INDEX.md`, `README.PerFileConventionInjection.md`, `README.SessionPromptLedger.md`; no `docs/specs-technical/` path exists.
 
 ## Template Paths
 
-| Template / Owner | Path | Purpose | Used by Feature Docs | Evidence |
-| --- | --- | --- | ---: | --- |
-| Feature document convention | `docs/specs/{Bucket}/README.{FeatureName}.md` | Canonical capability document | 0 | `docs/project-reference/spec-system-reference.md:26-36` |
-| Project master template | `docs/templates/detailed-feature-spec-template.md` | Current project authoring template | 0 | `docs/project-reference/docs-index-reference.md:144-147` |
-| Portable source template | `.claude/templates/detailed-feature-spec-template.md` | Bootstrap source when the project template is absent | 0 | `.claude/hooks/session-init-docs.cjs:54-56,150-167` |
-| Feature authoring owner | `.claude/skills/spec/SKILL.md` | Owns authoring and Test Specifications lifecycle | N/A | `.claude/skills/spec/SKILL.md:17-31,47-60` |
-| Test-case format authority | `.claude/skills/shared/tc-format.md` | Owns TC shape, evidence, coverage, cardinality, and numbering | 0 | `.claude/skills/shared/tc-format.md:49-167,186-208` |
+| Template / Owner            | Path                                                  | Purpose                                                       | Used by Feature Docs | Evidence                                                                                                                      |
+| --------------------------- | ----------------------------------------------------- | ------------------------------------------------------------- | -------------------: | ----------------------------------------------------------------------------------------------------------------------------- |
+| Feature document convention | `docs/specs/{Bucket}/README.{FeatureName}.md`         | Canonical capability document                                 |                    2 | `docs/specs/ContextDelivery/README.PerFileConventionInjection.md`, `docs/specs/ContextDelivery/README.SessionPromptLedger.md` |
+| Project master template     | `docs/templates/detailed-feature-spec-template.md`    | Current project authoring template                            |                    2 | Both corpus specs follow its 8-section order (`README.PerFileConventionInjection.md:36-454`)                                  |
+| Portable source template    | `.claude/templates/detailed-feature-spec-template.md` | Bootstrap source when the project template is absent          |                    0 | `.claude/hooks/session-init-docs.cjs:54-56,150-167`                                                                           |
+| Feature authoring owner     | `.claude/skills/spec/SKILL.md`                        | Owns authoring and Test Specifications lifecycle              |                  N/A | `.claude/skills/spec/SKILL.md:17-31,47-60`                                                                                    |
+| Test-case format authority  | `.claude/skills/shared/tc-format.md`                  | Owns TC shape, evidence, coverage, cardinality, and numbering |                    2 | 66 TCs across both corpus specs carry `CoveredBy:` + `Status:` per `.claude/skills/shared/tc-format.md:49-167,186-208`        |
 
 No configured `workflowPatterns.featureDocTemplate` key is present. The authoring owner therefore identifies the project master template as its default (`.claude/skills/spec/SKILL.md:19`; no matching key in `docs/project-config.json`).
 
@@ -110,7 +113,7 @@ MUST ATTENTION all 8 sections satisfy the applicable BLOCKING AI-SDD mandates: M
 **Single format:** `TC-{FEATURE}-{NNN}` (e.g., TC-GM-001, TC-KD-011). `{FEATURE}` is a short feature code; the per-project code registry lives below the SCAN-MANAGED boundary.
 
 - **Source of truth:** Section 8 (canonical TC registry)
-- **Code link:** `CoveredBy` records representative coverage; a configured test-spec annotation supplies the complete one-to-many test join. This repository currently configures no annotation scan (`docs/project-config.json:157`).
+- **Code link:** `CoveredBy` records representative coverage; a configured test-spec annotation supplies the complete one-to-many test join. This repository currently configures no annotation scan; `techSpecScan` is deliberately omitted (`docs/project-config.json:204`).
 
 ## Evidence Rule
 
@@ -128,84 +131,87 @@ The abstract `[Source: namespace/service/id]` form is canonical (see `.claude/sk
 
 ## App-to-Service Mapping
 
-No product application or service boundary is configured, so there is no ownership mapping to infer.
+No product application or service boundary is configured, so ownership maps to the framework module that owns the behavior rather than to a deployed app.
 
-| App Name | Backend Services | Doc Directory | Doc Count | Evidence |
-| --- | --- | --- | ---: | --- |
-| N/A — no configured product application | None | Configured root is absent | 0 | `docs/project-config.json:23-73,106-108,149-155`; `docs/project-reference/docs-index-reference.md:37-38,87,144-145` |
+| App Name                                | Backend Services | Doc Directory                 | Doc Count | Evidence                                                                                                                         |
+| --------------------------------------- | ---------------- | ----------------------------- | --------: | -------------------------------------------------------------------------------------------------------------------------------- |
+| N/A — no configured product application | None             | `docs/specs/ContextDelivery/` |         2 | `docs/project-config.json:23-73,200-203`; both corpus specs describe hooks-module behavior (convention injection, prompt ledger) |
 
 ## Gold Standard References
 
-No worked Feature Spec exemplar exists. Study the current master template before authoring the first capability document:
+No spec has been ratified as a gold-standard exemplar yet. The two corpus specs are structurally conformant and recent, so read them for shape, and keep the master template authoritative wherever the two disagree:
 
-- `docs/templates/detailed-feature-spec-template.md` — project master template (**Evidence:** `docs/project-reference/docs-index-reference.md:144-147`)
+- `docs/templates/detailed-feature-spec-template.md` — project master template (authoritative on structure)
+- `docs/specs/ContextDelivery/README.PerFileConventionInjection.md` — conformance reference; 8 sections, 44 TCs
+- `docs/specs/ContextDelivery/README.SessionPromptLedger.md` — conformance reference; 8 sections, 22 TCs
 
 ## Feature Code Registry
 
-No capability codes are registered because no canonical Feature Spec exists.
+Two capability codes are registered, both in the `ContextDelivery` bucket.
 
-| Code | Feature | Module | Status | Evidence |
-| --- | --- | --- | --- | --- |
-| N/A | No registered capability | N/A | Corpus absent | `docs/project-reference/docs-index-reference.md:37-38,87` |
+| Code | Feature                       | Module | Status | Evidence                                                                                                   |
+| ---- | ----------------------------- | ------ | ------ | ---------------------------------------------------------------------------------------------------------- |
+| PFCI | Per-File Convention Injection | hooks  | draft  | `docs/specs/ContextDelivery/INDEX.md:7`; `docs/specs/ContextDelivery/README.PerFileConventionInjection.md` |
+| SPL  | Session Prompt Ledger         | hooks  | draft  | `docs/specs/ContextDelivery/INDEX.md:8`; `docs/specs/ContextDelivery/README.SessionPromptLedger.md`        |
 
 ## Thin-Index Files
 
-No bucket `INDEX.md` or parent capability index exists. **Evidence:** `docs/project-reference/docs-index-reference.md:38,87,144-145`.
+One bucket index exists: `docs/specs/ContextDelivery/INDEX.md` — a 9-line capability table (Capability · Feature Code · Status · Spec link) covering both corpus specs. No parent cross-bucket index exists, and none is required while a single bucket is populated. **Evidence:** `docs/specs/ContextDelivery/INDEX.md:1-9`.
 
 ## Section Structure
 
-Corpus denominator: 0 Feature Specs. Observed frequency is `N/A (0/0)` for every prescribed section; no percentage or standard/optional classification is statistically defined.
+Corpus denominator: 2 Feature Specs. Both carry all eight prescribed sections in the prescribed order, so every section is observed at 100% (2/2) and classified standard.
 
-| Order | Prescribed Section | Observed Frequency |
-| ---: | --- | --- |
-| 1 | Overview | N/A (0/0) |
-| 2 | Glossary | N/A (0/0) |
-| 3 | User Stories & Acceptance Criteria | N/A (0/0) |
-| 4 | Business Rules | N/A (0/0) |
-| 5 | Domain Model | N/A (0/0) |
-| 6 | Process Flows | N/A (0/0) |
-| 7 | Permissions & Roles | N/A (0/0) |
-| 8 | Test Specifications | N/A (0/0) |
+| Order | Prescribed Section                 | Observed Frequency |
+| ----: | ---------------------------------- | ------------------ |
+|     1 | Overview                           | 100% (2/2)         |
+|     2 | Glossary                           | 100% (2/2)         |
+|     3 | User Stories & Acceptance Criteria | 100% (2/2)         |
+|     4 | Business Rules                     | 100% (2/2)         |
+|     5 | Domain Model                       | 100% (2/2)         |
+|     6 | Process Flows                      | 100% (2/2)         |
+|     7 | Permissions & Roles                | 100% (2/2)         |
+|     8 | Test Specifications                | 100% (2/2)         |
 
-The structure is prescribed by the master template but is not an observed corpus convention. **Evidence:** `docs/templates/detailed-feature-spec-template.md:33-195`; `docs/project-reference/docs-index-reference.md:37-38`.
+A 2-spec denominator confirms the prescribed order is followed but is too small to establish an independent corpus convention; the master template stays the authority. **Evidence:** `docs/templates/detailed-feature-spec-template.md:33-195`; `docs/specs/ContextDelivery/README.PerFileConventionInjection.md:36,42,66,160,299,388,434,454`; `docs/specs/ContextDelivery/README.SessionPromptLedger.md:36,42,60,122,185,246,277,295`.
 
 ## Documentation Conventions
 
-| Concern | Current Rule | Evidence |
-| --- | --- | --- |
-| Location and name | One canonical capability document per bucket; each bucket index is `INDEX.md` | `docs/project-reference/spec-system-reference.md:9-36` |
-| Section order | Eight sections in the order above | `docs/templates/detailed-feature-spec-template.md:33-195` |
-| Story and criteria IDs | `US-{FC}-NN` and `AC-{FC}-NN` | `docs/templates/detailed-feature-spec-template.md:59-72` |
-| Rule IDs | `BR-{FC}-NN` plus an abstract rule anchor | `docs/templates/detailed-feature-spec-template.md:79-89` |
-| Test IDs | `TC-{FEATURE}-{NNN}` with category-decade numbering | `.claude/skills/shared/tc-format.md:49-52,186-208` |
-| Required TC content | Descriptive name/priority, Objective, Business Intent / Invariant Guarded, Preconditions, Demo Flow/GWT, Expected Result, Acceptance Criteria, Test Data, Edge Cases, conditional Transition Invariants, Evidence, Related Behaviors, CoveredBy, and Status | `.claude/skills/shared/tc-format.md:49-137` |
-| Evidence | Stack-portable `[Source: namespace/service/id]`; physical code coordinates stay outside prose | `.claude/skills/shared/sdd-artifact-contract.md:59-73,379-402` |
-| Coverage cardinality | One business TC may be guarded by many tests through the shared test-spec annotation | `.claude/skills/shared/tc-format.md:157-175` |
-| Ownership | Business specs are authored; indexes and technical views are derived single-writer artifacts | `docs/project-reference/spec-system-reference.md:17-54` |
+| Concern                | Current Rule                                                                                                                                                                                                                                                | Evidence                                                       |
+| ---------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------- |
+| Location and name      | One canonical capability document per bucket; each bucket index is `INDEX.md`                                                                                                                                                                               | `docs/project-reference/spec-system-reference.md:9-36`         |
+| Section order          | Eight sections in the order above                                                                                                                                                                                                                           | `docs/templates/detailed-feature-spec-template.md:33-195`      |
+| Story and criteria IDs | `US-{FC}-NN` and `AC-{FC}-NN`                                                                                                                                                                                                                               | `docs/templates/detailed-feature-spec-template.md:59-72`       |
+| Rule IDs               | `BR-{FC}-NN` plus an abstract rule anchor                                                                                                                                                                                                                   | `docs/templates/detailed-feature-spec-template.md:79-89`       |
+| Test IDs               | `TC-{FEATURE}-{NNN}` with category-decade numbering                                                                                                                                                                                                         | `.claude/skills/shared/tc-format.md:49-52,186-208`             |
+| Required TC content    | Descriptive name/priority, Objective, Business Intent / Invariant Guarded, Preconditions, Demo Flow/GWT, Expected Result, Acceptance Criteria, Test Data, Edge Cases, conditional Transition Invariants, Evidence, Related Behaviors, CoveredBy, and Status | `.claude/skills/shared/tc-format.md:49-137`                    |
+| Evidence               | Stack-portable `[Source: namespace/service/id]`; physical code coordinates stay outside prose                                                                                                                                                               | `.claude/skills/shared/sdd-artifact-contract.md:59-73,379-402` |
+| Coverage cardinality   | One business TC may be guarded by many tests through the shared test-spec annotation                                                                                                                                                                        | `.claude/skills/shared/tc-format.md:157-175`                   |
+| Ownership              | Business specs are authored; indexes and technical views are derived single-writer artifacts                                                                                                                                                                | `docs/project-reference/spec-system-reference.md:17-54`        |
 
 ## Coverage Gaps
 
-| Area | Current State | Evidence / Next Owner |
-| --- | --- | --- |
-| Canonical corpus | No bucket, Feature Spec, or catalog exists | `docs/project-reference/docs-index-reference.md:37-38,87,144-145`; create through `$spec` when a capability is ready |
-| Module distribution | All seven configured library modules have zero Feature Specs; no distribution is measurable | `docs/project-config.json:23-73`; corpus evidence above |
-| Worked exemplar | No gold-standard capability document exists | Master template only: `docs/templates/detailed-feature-spec-template.md` |
-| Feature-code registry | No concrete code exists | Corpus evidence above |
-| Thin indexes | No bucket index exists | `docs/project-reference/docs-index-reference.md:38,87` |
-| Local M1 tokens | The local prose-rule section defines no banned-token list or verifier | `docs/project-reference/spec-principles.md:35-39` |
-| Template configuration | The referenced template config key is absent | `docs/project-reference/spec-system-reference.md:15`; no matching key in `docs/project-config.json` |
-| Template parity | Project and portable templates disagree on the Section 6 interaction-surface contract | `docs/templates/detailed-feature-spec-template.md:151-171`; `.claude/templates/detailed-feature-spec-template.md:153-235` |
+| Area                         | Current State                                                                                                                                                      | Evidence / Next Owner                                                                                                                                                                                                     |
+| ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Canonical corpus             | One bucket exists (`ContextDelivery`: 2 Feature Specs); every other capability is still uncovered                                                                  | `docs/specs/ContextDelivery/`; create further buckets through `$spec` when a capability is ready                                                                                                                          |
+| Module distribution          | Only the hooks module has Feature Specs; the other six configured library modules have zero                                                                        | `docs/project-config.json:23-73`; corpus evidence above                                                                                                                                                                   |
+| Worked exemplar              | No gold-standard capability document exists                                                                                                                        | Master template only: `docs/templates/detailed-feature-spec-template.md`                                                                                                                                                  |
+| Feature-code registry        | Two codes registered (`PFCI`, `SPL`), both `draft`, both hooks-module; no code is `stable` yet                                                                     | `docs/specs/ContextDelivery/INDEX.md:7-8`                                                                                                                                                                                 |
+| Thin indexes                 | One bucket index exists (`docs/specs/ContextDelivery/INDEX.md`); no cross-bucket catalog yet                                                                       | `docs/specs/ContextDelivery/INDEX.md`                                                                                                                                                                                     |
+| Local M1 tokens              | The local prose-rule section defines no banned-token list or verifier                                                                                              | `docs/project-reference/spec-principles.md:35-39`                                                                                                                                                                         |
+| Template configuration       | The referenced template config key is absent                                                                                                                       | `docs/project-reference/spec-system-reference.md:15`; no matching key in `docs/project-config.json`                                                                                                                       |
+| Template parity              | Project and portable templates disagree on the Section 6 interaction-surface contract                                                                              | `docs/templates/detailed-feature-spec-template.md:151-171`; `.claude/templates/detailed-feature-spec-template.md:153-235`                                                                                                 |
 | Rule/entity anchor placement | The reference and authoring owner require abstract anchors in Business Rules and Domain Model, while both templates say anchors appear only in Test Specifications | `docs/project-reference/feature-spec-reference.md:98-99`; `.claude/skills/spec/SKILL.md:79-80`; `docs/templates/detailed-feature-spec-template.md:254-257`; `.claude/templates/detailed-feature-spec-template.md:318-321` |
-| Section 8 ownership wording | The authoring owner both locates TC IDs in Section 8 and says they are never authored directly under the same root | `.claude/skills/spec/SKILL.md:81-86`; clarify in the canonical skill source |
+| Section 8 ownership wording  | The authoring owner both locates TC IDs in Section 8 and says they are never authored directly under the same root                                                 | `.claude/skills/spec/SKILL.md:81-86`; clarify in the canonical skill source                                                                                                                                               |
 
 ## M1/M2 Compliance Leaks
 
-No per-feature leak rows exist because the canonical corpus is absent. This is an unavailable audit, not a compliance PASS.
+The corpus now has two auditable specs, but no per-token M1/M2 audit has been run against them. The table below is empty because the audit is OUTSTANDING — this is an unperformed audit, not a compliance PASS.
 
 | File | Line | Section | Mandate | Offending Token / Identifier |
-| --- | ---: | --- | --- | --- |
+| ---- | ---: | ------- | ------- | ---------------------------- |
 
-The shared category rules remain enforceable, but the scan cannot claim exact local-token coverage because the local banned-token list is not populated. **Evidence:** `.claude/skills/shared/sdd-artifact-contract.md:59-73`; `docs/project-reference/spec-principles.md:35-39`.
+Next owner: `/scan --target=feature-spec` populates these rows for `docs/specs/ContextDelivery/README.PerFileConventionInjection.md` and `docs/specs/ContextDelivery/README.SessionPromptLedger.md`. The shared category rules remain enforceable, but exact local-token coverage still cannot be claimed because the local banned-token list is not populated. **Evidence:** `.claude/skills/shared/sdd-artifact-contract.md:59-73`; `docs/project-reference/spec-principles.md:35-39`.
 
 ---
 

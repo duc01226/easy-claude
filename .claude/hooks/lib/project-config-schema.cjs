@@ -198,15 +198,41 @@ const SCHEMA = {
     contextGroups: {
         type: 'arrayOf',
         required: false,
+        describe: 'Per-file convention classes: member = fileExtensions ok AND any include (pathRegexes|pathGlobs|fileNameRegexes) AND no exclude; priority 100/500/900.\n' +
+            'Groups with rules|skills|referenceDocs|guideDoc|patternsDoc are rendered in CLAUDE.md and delivered by the hook; detect: node .claude/hooks/lib/convention-merge.cjs --detect',
         itemSchema: {
-            name: { type: 'string', required: true },
-            pathRegexes: { type: 'array', required: true, itemsAreRegex: true },
+            name: { type: 'string', required: true, describe: 'Unique class name (kebab-case); also the convention tag name.' },
+            pathRegexes: { type: 'array', required: true, itemsAreRegex: true, describe: 'Case-insensitive regexes tested against "/" + repo-relative forward-slash path; may be [] when pathGlobs or fileNameRegexes is set.' },
+            pathGlobs: { type: 'array', required: false, describe: 'Repo-relative globs (** any segments, * within a segment, ? one char; case-insensitive, anchored).' },
+            fileNameRegexes: { type: 'array', required: false, itemsAreRegex: true, describe: 'Case-insensitive regexes tested against the file base name only.' },
+            excludePathRegexes: { type: 'array', required: false, itemsAreRegex: true, describe: 'Regexes (same path form as pathRegexes) that remove a file from this group.' },
+            excludePathGlobs: { type: 'array', required: false, describe: 'Globs that remove a file from this group.' },
             fileExtensions: { type: 'array', required: false },
+            priority: { type: 'number', required: false, describe: 'Precedence rank, lower first and wins on conflict. Bands: 100 specific, 500 default, 900 general.' },
             guideDoc: { type: 'string', required: false },
             patternsDoc: { type: 'string', required: false },
             stylingDoc: { type: 'string', required: false },
             designSystemDoc: { type: 'string', required: false },
-            rules: { type: 'array', required: false }
+            rules: { type: 'array', required: false, describe: 'Short, checkable rules injected verbatim (keep each under ~120 chars).' },
+            skills: { type: 'array', required: false, describe: 'Skill names whose SKILL.md protocol applies when editing these files.' },
+            referenceDocs: { type: 'array', required: false, describe: 'Repo-relative docs the AI must read before editing these files.' },
+            origin: { type: 'string', required: false, describe: '"detected" (written by setup detection; may be refreshed while unedited) or "user" (never touched by setup).' },
+            detectedFingerprint: { type: 'string', required: false, describe: 'Setup-owned fingerprint of the detected content; a mismatch marks the group as user-edited.' }
+        }
+    },
+    conventionInjection: {
+        type: 'object',
+        required: false,
+        describe: 'Opt-in hook delivery of contextGroups (absent/enabled:false => off). Ranges: maxChars 500..10000 (4000), maxClassesPerEdit 1..10 (4), reinjectAfterBytes >=50000 (2000000), reinjectAfterMinutes 1..1440 (30), blindReinjectAfterMinutes 1..1440 (5), onRead (true).',
+        properties: {
+            enabled: { type: 'boolean', required: false },
+            maxChars: { type: 'number', required: false },
+            maxClassesPerEdit: { type: 'number', required: false },
+            reinjectAfterBytes: { type: 'number', required: false },
+            reinjectAfterMinutes: { type: 'number', required: false },
+            blindReinjectAfterMinutes: { type: 'number', required: false },
+            onRead: { type: 'boolean', required: false },
+            compactionMarkers: { type: 'array', required: false, itemsAreRegex: true }
         }
     },
     styling: {
@@ -975,6 +1001,84 @@ function validateE2eExecutionSemantics(config, errors, warnings) {
     }
 }
 
+const CONTEXT_GROUP_FIELDS = new Set(Object.keys(SCHEMA.contextGroups.itemSchema));
+const CONTEXT_GROUP_ORIGINS = new Set(['detected', 'user']);
+
+function nonEmptyArray(value) {
+    return Array.isArray(value) && value.length > 0;
+}
+
+/**
+ * contextGroups semantics the structural schema cannot express (BR-PFCI-11):
+ * unique non-blank names, at least one include matcher, advisory warnings.
+ */
+function validateContextGroupSemantics(config, errors, warnings) {
+    const groups = config.contextGroups;
+    if (!Array.isArray(groups)) return;
+    const seen = new Set();
+    groups.forEach((group, index) => {
+        if (!group || typeof group !== 'object' || Array.isArray(group)) return;
+        const path = `contextGroups[${index}]`;
+        if (typeof group.name === 'string') {
+            const name = group.name.trim();
+            if (name.length === 0) {
+                errors.push(`${path}.name: must not be blank`);
+            } else if (seen.has(name)) {
+                errors.push(`${path}.name: duplicate context group name "${name}"`);
+            } else {
+                seen.add(name);
+            }
+        }
+        const label = typeof group.name === 'string' && group.name.trim() ? ` ("${group.name.trim()}")` : '';
+        if (label) {
+            // Structural errors (e.g. a malformed regex) carry only the index path; name the class too.
+            for (let i = 0; i < errors.length; i++) {
+                if (errors[i].startsWith(`${path}.`) && !errors[i].startsWith(`${path}.name:`)) {
+                    errors[i] = `${path}${label}${errors[i].slice(path.length)}`;
+                }
+            }
+        }
+        if (!nonEmptyArray(group.pathRegexes) && !nonEmptyArray(group.pathGlobs) && !nonEmptyArray(group.fileNameRegexes)) {
+            errors.push(`${path}${label}: needs at least one include matcher (pathRegexes, pathGlobs or fileNameRegexes)`);
+        }
+        for (const key of Object.keys(group)) {
+            if (!CONTEXT_GROUP_FIELDS.has(key)) {
+                warnings.push(`${path}.${key}: unknown context group field (not in schema)`);
+            }
+        }
+        if (typeof group.priority === 'number' && !Number.isInteger(group.priority)) {
+            warnings.push(`${path}.priority: expected a whole number (bands 100 / 500 / 900)`);
+        }
+        if (typeof group.origin === 'string' && !CONTEXT_GROUP_ORIGINS.has(group.origin)) {
+            warnings.push(`${path}.origin: unknown origin "${group.origin}"; expected "detected" or "user"`);
+        }
+    });
+}
+
+// Mirrors file-conventions.cjs RANGES/DEFAULTS. This schema stays dependency-free (it is also
+// evaluated standalone, see experience-config.test.cjs), so parity is enforced by TC-PFCI-013.
+const CONVENTION_INJECTION_RANGES = [
+    ['maxChars', 500, 10000],
+    ['maxClassesPerEdit', 1, 10],
+    ['reinjectAfterBytes', 50000, Number.MAX_SAFE_INTEGER],
+    ['reinjectAfterMinutes', 1, 1440],
+    ['blindReinjectAfterMinutes', 1, 1440]
+];
+
+/** conventionInjection numeric ranges (BR-PFCI-11). */
+function validateConventionInjectionSemantics(config, errors) {
+    const settings = config.conventionInjection;
+    if (!settings || typeof settings !== 'object' || Array.isArray(settings)) return;
+    for (const [field, min, max] of CONVENTION_INJECTION_RANGES) {
+        const value = settings[field];
+        if (value === undefined || value === null || typeof value !== 'number') continue;
+        if (!Number.isInteger(value) || value < min || value > max) {
+            const range = max === Number.MAX_SAFE_INTEGER ? `at least ${min}` : `from ${min} through ${max}`;
+            errors.push(`conventionInjection.${field}: expected an integer ${range}`);
+        }
+    }
+}
+
 /**
  * Validate a config object against the schema.
  * @param {object} config - The parsed project-config.json
@@ -999,6 +1103,8 @@ function validateConfig(config) {
 
     validateExperienceVerificationSemantics(config, errors, warnings);
     validateE2eExecutionSemantics(config, errors, warnings);
+    validateContextGroupSemantics(config, errors, warnings);
+    validateConventionInjectionSemantics(config, errors);
 
     // Check for unknown top-level keys
     const knownKeys = new Set(Object.keys(SCHEMA));

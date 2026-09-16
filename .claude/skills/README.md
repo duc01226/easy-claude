@@ -78,7 +78,6 @@ This repository includes a diverse collection of example skills demonstrating di
 
 - **artifacts-builder** - Build complex claude.ai HTML artifacts using React, Tailwind CSS, and shadcn/ui components
 - **mcp-server** - Guide for creating high-quality MCP servers to integrate external APIs and services
-- **webapp-testing** - Test local web applications using Playwright for UI verification and debugging
 
 ## Enterprise & Communication
 
@@ -101,7 +100,7 @@ You can register this repository as a Claude Code Plugin marketplace by running 
 /plugin marketplace add anthropics/skills
 ```
 
-After installing the plugin, you can use the skill by just mentioning it. For instance, if you install the pdf-to-markdown skill, you can ask Claude Code to do something like: "use the pdf-to-markdown skill to convert path/to/some-file.pdf to markdown"
+After installing the plugin, you can use the skill by just mentioning it. For instance, if you install the pdf-convert skill, you can ask Claude Code to do something like: "use the pdf-convert skill with `--to markdown` to convert path/to/some-file.pdf to markdown"
 
 ## Claude.ai
 

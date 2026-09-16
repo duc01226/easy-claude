@@ -1,7 +1,7 @@
 # Project Structure Reference
 
 <!-- Last scanned: 2026-08-04 -->
-<!-- Last verified: 2026-09-14 (docs-update, impact-scoped) -->
+<!-- Last verified: 2026-09-16 (docs-update, impact-scoped) -->
 <!-- This file is referenced by Claude skills and agents for project-specific context. -->
 
 > **Goal:** Ground AI work in easy-claude's verified framework topology, runtime entry points, configuration surfaces, and commands so agents never invent application services, ports, or deployment infrastructure.
@@ -40,15 +40,11 @@
 
 No backend API, worker, frontend app, Docker deploy unit, database, or broker configured (`docs/project-config.json:23-73`, `docs/project-config.json:149-152`). Hooks are CLI lifecycle handlers, not network services (`.claude/docs/hooks/README.md:7-38`).
 
-One opt-in local utility serves Markdown on loopback only:
-
-| Utility               | Type                           | Port                                                      | Entry point                                                                                                                             |
-| --------------------- | ------------------------------ | --------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
-| Markdown Novel Viewer | Local development HTTP utility | Defaults to `3456`, searches `3456-3500`, CLI-overridable | `.claude/skills/markdown-novel-viewer/scripts/server.cjs:39-61`, `.claude/skills/markdown-novel-viewer/scripts/lib/port-finder.cjs:6-9` |
+No opt-in local HTTP utility is configured.
 
 ## Infrastructure Ports
 
-No mandatory database, broker, cache, or application port (`docs/project-config.json:149-152`). Loopback Markdown viewer port is local tooling, not deployment infrastructure.
+No mandatory database, broker, cache, or application port (`docs/project-config.json:149-152`).
 
 ## Deployment & Delivery
 
@@ -56,12 +52,12 @@ Delivery stack: **undetermined (no CI/IaC config found)**. Root commands cover l
 
 ## Environment Configuration
 
-| Setting group                 | Surface                                                                                    | Purpose                                                                                              |
-| ----------------------------- | ------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------- |
-| Framework runtime             | `.claude/settings.json:24-30`                                                              | `CLAUDE_BASH_MAINTAIN_PROJECT_WORKING_DIR`, context/auto-memory controls, stop-hook cap, MCP timeout |
-| MCP authentication references | `.claude/.mcp.json:6-7`, `.claude/.mcp.json:21-22`                                         | `GITHUB_PERSONAL_ACCESS_TOKEN`, `FIGMA_PERSONAL_ACCESS_TOKEN`                                        |
-| Notification references       | `.claude/hooks/notifications/.env.example:8-21`                                            | Telegram, Discord, and Slack reference names                                                         |
-| Optional skill credentials    | `.claude/skills/docs-seeker/.env.example:3-15`, `.claude/skills/devops/.env.example:10-23` | Context/search, repository, and deployment-tool reference names                                      |
+| Setting group                 | Surface                                         | Purpose                                                                                              |
+| ----------------------------- | ----------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
+| Framework runtime             | `.claude/settings.json:24-30`                   | `CLAUDE_BASH_MAINTAIN_PROJECT_WORKING_DIR`, context/auto-memory controls, stop-hook cap, MCP timeout |
+| MCP authentication references | `.claude/.mcp.json:6-7`                         | `GITHUB_PERSONAL_ACCESS_TOKEN`                                                                       |
+| Notification references       | `.claude/hooks/notifications/.env.example:8-21` | Telegram, Discord, and Slack reference names                                                         |
+| Optional skill credentials    | `.claude/.env.example:34-50`                    | Shared AI/ML API key reference names with per-skill override precedence                              |
 
 MUST ATTENTION record setting keys/reference names only; keep credential values in environment or secret stores.
 
@@ -71,30 +67,30 @@ None. No frontend framework dependency, app mapping, dev-server port, or fronten
 
 ## Key Directories
 
-| Path                      | Purpose                                                                                         |
-| ------------------------- | ----------------------------------------------------------------------------------------------- |
-| `.claude/hooks/`          | Runtime lifecycle hooks and shared hook libraries (`docs/project-config.json:23-37`)            |
-| `.claude/skills/`         | Task automation definitions and optional skill-local tooling (`docs/project-config.json:38-44`) |
-| `.claude/agents/`         | Specialized sub-agent definitions (`docs/project-config.json:45-51`)                            |
-| `.claude/scripts/`        | Catalog, sync, graph, worktree, and maintenance tooling (`docs/project-config.json:52-58`)      |
-| `.claude/workflows.json`  | Registered workflow definitions (`docs/project-config.json:59-65`)                              |
-| `.claude/docs/`           | Framework documentation (`docs/project-config.json:66-72`)                                      |
-| `docs/project-reference/` | Project-specific AI reference docs (`docs/project-config.json:158-250`)                         |
+| Path                      | Purpose                                                                                          |
+| ------------------------- | ------------------------------------------------------------------------------------------------ |
+| `.claude/hooks/`          | Runtime lifecycle hooks and shared hook libraries (`docs/project-config.json:23-37`)             |
+| `.claude/skills/`         | Task automation definitions and optional skill-local tooling (`docs/project-config.json:38-44`)  |
+| `.claude/agents/`         | Specialized sub-agent definitions (`docs/project-config.json:45-51`)                             |
+| `.claude/scripts/`        | Catalog, shared-protocol sync, graph, and maintenance tooling (`docs/project-config.json:52-58`) |
+| `.claude/workflows.json`  | Registered workflow definitions (`docs/project-config.json:59-65`)                               |
+| `.claude/docs/`           | Framework documentation (`docs/project-config.json:66-72`)                                       |
+| `docs/project-reference/` | Project-specific AI reference docs (`docs/project-config.json:158-250`)                          |
 
 ## Component Architecture
 
 | Component      | Count                                                                                         | Location                      | Format                                                                              |
 | -------------- | --------------------------------------------------------------------------------------------- | ----------------------------- | ----------------------------------------------------------------------------------- |
-| Hooks          | <!-- COUNT:hooks -->18<!-- /COUNT -->                                                         | `.claude/hooks/*.cjs`         | Top-level CommonJS Node.js hook scripts counted by ADR-0002                         |
-| Hook Libraries | <!-- COUNT:lib-modules -->31<!-- /COUNT -->                                                   | `.claude/hooks/lib/*.cjs`     | CommonJS utility modules                                                            |
-| Skills         | <!-- COUNT:skills -->170<!-- /COUNT -->                                                       | `.claude/skills/*/SKILL.md`   | Markdown + YAML frontmatter                                                         |
-| Agents         | <!-- COUNT:agents -->27<!-- /COUNT -->                                                        | `.claude/agents/*.md`         | Markdown definitions                                                                |
+| Hooks          | <!-- COUNT:hooks -->20<!-- /COUNT -->                                                         | `.claude/hooks/*.cjs`         | Top-level CommonJS Node.js hook scripts counted by ADR-0002                         |
+| Hook Libraries | <!-- COUNT:lib-modules -->35<!-- /COUNT -->                                                   | `.claude/hooks/lib/*.cjs`     | CommonJS utility modules                                                            |
+| Skills         | <!-- COUNT:skills -->123<!-- /COUNT -->                                                       | `.claude/skills/*/SKILL.md`   | Markdown + YAML frontmatter                                                         |
+| Agents         | <!-- COUNT:agents -->23<!-- /COUNT -->                                                        | `.claude/agents/*.md`         | Markdown definitions                                                                |
 | Workflows      | <!-- COUNT:workflows -->19<!-- /COUNT -->                                                     | `.claude/workflows.json`      | JSON workflow definitions                                                           |
 | Output Styles  | 6                                                                                             | `.claude/output-styles/*.md`  | Coding level presets (ELI5→God)                                                     |
 | Scripts        | 34                                                                                            | `.claude/scripts/*`           | CJS/ESM + Python utilities (top-level; excludes tests and non-executable data/docs) |
 | Codex Scripts  | 16                                                                                            | `.claude/scripts/codex/*.mjs` | Top-level ESM sync, migration, notification, and verification tools                 |
-| Hook Tests     | 33 suites + 13 `test-*` files                                                                  | `.claude/hooks/tests/`        | CJS/JS test files; top-level `test-*` files plus `run-all-tests.cjs` aggregate      |
-| Codex Mirrors  | <!-- COUNT:skills -->170<!-- /COUNT --> skills, <!-- COUNT:agents -->27<!-- /COUNT --> agents | `.agents/`, `.codex/`         | Generated Codex-compatible copy                                                     |
+| Hook Tests     | 35 suites + 13 `test-*` files                                                                 | `.claude/hooks/tests/`        | CJS/JS test files; top-level `test-*` files plus `run-all-tests.cjs` aggregate      |
+| Codex Mirrors  | <!-- COUNT:skills -->123<!-- /COUNT --> skills, <!-- COUNT:agents -->23<!-- /COUNT --> agents | `.agents/`, `.codex/`         | Generated Codex-compatible copy                                                     |
 
 ## Project Directory Tree
 
@@ -137,28 +133,29 @@ easy-claude/
 
 | Code | Module         | Location                       | Description                                                                                                               |
 | ---- | -------------- | ------------------------------ | ------------------------------------------------------------------------------------------------------------------------- |
-| HK   | Hooks          | `.claude/hooks/`               | <!-- COUNT:hooks -->18<!-- /COUNT --> top-level `.cjs` runtime hook files (session init, safety gates, graph, formatting) |
-| HL   | Hook Libraries | `.claude/hooks/lib/`           | <!-- COUNT:lib-modules -->31<!-- /COUNT --> shared utility modules for hooks                                              |
-| SK   | Skills         | `.claude/skills/`              | <!-- COUNT:skills -->170<!-- /COUNT --> task automation skill definitions                                                 |
-| AG   | Agents         | `.claude/agents/`              | <!-- COUNT:agents -->27<!-- /COUNT --> specialized subagent role definitions                                              |
+| HK   | Hooks          | `.claude/hooks/`               | <!-- COUNT:hooks -->20<!-- /COUNT --> top-level `.cjs` runtime hook files (session init, safety gates, graph, formatting) |
+| HL   | Hook Libraries | `.claude/hooks/lib/`           | <!-- COUNT:lib-modules -->35<!-- /COUNT --> shared utility modules for hooks                                              |
+| SK   | Skills         | `.claude/skills/`              | <!-- COUNT:skills -->123<!-- /COUNT --> task automation skill definitions                                                 |
+| AG   | Agents         | `.claude/agents/`              | <!-- COUNT:agents -->23<!-- /COUNT --> specialized subagent role definitions                                              |
 | WF   | Workflows      | `.claude/workflows.json`       | <!-- COUNT:workflows -->19<!-- /COUNT --> end-to-end process orchestrations                                               |
 | SC   | Scripts        | `.claude/scripts/`             | 34 top-level CJS/ESM/Python utilities; excludes tests and non-executable data/docs                                        |
 | CX   | Codex Tooling  | `.claude/scripts/codex/`       | 16 top-level ESM sync, migration, notification, and verification scripts                                                  |
 | CM   | Codex Mirrors  | `.agents/`, `.codex/`          | Generated Codex-compatible skills, agents, hooks                                                                          |
 | OS   | Output Styles  | `.claude/output-styles/`       | 6 coding level presets                                                                                                    |
-| NT   | Notifications  | `.claude/hooks/notifications/` | Multi-channel notification providers (5)                                                                                  |
+| NT   | Notifications  | `.claude/hooks/notifications/` | `notify.cjs` dispatcher + 4 channel providers in `providers/` (desktop, telegram, discord, slack)                         |
 | SB   | Scout Block    | `.claude/hooks/scout-block/`   | Broad search prevention subsystem (4 modules)                                                                             |
-| HT   | Hook Tests     | `.claude/hooks/tests/`         | 33 suite files + 13 top-level `test-*` files + `run-all-tests.cjs` aggregate                                               |
+| HT   | Hook Tests     | `.claude/hooks/tests/`         | 35 suite files + 13 top-level `test-*` files + `run-all-tests.cjs` aggregate                                              |
 
-## Hooks (<!-- COUNT:hooks -->18<!-- /COUNT --> top-level `.cjs` files)
+## Hooks (<!-- COUNT:hooks -->20<!-- /COUNT --> top-level `.cjs` files)
 
 ### Safety Hooks
 
-| Hook                  | Event      | Purpose                                 |
-| --------------------- | ---------- | --------------------------------------- |
-| `path-boundary-block` | PreToolUse | Block access outside project scope      |
-| `privacy-block`       | PreToolUse | Block access to secrets/credentials     |
-| `scout-block`         | PreToolUse | Prevent overly broad glob/grep patterns |
+| Hook                     | Event      | Purpose                                             |
+| ------------------------ | ---------- | --------------------------------------------------- |
+| `path-boundary-block`    | PreToolUse | Block access outside project scope                  |
+| `privacy-block`          | PreToolUse | Block access to secrets/credentials                 |
+| `scout-block`            | PreToolUse | Prevent overly broad glob/grep patterns             |
+| `github-mcp-write-block` | PreToolUse | Gate GitHub MCP write verbs on a session push lease |
 
 ### Quality Hooks
 
@@ -172,15 +169,20 @@ easy-claude/
 
 ### Static Project Context
 
-> Backend/frontend/SCSS/design/lessons/mindset/role guidance lives in `CLAUDE.md`, `docs/project-reference/*`, and relevant skills. Read it through the project-reference docs gate; no runtime context-injection hook supplies it.
+> Backend/frontend/SCSS/design/lessons/mindset/role guidance lives in `CLAUDE.md`, `docs/project-reference/*`, and relevant skills. Read it through the project-reference docs gate; the static copy is authoritative. The opt-in `file-convention-inject` hook only re-reminds per-file convention classes (`contextGroups[]`) that are missing from the current context.
+
+| Hook                     | Event                                                              | Purpose                                                                                            |
+| ------------------------ | ------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------- |
+| `file-convention-inject` | PostToolUse, SessionStart (compact)                                | Per-file convention reminder; records condensation, no output                                      |
+| `prompt-ledger`          | UserPromptSubmit, PostToolUse, SessionStart (compact/resume/clear) | Record each user prompt; re-anchor the original request after condensation and at task checkpoints |
 
 ### Graph Hooks
 
-| Hook                 | Event            | Purpose                                                      |
-| -------------------- | ---------------- | ------------------------------------------------------------ |
-| `graph-session-init` | SessionStart     | Report graph status / install guidance, then sync with HEAD  |
-| `graph-auto-update`  | PostToolUse      | Incremental graph update after edits                         |
-| `graph-prompt-sync`  | UserPromptSubmit | Re-sync when git HEAD moved since the last prompt            |
+| Hook                 | Event            | Purpose                                                     |
+| -------------------- | ---------------- | ----------------------------------------------------------- |
+| `graph-session-init` | SessionStart     | Report graph status / install guidance, then sync with HEAD |
+| `graph-auto-update`  | PostToolUse      | Incremental graph update after edits                        |
+| `graph-prompt-sync`  | UserPromptSubmit | Re-sync when git HEAD moved since the last prompt           |
 
 ### Session Management Hooks
 
@@ -213,50 +215,43 @@ easy-claude/
 
 ## Workflows (<!-- COUNT:workflows -->19<!-- /COUNT -->)
 
-| Category                   | Registered Workflows                                                                                |
-| -------------------------- | --------------------------------------------------------------------------------------------------- |
-| **Core Development**       | `workflow-feature`, `workflow-bugfix`, `workflow-refactor`, `workflow-big-feature`                  |
-| **Discovery & Planning**   | `workflow-idea-to-pbi`, `workflow-idea-to-spec`, `workflow-greenfield-init`, `workflow-spec-to-pbi` |
-| **Spec & Documentation**   | `workflow-code-to-spec`, `workflow-spec-sync`, `workflow-feature-spec`, `workflow-research`         |
-| **Testing**                | `workflow-write-integration-test`, `workflow-e2e`, `workflow-seed-test-data` |
-| **Review & Visualization** | `workflow-review-changes`, `workflow-architecture-audit`, `workflow-visualize`                      |
+| Category                   | Registered Workflows                                                                                            |
+| -------------------------- | --------------------------------------------------------------------------------------------------------------- |
+| **Core Development**       | `workflow-feature`, `workflow-bugfix`, `workflow-refactor`, `workflow-big-feature`                              |
+| **Discovery & Planning**   | `workflow-idea-to-pbi`, `workflow-idea-to-spec`, `workflow-greenfield-init`, `workflow-spec-to-pbi`             |
+| **Spec & Documentation**   | `workflow-code-to-spec`, `workflow-spec-sync`, `workflow-feature-spec`, `workflow-research`                     |
+| **Testing**                | `workflow-write-integration-test`, `workflow-e2e`, `workflow-seed-test-data`, `workflow-integration-test-green` |
+| **Review & Visualization** | `workflow-review-changes`, `workflow-architecture-audit`, `workflow-visualize`                                  |
 
-> **Also available as workflow skills** (invokeable via `/workflow-<name>` but not registered in `workflows.json`):
-> `ba-dev-handoff`, `business-evaluation`, `course-building`, `design`, `design-dev-handoff`,
-> `dev-qa-handoff`, `end`, `feature-with-integration-test`, `greenfield`, `marketing-strategy`,
-> `pm-reporting`, `pre-development`, `qa-po-acceptance`, `research`, `seed-test-data`,
-> `sprint-planning`, `sprint-retro`, `start`, `testing`
+> **Also available as a workflow skill** (invokeable via `/workflow-<name>` but not registered in `workflows.json`): `workflow-end` — the lifecycle terminator. It is the only one of the 20 `.claude/skills/workflow-*` skills without a `workflows.json` entry; the other 19 map 1:1 to the registered workflows above.
 
-## Agents (<!-- COUNT:agents -->27<!-- /COUNT -->)
+## Agents (<!-- COUNT:agents -->23<!-- /COUNT -->)
 
-| Agent                      | Specialization                               |
-| -------------------------- | -------------------------------------------- |
-| `architect`                | System design, ADRs, cross-service analysis  |
-| `backend-developer`        | Backend implementation with project patterns |
-| `business-analyst`         | Requirement refinement, story creation       |
-| `code-reviewer`            | File-by-file code review with reports        |
-| `code-simplifier`          | Code clarity and maintainability             |
-| `database-admin`           | DB queries, optimization, migrations         |
-| `debugger`                 | Root cause analysis, diagnostic reports      |
-| `docs-manager`             | Documentation detection and updates          |
-| `e2e-runner`               | E2E test generation and maintenance          |
-| `frontend-developer`       | Frontend implementation with design system   |
-| `fullstack-developer`      | Parallel plan execution, file ownership      |
-| `git-manager`              | Commits, branches, conventional commits      |
-| `integration-tester`       | Integration test generation from specs       |
-| `journal-writer`           | Technical difficulty documentation           |
-| `knowledge-worker`         | Research, synthesis, report generation       |
-| `performance-optimizer`    | Backend + frontend performance analysis      |
-| `planner`                  | Implementation planning, trade-off analysis  |
-| `product-owner`            | Value-driven decisions, backlog management   |
-| `project-manager`          | Progress tracking, status consolidation      |
-| `quality-gate-review`      | Quality gates, compliance verification       |
-| `researcher`               | Technology research, best practices          |
-| `security-auditor`         | OWASP compliance, vulnerability assessment   |
-| `solution-architect`       | Greenfield project inception                 |
-| `spec-compliance-reviewer` | Implementation vs specification matching     |
-| `tester`                   | Test execution, coverage analysis            |
-| `ui-ux-designer`           | UI/UX design, wireframes, accessibility      |
+| Agent                      | Specialization                                                            |
+| -------------------------- | ------------------------------------------------------------------------- |
+| `architect`                | System design, ADRs, cross-service analysis                               |
+| `backend-developer`        | Backend implementation with project patterns                              |
+| `code-reviewer`            | File-by-file code review with reports                                     |
+| `code-simplifier`          | Code clarity and maintainability                                          |
+| `database-admin`           | DB queries, optimization, migrations                                      |
+| `debugger`                 | Root cause analysis, diagnostic reports                                   |
+| `docs-manager`             | Documentation detection and updates                                       |
+| `e2e-runner`               | E2E test generation and maintenance                                       |
+| `framework-maintainer`     | `.claude` framework authoring — skills, agents, workflows, hooks, mirrors |
+| `frontend-developer`       | Frontend implementation with design system                                |
+| `fullstack-developer`      | Parallel plan execution, file ownership                                   |
+| `git-manager`              | Commits, branches, conventional commits                                   |
+| `integration-tester`       | Integration test generation from specs                                    |
+| `journal-writer`           | Technical difficulty documentation                                        |
+| `knowledge-worker`         | Research, synthesis, report generation                                    |
+| `performance-optimizer`    | Backend + frontend performance analysis                                   |
+| `planner`                  | Implementation planning, trade-off analysis                               |
+| `researcher`               | Technology research, best practices                                       |
+| `security-auditor`         | OWASP compliance, vulnerability assessment                                |
+| `solution-architect`       | Greenfield project inception                                              |
+| `spec-compliance-reviewer` | Implementation vs specification matching                                  |
+| `tester`                   | Test execution, coverage analysis                                         |
+| `ui-ux-designer`           | UI/UX design, wireframes, accessibility                                   |
 
 ## Key Entry Points
 

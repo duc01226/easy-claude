@@ -23,7 +23,7 @@ SKILLS_DIR = PROJECT_ROOT / ".claude" / "skills"
 
 SKILL_NAMES = [
     # Plan family
-    "plan", "plan-analysis",
+    "plan",
     "plan-review", "plan-validate",
     # Cook family
     "feature-implement",
@@ -36,7 +36,7 @@ SKILL_NAMES = [
     # Spec authoring quality family (idea → spec gates)
     "spec-discovery", "spec-clarify",
     # Refactor / migration / scaffold
-    "refactoring", "db-migrate", "scaffold",
+    "db-migrate", "scaffold",
     # Review family
     "security-review", "code-review", "integration-test-review",
     "knowledge-review", "architecture-review",

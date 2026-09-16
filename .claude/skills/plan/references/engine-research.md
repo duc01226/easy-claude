@@ -13,13 +13,13 @@
 
 ##### Sequential Thinking
 
-- Use `sequential-thinking` skill for dynamic and reflective problem-solving
+- Apply structured sequential thinking for dynamic and reflective problem-solving
 - Structured thinking process for complex analysis
 - Enables multi-step reasoning with revision capability
 
 ##### Documentation Research
 
-- Use `docs-seeker` skill to read and understand documentation
+- Use `/web-research` (Context7 MCP optional) to read and understand documentation
 - Research plugins, packages, and frameworks
 - Find latest technical documentation using llms.txt standard
 
@@ -78,7 +78,7 @@ You are allowed to perform at most **5 researches (max 5 tool calls)**. User mig
 
 #### Deep Content Analysis
 
-- When you find a potential GitHub repository URL, use `docs-seeker` skill to read it
+- When you find a potential GitHub repository URL, use `/web-research` to read it
 - Focus on official documentation, API references, and technical specifications
 - Analyze README files from popular GitHub repositories
 - Review changelog and release notes for version-specific information

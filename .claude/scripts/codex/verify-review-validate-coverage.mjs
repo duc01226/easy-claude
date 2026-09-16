@@ -38,7 +38,7 @@ const rootResolution = resolveProjectRoot({
 });
 const rootDir = rootResolution.rootDir;
 
-// SC3 review-family allow-list — the 14 finding-producing review skills. The scan is scoped to
+// SC3 review-family allow-list — the 13 finding-producing review skills. The scan is scoped to
 // these names ONLY (never a repo-wide glob) so a non-review skill using "finding"/"Severity" is
 // never flagged (TC-CONVLOOP-043).
 export const REVIEW_FAMILY_SKILLS = [
@@ -54,16 +54,15 @@ export const REVIEW_FAMILY_SKILLS = [
     'production-readiness-review',
     'artifact-review',
     'ui-review',
-    'quality-gate-review',
     'knowledge-review'
 ];
 
 // SC7 grader allow-list — validate-only graders that emit a JUDGMENT (a scorecard; a
 // PASS/FAIL/CONDITIONAL verdict) and route fixes to siblings. They carry the validate + anti-bias
 // gate but MUST NOT embed the converge-to-zero fix-loop. Every grader is also a review-family skill.
+// One member today; the list stays a list so a future grader is added without reshaping the rule.
 export const GRADER_SKILLS = [
-    'architecture-scalability-review',
-    'quality-gate-review'
+    'architecture-scalability-review'
 ];
 
 // Findings/severity/verdict language — presence means the skill produces findings and therefore

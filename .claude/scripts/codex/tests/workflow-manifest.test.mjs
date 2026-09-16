@@ -253,7 +253,7 @@ test("production workflows declare required and opt-in near-end E2E handoffs", (
     ["workflow-greenfield-init", "security-review", true],
     ["workflow-big-feature", "security-review", true],
     ["workflow-feature", "security-review", false],
-    ["workflow-bugfix", "changelog", false],
+    ["workflow-bugfix", "test", false],
   ];
   for (const [workflowId, nextSkill, required] of cases) {
     const manifest = resolve(registry, workflowId, { rootDir: root });
@@ -276,7 +276,7 @@ test("E2E visual review contracts default on and review generated screenshots", 
   const skillFiles = [
     ".claude/skills/e2e-test/SKILL.md",
     ".claude/skills/workflow-e2e/SKILL.md",
-    ".claude/skills/e2e-test-verify-loop/SKILL.md",
+    ".claude/skills/e2e-test-verify/SKILL.md",
   ];
   for (const relativePath of skillFiles) {
     const source = fs.readFileSync(path.join(root, relativePath), "utf8");

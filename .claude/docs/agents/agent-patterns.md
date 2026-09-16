@@ -499,28 +499,6 @@ Task({
 
 ---
 
-### Project Manager Agent
-
-**Purpose:** Progress tracking and reporting.
-
-**Best For:**
-
-- Status summaries
-- Plan progress tracking
-- Report consolidation
-
-**Invocation:**
-
-```typescript
-Task({
-    subagent_type: 'project-manager',
-    prompt: 'Consolidate reports from plans/250113-employee-import/ and provide status summary with next steps',
-    description: 'Project status'
-});
-```
-
----
-
 ## Composition Patterns
 
 ### Sequential Workflow
@@ -638,7 +616,7 @@ Agents carry the same applicable role-specific quality SYNC blocks as their twin
 2. **Dry-run both injectors** — `python .claude/scripts/inject_agent_protocol_blocks.py --dry-run` and `python .claude/scripts/inject_agent_skill_connections.py --dry-run` → review the planned adds. A bare quality invocation targets every matrix agent; the connection invocation targets every connected agent. Narrow either with `--family=<name>`, `--agents=<a,b>` (quality), or `--agents=<a,b>` (connections). There is no `--all` flag — the unknown-argument guard rejects it.
 3. **Real run + idempotent re-run** — run both injectors, then re-run both with `--dry-run` → must report zero changes. Re-run the `agent-universal-rules` suite (`node .claude/hooks/tests/run-all-tests.cjs`) → `TC-UAR-003..018` green.
 
-**Tier rule (enforced — `TC-UAR-004`):** the four code-tier blocks (`understand-code-first`, `evidence-based-reasoning`, `cross-service-check`, `fix-layer-accountability`) go on code-touching agents ONLY. A core-only agent (business-analyst, docs-manager, git-manager, journal-writer, knowledge-worker, product-owner, project-manager, quality-gate-review) must carry NONE of them. `validate()` check (e) and the test suite both hard-fail on a leak.
+**Tier rule (enforced — `TC-UAR-004`):** the four code-tier blocks (`understand-code-first`, `evidence-based-reasoning`, `cross-service-check`, `fix-layer-accountability`) go on code-touching agents ONLY. A core-only agent (docs-manager, git-manager, journal-writer, knowledge-worker) must carry NONE of them. `validate()` check (e) and the test suite both hard-fail on a leak.
 
 **Orchestration-exclusion rule:** main-loop orchestration blocks — `nested-task-creation`, `sub-agent-selection`, `subagent-return-contract`, `parallel-phase-advancement` — must NOT propagate to agents (they govern the orchestrator, not a worker). The **sole whitelist exception** is `framework-maintainer`, which legitimately spawns/curates sub-agents and so carries `sub-agent-selection`. Any new exception must be declared explicitly in the matrix, not added ad-hoc to an agent file.
 

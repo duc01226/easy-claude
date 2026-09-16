@@ -21,7 +21,6 @@ SKILLS_DIR = PROJECT_ROOT / ".claude" / "skills"
 SKILL_NAMES = [
     # Plan family
     "plan",
-    "plan-analysis",
     "plan-review",
     "plan-validate",
     # Review family

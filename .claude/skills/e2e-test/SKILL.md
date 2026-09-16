@@ -144,8 +144,8 @@ When visual review is enabled (the default unless the caller explicitly passes
 `--visual-review=false`), record the exact visual state × viewport capture plan
 and emit captures after the required wait-until postconditions and 500ms
 presentation pacing. `/experience-review` opens and reads every generated
-image and classifies objective UI-floor defects; it is the visual evidence path,
-not `/ask` (which is an architecture consultation skill). Keep candidate
+image and classifies objective UI-floor defects; it is the visual evidence path.
+Keep candidate
 captures under the configured evidence root or `tmp/` and preserve accepted
 expectations.
 
@@ -426,7 +426,7 @@ Spawn `e2e-runner` sub-agent for:
 
 ## Workflow Recommendation
 
-> When invoked standalone, auto-select the canonical route from the request and current context; do not ask the user to choose a workflow. Use `workflow-e2e` for every E2E source: it conditionally writes or updates the artifact, then delegates configured verification and bounded fix/retest convergence to `e2e-test-verify-loop`. Honor an explicit workflow or source invocation. Ask the user only when the product intent or owner is genuinely ambiguous, not to choose between equivalent execution routes.
+> When invoked standalone, auto-select the canonical route from the request and current context; do not ask the user to choose a workflow. Use `workflow-e2e` for every E2E source: it conditionally writes or updates the artifact, then delegates configured verification and bounded fix/retest convergence to `e2e-test-verify --fix-loop`. Honor an explicit workflow or source invocation. Ask the user only when the product intent or owner is genuinely ambiguous, not to choose between equivalent execution routes.
 
 ---
 
@@ -492,7 +492,7 @@ Generate and maintain E2E tests using project's configured testing framework.
 >
 > Reconcile to intended behavior, never to whichever side currently passes — green can encode the very bug.
 >
-> **Read-only/report-only role boundary:** when this block is carried by a report-only role (`code-reviewer`, `quality-gate-review`, `spec-compliance-reviewer`, `tester`, and any other agent whose definition declares it never edits source), "fix the wrong side" means RETURN the adjudicated verdict and the proposed repair to the parent — do not modify source, tests, generated carriers, or user data. The adjudication is the deliverable; the edit is the caller's. Without this sentence the block's step-3 imperatives read as write authority and directly contradict those agents' own declarations (e.g. `tester.md` "NEVER implement fixes"), which is the sibling `SYNC:double-round-trip-review` boundary applied to the same class of carrier.
+> **Read-only/report-only role boundary:** when this block is carried by a report-only role (`code-reviewer`, `spec-compliance-reviewer`, `tester`, and any other agent whose definition declares it never edits source), "fix the wrong side" means RETURN the adjudicated verdict and the proposed repair to the parent — do not modify source, tests, generated carriers, or user data. The adjudication is the deliverable; the edit is the caller's. Without this sentence the block's step-3 imperatives read as write authority and directly contradict those agents' own declarations (e.g. `tester.md` "NEVER implement fixes"), which is the sibling `SYNC:double-round-trip-review` boundary applied to the same class of carrier.
 
 <!-- /SYNC:test-failure-fault-adjudication -->
 

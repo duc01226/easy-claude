@@ -133,11 +133,6 @@ Several skills require external CLI tools:
 - **RMBG CLI**: AI background removal
   - All platforms: `npm install -g rmbg-cli`
 
-#### devops
-- **Cloudflare Wrangler**: `npm install -g wrangler`
-- **Docker**: https://docs.docker.com/get-docker/
-- **Google Cloud CLI**: https://cloud.google.com/sdk/docs/install
-
 #### better-auth, repomix, shopify
 - **Node.js 18+**: https://nodejs.org/
 - **Better Auth**: `npm install better-auth`
@@ -238,7 +233,7 @@ Skills respect environment variable loading priority:
 3. **`.claude/skills/.env`** (shared skills config)
 4. **`.claude/.env`** (global Claude config)
 
-Example `.env` files are provided where needed (e.g., `devops/.env.example`).
+Example `.env` files are provided where needed (e.g., `{skill-name}/.env.example`).
 
 ## Troubleshooting
 
@@ -305,7 +300,7 @@ npm install -g rmbg-cli
 ```
 
 **For other skills:**
-Most other skills (better-auth, repomix, shopify, devops, web-frameworks, shadcn-tailwind, databases) use only Python stdlib and require no `pip install`.
+Most other skills (better-auth, repomix, shopify, web-frameworks, shadcn-tailwind, databases) use only Python stdlib and require no `pip install`.
 
 ## Development Setup
 
@@ -337,11 +332,6 @@ pytest .claude/skills/*/scripts/tests/ --cov=.claude/skills --cov-report=html
 - ImageMagick must be in PATH
 - RMBG CLI must be installed globally
 - Test with: `ffmpeg -version`, `convert -version`, and `rmbg --version`
-
-### devops
-- Cloudflare: Requires `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID`
-- GCloud: Requires `GOOGLE_APPLICATION_CREDENTIALS` path to service account JSON
-- Docker: Must have Docker daemon running
 
 ### shopify
 - Requires Shopify CLI authentication: `shopify auth login`

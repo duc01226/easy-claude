@@ -53,7 +53,7 @@
       "name": "scripts",
       "kind": "library",
       "pathRegex": "[\\\\/]\\.claude[\\\\/]scripts[\\\\/]",
-      "description": "Utility scripts for catalog generation, skill management, and worktree operations",
+      "description": "Utility scripts for catalog generation, skill/agent management, shared-protocol sync, and code-graph tooling",
       "tags": ["tooling", "cjs", "python"]
     },
     {
@@ -101,8 +101,46 @@
       "fileExtensions": [".md"],
       "guideDoc": ".claude/docs/agents/README.md",
       "rules": ["Agent definitions are markdown files in .claude/agents/", "Follow patterns in .claude/docs/agents/agent-patterns.md"]
+    },
+    {
+      "name": "feature-spec",
+      "pathRegexes": [],
+      "priority": 100,
+      "pathGlobs": ["docs/specs/**/*.md"],
+      "referenceDocs": [
+        "docs/project-reference/feature-spec-reference.md",
+        "docs/project-reference/spec-system-reference.md",
+        "docs/project-reference/spec-principles.md"
+      ],
+      "skills": ["spec"],
+      "origin": "detected",
+      "detectedFingerprint": "ced81f62cf9ef9f0"
+    },
+    {
+      "name": "integration-test",
+      "pathRegexes": [],
+      "priority": 100,
+      "pathGlobs": ["**/*.test.cjs"],
+      "referenceDocs": ["docs/project-reference/integration-test-reference.md"],
+      "skills": ["integration-test"],
+      "origin": "detected",
+      "detectedFingerprint": "342fb4bf9f19054a"
+    },
+    {
+      "name": "general-code",
+      "pathRegexes": [],
+      "priority": 900,
+      "pathGlobs": ["**/*"],
+      "excludePathGlobs": ["**/node_modules/**", "**/dist/**", "**/build/**", "**/vendor/**", "tmp/**", "temp/**"],
+      "fileExtensions": [".js", ".cjs", ".mjs", ".jsx", ".py"],
+      "referenceDocs": ["docs/project-reference/code-review-rules.md"],
+      "origin": "detected",
+      "detectedFingerprint": "48230fd6183bdc93"
     }
   ],
+  "conventionInjection": {
+    "enabled": true
+  },
   "designSystem": {
     "docsPath": "docs/project-reference/design-system",
     "appMappings": []

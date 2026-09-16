@@ -719,10 +719,8 @@ Create a Markdown summary report:
 - `planner` agent — research domain best practices.
 - `docs-manager` agent — understand existing feature constraints and domain context.
 - `WebSearch` — market/competitor context for New Product scenarios.
-- `docs-seeker` skill — latest external plugin/API documentation.
 - `visual analysis tooling` skill — analyze mockups, screenshots, competitor UIs.
-- `sequential-thinking` skill — complex decomposition requiring causal chains.
-- `web-research` skill — deep greenfield or competitive market research.
+- `/web-research` — deep greenfield or competitive market research, and latest external plugin/API documentation (Context7 MCP optional where configured).
 
 ---
 
@@ -861,8 +859,6 @@ After the session, use `AskUserQuestion` to present next steps:
 > **Stop conditions:** confidence <80% on any critical decision → escalate via AskUserQuestion · ≥3 revisions on same thought → re-frame the problem · branch count >3 → split into sub-task.
 >
 > **Implicit mode:** apply methodology internally without visible markers when adding markers would clutter the response (routine work where reasoning aids accuracy).
->
-> **Deep-dive:** see `/sequential-thinking` skill (`.claude/skills/sequential-thinking/SKILL.md`) for worked examples (API design, debugging, architecture), advanced techniques (spiral refinement, hypothesis testing, convergence), and meta-strategies (uncertainty handling, revision cascades).
 
 <!-- /SYNC:sequential-thinking-protocol -->
 
@@ -874,7 +870,7 @@ After the session, use `AskUserQuestion` to present next steps:
 
 <!-- SYNC:sequential-thinking-protocol:reminder -->
 
-**MUST ATTENTION** apply sequential-thinking — multi-step Thought N/M, REVISION/BRANCH/HYPOTHESIS markers, confidence % closer; see `/sequential-thinking` skill.
+**MUST ATTENTION** apply sequential-thinking — multi-step Thought N/M, REVISION/BRANCH/HYPOTHESIS markers, confidence % closer.
 
 <!-- /SYNC:sequential-thinking-protocol:reminder -->
 

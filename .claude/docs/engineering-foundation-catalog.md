@@ -180,7 +180,7 @@ not need a container mode; demanding one is `OVER-ENGINEERED`. Equally, a fully-
 service does not need a hand-maintained bare-host path if nobody uses it — an *honestly dropped* mode
 with a stated reason is `N/A-by-profile`, not a gap. The defect is the **claimed-but-rotten** mode.
 
-**Depth owner:** `scaffold`, `devops`, `production-readiness-review`.
+**Depth owner:** `scaffold`, `production-readiness-review`.
 
 ---
 

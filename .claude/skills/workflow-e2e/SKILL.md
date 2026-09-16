@@ -18,7 +18,7 @@ disable-model-invocation: false
 
 **Goal:** [Workflow] Provide one canonical E2E lifecycle: write or update the test when the source requires it, then verify the fixed scope through the configured system and repair failures in a bounded fresh-run loop until it is honestly green or escalated. Visual screenshot review is enabled by default, and `--visual-review=false` is the explicit opt-out from the screenshot visual gate and E2E rerun loop.
 
-**Summary:** Resolve `--source={changes|recording|update-ui|prompt|context|whole}` (infer and state it when omitted) and `--visual-review={true|false}` (default true; state the resolved value). Authoring sources (`changes|recording|update-ui`) prepare the E2E artifact first; verification sources (`prompt|context|whole`) let the convergence engine select or generate it. Every source then enters the same config-first `e2e-test-verify-loop`, which exercises the declared scope, adjudicates failures, fixes the owning layer, and repeats fresh remediation with evidence. When visual review is enabled, the loop also captures/reads every generated screenshot in the declared matrix through `/experience-review --rounds=0`, fixes validated blocking UI findings, and reruns the same E2E scope.
+**Summary:** Resolve `--source={changes|recording|update-ui|prompt|context|whole}` (infer and state it when omitted) and `--visual-review={true|false}` (default true; state the resolved value). Authoring sources (`changes|recording|update-ui`) prepare the E2E artifact first; verification sources (`prompt|context|whole`) let the convergence engine select or generate it. Every source then enters the same config-first `e2e-test-verify --fix-loop` mode, which exercises the declared scope, adjudicates failures, fixes the owning layer, and repeats fresh remediation with evidence. When visual review is enabled, the loop also captures/reads every generated screenshot in the declared matrix through `/experience-review --rounds=0`, fixes validated blocking UI findings, and reruns the same E2E scope.
 - **Shared quality gate:** Before authoring, verification, convergence, or visual review, read `.claude/skills/shared/e2e-quality-protocol.md` and apply its single GWT/invariant, ownership, isolation, auth, accessibility/visual, wait, evidence, cleanup, and spec-traceability contract. When visual review is enabled and the scope touches a UI, also read `.claude/skills/shared/ui-state-capture-protocol.md` for the action-layer auto-capture, manifest, per-case review, and synthesis contract. This workflow owns sequencing; the shared protocols own the common rows.
 - **Testability contract:** resolve Unit/Integration/System/E2E applicability from runner/config evidence; record owner/root/data, copy-ready full + focused commands, zero-match behavior, CI/simple-Windows entry, unique run/data identity, and repeat proof; unresolved applicable fields block handoff, while non-applicable tiers require evidence-backed `N/A`.
 - **Browser interaction contract:** for every UI-control step, reuse one bounded parameterized `waitUntil(condition, options)` helper before the action for readiness/actionability and applicable error-alert absence, and after the action for the expected positive/negative outcome or error-alert state; apply the exact 500ms pacing delay only at the end.
@@ -27,22 +27,22 @@ disable-model-invocation: false
 
 1. **Detect** — resolve `--source`, scope, and visual mode from the request and repository evidence.
 2. **Prepare** — run the conditional `/e2e-test` authoring phase for `changes|recording|update-ui`; otherwise let the loop select or generate the required case.
-3. **Converge** — run `/e2e-test-verify-loop` over that exact scope; classify, fix, review, and rerun from fresh setup until the configured green contract passes or escalation is required.
+3. **Converge** — run `/e2e-test-verify --fix-loop` over that exact scope; classify, fix, review, and rerun from fresh setup until the configured green contract passes or escalation is required.
 4. **Close** — update docs with the terminal evidence, then end and report the workflow.
 
 **Key Rules:**
 
 - MUST ATTENTION keep claims evidence-based (`file:line`) with confidence >80% to act.
 - MUST ATTENTION keep task tracking updated as each step starts/completes.
-- MUST ATTENTION read and apply `.claude/skills/shared/e2e-quality-protocol.md` for every executable E2E/browser/user-flow path; preserve its Given → When → Then, invariant, gate-row, evidence, and honest-verdict contract across `/e2e-test`, `/e2e-test-verify-loop`, and `/experience-review`.
+- MUST ATTENTION read and apply `.claude/skills/shared/e2e-quality-protocol.md` for every executable E2E/browser/user-flow path; preserve its Given → When → Then, invariant, gate-row, evidence, and honest-verdict contract across `/e2e-test`, `/e2e-test-verify --fix-loop`, and `/experience-review`.
 - MUST ATTENTION define success criteria before execution and loop until observable verification passes.
 - MUST ATTENTION when creating/reviewing specs or tests, name `Business Intent / Invariant Guarded` or the protected business intent/invariant and ensure the test would fail if that intent breaks.
 - MUST ATTENTION write browser journeys as observe → act → observe: use `waitUntil` for loading, controls, click results, dropdown/options, selected state, and applicable error-alert presence/absence; keep predicates, timeout/poll settings, and diagnostics reusable.
-- MUST ATTENTION when visual review is enabled (the default or explicit `--visual-review=true`), capture per the resolved `uiStateCapture.mode` (default `every-action`: every UI-state-changing action alongside the declared state × viewport matrix; `declared-only` records transitions as blind spots; `off` keeps the matrix and records transition coverage as `N/A`), index them all in `capture-manifest.json`, use `/experience-review` as the visual adjudicator to read and record EVERY capture case by case before synthesizing clustered findings and coverage gaps, route validated blocking UI findings through one owning-layer fix, and rerun the same E2E scope; `--visual-review=false` is the explicit opt-out and `/ask` is not a screenshot reviewer.
-- MUST ATTENTION treat `/e2e-test-verify-loop` as the single convergence/remediation owner after preparation; do not run a second green workflow, duplicate the configured E2E command, or create a separate visual-fix loop.
+- MUST ATTENTION when visual review is enabled (the default or explicit `--visual-review=true`), capture per the resolved `uiStateCapture.mode` (default `every-action`: every UI-state-changing action alongside the declared state × viewport matrix; `declared-only` records transitions as blind spots; `off` keeps the matrix and records transition coverage as `N/A`), index them all in `capture-manifest.json`, use `/experience-review` as the visual adjudicator to read and record EVERY capture case by case before synthesizing clustered findings and coverage gaps, route validated blocking UI findings through one owning-layer fix, and rerun the same E2E scope; `--visual-review=false` is the explicit opt-out.
+- MUST ATTENTION treat `/e2e-test-verify --fix-loop` as the single convergence/remediation owner after preparation; do not run a second green workflow, duplicate the configured E2E command, or create a separate visual-fix loop.
 - NEVER skip mandatory workflow or skill gates.
 
-**IMPORTANT MANDATORY Steps:** /investigate -> /e2e-test -> /e2e-test-verify-loop -> /docs-update -> /workflow-end -> /watzup
+**IMPORTANT MANDATORY Steps:** /investigate -> /e2e-test -> /e2e-test-verify --fix-loop -> /docs-update -> /workflow-end -> /watzup
 
 > **[BLOCKING]** Each step MUST ATTENTION invoke its `Skill` tool — marking a task `completed` without skill invocation is a workflow violation. NEVER batch-complete validation gates.
 
@@ -64,13 +64,13 @@ Resolve `--source` from the invocation and state the result before proceeding. A
 | `true` (default)   | Require the screenshot state × viewport matrix **plus** an auto-captured, manifest-indexed capture for every UI-state-changing action (per the resolved `uiStateCapture.mode`; `declared-only` records transitions as blind spots, `off` keeps the matrix and records transition coverage as `N/A`), then case-by-case image inspection and synthesis through `/experience-review --rounds=0`; validated blocking visual findings enter the E2E failure set, are clustered to their owning component, fixed once at the owning UI layer, and force a fresh same-scope E2E rerun. |
 | `false` (explicit opt-out) | Run the selected source protocol and its other evidence/acceptance gates without the screenshot visual remediation loop. |
 
-All sources use one lifecycle in this manifest: `/investigate -> /e2e-test -> /e2e-test-verify-loop -> /docs-update -> /workflow-end -> /watzup`. The `/e2e-test` occurrence is conditional authoring: `changes`, `recording`, and `update-ui` write or update the artifact and hand its exact scope and traceability to the loop; `prompt`, `context`, and `whole` skip it because the loop selects or generates Given/When/Then cases itself. The loop owns the configured E2E command, report-only `/experience-review`, failure adjudication, owning-layer fixes, review, fresh bring-up, and same-scope reruns; `/test` is not a second top-level run.
+All sources use one lifecycle in this manifest: `/investigate -> /e2e-test -> /e2e-test-verify --fix-loop -> /docs-update -> /workflow-end -> /watzup`. The `/e2e-test` occurrence is conditional authoring: `changes`, `recording`, and `update-ui` write or update the artifact and hand its exact scope and traceability to the loop; `prompt`, `context`, and `whole` skip it because the loop selects or generates Given/When/Then cases itself. The loop owns the configured E2E command, report-only `/experience-review`, failure adjudication, owning-layer fixes, review, fresh bring-up, and same-scope reruns; `/test` is not a second top-level run.
 
 When visual review is enabled (the default or explicit `--visual-review=true`),
-forward the resolved true value to `/e2e-test-verify-loop`. When
-`--visual-review=false` is explicit, forward the resolved opt-out. The loop,
-not `/ask`, owns visual adjudication, UI fixes, and the required rerun of the
-same configured E2E command after each validated blocking visual finding.
+forward the resolved true value to `/e2e-test-verify --fix-loop`. When
+`--visual-review=false` is explicit, forward the resolved opt-out. The loop owns
+visual adjudication, UI fixes, and the required rerun of the same configured
+E2E command after each validated blocking visual finding.
 
 ### `--source=changes` — E2E from Changes
 
@@ -83,7 +83,7 @@ E2E FROM CHANGES PROTOCOL:
 2. Load affected test specifications (TC-{FEATURE}-{NNN})
 3. Update or generate test implementations with the shared bounded `waitUntil(condition, options)` helper before and after every interactive UI action; keep the final assertion in the test.
 4. Ensure traceability: each TC has corresponding test
-5. Run only the configured focused authoring check when useful; the final full green gate belongs to `/e2e-test-verify-loop`
+5. Run only the configured focused authoring check when useful; the final full green gate belongs to `/e2e-test-verify --fix-loop`
 6. Report updated test coverage and the exact scope handed to the convergence loop
 ```
 
@@ -111,7 +111,7 @@ E2E UPDATE UI PROTOCOL:
 2. Map changed files to affected page objects
 3. Find E2E specs using those page objects
 4. Run affected tests to collect candidate screenshots/evidence without changing accepted expectations
-5. Collect candidate evidence and record the observed/judged/acceptance state; the final report-only visual adjudication and any fix/retest loop belong to `/e2e-test-verify-loop`
+5. Collect candidate evidence and record the observed/judged/acceptance state; the final report-only visual adjudication and any fix/retest loop belong to `/e2e-test-verify --fix-loop`
 6. Update only the affected snapshots/baselines after an explicit acceptance record; otherwise preserve the previous accepted expectation and report ACCEPTANCE-PENDING, ENVIRONMENT-BLOCKED, or the applicable mismatch decision
 7. Report updated files, evidence references, decision, and any remaining limitation
 ```
@@ -136,9 +136,9 @@ E2E VERIFY GREEN PROTOCOL:
 - Browser/UI E2E: use a shared bounded `waitUntil(condition, options)` before and after every control action for readiness/actionability, expected positive/negative state, dropdown/options, and applicable error-alert presence/absence; apply the exact 500ms pacing delay last and keep real settle signals separate.
 - Default visual gate: unless `--visual-review=false` is explicit, require screenshot capture/read/visual adjudication and a same-scope E2E rerun after each validated blocking UI fix; keep advisory polish visible without creating an unbounded taste loop.
 
-Activate `workflow-e2e` for every source. The conditional `/e2e-test` occurrence is skipped for `prompt`, `context`, and `whole` because `/e2e-test-verify-loop` owns selection or generation there.
+Activate `workflow-e2e` for every source. The conditional `/e2e-test` occurrence is skipped for `prompt`, `context`, and `whole` because `/e2e-test-verify --fix-loop` owns selection or generation there.
 
-**Steps:** `/investigate -> /e2e-test -> /e2e-test-verify-loop -> /docs-update -> /workflow-end -> /watzup`.
+**Steps:** `/investigate -> /e2e-test -> /e2e-test-verify --fix-loop -> /docs-update -> /workflow-end -> /watzup`.
 
 ## Default Combined Visual Review Mode
 
@@ -173,7 +173,7 @@ When the mode is enabled:
   set. Repeat until the E2E and blocking-visual counts converge. Never update a
   snapshot, baseline, fixture, assertion, or expectation automatically.
 - For `prompt`, `context`, and `whole`, forward the flag to
-  `/e2e-test-verify-loop`, which owns the complete run → capture → reconcile →
+  `/e2e-test-verify --fix-loop`, which owns the complete run → capture → reconcile →
   inspect → synthesize → fix → same-scope rerun loop.
 - Missing capture, unread images, an unindexed capture, a manifest row with no
   per-case record, or an incomplete state × viewport matrix is
@@ -184,10 +184,8 @@ When the mode is enabled:
   remain visible but do not create an unbounded taste loop unless the governing
   design/acceptance contract makes them objectively required.
 
-`/experience-review` is the image-evidence and visual-adjudication path.
-`/ask` remains architecture/technology consultation and is not a screenshot
-reviewer; `/ui-review` remains a static UI/source review when its own trigger
-applies.
+`/experience-review` is the image-evidence and visual-adjudication path;
+`/ui-review` remains a static UI/source review when its own trigger applies.
 
 ## Experience Acceptance Handoff
 
@@ -201,7 +199,7 @@ When the E2E source touches a configured or likely observable surface, carry the
 
 ## Test Architecture Contract Handoff
 
-Before `/e2e-test` or `/e2e-test-verify-loop`, resolve and carry one evidence-backed contract record through the unified sequence:
+Before `/e2e-test` or `/e2e-test-verify --fix-loop`, resolve and carry one evidence-backed contract record through the unified sequence:
 
 | Field | Required handoff |
 | --- | --- |
@@ -212,7 +210,7 @@ Before `/e2e-test` or `/e2e-test-verify-loop`, resolve and carry one evidence-ba
 | `objectModel` | Provide the reusable Common → Domain-Shared → Page component/object tiers, the idiomatic abstract base or language-equivalent abstraction, one canonical parameterized `waitUntil` helper with bounded diagnostics, cohesive helpers/utilities, and the reason for any non-reuse. |
 | `repeatProof` / `result` | Carry exact counts, failing names, and exit status, plus repeat/parallel evidence and two consecutive no-reset full runs for each applicable persistent-state suite. |
 
-`/investigate` resolves applicability and scope; `/e2e-test` owns only source-specific authoring/setup when its occurrence applies; `/e2e-test-verify-loop` owns the configured command, exact results, evidence, failure classification, fixes, and fresh reruns; `/docs-update` receives the terminal evidence. If E2E is not configured, the applicable owner records the evidence-backed `N/A` and does not substitute an invented runner.
+`/investigate` resolves applicability and scope; `/e2e-test` owns only source-specific authoring/setup when its occurrence applies; `/e2e-test-verify --fix-loop` owns the configured command, exact results, evidence, failure classification, fixes, and fresh reruns; `/docs-update` receives the terminal evidence. If E2E is not configured, the applicable owner records the evidence-backed `N/A` and does not substitute an invented runner.
 
 <!-- SYNC:ai-mistake-prevention -->
 
@@ -353,8 +351,19 @@ Before `/e2e-test` or `/e2e-test-verify-loop`, resolve and carry one evidence-ba
 
 <!-- /SYNC:e2e-visual-design-contract -->
 
+<!-- SYNC:session-goal-ledger -->
 
+> **Session Goal Ledger** — Never lose the user's original request or any later prompt, however long the session runs. Hook-independent: binds every host; a prompt-ledger hook is only an accelerator.
+>
+> 1. **Pin before acting.** Before the first tool call, write `Original goal: <user's request, verbatim or faithfully condensed>` and keep it as the first task-list item. For workflow or plan work, copy it verbatim into the Goal Contract `## Original Request`.
+> 2. **Track every prompt.** Keep `User prompts this session: P1…Pn` — one line per user prompt or input, marked `extends` / `narrows` / `changes` / `answers`. A prompt that changes direction updates the goal explicitly — never silently.
+> 3. **Re-anchor.** Re-read the original goal and the prompt list at every workflow step, before delegating (the sub-agent brief carries the verbatim goal), and after compaction, resume, or a `[[prompt-ledger@…]]` reminder. When `tmp/prompt-ledger/<session>/ledger.md` exists it is the durable record — read it after compaction.
+> 4. **Verify before done.** Map the final result to the original goal and every prompt: `P# → done | deferred (reason) | not applicable`. An unaddressed prompt blocks completion.
+> 5. **Security.** NEVER copy secrets, tokens, or credentials into goal lines, task lists, briefs, or reports — redact them.
+>
+> **Blocked until:** original goal pinned · prompt list current · final result mapped to every prompt.
 
+<!-- /SYNC:session-goal-ledger -->
 
 <!-- SYNC:critical-thinking-mindset:reminder -->
 
@@ -404,6 +413,13 @@ Before `/e2e-test` or `/e2e-test-verify-loop`, resolve and carry one evidence-ba
 <!-- /SYNC:e2e-visual-design-contract:reminder -->
 
 
+<!-- SYNC:session-goal-ledger:reminder -->
+
+- **MANDATORY** Pin `Original goal:` before the first action and keep `User prompts this session: P1…Pn` current; re-read both at every step, before delegation, and after compaction.
+- **MANDATORY** Before claiming done, map the result to the original goal and every prompt (`P# → done | deferred | n/a`); never store secrets in them.
+
+<!-- /SYNC:session-goal-ledger:reminder -->
+
 ## Closing Reminders
 
 **IMPORTANT MUST ATTENTION** Testability contract: resolve evidence-backed Unit/Integration/System/E2E rows, copy-ready full/focused commands, zero-match failures, owner/root/data, CI/simple-Windows entry, unique run identity, and repeat proof before claiming setup, review, or test completion.
@@ -411,7 +427,7 @@ Before `/e2e-test` or `/e2e-test-verify-loop`, resolve and carry one evidence-ba
 
 **IMPORTANT MUST ATTENTION Workflow:** Resolve and state `--source={changes|recording|update-ui|prompt|context|whole}`; apply the established source protocol or the config-first green loop through its declared sequence; preserve intent-named test assertions, evidence-backed task transitions, visible human-QC evidence, and explicit verification of generated/updated E2E artifacts.
 
-**IMPORTANT MUST ATTENTION** visual screenshot review is enabled by default (equivalent to `--visual-review=true`); run the same configured E2E scope, capture per the resolved `uiStateCapture.mode` (default `every-action`: every UI-state-changing action plus the full state × viewport matrix) into a manifest, have `/experience-review --rounds=0` read and record EVERY capture case by case then synthesize clustered owner-routed findings and coverage gaps, fix only validated blocking UI defects once at the owning layer, and rerun the same scope. `--visual-review=false` is the explicit opt-out; `/ask` is not the screenshot reviewer.
+**IMPORTANT MUST ATTENTION** visual screenshot review is enabled by default (equivalent to `--visual-review=true`); run the same configured E2E scope, capture per the resolved `uiStateCapture.mode` (default `every-action`: every UI-state-changing action plus the full state × viewport matrix) into a manifest, have `/experience-review --rounds=0` read and record EVERY capture case by case then synthesize clustered owner-routed findings and coverage gaps, fix only validated blocking UI defects once at the owning layer, and rerun the same scope. `--visual-review=false` is the explicit opt-out.
 
 **IMPORTANT MUST ATTENTION** every interactive browser/UI action uses the reusable bounded `waitUntil(condition, options)` before and after the action, including applicable error-alert states, followed by the exact 500ms presentation delay last.
 

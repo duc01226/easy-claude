@@ -1,6 +1,6 @@
 # Agents Reference
 
-> 27 specialized subagents for autonomous task execution
+> 23 specialized subagents for autonomous task execution
 
 ## Overview
 
@@ -57,23 +57,19 @@ Main Claude Session
 | `tester`                   | Validate code through testing                           | All tools                              |
 | `debugger`                 | Investigate issues and analyze system behavior          | All tools                              |
 | `e2e-runner`               | E2E testing docs, Playwright patterns (Sonnet)          | All tools                              |
-| `quality-gate-review`      | Quality gates, compliance audits, metrics, checklists   | All tools                              |
 
 ### Operations & Management
 
 | Agent             | Purpose                                           | Tools                                  |
 | ----------------- | ------------------------------------------------- | -------------------------------------- |
-| `git-manager`     | Stage, commit, and push with conventional commits | All tools (no frontmatter restriction) |
-| `project-manager` | Track progress, consolidate reports               | All tools (no frontmatter restriction) |
-| `docs-manager`    | Manage technical documentation                    | All tools                              |
+| `git-manager`  | Stage, commit, and push with conventional commits | All tools (no frontmatter restriction) |
+| `docs-manager` | Manage technical documentation                    | All tools                              |
 
 ### Team Collaboration
 
-| Agent              | Purpose                                                               | Tools     |
-| ------------------ | --------------------------------------------------------------------- | --------- |
-| `business-analyst` | Requirements refinement, user story creation, BDD acceptance criteria | All tools |
-| `product-owner`    | Backlog management, feature prioritization, stakeholder communication | All tools |
-| `ui-ux-designer`   | Design specifications, wireframes, user flow documentation            | All tools |
+| Agent            | Purpose                                                    | Tools     |
+| ---------------- | ---------------------------------------------------------- | --------- |
+| `ui-ux-designer` | Design specifications, wireframes, user flow documentation | All tools |
 
 ### Specialized
 
@@ -165,12 +161,9 @@ Task({
 | Clean up code                 | `code-simplifier`      | Refactor for clarity and maintainability          |
 | Commit changes                | `git-manager`          | Conventional commits with proper messages         |
 | Update documentation          | `docs-manager`         | Technical docs maintenance                        |
-| Track project status          | `project-manager`      | Progress reports and task consolidation           |
-| Refine requirements           | `business-analyst`     | GIVEN/WHEN/THEN format, BDD patterns              |
-| Prioritize backlog            | `product-owner`        | MoSCoW, effort/value matrix                       |
 | Create test plan              | `tester`               | Test coverage, case generation                    |
 | Synthesize knowledge          | `knowledge-worker`     | Web research, structured reports, course material |
-| Design specification          | `ui-ux-designer`       | Figma integration, design tokens                  |
+| Design specification          | `ui-ux-designer`       | Design tokens, wireframes                         |
 | Edit the .claude framework    | `framework-maintainer` | Skills, agents, hooks, SYNC blocks, Codex mirrors |
 
 ### When NOT to Use Agents
@@ -370,13 +363,13 @@ Every agent carries the **same role-specific quality protocol** as its twin skil
 
 **Tier model** (enforced by `agent_protocol_matrix.py` `validate()` and the `agent-universal-rules` test suite — `TC-UAR-003..007`):
 
--   **Core-6** universal blocks → all 27 agents.
--   **Code-10** blocks (`understand-code-first`, `evidence-based-reasoning`, `cross-service-check`, `fix-layer-accountability`) → only the 17 code-touching/fixing agents; NEVER a core-only agent (business-analyst, docs-manager, git-manager, journal-writer, knowledge-worker, product-owner, project-manager, quality-gate-review).
+-   **Core-6** universal blocks → all 23 agents.
+-   **Code-10** blocks (`understand-code-first`, `evidence-based-reasoning`, `cross-service-check`, `fix-layer-accountability`) → only the 17 code-touching/fixing agents; NEVER a core-only agent (docs-manager, git-manager, journal-writer, knowledge-worker).
 -   **Readonly-Code** blocks (`understand-code-first`, `evidence-based-reasoning` only) → the 2 read-only/design agents (`researcher`, `ui-ux-designer`) that locate/read/design code but never fix a layer or cross a service boundary; the two mutation-oriented blocks (`cross-service-check`, `fix-layer-accountability`) are deliberately excluded to save tokens.
 -   **Code-standards** (`agent-code-standards`) → the 17 agents that author/review code (a separate axis — `researcher`/`ui-ux-designer` read code but don't author it, so they're excluded).
--   **Additive quality blocks** → per the matrix manifest; all 27 agents carry a quality-block row. Operational agents may have an empty additive row when their connected skill has no role-specific SYNC block; `git-manager` carries `SYNC:estimation-framework` through the manifest. Every agent also carries a generated **Connected Skill Contracts** block from `AGENT_SKILL_CONNECTIONS`, which links the prompt to its canonical task-specific skill procedures without blanket-copying orchestrator-only instructions.
+-   **Additive quality blocks** → per the matrix manifest; all 23 agents carry a quality-block row. Operational agents may have an empty additive row when their connected skill has no role-specific SYNC block; `git-manager` carries `SYNC:estimation-framework` through the manifest. Every agent also carries a generated **Connected Skill Contracts** block from `AGENT_SKILL_CONNECTIONS`, which links the prompt to its canonical task-specific skill procedures without blanket-copying orchestrator-only instructions.
 
-Partition: 17 Code-10 + 2 Readonly-Code + 8 Core-6 = 27 agents (pairwise disjoint).
+Partition: 17 Code-10 + 2 Readonly-Code + 4 Core-6 = 23 agents (pairwise disjoint).
 
 > See [agent-patterns.md](./agent-patterns.md) → _Adding or changing an agent's quality protocol_ for the contributor loop and the `framework-maintainer` orchestration whitelist. Source-side edits land first; mirrors (`.agents/`, `.codex/`, `AGENTS.md`) regenerate via `npm run sync:all` + `npm run verify:all` as a tracked follow-up.
 

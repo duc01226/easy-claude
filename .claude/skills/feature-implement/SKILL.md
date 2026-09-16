@@ -201,7 +201,7 @@ mistakes compound through later tasks.
 ### 6. Documentation Update
 
 - Use `docs-manager` to update relevant docs
-- Use `project-manager` to update project status
+- Update plan status inline
 - Record architectural decisions
 
 ### 7. Final Report

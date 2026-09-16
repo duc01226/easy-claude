@@ -534,7 +534,7 @@ integration-test-review (you are here)
   │    │
   │    ├─ Test code ≠ implementation (test asserts X, code does Y):
   │    │    → If CODE is correct: fix test → /spec [mode=tests] UPDATE (update TC to match code's correct behavior)
-  │    │    → If TEST is correct (code bug): do NOT update test → fix code → /prove-fix → re-run tests
+  │    │    → If TEST is correct (code bug): do NOT update test → fix code → re-run tests
   │    │
   │    └─ Derived index ≠ Feature Spec (the bucket INDEX.md / ERD disagrees with the canonical §1-8):
   │         → The Feature Spec is canonical; the index is regenerable, never authoritative
@@ -951,7 +951,7 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 >
 > Reconcile to intended behavior, never to whichever side currently passes — green can encode the very bug.
 >
-> **Read-only/report-only role boundary:** when this block is carried by a report-only role (`code-reviewer`, `quality-gate-review`, `spec-compliance-reviewer`, `tester`, and any other agent whose definition declares it never edits source), "fix the wrong side" means RETURN the adjudicated verdict and the proposed repair to the parent — do not modify source, tests, generated carriers, or user data. The adjudication is the deliverable; the edit is the caller's. Without this sentence the block's step-3 imperatives read as write authority and directly contradict those agents' own declarations (e.g. `tester.md` "NEVER implement fixes"), which is the sibling `SYNC:double-round-trip-review` boundary applied to the same class of carrier.
+> **Read-only/report-only role boundary:** when this block is carried by a report-only role (`code-reviewer`, `spec-compliance-reviewer`, `tester`, and any other agent whose definition declares it never edits source), "fix the wrong side" means RETURN the adjudicated verdict and the proposed repair to the parent — do not modify source, tests, generated carriers, or user data. The adjudication is the deliverable; the edit is the caller's. Without this sentence the block's step-3 imperatives read as write authority and directly contradict those agents' own declarations (e.g. `tester.md` "NEVER implement fixes"), which is the sibling `SYNC:double-round-trip-review` boundary applied to the same class of carrier.
 
 <!-- /SYNC:test-failure-fault-adjudication -->
 

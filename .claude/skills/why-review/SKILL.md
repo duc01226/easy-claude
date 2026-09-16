@@ -1,7 +1,7 @@
 ---
 name: why-review
-version: 1.5.0
-description: '[Code Quality] Use when reviewing rationale and change quality for plans, PBIs, commits, diffs, docs, specs, or reports.'
+version: 1.7.0
+description: '[Code Quality] Use when reviewing rationale and change quality for plans, PBIs, commits, diffs, docs, specs, or reports. Flag: --fix-loop fixes validated findings and re-reviews until the severity bar clears.'
 ---
 
 > **[GOAL REMINDER — MUST ATTENTION CRITICAL]**
@@ -33,6 +33,9 @@ description: '[Code Quality] Use when reviewing rationale and change quality for
 - **TRADE-OFF GATE — ALWAYS ASK, on every decision AND every recommendation YOU make:** (1) **is there any trade-off?** name the sacrifice — "none" is an unfinished analysis, so state the dimensions checked; (2) **is it worth it?** gain vs cost, who pays, when → WORTH IT / NOT WORTH IT / UNCLEAR; (3) **is it material enough to confirm with the user?** irreversible · cost shifted elsewhere · quality attribute traded · boundary crossed · high-consequence path · UNCLEAR → **STOP and confirm via `AskUserQuestion` BEFORE the verdict**. Emit the `Trade-Off Assessment` table; a material trade-off unconfirmed = NEVER PASS.
 - **STEP 5 — FINDINGS VALIDATION GATE** on your OWN findings (any severity): re-invoke terminal `--validate-findings`, reconcile, and RE-DO the full review only when validation finds report defects or missed findings (at most 1 re-do; 2 full review cycles total); CLEAN validates the report, not the target, then ask next step via `AskUserQuestion` (+ conditional `/llm-council`). Dual-feedback: a behavior-changing finding needs BOTH a spec-drift verdict (CODE-WRONG / SPEC-STALE / AMBIGUOUS / SPEC-SILENT / in-sync) AND a test-feedback action; SPEC-SILENT also REQUIRES §4 BR/§3 AC + §8 TC enrichment — a missing axis is HAS-ISSUES, never clean.
 - **STEP 6 — CLOSE WITH USER OWNERSHIP:** **MUST ATTENTION** ask the required next-step question in full mode only after validation/re-review; apply the workflow-suppression and frontmatter gates before any optional `/llm-council` follow-up, and keep `validate-findings` terminal. **NEVER** auto-proceed past a material trade-off or unresolved blocking finding.
+<!-- FIX-LOOP-MODE:START -->
+- **OPTIONAL `--fix-loop` MODE (opt-in; absent flag = everything above unchanged)** — pairs this review with `/fix` in a bounded outer loop: resolve target + Goal Contract → bind the convergence loop (protocol-first, `/goal` optional) → per round { run the DEFAULT full-mode review pass INLINE (never with the flag, never as a sub-agent) → Trade-Off Gate on each validated blocking fix → `/fix` at the owning layer → log } → converge on a fresh full re-review of the changed target at the round bar (round 1: zero findings; from round 2: LOW-only deferred) → recap. Round cap 2, one CRITICAL/HIGH extension to round 3, failing tests uncapped, non-shrinking/increasing blockers escalate. Read-only callers (the `/plan-review` wave, `/changes-review` Phase 0.8) NEVER pass it. Full protocol: **Fix-Loop Mode** section.
+<!-- FIX-LOOP-MODE:END -->
 
 **Workflow:** Detect mode/target → (full mode only) bind the self-recursive review loop (protocol-primary; optional `/goal` accelerator when available) → route path/docs/graph/sub-agent focus → review dimensions/adversarial gates/Easy-to-Change → validate findings via terminal `--validate-findings` → reconcile + holistic full re-review when validation identifies report defects or missed findings (at most 1 re-do; 2 full review cycles total); otherwise hand off retained target findings → ask next step in full mode.
 
@@ -50,12 +53,15 @@ Detect mode from `$ARGUMENTS` BEFORE any review work:
 
 | Mode                   | Trigger in `$ARGUMENTS`                                                                          | What it runs                                                                                                                                                                                                              | Recursion                                                                                          |
 | ---------------------- | ----------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------- |
-| **full** (default)     | no `validate-findings` token                                                                    | Full design-rationale review (Validation Checklist + Adversarial Rounds below), THEN the **Findings Validation Gate** closing task — which re-invokes THIS skill in `validate-findings` mode on its own findings. | May call itself **ONCE** in `validate-findings` mode (same session).                               |
+| **full** (default)     | no `validate-findings` or `--fix-loop` token                                                     | Full design-rationale review (Validation Checklist + Adversarial Rounds below), THEN the **Findings Validation Gate** closing task — which re-invokes THIS skill in `validate-findings` mode on its own findings. | May call itself **ONCE** in `validate-findings` mode (same session).                               |
 | **validate-findings**  | `$ARGUMENTS` contains `--validate-findings` / `mode=validate-findings` / `validate findings in` | ONLY the **Findings Validation Routine** against the supplied findings/report — verify each finding is correct, proof-backed, reasonable, best-practice; surface missed enhancements; emit a CLEAN / HAS-ISSUES verdict.   | **TERMINAL — NEVER calls `/why-review`, NEVER runs the gate, NEVER spawns a sub-agent.** Stops recursion. |
+| **fix-loop** (opt-in)  | `$ARGUMENTS` contains `--fix-loop` AND no `validate-findings` token                              | The **Fix-Loop Mode** section: an outer review → fix → fresh full re-review loop whose every review pass is THIS skill's **full** (default) mode, run inline without the flag. Main session only. | Round passes NEVER carry `--fix-loop` (no nested outer loop); each pass keeps its own single validate-findings call. |
 
-> **Recursion guard (NON-NEGOTIABLE):** `validate-findings` terminates. MUST NOT invoke `/why-review` or validation gate — prevents infinite recursion. Re-do loop lives in CALLER, at most 1 re-do for 2 full review cycles total, SAME main-agent session, NEVER spawned sub-agent.
+> **Recursion guard (NON-NEGOTIABLE):** `validate-findings` terminates. MUST NOT invoke `/why-review` or validation gate — prevents infinite recursion. Re-do loop lives in CALLER, at most 1 re-do for 2 full review cycles total, SAME main-agent session, NEVER spawned sub-agent. **Flag precedence:** `validate-findings` beats `--fix-loop` — terminal mode ignores the flag. `--fix-loop` never nests: its round passes run full mode WITHOUT the flag.
 
 > **In `validate-findings` mode:** skip full Validation Checklist, Adversarial Rounds, Task Bootstrap, Next-Steps council gate. Jump straight to **Findings Validation Routine**, emit verdict, return to caller.
+
+> **Full-mode sub-agent callers (parallel, report-only):** `/changes-review` Phase 0.8 spawns this skill beside its dimensional reviewers; `/plan-review`'s Parallel Review Wave spawns it on EVERY review round beside the core pass and triggered lenses, targeting the plan dir (`plan.md`, `goal.md`, `phase-*.md`). In these runs: never edit the target, record `/goal accelerator unavailable — sub-agent context`, return material Trade-Off / owner-judgment questions UNANSWERED for the caller to ask, skip Next Steps, and never invoke the caller. The caller later runs `/why-review --validate-findings` on its merged report — a separate, sequential invocation. **These callers NEVER pass `--fix-loop`** — they are read-only and a sub-agent cannot own an outer fix loop; the `/plan-review` wave member is ALWAYS plain full mode. If `--fix-loop` ever reaches a sub-agent run, refuse it, record `--fix-loop refused — sub-agent context; ran report-only full mode`, and return retained findings for the caller to fix.
 
 ## Bind the Self-Recursive Review Loop (full mode — FIRST ACTION, after mode detection; protocol-first, `/goal` optional)
 
@@ -65,6 +71,7 @@ Detect mode from `$ARGUMENTS` BEFORE any review work:
 
 - **Run** in full mode (no `validate-findings` token).
 - **SKIP** in `validate-findings` terminal mode — that mode only returns a verdict to its caller and MUST NOT bind a loop, install a goal, create a closing task, or loop (recursion guard). Record nothing.
+- **`--fix-loop` mode:** bind the OUTER convergence loop first (Fix-Loop Mode Step FL-0b); each round's full-mode pass then binds THIS inner report loop for its own findings.
 
 **1. Protocol loop — ALWAYS binding (hook/command-independent).** You, the running agent, are personally responsible for not stopping until the loop converges or bounded-escalates. This binds Claude, Codex, and Copilot equally, whether or not `/goal` exists:
 
@@ -238,11 +245,12 @@ When target is code changes:
 | Suppressing context | Evidence | Deferral line to record |
 | --- | --- | --- |
 | Mode is `validate-findings` | Terminal mode — no sub-skill calls at all | `Linkage N/A — validate-findings is terminal.` |
-| Invoked by `/integration-test-review` Phase 9 | It calls this skill at `integration-test-review/SKILL.md:429-431` and guards the reverse edge at `:438` | `Linkage deferred — invoked by /integration-test-review Phase 9.` |
-| Invoked by `changes-review` in ANY phase — 0.8 parallel rationale dimension, 6 validate-findings, or 7.5 holistic — or inside `/workflow-review-changes` | `changes-review/SKILL.md:395` (Phase 0.8, which states this deferral as a binding sub-agent constraint), `:867` (Phase 6), `:938` (Phase 7.5); its Phase 3.7 (`:608-626`) already owns the gate | `Linkage deferred to changes-review Phase 3.7 / parent workflow step.` |
-| Invoked by `/debug-investigate`'s Root Cause Validation gate | `debug-investigate/SKILL.md:151`; inside `integration-test-verify-loop` that gate fires in a round already running `/integration-test-review` (`integration-test-verify-loop/SKILL.md:98,110,495`) | `Linkage deferred — debug-investigate gate; the verify loop owns the audit.` |
+| Invoked by `/integration-test-review` Phase 9 | Its Phase 9 gate (`integration-test-review/SKILL.md:454`) calls this skill at `:463` and guards the reverse edge at `:471` | `Linkage deferred — invoked by /integration-test-review Phase 9.` |
+| Invoked by `changes-review` in ANY phase — 0.8 parallel rationale dimension, 6 validate-findings, or 7.5 holistic — or inside `/workflow-review-changes` | `changes-review/SKILL.md:433` (Phase 0.8, whose sub-agent brief states this deferral as a binding constraint at `:452`), `:940` (Phase 6), `:1011` (Phase 7.5); its Phase 3.7 (`:646`) already owns the gate | `Linkage deferred to changes-review Phase 3.7 / parent workflow step.` |
+| Invoked by `/plan-review`'s Parallel Review Wave (full-mode rationale sub-agent, every round; read-only — NEVER `--fix-loop`) | `plan-review/SKILL.md:81-110` (brief carries this deferral as a binding constraint); its Impact-Aware matrix dispatches `/integration-test-review` as a separate wave member when triggered | `Linkage deferred — plan-review Impact-Aware wave owns /integration-test-review.` |
+| Invoked by `/debug-investigate`'s Root Cause Validation gate | `debug-investigate/SKILL.md:167`; inside `integration-test-verify --fix-loop` that gate fires in a round already running `/integration-test-review` (`integration-test-verify/SKILL.md` → Fix-Loop Key Rules, FL-0b nested gates, FL-1 step 5) | `Linkage deferred — debug-investigate gate; the verify loop owns the audit.` |
 
-> — why: unguarded, this edge closes a cycle (`why-review` → `integration-test-review` → Phase 9 → `why-review`) and re-creates the duplicate-ownership defect `integration-test-verify-loop/SKILL.md:31` removes.
+> — why: unguarded, this edge closes a cycle (`why-review` → `integration-test-review` → Phase 9 → `why-review`) and re-creates the duplicate-ownership defect that `integration-test-verify --fix-loop` removes (`integration-test-verify/SKILL.md` → "Why this mode exists").
 
 **Mode A — READ the protocol (DEFAULT).** Read `.claude/skills/integration-test-review/SKILL.md` §"The 8 Quality Gates"; apply Gates 1-8 as review lenses over target tests. Cheap — no recursion, no sub-skill call. Findings enter this review's normal finding set with `file:line` evidence + severity.
 
@@ -405,7 +413,7 @@ After Round 1, execute **second full adversarial round**:
 
 ## Important Notes
 
-- Review only — do NOT modify target files or implement changes
+- Review only — do NOT modify target files or implement changes (the opt-in `--fix-loop` mode lands validated fixes ONLY through its Step FL-1 fix half; every review pass inside it stays review-only)
 - Keep output concise — actionable in <2 minutes
 - Simple plans still require Anti-Bias Gate; findings may be brief, but gate cannot be skipped
 
@@ -415,7 +423,7 @@ After Round 1, execute **second full adversarial round**:
 
 **CLEAN validates the report, not the target.** A full review with complete coverage may return a CLEAN findings-validation result while retaining CRITICAL/HIGH/MEDIUM findings. Preserve every retained target finding in the handoff, with severity, proof, trade-offs and dual-feedback; mark the target NEEDS WORK rather than PASS. A clean empty finding set may support target PASS only when all required review and evidence gates are complete.
 
-This skill is report-only. Shared fix/re-review guidance applies here as validated repair handoff, not authority to edit the target. The fixing caller (for example, `/why-review-loop` or `/workflow-review-changes`) owns repairs, durable target-round eligibility and fresh post-fix review. Local re-dos repair report quality and never reset the caller's target-round budget. Terminal validation remains non-recursive; it neither edits the report nor performs target fixes.
+This skill is report-only. Shared fix/re-review guidance applies here as validated repair handoff, not authority to edit the target. The fixing caller (for example, this skill's own `--fix-loop` mode or `/workflow-review-changes`) owns repairs, durable target-round eligibility and fresh post-fix review. Local re-dos repair report quality and never reset the caller's target-round budget. Terminal validation remains non-recursive; it neither edits the report nor performs target fixes.
 
 ## Findings Validation Gate (full mode — MANDATORY CLOSING TASK when findings exist)
 
@@ -453,6 +461,121 @@ Then **sweep for misses** — apply Adversarial Techniques once more: unexamined
 - **HAS ISSUES** — list each finding to drop/demote/fix (reason + `file:line`) and each newly surfaced finding/enhancement (`file:line`).
 
 Return verdict path + status. **Caller owns reconciliation and bounded re-do; routine does NOT modify caller report and does NOT loop.**
+
+<!-- FIX-LOOP-MODE:START -->
+
+## Fix-Loop Mode (`--fix-loop` — OPTIONAL outer review + fix loop)
+
+> **Scope gate:** this section runs ONLY when `$ARGUMENTS` carries `--fix-loop` and no `validate-findings` token. Without the flag NOTHING here applies — full mode, `validate-findings`, `--target=...`, and every sub-agent caller behave exactly as documented above. It is the ONLY path through which this skill changes a review target, and only via the Step FL-1 fix half.
+
+**Goal:** Drive a review target to a **clean pass** by pairing this skill's default full-mode review pass with `/fix` in a recursive loop — each round runs the full-mode `/why-review` pass INLINE to surface validated findings, then `/fix` to resolve them, then loops again over the CHANGED target — stopping when a complete full-mode pass clears the round's exit bar: **zero findings** in round 1, and **zero CRITICAL/HIGH/MEDIUM** from round 2 (LOW-only ENDS the loop, deferred not fixed).
+
+**Mode summary:**
+
+- **Each round = full-mode review pass + `/fix`** — the review pass is review-ONLY and never edits the target, so the loop MUST pair it with a fix half for **validated blocking findings only**; one without the other never converges.
+- **Steps (in order):** (FL-0) resolve target + Goal Contract → (FL-0b) bind the convergence loop (protocol loop primary + optional `/goal` accelerator) → (FL-1) round loop { run the full-mode pass INLINE → clear the **Trade-Off Gate** on the blocking fix set → run `/fix` on the VALIDATED blocking findings at the owning layer → log iteration } → (FL-2) converge when the current round's exit bar is clear OR escalate on non-progress → (FL-3) recap.
+- **Convergence:** stop ONLY when a **fresh full** review pass over the CURRENT (post-fix) target clears that round's exit bar — not a stale PASS predating the last fix.
+- **Severity floor — from round 2, LOW stops blocking.** Round 1 converge on an **empty validated-finding set** (any severity). **From round 2 the bar is zero validated CRITICAL/HIGH/MEDIUM — a round whose validated findings are ALL LOW ENDS the loop.** Never open another round to fix LOW alone; list every deferred LOW in the recap and Goal Contract instead, and NEVER re-tier a real CRITICAL/HIGH/MEDIUM down to LOW to reach the exit (`SYNC:severity-rubric`).
+- **Inline invariant:** run each review pass in the main session — the `Skill` tool or the full-mode sections above, NEVER the `Agent` tool — because the pass self-binds its OWN review-loop obligation (and a session `/goal` gate WHEN available, **Bind the Self-Recursive Review Loop**), which a sub-agent cannot own or carry back to this loop.
+- **Apply ONLY validated findings:** the full-mode pass already validates its findings to the ≥85% survival bar (**Findings Validation Routine** → Confidence bar); the loop applies THOSE, at the lowest owning layer (Entity > Service > Handler), routed by target type — NEVER unvalidated findings.
+- **Bounded:** round cap default 2 plus one conditional extension to round 3, granted ONLY when round 2 leaves a validated CRITICAL/HIGH open (round 3 is the review hard cap); a failing test gate has NO round cap — keep fixing and re-running until the tests pass; review blockers not shrinking across 2 rounds, or the budget spent with findings still open → **STOP & escalate** via `AskUserQuestion`. Increasing review blockers → STOP (fixes regressing). Both count-based stops are checked only after the round-2 CRITICAL/HIGH extension, which is granted first.
+- **TRADE-OFF GATE before every fix (ALWAYS ASK):** apply the **Trade-Off Interrogation Gate** above to each fix — (1) trade-off? (2) worth it? NOT WORTH IT → do NOT apply, report it back instead; (3) material? → **STOP the loop and confirm via `AskUserQuestion` BEFORE applying**. NEVER auto-apply a material-trade-off fix just because the loop wants to converge.
+
+**Why this mode exists:** full mode is **review-only** (**Important Notes**: *"Review only — do NOT modify target files"*; **Bind the Self-Recursive Review Loop**: *"Code/spec/test fixes remain the caller's job"*). Its self-recursive loop converges the **findings REPORT** to CLEAN but never touches the code and never re-reviews a fixed target, so nothing loops back to confirm a FIX is correct or introduced no new defect. This mode is that fixing caller: it applies the validated blocking fixes and re-runs a **fresh full** review pass over the changed target until the current round's exit bar is clear; from round 2 onward, LOW-only findings are recorded as deferred rather than fixed-and-looped — catching fix-induced regressions without spending rounds on non-material polish.
+
+**Workflow:** resolve target + Goal Contract → bind the convergence loop (protocol loop + optional `/goal` accelerator) → **round loop** { run the full-mode pass INLINE → clear the Trade-Off Gate on the blocking fix set (trade-off? worth it? material → confirm with user) → run `/fix` on the validated blocking findings at owning layer → log iteration } → converge when a fresh full review clears the current round's exit bar (round 1: zero findings; round 2: zero CRITICAL/HIGH/MEDIUM, LOW deferred) → recap.
+
+**Key rules:**
+
+- **Each blocking round pairs the full-mode pass (find) + `/fix` (resolve).** A round is complete when BOTH have run, or when the current bar is already clear (round 1: zero findings; round 2: zero CRITICAL/HIGH/MEDIUM, with LOW deferred).
+- **NEVER self-invoke with the flag.** Each round's pass is plain full mode (`/why-review {target}`), never `/why-review --fix-loop` — one outer loop, no nesting.
+- **MUST run INLINE in the main session — NEVER dispatch the review pass or this mode as a sub-agent.** As a sub-agent the in-session loop guarantee is silently lost; a sub-agent that receives `--fix-loop` refuses it (see **Full-mode sub-agent callers**).
+- **Convergence = a fresh full review pass over the post-fix target clears the round's exit bar.** Round 1: PASS with an empty validated-finding set. **Round 2: zero validated CRITICAL/HIGH/MEDIUM — LOW-only converges.** A PASS produced BEFORE the latest fix landed does NOT count — re-review the changed target.
+- **The severity floor bounds ITERATION, never the standard.** It ends the loop; it never authorizes shipping a known CRITICAL/HIGH/MEDIUM, never lowers the ≥85% finding-survival bar, and never applies to a binary gate (a failing test is a failure, not a LOW finding).
+- **`/fix` applies ONLY validated findings**, at the lowest owning layer, routed by target type (code → `/fix` with its intelligent routing, or a direct edit at Entity/Service; plan/PBI → `/refine`; spec → `/spec [update]` + `/spec [mode=tests]`; docs → `/docs-update`; tests → `/integration-test`). NEVER apply an unvalidated or demoted finding.
+- **The target base is FIXED across rounds; its content changes as fixes land.** Re-review the SAME target (same plan/diff/artifact) each round so convergence is measured against a stable subject.
+- **Round cap (default 2, extendable ONCE to 3)** and **review-blockers-not-shrinking / increasing → STOP & escalate** via `AskUserQuestion`. NEVER loop open-ended. Round 3 is granted only when round 2 leaves a validated CRITICAL/HIGH open (a failed non-test binary gate counts as CRITICAL), is checked before the count-based stops, never renews, and round 2 blocked by MEDIUM alone escalates instead. A failing test gate is never capped: the loop keeps fixing and re-running until the tests pass.
+- **Per-round Next Steps deferred:** each round's full-mode pass skips its `## Next Steps` next-step question and council gate; the loop asks once at Step FL-3. Material trade-off confirmations and escalations are NEVER deferred.
+- **ALWAYS ask the 3 trade-off questions before applying ANY fix**; a MATERIAL trade-off **PAUSES the loop for an `AskUserQuestion` before the fix lands** — convergence pressure NEVER authorizes walking through a one-way door on the user's behalf. — why: an autonomous fix loop is exactly where an unpriced trade-off ships silently, because each round only asks "did findings shrink?".
+
+### First Principle — Convergence, Not Motion
+
+> A round that changes the target is progress **only if** the next fresh review finds fewer things to fix.
+> The loop exists to reach a fixed point (no blocking findings), not to keep editing the target.
+> The bar tightens by round: everything blocks in round 1; from round 2 only CRITICAL/HIGH/MEDIUM block, so a LOW-only round is the fixed point.
+> If findings stop shrinking, that is a signal to **escalate**, not to spin another round — except the one round-2 CRITICAL/HIGH extension, which is granted first.
+
+### Step FL-0 — Resolve Target + Goal Contract (FIRST ACTION)
+
+1. **Parse the review target** into a stable, reusable target reference — exactly the kinds **Target Resolution** resolves: plan / PBI / story; code change (commit SHA, PR/merge commit, branch or PR diff, uncommitted working tree); docs / spec / report path. Record target type, evidence, and confidence. **NEVER silently convert target types.**
+2. **Resolve/create the Goal Contract** per `SYNC:goal-contract-satisfaction-loop` (`plans/goals/{YYMMDD-HHmm}-{slug}/goal.md`, template `.claude/templates/goal-contract-template.md`). Its single **required** Success Criterion:
+   > *A fresh full `/why-review` over `{target}` clears the round's exit bar: **round 1** → PASS with **zero validated findings** (no finding, weakness, or missing item of any severity); **round 2** → **zero validated CRITICAL/HIGH/MEDIUM findings**, with any remaining LOW findings recorded as deferred rather than fixed.*
+   Record the round cap (default 2, extendable once to 3 on an open CRITICAL/HIGH at round 2; failing test gates uncapped until green), the severity floor (LOW non-blocking from round 2), and the target reference in **Constraints**.
+3. **Plan the loop tasks FIRST:** create a detailed todo-task plan enumerating every step and planned round; REGENERATE a fresh task plan before each new round — never reuse the prior round's list.
+
+### Step FL-0b — Bind the Convergence Loop (protocol-first; `/goal` is an optional accelerator)
+
+The **protocol loop (Steps FL-1–FL-2) is the BINDING mechanism** and MUST be self-driven by you on every host, with or without any command or hook. The **`/goal` command is an OPTIONAL accelerator**; its absence NEVER weakens the loop.
+
+**1. Protocol loop — ALWAYS binding (hook/command-independent).** You are personally responsible for not stopping until the loop converges or bounded-escalates:
+
+> Repeatedly run the full-mode `/why-review` pass INLINE over `{target}`. After each review, apply only VALIDATED findings that block the current round at their owning layer, then re-run a FRESH full review pass over the CHANGED target. Do NOT stop while the last review still produced findings that BLOCK at the current round's bar. Converge when a fresh full review pass clears that bar: **round 1** → PASS with zero validated findings; **round 2** → zero validated CRITICAL/HIGH/MEDIUM (LOW-only ENDS the loop, with the LOWs recorded as deferred). Cap at `{N=2}` rounds, extendable ONCE to round 3 only when round 2 leaves a validated CRITICAL/HIGH open (a failed non-test binary gate counts as CRITICAL); a failing test gate is outside the cap and the no-progress rule — keep fixing and re-running until the tests pass, never forcing green; if review blockers do not shrink across 2 consecutive rounds or increase (checked only after the round-2 CRITICAL/HIGH extension, which is granted first), or the review budget (round 2, or round 3 when extended) is spent with CRITICAL/HIGH/MEDIUM still open → STOP and escalate via `AskUserQuestion`. Never loop open-ended.
+
+Re-read this standing obligation at every Step FL-2 checkpoint. The Goal Contract's required Success Criterion (Step FL-0) is its durable, host-independent record.
+
+**2. `/goal` command — invoke as an accelerator WHEN AVAILABLE.** If a `/goal` command exists and you are permitted to run it, ALSO invoke it (a real command call, NOT a paraphrase, NOT a Goal Contract file substituted for it) with the SAME condition:
+
+```
+/goal why-review fix-loop convergence: repeatedly run the full-mode /why-review pass INLINE over {target}. After each review, apply only VALIDATED findings that block the current round (all severities in round 1; CRITICAL/HIGH/MEDIUM from round 2) at their owning layer, then re-run a FRESH full review pass over the CHANGED target. If the current round's blocking findings >0 → apply fixes and run another round; if a fresh full review pass clears the current bar (round 1: zero findings; round 2: zero CRITICAL/HIGH/MEDIUM, LOW deferred) → CONVERGED, clear the gate. Do NOT open another round for LOW-only findings from round 2. Cap at {N=2} rounds, extendable ONCE to round 3 only when round 2 leaves a validated CRITICAL/HIGH open (a failed non-test binary gate counts as CRITICAL); a failing test gate is outside the cap and the no-progress rule — keep fixing and re-running until the tests pass, never forcing green; if review blockers do not shrink across 2 consecutive rounds or increase (checked only after the round-2 CRITICAL/HIGH extension, which is granted first), or the review budget (round 2, or round 3 when extended) is spent with review blockers still open → STOP and escalate via AskUserQuestion. Never loop open-ended.
+```
+
+The `/goal` Stop hook blocks stopping until the condition holds and auto-clears when met — do not tell the user to clear it. **If `/goal` is unavailable, unregistered, or not permitted:** DO NOT error, block, or invent a stand-in gate. Record ONE line in the Goal Contract — `/goal accelerator unavailable — loop bound by protocol (Steps FL-1–FL-2) + this Goal Contract` — and proceed.
+
+> **Nested gates (by design, safe):** each round's full-mode pass self-binds its OWN report loop (and its own `/goal` gate WHEN available) that clears when THAT round's findings validate CLEAN. This OUTER loop persists across rounds and **subsumes** the inner ones. All self-clear on satisfaction — no orphaned gate.
+
+### Step FL-1 — Round Loop (full-mode pass → `/fix` → log)
+
+For each round `R` (starting at 1), do ALL of:
+
+1. **Run the full-mode review pass INLINE** on `{target}` — `/why-review {target}` WITHOUT `--fix-loop` via the `Skill` tool, or the full-mode sections above in this session (NEVER the `Agent` tool). Let it run its full adversarial review + its own Findings Validation Gate, so the findings it returns are already **validated**.
+2. **Read the validated finding set** from its report (`tmp/reports/why-review-*.md`). If the verdict is PASS with **zero blocking findings at the current round bar** → no fix half is needed; go to Step FL-2, which converges only while no test gate is failing. At round 1 that means zero findings of any severity; from round 2 it permits LOW findings only, which must be recorded as deferred.
+3. **Trade-Off Gate on the blocking fix set (BLOCKING — before any edit lands).** For EACH validated finding that blocks the current round, run the **Trade-Off Interrogation Gate** on applying its fix: (a) name what it sacrifices — "none" is an unfinished analysis; (b) **WORTH IT / NOT WORTH IT / UNCLEAR** — NOT WORTH IT → do NOT apply, report it back as a withdrawn-fix note and count it as still-open, never as fixed; (c) MATERIAL (irreversible · cost shifted onto another team/ops/maintainer/user · quality attribute traded · tier/service/event/library boundary crossed · auth/money/data-integrity/breaking-change path · UNCLEAR) → **PAUSE the loop and confirm via `AskUserQuestion` BEFORE the edit**, stating the trade-off, both options, what each sacrifices, and your recommendation. Log each fix's verdict in the round's Iteration Log entry.
+4. **Run `/fix` on the validated blocking findings** (findings>0 only, trade-off gate cleared). Resolve each at its owning layer: code → `/fix` (its `--target` routing) or a direct edit at the lowest layer (Entity > Service > Handler); plan/PBI → `/refine`; spec → `/spec [update]` + `/spec [mode=tests]`; docs → `/docs-update`; behavior-changing → honor the finding's dual-feedback (spec verdict + test action per the **Findings Validation Routine** Dual-feedback check). Fix ONLY validated findings that block this round — never an unvalidated, demoted, or round-2 LOW-only finding.
+5. **Append an Iteration Log entry** to the Goal Contract: round number, validated findings count, files/artifacts changed (`file:line`), fixes applied, per-fix trade-off verdict (WORTH IT / NOT WORTH IT / UNCLEAR + material? + confirmed?), and remaining gaps.
+
+### Step FL-2 — Convergence & Escalation Gate
+
+Evaluate after every round, **in this order — the first matching row decides** (rows (1), (4), (5) and (6) are the outcomes `SYNC:double-round-trip-review` and `review-policy.cjs` enforce; the count-based stops (2) and (3) are this loop's stricter exit on top of them, evaluated after the extension so they never pre-empt it; count only review blockers — validated findings at each round's own bar plus failed non-test binary gates, never failing test gates): (1) round 2 left a validated CRITICAL/HIGH review blocker open → the one extension round, even when the blocker count did not shrink; (2) review blockers increased vs the prior round → STOP & escalate; (3) review blockers are still open and did not shrink across 2 consecutive rounds → STOP & escalate (the EARLIER exit before the budget); (4) the review budget is spent with a review blocker still open (round 2 without a CRITICAL/HIGH, or round 3 and later) → STOP & escalate, even while a test gate is also red; (5) a test gate is failing and no review blocker is open → keep looping with no round cap, and never converge while it is red; (6) the current round bar is clear (LOW-only from round 2) and no test gate is failing → CONVERGED; (7) review blockers are open within budget and shrank (or this is round 1) → fix them and any failing test, then run the next round. A MATERIAL trade-off pauses the loop at any step before its fix lands.
+
+| Condition | Action |
+| --- | --- |
+| Fresh full review pass returned **PASS with zero blocking findings at the current round bar** AND no test gate is failing | **CONVERGED** → mark the required criterion PASS in the Goal Satisfaction matrix → clear the `/goal` gate → go to Step FL-3. At round 1 this is zero findings; from round 2 it may include deferred LOW findings. |
+| Round `R ≥ 2` AND the fresh review's validated findings are **ALL LOW** (zero CRITICAL/HIGH/MEDIUM) AND no test gate is failing | **CONVERGED on the severity floor** → do NOT run another round for LOW alone → record every remaining LOW as a deferred finding in the recap + Goal Contract → mark the required criterion PASS → go to Step FL-3. |
+| Blocking findings > 0 AND round `< N` AND blocking findings shrank vs prior round | Clear the Trade-Off Gate (Step FL-1.3), apply the validated fixes (Step FL-1.4), then run round `R+1` (fresh full re-review of the changed target). Round 1 counts every severity as blocking; round 2 counts only CRITICAL/HIGH/MEDIUM. |
+| A fix carries a **MATERIAL** trade-off (irreversible · cost shifted elsewhere · quality attribute traded · boundary crossed · high-consequence path · worth-it UNCLEAR) | **PAUSE the loop → confirm via `AskUserQuestion` BEFORE applying that fix.** Convergence pressure NEVER authorizes deciding a material trade-off for the user. |
+| Review blockers are still open and did **not shrink** across 2 consecutive rounds (same/increasing count; failing tests excluded — they loop until green; a round-2 CRITICAL/HIGH takes the extension row first) | **STOP & escalate** via `AskUserQuestion` — a non-converging loop is a signal, not a reason to spin. |
+| Round 2 completed with a validated **CRITICAL or HIGH** still open | **ONE extension round is granted** → apply the validated fixes and run round 3 (fresh full re-review), even when the blocker count did not shrink. Granted once per loop; it never renews. A failed non-test binary gate counts as CRITICAL here. |
+| A **test gate** is failing (a suite that must actually pass) and no review blocker is open, at any round within or past the budget | **Keep looping — NO round cap.** Run the failed-test investigation gate, fix at the owning layer, re-run the tests, and continue past round 3 until they pass. NEVER weaken an assertion, add a skip, or relax a timeout to force green. A failing test never counts toward the no-progress escalation or the round-3 extension. |
+| Round cap `N` hit with CRITICAL/HIGH/MEDIUM still open — round 2 blocked by MEDIUM or an unresolved `NOT VERIFIABLE` alone, or round 3 (the review hard cap) blocked by any review blocker | **STOP & escalate** via `AskUserQuestion` — report the still-open findings; do not silently continue. (LOW-only at the cap converges via the severity-floor row above.) |
+
+> **Increasing review blockers = STOP.** If round `R` surfaces MORE review blockers (validated findings at its own bar plus failed non-test binary gates) than round `R-1`, the fixes are regressing the target — STOP and escalate immediately, unless round 2 left a validated CRITICAL/HIGH open, which takes the one extension round first. A LOW-only round 2 has zero review blockers, so it is never an increase. Never trade one fix for two new findings across rounds.
+
+### Step FL-3 — Recap
+
+Emit a concise convergence recap: rounds run, validated findings per round (the shrinking sequence, split by severity), the fixes applied each round, the final PASS evidence (zero findings, or zero CRITICAL/HIGH/MEDIUM when the loop ended on the round-2 severity floor), a `## Deferred LOW Findings (severity floor, round ≥2)` list of every LOW left unfixed with `file:line`, and the Goal Satisfaction matrix (required criterion PASS). Point to each round's report under `tmp/reports/` and the Goal Contract Iteration Log. Then ask the deferred next-step question via `AskUserQuestion`. Do NOT commit or push unless the user explicitly asks.
+
+### Convergence Detection — Why a Fresh Full Re-Review Is Required
+
+A round converges ONLY when a full-mode pass that ran over the **current, post-fix** target returns PASS with zero findings that block the current round bar. Both properties are required because:
+
+- **Fresh over the changed target** — a PASS verdict from a review that predates the last fix proves nothing about the fix. Every applied fix invalidates the prior verdict (`SYNC:double-round-trip-review`); the loop MUST re-review after fixing, never reuse a stale clean verdict.
+- **Zero *blocking* validated findings** — the Findings Validation Gate already dropped inflated/unproven findings below the ≥85% bar; convergence rides on that validated set, so the loop never chases a nit the review itself would demote. "Blocking" means every severity in round 1, and CRITICAL/HIGH/MEDIUM only from round 2 — the surviving LOWs are polish whose fix cost exceeds the risk of deferring them. — why: a loop that cannot exit on nits converges on exhaustion instead of on quality.
+
+When findings remain but cannot be fixed (owner/product input needed) → **escalate**, do not loop. When a fix lands but the next fresh review still finds issues → run another round. Convergence is a fixed point, not a single clean read.
+
+**IMPORTANT MANDATORY fix-loop sequence:** Step FL-0 (resolve target + Goal Contract + loop task plan) → Step FL-0b (bind the convergence loop: protocol loop primary + optional `/goal` accelerator) → Step FL-1 (round loop: full-mode pass INLINE → Trade-Off Gate on the fix set → `/fix` on validated findings → log) → Step FL-2 (converge on a fresh review with zero blocking findings at that round's bar / escalate on non-progress) → Step FL-3 (recap).
+
+<!-- FIX-LOOP-MODE:END -->
 
 ---
 
@@ -625,8 +748,6 @@ If suppressed or no-fire, do NOT mention `/llm-council`. If gate fires, ask a **
 > **Stop conditions:** confidence <80% on any critical decision → escalate via AskUserQuestion · ≥3 revisions on same thought → re-frame the problem · branch count >3 → split into sub-task.
 >
 > **Implicit mode:** apply methodology internally without visible markers when adding markers would clutter the response (routine work where reasoning aids accuracy).
->
-> **Deep-dive:** see `/sequential-thinking` skill (`.claude/skills/sequential-thinking/SKILL.md`) for worked examples (API design, debugging, architecture), advanced techniques (spiral refinement, hypothesis testing, convergence), and meta-strategies (uncertainty handling, revision cascades).
 
 <!-- /SYNC:sequential-thinking-protocol -->
 
@@ -1235,6 +1356,16 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 **IMPORTANT MUST ATTENTION** flag 3+ duplicated patterns for extraction and same-suffix classes (`*Entity`/`*Dto`/`*Service`) for a shared base when it lowers future change cost; NEVER recommend a pattern with fewer than 3 occurrences (YAGNI). — why: both over- and under-abstraction raise future change cost.
 **IMPORTANT MUST ATTENTION** read reference docs chosen by Project Reference Docs Gate (always include `docs/project-reference/lessons.md`); persist long-review findings to `tmp/reports/` incrementally; validate the next step with the user via `AskUserQuestion` in full mode — NEVER auto-proceed. — why: project docs override generic assumptions, external memory survives compaction, and the review gate is user-owned.
 **IMPORTANT MUST ATTENTION** add a final review todo task to verify work quality.
+<!-- FIX-LOOP-MODE:START -->
+
+**IMPORTANT MUST ATTENTION `--fix-loop` mode (OPTIONAL — only when the flag is present):** pair the full-mode review pass + `/fix` in a recursive loop over a fixed target — review to find validated blocking findings → `/fix` to resolve them → fresh full re-review of the CHANGED target — until a complete full-mode pass clears the current round's exit bar (round 1: zero findings; round 2: zero CRITICAL/HIGH/MEDIUM, LOW deferred). Steps: (FL-0) target + Goal Contract + loop task plan → (FL-0b) bind the convergence loop (protocol loop primary, optional `/goal`) → (FL-1) full-mode pass INLINE → Trade-Off Gate → `/fix` VALIDATED blocking findings at owning layer → Iteration Log → (FL-2) converge / escalate → (FL-3) recap + deferred next-step question.
+**IMPORTANT MUST ATTENTION** in `--fix-loop`, NEVER self-invoke with the flag (each round is plain full mode), NEVER run the pass or the mode as a sub-agent, and NEVER let a read-only caller pass the flag — the `/plan-review` wave and `/changes-review` Phase 0.8 sub-agents are ALWAYS plain full mode; a sub-agent receiving `--fix-loop` refuses it and runs report-only.
+**IMPORTANT MUST ATTENTION** in `--fix-loop`, ALWAYS ask the 3 trade-off questions BEFORE every fix lands — NOT WORTH IT → do not apply, count still-open; MATERIAL → PAUSE the loop and confirm via `AskUserQuestion` before the edit; convergence pressure NEVER authorizes a one-way door.
+**IMPORTANT MUST ATTENTION** in `--fix-loop`, convergence = a **fresh full** review pass over the **post-fix** target with zero findings in round 1, or zero CRITICAL/HIGH/MEDIUM from round 2 onward (remaining LOWs listed as deferred); apply ONLY validated findings (≥85% survival bar); never rely on a stale clean verdict predating the last fix.
+**IMPORTANT MUST ATTENTION** enforce the **round cap (default 2, extendable ONCE to round 3 when round 2 leaves a validated CRITICAL/HIGH open)**; review blockers not shrinking across 2 rounds or increasing (checked only after the round-2 CRITICAL/HIGH extension, which is granted first), or the budget spent with findings still open → **STOP & escalate** via `AskUserQuestion`. NEVER loop past round 3 on review blockers, or open-ended — only failing test gates continue, until green.
+**IMPORTANT MUST ATTENTION** `--fix-loop` does NOT commit or push unless the user explicitly asks.
+
+<!-- FIX-LOOP-MODE:END -->
 <!-- SYNC:critical-thinking-mindset:reminder -->
 
 **MUST ATTENTION** apply critical + sequential thinking — every claim needs appropriate traced evidence (`file:line` for repo/code claims; source URL or artifact section for research, product, content, and docs claims); confidence >80% to act, <60% DO NOT recommend. Anti-hallucination: never present guess as fact, admit uncertainty freely, cross-reference independently, stay skeptical of own confidence.
@@ -1243,7 +1374,7 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 
 <!-- SYNC:sequential-thinking-protocol:reminder -->
 
-**MUST ATTENTION** apply sequential-thinking — multi-step Thought N/M, REVISION/BRANCH/HYPOTHESIS markers, confidence % closer; see `/sequential-thinking` skill.
+**MUST ATTENTION** apply sequential-thinking — multi-step Thought N/M, REVISION/BRANCH/HYPOTHESIS markers, confidence % closer.
 
 <!-- /SYNC:sequential-thinking-protocol:reminder -->
 

@@ -308,35 +308,6 @@ List affected files with:
 - Unknowns impacting implementation
 - Trade-offs requiring business decisions
 
-#### Design Context for UI Phases
-
-If Figma designs were extracted, include in phase files:
-
-```markdown
-## Design Specifications
-
-> From Figma: [{component_name}]({figma_url})
-
-### Layout
-
-{Extracted layout specifications}
-
-### Visual Styling
-
-| Property | Figma Value | Token          |
-| -------- | ----------- | -------------- |
-| {prop}   | {value}     | `--token-name` |
-
-### Implementation Notes
-
-- {Note about design-to-code mapping}
-- {Any deviations from design system}
-```
-
-When no Figma context:
-
-- Omit section or note "No design specifications provided"
-
 #### Output Quality Standards
 
 ##### Thoroughness
@@ -380,12 +351,11 @@ When no Figma context:
 ## Workflow Process
 
 1. **Initial Analysis** → Read codebase docs, understand context
-2. **Design Context** → Extract Figma design specs (if URLs present)
-3. **Research Phase** → Spawn researchers, investigate approaches
-4. **Synthesis** → Analyze reports, identify optimal solution
-5. **Design Phase** → Create architecture, implementation design
-6. **Plan Documentation** → Write comprehensive plan (include design context)
-7. **Review & Refine** → Ensure completeness, clarity, actionability
+2. **Research Phase** → Spawn researchers, investigate approaches
+3. **Synthesis** → Analyze reports, identify optimal solution
+4. **Design Phase** → Create architecture, implementation design
+5. **Plan Documentation** → Write comprehensive plan (include design context)
+6. **Review & Refine** → Ensure completeness, clarity, actionability
 
 ## Top-Level Output Requirements
 
@@ -458,8 +428,6 @@ All agents writing reports MUST ATTENTION:
 ## Related
 
 - `workflow-feature`
-- `problem-solving`
-- `plan-analysis`
 
 ---
 

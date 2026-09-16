@@ -127,6 +127,39 @@ function readWorkflowsDoc(rootDir) {
 // same canonical manifest helper used by activation; legacy entries retain
 // their compatibility sequence until they are migrated.
 function resolvedModeSequences(rootDir, workflowId, workflow) {
+  return resolveCatalogManifests(rootDir, workflowId, workflow)
+    .map((manifest) => ({ mode: manifest.mode, sequence: manifest.sequence }));
+}
+
+// Render one resolved mode as its flat step list, collapsing each declared all-return barrier into
+// a single bracketed step (`[a ∥ b*]`, `*` = conditional member). Every flat step token stays
+// present verbatim, so the row remains a complete task list for the selected mode.
+function renderGroupedSequence(manifest) {
+  const occurrences = Array.isArray(manifest.occurrences) ? manifest.occurrences : [];
+  const groups = new Map((manifest.parallelGroups || []).map((group) => [group.id, group]));
+  const tokens = [];
+  let open = null;
+  manifest.sequence.forEach((step, index) => {
+    const occurrence = occurrences[index];
+    const group = occurrence && occurrence.barrier ? groups.get(occurrence.barrier) : null;
+    if (!group) {
+      open = null;
+      tokens.push(safeCell(step));
+      return;
+    }
+    const conditional = (group.conditionalMembers || []).includes(occurrence.id) ? "*" : "";
+    if (!open || open.id !== group.id) {
+      open = { id: group.id, members: [] };
+      tokens.push(open);
+    }
+    open.members.push(`${safeCell(step)}${conditional}`);
+  });
+  return tokens
+    .map((token) => (typeof token === "string" ? token : `[${token.members.join(" ∥ ")}]`))
+    .join(" → ");
+}
+
+function resolveCatalogManifests(rootDir, workflowId, workflow) {
   const document = readWorkflowsDoc(rootDir);
   const declared = [];
   if (Array.isArray(workflow && workflow.sequence)) declared.push(...workflow.sequence);
@@ -144,8 +177,7 @@ function resolvedModeSequences(rootDir, workflowId, workflow) {
       .map((step) => (typeof step === "string" ? step.trim().split(/\s+/, 1)[0] : step && step.skill))
       .filter((skill) => typeof skill === "string" && skill.length > 0)
   );
-  return resolveAllWorkflowManifests(document, workflowId, { rootDir, availableSkills })
-    .map((manifest) => ({ mode: manifest.mode, sequence: manifest.sequence }));
+  return resolveAllWorkflowManifests(document, workflowId, { rootDir, availableSkills });
 }
 
 function resolveSkillDescription(rootDir, skill, cache) {
@@ -188,15 +220,17 @@ function renderRoutingSection() {
 function renderWorkflowsSection(entries, rootDir) {
   const rows = entries.map(([id, wf]) => {
     const hint = condenseWhenToUse(wf && wf.whenToUse) || safeCell((wf && wf.name) || id);
-    const modes = resolvedModeSequences(rootDir, id, wf);
-    const steps = modes.map(({ mode, sequence }) => {
-      const rendered = sequence.map((s) => safeCell(s)).join(" → ");
-      return modes.length > 1 ? `${safeCell(mode)}: ${rendered}` : rendered;
+    const modes = resolveCatalogManifests(rootDir, id, wf);
+    const steps = modes.map((manifest) => {
+      const rendered = renderGroupedSequence(manifest);
+      return modes.length > 1 ? `${safeCell(manifest.mode)}: ${rendered}` : rendered;
     }).join("; ");
     return `| \`${id}\` | ${hint} | ${steps} |`;
   });
   return [
     `### Workflows Index (${entries.length})`,
+    "",
+    "`[a ∥ b]` = one parallel phase (all-return barrier): start every member together and advance only after ALL return; `*` marks a conditional member.",
     "",
     "| Workflow | When to use | Steps |",
     "| --- | --- | --- |",

@@ -138,12 +138,19 @@ sub-agents to a DIFFERENT specialist needs the same protocol substance with a di
 
 - **`sync-update-blocks.py` does NOT touch an OVERRIDE block.** It is an intentional per-skill
   divergence, so the equality property that binds `SYNC:` carriers is deliberately not applied.
-- **Divergence is limited to ROUTING, not substance.** The `sync-carrier-parity` suite's
-  OVERRIDE-SUBSTANCE GUARD pins every OVERRIDE copy to the canonical protocol COUNT and to each
-  protocol's header AND body verbatim; only the Subagent-Type / Agent-Call / Reference-Docs
-  sections may differ. Silent staleness on substance is the failure mode it exists to catch.
-- **The carrier set is pinned.** The guard asserts the exact number of OVERRIDE carriers, so a
-  new one appearing — or an existing one vanishing — fails the suite rather than passing quietly.
+- **Divergence is limited to ROUTING, not substance — for `review-protocol-injection`.** The
+  `sync-carrier-parity` suite's OVERRIDE-SUBSTANCE GUARD pins each `OVERRIDE:review-protocol-injection`
+  copy to the canonical protocol COUNT and to each protocol's header AND body verbatim; only the
+  Subagent-Type / Agent-Call / Reference-Docs sections may differ. Silent staleness on substance is
+  the failure mode it exists to catch.
+- **The carrier set is pinned — for that tag only.** The guard asserts exactly 3
+  `OVERRIDE:review-protocol-injection` carriers (`sync-carrier-parity.test.cjs:287-292`), so a new
+  one appearing — or an existing one vanishing — fails the suite rather than passing quietly.
+- **`OVERRIDE:fresh-context-review` has NO sensor.** It is excluded from the SYNC equality property
+  by design, is outside the substance guard above (`sync-carrier-parity.test.cjs:183` scopes the
+  whole guard to `review-protocol-injection`), and `verify-sync-divergence.mjs` does not handle
+  OVERRIDE at all. Those three copies drift silently — canonical's report-only role-boundary clause
+  is already absent from all three. **Hand-merge them deliberately; nothing will tell you.**
 - **Both markers are recognized as fences.** `check-subagent-routing.cjs` treats `SYNC` and
   `OVERRIDE` openers/closers identically for balance checking.
 
@@ -152,7 +159,8 @@ sub-agents to a DIFFERENT specialist needs the same protocol substance with a di
 
 **Maintaining one:** edit the canonical section, run the script for the `SYNC:` carriers, then
 **hand-merge** the same substance change into each OVERRIDE block, preserving its
-`agent_type` customization. The guard tells you if you missed one.
+`agent_type` customization. The guard tells you if you missed a `review-protocol-injection`
+carrier — it will NOT tell you if you missed a `fresh-context-review` one.
 
 **Do NOT reach for OVERRIDE to avoid a sync conflict.** It is for a carrier that genuinely must
 dispatch elsewhere. Any other divergence belongs in the canonical source, so every carrier gets it.
@@ -259,7 +267,7 @@ READONLY_CODE_BLOCK_ORDER = CORE_BLOCK_ORDER + ["understand-code-first", "eviden
 
 - `CODE_AGENTS` (17 code/review/fix agents → `CODE_BLOCK_ORDER`, Code-10).
 - `READONLY_CODE_AGENTS` (2 read-only/design agents — `researcher`, `ui-ux-designer` → `READONLY_CODE_BLOCK_ORDER`, Core-6 + understand-code-first + evidence-based-reasoning; the mutation-oriented `cross-service-check` + `fix-layer-accountability` are deliberately excluded to save tokens on agents that only locate/read/design code).
-- `CORE_ONLY_AGENTS` (8 non-code agents → `CORE_BLOCK_ORDER`, Core-6).
+- `CORE_ONLY_AGENTS` (4 non-code agents → `CORE_BLOCK_ORDER`, Core-6).
 
 An agent in **none of the three sets (or in more than one)** raises `SystemExit` — no silent default; classify it before the script will run. Skills always use `SKILL_BLOCK_ORDER`. Pass `--agents-only` to scope a run to agents (skip skills).
 
@@ -456,7 +464,9 @@ Source: `.claude/skills/shared/sync-inline-versions.md`
 - **MANDATORY** Code-to-spec extraction is reference-only until canonical acceptance; any supported AI tool may execute with synced context.
 - **MANDATORY** Update `.claude` source before syncing generated mirrors; do not manually edit `.agents`, `.codex`, or `AGENTS.md`.
 - **MANDATORY** Missing or stale project config, root instruction files, or required reference docs route project-specific work through `$project-init` or the narrow setup route automatically.
-**[TASK-PLANNING] [MANDATORY]** BEFORE executing any workflow or skill step, create/update task tracking for all planned steps, then keep it synchronized as each step starts/completes.
+**[TASK-PLANNING] [MANDATORY]** BEFORE executing any workflow or skill step, create/update task tracking for all planned steps, analyze the task graph (output dependencies, shared write targets) into ordered parallel waves per PARALLELIZE before starting any task, then keep it synchronized as each step starts/completes.
+- **MANDATORY** Pin `Original goal:` before the first action and keep `User prompts this session: P1…Pn` current; re-read both at every step, before delegation, and after compaction.
+- **MANDATORY** Before claiming done, map the result to the original goal and every prompt (`P# → done | deferred | n/a`); never store secrets in them.
 ## [LESSON-LEARNED-REMINDER] [BLOCKING] Task Planning & Continuous Improvement — MANDATORY. Do not skip.
 
 Break work into small tasks (task tracking) before starting. Add final task: "Analyze AI mistakes & lessons learned".
@@ -467,7 +477,7 @@ Break work into small tasks (task tracking) before starting. Add final task: "An
 3. Write as a universal rule — strip project-specific names/paths/classes. Useful on any codebase.
 4. Consolidate: multiple mistakes sharing one failure mode → ONE lesson.
 5. **Recurrence gate:** "Would this recur in future session WITHOUT this reminder?" — No → skip `$learn`.
-6. **Auto-fix gate:** "Could `$code-review`/`$code-simplifier`/`$security-review`/`$lint` catch this?" — Yes → improve review skill instead.
+6. **Auto-fix gate:** "Could `$code-review`/`$code-simplifier`/`$security-review`/a linter catch this?" — Yes → improve review skill instead.
 7. BOTH gates pass → ask user to run `$learn`.
 **[CRITICAL-THINKING-MINDSET]** Apply critical thinking, sequential thinking. Every claim needs traced proof, confidence >80% to act.
 **Anti-hallucination principle:** Never present guess as fact — cite sources for every claim, admit uncertainty freely, self-check output for errors, cross-reference independently, stay skeptical of own confidence — certainty without evidence root of all hallucination.

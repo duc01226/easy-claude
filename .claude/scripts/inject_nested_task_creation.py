@@ -26,7 +26,7 @@ SKILLS_DIR = PROJECT_ROOT / ".claude" / "skills"
 SKILL_NAMES = [
     # ---- Child skills (multi-phase work that nests under workflow steps) ----
     # Plan family
-    "plan", "plan-analysis",
+    "plan",
     "plan-review", "plan-validate",
     # Review family
     "security-review", "code-review", "integration-test-review",
@@ -45,7 +45,7 @@ SKILL_NAMES = [
     # Spec authoring quality family (idea → spec gates)
     "spec-discovery", "spec-clarify",
     # Refactor / migration / scaffold
-    "refactoring", "db-migrate", "scaffold",
+    "db-migrate", "scaffold",
     # Workflow step skills (inner phases)
     # NOTE: `spec` (merged feature-spec router) is intentionally NOT a target —
     # it carries task-tracking via STEP-TASK-ANCHOR and inherits feature-spec's

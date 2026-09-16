@@ -1,6 +1,6 @@
 ---
 name: performance-review
-version: 3.5.0
+version: 3.6.0
 description: '[Debugging] Use when analyzing or optimizing performance — slow queries, N+1, indexing, API latency, memory/GC, concurrency, algorithmic complexity, caching, frontend rendering and Core Web Vitals.'
 ---
 
@@ -12,6 +12,7 @@ description: '[Debugging] Use when analyzing or optimizing performance — slow 
 
 - **Main path:** detect scope → discover local patterns → measure or label static risk → review all applicable performance dimensions → calibrate severity → plan → validate findings → fix at the owning layer → prove before/after → run a fresh full re-review.
 - **Gates:** count rows before row size, bound memory/queues/concurrency, preserve authorization and semantics, and treat failed binary gates as blocking; round 1 clears all validated findings, round 2 clears only CRITICAL/HIGH/MEDIUM and defers LOW.
+- **`--report-only`:** read-only leaf mode for a caller that owns every fix — Phases 0–6 only, no nested sub-agents, no writer beyond the report; see [Report-Only Mode](#report-only-mode---report-only).
 
 **Workflow:** Detect scope → discover local patterns → measure or label static risk → analyze all applicable dimensions → plan → validate findings → fix → run a full re-review.
 
@@ -97,7 +98,7 @@ description: '[Debugging] Use when analyzing or optimizing performance — slow 
 5. **Plan** - Propose smallest fix preserving behavior.
 6. **Verify** - Re-measure, run tests, and record evidence.
 7. **Validate Findings** - Run `/why-review --validate-findings <report-path>` before any fix.
-8. **Fix + Full Re-Review** - Fix only validated findings that block the current round, then restart from Detect over the full target; Round 2 LOW-only findings do not start another cycle.
+8. **Fix + Full Re-Review** - Fix only validated findings that block the current round, then restart from Detect over the full target; Round 2 LOW-only findings do not start another cycle. Not run under `--report-only`.
 
 **Key Rules:**
 
@@ -111,6 +112,17 @@ description: '[Debugging] Use when analyzing or optimizing performance — slow 
 - Findings are not eligible for fix until `/why-review --validate-findings` confirms them; every validated fix that blocks the current round restarts the full performance review from Phase 0. Apply the shared severity bar: Round 1 = zero findings; Round 2 = zero CRITICAL/HIGH/MEDIUM, with LOW deferred and binary gates still blocking.
 
 <target>$ARGUMENTS</target>
+
+## Report-Only Mode (`--report-only`)
+
+> **Use when** a caller runs this skill as a read-only leaf — e.g. a workflow parallel review barrier over a plan or design, or a review batch — and another step owns every fix. `--report-only` in `$ARGUMENTS` selects it; without the flag every phase below applies unchanged.
+>
+> 1. **Run Phases 0–6 only.** A plan or design target uses the Architecture-Altitude lens with `static risk` labels. Phase 5 becomes the report's recommended optimization plan — no code, plan, or artifact edit. Phase 6 `/why-review --validate-findings` still validates every finding. **Phase 7 does not run:** return the validated report; the caller owns fixes and any re-review. — why: two writers of one artifact inside a barrier race each other.
+> 2. **No nested fan-out.** Skip Sub-Agent Routing and size-capped batching; review sequentially in this context. — why: this skill is already a leaf of the caller's fan-out; a second level breaks the caller's barrier.
+> 3. **Write only the report** under `tmp/reports/`. A missing or stale project-reference doc is recorded in the report as a `NOT VERIFIABLE` assumption and returned — never a trigger to run `/scan`, `/project-init`, or any other writer. — why: a leaf that regenerates shared docs races its barrier siblings.
+> 4. **Return** the report path, validated findings by severity, and every unconfirmed material trade-off in the summary (the `SYNC:trade-off-interrogation-gate` non-asking handoff).
+>
+> For this mode the declared step order ends at Phase 6; stopping there is the mode's contract, not a skipped step.
 
 ---
 
@@ -487,7 +499,7 @@ Before code changes (MUST ATTENTION):
 
 ## Sub-Agent Routing
 
-Use specialized help when available:
+Use specialized help when available (never under `--report-only`):
 
 | Detected focus                                                     | Sub-agent                                              |
 | ------------------------------------------------------------------ | ------------------------------------------------------ |
@@ -526,7 +538,7 @@ Sub-agent prompt MUST include target, detected scope, local context evidence, re
 
 ## Phase 7: Validated Fix + Full Performance Re-Review Loop (MANDATORY when validated findings remain)
 
-**Trigger:** Phase 6 returns CLEAN/validated and the performance report still has one or more findings that must be fixed.
+**Trigger:** Phase 6 returns CLEAN/validated and the performance report still has one or more findings that must be fixed. Under `--report-only` this phase never runs — the validated report is returned to the caller.
 
 **Protocol:**
 
@@ -932,7 +944,7 @@ If evidence insufficient, output: `Insufficient evidence. Verified: [...]. Not v
 - **Performance Knowledge (`references/performance-knowledge.md`):** latency ladder · universal laws (Little, utilization knee, Amdahl, USL, tail amplification) · symptom→cause triage · network/DB/cache/web/memory-GC/distributed deep tables · measurement rigor. Calibrates severity; NEVER governs over local SLA/spec.
 - **Parallel Sub-Agent Dispatch:** Tag tasks PAR/SEQ, group PAR into disjoint-write-set waves, spawn each wave in ONE message, barrier before advancing.
 
-**IMPORTANT MUST ATTENTION** run ALL 8 phases in order — Detect scope (+ symptom→cause triage) → Discover local context → Baseline evidence + anchor calibration → 12 serial dimension passes → Findings+Severity → Optimize plan → Why-Review validation gate → Validated-fix + full Phase-0 re-review; NEVER skip a phase or jump to a fix — why: AI forgets its own steps and ships unmeasured, unvalidated changes.
+**IMPORTANT MUST ATTENTION** run ALL 8 phases in order — Detect scope (+ symptom→cause triage) → Discover local context → Baseline evidence + anchor calibration → 12 serial dimension passes → Findings+Severity → Optimize plan → Why-Review validation gate → Validated-fix + full Phase-0 re-review; NEVER skip a phase or jump to a fix (`--report-only` declares Phases 0–6, then returns the validated report with no fix, no nested sub-agent, and no writer) — why: AI forgets its own steps and ships unmeasured, unvalidated changes.
 **IMPORTANT MUST ATTENTION** cover ALL 12 dimensions one pass each — (1) query-shape/data-minimization, (2) index/access-path/data-topology, (3) N+1/fan-out, (4) aggregation/join/pipeline, (5) materialization/memory, (6) write/locks/transactions, (7) cache/reuse, (8) API-payload/frontend/CWV, (9) compute/algorithmic, (10) network/protocol, (11) runtime/memory/GC, (12) distributed-resilience/load — why: a single combined scan silently drops a dimension, and 10-12 are the layers a code-only reading habitually never opens.
 **IMPORTANT MUST ATTENTION** calibrate every number against a known anchor before assigning severity — latency ladder (`1 ns → 100 ns → 100 µs → 10 ms → 100 ms`, ~1 ms RTT per 100 km as a hard floor), utilization knee ~70-80% (`wait ≈ service × ρ/(1−ρ)`; 90%→9×), Little's Law, tail amplification (fan-out to 100 backends hits a p99 ~63% of the time), CWV (LCP 2.5 s/INP 200 ms/CLS 0.1/TTFB 800 ms at field p75), cache hit-ratio math (90%→99% = 10× less origin load) — and treat a breached anchor as a HYPOTHESIS needing local proof, never a finding — why: an uncalibrated number cannot carry a severity, and a quoted constant with no local measurement is guess-as-fact.
 **IMPORTANT MUST ATTENTION** on any remote path count `call count × RTT` FIRST and verify connection reuse (keep-alive/pooled client) — why: per-request TCP+TLS handshakes and chatty contracts dominate paths where every individual handler is already fast.

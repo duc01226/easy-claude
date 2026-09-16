@@ -234,23 +234,18 @@ See Section 8 (Test Specifications) in primary feature doc for patterns:
 
 ## Design Reference
 
-### Figma Designs
+### Design References
 
-> **Auto-Extraction:** Claude Code extracts design context from Figma links during `/plan`.
+> Export the frames as images and attach them for AI analysis — a design-tool link alone is not readable context.
 
-| Screen/Component | Figma Link          | Node ID     | Notes         |
-| ---------------- | ------------------- | ----------- | ------------- |
-| {Screen name}    | [Link]({Figma URL}) | `{node-id}` | {Description} |
-| {Component name} | [Link]({Figma URL}) | `{node-id}` | {Description} |
-
-<!--
-Figma URL format: https://www.figma.com/design/{file_key}/{name}?node-id={node_id}
-Node ID: Use URL format (e.g., 1-3), extraction converts to API format (1:3)
--->
+| Screen/Component | Design link      | Notes         |
+| ---------------- | ---------------- | ------------- |
+| {Screen name}    | [Link]({URL})    | {Description} |
+| {Component name} | [Link]({URL})    | {Description} |
 
 ### Other Assets
 
-<!-- Wireframes, mockups, screenshots not in Figma -->
+<!-- Wireframes, mockups, screenshots held outside the design tool -->
 
 - {Asset description}: {link or path}
 

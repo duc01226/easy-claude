@@ -1,6 +1,6 @@
 ---
 name: integration-test-verify
-description: '[Testing] Use when verifying integration tests pass after writing and reviewing them.'
+description: '[Testing] Use when verifying integration tests pass after writing and reviewing them. Flag: --fix-loop adjudicates, fixes and re-verifies until 2 consecutive green runs.'
 ---
 
 > Codex compatibility note:
@@ -58,6 +58,7 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 - **MUST ATTENTION — Steps 1–2:** harvest every documented environment precondition into a cited checklist, run `systemCheckCommand`, settle every row, and STOP `ENVIRONMENT-BLOCKED` on any unmet item; use `startupScript` or documented setup evidence.
 - **MUST ATTENTION — Steps 3–4:** discover touched projects by `testProjectPattern` > `testProjects` > git fallback; run applicable focused scope, then each relevant full suite twice without DB reset. Fan out one `integration-tester` per project/group only with isolated mutable state, wait for all returns before aggregation, and run shared-DB suites sequentially.
 - **MUST ATTENTION — Step 5 + failures:** report exact Passed/Failed/Skipped counts, names, exit status, checklist, identity, and Goal Contract evidence; adjudicate before edits, fix test faults at root, report service faults, and recommend `$workflow-integration-test-green` unless this run is already its round.
+- **`--fix-loop` (OPTIONAL mode flag — absent by default, and absence changes nothing in this skill):** drives the fixed scope (WHOLE SYSTEM by default) to green in a bounded loop — Goal Contract first, then each round runs this skill's default pass WITHOUT the flag, adjudicates every failure with `$debug-investigate` + report-only `$integration-test-review` into one five-way Fault Verdict, fixes at the owning layer via `$fix`, reviews the fix diff with `$changes-review`, and passes a BLOCKING Round Integrity Check — until 2 consecutive zero-failure no-reset runs (cap default 3; non-progress, regression, `ENVIRONMENT-BLOCKED`, or `AMBIGUOUS` escalate). **When `--fix-loop` is passed, read `## Mode: --fix-loop` below FIRST.**
 
 **Workflow:**
 
@@ -321,7 +322,7 @@ Status: ✅ ALL PASS | ❌ {N} FAILURES
 4. Service bug → report it; do NOT silently fix it.
 5. After any fix → rerun the full 2-run sequence.
 6. **RECOMMEND `$workflow-integration-test-green` whenever this run ends with ANY failure.** This skill reports a snapshot; it does not own convergence. The workflow repeatedly verifies, adjudicates with `$debug-investigate` + `$integration-test-review`, fixes at the owning layer, reviews the fix diff, and runs fresh until its 2-run gate passes. Surface it in [Next Steps](#next-steps).
-   - **EXCEPTION:** when this run IS a round of that loop (invoked by `integration-test-verify-loop` or inside `workflow-integration-test-green`), return counts and failing names instead; recommending the loop inside itself is circular.
+   - **EXCEPTION:** when this run IS a round of that loop (a round's default pass inside this skill's `--fix-loop` mode or inside `workflow-integration-test-green`), return counts and failing names instead; recommending the loop inside itself is circular.
 
 **Goal Contract evidence:** Resolve the active Goal Contract (`goal.md` → `plans/goals/{YYMMDD-HHmm}-{slug}/goal.md`). If present, append command, per-run counts, report path, and mapped success-criteria evidence to its Iteration Log; update Goal Satisfaction rows (`PASS` on 2/2 green, `FAIL` with names, `BLOCKED` with user-facing reason). Otherwise record `No active goal — results reported inline only.` NEVER copy raw sensitive fixture data into the goal file.
 
@@ -407,11 +408,208 @@ A test red in one 2-run and green in the other has NOT identified the cause. **E
 
 ---
 
+<!-- FIX-LOOP-MODE:START -->
+
+## Mode: `--fix-loop` (OPTIONAL convergence loop — verify · adjudicate · fix · re-verify)
+
+> **Activation:** ONLY when the invocation carries `--fix-loop` (e.g. `$integration-test-verify --fix-loop <target>`, or the `integration-test-verify --fix-loop` step of `workflow-integration-test-green`). Without the flag, skip this whole section — Steps 1–5, Fallback Mode, the On Test Failure Protocol, the flake adjudication, Workflow Recommendation, and Next Steps behave exactly as documented above. With the flag, every default gate still binds on each round's verification pass: config + reference docs, the Environment Precondition Checklist, the system check, the tier matrix, focused diagnostics, and the 2-consecutive-no-reset-run gate. The Workflow Recommendation prompt is skipped (this mode is the bounded loop), and Next Steps after FL-3 omit `$workflow-integration-test-green`.
+
+### Fix-Loop Quick Summary
+
+**Goal:** Drive the fixed integration-test scope to a truthful, repeatable green result: every fix is adjudicated and reviewed at its owning layer, then fresh full default verification passes over `{scope}` report zero failures in 2 consecutive no-DB-reset runs with real counts and preserved coverage.
+
+- **MUST ATTENTION Contract first:** resolve `{scope}` (WHOLE SYSTEM by default; an explicit target/diff may narrow it), the Goal Contract, and the Unit/Integration/System/E2E preflight: applicability, owner/root/data, copy-ready full/focused commands, zero-match behavior, CI/Windows entry, identity, isolation, and repeat proof.
+- **MUST ATTENTION Round path:** snapshot → inline default verify pass (Steps 1–5, WITHOUT `--fix-loop`) with explicit `{scope}` → record exact counts → on failure, inline `$debug-investigate` + `$integration-test-review` report-only → one Fault Verdict → owning-layer `$fix` → conditional inline report-only `$changes-review` on the fix diff → Round Integrity Check → Iteration Log.
+- **MUST ATTENTION Gates:** use config/reference evidence and real use-case data; require 2 fresh no-reset green runs, real runner output, no executed-test shrink, no skipped-count growth, fixed scope, and a bounded cap (default 3). Intermittent failures use the three-way flake adjudication before any change. Non-progress, regression, blocked environment, ambiguity, or open review findings escalate.
+- **MUST ATTENTION Terminal/mode:** the protocol loop is primary; `/goal` is optional. Converged standalone runs do `$spec [mode=sync]` → `$docs-update`; parent workflows own declared `$spec [mode=sync]` + `$scan --target=integration-tests` + `$docs-update`. NEVER force green.
+
+**Why this mode exists (READ FIRST):** the default pass says _"After any fix → rerun the full 2-run sequence"_ (Step 5 → On failure) and `SYNC:integration-test-execution-discipline` §5 says _"Loop until the whole suite is green"_, but neither adds a round cap, Goal Contract, shrinking-failure gate, or escalation path — and the default pass only REPORTS service faults. The fix half is also triple-owned: `$integration-test-review` fixes/re-reviews (P5–P8), `$fix --target=test` has its own unbounded repeat (`fix/SKILL.md:218`), and the default pass says fix-and-rerun (Step 5 → On failure); overlapping loops can double-fix or stop after a subset.
+
+This mode gives the loop one bounded, evidence-gated owner: the default verify pass FINDS, `$debug-investigate` + `$integration-test-review` ADJUDICATE, `$fix` RESOLVES, and a fresh full default pass RE-PROVES. Round Integrity rejects lost tests, so "something fixed it" cannot ship on one hand-picked green run.
+
+**Fix-Loop Workflow:** FL-0 resolve `{scope}` + Goal Contract + testability preflight → FL-0b bind the convergence loop → FL-1 repeat { snapshot → default verify pass → exact counts → on failure adjudicate → fix → conditional fix-diff review → integrity check → log } → FL-2 converge on fresh 2/2 zero-failure output → FL-3 terminal spec/doc sync + recap.
+
+**Fix-Loop Key Rules:**
+
+- **MUST ATTENTION NEVER self-invoke with the flag.** Each round's verification is THIS skill's default pass (Steps 1–5) WITHOUT `--fix-loop` — one outer loop, no nesting. Step 4's fan-out `integration-tester` sub-agents receive only the default per-project gate; a sub-agent that receives `--fix-loop` refuses the flag and runs the default pass.
+- **MUST ATTENTION Inside a round the default pass REPORTS; it does not fix.** It returns scope, exact counts, and failing names; its Step 5 On-failure fixes and its `$workflow-integration-test-green` recommendation do not fire — that recommendation would restart this loop. Every edit lands through FL-1 steps 5–7.
+- **MUST ATTENTION Every round pairs verify → adjudicate → fix → fix-diff review.** Never edit an unadjudicated failure; the nearest fix is usually a bad assertion.
+- **MUST ATTENTION Run `$changes-review` INLINE, report-only, on every round's fix diff.** Validate findings and fold them into the same round; unchanged tree → record the skip. Open validated findings block the next round.
+- **MUST ATTENTION Default `{scope}` is the WHOLE system.** A named target narrows it; pass `{scope}` explicitly every round, never git auto-detect.
+- **MUST ATTENTION Run the default verify pass, `$debug-investigate`, `$integration-test-review`, and `$changes-review` INLINE in the main session (via skill invocation, or Steps 1–5 in this session), NEVER as sub-agents.** Never dispatch this mode itself as a sub-agent. Their internal fan-outs remain their own design.
+- **MUST ATTENTION `$integration-test-review` is REPORT-ONLY.** Stop before P5/P6/P7; if it self-fixes, treat that as this round's fix and skip `$fix` to avoid double-fixing.
+- **MUST ATTENTION Write one Fault Verdict per failure BEFORE edits:** `TEST-WRONG` · `TEST-NOT-OPTIMAL` · `SOURCE-WRONG` · `ENVIRONMENT-BLOCKED` · `AMBIGUOUS`, with `file:line` evidence and confidence. Ambiguous → ask the user directly.
+- **MUST ATTENTION NEVER force green.** Preserve assertions; repair ARRANGE on real observables or fix the product defect. No skips, weakened assertions, widened assertion timeouts, retries around failing assertions, repository-hacked data, or narrowed scope.
+- **MUST ATTENTION Converge only on fresh full post-fix output:** zero failures in 2/2 no-reset runs, real runner output, integrity pass, and unchanged working tree on the converging verify. Cap default 3; non-progress, rising failures, cap hit, or blocked environment → escalate.
+- **MUST ATTENTION [BLOCKING] task plan:** create detailed tasks before round 1 and regenerate a fresh round plan before EVERY re-run; NEVER reuse the prior round's task list.
+
+### Fix-Loop First Principle — Convergence, Not Motion
+
+> A code change is progress **only if** the next fresh verify has fewer failures.
+> Reach a fixed point (whole suite green twice), not a merely passing edit.
+> Non-shrinking failures → **escalate**; fewer tests → regression, never convergence.
+
+### FL-0 — Resolve Verification Scope + Goal Contract (FIRST ACTION in `--fix-loop` mode)
+
+1. **Read `docs/project-config.json` → `integrationTestVerify`** before other loop work (the same config Step 1 obeys). Extract `quickRunCommand`, `testProjectPattern`, `testProjects`, `systemCheckCommand`, `startupScript`, and `referenceDocs` for scope and reference-doc resolution.
+2. **Resolve `{scope}` — WHOLE SYSTEM by default:**
+
+   | Prompt                               | `{scope}`                                                                                                                                    |
+   | ------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------- |
+   | **No target named** (default)        | **Every** integration-test project discoverable via `testProjectPattern` glob > `testProjects` list. The WHOLE system.                       |
+   | Names a suite/project/module/feature | Only the test projects covering that target, resolved from the same config; state which projects the target maps to and how you resolved it. |
+   | Names a diff/branch/PR               | The test projects covering that change set — this is the ONLY case where change-scoping is correct, and it must be explicit in the prompt.   |
+
+   > **NEVER let the default pass resolve scope by itself.** Step 3's priority ends in git auto-detect and its Filter says _"Run only projects relevant to the current change"_ — correct when it is a workflow step after an edit, WRONG as this loop's default. Pass `{scope}` explicitly to every round's pass. — why: a loop that silently verifies only the changed subset reports "all green" for a system it never ran.
+
+3. **Record `{scope}` as a stable project list.** Keep it FIXED across rounds. If a fix legitimately adds a test project, widen it and log why; narrowing is forbidden.
+4. **Resolve/create the Goal Contract** per `SYNC:goal-contract-satisfaction-loop` (carried below; `plans/goals/{YYMMDD-HHmm}-{slug}/goal.md`, template `.claude/templates/goal-contract-template.md`). Its single **required** Success Criterion:
+
+   > _A fresh full default `$integration-test-verify` pass over `{scope}` reports **zero failed tests** across **2 consecutive runs without a DB reset**, evidenced by actual test-runner output (Passed/Failed/Skipped counts), with no test deleted, skipped, or weakened to get there._
+
+   Record in **Constraints**: `{scope}`, round cap (default 3), baseline executed/skipped counts after round 1, and `quickRunCommand`.
+
+#### Fix-Loop Test Architecture Contract Preflight (before Round 1)
+
+Before round 1, carry the Step 3b tier contract into the loop. Mark Unit, Integration/System, and E2E `APPLICABLE` only with runner/framework/configuration evidence; otherwise record `N/A — <evidence>` and never fabricate a project or command.
+
+| Tier | Full command | Focused/partial command | Zero-match behavior | Run identity / data mode | Parallel isolation | Simple/Windows entry point |
+| ---- | ------------ | ------------------------ | ------------------- | ------------------------ | ------------------ | --------------------------- |
+| Unit | `{copy-ready command or N/A + evidence}` | `{copy-ready command or N/A + evidence}` | `{documented non-zero behavior}` | `{unique identity; reference/additive mode}` | `{worker/root strategy}` | `{entry point or N/A + evidence}` |
+| Integration/System | `{copy-ready command}` | `{copy-ready command or N/A + evidence}` | `{documented non-zero behavior}` | `{unique identity; reference/additive mode}` | `{worker/root strategy}` | `{entry point or N/A + evidence}` |
+| E2E | `{configured command or N/A + evidence}` | `{configured command or N/A + evidence}` | `{documented non-zero behavior}` | `{unique identity; reference/additive mode}` | `{worker/root strategy}` | `{entry point or N/A + evidence}` |
+
+- Use only config/reference/script-backed commands. When focused scope applies, the round's default pass returns exact Passed/Failed/Skipped counts and exit status; invalid or zero-match selection must fail or follow documented non-green behavior and never count as green.
+- Preserve supported public-path setup, realistic pacing/barriers, idempotent count-before-create reference data, keyed/additive persistence, and isolated mutable roots every round. Focused output is evidence, not a substitute for fixed full scope.
+- Append the matrix, commands/scopes, identity, seed/accumulation mode, exact results, and repeat proof to the Goal Contract Iteration Log; missing evidence blocks convergence.
+
+### FL-0b — Bind the Convergence Loop (protocol-first; `/goal` is an optional accelerator)
+
+Two layers bind the loop. The **protocol loop (FL-1–FL-2) is BINDING** and self-driven on every host, with or without a command or hook. `/goal` is an **OPTIONAL accelerator**, never the primary mechanism; its absence NEVER weakens the loop. Hooks/trackers accelerate only — correctness cannot depend on them.
+
+**1. Protocol loop — ALWAYS binding (hook/command-independent).** Do not stop until convergence or bounded escalation. This binds Claude, Codex, and Copilot whether or not `/goal` exists:
+
+> Repeatedly run the default `$integration-test-verify` pass (WITHOUT `--fix-loop`) INLINE over `{scope}` (passed explicitly, never re-derived). After each run, if ANY test failed, adjudicate every failure with `$debug-investigate` + `$integration-test-review` (report-only) into ONE Fault Verdict, apply the fix via `$fix` at the owning layer, then re-run a FRESH full default pass over `{scope}`. Do NOT stop while the last verify still reported a failing test. Converge ONLY when a fresh full verify reports zero failures across 2 consecutive runs without a DB reset AND the Round Integrity Check passes (executed test count not shrunk, skipped count not grown). Cap at `{N=3}` rounds (default 3); if the failing count does not shrink across 2 consecutive rounds, failures increase, the cap is hit with failures still open, or any failure is ENVIRONMENT-BLOCKED → STOP and escalate by asking the user directly. Never loop open-ended, and NEVER reach green by weakening, skipping, deleting, or de-scoping a test.
+
+Re-read this obligation at every FL-2 checkpoint; it is not a one-time note. The Goal Contract's required Success Criterion (FL-0) is the durable, host-independent record.
+
+**2. `/goal` command — invoke as an accelerator WHEN AVAILABLE.** If permitted and available, ALSO invoke it as a real command with the SAME condition; do not paraphrase it or substitute the Goal Contract, so the session Stop hook can enforce the loop:
+
+```
+/goal integration-test green convergence loop: repeatedly run the default $integration-test-verify pass (WITHOUT --fix-loop) INLINE over {scope} (passed explicitly). If any test failed → adjudicate each failure with $debug-investigate + $integration-test-review (report-only) into one Fault Verdict, fix via $fix at the owning layer, and run another round. If a fresh full verify reports zero failures across 2 consecutive runs without DB reset AND executed test count has not shrunk and skipped count has not grown → CONVERGED, run the terminal $spec [mode=sync] + $docs-update and clear the gate. Do NOT stop while the last verify still reported a failing test. Cap at {N=3} rounds (default 3); if the failing count does not shrink across 2 consecutive rounds, failures increase, the cap is hit with failures open, or a failure is ENVIRONMENT-BLOCKED → STOP and escalate by asking the user directly. Never loop open-ended; never reach green by weakening, skipping, deleting, or de-scoping a test.
+```
+
+The `/goal` Stop hook blocks stopping until the condition holds and auto-clears when met; do not tell the user to clear it.
+
+**If `/goal` is unavailable, unregistered, or not permitted** (e.g. Codex/Copilot or a Claude run without it): DO NOT error, block, or invent a stand-in gate. Record ONE Goal Contract line — `/goal accelerator unavailable — loop bound by protocol (FL-1–FL-2) + this Goal Contract` — and proceed. The protocol loop plus Goal Contract remain the gate.
+
+> **Nested gates (by design):** `$debug-investigate` self-binds `$why-review`; `$integration-test-review` is REPORT-ONLY, deferring P5 fix/P6 re-review to this caller. No inner fix gate is installed. THIS outer loop owns the single convergence gate; all gates self-clear on satisfaction. Do NOT tell the user to clear them.
+
+### FL-1 — Round Loop (verify → adjudicate → fix → review → integrity-check → log)
+
+Each round has four halves — **verify finds, adjudication diagnoses, fix resolves, `$changes-review` proves the fix.** For round `R` (start at 1), do ALL:
+
+1. **Snapshot before:** record `git status --porcelain` + `git diff --stat`. This fixes-applied baseline also backstops FL-2 convergence detection.
+2. **Run the default verify pass INLINE** — Steps 1–5 of this skill in the main session, or `$integration-test-verify {scope}` WITHOUT `--fix-loop` via skill invocation (NEVER `spawn_agent`) — passing `{scope}` **explicitly**. Its contract is system check → named projects → applicable focused/partial scope with exact counts/status → **2-consecutive-green-runs-without-DB-reset** full gate → real Passed/Failed/Skipped counts and failing names. Let it fan out bounded `integration-tester` sub-agents per isolated project (Step 4 → Parallel execution across multiple test projects). Mark this IS a loop round, so it returns counts/names instead of fixing or recommending `$workflow-integration-test-green`; that recommendation would restart this loop.
+3. **Record counts:** focused/partial command, scope, status when applicable; per-project and total executed/passed/failed/skipped from **actual runner output**; run identity and seed/accumulation mode. These feed integrity and shrinking-failure gates. No output = no counts = no claim.
+4. **If failures = 0** and the 2-run gate was green → this round converged; go to FL-2 (no adjudication or fix half needed).
+5. **If failures > 0 — ADJUDICATE.** Run BOTH, INLINE, in this order, per failure or cluster:
+
+   **(a) `$debug-investigate`** — trace end-to-start to the owning layer; produce a confidence-scored `file:line` root cause validated by `$why-review`. Investigation ONLY; never patch (`debug-investigate/SKILL.md:22`).
+
+   **(b) `$integration-test-review` — REPORT-ONLY** — review failing tests **and exercised production code**. Its 8 gates supply the test-side verdict: G1 assertion value/mutation probe, G2 data state, G3 repeatability, G4 domain logic, G5 spec traceability, G6 three-way sync, G7 change coverage, G8 scenario fidelity. **STOP after findings** — no P5 fix, P6 re-review, or P7 build/run; this loop owns fixing and re-running.
+
+   **Combine (a) + (b) into ONE written Fault Verdict per failure, BEFORE any edit:**
+
+   | Verdict                 | Meaning                                                                                                                                                                                                                | Evidence required                                                                                                                                          | Resolution                                                                                                                                                                                                                                                            |
+   | ----------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+   | **TEST-WRONG**          | The test encodes a stale or incorrect assertion, setup, or expectation that contradicts intended behavior                                                                                                              | The governing spec (§3 AC / §4 BR / §5 invariant / §8 TC) or the handler source shows the production behavior is correct and the test is not (`file:line`) | Fix the test at its root. NEVER weaken an assertion, add a skip, or relax a timeout.                                                                                                                                                                                  |
+   | **TEST-NOT-OPTIMAL**    | The test is directionally right but mis-specified — unrealistic scenario, compressed actor pacing, blind sleep, missing ARRANGE barrier, shared-state repeatability defect, smoke-only or DI-resolution-only assertion | The failing G3/G8 gate plus the ARRANGE block read as a production trace (`file:line`)                                                                     | Repair the SCENARIO — add an ARRANGE-phase settle barrier polling a real observable, unique data per run, real use-case setup. NEVER a widened assertion timeout or a retry around the assertion.                                                                     |
+   | **SOURCE-WRONG**        | Production code violates the spec's intended behavior or a clear invariant                                                                                                                                             | `$debug-investigate`'s traced root cause at the invariant-owning layer (`file:line`, confidence ≥60%)                                                      | Fix the source at the **lowest owning layer** (Entity > Service > Handler), never the crash site. **Keep or strengthen** the test that caught it, and route the changed source into `$changes-review` before declaring PASS (On Test Failure Protocol step 6). |
+   | **ENVIRONMENT-BLOCKED** | Infrastructure, services, containers, or data fixtures are not ready — the system, not the code, is failing                                                                                                            | The `systemCheckCommand` output or the runner error naming the unavailable dependency                                                                      | **STOP the loop and escalate.** Point the user at `startupScript`. NEVER change a test because the system was down (On Test Failure Protocol).                                                                                                          |
+   | **AMBIGUOUS**           | Intended behavior is unclear — no spec covers it, the spec is silent, or spec and code disagree with no tiebreaker                                                                                                     | State exactly what is undetermined and which artifacts you checked                                                                                         | **ask the user directly before editing either side.** NEVER silently pick source or test just to make the suite pass.                                                                                                                                                     |
+
+   **Intermittent failures (red in one run of the 2-run gate, green in the other) use the three-way flake adjudication instead** — (a) unrealistic scenario / compressed pacing, (b) harness topology amplification, (c) genuine product race — per Intermittent (flaky) failure adjudication above. Record the verdict with evidence BEFORE any change; do NOT file (c) until (a) and (b) are ruled out.
+
+6. **Run `$fix` on adjudicated verdicts** (failures > 0 only). Resolve at the owning layer: `SOURCE-WRONG` → `$fix` (`--target` routing) or lowest invariant-owning layer; `TEST-WRONG`/`TEST-NOT-OPTIMAL` → repair test/scenario at root; missing §8 TC from G5/G7 → `$spec [mode=tests]`; spec divergence → `SYNC:spec-drift-adjudication` (`$spec [update]` for SPEC-STALE, BLOCKING fix for CODE-WRONG). Fix ONLY adjudicated verdicts.
+
+   > **If `$integration-test-review` could not be constrained to report-only and already applied its P5 fixes**, treat those as this round's fix half (detect fixes-applied against the FL-1.1 snapshot) and SKIP this step for that round — never double-fix the same failure.
+
+7. **CONDITIONAL — run `$changes-review` on the round's fix diff only when ANY fix landed.** Compare the tree with the FL-1.1 snapshot: unchanged → record `No fix applied this round — $changes-review skipped`; changed → run it on every round's fixes.
+
+   - **Scope = exactly this round's changed files**, not the whole branch: source, tests, scenarios, specs/TCs since the FL-1.1 snapshot — why: prior reviews have not seen only these changes.
+   - **Run INLINE via skill invocation, REPORT-ONLY**; stop before Phase 7 self-fix, 7.5 holistic, and 8 docs-update (`changes-review/SKILL.md:63-65` workflow rows, `:205-207` task rows). NEVER dispatch as a sub-agent; its own Phase 0.7 reviewers remain sub-agents (`changes-review/SKILL.md` Phase 0.7 Step 2.5).
+   - **Validate, then fold findings into THIS round's fix set:** run `$why-review --validate-findings`; apply every VALIDATED finding at its owning layer. The next fresh full verify re-proves them; do NOT open a nested review→fix loop.
+   - **Unfixable validated finding → STOP & escalate** by asking the user directly (FL-2); green tests do not close it.
+   - This once-per-round diff review subsumes the `SOURCE-WRONG` routing obligation (On Test Failure Protocol step 6) and also covers test/spec fixes.
+
+   — why: green tests cannot see a wrong layer, broken invariant, dead code, leaked domain concept, or security/performance regression.
+
+8. **Round Integrity Check (no fake green) — BLOCKING before the round can count as progress.** Compare this round's counts (FL-1.3) against the prior round's:
+
+   | Signal                                     | Meaning                                                                           | Action                                                                                       |
+   | ------------------------------------------ | --------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
+   | Executed test count **decreased**          | Tests were deleted, renamed out of discovery, filtered out, or the scope narrowed | **REGRESSION → STOP & escalate.** Restore the tests. A smaller suite is not a greener suite. |
+   | Skipped count **increased**                | A failure was hidden behind a skip annotation                                     | **REGRESSION → STOP & escalate.** Remove the skip and adjudicate the failure properly.       |
+   | `{scope}` project list **shrank**          | The loop de-scoped its way to green                                               | **REGRESSION → STOP & escalate.** `{scope}` is fixed (FL-0.3).                               |
+   | Counts stable or grown, failures shrinking | Genuine progress                                                                  | Continue to FL-2.                                                                            |
+
+    — why: removing what fails is a cheap fake exit; this check protects coverage.
+
+9. **Append an Iteration Log entry** to the Goal Contract: round; full/focused commands, scopes, and statuses; identity and seed/accumulation mode; per-project counts; failing names; each Fault Verdict with `file:line` evidence/confidence; fixes (`file:line`); `$changes-review` verdict or explicit skip; integrity result; remaining gaps.
+
+### FL-2 — Convergence & Escalation Gate
+
+After every round, apply this gate:
+
+| Condition                                                                                                                                                                                                                       | Action                                                                                                                                                       |
+| ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Fresh full default verify pass over `{scope}` reported **zero failures across 2 consecutive runs without a DB reset**, AND the Round Integrity Check passed, AND the working tree is unchanged by that final verify pass       | **CONVERGED** → mark the required criterion PASS in the Goal Satisfaction matrix (attaching the runner output) → clear the `/goal` gate → go to FL-3.        |
+| Failures > 0 AND round `< N` AND the failing count shrank vs the prior round AND integrity held                                                                                                                                 | Apply the adjudicated fixes (FL-1.6), then run round `R+1` (fresh full re-verify over the SAME `{scope}`).                                                   |
+| Failing count did **not shrink** across 2 consecutive rounds (same/increasing count)                                                                                                                                            | **STOP & escalate** by asking the user directly — a non-converging loop is a signal, not a reason to spin.                                                         |
+| Round cap `N` hit with failures still open                                                                                                                                                                                      | **STOP & escalate** by asking the user directly — report the still-failing tests with their Fault Verdicts; do not silently continue.                              |
+| Any failure adjudicated **ENVIRONMENT-BLOCKED**                                                                                                                                                                                 | **STOP & escalate immediately** — mark the criterion BLOCKED with a user-facing reason and point at `startupScript`. Never loop against an unhealthy system. |
+| Any failure adjudicated **AMBIGUOUS**                                                                                                                                                                                           | **PAUSE and ask the user directly** before the fix — resume the loop with the user's answer.                                                                     |
+| Round Integrity Check failed (tests lost, skips added, scope narrowed)                                                                                                                                                          | **STOP & escalate** — restore the lost coverage first; this is a regression, not progress.                                                                   |
+| The round's `$changes-review` (FL-1.7) left **validated findings unfixed**                                                                                                                                                      | **STOP & escalate** by asking the user directly — a green suite does not clear an open, validated review finding on the fix that greened it.                       |
+
+> **Increasing failures = STOP.** More failures than round `R-1` means regression; escalate immediately. Never trade one green test for two red ones.
+
+### FL-3 — Terminal Spec/Doc Sync + Recap
+
+1. **Terminal sync (MANDATORY once converged, when STANDALONE).** Run deferred downstream sync in order:
+   - **`$spec [mode=sync]`** — reconcile §8 TCs ↔ the executing test code; update every `CoveredBy` field for tests the loop changed or added.
+   - **`$docs-update`** — update impacted docs: the integration-test reference doc, feature-doc evidence fields, and version history if coverage changed materially.
+
+    > **When a parent workflow already declares `$spec [mode=sync]`, `$scan --target=integration-tests`, and `$docs-update`** (e.g. `workflow-integration-test-green`), SKIP this sub-step, let the workflow own it, and say so in the recap. — why: duplicate sync churns the same files and obscures ownership.
+
+2. **Recap.** Report rounds, shrinking failure counts, each round's Fault Verdicts/fixes, both final zero-failure outputs, integrity trail (executed/skipped per round), Goal Satisfaction matrix (required criterion PASS), round reports under `tmp/reports/`, and Goal Contract Iteration Log. Do NOT commit or push unless explicitly asked.
+
+### Fix-Loop Convergence Detection — Why Five Conditions
+
+A round converges ONLY when **all five** hold; each blocks a different false-green path:
+
+1. **Fresh verify over post-fix code** — pre-fix green proves nothing; every fix invalidates the prior verdict.
+2. **Zero failed tests** — one red test means unconverged; "known failures" do not count.
+3. **2 consecutive green runs without DB reset** — the default pass owns this gate (Key Rules; Step 4 two-run idempotency gate); one run hides order/state flakiness.
+4. **Real runner output** — Passed/Failed/Skipped counts and names; "looks like it passed" is theater (On Test Failure Protocol).
+5. **Round Integrity Check passed** — executed count not shrunk, skipped count not grown, `{scope}` not narrowed; the other four cannot detect lost tests.
+
+**Working-tree-unchanged backstop:** the converging verify pass must land no fix. If it mutates files, the round DID fix things; run another round.
+
+Unfixable failures (product decision, unclear intent, environment) → **escalate**, do not loop. Convergence is a fixed point, not one green read.
+
+**IMPORTANT MANDATORY `--fix-loop` sequence:** FL-0 (resolve `{scope}` — WHOLE SYSTEM by default — + Goal Contract) → FL-0b (bind the convergence loop: protocol loop primary + optional `/goal` accelerator) → FL-1 (round loop: default verify pass INLINE WITHOUT the flag → on failure `$debug-investigate` + `$integration-test-review` report-only → ONE Fault Verdict per failure → `$fix` at the owning layer → CONDITIONAL `$changes-review` on the round's fix diff when any fix landed → Round Integrity Check → log) → FL-2 (converge on a zero-failure 2/2-green fresh verify / escalate on non-progress, blocked environment, or lost coverage) → FL-3 (terminal `$spec [mode=sync]` + `$docs-update` when standalone + recap). Shared protocols this mode relies on — `SYNC:goal-contract-satisfaction-loop`, `SYNC:test-failure-fault-adjudication`, `SYNC:integration-test-execution-discipline`, `SYNC:real-world-fidelity-testing`, `SYNC:spec-tests-code-triangulation`, `SYNC:spec-drift-adjudication`, `SYNC:source-test-drift-check`, `SYNC:trade-off-interrogation-gate`, `SYNC:test-architecture-execution-contract` — are carried once below; never re-copy them into this section.
+
+<!-- FIX-LOOP-MODE:END -->
+
+---
+
 ## Workflow Recommendation
 
 > **MANDATORY IMPORTANT MUST ATTENTION — NO EXCEPTIONS:** If not already in a workflow, use ask the user directly; the user chooses. Do NOT decide this is "simple enough to skip":
 >
-> 1. **Activate `workflow-write-integration-test` workflow** (Recommended) — investigate → `spec [mode=tests]` → why-review → artifact-review --type=spec-tests → integration-test → integration-test-review → integration-test-verify → `spec [mode=sync]` → docs-update → workflow-end → watzup
+> 1. **Activate `workflow-write-integration-test` workflow** (Recommended) — investigate → `spec [mode=tests]` → artifact-review --type=spec-tests → integration-test → integration-test-review → integration-test-verify → `spec [mode=sync]` → docs-update → workflow-end → watzup
 > 2. **Execute `$integration-test-verify` directly** — run this skill standalone
 
 ---
@@ -455,7 +653,7 @@ A test red in one 2-run and green in the other has NOT identified the cause. **E
 >
 > Reconcile to intended behavior, never to whichever side currently passes — green can encode the very bug.
 >
-> **Read-only/report-only role boundary:** when this block is carried by a report-only role (`code-reviewer`, `quality-gate-review`, `spec-compliance-reviewer`, `tester`, and any other agent whose definition declares it never edits source), "fix the wrong side" means RETURN the adjudicated verdict and the proposed repair to the parent — do not modify source, tests, generated carriers, or user data. The adjudication is the deliverable; the edit is the caller's. Without this sentence the block's step-3 imperatives read as write authority and directly contradict those agents' own declarations (e.g. `tester.md` "NEVER implement fixes"), which is the sibling `SYNC:double-round-trip-review` boundary applied to the same class of carrier.
+> **Read-only/report-only role boundary:** when this block is carried by a report-only role (`code-reviewer`, `spec-compliance-reviewer`, `tester`, and any other agent whose definition declares it never edits source), "fix the wrong side" means RETURN the adjudicated verdict and the proposed repair to the parent — do not modify source, tests, generated carriers, or user data. The adjudication is the deliverable; the edit is the caller's. Without this sentence the block's step-3 imperatives read as write authority and directly contradict those agents' own declarations (e.g. `tester.md` "NEVER implement fixes"), which is the sibling `SYNC:double-round-trip-review` boundary applied to the same class of carrier.
 
 <!-- /SYNC:test-failure-fault-adjudication -->
 
@@ -614,6 +812,46 @@ A test red in one 2-run and green in the other has NOT identified the cause. **E
 
 <!-- /SYNC:test-architecture-execution-contract -->
 
+<!-- SYNC:goal-contract-satisfaction-loop -->
+
+> **Goal Contract Satisfaction Loop** — Persist the user goal in an external file, execute against it, and loop review/fix until every saved required criterion passes or a blocker escalates. Bounded closed loop — NEVER open-ended autonomous exploration.
+>
+> 1. **Resolve the active goal** (in order): active plan `goal.md` → `plans/goals/{YYMMDD-HHmm}-{slug}/goal.md` → create a new Goal Contract from the current user request (template: `.claude/templates/goal-contract-template.md`).
+> 2. **Required sections:** Original Request, Purpose, Success Criteria (checkboxes; mark required vs optional), Constraints, Evidence Required, Iteration Log, Goal Satisfaction matrix.
+> 3. **Before work:** read the active goal and map planned work to saved success criteria — execution serves the saved criteria, never chat memory alone.
+> 4. **After execution/verification:** append an Iteration Log entry — result, evidence references (`file:line`, command output, report path), remaining gaps.
+> 5. **Review gate:** emit a Goal Satisfaction matrix — `| Success Criterion | Evidence | Status |` with PASS/FAIL/BLOCKED. Overall PASS requires every required criterion PASS.
+> 6. **Loop rule (retry):** required criterion FAIL → validate the gap is real → fix → re-review only the affected criteria. Stop cleanly when all required criteria PASS.
+> 7. **Escalation rule (stop):** two consecutive iterations with no criterion progressing, or a blocker needing user input → mark the criterion BLOCKED with a user-facing reason and escalate. NEVER loop indefinitely.
+> 8. **Skip rule:** tiny conversational tasks may skip the goal file ONLY with a recorded one-line reason. User-accepted gate skips are recorded in the goal file with reason and scope.
+> 9. **Security:** NEVER store secrets, tokens, credentials, or private customer data in goal files — store evidence references and redact sensitive values.
+>
+> **Blocked until:** active goal resolved (or skip reason recorded) · saved success criteria read before edits · iteration evidence appended after execution · Goal Satisfaction matrix emitted before any PASS verdict.
+
+<!-- /SYNC:goal-contract-satisfaction-loop -->
+
+<!-- SYNC:trade-off-interrogation-gate -->
+
+> **Trade-Off Interrogation Gate** — ALWAYS ask these THREE questions before ANY verdict, score, finding, or recommendation — about the thing under review AND about every recommendation YOU make. — why: naming a benefit without its price is an endorsement, not a review; the costliest trade-offs are the ones nobody wrote down.
+>
+> 1. **Is there any trade-off?** Name what it SACRIFICES. "None" / "pure win" is an unfinished analysis, NOT an answer — to claim none, state which dimensions you checked and why each is unaffected: future change cost · complexity · performance/latency · memory/cost · coupling · reversibility · migration burden · operational load · blast radius · security posture · testability · team skill/ramp · delivery time · UX.
+> 2. **Is it worth it?** Weigh gain against sacrifice EXPLICITLY — what is gained (with a metric) · what it costs · WHO pays · WHEN it comes due — then emit **WORTH IT / NOT WORTH IT / UNCLEAR**. "Better" with no metric and no cost FAILS this question. NOT WORTH IT → withdraw or replace the recommendation, never keep it as-is.
+> 3. **Is the trade-off material enough to CONFIRM WITH THE USER?** A material trade-off is the user's call, never yours. **MATERIAL** when ANY holds: irreversible / one-way door (data migration, public contract, storage format, vendor lock-in) · cost shifted onto someone else (another team, ops/on-call, future maintainer, end user) · one quality attribute traded for another (correctness↔speed, security↔convenience, latency↔cost, simplicity↔flexibility) · a boundary crossed (client↔server tier, service contract, event contract, shared library) · a high-consequence path (auth, money, data integrity, breaking change, High/Medium residual risk) · the worth-it verdict is UNCLEAR.
+>
+> **MATERIAL → STOP and confirm by asking the user directly BEFORE the verdict stands** — state the trade-off, both options, what each sacrifices, and your recommendation. **NOT material →** record it inline with a one-line justification and proceed.
+>
+> **Non-asking execution contexts — ESCALATE BY HANDOFF, never by silence.** ask the user directly reaches only the main interactive agent: a sub-agent cannot ask the user, and a terminal/verdict-only mode asks nothing by design. When you are running in such a context, the obligation is **redirected, never waived** — do ALL of: (a) complete questions 1 and 2 normally; (b) decide materiality and record it in the Trade-Off Assessment row with `confirmed? = NO — cannot ask from this context`; (c) **name the unconfirmed MATERIAL trade-off explicitly in your returned summary/verdict so the CALLER (or parent orchestrator) escalates it by asking the user directly on your behalf** — a material trade-off mentioned only inside a report file on disk is NOT a handoff; (d) do not emit an unqualified PASS — mark the verdict as carrying an unconfirmed material trade-off, so the caller's gate stays closed until the user answers. The caller inherits the escalation duty the moment it reads your return.
+>
+> This carve-out is about **reachability, not convenience**: it applies ONLY where the tool genuinely cannot reach the user (spawned sub-agent, terminal validate/verdict-only mode, non-interactive/headless run). It is NEVER a licence to skip the question, to self-approve a one-way door, or to downgrade materiality because asking is inconvenient — if you CAN ask, you MUST ask.
+>
+> **Emit a Trade-Off Assessment row** per reviewed decision and per recommendation: `| decision | sacrifices | gain (metric) | who pays, when | WORTH IT/NOT/UNCLEAR | material? | confirmed? |`.
+>
+> **BLOCKED until:** trade-off named (or dimensions-checked justification given) · worth-it verdict emitted · materiality decided · every MATERIAL trade-off either confirmed with the user OR — in a non-asking context — handed off in the returned verdict for the caller to confirm. A MATERIAL trade-off that is neither confirmed nor handed off can NEVER be PASS, and NEVER gets buried as a Low-severity note.
+>
+> **NEVER** answer "no trade-off" without checking · decide a material trade-off silently on the user's behalf · let convergence/delivery pressure authorize walking through a one-way door · bundle several material trade-offs into one vague "proceed?".
+
+<!-- /SYNC:trade-off-interrogation-gate -->
+
 <!-- SYNC:critical-thinking-mindset:reminder -->
 
 **MUST ATTENTION** apply critical + sequential thinking — every claim needs appropriate traced evidence (`file:line` for repo/code claims; source URL or artifact section for research, product, content, and docs claims); confidence >80% to act, <60% DO NOT recommend. Anti-hallucination: never present guess as fact, admit uncertainty freely, cross-reference independently, stay skeptical of own confidence.
@@ -689,6 +927,14 @@ A test red in one 2-run and green in the other has NOT identified the cause. **E
 
 <!-- /SYNC:test-architecture-execution-contract:reminder -->
 
+<!-- SYNC:trade-off-interrogation-gate:reminder -->
+
+- **MANDATORY MUST ATTENTION ALWAYS ASK THE 3 TRADE-OFF QUESTIONS** — on the thing under review AND on every recommendation you make: (1) **is there any trade-off?** name what it SACRIFICES (change cost · complexity · perf · coupling · reversibility · migration · ops load · blast radius · security · testability · delivery time · UX) — "none"/"pure win" is an unfinished analysis, so state the dimensions checked; (2) **is it worth it?** gain (with a metric) vs cost, WHO pays, WHEN → emit **WORTH IT / NOT WORTH IT / UNCLEAR**; NOT WORTH IT → withdraw or replace it; (3) **is it material enough to confirm with the user?** irreversible/one-way door · cost shifted onto another team/ops/maintainer/user · one quality attribute traded for another · a tier/service/event/library boundary crossed · auth/money/data-integrity/breaking-change/High-or-Medium-risk path · verdict UNCLEAR → **STOP and confirm by asking the user directly BEFORE the verdict**.
+- **MANDATORY** A MATERIAL trade-off with no user confirmation can NEVER be PASS; NEVER bury one as a Low-severity note, NEVER decide it silently, and NEVER let delivery or convergence pressure authorize a one-way door. — why: an un-walked-back one-way door is the user's call to make, not the reviewer's.
+- **MANDATORY — non-asking contexts escalate BY HANDOFF, never by silence.** ask the user directly reaches only the main interactive agent: a sub-agent cannot ask the user, and a terminal/verdict-only mode asks nothing by design. There the duty is REDIRECTED, not waived — still name the trade-off, still decide materiality, record `confirmed? = NO — cannot ask from this context`, **state the unconfirmed MATERIAL trade-off in your RETURNED verdict/summary so the CALLER escalates it** (a note only in an on-disk report is not a handoff), and never emit an unqualified PASS. Applies ONLY where the user is genuinely unreachable (spawned sub-agent, terminal validate mode, headless run) — if you CAN ask, you MUST ask.
+
+<!-- /SYNC:trade-off-interrogation-gate:reminder -->
+
 ## Closing Reminders
 
 **IMPORTANT MUST ATTENTION Goal:** Prove reviewed integration tests pass repeatably: run each relevant suite twice without DB reset using configured commands and verified doc-declared preconditions, then report actual runner evidence or an owning-layer failure verdict.
@@ -698,7 +944,17 @@ A test red in one 2-run and green in the other has NOT identified the cause. **E
 
 **IMPORTANT MUST ATTENTION — Main steps (in order):** (1) read config/reference docs; (2) harvest a cited environment checklist; (3) run system + precondition gates; (4) record the tier matrix and determine touched projects; (5) run focused diagnostics, then two consecutive no-reset full runs; (6) report exact output and Goal Contract evidence; (7) adjudicate failures at the owning layer and route the convergence workflow when needed.
 
-**IMPORTANT MUST ATTENTION — Modes/gates:** missing config → Fallback Mode and root-file runner detection; configured `runScript` → CI-style reference only; standalone failures → workflow recommendation, except when this run is already that loop's round. Applicable Unit/Integration/System/E2E/Performance tiers require runner evidence or `N/A`; record copy-ready full/focused commands, zero-match non-green behavior, simple-Windows and host/container entries when supported, environment reach, identity/data mode, and isolation.
+**IMPORTANT MUST ATTENTION — Modes/gates:** missing config → Fallback Mode and root-file runner detection; configured `runScript` → CI-style reference only; standalone failures → workflow recommendation, except when this run is already that loop's round or a `--fix-loop` round. Applicable Unit/Integration/System/E2E/Performance tiers require runner evidence or `N/A`; record copy-ready full/focused commands, zero-match non-green behavior, simple-Windows and host/container entries when supported, environment reach, identity/data mode, and isolation.
+
+**IMPORTANT MUST ATTENTION `--fix-loop` (OPTIONAL mode — only when the flag is passed):** without the flag nothing below applies and the default pass is unchanged.
+
+- **MUST ATTENTION** FL-0 first: resolve `{scope}` (WHOLE SYSTEM by default, passed explicitly every round, NEVER shrinks), the Goal Contract with its zero-failure / 2-consecutive-no-reset / no-test-lost criterion, and the testability preflight; FL-0b binds the protocol loop (primary) + optional `/goal` accelerator.
+- **MUST ATTENTION** each round runs THIS skill's default pass WITHOUT `--fix-loop` (never a recursive self-invocation with the flag), INLINE in the main session; the round's pass reports counts/names and does not fix or recommend `$workflow-integration-test-green`.
+- **MUST ATTENTION** every failure gets ONE written Fault Verdict BEFORE any edit — `TEST-WRONG` · `TEST-NOT-OPTIMAL` · `SOURCE-WRONG` · `ENVIRONMENT-BLOCKED` · `AMBIGUOUS` — from INLINE `$debug-investigate` + REPORT-ONLY `$integration-test-review` (self-fixed → skip `$fix`, NEVER double-fix); `SOURCE-WRONG` fixes use the lowest invariant-owning layer and keep/strengthen the catching test.
+- **MUST ATTENTION** any fix landed → INLINE report-only `$changes-review` over that round's fix diff, validate with `$why-review --validate-findings`, fold validated findings into the same round; an open validated finding blocks convergence.
+- **MUST ATTENTION** Round Integrity is BLOCKING: executed count must not decrease, skipped count must not increase, `{scope}` must not shrink — otherwise STOP, escalate, restore coverage.
+- **MUST ATTENTION** converge only on ALL FIVE: fresh post-fix full verify · zero failures · 2 consecutive no-reset green runs · real counts/names · integrity pass, plus an unchanged working tree on the converging pass; round cap default 3; non-shrinking failures across 2 rounds, rising failures, cap with open failures, `ENVIRONMENT-BLOCKED`, `AMBIGUOUS`, lost coverage, or open validated review findings → STOP & escalate by asking the user directly.
+- **MUST ATTENTION** converged standalone → `$spec [mode=sync]` + `$docs-update`; a parent workflow declaring them owns them. Ask the 3 trade-off questions before every fix; a MATERIAL trade-off pauses the loop for user confirmation.
 
 **IMPORTANT MUST ATTENTION — SYNC protocol digest:**
 
@@ -738,6 +994,13 @@ A test red in one 2-run and green in the other has NOT identified the cause. **E
 | "systemCheckCommand is green, skip the checklist" | It verifies only what the config author encoded. The doc's preconditions are the ones the runner silently assumes — verify each. |
 | "Env is half-up, run the suite and see"       | A half-ready environment reports infrastructure faults as failing tests. STOP, report ENVIRONMENT-BLOCKED, name the unmet precondition. |
 | "Too simple to track"                         | Skip depth, never skip task tracking. Wrong assumptions waste more time.         |
+| "`--fix-loop`: only the changed tests matter" | `{scope}` defaults to the WHOLE system and is passed explicitly. A subset green is not a suite green. |
+| "`--fix-loop`: I deleted/skipped the failing test, now it's green" | Executed count down or skipped count up is a Round Integrity REGRESSION → STOP & escalate and restore it. |
+| "`--fix-loop`: root cause is obvious, just fix it" | One written Fault Verdict per failure, with `file:line` evidence, BEFORE any edit. Nearest-attention fixes patch the assertion. |
+| "`--fix-loop`: review already fixed it, and so did $fix" | Report-only mode means `$fix` owns the fix. If review self-fixed, SKIP `$fix` that round — never double-fix. |
+| "`--fix-loop`: tests are green, no need to review the fix" | Green cannot see a wrong-layer fix, a broken invariant elsewhere, or a security/perf regression. Any fix landed → `$changes-review` that round. |
+| "`--fix-loop`: round 3 hit, close enough" | Cap hit with failures open → STOP & escalate with the still-failing tests and their verdicts. Never silently continue. |
+| "`--fix-loop`: re-run myself with the flag for the next round" | Each round is the default pass WITHOUT the flag. One outer loop, no nesting. |
 
 > **[IMPORTANT]** Use task tracking to break ALL work into small tasks BEFORE starting — analyze task size first.
 
@@ -748,6 +1011,7 @@ A test red in one 2-run and green in the other has NOT identified the cause. **E
 **IMPORTANT MUST ATTENTION Goal:** Prove reviewed integration tests pass repeatably: run each relevant suite twice without DB reset using configured commands and verified doc-declared preconditions, then report actual runner evidence or an owning-layer failure verdict.
 **IMPORTANT MUST ATTENTION** read `integrationTestVerify` config and project reference docs FIRST, harvest cited preconditions, settle every row before the first test command, and use `quickRunCommand` — NEVER hardcode a language-specific runner.
 **IMPORTANT MUST ATTENTION** NEVER weaken assertions, add skips, or mutate domain data to force green — fix the root-cause layer and rerun the full 2-run sequence.
+**IMPORTANT MUST ATTENTION** `--fix-loop` (optional) = bounded verify → Fault Verdict → owning-layer fix → fix-diff review → integrity check loop over a fixed WHOLE-SYSTEM scope until 2 consecutive zero-failure runs; each round is the default pass WITHOUT the flag, and escalation beats spinning.
 
 <!-- CODEX:SYNC-PROMPT-PROTOCOLS:START -->
 ## Static Prompt Protocol Mirror (Auto-Synced)
@@ -791,7 +1055,9 @@ Source: `.claude/skills/shared/sync-inline-versions.md`
 - **MANDATORY** Code-to-spec extraction is reference-only until canonical acceptance; any supported AI tool may execute with synced context.
 - **MANDATORY** Update `.claude` source before syncing generated mirrors; do not manually edit `.agents`, `.codex`, or `AGENTS.md`.
 - **MANDATORY** Missing or stale project config, root instruction files, or required reference docs route project-specific work through `$project-init` or the narrow setup route automatically.
-**[TASK-PLANNING] [MANDATORY]** BEFORE executing any workflow or skill step, create/update task tracking for all planned steps, then keep it synchronized as each step starts/completes.
+**[TASK-PLANNING] [MANDATORY]** BEFORE executing any workflow or skill step, create/update task tracking for all planned steps, analyze the task graph (output dependencies, shared write targets) into ordered parallel waves per PARALLELIZE before starting any task, then keep it synchronized as each step starts/completes.
+- **MANDATORY** Pin `Original goal:` before the first action and keep `User prompts this session: P1…Pn` current; re-read both at every step, before delegation, and after compaction.
+- **MANDATORY** Before claiming done, map the result to the original goal and every prompt (`P# → done | deferred | n/a`); never store secrets in them.
 ## [LESSON-LEARNED-REMINDER] [BLOCKING] Task Planning & Continuous Improvement — MANDATORY. Do not skip.
 
 Break work into small tasks (task tracking) before starting. Add final task: "Analyze AI mistakes & lessons learned".
@@ -802,7 +1068,7 @@ Break work into small tasks (task tracking) before starting. Add final task: "An
 3. Write as a universal rule — strip project-specific names/paths/classes. Useful on any codebase.
 4. Consolidate: multiple mistakes sharing one failure mode → ONE lesson.
 5. **Recurrence gate:** "Would this recur in future session WITHOUT this reminder?" — No → skip `$learn`.
-6. **Auto-fix gate:** "Could `$code-review`/`$code-simplifier`/`$security-review`/`$lint` catch this?" — Yes → improve review skill instead.
+6. **Auto-fix gate:** "Could `$code-review`/`$code-simplifier`/`$security-review`/a linter catch this?" — Yes → improve review skill instead.
 7. BOTH gates pass → ask user to run `$learn`.
 **[CRITICAL-THINKING-MINDSET]** Apply critical thinking, sequential thinking. Every claim needs traced proof, confidence >80% to act.
 **Anti-hallucination principle:** Never present guess as fact — cite sources for every claim, admit uncertainty freely, self-check output for errors, cross-reference independently, stay skeptical of own confidence — certainty without evidence root of all hallucination.

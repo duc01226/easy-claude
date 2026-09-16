@@ -1,6 +1,6 @@
 ---
 name: demo-guide
-version: 2.1.0
+version: 2.3.0
 description: '[Documentation] Use when generating a demo guide, demo script, or sprint-demo walkthrough covering user stories and their test cases.'
 ---
 
@@ -22,7 +22,7 @@ description: '[Documentation] Use when generating a demo guide, demo script, or 
 - **Purpose:** MUST ATTENTION investigate before scripting; prove behaviour, user path, storage, and solution with `file:line`; ALWAYS state blockers instead of inventing missing evidence.
 - **Main steps (in order):** MUST ATTENTION (0) resolve scope → load contract → size S0–S4 → decompose → task; (1) clear the six-question gate + write the Understanding Brief; (2) gather five inventories; (3) map/persist real cases + classify channels; (4) trace storage/solution; (5) open guide + ledger and accumulate; (6) write four-part cases; (7) compose the backlog-item (PBI) block at the top; (8) assign proof rungs + transparency; (9) validate.
 - **Case contract:** setup + numbered flow + discriminator + domain storage/solution + proof rung/chain. UI cases lead each story; technical cases keep full rigour in the closing appendix.
-- **Modes and boundaries:** `feature-or-scope`, `--context`, `--output`, `--lang`, `--html`, `--stories`; `--lang` emits a translated copy and `--html` follows post-approval Artifact flow; a no-front-end project names its primary demo surface; delegates gather read-only input only; secrets are redacted; deferred work is named in the header and chat summary.
+- **Modes and boundaries:** `feature-or-scope`, `--context`, `--output`, `--lang`, `--html`, `--stories`, `--estimate`; only `--estimate` or an explicit estimation instruction names the estimate target — the demo scope never does; `--lang` emits a translated copy and `--html` follows post-approval Artifact flow; a no-front-end project names its primary demo surface; delegates gather read-only input only; secrets are redacted; deferred work is named in the header and chat summary.
 
 **Workflow:**
 
@@ -33,7 +33,7 @@ description: '[Documentation] Use when generating a demo guide, demo script, or 
 4. **Trace Domain Storage & Solution** — per case, identify persisted/changed data, owner, migration/handler, consuming rule, and `file:line` evidence.
 5. **Open the Guide + Ledger, Accumulate** — write the spine first; add one block per story group; update the ledger as each lands.
 6. **Write Each Case** — setup → numbered flow → discriminator → domain storage/solution.
-7. **Compose the Backlog-Item (PBI) Block** — prepend a copy-paste-ready PBI at the very top: purpose, overall requirements, ALL acceptance criteria / user stories, authorization requirements, and a bottom-up estimate (story points + man-days) per `SYNC:estimation-framework`.
+7. **Compose the Backlog-Item (PBI) Block** — prepend a copy-paste-ready PBI at the very top: purpose, overall requirements, ALL acceptance criteria / user stories, authorization requirements, and a bottom-up estimate (story points + man-days) per `SYNC:estimation-framework`, sized over the **estimate target only** — the current changes by default, the target the user names for estimation, or (no change set in scope) the labelled demo scope — never silently the entire feature.
 8. **Prove** — assign the proof rung and write the test-execution transparency note.
 9. **Validate** — pass the gate below before declaring done.
 
@@ -73,17 +73,18 @@ Instructions, not documentation: this skill teaches HOW to build the guide from 
 ## Invocation
 
 ```
-/demo-guide [feature-or-scope] [--context] [--output path] [--lang xx] [--html] [--stories "A,B"]
+/demo-guide [feature-or-scope] [--context] [--output path] [--lang xx] [--html] [--stories "A,B"] [--estimate "<target>"]
 ```
 
 | Flag / arg         | Meaning                                                                                            |
 | ------------------ | -------------------------------------------------------------------------------------------------- |
-| `feature-or-scope` | Named feature, spec title, PBI/story id, path, or free-text scope. Highest precedence.             |
+| `feature-or-scope` | Named feature, spec title, PBI/story id, path, or free-text scope. Highest precedence. Sets the DEMO scope only, never the estimate target. |
 | `--context`        | Force "derive scope from current working context" (branch diff / staged + unstaged / active work). |
 | `--output path`    | Where to write the guide. Default: project demo-guide dir (see Configuration), else a temp file.   |
 | `--lang xx`        | Also emit a translated copy in the given language (keep code identifiers/paths/IDs in English).    |
 | `--html`           | After the markdown, offer/produce a self-contained HTML runbook (via the Artifact flow).           |
 | `--stories "A,B"`  | Restrict to the named stories instead of all main stories.                                         |
+| `--estimate "<target>"` | Name the estimate target (story, PBI/story id, files, slice, or `whole feature`) — Step 7 rung 1. Absent → current changes. |
 
 ## Step 0 — Resolve Scope, Load the Contract, Size & Task (cheap — costs seconds)
 
@@ -249,17 +250,25 @@ Also include: scope/source header with `{n} UI · {n} technical` split, story gr
 | **User stories (ALL)** | Every main story in scope, `As a {role}, I want {capability} so that {value}` — the same stories the guide demos, none omitted | Step 3 map (one per story group) |
 | **Acceptance criteria (ALL)** | Every AC, numbered `AC-1…`, each in Given/When/Then, each traced to its demo case and REAL `TC-*` ID (`↔ A1 · TC-042`) | Spec ACs where they exist, else the Step 6 discriminators |
 | **Authorization requirements** | Roles/permissions required to exercise the item, tenancy or data-visibility scoping, and any audit obligation — each with `file:line` from a read guard/policy/attribute. No such behaviour → `None — no authorization behaviour in this item` | Code read in Step 4 (guards, policies, role checks) |
-| **Estimation** | `story_points` + `man_days_traditional` + `man_days_ai` and the supporting frontmatter, per `SYNC:estimation-framework` (inlined below) | Bottom-up over the traced scope |
+| **Estimation** | `Estimate target:` line + `story_points` + `man_days_traditional` + `man_days_ai` and the supporting frontmatter, per `SYNC:estimation-framework` (inlined below) | Bottom-up over the **estimate target** only — the current changes by default, the target the user names for estimation, or (no change set in scope) the labelled demo scope — never silently the whole feature the guide demos |
 | **Dependencies / prerequisites** | Blocking items, migrations, configuration, or external systems — or `None` | Steps 2 and 4 |
 | **Definition of Done** | The item's DoD, including the coverage gaps this guide reports as open | Steps 3 and 8 |
 
+**Estimate target — size the change, not the feature.** The guide may demo a whole feature for context, but the estimate covers ONLY the estimate target, resolved by this precedence:
+
+1. **User names an estimate target** — the `--estimate "<target>"` flag, or an explicit estimation instruction in the prompt (e.g. "estimate only story B", "size the whole feature") → estimate exactly that. A demo scope (`feature-or-scope`, `--stories`) named without an estimation instruction is NOT an estimate target.
+2. **Default → the current changes only** — the union of branch commits vs the default branch and the staged + unstaged diff (the active task's delta only when git shows no change set), narrowed to the part inside the resolved demo scope. Pre-existing, unchanged feature code is context, never estimated work.
+3. **No change set inside the demo scope** (no diff — e.g. demoing already-merged work — or no changed file falls inside the demo scope) → the resolved demo scope (named, or derived in Step 0.1), under its own fallback label. NEVER silently widen beyond it.
+
+Write the resolved target as the first line of the Estimation field — `Estimate target: current changes — {n} files on {diff source}` · `Estimate target: user-named — {target}` · `Estimate target: named scope (no change set) — {scope} ({scope source})`. When the target is narrower than the item the PBI block describes, add `SP/man-days cover the estimate target only, not the full item above.` `blast_radius` and test count are computed over that target; name the unchanged surrounding feature in `estimate_reasoning` (e), and keep `estimate_scope_included`/`estimate_scope_excluded` as the shared work-category lists.
+
 **Estimation — apply the shared protocol, do not improvise one.** Use `SYNC:estimation-framework` exactly as `/plan`, `/refine`, `/story` and `/dor-gate` apply it:
 
-- **Bottom-up first:** decompose the in-scope work into phases → hours → `likely_days = ceil(Σ hours / 6) × productivity_factor`; add the risk margin; emit a **min–max range** whenever `likely_days ≥ 3`.
+- **Bottom-up first:** decompose the estimate-target work into phases → hours → `likely_days = ceil(Σ hours / 6) × productivity_factor`; add the risk margin; emit a **min–max range** whenever `likely_days ≥ 3`.
 - **Story points are DERIVED from days, never the driver.** Disagreement > 50% → trust bottom-up and downgrade SP.
 - **Emit the full frontmatter** the protocol mandates — `story_points`, `complexity`, `man_days_traditional`, `man_days_ai`, `risk_margin_pct`, `risk_factors`, `blast_radius`, `estimate_scope_included`, `estimate_scope_excluded`, `estimate_reasoning` — inside a fenced `yaml` block so it survives the copy-paste.
-- **State the estimate's nature honestly.** A demo guide is normally written **after** the work is done, so the number is a **retrospective sizing for the backlog record**, not a forecast; say which it is in one line. When the item's own PBI already carries an estimate, **reuse that estimate verbatim** and note any delta against this bottom-up pass instead of silently replacing it — why: overwriting a groomed team estimate with a private re-derivation corrupts velocity data.
-- Estimate the **item**, not the demo. Writing this guide is never part of the number.
+- **State the estimate's nature honestly.** A demo guide is normally written **after** the work is done, so the number is a **retrospective sizing for the backlog record**, not a forecast; say which it is in one line. When a groomed PBI estimate covers **exactly the estimate target**, **reuse that estimate verbatim** and note any delta against this bottom-up pass instead of silently replacing it — why: overwriting a groomed team estimate with a private re-derivation corrupts velocity data. When the groomed estimate covers a wider item than the target (the whole feature vs this change), cite it as context and do NOT copy it as this target's number.
+- Estimate the **target work**, not the demo. Writing this guide is never part of the number.
 
 **Write order:** the PBI block is composed **after** the cases exist (its ACs and stories are read back from the written blocks) but **prepended** to the file — open the guide's spine in Step 5 with a `<!-- PBI:START -->` / `<!-- PBI:END -->` placeholder carrying `pending`, and fill it here from disk. NEVER re-derive stories or ACs from memory.
 
@@ -294,7 +303,8 @@ Before declaring done, verify each — evidence, not assertion:
 - **MUST ATTENTION** every storage/behaviour claim cites `file:line` from a read entity/migration/handler — nothing inferred from a name.
 - **MUST ATTENTION** the PBI block is at the TOP of the guide, fenced by `<!-- PBI:START -->` / `<!-- PBI:END -->`, and carries every mandatory field — purpose · overall requirements with in/out of scope · ALL user stories · ALL acceptance criteria (each traced to a demo case and a REAL `TC-*` ID) · authorization requirements or an explicit `None` · estimation · dependencies · DoD.
 - **MUST ATTENTION** the PBI block names its source (governing spec/PBI path, or `derived from code + demo cases this session`), and **no requirement, story, or acceptance criterion in it is invented** — each traces to a read artifact or a traced case.
-- **MUST ATTENTION** the estimate carries BOTH `story_points` and man-days (`man_days_traditional` + `man_days_ai`), was derived **bottom-up per `SYNC:estimation-framework`** with SP derived from days, emits the mandated frontmatter fields inside a fenced `yaml` block, states whether it is a retrospective sizing or a forecast, and reuses an existing groomed estimate verbatim where one exists (noting any delta).
+- **MUST ATTENTION** the estimate opens with one of the three `Estimate target:` labels and sizes ONLY that target — the current changes by default, the target the user named for estimation, or (no change set in scope) the labelled demo scope — never silently the entire feature; a target narrower than the PBI item carries the `estimate target only` note.
+- **MUST ATTENTION** the estimate carries BOTH `story_points` and man-days (`man_days_traditional` + `man_days_ai`), was derived **bottom-up per `SYNC:estimation-framework`** with SP derived from days, emits the mandated frontmatter fields inside a fenced `yaml` block, states whether it is a retrospective sizing or a forecast, and reuses an existing groomed estimate verbatim only where it covers exactly the estimate target (noting any delta).
 - **MUST ATTENTION** every case carries a proof rung and a proof chain; `✅ ran` appears only where a command was executed and recorded.
 - **MUST ATTENTION** no secret value appears anywhere — settings, files, and account roles named; credentials rendered `<redacted:…>`.
 - **MUST ATTENTION** anything deferred, sampled, or dropped is named in the guide header AND the chat summary.
@@ -322,9 +332,9 @@ Block or file absent → degrade gracefully: default `outputDir` to the project'
 - **`/understand`** — reuse its Purpose→How→Why framing for the "how the domain solves the feature" explanation. ⚠️ **Boundary — decide by audience, not by overlap:** `/understand` §11 *Test & Demo* is **reviewer-facing** — how to run and see the change you are about to review, scoped to that change. This skill is **presenter-facing** — a standalone, stakeholder-ready script that walks a room through a whole feature. The per-case block is deliberately the same shape in both so they converge instead of drifting; showing finished work to people → here, preparing to review it → `/understand`.
 - **`/investigate`** / **`/debug-investigate`** / **`/graph-trace`** — the Step 1 gate's read-only gather delegates. Their output is INPUT, re-verified at `file:line`; they never author a case block.
 - **`/spec`** — the canonical source of user stories + `TC-*` IDs when the project maintains feature specs. **A business `TC-*` and a demo case are the SAME event for two audiences** — the spec states it as intent, this guide stages it for a room. So they converge by construction: reuse the TC's demo flow and expected result rather than re-deriving them, and **cite the `TC-*` ID per case** so the two cannot drift apart. ⚠️ **A `TC-*` you cannot stage as a live demo on any surface is a finding, not a formatting problem** — it means a non-demoable (technical) case reached the business spec, which violates **M7**. Report it; do NOT invent a demo to cover for it. ⚠️ **Business-visible ≠ UI-demoable — do not conflate the two gates:** a genuinely business-visible outcome reachable only through a non-UI surface (API, CLI, or the business state a job produces — NEVER the job firing itself, which still fails M7's invocation-`When` rule) passes M7 and is still a 🔧 **technical case here** — appendix, not M7 finding. Only a case with no observable business outcome at all is the M7 violation.
-- **`/refine`** / **`/story`** / **`/dor-gate`** — the owners of the PBI artifact itself. The Step 7 block is a **backlog-ready summary of an item this guide demos**, sized with the SAME `SYNC:estimation-framework` protocol so the two cannot drift; when one of those skills has already produced the PBI, **copy it** rather than re-author it, and never overwrite its groomed estimate.
-- **`/plan`** — the canonical consumer of `SYNC:estimation-framework`; if a plan for this item exists, reuse its bottom-up phase hours as the estimate's input instead of re-deriving them.
-- **`/release-notes`** / **`/changelog`** — sibling generators; `demo-guide` is presenter-facing (how to show it), they are change-facing (what changed).
+- **`/refine`** / **`/story`** / **`/dor-gate`** — the owners of the PBI artifact itself. The Step 7 block is a **backlog-ready summary of an item this guide demos**, sized with the SAME `SYNC:estimation-framework` protocol so the two cannot drift; when one of those skills has already produced the PBI, **copy its wording** rather than re-author it, and never overwrite its groomed estimate — reuse that estimate as the number only when it covers exactly the estimate target (Step 7).
+- **`/plan`** — the canonical consumer of `SYNC:estimation-framework`; if a plan for this item exists, reuse only the bottom-up phase hours that fall inside the estimate target instead of re-deriving them.
+- **`/release-notes`** — sibling generator; `demo-guide` is presenter-facing (how to show it), it is change-facing (what changed).
 - **`/commit`** — commit the generated guide when the user wants it version-controlled.
 
 ---
@@ -696,7 +706,7 @@ Block or file absent → degrade gracefully: default `outputDir` to the project'
 - **Graph-Assisted Investigation:** run a graph command on key files when `graph.db` exists — grep → trace → grep verify.
 - **Incremental Persistence:** create the guide file BEFORE case one; append per case and per story group; NEVER hold results in memory.
 - **Output Quality:** token efficiency, lead with the answer, no filler.
-- **Estimation Framework:** bottom-up hours drive man-days; story points DERIVED, never the driver; emit the full estimate frontmatter.
+- **Estimation Framework:** bottom-up hours drive man-days; story points DERIVED, never the driver; emit the full estimate frontmatter; estimate ONLY the current changes by default, the target the user names for estimation, or — with no change set in scope — the labelled demo scope; never silently the entire feature.
 - **Critical Thinking:** traced proof per claim, confidence >80% to act, NEVER guess.
 - **AI Mistake Prevention:** verify against evidence, re-read after context loss, surface ambiguity.
 
@@ -712,7 +722,7 @@ Block or file absent → degrade gracefully: default `outputDir` to the project'
 - **MUST ATTENTION** every case — UI and 🔧 technical alike — = setup/preconditions + numbered **step-by-step demo flow** + **expected result phrased as the discriminator** + **how the domain stores/changes data & solves the feature**. A case missing the storage/solution part is incomplete; a display-only case states *"no storage change"* and describes the computed representation.
 - **MUST ATTENTION** PROOF IS EARNED: every case sits on one of four rungs — `✅ ran` (executed THIS session, command + result recorded) · `⚠️ trace-verified` · `📄 spec-only` · `❌ no coverage` — plus a proof chain (written → read → seen, `file:line` each). **There is no fifth rung**; an unplaceable case is a stated blocker. NEVER imply a green run that did not happen.
 - **MUST ATTENTION** the guide OPENS with the copy-paste-ready **PBI block** (`<!-- PBI:START -->` … `<!-- PBI:END -->`, above the demo body): purpose/business value · overall requirements with in/out of scope · **ALL** user stories · **ALL** acceptance criteria in Given/When/Then, each traced to its demo case and REAL `TC-*` ID · authorization requirements with `file:line` or an explicit `None` · estimation · dependencies · DoD. Every field is COPIED from the governing spec/PBI where one exists and otherwise derived from traced cases with the source stated — **NEVER invented**.
-- **MUST ATTENTION** the PBI estimate applies `SYNC:estimation-framework` and nothing else: bottom-up hours → `likely_days` → risk margin → min–max range when `likely_days ≥ 3`, with **story points DERIVED from days** and the mandated frontmatter (`story_points`, `complexity`, `man_days_traditional`, `man_days_ai`, `risk_margin_pct`, `risk_factors`, `blast_radius`, `estimate_scope_*`, `estimate_reasoning`) emitted in a fenced `yaml` block. State whether it is a retrospective sizing or a forecast; an existing groomed estimate is reused verbatim with any delta noted, NEVER silently replaced. Never size the writing of the guide.
+- **MUST ATTENTION** the PBI estimate applies `SYNC:estimation-framework` and nothing else: bottom-up hours → `likely_days` → risk margin → min–max range when `likely_days ≥ 3`, with **story points DERIVED from days** and the mandated frontmatter (`story_points`, `complexity`, `man_days_traditional`, `man_days_ai`, `risk_margin_pct`, `risk_factors`, `blast_radius`, `estimate_scope_*`, `estimate_reasoning`) emitted in a fenced `yaml` block. State whether it is a retrospective sizing or a forecast; an existing groomed estimate that covers exactly the estimate target is reused verbatim with any delta noted, NEVER silently replaced. Never size the writing of the guide.
 - **MUST ATTENTION** use the project's REAL user stories and `TC-*` / test IDs — **NEVER invent a case number**. No coverage → say so; an admitted gap is a finding, a fabricated ID retires a live risk.
 - **MUST ATTENTION** stage every precondition through a REAL user path and trace every demo step to real code — an untraceable step is a **stated blocker**, never an invented click, endpoint, or faked state.
 - **MUST ATTENTION** cite `file:line` for every storage/behaviour claim from a read entity/mapping/migration/handler — NEVER infer persistence from a field name.
@@ -742,7 +752,9 @@ Block or file absent → degrade gracefully: default `outputDir` to the project'
 | "I'll call /changes-review to gather faster"                | Delegates are READ-ONLY and gather-only. This skill emits a script, not findings — never delegate to a mutating or verdict-issuing skill.    |
 | "No PBI exists, so I'll write reasonable acceptance criteria"  | NEVER invent an AC — it enters the tracker as a commitment nobody agreed to. Derive from the traced cases and LABEL the block as derived, or write the explicit gap. |
 | "I'll ballpark the story points — it's just a backlog note"    | SP is DERIVED from bottom-up hours, never guessed. Run `SYNC:estimation-framework`: hours → days → margin → range → SP. |
-| "The PBI already has an estimate but mine is better"           | Reuse the groomed estimate verbatim and note the delta. Overwriting a team estimate with a private re-derivation corrupts velocity data. |
+| "The PBI already has an estimate but mine is better"           | Reuse the groomed estimate verbatim and note the delta — when it covers exactly the estimate target. Overwriting a team estimate with a private re-derivation corrupts velocity data. |
+| "The guide demos the whole feature, so I'll size the whole feature" | Size ONLY the estimate target: what `--estimate` or an explicit instruction names, else the current changes, else the labelled demo scope. Unchanged feature code is demo context, not estimated work. |
+| "They named PBI-123 to demo, so PBI-123 is the estimate target" | A demo scope is not an estimate target. Only `--estimate` or an explicit estimation instruction sets one; otherwise size the current changes. |
 | "Authorization? I'll write 'admin only' — it's probably right"  | Cite the guard/policy at `file:line` or write `None — no authorization behaviour in this item`. A guessed permission ships as a requirement. |
 | "The demo needs the admin password to be runnable"          | Name the role and the setting; render the value `<redacted:…>`. A guide is shared — a credential in it is a leak.                            |
 | "Most stories are covered — close enough"                   | Name every deferred story in the header AND the chat summary. Bounded coverage that reads as complete is how a presenter gets ambushed.      |
@@ -751,5 +763,5 @@ Block or file absent → degrade gracefully: default `outputDir` to the project'
 
 **IMPORTANT MUST ATTENTION Goal:** Investigate an in-scope feature end-to-end, then produce a stakeholder-ready, proof-carrying demo guide with real stories/IDs, runnable user flows, domain storage/solution, and honest proof levels — UI-first, with technical cases in the closing appendix — so presenters can show behaviour, explain its data, and never claim unearned proof.
 **IMPORTANT MUST ATTENTION** Main order: resolve scope → load contract → size/decompose → task → clear six-question gate + write Understanding Brief → gather five inventories → map/persist real cases + channels → trace storage/solution → open guide + ledger and accumulate → write four-part cases → compose the backlog-item (PBI) block at the top (sourced content; estimate per `SYNC:estimation-framework`) → assign proof rungs + transparency → validate. Preserve the [BLOCKING] understanding and UI-first channel gates.
-**IMPORTANT MUST ATTENTION** Modes/flags: `feature-or-scope`, `--context`, `--output`, `--lang`, `--html`, `--stories`; `--lang` translates, `--html` follows the post-approval Artifact flow, and no-front-end projects state a primary demo surface.
+**IMPORTANT MUST ATTENTION** Modes/flags: `feature-or-scope`, `--context`, `--output`, `--lang`, `--html`, `--stories`, `--estimate`; only `--estimate` or an explicit estimation instruction names the estimate target; `--lang` translates, `--html` follows the post-approval Artifact flow, and no-front-end projects state a primary demo surface.
 **IMPORTANT MUST ATTENTION** Preserve real IDs, `file:line` evidence, earned proof, read-only gathering, redacted secrets, UI-first placement, full technical appendix cases, and named blockers; NEVER invent paths, states, or evidence.

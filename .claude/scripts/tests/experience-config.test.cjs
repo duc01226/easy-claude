@@ -34,8 +34,9 @@ test('TC-EXP-CONFIG-001a: optional experience verification defaults to a project
     // When: inspect the configured raw value when present and the generated skeleton.
     // Then: disposable evidence remains rooted at the project temp directory without a missing-property throw.
     // The raw project config may omit this optional block; runtime defaults live in the skeleton.
+    // A configured root is the project's own name — only its disposable project-root location is the invariant.
     if (realConfig.experienceVerification) {
-        assert.equal(realConfig.experienceVerification.evidenceRoot, 'tmp/experience');
+        assert.match(realConfig.experienceVerification.evidenceRoot, /^(tmp|temp)\/[^/.][^\\]*$/);
     }
     assert.equal(SKELETON.experienceVerification.evidenceRoot, 'tmp/experience');
     const description = require('../../hooks/lib/project-config-schema.cjs').describeSchema();
@@ -599,7 +600,6 @@ const CAPTURE_CARRIER_FLOOR = [
     '.claude/skills/shared/e2e-quality-protocol.md',
     '.claude/skills/e2e-test/SKILL.md',
     '.claude/skills/e2e-test-verify/SKILL.md',
-    '.claude/skills/e2e-test-verify-loop/SKILL.md',
     '.claude/skills/workflow-e2e/SKILL.md',
     '.claude/skills/experience-review/SKILL.md',
     '.claude/agents/e2e-runner.md',

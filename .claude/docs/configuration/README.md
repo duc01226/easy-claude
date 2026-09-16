@@ -114,6 +114,68 @@ The `codeReview` section records which project-specific review-rule doc the revi
 
 **To add new trigger skills:** Edit `.claude/.ck.json`, add skill name to `injectOnSkills` array. Matching is case-insensitive and partial.
 
+### Per-file convention injection
+
+`docs/project-config.json` `contextGroups[]` entries double as convention classes; the optional top-level `conventionInjection` object switches the per-file reminder hook (`file-convention-inject.cjs`) on. Absent object or `enabled` not `true` ⇒ the hook is silent.
+
+```json
+{
+  "contextGroups": [
+    {
+      "name": "feature-spec",
+      "pathRegexes": [],
+      "pathGlobs": ["docs/specs/**/*.md"],
+      "priority": 100,
+      "skills": ["spec"],
+      "referenceDocs": ["docs/project-reference/feature-spec-reference.md"]
+    },
+    {
+      "name": "general-code",
+      "pathRegexes": [],
+      "pathGlobs": ["**/*"],
+      "excludePathGlobs": ["**/node_modules/**", "tmp/**"],
+      "fileExtensions": [".js", ".cjs"],
+      "priority": 900,
+      "referenceDocs": ["docs/project-reference/code-review-rules.md"]
+    }
+  ],
+  "conventionInjection": { "enabled": true }
+}
+```
+
+| `conventionInjection` field | Default | Allowed | Meaning |
+| --- | --- | --- | --- |
+| `enabled` | `false` | boolean | Explicit opt-in |
+| `maxChars` | `4000` | 500–10000 | Reminder size cap |
+| `maxClassesPerEdit` | `4` | 1–10 | Classes per trigger (applied before dedup) |
+| `reinjectAfterBytes` | `2000000` | ≥ 50000 | Conversation-history growth (transcript bytes, ~5–6 per visible character) that re-arms a class |
+| `reinjectAfterMinutes` | `30` | 1–1440 | Age re-arm when history size is unknown but condensations ARE observed (host report or transcript mark) |
+| `blindReinjectAfterMinutes` | `5` | 1–1440 | Age re-arm when the scope is blind — no transcript AND no condensation ever observed, so age is the only signal |
+| `onRead` | `true` | boolean | Reads trigger reminders too |
+| `compactionMarkers` | `[]` | regex strings | Extra transcript condensation marks |
+
+Class fields deciding membership (`pathRegexes`, `pathGlobs`, `fileNameRegexes`, `excludePathRegexes`, `excludePathGlobs`, `fileExtensions`) are part of the class's content version, so editing one re-delivers the class and changes its `[[convention:name@hash8]]` tag — regenerate CLAUDE.md/AGENTS.md afterwards. `guideDoc`/`patternsDoc` are the only fields used for documentation-impact routing (`.claude/scripts/doc-impact-map.cjs`); the delivery matchers are not.
+
+Validate with `node .claude/hooks/lib/project-config-schema.cjs --validate docs/project-config.json`. Typical errors: `contextGroups[1] ("general-code"): needs at least one include matcher (pathRegexes, pathGlobs or fileNameRegexes)`, a duplicate or blank `name`, a malformed regex (the error names the class), or an out-of-range `conventionInjection.<field>`. Unknown group fields and a non-whole `priority` are warnings. Check what a file receives: `node .claude/hooks/lib/file-conventions.cjs --lookup <path>`. Details: [../hooks/README.md § Per-File Convention Injection](../hooks/README.md#per-file-convention-injection).
+
+### Session prompt ledger
+
+The optional `.claude/.ck.json` `promptLedger` object tunes the prompt-ledger hook (`prompt-ledger.cjs`), which records every user prompt of a session and re-anchors the original goal after condensation. It is ON by default — no config needed; `enabled: false` (or `CK_PROMPT_LEDGER=0|off|false`) makes it inert, leaving the static `SYNC:session-goal-ledger` protocol as the only carrier.
+
+```json
+{ "promptLedger": { "enabled": true, "maxPromptChars": 4000, "maxEntries": 200, "reinjectAfterBytes": 1000000, "reinjectAfterMinutes": 45 } }
+```
+
+| `promptLedger` field | Default | Allowed | Meaning |
+| --- | --- | --- | --- |
+| `enabled` | `true` | boolean | Record prompts and deliver reminders |
+| `maxPromptChars` | `4000` | 200–20000 | Per-prompt stored size before a truncation marker |
+| `maxEntries` | `200` | 2–1000 | Entries kept per session (the original request is never evicted) |
+| `reinjectAfterBytes` | `1000000` | ≥ 50000 | Conversation-history growth that re-arms the reminder |
+| `reinjectAfterMinutes` | `45` | 1–1440 | Age re-arm when history size is unknown |
+
+Records live in `tmp/prompt-ledger/<session>/` (override `CK_PROMPT_LEDGER_DIR`) and are pruned after 7 days. Out-of-range values are clamped, not rejected. Details: [../hooks/README.md § Session Prompt Ledger](../hooks/README.md#session-prompt-ledger).
+
 ---
 
 ### workflows.json
@@ -142,7 +204,7 @@ The `codeReview` section records which project-specific review-rule doc the revi
 | Workflow                  | Sequence (abridged, from `workflows.json`)                                                                                                                           | whenToUse (abridged)                              |
 | ------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------- |
 | `workflow-feature`        | investigate → … → plan → plan-review → … → plan-execute → … → integration-test → … → workflow-end                                                                    | Well-defined feature implementation               |
-| `workflow-bugfix`         | investigate → debug-investigate → … → fix → prove-fix → … → workflow-end                                                                                             | Bug, error, crash, regression; end-to-start trace |
+| `workflow-bugfix`         | investigate → debug-investigate → … → fix → … → workflow-end                                                                                                         | Bug, error, crash, regression; end-to-start trace |
 | `workflow-refactor`       | investigate → plan → … → plan-execute → … → workflow-end                                                                                                             | Restructure code without behavior change          |
 | `workflow-review-changes` | [parallel: changes-review + whole-target why-review] → validate findings → parallel specialists → code-simplifier → … → final whole-target why-review → workflow-end | Review uncommitted changes before committing      |
 
@@ -163,23 +225,15 @@ The `codeReview` section records which project-specific review-rule doc the revi
         "context7": {
             "command": "npx",
             "args": ["-y", "@context7/mcp-server"]
-        },
-        "sequential-thinking": {
-            "command": "npx",
-            "args": ["-y", "@modelcontextprotocol/server-sequential-thinking"]
         }
     }
 }
 ```
 
-| Server                | Purpose                                     |
-| --------------------- | ------------------------------------------- |
-| `github`              | GitHub API integration (issues, PRs, repos) |
-| `context7`            | Documentation fetching from Context7        |
-| `sequential-thinking` | Step-by-step reasoning tool                 |
-| `figma`               | Figma design extraction (HTTP transport)    |
-
-**See:** [figma-setup.md](./figma-setup.md) for Figma MCP server setup.
+| Server     | Purpose                                                          |
+| ---------- | ---------------------------------------------------------------- |
+| `github`   | GitHub API integration (issues, PRs, repos)                      |
+| `context7` | Optional library-docs accelerator for `/web-research` (host-agnostic) |
 
 ---
 
@@ -258,7 +312,6 @@ Configuration is loaded in order with later files overriding earlier:
 | `CLAUDE_BASH_MAINTAIN_PROJECT_WORKING_DIR` | Keep working directory in Bash                 |
 | `CK_DEBUG`                                 | Enable hook debug logging                      |
 | `GITHUB_PERSONAL_ACCESS_TOKEN`             | GitHub MCP server auth                         |
-| `FIGMA_PERSONAL_ACCESS_TOKEN`              | Figma MCP server auth                          |
 
 ---
 
@@ -416,7 +469,6 @@ Configuration is loaded in order with later files overriding earlier:
 
 -   [settings-reference.md](./settings-reference.md) - Complete settings.json reference
 -   [output-styles.md](./output-styles.md) - Coding levels 0-5 explained
--   [figma-setup.md](./figma-setup.md) - Figma MCP server setup
 -   [../hooks/README.md](../hooks/README.md) - Hook system overview
 -   [../hooks/extending-hooks.md](../hooks/extending-hooks.md) - Creating custom hooks
 

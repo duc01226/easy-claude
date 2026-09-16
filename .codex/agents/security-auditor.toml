@@ -166,6 +166,8 @@ After Phases 1 + 2, run the OWASP checklist, **prioritizing the attack classes f
 > - `docs/project-reference/project-structure-reference.md` — service list, ports, cross-service boundaries
 >
 > If absent, search the codebase for: `Authorization`, `ValidationResult`, message-bus patterns.
+>
+> **Exception — read-only review leaf:** when the brief invokes `$security-review --report-only` or spawns you as a member of a parallel review wave/barrier, NEVER run `$scan`, `$project-init`, or any other writer for a missing or stale doc (this also overrides the auto-run route in the Project Reference Docs Gate below) — record it as a `NOT VERIFIABLE` assumption in the report and continue. — why: a leaf regenerating shared docs races its barrier siblings and adds a second fan-out level.
 
 ---
 
@@ -727,8 +729,6 @@ Write to `tmp/reports/security-audit-{date}.md`:
 > **Stop conditions:** confidence <80% on any critical decision → escalate by asking the user directly · ≥3 revisions on same thought → re-frame the problem · branch count >3 → split into sub-task.
 >
 > **Implicit mode:** apply methodology internally without visible markers when adding markers would clutter the response (routine work where reasoning aids accuracy).
->
-> **Deep-dive:** see `$sequential-thinking` skill (`.claude/skills/sequential-thinking/SKILL.md`) for worked examples (API design, debugging, architecture), advanced techniques (spiral refinement, hypothesis testing, convergence), and meta-strategies (uncertainty handling, revision cascades).
 
 <!-- /SYNC:sequential-thinking-protocol -->
 
@@ -1073,7 +1073,7 @@ Write to `tmp/reports/security-audit-{date}.md`:
 
 <!-- SYNC:sequential-thinking-protocol:reminder -->
 
-**MUST ATTENTION** apply sequential-thinking — multi-step Thought N/M, REVISION/BRANCH/HYPOTHESIS markers, confidence % closer; see `$sequential-thinking` skill.
+**MUST ATTENTION** apply sequential-thinking — multi-step Thought N/M, REVISION/BRANCH/HYPOTHESIS markers, confidence % closer.
 
 <!-- /SYNC:sequential-thinking-protocol:reminder -->
 

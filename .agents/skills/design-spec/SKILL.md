@@ -56,21 +56,21 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 **Summary:**
 
 - **Step 0–0b — ground context:** inventory related UI and connected flows; if a governing Feature Spec exists, seed from §6 and reuse its view/state vocabulary verbatim; otherwise state that no governing spec exists.
-- **Step 1–2 — route + size:** Figma→`$figma-design`; image→visual analysis; wireframe/sketch→`--mode=wireframe` plus confidence/human review; PBI/text→requirements; choose Quick (§1–4) or Full (§1–7, plus Flow Diagram for multi-page).
+- **Step 1–2 — route + size:** design link (e.g. a Figma URL)→ask the user to export the frames as images (ask the user directly), then visual analysis; image→visual analysis; wireframe/sketch→`--mode=wireframe` plus confidence/human review; PBI/text→requirements; choose Quick (§1–4) or Full (§1–7, plus Flow Diagram for multi-page).
 - **Step 3–6 — specify the surface:** inventory new/existing components; define interactions and all 7 observable states where applicable; extract design-system tokens; document content-driven responsive behavior and the complete releasable page/view/navigation/full-flow surface.
 - **Step 7–8 — close the chain:** save under `team-artifacts/design-specs/`; when a governing Feature Spec exists, update only its `design_spec:`/`mockup:` frontmatter; satisfy M1–M5/M7 and logical-ID traceability.
 
 **Workflow:**
 
 1. **Ground Source** — Inventory UI/flows; seed governing §6 vocabulary
-2. **Route Input** — Choose Figma, visual, wireframe, PBI, or text path
+2. **Route Input** — Choose visual, wireframe, PBI, or text path
 3. **Set Scope** — Choose Quick / Full / Flow Diagram
 4. **Specify** — Components, 7 states, tokens, responsive/accessibility/full-flow rules
 5. **Save + Link** — Save artifact; update Feature Spec frontmatter only
 
 **Key Rules:**
 
-- Input routing: Figma→`$figma-design`; wireframe/sketch→`--mode=wireframe`; screenshot→visual analysis.
+- Input routing: design link (e.g. a Figma URL)→ask the user to export the frames as images, then visual analysis; wireframe/sketch→`--mode=wireframe`; screenshot→visual analysis.
 - Reuse `docs/project-reference/design-system/` tokens and `docs/project-reference/frontend-patterns-reference.md` component patterns; include keyboard navigation, ARIA labels, and contrast.
 - **[BLOCKING] Tech-agnostic output:** spec prose/headings follow `docs/project-reference/spec-principles.md` §3 — describe components by UX role, not framework/library names; source paths and class names appear ONLY in evidence fields (`**Evidence**`, `[Source:]`), frontmatter, and Mermaid.
 - **[BLOCKING] Releasable UI surface:** apply `.claude/skills/shared/releasable-pbi-contract.md`; the design spec must deepen, not reduce, the PBI/mockup page/view, navigation, component, state, and full-flow inventories.
@@ -93,7 +93,7 @@ Create structured UI/UX design specification documents from requirements or PBIs
 
 ## When NOT to Use
 
-- Figma URLs auto-route to `$figma-design`; wireframes run internally via `--mode=wireframe` — no separate skill call
+- Wireframes run internally via `--mode=wireframe` — no separate skill call
 - Building UI — use `design --lane=marketing` (marketing/creative) or `design --lane=product` (product UIs)
 - Reviewing UI code — use `web-design-guidelines`
 
@@ -129,7 +129,7 @@ Read before executing:
 
     | Input Detected           | Detection                                      | Action                                                                   |
     | ------------------------ | ---------------------------------------------- | ------------------------------------------------------------------------ |
-    | Figma URL                | `figma.com/design` or `figma.com/file` in text | Activate `$figma-design` to extract context, then continue               |
+    | Design-tool link         | A design-tool URL (e.g. `figma.com`) in text   | Ask the user by asking the user directly to export the frames as images, then continue on the image path |
     | Image/screenshot         | Image file attached to prompt                  | Use `visual analysis tooling` to extract design guidelines, then continue          |
     | Hand-drawn wireframe     | Image + "wireframe"/"sketch" keyword           | Run `--mode=wireframe` (internal — see "Mode: wireframe" section)         |
     | PBI/story text           | Acceptance criteria present                    | Extract UI requirements from text, continue                              |
@@ -187,7 +187,6 @@ For ANY visual input, extract design context FIRST, then generate the spec.
 | Hand-drawn sketch photo | Image with rough/organic lines          | Analyze with wireframe prompts (this mode)   |
 | Digital wireframe       | Image with clean lines/shapes           | Analyze with wireframe prompts (this mode)   |
 | Wireframe tool export   | Image from Excalidraw/Balsamiq/MockFlow | Analyze with wireframe prompts (this mode)   |
-| Figma URL               | `figma.com` in text                     | Route to `$figma-design` instead             |
 | App screenshot          | Polished UI with real data              | Route to `$design --mode=screenshot` instead |
 
 ### Wireframe Analysis
@@ -440,7 +439,6 @@ For an accessibility-audit deliverable, produce this checklist report and save i
 
 | Skill                   | When to use instead                  |
 | ----------------------- | ------------------------------------ |
-| `figma-design`            | Extract specs from Figma designs        |
 | `design --lane=marketing` | Build marketing/creative UI             |
 | `design --lane=product`   | Build product UI (dashboards, apps)     |
 | `web-design-guidelines`   | Review existing UI for compliance       |
@@ -776,7 +774,7 @@ For an accessibility-audit deliverable, produce this checklist report and save i
 **IMPORTANT MUST ATTENTION main steps, modes, and gates:**
 
 - **Step 0–0b first** — inventory existing UI + connected flows in §1; seed governing Feature Spec §6 and reuse its view/state vocabulary verbatim, or state no governing spec — why: divergence breaks the navigable hub.
-- **Step 1–2** — route Figma→`$figma-design`, image→visual analysis, wireframe/sketch→`--mode=wireframe`, PBI/text→requirements; for wireframes, emit PBI-section or standalone format, show confidence, recommend human review, and ask clarification below 70%; choose Quick (§1–4), Full (§1–7), or Full + Flow Diagram for multi-page.
+- **Step 1–2** — route design link (e.g. a Figma URL)→ask the user to export the frames as images then visual analysis, image→visual analysis, wireframe/sketch→`--mode=wireframe`, PBI/text→requirements; for wireframes, emit PBI-section or standalone format, show confidence, recommend human review, and ask clarification below 70%; choose Quick (§1–4), Full (§1–7), or Full + Flow Diagram for multi-page.
 - **Step 3–6** — inventory new/existing components; define interactions and all 7 states; extract tokens; document content-driven responsive/accessibility behavior.
 - **Releasable full flow** — preserve every required page/view, navigation edge, Common/Domain-Shared/Page component, state, and end-to-end demo journey; never collapse a multi-page outcome into one screen.
 - **Step 7–8** — save the correct design-spec/audit/component variant under `team-artifacts/design-specs/`; update governing Feature Spec `design_spec:`/`mockup:` frontmatter only; satisfy M1–M5/M7 and logical-ID traceability.
@@ -852,7 +850,9 @@ Source: `.claude/skills/shared/sync-inline-versions.md`
 - **MANDATORY** Code-to-spec extraction is reference-only until canonical acceptance; any supported AI tool may execute with synced context.
 - **MANDATORY** Update `.claude` source before syncing generated mirrors; do not manually edit `.agents`, `.codex`, or `AGENTS.md`.
 - **MANDATORY** Missing or stale project config, root instruction files, or required reference docs route project-specific work through `$project-init` or the narrow setup route automatically.
-**[TASK-PLANNING] [MANDATORY]** BEFORE executing any workflow or skill step, create/update task tracking for all planned steps, then keep it synchronized as each step starts/completes.
+**[TASK-PLANNING] [MANDATORY]** BEFORE executing any workflow or skill step, create/update task tracking for all planned steps, analyze the task graph (output dependencies, shared write targets) into ordered parallel waves per PARALLELIZE before starting any task, then keep it synchronized as each step starts/completes.
+- **MANDATORY** Pin `Original goal:` before the first action and keep `User prompts this session: P1…Pn` current; re-read both at every step, before delegation, and after compaction.
+- **MANDATORY** Before claiming done, map the result to the original goal and every prompt (`P# → done | deferred | n/a`); never store secrets in them.
 ## [LESSON-LEARNED-REMINDER] [BLOCKING] Task Planning & Continuous Improvement — MANDATORY. Do not skip.
 
 Break work into small tasks (task tracking) before starting. Add final task: "Analyze AI mistakes & lessons learned".
@@ -863,7 +863,7 @@ Break work into small tasks (task tracking) before starting. Add final task: "An
 3. Write as a universal rule — strip project-specific names/paths/classes. Useful on any codebase.
 4. Consolidate: multiple mistakes sharing one failure mode → ONE lesson.
 5. **Recurrence gate:** "Would this recur in future session WITHOUT this reminder?" — No → skip `$learn`.
-6. **Auto-fix gate:** "Could `$code-review`/`$code-simplifier`/`$security-review`/`$lint` catch this?" — Yes → improve review skill instead.
+6. **Auto-fix gate:** "Could `$code-review`/`$code-simplifier`/`$security-review`/a linter catch this?" — Yes → improve review skill instead.
 7. BOTH gates pass → ask user to run `$learn`.
 **[CRITICAL-THINKING-MINDSET]** Apply critical thinking, sequential thinking. Every claim needs traced proof, confidence >80% to act.
 **Anti-hallucination principle:** Never present guess as fact — cite sources for every claim, admit uncertainty freely, self-check output for errors, cross-reference independently, stay skeptical of own confidence — certainty without evidence root of all hallucination.

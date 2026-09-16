@@ -1,6 +1,6 @@
 # Skills Reference
 
-> 170 runnable skills across 15+ domains + 9 shared reference/protocol files for context-aware AI assistance (`_templates/template-skill` is a source template, not a runnable skill)
+> 123 runnable skills across 15+ domains + 10 shared reference/protocol files for context-aware AI assistance (`_templates/template-skill` is a source template, not a runnable skill)
 
 ## Overview
 
@@ -22,27 +22,25 @@ Skills Activated: fix, investigate
 
 ## Skill Domains
 
-> Curated highlights — the full catalog has 170 runnable skills; the tables below list selected skills per domain, not the complete set.
+> Curated highlights — the full catalog has 123 runnable skills; the tables below list selected skills per domain, not the complete set.
 
 | Domain                                            | Skills | Description                                    |
 | ------------------------------------------------- | ------ | ---------------------------------------------- |
 | [Development - Backend](#development---backend)   | 0      | Project-specific backend patterns              |
 | [Development - Frontend](#development---frontend) | 2      | Components, forms, state, styling, design      |
-| [Architecture](#architecture)                     | 3      | Architecture, performance, security            |
+| [Architecture](#architecture)                     | 2      | Architecture, performance, security            |
 | [Debugging/Testing](#debuggingtesting)            | 3      | Test generation, test specs                    |
-| [AI/ML Tools](#aiml-tools)                        | 1      | Structured reasoning                           |
-| [Documentation](#documentation)                   | 6      | Docs, feature docs, changelogs, release notes  |
-| [Git/Workflow](#gitworkflow)                      | 5      | Commits, branches, code review, quality gates  |
+| [Documentation](#documentation)                   | 3      | Docs, feature docs, release notes              |
+| [Git/Workflow](#gitworkflow)                      | 4      | Commits, branches, code review, quality gates  |
 | [Code Quality](#code-quality)                     | 10     | Graph-based code analysis, blast radius, sync  |
-| [Planning/Research](#planningresearch)            | 6      | Plans, research, implementation, investigation |
-| [Infrastructure/DevOps](#infrastructuredevops)    | 1      | Cloudflare, Docker, GCP                        |
-| [Context/Memory](#contextmemory)                  | 4      | Optimization, persistence, learning            |
-| [Team Collaboration](#team-collaboration)         | 13     | PO, BA, QA, QC, UX, PM roles, prioritization   |
+| [Planning/Research](#planningresearch)            | 5      | Plans, research, implementation, investigation |
+| [Context/Memory](#contextmemory)                  | 2      | Code cleanup, learning                         |
+| [Team Collaboration](#team-collaboration)         | 6      | Test specs, UX design specs, backlog shaping   |
 | [Web/Frameworks](#webframeworks)                  | 2      | Package updates, markdown                      |
-| [Document Processing](#document-processing)       | 4      | PDF, DOCX, Markdown conversions                |
-| [Utility](#utility)                               | 2      | Claude Code CLI, skill creation                |
+| [Document Processing](#document-processing)       | 2      | PDF, DOCX, Markdown conversions                |
+| [Utility](#utility)                               | 1      | Skill creation                                 |
 
-**Additional:** Shared reference/protocol files (9) -- see [Shared Protocols](#shared-protocols-sync-inline)
+**Additional:** Shared reference/protocol files (10) -- see [Shared Protocols](#shared-protocols-sync-inline)
 
 ---
 
@@ -69,8 +67,6 @@ See `docs/project-reference/frontend-patterns-reference.md` for project-specific
 | -------------------- | --------------------------------------- | ------------------------------------------------- |
 | `performance-review` | performance, optimization, bottleneck   | Performance tuning + architecture-altitude review |
 | `security-review`    | security, vulnerabilities               | Security analysis                                 |
-| `refactoring`        | refactor, restructure, clean            | Code restructuring                                |
-| `dependency`         | dependency map, blockers, critical path | Feature dependency mapping                        |
 
 ---
 
@@ -78,7 +74,7 @@ See `docs/project-reference/frontend-patterns-reference.md` for project-specific
 
 | Skill                     | Triggers                                                              | Description                                                                                                                             |
 | ------------------------- | --------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
-| `webapp-testing`          | E2E, Playwright, Cypress                                              | End-to-end testing                                                                                                                      |
+| `e2e-test`                | E2E, Playwright, browser test                                         | End-to-end test authoring and maintenance                                                                                               |
 | `experience-review`       | user experience, acceptance, baseline                                 | Exercise and inspect applicable observable output; preserve expectations until explicit acceptance                                    |
 | `spec [mode=tests]`       | test specification, QA spec, test strategy, TC-IDs, test cases        | Unified test case writer — generates TC-{FEATURE}-{NNN} specs from PBIs and feature docs                                                |
 | `spec [mode=sync]`        | sync test specs, update dashboard, reverse sync, sync to feature docs | Dashboard sync mode — syncs TCs from feature docs Section 8 to `docs/specs/` (sync mode retires when dashboards are removed in Phase 7) |
@@ -87,22 +83,12 @@ See `docs/project-reference/frontend-patterns-reference.md` for project-specific
 
 ---
 
-## AI/ML Tools
-
-| Skill                 | Triggers                     | Description          |
-| --------------------- | ---------------------------- | -------------------- |
-| `sequential-thinking` | complex problems, multi-step | Structured reasoning |
-
----
-
 ## Documentation
 
 | Skill           | Triggers                                                 | Description                                                                |
 | --------------- | -------------------------------------------------------- | -------------------------------------------------------------------------- |
-| `documentation` | document, API docs, comments, README                     | General documentation                                                      |
-| `docs-seeker`   | find docs, library docs                                  | Documentation search                                                       |
+| `web-research`  | find docs, library docs                                  | Source discovery and triage (Context7 MCP optional accelerator)            |
 | `spec`          | business docs, module docs, feature docs, feature readme | Business/feature documentation (single canonical Feature Spec per feature) |
-| `changelog`     | changelog, version history, update changelog             | Changelog generation                                                       |
 | `release-notes` | release notes, git history                               | Release notes from git commits (tag-to-tag)                                |
 
 ---
@@ -112,7 +98,6 @@ See `docs/project-reference/frontend-patterns-reference.md` for project-specific
 | Skill                         | Triggers                                                | Description                                          |
 | ----------------------------- | ------------------------------------------------------- | ---------------------------------------------------- |
 | `commit`                      | commit, stage, save changes                             | Git commits                                          |
-| `branch-comparison`           | compare branches, git diff                              | Branch analysis                                      |
 | `code-review`                 | review, feedback, PR review                             | Code review                                          |
 | `why-review`                  | why, design rationale, plan validation, alternatives    | Validate design rationale in plan files              |
 | `production-readiness-review` | sre, production, observability, reliability, ops review | Production readiness scoring for service/API changes |
@@ -138,19 +123,9 @@ See `docs/project-reference/frontend-patterns-reference.md` for project-specific
 | Skill             | Triggers                           | Description                                                           |
 | ----------------- | ---------------------------------- | --------------------------------------------------------------------- |
 | `plan`            | plan, strategy, approach, research | Implementation planning (includes research phase + engine references) |
-| `plan-analysis`   | analyze plan, review plan          | Plan review                                                           |
+| `plan-review`     | analyze plan, review plan          | Plan review                                                           |
 | `feature`         | implement, add, create, build      | Feature development                                                   |
 | `investigate`     | how does, explain, trace           | Code exploration                                                      |
-| `problem-solving` | complex problem, solution          | Problem analysis                                                      |
-| `research`        | research, explore, analyze         | Technical research & solution analysis (standalone)                   |
-
----
-
-## Infrastructure/DevOps
-
-| Skill    | Triggers                        | Description      |
-| -------- | ------------------------------- | ---------------- |
-| `devops` | Cloudflare, Docker, GCP, deploy | Cloud deployment |
 
 ---
 
@@ -158,8 +133,6 @@ See `docs/project-reference/frontend-patterns-reference.md` for project-specific
 
 | Skill                  | Triggers                                         | Description                  |
 | ---------------------- | ------------------------------------------------ | ---------------------------- |
-| `context-optimization` | context, tokens, compress                        | Token management             |
-| `memory-management`    | remember, save, persist                          | Pattern persistence          |
 | `code-simplifier`      | simplify, refine, clarity                        | Code cleanup                 |
 | `learn`                | remember this, always do, patterns, list learned | Pattern learning and viewing |
 
@@ -169,9 +142,6 @@ See `docs/project-reference/frontend-patterns-reference.md` for project-specific
 
 | Skill               | Triggers                                                                                         | Description                               |
 | ------------------- | ------------------------------------------------------------------------------------------------ | ----------------------------------------- |
-| `business-analyst`  | requirements, user story, acceptance criteria, BDD                                               | Requirements analysis, story writing      |
-| `product-owner`     | backlog, prioritize, PBI, feature idea, stakeholder                                              | Backlog management, prioritization        |
-| `project-manager`   | timeline, dependencies, status, milestone, resource                                              | Project tracking, reporting               |
 | `spec [mode=tests]` | test plan, test cases, coverage, automation                                                      | Test specification and case generation    |
 | `design-spec`       | UI specification, component spec, layout spec, wireframe, mockup, user flow, accessibility audit | Design specification documents, UX design |
 | `idea`              | capture idea, new idea, add to backlog                                                           | Idea capture and structuring              |
@@ -191,12 +161,10 @@ See `docs/project-reference/frontend-patterns-reference.md` for project-specific
 
 ## Document Processing
 
-| Skill              | Triggers                          | Description      |
-| ------------------ | --------------------------------- | ---------------- |
-| `docx-to-markdown` | DOCX to markdown, Word conversion | Word to Markdown |
-| `markdown-to-docx` | markdown to DOCX, Word export     | Markdown to Word |
-| `markdown-to-pdf`  | markdown to PDF, PDF export       | Markdown to PDF  |
-| `pdf-to-markdown`  | PDF to markdown, PDF extraction   | PDF to Markdown  |
+| Skill           | Triggers                                                        | Description                                       |
+| --------------- | --------------------------------------------------------------- | ------------------------------------------------- |
+| `docx-convert`  | DOCX to markdown, Word conversion, markdown to DOCX, Word export | Word ⇄ Markdown via `--to {markdown\|docx}`      |
+| `pdf-convert`   | PDF to markdown, PDF extraction, markdown to PDF, PDF export     | PDF ⇄ Markdown via `--to {markdown\|pdf}`        |
 
 ---
 
@@ -204,7 +172,6 @@ See `docs/project-reference/frontend-patterns-reference.md` for project-specific
 
 | Skill           | Triggers                                           | Description              |
 | --------------- | -------------------------------------------------- | ------------------------ |
-| `claude-code`   | Claude Code setup, hook not firing, MCP connection | Claude Code CLI guidance |
 | `skill-creator` | create skill, new skill                            | Create new skills        |
 
 ---
@@ -232,10 +199,15 @@ Each skill is located at `.claude/skills/{skill-name}/`:
 
 .claude/skills/shared/          # SYNC canonical source (protocols inlined into skills)
 |-- affirmative-rewrite-rubric.md
+|-- e2e-quality-protocol.md
+|-- product-roadmap-contract.md
+|-- releasable-pbi-contract.md
 |-- sdd-artifact-contract.md
 |-- sub-agent-selection-guide.md
 |-- sync-inline-versions.md    # Single source of truth for all SYNC protocol content
-+-- tc-format.md
+|-- tc-format.md
+|-- ui-state-capture-protocol.md
++-- workflow-first-gate.md
 ```
 
 ### SKILL.md Structure
@@ -275,17 +247,16 @@ Skills are often activated alongside commands:
 | ---------------------- | -------------------------------------- |
 | `/feature-implement`   | `feature`, `plan`, `spec [mode=tests]` |
 | `/fix`                 | `debug-investigate`                    |
-| `/plan`                | `plan`, `plan-analysis`                |
+| `/plan`                | `plan`, `plan-review`                  |
 | `/review`              | `code-review`                          |
-| `/test`                | `spec [mode=tests]`, `webapp-testing`  |
-| `/idea`                | `idea`, `product-owner`                |
-| `/refine`              | `refine`, `business-analyst`           |
-| `/story`               | `story`, `business-analyst`            |
+| `/test`                | `spec [mode=tests]`, `e2e-test`        |
+| `/idea`                | `idea`                                 |
+| `/refine`              | `refine`                               |
+| `/story`               | `story`                                |
 | `/design-spec`         | `design-spec`                          |
 | `/spec [mode=tests]`   | `spec [mode=tests]`                    |
-| `/quality-gate-review` | `quality-gate-review`                  |
-| `/dependency`          | `dependency`, `project-manager`        |
-| `/prioritize`          | `prioritize`, `product-owner`          |
+| `/dor-gate`            | `dor-gate`                             |
+| `/prioritize`          | `prioritize`                           |
 
 ---
 
@@ -313,4 +284,4 @@ Use `/skill-creator` to create a new skill:
 
 ---
 
-_Source: `.claude/skills/` | 170 runnable skills across 15+ domains + 9 shared reference/protocol files (the `_templates/template-skill` source is excluded from runtime discovery)_
+_Source: `.claude/skills/` | 123 runnable skills across 15+ domains + 10 shared reference/protocol files (the `_templates/template-skill` source is excluded from runtime discovery)_

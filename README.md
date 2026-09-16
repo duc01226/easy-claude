@@ -4,7 +4,7 @@
 
 ## What is this?
 
-**easy-claude** is a portable `.claude` template you copy into any project to supercharge Claude Code with **18 top-level hook files**, **170 skills**, **19 workflows**, and **27 specialized agents**. It covers the entire software development lifecycle — from idea capture and test specification through implementation, code review, and documentation. The Claude-authored source also syncs to Codex mirrors under `.agents/` and `.codex/`.
+**easy-claude** is a portable `.claude` template you copy into any project to supercharge Claude Code with **20 top-level hook files**, **123 skills**, **19 workflows**, and **23 specialized agents**. It covers the entire software development lifecycle — from idea capture and test specification through implementation, code review, and documentation. The Claude-authored source also syncs to Codex mirrors under `.agents/` and `.codex/`.
 
 **Core insight:** LLMs forget, hallucinate, and drift. Instead of hoping the AI "just gets it right," this framework uses **programmatic guardrails** (hooks) and **prompt-engineered protocols** (skills/workflows) to enforce correctness at every stage.
 
@@ -135,17 +135,17 @@ npm run codex:sync                                          # same via package.j
 
 ## What's Inside
 
-### Hooks (18 top-level `.cjs` files, 31 lib modules)
+### Hooks (20 top-level `.cjs` files, 35 lib modules)
 
 Runtime Node.js scripts that fire on Claude Code lifecycle events.
 
-| Category               | Hooks                                                                                                                     | Purpose                                                                                                                   |
-| ---------------------- | ------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
-| **Safety**             | `path-boundary-block`, `privacy-block`, `scout-block`, `git-commit-block`, `windows-command-detector`, `bash-shell-guard` | Prevent out-of-scope access, block secrets, limit broad searches, guard git, catch CMD/PowerShell syntax sent to Git Bash |
-| **Quality**            | `doc-sync-gate`                                                                                                           | Warn on doc⇄code drift                                                                                                    |
-| **Session Management** | `verify-install`, `session-init`, `session-init-docs`, `session-end`, `npm-auto-install`, `graph-session-init`            | Initialize state, load config, auto-install deps, seed the graph                                                          |
-| **Routing**            | `init-prompt-gate`                                                                                                        | Gate prompts until project config is ready (routing is model-driven from the static catalog in `CLAUDE.md`)               |
-| **Post-processing**    | `post-edit-prettier`, `graph-auto-update`                                                                                 | Format after edits, keep the code graph current                                                                           |
+| Category               | Hooks                                                                                                                                               | Purpose                                                                                                                                                                                    |
+| ---------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Safety**             | `path-boundary-block`, `privacy-block`, `scout-block`, `git-commit-block`, `github-mcp-write-block`, `windows-command-detector`, `bash-shell-guard` | Prevent out-of-scope access, block secrets, limit broad searches, guard git and GitHub MCP writes, catch CMD/PowerShell syntax sent to Git Bash                                            |
+| **Quality**            | `doc-sync-gate`                                                                                                                                     | Warn on doc⇄code drift                                                                                                                                                                     |
+| **Session Management** | `verify-install`, `session-init`, `session-init-docs`, `session-end`, `npm-auto-install`, `graph-session-init`                                      | Initialize state, load config, auto-install deps, seed the graph                                                                                                                           |
+| **Routing**            | `init-prompt-gate`, `graph-prompt-sync`, `prompt-ledger`                                                                                            | Gate prompts until project config is ready, re-sync the graph when HEAD moved, and keep the prompt ledger anchored (routing itself is model-driven from the static catalog in `CLAUDE.md`) |
+| **Post-processing**    | `post-edit-prettier`, `graph-auto-update`, `file-convention-inject`                                                                                 | Format after edits, keep the code graph current, remind the opt-in per-file conventions after reads/edits                                                                                  |
 
 > **De-hooked enforcement & context injection.** Earlier versions ran runtime
 > enforcement/lifecycle hooks — per-edit/per-prompt inject dispatchers plus task/skill/edit
@@ -163,22 +163,22 @@ Runtime Node.js scripts that fire on Claude Code lifecycle events.
 (and the `AGENTS.md` mirror). Re-reading these static files restores rules and lessons after
 compaction. This stateless-per-turn design prevents context drift over long sessions.
 
-### Skills (170 definitions)
+### Skills (123 definitions)
 
 Markdown-based prompts with YAML frontmatter that guide AI behavior.
 
 | Category           | Examples                                                                                                   | What They Do                                             |
 | ------------------ | ---------------------------------------------------------------------------------------------------------- | -------------------------------------------------------- |
 | **Planning**       | `/plan`, `/investigate`                                                                                    | Research, plan, investigate before coding                |
-| **Implementation** | `/feature-implement`, `/plan-execute`, `/fix`, `/refactoring`                                              | Write code with quality gates                            |
+| **Implementation** | `/feature-implement`, `/plan-execute`, `/fix`                                                              | Write code with quality gates                            |
 | **Testing**        | `/test`, `/integration-test`, `/integration-test-review`, `/integration-test-verify`, `/e2e-test`, `/spec` | Test-first, test-after, and spec-traceability workflows  |
 | **Review**         | `/code-review`, `/changes-review`, `/security-review`                                                      | Code quality, security audits                            |
-| **Documentation**  | `/docs-update`, `/changelog`, `/spec`                                                                      | Auto-generate and maintain docs                          |
-| **Research**       | `/web-research`, `/deep-research`, `/docs-seeker`                                                          | Web research, library docs fetching                      |
+| **Documentation**  | `/docs-update`, `/spec`                                                                                    | Auto-generate and maintain docs                          |
+| **Research**       | `/web-research`, `/deep-research`                                                                          | Web research, library docs fetching                      |
 | **Design**         | `/design`, `/design-spec`, `/pbi-mockup`, `/excalidraw-diagram`                                            | UI/UX design, specs, wireframes, PBI visuals, diagrams   |
-| **DevOps**         | `/devops`, `/fix --target=ci`, `/production-readiness-review`                                              | Infrastructure, CI/CD, reliability                       |
+| **DevOps**         | `/fix --target=ci`, `/production-readiness-review`                                                         | CI/CD fixes, release reliability                         |
 | **Scanning**       | `/scan-all`, `/scan --target=<key>`, `/scan-codebase-health`                                               | Generate reference docs the project-reference gate reads |
-| **Documents**      | `/markdown-to-pdf`, `/markdown-to-docx`, `/pdf-to-markdown`                                                | Document format conversion                               |
+| **Documents**      | `/pdf-convert`, `/docx-convert`                                                                            | Document format conversion (both directions via `--to`)  |
 
 ### Workflows (19 definitions)
 
@@ -186,20 +186,20 @@ End-to-end process orchestration with step enforcement. The table below shows th
 
 **Pick a workflow by use case:**
 
-| I want to…                                   | Workflow                          |
-| -------------------------------------------- | --------------------------------- |
-| Implement a well-defined feature             | `workflow-feature`                |
-| Fix a bug without losing invariants          | `workflow-bugfix`                 |
-| Build a large/ambiguous feature (needs R&D)  | `workflow-big-feature`            |
-| Refactor without changing behavior           | `workflow-refactor`               |
-| Start a brand-new project from scratch       | `workflow-greenfield-init`        |
-| Turn a raw idea into a Feature Spec          | `workflow-idea-to-spec`           |
-| Take one idea to a groomed PBI               | `workflow-idea-to-pbi`            |
-| Author/maintain Feature Specs from code      | `workflow-code-to-spec`           |
-| Add or update integration tests              | `workflow-write-integration-test` |
-| Write, update, verify, and fix E2E (Playwright) | `workflow-e2e` |
-| Research a topic into a cited report         | `workflow-research`               |
-| **Review uncommitted changes before commit** | `workflow-review-changes`         |
+| I want to…                                      | Workflow                          |
+| ----------------------------------------------- | --------------------------------- |
+| Implement a well-defined feature                | `workflow-feature`                |
+| Fix a bug without losing invariants             | `workflow-bugfix`                 |
+| Build a large/ambiguous feature (needs R&D)     | `workflow-big-feature`            |
+| Refactor without changing behavior              | `workflow-refactor`               |
+| Start a brand-new project from scratch          | `workflow-greenfield-init`        |
+| Turn a raw idea into a Feature Spec             | `workflow-idea-to-spec`           |
+| Take one idea to a groomed PBI                  | `workflow-idea-to-pbi`            |
+| Author/maintain Feature Specs from code         | `workflow-code-to-spec`           |
+| Add or update integration tests                 | `workflow-write-integration-test` |
+| Write, update, verify, and fix E2E (Playwright) | `workflow-e2e`                    |
+| Research a topic into a cited report            | `workflow-research`               |
+| **Review uncommitted changes before commit**    | `workflow-review-changes`         |
 
 **How to run one:** just describe your task — the `WORKFLOW-GATE` auto-classifies and routes it (no menu, no confirmation). To force a specific one, run `/start-workflow <id>`; it loads that workflow's canonical step sequence and builds the task list 1:1. An explicit `/skill` or `/workflow` you type is always honored as-is.
 
@@ -221,11 +221,10 @@ Reviews are first-class skills you can run standalone, and several are chained a
 | `/ui-review`                   | Overflow, responsive layout, z-index, SCSS/BEM quality                   |
 | `/plan-review`                 | Plan validity, correctness, and best-practice gaps (recursive)           |
 | `/artifact-review`             | PBI / story / test-spec / design artifact quality before handoff         |
-| `/quality-gate`                | Run the consolidated quality-gate checklist                              |
 
-### Agents (27 specialists)
+### Agents (23 specialists)
 
-Subagent definitions for parallelized, specialized work.
+Subagent definitions for parallelized, specialized work. The table below shows 9 of the 23 — see `.claude/docs/agents/README.md` for the full roster.
 
 | Agent                   | Role                                           |
 | ----------------------- | ---------------------------------------------- |
@@ -246,13 +245,13 @@ easy-claude/
 ├── .agents/                  # Codex skill mirror generated from .claude/skills
 ├── .codex/                   # Codex agents, hooks, and context parity files
 ├── .claude/                  # <-- The framework template (copy this to your project)
-│   ├── agents/               # 27 specialized agent definitions
-│   ├── hooks/                # 18 top-level hook files + lib/ utilities
+│   ├── agents/               # 23 specialized agent definitions
+│   ├── hooks/                # 20 top-level hook files + lib/ utilities
 │   │   ├── lib/              # Shared hook libraries
 │   │   ├── notifications/    # Multi-channel notification system
 │   │   ├── scout-block/      # Broad search prevention
 │   │   └── tests/            # Hook test suites
-│   ├── skills/               # 170 skill definitions
+│   ├── skills/               # 123 skill definitions
 │   │   ├── <skill>/          # Each skill directory contains:
 │   │   │   ├── SKILL.md      # Entry point (prompt + frontmatter)
 │   │   │   ├── scripts/      # Optional automation scripts
@@ -284,7 +283,7 @@ The entire framework is **project-agnostic**. All project-specific knowledge liv
 ```
 ┌─────────────────────────────────────┐
 │     Generic Framework (reusable)    │
-│ 18 Hook Files + 170 Skills + 19 Flows │
+│ 20 Hook Files + 123 Skills + 19 Flows │
 └──────────────┬──────────────────────┘
                │
         ┌──────┴──────┐
@@ -341,25 +340,20 @@ Seven principles that make this framework work reliably across any project:
 
 ## What's Project-Agnostic vs Project-Specific
 
-| Component                  | Agnostic? | Notes                                                                |
-| -------------------------- | --------- | -------------------------------------------------------------------- |
-| Skills (`.claude/skills/`) | Yes       | Behavioral patterns, not code patterns                               |
-| Agents (`.claude/agents/`) | Yes       | Role definitions, not project logic                                  |
-| Hooks (`.claude/hooks/`)   | Yes       | Context injection reads from config                                  |
-| Workflows                  | Yes       | Process definitions, not implementation                              |
+| Component                  | Agnostic? | Notes                                                                    |
+| -------------------------- | --------- | ------------------------------------------------------------------------ |
+| Skills (`.claude/skills/`) | Yes       | Behavioral patterns, not code patterns                                   |
+| Agents (`.claude/agents/`) | Yes       | Role definitions, not project logic                                      |
+| Hooks (`.claude/hooks/`)   | Yes       | Context injection reads from config                                      |
+| Workflows                  | Yes       | Process definitions, not implementation                                  |
 | `CLAUDE.md`                | **No**    | Generated/merged per project via `/project-init` (`/ai-context-refresh`) |
-| `docs/project-config.json` | **No**    | Generated per project via `/project-init` (`/project-config`)        |
-| `docs/project-reference/`  | **No**    | Generated per project via `/project-init` (`/scan-all`)              |
+| `docs/project-config.json` | **No**    | Generated per project via `/project-init` (`/project-config`)            |
+| `docs/project-reference/`  | **No**    | Generated per project via `/project-init` (`/scan-all`)                  |
 
 ## Optional Dependencies
 
-Most framework features work with Node.js and Python 3. Some skills require additional tools:
-
-| Skill    | Dependency       | Install                   |
-| -------- | ---------------- | ------------------------- |
-| `devops` | Docker, Wrangler | `npm install -g wrangler` |
-
-See [INSTALLATION.md](.claude/skills/INSTALLATION.md) for full dependency list.
+Most framework features work with Node.js and Python 3. Some skills require additional tools —
+see [INSTALLATION.md](.claude/skills/INSTALLATION.md) for the full dependency list.
 
 Automated install scripts:
 

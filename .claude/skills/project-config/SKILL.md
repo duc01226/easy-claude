@@ -53,7 +53,7 @@ Create `plans/{date}-project-config-scan.md`:
 1. Record scale classification from Step 1
 2. Group config sections into phases (≤5 tasks each) while preserving full section coverage
 3. Include review-and-fix cycle after each phase
-4. Include every Phase 2 section (2a–2q) as either its own task or a named task inside a compact group with explicit evidence for each section
+4. Include every Phase 2 section (2a–2r) as either its own task or a named task inside a compact group with explicit evidence for each section
 
 **Phase template:**
 
@@ -103,7 +103,8 @@ Medium/large projects: `mkdir -p tmp/project-config` — write phase reports bef
 docs/project-config.json
 ├── schemaVersion, project{ name, description, languages[], packageManagers[], monorepoTool }
 ├── modules[] — { name, kind, pathRegex, description, tags[], meta{} }
-├── contextGroups[] — { name, pathRegexes[], fileExtensions[], guideDoc, patternsDoc, stylingDoc, designSystemDoc, rules[] }
+├── contextGroups[] — { name, pathRegexes[], pathGlobs[], fileNameRegexes[], excludePathRegexes[], excludePathGlobs[], fileExtensions[], priority, guideDoc, patternsDoc, stylingDoc, designSystemDoc, referenceDocs[], skills[], rules[], origin, detectedFingerprint }
+├── conventionInjection — { enabled, maxChars, maxClassesPerEdit, reinjectAfterBytes, reinjectAfterMinutes, blindReinjectAfterMinutes, onRead, compactionMarkers[] }  (optional; per-file convention reminder)
 ├── styling — { technology, guideDoc, appMap{}, patterns[] }
 ├── designSystem — { docsPath, modernUiNote, appMappings[] }
 ├── componentSystem — { type, selectorPrefixes[], filePattern, layerClassification{} }
@@ -237,6 +238,7 @@ Build `framework { name, searchPatternKeywords[] }` from commonly used base clas
 
 Build `contextGroups[]` with `pathRegexes[]`, `fileExtensions[]`, `patternsDoc`, `rules[]`.
 Rules MUST ATTENTION be specific: "Use the service-specific repository (e.g. `OrderRepository`), not the generic repository base" not "follow best practices".
+Each group is also a **convention class** (see 2r): include matchers (`pathRegexes` / `pathGlobs` / `fileNameRegexes` — at least one non-empty), optional excludes, `priority` band, and deliverable items (`rules[]`, `skills[]`, `referenceDocs[]`, `guideDoc`, `patternsDoc`).
 
 ### 2f–2h. Design System, Styling, Component System
 
@@ -339,6 +341,21 @@ node -e "const h=require('./.claude/hooks/lib/session-init-helpers.cjs');const{l
 - For each **`renames[]`** `{from,to}`: if `docs/project-reference/<from>` exists — `git mv` it to `<to>` when `<to>` is absent; if `<to>` already exists, `<from>` is a stale duplicate → confirm `<to>` holds the canonical content, then `git rm <from>`. Migrate every downstream textual reference (`docs-index-reference.md`, `project-structure-reference.md`) `<from>` → `<to>`.
 - **`added[]`** are canonical docs missing on disk — the SessionStart hook (or the matching `/scan --target=<key>`) creates them. Do not hand-fabricate content; per-doc purpose/sections come from `DEFAULT_REFERENCE_DOCS`.
 - Re-run the probe after merging; `changed:false` with empty `renames`/`added`/`removedLegacy` is the only PASS state.
+
+### 2r. Convention Classes — Detect & Merge (NEVER clobber)
+
+Per-file convention classes tell the AI which rules, skill protocols and reference docs apply when it reads or edits a file (hook `file-convention-inject.cjs`; hookless fallback = CLAUDE.md "Automatic Skill Activation" table + `node .claude/hooks/lib/file-conventions.cjs --lookup <path>`). Run AFTER 2e/2i/2q so detection sees the final `testing`, `e2eTesting`, `integrationTestVerify`, `specRoots`, `modules` and `framework` values:
+
+```bash
+node .claude/hooks/lib/convention-merge.cjs --detect --merge            # dry run: added / refreshed / kept
+node .claude/hooks/lib/convention-merge.cjs --detect --merge --write --enable   # apply + conventionInjection.enabled=true
+node .claude/hooks/lib/file-conventions.cjs --lookup <sample-path>      # verify what a file would receive
+```
+
+- Detection is stack-agnostic: it derives classes (`feature-spec`, `integration-test`, `e2e-test`, `test`, `backend`, `frontend`, `styling`, `general-code`) only from existing config keys and keeps only docs/skills that exist on disk.
+- Merge is additive: a new class is ADDED with `origin: "detected"` + `detectedFingerprint`; a maintainer class (no/other origin) or an edited detected class (fingerprint no longer matches) is KEPT byte-identical; only an unedited detected class is REFRESHED. Nothing is ever removed.
+- `--write` replaces the config atomically (temp + rename) and re-serializes it as 2-space JSON, so formatting may change even when no class did; content is unchanged unless the summary reports `added`, `refreshed` or a switch flip. Precedence: `priority` ascending (100 specific · 500 default · 900 general), ties by declaration order; earlier section wins on conflict.
+- Opt-in only: `--enable` belongs to this explicit setup run; upgrades and hooks never flip it (absent `conventionInjection` ⇒ disabled, silent), and it never overrides a maintainer's explicit `enabled: false` (reported as `enableSkipped`).
 
 ---
 

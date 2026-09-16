@@ -244,23 +244,22 @@ module.exports = {
             },
         },
         {
-            // Pinned carrier count (no silent cap): review-protocol-injection reaches 14 carriers =
+            // Pinned carrier count (no silent cap): review-protocol-injection reaches 13 carriers =
             // 9 review SKILLs (code-review, changes-review, artifact-review, knowledge-review,
             // production-readiness-review, plan-review, why-review, spec-clarify, architecture-review-full)
-            // + 5 review AGENTS (code-reviewer, spec-compliance-reviewer, quality-gate-review, planner,
-            // integration-tester).
+            // + 4 review AGENTS (code-reviewer, spec-compliance-reviewer, planner, integration-tester).
             // spec-clarify (the post-spec clarification gate) joined as the 8th skill: it runs INLINE for
             // its AskUserQuestion gate but performs the SAME validate→fix→fresh-full-re-review cycle as its
             // review-family peers, so it carries the trio (double-round-trip / fresh-context / protocol-injection)
             // at parity with artifact-review. architecture-review-full (the whole-project architecture-health
             // audit) joined as the 9th skill: it is an adoption-matrix review skill (BATCHING + SEVERITY in
             // inject_review_skill_blocks.py) that synthesizes a consolidated report, so it carries the plain
-            // review-protocol trio at parity. A 15th appearing — or one vanishing — must surface loudly here
+            // review-protocol trio at parity. A 14th appearing — or one vanishing — must surface loudly here
             // rather than quietly widen/narrow the guarded set.
-            name: 'COVERAGE: review-protocol-injection reaches all 14 carriers and carries the Triangulation protocol (post-P1)',
+            name: 'COVERAGE: review-protocol-injection reaches all 13 carriers and carries the Triangulation protocol (post-P1)',
             fn() {
                 const carriers = PAIRS.filter((p) => p.tag === 'review-protocol-injection');
-                assertEqual(carriers.length, 14, `expected 14 review-protocol-injection carriers, found ${carriers.length}`);
+                assertEqual(carriers.length, 13, `expected 13 review-protocol-injection carriers, found ${carriers.length}`);
                 const canon = CANON_BODY.get('review-protocol-injection');
                 assertTrue(
                     canon != null && /Spec ↔ Tests ↔ Code Triangulation/.test(canon),
