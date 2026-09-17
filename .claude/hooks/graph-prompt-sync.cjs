@@ -19,6 +19,20 @@
  * unchanged, which is the overwhelmingly common case. Python is spawned only
  * when HEAD actually moved.
  *
+ * Unavailable-dependency case: when HEAD HAS moved but the graph toolchain is
+ * not installed, the HEAD gate can never fire — the marker is only written on a
+ * decided sync — so EVERY prompt paid two Python spawns to rediscover the same
+ * missing package, and the state never self-healed. A bounded negative cache
+ * records that verdict for `DEPS_UNAVAILABLE_TTL_MS`; `graph-session-init`
+ * clears it the moment an install succeeds. The `.last-seen-head` marker is
+ * still NOT written on this path — the graph genuinely is not synced, and
+ * claiming otherwise would suppress the sync that follows the repair.
+ *
+ * Total budget: the component timeouts below sum past this hook's own declared
+ * timeout, and `execFileSync` blocks the event loop so that declared timeout
+ * cannot fire to stop them. HOOK_BUDGET_MS is therefore enforced HERE, by
+ * handing `invokeGraph` only the wall time actually left.
+ *
  * Older-checkout case: when HEAD is BEHIND the graph (an older branch or
  * commit the graph already covers), `sync` returns `graph_ahead_skipped` and
  * changes nothing — that rule lives in the Python sync, not here, so every
@@ -31,6 +45,9 @@
 const { runHook } = require('./lib/hook-runner.cjs');
 const {
     isGraphAvailable,
+    isDepsUnavailableCached,
+    markDepsUnavailable,
+    clearDepsUnavailable,
     invokeGraph,
     getGraphDbPath,
     getGitHead,
@@ -44,9 +61,24 @@ const { debug } = require('./lib/debug-log.cjs');
 
 const TAG = 'graph-prompt-sync';
 
+/**
+ * Wall-clock ceiling for everything this hook does, in ms.
+ *
+ * Held below the declared `timeout: 30000` so the hook returns on its own
+ * terms rather than being reported as timed out. The runner's timeout races a
+ * promise against a handler that blocks the event loop in `execFileSync`, so
+ * it can only ever report the overrun after the fact — it cannot prevent it.
+ */
+const HOOK_BUDGET_MS = 20000;
+
+/** Below this much remaining budget, starting a sync is not worth the spawn. */
+const MIN_SYNC_MS = 3000;
+
 runHook(
     TAG,
     async () => {
+        const startedAt = Date.now();
+
         // Config not initialized; project init/prompt gates own user-facing guidance.
         if (!isConfigPopulated()) return;
 
@@ -63,8 +95,22 @@ runHook(
             return;
         }
 
+        // A recent check already found the toolchain missing. Skip the two
+        // Python spawns isGraphAvailable() would cost to learn that again.
+        if (isDepsUnavailableCached()) {
+            debug(TAG, 'Dependencies recorded unavailable, skipping probe');
+            return;
+        }
+
         const status = isGraphAvailable();
-        if (!status.available) return; // never auto-install from a prompt hook
+        if (!status.available) {
+            // Never auto-install from a prompt hook — graph-session-init owns
+            // repair. Record the verdict so the next prompt is free.
+            debug(TAG, 'Graph unavailable, recording verdict');
+            markDepsUnavailable();
+            return;
+        }
+        clearDepsUnavailable();
 
         // Serialize against graph-auto-update so two processes never write at once.
         if (!acquireUpdateLock()) {
@@ -73,7 +119,13 @@ runHook(
         }
 
         try {
-            const result = invokeGraph('sync', [], 15000);
+            const remainingMs = HOOK_BUDGET_MS - (Date.now() - startedAt);
+            if (remainingMs < MIN_SYNC_MS) {
+                debug(TAG, `Only ${remainingMs}ms of budget left, deferring sync`);
+                return; // marker deliberately NOT written — retry on the next prompt
+            }
+
+            const result = invokeGraph('sync', [], Math.min(15000, remainingMs));
             debug(TAG, `sync result: ${result ? result.reason : 'failed'}`);
             // Record the HEAD as evaluated for any decided outcome, including the
             // graph-ahead no-op. On failure (null) leave the marker alone so the

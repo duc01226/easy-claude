@@ -19,7 +19,7 @@ Use this local workflow sequence when behavior, public contracts, specs, tests, 
 ## 2. Local Artifact Owners
 
 - Project config: `docs/project-config.json`
-- Project docs index: `docs/project-reference/docs-index-reference.md`
+- Project docs index: `docs-index-reference.md` in the project-reference docs root — default `docs/project-reference`; a `docsRoots.projectReference.path` entry in `docs/project-config.json` overrides the path
 - Codex context mirror: `.codex/CODEX_CONTEXT.md`
 - Root instruction mirror: `AGENTS.md`
 - Shared reusable contract: `shared/sdd-artifact-contract.md`

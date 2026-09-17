@@ -8,16 +8,18 @@
 | ------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------- |
 | **New to Claude Code?**        | [quick-start.md](./quick-start.md) - 5-minute onboarding                                                                           |
 | **Need a skill?**              | [skills/README.md](./skills/README.md) - 123 skills catalog                                                                        |
-| **Building a feature?**        | [skills/README.md](./skills/README.md) + `docs/project-reference/` patterns                                                        |
+| **Building a feature?**        | [skills/README.md](./skills/README.md) + project-reference root patterns                                                           |
 | **Verifying user experience?** | [configuration/experience-verification.md](./configuration/experience-verification.md) - portable evidence and acceptance contract |
 | **Understanding hooks?**       | [hooks/README.md](./hooks/README.md) - 20 top-level hook files deep-dive                                                           |
 | **Understanding workflows?**   | `CLAUDE.md` workflow catalog (project root) - 19 workflows                                                                         |
 | **Configuring Claude?**        | [configuration/README.md](./configuration/README.md)                                                                               |
-| **Team collaboration?**        | [team-collaboration-guide.md](./team-collaboration-guide.md) - PO, BA, QA, QC, UX workflows                                    |
+| **Team collaboration?**        | [team-collaboration-guide.md](./team-collaboration-guide.md) - PO, BA, QA, QC, UX workflows                                        |
 | **Graph intelligence?**        | [code-graph-mechanism.md](./code-graph-mechanism.md) - How structural code analysis works                                          |
 | **Setup graph?**               | [code-graph-setup.md](./code-graph-setup.md) - Install Python deps + build graph                                                   |
 
 ## Documentation Map
+
+Project-owned branches below sit at their DEFAULT roots; `docs/project-config.json` (`specRoots` / `docsRoots`) relocates them.
 
 ```
 .claude/docs/
@@ -28,7 +30,7 @@
 |   |-- README.md             Skills overview + full catalog
 |   +-- (patterns)           → docs/project-reference/
 |
-|-- hooks/                    20 top-level hook files, 35 lib modules
+|-- hooks/                    20 top-level hook files, 36 lib modules
 |   |-- README.md             Hooks overview, lessons system, session lifecycle
 |   +-- extending-hooks.md    How to create custom hooks
 |
@@ -54,29 +56,29 @@
 
 ### "I need to..."
 
-| Task                     | Command                    | Skill                     |
-| ------------------------ | -------------------------- | ------------------------- |
-| Implement a feature      | `/feature-implement`       | `feature-implement`       |
-| Fix a bug                | `/fix`                     | `debug-investigate`       |
-| Create a PR              | `/commit --push`           | `commit`                  |
-| Understand code          | `/investigate`             | `investigate`             |
-| Plan implementation      | `/plan`                    | `plan`                    |
-| Run tests                | `/test`                    | `test`                    |
-| Review code              | `/review`                  | `code-review`             |
-| Debug issues             | `/debug-investigate`       | `debug-investigate`       |
-| Create user story        | `/story`                   | `story`                   |
-| Prioritize backlog       | `/prioritize`              | `prioritize`              |
-| Quality gate (pre-dev)   | `/dor-gate`                | `dor-gate`                |
-| Quality gate (pre-qa)    | `/artifact-review --type=spec-tests` | `artifact-review` |
-| Quality gate (pre-release) | `/production-readiness-review` | `production-readiness-review` |
-| Create test cases        | `/spec [mode=tests]`       | `spec [mode=tests]`       |
-| Create design spec       | `/design-spec`             | `design-spec`             |
-| Analyze blast radius     | `/graph-blast-radius`      | `graph-blast-radius`      |
-| Build code graph         | `/graph-build`             | `graph-build`             |
-| Review integration tests | `/integration-test-review` | `integration-test-review` |
-| Verify test traceability | `/integration-test-verify` | `integration-test-verify` |
-| Enhance AI prompts       | `/prompt-enhance`          | `prompt-enhance`          |
-| Create PBI visual mockup | `/pbi-mockup`              | `pbi-mockup`              |
+| Task                       | Command                              | Skill                         |
+| -------------------------- | ------------------------------------ | ----------------------------- |
+| Implement a feature        | `/feature-implement`                 | `feature-implement`           |
+| Fix a bug                  | `/fix`                               | `debug-investigate`           |
+| Create a PR                | `/commit --push`                     | `commit`                      |
+| Understand code            | `/investigate`                       | `investigate`                 |
+| Plan implementation        | `/plan`                              | `plan`                        |
+| Run tests                  | `/test`                              | `test`                        |
+| Review code                | `/review`                            | `code-review`                 |
+| Debug issues               | `/debug-investigate`                 | `debug-investigate`           |
+| Create user story          | `/story`                             | `story`                       |
+| Prioritize backlog         | `/prioritize`                        | `prioritize`                  |
+| Quality gate (pre-dev)     | `/dor-gate`                          | `dor-gate`                    |
+| Quality gate (pre-qa)      | `/artifact-review --type=spec-tests` | `artifact-review`             |
+| Quality gate (pre-release) | `/production-readiness-review`       | `production-readiness-review` |
+| Create test cases          | `/spec [mode=tests]`                 | `spec [mode=tests]`           |
+| Create design spec         | `/design-spec`                       | `design-spec`                 |
+| Analyze blast radius       | `/graph-blast-radius`                | `graph-blast-radius`          |
+| Build code graph           | `/graph-build`                       | `graph-build`                 |
+| Review integration tests   | `/integration-test-review`           | `integration-test-review`     |
+| Verify test traceability   | `/integration-test-verify`           | `integration-test-verify`     |
+| Enhance AI prompts         | `/prompt-enhance`                    | `prompt-enhance`              |
+| Create PBI visual mockup   | `/pbi-mockup`                        | `pbi-mockup`                  |
 
 ### "I want to learn about..."
 
@@ -100,7 +102,7 @@
 | ----------------------------------- | ----- | ------------- | --------- |
 | quick-start.md                      | ~180  | ~500          | Fast      |
 | skills/README.md                    | ~350  | ~900          | Fast      |
-| _(see docs/project-reference/)_     |       |               |           |
+| _(see the project-reference root)_  |       |               |           |
 | hooks/README.md                     | ~310  | ~800          | Fast      |
 | configuration/settings-reference.md | ~390  | ~1000         | Moderate  |
 | troubleshooting.md                  | ~415  | ~1100         | Moderate  |
@@ -109,30 +111,32 @@
 
 ## Core Pattern References
 
+Unprefixed filenames resolve inside the project-reference docs root — default `docs/project-reference`; a `docsRoots.projectReference.path` entry in `docs/project-config.json` overrides the path.
+
 | Document                                                     | When to Use                                                 |
 | ------------------------------------------------------------ | ----------------------------------------------------------- |
-| `docs/project-reference/project-structure-reference.md`      | Understanding project structure                             |
-| `docs/project-reference/backend-patterns-reference.md`       | Backend development tasks (project-specific companion doc)  |
-| `docs/project-reference/frontend-patterns-reference.md`      | Frontend development tasks (project-specific companion doc) |
-| `docs/project-reference/integration-test-reference.md`       | Test fixtures, patterns, module abbreviations               |
-| `docs/project-reference/feature-spec-reference.md`           | Feature doc templates, app/service mapping                  |
-| `docs/project-reference/domain-entities-reference.md`        | Domain entity catalog, relationships, cross-service sync    |
+| `project-structure-reference.md`                             | Understanding project structure                             |
+| `backend-patterns-reference.md`                              | Backend development tasks (project-specific companion doc)  |
+| `frontend-patterns-reference.md`                             | Frontend development tasks (project-specific companion doc) |
+| `integration-test-reference.md`                              | Test fixtures, patterns, module abbreviations               |
+| `feature-spec-reference.md`                                  | Feature doc templates, app/service mapping                  |
+| `domain-entities-reference.md`                               | Domain entity catalog, relationships, cross-service sync    |
 | [skill-naming-conventions.md](./skill-naming-conventions.md) | Skill naming rules and prefix guide                         |
 | [configuration/README.md](./configuration/README.md)         | Settings schema, permissions, hooks config                  |
 
 ## Complete Guides (Large Reference Docs)
 
-| Document                                       | Size  | Use Case                        |
-| ---------------------------------------------- | ----- | ------------------------------- |
-| `docs/project-reference/scss-styling-guide.md` | ~30KB | BEM, design tokens (in `docs/`) |
+| Document                                         | Size  | Use Case           |
+| ------------------------------------------------ | ----- | ------------------ |
+| `scss-styling-guide.md` (project-reference root) | ~30KB | BEM, design tokens |
 
 ## Related Documentation
 
-| Location                                | Content                               |
-| --------------------------------------- | ------------------------------------- |
-| `CLAUDE.md` (project root)              | Root instructions (always read first) |
-| `docs/project-reference/design-system/` | Frontend design system                |
-| `docs/specs/`                           | Tech-free 8-section Feature Specs     |
+| Location                                  | Content                               |
+| ----------------------------------------- | ------------------------------------- |
+| `CLAUDE.md` (project root)                | Root instructions (always read first) |
+| `design-system/` (project-reference root) | Frontend design system                |
+| The business spec root                    | Tech-free 8-section Feature Specs     |
 
 ## How to Use This Documentation
 
@@ -153,7 +157,7 @@
 | Hook Events            | 8     |
 | Agents                 | 23    |
 | Workflows              | 19    |
-| Hook Tests             | 224   |
+| Hook Tests             | 232   |
 | Documentation Files    | 28    |
 
 ---

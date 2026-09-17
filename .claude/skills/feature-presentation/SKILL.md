@@ -21,8 +21,8 @@ description: '[Documentation] Use when synthesizing specs, PBIs, ideas, and mock
 
 - **Purpose / altitude:** a SYNTHESIS deck at a higher altitude than `pbi-mockup` — accumulates many artifacts (ideas + specs + PBIs + stories + design-specs + mockups) into ONE stakeholder presentation, not one PBI's UI preview.
 - **Main steps (read-this-if-nothing-else):** (1) resolve `activePlan` scope across created→now → (2) gap-fill: missing PBIs use `workflow-spec-to-pbi` as a SUB-AGENT, missing mockups in `idea-to-pbi` use `pbi-mockup`, `idea-to-spec` skips mockups → (3) load design context → (4) [BLOCKING] inventory UI + flows → (5) extract journeys, one todo each → (6) assemble → (7) save → (8) [BLOCKING] fidelity/demo integrity → (8b) Demo-Quality → (9) report.
-- **Output/demo contract:** exactly ONE self-contained HTML at `team-artifacts/presentations/{YYMMDD}-presentation-{slug}.html` with inline CSS/JS, Google Fonts only, no CDN/reveal.js, vanilla-JS navigation, a guide slide, and one interactive demo-flow slide per main journey; reuse existing `*-mockup.html` via escaped `<iframe srcdoc>` and accept only complete PBI full flows.
-- **Branches and evidence:** evaluate shared `isLargeIdea`; true requires the complete `large_idea_decomposition` block, stable slice IDs, and Decomposition & boundaries beside the all-PBI backlog and all-PBI presentation; missing/conflicting fields block deck quality and the presentation never creates `docs/product-roadmap.md`. `idea-to-spec` uses only design-spec ASCII/tables + narrated frames; missing visuals render an empty state; use real domain data and keep prose tech-agnostic.
+- **Output/demo contract:** exactly ONE self-contained HTML at `{artifacts-root}/presentations/{YYMMDD}-presentation-{slug}.html` (`{artifacts-root}` defaults to `team-artifacts`; a `docsRoots.teamArtifacts.path` entry in `docs/project-config.json` overrides the path) with inline CSS/JS, Google Fonts only, no CDN/reveal.js, vanilla-JS navigation, a guide slide, and one interactive demo-flow slide per main journey; reuse existing `*-mockup.html` via escaped `<iframe srcdoc>` and accept only complete PBI full flows.
+- **Branches and evidence:** evaluate shared `isLargeIdea`; true requires the complete `large_idea_decomposition` block, stable slice IDs, and Decomposition & boundaries beside the all-PBI backlog and all-PBI presentation; missing/conflicting fields block deck quality and the presentation never creates the product roadmap artifact (default `docs/product-roadmap.md`; a `docsRoots.productRoadmap.path` entry in `docs/project-config.json` overrides the path). `idea-to-spec` uses only design-spec ASCII/tables + narrated frames; missing visuals render an empty state; use real domain data and keep prose tech-agnostic.
 
 **Workflow:**
 
@@ -32,7 +32,7 @@ description: '[Documentation] Use when synthesizing specs, PBIs, ideas, and mock
 4. **[BLOCKING] Inventory existing UI + map connected flows** — `SYNC:existing-ui-research`.
 5. **Accumulate + structure content (incl. journey extraction)** — parse each artifact into stakeholder sections; extract the main-story flows into an ordered journey list + `TaskCreate` one todo per journey; REAL domain data, never Lorem (`references/artifact-accumulation.md`).
 6. **Assemble ONE standalone HTML deck** — inline CSS (design tokens, BEM) + vanilla-JS engine + a "How to drive this demo" guide slide + one interactive demo-flow slide per journey (embedded mockup + narration strip) + `<iframe srcdoc>` mockup embeds; spec-only path renders ASCII/tables + narrated ASCII frames; empty-state slide when no visual exists (`references/deck-template.md`).
-7. **Save** → `team-artifacts/presentations/{YYMMDD}-presentation-{slug}.html`.
+7. **Save** → `{artifacts-root}/presentations/{YYMMDD}-presentation-{slug}.html` (see "Path roots").
 8. **[BLOCKING] Fidelity gate (incl. demo integrity)** — validate deck visuals + every journey clicks through vs Step 4 inventory; record `Fidelity vs existing UI: PASS|FAIL` (`references/deck-template.md`).
 8b. **[BLOCKING] Demo-Quality review** — final stakeholder-comprehension pass; record `Demo quality: PASS|FAIL`.
 9. **Report** — path, artifact count synthesized, demo journeys, stakeholder sections, fidelity + demo-quality verdicts.
@@ -67,16 +67,23 @@ Synthesize session specs, PBIs, ideas, and mockups into one standalone HTML deck
 
 ## Quick Reference
 
+### Path roots (resolve before reading or writing any path below)
+
+- `{artifacts-root}` — the team-artifacts root: default `team-artifacts`; a `docsRoots.teamArtifacts.path` entry in `docs/project-config.json` overrides the path.
+- `{spec-root}` — the business Feature Spec root: default `docs/specs`; a `specRoots.business.path` entry in `docs/project-config.json` overrides the path.
+
+Both placeholders stand for the RESOLVED value everywhere they appear in this skill; write the resolved path into every deck, report, and sub-agent brief — never the placeholder.
+
 ### Input
 
 | Source        | Path                                                         |
 | ------------- | ------------------------------------------------------------ |
-| Ideas         | `team-artifacts/ideas/{YYMMDD}-*`                            |
-| PBIs          | `team-artifacts/pbis/{YYMMDD}-pbi-*.md`                      |
-| User stories  | `team-artifacts/pbis/stories/{YYMMDD}-us-*.md`              |
-| Mockups       | `team-artifacts/pbis/*-mockup.html`                          |
-| Design specs  | `team-artifacts/design-specs/{YYMMDD}-designspec-*.md`      |
-| Feature Specs | `docs/specs/{Bucket}/README.{Feature}.md`                   |
+| Ideas         | `{artifacts-root}/ideas/{YYMMDD}-*`                          |
+| PBIs          | `{artifacts-root}/pbis/{YYMMDD}-pbi-*.md`                    |
+| User stories  | `{artifacts-root}/pbis/stories/{YYMMDD}-us-*.md`             |
+| Mockups       | `{artifacts-root}/pbis/*-mockup.html`                        |
+| Design specs  | `{artifacts-root}/design-specs/{YYMMDD}-designspec-*.md`     |
+| Feature Specs | `{spec-root}/{Bucket}/README.{Feature}.md`                   |
 | Active plan   | `activePlan` in the OS-temp `CK_TMP_DIR/session/{id}.json` (the path returned by `getSessionStatePath`, written by `set-active-plan.cjs`) |
 | Explicit scope | User provides specs/features as argument                    |
 
@@ -84,7 +91,7 @@ Synthesize session specs, PBIs, ideas, and mockups into one standalone HTML deck
 
 | Type       | Path                                                          |
 | ---------- | ------------------------------------------------------------- |
-| HTML deck  | `team-artifacts/presentations/{YYMMDD}-presentation-{slug}.html` |
+| HTML deck  | `{artifacts-root}/presentations/{YYMMDD}-presentation-{slug}.html` |
 
 ### Related
 
@@ -100,7 +107,7 @@ Synthesize session specs, PBIs, ideas, and mockups into one standalone HTML deck
 
 Determine deck scope; full algorithm: `references/artifact-accumulation.md` → "Scope Resolution".
 
-1. **Default (active-plan anchor):** Read `activePlan` from `CK_TMP_DIR/session/{id}.json` (path returned by `getSessionStatePath`, written by `.claude/scripts/set-active-plan.cjs`). Accumulate the plan's FULL artifact set across its **created→now date range** — glob `team-artifacts/{ideas,pbis,pbis/stories,design-specs}` and `*-mockup.html` for EVERY `{YYMMDD}` in range, plus plan `docs/specs` outputs.
+1. **Default (active-plan anchor):** Read `activePlan` from `CK_TMP_DIR/session/{id}.json` (path returned by `getSessionStatePath`, written by `.claude/scripts/set-active-plan.cjs`). Accumulate the plan's FULL artifact set across its **created→now date range** — glob `team-artifacts/{ideas,pbis,pbis/stories,design-specs}` and `*-mockup.html` for EVERY `{YYMMDD}` in range, plus plan `docs/specs` outputs. **Both roots in that glob are DEFAULTS** — keep the brace expression exactly as written and swap the `team-artifacts` / `docs/specs` prefixes for `{artifacts-root}` / `{spec-root}` whenever `docsRoots.teamArtifacts.path` / `specRoots.business.path` are declared in `docs/project-config.json`.
     - **Multi-day rule:** a workflow that spans midnight authors specs on day 1 and PBIs on day 2 — a single-day `{YYMMDD}` glob silently drops day-1 artifacts. Glob over the whole created→now range, never just today.
 2. **Custom prompt:** If user names specs/features, widen scope to those artifacts plus dependents.
 3. **Standalone + no prompt:** Use `AskUserQuestion` to ask which specs/ideas to present — never silently guess scope.
@@ -117,16 +124,16 @@ Fill missing downstream artifacts; routing: `references/artifact-accumulation.md
 
 Deck CSS uses project design tokens (same discovery as `pbi-mockup`):
 
-1. **Mandatory baseline:** Read `docs/project-reference/design-system/README.md` and `docs/project-reference/design-system/design-system-canonical.md`.
+1. **Mandatory baseline:** Read `design-system/README.md` and `design-system/design-system-canonical.md` under the project-reference root (default `docs/project-reference`; a `docsRoots.projectReference.path` entry in `docs/project-config.json` overrides the path).
 2. **Primary:** Read top-level `designSystem` in `docs/project-config.json` — use `designSystem.docsPath` + `designSystem.canonicalDoc`, then match the presented feature/app context against `designSystem.appMappings[]` to select the per-app doc.
-3. **Fallback:** `Glob("docs/project-reference/design-system/*.md")` → case-insensitive substring match on app/feature name. **Default:** `README.md`.
+3. **Fallback:** `Glob("docs/project-reference/design-system/*.md")` → case-insensitive substring match on app/feature name. **Default:** `README.md`. The glob's `docs/project-reference` prefix is the DEFAULT root; substitute the value of `docsRoots.projectReference.path` from `docs/project-config.json` when it is declared, leaving the rest of the pattern unchanged.
 4. Extract colors, typography, spacing, border-radius, shadows → these become the deck's CSS variables.
 
 ### Step 4: [BLOCKING] Inventory Existing UI + Map Connected Flows
 
 > **[BLOCKING] Complete `SYNC:existing-ui-research` before assembly:** inventory related UI, not generic HTML; classify Common/Domain-Shared/Page components with base/owner; map connected flows; reuse before inventing; record findings. Skip only backend-only work and state that explicitly.
 
-1. Read the first 200 lines of `docs/project-reference/frontend-patterns-reference.md` — base components, form/table/dialog patterns.
+1. Read the first 200 lines of `frontend-patterns-reference.md` in the project-reference root (default `docs/project-reference`; a `docsRoots.projectReference.path` entry in `docs/project-config.json` overrides the path) — base components, form/table/dialog patterns.
 2. Sample 2–3 real shared/module components for layout and CSS naming.
 3. Map connected feature flows so embedded visuals fit surrounding navigation.
 
@@ -134,9 +141,9 @@ Deck CSS uses project design tokens (same discovery as `pbi-mockup`):
 
 Parse each in-scope artifact into stakeholder slide sections (see Slide Taxonomy); parse map: `references/artifact-accumulation.md` → "Per-Artifact-Type Parse Map".
 
-- Use REAL domain entity field names + realistic sample data from `docs/project-reference/domain-entities-reference.md` — never Lorem ipsum or "Item 1, Item 2".
+- Use REAL domain entity field names + realistic sample data from `domain-entities-reference.md` in the project-reference root (default `docs/project-reference`; a `docsRoots.projectReference.path` entry in `docs/project-config.json` overrides the path) — never Lorem ipsum or "Item 1, Item 2".
 - Keep accompanying prose/captions tech-agnostic (business/observable terms, not framework/CSS class names).
-- **Extract each PBI's priority/rank** — read the `priority` label + numeric `rank` from each PBI's frontmatter (and the ranked-order backlog artifact `team-artifacts/backlog/*-backlog.md` when present). The Scope & backlog slide MUST display PBIs in ranked order with a priority label per PBI card — the deck carries the same priority info the backlog and mockups do. If PBIs lack priority, note it explicitly rather than dropping the field.
+- **Extract each PBI's priority/rank** — read the `priority` label + numeric `rank` from each PBI's frontmatter (and the ranked-order backlog artifact `{artifacts-root}/backlog/*-backlog.md` when present). The Scope & backlog slide MUST display PBIs in ranked order with a priority label per PBI card — the deck carries the same priority info the backlog and mockups do. If PBIs lack priority, note it explicitly rather than dropping the field.
 - **Extract the decomposition context** — locate the owning idea/spec/PBI block; evaluate shared `isLargeIdea`; when any signal is true, validate all five `large_idea_decomposition` fields (`outcome_slices`, `dependencies_order`, `non_goals`, `risks_evidence`, `deferred_work_owner`) and preserve each slice ID through every PBI/story/mockup. Add a Decomposition & boundaries slide (or equivalent Scope & backlog section) with dependency order, non-goals, evidence owners, and deferred-work ownership. If all signals are false, record `Decomposition: N/A — ordinary isolated scope` and do not invent a roadmap section.
 - **Extract the main-story / MVP flows into an ordered journey list** — from PBI `## Acceptance Criteria` GIVEN/WHEN/THEN + story "As a / I want / So that" + each mock-up's flow-specs (`references/artifact-accumulation.md` §6 Journey-Extraction Map). One journey per main user story (MVP happy path), each an ordered sequence: entry → click steps ("click X → see Y → move to Z") → end state + one plain-language explanation per step. When a `-mockup.html` exists, reuse its flow-specs verbatim so the deck demo == the per-PBI prototype.
 - **`TaskCreate` one todo per journey slide** — so each journey is assembled (Step 6) and later verified (Step 8 demo integrity / final demo-quality review) individually. (The "think → plan → many todos before do".)
@@ -156,7 +163,7 @@ Build the single self-contained HTML from `references/deck-template.md`:
 
 ### Step 7: Save
 
-- **Path:** `team-artifacts/presentations/{YYMMDD}-presentation-{slug}.html` (create the `presentations/` dir if absent).
+- **Path:** `{artifacts-root}/presentations/{YYMMDD}-presentation-{slug}.html` — `{artifacts-root}` defaults to `team-artifacts` and is relocated by a `docsRoots.teamArtifacts.path` entry in `docs/project-config.json` (create the `presentations/` dir under it if absent).
 - `{slug}` = the presented feature(s) or plan slug.
 
 ### Step 8: [BLOCKING] Fidelity Validation — Deck Matches Existing UI
@@ -184,7 +191,7 @@ If **FAIL**, fix the journey slides (re-extract from the §6 journey map / re-em
 After assembly, output:
 
 ```
-Deck generated: team-artifacts/presentations/{YYMMDD}-presentation-{slug}.html
+Deck generated: {artifacts-root}/presentations/{YYMMDD}-presentation-{slug}.html
 - Artifacts synthesized: {count} ({ideas}/{specs}/{pbis}/{stories}/{mockups}/{design-specs})
 - Backlog priority: {ranked | not prioritized} — Scope & backlog slide shows {N} PBIs in ranked order with priority labels
 - Demo journeys: {count} ({journey titles})
@@ -336,7 +343,8 @@ A synthesis deck differs from a per-PBI mockup in inputs, audience, and altitude
 > **Assume existing values are intentional — ask WHY before changing OR flagging one as a defect.** Before changing or reporting a constant, limit, flag, cutoff, wording, or pattern, read nearby context and history, the CALLER's ordering, and 2+ sibling call sites of the same convention. A doc stating WHAT without WHY is missing rationale, not proof of a missing guard.
 > **Surface ambiguity before acting — don't pick silently.** Multiple valid interpretations require an explicit question or stated assumption with risk.
 > **Assert the outcome your system owns, not the intermediate state your infrastructure owns.** When verifying async work, assert the final business state — never the delivery/retry bookkeeping held in shared infrastructure that any co-running process can write. Such a check passes when run alone and flakes the moment anything else shares that infrastructure.
-> **Store disposable generated output in the project workspace.** If an output can be regenerated and is not source code, a canonical source-of-truth, or an intentionally versioned projection, write it under the project-root `tmp/` or `temp/` directory (prefer `tmp/`), scoped to the run. This includes temporary state, integration/E2E results, reports, logs, screenshots, traces, videos, coverage, dumps, and candidate evidence. Never put these outputs in source, docs, `plans/`, `team-artifacts/`, or mirror directories; the project-root `.gitignore` must ignore `/tmp/` and `/temp/` by default. Committed fixtures, accepted baselines, canonical specs/docs, and explicitly versioned generated mirrors remain at their declared owner paths.
+> **Store disposable generated output in the project workspace.** If an output can be regenerated and is not source code, a canonical source-of-truth, or an intentionally versioned projection, write it under the project-root `tmp/` or `temp/` directory (prefer `tmp/`), scoped to the run. This includes temporary state, integration/E2E results, reports, logs, screenshots, traces, videos, coverage, dumps, and candidate evidence. Never put these outputs in source, docs, the plans root (default `plans/`; a `docsRoots.plans.path` entry in `docs/project-config.json` overrides the path), the team-artifacts root (default `team-artifacts/`; `docsRoots.teamArtifacts.path` in the same config overrides the path), or mirror directories; the project-root `.gitignore` must ignore `/tmp/` and `/temp/` by default. Committed fixtures, accepted baselines, canonical specs/docs, and explicitly versioned generated mirrors remain at their declared owner paths.
+> **Judge the environment before judging the code.** A bug report, failed test, error, or unexpected output is not proof of a code defect. Before and during adjudication, weigh environment causes as a competing hypothesis — setup, config, version and dependency state, service dependencies, stale artifacts or leftover state, and transient resource pressure (RAM, CPU, disk, handles, network). State the discriminator you ran; fix an environment cause in the environment, never by editing product code or weakening a test to absorb it.
 > **Keep shared guidance role-relevant.** Universal guidance must help every receiving skill or agent; code-specific obligations belong only in code-specific protocols.
 
 <!-- /SYNC:ai-mistake-prevention -->
@@ -445,7 +453,7 @@ A synthesis deck differs from a per-PBI mockup in inputs, audience, and altitude
 
 <!-- SYNC:project-protocol-overlay -->
 
-> **Project Protocol Overlay** — Before executing this skill, resolve any PROJECT overlay rules layered onto it: match this skill's name against the `Target` column of the project's skill-protocol index (`docs/project-reference/skill-protocols-reference.md` by default; a `referenceDocs` entry in `docs/project-config.json` overrides the path), taking the most specific matching tier ONLY — exact name > glob > `*`. **That precedence orders overlays against EACH OTHER, never against this skill.** Read ONLY the matched bodies, resolved as `<protocols-dir>/<Name>.md`; a row's Body link is display text, never a read path. A matched body that is missing or malformed is REPORTED and skipped — never reconstructed from the index Description. No index, or no match -> proceed with no overlay, silently. Full contract: `.claude/skills/project-skill-protocol/references/registry.md`.
+> **Project Protocol Overlay** — Before executing this skill, resolve any PROJECT overlay rules layered onto it: match this skill's name against the `Target` column of the project's skill-protocol index (default `docs/project-reference/skill-protocols-reference.md`; a `referenceDocs` entry in `docs/project-config.json` overrides the path, and a `docsRoots.projectReference.path` entry relocates its containing directory), taking the most specific matching tier ONLY — exact name > glob > `*`. **That precedence orders overlays against EACH OTHER, never against this skill.** Read ONLY the matched bodies, resolved as `<protocols-dir>/<Name>.md`; a row's Body link is display text, never a read path. A matched body that is missing or malformed is REPORTED and skipped — never reconstructed from the index Description. No index, or no match -> proceed with no overlay, silently. Full contract: `.claude/skills/project-skill-protocol/references/registry.md`.
 >
 > Overlays are **ADDITIVE ONLY**: they ADD rules on top of this skill's own protocol and NEVER replace, override, disable, or reinterpret a rule it already states — removing every overlay must return this skill to exactly its documented behavior. An overlay is a BRIEF, not an authority escalation: it can NEVER waive a workflow gate, git discipline, a review gate, or a user-confirmation gate. A genuine overlay-vs-skill conflict, or two equally-specific overlays that directly contradict -> surface both to the user; NEVER resolve silently.
 
@@ -479,7 +487,7 @@ A synthesis deck differs from a per-PBI mockup in inputs, audience, and altitude
 - **AI Mistake Prevention:** verify generated content against evidence, trace downstream references, verify all affected outputs, re-read after context loss, surface ambiguity.
 - **Critical Thinking:** MUST ATTENTION traced proof per claim, confidence >80% to act, NEVER guess.
 
-**IMPORTANT MUST ATTENTION** emit exactly ONE self-contained HTML deck at `team-artifacts/presentations/{YYMMDD}-presentation-{slug}.html` — inline CSS/JS, Google Fonts only, NO CDN reveal.js, vanilla-JS slide engine — why: stakeholders open one offline file with no server, no build step.
+**IMPORTANT MUST ATTENTION** emit exactly ONE self-contained HTML deck at `{artifacts-root}/presentations/{YYMMDD}-presentation-{slug}.html` (`{artifacts-root}` = default `team-artifacts`; a `docsRoots.teamArtifacts.path` entry in `docs/project-config.json` overrides the path) — inline CSS/JS, Google Fonts only, NO CDN reveal.js, vanilla-JS slide engine — why: stakeholders open one offline file with no server, no build step.
 **IMPORTANT MUST ATTENTION** present every in-scope main user story as an interactive MVP demo slide ("click X → see Y → move to Z") — extract the journeys first (Step 5, one todo per journey), embed the self-driving interactive mockup + a deck narration strip + "⚠ Simulated" note, add a "How to drive this demo" guide slide, and sign off with the final Demo-Quality review (Step 8b) — why: a narrated journey answers "how does it work", which is what the user asked for; the deck adds only narration, never a second interactivity engine.
 **IMPORTANT MUST ATTENTION** REUSE existing `-mockup.html` via `<iframe srcdoc="…escaped…">` — never regenerate a mockup that already exists; escaping rule (`&`-first, escape-once-unconditionally) lives in `references/deck-template.md` — why: re-rendering duplicates the mockup engine and risks divergence.
 **IMPORTANT MUST ATTENTION** accept a PBI mockup only when its Releasable Full-Flow gate passes: all required pages/views, navigation edges, common/domain/page components, applicable states, and the visible/persisted business result are demoable; one static/disconnected screen set is FAIL and routes back to `pbi-mockup`.

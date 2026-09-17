@@ -64,8 +64,12 @@ const DOMAIN_ENTITY_REFERENCE_REFRESH_WORKFLOW_IDS = new Set([
   "workflow-bugfix",
   "workflow-feature",
 ]);
+// The domain-entity refresh is anchored on the step it must follow. That anchor is derived from the
+// workflow's own sequence rather than hard-coded, because not every delivery workflow ends its
+// verification with the same step: `workflow-bugfix` runs no standalone `test` step (its regression
+// evidence is the RED/GREEN `integration-test` pair plus `integration-test-verify`). The prose anchor
+// skips conditional neighbours, so the injectContext names the last step that ALWAYS runs.
 const DOMAIN_ENTITY_REFERENCE_REFRESH_CONTEXT_TERMS = [
-  "after /test",
   "before /docs-update",
   "run /scan --target=domain-entities",
   "when the final diff",
@@ -106,7 +110,7 @@ const STEP_ALIASES = new Map([
 // Targeted skills must carry the goal-contract lifecycle: resolve the active goal before work,
 // append iteration evidence after execution, and (for review/workflow surfaces) emit a Goal
 // Satisfaction matrix before reporting PASS. These checks scan the `.claude/skills` root ONLY:
-// `.agents/**` is a generated mirror refreshed by `npm run codex:sync`, so it is legitimately
+// `.agents/**` is a generated mirror refreshed by the standalone runner (`.claude/skills/sync-codex/scripts/run-codex-sync.mjs`), so it is legitimately
 // stale between a source edit and the next sync — gating on it would make source-first edits
 // unverifiable. Mirror parity is owned by the sync tooling, not this verifier.
 const GOAL_CONTRACT_MARKER = "SYNC:goal-contract-satisfaction-loop";
@@ -636,24 +640,38 @@ function ensureWorkflowPolicy(workflowId, workflow, sequence, failures) {
     const scanCount = sequence.filter((step) => step === domainEntityScanStep).length;
     const scanIndex = sequence.indexOf(domainEntityScanStep);
     const hasTerminalDomainEntityRefresh =
-      scanCount === 1 &&
-      scanIndex > 0 &&
-      sequence[scanIndex - 1] === "test" &&
-      sequence[scanIndex + 1] === "docs-update";
+      scanCount === 1 && scanIndex > 0 && sequence[scanIndex + 1] === "docs-update";
     if (scanCount !== 1) {
       failures.push(
-        `Workflow policy violation (${workflowId}): requires exactly one terminal domain-entity reference refresh test -> scan --target=domain-entities -> docs-update (found ${scanCount})`
+        `Workflow policy violation (${workflowId}): requires exactly one terminal domain-entity reference refresh <verification step> -> scan --target=domain-entities -> docs-update (found ${scanCount})`
       );
     } else if (!hasTerminalDomainEntityRefresh) {
       failures.push(
-        `Workflow policy violation (${workflowId}): missing terminal domain-entity reference refresh test -> scan --target=domain-entities -> docs-update`
+        `Workflow policy violation (${workflowId}): missing terminal domain-entity reference refresh <verification step> -> scan --target=domain-entities -> docs-update`
       );
     }
 
-    const workflowContext = normalizeWhitespace(workflow?.preActions?.injectContext ?? "").toLowerCase();
-    const missingContextTerms = DOMAIN_ENTITY_REFERENCE_REFRESH_CONTEXT_TERMS.filter(
-      (term) => !workflowContext.includes(term)
+    // The prose anchor is the last step before the scan that ALWAYS runs: a conditional neighbour
+    // (e.g. an opt-in E2E handoff) is skipped by default, so naming it would tell the reader to
+    // sequence the refresh after a step that usually never executes.
+    const conditionalSteps = new Set(
+      (Array.isArray(workflow?.sequence) ? workflow.sequence : [])
+        .filter((step) => step && typeof step === "object" && step.applicability)
+        .map((step) => normalizeWhitespace(`${step.skill ?? ""}`).replace(/^[/$]+/, "").trim())
+        .filter(Boolean)
     );
+    let anchorIndex = scanIndex - 1;
+    while (anchorIndex > 0 && conditionalSteps.has(sequence[anchorIndex].split(" ")[0])) {
+      anchorIndex -= 1;
+    }
+    const anchorTerm =
+      anchorIndex >= 0 ? `after /${sequence[anchorIndex].split(" ")[0]}` : "after /test";
+
+    const workflowContext = normalizeWhitespace(workflow?.preActions?.injectContext ?? "").toLowerCase();
+    const missingContextTerms = [
+      anchorTerm,
+      ...DOMAIN_ENTITY_REFERENCE_REFRESH_CONTEXT_TERMS,
+    ].filter((term) => !workflowContext.includes(term));
     if (missingContextTerms.length > 0) {
       failures.push(
         `Workflow policy violation (${workflowId}): missing conditional domain-entity reference refresh context term(s): ${missingContextTerms.join(", ")}`
@@ -949,7 +967,7 @@ async function checkParallelGroupsMirrorParity(workflows, rootDir, failures, res
         if (mirror.text === null) continue;
         if (!mirror.text.includes(expected)) {
           failures.push(
-            `parallelGroups parity (${workflowId}/${manifest.mode}/${group?.id ?? "(unnamed)"}): expected barrier token absent from ${mirror.label} — regenerate mirrors (npm run codex:sync). Expected: ${expected}`
+            `parallelGroups parity (${workflowId}/${manifest.mode}/${group?.id ?? "(unnamed)"}): expected barrier token absent from ${mirror.label} — regenerate mirrors (node .claude/skills/sync-codex/scripts/run-codex-sync.mjs). Expected: ${expected}`
           );
         }
       }

@@ -51,48 +51,16 @@ function getErrorFormatter() {
   );
 }
 
-// Build command allowlist - these are allowed even if they contain blocked paths
-// Handles flags and filters: npm build, pnpm --filter web run build, yarn workspace app build
-// Also allows: go, cargo, make, mvn/mvnw, gradle/gradlew, dotnet, docker, bazel, cmake, sbt, flutter, swift, ant, ninja, meson
-const BUILD_COMMAND_PATTERN =
-  /^(npm|pnpm|yarn|bun)\s+([^\s]+\s+)*(run\s+)?(build|test|lint|dev|start|install|ci|add|remove|update|publish|pack|init|create|exec)/;
-const TOOL_COMMAND_PATTERN =
-  /^(\.\/)?(npx|pnpx|bunx|tsc|esbuild|vite|webpack|rollup|turbo|nx|jest|vitest|mocha|eslint|prettier|go|cargo|make|mvn|mvnw|gradle|gradlew|dotnet|docker|podman|kubectl|helm|terraform|ansible|bazel|cmake|sbt|flutter|swift|ant|ninja|meson|python|python3|pip|pipx)/;
-
-/**
- * Check if a command is a build/tooling command (should be allowed)
- * Handles compound commands joined by &&, ||, ; by checking each sub-command
- *
- * @param {string} command - The command to check
- * @returns {boolean}
- */
-function isBuildCommand(command) {
-  if (!command || typeof command !== "string") return false;
-  const trimmed = command.trim();
-
-  // Check the full command first (fast path)
-  if (
-    BUILD_COMMAND_PATTERN.test(trimmed) ||
-    TOOL_COMMAND_PATTERN.test(trimmed)
-  ) {
-    return true;
-  }
-
-  // Split compound commands on &&, ||, ; and check each sub-command
-  // This handles cases like "cd path && dotnet build" where the build tool
-  // is not the first command in the chain
-  const subCommands = trimmed.split(/\s*(?:&&|\|\||;)\s*/);
-  if (subCommands.length > 1) {
-    return subCommands.some((sub) => {
-      const s = sub.trim();
-      return (
-        s && (BUILD_COMMAND_PATTERN.test(s) || TOOL_COMMAND_PATTERN.test(s))
-      );
-    });
-  }
-
-  return false;
-}
+// The whole-command build allowlist that used to live here (BUILD_COMMAND_PATTERN,
+// TOOL_COMMAND_PATTERN, isBuildCommand) was REMOVED on 2026-09-17. It was dead:
+// `evaluate` never called it, and the live exemption is token-level —
+// `scout-block/path-extractor.cjs` `isBuildOperationToken`, which classifies a
+// build operation per compound segment instead of anchoring a regex at the start
+// of the whole command. It was not harmless dead code: both test files carried
+// their own inline COPIES of it and asserted against those, so 90 cases reported
+// green while exercising nothing that ships. They now drive `evaluate` directly,
+// and doing so immediately surfaced a live crash on `go build ./...`
+// (pattern-matcher.cjs matchPath).
 
 function evaluate(data) {
   if (!data || typeof data !== 'object') return undefined;
@@ -153,4 +121,4 @@ if (require.main === module) {
   });
 }
 
-module.exports = { isBuildCommand, evaluate };
+module.exports = { evaluate };

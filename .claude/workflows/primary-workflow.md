@@ -7,7 +7,7 @@
 **Core Phases (all workflows follow subsets of these):**
 
 1. **Discover** — Use `/investigate` to locate files, inspect patterns, and run graph traces
-2. **Plan** — `/plan` + `/plan-review` + `/plan-validate`, save in `./plans/`
+2. **Plan** — `/plan` + `/plan-review` + `/plan-validate`, save in the plans root (default `plans/`; a `docsRoots.plans.path` entry in `docs/project-config.json` overrides the path)
 3. **Design Review** — `/why-review` (rationale), `/spec [mode=tests]` + `/artifact-review --type=spec-tests` (test specs)
 4. **Implement** — `/feature-implement` or `/plan-execute`, compile-check after every file change
 5. **Verify** — `/test`, `/integration-test`, `/spec [mode=sync]`
@@ -36,7 +36,7 @@
 
 ## Phase 1: Planning
 
--   Use `/plan` skill to create an implementation plan with tasks in `./plans/`
+-   Use `/plan` skill to create an implementation plan with tasks in the plans root (default `plans/`; a `docsRoots.plans.path` entry in `docs/project-config.json` overrides the path)
 -   Use `/web-research` → `/deep-research` for investigating technical topics before planning
 -   Validate plan via `/plan-review` (recursive until its current severity bar is clear) and `/plan-validate` (critical questions)
 -   **DO NOT** create new enhanced files — update existing files directly

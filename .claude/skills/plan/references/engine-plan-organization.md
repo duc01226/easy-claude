@@ -9,7 +9,7 @@
 
 Use `Plan dir:` from `## Naming` section injected by hooks. This is the full computed path.
 
-**Example:** `plans/251101-1505-authentication/` or `ai_docs/feature/MRR-1453/`
+**Example:** `plans/251101-1505-authentication/` or `ai_docs/feature/MRR-1453/` — the `plans` segment is the plans root default; a `docsRoots.plans.path` entry in `docs/project-config.json` wins over it, and `.ck.json` `paths.plans` is the fallback when project-config declares nothing.
 
 ##### File Organization
 
@@ -368,8 +368,10 @@ List affected files with:
 
 **Plan Directory Structure**
 
+Tree root below is the plans root: default `plans`, overridden by a `docsRoots.plans.path` entry in `docs/project-config.json`, with `.ck.json` `paths.plans` as the fallback when project-config declares nothing.
+
 ```
-plans/
+<plans root>/
 └── {date}-plan-name/
     ├── research/
     │   ├── researcher-XX-report.md
@@ -468,4 +470,4 @@ After creating all phase files, run the **recursive decomposition loop**:
 
 > **[IMPORTANT]** Use `TaskCreate` to break ALL work into small tasks BEFORE starting — including tasks for each file read. This prevents context loss from long files. For simple tasks, AI MUST ATTENTION ask user whether to skip.
 
-- `docs/specs/` — Test specifications by module (read existing TCs to include test strategy in plan)
+- The business spec root (default `docs/specs/`; a `specRoots.business.path` entry in `docs/project-config.json` overrides the path) — Test specifications by module (read existing TCs to include test strategy in plan)

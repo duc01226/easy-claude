@@ -35,9 +35,11 @@
 
 > When this task touches an existing codebase's frontend or UI:
 
-- Component patterns: `docs/project-reference/frontend-patterns-reference.md`
-- Styling/BEM guide: `docs/project-reference/scss-styling-guide.md`
-- Design system tokens: `docs/project-reference/design-system/README.md`
+All three live under the reference-docs root (default `docs/project-reference`; a `docsRoots.projectReference.path` entry in `docs/project-config.json` overrides the path):
+
+- Component patterns: `frontend-patterns-reference.md`
+- Styling/BEM guide: `scss-styling-guide.md`
+- Design system tokens: `design-system/README.md`
 
 > **SCSS/BEM rules (canonical):** BEM classes on ALL template elements (`block__element--modifier`). No magic numbers — use variables / design tokens. Max 3 nesting levels.
 

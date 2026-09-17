@@ -34,14 +34,6 @@ function getVenvPython() {
 }
 
 /**
- * Get the venv pip binary path (platform-aware).
- * @returns {string} Absolute path to venv pip binary
- */
-function getVenvPip() {
-    return process.platform === 'win32' ? path.join(VENV_DIR, 'Scripts', 'pip.exe') : path.join(VENV_DIR, 'bin', 'pip');
-}
-
-/**
  * Check if the venv exists and has a valid Python binary.
  * @returns {boolean}
  */
@@ -191,7 +183,7 @@ function ensurePythonDeps() {
                 message:
                     '[code-graph] Failed to create Python venv.\n' +
                     `Error: ${err.message}\n` +
-                    `Fallback: run manually:\n  ${sysPython} -m venv ${VENV_DIR}\n  ${getVenvPip()} install -r ${REQUIREMENTS_FILE}`
+                    `Fallback: run manually:\n  ${sysPython} -m venv ${VENV_DIR}\n  ${getVenvPython()} -m pip install -r ${REQUIREMENTS_FILE}`
             };
         }
     }
@@ -204,10 +196,44 @@ function ensurePythonDeps() {
         };
     }
 
-    const venvPip = getVenvPip();
+    // Install through `python -m pip`, never the pip BINARY. A venv created with
+    // --without-pip, or one whose Scripts/pip.exe was pruned, still has a working
+    // python.exe — so isVenvValid() returns true, step 3 skips re-creating it, and a
+    // pip-binary call then fails ENOENT on every attempt, leaving the venv PERMANENTLY
+    // unrepairable by this function. `python -m pip` works whenever the pip module is
+    // importable, and `ensurepip` installs that module when it is not.
+    const venvPy = getVenvPython();
     debug(TAG, `Installing dependencies from ${REQUIREMENTS_FILE}`);
+
     try {
-        execFileSync(venvPip, ['install', '-r', REQUIREMENTS_FILE, '--quiet'], {
+        execFileSync(venvPy, ['-m', 'pip', '--version'], {
+            encoding: 'utf-8',
+            timeout: 15000,
+            stdio: ['pipe', 'pipe', 'pipe']
+        });
+    } catch {
+        debug(TAG, 'pip module absent in venv - bootstrapping via ensurepip');
+        try {
+            execFileSync(venvPy, ['-m', 'ensurepip', '--upgrade'], {
+                encoding: 'utf-8',
+                timeout: 120000,
+                cwd: PROJECT_DIR,
+                stdio: ['pipe', 'pipe', 'pipe']
+            });
+        } catch (err) {
+            debugError(TAG, err);
+            return {
+                ok: false,
+                message:
+                    '[code-graph] Venv has no pip module and the ensurepip bootstrap failed.\n' +
+                    `Error: ${err.stderr || err.message}\n` +
+                    `Fallback: run manually:\n  ${venvPy} -m ensurepip --upgrade\n  ${venvPy} -m pip install -r ${REQUIREMENTS_FILE}`
+            };
+        }
+    }
+
+    try {
+        execFileSync(venvPy, ['-m', 'pip', 'install', '-r', REQUIREMENTS_FILE, '--quiet'], {
             encoding: 'utf-8',
             timeout: 120000, // 2 min for pip install
             cwd: PROJECT_DIR,
@@ -221,12 +247,11 @@ function ensurePythonDeps() {
             message:
                 '[code-graph] Failed to install Python dependencies.\n' +
                 `Error: ${err.stderr || err.message}\n` +
-                `Fallback: run manually:\n  ${venvPip} install -r ${REQUIREMENTS_FILE}`
+                `Fallback: run manually:\n  ${venvPy} -m pip install -r ${REQUIREMENTS_FILE}`
         };
     }
 
     // 5. Verify installation
-    const venvPy = getVenvPython();
     try {
         execFileSync(venvPy, ['-c', DEPS_IMPORT_CHECK], {
             encoding: 'utf-8',
@@ -240,8 +265,8 @@ function ensurePythonDeps() {
                 '[code-graph] Dependencies installed but import verification failed.\n' +
                 `Error: ${err.message}\n` +
                 'Try: ' +
-                venvPip +
-                ' install tree-sitter tree-sitter-language-pack networkx'
+                venvPy +
+                ' -m pip install tree-sitter tree-sitter-language-pack networkx'
         };
     }
 
@@ -432,6 +457,80 @@ function writeLastSeenHead(head) {
 }
 
 /**
+ * Path to the "dependencies were missing when last checked" marker.
+ *
+ * Sibling of `.last-seen-head` and the same kind of object: a debounce marker,
+ * never a source of truth. It exists because `isGraphAvailable()` costs TWO
+ * Python spawns (`findPython` + `checkTreeSitter`, each with a 5s cap) and the
+ * in-process memos above are worthless to a hook — every prompt and every edit
+ * starts a fresh node process, so an unavailable install re-pays that cost
+ * forever without ever changing the outcome.
+ * @returns {string} Absolute path to the marker file
+ */
+function getDepsUnavailablePath() {
+    return path.join(PROJECT_DIR, '.code-graph', '.deps-unavailable');
+}
+
+/**
+ * How long a recorded "deps unavailable" verdict suppresses re-probing.
+ * Six hours: long enough that a broken install cannot tax a whole working
+ * session, short enough that an install repaired OUTSIDE this framework (a
+ * manual `pip install`, a rebuilt venv) is picked up the same day without
+ * anyone knowing this marker exists. A repair performed THROUGH the framework
+ * does not wait for it — `graph-session-init` clears the marker on success.
+ */
+const DEPS_UNAVAILABLE_TTL_MS = 6 * 60 * 60 * 1000;
+
+/**
+ * Whether a recent check already found the graph dependencies unavailable.
+ * @param {number} [ttlMs] - Age beyond which the verdict is re-probed
+ * @returns {boolean} true when a fresh negative verdict is on record
+ */
+function isDepsUnavailableCached(ttlMs = DEPS_UNAVAILABLE_TTL_MS) {
+    try {
+        const age = Date.now() - fs.statSync(getDepsUnavailablePath()).mtimeMs;
+        // A marker written microseconds ago can carry an mtime a few ms in the
+        // FUTURE — filesystem timestamp granularity, or a clock the OS has since
+        // nudged. Rejecting a negative age would therefore discard the verdict at
+        // the exact moment it was recorded, which is the one moment it matters, so
+        // a small negative age counts as fresh. A marker more than a full TTL ahead
+        // is a broken clock rather than a verdict, and is re-probed.
+        return age < ttlMs && age > -ttlMs;
+    } catch {
+        return false; // no marker, or unreadable -> probe for real
+    }
+}
+
+/**
+ * Record that the graph dependencies were unavailable.
+ * @returns {void}
+ */
+function markDepsUnavailable() {
+    if (rootResolution.error) return;
+    try {
+        fs.mkdirSync(path.dirname(getDepsUnavailablePath()), { recursive: true });
+        fs.writeFileSync(getDepsUnavailablePath(), new Date().toISOString(), 'utf-8');
+    } catch {
+        /* best-effort marker — a failed write only costs a redundant re-probe */
+    }
+}
+
+/**
+ * Drop any recorded "deps unavailable" verdict.
+ *
+ * Called on every path that OBSERVES the dependencies working, so a repair is
+ * honoured immediately instead of waiting out the TTL.
+ * @returns {void}
+ */
+function clearDepsUnavailable() {
+    try {
+        fs.unlinkSync(getDepsUnavailablePath());
+    } catch {
+        /* absent is the normal case */
+    }
+}
+
+/**
  * Check full graph availability: Python + tree-sitter + graph.db exists.
  * @returns {{ available: boolean, python: boolean, deps: boolean, graph: boolean }}
  */
@@ -483,6 +582,10 @@ module.exports = {
     getLastSeenHeadPath,
     readLastSeenHead,
     writeLastSeenHead,
+    getDepsUnavailablePath,
+    isDepsUnavailableCached,
+    markDepsUnavailable,
+    clearDepsUnavailable,
     checkTreeSitter,
     getGraphDbPath,
     getScriptPath,

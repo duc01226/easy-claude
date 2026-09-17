@@ -17,9 +17,11 @@ const {
     loadProjectConfig,
     isConfigPopulated,
     getConfiguredProjectConfigPath,
-    getConfiguredDocsIndexPath
+    getConfiguredDocsIndexPath,
+    PORTABILITY_TOKENS
 } = require('./project-config-loader.cjs');
-const { SCAN_STALE_PATH, ensureProjectTmpDir } = require('./ck-paths.cjs');
+const { SCAN_STALE_PATH, SCAN_VERIFIED_PATH, ensureProjectTmpDir } = require('./ck-paths.cjs');
+const { contentHash } = require('./doc-stamp-guard.cjs');
 const { resolveProjectRoot } = require('./project-root.cjs');
 
 const rootResolution = resolveProjectRoot({ cwd: process.cwd(), scriptPath: __filename, env: process.env });
@@ -33,78 +35,132 @@ const DOCS_DIR = path.dirname(REFERENCE_DOCS_DIR);
 // SKELETON — from project-config-init.cjs
 // =============================================================================
 
+/** Force forward slashes so generated JSON never carries a Windows backslash. */
+function toPosix(p) {
+    return String(p).replace(/\\/g, '/');
+}
+
 /**
- * Skeleton template for project-config.json.
- * Contains all sections that hooks consume, with placeholder values.
+ * Reference-doc directory as a REPO-RELATIVE posix path.
+ *
+ * `getConfiguredDocsIndexPath()` returns an ABSOLUTE path
+ * (`project-config-loader.cjs:28-31` joins onto the project root), but every value in
+ * `project-config.json` is repo-relative — and the schema REJECTS an absolute one as
+ * repo-escaping (`project-config-schema.cjs:1199`). Fail-soft: if the derived dir
+ * cannot be expressed inside the repo, fall back to the documented default rather
+ * than emitting a path the schema will reject.
  */
-const SKELETON = {
-    _description: 'Project-specific configuration consumed by .claude hooks at runtime. Update when adding services/apps.',
-    schemaVersion: 2,
-    project: {
-        name: '',
-        description: '',
-        languages: [],
-        packageManagers: []
-    },
-    framework: {
-        name: '',
-        backendPatternsDoc: 'docs/project-reference/backend-patterns-reference.md',
-        frontendPatternsDoc: 'docs/project-reference/frontend-patterns-reference.md',
-        codeReviewDoc: 'docs/project-reference/code-review-rules.md',
-        integrationTestDoc: 'docs/project-reference/integration-test-reference.md',
-        searchPatternKeywords: []
-    },
-    modules: [],
-    contextGroups: [],
-    designSystem: {
-        docsPath: 'docs/project-reference/design-system',
-        appMappings: []
-    },
-    styling: {
-        fileExtensions: [],
-        guideDoc: '',
-        appMap: {},
-        patterns: []
-    },
-    componentSystem: {
-        selectorPrefixes: ['app-'],
-        layerClassification: {}
-    },
-    testing: { frameworks: [], filePatterns: {}, commands: {} },
-    experienceVerification: {
-        enabled: false,
-        evidenceRoot: 'tmp/experience',
-        baselineRoot: 'tests/experience-baselines',
-        acceptancePolicy: 'manual-acceptance-required',
-        reviewOn: ['new-surface', 'changed-surface', 'bugfix', 'baseline-mismatch'],
-        surfaces: [],
-        notApplicableReason: 'Configure observable surfaces when the project has them; otherwise retain an evidence-backed NOT-APPLICABLE record.'
-    },
-    databases: {},
-    messaging: {},
-    api: {},
-    infrastructure: {},
-    referenceDocs: [],
-    workflowPatterns: {
-        architectureStyle: '',
-        codeHierarchy: '',
-        cssMethodology: '',
-        stateManagement: '',
-        crossModuleValidation: '',
-        featureDocTemplate: '',
-        reviewRulesDoc: ''
-    },
-    integrationTestVerify: {
-        guidance: '',
-        referenceDocs: [],
-        quickRunCommand: '',
-        testProjectPattern: '',
-        testProjects: [],
-        systemCheckCommand: '',
-        runScript: '',
-        startupScript: ''
+function referenceDocsRelDir() {
+    const rel = toPosix(path.relative(PROJECT_DIR, REFERENCE_DOCS_DIR));
+    if (!rel || rel.startsWith('..') || path.posix.isAbsolute(rel) || /^[A-Za-z]:/.test(rel)) {
+        return PORTABILITY_TOKENS.REF_DOCS_ROOT.default;
     }
-};
+    return rel;
+}
+
+/** Join a filename onto the resolved reference-doc directory, POSIX-style. */
+function referenceDocPath(filename) {
+    return path.posix.join(referenceDocsRelDir(), filename);
+}
+
+/**
+ * Build the skeleton template for project-config.json.
+ *
+ * Evaluated PER CALL, never frozen at module load: the reference-doc directory is
+ * derived from `portability.docsIndexPath`, so a module-level constant would bake
+ * whichever project loaded this module first into every later write. The five doc
+ * paths below and `docsRoots.projectReference.path` are composed from
+ * `REFERENCE_DOCS_DIR` instead of restating the default reference-doc literal, so
+ * `/project-init` cannot re-break a relocated project by re-writing defaults over it.
+ *
+ * SEEDS, NEVER OVERWRITES: the only writer (`session-init-docs.cjs:99`) emits this
+ * object solely when the config file does not exist, so an existing project's
+ * `docsRoots` / `framework.*Doc` / `designSystem.docsPath` values are left alone.
+ *
+ * @returns {object} a fresh skeleton config object
+ */
+function buildSkeleton() {
+    return {
+        _description: 'Project-specific configuration consumed by .claude hooks at runtime. Update when adding services/apps.',
+        schemaVersion: 2,
+        project: {
+            name: '',
+            description: '',
+            languages: [],
+            packageManagers: []
+        },
+        framework: {
+            name: '',
+            backendPatternsDoc: referenceDocPath('backend-patterns-reference.md'),
+            frontendPatternsDoc: referenceDocPath('frontend-patterns-reference.md'),
+            codeReviewDoc: referenceDocPath('code-review-rules.md'),
+            integrationTestDoc: referenceDocPath('integration-test-reference.md'),
+            searchPatternKeywords: []
+        },
+        // Relocatable documentation roots, seeded at their defaults so a fresh config
+        // SHOWS the keys rather than leaving them invisible. `projectReference` tracks
+        // the derived reference-doc dir; the other five carry the documented default
+        // owned by `PORTABILITY_TOKENS` (project-config-loader.cjs:117).
+        docsRoots: {
+            projectReference: { path: referenceDocsRelDir() },
+            adr: { path: PORTABILITY_TOKENS.ADR_ROOT.default },
+            templates: { path: PORTABILITY_TOKENS.TEMPLATES_ROOT.default },
+            plans: { path: PORTABILITY_TOKENS.PLANS_ROOT.default },
+            teamArtifacts: { path: PORTABILITY_TOKENS.TEAM_ARTIFACTS_ROOT.default },
+            productRoadmap: { path: PORTABILITY_TOKENS.PRODUCT_ROADMAP_DOC.default }
+        },
+        modules: [],
+        contextGroups: [],
+        designSystem: {
+            docsPath: referenceDocPath('design-system'),
+            appMappings: []
+        },
+        styling: {
+            fileExtensions: [],
+            guideDoc: '',
+            appMap: {},
+            patterns: []
+        },
+        componentSystem: {
+            selectorPrefixes: ['app-'],
+            layerClassification: {}
+        },
+        testing: { frameworks: [], filePatterns: {}, commands: {} },
+        experienceVerification: {
+            enabled: false,
+            evidenceRoot: 'tmp/experience',
+            baselineRoot: 'tests/experience-baselines',
+            acceptancePolicy: 'manual-acceptance-required',
+            reviewOn: ['new-surface', 'changed-surface', 'bugfix', 'baseline-mismatch'],
+            surfaces: [],
+            notApplicableReason: 'Configure observable surfaces when the project has them; otherwise retain an evidence-backed NOT-APPLICABLE record.'
+        },
+        databases: {},
+        messaging: {},
+        api: {},
+        infrastructure: {},
+        referenceDocs: [],
+        workflowPatterns: {
+            architectureStyle: '',
+            codeHierarchy: '',
+            cssMethodology: '',
+            stateManagement: '',
+            crossModuleValidation: '',
+            featureDocTemplate: '',
+            reviewRulesDoc: ''
+        },
+        integrationTestVerify: {
+            guidance: '',
+            referenceDocs: [],
+            quickRunCommand: '',
+            testProjectPattern: '',
+            testProjects: [],
+            systemCheckCommand: '',
+            runScript: '',
+            startupScript: ''
+        }
+    };
+}
 
 // =============================================================================
 // checkConfigStatus — from project-config-init.cjs
@@ -215,7 +271,7 @@ const DEFAULT_REFERENCE_DOCS = [
     },
     {
         filename: 'spec-system-reference.md',
-        purpose: 'Spec system routing: fixed spec root, canonical Feature Spec ownership, TC registry location, and derived index/ERD rules.',
+        purpose: 'Spec system routing: configured spec roots, canonical Feature Spec ownership, TC registry location, and derived index/ERD rules.',
         sections: [],
         templatePath: '.claude/templates/reference-docs/spec-system-reference.md'
     },
@@ -580,7 +636,9 @@ function initDesignSystemAppDocs() {
     const created = [];
     try {
         const config = loadProjectConfig();
-        const docsPath = config.designSystem?.docsPath || 'docs/project-reference/design-system';
+        // Same derivation as the skeleton: a project that relocated its reference-doc
+        // tree but never set `designSystem.docsPath` must not fall back to the literal.
+        const docsPath = config.designSystem?.docsPath || referenceDocPath('design-system');
         const appMappings = config.designSystem?.appMappings;
         if (!Array.isArray(appMappings) || appMappings.length === 0) return created;
 
@@ -773,8 +831,88 @@ function parseLastScannedDate(filePath) {
 }
 
 /**
+ * Read the local freshness ledger.
+ *
+ * Records scans that correctly wrote NOTHING because the doc's content had not
+ * changed. Without it, suppressing a no-op stamp rewrite would leave the doc
+ * looking permanently stale and make the `.scan-stale` nag unclearable.
+ *
+ * @returns {Record<string, {verifiedAt: string, contentHash: string}>} Empty on any failure
+ */
+function readScanVerifiedLedger() {
+    try {
+        if (!fs.existsSync(SCAN_VERIFIED_PATH)) return {};
+        const parsed = JSON.parse(fs.readFileSync(SCAN_VERIFIED_PATH, 'utf-8'));
+        return parsed && typeof parsed === 'object' && parsed.docs && typeof parsed.docs === 'object'
+            ? parsed.docs
+            : {};
+    } catch {
+        return {}; // Corrupt or unreadable ledger degrades to stamp-only behavior
+    }
+}
+
+/**
+ * Resolve a ledger entry into a verification date — but ONLY while it still
+ * describes the file currently on disk.
+ *
+ * The hash gate is what makes an untracked ledger safe to trust: an entry whose
+ * content hash no longer matches describes a doc that has since changed, so it
+ * proves nothing about the current file and is ignored.
+ *
+ * @param {object} entry - Ledger entry for one doc
+ * @param {string} filePath - Absolute path to the doc
+ * @returns {Date|null} Verification date, or null when the entry cannot be trusted
+ */
+function resolveVerifiedDate(entry, filePath) {
+    if (!entry || typeof entry.verifiedAt !== 'string' || typeof entry.contentHash !== 'string') return null;
+    const date = new Date(`${entry.verifiedAt.slice(0, 10)}T00:00:00Z`);
+    if (isNaN(date.getTime())) return null;
+    // A future date would suppress the staleness gate forever — and precisely
+    // because nobody rescans, nothing would ever correct the entry. A verification
+    // cannot have happened tomorrow; treat it as untrustworthy, not as very fresh.
+    if (date.getTime() > Date.now()) return null;
+    try {
+        if (contentHash(fs.readFileSync(filePath, 'utf-8')) !== entry.contentHash) return null;
+    } catch {
+        return null;
+    }
+    return date;
+}
+
+/**
+ * Record that a doc was re-verified today with no content change.
+ *
+ * Called by a scan that found nothing to update and therefore wrote nothing.
+ * Writes ONLY to the untracked ledger — never to the doc — so re-running a scan
+ * produces no git diff.
+ *
+ * @param {string} filename - Reference doc filename (key of SCAN_SKILL_MAP)
+ * @param {string} [today] - ISO date (default: today)
+ * @returns {boolean} true when recorded
+ */
+function recordDocVerified(filename, today = new Date().toISOString().slice(0, 10)) {
+    if (rootResolution.error) return false;
+    const filePath = path.join(REFERENCE_DOCS_DIR, filename);
+    try {
+        const hash = contentHash(fs.readFileSync(filePath, 'utf-8'));
+        const ledger = readScanVerifiedLedger();
+        ledger[filename] = { verifiedAt: today, contentHash: hash };
+        ensureProjectTmpDir();
+        fs.writeFileSync(SCAN_VERIFIED_PATH, `${JSON.stringify({ docs: ledger }, null, 2)}\n`, 'utf-8');
+        return true;
+    } catch {
+        return false;
+    }
+}
+
+/**
  * Get reference docs that are older than staleDays.
  * Skips placeholders and docs without timestamps (graceful degradation).
+ *
+ * Freshness is the NEWER of the committed `Last scanned` stamp and a trusted
+ * local ledger entry, so a scan that legitimately wrote nothing still counts as
+ * having happened without dirtying a tracked file.
+ *
  * @param {number} staleDays - Age threshold in days
  * @returns {Array<{filename: string, lastScanned: string, ageDays: number, scanSkill: string}>}
  */
@@ -782,11 +920,14 @@ function getStaleReferenceDocs(staleDays) {
     const stale = [];
     const now = Date.now();
     const thresholdMs = staleDays * 24 * 60 * 60 * 1000;
+    const ledger = readScanVerifiedLedger();
 
     for (const [filename, scanSkill] of Object.entries(SCAN_SKILL_MAP)) {
         const filePath = path.join(REFERENCE_DOCS_DIR, filename);
-        const date = parseLastScannedDate(filePath);
-        if (!date) continue; // Skip docs without timestamps — never block incorrectly
+        const stampDate = parseLastScannedDate(filePath);
+        if (!stampDate) continue; // Skip docs without timestamps — never block incorrectly
+        const verifiedDate = resolveVerifiedDate(ledger[filename], filePath);
+        const date = verifiedDate && verifiedDate.getTime() > stampDate.getTime() ? verifiedDate : stampDate;
         const ageMs = now - date.getTime();
         if (ageMs > thresholdMs) {
             stale.push({
@@ -839,7 +980,7 @@ function refreshScanStaleFlag(staleDays = 60) {
 
 module.exports = {
     // From project-config-init.cjs
-    SKELETON,
+    buildSkeleton,
     checkConfigStatus,
     // From init-reference-docs.cjs
     SCAN_SKILL_MAP,
@@ -868,9 +1009,22 @@ module.exports = {
     parseLastScannedDate,
     getStaleReferenceDocs,
     refreshScanStaleFlag,
+    // Local freshness ledger (no-op scans record verification without a git diff)
+    readScanVerifiedLedger,
+    resolveVerifiedDate,
+    recordDocVerified,
     // Shared paths
     PROJECT_DIR,
     CONFIG_PATH,
     DOCS_DIR,
     REFERENCE_DOCS_DIR
 };
+
+// `SKELETON` stays a supported read: every existing consumer destructures it
+// (`session-init-docs.cjs:28`, `scripts/tests/experience-config.test.cjs:10`). As a
+// GETTER it is built at access time, so it carries the per-project derivation instead
+// of a value frozen at module load.
+Object.defineProperty(module.exports, 'SKELETON', {
+    enumerable: true,
+    get: buildSkeleton
+});

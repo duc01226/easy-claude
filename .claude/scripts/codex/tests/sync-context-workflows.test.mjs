@@ -7,6 +7,7 @@ import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import { fileURLToPath } from "node:url";
 import { createRequire } from "node:module";
+import vm from "node:vm";
 
 const execFileAsync = promisify(execFile);
 const thisDir = path.dirname(fileURLToPath(import.meta.url));
@@ -582,5 +583,288 @@ test("sync-context-workflows and Claude catalog render every canonical workflow 
     );
   } finally {
     await fs.rm(tempRoot, { recursive: true, force: true });
+  }
+});
+
+// TC-DOCROOT-028 — a routed field carrying {SPEC_ROOT} must reach the mirror RESOLVED.
+// A bare token in .codex/CODEX_CONTEXT.md is strictly worse than the hardcoded path it
+// replaced, so the assertion is two-sided: the resolved value is present AND the literal
+// token is absent. The fixture declares specRoots, proving the mirror follows CONFIG and
+// not just the default.
+test("sync-context-workflows resolves {SPEC_ROOT} in mirrored workflow text (TC-DOCROOT-028)", async () => {
+  const tempRoot = await fs.mkdtemp(path.join(os.tmpdir(), "codex-sync-context-docroot-"));
+
+  try {
+    await fs.mkdir(path.join(tempRoot, ".claude", "skills", "test"), { recursive: true });
+    await fs.mkdir(path.join(tempRoot, "docs"), { recursive: true });
+    await fs.writeFile(
+      path.join(tempRoot, "docs", "project-config.json"),
+      JSON.stringify({ specRoots: { business: { path: "spec-library" } } }, null, 2),
+      "utf8"
+    );
+    await fs.writeFile(
+      path.join(tempRoot, ".claude", "skills", "test", "SKILL.md"),
+      "---\nname: test\ndescription: fixture\n---\n",
+      "utf8"
+    );
+    await fs.writeFile(
+      path.join(tempRoot, ".claude", "workflows.json"),
+      JSON.stringify({
+        version: "1",
+        workflows: {
+          docroot: {
+            name: "Docroot workflow",
+            description: "Read {SPEC_ROOT}/README.md before starting",
+            sequence: ["test"],
+            preActions: { injectContext: "Specs live in {SPEC_ROOT}/; buckets stay {Bucket}." },
+          },
+        },
+      }, null, 2),
+      "utf8"
+    );
+
+    await runSync(tempRoot);
+    const contextText = await fs.readFile(path.join(tempRoot, ".codex", "CODEX_CONTEXT.md"), "utf8");
+
+    assert.doesNotMatch(contextText, /\{SPEC_ROOT\}/, "a bare portability token must never reach a mirror");
+    assert.match(contextText, /spec-library\/README\.md/, "description must resolve from config");
+    assert.match(contextText, /Specs live in spec-library\//, "injectContext must resolve from config");
+    assert.match(contextText, /\{Bucket\}/, "unknown braces are AI placeholders and must survive verbatim");
+  } finally {
+    await fs.rm(tempRoot, { recursive: true, force: true });
+  }
+});
+
+// TC-DOCROOT-029 — R8 LOCKSTEP. The mirror's own fallback runs only when the loader require
+// fails (stripped portable Codex tree). It must resolve to the DEFAULTS, never pass through.
+// Same isolation technique as extract-sync-block-twin-parity.test.mjs: lift the fallback
+// source and run it under vm, because the loader require succeeds inside this repo and would
+// otherwise mask the branch entirely.
+test("mirror token fallback resolves to loader defaults, never a bare token (TC-DOCROOT-029)", async () => {
+  const twinSource = await fs.readFile(syncContextScript, "utf8");
+  const defaultsSrc = twinSource.match(/const PORTABILITY_TOKEN_DEFAULTS = \{[\s\S]*?\n\};/);
+  const fallbackSrc = twinSource.match(/function resolvePortabilityTokensFallback\(text, config\) \{[\s\S]*?\n\}/);
+  assert.ok(defaultsSrc, "PORTABILITY_TOKEN_DEFAULTS source not found — has the fallback shape changed?");
+  assert.ok(fallbackSrc, "resolvePortabilityTokensFallback source not found — has the fallback shape changed?");
+
+  const ctx = { result: {} };
+  vm.createContext(ctx);
+  vm.runInContext(
+    `${defaultsSrc[0]}\n${fallbackSrc[0]}\nresult.defaults = PORTABILITY_TOKEN_DEFAULTS;\nresult.resolve = resolvePortabilityTokensFallback;`,
+    ctx
+  );
+
+  const loader = require(path.join(repoRoot, ".claude", "hooks", "lib", "project-config-loader.cjs"));
+  const loaderDefaults = Object.fromEntries(
+    Object.entries(loader.PORTABILITY_TOKENS).map(([token, spec]) => [token, spec.default])
+  );
+
+  assert.deepEqual(
+    // Re-spread out of the vm realm: a cross-realm object literal has a foreign prototype and
+    // would fail deepStrictEqual on identical data.
+    { ...ctx.result.defaults },
+    loaderDefaults,
+    "mirror fallback defaults drifted from the loader's PORTABILITY_TOKENS — Claude and Codex would resolve differently"
+  );
+
+  const tokens = Object.keys(loaderDefaults);
+  const input = tokens.map((t) => `{${t}}`).join(" ");
+  const fallbackOut = ctx.result.resolve(input, undefined);
+  assert.equal(fallbackOut, tokens.map((t) => loaderDefaults[t]).join(" "), "fallback must resolve, not pass through");
+  assert.doesNotMatch(fallbackOut, /\{/, "no bare token may survive the fallback");
+  assert.equal(
+    fallbackOut,
+    loader.resolvePortabilityTokens(input, {}),
+    "fallback output must be byte-identical to the loader's output for an unset config"
+  );
+  assert.equal(
+    ctx.result.resolve("keep {Bucket} and {plan-id}", undefined),
+    "keep {Bucket} and {plan-id}",
+    "unknown braces survive the fallback exactly as they survive the loader"
+  );
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// TC-DOCROOT-050..055 — Phase 05. `.claude/workflows.json` ROUTED fields carry TOKENS.
+//
+// None of these tests asserts a COUNT. Each walks the live file and derives its own
+// target set, because the routed-field inventory moves whenever a workflow is added.
+// ─────────────────────────────────────────────────────────────────────────────
+
+const realWorkflowsPath = path.join(repoRoot, ".claude", "workflows.json");
+const configLoader = require(path.join(repoRoot, ".claude", "hooks", "lib", "project-config-loader.cjs"));
+const PORTABILITY_TOKEN_NAMES = Object.keys(configLoader.PORTABILITY_TOKENS);
+
+// The tracked literal each token replaces, derived from the loader's own defaults so a new
+// token cannot silently escape this guard. `PLANS_ROOT` is the one root whose bare default
+// (`plans`) is an ordinary English word, so it is matched only in its path-shaped form.
+const TRACKED_LITERALS = PORTABILITY_TOKEN_NAMES.map((token) => {
+  const value = configLoader.PORTABILITY_TOKENS[token].default;
+  return token === "PLANS_ROOT" ? `${value}/` : value;
+});
+
+// Exactly the routed set Phase 04b fixed: anything NOT matched here stays literal by design.
+const ROUTED_FIELD_PATH = /(\.description|\.whenToUse|\.preActions\.injectContext|\.applicability\.when|\.applicability\.skipReason)$/;
+
+function collectRoutedStrings(node, jsonPath, sink) {
+  if (typeof node === "string") {
+    if (ROUTED_FIELD_PATH.test(jsonPath)) sink.push({ jsonPath, value: node });
+  } else if (Array.isArray(node)) {
+    node.forEach((item, index) => collectRoutedStrings(item, `${jsonPath}[${index}]`, sink));
+  } else if (node && typeof node === "object") {
+    for (const key of Object.keys(node)) collectRoutedStrings(node[key], `${jsonPath}.${key}`, sink);
+  }
+}
+
+async function readRoutedStrings() {
+  const document = JSON.parse(await fs.readFile(realWorkflowsPath, "utf8"));
+  const sink = [];
+  collectRoutedStrings(document, "", sink);
+  return { document, routed: sink };
+}
+
+// Slice out the workflow catalog the mirror renders from workflows.json. Assertions about
+// "zero literals" are scoped to this slice: the surrounding CODEX_CONTEXT.md sections
+// (project-reference gate, prompt protocols, skills index) legitimately name other doc paths.
+function workflowCatalogSlice(contextText) {
+  const start = contextText.indexOf("## Workflow Catalog");
+  assert.notEqual(start, -1, "mirror must render a '## Workflow Catalog' section");
+  const end = contextText.indexOf("<!-- CK:SKILLS", start);
+  return end === -1 ? contextText.slice(start) : contextText.slice(start, end);
+}
+
+async function buildMirrorFixture(projectConfig) {
+  const tempRoot = await fs.mkdtemp(path.join(os.tmpdir(), "codex-sync-context-p05-"));
+  await fs.mkdir(path.join(tempRoot, ".claude", "skills", "test"), { recursive: true });
+  await fs.writeFile(
+    path.join(tempRoot, ".claude", "skills", "test", "SKILL.md"),
+    "---\nname: test\ndescription: fixture\n---\n",
+    "utf8"
+  );
+  await fs.copyFile(realWorkflowsPath, path.join(tempRoot, ".claude", "workflows.json"));
+  if (projectConfig) {
+    await fs.mkdir(path.join(tempRoot, "docs"), { recursive: true });
+    await fs.writeFile(
+      path.join(tempRoot, "docs", "project-config.json"),
+      JSON.stringify(projectConfig, null, 2),
+      "utf8"
+    );
+  }
+  await runSync(tempRoot);
+  const contextText = await fs.readFile(path.join(tempRoot, ".codex", "CODEX_CONTEXT.md"), "utf8");
+  return { tempRoot, contextText, catalog: workflowCatalogSlice(contextText) };
+}
+
+test("every routed workflows.json field is literal-free (TC-DOCROOT-050)", async () => {
+  const { routed } = await readRoutedStrings();
+  assert.ok(routed.length > 0, "routed-field walker found nothing — has the field shape changed?");
+
+  const offenders = [];
+  for (const { jsonPath, value } of routed) {
+    for (const literal of TRACKED_LITERALS) {
+      if (value.includes(literal)) offenders.push(`${jsonPath} still contains "${literal}"`);
+    }
+  }
+  assert.deepEqual(offenders, [], `routed fields must carry tokens, not literals:\n${offenders.join("\n")}`);
+});
+
+test("mirror body resolves every portability token and keeps AI placeholders (TC-DOCROOT-051, TC-DOCROOT-052)", async () => {
+  const { tempRoot, contextText, catalog } = await buildMirrorFixture(null);
+  try {
+    for (const token of PORTABILITY_TOKEN_NAMES) {
+      assert.equal(
+        contextText.includes(`{${token}}`),
+        false,
+        `a bare {${token}} reached .codex/CODEX_CONTEXT.md — strictly worse than the literal it replaced`
+      );
+    }
+
+    // TC-DOCROOT-052 — non-path braces are instructions to the AI and must survive verbatim.
+    // Survivors are derived from the file, not hardcoded, so a renamed placeholder cannot
+    // make this test vacuously pass.
+    const { routed } = await readRoutedStrings();
+    const survivors = new Set();
+    for (const { value } of routed) {
+      for (const [, name] of value.matchAll(/\{([A-Za-z][A-Za-z0-9_-]*)\}/g)) {
+        if (!PORTABILITY_TOKEN_NAMES.includes(name)) survivors.add(name);
+      }
+    }
+    assert.ok(survivors.has("Bucket"), "fixture sanity: {Bucket} must exist in a routed field");
+    for (const name of survivors) {
+      assert.ok(catalog.includes(`{${name}}`), `AI placeholder {${name}} must survive token resolution`);
+    }
+  } finally {
+    await fs.rm(tempRoot, { recursive: true, force: true });
+  }
+});
+
+test("relocating specRoots.business moves every {SPEC_ROOT} carrier in the mirror (TC-DOCROOT-053)", async () => {
+  const { routed } = await readRoutedStrings();
+  // Select carriers by scanning for the token — no workflow id and no line number is hardcoded.
+  const carriers = new Set(
+    routed
+      .filter(({ value }) => value.includes("{SPEC_ROOT}"))
+      .map(({ jsonPath }) => jsonPath.split(".")[2])
+  );
+  assert.ok(carriers.size > 0, "no routed field carries {SPEC_ROOT} — TC-DOCROOT-053 would be vacuous");
+
+  const { tempRoot, catalog } = await buildMirrorFixture({ specRoots: { business: { path: "spec-library" } } });
+  try {
+    assert.ok(catalog.includes("spec-library"), "relocated spec root must appear in the rendered catalog");
+    assert.equal(catalog.includes("docs/specs"), false, "the default spec root must not survive relocation");
+    assert.equal(catalog.includes("{SPEC_ROOT}"), false, "no bare token may reach the mirror");
+    for (const workflowId of carriers) {
+      assert.ok(catalog.includes(workflowId), `carrier workflow ${workflowId} must be rendered in the catalog`);
+    }
+  } finally {
+    await fs.rm(tempRoot, { recursive: true, force: true });
+  }
+});
+
+test("sync-context-workflows still throws on a blank injectContext (TC-DOCROOT-054)", async () => {
+  const tempRoot = await fs.mkdtemp(path.join(os.tmpdir(), "codex-sync-context-blank-inject-"));
+  try {
+    await fs.mkdir(path.join(tempRoot, ".claude", "skills", "test"), { recursive: true });
+    await fs.writeFile(
+      path.join(tempRoot, ".claude", "skills", "test", "SKILL.md"),
+      "---\nname: test\ndescription: fixture\n---\n",
+      "utf8"
+    );
+    await fs.writeFile(
+      path.join(tempRoot, ".claude", "workflows.json"),
+      JSON.stringify({
+        version: "1",
+        workflows: {
+          blank: { name: "Blank", sequence: ["test"], preActions: { injectContext: "   \n  " } },
+        },
+      }, null, 2),
+      "utf8"
+    );
+    await assert.rejects(
+      () => runSync(tempRoot),
+      /missing required non-empty preActions\.injectContext/,
+      "a whitespace-only injectContext must fail the generator, not ship an empty protocol"
+    );
+  } finally {
+    await fs.rm(tempRoot, { recursive: true, force: true });
+  }
+});
+
+test("Tier-2 read-workflow-entry emits no bare token for any workflow id (TC-DOCROOT-055)", async () => {
+  const readEntryScript = path.join(repoRoot, ".claude", "scripts", "codex", "read-workflow-entry.mjs");
+  const { document } = await readRoutedStrings();
+  const workflowIds = Object.keys(document.workflows);
+  assert.ok(workflowIds.length > 0, "workflows.json declares no workflows");
+
+  for (const workflowId of workflowIds) {
+    const { stdout } = await execFileAsync(process.execPath, [readEntryScript, workflowId], { cwd: repoRoot });
+    for (const token of PORTABILITY_TOKEN_NAMES) {
+      assert.equal(
+        stdout.includes(`{${token}}`),
+        false,
+        `read-workflow-entry ${workflowId} printed a bare {${token}} into the Tier-2 canonical read`
+      );
+    }
+    assert.doesNotThrow(() => JSON.parse(stdout), `read-workflow-entry ${workflowId} must emit valid JSON`);
   }
 });

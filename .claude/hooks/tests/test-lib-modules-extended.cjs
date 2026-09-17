@@ -618,6 +618,16 @@ logSection('describeSchema');
     logResult('shows techSpecScan.annotationPattern field', output.includes('annotationPattern'));
     logResult('shows annotationPattern 2-capture-group contract', output.includes('two capture'));
     logResult('shows specRoots section', output.includes('specRoots'));
+
+    // TC-DOCROOT-010 — `--describe` is how the authoring AI learns a key EXISTS. A schema
+    // block with no describe output is a key nobody will ever set.
+    logResult('TC-DOCROOT-010: shows docsRoots section', output.includes('docsRoots'));
+    for (const sub of ['projectReference', 'adr', 'templates', 'plans', 'teamArtifacts', 'productRoadmap']) {
+        logResult(`TC-DOCROOT-010: shows docsRoots.${sub}`, output.includes(sub));
+    }
+    logResult('TC-DOCROOT-010: docsRoots describe states partial declaration is an error',
+        output.includes('partially-declared docsRoots is a configuration'));
+
     logResult('shows _techSpecScanNote omission carrier', output.includes('_techSpecScanNote'));
     logResult('emits per-field derivation notes', output.includes('# '));
 
@@ -627,9 +637,292 @@ logSection('describeSchema');
     // and its field-level derivation guidance, then to 475 for the per-file
     // convention-class fields on contextGroups items and the optional
     // conventionInjection section (+21 lines after trimming their notes to one line
-    // each). This remains a runaway-bloat guard, not a suppression of schema output.
+    // each), then to 520 for the optional `docsRoots` block — 6 sub-objects x (name +
+    // derivation note + required `path` + its note) plus the block's own 3-line header
+    // = +29 lines, measured 462 -> 491. This remains a runaway-bloat guard, not a
+    // suppression of schema output.
     const lineCount = output.split('\n').length;
-    logResult('output under 475 lines', lineCount < 475, `${lineCount} lines`);
+    logResult('output under 520 lines', lineCount < 520, `${lineCount} lines`);
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// Configurable docs/spec roots — normalizer (ck-path-utils) + docsRoots schema
+// TC-DOCROOT-001..015
+// ════════════════════════════════════════════════════════════════════════════
+
+console.log(`\n${COLORS.blue}▸ Configurable docs/spec roots (TC-DOCROOT-*)${COLORS.reset}`);
+
+{
+    const os = require('os');
+    const { spawnSync } = require('child_process');
+    const repoRoot = path.resolve(__dirname, '..', '..', '..');
+    const {
+        normalizeRootPath,
+        isPathWithinRoot,
+        escapesRepoRoot,
+        joinRoot
+    } = require(path.join(__dirname, '..', 'lib', 'ck-path-utils.cjs'));
+
+    // ── TC-DOCROOT-001 — one canonical form for every written variant ──
+    logResult('TC-DOCROOT-001: backslash + trailing slash normalized',
+        normalizeRootPath('Docs\\Specs\\') === 'Docs/Specs', normalizeRootPath('Docs\\Specs\\'));
+    logResult('TC-DOCROOT-001: leading ./ and doubled / normalized',
+        normalizeRootPath('./docs//specs/') === 'docs/specs', normalizeRootPath('./docs//specs/'));
+    logResult('TC-DOCROOT-001: case is PRESERVED (folding belongs at the compare site)',
+        normalizeRootPath('Docs/Specs') === 'Docs/Specs');
+    for (const [label, input] of [['empty string', ''], ['null', null], ['number', 42], ['whitespace', '   ']]) {
+        logResult(`TC-DOCROOT-001: ${label} -> ''`, normalizeRootPath(input) === '');
+    }
+
+    // ── TC-DOCROOT-002 — segment boundary, the defence against fail-open prefix matching ──
+    logResult('TC-DOCROOT-002: file under the root matches',
+        isPathWithinRoot('docs/specs/A/README.md', 'docs/specs') === true);
+    logResult('TC-DOCROOT-002: sibling sharing the prefix does NOT match',
+        isPathWithinRoot('docs/specifications/x.md', 'docs/specs') === false);
+    logResult('TC-DOCROOT-002: the root itself matches',
+        isPathWithinRoot('docs/specs', 'docs/specs') === true);
+
+    // ── TC-DOCROOT-003 — comparison is case-insensitive on both sides ──
+    logResult('TC-DOCROOT-003: uppercase candidate matches lowercase root',
+        isPathWithinRoot('DOCS/SPECS/x.md', 'docs/specs') === true);
+    logResult('TC-DOCROOT-003: backslash candidate matches slash root',
+        isPathWithinRoot('docs\\specs\\x.md', 'docs/specs/') === true);
+
+    // ── TC-DOCROOT-004 — repo-root escape detection ──
+    for (const [label, input, expected] of [
+        ['../outside', '../outside', true],
+        ['docs/../specs', 'docs/../specs', true],
+        ['/abs/path', '/abs/path', true],
+        ['C:\\abs', 'C:\\abs', true],
+        ['docs/specs', 'docs/specs', false],
+        ['./docs/specs', './docs/specs', false]
+    ]) {
+        logResult(`TC-DOCROOT-004: escapesRepoRoot('${label}') === ${expected}`,
+            escapesRepoRoot(input) === expected);
+    }
+
+    // ── TC-DOCROOT-013 — CONSTRUCTION: a slash-free and a trailing-slash root agree ──
+    // This is what makes `doc-sync-classify.cjs:131`'s template safe to convert in Phase 08:
+    // bare concatenation of a slash-free root yields `docs/specsAuth/`; joinRoot cannot.
+    logResult("TC-DOCROOT-013: joinRoot('docs/specs','Auth','') -> 'docs/specs/Auth/'",
+        joinRoot('docs/specs', 'Auth', '') === 'docs/specs/Auth/', joinRoot('docs/specs', 'Auth', ''));
+    logResult("TC-DOCROOT-013: joinRoot('docs/specs/','Auth','') -> identical result",
+        joinRoot('docs/specs/', 'Auth', '') === joinRoot('docs/specs', 'Auth', ''));
+    logResult('TC-DOCROOT-013: no trailing slash without a final empty segment',
+        joinRoot('docs/specs/', 'Auth') === 'docs/specs/Auth');
+    logResult('TC-DOCROOT-013: blank interior segments are dropped',
+        joinRoot('docs/specs', '', 'Auth') === 'docs/specs/Auth');
+
+    // ── TC-DOCROOT-014 — documents a LIVE PRE-EXISTING over-match, not a new regression ──
+    // `.claude/scripts/doc-impact-map.cjs:368` uses `startsWith`, so root `docs/specs` already
+    // swallows `docs/specs-technical` today and silently excludes the technical tree. The
+    // assertion below pins the CURRENT defective behaviour beside the correct one so Phase 08's
+    // call-site fix has an oracle. Phase 08 — not this phase — applies that fix.
+    const overMatchRel = 'docs/specs-technical/x.md';
+    logResult('TC-DOCROOT-014: isPathWithinRoot rejects the sibling tree (correct)',
+        isPathWithinRoot(overMatchRel, 'docs/specs') === false);
+    logResult('TC-DOCROOT-014: legacy startsWith ACCEPTS it (the live pre-existing bug)',
+        overMatchRel.toLowerCase().startsWith('docs/specs'.toLowerCase()) === true);
+
+    // ── docsRoots schema ──
+    const docsRootsAll = {
+        projectReference: { path: 'docs/project-reference' },
+        adr: { path: 'docs/adr' },
+        templates: { path: 'docs/templates' },
+        plans: { path: 'plans' },
+        teamArtifacts: { path: 'team-artifacts' },
+        productRoadmap: { path: 'docs/product-roadmap.md' }
+    };
+    const docsRootsIssues = list => list.filter(entry => entry.startsWith('docsRoots.'));
+
+    // TC-DOCROOT-005
+    {
+        const r = validateConfig({ ...VALID_CONFIG, docsRoots: docsRootsAll });
+        logResult('TC-DOCROOT-005: full 6-sub-object docsRoots is valid', r.valid, r.errors.join('; '));
+        logResult('TC-DOCROOT-005: zero errors', r.errors.length === 0, r.errors.join('; '));
+    }
+
+    // TC-DOCROOT-006 — partial declaration is an ERROR, never a silent default.
+    {
+        const r = validateConfig({ ...VALID_CONFIG, docsRoots: { adr: {} } });
+        logResult('TC-DOCROOT-006: declared sub-object without `path` is invalid', r.valid === false);
+        logResult('TC-DOCROOT-006: error names docsRoots.adr.path',
+            r.errors.some(e => e.includes('docsRoots.adr.path')), r.errors.join('; '));
+    }
+
+    // TC-DOCROOT-007 — traversal rejection (the validation plane of the two-plane contract).
+    {
+        const r = validateConfig({ ...VALID_CONFIG, docsRoots: { plans: { path: '../escape' } } });
+        logResult('TC-DOCROOT-007: ../escape is invalid', r.valid === false);
+        logResult('TC-DOCROOT-007: error is a traversal error on docsRoots.plans.path',
+            r.errors.some(e => e.includes('docsRoots.plans.path') && e.includes('escapes the repository root')),
+            r.errors.join('; '));
+    }
+
+    // TC-DOCROOT-008 — BACKWARD COMPATIBILITY: absent docsRoots changes nothing.
+    {
+        const r = validateConfig(VALID_CONFIG);
+        logResult('TC-DOCROOT-008: config without docsRoots is valid', r.valid, r.errors.join('; '));
+        logResult('TC-DOCROOT-008: zero errors', r.errors.length === 0);
+        logResult('TC-DOCROOT-008: zero docsRoots warnings', docsRootsIssues(r.warnings).length === 0,
+            docsRootsIssues(r.warnings).join('; '));
+        logResult('TC-DOCROOT-008: docsRoots is not reported as an unknown key',
+            !r.warnings.some(w => w.startsWith('docsRoots: unknown')));
+    }
+
+    // TC-DOCROOT-009 — a declared-but-missing directory WARNS; it does not error. A project
+    // may declare a root before creating it, and erroring would break setup.
+    {
+        const r = validateConfig({
+            ...VALID_CONFIG,
+            docsRoots: { templates: { path: 'docs/no-such-templates-dir' } }
+        });
+        const warns = docsRootsIssues(r.warnings);
+        logResult('TC-DOCROOT-009: non-existent declared path stays valid', r.valid, r.errors.join('; '));
+        logResult('TC-DOCROOT-009: exactly one docsRoots warning', warns.length === 1, warns.join('; '));
+        logResult('TC-DOCROOT-009: warning names the missing dir',
+            warns[0] !== undefined && warns[0].includes('docs/no-such-templates-dir'), warns.join('; '));
+    }
+
+    // TC-DOCROOT-011 / TC-DOCROOT-012 — both real configs still validate with docsRoots ABSENT.
+    // R14: the hooks fixture declares no specRoots either, so every new key must be OPTIONAL.
+    for (const [tc, rel] of [
+        ['TC-DOCROOT-011', 'docs/project-config.json'],
+        ['TC-DOCROOT-012', '.claude/hooks/tests/docs/project-config.json']
+    ]) {
+        const abs = path.join(repoRoot, ...rel.split('/'));
+        if (!fs.existsSync(abs)) {
+            logResult(`${tc}: ${rel} exists`, false, 'file not found');
+            continue;
+        }
+        const parsed = JSON.parse(fs.readFileSync(abs, 'utf-8'));
+        const r = validateConfig(parsed);
+        logResult(`${tc}: ${rel} still validates`, r.valid, r.errors.join('; '));
+        logResult(`${tc}: ${rel} declares no docsRoots`, parsed.docsRoots === undefined);
+    }
+
+    // TC-DOCROOT-015 — the two planes, side by side, on ONE escaping config.
+    // Validation plane: `--validate` exits NON-ZERO on a declared-but-escaping root.
+    // Runtime plane: `getDocsRoot('plans', config)` returns the documented default `plans`
+    // rather than throwing. Phase 02 landed the accessor, so the runtime half now asserts the
+    // real behaviour instead of the Phase 01 precondition.
+    {
+        const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'ck-docroot-'));
+        const badConfigPath = path.join(tmpDir, 'project-config.json');
+        fs.writeFileSync(badConfigPath, JSON.stringify({ ...VALID_CONFIG, docsRoots: { plans: { path: '../escape' } } }), 'utf-8');
+        const cli = spawnSync(process.execPath, [
+            path.join(repoRoot, '.claude', 'hooks', 'lib', 'project-config-schema.cjs'),
+            '--validate',
+            badConfigPath
+        ], { cwd: repoRoot, encoding: 'utf-8', windowsHide: true });
+        logResult('TC-DOCROOT-015: --validate exits NON-ZERO on an escaping docsRoots path',
+            cli.status !== 0, `exit ${cli.status}`);
+        logResult('TC-DOCROOT-015: CLI output names the offending key',
+            String(cli.stdout).includes('docsRoots.plans.path'), String(cli.stdout).trim().slice(0, 200));
+
+        const loader = require(path.join(__dirname, '..', 'lib', 'project-config-loader.cjs'));
+        const escapingConfig = { ...VALID_CONFIG, docsRoots: { plans: { path: '../escape' } } };
+        let runtimeThrew = false;
+        let runtimeValue;
+        try {
+            runtimeValue = loader.getDocsRoot('plans', escapingConfig);
+        } catch {
+            runtimeThrew = true;
+        }
+        logResult('TC-DOCROOT-015: getDocsRoot accessor exists (Phase 02 landed)',
+            typeof loader.getDocsRoot === 'function');
+        logResult('TC-DOCROOT-015: runtime plane does not throw on the same escaping config (fail-soft)',
+            runtimeThrew === false);
+        logResult('TC-DOCROOT-015: runtime plane returns the documented default for the escaping root',
+            runtimeValue === 'plans', String(runtimeValue));
+
+        fs.rmSync(tmpDir, { recursive: true, force: true });
+    }
+
+    // ── Phase 02 — loader resolution core (TC-DOCROOT-020..027) ──────────────
+    {
+        const loader = require(path.join(__dirname, '..', 'lib', 'project-config-loader.cjs'));
+        const {
+            PORTABILITY_TOKENS,
+            getSpecDocsPath,
+            getTechnicalSpecDocsPath,
+            getDocsRoot,
+            resolvePortabilityTokens
+        } = loader;
+
+        // TC-DOCROOT-020 — absent config is byte-identical to the retired constant.
+        logResult("TC-DOCROOT-020: getSpecDocsPath({}) -> 'docs/specs/'",
+            getSpecDocsPath({}) === 'docs/specs/', String(getSpecDocsPath({})));
+        logResult("TC-DOCROOT-020: getTechnicalSpecDocsPath({}) -> 'docs/specs-technical/'",
+            getTechnicalSpecDocsPath({}) === 'docs/specs-technical/', String(getTechnicalSpecDocsPath({})));
+
+        // TC-DOCROOT-021 — configured business root wins, trailing slash added.
+        logResult("TC-DOCROOT-021: configured business root resolves with a trailing slash",
+            getSpecDocsPath({ specRoots: { business: { path: 'spec-library' } } }) === 'spec-library/',
+            String(getSpecDocsPath({ specRoots: { business: { path: 'spec-library' } } })));
+
+        // TC-DOCROOT-022 — backslashes normalized, exactly ONE trailing slash.
+        logResult("TC-DOCROOT-022: 'Docs\\\\Specs\\\\' -> 'Docs/Specs/'",
+            getSpecDocsPath({ specRoots: { business: { path: 'Docs\\Specs\\' } } }) === 'Docs/Specs/',
+            String(getSpecDocsPath({ specRoots: { business: { path: 'Docs\\Specs\\' } } })));
+
+        // TC-DOCROOT-023 — an escaping value is REJECTED at runtime and the default used.
+        for (const bad of ['../escape', '/abs/specs', 'C:/elsewhere', '   ', 42]) {
+            logResult(`TC-DOCROOT-023: escaping/invalid business root ${JSON.stringify(bad)} -> default`,
+                getSpecDocsPath({ specRoots: { business: { path: bad } } }) === 'docs/specs/',
+                String(getSpecDocsPath({ specRoots: { business: { path: bad } } })));
+        }
+
+        // TC-DOCROOT-024 — every docsRoots key defaults per the token table; roots are SLASH-FREE.
+        const docsRootDefaults = {
+            projectReference: 'docs/project-reference',
+            adr: 'docs/adr',
+            templates: 'docs/templates',
+            plans: 'plans',
+            teamArtifacts: 'team-artifacts',
+            productRoadmap: 'docs/product-roadmap.md'
+        };
+        for (const [key, expected] of Object.entries(docsRootDefaults)) {
+            logResult(`TC-DOCROOT-024: getDocsRoot('${key}', {}) -> '${expected}'`,
+                getDocsRoot(key, {}) === expected, String(getDocsRoot(key, {})));
+        }
+        logResult('TC-DOCROOT-024: unknown docsRoots key returns empty string, never throws',
+            getDocsRoot('nope', {}) === '');
+
+        // TC-DOCROOT-025 — a configured root loses its trailing slash.
+        logResult("TC-DOCROOT-025: teamArtifacts 'artifacts/' -> 'artifacts' (no trailing slash)",
+            getDocsRoot('teamArtifacts', { docsRoots: { teamArtifacts: { path: 'artifacts/' } } }) === 'artifacts',
+            String(getDocsRoot('teamArtifacts', { docsRoots: { teamArtifacts: { path: 'artifacts/' } } })));
+
+        // TC-DOCROOT-026 — known token resolved, unknown braces SURVIVE verbatim.
+        {
+            const cfg = { specRoots: { business: { path: 'spec-library' } } };
+            const out = resolvePortabilityTokens('read {SPEC_ROOT}/{Bucket}/README.md', cfg);
+            logResult('TC-DOCROOT-026: {SPEC_ROOT} resolves and {Bucket} survives',
+                out === 'read spec-library/{Bucket}/README.md', out);
+            const mixed = resolvePortabilityTokens(
+                'plan {PLANS_ROOT}/{plan-id}/phase-{n}.md for {FeatureName}', cfg);
+            logResult('TC-DOCROOT-026: {plan-id}/{n}/{FeatureName} placeholders survive',
+                mixed === 'plan plans/{plan-id}/phase-{n}.md for {FeatureName}', mixed);
+            logResult('TC-DOCROOT-026: non-string input returned unchanged',
+                resolvePortabilityTokens(null, cfg) === null &&
+                resolvePortabilityTokens(undefined, cfg) === undefined);
+        }
+
+        // TC-DOCROOT-027 — empty config resolves ALL 8 tokens to their documented defaults.
+        {
+            const tokens = Object.keys(PORTABILITY_TOKENS);
+            logResult('TC-DOCROOT-027: PORTABILITY_TOKENS defines exactly 8 tokens',
+                tokens.length === 8, tokens.join(','));
+            const input = tokens.map((t) => `{${t}}`).join(' ');
+            const out = resolvePortabilityTokens(input, {});
+            const expected = tokens.map((t) => PORTABILITY_TOKENS[t].default).join(' ');
+            logResult('TC-DOCROOT-027: every token resolves to its documented default', out === expected, out);
+            logResult('TC-DOCROOT-027: no token brace survives in the output', !out.includes('{'), out);
+            logResult('TC-DOCROOT-027: every default is slash-free (prose supplies the separator)',
+                tokens.every((t) => !PORTABILITY_TOKENS[t].default.endsWith('/')));
+        }
+    }
 }
 
 // ════════════════════════════════════════════════════════════════════════════

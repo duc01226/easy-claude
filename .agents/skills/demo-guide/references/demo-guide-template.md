@@ -65,7 +65,7 @@ a **stated blocker**, never a quiet promotion.
 
 **Title:** {item title}
 **Type:** {Feature | Enhancement | Bug | Tech}
-**Source of this block:** {docs/specs/{x}.md §{n} | PBI {id} | `derived from code + demo cases this session — not yet reviewed by the PO`}
+**Source of this block:** {`{x}.md` §{n} under the business spec root — default `docs/specs/`, overridable via `specRoots.business.path` in `docs/project-config.json` | PBI {id} | `derived from code + demo cases this session — not yet reviewed by the PO`}
 
 ### Purpose / business value
 
@@ -279,7 +279,7 @@ State it in plain team language, but keep the `file:line` anchors so anyone can 
 ## Scope-resolution candidates (Step 0.1 helper)
 
 When the prompt is empty and you must derive scope, gather candidates from — in order — the active
-task/workflow goal, `git status`/`git diff`, branch-vs-main commits, and in-progress plans/specs/release
+task/workflow goal, `git status`/`git diff`, branch-vs-main commits, and in-progress plans, specs, and release
 notes. If still ambiguous, present the top 2-4 as ask the user directly options plus free-text; never auto-pick.
 
 ## Translation notes (`--lang`)

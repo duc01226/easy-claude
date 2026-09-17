@@ -19,7 +19,7 @@ The **single source of truth** for the rich, standalone HTML release presentatio
 | **Changes target**        | the scope resolved in Step 0 — refs, `--range`, or a `--days`/`--since` time window                              |
 | **Git artifacts on disk** | Step 0b dumps (`git-log-*.txt`, `diff-file-status-*.txt`, `diff-stat-*.txt`, `git-diff-*-full.txt`)              |
 | **Categorized changes**   | Step 2 `categorize-commits.cjs` JSON · Step 3b thematic area map                                                  |
-| **Canonical specs**       | `docs/specs/**` when the project has them                                                                         |
+| **Canonical specs**       | the business spec root (default `docs/specs/**`; `specRoots.business.path` in `docs/project-config.json` overrides) when the project has them |
 | **Design context**        | design-system docs discovered per R4.2                                                                            |
 
 If the git artifacts are not yet on disk, STOP and run the owning skill's dump step first. **Never read a full range diff into context.**
@@ -89,7 +89,7 @@ Code says what happens; the spec says what was *intended*. A release doc built o
     - `CONFLICT` — spec and code disagree → **do not resolve it silently.** Record it as a blocking finding and surface it to the user; a release doc must never paper over a contradiction.
 4. **Harvest reader-facing material from specs** — business-language descriptions, acceptance criteria, and states/edge cases. Spec prose is tech-agnostic by construction, which makes it the best source for the HTML's narrative sections.
 
-**If the project has no `docs/specs/**`:** record `Spec correlation: N/A — no canonical spec tree` and source the narrative from R2.6 instead. Do not fabricate a spec.
+**If the project has no business spec tree** (default `docs/specs/**`; `specRoots.business.path` in `docs/project-config.json` overrides the path)**:** record `Spec correlation: N/A — no canonical spec tree` and source the narrative from R2.6 instead. Do not fabricate a spec.
 
 ---
 
@@ -116,15 +116,17 @@ Detect by intersecting the changed-file list with the project's frontend roots a
 
 Same discovery ladder as `pbi-mockup` Step 3 / `feature-presentation` — do not invent a third one:
 
-1. **Baseline:** `docs/project-reference/design-system/README.md` and `docs/project-reference/design-system/design-system-canonical.md`.
+Paths named below without a directory sit in the project-reference docs root — default `docs/project-reference/`; a `docsRoots.projectReference.path` entry in `docs/project-config.json` overrides the path.
+
+1. **Baseline:** `design-system/README.md` and `design-system/design-system-canonical.md`.
 2. **Primary:** top-level `designSystem` in `docs/project-config.json` — use `designSystem.docsPath` + `designSystem.canonicalDoc`, then match the touched app/module against `designSystem.appMappings[]` for the per-app doc.
-3. **Fallback:** `Glob("docs/project-reference/design-system/*.md")` → case-insensitive substring match on the module name.
-4. **Default:** `docs/project-reference/design-system/README.md`.
+3. **Fallback:** `Glob("design-system/*.md")` under that root → case-insensitive substring match on the module name.
+4. **Default:** `design-system/README.md`.
 5. **None of the above exist:** derive tokens by reading the project's actual theme/variables file (`_variables.scss`, `theme.ts`, `tailwind.config.*`, CSS custom properties) — real values from real files. Record where they came from.
 
 Extract: **colors** (primary/secondary/accent/surface/background/text/semantic) · **typography** (families, sizes, weights, line-heights) · **spacing scale** · **border-radius** · **shadows/elevation** · **breakpoints**. These become the HTML's CSS variables — copy real values, never approximate.
 
-Also read `docs/project-reference/scss-styling-guide.md` (first ~100 lines) for the project's class-naming methodology (BEM or otherwise).
+Also read `scss-styling-guide.md` from that same project-reference docs root (default `docs/project-reference/`; path from `docsRoots.projectReference.path` in `docs/project-config.json`) (first ~100 lines) for the project's class-naming methodology (BEM or otherwise).
 
 ### R4.3 [BLOCKING] Inventory the real existing UI
 
@@ -132,10 +134,10 @@ Also read `docs/project-reference/scss-styling-guide.md` (first ~100 lines) for 
 
 This is `pbi-mockup` Step 3b applied to a release scope. Concretely, for each `NEW-UI` / `CHANGED-UI` / `BEHIND-UI` highlight:
 
-1. Read `docs/project-reference/frontend-patterns-reference.md` (first ~200 lines) — base component classes, form/table/dialog/navigation patterns.
+1. Read `frontend-patterns-reference.md` from the project-reference docs root (default `docs/project-reference/`; path from `docsRoots.projectReference.path` in `docs/project-config.json`) (first ~200 lines) — base component classes, form/table/dialog/navigation patterns.
 2. **Open the actual component/template files the diff touched** and 2–3 sibling components of the same tier. Copy their real markup structure and real class names — the mock-up must be a faithful reproduction of the project's UI, not a generic card grid.
 3. Record, per highlight: the **real route/URL**, the **real page shell** (nav/header/sidebar the screen sits inside), the **real component names** used, and the **connected flows** in and out.
-4. Read `docs/project-reference/domain-entities-reference.md` (or the real entity/model files) for **real field names, types, and enum values**.
+4. Read `domain-entities-reference.md` from the project-reference docs root (default `docs/project-reference/`; path from `docsRoots.projectReference.path` in `docs/project-config.json`) (or the real entity/model files) for **real field names, types, and enum values**.
 
 ### R4.4 Plan the render inventory
 
@@ -269,7 +271,7 @@ For every `NEW-UI` / `CHANGED-UI` / `BEHIND-UI` highlight, render a **faithful H
 7. **Static or lightly interactive is enough.** A release doc reports; it does not need a clickable prototype. Any interactivity is **simulated only** — canned state toggles, zero `fetch`, zero auth, zero persistence.
 8. **Label every render `⚠ Illustrative mock-up — not a live screenshot`.** A reader must never mistake a reconstruction for a screenshot of the running app. This label is mandatory and non-removable.
 9. **Isolate each render** so the doc's own CSS and the reproduced app CSS cannot bleed into each other — scope the mock-up styles under a wrapper class, or embed via `<iframe srcdoc="…">`. When using `srcdoc`, apply the entity-escaping rule from `.claude/skills/feature-presentation/references/deck-template.md` §3 (`&`-first, escape once, unconditionally).
-10. **Reuse, never regenerate.** If a `team-artifacts/pbis/*-mockup.html` already exists for the shipped feature, embed it via `<iframe srcdoc>` instead of rebuilding the screen.
+10. **Reuse, never regenerate.** If a `pbis/*-mockup.html` under the team-artifacts root (default `team-artifacts/`; `docsRoots.teamArtifacts.path` in `docs/project-config.json` overrides) already exists for the shipped feature, embed it via `<iframe srcdoc>` instead of rebuilding the screen.
 
 **Design gates bind here.** The mock-ups are a user-facing visual surface, so the `UI-1.1`–`UI-9.4` usability floor and the `DD-1`–`DD-8` distinctiveness gate both apply — with one precedence note specific to this skill: **the project's real design system WINS outright over distinctiveness.** The mock-up's job is to look exactly like the existing app; matching an established house style is the goal, never a `DD` finding. `DD` applies only to the *release document's own* chrome (its header, cards, typography, and layout), which should look like a considered document for THIS project — not the default report template any generator emits. Cite `.claude/docs/design-knowledge.md` for `DD`, `.claude/docs/design-review-checklist.md` for the review sweep.
 

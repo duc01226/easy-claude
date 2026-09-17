@@ -130,8 +130,28 @@ function matchPath(matcher, testPath) {
     normalized = normalized.slice(2);
   }
 
-  // Check if path is ignored (blocked)
-  const blocked = matcher.ig.ignores(normalized);
+  // A token made only of dots is a glob/recursion marker, not a file path — the
+  // `...` of `go build ./...` is the common one. `ignore` demands a genuine
+  // path.relative()-shaped string and THROWS on anything else, and because the
+  // caller loops over every extracted path, one such token used to abort the
+  // whole loop: the hook exited via its fail-open error path and checked NONE of
+  // the remaining operands. `go build ./... && cat node_modules/secret` was
+  // therefore never path-checked at all. Skipping the marker keeps the loop alive
+  // so every real operand after it is still evaluated.
+  if (/^\.+$/.test(normalized)) {
+    return { blocked: false };
+  }
+
+  // Belt-and-braces for any other shape `ignore` refuses. Returning "not blocked"
+  // for a path this matcher cannot evaluate matches the guard above for junk
+  // input; what must NOT happen is a throw that silently voids the caller's
+  // remaining checks.
+  let blocked;
+  try {
+    blocked = matcher.ig.ignores(normalized);
+  } catch {
+    return { blocked: false };
+  }
 
   if (blocked) {
     // Find which original pattern matched for error message

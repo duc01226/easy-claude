@@ -11,7 +11,7 @@ Every author-mode run sources from ONE of two inputs. Resolve which before any e
 
 **`mode=draft` (idea → provisional spec):** the implementation does not exist yet, so the code-extraction phases (Step 1-INIT.* greps, graph trace, evidence verification) are **skipped**. Instead:
 
-1. Derive §1-7 (Overview, Glossary, User Stories & AC, Business Rules, Domain Model, Process Flows & Interaction Surface, Permissions & Roles) from the supplied idea/requirement/prompt — SAME 8-section tech-free template (`docs/templates/detailed-feature-spec-template.md`), SAME M1-M5 + M7 mandate rules, SAME size caps. Draft does NOT get a lighter template — only a lighter evidence obligation. In particular M7 binds a draft exactly as it binds a code-sourced spec: an idea-sourced §8 TC shell is still judged by the demo test, and having no code yet is never a reason to admit a technical case. For a UI-bearing idea, populate §6.2–6.5 (View Inventory, Navigation Map, Key UI States, Per-Story Interaction Flow) per the §6 sub-procedure above from the idea text, and record any companion `design_spec:`/`mockup:` path supplied with the idea in YAML frontmatter; backend-only ideas state the §6 skip reason explicitly.
+1. Derive §1-7 (Overview, Glossary, User Stories & AC, Business Rules, Domain Model, Process Flows & Interaction Surface, Permissions & Roles) from the supplied idea/requirement/prompt — SAME 8-section tech-free template (`detailed-feature-spec-template.md` in the templates root — default `docs/templates/`; a `docsRoots.templates.path` entry in `docs/project-config.json` overrides the path), SAME M1-M5 + M7 mandate rules, SAME size caps. Draft does NOT get a lighter template — only a lighter evidence obligation. In particular M7 binds a draft exactly as it binds a code-sourced spec: an idea-sourced §8 TC shell is still judged by the demo test, and having no code yet is never a reason to admit a technical case. For a UI-bearing idea, populate §6.2–6.5 (View Inventory, Navigation Map, Key UI States, Per-Story Interaction Flow) per the §6 sub-procedure above from the idea text, and record any companion `design_spec:`/`mockup:` path supplied with the idea in YAML frontmatter; backend-only ideas state the §6 skip reason explicitly.
 2. Author §8 TC **shells** in the canonical `tc-format.md` template (Objective, GWT, AC, Test Data, Edge Cases) but set **`Evidence: TBD`** and **`Status: Planned`** — these are reference-only until code lands.
 3. Flag the spec provisional: add `provisional: true` to YAML frontmatter and a header banner `> **DRAFT — provisional spec, unverified until code lands. §8 evidence is TBD.**`. Preserve the applicable branch metadata alongside the provisional marker. For a large idea, carry the complete `large_idea_decomposition` block; for an ordinary idea, do not add roadmap or milestone placeholders. Provisional means code evidence is pending, not that product scope is undecided.
 4. State the next step explicitly: *"Reconcile against real code via `/spec [mode=update]` once implemented — that run upgrades every `Evidence: TBD` to a real `[Source:]` anchor and clears the provisional flag."*
@@ -31,9 +31,9 @@ Before implementation, search codebase for project-specific patterns:
 
 Generate feature docs following project conventions.
 
-**GOLD STANDARD:** Search existing feature docs: `find docs/specs -name "README.*.md" -type f | head -5`
+**GOLD STANDARD:** Search existing feature docs: `find docs/specs -name "README.*.md" -type f | head -5` — `docs/specs` is the DEFAULT spec root; a `specRoots.business.path` entry in `docs/project-config.json` overrides the path (substitute it into the command when configured).
 
-**Template:** `docs/templates/detailed-feature-spec-template.md`
+**Template:** `detailed-feature-spec-template.md` in the templates root — default `docs/templates/`; a `docsRoots.templates.path` entry in `docs/project-config.json` overrides the path.
 
 ---
 
@@ -143,8 +143,8 @@ When a companion `design-spec`/mockup exists, record its path in the spec frontm
 
 **Before any extraction, detect mode:**
 
-1. Check `docs/specs/{Bucket}/` exists (or `--audit` flag)
-2. If auto-detected module, check entire `docs/specs/` tree
+1. Check `<spec root>/{Bucket}/` exists (or `--audit` flag) — default `docs/specs`; a `specRoots.business.path` entry in `docs/project-config.json` overrides the path
+2. If auto-detected module, check the entire `<spec root>/` tree — default `docs/specs`; a `specRoots.business.path` entry in `docs/project-config.json` overrides the path
 3. Present detected mode via `AskUserQuestion` before proceeding — NEVER auto-start
 
 **Mode routing:**
@@ -152,8 +152,8 @@ When a companion `design-spec`/mockup exists, record its path in the spec frontm
 | Condition                                    | Mode       | Next Step                          |
 | -------------------------------------------- | ---------- | ---------------------------------- |
 | Source is an idea/requirement/prompt, **no code yet** (explicit `[mode=draft]`) | **DRAFT** | → Source Resolution (idea branch): author §1-7 from text + §8 shells with `Evidence: TBD` + provisional marker |
-| `docs/specs/{Bucket}/` NOT found AND code exists to source from | **INIT**   | → Mode: INIT                       |
-| `docs/specs/{Bucket}/` exists    | **UPDATE** | → Phase 1.5 (existing update mode) |
+| `<spec root>/{Bucket}/` NOT found AND code exists to source from (default `docs/specs`; `specRoots.business.path` in `docs/project-config.json` overrides the root) | **INIT**   | → Mode: INIT                       |
+| `<spec root>/{Bucket}/` exists (default `docs/specs`; `specRoots.business.path` in `docs/project-config.json` overrides the root) | **UPDATE** | → Phase 1.5 (existing update mode) |
 | `[mode=amend]` arg (bugfix caller) AND doc exists | **AMEND** | → Mode: AMEND (scoped: regression TC + AC adjust only) |
 | `[mode=amend]` arg (bugfix caller) AND doc does **NOT** exist | **INIT** (code exists) / **DRAFT** (no code yet), then seed bug case | → run INIT/DRAFT to create the governing spec, then add the regression `TC-{FC}-NNN` for the bug case to §8 (Status `Untested`). Do NOT no-op. |
 | `--audit` flag OR user requests audit        | **AUDIT**  | → Mode: AUDIT                      |
@@ -189,7 +189,7 @@ When a companion `design-spec`/mockup exists, record its path in the spec frontm
 >
 > ---
 >
-> **Branch (BUSINESS-VISIBLE only) — amend vs init (mirrors `fix` standalone §3 spec-correctness check).** Before amending, confirm a governing Feature Spec exists for the buggy area under `docs/specs/`:
+> **Branch (BUSINESS-VISIBLE only) — amend vs init (mirrors `fix` standalone §3 spec-correctness check).** Before amending, confirm a governing Feature Spec exists for the buggy area under the spec root (default `docs/specs/`; a `specRoots.business.path` entry in `docs/project-config.json` overrides the path):
 > - **Governing spec exists** → do the scoped AMEND below.
 > - **No governing spec exists** → do NOT no-op **(this branch is reached only for a BUSINESS-VISIBLE bug — the gate above has already ruled out TECHNICAL-ONLY)**. Route to **INIT** (code exists to source from) or **DRAFT** (no code yet) to create the spec, then add the bug case as a regression `TC-{FC}-NNN` to §8. Record `No governing spec — created via {INIT|DRAFT}, bug case seeded as TC-{FC}-NNN` with `file:line` evidence.
 > - **Governing spec exists, §1-§7 already correct, but NO existing TC covered the bug case** → skip the §4/§3 wording edits and add ONLY the regression `TC-{FC}-NNN` (item 3). The spec was *correct but lacked the bug case* — never leave a **business-visible** case undocumented.
@@ -489,7 +489,7 @@ If any row FAILS or planned count < `business_floor`: split TC generation into o
 
 **`count(§2 actors)` reads §2's actor list.** Never source it from a permission-guard grep — see the `business_floor` definition.
 
-**[REQUIRED] TC ID Collision Prevention:**
+**[REQUIRED] TC ID Collision Prevention** — `docs/specs` below is the DEFAULT spec root; a `specRoots.business.path` entry in `docs/project-config.json` overrides the path (substitute it when configured):
 
 ```bash
 grep -n "TC-{FEATURE}-" docs/specs/{Bucket}/README.*.md 2>/dev/null | sort | tail -10
@@ -511,7 +511,7 @@ Note the highest existing ID before assigning new ones. See `.claude/skills/shar
 >
 > | Type              | Path                                                         | Description                                              |
 > | ----------------- | ------------------------------------------------------------ | -------------------------------------------------------- |
-> | Spec Index (derived) | `docs/specs/{Bucket}/INDEX.md`                           | DERIVED navigation catalog over the Feature Specs (regenerate via /spec-index) — §8 in this doc is the canonical business TC registry |
+> | Spec Index (derived) | `<spec root>/{Bucket}/INDEX.md` — default `docs/specs`; `specRoots.business.path` in `docs/project-config.json` overrides the root | DERIVED navigation catalog over the Feature Specs (regenerate via /spec-index) — §8 in this doc is the canonical business TC registry |
 > | Integration Tests | `{configured-test-path}/` | Test code; linked to TCs by the configured test-spec annotation (key `TestSpec`) |
 > | Parent Feature    | _(if sub-feature)_                                           |                                                          |
 > | Child Features    | _(if this doc is a parent)_                                  |                                                          |
@@ -529,10 +529,10 @@ Note the highest existing ID before assigning new ones. See `.claude/skills/shar
 
 When audit mode is triggered:
 
-1. Read `docs/specs/{Bucket}/README.{Feature}.md` frontmatter → `last_updated`
+1. Read `<spec root>/{Bucket}/README.{Feature}.md` frontmatter → `last_updated` — default `docs/specs`; a `specRoots.business.path` entry in `docs/project-config.json` overrides the path
 2. Run `git log --since="{last_updated}" --name-only -- {module-source-root}/`
 3. If changed files found → flag sections using Phase 1.5 impact mapping table — this includes flagging **§6 (Process Flows & Interaction Surface)** STALE when changed UI-affecting source implies a new/changed view, navigation, observable state, or click-path the spec's §6.2–6.5 no longer reflects.
-4. Output `docs/specs/{Bucket}/AUDIT-{date}.md`:
+4. Output `<spec root>/{Bucket}/AUDIT-{date}.md` — default `docs/specs`; a `specRoots.business.path` entry in `docs/project-config.json` overrides the path:
 
     ```markdown
     # Feature Doc Audit — {date}
@@ -556,7 +556,7 @@ When no module specified, auto-detect from git changes:
 
 1. `git diff --name-only HEAD` (staged + unstaged); if none → `git diff --name-only HEAD~1`
 2. Extract unique module names using Module Mapping table
-3. For each module: check if `docs/specs/{Bucket}/` exists
+3. For each module: check if `<spec root>/{Bucket}/` exists — default `docs/specs`; a `specRoots.business.path` entry in `docs/project-config.json` overrides the path
 4. Docs exist → **Phase 1.5 (Update Mode)**; missing → skip (no scratch creation without user request)
 5. Only `.claude/`, `docs/`, config files changed → report "No business feature docs impacted" and exit
 
@@ -583,9 +583,9 @@ Module source priority: (1) user-specified → (2) domain-implied (grep to verif
 
 ### Step 1.2: Read Existing Documentation
 
-1. `docs/project-reference/feature-spec-reference.md`
-2. `docs/specs/{Bucket}/INDEX.md` (if exists)
-3. Existing `docs/specs/{Bucket}/README.*.md` Feature Specs (if any)
+1. `docs/project-reference/feature-spec-reference.md` — project-reference docs root default `docs/project-reference`; a `docsRoots.projectReference.path` entry in `docs/project-config.json` overrides the path
+2. `<spec root>/{Bucket}/INDEX.md` (if exists) — default `docs/specs`; a `specRoots.business.path` entry in `docs/project-config.json` overrides the path
+3. Existing `<spec root>/{Bucket}/README.*.md` Feature Specs (if any) — default `docs/specs`; a `specRoots.business.path` entry in `docs/project-config.json` overrides the path
 
 ### Step 1.3: Codebase Analysis
 
@@ -609,7 +609,7 @@ When UPDATING existing feature docs (not from scratch):
 
 #### Step 1.5.0: Check Derived Spec Artifacts
 
-1. Check the fixed Feature Spec root `docs/specs/{Bucket}/` for the impacted app bucket
+1. Check the configured Feature Spec root at `<spec root>/{Bucket}/` for the impacted app bucket — default `docs/specs`; a `specRoots.business.path` entry in `docs/project-config.json` overrides the path
 2. Note overlapping Feature Specs and derived bucket indexes/ERDs from git diff + spec registry
 3. Flag output: "Derived spec artifact refresh may be required for: {list}" — do NOT trigger spec-index directly (separation of concerns)
 
@@ -639,10 +639,10 @@ When UPDATING existing feature docs (not from scratch):
 
 > **[BLOCKING] TC Format:** Use canonical format in `.claude/skills/shared/tc-format.md`. NEVER use abbreviated flat GIVEN/WHEN/THEN — use full template with all required fields (Objective, Preconditions, GWT steps, Acceptance Criteria, Test Data, Edge Cases, Evidence, CoveredBy, Status). Section 8 owned exclusively by `spec [mode=tests]` — the author modes populate it only during authoring (INIT with real `[Source:]`, DRAFT with `Evidence: TBD`). Existing TCs MUST NOT be overwritten during UPDATE mode (the draft→update run only UPGRADES `Evidence: TBD` → real anchors, never rewrites the TC body).
 
-> **[BLOCKING] TC ID Collision Prevention:** Before assigning new TC IDs, check highest existing ID:
+> **[BLOCKING] TC ID Collision Prevention:** Before assigning new TC IDs, check highest existing ID (`docs/specs` below is the DEFAULT spec root; a `specRoots.business.path` entry in `docs/project-config.json` overrides the path):
 >
 > ```bash
-> grep -n "TC-{FEATURE}-" docs/specs/{Bucket}/README.*.md | sort | tail -5
+> grep -n "TC-{FEATURE}-" docs/specs/{Bucket}/README.*.md | sort | tail -5   # docs/specs = default spec root; specRoots.business.path in docs/project-config.json overrides it
 > ```
 >
 > Assign next sequential ID. See `.claude/skills/shared/tc-format.md` — Decade-Based Numbering section for range rules.
@@ -653,7 +653,7 @@ When UPDATING existing feature docs (not from scratch):
 
 ## Phase 2: Documentation Generation
 
-Generate at `docs/specs/{Bucket}/README.{FeatureName}.md`.
+Generate at `<spec root>/{Bucket}/README.{FeatureName}.md` — default `docs/specs`; a `specRoots.business.path` entry in `docs/project-config.json` overrides the path.
 
 ### Key Format Examples
 
@@ -790,7 +790,7 @@ Each rule group MUST include `[Source: rule/{service}/{RuleName}]`:
 
 ## Note: AI Companion Files Deprecated
 
-No `.ai.md` companion files. Single `README.{Feature}.md` only output. Template: `docs/templates/detailed-feature-spec-template.md` (authoritative).
+No `.ai.md` companion files. Single `README.{Feature}.md` only output. Template: `detailed-feature-spec-template.md` in the templates root (authoritative) — default `docs/templates`; a `docsRoots.templates.path` entry in `docs/project-config.json` overrides the path.
 
 ### Key Principles (v4.0)
 
@@ -811,7 +811,7 @@ No `.ai.md` companion files. Single `README.{Feature}.md` only output. Template:
 
 ## Phase 3: Derived Artifact Refresh Flag
 
-After creating/updating Feature Specs, do **not** edit `docs/specs/{Bucket}/INDEX.md` directly. Flag that derived spec artifacts may need refresh:
+After creating/updating Feature Specs, do **not** edit `<spec root>/{Bucket}/INDEX.md` directly (default `docs/specs`; a `specRoots.business.path` entry in `docs/project-config.json` overrides the path). Flag that derived spec artifacts may need refresh:
 
 1. Record the bucket(s) affected by the Feature Spec change.
 2. State: "Derived spec artifact refresh may be required for: {bucket list}."
@@ -880,7 +880,7 @@ Flag items requiring implementation assumptions:
 
 If >3 INCOMPLETE items → HALT, present gap list via AskUserQuestion before completing.
 
-_Reference: `.claude/skills/shared/sdd-artifact-contract.md` → "AI-Implementability Gate" (and mandate M4) for the AI-implementability criteria. `docs/project-reference/spec-principles.md` carries only repo-local prose/evidence rules._
+_Reference: `.claude/skills/shared/sdd-artifact-contract.md` → "AI-Implementability Gate" (and mandate M4) for the AI-implementability criteria. `docs/project-reference/spec-principles.md` (project-reference docs root default `docs/project-reference`; a `docsRoots.projectReference.path` entry in `docs/project-config.json` overrides the path) carries only repo-local prose/evidence rules._
 
 ### M5 — Rebuild-From-Scratch Test
 
@@ -908,7 +908,7 @@ See `.claude/skills/shared/sdd-artifact-contract.md` → "AI-SDD Mandates (M1-M7
 
 ### Structure
 
-- [ ] Documentation placed in `docs/specs/{Bucket}/README.{FeatureName}.md`
+- [ ] Documentation placed in `<spec root>/{Bucket}/README.{FeatureName}.md` — default `docs/specs`; a `specRoots.business.path` entry in `docs/project-config.json` overrides the path
 - [ ] Feature Spec follows template format (8 tech-free sections, in order)
 - [ ] **YAML frontmatter** present with module, service, feature_code, entities[]
 - [ ] **Applicability and Decomposition Gate** passes: embedded large-idea specs carry the complete decomposition block and stable slice IDs; explicit-roadmap specs carry approved roadmap metadata; ordinary specs omit roadmap placeholders; isolated/framework changes carry their explicit branch
@@ -1001,14 +1001,14 @@ spec [author mode] (you are here)
 >
 > Do not re-add if already present. Check before marking this skill complete.
 
-Template to insert or verify in `docs/specs/{Bucket}/README.{FeatureName}.md`:
+Template to insert or verify in `<spec root>/{Bucket}/README.{FeatureName}.md` — default `docs/specs`; a `specRoots.business.path` entry in `docs/project-config.json` overrides the path:
 
 ```markdown
 ## Related Documentation
 
 | Type              | Link                                                                                                          | Description                                                    |
 | ----------------- | ------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------- |
-| Spec Index (derived) | [docs/specs/{Bucket}/INDEX.md](../../specs/{Bucket}/INDEX.md)                                              | DERIVED navigation catalog over the Feature Specs (regenerate via /spec-index) — §8 here is the canonical business TC registry |
+| Spec Index (derived) | [docs/specs/{Bucket}/INDEX.md](../../specs/{Bucket}/INDEX.md) — default root `docs/specs`; `specRoots.business.path` in `docs/project-config.json` overrides it | DERIVED navigation catalog over the Feature Specs (regenerate via /spec-index) — §8 here is the canonical business TC registry |
 | Integration Tests | `{configured-test-path}/`                                                  | Test code linked to TCs via the configured test-spec annotation (key `TestSpec`) |
 | Related Modules   | _(list any cross-module dependencies here)_                                                                   |                                                                |
 ```

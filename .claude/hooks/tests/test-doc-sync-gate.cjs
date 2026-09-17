@@ -11,7 +11,7 @@
  *      CLAUDE_PROJECT_DIR, so pointing that at the temp repo fully isolates the
  *      suite from the host project's real index.
  *
- * Covers TC-DOCSYS-041..048.
+ * Covers TC-DOCSYS-041..050.
  *
  * Usage: node .claude/hooks/tests/test-doc-sync-gate.cjs [--verbose]
  */
@@ -44,7 +44,13 @@ function runHook(input, env = {}, cwd) {
       cwd: cwd || process.cwd(),
       env: { ...process.env, ...env },
       stdio: ['pipe', 'pipe', 'pipe'],
-      timeout: 8000
+      // 8s was too tight to be deterministic: the hook shells out to git several
+      // times, and on a loaded Windows host (temp-dir repo + AV scanning) that
+      // overran the limit intermittently. The kill surfaces as `exit null`, which
+      // reads as a real assertion failure — and it moved between tests run to run,
+      // never the same one twice. This bounds the harness, NOT the hook: every
+      // assertion below still checks the real exit code and stderr content.
+      timeout: 60000
     });
     let stdout = '';
     let stderr = '';
@@ -127,6 +133,14 @@ function rimraf(dir) {
 
 const commitInput = (cmd = 'git commit -m "x"') => ({ tool_name: 'Bash', tool_input: { command: cmd } });
 const editInput = file => ({ tool_name: 'Edit', tool_input: { file_path: file, old_string: 'a', new_string: 'b' } });
+// Codex carries the edited path INSIDE the patch body — never as file_path.
+const applyPatchInput = (relFile, cwd) => ({
+  tool_name: 'apply_patch',
+  cwd,
+  tool_input: {
+    command: `*** Begin Patch\n*** Update File: ${relFile}\n@@\n-class Foo{}\n+class Foo{ int x; }\n*** End Patch\n`
+  }
+});
 
 // ===========================================================================
 // A. Classifier unit tests (pure, no git)
@@ -301,6 +315,56 @@ async function testEditWarnNonBlocking() {
   }
 }
 
+async function testEditWarnTemplateKey() {
+  log('\n--- B9. TC-DOCSYS-049: stale spec stamped with the TEMPLATE key (last_updated) → WARN ---');
+  // Regression pin. The gate originally matched ONLY `last_synced`, but the Feature Spec
+  // template this framework ships (docs/templates/detailed-feature-spec-template.md:8 and
+  // its .claude/ mirror) writes `last_updated`, as does every real spec under docs/specs/.
+  // That mismatch made areaLastSynced() return null for every framework-produced doc and
+  // silently disabled this whole branch — green suite, dead gate, because the fixtures
+  // agreed with the regex instead of with the shipped template.
+  const { dir, g } = makeRepo();
+  try {
+    const codeAbs = writeFile(dir, `${AREA_CODE}Example.Application/Foo.cs`, 'class Foo{}\n');
+    writeFile(dir, `${AREA_DOCS}README.SampleFeature.md`, "---\nlast_updated: '2000-01-01'\n---\n# Goal\n");
+    g(['add', '-A']);
+    g(['commit', '-qm', 'baseline (code changed after 2000-01-01)']);
+    const r = await runHook(editInput(codeAbs), { CLAUDE_PROJECT_DIR: dir }, dir);
+    logResult('TC-DOCSYS-049 never blocks (exit 0)', r.code === 0, `exit ${r.code}`);
+    logResult(
+      'TC-DOCSYS-049 warns on the template key too',
+      r.stderr.includes('[doc-sync]'),
+      r.stderr.slice(0, 120) || '(no warning — last_updated not recognised)'
+    );
+  } finally {
+    rimraf(dir);
+  }
+}
+
+async function testApplyPatchWarns() {
+  log('\n--- B10. TC-DOCSYS-050: Codex apply_patch on stale area code → WARN ---');
+  // Regression pin. The hook is mirrored to Codex with the matcher widened to
+  // `apply_patch`, but handleEdit only read tool_input.file_path/path — neither of
+  // which apply_patch carries. It fired, extracted nothing, and reported success.
+  const { dir, g } = makeRepo();
+  try {
+    const rel = `${AREA_CODE}Example.Application/Foo.cs`;
+    writeFile(dir, rel, 'class Foo{}\n');
+    writeFile(dir, `${AREA_DOCS}README.SampleFeature.md`, "---\nlast_updated: '2000-01-01'\n---\n# Goal\n");
+    g(['add', '-A']);
+    g(['commit', '-qm', 'baseline (code changed after 2000-01-01)']);
+    const r = await runHook(applyPatchInput(rel, dir), { CLAUDE_PROJECT_DIR: dir }, dir);
+    logResult('TC-DOCSYS-050 never blocks (exit 0)', r.code === 0, `exit ${r.code}`);
+    logResult(
+      'TC-DOCSYS-050 extracts the path from the patch body',
+      r.stderr.includes('[doc-sync]'),
+      r.stderr.slice(0, 120) || '(no warning — apply_patch target not extracted)'
+    );
+  } finally {
+    rimraf(dir);
+  }
+}
+
 async function testRenameNoopAllows() {
   log('\n--- B8. TC-DOCSYS-048: pure rename/noop of area code → ALLOW (no false deny) ---');
   const { dir, g } = makeRepo();
@@ -321,7 +385,7 @@ async function main() {
   testClassifier();
 
   if (!gitAvailable()) {
-    log('\n[SKIP] git not available — integration tests B1..B8 skipped.');
+    log('\n[SKIP] git not available — integration tests B1..B10 skipped.');
   } else {
     await testCommitWarnStale();
     await testCommitAllowSynced();
@@ -330,6 +394,8 @@ async function main() {
     await testOverrideIndependentOfWorkflow();
     await testAuditedOverride();
     await testEditWarnNonBlocking();
+    await testEditWarnTemplateKey();
+    await testApplyPatchWarns();
     await testRenameNoopAllows();
   }
 

@@ -3,13 +3,19 @@
  * test-full-flow-edge-cases.js - Edge case validation for full hook flow
  */
 
-const BUILD_COMMAND_PATTERN = /^(npm|pnpm|yarn|bun)\s+([^\s]+\s+)*(run\s+)?(build|test|lint|dev|start|install|ci|add|remove|update|publish|pack|init|create|exec)/;
-const TOOL_COMMAND_PATTERN = /^(npx|pnpx|bunx|tsc|esbuild|vite|webpack|rollup|turbo|nx|jest|vitest|mocha|eslint|prettier|go|cargo|make|mvn|gradle|dotnet)/;
+// Drives the REAL gate. This file used to carry its own copy of a whole-command
+// regex allowlist and assert against that copy, so it could not fail however the
+// shipped hook behaved — and its copy had already drifted further from the live
+// code than the sibling allowlist test's. The live gate does not classify whole
+// commands at all: it tokenizes, extracts operands, and treats a build operation
+// as a command word (scout-block/path-extractor.cjs isBuildOperationToken). The
+// question these cases actually protect is "does this command reach a blocked
+// path?", which is what `isAllowed` now asks.
+const { evaluate } = require('../../scout-block.cjs');
 
-function isBuildCommand(command) {
-  if (!command || typeof command !== 'string') return false;
-  const trimmed = command.trim();
-  return BUILD_COMMAND_PATTERN.test(trimmed) || TOOL_COMMAND_PATTERN.test(trimmed);
+function isAllowed(command) {
+  const result = evaluate({ tool_name: 'Bash', tool_input: { command } });
+  return !(result && result.decision === 'block');
 }
 
 console.log('=== FULL FLOW EDGE CASE VALIDATION ===\n');
@@ -26,12 +32,24 @@ const tests = [
   { cmd: 'npm run build', expect: true, desc: 'npm run build' },
   { cmd: 'go test ./...', expect: true, desc: 'go test' },
 
-  // Should be BLOCKED (goes through path extraction)
-  { cmd: 'docker build .', expect: false, desc: 'docker build (not in allowlist)' },
-  { cmd: 'cd proj && go build', expect: false, desc: 'chained with cd first' },
+  // ALLOWED, and these two changed when the assertions moved onto the live gate.
+  // Both were `false` under the old inline regex — not because allowing them was
+  // wrong, but because a start-anchored whole-command regex could not see past the
+  // first word. The token-level extractor can, so it reaches the right answer:
+  { cmd: 'docker build .', expect: true, desc: 'docker build — `.` is not a blocked path' },
+  { cmd: 'cd proj && go build', expect: true, desc: 'chained with cd first — each segment is classified' },
+
+  // BLOCKED. A command-word prefix (env assignment, sudo, time) makes the segment's
+  // first executable something other than a build tool, so `build` is no longer read
+  // as a build operation and is extracted as a path — where it matches the blocked
+  // `build` directory. This is a KNOWN limitation, carried over from the regex era
+  // and listed under EDGE CASES below; it is asserted here so it cannot change
+  // unnoticed, NOT endorsed.
   { cmd: 'GOOS=linux go build', expect: false, desc: 'env var prefix' },
   { cmd: 'sudo go build', expect: false, desc: 'sudo prefix' },
   { cmd: 'time go build', expect: false, desc: 'time prefix' },
+
+  // BLOCKED, and correctly so — these genuinely name the build directory.
   { cmd: 'ls build', expect: false, desc: 'ls build dir' },
   { cmd: 'cd build', expect: false, desc: 'cd build dir' },
 ];
@@ -40,7 +58,7 @@ let passed = 0;
 let failed = 0;
 
 for (const t of tests) {
-  const result = isBuildCommand(t.cmd);
+  const result = isAllowed(t.cmd);
   const success = result === t.expect;
 
   if (success) {
@@ -67,7 +85,7 @@ const edgeCases = [
 
 console.log('Known edge cases that may cause UX issues:\n');
 for (const ec of edgeCases) {
-  const allowed = isBuildCommand(ec.cmd);
+  const allowed = isAllowed(ec.cmd);
   console.log(`  ${allowed ? '✓' : '⚠'} "${ec.cmd}"`);
   console.log(`     Issue: ${ec.issue}\n`);
 }

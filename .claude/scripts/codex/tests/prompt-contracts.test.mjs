@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { readFrameworkRootFile } from './framework-repo.helper.mjs';
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../../..');
 
@@ -66,12 +67,22 @@ test('session recovery documentation and ignore rules match the OS-temp state ow
     const workflowState = await read('.claude/hooks/lib/workflow-state.cjs');
     const maintainer = await read('.claude/agents/framework-maintainer.md');
     const workflowEnd = await read('.claude/skills/workflow-end/SKILL.md');
-    const gitignore = await read('.gitignore');
 
+    // The `.claude/**` half travels inside the portable bundle, so it is UNCONDITIONAL.
     assert.match(todoState, /path\.join\(CK_TMP_DIR, 'todo'\)/);
     assert.match(workflowState, /path\.join\(CK_TMP_DIR, 'workflow'\)/);
     assert.match(maintainer, /OS-temp `CK_TMP_DIR` namespaces/);
     assert.match(workflowEnd, /CK_TMP_DIR\/workflow\/\{sessionId\}\.json/);
+
+    // The root `.gitignore` is PROJECT-OWNED — `export-claude` ships none, for the same reason it
+    // ships no package.json (PORT-007). Reading it unconditionally threw ENOENT in a bare adopter
+    // and failed the whole `tests` stage on a file the bundle never claimed to provide. An adopter
+    // that HAS a `.gitignore` has not necessarily adopted the framework's ignore rules either, so
+    // existence alone is not the right gate — this is a self-check of this repo's own root, exactly
+    // the class `framework-repo.helper.mjs` documents (the `.prettierignore` precedent in
+    // `mirror-write-guards.test.mjs`). PORT-011 keeps the guard from silently disabling.
+    const gitignore = readFrameworkRootFile(repoRoot, '.gitignore');
+    if (gitignore === null) return;
     assert.match(gitignore, /^\.claude\/.todo-state\.json$/m);
     assert.match(gitignore, /^\.claude\/.workflow-state\.json$/m);
     assert.match(gitignore, /^\/tmp\/$/m);
@@ -131,10 +142,25 @@ test('task-graph analysis precedes execution in every root and defers parallel l
         assert.doesNotMatch(planning, /Do NOT parallelize:|Never parallelize shared writers/, `${name}: exclusions are referenced, not restated`);
         assert.match(parallel, /Do NOT parallelize:|Never parallelize shared writers/, `${name}: parallel section still owns the exclusions`);
     }
+    // A root comes in two shapes, and BOTH must defer the parallel limits to the one owning section:
+    //   • the NUMBERED shape — an established root whose parallel section carries numbered rules, so
+    //     the deferral is the anchored "rule 5" link and the plan format lives in that rule;
+    //   • the COMPACT shape — the root `/project-init` writes from `claude-md-template.md` in a
+    //     freshly adopted project. `.claude` is portable, so this suite runs there too. Its parallel
+    //     section is unnumbered, so demanding an anchored "rule 5" would force a DANGLING reference
+    //     into every adopter's root — asserting a rule number that does not exist there.
+    // Each shape is graded against its own deferral and its own wave-declaration contract, so neither
+    // is weakened: a root that drops the deferral entirely still fails under both branches.
     for (const [name, content] of [['CLAUDE.md', claude], ['AGENTS.md', agents]]) {
         const planning = headingSection(content, 'Task Planning Rules');
-        assert.match(planning, /\[Workflow Step Advancement\]\(#workflow-step-advancement--parallel-phases\) rule 5/, `${name}: rule defers to Workflow Step Advancement rule 5`);
-        assert.match(headingSection(content, 'Workflow Step Advancement & Parallel Phases'), /`Parallel plan: wave 1 = \[\.\.\.\]/, `${name}: the declared plan format stays in rule 5`);
+        const parallel = headingSection(content, 'Workflow Step Advancement & Parallel Phases');
+        const numberedShape = /\[Workflow Step Advancement\]\(#workflow-step-advancement--parallel-phases\) rule 5/.test(planning);
+        if (numberedShape) {
+            assert.match(parallel, /`Parallel plan: wave 1 = \[\.\.\.\]/, `${name}: the declared plan format stays in rule 5`);
+        } else {
+            assert.match(planning, /under the Workflow Step Advancement limits/, `${name}: rule defers to the Workflow Step Advancement section`);
+            assert.match(parallel, /Declare waves before work/, `${name}: the parallel section still owns the wave-declaration contract`);
+        }
     }
     assert.match(context, /\[TASK-PLANNING\] \[MANDATORY\][^\n]*parallel waves[^\n]*before starting any task/, 'Codex context one-liner carries the task-graph analysis');
 });

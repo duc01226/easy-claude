@@ -132,6 +132,67 @@ const SCHEMA = {
             }
         }
     },
+    // Relocatable documentation roots, sibling to `specRoots` and copying its shape
+    // exactly. Optional at the top level so every existing project config stays valid,
+    // but every declared sub-object requires its `path` — a partially-declared docsRoots
+    // is a configuration error, not a permissive default. Absent = the framework default;
+    // declared-but-invalid = an error, the same asymmetry the tech-spec generator enforces
+    // by throwing rather than defaulting.
+    docsRoots: {
+        type: 'object',
+        required: false,
+        describe: 'Relocatable documentation roots (paths relative to the repo root). Each declared\nsub-object requires its `path`; a partially-declared docsRoots is a configuration\nerror, not a default. Omit a sub-object entirely to keep the framework default.',
+        properties: {
+            projectReference: {
+                type: 'object',
+                required: false,
+                describe: 'Generated project-reference doc tree (where /scan writes). Default "docs/project-reference".',
+                properties: {
+                    path: { type: 'string', required: true, describe: 'Reference-doc dir, relative to repo root (e.g. "docs/project-reference").' }
+                }
+            },
+            adr: {
+                type: 'object',
+                required: false,
+                describe: 'Architecture Decision Record tree. Default "docs/adr".',
+                properties: {
+                    path: { type: 'string', required: true, describe: 'ADR dir, relative to repo root (e.g. "docs/adr").' }
+                }
+            },
+            templates: {
+                type: 'object',
+                required: false,
+                describe: 'Document template tree. Default "docs/templates".',
+                properties: {
+                    path: { type: 'string', required: true, describe: 'Template dir, relative to repo root (e.g. "docs/templates").' }
+                }
+            },
+            plans: {
+                type: 'object',
+                required: false,
+                describe: 'Implementation-plan tree (where /plan writes). Default "plans".',
+                properties: {
+                    path: { type: 'string', required: true, describe: 'Plan dir, relative to repo root (e.g. "plans").' }
+                }
+            },
+            teamArtifacts: {
+                type: 'object',
+                required: false,
+                describe: 'Team artifact tree (ideas, PBIs, stories). Default "team-artifacts".',
+                properties: {
+                    path: { type: 'string', required: true, describe: 'Team-artifact dir, relative to repo root (e.g. "team-artifacts").' }
+                }
+            },
+            productRoadmap: {
+                type: 'object',
+                required: false,
+                describe: 'Product roadmap document. Default "docs/product-roadmap.md" — a FILE, not a dir.',
+                properties: {
+                    path: { type: 'string', required: true, describe: 'Roadmap file path, relative to repo root (e.g. "docs/product-roadmap.md").' }
+                }
+            }
+        }
+    },
     // Free-text rationale for a DELIBERATE `techSpecScan` omission, so the absence
     // reads as a decision rather than an oversight to the next maintainer.
     _techSpecScanNote: { type: 'string', required: false, describe: 'Free-text rationale for a DELIBERATE techSpecScan omission, so the absence\nreads as a decision, not an oversight. Set this INSTEAD of techSpecScan when\nthe project has no spec-annotation convention.' },
@@ -636,6 +697,16 @@ const SCHEMA = {
             // false = keep a project-only CLAUDE.md/AGENTS.md; the agent-files bootstrap
             // gate then checks only existence, not universal-guides completeness. Default true.
             requireUniversalGuides: { type: 'boolean', required: false },
+            // false = this project does not want the agent inferring an execution route.
+            // Resolved by .claude/scripts/lib/workflow-routing-config.cjs and honoured by all
+            // THREE router carriers: the CK:WORKFLOW-GATE + CK:WORKFLOW-SKILLS blocks in
+            // CLAUDE.md, the DETECT/ANALYZE/AUTO-SELECT/ACTIVATE steps of the static
+            // workflow-execution protocol, and the Codex workflow protocol + catalog in
+            // .codex/CODEX_CONTEXT.md. Gating only one leaves the mode half-disabled.
+            // Explicit invocation (/plan, $start-workflow <id>, a named skill) still works, and
+            // no quality gate, task-planning or git rule is relaxed. Default true; the resolver
+            // fails OPEN, so only a literal false disables routing.
+            workflowAutoDetect: { type: 'boolean', required: false },
             // The root package.json `name` that marks this repo as carrying the framework's own
             // npm surface. Read by .claude/scripts/codex/tests/framework-repo.helper.mjs to decide
             // whether the framework-repo self-checks apply here; defaults to the upstream
@@ -1079,6 +1150,72 @@ function validateConventionInjectionSemantics(config, errors) {
     }
 }
 
+// Node built-ins + the shared path utils are loaded LAZILY and behind a `typeof require`
+// guard on purpose: `experience-config.test.cjs:189` evaluates this file's SOURCE inside
+// `vm.runInNewContext` with `require` bound to a plain OBJECT (`{ main: null }`), so a
+// top-level `require(...)` would throw and take the whole mutation-oracle suite with it.
+// When the deps are unavailable the docsRoots SEMANTIC checks are skipped; the structural
+// checks (`validateField`) still run, because they need no I/O.
+let semanticDepsCache;
+function semanticDeps() {
+    if (semanticDepsCache !== undefined) return semanticDepsCache;
+    if (typeof require !== 'function' || typeof __dirname !== 'string') {
+        semanticDepsCache = null;
+        return semanticDepsCache;
+    }
+    try {
+        const nodePath = require('path');
+        semanticDepsCache = {
+            fs: require('fs'),
+            path: nodePath,
+            pathUtils: require('./ck-path-utils.cjs'),
+            // .claude/hooks/lib -> repo root. Derived from __dirname rather than cwd so a
+            // caller validating from a subdirectory resolves the same tree.
+            repoRoot: nodePath.resolve(__dirname, '..', '..', '..')
+        };
+    } catch {
+        semanticDepsCache = null;
+    }
+    return semanticDepsCache;
+}
+
+/**
+ * docsRoots path semantics — the fail-CLOSED half of the two-plane resolution contract.
+ *
+ * A declared sub-object whose `path` escapes the repository root is an ERROR (the runtime
+ * plane would silently fall back to its default and the relocation would vanish). A
+ * declared path that simply does not exist yet is a WARNING, not an error: a project may
+ * legitimately declare a root before creating it, and erroring would make the config
+ * unusable during setup.
+ *
+ * A MISSING `path` is not handled here — `validateField` already raises
+ * `docsRoots.<key>.path: required field is missing` from the schema's `required: true`.
+ *
+ * @param {object} config - The parsed project-config.json
+ * @param {string[]} errors - Error sink
+ * @param {string[]} warnings - Warning sink
+ */
+function validateDocsRootsSemantics(config, errors, warnings) {
+    const roots = config.docsRoots;
+    if (!roots || typeof roots !== 'object' || Array.isArray(roots)) return;
+    const deps = semanticDeps();
+    for (const key of Object.keys(SCHEMA.docsRoots.properties)) {
+        const entry = roots[key];
+        if (!entry || typeof entry !== 'object' || Array.isArray(entry)) continue;
+        const value = entry.path;
+        if (typeof value !== 'string' || !value.trim()) continue;
+        if (!deps) continue;
+        if (deps.pathUtils.escapesRepoRoot(value)) {
+            errors.push(`docsRoots.${key}.path: "${value}" escapes the repository root (absolute path or ".." segment)`);
+            continue;
+        }
+        const normalized = deps.pathUtils.normalizeRootPath(value);
+        if (!deps.fs.existsSync(deps.path.resolve(deps.repoRoot, normalized))) {
+            warnings.push(`docsRoots.${key}.path: "${normalized}" does not exist on disk`);
+        }
+    }
+}
+
 /**
  * Validate a config object against the schema.
  * @param {object} config - The parsed project-config.json
@@ -1105,6 +1242,7 @@ function validateConfig(config) {
     validateE2eExecutionSemantics(config, errors, warnings);
     validateContextGroupSemantics(config, errors, warnings);
     validateConventionInjectionSemantics(config, errors);
+    validateDocsRootsSemantics(config, errors, warnings);
 
     // Check for unknown top-level keys
     const knownKeys = new Set(Object.keys(SCHEMA));

@@ -23,8 +23,10 @@ The release note is saved automatically to `docs/release-notes/YYMMDD-{slug}.md`
 
 ## Usage
 
+`{spec-root}` below is the business spec root — default `docs/specs`; a `specRoots.business.path` entry in `docs/project-config.json` overrides the path.
+
 ```bash
-/release-notes feature-name --source=docs/specs/{Bucket}/README.{Feature}.md
+/release-notes feature-name --source={spec-root}/{Bucket}/README.{Feature}.md
 /release-notes order-export --compare=develop:main
 /release-notes authentication --investigate
 ```

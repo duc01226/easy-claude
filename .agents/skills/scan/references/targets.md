@@ -6,13 +6,18 @@
 
 **Valid keys:** `project-structure` · `backend-patterns` · `frontend-patterns` · `scss-styling` · `design-system` · `code-review-rules` · `domain-entities` · `feature-spec` · `docs-index` · `e2e-tests` · `integration-tests` · `seed-test-data` · `ui-system`
 
+**Path roots used throughout this manifest.** Every `**doc:**` output path, `$prompt-enhance` argument, glob and probe below is written against one of these two roots — resolve the root FIRST, then compose:
+
+- `<ref>/` = the project-reference docs root — default `docs/project-reference/`; a `docsRoots.projectReference.path` entry in `docs/project-config.json` overrides the path. Resolve: `node -e "console.log(require('./.claude/hooks/lib/project-config-loader.cjs').getDocsRoot('projectReference'))"`. The reference-doc FILENAMES are a canonical floor and never change — only this containing directory is configurable.
+- `<specs>/` = the business/feature spec root — default `docs/specs/`; a `specRoots.business.path` entry in `docs/project-config.json` overrides the path. Resolve: `node -e "console.log(require('./.claude/hooks/lib/project-config-loader.cjs').getSpecDocsPath())"`.
+
 **Confidence vocab note:** most targets use sub-agent confidence tiers `>80% document / 60-80% "observed (unverified)" / <60% omit`. `code-review-rules` instead classifies rules HIGH / MEDIUM / LOW. `domain-entities` uses %-based thresholds. Honor the per-entry vocab.
 
 ---
 
 ## Target: project-structure
 
-- **doc:** `docs/project-reference/project-structure-reference.md`
+- **doc:** `<ref>/project-structure-reference.md`
 - **description:** `[Documentation] Use when scanning service architecture, ports, directory layout, tech stack, and module registry.`
 - **sub-agents:** 3 — Agent 1: Backend Services · Agent 2: Frontend Apps · Agent 3: Infrastructure & Tech Stack
 
@@ -131,13 +136,13 @@ Standard — follows shared `output-quality-principles` (no full trees/counts/TO
 | "Copy the env/app-settings values for completeness" | NEVER copy secret values — record KEYS, locations, and mechanism only; the doc is committed |
 
 ### prompt-enhance
-`$prompt-enhance docs/project-reference/project-structure-reference.md`
+`$prompt-enhance <ref>/project-structure-reference.md`
 
 ---
 
 ## Target: backend-patterns
 
-- **doc:** `docs/project-reference/backend-patterns-reference.md`
+- **doc:** `<ref>/backend-patterns-reference.md`
 - **description:** `[Documentation] Use when scanning backend code to refresh repository, CQRS, validation, entity, event, and migration guidance.`
 - **sub-agents:** 4 — Agent 1: Repository & Entity Patterns · Agent 2: CQRS & Validation Patterns · Agent 3: Events, Messaging & Infrastructure · Agent 4: Anti-Pattern Detection (**runs AFTER Agents 1-3 complete — NEVER merged with discovery**)
 
@@ -218,13 +223,13 @@ Phase 1 — from detected framework derive: repository interface naming, handler
 | "Round 2 review not needed for small scan" | Main agent rationalizes own mistakes. Fresh sub-agent is non-negotiable. |
 
 ### prompt-enhance
-`$prompt-enhance docs/project-reference/backend-patterns-reference.md`
+`$prompt-enhance <ref>/backend-patterns-reference.md`
 
 ---
 
 ## Target: frontend-patterns
 
-- **doc:** `docs/project-reference/frontend-patterns-reference.md`
+- **doc:** `<ref>/frontend-patterns-reference.md`
 - **description:** `[Documentation] Use when scanning frontend component, state, form, API, routing, and styling patterns.`
 - **sub-agents:** 3 — Agent 1: Component & Form Patterns · Agent 2: State Management & API Services · Agent 3: Routing, Directives & Directory Structure
 
@@ -314,13 +319,13 @@ Standard. No declarations-only rule, no source whitelist, no directory-tree allo
 | "This form validates on keystroke — flag it as a violation" | The scan DOCUMENTS, it never grades. Record the project's rule as the authority that overrides `UI-7.3`; enforcement is `ui-review`'s job |
 
 ### prompt-enhance
-`$prompt-enhance docs/project-reference/frontend-patterns-reference.md`
+`$prompt-enhance <ref>/frontend-patterns-reference.md`
 
 ---
 
 ## Target: scss-styling
 
-- **doc:** `docs/project-reference/scss-styling-guide.md`
+- **doc:** `<ref>/scss-styling-guide.md`
 - **description:** `[Documentation] Use when scanning SCSS architecture, BEM conventions, mixins, variables, theming, and responsive patterns.`
 - **sub-agents:** 2 — Agent 1: SCSS Architecture & Variables · Agent 2: BEM Patterns & Theming
 
@@ -416,13 +421,13 @@ Also: reads doc to detect Init/Sync; in Sync mode extract section list → skip 
 | "`outline: none` here is a bug — flag it" | The scan DOCUMENTS; record the treatment and its deviation from `UI-5.5` with `file:line`. Grading is `ui-review`'s job |
 
 ### prompt-enhance
-`$prompt-enhance docs/project-reference/scss-styling-guide.md`
+`$prompt-enhance <ref>/scss-styling-guide.md`
 
 ---
 
 ## Target: design-system
 
-- **doc:** `docs/project-reference/design-system/README.md`
+- **doc:** `<ref>/design-system/README.md`
 - **description:** `[Documentation] Use when scanning design tokens, component inventory, and app-to-doc design system mappings.`
 - **sub-agents:** 3 — Agent 1: Design System Structure · Agent 2: Component Inventory · Agent 3: Token & Component Source Discovery (**token discovery is a SEPARATE agent — NEVER merge with component inventory**)
 
@@ -449,7 +454,7 @@ Step 4 — check for app-specific design docs in the same directory.
 
 **Agent 1: Design System Structure**
 - **Think (VERBATIM):** "How is the design system organized? What's the canonical doc? What's the token chain? Which apps have design docs and which don't?"
-- Scan targets: glob `docs/project-reference/design-system/**`; find design token files (CSS custom properties, SCSS variables, JSON tokens); discover Storybook stories (`*.stories.{ts,tsx,mdx}`); component-library entry points (index/barrel exports); map app-to-design-doc relationships; **verify canonical doc** at `{docsPath}/{canonicalDoc}` has expected sections (flag missing); **verify token files** at `{docsPath}/{tokenFiles[i]}` exist + contain declarations (flag empty/missing).
+- Scan targets: glob `<ref>/design-system/**`; find design token files (CSS custom properties, SCSS variables, JSON tokens); discover Storybook stories (`*.stories.{ts,tsx,mdx}`); component-library entry points (index/barrel exports); map app-to-design-doc relationships; **verify canonical doc** at `{docsPath}/{canonicalDoc}` has expected sections (flag missing); **verify token files** at `{docsPath}/{tokenFiles[i]}` exist + contain declarations (flag empty/missing).
 
 **Agent 2: Component Inventory**
 - **Think (VERBATIM):** "What dimensions define a complete component inventory? Consider: Discoverability (can I find it?), Categorization (what type?), Variant coverage (size/color/state?), Accessibility (ARIA/keyboard?), Documentation completeness (JSDoc/README/Storybook?), Icon/asset library coverage."
@@ -510,13 +515,13 @@ Step 4 — check for app-specific design docs in the same directory.
 | "Tokens already match the clause defaults, so skip the coverage section" | Every clause-governed dimension gets a row — a matching value is still recorded with `file:line`, and a missing one is recorded as a GAP |
 
 ### prompt-enhance
-`$prompt-enhance docs/project-reference/design-system/README.md`
+`$prompt-enhance <ref>/design-system/README.md`
 
 ---
 
 ## Target: code-review-rules
 
-- **doc:** `docs/project-reference/code-review-rules.md`
+- **doc:** `<ref>/code-review-rules.md`
 - **description:** `[Documentation] Use when scanning code conventions, anti-patterns, architecture rules, and review checklists.`
 - **sub-agents:** 3 — Agent 1: Backend Rules · Agent 2: Frontend Rules · Agent 3: Architecture Rules (**conditionally routed by detected project scope — not all-always**)
 
@@ -589,13 +594,13 @@ Step 3 — discover code-quality infrastructure: linter configs (`.eslintrc`, `.
 | "Doc has content, skip re-read" | Show section list extracted from doc as proof of re-read |
 
 ### prompt-enhance
-`$prompt-enhance docs/project-reference/code-review-rules.md`
+`$prompt-enhance <ref>/code-review-rules.md`
 
 ---
 
 ## Target: domain-entities
 
-- **doc:** `docs/project-reference/domain-entities-reference.md`
+- **doc:** `<ref>/domain-entities-reference.md`
 - **description:** `[Documentation] Use when scanning domain entities, data models, DTOs, aggregate boundaries, sync patterns, and ER diagrams.`
 - **sub-agents:** 4 (3-4) — Agent 1: Domain Entities & Aggregates · Agent 2: DTOs, ViewModels & Application Layer Models · Agent 3: Database Schemas & Persistence · Agent 4: Cross-Service Entity Sync (**microservices only — skipped for monolith/modular-monolith**). Phase 2 header reads "Launch 3-4 general-purpose sub-agents."
 
@@ -682,13 +687,13 @@ Step 4 — Load service paths from `docs/project-config.json` `modules[]` if ava
 | "Skip Round 2 even when Round 1 found issues" | Clean Round 1 ends the scan. When issues exist, fresh-eyes mandatory after fixing — main agent rationalizes own entity discoveries. |
 
 ### prompt-enhance
-`$prompt-enhance docs/project-reference/domain-entities-reference.md`
+`$prompt-enhance <ref>/domain-entities-reference.md`
 
 ---
 
 ## Target: feature-spec
 
-- **doc:** `docs/project-reference/feature-spec-reference.md`
+- **doc:** `<ref>/feature-spec-reference.md`
 - **description:** `[Documentation] Use when scanning feature documentation structure, app-to-service mapping, templates, and conventions.`
 - **sub-agents:** 2 — Agent 1: Documentation Structure (+ M1/M2 compliance scan) · Agent 2: App-to-Service Mapping
 
@@ -696,12 +701,12 @@ Step 4 — Load service paths from `docs/project-config.json` `modules[]` if ava
 
 Determine **mode** first via shell probe:
 ```bash
-test -f docs/project-reference/feature-spec-reference.md && echo "SYNC mode" || echo "INIT mode"
+test -f <ref>/feature-spec-reference.md && echo "SYNC mode" || echo "INIT mode"
 ```
 
 | Mode | Condition | Behavior |
 | --- | --- | --- |
-| **INIT** | `feature-spec-reference.md` does not exist | Create from scratch; scan entire `docs/specs/` |
+| **INIT** | `feature-spec-reference.md` does not exist | Create from scratch; scan entire `<specs>/` |
 | **SYNC** | `feature-spec-reference.md` exists | Read existing file first; update changed sections only |
 | **FORCE** | User explicitly says "rebuild" or "reset" | Treat as INIT even if file exists |
 
@@ -709,7 +714,7 @@ Detect documentation **structure** type:
 
 | Signal | Type | Scan Approach |
 | --- | --- | --- |
-| `docs/specs/{App}/` directories | App-bucketed feature docs | Scan per-app, map to services |
+| `<specs>/{App}/` directories | App-bucketed feature docs | Scan per-app, map to services |
 | `docs/features/{Feature}.md` flat structure | Feature-per-file | Scan each file, derive categories |
 | `wiki/` or external doc system links | Wiki-based | Scan wiki references, note external |
 | README.md embedded in service dirs | Source-embedded | Scan configured source-root markdown files |
@@ -753,11 +758,11 @@ Path branching: INIT → Phase 1 → Phase 2 (full scan) → Phase 3 (full write
 - **NO `output-quality-principles` SYNC block** is present in this target (consistent with the deliberate tree inclusion); its `:reminder` is also absent. The host's output-rule reminder is therefore overridden for this target.
 
 ### Special slivers
-- **[BLOCKING] Tech-agnostic output gate:** registry/overview/summary prose + headings stay tech-agnostic per `docs/project-reference/spec-principles.md` §3 (+ §3.2 banned-token list) — no framework/product/language/design-pattern names; source paths and class names appear ONLY in evidence fields (`**Evidence**`, `[Source:]`), frontmatter, and Mermaid.
+- **[BLOCKING] Tech-agnostic output gate:** registry/overview/summary prose + headings stay tech-agnostic per `<ref>/spec-principles.md` §3 (+ §3.2 banned-token list) — no framework/product/language/design-pattern names; source paths and class names appear ONLY in evidence fields (`**Evidence**`, `[Source:]`), frontmatter, and Mermaid.
 - **[BLOCKING] Phase 0 mode-detection** (INIT vs SYNC paths differ significantly).
 - **Tech-agnostic M1/M2 compliance scan** (Agent 1) → produces dedicated **M1/M2 Compliance Leaks** target section.
 - **Directory-trees ALLOWED here** — explicit per-target inversion of the shared no-trees rule (top 3 levels).
-- **Phase 4 verifies 3 specific template paths:** `docs/specs/{Bucket}/README.{FeatureName}.md` (feature doc template); `.claude/skills/spec/SKILL.md` (feature doc generation skill); `.claude/skills/shared/tc-format.md` (canonical TC format).
+- **Phase 4 verifies 3 specific template paths:** `<specs>/{Bucket}/README.{FeatureName}.md` (feature doc template); `.claude/skills/spec/SKILL.md` (feature doc generation skill); `.claude/skills/shared/tc-format.md` (canonical TC format).
 - Sub-agent count = 2 (structure agent + mapping agent).
 
 ### Anti-Rationalization rows
@@ -771,13 +776,13 @@ Path branching: INIT → Phase 1 → Phase 2 (full scan) → Phase 3 (full write
 | "Skip Round 2 even when Round 1 found issues" | Clean Round 1 ends the scan. When issues exist, fresh-eyes mandatory after fixing — main agent rationalizes own section extractions. |
 
 ### prompt-enhance
-`$prompt-enhance docs/project-reference/feature-spec-reference.md`
+`$prompt-enhance <ref>/feature-spec-reference.md`
 
 ---
 
 ## Target: docs-index
 
-- **doc:** `docs/project-reference/docs-index-reference.md`
+- **doc:** `<ref>/docs-index-reference.md`
 - **description:** `[Documentation] Use when scanning documentation structure, counts, relationships, categories, and lookup tables.`
 - **sub-agents:** 1 — a single fresh-eyes / zero-memory verification sub-agent spawned in **Phase 5**. This target is NOT structured as parallel "Agent 1/2/3": the MAIN agent performs the scanning (Phases 2-4), and only the Phase 5 verifier is a sub-agent.
 
@@ -806,13 +811,13 @@ Path branching: INIT → Phase 1 → Phase 2 (full scan) → Phase 3 (full write
 
   | Category | Glob Pattern | What to Extract |
   | --- | --- | --- |
-  | project-reference/ | `docs/project-reference/**/*.md` | File count (verified), list with purposes |
+  | project-reference/ | `<ref>/**/*.md` | File count (verified), list with purposes |
   | operations | `docs/getting-started.md`, `docs/deployment.md`, etc. | File count, list |
-  | design-system/ | `docs/design-system/**/*.md` or `docs/project-reference/design-system/**/*.md` | File count, app mapping |
-  | specs/ feature specs | `docs/specs/*/README.*.md` | Feature Spec count per bucket |
-  | specs/ catalogs | `docs/specs/*/INDEX.md` | Bucket index presence |
+  | design-system/ | `docs/design-system/**/*.md` or `<ref>/design-system/**/*.md` | File count, app mapping |
+  | specs/ feature specs | `<specs>/*/README.*.md` | Feature Spec count per bucket |
+  | specs/ catalogs | `<specs>/*/INDEX.md` | Bucket index presence |
   | architecture-decisions/ | `docs/architecture-decisions/**/*.md` | ADR count |
-  | templates/ | `docs/templates/**/*.md` | Template count and types |
+  | templates/ | `**/*.md` under the templates root — default `docs/templates/`; a `docsRoots.templates.path` entry in `docs/project-config.json` overrides the path | Template count and types |
   | release-notes/ | `docs/release-notes/**/*.md` | File count |
 
   Plus **Uncategorized files discovery rule:** after scanning all categories, run a broad glob `docs/**/*.md` and diff against the union of all category globs. Files in the diff are uncategorized — create a separate "Uncategorized / Other" section. NEVER silently omit files. **.claude/docs/** — glob `.claude/docs/**/*.md` (count + categorize); glob `.claude/skills/**/*.md` (count skills).
@@ -822,7 +827,7 @@ Path branching: INIT → Phase 1 → Phase 2 (full scan) → Phase 3 (full write
 - Trace key relationships by grepping markdown links: entry points (README → getting-started → deployment); CLAUDE.md → reference doc pointers; which docs link to which.
 
 **Phase 4: Build Lookup Table** (no Think prompt)
-- For each `docs/specs/{Bucket}/`: extract bucket name + key business-capability keywords from each `README.{Feature}.md`; map keywords → bucket path. For each `docs/project-reference/*.md`: extract domain covered; map keywords → file path.
+- For each `<specs>/{Bucket}/`: extract bucket name + key business-capability keywords from each `README.{Feature}.md`; map keywords → bucket path. For each `<ref>/*.md`: extract domain covered; map keywords → file path.
 
 **Phase 5: Fresh-Eyes Verification** (the lone sub-agent, zero memory) — 6 checks:
 1. Sample 5 file paths from each category — do they exist? (Glob check)
@@ -840,9 +845,23 @@ Path branching: INIT → Phase 1 → Phase 2 (full scan) → Phase 3 (full write
 | **Documentation Graph** | ASCII tree with counts — counts from verified globs only |
 | **Key Doc Relationships** | ASCII relationship diagram — entry points and cross-references |
 | **Doc Lookup Guide** | keyword → path table |
+| **Resolved default paths (tooling index)** | MANDATORY `###` subsection closing the Doc Lookup Guide — ONE physical line listing EVERY on-disk project-reference doc as a full repo-relative path, introduced on that SAME line by the config key that relocates the root. See the emission rule below. |
 | **Uncategorized Files** | Files found by broad glob not in any category — with paths |
 
 Doc header also carries `<!-- Last scanned: {YYYY-MM-DD} -->`, title `# Documentation Index Reference`, and the banner `> Auto-generated by scan --target=docs-index. Do not edit manually.` Shared generated docs MUST use bare skill names without a host-specific invocation prefix so the same guidance remains valid across AI hosts.
+
+### Emission rule — "Resolved default paths (tooling index)" (MANDATORY, regenerate it every run)
+
+Elsewhere the generated doc names reference docs by BARE FILENAME under a root described once, which keeps the doc relocatable. Two guards need the opposite, and both read this one subsection:
+
+- the aggregate `[count-drift]` doc-index check requires EVERY on-disk project-reference doc path to appear VERBATIM in this file;
+- `verify-configurable-root-literals.mjs` clears a root literal only when the SAME PHYSICAL LINE also names `docs/project-config.json` (predicate 1, `:170`). An introducing line above a table or list does NOT cover the rows beneath it, and the fence mask (`:171`) helps only inside a fenced block — a markdown table is never fenced.
+
+So emit ONE physical line, never a table and never a wrapped list, in this shape:
+
+> With no `docsRoots.projectReference.path` entry in `docs/project-config.json`, the {N} project-reference docs above resolve to: `{root}/{file1}`, `{root}/{file2}`, … `{root}/{fileN}`.
+
+`{root}` is the resolved project-reference docs root and `{file*}` the glob-verified filenames — the same verified set the Doc Lookup Guide used, never a hand-kept copy. When the root IS relocated in config, say so on that same line and list the resolved paths. Mirror the existing `docs-index-reference.md` → "Resolved default paths (tooling index)" in the project-reference docs root (default `docs/project-reference/`; `docsRoots.projectReference.path` in `docs/project-config.json` overrides), which is the green reference implementation. Dropping this subsection turns both guards red on the next scan.
 
 ### Content Rules / exceptions — INVERTS the shared no-counts rule
 - ALL file counts MUST be verified via glob, not copied from existing content; **evidence gate required for EVERY count claim — never estimate.**
@@ -865,15 +884,16 @@ Doc header also carries `<!-- Last scanned: {YYYY-MM-DD} -->`, title `# Document
 | "All files fit into existing categories" | Run the uncategorized discovery diff — NEVER assume full coverage |
 | "Skip Round 2 even when Round 1 found issues" | Clean Round 1 ends the scan. When issues exist, fresh-eyes mandatory after fixing — main agent's counts carry confirmation bias. |
 | "Lookup table doesn't need all keywords" | Map keywords for EVERY documented category, not just top-level |
+| "The bare-filename lookup table already names every doc — skip the tooling index" | Two guards read full paths co-located with `docs/project-config.json` on ONE line. Emit the "Resolved default paths (tooling index)" line every run or the next scan turns them red. |
 
 ### prompt-enhance
-`$prompt-enhance docs/project-reference/docs-index-reference.md`
+`$prompt-enhance <ref>/docs-index-reference.md`
 
 ---
 
 ## Target: e2e-tests
 
-- **doc:** `docs/project-reference/e2e-test-reference.md`
+- **doc:** `<ref>/e2e-test-reference.md`
 - **description:** `[Documentation] Use when scanning E2E test architecture, page objects, step definitions, configuration, and framework patterns.`
 - **sub-agents:** 3 (parallel, framework-gated) + 1 fresh-eyes verifier — Agent 1: E2E Framework & Architecture · Agent 2: Page Object Model & Components · Agent 3: BDD & Test Patterns (**runs ONLY if BDD detected**) · plus Phase 3 Round 2 fresh sub-agent (zero memory).
 
@@ -959,13 +979,13 @@ Conditional Sections (framework-specific — only add if corresponding code evid
 | "Conditional sections not needed" | Only add conditional sections if corresponding code evidence found in scan |
 
 ### prompt-enhance
-`$prompt-enhance docs/project-reference/e2e-test-reference.md`
+`$prompt-enhance <ref>/e2e-test-reference.md`
 
 ---
 
 ## Target: integration-tests
 
-- **doc:** `docs/project-reference/integration-test-reference.md`
+- **doc:** `<ref>/integration-test-reference.md`
 - **description:** `[Documentation] Use when scanning integration test base classes, fixtures, helpers, configuration, and service setup.`
 - **sub-agents:** 2 — Agent 1: Test Infrastructure (base classes, fixtures, factories, config, DI overrides, seed data) · Agent 2: Test Patterns & Conventions (assertion patterns, test data uniqueness/cleanup, categorization, coverage distribution)
 
@@ -1067,7 +1087,7 @@ Standard `output-quality-principles` (no counts/trees/TOCs, 1 example per patter
 | "Credential security flag not needed" | Hardcoded test creds are a CRITICAL security issue — ALWAYS flag if found |
 
 ### prompt-enhance
-`$prompt-enhance docs/project-reference/integration-test-reference.md`
+`$prompt-enhance <ref>/integration-test-reference.md`
 
 ---
 
@@ -1075,14 +1095,14 @@ Standard `output-quality-principles` (no counts/trees/TOCs, 1 example per patter
 
 This target scans seeder and dev-data patterns into the seed-test-data reference doc.
 
-- **doc:** `docs/project-reference/seed-test-data-reference.md`
-- **description:** `[Documentation] Use when scanning seeder patterns and populating/syncing docs/project-reference/seed-test-data-reference.md from real code evidence.`
+- **doc:** `<ref>/seed-test-data-reference.md`
+- **description:** `[Documentation] Use when scanning seeder patterns and populating/syncing the seed-test-data-reference.md project-reference doc from real code evidence.`
 - **sub-agents:** 1 — the MAIN agent performs the evidence scan (Steps below); a Phase-3 fresh-eyes / zero-memory verifier sub-agent re-checks examples. NOT structured as parallel Agent 1/2/3.
 
 ### Phase 0 detection — mode (init/sync)
 
 Read both, then classify mode:
-- `docs/project-reference/seed-test-data-reference.md`
+- `<ref>/seed-test-data-reference.md`
 - `docs/project-config.json` (`Data Seeders` context group)
 
 | Mode | Condition | Behavior |
@@ -1139,7 +1159,7 @@ Standard `output-quality-principles`. Surgical sync only — keep existing secti
 | "Skip Round 2 even when Round 1 found issues" | Clean Round 1 ends the scan; when issues exist, fresh-eyes is mandatory after fixing |
 
 ### prompt-enhance
-`$prompt-enhance docs/project-reference/seed-test-data-reference.md`
+`$prompt-enhance <ref>/seed-test-data-reference.md`
 
 ---
 
@@ -1148,7 +1168,7 @@ Standard `output-quality-principles`. Surgical sync only — keep existing secti
 This is an **orchestrator meta-target**, not a single-doc scanner: it runs the 3 UI child scans and summarizes (it writes no doc of its own).
 
 - **kind:** orchestrator
-- **doc:** _(none of its own)_ — its children write `docs/project-reference/design-system/README.md`, `docs/project-reference/scss-styling-guide.md`, `docs/project-reference/frontend-patterns-reference.md`.
+- **doc:** _(none of its own)_ — its children write `<ref>/design-system/README.md`, `<ref>/scss-styling-guide.md`, `<ref>/frontend-patterns-reference.md`.
 - **description:** `[Documentation] Use to orchestrate all UI system scans in parallel: design system + SCSS styling + frontend patterns.`
 - **children:** `design-system`, `scss-styling`, `frontend-patterns` (each is a standard `--target=` scan that self-enhances its own doc).
 
@@ -1178,11 +1198,11 @@ This is an **orchestrator meta-target**, not a single-doc scanner: it runs the 3
 **Phase 1 — Plan:** task tracking one task per child scan to run + one verification task per child + one summary task. Do NOT launch without tasks created.
 
 **Phase 2 — Launch (parallel):** run the applicable children simultaneously, each FULLY self-contained (do NOT pass context between them):
-- `$scan --target=design-system` → `docs/project-reference/design-system/README.md` (pass detected `designSystem` config if available)
-- `$scan --target=scss-styling` → `docs/project-reference/scss-styling-guide.md`
-- `$scan --target=frontend-patterns` → `docs/project-reference/frontend-patterns-reference.md`
+- `$scan --target=design-system` → `<ref>/design-system/README.md` (pass detected `designSystem` config if available)
+- `$scan --target=scss-styling` → `<ref>/scss-styling-guide.md`
+- `$scan --target=frontend-patterns` → `<ref>/frontend-patterns-reference.md`
 
-**Phase 3 — Verify outputs (proceed only after ALL run children verified):** for each child doc — (1) file exists with content beyond placeholder headings (Glob + Read first 20 lines); (2) `<!-- Last scanned: -->` updated to today; (3) if placeholder-only/missing, flag FAILED and re-run that child once. If re-run still placeholder → escalate: "scan --target={child} produced no output. Please run it manually and check for errors."
+**Phase 3 — Verify outputs (proceed only after ALL run children verified):** for each child doc — (1) file exists with content beyond placeholder headings (Glob + Read first 20 lines); (2) the child either wrote the doc with `<!-- Last scanned: -->` at today OR reported `unchanged (no write)` and recorded a ledger entry — **an untouched stamp on an unchanged doc is SUCCESS, never a failure**, so NEVER re-run a child merely because the date did not move (that would force exactly the no-op rewrite Phase 4 step 1 of `scan` forbids); (3) if placeholder-only/missing, flag FAILED and re-run that child once. If re-run still placeholder → escalate: "scan --target={child} produced no output. Please run it manually and check for errors."
 
 **Phase 4 — Summarize** (from verified doc content only — NEVER fabricate):
 ```
@@ -1193,7 +1213,7 @@ Frontend Patterns→ frontend-patterns-reference.md  Framework:{…} State:{…}
 ```
 
 ### Content Rules / exceptions
-- Does NOT modify application code — only populates `docs/project-reference/`.
+- Does NOT modify application code — only populates `<ref>/`.
 - Summary fields come from verified child-doc content, never memory/estimate.
 
 ### Special slivers
@@ -1214,4 +1234,4 @@ Frontend Patterns→ frontend-patterns-reference.md  Framework:{…} State:{…}
 | "Roll the children's clause coverage into one compliance verdict" | Children RECORD project conventions; the orchestrator summarizes verified doc content only. A compliance verdict is `ui-review`'s output, never a scan's |
 
 ### prompt-enhance
-Each child self-enhances its own doc as its final step. After all children complete, **confirm** each child doc was prompt-enhanced; backfill any skipped via `$prompt-enhance <doc>`. Backfill list: `docs/project-reference/design-system/README.md` · `docs/project-reference/scss-styling-guide.md` · `docs/project-reference/frontend-patterns-reference.md`.
+Each child self-enhances its own doc as its final step. After all children complete, **confirm** each child doc was prompt-enhanced; backfill any skipped via `$prompt-enhance <doc>`. Backfill list: `<ref>/design-system/README.md` · `<ref>/scss-styling-guide.md` · `<ref>/frontend-patterns-reference.md`.

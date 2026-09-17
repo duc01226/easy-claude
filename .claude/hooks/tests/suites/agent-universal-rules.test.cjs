@@ -145,6 +145,7 @@ const AGENT_ADOPTION_EXEMPT = new Set([
     'goal-contract-satisfaction-loop', // session goal file + convergence loop + user escalation
     'project-protocol-overlay',    // overlay resolution is performed by whoever INVOKES the skill; a headless leaf sub-agent receives one already-scoped brief whose overlay the dispatching orchestrator already resolved
     'session-goal-ledger',         // tracks the USER's session prompts; a headless leaf never sees the user conversation (its brief already carries the goal) and the prompt-ledger hook injects nothing inside a helper agent
+    'workflow-registry-binding',   // binds a workflow SKILL.md to its .claude/workflows.json entry so whoever RESOLVES a step reads both projections; a headless leaf gets one already-resolved brief and never evaluates a sequence's applicability
 ]);
 const AGENT_SKILL_CONNECTIONS_OPEN = '<!-- AGENT-SKILL-CONNECTIONS:START -->';
 const AGENT_SKILL_CONNECTIONS_CLOSE = '<!-- AGENT-SKILL-CONNECTIONS:END -->';

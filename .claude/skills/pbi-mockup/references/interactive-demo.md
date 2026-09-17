@@ -49,7 +49,7 @@ steps:
 endState: Goals list now shows the new goal at the top, marked "On track".
 ```
 
-> **Prose contract (M1/M2):** every `title`/`explain`/`endState` string is **business/observable language** — never a framework or CSS class name. The rendered HTML MAY use real class names internally (implementation, not prose) per `docs/project-reference/spec-principles.md` §3.
+> **Prose contract (M1/M2):** every `title`/`explain`/`endState` string is **business/observable language** — never a framework or CSS class name. The rendered HTML MAY use real class names internally (implementation, not prose) per `spec-principles.md` §3, in the reference-docs root (default `docs/project-reference`; a `docsRoots.projectReference.path` entry in `docs/project-config.json` overrides the path).
 
 ---
 

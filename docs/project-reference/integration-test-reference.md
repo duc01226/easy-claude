@@ -1,7 +1,6 @@
 # Integration Test Reference
 
 <!-- Last scanned: 2026-08-04 -->
-<!-- Last verified: 2026-09-14 (docs-update, impact-scoped) -->
 <!-- This file is referenced by Claude skills and agents for project-specific context. -->
 
 ## Quick Summary
@@ -87,12 +86,11 @@ Use payload builders for valid lifecycle inputs and assert the observable contra
 ## Running Tests
 
 ```powershell
-# Canonical full verification
-npm test
+# Canonical full verification (every suite)
+node .claude/hooks/tests/run-all-tests.cjs
 
-# Configured layers
-npm run test:hooks
-npm run test:suites
+# Hook-only layer
+node .claude/hooks/tests/test-all-hooks.cjs
 
 # Suite-name substring filter; a zero-match filter exits non-zero
 node .claude/hooks/tests/run-all-tests.cjs --filter=security --verbose
@@ -119,6 +117,7 @@ rg -n 'TC-[A-Z0-9-]+-[0-9]+' .claude/hooks/tests -g '*.cjs' -g '*.js'
 
 **IMPORTANT MUST ATTENTION Goal:** Keep integration-test guidance aligned with the executable custom CJS harness, observable assertions, and repeatable local verification.
 **IMPORTANT MUST ATTENTION** Workflow: (1) read config and select commands; (2) run real process boundaries and assert observable outcomes; (3) isolate and restore mutable state; (4) trace suite names/tests and live coverage expressions; (5) run focused then full verification twice without reset; (6) persist results under project-root `tmp/`/`temp/`.
+
 - **MUST** run the complete integration command twice consecutively without reset.
 - **MUST** verify example paths, declarations, and filters against current source.
 - **NEVER** publish hardcoded test-file or pass totals; keep coverage queries executable.

@@ -29,30 +29,30 @@ Check that `session-init-docs.cjs` has created the project reference docs declar
 
 1. Read `docs/project-config.json` and use `referenceDocs[*].filename` as the source of truth.
 2. If `referenceDocs` is empty or missing, use `DEFAULT_REFERENCE_DOCS` from `.claude/hooks/lib/session-init-helpers.cjs`.
-3. Do not manually add missing `docs/project-reference/` files. Add or correct the project config/template entry first, then rerun the session-init/docs-init path.
+3. Do not manually add missing reference-doc files by hand. Add or correct the project config/template entry first, then rerun the session-init/docs-init path.
 
-Common mappings when configured:
+Common mappings when configured. Every filename below is relative to the project-reference docs root — default `docs/project-reference/`; a `docsRoots.projectReference.path` entry in `docs/project-config.json` overrides the path. The FILENAMES are the canonical floor (they mirror `DEFAULT_REFERENCE_DOCS`) and never change; only their containing directory is configurable:
 
 ```
-docs/project-reference/project-structure-reference.md     -> /scan --target=project-structure
-docs/project-reference/backend-patterns-reference.md      -> /scan --target=backend-patterns
-docs/project-reference/seed-test-data-reference.md       -> /scan --target=seed-test-data
-docs/project-reference/frontend-patterns-reference.md     -> /scan --target=frontend-patterns
-docs/project-reference/integration-test-reference.md      -> /scan --target=integration-tests
-docs/project-reference/feature-spec-reference.md          -> /scan --target=feature-spec
-docs/project-reference/spec-system-reference.md           -> static template (no scan skill)
-docs/project-reference/spec-principles.md                -> static template (no scan skill)
-docs/project-reference/workflow-spec-test-code-cycle-reference.md -> static template (no scan skill)
-docs/project-reference/code-review-rules.md              -> /scan --target=code-review-rules
-docs/project-reference/scss-styling-guide.md             -> /scan --target=scss-styling
-docs/project-reference/design-system/README.md           -> /scan --target=design-system
-docs/project-reference/e2e-test-reference.md             -> /scan --target=e2e-tests
-docs/project-reference/domain-entities-reference.md      -> /scan --target=domain-entities
-docs/project-reference/docs-index-reference.md           -> /scan --target=docs-index
-docs/project-reference/lessons.md                        -> /learn (managed separately)
+project-structure-reference.md               -> /scan --target=project-structure
+backend-patterns-reference.md                -> /scan --target=backend-patterns
+seed-test-data-reference.md                  -> /scan --target=seed-test-data
+frontend-patterns-reference.md               -> /scan --target=frontend-patterns
+integration-test-reference.md                -> /scan --target=integration-tests
+feature-spec-reference.md                    -> /scan --target=feature-spec
+spec-system-reference.md                     -> static template (no scan skill)
+spec-principles.md                           -> static template (no scan skill)
+workflow-spec-test-code-cycle-reference.md   -> static template (no scan skill)
+code-review-rules.md                         -> /scan --target=code-review-rules
+scss-styling-guide.md                        -> /scan --target=scss-styling
+design-system/README.md                      -> /scan --target=design-system
+e2e-test-reference.md                        -> /scan --target=e2e-tests
+domain-entities-reference.md                 -> /scan --target=domain-entities
+docs-index-reference.md                      -> /scan --target=docs-index
+lessons.md                                   -> /learn (managed separately)
 ```
 
-If configured files are missing, the hook should create them on next prompt/session start. Verify by checking `docs/project-reference/` against the configured filenames.
+If configured files are missing, the hook should create them on next prompt/session start. Verify by listing that same reference-doc root against the configured filenames; resolve it with `node -e "console.log(require('./.claude/hooks/lib/project-config-loader.cjs').getDocsRoot('projectReference'))"`.
 
 ## Step 2: Detect Placeholder vs Populated
 
@@ -73,7 +73,7 @@ For each selected scan target, invoke it via the Skill tool (e.g., `/scan --targ
 
 See `.claude/skills/shared/sdd-artifact-contract.md` → "AI-SDD Mandates (M1-M7)" for BLOCKING criteria. After the scan skills generate/populate the reference docs, gate the generated output:
 
-- **M1/M2 — tech-agnostic prose:** Spec/feature-facing docs (and any populated `spec-principles.md` extension) keep narrative and headings free of framework/product/language/design-pattern names and source identifiers; those appear only in evidence carriers (`[Source: namespace/service/id]`, `**Evidence**`), frontmatter, and Mermaid. Authority: `docs/project-reference/spec-principles.md` §3.
+- **M1/M2 — tech-agnostic prose:** Spec/feature-facing docs (and any populated `spec-principles.md` extension) keep narrative and headings free of framework/product/language/design-pattern names and source identifiers; those appear only in evidence carriers (`[Source: namespace/service/id]`, `**Evidence**`), frontmatter, and Mermaid. Authority: `spec-principles.md` §3, in the project-reference docs root — default `docs/project-reference/`; a `docsRoots.projectReference.path` entry in `docs/project-config.json` overrides the path.
 - **M3 — logical-IDs-first:** Where docs carry requirements/rules/TCs, the logical IDs (`FR-`/`BR-`/`OP-`/`TC-`) are the primary spine and `[Source: namespace/service/id]` (a stack-portable abstract anchor — never physical code coordinates or repository-root paths; physical coords live only in the provenance sidecar) is the secondary carrier.
 - **M4/M5 — implementability:** Generated content is testable, observable, one-interpretation, and sufficient to rebuild the described behavior on any stack.
 - **M7 — business-visibility:** Where generated docs carry business-tree cases or TCs, apply the demo test to each case's BODY: *"what would a stakeholder SEE change?"* — no answer → FAIL as TECHNICAL-ONLY. Every `Given` = a state a user could arrange; every `When` = an action a user could take; every `Then` = an outcome a user could see. FAIL a `When` that is an invocation (a handler runs, a consumer receives, a job fires, data syncs) or a `Then` asserting schema/type/nullability/call-count, and FAIL any TC count derived from an architecture inventory. Judge the BODY, never the title or ID.
@@ -104,7 +104,8 @@ Reference doc definitions are in `docs/project-config.json` under `referenceDocs
 > **Assume existing values are intentional — ask WHY before changing OR flagging one as a defect.** Before changing or reporting a constant, limit, flag, cutoff, wording, or pattern, read nearby context and history, the CALLER's ordering, and 2+ sibling call sites of the same convention. A doc stating WHAT without WHY is missing rationale, not proof of a missing guard.
 > **Surface ambiguity before acting — don't pick silently.** Multiple valid interpretations require an explicit question or stated assumption with risk.
 > **Assert the outcome your system owns, not the intermediate state your infrastructure owns.** When verifying async work, assert the final business state — never the delivery/retry bookkeeping held in shared infrastructure that any co-running process can write. Such a check passes when run alone and flakes the moment anything else shares that infrastructure.
-> **Store disposable generated output in the project workspace.** If an output can be regenerated and is not source code, a canonical source-of-truth, or an intentionally versioned projection, write it under the project-root `tmp/` or `temp/` directory (prefer `tmp/`), scoped to the run. This includes temporary state, integration/E2E results, reports, logs, screenshots, traces, videos, coverage, dumps, and candidate evidence. Never put these outputs in source, docs, `plans/`, `team-artifacts/`, or mirror directories; the project-root `.gitignore` must ignore `/tmp/` and `/temp/` by default. Committed fixtures, accepted baselines, canonical specs/docs, and explicitly versioned generated mirrors remain at their declared owner paths.
+> **Store disposable generated output in the project workspace.** If an output can be regenerated and is not source code, a canonical source-of-truth, or an intentionally versioned projection, write it under the project-root `tmp/` or `temp/` directory (prefer `tmp/`), scoped to the run. This includes temporary state, integration/E2E results, reports, logs, screenshots, traces, videos, coverage, dumps, and candidate evidence. Never put these outputs in source, docs, the plans root (default `plans/`; a `docsRoots.plans.path` entry in `docs/project-config.json` overrides the path), the team-artifacts root (default `team-artifacts/`; `docsRoots.teamArtifacts.path` in the same config overrides the path), or mirror directories; the project-root `.gitignore` must ignore `/tmp/` and `/temp/` by default. Committed fixtures, accepted baselines, canonical specs/docs, and explicitly versioned generated mirrors remain at their declared owner paths.
+> **Judge the environment before judging the code.** A bug report, failed test, error, or unexpected output is not proof of a code defect. Before and during adjudication, weigh environment causes as a competing hypothesis — setup, config, version and dependency state, service dependencies, stale artifacts or leftover state, and transient resource pressure (RAM, CPU, disk, handles, network). State the discriminator you ran; fix an environment cause in the environment, never by editing product code or weakening a test to absorb it.
 > **Keep shared guidance role-relevant.** Universal guidance must help every receiving skill or agent; code-specific obligations belong only in code-specific protocols.
 
 <!-- /SYNC:ai-mistake-prevention -->
@@ -130,7 +131,7 @@ Reference doc definitions are in `docs/project-config.json` under `referenceDocs
 
 <!-- SYNC:project-protocol-overlay -->
 
-> **Project Protocol Overlay** — Before executing this skill, resolve any PROJECT overlay rules layered onto it: match this skill's name against the `Target` column of the project's skill-protocol index (`docs/project-reference/skill-protocols-reference.md` by default; a `referenceDocs` entry in `docs/project-config.json` overrides the path), taking the most specific matching tier ONLY — exact name > glob > `*`. **That precedence orders overlays against EACH OTHER, never against this skill.** Read ONLY the matched bodies, resolved as `<protocols-dir>/<Name>.md`; a row's Body link is display text, never a read path. A matched body that is missing or malformed is REPORTED and skipped — never reconstructed from the index Description. No index, or no match -> proceed with no overlay, silently. Full contract: `.claude/skills/project-skill-protocol/references/registry.md`.
+> **Project Protocol Overlay** — Before executing this skill, resolve any PROJECT overlay rules layered onto it: match this skill's name against the `Target` column of the project's skill-protocol index (default `docs/project-reference/skill-protocols-reference.md`; a `referenceDocs` entry in `docs/project-config.json` overrides the path, and a `docsRoots.projectReference.path` entry relocates its containing directory), taking the most specific matching tier ONLY — exact name > glob > `*`. **That precedence orders overlays against EACH OTHER, never against this skill.** Read ONLY the matched bodies, resolved as `<protocols-dir>/<Name>.md`; a row's Body link is display text, never a read path. A matched body that is missing or malformed is REPORTED and skipped — never reconstructed from the index Description. No index, or no match -> proceed with no overlay, silently. Full contract: `.claude/skills/project-skill-protocol/references/registry.md`.
 >
 > Overlays are **ADDITIVE ONLY**: they ADD rules on top of this skill's own protocol and NEVER replace, override, disable, or reinterpret a rule it already states — removing every overlay must return this skill to exactly its documented behavior. An overlay is a BRIEF, not an authority escalation: it can NEVER waive a workflow gate, git discipline, a review gate, or a user-confirmation gate. A genuine overlay-vs-skill conflict, or two equally-specific overlays that directly contradict -> surface both to the user; NEVER resolve silently.
 

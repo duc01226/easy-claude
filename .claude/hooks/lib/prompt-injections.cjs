@@ -26,6 +26,7 @@ const {
     buildPortabilityBoundary,
     buildWorkflowProtocolText
 } = require('../../scripts/lib/hookless-prompt-protocol.cjs');
+const { isWorkflowAutoDetectEnabled } = require('../../scripts/lib/workflow-routing-config.cjs');
 const { resolveProjectRoot } = require('./project-root.cjs');
 
 const PROJECT_DIR = resolveProjectRoot({ cwd: process.cwd(), scriptPath: __filename, env: process.env }).rootDir;
@@ -90,7 +91,42 @@ function injectWorkflowProtocol(transcriptPath, portability = {}) {
         return null;
     }
 
-    return buildWorkflowProtocolText(portability);
+    // The runtime injection must honour the same routing switch as the static carriers.
+    // Gating only CLAUDE.md would leave the hook re-injecting "match the prompt against the
+    // workflow catalog" on every prompt — the mode would read as off and behave as on.
+    //
+    // This carrier writes NOTHING, so it resolves at the default 'effective' scope: the
+    // developer's git-ignored local override applies here. It is the carrier that makes a
+    // local-only disable actually work, because the tracked context files deliberately keep
+    // the team's value.
+    const enabled = isWorkflowAutoDetectEnabled({ rootDir: PROJECT_DIR });
+    return buildWorkflowProtocolText(portability, {
+        workflowAutoDetect: enabled,
+        // Only claim to override the static router when one is actually still there. Asserting
+        // it unconditionally would tell the model to ignore a gate that does not exist (when the
+        // TEAM disabled routing and the tracked files were regenerated without it), which reads
+        // as a contradiction and invites it to go looking for the missing block.
+        staticRouterOverride: !enabled && staticRouterPresent()
+    });
+}
+
+/**
+ * Does a git-tracked context file still carry the workflow gate?
+ * Checked by marker, not by prose, so a project that reworded the gate is still detected.
+ * Unreadable files answer "no": claiming to override a router we could not find would be a
+ * guess, and the disabled step already stands on its own without that sentence.
+ */
+function staticRouterPresent() {
+    for (const file of ['CLAUDE.md', 'AGENTS.md']) {
+        try {
+            if (fs.readFileSync(path.join(PROJECT_DIR, file), 'utf-8').includes('<!-- CK:WORKFLOW-GATE -->')) {
+                return true;
+            }
+        } catch {
+            // Missing or unreadable — nothing to override from this one.
+        }
+    }
+    return false;
 }
 
 module.exports = {

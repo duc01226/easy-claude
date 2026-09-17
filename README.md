@@ -101,7 +101,6 @@ Equivalent CLI (no slash command needed):
 
 ```bash
 node .claude/skills/sync-codex/scripts/run-codex-sync.mjs   # standalone Codex sync, no npm required
-npm run codex:sync                                          # same via package.json scripts
 ```
 
 **4. Refresh reference docs later (as the codebase evolves):**
@@ -135,7 +134,7 @@ npm run codex:sync                                          # same via package.j
 
 ## What's Inside
 
-### Hooks (20 top-level `.cjs` files, 35 lib modules)
+### Hooks (20 top-level `.cjs` files, 36 lib modules)
 
 Runtime Node.js scripts that fire on Claude Code lifecycle events.
 
@@ -377,7 +376,7 @@ node .claude/hooks/tests/test-all-hooks.cjs
 Run the Codex mirror and compatibility verification suite:
 
 ```bash
-npm run codex:verify:all
+node .claude/skills/sync-codex/scripts/run-codex-sync.mjs --only=tests,scripts-tests,tech-spec-freshness,feature-registry,hooks-count-drift,hooks-parity,hooks-doc-sync,wf-cycle,sk-proto,residue,sdd,review-validate-coverage,sync-adoption-parity,provenance-markers,sync-divergence
 ```
 
 ## Further Reading

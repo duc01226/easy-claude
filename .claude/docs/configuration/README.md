@@ -104,13 +104,13 @@ baseline, and explicit-acceptance lifecycle.
 
 The `codeReview` section records which project-specific review-rule doc the review skills/agents read (rules are read on demand via the project-reference-docs gate in `CLAUDE.md`):
 
-| Field            | Type     | Description                                                                          |
-| ---------------- | -------- | ------------------------------------------------------------------------------------ |
-| `enabled`        | boolean  | Whether review skills/agents consult the rules doc (default: `true`)                 |
-| `rulesPath`      | string   | Path to rules markdown file (default: `docs/project-reference/code-review-rules.md`) |
-| `injectOnSkills` | string[] | Skills associated with the review-rules doc                                          |
+| Field            | Type     | Description                                                                                                                                                                                                                         |
+| ---------------- | -------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `enabled`        | boolean  | Whether review skills/agents consult the rules doc (default: `true`)                                                                                                                                                                |
+| `rulesPath`      | string   | Path to rules markdown file (default: `code-review-rules.md` in the project-reference docs root, itself defaulting to `docs/project-reference` unless `docsRoots.projectReference.path` in `docs/project-config.json` overrides it) |
+| `injectOnSkills` | string[] | Skills associated with the review-rules doc                                                                                                                                                                                         |
 
-**To update code review rules:** Edit `docs/project-reference/code-review-rules.md` directly. Review skills/agents read it on demand via the project-reference-docs gate.
+**To update code review rules:** Edit `code-review-rules.md` in the project-reference docs root directly. Review skills/agents read it on demand via the project-reference-docs gate.
 
 **To add new trigger skills:** Edit `.claude/.ck.json`, add skill name to `injectOnSkills` array. Matching is case-insensitive and partial.
 
@@ -120,39 +120,39 @@ The `codeReview` section records which project-specific review-rule doc the revi
 
 ```json
 {
-  "contextGroups": [
-    {
-      "name": "feature-spec",
-      "pathRegexes": [],
-      "pathGlobs": ["docs/specs/**/*.md"],
-      "priority": 100,
-      "skills": ["spec"],
-      "referenceDocs": ["docs/project-reference/feature-spec-reference.md"]
-    },
-    {
-      "name": "general-code",
-      "pathRegexes": [],
-      "pathGlobs": ["**/*"],
-      "excludePathGlobs": ["**/node_modules/**", "tmp/**"],
-      "fileExtensions": [".js", ".cjs"],
-      "priority": 900,
-      "referenceDocs": ["docs/project-reference/code-review-rules.md"]
-    }
-  ],
-  "conventionInjection": { "enabled": true }
+    "contextGroups": [
+        {
+            "name": "feature-spec",
+            "pathRegexes": [],
+            "pathGlobs": ["docs/specs/**/*.md"],
+            "priority": 100,
+            "skills": ["spec"],
+            "referenceDocs": ["docs/project-reference/feature-spec-reference.md"]
+        },
+        {
+            "name": "general-code",
+            "pathRegexes": [],
+            "pathGlobs": ["**/*"],
+            "excludePathGlobs": ["**/node_modules/**", "tmp/**"],
+            "fileExtensions": [".js", ".cjs"],
+            "priority": 900,
+            "referenceDocs": ["docs/project-reference/code-review-rules.md"]
+        }
+    ],
+    "conventionInjection": { "enabled": true }
 }
 ```
 
-| `conventionInjection` field | Default | Allowed | Meaning |
-| --- | --- | --- | --- |
-| `enabled` | `false` | boolean | Explicit opt-in |
-| `maxChars` | `4000` | 500–10000 | Reminder size cap |
-| `maxClassesPerEdit` | `4` | 1–10 | Classes per trigger (applied before dedup) |
-| `reinjectAfterBytes` | `2000000` | ≥ 50000 | Conversation-history growth (transcript bytes, ~5–6 per visible character) that re-arms a class |
-| `reinjectAfterMinutes` | `30` | 1–1440 | Age re-arm when history size is unknown but condensations ARE observed (host report or transcript mark) |
-| `blindReinjectAfterMinutes` | `5` | 1–1440 | Age re-arm when the scope is blind — no transcript AND no condensation ever observed, so age is the only signal |
-| `onRead` | `true` | boolean | Reads trigger reminders too |
-| `compactionMarkers` | `[]` | regex strings | Extra transcript condensation marks |
+| `conventionInjection` field | Default   | Allowed       | Meaning                                                                                                         |
+| --------------------------- | --------- | ------------- | --------------------------------------------------------------------------------------------------------------- |
+| `enabled`                   | `false`   | boolean       | Explicit opt-in                                                                                                 |
+| `maxChars`                  | `4000`    | 500–10000     | Reminder size cap                                                                                               |
+| `maxClassesPerEdit`         | `4`       | 1–10          | Classes per trigger (applied before dedup)                                                                      |
+| `reinjectAfterBytes`        | `2000000` | ≥ 50000       | Conversation-history growth (transcript bytes, ~5–6 per visible character) that re-arms a class                 |
+| `reinjectAfterMinutes`      | `30`      | 1–1440        | Age re-arm when history size is unknown but condensations ARE observed (host report or transcript mark)         |
+| `blindReinjectAfterMinutes` | `5`       | 1–1440        | Age re-arm when the scope is blind — no transcript AND no condensation ever observed, so age is the only signal |
+| `onRead`                    | `true`    | boolean       | Reads trigger reminders too                                                                                     |
+| `compactionMarkers`         | `[]`      | regex strings | Extra transcript condensation marks                                                                             |
 
 Class fields deciding membership (`pathRegexes`, `pathGlobs`, `fileNameRegexes`, `excludePathRegexes`, `excludePathGlobs`, `fileExtensions`) are part of the class's content version, so editing one re-delivers the class and changes its `[[convention:name@hash8]]` tag — regenerate CLAUDE.md/AGENTS.md afterwards. `guideDoc`/`patternsDoc` are the only fields used for documentation-impact routing (`.claude/scripts/doc-impact-map.cjs`); the delivery matchers are not.
 
@@ -166,13 +166,13 @@ The optional `.claude/.ck.json` `promptLedger` object tunes the prompt-ledger ho
 { "promptLedger": { "enabled": true, "maxPromptChars": 4000, "maxEntries": 200, "reinjectAfterBytes": 1000000, "reinjectAfterMinutes": 45 } }
 ```
 
-| `promptLedger` field | Default | Allowed | Meaning |
-| --- | --- | --- | --- |
-| `enabled` | `true` | boolean | Record prompts and deliver reminders |
-| `maxPromptChars` | `4000` | 200–20000 | Per-prompt stored size before a truncation marker |
-| `maxEntries` | `200` | 2–1000 | Entries kept per session (the original request is never evicted) |
-| `reinjectAfterBytes` | `1000000` | ≥ 50000 | Conversation-history growth that re-arms the reminder |
-| `reinjectAfterMinutes` | `45` | 1–1440 | Age re-arm when history size is unknown |
+| `promptLedger` field   | Default   | Allowed   | Meaning                                                          |
+| ---------------------- | --------- | --------- | ---------------------------------------------------------------- |
+| `enabled`              | `true`    | boolean   | Record prompts and deliver reminders                             |
+| `maxPromptChars`       | `4000`    | 200–20000 | Per-prompt stored size before a truncation marker                |
+| `maxEntries`           | `200`     | 2–1000    | Entries kept per session (the original request is never evicted) |
+| `reinjectAfterBytes`   | `1000000` | ≥ 50000   | Conversation-history growth that re-arms the reminder            |
+| `reinjectAfterMinutes` | `45`      | 1–1440    | Age re-arm when history size is unknown                          |
 
 Records live in `tmp/prompt-ledger/<session>/` (override `CK_PROMPT_LEDGER_DIR`) and are pruned after 7 days. Out-of-range values are clamped, not rejected. Details: [../hooks/README.md § Session Prompt Ledger](../hooks/README.md#session-prompt-ledger).
 
@@ -230,9 +230,9 @@ Records live in `tmp/prompt-ledger/<session>/` (override `CK_PROMPT_LEDGER_DIR`)
 }
 ```
 
-| Server     | Purpose                                                          |
-| ---------- | ---------------------------------------------------------------- |
-| `github`   | GitHub API integration (issues, PRs, repos)                      |
+| Server     | Purpose                                                               |
+| ---------- | --------------------------------------------------------------------- |
+| `github`   | GitHub API integration (issues, PRs, repos)                           |
 | `context7` | Optional library-docs accelerator for `/web-research` (host-agnostic) |
 
 ---
@@ -467,10 +467,10 @@ Configuration is loaded in order with later files overriding earlier:
 
 ## Related Documentation
 
--   [settings-reference.md](./settings-reference.md) - Complete settings.json reference
--   [output-styles.md](./output-styles.md) - Coding levels 0-5 explained
--   [../hooks/README.md](../hooks/README.md) - Hook system overview
--   [../hooks/extending-hooks.md](../hooks/extending-hooks.md) - Creating custom hooks
+- [settings-reference.md](./settings-reference.md) - Complete settings.json reference
+- [output-styles.md](./output-styles.md) - Coding levels 0-5 explained
+- [../hooks/README.md](../hooks/README.md) - Hook system overview
+- [../hooks/extending-hooks.md](../hooks/extending-hooks.md) - Creating custom hooks
 
 ---
 

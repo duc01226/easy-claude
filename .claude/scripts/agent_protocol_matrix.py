@@ -132,6 +132,12 @@ EXCLUDED_ORCHESTRATION = {
     # inside a helper agent (spec SessionPromptLedger BR-SPL-06). The orchestrator
     # carries this block; the leaf would be told to track prompts it cannot see.
     "session-goal-ledger",
+    # Two-way binding between a workflow SKILL.md and its ``.claude/workflows.json``
+    # entry: whoever RESOLVES a step reads both projections and treats the registry
+    # as authoritative on conflict. A headless leaf sub-agent never resolves a
+    # sequence -- it receives one brief whose step the dispatching orchestrator
+    # already selected and whose applicability it already evaluated.
+    "workflow-registry-binding",
 }
 
 # Per-agent exceptions: a normally-excluded block IS legitimate content for this

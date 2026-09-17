@@ -9,6 +9,98 @@ const path = require('path');
  * Each function returns a string (markdown content) or null (skip section).
  */
 
+// Relocatable roots resolve through the portability accessors so the Claude runtime and the Codex
+// mirror generator cannot disagree about where a project's docs and specs live. The require is
+// OPTIONAL for the same reason generate-claude-md.cjs:31-37 makes its loader require optional — the
+// content-guard and bootstrap paths run a compact copied skill that carries no hooks/lib. When the
+// accessors are unavailable the builders degrade to the documented defaults, i.e. exactly the
+// literal roots this file used before.
+const PORTABILITY = (() => {
+    try {
+        const loader = require('../../../hooks/lib/project-config-loader.cjs');
+        const paths = require('../../../hooks/lib/ck-path-utils.cjs');
+        if (typeof loader.getDocsRoot !== 'function' || typeof loader.getSpecDocsPath !== 'function') return null;
+        return {
+            getDocsRoot: loader.getDocsRoot,
+            getSpecDocsPath: loader.getSpecDocsPath,
+            normalizeRootPath: paths.normalizeRootPath,
+            escapesRepoRoot: paths.escapesRepoRoot,
+            joinRoot: paths.joinRoot
+        };
+    } catch {
+        return null;
+    }
+})();
+
+// Documented defaults, duplicated here ONLY as the degraded-mode answer. Resolution itself is never
+// reimplemented — it lives in project-config-loader.cjs PORTABILITY_TOKENS.
+const DEFAULT_DOCS_TREE = 'docs';
+const DEFAULT_REF_DOCS_ROOT = 'docs/project-reference';
+const DEFAULT_SPEC_ROOT = 'docs/specs';
+
+/** Canonical reference-doc filenames the doc-lookup table always routes to. */
+const REFERENCE_DOC_ROWS = [
+    ['Spec paths, TC format, canonical vs derived spec artifacts', 'spec-system-reference.md'],
+    ['Spec quality, AI-implementability, tech-agnostic prose', 'spec-principles.md'],
+    ['Behavior or public contract changes, spec-test-code sync', 'workflow-spec-test-code-cycle-reference.md']
+];
+
+/** Slash-free `docsRoots.projectReference` root; default `docs/project-reference`. */
+function referenceDocsRoot(config) {
+    if (!PORTABILITY) return DEFAULT_REF_DOCS_ROOT;
+    return PORTABILITY.normalizeRootPath(PORTABILITY.getDocsRoot('projectReference', config || {})) || DEFAULT_REF_DOCS_ROOT;
+}
+
+/**
+ * Slash-free business spec root; default `docs/specs`.
+ *
+ * `getSpecDocsPath()` GUARANTEES a trailing slash while the `{SPEC_ROOT}` token resolves slash-free
+ * (`project-config-loader.cjs:110-113,169-181`) — the two forms are NOT interchangeable. Every use
+ * below CONSTRUCTS a path, so the accessor's slash is trimmed once here and each construction site
+ * supplies its own separator.
+ */
+function specRootPath(config) {
+    if (!PORTABILITY) return DEFAULT_SPEC_ROOT;
+    return PORTABILITY.normalizeRootPath(PORTABILITY.getSpecDocsPath(config || {})) || DEFAULT_SPEC_ROOT;
+}
+
+/** Join a resolved root with segments; a trailing `''` segment requests a trailing slash. */
+function underRoot(root, ...segments) {
+    if (PORTABILITY) return PORTABILITY.joinRoot(root, ...segments);
+    const wantsSlash = segments.length > 0 && segments[segments.length - 1] === '';
+    const joined = [root, ...segments.filter(Boolean)].join('/');
+    return wantsSlash ? `${joined}/` : joined;
+}
+
+/**
+ * Resolve the DOCS TREE that `buildDocIndex` scans — the parent of the configured project-reference
+ * root, mirroring the one derivation rule already in `session-init-helpers.cjs:27-30`
+ * (`DOCS_DIR = path.dirname(REFERENCE_DOCS_DIR)`).
+ *
+ * SINGLE-SEGMENT GUARD (mandatory, not defensive): `docsRoots.projectReference.path = "reference"`
+ * is a legal config value whose `path.dirname` is `'.'` — the REPO ROOT. Scanning that would walk
+ * `node_modules/`, `tmp/` and every sibling tree and emit the result into the generated CLAUDE.md.
+ * When the parent degenerates to the repo root (or escapes it) the configured root ITSELF is the
+ * docs tree, and `projectDir` is never walked.
+ *
+ * @returns {{root: string, dir: string}} repo-relative slash-free root + its absolute directory
+ */
+function resolveDocsTree(config, projectDir) {
+    const asFallback = () => ({ root: DEFAULT_DOCS_TREE, dir: path.join(projectDir, DEFAULT_DOCS_TREE) });
+    if (!PORTABILITY) return asFallback();
+    const referenceRoot = PORTABILITY.normalizeRootPath(PORTABILITY.getDocsRoot('projectReference', config || {}));
+    if (!referenceRoot || PORTABILITY.escapesRepoRoot(referenceRoot)) return asFallback();
+    const parent = PORTABILITY.normalizeRootPath(path.posix.dirname(referenceRoot));
+    const degenerate = !parent || parent === '.' || parent === '/' || PORTABILITY.escapesRepoRoot(parent);
+    const root = degenerate ? referenceRoot : parent;
+    return { root, dir: path.join(projectDir, ...root.split('/')) };
+}
+
+/** Visible stand-in for an unresolvable docs tree — keeps the section (and its markers) alive. */
+function docsNoteBlock(reason) {
+    return '```\n(doc-index unavailable) ' + reason + '\n```';
+}
+
 // A runtime backing-service (any datastore/cache/broker, e.g. a DB or message
 // queue) is modeled as a kind:"infrastructure" module carrying a meta.port —
 // exactly the set buildInfraPorts renders in its own ports table. These are
@@ -348,8 +440,14 @@ function buildSkillActivation(config, projectDir) {
 }
 
 function buildDocIndex(config, projectDir) {
-    const docsDir = path.join(projectDir, 'docs');
-    if (!fs.existsSync(docsDir)) return null;
+    const { root: docsRoot, dir: docsDir } = resolveDocsTree(config, projectDir);
+    // NEVER return falsy here. generate-claude-md.cjs drops the WHOLE section INCLUDING its
+    // `<!-- SECTION:doc-index -->` markers when a builder returns falsy (`:452-459` skips the open
+    // marker, `:465-472` pushes the close marker only `if (sections[currentKey])`). That drop is
+    // correct for a section that does not APPLY to a project; "I could not find the docs tree" is a
+    // different case, and returning null for it deleted the markers so `--mode update` could never
+    // restore the block. A visible note keeps the markers and makes the miss recoverable.
+    if (!fs.existsSync(docsDir)) return docsNoteBlock(`no documentation tree at the resolved path: ${docsRoot}/`);
 
     // Count markdown at ANY depth, not just the top level. A one-level count is correct only for
     // a flat docs folder, which every `docs/<x>/` here happened to be EXCEPT `docs/specs/` — whose
@@ -373,31 +471,32 @@ function buildDocIndex(config, projectDir) {
         if (entry.name.startsWith('.')) continue;
         if (entry.isDirectory()) {
             const subfiles = countMarkdownDeep(path.join(docsDir, entry.name));
-            tree.push(`docs/${entry.name}/  (${subfiles} files)`);
+            tree.push(`${docsRoot}/${entry.name}/  (${subfiles} files)`);
         } else if (entry.name.endsWith('.md')) {
-            tree.push(`docs/${entry.name}`);
+            tree.push(`${docsRoot}/${entry.name}`);
         }
     }
 
-    if (tree.length === 0) return null;
+    if (tree.length === 0) return docsNoteBlock(`no documents under the resolved path: ${docsRoot}/`);
     return '```\n' + tree.join('\n') + '\n```';
 }
 
 function buildDocLookup(config) {
     const modules = config.modules || [];
-    const featureRoot = 'docs/specs';
+    const featureRoot = specRootPath(config);
+    const referenceRoot = referenceDocsRoot(config);
 
     const rows = modules
         .filter(m => m.meta?.domain)
         .map(m => {
-            const docPath = `${featureRoot}/${m.name}/`;
+            const docPath = underRoot(featureRoot, m.name, '');
             return `| ${m.meta.domain} | \`${docPath}\` |`;
         });
 
-    rows.push(`| Feature specs, capability behavior, business rules, test cases | \`${featureRoot}/\` + \`docs/project-reference/feature-spec-reference.md\` |`);
-    rows.push('| Spec paths, TC format, canonical vs derived spec artifacts | `docs/project-reference/spec-system-reference.md` |');
-    rows.push('| Spec quality, AI-implementability, tech-agnostic prose | `docs/project-reference/spec-principles.md` |');
-    rows.push('| Behavior or public contract changes, spec-test-code sync | `docs/project-reference/workflow-spec-test-code-cycle-reference.md` |');
+    rows.push(`| Feature specs, capability behavior, business rules, test cases | \`${underRoot(featureRoot, '')}\` + \`${underRoot(referenceRoot, 'feature-spec-reference.md')}\` |`);
+    for (const [topic, file] of REFERENCE_DOC_ROWS) {
+        rows.push(`| ${topic} | \`${underRoot(referenceRoot, file)}\` |`);
+    }
 
     // Add framework docs
     if (config.framework?.backendPatternsDoc) {

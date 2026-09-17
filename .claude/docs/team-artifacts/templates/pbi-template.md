@@ -41,11 +41,11 @@ large_idea_decomposition: null
 
 ```yaml
 large_idea_decomposition:
-  outcome_slices: [{stable ID, independently releasable outcome, releasable-when evidence, owning artifact}]
-  dependencies_order: [{before, after, reason}]
-  non_goals: [{statement, owner}]
-  risks_evidence: [{risk, evidence_needed, status, owner}]
-  deferred_work_owner: [{item, owner, follow_up_artifact, target_slice}]
+    outcome_slices: [{ stable ID, independently releasable outcome, releasable-when evidence, owning artifact }]
+    dependencies_order: [{ before, after, reason }]
+    non_goals: [{ statement, owner }]
+    risks_evidence: [{ risk, evidence_needed, status, owner }]
+    deferred_work_owner: [{ item, owner, follow_up_artifact, target_slice }]
 ```
 
 ## Releasable Outcome (Required)
@@ -64,8 +64,8 @@ large_idea_decomposition:
 
 <!-- Cover the complete demoable outcome. “Many pages” means every required view, not an arbitrary page count. -->
 
-| View/page | Entry from | User action/result | Exit/next view | Components | States |
-| --------- | ---------- | ----------------- | -------------- | ---------- | ------ |
+| View/page   | Entry from         | User action/result         | Exit/next view      | Components                      | States              |
+| ----------- | ------------------ | -------------------------- | ------------------- | ------------------------------- | ------------------- |
 | {View/page} | {Navigation entry} | {Observable action/result} | {Next view or exit} | {Common/domain/page components} | {Applicable states} |
 
 **Navigation map:** `{view} → {view} → {business result} → {exit/next step}`
@@ -83,7 +83,7 @@ large_idea_decomposition:
 <!-- Auto-extracted by `/refine` or BA skill -->
 
 - **BR-{MOD}-XXX**: {Description of existing rule}
-    - Source: `docs/specs/{module}/{feature}.md`
+    - Source: `{module}/{feature}.md` in the business spec root
     - Impact: {How this PBI relates to this rule}
 
 - **BR-{MOD}-YYY**: {Description of existing rule}
@@ -238,10 +238,10 @@ See Section 8 (Test Specifications) in primary feature doc for patterns:
 
 > Export the frames as images and attach them for AI analysis — a design-tool link alone is not readable context.
 
-| Screen/Component | Design link      | Notes         |
-| ---------------- | ---------------- | ------------- |
-| {Screen name}    | [Link]({URL})    | {Description} |
-| {Component name} | [Link]({URL})    | {Description} |
+| Screen/Component | Design link   | Notes         |
+| ---------------- | ------------- | ------------- |
+| {Screen name}    | [Link]({URL}) | {Description} |
+| {Component name} | [Link]({URL}) | {Description} |
 
 ### Other Assets
 

@@ -1,7 +1,6 @@
 # Project Structure Reference
 
 <!-- Last scanned: 2026-08-04 -->
-<!-- Last verified: 2026-09-16 (docs-update, impact-scoped) -->
 <!-- This file is referenced by Claude skills and agents for project-specific context. -->
 
 > **Goal:** Ground AI work in easy-claude's verified framework topology, runtime entry points, configuration surfaces, and commands so agents never invent application services, ports, or deployment infrastructure.
@@ -82,7 +81,7 @@ None. No frontend framework dependency, app mapping, dev-server port, or fronten
 | Component      | Count                                                                                         | Location                      | Format                                                                              |
 | -------------- | --------------------------------------------------------------------------------------------- | ----------------------------- | ----------------------------------------------------------------------------------- |
 | Hooks          | <!-- COUNT:hooks -->20<!-- /COUNT -->                                                         | `.claude/hooks/*.cjs`         | Top-level CommonJS Node.js hook scripts counted by ADR-0002                         |
-| Hook Libraries | <!-- COUNT:lib-modules -->35<!-- /COUNT -->                                                   | `.claude/hooks/lib/*.cjs`     | CommonJS utility modules                                                            |
+| Hook Libraries | <!-- COUNT:lib-modules -->36<!-- /COUNT -->                                                   | `.claude/hooks/lib/*.cjs`     | CommonJS utility modules                                                            |
 | Skills         | <!-- COUNT:skills -->123<!-- /COUNT -->                                                       | `.claude/skills/*/SKILL.md`   | Markdown + YAML frontmatter                                                         |
 | Agents         | <!-- COUNT:agents -->23<!-- /COUNT -->                                                        | `.claude/agents/*.md`         | Markdown definitions                                                                |
 | Workflows      | <!-- COUNT:workflows -->19<!-- /COUNT -->                                                     | `.claude/workflows.json`      | JSON workflow definitions                                                           |
@@ -134,7 +133,7 @@ easy-claude/
 | Code | Module         | Location                       | Description                                                                                                               |
 | ---- | -------------- | ------------------------------ | ------------------------------------------------------------------------------------------------------------------------- |
 | HK   | Hooks          | `.claude/hooks/`               | <!-- COUNT:hooks -->20<!-- /COUNT --> top-level `.cjs` runtime hook files (session init, safety gates, graph, formatting) |
-| HL   | Hook Libraries | `.claude/hooks/lib/`           | <!-- COUNT:lib-modules -->35<!-- /COUNT --> shared utility modules for hooks                                              |
+| HL   | Hook Libraries | `.claude/hooks/lib/`           | <!-- COUNT:lib-modules -->36<!-- /COUNT --> shared utility modules for hooks                                              |
 | SK   | Skills         | `.claude/skills/`              | <!-- COUNT:skills -->123<!-- /COUNT --> task automation skill definitions                                                 |
 | AG   | Agents         | `.claude/agents/`              | <!-- COUNT:agents -->23<!-- /COUNT --> specialized subagent role definitions                                              |
 | WF   | Workflows      | `.claude/workflows.json`       | <!-- COUNT:workflows -->19<!-- /COUNT --> end-to-end process orchestrations                                               |
@@ -169,7 +168,7 @@ easy-claude/
 
 ### Static Project Context
 
-> Backend/frontend/SCSS/design/lessons/mindset/role guidance lives in `CLAUDE.md`, `docs/project-reference/*`, and relevant skills. Read it through the project-reference docs gate; the static copy is authoritative. The opt-in `file-convention-inject` hook only re-reminds per-file convention classes (`contextGroups[]`) that are missing from the current context.
+> Backend/frontend/SCSS/design/lessons/mindset/role guidance lives in `CLAUDE.md`, the project-reference docs root (default `docs/project-reference`; a `docsRoots.projectReference.path` entry in `docs/project-config.json` overrides the path), and relevant skills. Read it through the project-reference docs gate; the static copy is authoritative. The opt-in `file-convention-inject` hook only re-reminds per-file convention classes (`contextGroups[]`) that are missing from the current context.
 
 | Hook                     | Event                                                              | Purpose                                                                                            |
 | ------------------------ | ------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------- |
@@ -267,7 +266,7 @@ easy-claude/
 
 ## Scan Targets (13)
 
-The single `/scan --target=<key>` skill populates `docs/project-reference/` (per-target detail in `.claude/skills/scan/references/targets.md`):
+The single `/scan --target=<key>` skill populates the project-reference docs root — default `docs/project-reference`; a `docsRoots.projectReference.path` entry in `docs/project-config.json` overrides the path. Every filename below is relative to that root (per-target detail in `.claude/skills/scan/references/targets.md`):
 
 | `--target=<key>`             | Generates                                             |
 | ---------------------------- | ----------------------------------------------------- |
@@ -275,7 +274,7 @@ The single `/scan --target=<key>` skill populates `docs/project-reference/` (per
 | `backend-patterns`           | `backend-patterns-reference.md`                       |
 | `frontend-patterns`          | `frontend-patterns-reference.md`                      |
 | `scss-styling`               | `scss-styling-guide.md`                               |
-| `design-system`              | `docs/project-reference/design-system/README.md`      |
+| `design-system`              | `design-system/README.md`                             |
 | `code-review-rules`          | `code-review-rules.md`                                |
 | `domain-entities`            | `domain-entities-reference.md`                        |
 | `feature-spec`               | `feature-spec-reference.md`                           |

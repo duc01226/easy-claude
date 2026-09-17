@@ -36,7 +36,7 @@ Cluster commits by intent, module, date proximity, and subject.
 
 Man-days: report both ranges. `man_days_traditional` is no-AI baseline: 3-5yr developer, 6 productive hours/day. `man_days_ai` assumes an AI coding assistant plus project context; apply plan-skill AI speedup (SP 1 about 2x, 2-3 about 3x, 5-8 about 4x, 13+ about 5x) with review overhead.
 
-Anti-inflation guardrails: estimate authored implementation work first. In no-ff multi-author feature branch merges, implementation follows the original direct commit authors. Merge/admin work is separate unless the merge commit itself has substantive resolved changes. Generated files, EF designer snapshots, docs/specs, i18n sorting, lockfiles, and repeated feedback/fix commits must reduce confidence or be discounted.
+Anti-inflation guardrails: estimate authored implementation work first. In no-ff multi-author feature branch merges, implementation follows the original direct commit authors. Merge/admin work is separate unless the merge commit itself has substantive resolved changes. Generated files, EF designer snapshots, business spec files (default root `docs/specs`; a `specRoots.business.path` entry in `docs/project-config.json` overrides the path), i18n sorting, lockfiles, and repeated feedback/fix commits must reduce confidence or be discounted.
 
 Velocity sanity: when estimates feel too high or low, do not tune numbers by intuition. Re-open representative patches, synthesize the contributor as one giant commit, split into atomic clusters, and then revise.
 

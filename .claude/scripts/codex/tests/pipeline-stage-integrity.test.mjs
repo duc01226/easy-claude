@@ -169,15 +169,14 @@ test('STAGE-005 scripts-tests uses bounded concurrency at the runner and framewo
         /const testNodeCommand = process\.execPath;[\s\S]*?id: "tests"[\s\S]*?cmd: testNodeCommand[\s\S]*?id: "scripts-tests"[\s\S]*?cmd: testNodeCommand/,
         'both Node test stages must use the same executable whose version selected the test flags');
 
+    // The npm-alias half is gone: no host package.json script may drive the framework, so there is
+    // no alias left that could bypass the runner's concurrency gating. The runner assertions above
+    // are unconditional and are the whole contract now.
     const packageJson = frameworkPkg(repoRoot);
     if (!packageJson) return;
-
-    const delegatedScripts = Object.entries(packageJson.scripts ?? {}).filter(([, command]) =>
-        typeof command === 'string' && command.includes('--only=scripts-tests'));
-    assert.ok(delegatedScripts.length > 0,
-        'the framework package must retain at least one scripts-tests alias');
-    for (const [name, command] of delegatedScripts) {
-        assert.match(command, /run-codex-sync\.mjs\s+--only=scripts-tests/,
-            `${name} must delegate scripts-tests to the standalone runner`);
-    }
+    const bypassing = Object.entries(packageJson.scripts ?? {})
+        .filter(([, command]) => typeof command === 'string' && /--only=scripts-tests|node --test .*\.claude/.test(command))
+        .map(([name]) => name);
+    assert.deepEqual(bypassing, [],
+        `no npm alias may run the scripts tests outside the runner's concurrency gating; found: ${bypassing.join(', ')}`);
 });

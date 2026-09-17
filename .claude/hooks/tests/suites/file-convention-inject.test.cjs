@@ -1532,7 +1532,12 @@ const tests = [
             const lines = context.split('\n');
             // Then the first line names the must-read references and the last repeats them with the lookup
             assert.equal(lines[0], '[conventions] src/x.cjs — MUST read first: docs/a.md, docs/b.md');
-            assert.equal(lines.at(-1), `[conventions] Earlier section wins on conflict. Re-read before editing: docs/a.md, docs/b.md. Lookup: ${conventions.LOOKUP_COMMAND} src/x.cjs`);
+            // The Bash clause is part of the pinned shape, not incidental: this digest is
+            // produced by a PostToolUse hook matched on the file TOOLS, so a file opened or
+            // rewritten through the shell produces nothing AND records nothing. Silence there
+            // is indistinguishable from "no conventions apply", and some hosts actively steer
+            // toward shell file access, so the boundary is stated on every delivery.
+            assert.equal(lines.at(-1), `[conventions] Earlier section wins on conflict. Re-read before editing: docs/a.md, docs/b.md. A file read or edited via Bash gets NO digest — run the lookup for those. Lookup: ${conventions.LOOKUP_COMMAND} src/x.cjs`);
             // And the shared rule appears once, under the earlier class; each section starts with its tag
             assert.equal(count(context, '- Regenerate counts'), 1);
             assert.ok(context.indexOf('- Regenerate counts') < context.indexOf(tagOf(b)));

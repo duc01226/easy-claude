@@ -21,8 +21,8 @@ Two gates are always on: **adding** never stores raw wording — the skill draft
 
 ## Registry
 
-| Target       | Scope | Name         | Description                                                              | Updated | Body |
-| ------------ | ----- | ------------ | ------------------------------------------------------------------------ | ------- | ---- |
+| Target       | Scope | Name         | Description                                                      | Updated | Body |
+| ------------ | ----- | ------------ | ---------------------------------------------------------------- | ------- | ---- |
 | _(none yet)_ | —     | _(none yet)_ | Run `/project-skill-protocol add …` to create the first overlay. | —       | —    |
 
 - **Target** — an exact skill name (`plan`), a glob (`*-review`), or `*` (all skills).
@@ -41,6 +41,6 @@ Two gates are always on: **adding** never stores raw wording — the skill draft
 - **Index rows and body files are written together.** A row without a body is a broken resolution; a body without a row is unreachable.
 - **No secrets in overlay bodies** — reference env vars or the secret store by name.
 
-**Two copies of this file exist, and they are not the same thing.** `.claude/templates/reference-docs/skill-protocols-reference.md` is the framework-plane TEMPLATE; `docs/project-reference/skill-protocols-reference.md` is the project-plane INDEX that gets copied from it on first session start. They begin byte-identical and are EXPECTED to diverge as soon as the first overlay is added — the Registry table is project data and belongs only to the index. The surrounding contract prose (column meanings, Conventions) is what should stay in step: when the template's contract changes, reconcile the prose in the index, never the rows.
+**Two copies of this file exist, and they are not the same thing.** `.claude/templates/reference-docs/skill-protocols-reference.md` is the framework-plane TEMPLATE; `skill-protocols-reference.md` in the project-reference docs root (default `docs/project-reference`; a `docsRoots.projectReference.path` entry in `docs/project-config.json` overrides the path) is the project-plane INDEX that gets copied from it on first session start. They begin byte-identical and are EXPECTED to diverge as soon as the first overlay is added — the Registry table is project data and belongs only to the index. The surrounding contract prose (column meanings, Conventions) is what should stay in step: when the template's contract changes, reconcile the prose in the index, never the rows.
 
 The full overlay-file contract (frontmatter fields, required sections, resolution rules) lives in `.claude/skills/project-skill-protocol/references/registry.md`.

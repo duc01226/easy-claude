@@ -8,12 +8,12 @@
 
 1. **Detect** — Identify documentation triggers (feature shipped, bug fixed, milestone hit)
 2. **Update** — Read current state, update relevant docs, verify cross-references
-3. **Plan** — Save implementation plans in `./plans/` with structured phase files
+3. **Plan** — Save implementation plans in the plans root (default `plans/`; a `docsRoots.plans.path` entry in `docs/project-config.json` overrides the path) with structured phase files
 
 **Key Rules:**
 
 - Update docs AFTER every feature, milestone, bug fix, or security patch
-- Plans go in `./plans/` with timestamp naming — phase files follow development-rules.md
+- Plans go in the plans root (default `plans/`; a `docsRoots.plans.path` entry in `docs/project-config.json` overrides the path) with timestamp naming — phase files follow development-rules.md
 - Always read current doc state before updating — maintain version consistency
 
 ---
@@ -56,13 +56,15 @@ The `docs-manager` agent MUST ATTENTION update documents when:
 
 #### Plan Location
 
-Save plans in `./plans/` with timestamp and descriptive name.
+Save plans in the plans root (default `plans/`; a `docsRoots.plans.path` entry in `docs/project-config.json` overrides the path) with timestamp and descriptive name.
 
 **Format:** Use naming pattern from `## Naming` section injected by hooks.
 
-**Example:** `plans/251101-1505-authentication-and-profile-implementation/`
+**Example:** `plans/251101-1505-authentication-and-profile-implementation/` — the tree below assumes the default root; `docsRoots.plans.path` in `docs/project-config.json` relocates it.
 
 #### File Organization
+
+Shown at the default root; `docsRoots.plans.path` in `docs/project-config.json` relocates the whole tree.
 
 ```
 plans/
@@ -122,5 +124,5 @@ Each phase file contains:
 
 **MANDATORY IMPORTANT MUST ATTENTION** update docs after every feature, milestone, bug fix, or security patch
 **MANDATORY IMPORTANT MUST ATTENTION** read current doc state before updating — never overwrite blindly
-**MANDATORY IMPORTANT MUST ATTENTION** save plans in `./plans/` with timestamp naming and structured phase files
+**MANDATORY IMPORTANT MUST ATTENTION** save plans in the plans root (default `plans/`; a `docsRoots.plans.path` entry in `docs/project-config.json` overrides the path) with timestamp naming and structured phase files
 **MANDATORY IMPORTANT MUST ATTENTION** follow development-rules.md in all phase files (YAGNI/KISS/DRY, class responsibility, evidence-based)

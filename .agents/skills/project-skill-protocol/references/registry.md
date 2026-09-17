@@ -86,7 +86,7 @@ supersedes: <overlay-name>             # optional
 
 ## 2. Index row format
 
-Index: `docs/project-reference/skill-protocols-reference.md`. Its header carries a `**Protocols directory:**` line so the index is self-describing about where bodies live.
+Index: default `docs/project-reference/skill-protocols-reference.md`; a `referenceDocs` entry in `docs/project-config.json` overrides the path. Its header carries a `**Protocols directory:**` line so the index is self-describing about where bodies live.
 
 One row per overlay, in a single table:
 

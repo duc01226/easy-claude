@@ -1,6 +1,7 @@
 import test, { after } from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs/promises';
+import fsSync from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { spawn } from 'node:child_process';
@@ -44,6 +45,7 @@ const runnerAbs = path.join(repoRoot, ...runnerRel.split('/'));
 
 const readRel = async rel => fs.readFile(path.join(repoRoot, ...rel.split('/')), 'utf8');
 const exists = async p => { try { await fs.access(p); return true; } catch { return false; } };
+const readJsonOrNull = file => { try { return JSON.parse(fsSync.readFileSync(file, 'utf8')); } catch { return null; } };
 
 const createdDirs = [];
 after(async () => {
@@ -167,30 +169,33 @@ test('PORT-002 npm-auto-install hook no-ops cleanly when no package.json is pres
     assert.doesNotMatch(stderr, /Running npm (ci|install)/, 'hook must NOT attempt an install when package.json is absent');
 });
 
-// ── PORT-003/004 — npm entrypoints delegate to the in-`.claude` runner, no embedded chain ────────
-test('PORT-003 sync:all/verify:all reference the standalone runner, which exists on disk', async () => {
-    // Runner presence is UNCONDITIONAL — it ships inside `.claude`, so it must exist everywhere.
-    assert.ok(await exists(runnerAbs), 'the delegated runner script must exist at the documented path');
-
-    const pkg = frameworkPkg(repoRoot);
-    if (!pkg) return; // adopting project: the npm entrypoints are this repo's own surface
-    for (const name of ['sync:all', 'verify:all']) {
-        assert.match(pkg.scripts[name], /run-codex-sync\.mjs/, `${name} must invoke the standalone runner`);
-    }
+// ── PORT-003/004 — every entrypoint is an in-bundle path; NO host npm script may own one ─────────
+// The contract inverted: the npm scripts used to be permitted as thin delegating aliases. They are
+// now FORBIDDEN outright. A delegating alias is still a second documented interface, and prose that
+// teaches `npm run …` teaches a command that does not exist in a Python repo, a .NET repo, or any
+// project that copied only `.claude` — the exact confusion this contract removes.
+test('PORT-003 the standalone runner exists at the documented in-bundle path', async () => {
+    // UNCONDITIONAL — it ships inside `.claude`, so it must exist in every adopting project.
+    assert.ok(await exists(runnerAbs), `the runner must exist at ${runnerRel}`);
 });
 
-test('PORT-004 sync:all/verify:all contain no && chain (orchestration lives in .claude, not package.json)', async () => {
+test('PORT-004 no package.json script drives the .claude/.codex framework', async () => {
     const pkg = frameworkPkg(repoRoot);
-    if (!pkg) return;
-    for (const name of ['sync:all', 'verify:all']) {
-        assert.ok(!pkg.scripts[name].includes('&&'), `${name} must delegate, not encode a chain in package.json`);
-    }
+    if (!pkg) return; // adopting project: its package.json scripts are its own business
+    const offenders = Object.entries(pkg.scripts ?? {})
+        .filter(([, command]) => /\.claude[\\/]|\.codex[\\/]|run-codex-sync|generate-tech-specs|generate_catalogs/.test(String(command)))
+        .map(([name, command]) => `${name}: ${command}`);
+    assert.deepEqual(offenders, [],
+        'the framework is self-running: every entrypoint is a path inside .claude, never a host npm script.\n' +
+        `  offending script(s):\n    ${offenders.join('\n    ')}`);
 });
 
-// ── PORT-005 — the standalone runner is a SUPERSET of the npm verify set (no silent under-verify) ──
-// Locks: every verifier the npm scripts run is also a runner stage, so a bare `.claude` copy can never
-// pass the runner yet ship a drifted mirror.
-test('PORT-005 runner stages cover the full npm verify set (completeness + parity)', async () => {
+// ── PORT-005 — every verifier that exists on disk is wired into the runner ──────────────────────
+// The original parity partner was the npm verify set; with that surface gone, the only remaining way
+// a verifier can be written and never executed is to ship the file without a stage. That is now the
+// assertion: the FILESYSTEM is the roster, so the check is stronger than the npm one it replaces
+// (the npm set could itself have omitted a verifier — and PORT-010's history shows it did).
+test('PORT-005 runner stages cover every verifier on disk (no unwired gate)', async () => {
     const runnerSrc = await readRel(runnerRel);
     const stageIds = [...runnerSrc.matchAll(/\bid:\s*"([\w-]+)"/g)].map(m => m[1]);
     const required = ['migrate', 'hooks', 'context', 'tests', 'scripts-tests',
@@ -198,30 +203,27 @@ test('PORT-005 runner stages cover the full npm verify set (completeness + parit
     const missingStages = required.filter(id => !stageIds.includes(id));
     assert.deepEqual(missingStages, [], `runner is missing canonical stage id(s): ${missingStages.join(', ')}`);
 
-    // Parity: every verifier script file referenced by a granular npm verify/test script must also be a
-    // stage in the runner. Guards against a future npm-only verifier bypassing the standalone path.
-    // npm-surface half — framework repo only.
-    const pkg = frameworkPkg(repoRoot);
-    if (!pkg) return;
-    const verifierBasenames = new Set();
-    for (const [key, val] of Object.entries(pkg.scripts)) {
-        if (!/(verify|test:tooling)/.test(key)) continue;
-        if (/^(sync:all|verify:all)$/.test(key)) continue; // these delegate to the runner itself
-        for (const m of String(val).matchAll(/([\w-]+\.(?:mjs|cjs))/g)) {
-            if (/^verify-/.test(m[1])) verifierBasenames.add(m[1]);
-        }
-    }
-    const missingFromRunner = [...verifierBasenames].filter(b => !runnerSrc.includes(b));
-    assert.deepEqual(missingFromRunner, [], `npm verifier(s) not covered by the standalone runner: ${missingFromRunner.join(', ')}`);
+    const codexDir = path.join(repoRoot, '.claude', 'scripts', 'codex');
+    const onDisk = (await fs.readdir(codexDir)).filter(name => /^verify-[\w-]+\.mjs$/.test(name));
+    assert.ok(onDisk.length >= 8, `expected >=8 verifier files on disk, found ${onDisk.length}`);
+    // `verify-configurable-root-literals.mjs` is an authoring-time literal sweep, not a build gate —
+    // it is deliberately not a stage, and is named here so its absence is a decision, not an omission.
+    const notAStage = new Set(['verify-configurable-root-literals.mjs']);
+    const unwired = onDisk.filter(name => !notAStage.has(name) && !runnerSrc.includes(name)).sort();
+    assert.deepEqual(unwired, [],
+        `verifier(s) exist on disk but no runner stage executes them: ${unwired.join(', ')}`);
 });
 
-// ── PORT-008 — npm `verify:all --only` equals the runner's non-mutate (verify) stage set ──
-// `verify:all` is an ALLOWLIST (`--only=<ids>`), the inverse risk of PORT-005: a verify stage
-// added to the runner but NOT to that list is silently excluded from `npm run verify:all`,
-// so the npm path under-verifies while the standalone runner does not. This locks the npm
-// verify allowlist to the runner's read-only stage set in BOTH directions. The runner marks
-// its mutating (sync) stages `mutate: true`; the verify set is everything else.
-test('PORT-008 verify:all --only equals the runner non-mutate stage set (no silent npm under-verify)', async () => {
+// ── PORT-008 — `--verify-only` IS the canonical read-only set, derived not transcribed ──────────
+// The drift this replaces: `verify:all` carried the read-only roster as a hand-copied `--only=<15
+// ids>` string in package.json. A verify stage added to the runner but not to that string was
+// silently excluded, so the npm path under-verified while the runner did not — and an adopter with
+// no package.json had no way to reproduce "run every gate" at all.
+//
+// `--verify-only` derives the set from each stage's own `mutate` marker, making the drift
+// UNREPRESENTABLE rather than merely detectable. This runs the real runner (not a source parse), so
+// it grades the executed selection, which is what a transcribed list could never guarantee.
+test('PORT-008 --verify-only selects exactly the runner non-mutate stage set', async () => {
     const runnerSrc = await readRel(runnerRel);
     // Per-stage parse: stage objects contain no nested braces, so a brace-delimited slice is a
     // safe source-only parse for id + the presence of a `mutate: true` marker on that stage.
@@ -234,41 +236,31 @@ test('PORT-008 verify:all --only equals the runner non-mutate stage set (no sile
     assert.ok(mutateIds.size >= 1, 'runner must mark its mutating (sync) stages with mutate: true');
     const verifyIds = allIds.filter(id => !mutateIds.has(id)).sort();
 
-    const pkg = frameworkPkg(repoRoot);
-    if (!pkg) return; // npm under-verify is only representable where the npm surface exists
-    const onlyMatch = String(pkg.scripts['verify:all']).match(/--only=([\w,-]+)/);
-    assert.ok(onlyMatch, 'verify:all must pass an --only allowlist to the runner');
-    const onlyIds = onlyMatch[1].split(',').map(s => s.trim()).filter(Boolean).sort();
+    // `--list-stages` is the reader-facing roster; it must classify exactly the same way, or the
+    // command the docs tell an adopter to run misreports what `--verify-only` will do.
+    const listed = await run(process.execPath, [runnerAbs, '--list-stages'], { cwd: repoRoot });
+    assert.equal(listed.code, 0, `--list-stages must exit 0: ${listed.stderr}`);
+    const listedVerifyIds = [...listed.stdout.matchAll(/^\s*\d+\.\s+([\w-]+)\s+verify\b/gm)].map(m => m[1]).sort();
+    assert.deepEqual(listedVerifyIds, verifyIds,
+        `--list-stages must classify the same verify set the mutate markers declare.\n` +
+        `  --list-stages: ${listedVerifyIds.join(', ')}\n` +
+        `  mutate-marker: ${verifyIds.join(', ')}`);
 
-    assert.deepEqual(onlyIds, verifyIds,
-        `verify:all --only must equal the runner's non-mutate (verify) stage set.\n` +
-        `  --only:               ${onlyIds.join(', ')}\n` +
-        `  runner verify stages: ${verifyIds.join(', ')}`);
+    // And the SELECTION itself: `--verify-only` combined with an `--only` of a mutating stage must
+    // select nothing, proving the filter really excludes mutators rather than merely labelling them.
+    const mutatingOnly = await run(process.execPath, [runnerAbs, '--verify-only', `--only=${[...mutateIds][0]}`], { cwd: repoRoot });
+    assert.equal(mutatingOnly.code, 1, '--verify-only must exclude a mutating stage even when --only names it');
+    assert.match(mutatingOnly.stderr, /no stages selected/);
 });
 
-// ── PORT-010 — `codex:verify:all` must DELEGATE, never re-list stages ────────────────────────────
-// The blind spot PORT-005/008 left open: they lock the runner and `verify:all` to each other, but
-// `codex:verify:all` was a THIRD hand-maintained "verify everything" surface that nothing checked.
-// It silently ran 8 of 9 verifiers (review-validate-coverage was missing, and no granular script for
-// it even existed) while `codex:sync` and `codex:sync:copy-skills` both end in it — so three
-// entrypoints reported green over an unexecuted gate. Delegation makes the drift unrepresentable
-// instead of merely detectable; assertion 3 keeps the granular per-verifier surface complete too.
-test('PORT-010 codex:verify:all delegates to the single canonical verify set (no third stage roster)', async () => {
-    const pkg = frameworkPkg(repoRoot);
-    if (!pkg) return; // the third roster can only exist in this repo's package.json
-    const codexAll = String(pkg.scripts['codex:verify:all'] ?? '');
-    assert.ok(codexAll, 'codex:verify:all must exist');
-
-    // 1. No `&&` chain — a chain is a hand-maintained roster, which is exactly what drifted.
-    assert.ok(!codexAll.includes('&&'),
-        `codex:verify:all must not re-list stages in an && chain (it drifted one verifier behind that way).\n  got: ${codexAll}`);
-
-    // 2. It must resolve to the canonical set: either `verify:all` or the runner itself.
-    assert.match(codexAll, /(npm run verify:all|run-codex-sync\.mjs)/,
-        `codex:verify:all must delegate to verify:all or the standalone runner.\n  got: ${codexAll}`);
-
-    // 3. Every verifier the runner runs as a non-mutate stage must ALSO be reachable as a granular
-    //    `codex:verify:*` script, so the per-verifier surface cannot fall behind the runner either.
+// ── PORT-010 — exactly ONE "verify everything" roster exists, and it is the runner ───────────────
+// History: `codex:verify:all` was a THIRD hand-maintained roster beside the runner and `verify:all`.
+// It silently ran 8 of 9 verifiers while `codex:sync` and `codex:sync:copy-skills` both ended in it,
+// so three entrypoints reported green over an unexecuted gate. Deleting the npm surface removes two
+// of the three rosters outright; this test keeps the remaining invariant enforceable — every
+// non-mutate verifier is reachable individually AND collectively from inside the bundle, with no
+// second list anywhere. Granular reachability is now the file path itself, which cannot fall behind.
+test('PORT-010 each runner verifier is individually runnable from its in-bundle path', async () => {
     const runnerSrc = await readRel(runnerRel);
     const stageVerifiers = new Set();
     for (const m of runnerSrc.matchAll(/\{[^{}]*\bid:\s*"([\w-]+)"[^{}]*\}/g)) {
@@ -277,14 +269,18 @@ test('PORT-010 codex:verify:all delegates to the single canonical verify set (no
     }
     assert.ok(stageVerifiers.size >= 1, 'runner must declare at least one verify-*.mjs stage');
 
-    const granular = new Set();
-    for (const [key, val] of Object.entries(pkg.scripts)) {
-        if (!/^codex:verify:/.test(key) || key === 'codex:verify:all') continue;
-        for (const m of String(val).matchAll(/(verify-[\w-]+\.mjs)/g)) granular.add(m[1]);
+    // Each verifier must exist at the path the runner spawns, so `node .claude/scripts/codex/<name>`
+    // is always a valid standalone invocation — the replacement for the granular npm scripts.
+    const missing = [];
+    for (const name of stageVerifiers) {
+        if (!(await exists(path.join(repoRoot, '.claude', 'scripts', 'codex', name)))) missing.push(name);
     }
-    const unreachable = [...stageVerifiers].filter(v => !granular.has(v)).sort();
-    assert.deepEqual(unreachable, [],
-        `every non-mutate runner verifier needs a granular codex:verify:* script; missing: ${unreachable.join(', ')}`);
+    assert.deepEqual(missing.sort(), [], `runner spawns verifier(s) that do not exist on disk: ${missing.join(', ')}`);
+
+    // And no second roster may reappear: `--verify-only` is derived, so any hard-coded comma list of
+    // stage ids inside the runner (other than a doc comment) would be a transcription waiting to drift.
+    assert.doesNotMatch(runnerSrc, /--only=tests,scripts-tests/,
+        'the read-only roster must stay derived from mutate markers, never re-transcribed as an --only list');
 });
 
 // ── PORT-006 — the runner self-locates the repo root and runs standalone from any cwd ────────────
@@ -487,15 +483,21 @@ test('PORT-011 the framework-repo guard resolves true in this repo (conditional 
         return; // bare `.claude` copy: no npm surface, so nothing to self-check
     }
     const pkg = JSON.parse(raw);
-    const wiresRunner = Object.values(pkg.scripts ?? {}).some(v => String(v).includes('run-codex-sync.mjs'));
-    if (!wiresRunner) return; // adopting project keeping its own npm surface
+    // The independent signal USED to be "this package.json wires the standalone runner". That signal
+    // is gone by design: the framework is self-running, so NO package.json may drive it (PORT-004).
+    // The replacement is an EXPLICIT declaration in project config — `portability.toolingPackageName`.
+    // A project that declares one is stating "this repo's package.json is the framework-tooling
+    // package", which is exactly the claim this tripwire verifies. A bare `.claude` copy declares
+    // nothing and skips; an adopting project that declares its own name is held to its own name.
+    const declared = readJsonOrNull(path.join(repoRoot, 'docs', 'project-config.json'))?.portability?.toolingPackageName;
+    if (typeof declared !== 'string' || !declared.trim()) return;
 
     const expected = frameworkPackageName(repoRoot);
     assert.equal(pkg.name, expected,
-        `this package.json wires the standalone runner, so it IS a framework-tooling package, but the ` +
-        `guard expects the name "${expected}" and package.json says "${pkg.name}". Every guarded ` +
-        `self-check (PORT-003/004/005/008/010, TC-MWG-001/002/003, TC-PROV-011b, adoption-parity npm ` +
-        `half) is therefore SKIPPING. Fix by setting portability.toolingPackageName to "${pkg.name}" in ` +
+        `the project config declares this repo's tooling package, so it IS a framework-tooling ` +
+        `package, but the guard expects the name "${expected}" and package.json says "${pkg.name}". Every guarded ` +
+        `self-check (PORT-003/004/005/008/010, TC-MWG-001/002/003, TC-PROV-011b, TC-DOCROOT-038, ` +
+        `adoption-parity npm half) is therefore SKIPPING. Fix by setting portability.toolingPackageName to "${pkg.name}" in ` +
         `the project config (docs/project-config.json by default) — or, in the upstream framework repo, ` +
         `restore the package name to "${DEFAULT_FRAMEWORK_PACKAGE_NAME}".`);
     assert.equal(isFrameworkRepo(repoRoot), true, 'isFrameworkRepo must be true when running inside this repo');

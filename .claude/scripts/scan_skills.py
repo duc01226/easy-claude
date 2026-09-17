@@ -237,7 +237,11 @@ def main():
 
     # Output YAML for processing (generate_catalogs.py reads YAML)
     output_path = Path('.claude/scripts/skills_data.yaml')
-    output_path.write_text(yaml.dump(skills, allow_unicode=True, default_flow_style=False), encoding='utf-8')
+    # newline='' writes yaml.dump's '\n' verbatim. Default text mode translates it to os.linesep,
+    # so on Windows every rescan rewrote this LF-committed catalog as CRLF — a whole-file diff that
+    # buries the actual skill-entry changes. Same rule as generate_catalogs.py's writers.
+    with output_path.open('w', encoding='utf-8', newline='') as handle:
+        handle.write(yaml.dump(skills, allow_unicode=True, default_flow_style=False))
     print(f"\n✓ Saved metadata to {output_path}")
 
 if __name__ == '__main__':

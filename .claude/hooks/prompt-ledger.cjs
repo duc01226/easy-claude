@@ -9,9 +9,13 @@
  *     reminders, command echoes) are skipped; otherwise redact, bound and append the prompt to
  *     tmp/prompt-ledger/<session>/ledger.{json,md}. P1 → one-line pin notice. Later prompts →
  *     plaintext digest only when the last reminder is no longer present (condensed / far back).
- *   SessionStart compact → record the condensation and deliver the digest (Claude only;
- *     Codex skips SessionStart). resume → digest only when not present. clear → archive the
- *     ledger so the next prompt becomes the new original request.
+ *   SessionStart compact → record the condensation and deliver the digest. resume → digest
+ *     only when not present. clear → archive the ledger so the next prompt becomes the new
+ *     original request. BOTH hosts since 2026-09-17: Codex supports SessionStart with the
+ *     same startup|resume|clear|compact matchers, and this hook is on the narrow mirror
+ *     allowlist (sync-hooks.mjs codexSessionStartMirrors) because a static carrier cannot
+ *     hold per-session prompts. It previously read "Codex skips SessionStart", which was
+ *     true of the mirror, never of the host.
  *   PostToolUse TodoWrite|TaskCreate|TaskUpdate|update_plan (main conversation only)
  *     → digest only when not present (long single-request runs re-anchor at checkpoints).
  *

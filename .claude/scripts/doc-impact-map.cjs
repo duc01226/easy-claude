@@ -51,6 +51,30 @@ function requireQuiet(rel) {
 
 const helpers = requireQuiet('../hooks/lib/session-init-helpers.cjs');
 const loader = requireQuiet('../hooks/lib/project-config-loader.cjs');
+const pathUtils = requireQuiet('../hooks/lib/ck-path-utils.cjs');
+
+/**
+ * Segment-boundary root match. Shared normalizer when available; the inline fallback
+ * keeps the module's fail-open contract if `ck-path-utils.cjs` ever moves, and applies
+ * the SAME normalization (backslash -> `/`, trailing slashes stripped, case-folded) so
+ * routing cannot differ between the two paths.
+ */
+const isPathWithinRoot =
+    (pathUtils && pathUtils.isPathWithinRoot) ||
+    ((candidate, root) => {
+        const norm = v =>
+            String(v || '')
+                .trim()
+                .replace(/\\/g, '/')
+                .replace(/\/{2,}/g, '/')
+                .replace(/^\.\//, '')
+                .replace(/\/+$/, '')
+                .toLowerCase();
+        const c = norm(candidate);
+        const r = norm(root);
+        if (!c || !r) return false;
+        return c === r || c.startsWith(`${r}/`);
+    });
 
 /** doc filename -> the scan invocation that fully regenerates it. */
 const SCAN_SKILL_MAP = (helpers && helpers.SCAN_SKILL_MAP) || {
@@ -358,14 +382,40 @@ function buildRules(config) {
         .filter(Boolean)
         .map(r => toRepoRel(r.path || ''))
         .filter(Boolean);
+
+    // The docs TREE is the parent of the reference-doc root, NOT a hardcoded `docs/`.
+    // Derived the same way the CLAUDE.md builders derive it, because a second,
+    // independently-written derivation is exactly the composition failure
+    // TC-DOCROOT-162 exists to catch: two callers disagreeing about one project's
+    // docs tree, each passing its own unit test.
+    //   defaults: `docs/project-reference` -> `docs`  (byte-identical to the old
+    //             `/^docs\//i`, so a zero-config project is unaffected)
+    //   relocated: `documentation/reference` -> `documentation`
+    // A single-segment root has no parent to climb to; it resolves to ITSELF rather
+    // than to the repo root, or this rule would route every changed file in the repo.
+    const docsTree = (() => {
+        const refRoot = toRepoRel(
+            (loader && loader.getDocsRoot && loader.getDocsRoot('projectReference', config)) ||
+                'docs/project-reference'
+        );
+        if (!refRoot) return 'docs';
+        const parent = refRoot.replace(/\/+$/, '').split('/').slice(0, -1).join('/');
+        return parent || refRoot;
+    })();
     add({
         id: 'docs-tree',
         reason: 'documentation tree changed — docs index, categories and cross-links can drift',
         docs: [refDoc('docs-index-reference.md')],
         configSections: ['referenceDocs'],
         checks: ['claims', 'counts', 'links'],
+        // `isPathWithinRoot` matches on a SEGMENT BOUNDARY and normalizes both sides.
+        // The previous `rel.toLowerCase().startsWith(root.toLowerCase())` failed OPEN in
+        // two ways: a slash-free root over-matched every prefix-sharing sibling (at
+        // DEFAULTS `docs/specs` swallowed `docs/specs-technical/**`, silently excluding
+        // that whole tree from this rule), and a backslashed configured root
+        // (`docs\specs`) never matched anything at all.
         match: rel =>
-            (/^docs\//i.test(rel) && !specRoots.some(root => rel.toLowerCase().startsWith(root.toLowerCase()))) ||
+            (isPathWithinRoot(rel, docsTree) && !specRoots.some(root => isPathWithinRoot(rel, root))) ||
             // Root-level prose (README, CONTRIBUTING, …) is part of the documented
             // doc tree; leaving it unrouted reads as "nothing to check".
             /^[^/]+\.(md|mdx)$/i.test(rel)
@@ -653,7 +703,8 @@ function renderClaimsText(results) {
 
 /**
  * The doc set the claims check covers when no explicit target is given.
- * Walks `docs/project-reference/**` RECURSIVELY so the CLI default matches the set the
+ * Walks `REFERENCE_DOCS_DIR` (default docs/project-reference; a `docsRoots.projectReference.path` entry in docs/project-config.json overrides it)
+ * RECURSIVELY so the CLI default matches the set the
  * reference-doc-freshness build gate walks — a flat scan silently skipped nested docs,
  * so the remediation command the failing gate prints could not reproduce the failure.
  * @returns {string[]} repo-relative paths, forward-slashed

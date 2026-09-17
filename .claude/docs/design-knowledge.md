@@ -1,30 +1,30 @@
 # Design Knowledge Catalog — Laws, Tells, Typographic Craft & the Distinctiveness Process
 
-> **Role:** the **authoritative knowledge body** design- and frontend-bearing skills reason FROM for *visual identity and craft*. Owns the DESIGN LAWS, the SUBJECT-GROUNDING rule, the GENERATED-DESIGN TELL CATALOG (§4), the TYPOGRAPHY / COLOR / STRUCTURE / MOTION laws, the WORDS-AS-DESIGN-CONTENT rules, the TWO-PASS PROCESS, the DESIGN PLAN contract, and the CRITIQUE protocol. Owns NO procedure — procedure lives in the consuming skills.
+> **Role:** the **authoritative knowledge body** design- and frontend-bearing skills reason FROM for _visual identity and craft_. Owns the DESIGN LAWS, the SUBJECT-GROUNDING rule, the GENERATED-DESIGN TELL CATALOG (§4), the TYPOGRAPHY / COLOR / STRUCTURE / MOTION laws, the WORDS-AS-DESIGN-CONTENT rules, the TWO-PASS PROCESS, the DESIGN PLAN contract, and the CRITIQUE protocol. Owns NO procedure — procedure lives in the consuming skills.
 >
 > **Consumed by:** `design` (both lanes) · `design-spec` · `pbi-mockup` · `feature-presentation` · `plan` · `plan-execute` · `feature-implement` · `scaffold` · `fix` · `ui-review` · `web-design-guidelines` · `artifact-review` · `test-ui`, plus the `ui-ux-designer`, `frontend-developer` and `fullstack-developer` agents. This list is the drift-guard's scope — a skill belongs here ONLY if it carries an inline `SYNC:design-distinctiveness-gate` block or an explicit `design-knowledge.md` pointer, so the list stays greppable and the sweep stays truthful. NEVER add an aspirational consumer.
 >
-> **Drift-guard:** this file is AUTHORITATIVE for the tell catalog, the design-plan contract, and the distinctiveness laws. The **40 usability clauses `UI-1.1`–`UI-9.4` stay single-sourced** in `SYNC:ui-ux-design-principles` (`.claude/skills/shared/sync-inline-versions.md`); the **tech-agnostic spec layer** in `SYNC:ui-intent-layer`; **project token/component inventory** in `docs/project-reference/design-system/`. On any change here, grep `design-knowledge.md` and `SYNC:design-distinctiveness-gate` and update every consuming carrier.
+> **Drift-guard:** this file is AUTHORITATIVE for the tell catalog, the design-plan contract, and the distinctiveness laws. The **40 usability clauses `UI-1.1`–`UI-9.4` stay single-sourced** in `SYNC:ui-ux-design-principles` (`.claude/skills/shared/sync-inline-versions.md`); the **tech-agnostic spec layer** in `SYNC:ui-intent-layer`; **project token/component inventory** in `design-system/` under the project-reference docs root — default `docs/project-reference`; a `docsRoots.projectReference.path` entry in `docs/project-config.json` overrides the path. On any change here, grep `design-knowledge.md` and `SYNC:design-distinctiveness-gate` and update every consuming carrier.
 >
-> **Relationship to `UI-1.1`–`UI-9.4` — two different questions, no overlap.** The 40 clauses ask **"is this usable, accessible, and consistent?"** — a floor with measurable pass/fail (contrast ratios, hit targets, focus rings, the five states). This catalog asks **"is this *this product's* interface, or is it the interface any generator would emit for any brief?"** — a question of identity, and its failure mode is not a broken screen but a forgettable one. A design can pass all 40 clauses and still be a template. **Both bind. Neither substitutes for the other**, and where they touch (type scale, color, motion timing) the clause sets the floor and this catalog picks the value.
+> **Relationship to `UI-1.1`–`UI-9.4` — two different questions, no overlap.** The 40 clauses ask **"is this usable, accessible, and consistent?"** — a floor with measurable pass/fail (contrast ratios, hit targets, focus rings, the five states). This catalog asks **"is this _this product's_ interface, or is it the interface any generator would emit for any brief?"** — a question of identity, and its failure mode is not a broken screen but a forgettable one. A design can pass all 40 clauses and still be a template. **Both bind. Neither substitutes for the other**, and where they touch (type scale, color, motion timing) the clause sets the floor and this catalog picks the value.
 >
-> **MUST ATTENTION** every entry here is a CONDITIONAL judgment, never a rule. A trait in the tell catalog is legitimate for *some* briefs — it is listed because it is a **default rather than a choice**, and it appears regardless of subject. NEVER report "uses a warm cream background" as a defect; report "spent a free axis on a default" and name the axis the brief left free.
+> **MUST ATTENTION** every entry here is a CONDITIONAL judgment, never a rule. A trait in the tell catalog is legitimate for _some_ briefs — it is listed because it is a **default rather than a choice**, and it appears regardless of subject. NEVER report "uses a warm cream background" as a defect; report "spent a free axis on a default" and name the axis the brief left free.
 >
 > **MUST ATTENTION** the brief's own words ALWAYS WIN. Where the brief pins a visual direction, follow it exactly — including when it asks for one of the tells in §4. This catalog governs only the axes the brief leaves free. — why: overriding a stated client direction in the name of distinctiveness is the same failure as templating, run in the opposite direction.
 >
 > **MUST ATTENTION** the project's OWN design-system, SCSS, and frontend-pattern docs plus accepted ADRs **OUTRANK this catalog** on any conflict — this file supplies universal reasoning, the project supplies binding convention. A house style IS an intentional identity; re-deciding it per feature is the incoherence this catalog exists to prevent. NEVER flag a deviation from this catalog as a violation of the project; surface a genuine conflict to the user with both sides, NEVER resolve it silently.
 >
-> **Provenance.** Typographic measures in §5 derive from Bringhurst, *The Elements of Typographic Style* `[textbook: Bringhurst, Elements of Typographic Style]`. The tell catalog in §4 is `[model-knowledge]` — an observed clustering of generated output, not a measured study; it is calibration, not authority, and it decays as generators shift. Everything else is `[model-knowledge]` design-practice consensus. NEVER quote §4 as proof that a design is machine-made; it flags a *default worth re-deciding*, nothing more.
+> **Provenance.** Typographic measures in §5 derive from Bringhurst, _The Elements of Typographic Style_ `[textbook: Bringhurst, Elements of Typographic Style]`. The tell catalog in §4 is `[model-knowledge]` — an observed clustering of generated output, not a measured study; it is calibration, not authority, and it decays as generators shift. Everything else is `[model-knowledge]` design-practice consensus. NEVER quote §4 as proof that a design is machine-made; it flags a _default worth re-deciding_, nothing more.
 
 ---
 
 ## Quick Summary
 
-**Goal:** Give every design- and frontend-bearing skill the reasoning it needs to produce a surface that reads as *this product's* interface — grounded in its subject, distinctive on every axis the brief leaves free, and crafted to a quality floor — never the interchangeable page a generator emits for any brief.
+**Goal:** Give every design- and frontend-bearing skill the reasoning it needs to produce a surface that reads as _this product's_ interface — grounded in its subject, distinctive on every axis the brief leaves free, and crafted to a quality floor — never the interchangeable page a generator emits for any brief.
 
 **Summary:**
 
-- **Two rule sets bind, and they ask different questions.** `UI-1.1`–`UI-9.4` (single-sourced in `SYNC:ui-ux-design-principles`) ask *"is this usable?"*; this catalog asks *"is this THIS product's interface?"* A surface can pass all 40 clauses and still be a template.
+- **Two rule sets bind, and they ask different questions.** `UI-1.1`–`UI-9.4` (single-sourced in `SYNC:ui-ux-design-principles`) ask _"is this usable?"_; this catalog asks _"is this THIS product's interface?"_ A surface can pass all 40 clauses and still be a template.
 - **Precedence, in order:** the brief's stated visual direction WINS OUTRIGHT → the project's design-system / SCSS / frontend-pattern docs + accepted ADRs → this catalog. Surface genuine conflicts to the user; NEVER resolve silently.
 - **Every §4 tell is a CONDITIONAL judgment, never a defect.** Report "spent a free axis on a default" and name the axis — NEVER "uses a warm cream background".
 - **The sections, in order:** §1 design laws → §2 ground it in the subject → §3 where defaults hide → §4 the tell catalog (T1–T5 clusters, typographic tells, structural/motion tells) → §5 typography → §6 color / structure / hero / composition → §7 motion → §8 words as design content → §9 the two-pass process (plan → **BLOCKING generic test** → build → critique) → §10 the design-plan contract → §11 critique → §12 implementation hygiene → §13 the 13-item judgment checklist → §14 single-sourcing map.
@@ -36,16 +36,16 @@
 
 Approach every brief as the design lead at a studio known for giving each client a visual identity **not mistaken for anyone else's**. Assume this client has already rejected proposals that felt cliché or templated, and is paying for a point of view.
 
-| Law | Statement | Consequence |
-| --- | --- | --- |
-| **Identity first** | A design's job is to be *this product's*, not to be nice | "Clean and modern" is not a direction — every generator says that. If the description would fit a competitor, it is not a direction |
-| **Distinctiveness is derived, not invented** | Character comes FROM the subject matter, never from taste applied on top | A toy for girls aged 8–11 and a dashboard for financial analysts share no palette, type, or density. If your choice survives swapping the subject, it was not a choice |
-| **Every choice carries a WHY** | "It's common", "it's clean", "it's what users expect" are not reasons | A decision with no articulable reason is a default that arrived while you were not looking |
-| **Defaults hide in infrastructure** | The parts that feel like they *just need to work* are where templates win | Typography, navigation, data display, and token NAMES all feel structural. None are. There are no structural decisions |
-| **Spend boldness once** | One memorable element, everything else quiet and disciplined | Two competing bold moves cancel; four make noise. Boldness distributed evenly reads as decoration |
-| **Restraint is the last pass** | Chanel: before leaving the house, remove one accessory | Cut the decoration that does not serve the brief — the cut is the design step most often skipped |
-| **Risk is justified by the brief** | Take aesthetic risk when the brief supports it; never as self-expression | An experiment that ignores the audience is not boldness, it is a different failure |
-| **Quality floor is unannounced** | Responsive, keyboard-focusable, reduced-motion-respecting, contrast-passing | Build it in silently. Never present the floor as a feature |
+| Law                                          | Statement                                                                   | Consequence                                                                                                                                                            |
+| -------------------------------------------- | --------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Identity first**                           | A design's job is to be _this product's_, not to be nice                    | "Clean and modern" is not a direction — every generator says that. If the description would fit a competitor, it is not a direction                                    |
+| **Distinctiveness is derived, not invented** | Character comes FROM the subject matter, never from taste applied on top    | A toy for girls aged 8–11 and a dashboard for financial analysts share no palette, type, or density. If your choice survives swapping the subject, it was not a choice |
+| **Every choice carries a WHY**               | "It's common", "it's clean", "it's what users expect" are not reasons       | A decision with no articulable reason is a default that arrived while you were not looking                                                                             |
+| **Defaults hide in infrastructure**          | The parts that feel like they _just need to work_ are where templates win   | Typography, navigation, data display, and token NAMES all feel structural. None are. There are no structural decisions                                                 |
+| **Spend boldness once**                      | One memorable element, everything else quiet and disciplined                | Two competing bold moves cancel; four make noise. Boldness distributed evenly reads as decoration                                                                      |
+| **Restraint is the last pass**               | Chanel: before leaving the house, remove one accessory                      | Cut the decoration that does not serve the brief — the cut is the design step most often skipped                                                                       |
+| **Risk is justified by the brief**           | Take aesthetic risk when the brief supports it; never as self-expression    | An experiment that ignores the audience is not boldness, it is a different failure                                                                                     |
+| **Quality floor is unannounced**             | Responsive, keyboard-focusable, reduced-motion-respecting, contrast-passing | Build it in silently. Never present the floor as a feature                                                                                                             |
 
 **MUST ATTENTION** you will generate generic output by default. Training has seen thousands of dashboards and landing pages, and those patterns are strong. You can follow this entire process — explore the subject, name a signature, state your intent — and still ship a template, because **intent lives in prose while code generation pulls from patterns**. The gap between them is where defaults win. Process helps; process alone does not guarantee craft. You have to catch yourself, which is what §9's review pass and §11's critique exist for.
 
@@ -59,7 +59,7 @@ Answer these out loud — to yourself or the user — not in your head:
 
 1. **What is this, concretely?** Not "a web app". The industry, the materials, the vernacular, the physical or professional world it belongs to. This is where distinctive choices come from.
 2. **Who is this human?** Not "users". The actual person: where are they when they open this, what is on their mind, what did they do five minutes ago and what will they do five minutes after. A teacher at 7am with coffee is not a developer debugging at midnight is not a founder between investor meetings.
-3. **What must they accomplish?** The verb. *Grade these submissions. Find the broken deployment. Approve the payment.* The answer decides what leads, what follows, and what hides.
+3. **What must they accomplish?** The verb. _Grade these submissions. Find the broken deployment. Approve the payment._ The answer decides what leads, what follows, and what hides.
 4. **What should it feel like?** In words that mean something. Warm like a notebook? Cold like a terminal? Dense like a trading floor? Calm like a reading app? This shapes color, type, spacing, and density together.
 
 **Build with the brief's real content and subject matter throughout.** Placeholder lorem, generic stat labels, and invented company names break the illusion faster than any visual flaw — see §8.
@@ -83,17 +83,17 @@ The trap is believing some decisions are creative and others structural. **The m
 
 ## 4. The Generated-Design Tell Catalog — calibration, not prohibition
 
-`[model-knowledge]` — an observed clustering of current generated output. **Every trait here is legitimate for some brief.** They are listed because they are *defaults rather than choices* and appear regardless of subject. **Where the brief pins a direction, follow it — including into these.** Where it leaves an axis free, **do not spend that freedom on one of these.**
+`[model-knowledge]` — an observed clustering of current generated output. **Every trait here is legitimate for some brief.** They are listed because they are _defaults rather than choices_ and appear regardless of subject. **Where the brief pins a direction, follow it — including into these.** Where it leaves an axis free, **do not spend that freedom on one of these.**
 
 ### 4.1 The five clusters
 
-| # | Cluster | Signature |
-| --- | --- | --- |
-| **T1** | **Warm-cream editorial** | Near-`#F4F1EA` cream ground + high-contrast serif display + terracotta/warm-clay accent near `#D97757`. **`#D97757` is Anthropic's own Claude-interaction accent** — on a user's brief it reads specifically as a tell, not merely as a default |
-| **T2** | **Acid-on-black** | Near-black ground with a single bright acid-green or vermilion accent |
-| **T3** | **Broadsheet** | Newspaper pastiche: hairline rules, zero border-radius, dense justified columns |
-| **T4** | **SaaS-card kit** | Content chopped into identical rounded cards · ONE border-radius on everything regardless of hierarchy · the same soft grey shadow (`rgba(0,0,0,.1)`) under each · gradient washes used as decoration |
-| **T5** | **Template chrome** | Appears whatever the subject: tracked-out ALL-CAPS eyebrow label above every heading · meta strings joined with middle dots (`A · B · C`) · labels built as `WORD — fragment` with a spaced em dash · tinted near-black (`#0B0B0B`, `#111`) standing in for black · a monospace face for small data labels · `→` appended to link and button text |
+| #      | Cluster                  | Signature                                                                                                                                                                                                                                                                                                                                         |
+| ------ | ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **T1** | **Warm-cream editorial** | Near-`#F4F1EA` cream ground + high-contrast serif display + terracotta/warm-clay accent near `#D97757`. **`#D97757` is Anthropic's own Claude-interaction accent** — on a user's brief it reads specifically as a tell, not merely as a default                                                                                                   |
+| **T2** | **Acid-on-black**        | Near-black ground with a single bright acid-green or vermilion accent                                                                                                                                                                                                                                                                             |
+| **T3** | **Broadsheet**           | Newspaper pastiche: hairline rules, zero border-radius, dense justified columns                                                                                                                                                                                                                                                                   |
+| **T4** | **SaaS-card kit**        | Content chopped into identical rounded cards · ONE border-radius on everything regardless of hierarchy · the same soft grey shadow (`rgba(0,0,0,.1)`) under each · gradient washes used as decoration                                                                                                                                             |
+| **T5** | **Template chrome**      | Appears whatever the subject: tracked-out ALL-CAPS eyebrow label above every heading · meta strings joined with middle dots (`A · B · C`) · labels built as `WORD — fragment` with a spaced em dash · tinted near-black (`#0B0B0B`, `#111`) standing in for black · a monospace face for small data labels · `→` appended to link and button text |
 
 ### 4.2 Typographic tells — the commonest signals of a generated page
 
@@ -109,7 +109,7 @@ Avoid these default treatments:
 - **Fade-and-slide-up entrances on every section**, and **hover transitions on every card**. Scattered effects read as generated; see §7.
 - **The default hero:** a big number with a small label, supporting stats, and a gradient accent. Use it only when it is genuinely the best treatment for this subject — see §6.
 
-**MUST ATTENTION** a tell match is a HYPOTHESIS about a *missed decision*, never a finding of wrongdoing. Promote it only by naming (a) the axis, (b) that the brief left it free, and (c) what the subject matter suggested instead. — why: shape-matching without that reasoning produces review noise and pushes designers toward a *different* uniform.
+**MUST ATTENTION** a tell match is a HYPOTHESIS about a _missed decision_, never a finding of wrongdoing. Promote it only by naming (a) the axis, (b) that the brief left it free, and (c) what the subject matter suggested instead. — why: shape-matching without that reasoning produces review noise and pushes designers toward a _different_ uniform.
 
 ---
 
@@ -117,16 +117,16 @@ Avoid these default treatments:
 
 Typography carries the personality of the page.
 
-| Rule | Statement |
-| --- | --- |
-| **One or two families** | You do NOT need a separate display and body face. Use one, or two — and if two, make them **clearly distinct**. Two similar sans faces read as a mistake, not a pairing |
-| **Choose deliberately** | Not the default families you would reach for on any other project. The choice must be traceable to §2's subject matter |
-| **Set a real scale** | A clear type scale following the default guidance of *The Elements of Typographic Style* `[textbook: Bringhurst]`, with intentional weights, widths, and spacing — not sizes invented per component |
-| **Type as an active element** | When type is a headline or visual element, the **treatment itself is part of the design**, not a neutral delivery vehicle for the words |
-| **Measure** | Default to **line lengths under 80 characters**. Serif faces tolerate slightly longer measures |
-| **Leading** | Give **serif body text slightly more line-height than sans-serif** at the same size |
-| **Hierarchy needs more than size** | If size is the only thing separating headline from body from label, the hierarchy is too weak. Weight, tracking, and opacity create layers size alone cannot |
-| **Legible squinted** | Squint at the page: the hierarchy must survive |
+| Rule                               | Statement                                                                                                                                                                                           |
+| ---------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **One or two families**            | You do NOT need a separate display and body face. Use one, or two — and if two, make them **clearly distinct**. Two similar sans faces read as a mistake, not a pairing                             |
+| **Choose deliberately**            | Not the default families you would reach for on any other project. The choice must be traceable to §2's subject matter                                                                              |
+| **Set a real scale**               | A clear type scale following the default guidance of _The Elements of Typographic Style_ `[textbook: Bringhurst]`, with intentional weights, widths, and spacing — not sizes invented per component |
+| **Type as an active element**      | When type is a headline or visual element, the **treatment itself is part of the design**, not a neutral delivery vehicle for the words                                                             |
+| **Measure**                        | Default to **line lengths under 80 characters**. Serif faces tolerate slightly longer measures                                                                                                      |
+| **Leading**                        | Give **serif body text slightly more line-height than sans-serif** at the same size                                                                                                                 |
+| **Hierarchy needs more than size** | If size is the only thing separating headline from body from label, the hierarchy is too weak. Weight, tracking, and opacity create layers size alone cannot                                        |
+| **Legible squinted**               | Squint at the page: the hierarchy must survive                                                                                                                                                      |
 
 Avoid the §4.2 typographic tells.
 
@@ -147,7 +147,7 @@ Structural devices — outlines, borders, numbering, eyebrows, dividers, labels 
 
 **Before adding a numbered marker, check the content really is a sequence** (a stepped process, a timeline, a ranking). Three unordered feature blurbs numbered `01 / 02 / 03` assert an order that does not exist.
 
-Apply the same test to every device: *what does this border tell the reader that whitespace would not?* If the answer is nothing, it is decoration — cut it (§1, restraint).
+Apply the same test to every device: _what does this border tell the reader that whitespace would not?_ If the answer is nothing, it is decoration — cut it (§1, restraint).
 
 ### 6.3 The hero
 
@@ -175,16 +175,16 @@ For web designs, the hero is the first thing viewers see. **Open with the most c
 
 Words appear in a design for one reason: **to make it easier to understand and use.** They are design content, not decoration — bring the same intentionality and minimalism to copy that you bring to spacing and color. Before writing anything, ask what the design needs to say and how it can best be said to help the person navigate.
 
-| Rule | Statement |
-| --- | --- |
-| **Write from the end user's perspective** | Name things by what users understand, not by how the system is built. A user manages **notifications**, not **webhook config** |
-| **Describe, don't sell** | Say what something is or does in plain terms. Specific and legible to a new user beats clever, always |
-| **Active voice by default** | A CTA says exactly what happens: **"Save changes"**, not "Submit" |
-| **One name per action, whole flow** | The button that says **Publish** produces a toast that says **Published**. Interface vocabulary is the signposting people learn the product by — cohesion is how they find their way |
+| Rule                                               | Statement                                                                                                                                                                                                 |
+| -------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Write from the end user's perspective**          | Name things by what users understand, not by how the system is built. A user manages **notifications**, not **webhook config**                                                                            |
+| **Describe, don't sell**                           | Say what something is or does in plain terms. Specific and legible to a new user beats clever, always                                                                                                     |
+| **Active voice by default**                        | A CTA says exactly what happens: **"Save changes"**, not "Submit"                                                                                                                                         |
+| **One name per action, whole flow**                | The button that says **Publish** produces a toast that says **Published**. Interface vocabulary is the signposting people learn the product by — cohesion is how they find their way                      |
 | **Failure and emptiness give direction, not mood** | Explain what went wrong and how to fix it, in the interface's voice rather than a person's. **Errors do not apologize, and are never vague about what happened.** An empty screen is an invitation to act |
-| **Conversational tone** | Plain verbs, sentence case, no filler, tone matched to brand and audience |
-| **One job per element** | Let each written element do exactly one thing |
-| **Real content, not lorem** | Copy can make a design feel as templated as the design itself. When the brief has no real content, write plausible copy for the actual subject (§2) |
+| **Conversational tone**                            | Plain verbs, sentence case, no filler, tone matched to brand and audience                                                                                                                                 |
+| **One job per element**                            | Let each written element do exactly one thing                                                                                                                                                             |
+| **Real content, not lorem**                        | Copy can make a design feel as templated as the design itself. When the brief has no real content, write plausible copy for the actual subject (§2)                                                       |
 
 **Content coherence check:** read every visible string as a user would — not for typos, for truth. Could a real person at a real company be looking at exactly this data right now? Or does the page title belong to one product, the body to another, and the sidebar metrics to a third? A beautifully designed interface with nonsensical content is a movie set with no script.
 
@@ -202,7 +202,7 @@ From the brief, produce a **compact token system** (full contract in §10): Colo
 
 Before writing any code, interrogate the plan:
 
-> **The generic test:** work through a *similar* prompt in your head and see whether you arrive somewhere similar. **Any part of the plan that reads like the generic default you would produce for any comparable page — rather than a choice made for THIS brief — gets revised.**
+> **The generic test:** work through a _similar_ prompt in your head and see whether you arrive somewhere similar. **Any part of the plan that reads like the generic default you would produce for any comparable page — rather than a choice made for THIS brief — gets revised.**
 
 Cross-check every axis against the §4 tell catalog. For each revision, **say what you changed and why**. Only after confirming the plan's relative uniqueness do you start writing code, and then you follow the **revised** plan.
 
@@ -224,12 +224,12 @@ Human creatives have memory and always try something new. If there is a place to
 
 The artifact Pass 1a produces and Pass 1b reviews. Four parts, none optional:
 
-| Part | Contract |
-| --- | --- |
-| **Color** | The core base palette as **4–6 named hex values**. Names evoke the subject's world (§2), not a numeric ramp |
-| **Type** | The typefaces **and their roles**. One family, or two clearly distinct ones (§5). Name the scale |
-| **Layout** | A layout concept in **one-sentence prose plus ASCII wireframes** used to ideate and compare alternatives. **Include alignment guidance** — left, centered, or justified |
-| **Principles** | The high-level guidance for what makes THIS page unique — the one thing someone will remember, and what stays quiet around it (§1) |
+| Part           | Contract                                                                                                                                                                |
+| -------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Color**      | The core base palette as **4–6 named hex values**. Names evoke the subject's world (§2), not a numeric ramp                                                             |
+| **Type**       | The typefaces **and their roles**. One family, or two clearly distinct ones (§5). Name the scale                                                                        |
+| **Layout**     | A layout concept in **one-sentence prose plus ASCII wireframes** used to ideate and compare alternatives. **Include alignment guidance** — left, centered, or justified |
+| **Principles** | The high-level guidance for what makes THIS page unique — the one thing someone will remember, and what stays quiet around it (§1)                                      |
 
 Every part carries its **WHY, traced to the subject matter**. A plan whose parts would survive swapping the subject has not been written yet.
 
@@ -251,7 +251,7 @@ There is a distance between **correct** and **crafted**. Correct means the layou
 
 **Structure** — Open the CSS and find the lies: negative margins undoing a parent's padding, `calc()` values that exist only as workarounds, absolute positioning to escape layout flow. Each is a shortcut where a clean solution exists — cards with full-width dividers use flex column with section-level padding; centered content uses `max-width` with auto margins. **The correct answer is always simpler than the hack.**
 
-**Distinctiveness** — Re-run the §9 generic test on the *built* page, not just the plan. Then apply restraint: **remove one accessory.**
+**Distinctiveness** — Re-run the §9 generic test on the _built_ page, not just the plan. Then apply restraint: **remove one accessory.**
 
 **Then ask once more:** "If they said this lacks craft, what would they point to?" That thing you just thought of — fix it. Then ask again. **The first build was the draft; the critique is the design.**
 
@@ -288,20 +288,20 @@ Run before presenting any design, mockup, or implemented UI surface.
 
 ## 14. Consumers & Single-Sourcing Map
 
-| Concern | Single source | NEVER duplicate into |
-| --- | --- | --- |
-| Distinctiveness laws, tell catalog, design plan, critique | **this file** + `SYNC:design-distinctiveness-gate` | any skill body (carry the SYNC block instead) |
-| Words-as-design-content | §8 + `SYNC:ui-copywriting` | — |
-| 40 usability clauses `UI-1.1`–`UI-9.4` | `SYNC:ui-ux-design-principles` | this file (referenced only) |
-| Tech-agnostic spec interaction layer | `SYNC:ui-intent-layer` | design artifacts (they own fidelity, the spec owns behavior) |
-| Existing-UI inventory before designing | `SYNC:existing-ui-research` | — |
-| Project tokens, components, icons, BEM | `docs/project-reference/design-system/` + `scss-styling-guide.md` | this file (this file NEVER names project-specific values) |
+| Concern                                                   | Single source                                                                       | NEVER duplicate into                                         |
+| --------------------------------------------------------- | ----------------------------------------------------------------------------------- | ------------------------------------------------------------ |
+| Distinctiveness laws, tell catalog, design plan, critique | **this file** + `SYNC:design-distinctiveness-gate`                                  | any skill body (carry the SYNC block instead)                |
+| Words-as-design-content                                   | §8 + `SYNC:ui-copywriting`                                                          | —                                                            |
+| 40 usability clauses `UI-1.1`–`UI-9.4`                    | `SYNC:ui-ux-design-principles`                                                      | this file (referenced only)                                  |
+| Tech-agnostic spec interaction layer                      | `SYNC:ui-intent-layer`                                                              | design artifacts (they own fidelity, the spec owns behavior) |
+| Existing-UI inventory before designing                    | `SYNC:existing-ui-research`                                                         | —                                                            |
+| Project tokens, components, icons, BEM                    | `design-system/` + `scss-styling-guide.md`, both in the project-reference docs root | this file (this file NEVER names project-specific values)    |
 
 ---
 
 ## Closing Reminders
 
-**IMPORTANT MUST ATTENTION Goal:** produce a surface that reads as *this product's* interface — subject-grounded, distinctive on every free axis, crafted to the quality floor — never the interchangeable page a generator emits for any brief.
+**IMPORTANT MUST ATTENTION Goal:** produce a surface that reads as _this product's_ interface — subject-grounded, distinctive on every free axis, crafted to the quality floor — never the interchangeable page a generator emits for any brief.
 
 **IMPORTANT MUST ATTENTION** work the sections in order: §1 laws → §2 subject grounding → §3 where defaults hide → §4 tell catalog → §5 typography → §6 color/structure/hero/composition → §7 motion → §8 copy → §9 two-pass process → §10 plan contract → §11 critique → §12 hygiene → §13 checklist → §14 sourcing map — why: a section skipped in the long middle is a design decision left to its default.
 
@@ -317,10 +317,10 @@ Run before presenting any design, mockup, or implemented UI surface.
 
 **Anti-Rationalization:**
 
-| Evasion | Rebuttal |
-| --- | --- |
-| "The brief didn't state a visual direction" | Then every axis is free — §2 names the subject, audience, and job FIRST. Silence is not permission to default. |
-| "It's an internal tool, identity doesn't matter" | The quality floor and the §8 copy rules still bind; identity is far cheaper to set now than to retrofit. |
-| "I ran the generic test in my head" | State the plan's four parts, the similar prompt, and what you CHANGED — an unrecorded test did not happen. |
-| "Cream + serif + terracotta is genuinely right here" | Then name the brief line that asked for it. An unsourced §4 match is a free axis spent on a default. |
-| "The page looks good, critique is optional" | §11 runs on the BUILT page — correct and crafted are both still compatible with generic. |
+| Evasion                                              | Rebuttal                                                                                                       |
+| ---------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
+| "The brief didn't state a visual direction"          | Then every axis is free — §2 names the subject, audience, and job FIRST. Silence is not permission to default. |
+| "It's an internal tool, identity doesn't matter"     | The quality floor and the §8 copy rules still bind; identity is far cheaper to set now than to retrofit.       |
+| "I ran the generic test in my head"                  | State the plan's four parts, the similar prompt, and what you CHANGED — an unrecorded test did not happen.     |
+| "Cream + serif + terracotta is genuinely right here" | Then name the brief line that asked for it. An unsourced §4 match is a free axis spent on a default.           |
+| "The page looks good, critique is optional"          | §11 runs on the BUILT page — correct and crafted are both still compatible with generic.                       |

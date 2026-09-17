@@ -16,7 +16,15 @@ const {
   CHECKS,
   buildRunOptions,
   evaluateCheck,
+  resolveChecks,
   runChecks,
+  PORTABILITY_TOKEN_DEFAULTS,
+  STALE_TEXT_SCAN_TARGETS,
+  buildRoadmapPatterns,
+  findDeclaredRootCoverageFailures,
+  isFormBOverrideSentence,
+  isRootDeclared,
+  resolveSdd022Scope,
   STALE_PERFORMANCE_SKIP_TERMS,
   STALE_TC_PLACEHOLDER_TERMS,
   UNCONFIGURED_ARTIFACT_ROOT_TERMS,
@@ -630,10 +638,17 @@ test("runChecks skips project-profile extension checks for a bare framework but 
     await fs.mkdir(path.join(configuredRoot, "docs"), { recursive: true });
     await fs.writeFile(path.join(configuredRoot, "docs", "project-config.json"), "{}\n");
     const configuredResult = await runChecks(configuredRoot, projectProfileChecks);
+    // The check `file` fields carry `{REF_DOCS_ROOT}`; failures report the RESOLVED path, so
+    // the expectation comes from the resolved check set rather than the token-bearing source.
+    const resolvedProfileChecks = await resolveChecks(configuredRoot, projectProfileChecks);
     assert.deepEqual(
       configuredResult.failures.map((failure) => failure.file),
-      projectProfileChecks.map((check) => check.file)
+      resolvedProfileChecks.map((check) => check.file)
     );
+    assert.deepEqual(resolvedProfileChecks.map((check) => check.file), [
+      "docs/project-reference/spec-principles.md",
+      "docs/project-reference/workflow-spec-test-code-cycle-reference.md",
+    ]);
   } finally {
     await fs.rm(configuredRoot, { recursive: true, force: true });
   }
@@ -913,6 +928,341 @@ test("runChecks promotes the same SDD022 finding warn->error purely via enforce-
   } finally {
     await fs.rm(tempRoot, { recursive: true, force: true });
   }
+});
+
+// ─── Config-driven relocatable roots (SC-9) ──────────────────────────────────
+// The literals below (`docs/specs`, `team-artifacts/...`, `docs/product-roadmap.md`) are
+// DEFAULT-path fixtures: they exist to prove the unconfigured default still resolves, so
+// they stay allowlisted for the root-literal residue scan rather than converted.
+
+const sdd004Check = () =>
+  CHECKS.find((check) => check.code === "SDD004" && check.file === ".claude/skills/docs-update/SKILL.md");
+
+const DOCS_UPDATE_REQUIRED_LINE =
+  "Routes configured PBI/idea artifact roots by detection/delegation from `docs/project-config.json`.";
+
+async function withTempRoot(prefix, body) {
+  const tempRoot = await fs.mkdtemp(path.join(os.tmpdir(), prefix));
+  try {
+    return await body(tempRoot);
+  } finally {
+    await fs.rm(tempRoot, { recursive: true, force: true });
+  }
+}
+
+async function writeRepoFile(rootDir, relativePath, content) {
+  const target = path.join(rootDir, relativePath);
+  await fs.mkdir(path.dirname(target), { recursive: true });
+  await fs.writeFile(target, content, "utf8");
+}
+
+async function writeProjectConfig(rootDir, config) {
+  await writeRepoFile(rootDir, "docs/project-config.json", `${JSON.stringify(config, null, 2)}\n`);
+}
+
+test("TC-DOCROOT-090: SDD probes the configured teamArtifacts root, not the default literal", async () => {
+  await withTempRoot("codex-verify-sdd-teamartifacts-", async (tempRoot) => {
+    await writeProjectConfig(tempRoot, { docsRoots: { teamArtifacts: { path: "artifacts" } } });
+
+    const ideaToPbi = CHECKS.find(
+      (check) => check.code === "SDD003" && check.file === ".claude/skills/workflow-idea-to-pbi/SKILL.md"
+    );
+    assert.ok(ideaToPbi);
+    assert.ok(ideaToPbi.requireAll.includes("{TEAM_ARTIFACTS_ROOT}/ideas"));
+
+    const [resolved] = await resolveChecks(tempRoot, [ideaToPbi]);
+    assert.ok(resolved.requireAll.includes("artifacts/ideas"));
+    assert.ok(resolved.requireAll.includes("artifacts/pbis"));
+    assert.ok(!resolved.requireAll.some((term) => term.startsWith("team-artifacts/")));
+    // The default is retained as the form-(b) fallback, never as the probe.
+    assert.equal(resolved.rootTerms.get("artifacts/ideas"), "team-artifacts/ideas");
+
+    const forbidCheck = sdd004Check();
+    const [resolvedForbid] = await resolveChecks(tempRoot, [forbidCheck]);
+    assert.ok(resolvedForbid.forbidAny.includes("artifacts/pbis"));
+    assert.ok(!resolvedForbid.forbidAny.some((term) => term.startsWith("team-artifacts/")));
+  });
+});
+
+test("TC-DOCROOT-091: the roadmap patterns follow the configured productRoadmap path", async () => {
+  const relocated = buildRoadmapPatterns("docs/roadmap/plan.md");
+  assert.ok(relocated.pathPattern.test("writes docs/roadmap/plan.md"));
+  assert.ok(!relocated.pathPattern.test("writes docs/product-roadmap.md"));
+
+  relocated.writerPattern.lastIndex = 0;
+  assert.ok(relocated.writerPattern.test("create docs/roadmap/plan.md"));
+  relocated.writerPattern.lastIndex = 0;
+  assert.ok(!relocated.writerPattern.test("create docs/product-roadmap.md"));
+
+  // The skill id stays literal — it is a route name, not a relocatable path.
+  relocated.writerPattern.lastIndex = 0;
+  assert.ok(relocated.writerPattern.test("run product-roadmap"));
+
+  const fallback = buildRoadmapPatterns(PORTABILITY_TOKEN_DEFAULTS.PRODUCT_ROADMAP_DOC);
+  assert.ok(fallback.pathPattern.test("writes docs/product-roadmap.md"));
+});
+
+test("TC-DOCROOT-092: a DECLARED root matching zero files fails loud instead of passing vacuously", async () => {
+  // MISSING root: declared, directory does not exist at all.
+  await withTempRoot("codex-verify-sdd-missing-root-", async (tempRoot) => {
+    await writeProjectConfig(tempRoot, { specRoots: { business: { path: "specs-moved" } } });
+    const result = await runChecks(tempRoot, []);
+    const coverage = result.failures.filter((failure) => failure.code === "SDD025");
+    assert.equal(coverage.length, 1);
+    assert.equal(coverage[0].severity, "error");
+    assert.equal(coverage[0].file, "specs-moved/");
+    assert.match(coverage[0].message, /matched zero files — verifier would report a false green/);
+    assert.equal(result.sddMetrics.emptyDeclaredRootFindings, 1);
+    assert.equal(result.sddMetrics.hardFailures, 1);
+  });
+
+  // EMPTY root: declared, directory exists but holds no candidate file. Same verdict —
+  // "green because there was nothing to look at" is the exact failure this guard exists for.
+  await withTempRoot("codex-verify-sdd-empty-root-", async (tempRoot) => {
+    await writeProjectConfig(tempRoot, { specRoots: { business: { path: "specs-moved" } } });
+    await fs.mkdir(path.join(tempRoot, "specs-moved"), { recursive: true });
+    const result = await runChecks(tempRoot, []);
+    const coverage = result.failures.filter((failure) => failure.code === "SDD025");
+    assert.equal(coverage.length, 1);
+    assert.match(coverage[0].message, /false green/);
+  });
+
+  // POPULATED root: declared and non-empty — the guard stays silent.
+  await withTempRoot("codex-verify-sdd-populated-root-", async (tempRoot) => {
+    await writeProjectConfig(tempRoot, { specRoots: { business: { path: "specs-moved" } } });
+    await writeRepoFile(tempRoot, "specs-moved/A-domain-model.md", "# Domain\nBusiness prose.\n");
+    const result = await runChecks(tempRoot, []);
+    assert.deepEqual(result.failures.filter((failure) => failure.code === "SDD025"), []);
+    assert.equal(result.sddMetrics.declaredRootsProbed, 1);
+  });
+
+  // UNDECLARED and absent — a zero-config project is untouched (SC-11).
+  await withTempRoot("codex-verify-sdd-undeclared-root-", async (tempRoot) => {
+    const result = await runChecks(tempRoot, []);
+    assert.deepEqual(result.failures, []);
+    assert.equal(result.sddMetrics.declaredRootsProbed, 0);
+    assert.equal(result.sddMetrics.emptyDeclaredRootFindings, 0);
+  });
+});
+
+test("TC-DOCROOT-092b: the zero-match guard stays out of the changed-file scan scope", async () => {
+  // Under --enforce-changed the scan is narrowed to the changed set, where an empty scope
+  // is legitimate and says nothing about where the root lives.
+  await withTempRoot("codex-verify-sdd-changed-scope-", async (tempRoot) => {
+    await writeProjectConfig(tempRoot, { specRoots: { business: { path: "specs-moved" } } });
+    const result = await runChecks(tempRoot, [], {
+      enforceChanged: true,
+      changedFiles: [],
+      sdd022Files: [],
+    });
+    assert.deepEqual(result.failures.filter((failure) => failure.code === "SDD025"), []);
+  });
+});
+
+test("TC-DOCROOT-093: an empty config yields the pre-change check set and verdict", async () => {
+  await withTempRoot("codex-verify-sdd-empty-config-", async (tempRoot) => {
+    await writeProjectConfig(tempRoot, {});
+    const resolved = await resolveChecks(tempRoot, CHECKS);
+
+    for (const [index, check] of CHECKS.entries()) {
+      assert.equal(resolved[index].file, check.file.replaceAll("{REF_DOCS_ROOT}", "docs/project-reference"));
+      const expand = (terms) =>
+        terms?.map((term) =>
+          term
+            .replaceAll("{TEAM_ARTIFACTS_ROOT}", "team-artifacts")
+            .replaceAll("{REF_DOCS_ROOT}", "docs/project-reference")
+            .replaceAll("{SPEC_ROOT}", "docs/specs")
+        );
+      assert.deepEqual(resolved[index].requireAll, expand(check.requireAll));
+      assert.deepEqual(resolved[index].requireAny, expand(check.requireAny));
+      assert.deepEqual(resolved[index].forbidAny, expand(check.forbidAny));
+    }
+
+    const scope = resolveSdd022Scope({});
+    assert.deepEqual(scope.scanRoots, ["docs/specs/"]);
+    assert.ok(scope.exemptFiles.has("docs/specs/DOCUMENTATION-GUIDE.md"));
+    assert.deepEqual(
+      STALE_TEXT_SCAN_TARGETS.map((target) => target.replaceAll("{REF_DOCS_ROOT}", "docs/project-reference")).at(-1),
+      "docs/project-reference"
+    );
+  });
+
+  // A malformed config resolves to defaults rather than throwing — runtime plane is fail-SOFT.
+  await withTempRoot("codex-verify-sdd-malformed-config-", async (tempRoot) => {
+    await writeRepoFile(tempRoot, "docs/project-config.json", "{ not json");
+    const [resolved] = await resolveChecks(tempRoot, [sdd004Check()]);
+    assert.ok(resolved.forbidAny.includes("team-artifacts/pbis"));
+  });
+});
+
+test("TC-DOCROOT-094: a configured root carrying regex metacharacters is matched literally", async () => {
+  const patterns = buildRoadmapPatterns("docs/road+map.md");
+  assert.ok(patterns.pathPattern.test("writes docs/road+map.md"));
+  // Unescaped, `road+map` would match `roadmap` / `roaddmap`; escaped, it cannot.
+  assert.ok(!patterns.pathPattern.test("writes docs/roadmap.md"));
+  assert.ok(!patterns.pathPattern.test("writes docs/roaddmap.md"));
+
+  patterns.writerPattern.lastIndex = 0;
+  assert.ok(patterns.writerPattern.test("create docs/road+map.md"));
+  patterns.writerPattern.lastIndex = 0;
+  assert.ok(!patterns.writerPattern.test("create docs/roadmap.md"));
+});
+
+test("TC-DOCROOT-095: verify-feature-registry resolves its roots from config and fails closed", async () => {
+  const registryVerifier = path.join(repoRoot, ".claude", "scripts", "codex", "verify-feature-registry.mjs");
+  const source = await fs.readFile(registryVerifier, "utf8");
+  // AUDIT OUTCOME (requirement 3): the verifier already reads its roots from the project
+  // config and hardcodes no spec-root literal, so this phase changes nothing there.
+  assert.ok(source.includes("specSystem?.featureRegistryRoots"));
+  assert.ok(!source.includes("docs/specs"));
+
+  // Fail-closed: a configured root that resolves to nothing exits non-zero.
+  await withTempRoot("codex-verify-registry-missing-root-", async (tempRoot) => {
+    await writeProjectConfig(tempRoot, {
+      specSystem: { featureRegistryRoots: ["docs/specs/Missing/Missing.md"] },
+    });
+    const failure = await execFileAsync("node", [registryVerifier, "--configured-roots", "--optional", `--root=${tempRoot}`])
+      .then(() => null)
+      .catch((error) => error);
+    assert.ok(failure, "a configured-but-absent registry root must not exit 0");
+    assert.notEqual(failure.code, 0);
+    assert.match(`${failure.stderr}${failure.message}`, /root\(s\) not found as canonical parent specs/);
+  });
+
+  // SKIP-when-unconfigured is intact — a zero-config project is unaffected (SC-11).
+  await withTempRoot("codex-verify-registry-unconfigured-", async (tempRoot) => {
+    await writeProjectConfig(tempRoot, {});
+    const { stdout } = await execFileAsync("node", [
+      registryVerifier,
+      "--configured-roots",
+      "--optional",
+      `--root=${tempRoot}`,
+    ]);
+    assert.match(stdout, /SKIP \(project config has no specSystem\.featureRegistryRoots contract\)/);
+  });
+});
+
+test("TC-DOCROOT-096: SDD004 accepts a relocatable root inside a form-(b) override sentence", async () => {
+  await withTempRoot("codex-verify-sdd-formb-accept-", async (tempRoot) => {
+    await writeRepoFile(
+      tempRoot,
+      ".claude/skills/docs-update/SKILL.md",
+      [
+        DOCS_UPDATE_REQUIRED_LINE,
+        "PBI artifacts: default `team-artifacts/pbis`; a `docsRoots.teamArtifacts.path` entry in `docs/project-config.json` overrides the path.",
+        "Idea artifacts: default `team-artifacts/ideas`; a `docsRoots.teamArtifacts.path` entry in `docs/project-config.json` overrides the path.",
+        "",
+      ].join("\n")
+    );
+    const result = await runChecks(tempRoot, [sdd004Check()]);
+    assert.deepEqual(result.failures, []);
+  });
+});
+
+test("TC-DOCROOT-097: SDD004 still rejects a bare standalone relocatable-root literal", async () => {
+  await withTempRoot("codex-verify-sdd-formb-reject-", async (tempRoot) => {
+    await writeRepoFile(
+      tempRoot,
+      ".claude/skills/docs-update/SKILL.md",
+      [DOCS_UPDATE_REQUIRED_LINE, "Write the PBI under team-artifacts/pbis.", ""].join("\n")
+    );
+    const result = await runChecks(tempRoot, [sdd004Check()]);
+    assert.equal(result.failures.length, 1);
+    assert.equal(result.failures[0].code, "SDD004");
+    assert.match(result.failures[0].message, /forbidden text found: team-artifacts\/pbis/);
+  });
+
+  // A file mixing both shapes still fails — the exemption is per LINE, never per file.
+  await withTempRoot("codex-verify-sdd-formb-mixed-", async (tempRoot) => {
+    await writeRepoFile(
+      tempRoot,
+      ".claude/skills/docs-update/SKILL.md",
+      [
+        DOCS_UPDATE_REQUIRED_LINE,
+        "PBI artifacts: default `team-artifacts/pbis`; a `docsRoots.teamArtifacts.path` entry in `docs/project-config.json` overrides the path.",
+        "Then copy it to team-artifacts/pbis/archive.",
+        "",
+      ].join("\n")
+    );
+    const result = await runChecks(tempRoot, [sdd004Check()]);
+    assert.equal(result.failures.length, 1);
+    assert.match(result.failures[0].message, /forbidden text found: team-artifacts\/pbis/);
+  });
+
+  // In a RELOCATED project the default literal is still bare hardcoding.
+  await withTempRoot("codex-verify-sdd-formb-relocated-", async (tempRoot) => {
+    await writeProjectConfig(tempRoot, { docsRoots: { teamArtifacts: { path: "artifacts" } } });
+    await writeRepoFile(
+      tempRoot,
+      ".claude/skills/docs-update/SKILL.md",
+      [DOCS_UPDATE_REQUIRED_LINE, "Write the PBI under team-artifacts/pbis.", ""].join("\n")
+    );
+    const result = await runChecks(tempRoot, [sdd004Check()]);
+    assert.equal(result.failures.length, 1);
+    assert.match(result.failures[0].message, /forbidden text found/);
+  });
+});
+
+test("TC-DOCROOT-098: PROJECT_LAYOUT_TERMS get no sentence exemption", async () => {
+  await withTempRoot("codex-verify-sdd-layout-terms-", async (tempRoot) => {
+    await writeRepoFile(
+      tempRoot,
+      ".claude/skills/docs-update/SKILL.md",
+      [
+        DOCS_UPDATE_REQUIRED_LINE,
+        "Modules live under `src/Services/**`; a `docsRoots.teamArtifacts.path` entry in `docs/project-config.json` overrides the path.",
+        "",
+      ].join("\n")
+    );
+    const result = await runChecks(tempRoot, [sdd004Check()]);
+    assert.equal(result.failures.length, 1);
+    assert.match(result.failures[0].message, /forbidden text found: src\/Services\/\*\*/);
+  });
+});
+
+test("TC-DOCROOT-099: SDD003 / SDD009 / SDD010 still pass against the live repository", async () => {
+  const liveChecks = CHECKS.filter((check) => ["SDD003", "SDD009", "SDD010"].includes(check.code));
+  assert.equal(liveChecks.length, 3);
+  const result = await runChecks(repoRoot, liveChecks);
+  assert.deepEqual(result.failures, []);
+});
+
+test("TC-DOCROOT-099b: both build gates agree on what a form-(b) sentence looks like", async () => {
+  const literalVerifier = path.join(repoRoot, ".claude", "scripts", "codex", "verify-configurable-root-literals.mjs");
+  const { findLiteralOccurrences } = await import(pathToFileURL(literalVerifier).href);
+
+  const legal =
+    "PBI artifacts: default `team-artifacts/pbis`; a `docsRoots.teamArtifacts.path` entry in `docs/project-config.json` overrides the path.";
+  const bare = "Write the PBI under team-artifacts/pbis.";
+
+  assert.equal(isFormBOverrideSentence(legal), true);
+  assert.equal(isFormBOverrideSentence(bare), false);
+  assert.deepEqual(findLiteralOccurrences(legal), []);
+  assert.equal(findLiteralOccurrences(bare).length, 1);
+});
+
+test("TC-DOCROOT-099c: the fallback token defaults match the loader table", async () => {
+  const { PORTABILITY_TOKENS } = await import(
+    pathToFileURL(path.join(repoRoot, ".claude", "hooks", "lib", "project-config-loader.cjs")).href
+  ).then((module) => module.default ?? module);
+
+  const loaderDefaults = Object.fromEntries(
+    Object.entries(PORTABILITY_TOKENS).map(([token, spec]) => [token, spec.default])
+  );
+  assert.deepEqual(PORTABILITY_TOKEN_DEFAULTS, loaderDefaults);
+
+  assert.equal(isRootDeclared({ specRoots: { business: { path: "x" } } }, "specRoots.business.path"), true);
+  assert.equal(isRootDeclared({ specRoots: { business: { path: "  " } } }, "specRoots.business.path"), false);
+  assert.equal(isRootDeclared({}, "specRoots.business.path"), false);
+
+  assert.deepEqual(
+    findDeclaredRootCoverageFailures([{ declared: false, candidateCount: 0, resolvedRoot: "x", configKey: "k" }]),
+    []
+  );
+  assert.equal(
+    findDeclaredRootCoverageFailures([{ declared: true, candidateCount: 0, resolvedRoot: "x", configKey: "k" }]).length,
+    1
+  );
 });
 
 test("runChecks reads staged SDD022 content when staged mode is active", async () => {

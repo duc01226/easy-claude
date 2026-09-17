@@ -13,7 +13,7 @@
 //       rather than merely serving stale guidance.
 // Each re-runs the REAL writer into a throwaway staging dir, then diffs that fresh output
 // against the committed copy. Any difference means the mirror is stale (someone edited
-// .claude/** without running `npm run codex:sync`) or was hand-edited directly.
+// .claude/** without running `node .claude/skills/sync-codex/scripts/run-codex-sync.mjs`) or was hand-edited directly.
 //
 // Oracle design (vs re-implementing the transforms): the checker and the writer call the
 // SAME functions (materializeSkillMirror / runContextSync), so the "expected" output cannot
@@ -28,7 +28,7 @@
 // keeps the framework export self-contained with zero new pipeline files.
 //
 // Failure policy:
-//   - Genuine divergence  -> exit 1 (blocks commit; remediation: npm run codex:sync).
+//   - Genuine divergence  -> exit 1 (blocks commit; remediation: node .claude/skills/sync-codex/scripts/run-codex-sync.mjs).
 //   - Internal gate error -> WARN + exit 0. A freshly-shipped, hard-to-validate gate must
 //     not wedge the whole team's commits on its own bugs (fail-open by design).
 
@@ -195,7 +195,7 @@ async function checkContextMirror(rootDir) {
         return { skip: 'no CLAUDE.md source to mirror' };
     }
     if (!(await pathExists(agentsPath)) && !(await pathExists(contextPath))) {
-        return { skip: 'no context mirror yet — run npm run codex:sync to create it' };
+        return { skip: 'no context mirror yet — run the standalone runner to create it' };
     }
 
     const staging = await fs.mkdtemp(path.join(os.tmpdir(), 'codex-context-check-'));
@@ -229,7 +229,7 @@ function reportSkillsResult(diffs, fenceProblems) {
 
     if (diffs.length > 0) {
         console.error('[codex-verify-sync-divergence] FAIL — .agents/skills is out of sync with .claude/skills');
-        console.error('Remediation: run `npm run codex:sync` — or, without npm/package.json, the standalone');
+        console.error('Remediation: run `node .claude/skills/sync-codex/scripts/run-codex-sync.mjs` — or, without npm/package.json, the standalone');
         console.error('orchestrator it delegates to: `node .claude/skills/sync-codex/scripts/run-codex-sync.mjs`');
         console.error('(never hand-edit the .agents/.codex mirror).');
         for (const diff of diffs.slice(0, MAX_REPORTED_DIFFS)) {
@@ -243,7 +243,7 @@ function reportSkillsResult(diffs, fenceProblems) {
     if (fenceProblems.length > 0) {
         console.error('[codex-verify-sync-divergence] FAIL — malformed SYNC fences in .agents/skills (structural; equality-blind)');
         console.error('Remediation: fix the column-0 SYNC fence balance in the SOURCE .claude/skills SKILL.md');
-        console.error('(an indented/dropped `<!-- /SYNC:tag -->` close), then re-run `npm run codex:sync`.');
+        console.error('(an indented/dropped `<!-- /SYNC:tag -->` close), then re-run `node .claude/skills/sync-codex/scripts/run-codex-sync.mjs`.');
         for (const problem of fenceProblems.slice(0, MAX_REPORTED_DIFFS)) {
             console.error(`- [fence-imbalance] .agents/skills/${problem.relPath}: ${problem.opens} open / ${problem.closes} close`);
         }
@@ -260,7 +260,7 @@ async function checkSkillsMirror() {
         return { skip: 'no .claude/skills source to mirror' };
     }
     if (!(await pathExists(agentsSkillsDir))) {
-        return { skip: 'no .agents/skills mirror yet — run npm run codex:sync to create it' };
+        return { skip: 'no .agents/skills mirror yet — run the standalone runner to create it' };
     }
 
     const skillDirNames = (await fs.readdir(claudeSkillsDir, { withFileTypes: true }))
@@ -292,7 +292,7 @@ async function checkAgentMirror() {
         return { skip: 'no .claude/agents source to mirror' };
     }
     if (!(await pathExists(codexAgentsDir))) {
-        return { skip: 'no .codex/agents mirror yet — run npm run codex:sync to create it' };
+        return { skip: 'no .codex/agents mirror yet — run the standalone runner to create it' };
     }
 
     const staging = await fs.mkdtemp(path.join(os.tmpdir(), 'codex-agents-check-'));
@@ -322,7 +322,7 @@ async function checkHookMirror(rootDir) {
         return { skip: 'no .claude/settings.json source to mirror' };
     }
     if (!(await pathExists(committed))) {
-        return { skip: 'no .codex/hooks.json mirror yet — run npm run codex:sync to create it' };
+        return { skip: 'no .codex/hooks.json mirror yet — run the standalone runner to create it' };
     }
 
     const staging = await fs.mkdtemp(path.join(os.tmpdir(), 'codex-hooks-check-'));
@@ -351,16 +351,40 @@ async function checkHookMirror(rootDir) {
 //
 // The baseline is LITERAL and MEASURED, not derived from the renderer: asking
 // materializeHookMirror which events it skips would only confirm it skips what it
-// skips. These three are the intentional omissions as of this writing —
-// Notification and SessionEnd have no Codex equivalent, and SessionStart is
-// deliberately omitted so startup context is not duplicated (sync-hooks.mjs:122).
-// A NEW skip, a changed reason, or ANY skipped group is an unreviewed loss of
-// coverage and fails the gate until a human either restores the hook or moves the
-// entry here on purpose.
+// skips. A NEW skip, a changed reason, or an UNREVIEWED skipped group is an
+// unreviewed loss of coverage and fails the gate until a human either restores
+// the hook or moves the entry here on purpose.
+//
+// REVISED 2026-09-17 against the official Codex hook reference
+// (https://learn.chatgpt.com/docs/hooks). The previous baseline asserted that
+// "Notification and SessionEnd have no Codex equivalent" and that SessionStart was
+// deliberately omitted. Two of those three were wrong, and being wrong HERE is not
+// inert — this list is what makes a dropped hook look reviewed:
+//   - SessionEnd IS supported by Codex (matcher `other` only). It now mirrors.
+//   - SessionStart IS supported (startup|resume|clear|compact). The event-level
+//     skip is replaced by a per-hook allowlist (sync-hooks.mjs
+//     codexSessionStartMirrors), so producers whose consumers are mirrored are no
+//     longer silently unreachable on Codex.
+//   - Notification remains absent from the Codex reference, so its skip stands.
+// Verify against that doc before editing this map; do not infer an event's
+// existence from this repo's own history.
 const EXPECTED_SKIPPED_EVENTS = new Map([
-    ['Notification', 'unsupported-by-codex'],
-    ['SessionEnd', 'unsupported-by-codex'],
-    ['SessionStart', 'static-startup-context-authoritative']
+    ['Notification', 'unsupported-by-codex']
+]);
+
+// Group-level skips that ARE reviewed. Keyed by `${event}:${reason}` rather than
+// group_index, which renumbers whenever settings.json gains or loses a group and
+// would turn an unrelated edit into a gate failure. Any group skip NOT listed here
+// still fails — the point of the gate is that a hook may not quietly stop
+// mirroring, and these two reasons are the only ways that is currently intended.
+const EXPECTED_SKIPPED_GROUPS = new Set([
+    // A SessionStart group carrying no allowlisted producer. Intended: the
+    // static-startup-context rationale still governs everything off the allowlist.
+    'SessionStart:session-start-not-on-mirror-allowlist',
+    // Claude's SessionEnd matcher (clear|exit|compact) has no Codex counterpart —
+    // Codex accepts only `other` — so the hook mirrors UNSCOPED rather than not at
+    // all. Recorded because running unscoped is a real semantic difference.
+    'SessionEnd:matcher-unsupported-on-codex-hook-runs-unscoped'
 ]);
 
 // Exported so the guard can be tested on SYNTHETIC reports. Driving it only from
@@ -384,6 +408,7 @@ export function unexpectedHookSkips(report) {
         }
     }
     for (const group of report?.skipped_groups ?? []) {
+        if (EXPECTED_SKIPPED_GROUPS.has(`${group.event}:${group.reason}`)) continue;
         problems.push(`group ${group.event}[${group.group_index}] (matcher ${group.matcher ?? 'none'}) dropped: ${group.reason}`);
     }
     return problems;
@@ -417,7 +442,7 @@ async function main() {
     } else {
         markFailed();
         console.error('[codex-verify-sync-divergence] FAIL — .codex/agents is out of sync with .claude/agents');
-        console.error('Remediation: run `npm run codex:sync` — or the standalone orchestrator:');
+        console.error('Remediation: run `node .claude/skills/sync-codex/scripts/run-codex-sync.mjs` — or the standalone orchestrator:');
         console.error('`node .claude/skills/sync-codex/scripts/run-codex-sync.mjs` (never hand-edit the mirror).');
         for (const diff of agents.diffs.slice(0, MAX_REPORTED_DIFFS)) {
             console.error(`- [${diff.kind}] .codex/agents/${diff.relPath}`);
@@ -436,7 +461,7 @@ async function main() {
             markFailed();
             console.error('[codex-verify-sync-divergence] FAIL — .codex/hooks.json is out of sync with .claude/settings.json');
             console.error('A Codex session is running a DIFFERENT hook set than this project configures.');
-            console.error('Remediation: run `npm run codex:sync` — or the standalone orchestrator:');
+            console.error('Remediation: run `node .claude/skills/sync-codex/scripts/run-codex-sync.mjs` — or the standalone orchestrator:');
             console.error('`node .claude/skills/sync-codex/scripts/run-codex-sync.mjs` (never hand-edit the mirror).');
         }
         // Reported SEPARATELY from the byte-diff, and reported even when the diff is
@@ -466,7 +491,7 @@ async function main() {
     } else {
         markFailed();
         console.error('[codex-verify-sync-divergence] FAIL — context mirror (AGENTS.md / .codex/CODEX_CONTEXT.md) is out of sync');
-        console.error('Remediation: run `npm run codex:sync` — or the standalone orchestrator:');
+        console.error('Remediation: run `node .claude/skills/sync-codex/scripts/run-codex-sync.mjs` — or the standalone orchestrator:');
         console.error('`node .claude/skills/sync-codex/scripts/run-codex-sync.mjs` (never hand-edit the managed blocks).');
         for (const diff of contextDiffs.slice(0, MAX_REPORTED_DIFFS)) {
             console.error(`- [${diff.kind}] ${diff.relPath}`);

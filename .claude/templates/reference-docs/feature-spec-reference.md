@@ -1,4 +1,4 @@
-<!-- GENERIC SOURCE — bootstrapped into docs/project-reference/feature-spec-reference.md on first SessionStart if that file is absent.
+<!-- GENERIC SOURCE — bootstrapped into `feature-spec-reference.md` in the project-reference docs root (default `docs/project-reference`; a `docsRoots.projectReference.path` entry in `docs/project-config.json` overrides the path) on first SessionStart if that file is absent.
      Contains ONLY the project-agnostic Feature Spec contract. Project-specific inventory (app-to-service map,
      feature-code registry, gold-standard doc paths, thin-index list) is filled BELOW the SCAN-MANAGED boundary
      by /scan --target=feature-spec — never author project domain in this generic source. -->
@@ -22,18 +22,18 @@
 - MUST ATTENTION follow the 8-section structure in exact order (see below); §1-7 prose is STRICTLY tech-free
 - MUST ATTENTION include Section 8 (Test Specifications) with demoable business `TC-{FEATURE}-{NNN}` IDs, `Business Intent / Invariant Guarded`, `Evidence: [Source: namespace/service/id]`, and `CoveredBy:` (abstract anchor; legacy `[Source: FilePath:Line]` and `IntegrationTest:` are migration inputs only)
 - MUST ATTENTION study gold standard docs before writing any new feature doc
-- MUST keep feature doc path: `docs/specs/{Bucket}/README.{FeatureName}.md`
+- MUST keep feature doc path: `{Bucket}/README.{FeatureName}.md` inside the business spec root — default `docs/specs`; a `specRoots.business.path` entry in `docs/project-config.json` overrides the path
 - MUST NOT apply line-count caps to Feature Specs; split the capability only when TCs>40 or distinct module-level capabilities emerge
 
 ---
 
 ## Directory Convention
 
-Feature docs path: `docs/specs/{Bucket}/README.{FeatureName}.md` (no line-count cap; split when TCs>40 or distinct module-level capabilities emerge). Each bucket also includes `INDEX.md`. The spec root is fixed at `docs/specs/` for all projects.
+Feature docs path: `{Bucket}/README.{FeatureName}.md` inside the business spec root — default `docs/specs`; a `specRoots.business.path` entry in `docs/project-config.json` overrides the path (no line-count cap; split when TCs>40 or distinct module-level capabilities emerge). Each bucket also includes `INDEX.md`. The bucket layout under the resolved root is identical for every project.
 
 ## Template Paths
 
-- **Master template:** your configured `workflowPatterns.featureDocTemplate` (default `docs/templates/detailed-feature-spec-template.md`, tech-free 8-section, v4.1). Generated on first SessionStart from `.claude/templates/detailed-feature-spec-template.md` if absent.
+- **Master template:** your configured `workflowPatterns.featureDocTemplate` in `docs/project-config.json` (default `detailed-feature-spec-template.md` in the templates root, itself defaulting to `docs/templates` unless a `docsRoots.templates.path` entry overrides it; tech-free 8-section, v4.1). Generated on first SessionStart from `.claude/templates/detailed-feature-spec-template.md` if absent.
 - ~~AI companion template~~ — Deprecated. Single doc per feature.
 
 ## 8-Section Structure
@@ -102,7 +102,7 @@ The abstract `[Source: namespace/service/id]` form is canonical (see `.claude/sk
 
 > _Filled by `/scan --target=feature-spec`._ MUST ATTENTION study before writing new feature docs. Until populated, study the master template structure.
 
-- `docs/specs/{Bucket}/README.{Exemplar}Feature.md` (worked proof)
+- `{Bucket}/README.{Exemplar}Feature.md` in the business spec root (worked proof)
 
 ## Feature Code Registry
 

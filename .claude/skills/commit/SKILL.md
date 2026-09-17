@@ -14,6 +14,7 @@ description: '[Git] Use when asked to commit, stage and commit, or save changes.
 - **STEP 0 — EXPLICIT INTENT + LEASE.** After validating the user's literal Git request and resolving the exact repository, issue a short, session-scoped lease for only the requested operation(s). A lease is bounded bookkeeping, never user consent or native permission; revoke every issued lease in a `finally` path.
 - **STEP 1-2 — ANALYZE + STAGE.** `git status` / `git diff --cached` / `git diff` / `git log --oneline -5`, then stage.
 - **STEP 2.5 — DOCS TRIAGE.** Staged files matching doc-impact patterns → run `/docs-update`, re-stage the doc changes.
+- **STEP 2.6 — NO-OP DOC GUARD (BLOCKING).** `doc-stamp-guard.cjs --staged` flags any staged file whose diff is only a date stamp or whitespace; on user approval `git restore --staged` those paths. NEVER revert the working tree.
 - **STEP 2.7 — IDENTIFY REVIEWERS** (pre-commit, read-only): last author per staged file vs `HEAD`, commit author EXCLUDED, grouped BY AREA with the focus each owns.
 - **STEP 2.9 — DERIVE THE ESTIMATE** via the carried `SYNC:estimation-framework` against the STAGED diff (or reuse the implemented plan/PBI/story frontmatter with `(source: <path>)`). SP is DERIVED from `likely_days`, never eyeballed; discount generated/lockfile/docs churn first.
 - **STEP 3 — GENERATE MESSAGE.** Subject `type(scope): description`; body OPENS with the Estimate line, then purpose/kind → what changed → how it works, then the Reviewers block.
@@ -27,12 +28,13 @@ description: '[Git] Use when asked to commit, stage and commit, or save changes.
 
 1. **Analyze Changes** — Run git status/diff to understand staged and unstaged changes
 2. **Stage Changes** — Add relevant files (specific or all)
-3. **Identify Reviewers** — from git history, list relevant reviewers (last author per touched file vs `HEAD`, excluding the commit author) and the area each must focus on — computed BEFORE the commit so the block can be embedded in the message body
-4. **Derive Estimate** — Apply the carried `SYNC:estimation-framework` to the staged diff (or reuse the frontmatter of the plan/PBI/story this commit implements) to derive `story_points` + `man_days_ai` — computed BEFORE the message so the numbers can head the body
-5. **Generate Message** — Detect type (feat/fix/refactor/etc.), extract scope from paths, write subject, open the body with the **Estimate** line from step 4, add a detailed body structured as **purpose/kind → what changed → how it works**, and append the **Reviewers** block from step 3
-6. **Test-Verify Gate** — When staged changes include code that might need tests, ask the user (`AskUserQuestion`, default **verify**) to verify via `/workflow-integration-test-green`, confirm **Yes — already verified**, or explicitly **Skip**. Default = verify first, and verify means drive the suite to green, not merely report it
-7. **Commit** — Create commit with HEREDOC (title + Estimate line + detailed summary + Reviewers block + attribution footer)
-8. **Verify** — Confirm with git status and git log
+3. **Guard No-Op Docs** — unstage staged files whose diff is only a moved date stamp or whitespace (they cause merge conflicts and carry no information)
+4. **Identify Reviewers** — from git history, list relevant reviewers (last author per touched file vs `HEAD`, excluding the commit author) and the area each must focus on — computed BEFORE the commit so the block can be embedded in the message body
+5. **Derive Estimate** — Apply the carried `SYNC:estimation-framework` to the staged diff (or reuse the frontmatter of the plan/PBI/story this commit implements) to derive `story_points` + `man_days_ai` — computed BEFORE the message so the numbers can head the body
+6. **Generate Message** — Detect type (feat/fix/refactor/etc.), extract scope from paths, write subject, open the body with the **Estimate** line from step 5, add a detailed body structured as **purpose/kind → what changed → how it works**, and append the **Reviewers** block from step 4
+7. **Test-Verify Gate** — When staged changes include code that might need tests, ask the user (`AskUserQuestion`, default **verify**) to verify via `/workflow-integration-test-green`, confirm **Yes — already verified**, or explicitly **Skip**. Default = verify first, and verify means drive the suite to green, not merely report it
+8. **Commit** — Create commit with HEREDOC (title + Estimate line + detailed summary + Reviewers block + attribution footer)
+9. **Verify** — Confirm with git status and git log
 
 **Key Rules:**
 
@@ -113,7 +115,7 @@ Before committing, check if staged files impact documentation:
 
 1. Run `git diff --name-only --cached` to list staged files
 2. Check if any staged file matches doc-impact patterns (resolve the concrete backend/frontend source paths from the project's structure reference / `docs/project-config.json`):
-    - changes under the backend service source paths (per project config) → may impact `docs/specs/`
+    - changes under the backend service source paths (per project config) → may impact the business spec root (default `docs/specs/`; `specRoots.business.path` in `docs/project-config.json` overrides)
     - `.claude/skills/**` → may impact `.claude/docs/skills/`
     - `.claude/hooks/**` → may impact `.claude/docs/hooks/`
     - `.claude/workflows.json` → may impact `CLAUDE.md` workflow table
@@ -121,7 +123,29 @@ Before committing, check if staged files impact documentation:
 3. If matches found: invoke `/docs-update` skill, then re-stage any doc changes with `git add`
 4. If no matches: skip (log "No doc-impacting files staged")
 
-> `/docs-update`'s Phase 1 already runs `/prompt-enhance <doc>` on every `docs/project-reference/**` doc it PATCHES (see `docs-update` Step 1.3), keeping the doc concise yet AI-valuable before commit re-stages it — do not invoke `/prompt-enhance` again here.
+> `/docs-update`'s Phase 1 already runs `/prompt-enhance <doc>` on every reference doc it PATCHES (reference-docs root default `docs/project-reference/**`; `docsRoots.projectReference.path` in `docs/project-config.json` overrides) (see `docs-update` Step 1.3), keeping the doc concise yet AI-valuable before commit re-stages it — do not invoke `/prompt-enhance` again here.
+
+### Step 2.6: No-Op Doc Guard (BLOCKING — runs after re-staging, before anything derives from the staged set)
+
+Some staged files carry a diff that changes no meaning: a doc whose only delta is a moved date stamp (`Last scanned`, `Last verified`, `last_updated`, `Regenerated`) or whitespace. Committing one costs a merge conflict on every branch that also re-ran the generator, over a value neither branch decided. Catch it here, at the publish boundary — the framework's own writers are guarded, but a hand edit, another AI host, or an older tool is not.
+
+```bash
+node .claude/hooks/lib/doc-stamp-guard.cjs --staged
+```
+
+Exit `0` = nothing to report → continue. Exit `3` = one or more staged files are pure churn:
+
+1. **Show the user the list** and confirm before acting — an unstage changes what they are about to publish.
+2. On approval, unstage each one **and only these**:
+
+   ```bash
+   git restore --staged -- <path> [<path> ...]
+   ```
+
+3. **NEVER revert the working tree.** `git restore <path>` and `git checkout -- <path>` destroy the only copy of an uncommitted edit and are blocked as irreversible (`git-commit-block.cjs:410-416`). Unstaging is fully recoverable; reverting is not. Leaving the file dirty in the working tree is the correct end state.
+4. If unstaging empties the staged set entirely, **STOP** and tell the user there is nothing meaningful to commit — do not manufacture a commit.
+
+This runs **after** Step 2.5 (which re-stages `/docs-update` output, the most likely source of such a diff) and **before** Steps 2.7/2.9, so reviewers and the estimate derive from the final staged set and need no re-derive.
 
 ### Step 2.7: Identify Reviewers (pre-commit — feeds the message)
 
@@ -269,7 +293,7 @@ Decide whether the staged changes carry **code that might need tests** — why: 
 **Trigger detection** — run `git diff --cached --name-only` and classify the staged files:
 
 - **Code that might need tests** → any change to production/source code: backend service source, frontend app source, shared libraries, scripts, hooks (`.cjs`), or other executable logic (resolve concrete source roots from `docs/project-config.json` / the project structure reference).
-- **NOT a trigger (skip the gate)** → the staged set is _only_ docs (`docs/**`, `*.md`), specs (`docs/specs/**`), test-spec/config text, changelog, or other non-executable content with no source-code change.
+- **NOT a trigger (skip the gate)** → the staged set is _only_ docs (`docs/**`, `*.md`), specs (business spec root, default `docs/specs/**`; `specRoots.business.path` in `docs/project-config.json` overrides), test-spec/config text, changelog, or other non-executable content with no source-code change.
 
 **If the gate is NOT triggered:** log `Test-Verify Gate: skipped (no code changes staged)` and continue to Step 4.
 
@@ -376,7 +400,7 @@ Generated by AI
 ## Critical Rules
 
 - **Stage only the user-authorized paths** before committing — never use a repository-wide `git add .` when unrelated work may be present; preserve other owners' index/worktree changes
-- **Test-Verify Gate (Step 3.5):** when staged changes include code that might need tests, ask the user to verify via `/workflow-integration-test-green` (default — it converges the suite to green), confirm already-verified, or explicitly skip; only an explicit **Yes** or user-chosen **Skip** commits without verifying, and the agent NEVER picks skip itself. Bypass the gate entirely only when the staged set is docs/specs/config with no source-code change
+- **Test-Verify Gate (Step 3.5):** when staged changes include code that might need tests, ask the user to verify via `/workflow-integration-test-green` (default — it converges the suite to green), confirm already-verified, or explicitly skip; only an explicit **Yes** or user-chosen **Skip** commits without verifying, and the agent NEVER picks skip itself. Bypass the gate entirely only when the staged set is docs, specs, or config with no source-code change
 - **Estimate line is MANDATORY and comes FIRST in the body** — `Estimate: <n> SP | man_days_ai: <x>d | man_days_traditional: <y>d`, derived bottom-up per the carried `SYNC:estimation-framework` against the STAGED diff (Step 2.9), or reused from the implemented plan/PBI/story frontmatter with `(source: <path>)`. Story points and AI man-days are required; discount generated/lockfile/docs churn before estimating
 - **Stop after the commit; push** to remote only when the user explicitly requests it
 - **Refresh the code graph after committing (Step 6)** — when `.code-graph/` exists, fire `/graph-build --scope=sync` in the BACKGROUND (`run_in_background: true`) so the commit that moved HEAD is re-parsed and `last_synced_commit` advances with it; skip silently when the dir is absent. Non-blocking by design: it NEVER gates, delays, or fails the commit
@@ -431,7 +455,8 @@ Spawn `git-manager` after committing when the user says "push", "create PR", or 
 > **Assume existing values are intentional — ask WHY before changing OR flagging one as a defect.** Before changing or reporting a constant, limit, flag, cutoff, wording, or pattern, read nearby context and history, the CALLER's ordering, and 2+ sibling call sites of the same convention. A doc stating WHAT without WHY is missing rationale, not proof of a missing guard.
 > **Surface ambiguity before acting — don't pick silently.** Multiple valid interpretations require an explicit question or stated assumption with risk.
 > **Assert the outcome your system owns, not the intermediate state your infrastructure owns.** When verifying async work, assert the final business state — never the delivery/retry bookkeeping held in shared infrastructure that any co-running process can write. Such a check passes when run alone and flakes the moment anything else shares that infrastructure.
-> **Store disposable generated output in the project workspace.** If an output can be regenerated and is not source code, a canonical source-of-truth, or an intentionally versioned projection, write it under the project-root `tmp/` or `temp/` directory (prefer `tmp/`), scoped to the run. This includes temporary state, integration/E2E results, reports, logs, screenshots, traces, videos, coverage, dumps, and candidate evidence. Never put these outputs in source, docs, `plans/`, `team-artifacts/`, or mirror directories; the project-root `.gitignore` must ignore `/tmp/` and `/temp/` by default. Committed fixtures, accepted baselines, canonical specs/docs, and explicitly versioned generated mirrors remain at their declared owner paths.
+> **Store disposable generated output in the project workspace.** If an output can be regenerated and is not source code, a canonical source-of-truth, or an intentionally versioned projection, write it under the project-root `tmp/` or `temp/` directory (prefer `tmp/`), scoped to the run. This includes temporary state, integration/E2E results, reports, logs, screenshots, traces, videos, coverage, dumps, and candidate evidence. Never put these outputs in source, docs, the plans root (default `plans/`; a `docsRoots.plans.path` entry in `docs/project-config.json` overrides the path), the team-artifacts root (default `team-artifacts/`; `docsRoots.teamArtifacts.path` in the same config overrides the path), or mirror directories; the project-root `.gitignore` must ignore `/tmp/` and `/temp/` by default. Committed fixtures, accepted baselines, canonical specs/docs, and explicitly versioned generated mirrors remain at their declared owner paths.
+> **Judge the environment before judging the code.** A bug report, failed test, error, or unexpected output is not proof of a code defect. Before and during adjudication, weigh environment causes as a competing hypothesis — setup, config, version and dependency state, service dependencies, stale artifacts or leftover state, and transient resource pressure (RAM, CPU, disk, handles, network). State the discriminator you ran; fix an environment cause in the environment, never by editing product code or weakening a test to absorb it.
 > **Keep shared guidance role-relevant.** Universal guidance must help every receiving skill or agent; code-specific obligations belong only in code-specific protocols.
 
 <!-- /SYNC:ai-mistake-prevention -->
@@ -651,7 +676,7 @@ Spawn `git-manager` after committing when the user says "push", "create PR", or 
 
 <!-- SYNC:project-protocol-overlay -->
 
-> **Project Protocol Overlay** — Before executing this skill, resolve any PROJECT overlay rules layered onto it: match this skill's name against the `Target` column of the project's skill-protocol index (`docs/project-reference/skill-protocols-reference.md` by default; a `referenceDocs` entry in `docs/project-config.json` overrides the path), taking the most specific matching tier ONLY — exact name > glob > `*`. **That precedence orders overlays against EACH OTHER, never against this skill.** Read ONLY the matched bodies, resolved as `<protocols-dir>/<Name>.md`; a row's Body link is display text, never a read path. A matched body that is missing or malformed is REPORTED and skipped — never reconstructed from the index Description. No index, or no match -> proceed with no overlay, silently. Full contract: `.claude/skills/project-skill-protocol/references/registry.md`.
+> **Project Protocol Overlay** — Before executing this skill, resolve any PROJECT overlay rules layered onto it: match this skill's name against the `Target` column of the project's skill-protocol index (default `docs/project-reference/skill-protocols-reference.md`; a `referenceDocs` entry in `docs/project-config.json` overrides the path, and a `docsRoots.projectReference.path` entry relocates its containing directory), taking the most specific matching tier ONLY — exact name > glob > `*`. **That precedence orders overlays against EACH OTHER, never against this skill.** Read ONLY the matched bodies, resolved as `<protocols-dir>/<Name>.md`; a row's Body link is display text, never a read path. A matched body that is missing or malformed is REPORTED and skipped — never reconstructed from the index Description. No index, or no match -> proceed with no overlay, silently. Full contract: `.claude/skills/project-skill-protocol/references/registry.md`.
 >
 > Overlays are **ADDITIVE ONLY**: they ADD rules on top of this skill's own protocol and NEVER replace, override, disable, or reinterpret a rule it already states — removing every overlay must return this skill to exactly its documented behavior. An overlay is a BRIEF, not an authority escalation: it can NEVER waive a workflow gate, git discipline, a review gate, or a user-confirmation gate. A genuine overlay-vs-skill conflict, or two equally-specific overlays that directly contradict -> surface both to the user; NEVER resolve silently.
 
@@ -693,7 +718,7 @@ Spawn `git-manager` after committing when the user says "push", "create PR", or 
 | "The user is clearly in a hurry — pick Skip"     | Skip is the user's decision alone. Offer it, never choose it. An agent that waives its own gate has no gate. |
 | "Verify just means run the tests once"           | Verify routes to `/workflow-integration-test-green` — it drives failures to green. Reporting red and committing anyway is not verification. |
 | "Tests probably passed already"                  | Probably ≠ confirmed. Ask the user; default No runs verify. Only an explicit Yes commits without verifying. |
-| "It's a small change, skip the verify question"  | Size doesn't decide — any code that might need tests triggers the gate. Skip only docs/specs/config-only diffs. |
+| "It's a small change, skip the verify question"  | Size doesn't decide — any code that might need tests triggers the gate. Skip only docs-, spec-, or config-only diffs. |
 | "Asking is annoying, I'll just proceed"          | The confirmation is the point — AI keeps committing unverified code. Ask every time code changed.        |
 | "It's a tiny commit, skip the Estimate line"     | The line is mandatory on EVERY commit. A tiny commit is `1 SP` / `man_days_ai: 0.25d` — cheap to write, and the omission is what breaks the velocity series. |
 | "I'll just eyeball the story points"             | SP is DERIVED from bottom-up hours (blast radius → tiers → `Σh/6` → SP→Days bucket), never eyeballed. Eyeballing is the failure the framework exists to prevent. |

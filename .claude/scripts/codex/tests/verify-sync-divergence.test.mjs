@@ -268,11 +268,11 @@ test('TC-HOOKMIRROR-002: hooks.json materializes deterministically; the report d
 const EXPECTED_RENDERED_GROUPS = [
     ['PostToolUse', 'Edit|Write|MultiEdit|apply_patch', 1],
     ['PostToolUse', 'Edit|Write|MultiEdit|apply_patch', 1],
-    // file-convention-inject (2026-09-16): per-file convention reminder; its SessionStart
-    // compact|clear group renders no Codex row (condensation re-arm is Claude-only).
+    // file-convention-inject (2026-09-16): per-file convention reminder. Its SessionStart
+    // compact|clear group DOES render a Codex row as of 2026-09-17 — see below.
     ['PostToolUse', 'Read|Edit|Write|MultiEdit|NotebookEdit|apply_patch', 1],
-    // prompt-ledger (2026-09-16): task-checkpoint goal re-anchor; its SessionStart
-    // compact|resume|clear group renders no Codex row (SessionStart is Claude-only).
+    // prompt-ledger (2026-09-16): task-checkpoint goal re-anchor. Its SessionStart
+    // compact|resume|clear group DOES render a Codex row as of 2026-09-17 — see below.
     // Already carries Codex's own `update_plan`, so no file-tool widening applies.
     ['PostToolUse', 'TodoWrite|TaskCreate|TaskUpdate|update_plan', 1],
     ['PreToolUse', 'AskUserQuestion', 1],
@@ -282,6 +282,24 @@ const EXPECTED_RENDERED_GROUPS = [
     ['PreToolUse', 'Write|Edit|MultiEdit|apply_patch', 1],
     ['PreToolUse', 'mcp__filesystem__*', 1],
     ['PreToolUse', 'mcp__github__*', 1],
+    // SessionEnd (2026-09-17): Codex DOES support this event. Its matcher vocabulary is
+    // only `other`, so Claude's clear|exit|compact is dropped and the hook mirrors
+    // UNSCOPED — `null` here is the intended shape, not a lost matcher. The previous
+    // baseline recorded SessionEnd as "no Codex equivalent", which the official hook
+    // reference contradicts.
+    ['SessionEnd', null, 1],
+    // SessionStart (2026-09-17): Codex supports startup|resume|clear|compact. The event
+    // is no longer skipped wholesale; sync-hooks.mjs codexSessionStartMirrors mirrors
+    // exactly the hooks whose output a MIRRORED non-SessionStart hook consumes, because
+    // dropping a producer while keeping its consumer leaves the consumer registered and
+    // permanently unreachable. Everything off that allowlist is still skipped under the
+    // original static-startup-context rationale. Three rows, in settings.json order:
+    //   session-init-docs      — sole writer of .scan-stale, read by init-prompt-gate
+    //   file-convention-inject — compaction re-arm for per-file convention delivery
+    //   prompt-ledger          — goal/prompt re-anchor after compact or resume
+    ['SessionStart', 'startup', 1],
+    ['SessionStart', 'compact|clear', 1],
+    ['SessionStart', 'compact|resume|clear', 1],
     ['Stop', null, 1],
     ['UserPromptSubmit', null, 1],
     ['UserPromptSubmit', null, 1],
@@ -338,10 +356,11 @@ test('TC-HOOKMIRROR-003: a fresh render produces exactly the expected hook surfa
 // compares it. These cases drive the guard through the states that matter — today's
 // baseline, a new drop, a changed reason, a dropped group, and a baseline gone stale.
 test('TC-HOOKMIRROR-004: the skip guard accepts the reviewed baseline and rejects every drift', () => {
+    // 2026-09-17: SessionEnd and SessionStart left this baseline because Codex supports
+    // both (verified against the official hook reference). Notification is the only event
+    // the reference still does not list.
     const BASELINE = [
-        { event: 'Notification', reason: 'unsupported-by-codex' },
-        { event: 'SessionEnd', reason: 'unsupported-by-codex' },
-        { event: 'SessionStart', reason: 'static-startup-context-authoritative' }
+        { event: 'Notification', reason: 'unsupported-by-codex' }
     ];
 
     assert.deepEqual(
@@ -359,11 +378,11 @@ test('TC-HOOKMIRROR-004: the skip guard accepts the reviewed baseline and reject
 
     const changedReason = unexpectedHookSkips({
         skipped_events: BASELINE.map(entry =>
-            entry.event === 'SessionStart' ? { ...entry, reason: 'no-compatible-groups-after-filtering' } : entry),
+            entry.event === 'Notification' ? { ...entry, reason: 'no-compatible-groups-after-filtering' } : entry),
         skipped_groups: []
     });
     assert.equal(changedReason.length, 1);
-    assert.match(changedReason[0], /SessionStart is skipped for a new reason/);
+    assert.match(changedReason[0], /Notification is skipped for a new reason/);
 
     const droppedGroup = unexpectedHookSkips({
         skipped_events: BASELINE,
@@ -375,11 +394,36 @@ test('TC-HOOKMIRROR-004: the skip guard accepts the reviewed baseline and reject
     // The opposite direction is not a safety loss — MORE is mirrored than before — but
     // it makes the recorded baseline a lie, so it still has to be re-reviewed.
     const staleBaseline = unexpectedHookSkips({
-        skipped_events: BASELINE.filter(entry => entry.event !== 'SessionEnd'),
+        skipped_events: [],
         skipped_groups: []
     });
     assert.equal(staleBaseline.length, 1);
-    assert.match(staleBaseline[0], /SessionEnd is no longer skipped/);
+    assert.match(staleBaseline[0], /Notification is no longer skipped/);
+
+    // The two REVIEWED group skips pass. They are the only intended ways a group stops
+    // mirroring: a SessionStart group carrying no allowlisted producer, and SessionEnd's
+    // matcher, which names nothing Codex emits and so is dropped to let the hook run.
+    assert.deepEqual(
+        unexpectedHookSkips({
+            skipped_events: BASELINE,
+            skipped_groups: [
+                { event: 'SessionStart', group_index: 0, matcher: 'startup|resume', reason: 'session-start-not-on-mirror-allowlist' },
+                { event: 'SessionEnd', group_index: 0, matcher: 'clear|exit|compact', reason: 'matcher-unsupported-on-codex-hook-runs-unscoped' }
+            ]
+        }),
+        [],
+        'the reviewed group skips must not fail the gate'
+    );
+
+    // …but the allowance is keyed on event AND reason, so a reviewed reason appearing on
+    // an event it was never reviewed for still fails. Otherwise "SessionStart is allowed
+    // to drop groups" would quietly license every event to drop them.
+    const reasonOnWrongEvent = unexpectedHookSkips({
+        skipped_events: BASELINE,
+        skipped_groups: [{ event: 'PreToolUse', group_index: 1, matcher: 'Bash', reason: 'session-start-not-on-mirror-allowlist' }]
+    });
+    assert.equal(reasonOnWrongEvent.length, 1);
+    assert.match(reasonOnWrongEvent[0], /PreToolUse\[1\]/);
 
     // A renderer that returned no skip fields at all must not read as "nothing skipped":
     // the three baseline events are still expected, so their absence is reported.
@@ -466,17 +510,16 @@ test('TC-CODEXSYNC-001: the remediation command regenerates every surface this g
     assert.ok(lastGeneratorIndex < gateIndex, 'every generator must run BEFORE the verification stage, or the gate verifies output it has not regenerated');
 });
 
-// TC-CODEXSYNC-002 — the npm alias the remediation names still resolves to the roster TC-CODEXSYNC-001
-// verified. Framework-repo-only on purpose: an adopting project keeps its own package.json, or has none
-// at all, so what THIS repo's scripts say is a self-check of its own surface and not part of the
-// portable contract — the split framework-repo.helper.mjs mandates.
-test('TC-CODEXSYNC-002: `npm run codex:sync` delegates to the verified roster', { skip: !isFrameworkRepo(repoRoot) }, async () => {
-    const pkg = JSON.parse(await fs.readFile(path.join(repoRoot, 'package.json'), 'utf8'));
-    const script = pkg.scripts?.['codex:sync'];
-    assert.ok(script, 'package.json must define codex:sync — the remediation every FAIL branch prints');
-    assert.match(
-        script,
-        /run-codex-sync\.mjs/,
-        '`npm run codex:sync` no longer delegates to run-codex-sync.mjs, so the remediation names a command no test verifies'
-    );
+// TC-CODEXSYNC-002 — the command every FAIL branch prints must be one an adopter can actually run.
+// It used to name `npm run codex:sync`; that script is gone, because the framework is portable and a
+// remediation naming a host npm script is un-runnable in a project with no package.json — the exact
+// reader most likely to hit this gate. The remediation now names the in-bundle runner path, and this
+// asserts the file it names exists. UNCONDITIONAL: the runner ships in every adopting project.
+test('TC-CODEXSYNC-002: the printed remediation names a command that exists inside the bundle', async () => {
+    const source = await fs.readFile(path.join(repoRoot, '.claude', 'scripts', 'codex', 'verify-sync-divergence.mjs'), 'utf8');
+    assert.match(source, /run-codex-sync\.mjs/, 'the remediation must name the standalone runner');
+    assert.doesNotMatch(source, /npm run codex:sync/,
+        'the remediation must not name a host npm script — it does not exist in an adopting project');
+    const runner = path.join(repoRoot, '.claude', 'skills', 'sync-codex', 'scripts', 'run-codex-sync.mjs');
+    assert.ok(await fs.access(runner).then(() => true, () => false), 'the named runner must exist on disk');
 });

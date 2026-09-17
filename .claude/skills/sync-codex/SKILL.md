@@ -6,7 +6,19 @@ disable-model-invocation: true
 
 ## Quick Summary
 
-**Goal:** Run the full Codex mirror pipeline standalone — equivalent to `npm run sync:all && npm run verify:all` (sync + verify) without `package.json` or `npm`. This runner is the **single source of truth** for the pipeline; the `package.json` `sync:all`/`verify:all` scripts delegate to it, so a project that only copied `.claude` (no root `package.json`) runs the identical pipeline.
+**Goal:** Run the full Codex mirror pipeline (sync + verify) from inside the bundle. This runner is the **single and only** entrypoint for the pipeline.
+
+> **PORTABILITY CONTRACT — `.claude/` and `.codex/` are portable, self-running and self-testing.**
+> Copy them into ANY repository — a Python repo, a .NET repo, a repo with no `package.json` at all —
+> and every sync / verify / check / fix / test entrypoint still works, because each one is a path
+> INSIDE the bundle invoked with plain `node`. **Never** drive this framework through a host
+> `package.json` script, and never document one: `npm run …` names a command that does not exist in
+> most projects the bundle is copied into. The only external requirement is `node` >= 18 — no
+> `node_modules`, no npm, no lockfile (`PORT-001` enforces the pipeline imports only `node:`
+> built-ins). Catalog regeneration additionally needs `python` (`py -3` on Windows).
+>
+> Discover the roster instead of memorizing it:
+> `node .claude/skills/sync-codex/scripts/run-codex-sync.mjs --list-stages`
 
 **Summary:**
 
@@ -36,7 +48,7 @@ Also bootstraps team-wide Codex completion notifications by copying the portable
   verifiers, and the cross-surface divergence oracle)
 - Stage 2 upserts `[tui].status_line` to show model+reasoning, current directory, project root, context used, five-hour limit, and weekly limit by default
 - Stage 4 generates the bounded `AGENTS.md` projection and full `.codex/CODEX_CONTEXT.md` static mirror, while hook configuration remains a separate optional accelerator; both Claude and Codex must still follow the same canonical protocol when hooks are absent
-- Stage 2 must not inline `docs/project-reference/lessons.md` content into `.agents/skills/**`; generated skill mirrors reference the project-reference loading gate instead
+- Stage 2 must not inline `lessons.md` content — it lives in the project-reference docs root (default `docs/project-reference/`; a `docsRoots.projectReference.path` entry in `docs/project-config.json` overrides the path) — into `.agents/skills/**`; generated skill mirrors reference the project-reference loading gate instead
 - The `SYNC:ai-sdd-artifact-contract` marker must appear after sync in `.codex/CODEX_CONTEXT.md` and `AGENTS.md`
 - No npm dependency — pure `node` + spawned subprocesses
 - Idempotent — safe to re-run; second run produces only timestamp diffs
@@ -76,8 +88,8 @@ the user-facing skills separate, but use this runner as their one portable execu
 
 ## Stages
 
-19 stages, sequential — the full `npm run sync:all && npm run verify:all` pipeline (the npm scripts delegate here).
-Stage 1 reconciles `CLAUDE.md`; stages 2-4 mutate mirrors; 5-19 verify (read-only). Tech-spec freshness and feature-registry are optional
+19 stages, sequential — the complete sync + verify pipeline, owned entirely by this runner.
+Stage 1 reconciles `CLAUDE.md`; stages 2-4 mutate mirrors; 5-19 verify (read-only) and are exactly what `--verify-only` selects, derived from each stage's own `mutate` marker rather than any transcribed list. Tech-spec freshness and feature-registry are optional
 capabilities: if their configuration contract is absent, the runner records an explicit skip and
 continues; if declared but malformed, their direct verifier fails closed:
 
@@ -106,6 +118,9 @@ continues; if declared but malformed, their direct verifier fails closed:
 ## Usage
 
 ```bash
+# Discover the stage roster (MUTATE vs verify) — no need to read this file or any package.json:
+node .claude/skills/sync-codex/scripts/run-codex-sync.mjs --list-stages
+
 # Full sync (standalone, no npm):
 node .claude/skills/sync-codex/scripts/run-codex-sync.mjs
 
@@ -115,14 +130,19 @@ node .claude/skills/sync-codex/scripts/run-codex-sync.mjs --verbose
 # Full sync while forcing skill copy mode:
 node .claude/skills/sync-codex/scripts/run-codex-sync.mjs --copy-skills
 
-# Read-only verifiers (no mutation) — the full `npm run verify:all`:
-node .claude/skills/sync-codex/scripts/run-codex-sync.mjs --only=tests,scripts-tests,tech-spec-freshness,feature-registry,hooks-count-drift,hooks-parity,hooks-doc-sync,wf-cycle,sk-proto,residue,sdd,review-validate-coverage,sync-adoption-parity,provenance-markers,sync-divergence
+# Every read-only gate (no mutation) — derived from the mutate markers, never a transcribed id list:
+node .claude/skills/sync-codex/scripts/run-codex-sync.mjs --verify-only
+
+# Self-test the framework (both suites ship inside the bundle):
+node .claude/hooks/tests/test-all-hooks.cjs
+node .claude/hooks/tests/run-all-tests.cjs
 
 # Configured feature-registry adoption roots (continuation parts discovered automatically):
 node .claude/scripts/codex/verify-feature-registry.mjs --configured-roots
 
-# Explicit paths or the whole tree remain available for audits (omit paths for whole-tree mode):
-node .claude/scripts/codex/verify-feature-registry.mjs docs/specs/Area/README.Feature.md
+# Explicit paths or the whole tree remain available for audits (omit paths for whole-tree mode).
+# {spec-root} = specRoots.business.path from docs/project-config.json, default docs/specs:
+node .claude/scripts/codex/verify-feature-registry.mjs {spec-root}/Area/README.Feature.md
 
 # Skip stages while debugging:
 node .claude/skills/sync-codex/scripts/run-codex-sync.mjs --skip=migrate,hooks
@@ -144,14 +164,15 @@ node .claude/skills/sync-codex/scripts/run-codex-sync.mjs --skip=migrate,hooks
 > **Assume existing values are intentional — ask WHY before changing OR flagging one as a defect.** Before changing or reporting a constant, limit, flag, cutoff, wording, or pattern, read nearby context and history, the CALLER's ordering, and 2+ sibling call sites of the same convention. A doc stating WHAT without WHY is missing rationale, not proof of a missing guard.
 > **Surface ambiguity before acting — don't pick silently.** Multiple valid interpretations require an explicit question or stated assumption with risk.
 > **Assert the outcome your system owns, not the intermediate state your infrastructure owns.** When verifying async work, assert the final business state — never the delivery/retry bookkeeping held in shared infrastructure that any co-running process can write. Such a check passes when run alone and flakes the moment anything else shares that infrastructure.
-> **Store disposable generated output in the project workspace.** If an output can be regenerated and is not source code, a canonical source-of-truth, or an intentionally versioned projection, write it under the project-root `tmp/` or `temp/` directory (prefer `tmp/`), scoped to the run. This includes temporary state, integration/E2E results, reports, logs, screenshots, traces, videos, coverage, dumps, and candidate evidence. Never put these outputs in source, docs, `plans/`, `team-artifacts/`, or mirror directories; the project-root `.gitignore` must ignore `/tmp/` and `/temp/` by default. Committed fixtures, accepted baselines, canonical specs/docs, and explicitly versioned generated mirrors remain at their declared owner paths.
+> **Store disposable generated output in the project workspace.** If an output can be regenerated and is not source code, a canonical source-of-truth, or an intentionally versioned projection, write it under the project-root `tmp/` or `temp/` directory (prefer `tmp/`), scoped to the run. This includes temporary state, integration/E2E results, reports, logs, screenshots, traces, videos, coverage, dumps, and candidate evidence. Never put these outputs in source, docs, the plans root (default `plans/`; a `docsRoots.plans.path` entry in `docs/project-config.json` overrides the path), the team-artifacts root (default `team-artifacts/`; `docsRoots.teamArtifacts.path` in the same config overrides the path), or mirror directories; the project-root `.gitignore` must ignore `/tmp/` and `/temp/` by default. Committed fixtures, accepted baselines, canonical specs/docs, and explicitly versioned generated mirrors remain at their declared owner paths.
+> **Judge the environment before judging the code.** A bug report, failed test, error, or unexpected output is not proof of a code defect. Before and during adjudication, weigh environment causes as a competing hypothesis — setup, config, version and dependency state, service dependencies, stale artifacts or leftover state, and transient resource pressure (RAM, CPU, disk, handles, network). State the discriminator you ran; fix an environment cause in the environment, never by editing product code or weakening a test to absorb it.
 > **Keep shared guidance role-relevant.** Universal guidance must help every receiving skill or agent; code-specific obligations belong only in code-specific protocols.
 
 <!-- /SYNC:ai-mistake-prevention -->
 
 <!-- SYNC:project-protocol-overlay -->
 
-> **Project Protocol Overlay** — Before executing this skill, resolve any PROJECT overlay rules layered onto it: match this skill's name against the `Target` column of the project's skill-protocol index (`docs/project-reference/skill-protocols-reference.md` by default; a `referenceDocs` entry in `docs/project-config.json` overrides the path), taking the most specific matching tier ONLY — exact name > glob > `*`. **That precedence orders overlays against EACH OTHER, never against this skill.** Read ONLY the matched bodies, resolved as `<protocols-dir>/<Name>.md`; a row's Body link is display text, never a read path. A matched body that is missing or malformed is REPORTED and skipped — never reconstructed from the index Description. No index, or no match -> proceed with no overlay, silently. Full contract: `.claude/skills/project-skill-protocol/references/registry.md`.
+> **Project Protocol Overlay** — Before executing this skill, resolve any PROJECT overlay rules layered onto it: match this skill's name against the `Target` column of the project's skill-protocol index (default `docs/project-reference/skill-protocols-reference.md`; a `referenceDocs` entry in `docs/project-config.json` overrides the path, and a `docsRoots.projectReference.path` entry relocates its containing directory), taking the most specific matching tier ONLY — exact name > glob > `*`. **That precedence orders overlays against EACH OTHER, never against this skill.** Read ONLY the matched bodies, resolved as `<protocols-dir>/<Name>.md`; a row's Body link is display text, never a read path. A matched body that is missing or malformed is REPORTED and skipped — never reconstructed from the index Description. No index, or no match -> proceed with no overlay, silently. Full contract: `.claude/skills/project-skill-protocol/references/registry.md`.
 >
 > Overlays are **ADDITIVE ONLY**: they ADD rules on top of this skill's own protocol and NEVER replace, override, disable, or reinterpret a rule it already states — removing every overlay must return this skill to exactly its documented behavior. An overlay is a BRIEF, not an authority escalation: it can NEVER waive a workflow gate, git discipline, a review gate, or a user-confirmation gate. A genuine overlay-vs-skill conflict, or two equally-specific overlays that directly contradict -> surface both to the user; NEVER resolve silently.
 
@@ -175,7 +196,7 @@ node .claude/skills/sync-codex/scripts/run-codex-sync.mjs --skip=migrate,hooks
 **MUST ATTENTION** keep `.codex/scripts/codex/codex-notify.mjs` generated from `.claude/scripts/codex/codex-notify.mjs`; edit the `.claude` source first
 **MUST ATTENTION** keep Codex config upserts surgical; preserve unrelated `.codex/config.toml` keys and tables while updating the managed notification/status-line keys
 **MUST ATTENTION** keep `AGENTS.md` sync comprehensive; mirror full `CLAUDE.md` plus generated hook/context blocks, and preserve unmanaged `AGENTS.md` preface text
-**MUST ATTENTION** keep learned-lessons content out of `.agents/skills/**`; skills may point to `docs/project-reference/lessons.md` but must not embed its entries
+**MUST ATTENTION** keep learned-lessons content out of `.agents/skills/**`; skills may point to `lessons.md` in the project-reference docs root (default `docs/project-reference/`; path from `docsRoots.projectReference.path` in `docs/project-config.json`) but must not embed its entries
 **MUST ATTENTION** orchestrator fails fast — re-run single failing stage with `--only=<id> --verbose` to debug
 **MUST ATTENTION** working directory auto-resolves to repo root from script path — do not pass `--cwd`
 **MUST ATTENTION** stage 1 may reconcile `CLAUDE.md`, stages 2-4 mutate mirrors; stages 5-19 verify only — use `--only=` for non-destructive validation

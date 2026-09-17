@@ -24,10 +24,13 @@ function extractFromToolInput(toolInput, toolName) {
 
   // Grep 'pattern' is a search regex (e.g., 'build'), NOT a file path — skip it.
   // Glob 'pattern' IS a file path pattern (e.g., '**/node_modules/**') — keep checking it.
+  // `notebook_path` is NotebookEdit's path parameter — it carries a real file path
+  // under a name no other tool uses, so omitting it let notebook edits skip path
+  // checking entirely. privacy-block.cjs handles it; this extractor did not.
   const directParams =
     toolName === "Grep"
-      ? ["file_path", "path"]
-      : ["file_path", "path", "pattern"];
+      ? ["file_path", "path", "notebook_path"]
+      : ["file_path", "path", "notebook_path", "pattern"];
   for (const param of directParams) {
     if (toolInput[param] && typeof toolInput[param] === "string") {
       const normalized = normalizeExtractedPath(toolInput[param]);

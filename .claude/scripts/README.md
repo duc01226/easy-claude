@@ -186,7 +186,7 @@ node .claude/scripts/doc-impact-map.cjs --text src/Billing/Entities/Invoice.cs
 
 # Claims mode: which file references inside a doc no longer resolve?
 node .claude/scripts/doc-impact-map.cjs claims --text docs/project-reference/project-structure-reference.md
-node .claude/scripts/doc-impact-map.cjs claims --json      # every reference doc
+node .claude/scripts/doc-impact-map.cjs claims --json      # every reference doc under the configured root (docs/project-config.json -> docsRoots.projectReference.path; default docs/project-reference)
 ```
 
 ### Output (map mode)

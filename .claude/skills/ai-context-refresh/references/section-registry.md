@@ -17,7 +17,7 @@ Maps each section marker key to its data source in `docs/project-config.json`.
 | `e2e-testing`         | E2E Testing          | Scan for e2e test directories, `testing.frameworks[]`, optional `e2eTesting.execution`, and `experienceVerification.surfaces[]` | `buildE2eTesting`         | Yes — skip if no E2E evidence/profile             |
 | `skill-activation`    | Skill Activation     | `contextGroups[]` mapped to skill/doc pairs                                               | `buildSkillActivation`    | Yes — skip if no contextGroups                      |
 | `doc-index`           | Documentation Index  | Scan `docs/` directory tree                                                               | `buildDocIndex`           | Yes — skip if no docs/ dir                          |
-| `doc-lookup`          | Doc Lookup Guide     | `modules[].name` + `modules[].meta.domain` mapped to `docs/specs/`                        | `buildDocLookup`          | Yes — skip if no modules                            |
+| `doc-lookup`          | Doc Lookup Guide     | `modules[].name` + `modules[].meta.domain` mapped to the business spec root (default `docs/specs/`; `specRoots.business.path` in `docs/project-config.json` overrides) | `buildDocLookup`          | Yes — skip if no modules                            |
 
 ## Heading-to-Key Mapping (for Smart-Merge)
 

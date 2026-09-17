@@ -47,7 +47,7 @@ This assesses the folder state and routes the required lower-level setup steps:
 Review the generated project-specific files:
 
 - `docs/project-config.json`
-- `docs/project-reference/`
+- the project-reference docs root (default `docs/project-reference`; a `docsRoots.projectReference.path` entry in `docs/project-config.json` overrides the path)
 - `CLAUDE.md`
 - `AGENTS.md`
 
@@ -98,16 +98,16 @@ The workflow router injects the catalog; the model auto-selects and activates th
 
 ## What's Project-Agnostic vs Project-Specific
 
-| Component                        | Agnostic? | Notes                                              |
-| -------------------------------- | --------- | -------------------------------------------------- |
-| Skills (`.claude/skills/`)       | Yes       | Behavioral patterns, not code patterns             |
-| Agents (`.claude/agents/`)       | Yes       | Role definitions, not project logic                |
-| Hooks (`.claude/hooks/`)         | Yes       | Context injection reads from `project-config.json` |
-| Workflows (`.claude/workflows/`) | Yes       | Process definitions, not implementation            |
-| `CLAUDE.md`                      | **No**    | Must customize per project                         |
-| `docs/project-config.json`       | **No**    | Generated per project via `/project-init`          |
-| `docs/project-reference/`        | **No**    | Generated per project via `/project-init`          |
-| `docs/specs/`                    | **No**    | Project-specific tech-free Feature Specs           |
+| Component                        | Agnostic? | Notes                                                                                                                                                      |
+| -------------------------------- | --------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Skills (`.claude/skills/`)       | Yes       | Behavioral patterns, not code patterns                                                                                                                     |
+| Agents (`.claude/agents/`)       | Yes       | Role definitions, not project logic                                                                                                                        |
+| Hooks (`.claude/hooks/`)         | Yes       | Context injection reads from `project-config.json`                                                                                                         |
+| Workflows (`.claude/workflows/`) | Yes       | Process definitions, not implementation                                                                                                                    |
+| `CLAUDE.md`                      | **No**    | Must customize per project                                                                                                                                 |
+| `docs/project-config.json`       | **No**    | Generated per project via `/project-init`                                                                                                                  |
+| Project-reference docs root      | **No**    | Generated per project via `/project-init`; default `docs/project-reference`, overridden by `docsRoots.projectReference.path` in `docs/project-config.json` |
+| Business spec root               | **No**    | Project-specific tech-free Feature Specs; default `docs/specs`, overridden by `specRoots.business.path` in `docs/project-config.json`                      |
 
 ## Greenfield Projects
 

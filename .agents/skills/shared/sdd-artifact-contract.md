@@ -30,7 +30,7 @@ Project-neutral shared contract for AI spec-driven development. This is the home
 ## Shared-Vs-Project Boundary
 
 - Shared, reusable AI-SDD principles belong in `.claude` source files, primarily this file or other `.claude/skills/shared/*` references.
-- Project-specific additions belong in `docs/project-reference/**` only when they name local paths, commands, products, modules, architecture decisions, naming conventions, evidence formats, or ownership rules.
+- Project-specific additions belong in the project-reference docs root (default `docs/project-reference/**`; a `docsRoots.projectReference.path` entry in `docs/project-config.json` overrides the path) only when they name local paths, commands, products, modules, architecture decisions, naming conventions, evidence formats, or ownership rules.
 - Generated agent mirrors receive shared rules through sync. In this repository, those mirrors include `.agents/skills/**`, `.codex/CODEX_CONTEXT.md`, and `AGENTS.md`. Edit the `.claude` source instead and let sync propagate; never edit those mirrors directly — why: the next sync overwrites direct mirror edits.
 - In generated mirrors, `.claude` means this repository's upstream skill source; standalone consumers should apply the same rule to their own authoritative source directory.
 - If a rule can be reused unchanged by another repository, keep it out of project-reference docs and place it in `.claude`.
@@ -77,7 +77,7 @@ Every AI-SDD artifact (feature doc, engineering spec, test spec, PBI/story, idea
 - **Create/update skills** (feature docs, engineering specs, test specs, PBIs/stories, ideas, doc sync) MUST enforce the applicable mandate set at authoring time. Business-tree artifacts enforce M1-M7. Derived technical specs enforce their generator contract and declared exemptions, and MUST route business content back to the business tree instead of authoring it.
 - **Review/gate skills** (feature-doc review, spec review, story/PBI review, challenge, artifact review, change review, definition-of-ready gate) MUST CHECK the applicable mandate set and FAIL with the violated mandate ID(s) and a specific reason. A review that passes an applicable violation is itself defective (M6).
 
-> Project repositories MAY extend these mandates with local banned-token lists, evidence formats, and ID namespaces in `docs/project-reference/**`, but MUST NOT weaken M1-M7.
+> Project repositories MAY extend these mandates with local banned-token lists, evidence formats, and ID namespaces in the project-reference docs root (default `docs/project-reference/**`; path from `docsRoots.projectReference.path` in `docs/project-config.json`), but MUST NOT weaken M1-M7.
 >
 > ⚠️ **M7 is the mandate a project is most tempted to weaken**, because M7 is the only mandate that DELETES work rather than rewording it — and it is the one whose violations arrive one bugfix at a time, each individually defensible. **A local "our sync/consumer cases are business-critical, so they stay" extension IS a weakening of M7**, whatever it is titled. If a case is genuinely business-critical, it is demoable — rewrite it demoably and it survives M7 untouched. **A case that cannot be rewritten demoably is precisely the case M7 exists to move.**
 
@@ -378,7 +378,7 @@ Public API paths, product-specific role names, domain terms, or externally visib
 
 ## Traceability Schema
 
-**[M3 — Abstract-IDs-first]** Logical identifiers (`RequirementId`/`Invariant`, `TC`) are the PRIMARY citation spine and MUST appear in requirement and rule statements. `Source` evidence uses stack-portable abstract anchors (`[Source: namespace/service/id]`), NEVER physical `file:line` — an anchor names WHICH logical artifact implements/verifies behavior, never WHAT the requirement is, and stays out of narrative prose. Physical coordinates are recoverable only via the provenance sidecar (`docs/specs/.sdd-provenance-map.jsonl`, created on demand; anchor taxonomy in `shared/tc-format.md`). Keeping the logical spine + abstract anchors stable lets specs survive a stack migration with zero re-pointing.
+**[M3 — Abstract-IDs-first]** Logical identifiers (`RequirementId`/`Invariant`, `TC`) are the PRIMARY citation spine and MUST appear in requirement and rule statements. `Source` evidence uses stack-portable abstract anchors (`[Source: namespace/service/id]`), NEVER physical `file:line` — an anchor names WHICH logical artifact implements/verifies behavior, never WHAT the requirement is, and stays out of narrative prose. Physical coordinates are recoverable only via the provenance sidecar (`.sdd-provenance-map.jsonl` at the business spec root — default `docs/specs/`; a `specRoots.business.path` entry in `docs/project-config.json` overrides the path — created on demand; anchor taxonomy in `shared/tc-format.md`). Keeping the logical spine + abstract anchors stable lets specs survive a stack migration with zero re-pointing.
 
 Each requirement or bugfix invariant should trace through this chain:
 
@@ -476,7 +476,7 @@ wording axis and then deleting the file destroys every rule that lived only on t
 deletion reports success, because file-granularity hides the N rule-level deletes inside it.
 
 **This is not hypothetical. It is why this sub-gate exists** (measured, `docs/business-features/` vs
-`docs/specs/`, 2026-07-16): the newer canonical file was correctly identified as the M1-cleaned descendant
+the business spec root — default `docs/specs/`, relocated by `specRoots.business.path` in `docs/project-config.json` — 2026-07-16): the newer canonical file was correctly identified as the M1-cleaned descendant
 (`"Pipeline"`→`"Process"`, `"(Backend)"` dropped) — **and it held 26 TCs to the ancestor's 36.** Obeying
 *"the mirror is not authority"* at file granularity would have destroyed **10 tested TCs and a `[HARD]` rule
 that existed nowhere else.** ⇒ **The gate written to prevent data loss would have CAUSED it.**
@@ -559,7 +559,7 @@ Combine delivery, quality, security, and developer-experience signals into the s
 This contract defines generic artifact mechanics. Before applying it in a repository:
 
 1. Read `docs/project-config.json` for project-specific paths, commands, modules, workflow patterns, and test settings.
-2. Read `docs/project-reference/docs-index-reference.md` to discover the relevant reference docs.
+2. Read `docs-index-reference.md` in the project-reference docs root (default `docs/project-reference/`; `docsRoots.projectReference.path` in `docs/project-config.json` overrides the path) to discover the relevant reference docs.
 3. Read only the reference docs needed for the active task.
 4. Follow the target repository's canonical spec/test/doc owners.
 5. If `docs/project-config.json` or a required project-reference doc is missing or stale, auto-run `$project-init` or the narrow setup route (`$project-config`, `$docs-init`, `$scan-all`, or `$scan --target=<key>`) before applying project-specific rules.

@@ -8,7 +8,11 @@
  *     → additionalContext digest of the convention classes (docs/project-config.json
  *       contextGroups[]) the touched file belongs to, only for classes not already present
  *       in the current working context (spec BR-PFCI-05..07, 15..17).
- *   SessionStart compact|clear (Claude only) → records the condensation; prints nothing.
+ *   SessionStart compact|clear → records the condensation; prints nothing. BOTH hosts since
+ *     2026-09-17: Codex supports SessionStart with the same matcher vocabulary, and this hook
+ *     is on the narrow mirror allowlist (sync-hooks.mjs codexSessionStartMirrors) because
+ *     without it the ledger never learns the transcript was condensed and falls back to the
+ *     blind age path, which fails CLOSED. Previously read "Claude only".
  *
  * Opt-in: conventionInjection.enabled === true with at least one deliverable class, decided
  * once in run() for EVERY event before any handler runs, so no path reaches the delivery store

@@ -46,7 +46,7 @@ Skills Activated: fix, investigate
 
 ## Development - Backend
 
-See `docs/project-reference/backend-patterns-reference.md` for project-specific backend patterns.
+See `backend-patterns-reference.md` in the project-reference docs root — default `docs/project-reference`; a `docsRoots.projectReference.path` entry in `docs/project-config.json` overrides the path — for project-specific backend patterns.
 
 ---
 
@@ -57,29 +57,29 @@ See `docs/project-reference/backend-patterns-reference.md` for project-specific 
 | `design`                | UI, design, screenshot             | UI implementation (multi-mode/lane) |
 | `web-design-guidelines` | accessibility, WCAG, visual review | UI compliance review                |
 
-See `docs/project-reference/frontend-patterns-reference.md` for project-specific frontend patterns.
+See `frontend-patterns-reference.md` in the project-reference docs root for project-specific frontend patterns.
 
 ---
 
 ## Architecture
 
-| Skill                | Triggers                                | Description                                       |
-| -------------------- | --------------------------------------- | ------------------------------------------------- |
-| `performance-review` | performance, optimization, bottleneck   | Performance tuning + architecture-altitude review |
-| `security-review`    | security, vulnerabilities               | Security analysis                                 |
+| Skill                | Triggers                              | Description                                       |
+| -------------------- | ------------------------------------- | ------------------------------------------------- |
+| `performance-review` | performance, optimization, bottleneck | Performance tuning + architecture-altitude review |
+| `security-review`    | security, vulnerabilities             | Security analysis                                 |
 
 ---
 
 ## Debugging/Testing
 
-| Skill                     | Triggers                                                              | Description                                                                                                                             |
-| ------------------------- | --------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
-| `e2e-test`                | E2E, Playwright, browser test                                         | End-to-end test authoring and maintenance                                                                                               |
-| `experience-review`       | user experience, acceptance, baseline                                 | Exercise and inspect applicable observable output; preserve expectations until explicit acceptance                                    |
-| `spec [mode=tests]`       | test specification, QA spec, test strategy, TC-IDs, test cases        | Unified test case writer — generates TC-{FEATURE}-{NNN} specs from PBIs and feature docs                                                |
-| `spec [mode=sync]`        | sync test specs, update dashboard, reverse sync, sync to feature docs | Dashboard sync mode — syncs TCs from feature docs Section 8 to `docs/specs/` (sync mode retires when dashboards are removed in Phase 7) |
-| `integration-test-review` | integration test review, assertion quality, test gate review, TC gate | Review integration tests against 5 quality gates (assertion value, data state, repeatability, domain logic, TC)                         |
-| `integration-test-verify` | run integration tests, verify tests pass, test runner, dotnet test    | Run integration tests after writing/reviewing them — reads project-config.json for project-specific run guidance                        |
+| Skill                     | Triggers                                                              | Description                                                                                                                                      |
+| ------------------------- | --------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `e2e-test`                | E2E, Playwright, browser test                                         | End-to-end test authoring and maintenance                                                                                                        |
+| `experience-review`       | user experience, acceptance, baseline                                 | Exercise and inspect applicable observable output; preserve expectations until explicit acceptance                                               |
+| `spec [mode=tests]`       | test specification, QA spec, test strategy, TC-IDs, test cases        | Unified test case writer — generates TC-{FEATURE}-{NNN} specs from PBIs and feature docs                                                         |
+| `spec [mode=sync]`        | sync test specs, update dashboard, reverse sync, sync to feature docs | Dashboard sync mode — syncs TCs from feature docs Section 8 to the business spec root (sync mode retires when dashboards are removed in Phase 7) |
+| `integration-test-review` | integration test review, assertion quality, test gate review, TC gate | Review integration tests against 5 quality gates (assertion value, data state, repeatability, domain logic, TC)                                  |
+| `integration-test-verify` | run integration tests, verify tests pass, test runner, dotnet test    | Run integration tests after writing/reviewing them — reads project-config.json for project-specific run guidance                                 |
 
 ---
 
@@ -120,21 +120,21 @@ See `docs/project-reference/frontend-patterns-reference.md` for project-specific
 
 ## Planning/Research
 
-| Skill             | Triggers                           | Description                                                           |
-| ----------------- | ---------------------------------- | --------------------------------------------------------------------- |
-| `plan`            | plan, strategy, approach, research | Implementation planning (includes research phase + engine references) |
-| `plan-review`     | analyze plan, review plan          | Plan review                                                           |
-| `feature`         | implement, add, create, build      | Feature development                                                   |
-| `investigate`     | how does, explain, trace           | Code exploration                                                      |
+| Skill         | Triggers                           | Description                                                           |
+| ------------- | ---------------------------------- | --------------------------------------------------------------------- |
+| `plan`        | plan, strategy, approach, research | Implementation planning (includes research phase + engine references) |
+| `plan-review` | analyze plan, review plan          | Plan review                                                           |
+| `feature`     | implement, add, create, build      | Feature development                                                   |
+| `investigate` | how does, explain, trace           | Code exploration                                                      |
 
 ---
 
 ## Context/Memory
 
-| Skill                  | Triggers                                         | Description                  |
-| ---------------------- | ------------------------------------------------ | ---------------------------- |
-| `code-simplifier`      | simplify, refine, clarity                        | Code cleanup                 |
-| `learn`                | remember this, always do, patterns, list learned | Pattern learning and viewing |
+| Skill             | Triggers                                         | Description                  |
+| ----------------- | ------------------------------------------------ | ---------------------------- |
+| `code-simplifier` | simplify, refine, clarity                        | Code cleanup                 |
+| `learn`           | remember this, always do, patterns, list learned | Pattern learning and viewing |
 
 ---
 
@@ -161,18 +161,18 @@ See `docs/project-reference/frontend-patterns-reference.md` for project-specific
 
 ## Document Processing
 
-| Skill           | Triggers                                                        | Description                                       |
-| --------------- | --------------------------------------------------------------- | ------------------------------------------------- |
-| `docx-convert`  | DOCX to markdown, Word conversion, markdown to DOCX, Word export | Word ⇄ Markdown via `--to {markdown\|docx}`      |
-| `pdf-convert`   | PDF to markdown, PDF extraction, markdown to PDF, PDF export     | PDF ⇄ Markdown via `--to {markdown\|pdf}`        |
+| Skill          | Triggers                                                         | Description                                 |
+| -------------- | ---------------------------------------------------------------- | ------------------------------------------- |
+| `docx-convert` | DOCX to markdown, Word conversion, markdown to DOCX, Word export | Word ⇄ Markdown via `--to {markdown\|docx}` |
+| `pdf-convert`  | PDF to markdown, PDF extraction, markdown to PDF, PDF export     | PDF ⇄ Markdown via `--to {markdown\|pdf}`   |
 
 ---
 
 ## Utility
 
-| Skill           | Triggers                                           | Description              |
-| --------------- | -------------------------------------------------- | ------------------------ |
-| `skill-creator` | create skill, new skill                            | Create new skills        |
+| Skill           | Triggers                | Description       |
+| --------------- | ----------------------- | ----------------- |
+| `skill-creator` | create skill, new skill | Create new skills |
 
 ---
 
@@ -243,26 +243,26 @@ disable-model-invocation: false
 
 Skills are often activated alongside commands:
 
-| Command                | Primary Skills Activated               |
-| ---------------------- | -------------------------------------- |
-| `/feature-implement`   | `feature`, `plan`, `spec [mode=tests]` |
-| `/fix`                 | `debug-investigate`                    |
-| `/plan`                | `plan`, `plan-review`                  |
-| `/review`              | `code-review`                          |
-| `/test`                | `spec [mode=tests]`, `e2e-test`        |
-| `/idea`                | `idea`                                 |
-| `/refine`              | `refine`                               |
-| `/story`               | `story`                                |
-| `/design-spec`         | `design-spec`                          |
-| `/spec [mode=tests]`   | `spec [mode=tests]`                    |
-| `/dor-gate`            | `dor-gate`                             |
-| `/prioritize`          | `prioritize`                           |
+| Command              | Primary Skills Activated               |
+| -------------------- | -------------------------------------- |
+| `/feature-implement` | `feature`, `plan`, `spec [mode=tests]` |
+| `/fix`               | `debug-investigate`                    |
+| `/plan`              | `plan`, `plan-review`                  |
+| `/review`            | `code-review`                          |
+| `/test`              | `spec [mode=tests]`, `e2e-test`        |
+| `/idea`              | `idea`                                 |
+| `/refine`            | `refine`                               |
+| `/story`             | `story`                                |
+| `/design-spec`       | `design-spec`                          |
+| `/spec [mode=tests]` | `spec [mode=tests]`                    |
+| `/dor-gate`          | `dor-gate`                             |
+| `/prioritize`        | `prioritize`                           |
 
 ---
 
 ## Authoring Rule — No Meta-Log
 
-> A `SKILL.md` is read as live instruction. Write only the CURRENT actionable truth. Do NOT add change-history, migration rationale, or provenance — "formerly auto-injected", "removed in the … refactor", "now embedded here", "used to be hook-injected". It carries zero instruction value and dilutes the directive the agent acts on. Change history belongs in git / `CHANGELOG.md` / `docs/adr/**` / `tmp/reports/**`. Keep the actionable scope (the path/trigger a block applies to, SYNC-mirror notes); drop the historical clause. State what IS, not what changed.
+> A `SKILL.md` is read as live instruction. Write only the CURRENT actionable truth. Do NOT add change-history, migration rationale, or provenance — "formerly auto-injected", "removed in the … refactor", "now embedded here", "used to be hook-injected". It carries zero instruction value and dilutes the directive the agent acts on. Change history belongs in git / `CHANGELOG.md` / the ADR root (default `docs/adr`; a `docsRoots.adr.path` entry in `docs/project-config.json` overrides the path) / `tmp/reports/**`. Keep the actionable scope (the path/trigger a block applies to, SYNC-mirror notes); drop the historical clause. State what IS, not what changed.
 
 ## Creating Custom Skills
 
@@ -276,11 +276,11 @@ Use `/skill-creator` to create a new skill:
 
 ## Related Documentation
 
--   `docs/project-reference/backend-patterns-reference.md` - Backend patterns
--   `docs/project-reference/frontend-patterns-reference.md` - Frontend patterns
--   [../skill-naming-conventions.md](../skill-naming-conventions.md) - Naming conventions & shared module patterns
+- `backend-patterns-reference.md` (project-reference docs root) - Backend patterns
+- `frontend-patterns-reference.md` (project-reference docs root) - Frontend patterns
+- [../skill-naming-conventions.md](../skill-naming-conventions.md) - Naming conventions & shared module patterns
 
--   [../hooks/README.md](../hooks/README.md) - Hooks overview and lessons system
+- [../hooks/README.md](../hooks/README.md) - Hooks overview and lessons system
 
 ---
 

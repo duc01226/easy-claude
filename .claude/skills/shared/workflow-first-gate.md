@@ -13,7 +13,7 @@
 > | Non-trivial bug/regression/stale output | `workflow-bugfix` |
 > | Non-trivial feature/enhancement | `workflow-feature`; large/ambiguous/research-heavy scope uses `workflow-big-feature` |
 > | Product vision, greenfield or release-scoped idea | owning idea/feature workflow; apply shared `isLargeIdea` and embed decomposition in its artifacts |
-> | Explicit roadmap/update/milestone-selection request | `product-roadmap`; only this explicit intent may write `docs/product-roadmap.md` |
+> | Explicit roadmap/update/milestone-selection request | `product-roadmap`; only this explicit intent may write the product-roadmap artifact (default `docs/product-roadmap.md`; `docsRoots.productRoadmap.path` in `docs/project-config.json` overrides) |
 > | Milestone/large-idea scope needing adversarial failure, replay, state, ownership, recovery or evidence analysis | conditional `scenario` before `/plan`; no roadmap artifact |
 > | Other matching skill/workflow Use clause | that skill/workflow, verified from its canonical definition |
 >

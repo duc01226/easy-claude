@@ -315,14 +315,35 @@ def check_counts(file_path):
 
 
 def write_output(content, output_path=None, label=None):
-    """Write content to stdout or file."""
-    if output_path:
-        path = Path(output_path)
-        path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_text(content, encoding='utf-8')
-        print(f"✓ Generated {output_path}", file=sys.stderr)
-    else:
+    """Write content to stdout, or to a file ONLY when its meaning changed.
+
+    `last_updated` is stamped from the clock on every run, so an unconditional
+    write rewrites a tracked catalog whose entries are identical. That produces a
+    conflict-prone one-line diff on any branch that merely re-ran the generator.
+    The volatility rule already exists here — `normalize_catalog_for_check` masks
+    exactly this field for `--check`; applying it on the write path too keeps one
+    definition of "did anything real change" for both modes.
+    """
+    if not output_path:
         print(content)
+        return
+
+    path = Path(output_path)
+    if path.exists():
+        on_disk = path.read_text(encoding='utf-8')
+        comparable_on_disk, comparable_generated = normalize_catalog_for_check(on_disk, content)
+        if comparable_on_disk == comparable_generated:
+            print(f"= Unchanged {output_path} (no content change — not rewritten)", file=sys.stderr)
+            return
+
+    path.parent.mkdir(parents=True, exist_ok=True)
+    # newline='' writes the generated '\n' verbatim. Default text mode translates it to os.linesep,
+    # so on Windows every regen rewrote the whole catalog as CRLF against an LF-committed file —
+    # a whole-file diff that buries the real entry changes. Same rule as inject_counts() above; the
+    # read side is universal-newline, so the unchanged-comparison was never the part that drifted.
+    with path.open('w', encoding='utf-8', newline='') as handle:
+        handle.write(content)
+    print(f"✓ Generated {output_path}", file=sys.stderr)
 
 
 def check_against_file(generated, target_path, label):

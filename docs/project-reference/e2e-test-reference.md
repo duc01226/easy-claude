@@ -1,7 +1,6 @@
 # E2E Test Reference
 
 <!-- Last scanned: 2026-09-10 -->
-<!-- Last verified: 2026-09-12 (docs-update, impact-scoped) -->
 <!-- This file is referenced by Claude skills and agents for project-specific context. -->
 
 ## Quick Summary

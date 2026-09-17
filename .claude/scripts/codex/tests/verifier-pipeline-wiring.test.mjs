@@ -33,8 +33,9 @@ test('TC-PIPE-WIRE-002: source skill docs expose the read-only commands and the 
     const syncCodex = read('.claude/skills/sync-codex/SKILL.md');
 
     // When the documented commands and stage table are inspected.
-    assert.match(techSpec, /npm run tech-spec:check/);
     assert.match(techSpec, /generate-tech-specs\.mjs --check/);
+    assert.doesNotMatch(techSpec, /npm run /,
+        'the skill must document the in-framework path, never a host npm script it cannot rely on');
     assert.match(syncCodex, /19 stages, sequential/);
     assert.match(syncCodex, /\| 1\s+\| claude-md/);
     assert.match(syncCodex, /\| 7\s+\| tech-spec-freshness/);
@@ -42,12 +43,26 @@ test('TC-PIPE-WIRE-002: source skill docs expose the read-only commands and the 
     // Then the docs describe the same 19-stage order as the executable runner.
 });
 
-test('TC-PIPE-WIRE-003: framework npm surface names both gates and includes them in verify:all', () => {
-    const pkg = frameworkPkg(repoRoot);
-    if (!pkg) return;
+// TC-PIPE-WIRE-003 — both release gates carry their exact flags INSIDE the runner, not in a host
+// npm script. The predecessor asserted four package.json strings; those scripts are gone, because a
+// portable framework cannot depend on a host `package.json` existing. The flags are what actually
+// matter (`--check --optional`, `--configured-roots --optional` make each gate an optional project
+// capability rather than a hard failure in an adopting project), so they are asserted where they are
+// now executed — which makes the check unconditional instead of framework-repo-only.
+test('TC-PIPE-WIRE-003: both release gates carry their optional-capability flags inside the runner', () => {
+    const runner = read('.claude/skills/sync-codex/scripts/run-codex-sync.mjs');
 
-    assert.equal(pkg.scripts['tech-spec:check'], 'node .claude/skills/tech-spec/scripts/generate-tech-specs.mjs --check --optional');
-    assert.equal(pkg.scripts['codex:verify:feature-registry'], 'node .claude/scripts/codex/verify-feature-registry.mjs --configured-roots --optional');
-    assert.match(pkg.scripts['codex:verify:tech-spec-freshness'], /tech-spec:check/);
-    assert.match(pkg.scripts['verify:all'], /scripts-tests,tech-spec-freshness,feature-registry/);
+    const techSpec = runner.match(/\{[^{}]*\bid:\s*["']tech-spec-freshness["'][^{}]*\}/);
+    assert.ok(techSpec, 'the runner must declare the tech-spec-freshness stage');
+    assert.match(techSpec[0], /["']--check["']/, 'the freshness gate must stay read-only (--check)');
+
+    const registry = runner.match(/\{[^{}]*\bid:\s*["']feature-registry["'][^{}]*\}/);
+    assert.ok(registry, 'the runner must declare the feature-registry stage');
+    assert.match(registry[0], /verify-feature-registry\.mjs/);
+    assert.match(registry[0], /["']--configured-roots["']/, 'the registry gate must read the project-declared roots');
+
+    // Neither gate may be a mutating stage, so both are selected by the derived `--verify-only` set.
+    for (const [name, stage] of [['tech-spec-freshness', techSpec[0]], ['feature-registry', registry[0]]]) {
+        assert.doesNotMatch(stage, /\bmutate:\s*true\b/, `${name} is a read-only gate`);
+    }
 });

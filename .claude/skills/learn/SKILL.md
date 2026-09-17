@@ -34,7 +34,7 @@ disable-model-invocation: false
 - **GENERALIZE FIRST (the #1 protocol):** Extract the GENERIC lesson that applies to many cases — NEVER save the specific case as-is. The user's words describe one incident; your job is to climb from that incident to the reusable rule. Strip every project/file/tool/domain name. If the saved text only helps on this exact ticket, you failed — abstract it up a level. (Enforced by the Lesson Quality Gate below.)
 - Triggers on "remember this", "always do X", "never do Y"
 - **Triage first:** pass Recurrence gate + Auto-fix gate BEFORE routing or saving
-- Smart-route to the most relevant file, NOT always `docs/project-reference/lessons.md`
+- Smart-route to the most relevant file, NOT always `lessons.md` in the reference-docs root (default `docs/project-reference`; a `docsRoots.projectReference.path` entry in `docs/project-config.json` overrides the path)
 - **Consider `docs/project-config.json` on EVERY routing decision** — a lesson that is really a project fact (path, run-command, module map, tooling choice) belongs in the machine-readable map, not in prose; read it or use `/project-config` to know its schema before deciding
 - Use exact config schema field names (`node .claude/hooks/lib/project-config-schema.cjs --describe`) and prefer an existing field — NEVER invent a key, and route config writes through `/project-config`
 - Check for existing entries before creating duplicates
@@ -76,7 +76,7 @@ disable-model-invocation: false
 
 ## Reference Doc Catalog (READ before routing)
 
-Each `docs/project-reference/` file is auto-initialized by `session-init-docs.cjs` hook and populated by `/scan-*` skills. Understanding their roles is **critical** for correct routing: routing is static — read the doc whose **Read Trigger** matches your task.
+Each file in the reference-docs root (default `docs/project-reference`; a `docsRoots.projectReference.path` entry in `docs/project-config.json` overrides the path) is auto-initialized by `session-init-docs.cjs` hook and populated by `/scan-*` skills. Understanding their roles is **critical** for correct routing: routing is static — read the doc whose **Read Trigger** matches your task.
 
 | File                             | Role & Content                                                                                   | Read Trigger (static)               | Scan Skill                |
 | -------------------------------- | ------------------------------------------------------------------------------------------------ | ----------------------------------- | ------------------------- |
@@ -111,7 +111,7 @@ node .claude/hooks/lib/project-config-schema.cjs --describe   # exact field name
 | Lesson really is…                                                                                          | Carrier                                             |
 | ---------------------------------------------------------------------------------------------------------- | --------------------------------------------------- |
 | A project **FACT** a schema field already models — a path, glob, run-command, module/service map, framework or tooling choice, doc root, test/E2E/integration setup, startup or health-check command | `docs/project-config.json` (via `/project-config`)  |
-| A **RULE, pattern, or anti-pattern** an agent must reason with                                              | the matching `docs/project-reference/` doc          |
+| A **RULE, pattern, or anti-pattern** an agent must reason with                                              | the matching doc in the reference-docs root (default `docs/project-reference`; a `docsRoots.projectReference.path` entry in `docs/project-config.json` overrides the path)          |
 | Both — a new fact AND the rule for using it                                                                 | write the fact to config AND the rule to prose      |
 
 Rules:
@@ -150,7 +150,7 @@ When either condition holds:
 2. Treat the lesson as a candidate extension of that skill's project protocol.
 3. **MUST ATTENTION** Preserve Learn's existing confirmation before writing, then call `$project-skill-protocol add ...` for a new overlay or `$project-skill-protocol update <exact-name> ...` only after exact-name resolution identifies an existing overlay.
 4. **MUST ATTENTION** Let `$project-skill-protocol` perform its own mode resolution, target/scope resolution, additive-only screen, target-collision and contradiction handling, proposal/user-confirmation gate, three-write contract, and mirror sync. Do not write overlay bodies, index rows, or the `CLAUDE.md` protocol block directly from Learn.
-5. Do not save the candidate only to `docs/project-reference/lessons.md` or another generic prose carrier.
+5. Do not save the candidate only to `lessons.md` or another generic prose carrier.
 
 If neither condition holds, continue with the generic Routing Table and existing Learn confirmation flow.
 
@@ -158,23 +158,23 @@ If neither condition holds, continue with the generic Routing Table and existing
 
 ### Routing Table
 
-Route to the **most relevant file** based on lesson content:
+Route to the **most relevant file** based on lesson content. Every bare `*.md` filename in the `Route to` column resolves inside the reference-docs root (default `docs/project-reference`; a `docsRoots.projectReference.path` entry in `docs/project-config.json` overrides the path):
 
 | If lesson is about...                                                                                                                    | Route to                                                | Section hint                                                    |
 | ---------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------- | --------------------------------------------------------------- |
-| Code review rules, anti-patterns, review checklists, YAGNI/KISS/DRY, naming conventions, review process                                  | `docs/project-reference/code-review-rules.md`           | Add to most relevant section (anti-patterns, rules, checklists) |
-| Backend/hook patterns: modules, CQRS, repositories, entities, validation, message bus, background jobs, migrations, configured persistence | `docs/project-reference/backend-patterns-reference.md`  | Add to relevant section or Anti-Patterns section                |
-| Frontend patterns: components, state stores, forms, API services, styling conventions, directives, pipes                                  | `docs/project-reference/frontend-patterns-reference.md` | Add to relevant section or Anti-Patterns section                |
-| Integration/unit tests: test base classes, fixtures, test helpers, test patterns, assertions, test runners                               | `docs/project-reference/integration-test-reference.md`  | Add to relevant section                                         |
-| E2E tests: Playwright, Cypress, Selenium, page objects, E2E config, browser automation, visual regression                                | `docs/project-reference/e2e-test-reference.md`          | Add to relevant section                                         |
-| Domain entities, data models, DTOs, aggregates, entity relationships, cross-service data sync, ER diagrams                               | `docs/project-reference/domain-entities-reference.md`   | Add to Entity Catalog or Relationships section                  |
-| Project structure, directory organization, module boundaries, tech stack choices, service architecture                                   | `docs/project-reference/project-structure-reference.md` | Add to relevant architecture section                            |
-| SCSS/CSS styling, BEM methodology, mixins, variables, theming, responsive design, CSS conventions                                        | `docs/project-reference/scss-styling-guide.md`          | Add to relevant styling section                                 |
-| Design system, design tokens, component library, UI kit conventions, Figma-to-code patterns                                              | `docs/project-reference/design-system/README.md`        | Add to relevant design section                                  |
-| Feature documentation, doc templates, doc structure conventions, app-to-service doc mapping                                              | `docs/project-reference/feature-spec-reference.md`      | Add to relevant conventions section                             |
-| Documentation indexing, doc organization, doc-to-code relationships, doc lookup patterns                                                 | `docs/project-reference/docs-index-reference.md`        | Add to relevant section                                         |
+| Code review rules, anti-patterns, review checklists, YAGNI/KISS/DRY, naming conventions, review process                                  | `code-review-rules.md`           | Add to most relevant section (anti-patterns, rules, checklists) |
+| Backend/hook patterns: modules, CQRS, repositories, entities, validation, message bus, background jobs, migrations, configured persistence | `backend-patterns-reference.md`  | Add to relevant section or Anti-Patterns section                |
+| Frontend patterns: components, state stores, forms, API services, styling conventions, directives, pipes                                  | `frontend-patterns-reference.md` | Add to relevant section or Anti-Patterns section                |
+| Integration/unit tests: test base classes, fixtures, test helpers, test patterns, assertions, test runners                               | `integration-test-reference.md`  | Add to relevant section                                         |
+| E2E tests: Playwright, Cypress, Selenium, page objects, E2E config, browser automation, visual regression                                | `e2e-test-reference.md`          | Add to relevant section                                         |
+| Domain entities, data models, DTOs, aggregates, entity relationships, cross-service data sync, ER diagrams                               | `domain-entities-reference.md`   | Add to Entity Catalog or Relationships section                  |
+| Project structure, directory organization, module boundaries, tech stack choices, service architecture                                   | `project-structure-reference.md` | Add to relevant architecture section                            |
+| SCSS/CSS styling, BEM methodology, mixins, variables, theming, responsive design, CSS conventions                                        | `scss-styling-guide.md`          | Add to relevant styling section                                 |
+| Design system, design tokens, component library, UI kit conventions, Figma-to-code patterns                                              | `design-system/README.md`        | Add to relevant design section                                  |
+| Feature documentation, doc templates, doc structure conventions, app-to-service doc mapping                                              | `feature-spec-reference.md`      | Add to relevant conventions section                             |
+| Documentation indexing, doc organization, doc-to-code relationships, doc lookup patterns                                                 | `docs-index-reference.md`        | Add to relevant section                                         |
 | **Project FACTS the config models:** source/module paths, globs, service or app maps, framework + search keywords, test / E2E / integration run-commands, system startup or health-check commands, doc roots, design-system or styling locations, tooling choices | `docs/project-config.json` **via `/project-config`**    | Existing schema field, exact name from `--describe` — NEVER an invented key |
-| General lessons, workflow tips, tooling, AI behavior, project conventions, anything not matching above                                   | `docs/project-reference/lessons.md`                     | Append as dated list entry                                      |
+| General lessons, workflow tips, tooling, AI behavior, project conventions, anything not matching above                                   | `lessons.md`                     | Append as dated list entry                                      |
 
 ---
 
@@ -184,7 +184,7 @@ Before saving any lesson, critically evaluate whether a doc update alone is suff
 
 | Prevention Layer                            | When to use                                                                   | Example                                                                                     |
 | ------------------------------------------- | ----------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------- |
-| **Doc update only**                         | One-off awareness, rare edge case, team convention                            | "Always use fluent validation API" → `docs/project-reference/backend-patterns-reference.md` |
+| **Doc update only**                         | One-off awareness, rare edge case, team convention                            | "Always use fluent validation API" → `backend-patterns-reference.md` |
 | **Project config field** (`docs/project-config.json`) | The lesson is a machine-readable project FACT every skill should ground on before acting | "Integration tests need the system started first" → `integrationTestVerify.startupScript` / `systemCheckCommand` via `/project-config` |
 | **Prompt rule** (`development-rules.md`)    | Rule that ALL agents must follow on every task                                | "Grep after bulk edits" → `.claude/docs/development-rules.md`                               |
 | **Static protocol lesson** (`sync-inline-versions.md`) | Universal AI mistake, high recurrence, silent failure, any project | "Re-read files after context compaction" → `.claude/skills/shared/sync-inline-versions.md` |
@@ -275,7 +275,7 @@ Run these 2 tasks at the end of every `/learn` operation:
     - Specific to the current ticket/change/file,
     - Rare edge cases with low recurrence,
     - Already covered by existing lessons or review skills.
-- If target is `docs/project-reference/lessons.md` (injected on every prompt), apply stricter bar: high impact + high recurrence only.
+- If target is `lessons.md` (injected on every prompt), apply stricter bar: high impact + high recurrence only.
 
 **Task 2 — Run `/why-review` (adversarial challenge):**
 
@@ -301,7 +301,7 @@ Run these 2 tasks at the end of every `/learn` operation:
 
 ### Format by Target File
 
-**For `docs/project-reference/lessons.md`** (general lessons):
+**For `lessons.md`** (general lessons):
 
 ```markdown
 - [YYYY-MM-DD] <lesson text>
@@ -314,15 +314,15 @@ Run these 2 tasks at the end of every `/learn` operation:
 - Use the file's existing format (tables, code blocks, bullet lists)
 - If no section fits, append to the Anti-Patterns or general rules section
 
-## Budget Enforcement (MANDATORY for `docs/project-reference/lessons.md`)
+## Budget Enforcement (MANDATORY for `lessons.md`)
 
-`docs/project-reference/lessons.md` is a static project-reference carrier read during project work. Token budget must be controlled.
+`lessons.md` — resolved inside the reference-docs root (default `docs/project-reference`; a `docsRoots.projectReference.path` entry in `docs/project-config.json` overrides the path) — is a static project-reference carrier read during project work. Token budget must be controlled.
 
 **Hard limit:** 20000 characters (~6666 tokens). Check BEFORE saving any new lesson.
 
-**Workflow when adding to `docs/project-reference/lessons.md`:**
+**Workflow when adding to `lessons.md`:**
 
-1. Read file, count characters (`wc -c docs/project-reference/lessons.md`)
+1. Read file, count characters (run `wc -c` on the resolved `lessons.md` path)
 2. If current + new lesson > 20000 chars → trigger **Budget Trim** before saving
 3. If under budget → save normally
 
@@ -349,9 +349,9 @@ Run these 2 tasks at the end of every `/learn` operation:
 
 1. **`/learn <text>`** — Run the existing triage and quality gates; for a skill-specific lesson, call `$project-skill-protocol add ...` or `$project-skill-protocol update <exact-name> ...` through the Skill-Specific Project-Protocol Route, otherwise route and append to the best-fit file (check budget if target is `lessons.md`)
 2. **`/learn list`** — Read and display lessons from ALL 12 target files (show file grouping + char count for `lessons.md`)
-3. **`/learn remove <N>`** — Remove lesson from `docs/project-reference/lessons.md` by line number
-4. **`/learn clear`** — Clear all lessons from `docs/project-reference/lessons.md` only (confirm first)
-5. **`/learn trim`** — Manually trigger Budget Trim on `docs/project-reference/lessons.md`
+3. **`/learn remove <N>`** — Remove lesson from `lessons.md` by line number
+4. **`/learn clear`** — Clear all lessons from `lessons.md` only (confirm first)
+5. **`/learn trim`** — Manually trigger Budget Trim on `lessons.md`
 6. **File creation** — If target file doesn't exist, create with header only
 
 ## Auto-Inferred Activation
@@ -362,7 +362,7 @@ When Claude detects correction phrases in conversation (e.g., "always use X", "r
 
 Lessons and pattern references are read statically, per the project-reference-docs gate in `CLAUDE.md`:
 
-- `docs/project-reference/lessons.md` — read on **every** task (the gate always includes it).
+- `lessons.md` — read on **every** task (the gate always includes it).
 - Pattern/rule references (`backend-patterns-reference.md`, `code-review-rules.md`, etc.) — read by their matching trigger (see the Reference Doc Catalog table above).
 
 Because the routing is static prose, Claude and Codex load the same lessons and patterns whether their hooks are enabled, unavailable, or stale.
@@ -382,10 +382,10 @@ After saving a lesson to any target file, run `/prompt-enhance` on the modified 
 - Optimizes token usage — tightens prose, merges redundant content
 - Verifies no content loss from the save operation
 
-**How to invoke:**
+**How to invoke** — substitute the resolved reference-docs root (default `docs/project-reference`; a `docsRoots.projectReference.path` entry in `docs/project-config.json` overrides the path):
 
 ```
-/prompt-enhance docs/project-reference/<modified-file>.md
+/prompt-enhance <reference-docs root>/<modified-file>.md
 ```
 
 **Skip conditions (do NOT run prompt-enhance if):**
@@ -419,7 +419,8 @@ After saving a lesson to any target file, run `/prompt-enhance` on the modified 
 > **Assume existing values are intentional — ask WHY before changing OR flagging one as a defect.** Before changing or reporting a constant, limit, flag, cutoff, wording, or pattern, read nearby context and history, the CALLER's ordering, and 2+ sibling call sites of the same convention. A doc stating WHAT without WHY is missing rationale, not proof of a missing guard.
 > **Surface ambiguity before acting — don't pick silently.** Multiple valid interpretations require an explicit question or stated assumption with risk.
 > **Assert the outcome your system owns, not the intermediate state your infrastructure owns.** When verifying async work, assert the final business state — never the delivery/retry bookkeeping held in shared infrastructure that any co-running process can write. Such a check passes when run alone and flakes the moment anything else shares that infrastructure.
-> **Store disposable generated output in the project workspace.** If an output can be regenerated and is not source code, a canonical source-of-truth, or an intentionally versioned projection, write it under the project-root `tmp/` or `temp/` directory (prefer `tmp/`), scoped to the run. This includes temporary state, integration/E2E results, reports, logs, screenshots, traces, videos, coverage, dumps, and candidate evidence. Never put these outputs in source, docs, `plans/`, `team-artifacts/`, or mirror directories; the project-root `.gitignore` must ignore `/tmp/` and `/temp/` by default. Committed fixtures, accepted baselines, canonical specs/docs, and explicitly versioned generated mirrors remain at their declared owner paths.
+> **Store disposable generated output in the project workspace.** If an output can be regenerated and is not source code, a canonical source-of-truth, or an intentionally versioned projection, write it under the project-root `tmp/` or `temp/` directory (prefer `tmp/`), scoped to the run. This includes temporary state, integration/E2E results, reports, logs, screenshots, traces, videos, coverage, dumps, and candidate evidence. Never put these outputs in source, docs, the plans root (default `plans/`; a `docsRoots.plans.path` entry in `docs/project-config.json` overrides the path), the team-artifacts root (default `team-artifacts/`; `docsRoots.teamArtifacts.path` in the same config overrides the path), or mirror directories; the project-root `.gitignore` must ignore `/tmp/` and `/temp/` by default. Committed fixtures, accepted baselines, canonical specs/docs, and explicitly versioned generated mirrors remain at their declared owner paths.
+> **Judge the environment before judging the code.** A bug report, failed test, error, or unexpected output is not proof of a code defect. Before and during adjudication, weigh environment causes as a competing hypothesis — setup, config, version and dependency state, service dependencies, stale artifacts or leftover state, and transient resource pressure (RAM, CPU, disk, handles, network). State the discriminator you ran; fix an environment cause in the environment, never by editing product code or weakening a test to absorb it.
 > **Keep shared guidance role-relevant.** Universal guidance must help every receiving skill or agent; code-specific obligations belong only in code-specific protocols.
 
 <!-- /SYNC:ai-mistake-prevention -->
@@ -445,7 +446,7 @@ After saving a lesson to any target file, run `/prompt-enhance` on the modified 
 
 <!-- SYNC:project-protocol-overlay -->
 
-> **Project Protocol Overlay** — Before executing this skill, resolve any PROJECT overlay rules layered onto it: match this skill's name against the `Target` column of the project's skill-protocol index (`docs/project-reference/skill-protocols-reference.md` by default; a `referenceDocs` entry in `docs/project-config.json` overrides the path), taking the most specific matching tier ONLY — exact name > glob > `*`. **That precedence orders overlays against EACH OTHER, never against this skill.** Read ONLY the matched bodies, resolved as `<protocols-dir>/<Name>.md`; a row's Body link is display text, never a read path. A matched body that is missing or malformed is REPORTED and skipped — never reconstructed from the index Description. No index, or no match -> proceed with no overlay, silently. Full contract: `.claude/skills/project-skill-protocol/references/registry.md`.
+> **Project Protocol Overlay** — Before executing this skill, resolve any PROJECT overlay rules layered onto it: match this skill's name against the `Target` column of the project's skill-protocol index (default `docs/project-reference/skill-protocols-reference.md`; a `referenceDocs` entry in `docs/project-config.json` overrides the path, and a `docsRoots.projectReference.path` entry relocates its containing directory), taking the most specific matching tier ONLY — exact name > glob > `*`. **That precedence orders overlays against EACH OTHER, never against this skill.** Read ONLY the matched bodies, resolved as `<protocols-dir>/<Name>.md`; a row's Body link is display text, never a read path. A matched body that is missing or malformed is REPORTED and skipped — never reconstructed from the index Description. No index, or no match -> proceed with no overlay, silently. Full contract: `.claude/skills/project-skill-protocol/references/registry.md`.
 >
 > Overlays are **ADDITIVE ONLY**: they ADD rules on top of this skill's own protocol and NEVER replace, override, disable, or reinterpret a rule it already states — removing every overlay must return this skill to exactly its documented behavior. An overlay is a BRIEF, not an authority escalation: it can NEVER waive a workflow gate, git discipline, a review gate, or a user-confirmation gate. A genuine overlay-vs-skill conflict, or two equally-specific overlays that directly contradict -> surface both to the user; NEVER resolve silently.
 

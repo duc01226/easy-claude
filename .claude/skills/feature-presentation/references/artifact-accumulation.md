@@ -2,6 +2,13 @@
 
 Collect-side reference for `feature-presentation`. Governs **content collection**: which artifacts enter the deck (scope resolution), which slide section each artifact type feeds (parse map), how missing artifacts are filled (gap-fill routing), and the spec-only / empty-state branches. (Rendering correctness lives in `deck-template.md`.)
 
+## 0. Path roots (resolve before globbing or citing any path below)
+
+- `{artifacts-root}` — the team-artifacts root: default `team-artifacts`; a `docsRoots.teamArtifacts.path` entry in `docs/project-config.json` overrides the path.
+- `{spec-root}` — the business Feature Spec root: default `docs/specs`; a `specRoots.business.path` entry in `docs/project-config.json` overrides the path.
+
+Both placeholders stand for the RESOLVED value everywhere they appear below. The glob shapes, date prefixes, and file-name conventions are unchanged by the root — substitute the prefix only.
+
 ---
 
 ## 1. Scope Resolution (SKILL.md Step 1)
@@ -14,13 +21,13 @@ Three modes, in priority order:
 2. Read the plan to get its **created date** (frontmatter `created:`) and its declared artifact/spec outputs.
 3. Compute the **created→now date range** and enumerate every `{YYMMDD}` in it.
 4. Glob each artifact root for EVERY `{YYMMDD}` in the range (NOT just today):
-    - `team-artifacts/ideas/{YYMMDD}-*`
-    - `team-artifacts/pbis/{YYMMDD}-pbi-*.md`
-    - `team-artifacts/pbis/stories/{YYMMDD}-us-*.md`
-    - `team-artifacts/pbis/*-mockup.html` (date-prefixed via their PBI)
-    - `team-artifacts/design-specs/{YYMMDD}-designspec-*.md`
-    - `team-artifacts/backlog/*-backlog.md` (the ranked-priority source for the Scope & backlog slide)
-    - the plan's `docs/specs/{Bucket}/README.{Feature}.md` outputs
+    - `{artifacts-root}/ideas/{YYMMDD}-*`
+    - `{artifacts-root}/pbis/{YYMMDD}-pbi-*.md`
+    - `{artifacts-root}/pbis/stories/{YYMMDD}-us-*.md`
+    - `{artifacts-root}/pbis/*-mockup.html` (date-prefixed via their PBI)
+    - `{artifacts-root}/design-specs/{YYMMDD}-designspec-*.md`
+    - `{artifacts-root}/backlog/*-backlog.md` (the ranked-priority source for the Scope & backlog slide)
+    - the plan's `{spec-root}/{Bucket}/README.{Feature}.md` outputs
 5. **Multi-day rule (why the range, not today):** a workflow spanning midnight authors specs on day 1 and PBIs on day 2. A single-day `{YYMMDD}` glob silently drops the day-1 artifacts. Always glob the whole created→now range.
 
 ### B. Custom prompt — widen scope
@@ -39,16 +46,16 @@ Each in-scope artifact feeds one or more stakeholder slide sections:
 
 | Artifact type | Source path                                         | Parse → slide section                                                                 |
 | ------------- | --------------------------------------------------- | ------------------------------------------------------------------------------------- |
-| Idea          | `team-artifacts/ideas/{YYMMDD}-*`                   | Business context (problem, value, idea→spec narrative)                                 |
-| Feature Spec  | `docs/specs/{Bucket}/README.{Feature}.md`           | Business context (§1-3); Behavior & rules (§4 rules / §5 invariants); QC view (§8 TCs) |
-| PBI           | `team-artifacts/pbis/{YYMMDD}-pbi-*.md`             | Scope & backlog (PBI cards in ranked order, each showing its `priority` label + numeric `rank` from frontmatter, plus acceptance criteria) |
+| Idea          | `{artifacts-root}/ideas/{YYMMDD}-*`                 | Business context (problem, value, idea→spec narrative)                                 |
+| Feature Spec  | `{spec-root}/{Bucket}/README.{Feature}.md`          | Business context (§1-3); Behavior & rules (§4 rules / §5 invariants); QC view (§8 TCs) |
+| PBI           | `{artifacts-root}/pbis/{YYMMDD}-pbi-*.md`           | Scope & backlog (PBI cards in ranked order, each showing its `priority` label + numeric `rank` from frontmatter, plus acceptance criteria) |
 | Decomposition | Owning idea/spec/PBI `large_idea_decomposition` block | Decomposition & boundaries (slice IDs/outcomes, dependency order, non-goals, risks/evidence owners, deferred-work owners); required when any shared large-idea signal is true |
-| Backlog       | `team-artifacts/backlog/*-backlog.md`               | Scope & backlog (the ranked order + priority source when PBI frontmatter is thin — reconcile against per-PBI `priority`/`rank`) |
-| User story    | `team-artifacts/pbis/stories/{YYMMDD}-us-*.md`     | Scope & backlog (As-a/I-want/So-that, acceptance criteria)                             |
-| Design-spec   | `team-artifacts/design-specs/{YYMMDD}-designspec-*.md` | UI / mockups (ASCII wireframe + Component Inventory / States / Design-Tokens tables) |
-| Mockup        | `team-artifacts/pbis/*-mockup.html`                 | UI / mockups (embedded via `<iframe srcdoc>` — see `deck-template.md` §3)             |
+| Backlog       | `{artifacts-root}/backlog/*-backlog.md`             | Scope & backlog (the ranked order + priority source when PBI frontmatter is thin — reconcile against per-PBI `priority`/`rank`) |
+| User story    | `{artifacts-root}/pbis/stories/{YYMMDD}-us-*.md`   | Scope & backlog (As-a/I-want/So-that, acceptance criteria)                             |
+| Design-spec   | `{artifacts-root}/design-specs/{YYMMDD}-designspec-*.md` | UI / mockups (ASCII wireframe + Component Inventory / States / Design-Tokens tables) |
+| Mockup        | `{artifacts-root}/pbis/*-mockup.html`               | UI / mockups (embedded via `<iframe srcdoc>` — see `deck-template.md` §3)             |
 
-**Real domain data:** populate sample data from `docs/project-reference/domain-entities-reference.md` — real entity field names + realistic values, never Lorem ipsum or "Item 1, Item 2". Keep accompanying prose tech-agnostic (business/observable terms, not framework/CSS class names).
+**Real domain data:** populate sample data from `domain-entities-reference.md` in the project-reference root (default `docs/project-reference`; a `docsRoots.projectReference.path` entry in `docs/project-config.json` overrides the path) — real entity field names + realistic values, never Lorem ipsum or "Item 1, Item 2". Keep accompanying prose tech-agnostic (business/observable terms, not framework/CSS class names).
 
 ---
 
@@ -100,7 +107,7 @@ The accumulation step produces an ordered, stakeholder-sectioned content model:
 1. **Title / agenda** — feature(s), run date, resolved scope.
 2. **Business context** — from ideas + Feature Spec §1-3.
 3. **Decomposition & boundaries** — when any shared large-idea signal is true, from the complete owning block; show stable slice IDs, ordered dependencies, non-goals, risk/evidence ownership, and deferred-work ownership. When all signals are false, show `N/A — ordinary isolated scope` and do not invent roadmap content.
-4. **Scope & backlog** — from PBIs + stories, presented in ranked order with each PBI's `priority` label + numeric `rank` (read from PBI frontmatter, reconciled against the ranked `team-artifacts/backlog/*-backlog.md` when present). Priority display is MANDATORY when the PBIs are prioritized; if they are not yet prioritized, say so explicitly rather than omitting the field.
+4. **Scope & backlog** — from PBIs + stories, presented in ranked order with each PBI's `priority` label + numeric `rank` (read from PBI frontmatter, reconciled against the ranked `{artifacts-root}/backlog/*-backlog.md` when present). Priority display is MANDATORY when the PBIs are prioritized; if they are not yet prioritized, say so explicitly rather than omitting the field.
 5. **Behavior & rules** — from Feature Spec §4 rules / §5 invariants + §8 test cases.
 6. **Journeys / demo flows** — ordered main-story journeys (§6 extraction map); each handed to the render side as an interactive demo-flow slide (or narrated ASCII frames in spec-only context).
 7. **UI / mockups** — per the spec-only vs mockup-bearing branch (or empty-state).

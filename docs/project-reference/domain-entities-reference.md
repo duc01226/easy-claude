@@ -225,7 +225,7 @@ A reusable task-automation capability. Each skill is a directory with a `SKILL.m
 - Skills reference **Agents** as subagents when their protocol delegates specialized work
 - Skills reference shared protocols in `.claude/skills/shared/`
 - Skills are orchestrated in sequence by **Workflows**
-- Project-specific rules are read from `docs/project-reference/*` through the `CLAUDE.md` project-reference-docs gate
+- Project-specific rules are read from the project-reference docs root — default `docs/project-reference`; a `docsRoots.projectReference.path` entry in `docs/project-config.json` overrides the path — through the `CLAUDE.md` project-reference-docs gate
 
 ---
 
@@ -308,7 +308,7 @@ A configuration value record in `docs/project-config.json` mapping file paths/ex
 }
 ```
 
-A context group is also a **convention class** (per-file convention injection):
+A context group is also a **convention class** (per-file convention injection). `referenceDocs[]` filenames resolve inside the project-reference docs root — default `docs/project-reference`; a `docsRoots.projectReference.path` entry in `docs/project-config.json` overrides the path:
 
 ```json
 {

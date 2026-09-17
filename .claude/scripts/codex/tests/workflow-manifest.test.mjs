@@ -253,7 +253,7 @@ test("production workflows declare required and opt-in near-end E2E handoffs", (
     ["workflow-greenfield-init", "security-review", true],
     ["workflow-big-feature", "security-review", true],
     ["workflow-feature", "security-review", false],
-    ["workflow-bugfix", "test", false],
+    ["workflow-bugfix", "scan", false],
   ];
   for (const [workflowId, nextSkill, required] of cases) {
     const manifest = resolve(registry, workflowId, { rootDir: root });

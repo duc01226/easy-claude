@@ -340,7 +340,13 @@ const validE2eExecution = {
 test('TC-E2E-CONFIG-014: a complete optional E2E execution profile validates and is discoverable', () => {
     const result = validateConfig(e2eConfig(validE2eExecution));
     assert.equal(result.valid, true, result.errors.join('; '));
-    assert.deepEqual(result.warnings, []);
+    // Scoped to the E2E profile under test. `docsRoots` warnings are EXCLUDED because the
+    // `...SKELETON` base seeds the 6 relocatable roots at their defaults, and the schema
+    // warns by design for a root declared before it is created
+    // (`project-config-schema.cjs:1173-1180`) — a fresh project has no `team-artifacts/`
+    // or `docs/product-roadmap.md` yet. Asserting global emptiness here would make an
+    // unrelated, intentionally-warning feature fail an E2E-profile test.
+    assert.deepEqual(result.warnings.filter(w => !w.startsWith('docsRoots.')), []);
     assert.equal(SCHEMA.e2eTesting.properties.execution.type, 'object');
     assert.equal(SCHEMA.e2eTesting.properties.execution.properties.browser.properties.runner.type, 'string');
     const description = require('../../hooks/lib/project-config-schema.cjs').describeSchema();
@@ -607,8 +613,19 @@ const CAPTURE_CARRIER_FLOOR = [
 ];
 
 // A manual walk: `readdirSync({ recursive: true })` needs Node 18.17, below the declared engines floor.
+// A MISSING root is not a broken walk: `.claude` is portable, so this suite also runs in an adopting
+// project that has copied the bundle but not yet generated `docs/project-reference/**`. Throwing
+// ENOENT there failed the whole `scripts-tests` stage on a project-owned directory the framework does
+// not ship. `.claude/**` roots always exist in a copied bundle, so their absence still throws.
 function markdownFiles(dir) {
-    return fs.readdirSync(path.join(repoRoot, dir), { withFileTypes: true }).flatMap(entry => {
+    let entries;
+    try {
+        entries = fs.readdirSync(path.join(repoRoot, dir), { withFileTypes: true });
+    } catch (error) {
+        if (error.code === 'ENOENT' && !dir.startsWith('.claude/')) return [];
+        throw error;
+    }
+    return entries.flatMap(entry => {
         const relative = path.posix.join(dir, entry.name);
         if (entry.isDirectory()) return markdownFiles(relative);
         return entry.isFile() && entry.name.endsWith('.md') ? [relative] : [];
@@ -623,7 +640,13 @@ function captureCarriers() {
 
 test('TC-E2E-CONFIG-024: every capture-every-action imperative is qualified by uiStateCapture.mode', () => {
     const carriers = captureCarriers();
-    for (const floor of CAPTURE_CARRIER_FLOOR) assert.ok(carriers.includes(floor), `carrier discovery must reach ${floor}`);
+    for (const floor of CAPTURE_CARRIER_FLOOR) {
+        // Project-owned carriers are asserted only where the project actually ships them; the
+        // `.claude/**` floors are unconditional because they travel inside the bundle. Existence —
+        // not a repo guard — decides, so the floor stays fully enforced in this repo.
+        if (!floor.startsWith('.claude/') && !fs.existsSync(path.join(repoRoot, floor))) continue;
+        assert.ok(carriers.includes(floor), `carrier discovery must reach ${floor}`);
+    }
     for (const carrier of carriers) {
         const text = fs.readFileSync(path.join(repoRoot, carrier), 'utf8');
         assert.deepEqual(unqualifiedCaptureImperatives(text).map(unit => unit.slice(0, 160)), [], carrier);

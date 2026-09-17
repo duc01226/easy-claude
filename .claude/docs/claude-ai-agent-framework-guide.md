@@ -7,6 +7,19 @@
 
 > **Document Sync Status** — Current local verification (2026-09-16): **20 top-level hook files · 123 skills · 19 workflows · 23 agents** using the ADR-0002 filesystem metrics. Codex mirrors are committed under `.agents/`, `.codex/`, and `AGENTS.md`. Notable mechanisms documented here include multi-AI-tool portability (§13), behavioral-principle injection (§8.21), self-validating review (§8.20), and embedded sequential-thinking.
 
+> **Relocatable roots — read this before any path in this guide.** Diagrams, tables, and examples below name roots by ROLE ("the plans root", "the business spec root"). Each role resolves as follows:
+>
+> - Business/feature spec root — default `docs/specs`; a `specRoots.business.path` entry in `docs/project-config.json` overrides the path.
+> - Technical spec root — default `docs/specs-technical`; a `specRoots.technical.path` entry in `docs/project-config.json` overrides the path.
+> - Project-reference docs root — default `docs/project-reference`; a `docsRoots.projectReference.path` entry in `docs/project-config.json` overrides the path.
+> - ADR root — default `docs/adr`; a `docsRoots.adr.path` entry in `docs/project-config.json` overrides the path.
+> - Templates root — default `docs/templates`; a `docsRoots.templates.path` entry in `docs/project-config.json` overrides the path.
+> - Plans root — default `plans/`; a `docsRoots.plans.path` entry in `docs/project-config.json` overrides the path.
+> - Team-artifacts root — default `team-artifacts/`; a `docsRoots.teamArtifacts.path` entry in `docs/project-config.json` overrides the path.
+> - Product roadmap — default `docs/product-roadmap.md`; a `docsRoots.productRoadmap.path` entry in `docs/project-config.json` overrides the path.
+>
+> `tmp/` and `temp/` are FIXED framework invariants with no config key — never relocate them.
+
 ---
 
 ## Table of Contents
@@ -217,15 +230,15 @@ sequenceDiagram
 
 **Why three layers?** Each solves a different failure mode:
 
-| Failure Mode                             | Layer         | Mechanism                                                                  |
-| ---------------------------------------- | ------------- | -------------------------------------------------------------------------- |
-| AI ignores instructions in long contexts | **Hooks**     | Inject reminders programmatically at every tool call                       |
-| AI invents code patterns                 | **Skills**    | Load project-specific patterns into context on demand                      |
-| AI skips investigation steps             | **Workflows** | Enforce step sequence with todo tracking                                   |
-| AI forgets learned lessons               | **Hooks**     | Re-inject `docs/project-reference/lessons.md` on every prompt + every edit |
-| AI makes changes without understanding   | **Hooks**     | Block edits until search evidence exists                                   |
-| AI skips test planning                   | **Workflows** | TDD workflows enforce spec-before-code sequence                            |
-| AI uses inconsistent test IDs            | **Skills**    | Unified `TC-{FEATURE}-{NNN}` format across all skills                      |
+| Failure Mode                             | Layer         | Mechanism                                                                                |
+| ---------------------------------------- | ------------- | ---------------------------------------------------------------------------------------- |
+| AI ignores instructions in long contexts | **Hooks**     | Inject reminders programmatically at every tool call                                     |
+| AI invents code patterns                 | **Skills**    | Load project-specific patterns into context on demand                                    |
+| AI skips investigation steps             | **Workflows** | Enforce step sequence with todo tracking                                                 |
+| AI forgets learned lessons               | **Hooks**     | Re-inject `lessons.md` from the project-reference docs root on every prompt + every edit |
+| AI makes changes without understanding   | **Hooks**     | Block edits until search evidence exists                                                 |
+| AI skips test planning                   | **Workflows** | TDD workflows enforce spec-before-code sequence                                          |
+| AI uses inconsistent test IDs            | **Skills**    | Unified `TC-{FEATURE}-{NNN}` format across all skills                                    |
 
 ---
 
@@ -318,7 +331,7 @@ HOOK SYSTEM (20 top-level .cjs hooks)
 │   ├── graph-auto-update.cjs ─────── Incremental graph update after edits (debounced)
 │   └── file-convention-inject.cjs ── Opt-in per-file convention reminder after reads/edits
 │
-└── SUPPORT INFRASTRUCTURE (35 lib modules)
+└── SUPPORT INFRASTRUCTURE (36 lib modules)
     ├── State: ck-session-state, workflow-state, todo-state, agent-files-state
     ├── Context: prompt-injections, prompt-ledger-store
     ├── Conventions: file-conventions, convention-merge, convention-ledger, skill-protocol-overlay
@@ -675,7 +688,7 @@ Skills that participate in long workflows (big-feature, greenfield-init) now inc
 
 ```
 ## Step 0: Locate Active Plan (if in workflow)
-1. Search for active plan — Glob plans/*/plan.md
+1. Search for active plan — Glob */plan.md under the plans root
 2. Read plan.md — understand scope, goals, architecture decisions
 3. Read existing research — {plan-dir}/research/*.md
 4. Read domain-entities-reference.md — understand existing entities
@@ -736,6 +749,8 @@ Bottom of each skill has condensed `:reminder` variants:
 ### 6.1 What Workflows Are
 
 Workflows are **JSON-defined sequences of skills** stored in `.claude/workflows.json`. They ensure the AI follows a disciplined step-by-step process rather than jumping straight to code.
+
+Doc paths inside the example resolve against the project-reference docs root — default `docs/project-reference`; a `docsRoots.projectReference.path` entry in `docs/project-config.json` overrides the path.
 
 ```json
 {
@@ -849,7 +864,7 @@ sequenceDiagram
 
 ### 6.4 Pre-Actions — Context Loading Before Execution
 
-Each workflow defines `preActions` that load context before any step executes:
+Each workflow defines `preActions` that load context before any step executes. `readFiles` paths resolve against the project-reference docs root — default `docs/project-reference`; a `docsRoots.projectReference.path` entry in `docs/project-config.json` overrides the path.
 
 ```json
 {
@@ -896,6 +911,8 @@ graph LR
 ```
 
 ### 7.2 Configuration Sections
+
+The excerpt below is `docs/project-config.json` itself; its literal doc paths are the shipped DEFAULTS.
 
 ```json
 {
@@ -956,16 +973,16 @@ graph LR
 
 Beyond `project-config.json`, `settings.json` governs Claude Code's runtime behavior. Key flags as of the current version:
 
-| Setting                           | Value                                                                             | Purpose                                                                                                                    |
-| --------------------------------- | --------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
-| `autoMemoryEnabled`               | `false`                                                                           | Disables Claude Code's built-in memory — framework uses its own external state (swap engine, todo state, lessons.md)       |
-| `CLAUDE_CODE_AUTO_COMPACT_WINDOW` | `250000`                                                                          | Context compaction triggers at 250K tokens (up from default), giving longer sessions before recovery kicks in              |
-| `CLAUDE_CODE_DISABLE_AUTO_MEMORY` | `1`                                                                               | Env-level memory disable (belt-and-suspenders with `autoMemoryEnabled`)                                                    |
-| `enableAllProjectMcpServers`      | `false`                                                                           | Opt-in MCP only — prevents auto-enabling untrusted servers                                                                 |
-| `enabledMcpjsonServers`           | `["context7","github"]`                                                           | Only context7 (optional library-docs accelerator) and github MCP active; memory disabled (the framework handles state natively) |
-| `disabledMcpjsonServers`          | `["chrome-devtools","mongodb","postgres","memory"]`                               | Explicit disable list prevents accidental re-enable                                                                        |
+| Setting                           | Value                                               | Purpose                                                                                                                         |
+| --------------------------------- | --------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| `autoMemoryEnabled`               | `false`                                             | Disables Claude Code's built-in memory — framework uses its own external state (swap engine, todo state, lessons.md)            |
+| `CLAUDE_CODE_AUTO_COMPACT_WINDOW` | `250000`                                            | Context compaction triggers at 250K tokens (up from default), giving longer sessions before recovery kicks in                   |
+| `CLAUDE_CODE_DISABLE_AUTO_MEMORY` | `1`                                                 | Env-level memory disable (belt-and-suspenders with `autoMemoryEnabled`)                                                         |
+| `enableAllProjectMcpServers`      | `false`                                             | Opt-in MCP only — prevents auto-enabling untrusted servers                                                                      |
+| `enabledMcpjsonServers`           | `["context7","github"]`                             | Only context7 (optional library-docs accelerator) and github MCP active; memory disabled (the framework handles state natively) |
+| `disabledMcpjsonServers`          | `["chrome-devtools","mongodb","postgres","memory"]` | Explicit disable list prevents accidental re-enable                                                                             |
 
-**Why disable built-in memory?** The framework's external state persistence (disk-backed task state re-read via `TaskList`, `plans/` files, `lessons.md`, workflow-state) is more controlled and transparent than Claude Code's automatic memory. Disabling built-in memory prevents the two systems from conflicting.
+**Why disable built-in memory?** The framework's external state persistence (disk-backed task state re-read via `TaskList`, plans-root files, `lessons.md`, workflow-state) is more controlled and transparent than Claude Code's automatic memory. Disabling built-in memory prevents the two systems from conflicting.
 
 ### 7.3 How Hooks Consume Config
 
@@ -1016,7 +1033,7 @@ This section maps each framework mechanism to the **AI agent best practice** it 
 │  Subagent spawned     │ Project context + lessons      │ sub-init│
 │  Edit|Write Agent|Skill│ Critical thinking + AI guardrails│ mindset│
 │  Read|Grep|Glob|Bash  │ Lightweight critical-thinking  │ mindset-compact│
-│  Write docs/specs/**  │ 8-section format + TC rules   │ buildSpecContext│
+│  Write spec-root/**   │ 8-section format + TC rules   │ buildSpecContext│
 │                                                                   │
 │  DEDUP: Each injection checks for its marker in last 300 lines  │
 │  of transcript. Skips if already present. Re-injects after      │
@@ -1097,7 +1114,7 @@ flowchart TB
     A["Non-trivial task detected"] --> B["/plan skill activates"]
     B --> C["plan: subagent deep research + write plan"]
 
-    C --> F["Write plan to plans/ directory"]
+    C --> F["Write plan to the plans root"]
     F --> G["plan-review: critical evaluation"]
     G --> H["plan-validate: 3-8 questions via AskUserQuestion"]
 
@@ -1113,10 +1130,10 @@ flowchart TB
 
 **The 3-question minimum:** `/plan-validate` asks 3-8 critical questions about the plan before implementation. This catches:
 
--   Scope misunderstandings
--   Missing edge cases
--   Wrong architectural assumptions
--   Unstated dependencies
+- Scope misunderstandings
+- Missing edge cases
+- Wrong architectural assumptions
+- Unstated dependencies
 
 ### 8.5 Sequential Thinking — Preventing AI Shallow Reasoning
 
@@ -1220,7 +1237,7 @@ flowchart TB
     subgraph "Lesson Captured"
         L1[User or AI identifies the mistake]
         L2[Run /learn skill]
-        L3[Append to docs/project-reference/lessons.md:<br/>'Always use service-specific repository,<br/>never generic base repository']
+        L3[Append to lessons.md in the project-reference root:<br/>'Always use service-specific repository,<br/>never generic base repository']
     end
 
     subgraph "Lesson Persisted"
@@ -1243,11 +1260,11 @@ flowchart TB
 
 **Properties:**
 
--   Max 50 lessons (FIFO trim — oldest removed when full)
--   Read-lessons contract delivered statically via `CLAUDE.md` / `SKILL.md` (no runtime inject hook)
--   Restored after compaction by the model re-reading the static read-lessons contract
--   Persists across sessions (stored in `docs/project-reference/lessons.md`)
--   Shared with subagents via the lessons read contract baked into the agent `.md` files
+- Max 50 lessons (FIFO trim — oldest removed when full)
+- Read-lessons contract delivered statically via `CLAUDE.md` / `SKILL.md` (no runtime inject hook)
+- Restored after compaction by the model re-reading the static read-lessons contract
+- Persists across sessions (stored as `lessons.md` in the project-reference docs root)
+- Shared with subagents via the lessons read contract baked into the agent `.md` files
 
 ### 8.9 TDD Workflow & Unified Test Specification System
 
@@ -1269,10 +1286,10 @@ All test-related skills use a **single TC ID format** across the entire project,
 │  Define 2-3 letter codes per domain feature.                    │
 │  Examples: GM (Goal Mgmt), CI (Check-In), AUTH (Auth),          │
 │            CAN (Candidate), JOB (Job), EMP (Employee)           │
-│  Source: docs/project-reference/feature-spec-reference.md       │
+│  Source: feature-spec-reference.md (project-reference root)     │
 │                                                                   │
 │  SOURCE OF TRUTH: Feature docs Section 8 (canonical registry)   │
-│  DERIVED INDEX: docs/specs/{Bucket}/INDEX.md (regenerable nav)  │
+│  DERIVED INDEX: spec-root/{Bucket}/INDEX.md (regenerable nav)   │
 │  CODE LINK: Test annotation linking test to TC ID               │
 │             e.g., tag/trait/decorator in test files               │
 └─────────────────────────────────────────────────────────────────┘
@@ -1291,7 +1308,7 @@ flowchart LR
     subgraph "Persistence"
         FD["Feature Doc<br/>Section 8<br/>(Source of Truth)"]
         TSD["/spec [mode=sync]<br/>Dashboard Sync"]
-        DASH["docs/specs/<br/>(Cross-Module Dashboard)"]
+        DASH["spec root<br/>(Cross-Module Dashboard)"]
     end
 
     subgraph "Code Generation"
@@ -1347,11 +1364,11 @@ flowchart LR
 
 Dedicated registered workflows and workflow trigger skills support test-driven development:
 
-| Workflow                                           | Sequence                                                                                                | Use Case                                                                                         |
-| -------------------------------------------------- | ------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------ |
-| **idea-to-pbi**                                    | `/idea` → `/refine` → `/story` → `/spec [mode=tests]` → `/dor-gate`                                     | Go from raw idea to grooming-ready PBI, stories, and reviewed test specifications                |
-| **feature**                                        | `/investigate` → `/spec` → `/spec [mode=tests]` → `/plan` → `/plan-execute` → `/integration-test` → ... | Spec-driven with tests by default: test specs written and reviewed FIRST, then implement         |
-| **e2e** (all sources)                             | `/e2e-test` (conditional) → `/e2e-test-verify --fix-loop` → `/docs-update` → `/workflow-end` → `/watzup` | Write/update when needed, then verify the same scope with bounded fix/retest convergence |
+| Workflow              | Sequence                                                                                                 | Use Case                                                                                 |
+| --------------------- | -------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------- |
+| **idea-to-pbi**       | `/idea` → `/refine` → `/story` → `/spec [mode=tests]` → `/dor-gate`                                      | Go from raw idea to grooming-ready PBI, stories, and reviewed test specifications        |
+| **feature**           | `/investigate` → `/spec` → `/spec [mode=tests]` → `/plan` → `/plan-execute` → `/integration-test` → ...  | Spec-driven with tests by default: test specs written and reviewed FIRST, then implement |
+| **e2e** (all sources) | `/e2e-test` (conditional) → `/e2e-test-verify --fix-loop` → `/docs-update` → `/workflow-end` → `/watzup` | Write/update when needed, then verify the same scope with bounded fix/retest convergence |
 
 #### Interactive Idea & Requirement Capture
 
@@ -1502,10 +1519,10 @@ TEST SPECIFICATION ARCHITECTURE
 
 **Output locations:**
 
-| Artifact                        | Path                                                                                    |
-| ------------------------------- | --------------------------------------------------------------------------------------- |
-| TCs (canonical)                 | `docs/specs/{Bucket}/README.{Feature}.md` Section 8                                     |
-| Derived system index (optional) | `docs/specs/{Bucket}/INDEX.md` — regenerate via `/spec-index` (never a source of truth) |
+| Artifact                        | Path                                                                                                      |
+| ------------------------------- | --------------------------------------------------------------------------------------------------------- |
+| TCs (canonical)                 | `{Bucket}/README.{Feature}.md` under the business spec root, Section 8                                    |
+| Derived system index (optional) | `{Bucket}/INDEX.md` under the business spec root — regenerate via `/spec-index` (never a source of truth) |
 
 ---
 
@@ -1529,7 +1546,7 @@ TEST SPECIFICATION ARCHITECTURE
 **What happens:**
 
 1. `/spec [mode=tests]` detects **TDD-first mode** (PBI exists, no implementation yet)
-2. Reads PBI from `team-artifacts/pbis/` or user-provided document
+2. Reads PBI from `pbis/` under the team artifacts root or a user-provided document
 3. Extracts acceptance criteria, identifies test categories (CRUD, validation, permissions, workflows, edge cases)
 4. Generates TC outlines with `Evidence: TBD (pre-implementation)`
 5. Interactive review via `AskUserQuestion`
@@ -1653,7 +1670,7 @@ spec-sync: changes-review → spec [mode=tests] → spec [mode=sync] →
 
 #### Case 5: Test Specs → Generate Integration Tests
 
-**Scenario:** Test specifications exist in feature docs Section 8 (or `docs/specs/`). Now generate integration test code.
+**Scenario:** Test specifications exist in feature docs Section 8 (or the business spec root). Now generate integration test code.
 
 **Prompt examples:**
 
@@ -1884,11 +1901,11 @@ The framework includes a comprehensive **end-to-end testing system** that auto-d
 
 The `/e2e-test` skill reads `docs/project-config.json` → `e2eTesting` section to determine:
 
--   **Framework** (Playwright, Selenium+SpecFlow, Cypress, etc.)
--   **Architecture** (POM pattern, BDD, direct tests)
--   **Entry points** (key base classes, config files)
--   **Run commands** (how to execute tests)
--   **Best practices** (project-specific conventions)
+- **Framework** (Playwright, Selenium+SpecFlow, Cypress, etc.)
+- **Architecture** (POM pattern, BDD, direct tests)
+- **Entry points** (key base classes, config files)
+- **Run commands** (how to execute tests)
+- **Best practices** (project-specific conventions)
 
 This means the AI agent adapts to whatever E2E stack the project uses — no hardcoded assumptions.
 
@@ -1931,10 +1948,10 @@ This means the AI agent adapts to whatever E2E stack the project uses — no har
 
 One registered workflow covers E2E authoring, verification, and bounded repair:
 
-| `--source`              | Sequence                                                                                              | Use Case                                                            |
-| ----------------------- | ----------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------- |
-| **recording/update-ui/changes** | `/e2e-test` → `/e2e-test-verify --fix-loop` → `/docs-update` → `/workflow-end` → `/watzup`             | Write/update the artifact, then verify and repair the same scope    |
-| **prompt/context/whole**        | `skip /e2e-test` → `/e2e-test-verify --fix-loop` → `/docs-update` → `/workflow-end` → `/watzup`        | Select/generate coverage, then verify and repair the requested scope |
+| `--source`                      | Sequence                                                                                        | Use Case                                                             |
+| ------------------------------- | ----------------------------------------------------------------------------------------------- | -------------------------------------------------------------------- |
+| **recording/update-ui/changes** | `/e2e-test` → `/e2e-test-verify --fix-loop` → `/docs-update` → `/workflow-end` → `/watzup`      | Write/update the artifact, then verify and repair the same scope     |
+| **prompt/context/whole**        | `skip /e2e-test` → `/e2e-test-verify --fix-loop` → `/docs-update` → `/workflow-end` → `/watzup` | Select/generate coverage, then verify and repair the requested scope |
 
 #### Case 10: Recording → E2E Test
 
@@ -2236,7 +2253,7 @@ greenfield-init: FULL WATERFALL INCEPTION -> REVIEWED FOUNDATION -> IMPLEMENTATI
     |-- /workflow-end -- Close workflow state
     +-- /watzup -- Summary report + understand handoff
 
-Every step saves artifacts to plans/{id}/ directory.
+Every step saves artifacts to {id}/ under the plans root.
 Every step validates genuine product or architecture decision points when needed.
 Workflow activation is auto-selected by default.
 Uses triple planning rounds and a reviewed-foundation gate (architecture-review-full + 4 project-reference scans) before any feature code.
@@ -2483,9 +2500,9 @@ big-feature:
     → /plan-validate → …
 ```
 
--   **`/architecture-review-full`** runs immediately after the foundation is scaffolded (both workflows), bundling `architecture-review` + `architecture-scalability-review` + `production-readiness-review` into one consolidated Architecture Health Report — so base abstractions and golden-path example code are _reviewed_ before any feature depends on them.
--   **`greenfield-init`** derives its project-reference doc set via four `/scan` passes, turning the freshly-scaffolded conventions into the reference docs that guide every later feature; **`big-feature`** runs the same four passes as a conditional surgical refresh of the existing docs, only when `/scaffold` created a new foundation.
--   **`big-feature`** also runs **`/architecture-scalability-review`** right after `/architecture-design`, feeding scalability findings into the very first plan.
+- **`/architecture-review-full`** runs immediately after the foundation is scaffolded (both workflows), bundling `architecture-review` + `architecture-scalability-review` + `production-readiness-review` into one consolidated Architecture Health Report — so base abstractions and golden-path example code are _reviewed_ before any feature depends on them.
+- **`greenfield-init`** derives its project-reference doc set via four `/scan` passes, turning the freshly-scaffolded conventions into the reference docs that guide every later feature; **`big-feature`** runs the same four passes as a conditional surgical refresh of the existing docs, only when `/scaffold` created a new foundation.
+- **`big-feature`** also runs **`/architecture-scalability-review`** right after `/architecture-design`, feeding scalability findings into the very first plan.
 
 **Net effect:** features never build on an unreviewed or undocumented foundation — the scaffolding-first rule in `CLAUDE.md`'s workflow-routing gate (bullet 7) is enforced by these two workflows' canonical sequences.
 
@@ -2630,7 +2647,7 @@ This section maps **established prompt engineering techniques** to specific fram
 │  3. TEST CASE FORMAT — Unified TC-{FEATURE}-{NNN}:               │
 │     All skills use identical format preventing drift.             │
 │                                                                   │
-│  4. PLAN FILES — Written to plans/ with consistent structure:    │
+│  4. PLAN FILES — Written to the plans root, same structure:      │
 │     Problem → Analysis → Options → Recommendation → Tasks        │
 │                                                                   │
 │  5. REPORT FORMAT — Tech lead communication mode enforces:       │
@@ -2710,17 +2727,17 @@ This section maps **established prompt engineering techniques** to specific fram
 
 #### Summary: Prompt Engineering Techniques → Framework Mapping
 
-| Prompt Engineering Technique  | Framework Implementation                                                       |
-| ----------------------------- | ------------------------------------------------------------------------------ |
-| **Role prompting**            | Workflow preActions, agent definitions, hook-injected personas                 |
+| Prompt Engineering Technique  | Framework Implementation                                                         |
+| ----------------------------- | -------------------------------------------------------------------------------- |
+| **Role prompting**            | Workflow preActions, agent definitions, hook-injected personas                   |
 | **Chain-of-thought**          | Workflow step sequences, `SYNC:sequential-thinking-protocol`, /debug-investigate |
-| **Few-shot examples**         | Context injection hooks, reference doc scans                                   |
-| **Structured output**         | Confidence declarations, risk matrices, TC format, plan templates              |
-| **Negative prompting**        | Forbidden phrases, anti-pattern lists, NEVER rules, lessons system             |
-| **Iterative refinement**      | Multi-pass review (feature-implement→simplify→review→code-review→sre→security) |
-| **Task decomposition**        | Workflows decompose "implement feature" into 15+ discrete steps                |
-| **Retrieval-augmented gen.**  | Context hooks inject project-specific docs at decision points                  |
-| **Self-consistency checking** | /plan-validate asks critical questions                                         |
+| **Few-shot examples**         | Context injection hooks, reference doc scans                                     |
+| **Structured output**         | Confidence declarations, risk matrices, TC format, plan templates                |
+| **Negative prompting**        | Forbidden phrases, anti-pattern lists, NEVER rules, lessons system               |
+| **Iterative refinement**      | Multi-pass review (feature-implement→simplify→review→code-review→sre→security)   |
+| **Task decomposition**        | Workflows decompose "implement feature" into 15+ discrete steps                  |
+| **Retrieval-augmented gen.**  | Context hooks inject project-specific docs at decision points                    |
+| **Self-consistency checking** | /plan-validate asks critical questions                                           |
 
 ---
 
@@ -2833,7 +2850,7 @@ Context engineering is the discipline of **managing what information reaches the
 │     • Effect: Task progress survives compaction                  │
 │     • Recovery: model re-reads via TaskList after compaction     │
 │                                                                   │
-│  2. PLAN FILES (plans/ directory + tmp/reports/)               │
+│  2. PLAN FILES (the plans root + tmp/reports/)                 │
 │     • Trigger: /plan skill                                       │
 │     • Action: Write implementation plan to disk                  │
 │     • Effect: Plan survives compaction, can be re-read           │
@@ -2892,7 +2909,7 @@ Context engineering is the discipline of **managing what information reaches the
 │                                                                   │
 │  1. STATE ON DISK (continuous):                                  │
 │     Task list and workflow state are persisted to disk as work   │
-│     proceeds; plans/ and report files hold longer-lived findings.│
+│     proceeds; the plans root and report files hold findings.     │
 │                                                                   │
 │  2. POST-COMPACT (model re-reads):                               │
 │     The model re-reads the static CLAUDE.md / SKILL.md rules and │
@@ -3070,9 +3087,9 @@ Skills that **automatically receive graph context** when graph.db exists: `/code
 
 The graph requires **zero manual maintenance** after initial build:
 
--   **Every edit:** `graph-auto-update.cjs` re-parses the edited file (3s debounce, atomic lock)
--   **Every session:** `graph-session-init.cjs` diffs `last_synced_commit` vs HEAD, syncs changed files from git pull/checkout/merge
--   **Implicit connections:** `connect-implicit` runs after build/update when `graphConnectors.implicitConnections[]` is configured, creating edges for entity events, message bus, and loosely coupled patterns
+- **Every edit:** `graph-auto-update.cjs` re-parses the edited file (3s debounce, atomic lock)
+- **Every session:** `graph-session-init.cjs` diffs `last_synced_commit` vs HEAD, syncs changed files from git pull/checkout/merge
+- **Implicit connections:** `connect-implicit` runs after build/update when `graphConnectors.implicitConnections[]` is configured, creating edges for entity events, message bus, and loosely coupled patterns
 
 #### Why This Matters for AI Agents
 
@@ -3157,9 +3174,9 @@ The checklists reference `backend-patterns-reference.md` directly, so agents loo
 
 A subtle failure mode: review sub-agents would sometimes edit feature docs or spec files inline ("while I'm here, I'll update the docs"). This caused:
 
--   Docs updated with potentially incorrect content (reviewer hallucinated API behavior)
--   `/docs-update` step later found docs "already updated" but with wrong content
--   Double-write race conditions when multiple parallel reviewers touched the same doc file
+- Docs updated with potentially incorrect content (reviewer hallucinated API behavior)
+- `/docs-update` step later found docs "already updated" but with wrong content
+- Double-write race conditions when multiple parallel reviewers touched the same doc file
 
 The `workflow-review-changes.injectContext` in `workflows.json` now includes a **DOC SYNC DEFERRAL** block injected into every review sub-agent:
 
@@ -3217,26 +3234,26 @@ SPEC-DRIVEN FEEDBACK CHAIN
 
 #### Feature Spec — AI Source of Truth
 
-The canonical 8-section Feature Spec (`docs/specs/{Bucket}/README.{Feature}.md`) is used by AI sessions as a **source of truth for domain modeling**. When a developer asks "what values does `EmployeeClassification` have?", the AI reads the Feature Spec's domain section, not the source code. (The legacy per-module A–E engineering bundle was retired — `spec-index` no longer extracts it; it only re-derives a thin navigation index FROM the Feature Specs.)
+The canonical 8-section Feature Spec (`{Bucket}/README.{Feature}.md` under the business spec root) is used by AI sessions as a **source of truth for domain modeling**. When a developer asks "what values does `EmployeeClassification` have?", the AI reads the Feature Spec's domain section, not the source code. (The legacy per-module A–E engineering bundle was retired — `spec-index` no longer extracts it; it only re-derives a thin navigation index FROM the Feature Specs.)
 
 **Why accuracy matters:** A 2-value answer when the actual code has 3 values causes:
 
--   Incorrect code generation (missing the third enum value in switch cases)
--   Incorrect test assertions (only asserting 2 of 3 variants)
--   Documentation that contradicts the codebase
+- Incorrect code generation (missing the third enum value in switch cases)
+- Incorrect test assertions (only asserting 2 of 3 variants)
+- Documentation that contradicts the codebase
 
 Each Feature Spec carries `last_reviewed` frontmatter. Keeping it current lets `/spec [mode=update]` (canonical) and `/spec-index mode=index` (derived re-generation) treat the spec as a known-good baseline rather than re-deriving from scratch.
 
 #### Section 8 — Canonical Bidirectional Test Catalog
 
-The Feature Spec's **Section 8 is the cross-referenceable TC registry**. Each TC's `CoveredBy` field links to one or more covering tests, a test filter, manual-QC coverage, or `Untested`. When integration tests exist but the corresponding §8 TC is not annotated, the `/integration-test-review` agent produces false-negative "no integration tests found" findings. (There is no separate QA dashboard — the retired `docs/specs/README.md` + `PRIORITY-INDEX.md` catalog was folded into §8.)
+The Feature Spec's **Section 8 is the cross-referenceable TC registry**. Each TC's `CoveredBy` field links to one or more covering tests, a test filter, manual-QC coverage, or `Untested`. When integration tests exist but the corresponding §8 TC is not annotated, the `/integration-test-review` agent produces false-negative "no integration tests found" findings. (There is no separate QA dashboard — the retired spec-root `README.md` + `PRIORITY-INDEX.md` catalog was folded into §8.)
 
 **Registration format:** Each §8 TC's `CoveredBy` field carries the covering test method name(s), a test filter, manual-QC coverage, or `Untested`. This enables future AI sessions to find the coverage carrier via a single grep — no manual file tree traversal required.
 
 The `[Trait("TestSpec", "TC-{FEATURE}-{NNN}")]` annotation in test code provides the bidirectional link:
 
--   Feature doc Section 8 TC ID → test method (forward)
--   Test method `Trait` → TC ID → feature doc §8 entry (reverse)
+- Feature doc Section 8 TC ID → test method (forward)
+- Test method `Trait` → TC ID → feature doc §8 entry (reverse)
 
 Both directions are queryable without reading source code, making the spec-driven chain **self-documenting for AI agents**.
 
@@ -3284,15 +3301,15 @@ A naive "review your review" instruction recurses forever — the validation pas
 | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------ |
 | `validate-findings` is **terminal** — never calls `/why-review`, never re-runs the gate, never spawns a sub-agent                                                                   | Infinite self-recursion                                                        |
 | The re-do loop lives in the **caller** (standalone `/changes-review` Phase 6, the initial whole-target reviewer, or `$workflow-review-changes` parent step 3), not in validate mode | Diffuse, unbounded looping across agents                                       |
-| **Bounded at max 1 re-do** (2 validation passes total), then `AskUserQuestion` escalation                                                                                         | A finding the AI can neither prove nor drop silently looping forever           |
+| **Bounded at max 1 re-do** (2 validation passes total), then `AskUserQuestion` escalation                                                                                           | A finding the AI can neither prove nor drop silently looping forever           |
 | Each review's validation passes stay in that review's own session (the initial whole-target lane is a sub-agent; the parent step-3 lane is main-session)                            | Context loss between validation rounds; the validator sees the real cited code |
 
 #### Why this matters operationally
 
--   **Self-correction without a second human** — the reviewer demotes its own unprovable findings before they reach the report, so humans review a pre-filtered, proof-backed list instead of triaging noise.
--   **Bounded cost** — at most 2 validation passes per review, then it escalates rather than burning tokens. The cap is the budget guarantee.
--   **Auditable** — every outcome writes a record: `## Findings Validation` (clean), `## Findings Validation Notes` (what changed and why), or `## Findings Validation — Unresolved` (escalated). The reconciliation is never invisible.
--   **Symmetric with the rest of the framework** — it is the Section 8.6 evidence discipline turned back on the review layer: every finding must be correct, proof-backed, reasonable, and best-practice, or it gets dropped or escalated.
+- **Self-correction without a second human** — the reviewer demotes its own unprovable findings before they reach the report, so humans review a pre-filtered, proof-backed list instead of triaging noise.
+- **Bounded cost** — at most 2 validation passes per review, then it escalates rather than burning tokens. The cap is the budget guarantee.
+- **Auditable** — every outcome writes a record: `## Findings Validation` (clean), `## Findings Validation Notes` (what changed and why), or `## Findings Validation — Unresolved` (escalated). The reconciliation is never invisible.
+- **Symmetric with the rest of the framework** — it is the Section 8.6 evidence discipline turned back on the review layer: every finding must be correct, proof-backed, reasonable, and best-practice, or it gets dropped or escalated.
 
 This closes the last open loop in the quality chain: implementation is evidence-gated, the review is evidence-gated, and now the review's _own findings_ are evidence-gated — by the same standard, with a hard recursion stop and a bounded escape hatch.
 
@@ -3362,7 +3379,7 @@ A concrete portability/reliability win: sequential-thinking was originally a **r
 │  WHAT'S PRESERVED (re-read after compaction):                    │
 │  ✅ File system state (actual code changes)                      │
 │  ✅ Git state (commits, branches)                                │
-│  ✅ Disk-backed state (task list, workflow, plans/ files)        │
+│  ✅ Disk-backed state (task list, workflow, plans-root files)    │
 │  ✅ Static guidance files (CLAUDE.md / SKILL.md) re-read         │
 └─────────────────────────────────────────────────────────────────┘
 ```
@@ -3380,14 +3397,14 @@ sequenceDiagram
 
     Session->>Disk: Task system persists task list to disk
     Session->>Disk: Workflow state persisted to disk
-    Session->>Disk: plans/ + report files hold findings
+    Session->>Disk: plans root + report files hold findings
 
     Note over Compact: Context window full → Compact
 
     Note over Model: Session resumes after compact
 
     Model->>Disk: TaskList re-reads task/step state
-    Model->>Disk: Reads workflow progress + plans/ files
+    Model->>Disk: Reads workflow progress + plans-root files
     Model->>Disk: Re-reads modified files + audits git status<br/>(static CLAUDE.md rule)
     Model->>Session: Resumes:<br/>"step 5 of bugfix workflow, task 3 of 7"
 
@@ -3424,10 +3441,10 @@ sequenceDiagram
 
 | Runner                               | Tests   | Scope                                                                                      |
 | ------------------------------------ | ------- | ------------------------------------------------------------------------------------------ |
-| `test-all-hooks.cjs` (primary gate)  | **224** | All hook behaviors + bridged suites + count-drift guard                                    |
-| `run-all-tests.cjs` (full aggregate) | **608** | Primary + extended lib, swap-engine, shared-utilities, and every `tests/suites/*.test.cjs` |
+| `test-all-hooks.cjs` (primary gate)  | **232** | All hook behaviors + bridged suites + count-drift guard                                    |
+| `run-all-tests.cjs` (full aggregate) | **661** | Primary + extended lib, swap-engine, shared-utilities, and every `tests/suites/*.test.cjs` |
 
-> Counts are live-verified (`test-all-hooks.cjs` = 224, `run-all-tests.cjs` = 608) and are now
+> Counts are live-verified (`test-all-hooks.cjs` = 232, `run-all-tests.cjs` = 661) and are now
 > GUARDED: each runner asserts the figures above against its own live total on every full run,
 > so a stale number fails the suite instead of sitting here. They previously drifted to 215/300
 > behind a single guarded sentence elsewhere. Derive counts from a live run, never a static table.
@@ -3440,10 +3457,10 @@ Run the primary gate with `node .claude/hooks/tests/test-all-hooks.cjs`; the ful
 
 Hooks are the **safety net** for the entire system. A broken hook means:
 
--   Security blocks bypassed (path boundary, privacy, scout-block)
--   Session/doc init fails (AI loses project knowledge)
--   Commit gate disabled (git commit/push escapes the /commit guard)
--   Doc-sync warning lost (behavioral code ships without a spec update)
+- Security blocks bypassed (path boundary, privacy, scout-block)
+- Session/doc init fails (AI loses project knowledge)
+- Commit gate disabled (git commit/push escapes the /commit guard)
+- Doc-sync warning lost (behavioral code ships without a spec update)
 
 Testing ensures the framework remains reliable as hooks evolve.
 
@@ -3486,44 +3503,44 @@ flowchart TB
 
 ### AI Best Practice → Framework Mapping
 
-| AI Agent Best Practice                         | Framework Mechanism                                                                                      | Layer         |
-| ---------------------------------------------- | -------------------------------------------------------------------------------------------------------- | ------------- |
-| **Context injection at decision points**       | Static path→patternsDoc guidance in CLAUDE.md / SKILL.md (was hook-injected)                             | Skills/Config |
-| **Reminder rules prevent forgetting**          | Static SYNC rules + the workflow catalog baked into CLAUDE.md, re-read every prompt                      | Skills/Config |
-| **Generic & configurable via config**          | project-config.json drives path→patternsDoc routing                                                      | Config        |
-| **Prompt engineering quality**                 | 123 skills with YAML frontmatter + behavior protocols                                                    | Skills        |
-| **Auto-select workflow path before acting**    | Model reads the static catalog → direct/skill/workflow/custom path                                       | Workflows     |
-| **Confirm plan with questions**                | /plan-validate asks 3-8 questions before implementation                                                  | Skills        |
-| **Sequential thinking for complex problems**   | `SYNC:sequential-thinking-protocol` inlined in skills + /debug-investigate skill                         | Skills        |
-| **Code proof tracing prevents hallucination**  | evidence-based-reasoning-protocol                                                                        | Skills        |
-| **State survives context compaction**          | Disk-backed task list (TaskList) + workflow state + plans/ files                                         | State         |
-| **Lessons persist across sessions**            | docs/project-reference/lessons.md + static read contract; restored by the model re-reading that contract | Skills/Config |
-| **Subagents inherit project context**          | CLAUDE.md + lessons read contract baked into agent `.md` files                                           | Agents        |
-| **Safety boundaries**                          | path-boundary, privacy, scout blocks (exit code 2)                                                       | Hooks         |
-| **Task-gated edits**                           | Static CLAUDE.md rule: a TaskCreate item before edits (model-driven)                                     | Config        |
-| **Auto-formatting**                            | post-edit-prettier.cjs runs formatter after every edit and reaps timed-out descendants                   | Hooks         |
-| **Doc staleness detection**                    | /watzup skill cross-references changes vs. docs/                                                         | Skills        |
-| **Unified test specification**                 | /spec [mode=tests] writes TCs to feature doc Section 8                                                   | Skills        |
-| **Spec-driven feature workflow**               | feature: specs + tests written and reviewed before implementation                                        | Workflows     |
-| **Interactive requirement capture**            | /idea discovery interview + /refine testability check                                                    | Skills        |
-| **Test-to-code traceability**                  | TC-{FEATURE}-{NNN} → test annotation linking to TC ID                                                    | Skills        |
-| **E2E from browser recordings**                | /e2e-test + Chrome DevTools Recorder → Playwright                                                        | Skills        |
-| **Screenshot assertion baselines**             | e2e --source=update-ui workflow + toHaveScreenshot()                                                     | Workflows     |
-| **Greenfield project inception**               | isGreenfieldProject() detection → solution-architect agent                                               | Hooks         |
-| **AI as solution architect**                   | greenfield-init workflow (waterfall)                                                                     | Workflows     |
-| **Research-driven big features**               | big-feature workflow with step-selection gate                                                            | Workflows     |
-| **DDD domain modeling**                        | /domain-analysis skill: bounded contexts, ERD, aggregates                                                | Skills        |
-| **Tech stack comparison with evidence**        | /tech-stack-research: top 3 per layer, confidence %                                                      | Skills        |
-| **Step-selection gate for long workflows**     | big-feature + greenfield preActions let user deselect                                                    | Workflows     |
-| **Workflow trigger shortcuts**                 | 20 workflow-* skills for workflow activation and lifecycle control                                       | Skills        |
-| **Prompt engineering (role + CoT + evidence)** | Skills use role prompting, chain-of-thought, few-shot                                                    | Skills        |
-| **Context engineering (JIT + dedup + budget)** | Hooks manage context window with precision injection                                                     | Hooks         |
-| **Skill chain navigation (Next Steps)**        | AskUserQuestion recommends logical next skill per step                                                   | Skills        |
-| **Plan-aware skills (Step 0)**                 | Skills read prior workflow outputs before starting work                                                  | Skills        |
-| **Review gates between artifacts**             | artifact-review (--type pbi/story/spec-tests) checkpoints                                                | Skills        |
-| **Agent negative-prompting guardrails**        | NEVER/ALWAYS rules per agent prevent role overstepping                                                   | Agents        |
-| **Dual planning rounds**                       | High-level arch plan → sprint-ready plan after stories                                                   | Workflows     |
-| **Conditional architecture scaffolding**       | /scaffold auto-skips when existing abstractions found                                                    | Skills        |
+| AI Agent Best Practice                         | Framework Mechanism                                                                                                    | Layer         |
+| ---------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- | ------------- |
+| **Context injection at decision points**       | Static path→patternsDoc guidance in CLAUDE.md / SKILL.md (was hook-injected)                                           | Skills/Config |
+| **Reminder rules prevent forgetting**          | Static SYNC rules + the workflow catalog baked into CLAUDE.md, re-read every prompt                                    | Skills/Config |
+| **Generic & configurable via config**          | project-config.json drives path→patternsDoc routing                                                                    | Config        |
+| **Prompt engineering quality**                 | 123 skills with YAML frontmatter + behavior protocols                                                                  | Skills        |
+| **Auto-select workflow path before acting**    | Model reads the static catalog → direct/skill/workflow/custom path                                                     | Workflows     |
+| **Confirm plan with questions**                | /plan-validate asks 3-8 questions before implementation                                                                | Skills        |
+| **Sequential thinking for complex problems**   | `SYNC:sequential-thinking-protocol` inlined in skills + /debug-investigate skill                                       | Skills        |
+| **Code proof tracing prevents hallucination**  | evidence-based-reasoning-protocol                                                                                      | Skills        |
+| **State survives context compaction**          | Disk-backed task list (TaskList) + workflow state + plans-root files                                                   | State         |
+| **Lessons persist across sessions**            | `lessons.md` in the project-reference docs root + static read contract; restored by the model re-reading that contract | Skills/Config |
+| **Subagents inherit project context**          | CLAUDE.md + lessons read contract baked into agent `.md` files                                                         | Agents        |
+| **Safety boundaries**                          | path-boundary, privacy, scout blocks (exit code 2)                                                                     | Hooks         |
+| **Task-gated edits**                           | Static CLAUDE.md rule: a TaskCreate item before edits (model-driven)                                                   | Config        |
+| **Auto-formatting**                            | post-edit-prettier.cjs runs formatter after every edit and reaps timed-out descendants                                 | Hooks         |
+| **Doc staleness detection**                    | /watzup skill cross-references changes vs. docs/                                                                       | Skills        |
+| **Unified test specification**                 | /spec [mode=tests] writes TCs to feature doc Section 8                                                                 | Skills        |
+| **Spec-driven feature workflow**               | feature: specs + tests written and reviewed before implementation                                                      | Workflows     |
+| **Interactive requirement capture**            | /idea discovery interview + /refine testability check                                                                  | Skills        |
+| **Test-to-code traceability**                  | TC-{FEATURE}-{NNN} → test annotation linking to TC ID                                                                  | Skills        |
+| **E2E from browser recordings**                | /e2e-test + Chrome DevTools Recorder → Playwright                                                                      | Skills        |
+| **Screenshot assertion baselines**             | e2e --source=update-ui workflow + toHaveScreenshot()                                                                   | Workflows     |
+| **Greenfield project inception**               | isGreenfieldProject() detection → solution-architect agent                                                             | Hooks         |
+| **AI as solution architect**                   | greenfield-init workflow (waterfall)                                                                                   | Workflows     |
+| **Research-driven big features**               | big-feature workflow with step-selection gate                                                                          | Workflows     |
+| **DDD domain modeling**                        | /domain-analysis skill: bounded contexts, ERD, aggregates                                                              | Skills        |
+| **Tech stack comparison with evidence**        | /tech-stack-research: top 3 per layer, confidence %                                                                    | Skills        |
+| **Step-selection gate for long workflows**     | big-feature + greenfield preActions let user deselect                                                                  | Workflows     |
+| **Workflow trigger shortcuts**                 | 20 workflow-\* skills for workflow activation and lifecycle control                                                    | Skills        |
+| **Prompt engineering (role + CoT + evidence)** | Skills use role prompting, chain-of-thought, few-shot                                                                  | Skills        |
+| **Context engineering (JIT + dedup + budget)** | Hooks manage context window with precision injection                                                                   | Hooks         |
+| **Skill chain navigation (Next Steps)**        | AskUserQuestion recommends logical next skill per step                                                                 | Skills        |
+| **Plan-aware skills (Step 0)**                 | Skills read prior workflow outputs before starting work                                                                | Skills        |
+| **Review gates between artifacts**             | artifact-review (--type pbi/story/spec-tests) checkpoints                                                              | Skills        |
+| **Agent negative-prompting guardrails**        | NEVER/ALWAYS rules per agent prevent role overstepping                                                                 | Agents        |
+| **Dual planning rounds**                       | High-level arch plan → sprint-ready plan after stories                                                                 | Workflows     |
+| **Conditional architecture scaffolding**       | /scaffold auto-skips when existing abstractions found                                                                  | Skills        |
 
 ### File Structure
 
@@ -3535,7 +3552,7 @@ flowchart TB
 ├── .ckignore ─────────── Scout block patterns
 ├── workflows.json ─────── 19 workflow definitions
 ├── workflows/ ──────────── Workflow definitions (primary-workflow.md, etc.)
-├── hooks/ ─────────────── 20 top-level .cjs hooks + 35 lib modules
+├── hooks/ ─────────────── 20 top-level .cjs hooks + 36 lib modules
 │   ├── session-init.cjs
 │   ├── path-boundary-block.cjs
 │   ├── ...
@@ -3657,9 +3674,9 @@ Each agent definition now inlines two shared protocol blocks from `sync-inline-v
 
 > **AI Mistake Prevention** — Failure modes to avoid on every task:
 >
-> -   Check downstream references before deleting...
-> -   Verify AI-generated content against actual code...
-> -   Holistic-first debugging — resist nearest-attention trap...
+> - Check downstream references before deleting...
+> - Verify AI-generated content against actual code...
+> - Holistic-first debugging — resist nearest-attention trap...
 
 <!-- /SYNC:ai-mistake-prevention -->
 ```
@@ -3685,7 +3702,7 @@ This is the answer to two questions the rest of the guide raises: _"does this on
 │  .claude/workflows.json · CLAUDE.md (project instructions) ·          │
 │  .claude/skills/shared/sync-inline-versions.md                        │
 └──────────────────────────────────────────────────────────────────────┘
-            │  npm run codex:sync   (19-stage pipeline, fail-fast)
+            │  run-codex-sync.mjs   (19-stage pipeline, fail-fast)
             ▼
 ┌──────────────────────────────────────────────────────────────────────┐
 │  GENERATED MIRRORS  (never hand-edited — sync overwrites them)        │
@@ -3700,7 +3717,7 @@ This is the answer to two questions the rest of the guide raises: _"does this on
 └──────────────────────────────────────────────────────────────────────┘
 ```
 
-Every generated file **self-declares** as a mirror. `AGENTS.md`: _"This block is auto-generated from `CLAUDE.md` by `npm run codex:sync:context`. Do not edit manually; update `CLAUDE.md` and re-sync."_ The authoring rule is absolute: **edit `.claude/` source, run sync, never touch a mirror** — because the next sync overwrites direct mirror edits.
+Every generated file **self-declares** as a mirror. `AGENTS.md`: _"This block is auto-generated from `CLAUDE.md` by the sync runner's `context` stage. Do not edit manually; update `CLAUDE.md` and re-sync."_ The authoring rule is absolute: **edit `.claude/` source, run sync, never touch a mirror** — because the next sync overwrites direct mirror edits.
 
 ### 13.2 Why Mirrors at All? The Cross-Host Static-Parity Problem
 
@@ -3719,9 +3736,9 @@ So the mirror is not a copy — it is a **transform** that converts host-specifi
 
 ### 13.3 The Sync Skills
 
-| Skill            | Scope                      | Mechanics                                                                                                                                                 |
-| ---------------- | -------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **`sync-codex`** | Full Claude → Codex mirror | `npm run codex:sync` (or the skill without npm). `disable-model-invocation: true` — user-invoked only; an explicit `ai-context-refresh` completion may call the standalone runner with `--skip=claude-md`. Sequential, fail-fast stages. |
+| Skill            | Scope                      | Mechanics                                                                                                                                                                                                                                                           |
+| ---------------- | -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **`sync-codex`** | Full Claude → Codex mirror | `node .claude/skills/sync-codex/scripts/run-codex-sync.mjs` (or the skill). `disable-model-invocation: true` — user-invoked only; an explicit `ai-context-refresh` completion may call the standalone runner with `--skip=claude-md`. Sequential, fail-fast stages. |
 
 **`sync-codex`'s stages** (CLAUDE preflight, mutate mirrors, verify-only after, configured failures abort): **claude-md** → **migrate** → **hooks** → **context** → **tests** → **scripts-tests** → **tech-spec-freshness** → **feature-registry** → **hooks-count-drift** → **hooks-parity** → **hooks-doc-sync** → **wf-cycle** → **sk-proto** → **residue** → **sdd** → **review-validate-coverage** → **sync-adoption-parity** → **provenance-markers** → **sync-divergence**. The first stage initializes a missing `CLAUDE.md`, updates a marker-managed stale root, and stops for markerless smart-merge unless `portability.requireUniversalGuides: false` is explicit. The tech-spec and feature-registry stages are optional capabilities: when their project-config contracts are absent, the runner records an explicit skip; when declared, they fail closed on invalid or stale data. The feature-registry stage reads `specSystem.featureRegistryRoots` from project config and automatically includes continuation parts. The sync is not "done" until every configured read-only gate passes — a stale derived view, invalid adopted registry root, or non-portable mirror **fails the pipeline** rather than shipping silently.
 
@@ -3769,7 +3786,7 @@ The rule that keeps it clean: _"If a rule can be reused unchanged by another rep
 1. Copy `.claude/` (skills, hooks, workflows, agents) — the reusable behavior, unchanged.
 2. Replace `docs/project-config.json` and `docs/project-reference/**` with the new project's stack, paths, patterns, and conventions. (The `/project-config` and `scan-*` skills can generate these from a codebase scan.)
 3. Rewrite `CLAUDE.md` for the new project's golden rules.
-4. Run `npm run codex:sync` to regenerate the committed Codex mirrors.
+4. Run `node .claude/skills/sync-codex/scripts/run-codex-sync.mjs` to regenerate the committed Codex mirrors.
 
 The harness, the protocols, and the quality gates carry over verbatim. Only the config and reference docs change. That is what "works for any project, on any supported AI harness" means in this framework — and it is enforced by the same verifier suite that keeps the mirrors honest.
 
@@ -3803,7 +3820,7 @@ This framework answers that question with **defense in depth**: multiple indepen
 | **Enforce at the boundary**       | Hooks run as separate processes at lifecycle boundaries. The AI can't bypass them because they execute outside the LLM's control loop.                                                                                                                                                                                                                                                        |
 | **Learn from mistakes**           | The `/learn` skill captures AI errors into `lessons.md`. The static read-lessons contract in `CLAUDE.md` / `SKILL.md` keeps them in view and is re-read by the model after compaction. Past mistakes become future guardrails.                                                                                                                                                                |
 | **Plan before implement**         | A static `CLAUDE.md` rule requires a `TaskCreate` item before any file edit (model-driven, no longer hook-gated). Combined with model-driven workflow progression, this ensures AI doesn't skip from question to code without a plan.                                                                                                                                                         |
-| **State survives amnesia**        | External state files (disk-backed task list, workflow progress, `plans/` files) persist to disk. After context compaction, the model re-reads them via `TaskList` and audits git/filesystem — resuming where it left off.                                                                                                                                                                     |
+| **State survives amnesia**        | External state files (disk-backed task list, workflow progress, plans-root files) persist to disk. After context compaction, the model re-reads them via `TaskList` and audits git/filesystem — resuming where it left off.                                                                                                                                                                   |
 | **Stateless-per-turn invariants** | Critical rules are carried as static SYNC-tagged invariants in `CLAUDE.md` / agent `.md` / skill `SKILL.md` bodies (the workflow catalog among them, re-read every prompt), and are restored after compaction by the model re-reading those same files. The framework never trusts the AI to remember rules from prior turns — they are re-stated as invariants at each interaction boundary. |
 | **Self-contained skill units**    | Skills inline shared protocols via `<!-- SYNC:tag -->` blocks rather than referencing external files. Each skill is a complete, deployable prompt unit. The `sync-skills-shared-protocols` skill keeps copies synchronized from a canonical source.                                                                                                                                           |
 | **Structural intelligence first** | The code graph (`code_graph.py`) is a HARD-GATE before any investigation concludes. Grep finds files; graph traces reveal callers, events, bus consumers, and API contracts — relationships that textual search cannot find.                                                                                                                                                                  |
@@ -3863,14 +3880,14 @@ The framework succeeds because it aligns with how LLMs actually fail:
 
 **20 top-level hook files**, **123 skills**, **19 registered workflows**, and **23 specialized agents** working in concert to deliver:
 
--   **Fewer hallucinations** — Evidence gates and proof traces catch AI fabrications before they reach files
--   **Better code quality** — Pattern injection ensures AI follows project conventions, not generic training data
--   **Full lifecycle coverage** — From greenfield inception through idea capture, test specification, implementation, code review, and documentation
--   **Consistent adherence** — Programmatic enforcement means quality doesn't degrade in long sessions or complex tasks
--   **Recovery from amnesia** — External state persistence means context compaction doesn't lose progress
--   **Persistent learning** — Mistakes captured once prevent recurrence across all future sessions
--   **Prompt engineering depth** — Role prompting, chain-of-thought, few-shot, negative prompting, and iterative refinement applied systematically across 123 skills (Section 8.15)
--   **Context engineering precision** — JIT injection, dedup, external memory, budget management, and recovery keep the AI informed without overwhelming its context window (Section 8.16)
+- **Fewer hallucinations** — Evidence gates and proof traces catch AI fabrications before they reach files
+- **Better code quality** — Pattern injection ensures AI follows project conventions, not generic training data
+- **Full lifecycle coverage** — From greenfield inception through idea capture, test specification, implementation, code review, and documentation
+- **Consistent adherence** — Programmatic enforcement means quality doesn't degrade in long sessions or complex tasks
+- **Recovery from amnesia** — External state persistence means context compaction doesn't lose progress
+- **Persistent learning** — Mistakes captured once prevent recurrence across all future sessions
+- **Prompt engineering depth** — Role prompting, chain-of-thought, few-shot, negative prompting, and iterative refinement applied systematically across 123 skills (Section 8.15)
+- **Context engineering precision** — JIT injection, dedup, external memory, budget management, and recovery keep the AI informed without overwhelming its context window (Section 8.16)
 
 The framework is **generic and reusable**. Replace `project-config.json` with your project's specifics, and the entire system adapts — different tech stack, different patterns, different conventions, same quality enforcement.
 

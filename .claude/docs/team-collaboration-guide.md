@@ -25,11 +25,11 @@
 
 Claude Code uses a **three-pillar architecture** to assist every role:
 
-| Pillar                        | What It Does                                                          | Count                                          |
-| ----------------------------- | --------------------------------------------------------------------- | ---------------------------------------------- |
+| Pillar                        | What It Does                                                          | Count                                                      |
+| ----------------------------- | --------------------------------------------------------------------- | ---------------------------------------------------------- |
 | **Hooks** (Enforcement)       | Enforce quality gates, block unsafe actions, manage session lifecycle | <!-- COUNT:hooks -->20<!-- /COUNT --> top-level hook files |
-| **Skills** (Intelligence)     | Prompt-engineered protocols loaded on demand via `/skill-name`        | <!-- COUNT:skills -->123<!-- /COUNT --> skills |
-| **Workflows** (Orchestration) | Multi-step sequences of skills with progress tracking                 | <!-- COUNT:workflows -->19<!-- /COUNT --> workflows |
+| **Skills** (Intelligence)     | Prompt-engineered protocols loaded on demand via `/skill-name`        | <!-- COUNT:skills -->123<!-- /COUNT --> skills             |
+| **Workflows** (Orchestration) | Multi-step sequences of skills with progress tracking                 | <!-- COUNT:workflows -->19<!-- /COUNT --> workflows        |
 
 ### Workflow Detection
 
@@ -44,7 +44,7 @@ You never need to memorize workflow names — just describe your intent.
 
 ### Project Knowledge (Static Embedding)
 
-Project knowledge — backend/frontend patterns, design tokens, code-review rules, learned lessons — lives **statically** in `CLAUDE.md`, the agent definitions, and the skills, plus the reference docs under `docs/project-reference/`. Skills and agents read the relevant doc on demand. Because the guidance is embedded rather than requiring runtime injection, every harness — Claude, Codex — sees identical instructions even when hooks are disabled; hooks may accelerate discovery but do not change the contract.
+Project knowledge — backend/frontend patterns, design tokens, code-review rules, learned lessons — lives **statically** in `CLAUDE.md`, the agent definitions, and the skills, plus the reference docs under the project-reference docs root — default `docs/project-reference`; a `docsRoots.projectReference.path` entry in `docs/project-config.json` overrides the path. Skills and agents read the relevant doc on demand. Because the guidance is embedded rather than requiring runtime injection, every harness — Claude, Codex — sees identical instructions even when hooks are disabled; hooks may accelerate discovery but do not change the contract.
 
 ---
 
@@ -53,9 +53,9 @@ Project knowledge — backend/frontend patterns, design tokens, code-review rule
 1. **Claude Code installed** — Verify with `claude --version`
 2. **Project configured** — `docs/project-config.json` exists
 3. **Know where outputs go:**
-    - Plans and reports: `plans/` and `tmp/reports/`
+    - Plans and reports: the plans root (default `plans/`; a `docsRoots.plans.path` entry in `docs/project-config.json` overrides the path) and `tmp/reports/`
     - Documentation: `docs/`
-    - Design specs, test specs: within `docs/` or `plans/`
+    - Design specs, test specs: within `docs/` or the plans root
 
 ---
 
@@ -151,7 +151,7 @@ Project knowledge — backend/frontend patterns, design tokens, code-review rule
     Generates component inventory, states, token mappings, accessibility checklist
 
 2. **Review against design system**
-   Spec auto-maps to tokens in `docs/project-reference/design-system/`
+   Spec auto-maps to tokens in `design-system/` under the project-reference docs root
 
 **Workflow trigger:** Say "design spec for" → runs **/design-spec** then **/design --lane=product** (or **/design --lane=marketing**)
 
@@ -182,23 +182,23 @@ Project knowledge — backend/frontend patterns, design tokens, code-review rule
 
 ### Capture & Requirements
 
-| Skill               | Purpose                                  | Example                    |
-| ------------------- | ---------------------------------------- | -------------------------- |
-| `/idea`             | Capture raw idea                         | `/idea "Dark mode toggle"` |
-| `/refine`           | Transform idea into PBI with AC          | `/refine {idea-file}`      |
-| `/story`            | Break PBI into user stories (INVEST)     | `/story {pbi-file}`        |
-| `/prioritize`       | Order backlog (RICE/MoSCoW/Value-Effort) | `/prioritize rice`         |
-| `/dor-gate`         | Validate PBI against Definition of Ready | `/dor-gate {pbi-file}`     |
+| Skill         | Purpose                                  | Example                    |
+| ------------- | ---------------------------------------- | -------------------------- |
+| `/idea`       | Capture raw idea                         | `/idea "Dark mode toggle"` |
+| `/refine`     | Transform idea into PBI with AC          | `/refine {idea-file}`      |
+| `/story`      | Break PBI into user stories (INVEST)     | `/story {pbi-file}`        |
+| `/prioritize` | Order backlog (RICE/MoSCoW/Value-Effort) | `/prioritize rice`         |
+| `/dor-gate`   | Validate PBI against Definition of Ready | `/dor-gate {pbi-file}`     |
 
 ### Testing & Quality
 
-| Skill                  | Purpose                                  | Example                            |
-| ---------------------- | ---------------------------------------- | ---------------------------------- |
-| `/spec [mode=tests]`   | Generate test specs (TC-{FEATURE}-{NNN}) | `/spec [mode=tests] {feature-doc}` |
-| `/integration-test`    | Generate integration tests from specs    | `/integration-test`                |
-| `/e2e-test`            | Generate E2E tests                       | `/e2e-test`                        |
-| `/artifact-review`     | Gate artifact quality before handoff     | `/artifact-review --type=spec-tests` |
-| `/test`                | Run and analyze tests                    | `/test`                            |
+| Skill                | Purpose                                  | Example                              |
+| -------------------- | ---------------------------------------- | ------------------------------------ |
+| `/spec [mode=tests]` | Generate test specs (TC-{FEATURE}-{NNN}) | `/spec [mode=tests] {feature-doc}`   |
+| `/integration-test`  | Generate integration tests from specs    | `/integration-test`                  |
+| `/e2e-test`          | Generate E2E tests                       | `/e2e-test`                          |
+| `/artifact-review`   | Gate artifact quality before handoff     | `/artifact-review --type=spec-tests` |
+| `/test`              | Run and analyze tests                    | `/test`                              |
 
 ### Design & Frontend
 
@@ -210,10 +210,10 @@ Project knowledge — backend/frontend patterns, design tokens, code-review rule
 
 ### Process & Collaboration
 
-| Skill        | Purpose                                              | Example        |
-| ------------ | ---------------------------------------------------- | -------------- |
-| `/watzup`    | Review recent changes and wrap up the current work   | `/watzup`      |
-| `/prioritize`| Re-order remaining backlog when priorities shift     | `/prioritize`  |
+| Skill         | Purpose                                            | Example       |
+| ------------- | -------------------------------------------------- | ------------- |
+| `/watzup`     | Review recent changes and wrap up the current work | `/watzup`     |
+| `/prioritize` | Re-order remaining backlog when priorities shift   | `/prioritize` |
 
 ### Planning & Investigation
 
@@ -255,9 +255,9 @@ QC:                    /artifact-review --type=spec-tests ──→ [PASS/FAIL r
 
 **Quality gate criteria (pre-QA):**
 
--   All test cases have `TC-{FEATURE}-{NNN}` IDs
--   At least 5 categories: positive, negative, edge, authorization, and invariant/property (≥1 universally-quantified property TC + boundary counter-case per [HARD] rule / §5 invariant — see `.claude/skills/shared/tc-format.md`)
--   Evidence fields use `[Source: namespace/service/id]` abstract anchors (stack-portable — never `file:line`)
+- All test cases have `TC-{FEATURE}-{NNN}` IDs
+- At least 5 categories: positive, negative, edge, authorization, and invariant/property (≥1 universally-quantified property TC + boundary counter-case per [HARD] rule / §5 invariant — see `.claude/skills/shared/tc-format.md`)
+- Evidence fields use `[Source: namespace/service/id]` abstract anchors (stack-portable — never `file:line`)
 
 ---
 
@@ -279,10 +279,10 @@ Dev:                             /code-review ──→ Implementation
 
 **Design spec checklist:**
 
--   All states: default, hover, active, disabled, error, loading
--   Design tokens mapped (no hardcoded values)
--   BEM classes defined
--   Accessibility requirements (WCAG 2.2)
+- All states: default, hover, active, disabled, error, loading
+- Design tokens mapped (no hardcoded values)
+- BEM classes defined
+- Accessibility requirements (WCAG 2.2)
 
 ---
 
@@ -461,13 +461,13 @@ PLANNING
 
 ### Role Quick Reference
 
-| Role | Primary Skills                                     | Workflow               |
-| ---- | -------------------------------------------------- | ---------------------- |
-| PO   | `/idea`, `/prioritize`                             | idea-to-pbi            |
-| BA   | `/refine`, `/story`                                | idea-to-pbi            |
-| QA   | `/spec [mode=tests]`, `/integration-test`, `/test` | write-integration-test |
-| QC   | `/dor-gate`, `/artifact-review`, `/production-readiness-review` | —         |
-| UX   | `/design-spec`, `/design`                          | —                      |
+| Role | Primary Skills                                                  | Workflow               |
+| ---- | --------------------------------------------------------------- | ---------------------- |
+| PO   | `/idea`, `/prioritize`                                          | idea-to-pbi            |
+| BA   | `/refine`, `/story`                                             | idea-to-pbi            |
+| QA   | `/spec [mode=tests]`, `/integration-test`, `/test`              | write-integration-test |
+| QC   | `/dor-gate`, `/artifact-review`, `/production-readiness-review` | —                      |
+| UX   | `/design-spec`, `/design`                                       | —                      |
 
 Plan status tracking is not a separate role here: `/plan-execute` updates `plan.md` and phase status inline as it runs.
 
@@ -526,10 +526,10 @@ Plan status tracking is not a separate role here: `/plan-execute` updates `plan.
 
 **Common causes:**
 
--   Missing GIVEN/WHEN/THEN in acceptance criteria
--   Test cases without `TC-{FEATURE}-{NNN}` IDs
--   No Evidence field in test cases
--   Dependencies not documented
+- Missing GIVEN/WHEN/THEN in acceptance criteria
+- Test cases without `TC-{FEATURE}-{NNN}` IDs
+- No Evidence field in test cases
+- Dependencies not documented
 
 **Fix:** Review the gate report and address each failed criterion.
 
@@ -542,7 +542,7 @@ Plan status tracking is not a separate role here: `/plan-execute` updates `plan.
 **Fix:**
 
 1. Verify `docs/project-config.json` exists and points at the reference docs
-2. Confirm the relevant `docs/project-reference/*` docs are populated — run the matching `/scan-*` if stale or empty
+2. Confirm the relevant project-reference root docs are populated — run the matching `/scan-*` if stale or empty
 3. Project guidance is read on demand from those docs + `CLAUDE.md`; there is no runtime injection, so a missing or empty doc means the agent won't see it
 
 ---

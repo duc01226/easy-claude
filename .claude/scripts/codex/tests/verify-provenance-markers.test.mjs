@@ -322,28 +322,25 @@ test('TC-PROV-011: the verifier is registered as a pipeline stage in the standal
     assert.match(runner, /id:\s*["']provenance-markers["']/, 'runner must register the stage id (also the --only key)');
 });
 
-// TC-PROV-011b — npm-surface parity, but ONLY in the framework's own repo.
+// TC-PROV-011b — the stage is reachable from inside the portable bundle, with no npm surface.
 //
-// A project that adopts the framework copies `.claude` and keeps its own root package.json (or has
-// none at all — `export-claude` deliberately ships no package.json, and PORT-007 asserts that). So an
-// UNCONDITIONAL package.json assertion here would fail in every adopting project and abort the sync
-// pipeline at its own test stage. The npm scripts are a convenience surface of THIS repo, not part of
-// the portable contract — hence the self-identification guard.
-test('TC-PROV-011b: package.json exposes the stage (framework repo only)', () => {
-    const pkgPath = path.join(repoRoot, 'package.json');
-    if (!fs.existsSync(pkgPath)) return; // adopting project with no root package.json
-    const pkg = JSON.parse(fs.readFileSync(pkgPath, 'utf8'));
-    if (pkg.name !== 'easy-claude-tooling') return; // adopting project's own package.json
+// This used to assert two package.json scripts. Those are gone: the framework is self-running, so no
+// host `package.json` may drive it. The guarantee the old test wanted — "this sensor is individually
+// runnable AND part of the everything-verify run" — is now UNCONDITIONAL, because both halves live
+// inside `.claude` and therefore exist in every adopting project too.
+test('TC-PROV-011b: the stage is individually runnable and inside the derived verify set', () => {
+    const verifier = path.join(repoRoot, '.claude', 'scripts', 'codex', 'verify-provenance-markers.mjs');
+    assert.ok(fs.existsSync(verifier),
+        'the verifier must exist at its in-bundle path so `node .claude/scripts/codex/verify-provenance-markers.mjs` works standalone');
 
-    assert.ok(
-        pkg.scripts['codex:verify:provenance-markers'],
-        'package.json must expose the single-stage script'
-    );
-    assert.match(
-        pkg.scripts['verify:all'],
-        /provenance-markers/,
-        'verify:all must include the provenance-markers stage'
-    );
+    const runner = fs.readFileSync(
+        path.join(repoRoot, '.claude', 'skills', 'sync-codex', 'scripts', 'run-codex-sync.mjs'), 'utf8');
+    const stage = runner.match(/\{[^{}]*\bid:\s*"provenance-markers"[^{}]*\}/);
+    assert.ok(stage, 'the runner must declare the provenance-markers stage');
+    // Read-only stages carry no `mutate: true`, so `--verify-only` selects this one by derivation —
+    // there is no roster to keep in step, which is what the old `verify:all --only` list required.
+    assert.doesNotMatch(stage[0], /\bmutate:\s*true\b/,
+        'provenance-markers is a read-only gate, so it must stay in the derived --verify-only set');
 });
 
 // TC-PROV-012 — peer-convention lock: EVERY codex verifier has a unit test beside it. This test

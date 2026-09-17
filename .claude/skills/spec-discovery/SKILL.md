@@ -20,19 +20,19 @@ context-budget: medium
 
 **Summary:**
 
-- This is BOTH spec-aware and code-aware: it reads `docs/specs/**` (the canonical Feature Specs) AND delegates to `/investigate` + code-graph for the code logic the idea touches. Spec-only or code-only discovery misses half the landscape.
+- This is BOTH spec-aware and code-aware: it reads `<spec root>/**` (the canonical Feature Specs — default `docs/specs`; a `specRoots.business.path` entry in `docs/project-config.json` overrides the path) AND delegates to `/investigate` + code-graph for the code logic the idea touches. Spec-only or code-only discovery misses half the landscape.
 - It runs BEFORE `spec [mode=draft]` and feeds it. Its job is to decide WHETHER a new standalone spec is even the right move — the alternative is extending an existing spec, which only a spec-corpus scan can reveal.
 - It is INLINE on the main agent (NOT a sub-agent) because step 5 is a BLOCKING `AskUserQuestion` scope-decision gate that only works inline. It MAY spawn sub-agents for parallel spec reads, but it orchestrates and gates inline.
 - Greenfield short-circuit: when there are no specs AND no code, auto-detect it, record the reason, skip the heavy discovery, and hand off a minimal landscape — never grind through empty discovery.
-- **Main steps (0→6) — do ALL in order:** (0) frame scope = keywords/entities/bucket → (1) spec-corpus discovery = Glob all candidate specs, read §1/§4/§5/§8, classify each EXTENDS/OVERLAPS/DEPENDS-ON/AFFECTED/UNRELATED with `file:line` → (2) code-logic discovery = `/investigate` + MANDATORY graph expansion, bridge code→spec via §8 `[Source:]` → (3) gap & invariant analysis = missing features, missing TCs/user stories, system unknowns, [HARD]/§5 invariant landscape → (4) report incrementally to `plans/.../spec-discovery-{slug}.md` → (5) BLOCKING `AskUserQuestion` scope gate = recommend NEW / EXTEND X / SPLIT, confirm cross-refs → (6) handoff to `domain-analysis` + `spec [mode=draft|update]`.
+- **Main steps (0→6) — do ALL in order:** (0) frame scope = keywords/entities/bucket → (1) spec-corpus discovery = Glob all candidate specs under the spec root (default `docs/specs`; a `specRoots.business.path` entry in `docs/project-config.json` overrides the path), read §1/§4/§5/§8, classify each EXTENDS/OVERLAPS/DEPENDS-ON/AFFECTED/UNRELATED with `file:line` → (2) code-logic discovery = `/investigate` + MANDATORY graph expansion, bridge code→spec via §8 `[Source:]` → (3) gap & invariant analysis = missing features, missing TCs/user stories, system unknowns, [HARD]/§5 invariant landscape → (4) report incrementally to `plans/.../spec-discovery-{slug}.md` → (5) BLOCKING `AskUserQuestion` scope gate = recommend NEW / EXTEND X / SPLIT, confirm cross-refs → (6) handoff to `domain-analysis` + `spec [mode=draft|update]`.
 
 **Workflow:**
 
 0. **Scope** — read the framed capability (brainstorm/idea output); extract keywords, candidate entities/actors, target spec bucket.
-1. **Spec-corpus discovery** — `Glob docs/specs/**/README.*.md`; read §1/§4/§5/§8 of each candidate; classify each as EXTENDS / OVERLAPS / DEPENDS-ON / AFFECTED / UNRELATED.
+1. **Spec-corpus discovery** — `Glob <spec root>/**/README.*.md` (default `docs/specs`; a `specRoots.business.path` entry in `docs/project-config.json` overrides the path); read §1/§4/§5/§8 of each candidate; classify each as EXTENDS / OVERLAPS / DEPENDS-ON / AFFECTED / UNRELATED.
 2. **Code-logic discovery** — `/investigate {keywords}` + MANDATORY graph expansion on key files when `.code-graph/graph.db` exists; bridge code→spec via §8 `[Source:]` anchors.
 3. **Gap & invariant analysis** — missing features, missing test cases / user stories, system unknowns (<80% confidence), and the existing [HARD] rules / §5 invariants the idea must respect.
-4. **Report** — write `plans/{plan-dir}/research/spec-discovery-{slug}.md` incrementally (Related Specs · Related Code · Affected Specs · Gaps · Invariant Landscape · Open Questions).
+4. **Report** — write `<plans root>/{plan-dir}/research/spec-discovery-{slug}.md` (plans root default `plans/`; a `docsRoots.plans.path` entry in `docs/project-config.json` overrides the path) incrementally (Related Specs · Related Code · Affected Specs · Gaps · Invariant Landscape · Open Questions).
 5. **Scope-decision gate (BLOCKING `AskUserQuestion`)** — recommend NEW / EXTEND existing X / SPLIT into N, and confirm which existing specs to cross-reference.
 6. **Handoff** — feed entities, invariants, cross-refs, and gaps into `domain-analysis` + `spec [mode=draft]`.
 
@@ -63,7 +63,7 @@ context-budget: medium
 
 | Corpus state                | Detection                                                              | Route                                                                        |
 | --------------------------- | --------------------------------------------------------------------- | ---------------------------------------------------------------------------- |
-| **Specs + code**            | `docs/specs/**/README.*.md` present AND source files for keywords     | Full run — steps 1, 2, 3, 4, 5, 6                                            |
+| **Specs + code**            | `<spec root>/**/README.*.md` present AND source files for keywords (default `docs/specs`; `specRoots.business.path` in `docs/project-config.json` overrides the root) | Full run — steps 1, 2, 3, 4, 5, 6                                            |
 | **Specs only**              | Specs present, no code yet (provisional/draft-era project)            | Steps 1, 3, 4, 5 — skip step 2 code discovery (record "no code yet")        |
 | **Code only**               | No specs yet, code exists                                             | Steps 2, 3, 4, 5 — step 1 records "no existing specs", bridge gaps from code |
 | **Greenfield (empty)**      | No specs AND no source for keywords                                  | **Short-circuit** — record reason, skip heavy discovery, minimal handoff     |
@@ -80,7 +80,7 @@ Read the framed capability — the brainstorm / idea / requirement text that tri
 
 - **Keywords** — domain nouns and verbs the idea names (entities, actions, features).
 - **Candidate entities / actors** — the business objects and roles the idea implies.
-- **Target spec bucket** — which `docs/specs/{Bucket}/` the new spec would most likely live in (per the project's module mapping; resolve from `docs/project-reference/feature-spec-reference.md` / `spec-system-reference.md`).
+- **Target spec bucket** — which `<spec root>/{Bucket}/` the new spec would most likely live in — spec root default `docs/specs`; a `specRoots.business.path` entry in `docs/project-config.json` overrides the path (per the project's module mapping; resolve from `feature-spec-reference.md` / `spec-system-reference.md` in the project-reference docs root, default `docs/project-reference`, relocatable via `docsRoots.projectReference.path`).
 
 State the framed scope in one line before continuing (e.g. `Discovering for: "bulk order export" — keywords [order, export, batch], bucket Orders`).
 
@@ -90,7 +90,7 @@ Step 1 (specs), Step 2 (code), and the invariant/test-case sweep read DIFFERENT 
 
 | Wave-1 member                      | Scope (read-only)                                                                       | Route to                                                              | Feeds                                  |
 | ---------------------------------- | ----------------------------------------------------------------------------------------- | --------------------------------------------------------------------- | -------------------------------------- |
-| **Spec-corpus sweep**              | the `docs/specs/**` candidates the keywords touch — §1/§4/§5/§8 ONLY, never whole specs | one `investigate` per bucket when the corpus is large; inline for a small one | Related Specs · Affected Specs         |
+| **Spec-corpus sweep**              | the `<spec root>/**` candidates the keywords touch (default `docs/specs`; `specRoots.business.path` in `docs/project-config.json` overrides it) — §1/§4/§5/§8 ONLY, never whole specs | one `investigate` per bucket when the corpus is large; inline for a small one | Related Specs · Affected Specs         |
 | **Related-code discovery**         | the code the idea touches (the Step 2 delegation)                                        | `/investigate {keywords}`                                                   | Related Code                           |
 | **Invariant / test-case landscape** | [HARD] BRs (§4), §5 entity invariants, existing §8 TC coverage of the touched specs      | one `investigate`; fold into the corpus sweep when the corpus is small      | Invariant Landscape · Missing TCs      |
 
@@ -104,7 +104,7 @@ Phase 0's corpus state shrinks the wave: **Specs only** → drop the code member
 
 ```bash
 # Enumerate every canonical Feature Spec
-ls docs/specs/**/README.*.md 2>/dev/null   # or: Glob docs/specs/**/README.*.md
+ls docs/specs/**/README.*.md 2>/dev/null   # or: Glob docs/specs/**/README.*.md — docs/specs is the DEFAULT spec root; specRoots.business.path in docs/project-config.json overrides it
 ```
 
 If NONE → record `No existing specs` and skip to Step 2.
@@ -153,7 +153,7 @@ From Steps 1–2, synthesize four lists (every item `file:line`-cited or marked 
 
 ### Step 4: Report
 
-Write `plans/{plan-dir}/research/spec-discovery-{slug}.md` (resolve `{plan-dir}` from the active plan; fall back to `tmp/reports/spec-discovery-{YYMMDD}-{HHmm}-{slug}.md` when no plan dir exists). Persist **incrementally** — append each section as it is produced, never hold the whole report in memory:
+Write `<plans root>/{plan-dir}/research/spec-discovery-{slug}.md` — plans root default `plans/`; a `docsRoots.plans.path` entry in `docs/project-config.json` overrides the path — (resolve `{plan-dir}` from the active plan; fall back to `tmp/reports/spec-discovery-{YYMMDD}-{HHmm}-{slug}.md`, a FIXED framework path, when no plan dir exists). Persist **incrementally** — append each section as it is produced, never hold the whole report in memory:
 
 ```markdown
 # Spec-Discovery: {idea}
@@ -205,6 +205,8 @@ Feed the discovery forward:
 
 ## Results Format
 
+Paths in the template below are DEFAULTS — spec root `docs/specs`, plans root `plans/`; `specRoots.business.path` and `docsRoots.plans.path` entries in `docs/project-config.json` override them. `tmp/reports/` is a fixed framework path.
+
 ```markdown
 ## Spec-Discovery Results: {idea}
 
@@ -245,9 +247,11 @@ Feed the discovery forward:
 
 > **[IMPORTANT]** Use `TaskCreate` to break ALL work into small tasks BEFORE starting — including a task per candidate spec read. This prevents context loss from long specs. For trivial single-spec scopes, AI MUST ATTENTION ask user whether to skip.
 
-- `docs/project-reference/feature-spec-reference.md` — Feature Spec conventions, bucket/module mapping (read before reading any spec).
-- `docs/project-reference/spec-system-reference.md` — canonical vs derived spec artifacts, TC format, spec paths.
-- `docs/project-reference/domain-entities-reference.md` — Domain entity catalog, relationships, cross-service sync (read when the idea involves business entities/models).
+These three filenames resolve inside the project-reference docs root — default `docs/project-reference`; a `docsRoots.projectReference.path` entry in `docs/project-config.json` overrides the path.
+
+- `feature-spec-reference.md` — Feature Spec conventions, bucket/module mapping (read before reading any spec).
+- `spec-system-reference.md` — canonical vs derived spec artifacts, TC format, spec paths.
+- `domain-entities-reference.md` — Domain entity catalog, relationships, cross-service sync (read when the idea involves business entities/models).
 
 > **External Memory:** Complex/lengthy discovery → write findings incrementally to the research report. Prevents context loss.
 
@@ -354,7 +358,7 @@ Feed the discovery forward:
 >
 > 1. Identify scope: file types, domain area, and operation.
 > 2. **Read `docs/project-config.json` first — the project's machine-readable map.** It is the single source of truth for THIS repo (modules/paths, framework + search keywords, test/E2E/integration run-commands, design system, architecture rules, workflow patterns); ground exact paths, run-commands, and conventions on it **before investigating, planning, or coding** — never assume framework defaults (`CLAUDE.md` + reference docs are derived from it). If it — or the docs index, `lessons.md`, `CLAUDE.md`, `AGENTS.md`, or any required reference doc — is missing or stale, auto-run `/project-init` or the narrow route (`/project-config`, `/docs-init`, `/scan-all`, `/scan --target=<key>`, `/ai-context-refresh`) first; if Codex mirrors or `AGENTS.md` are stale, use the explicit `/sync-codex` route, or the documented `/ai-context-refresh` completion handoff when that is the active source-authoring task.
-> 3. Required docs by trigger: always `docs/project-reference/lessons.md`; doc lookup `docs-index-reference.md`; review `code-review-rules.md`; backend/CQRS/API `backend-patterns-reference.md`; domain/entity `domain-entities-reference.md`; frontend/UI `frontend-patterns-reference.md`; styles/design `scss-styling-guide.md` + `design-system/design-system-canonical.md`; integration tests `integration-test-reference.md`; E2E `e2e-test-reference.md`; feature docs/specs `feature-spec-reference.md` + `spec-system-reference.md` + `spec-principles.md`; behavior/public-contract/spec-test-code sync `workflow-spec-test-code-cycle-reference.md`; derived spec index/ERD/reimplementation guides `spec-system-reference.md` + source Feature Specs under `docs/specs/`; architecture/new area `project-structure-reference.md`.
+> 3. Required docs by trigger — every filename below is canonical and resolves inside the reference-docs root (default `docs/project-reference`; a `docsRoots.projectReference.path` entry in `docs/project-config.json` overrides the path): always `lessons.md`; doc lookup `docs-index-reference.md`; review `code-review-rules.md`; backend/CQRS/API `backend-patterns-reference.md`; domain/entity `domain-entities-reference.md`; frontend/UI `frontend-patterns-reference.md`; styles/design `scss-styling-guide.md` + `design-system/design-system-canonical.md`; integration tests `integration-test-reference.md`; E2E `e2e-test-reference.md`; feature docs/specs `feature-spec-reference.md` + `spec-system-reference.md` + `spec-principles.md`; behavior/public-contract/spec-test-code sync `workflow-spec-test-code-cycle-reference.md`; derived spec index/ERD/reimplementation guides `spec-system-reference.md` + source Feature Specs under the business spec root (default `docs/specs`; a `specRoots.business.path` entry in the same config overrides the path); architecture/new area `project-structure-reference.md`.
 > 4. Read every required doc, then before target work state: `Reference docs read: ... | Not applicable: ...`. After compaction, resume, delegation, or a material context change, repeat the route and restate the set; prior conversation and hook output are not proof of current loading.
 >
 > **Ready when:** scope evaluated, `docs/project-config.json` consulted, required docs checked/read or setup route completed, `lessons.md` confirmed, citation emitted.
@@ -447,7 +451,8 @@ Feed the discovery forward:
 > **Assume existing values are intentional — ask WHY before changing OR flagging one as a defect.** Before changing or reporting a constant, limit, flag, cutoff, wording, or pattern, read nearby context and history, the CALLER's ordering, and 2+ sibling call sites of the same convention. A doc stating WHAT without WHY is missing rationale, not proof of a missing guard.
 > **Surface ambiguity before acting — don't pick silently.** Multiple valid interpretations require an explicit question or stated assumption with risk.
 > **Assert the outcome your system owns, not the intermediate state your infrastructure owns.** When verifying async work, assert the final business state — never the delivery/retry bookkeeping held in shared infrastructure that any co-running process can write. Such a check passes when run alone and flakes the moment anything else shares that infrastructure.
-> **Store disposable generated output in the project workspace.** If an output can be regenerated and is not source code, a canonical source-of-truth, or an intentionally versioned projection, write it under the project-root `tmp/` or `temp/` directory (prefer `tmp/`), scoped to the run. This includes temporary state, integration/E2E results, reports, logs, screenshots, traces, videos, coverage, dumps, and candidate evidence. Never put these outputs in source, docs, `plans/`, `team-artifacts/`, or mirror directories; the project-root `.gitignore` must ignore `/tmp/` and `/temp/` by default. Committed fixtures, accepted baselines, canonical specs/docs, and explicitly versioned generated mirrors remain at their declared owner paths.
+> **Store disposable generated output in the project workspace.** If an output can be regenerated and is not source code, a canonical source-of-truth, or an intentionally versioned projection, write it under the project-root `tmp/` or `temp/` directory (prefer `tmp/`), scoped to the run. This includes temporary state, integration/E2E results, reports, logs, screenshots, traces, videos, coverage, dumps, and candidate evidence. Never put these outputs in source, docs, the plans root (default `plans/`; a `docsRoots.plans.path` entry in `docs/project-config.json` overrides the path), the team-artifacts root (default `team-artifacts/`; `docsRoots.teamArtifacts.path` in the same config overrides the path), or mirror directories; the project-root `.gitignore` must ignore `/tmp/` and `/temp/` by default. Committed fixtures, accepted baselines, canonical specs/docs, and explicitly versioned generated mirrors remain at their declared owner paths.
+> **Judge the environment before judging the code.** A bug report, failed test, error, or unexpected output is not proof of a code defect. Before and during adjudication, weigh environment causes as a competing hypothesis — setup, config, version and dependency state, service dependencies, stale artifacts or leftover state, and transient resource pressure (RAM, CPU, disk, handles, network). State the discriminator you ran; fix an environment cause in the environment, never by editing product code or weakening a test to absorb it.
 > **Keep shared guidance role-relevant.** Universal guidance must help every receiving skill or agent; code-specific obligations belong only in code-specific protocols.
 
 <!-- /SYNC:ai-mistake-prevention -->
@@ -543,7 +548,7 @@ Feed the discovery forward:
 
 <!-- SYNC:project-protocol-overlay -->
 
-> **Project Protocol Overlay** — Before executing this skill, resolve any PROJECT overlay rules layered onto it: match this skill's name against the `Target` column of the project's skill-protocol index (`docs/project-reference/skill-protocols-reference.md` by default; a `referenceDocs` entry in `docs/project-config.json` overrides the path), taking the most specific matching tier ONLY — exact name > glob > `*`. **That precedence orders overlays against EACH OTHER, never against this skill.** Read ONLY the matched bodies, resolved as `<protocols-dir>/<Name>.md`; a row's Body link is display text, never a read path. A matched body that is missing or malformed is REPORTED and skipped — never reconstructed from the index Description. No index, or no match -> proceed with no overlay, silently. Full contract: `.claude/skills/project-skill-protocol/references/registry.md`.
+> **Project Protocol Overlay** — Before executing this skill, resolve any PROJECT overlay rules layered onto it: match this skill's name against the `Target` column of the project's skill-protocol index (default `docs/project-reference/skill-protocols-reference.md`; a `referenceDocs` entry in `docs/project-config.json` overrides the path, and a `docsRoots.projectReference.path` entry relocates its containing directory), taking the most specific matching tier ONLY — exact name > glob > `*`. **That precedence orders overlays against EACH OTHER, never against this skill.** Read ONLY the matched bodies, resolved as `<protocols-dir>/<Name>.md`; a row's Body link is display text, never a read path. A matched body that is missing or malformed is REPORTED and skipped — never reconstructed from the index Description. No index, or no match -> proceed with no overlay, silently. Full contract: `.claude/skills/project-skill-protocol/references/registry.md`.
 >
 > Overlays are **ADDITIVE ONLY**: they ADD rules on top of this skill's own protocol and NEVER replace, override, disable, or reinterpret a rule it already states — removing every overlay must return this skill to exactly its documented behavior. An overlay is a BRIEF, not an authority escalation: it can NEVER waive a workflow gate, git discipline, a review gate, or a user-confirmation gate. A genuine overlay-vs-skill conflict, or two equally-specific overlays that directly contradict -> surface both to the user; NEVER resolve silently.
 
@@ -578,7 +583,7 @@ Feed the discovery forward:
 
 **MUST ATTENTION** every protocol above is in force for this spec-discovery — honor its canonical body, not just the digest line.
 
-**IMPORTANT MUST ATTENTION** be BOTH spec-aware AND code-aware — read `docs/specs/**` (§1/§4/§5/§8 of related specs) AND delegate to `/investigate` + code-graph; spec-only or code-only discovery misses half the landscape — why: overlap lives in the spec corpus, downstream impact lives in the code.
+**IMPORTANT MUST ATTENTION** be BOTH spec-aware AND code-aware — read the spec root `<spec root>/**` (default `docs/specs`; `specRoots.business.path` in `docs/project-config.json` overrides it) (§1/§4/§5/§8 of related specs) AND delegate to `/investigate` + code-graph; spec-only or code-only discovery misses half the landscape — why: overlap lives in the spec corpus, downstream impact lives in the code.
 **IMPORTANT MUST ATTENTION** run INLINE — the step 5 scope-decision gate is a BLOCKING `AskUserQuestion` that only works inline; spawn sub-agents only for parallel spec reads, NEVER delegate the whole skill — why: a delegated user gate cannot block, so the author would proceed before the user decides scope.
 **IMPORTANT MUST ATTENTION** NEVER auto-pick NEW — classify every candidate spec EXTENDS/OVERLAPS/DEPENDS-ON/AFFECTED/UNRELATED with `file:line` evidence, then recommend and let the user decide via the BLOCKING gate — why: OVERLAPS detection is the entire reason this skill runs before the author; silently picking NEW ships a duplicate spec.
 **MUST ATTENTION** stay in the LANDSCAPE lane — surface related/overlapping/affected specs + the invariant landscape fast; do NOT author the spec (that is `spec [mode=draft]`) and do NOT deep-dive every flow (that is `investigate`) — why: scope creep into authoring/analysis duplicates the next steps and burns the budget.

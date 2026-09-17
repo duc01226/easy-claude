@@ -27,6 +27,49 @@ const CK_SKILLS_END = "<!-- /CK:WORKFLOW-SKILLS -->";
 
 const DEFAULT_SECTIONS = ["routing", "workflows", "skills"];
 
+// R8 LOCKSTEP. The loader (.claude/hooks/lib/project-config-loader.cjs) owns the portability token
+// table; this module only runs its own resolution when that require FAILS (a stripped portable tree
+// carries .claude/scripts/** without .claude/hooks/lib/). That branch resolves to the DEFAULTS —
+// never a pass-through: a pass-through would render a literal `{SPEC_ROOT}` into the generated
+// `## Workflow & Skills Catalog` table in CLAUDE.md / AGENTS.md, strictly worse than the hardcoded
+// path it replaced. Defaults-only duplication (no config paths, no resolution logic), mirroring the
+// same fallback in .claude/scripts/codex/sync-context-workflows.mjs.
+const PORTABILITY_TOKEN_DEFAULTS = {
+  SPEC_ROOT: "docs/specs",
+  SPEC_ROOT_TECHNICAL: "docs/specs-technical",
+  REF_DOCS_ROOT: "docs/project-reference",
+  ADR_ROOT: "docs/adr",
+  TEMPLATES_ROOT: "docs/templates",
+  PLANS_ROOT: "plans",
+  TEAM_ARTIFACTS_ROOT: "team-artifacts",
+  PRODUCT_ROADMAP_DOC: "docs/product-roadmap.md",
+};
+
+function resolvePortabilityTokensFallback(text, config) {
+  if (typeof text !== "string" || !text) return text;
+  if (!text.includes("{")) return text;
+  void config;
+  return text.replace(/\{([A-Z][A-Z0-9_]*)\}/g, (match, token) =>
+    Object.prototype.hasOwnProperty.call(PORTABILITY_TOKEN_DEFAULTS, token)
+      ? PORTABILITY_TOKEN_DEFAULTS[token]
+      : match
+  );
+}
+
+function loadResolvePortabilityTokens() {
+  try {
+    const loader = require("../../hooks/lib/project-config-loader.cjs");
+    if (typeof loader.resolvePortabilityTokens === "function") {
+      return loader.resolvePortabilityTokens;
+    }
+    return resolvePortabilityTokensFallback;
+  } catch {
+    return resolvePortabilityTokensFallback;
+  }
+}
+
+const resolvePortabilityTokens = loadResolvePortabilityTokens();
+
 // Module lives at .claude/scripts/lib/ → repo root is three levels up.
 function defaultRootDir() {
   return path.resolve(__dirname, "..", "..", "..");
@@ -217,9 +260,13 @@ function renderRoutingSection() {
   ].join("\n");
 }
 
-function renderWorkflowsSection(entries, rootDir) {
+// `whenToUse` (and any `description` this module renders) is a ROUTED field: it lands in the
+// GENERATED catalog table, so portability tokens are resolved BEFORE condensing/rendering.
+// Unknown braces (`{Bucket}`, `{plan-id}`, `--type={pbi|story}`) are left verbatim by the resolver.
+function renderWorkflowsSection(entries, rootDir, config) {
   const rows = entries.map(([id, wf]) => {
-    const hint = condenseWhenToUse(wf && wf.whenToUse) || safeCell((wf && wf.name) || id);
+    const whenToUse = resolvePortabilityTokens(wf && wf.whenToUse, config);
+    const hint = condenseWhenToUse(whenToUse) || safeCell((wf && wf.name) || id);
     const modes = resolveCatalogManifests(rootDir, id, wf);
     const steps = modes.map((manifest) => {
       const rendered = renderGroupedSequence(manifest);
@@ -238,9 +285,11 @@ function renderWorkflowsSection(entries, rootDir) {
   ].join("\n");
 }
 
-function renderSkillsSection(skills, rootDir, cache) {
+function renderSkillsSection(skills, rootDir, cache, config) {
   const rows = skills.map((skill) => {
-    const desc = safeCell(resolveSkillDescription(rootDir, skill, cache));
+    const desc = safeCell(
+      resolvePortabilityTokens(resolveSkillDescription(rootDir, skill, cache), config)
+    );
     return `| \`${skill}\` | ${desc} |`;
   });
   return [
@@ -259,10 +308,12 @@ function renderSkillsSection(skills, rootDir, cache) {
  * @param {object} [opts]
  * @param {string} [opts.rootDir] repo root (defaults to resolved repo root)
  * @param {string[]} [opts.sections] subset of ["routing","workflows","skills"]
+ * @param {object} [opts.config] parsed project-config.json; the loader loads + caches it when omitted
  * @returns {string} markdown body (no CK markers)
  */
 function buildWorkflowSkillsCatalog(opts = {}) {
   const rootDir = opts.rootDir || defaultRootDir();
+  const config = opts.config;
   const sections = opts.sections || DEFAULT_SECTIONS;
   const doc = readWorkflowsDoc(rootDir);
 
@@ -296,9 +347,10 @@ function buildWorkflowSkillsCatalog(opts = {}) {
 
   for (const section of sections) {
     if (section === "routing") blocks.push(renderRoutingSection(), "");
-    else if (section === "workflows") blocks.push(renderWorkflowsSection(entries, rootDir), "");
+    else if (section === "workflows")
+      blocks.push(renderWorkflowsSection(entries, rootDir, config), "");
     else if (section === "skills")
-      blocks.push(renderSkillsSection(skills, rootDir, cache), "");
+      blocks.push(renderSkillsSection(skills, rootDir, cache, config), "");
   }
 
   return blocks.join("\n").trimEnd();
@@ -306,6 +358,7 @@ function buildWorkflowSkillsCatalog(opts = {}) {
 
 module.exports = {
   buildWorkflowSkillsCatalog,
+  renderWorkflowsSection,
   condenseWhenToUse,
   baseSkill,
   resolvedModeSequences,

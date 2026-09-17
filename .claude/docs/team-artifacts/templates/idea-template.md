@@ -12,7 +12,7 @@ template_version: '2.0'
 # Domain Context (optional, for domain features — populate from project-config.json modules)
 module: '' # Module name from project-config.json backendServices.serviceMap
 related_features: [] # e.g., [FeatureA, FeatureB]
-feature_doc_path: '' # e.g., docs/specs/{Bucket}/README.{Feature}.md
+feature_doc_path: '' # e.g., {Bucket}/README.{Feature}.md under the business spec root
 entities: [] # e.g., [Goal, Employee, OrganizationalUnit]
 
 # Refinement Tracking
@@ -71,7 +71,7 @@ pbi_references: [] # Links to generated PBIs
 
 **Documentation Links:**
 
-- Module Overview: `docs/specs/{module}/README.md`
+- Module Overview: `{module}/README.md` in the business spec root
 - Related Docs: (auto-generated links)
 
 ## Questions / Risks

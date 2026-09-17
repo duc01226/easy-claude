@@ -38,6 +38,28 @@ function loadWorkflowManifestResolver() {
 
 const workflowManifestResolver = loadWorkflowManifestResolver();
 
+// Workflow auto-detect switch (`portability.workflowAutoDetect`, default true). Resolved once per
+// run and memoized, because every emitted section asks the same question. Fails OPEN when the
+// resolver is absent from a stripped portable tree — the same contract the resolver itself keeps.
+//
+// SCOPE 'team' is mandatory here: every output of this sync (.codex/CODEX_CONTEXT.md, AGENTS.md)
+// is GIT-TRACKED. Resolving the developer layer would bake one person's local preference into
+// files the whole team pulls. Their local setting takes effect at runtime instead.
+let workflowAutoDetectMemo = null;
+function workflowAutoDetectEnabled() {
+  if (workflowAutoDetectMemo === null) {
+    try {
+      const { isWorkflowAutoDetectEnabled, SCOPE_TEAM } = require(
+        path.join(rootDir, ".claude", "scripts", "lib", "workflow-routing-config.cjs")
+      );
+      workflowAutoDetectMemo = isWorkflowAutoDetectEnabled({ rootDir, scope: SCOPE_TEAM });
+    } catch {
+      workflowAutoDetectMemo = true;
+    }
+  }
+  return workflowAutoDetectMemo;
+}
+
 function loadHooklessPromptProtocol() {
   const scriptDir = path.dirname(fileURLToPath(import.meta.url));
   const candidates = [
@@ -93,15 +115,42 @@ const agentsPath = path.join(rootDir, "AGENTS.md");
 const sharedSyncInlinePath = path.join(rootDir, ".claude", "skills", "shared", "sync-inline-versions.md");
 const sharedAiSddSyncTags = ["ai-sdd-artifact-contract", "ai-sdd-artifact-contract:reminder"];
 
+// R8 LOCKSTEP. The loader owns the token table; this file only runs its own resolution when
+// the loader require FAILS (a stripped portable Codex tree carries .claude/scripts/codex/*.mjs
+// without .claude/hooks/lib/). That branch resolves to the DEFAULTS — never a pass-through:
+// a pass-through would emit a literal `{SPEC_ROOT}` into .codex/CODEX_CONTEXT.md and AGENTS.md,
+// which is strictly worse than the hardcoded path it replaced.
+//
+// PORTABILITY_TOKEN_DEFAULTS below is the ONLY duplicated data, and it is defaults-only (no
+// config paths, no resolution logic). TC-DOCROOT-029 deepEquals it against the loader's
+// PORTABILITY_TOKENS defaults, so drift fails CI rather than silently diverging the two hosts.
+const PORTABILITY_TOKEN_DEFAULTS = {
+  SPEC_ROOT: "docs/specs",
+  SPEC_ROOT_TECHNICAL: "docs/specs-technical",
+  REF_DOCS_ROOT: "docs/project-reference",
+  ADR_ROOT: "docs/adr",
+  TEMPLATES_ROOT: "docs/templates",
+  PLANS_ROOT: "plans",
+  TEAM_ARTIFACTS_ROOT: "team-artifacts",
+  PRODUCT_ROADMAP_DOC: "docs/product-roadmap.md"
+};
+
 function resolvePortabilityTokensFallback(text, config) {
   if (typeof text !== "string" || !text) return text;
+  if (!text.includes("{")) return text;
   void config;
-  return text;
+  return text.replace(/\{([A-Z][A-Z0-9_]*)\}/g, (match, token) =>
+    Object.prototype.hasOwnProperty.call(PORTABILITY_TOKEN_DEFAULTS, token)
+      ? PORTABILITY_TOKEN_DEFAULTS[token]
+      : match
+  );
 }
 
 function loadResolvePortabilityTokens() {
   try {
-    return require("../../hooks/lib/project-config-loader.cjs").resolvePortabilityTokens;
+    const loader = require("../../hooks/lib/project-config-loader.cjs");
+    if (typeof loader.resolvePortabilityTokens === "function") return loader.resolvePortabilityTokens;
+    return resolvePortabilityTokensFallback;
   } catch {
     return resolvePortabilityTokensFallback;
   }
@@ -131,7 +180,12 @@ const AGENTS_ROOT_PROJECTION_END = "<!-- /CK:CODEX-ROOT-PROJECTION -->";
 // another ~2 KiB. Raising the ceiling is the deliberate choice over compressing the DESIGN-GATE:
 // Codex pays the tokens once per prompt, and the alternative traded a correctness guardrail for
 // bytes. Revisit only with a measured host budget, never to make an overflow warning go away.
-const AGENTS_ROOT_LIMIT_BYTES = 49152;
+// 2026-09-17: raised 49152 -> 53248 (48 -> 52 KiB). The 49152 ceiling had ~145 bytes of headroom, so
+// ANY new System Lesson overflowed it; the environment-fault lesson (a failure-adjudication guardrail
+// Codex otherwise gets zero always-on copies of) costs ~1.4 KiB. Same trade as the 32768 -> 49152
+// raise: a correctness guardrail beats bytes. Still a PROJECT budget, not a host limit — revisit with
+// a measured host budget, never to silence an overflow warning.
+const AGENTS_ROOT_LIMIT_BYTES = 53248;
 const AGENTS_PROJECTION_HEADINGS = [
   /^## Workflow Step Advancement & Parallel Phases$/m,
   /^## TL;DR — What You Must Know Before Writing Any Code$/m,
@@ -198,14 +252,16 @@ function buildAgentsContextMirrorBlock(contextMd) {
     AGENTS_CONTEXT_MIRROR_START,
     "## Codex Context Mirror (Auto-Synced)",
     "",
-    "This compact pointer is auto-generated from `.codex/CODEX_CONTEXT.md` by `npm run codex:sync:context`.",
+    "This compact pointer is auto-generated from `.codex/CODEX_CONTEXT.md` by `node .claude/scripts/codex/sync-context-workflows.mjs`.",
     "Read `.codex/CODEX_CONTEXT.md` before any non-trivial workflow or skill; it carries the full static catalog and protocol detail.",
     `Context fingerprint (SHA-256): ${sha256}`,
     "Do not edit this pointer manually; update canonical Claude sources and re-sync.",
     "",
     buildProjectReferenceGateSection(),
     "",
-    "[WORKFLOW-EXECUTION-PROTOCOL] Claude and Codex may run hooks, but the static protocol is authoritative: auto-select the route, resolve the canonical workflow manifest, and stop when required context is missing or stale. The full protocol and workflow catalog are in `.codex/CODEX_CONTEXT.md`.",
+    workflowAutoDetectEnabled()
+      ? "[WORKFLOW-EXECUTION-PROTOCOL] Claude and Codex may run hooks, but the static protocol is authoritative: auto-select the route, resolve the canonical workflow manifest, and stop when required context is missing or stale. The full protocol and workflow catalog are in `.codex/CODEX_CONTEXT.md`."
+      : "[WORKFLOW-EXECUTION-PROTOCOL] Workflow auto-detect is OFF for this project (`portability.workflowAutoDetect: false`): do not infer a route — execute the request directly, and resolve a canonical workflow/skill definition only when the user names one explicitly. The static protocol in `.codex/CODEX_CONTEXT.md` remains authoritative for everything else, and stopping when required context is missing or stale still applies.",
     "",
     "If the referenced context is missing or its fingerprint is stale, stop and run `$sync-codex` (or the standalone sync runner) before proceeding.",
     AGENTS_CONTEXT_MIRROR_END,
@@ -287,7 +343,7 @@ function buildAgentsClaudeMirrorBlock(claudeMd) {
     AGENTS_ROOT_PROJECTION_START,
     "## Claude Instructions Mirror (Compact Auto-Synced Projection)",
     "",
-    "This bounded projection is generated from `CLAUDE.md` by `npm run codex:sync:context`; it keeps critical routing, ownership, evidence and task rules in the Codex root.",
+    "This bounded projection is generated from `CLAUDE.md` by `node .claude/scripts/codex/sync-context-workflows.mjs`; it keeps critical routing, ownership, evidence and task rules in the Codex root.",
     "For full canonical detail, read `CLAUDE.md` and `.codex/CODEX_CONTEXT.md` directly. Do not edit generated mirrors.",
     "",
     projection,
@@ -503,12 +559,38 @@ function toWorkflowEntries(workflows) {
   return Object.entries(workflows);
 }
 
-function buildWorkflowSection(workflowEntries, projectRoot = rootDir) {
+function buildWorkflowSection(workflowEntries, projectRoot = rootDir, { workflowAutoDetect = true } = {}) {
   const sorted = [...workflowEntries].sort((a, b) => a[0].localeCompare(b[0]));
   const lines = [];
 
   lines.push("## Workflow Protocol (Hook-Independent)");
   lines.push("");
+
+  // Routing off: emit the instruction and STOP before the catalog. Leaving the Quick Keyword
+  // Lookup in place while telling the model not to auto-route would be self-defeating — a
+  // "match prompt → workflow" table IS the auto-detect affordance, whatever the prose says.
+  if (!workflowAutoDetect) {
+    lines.push(
+      "Workflow auto-detect is OFF for this project (`portability.workflowAutoDetect: false` in the project config), " +
+        "so this context deliberately carries no workflow catalog and no keyword lookup table. Do not match a request " +
+        "against workflows or skills, and do not infer a route — execute the request directly."
+    );
+    lines.push("");
+    lines.push(
+      "When the user explicitly names one (`$skill`, `$workflow-*`, `$start-workflow <id>`), read its canonical " +
+        "definition — `.claude/workflows.json` for a workflow, `.claude/skills/<name>/SKILL.md` for a skill — and " +
+        "follow it exactly, including its tasking, quality gates and parallel-phase barriers. If that definition is " +
+        "unavailable, stop and report the exact missing path; never invent a sequence."
+    );
+    lines.push("");
+    lines.push(
+      "Turning routing off changes route SELECTION only. Task planning, evidence obligations, required reviews, " +
+        "git discipline and user-confirmation gates are unaffected."
+    );
+    lines.push("");
+    return lines.join("\n");
+  }
+
   lines.push("Use this protocol for workflow execution on Claude or Codex (hooks are optional accelerators):");
   lines.push("1. Detect: execute explicit `$skill`, `$workflow-*`, or `$start-workflow <id>` prompts directly; otherwise match request against workflow catalog and skill list.");
   lines.push("2. Analyze: choose the best path: direct execution, skill, standard workflow, or custom step combination.");
@@ -526,7 +608,7 @@ function buildWorkflowSection(workflowEntries, projectRoot = rootDir) {
   // without reading every full detail block below.
   const lookupRows = sorted
     .map(([workflowId, workflow]) => {
-      const hint = extractKeywords(safeLine(workflow?.whenToUse));
+      const hint = extractKeywords(safeLine(resolvePortabilityTokens(workflow?.whenToUse)));
       if (!hint) return null;
       const name = (safeLine(workflow?.name) || workflowId).replace(/\|/g, "\\|");
       return `| ${hint} | \`${workflowId}\` | ${name} |`;
@@ -547,7 +629,7 @@ function buildWorkflowSection(workflowEntries, projectRoot = rootDir) {
   for (const [workflowId, workflow] of sorted) {
     const name = safeLine(workflow?.name) || workflowId;
     const description = safeLine(resolvePortabilityTokens(workflow?.description));
-    const whenToUse = safeLine(workflow?.whenToUse);
+    const whenToUse = safeLine(resolvePortabilityTokens(workflow?.whenToUse));
     const protocol = resolvePortabilityTokens(workflow?.preActions?.injectContext);
 
     if (typeof protocol !== "string" || protocol.trim().length === 0) {
@@ -801,6 +883,9 @@ async function buildPromptProtocolMirrorSection(headingSuffix = "Auto-Synced") {
   return buildHooklessPromptProtocolMirrorSection(rootDir, {
     heading: `Prompt Protocol Mirror (${headingSuffix})`,
     includeLessonReminder: false,
+    // This mirror is written into the git-tracked .codex/CODEX_CONTEXT.md, so it carries the
+    // TEAM value. A developer's local override applies to their runtime prompt, never here.
+    scope: "team",
   });
 }
 
@@ -823,7 +908,10 @@ export async function runContextSync({ outRootDir = rootDir } = {}) {
   const skillReferenceMap = buildSkillReferenceMap(skillNames);
   const generatedSection = prependCodexCompatibilityNote(
     rewriteClaudeToolTermsForCodex(
-      rewriteSkillMentionsForCodex(buildWorkflowSection(workflowEntries, rootDir), skillReferenceMap)
+      rewriteSkillMentionsForCodex(
+        buildWorkflowSection(workflowEntries, rootDir, { workflowAutoDetect: workflowAutoDetectEnabled() }),
+        skillReferenceMap
+      )
     )
   );
   const topPromptProtocolSection = prependCodexCompatibilityNote(
@@ -926,4 +1014,14 @@ if (invokedAsScript) {
 // copy of the number. The two drifted once already: this limit was raised to 49152 here while
 // `verify-skill-protocol-compliance.mjs` kept 32768, so a projection this generator considered valid
 // failed its own pipeline gate.
-export { contextPath, agentsPath, AGENTS_ROOT_LIMIT_BYTES };
+// `buildWorkflowSection` and `workflowAutoDetectEnabled` are exported so the routing-switch tests
+// can render BOTH states in one process. The alternative — mutating the repo's real
+// project-config.json and running a full sync per state — would leave the working tree dirty if a
+// single assertion threw.
+export {
+  contextPath,
+  agentsPath,
+  AGENTS_ROOT_LIMIT_BYTES,
+  buildWorkflowSection,
+  workflowAutoDetectEnabled,
+};

@@ -11,6 +11,7 @@ const thisDir = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(thisDir, "..", "..", "..", "..");
 const {
   buildWorkflowSkillsCatalog,
+  renderWorkflowsSection,
   condenseWhenToUse,
   baseSkill,
   resolvedModeSequences,
@@ -276,4 +277,88 @@ test("TC-WSC-011 renders every declared parallel group as one bracketed step", (
 test("exported CK markers are stable", () => {
   assert.equal(CK_SKILLS_START, "<!-- CK:WORKFLOW-SKILLS -->");
   assert.equal(CK_SKILLS_END, "<!-- /CK:WORKFLOW-SKILLS -->");
+});
+
+// The 8 canonical portability token names (loader PORTABILITY_TOKENS). Asserted as literal braces
+// so a bare `{SPEC_ROOT}` reaching the GENERATED catalog table fails, whatever it should have been.
+const PORTABILITY_TOKEN_NAMES = [
+  "SPEC_ROOT",
+  "SPEC_ROOT_TECHNICAL",
+  "REF_DOCS_ROOT",
+  "ADR_ROOT",
+  "TEMPLATES_ROOT",
+  "PLANS_ROOT",
+  "TEAM_ARTIFACTS_ROOT",
+  "PRODUCT_ROADMAP_DOC",
+];
+
+// TC-DOCROOT-048 — `whenToUse` is a ROUTED field: tokens resolve from the configured root before
+// the `When to use` column is rendered, and no token brace survives into the generated table.
+test("TC-DOCROOT-048 renderWorkflowsSection resolves whenToUse tokens from config", () => {
+  const config = { specRoots: { business: { path: "spec-library" } } };
+  // Steps are rendered from the real registry, so the row must carry a REAL workflow id; only the
+  // routed `whenToUse` field is replaced with a tokenised fixture value.
+  const [fixtureId, shippedWorkflow] = Object.entries(workflowsDoc.workflows)[0];
+  const entries = [
+    [
+      fixtureId,
+      {
+        ...shippedWorkflow,
+        whenToUse: "User edits {SPEC_ROOT}/{Bucket}, a plan in {PLANS_ROOT}",
+      },
+    ],
+  ];
+
+  const out = renderWorkflowsSection(entries, repoRoot, config);
+  const row = out.split("\n").find((line) => line.startsWith(`| \`${fixtureId}\``));
+  assert.ok(row, out);
+  // `condenseWhenToUse` lower-cases the hint, so compare case-insensitively.
+  const hint = row.toLowerCase();
+  assert.ok(hint.includes("spec-library"), row);
+  assert.ok(hint.includes("{plans_root}") === false, row);
+  assert.ok(hint.includes("a plan in plans"), row);
+  assert.ok(hint.includes("{bucket}"), "unknown braces survive verbatim");
+  for (const token of PORTABILITY_TOKEN_NAMES) {
+    assert.ok(
+      !hint.includes(`{${token.toLowerCase()}}`),
+      `unresolved {${token}} reached the catalog table`
+    );
+  }
+});
+
+// TC-DOCROOT-049 (catalog half) — an EMPTY config renders exactly the DEFAULT-config catalog.
+//
+// Originally phrased as "a no-op on token-free content". Phase 05 tokenised the routed fields, so
+// the `When to use` cell now equals `condenseWhenToUse(whenToUse RESOLVED to the defaults)` rather
+// than the raw string. The invariant that still binds — and the one the backward-compat claim
+// rests on — is that an absent/empty config produces the same bytes the default config produces.
+test("TC-DOCROOT-049 empty-config catalog rendering equals default-config rendering", () => {
+  const entries = Object.entries(workflowsDoc.workflows).sort((a, b) => a[0].localeCompare(b[0]));
+
+  const withEmptyConfig = renderWorkflowsSection(entries, repoRoot, {});
+  const withDefaultConfig = renderWorkflowsSection(entries, repoRoot);
+  assert.equal(withEmptyConfig, withDefaultConfig);
+
+  for (const [id, wf] of entries) {
+    const { resolvePortabilityTokens } = require(
+      path.join(repoRoot, ".claude", "hooks", "lib", "project-config-loader.cjs")
+    );
+    const expected = condenseWhenToUse(resolvePortabilityTokens(wf.whenToUse, {})) || id;
+    const row = withEmptyConfig.split("\n").find((line) => line.startsWith(`| \`${id}\``));
+    assert.ok(row, `missing row for ${id}`);
+    assert.ok(row.includes(expected), `${id}: When-to-use cell must render the resolved whenToUse`);
+  }
+
+  for (const token of PORTABILITY_TOKEN_NAMES) {
+    assert.equal(
+      withEmptyConfig.includes(`{${token}}`),
+      false,
+      `a bare {${token}} reached the generated CLAUDE.md/AGENTS.md catalog table`
+    );
+  }
+
+  assert.equal(
+    buildWorkflowSkillsCatalog({ rootDir: repoRoot, config: {} }),
+    buildWorkflowSkillsCatalog({ rootDir: repoRoot })
+  );
 });

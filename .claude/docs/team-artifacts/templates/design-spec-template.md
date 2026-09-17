@@ -153,7 +153,7 @@ template_version: '2.0'
 
 ### Other References
 
-- Design System: [{Link}](../../docs/project-reference/design-system/)
+- Design System: [{Link}](../../docs/project-reference/design-system/) — link assumes the default project-reference root; `docsRoots.projectReference.path` in `docs/project-config.json` overrides it
 - PBI: [{PBI ID}](../pbis/{pbi-file}.md)
 
 ---

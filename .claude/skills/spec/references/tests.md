@@ -2,7 +2,7 @@
 
 # Mode: Generate / Update Test Specifications (Section 8)
 
-> **Portability:** `docs/specs/` is the fixed Feature Spec root.
+> **Portability:** the business Feature Spec root — default `docs/specs/`; a `specRoots.business.path` entry in `docs/project-config.json` overrides the path. Resolve it from the config before assuming a location; never edit the literal in prose. It is distinct from the derived technical root (`specRoots.technical.path`, default `docs/specs-technical/`) — §8 TCs are authored in the BUSINESS tree only. A `specRoots` sub-object declared without its `path` is a configuration ERROR, not a silent fallback to the default.
 
 **Goal:** Generate/update business test specs in feature docs Section 8 (canonical business TC registry) — unified `TC-{FEATURE}-{NNN}` format. 5 modes: TDD-first, implement-first, update (post-change/PR), sync, from-integration-tests.
 
@@ -26,10 +26,12 @@
 
 > **`.claude/skills/spec/references/spec-tests-template.md`** — TC format template: GWT structure, Evidence field, decade-numbering, Preservation Tests section (mandatory for bugfixes). Read before generating any TC.
 
+Each reference doc below sits in the project-reference docs root — default `docs/project-reference/`; a `docsRoots.projectReference.path` entry in `docs/project-config.json` overrides the path:
+
 - `.claude/skills/spec/references/spec-tests-template.md` — TC template format
-- `docs/project-reference/domain-entities-reference.md` — Domain entity catalog, relationships, cross-service sync
-- `docs/project-reference/integration-test-reference.md` — Integration test patterns, fixture setup, seeder conventions, lessons learned (MUST READ before reviewing/writing integration tests)
-- `docs/specs/` — Existing TCs by module — read BEFORE generating to avoid ID collisions
+- `domain-entities-reference.md` — Domain entity catalog, relationships, cross-service sync
+- `integration-test-reference.md` — Integration test patterns, fixture setup, seeder conventions, lessons learned (MUST READ before reviewing/writing integration tests)
+- The business spec root (default `docs/specs/`; a `specRoots.business.path` entry in `docs/project-config.json` overrides the path) — Existing TCs by module — read BEFORE generating to avoid ID collisions
 
 **Workflow:**
 
@@ -42,8 +44,8 @@
 
 **Key Rules:**
 
-- **Unified format:** `TC-{FEATURE}-{NNN}` — feature codes in `docs/project-reference/feature-spec-reference.md`
-- **Source of truth:** Feature docs Section 8 — canonical business TC registry. NEVER write standalone TC files to `docs/specs/` as the primary destination; update the governing Feature Spec's Section 8.
+- **Unified format:** `TC-{FEATURE}-{NNN}` — feature codes in `feature-spec-reference.md`, under the project-reference docs root (default `docs/project-reference/`; a `docsRoots.projectReference.path` entry in `docs/project-config.json` overrides the path)
+- **Source of truth:** Feature docs Section 8 — canonical business TC registry. NEVER write standalone TC files to the business spec root (default `docs/specs/`; a `specRoots.business.path` entry in `docs/project-config.json` overrides the path) as the primary destination; update the governing Feature Spec's Section 8.
 - **Evidence required:** Every TC MUST have `Evidence: [Source: {namespace}/{service}/{id}]` (stack-portable abstract anchor — never physical code coordinates or repository-root paths) or `TBD (pre-implementation)` for TDD-first. Canonical format + anchor taxonomy: `shared/tc-format.md`
 - **Minimum 5 categories:** Positive (happy path) · Negative (error handling) · **Authorization** (role-based access — MANDATORY) · Edge cases · **Invariant / Property** (MANDATORY — see below)
     - **Invariant / Property TCs (MANDATORY):** For each **[HARD] business rule (§4)** and each **§5 entity invariant**, derive ≥1 **universally-quantified property TC** — phrase the objective/GWT as "for ALL inputs in {domain}, {invariant} holds" — PLUS ≥1 **boundary counter-case** (the input just outside the domain where the invariant must fail-closed). A property TC names the input **domain**, not a single point; this distinguishes it from an example TC (one fixed GIVEN/WHEN/THEN). Walk the 6 invariant classes (idempotency · round-trip/inverse · commutativity · monotonicity · conservation · state-transition) in `.claude/skills/shared/tc-format.md` → "Invariant Categories to Probe" as the discovery prompt. Naming an invariant in the per-TC field is NOT enough — the TC must ASSERT the property across its domain.
@@ -98,9 +100,9 @@
 
 | Artifact                     | Path                                                                     |
 | ---------------------------- | ------------------------------------------------------------------------ |
-| TCs (canonical)              | `docs/specs/{App}/README.{Feature}.md` Section 8 |
+| TCs (canonical)              | `docs/specs/{App}/README.{Feature}.md` Section 8 — the root is a default; a `specRoots.business.path` entry in `docs/project-config.json` overrides it |
 | Integration test code        | `{IntegrationTests}/` — §8 TCs forward-synced here via `[mode=sync]` |
-| Spec index (derived)         | `docs/specs/{App}/INDEX.md` — regenerable TC-count catalog (via /spec-index) |
+| Spec index (derived)         | `docs/specs/{App}/INDEX.md` — regenerable TC-count catalog (via /spec-index); the root is a default, overridden by `specRoots.business.path` in `docs/project-config.json` |
 
 > **Phase-Mapped Coverage:** When a plan exists with multiple phases, generate test cases
 > PER PHASE — not just per feature. Each phase's success criteria must have ≥1 test case.
@@ -109,9 +111,11 @@
 
 > When this task involves frontend or UI changes,
 
-- Component patterns: `docs/project-reference/frontend-patterns-reference.md`
-- Styling/BEM guide: `docs/project-reference/scss-styling-guide.md`
-- Design system tokens: `docs/project-reference/design-system/README.md`
+Each file below sits in the project-reference docs root — default `docs/project-reference/`; a `docsRoots.projectReference.path` entry in `docs/project-config.json` overrides the path:
+
+- Component patterns: `frontend-patterns-reference.md`
+- Styling/BEM guide: `scss-styling-guide.md`
+- Design system tokens: `design-system/README.md`
 
 ---
 
@@ -126,7 +130,7 @@ Detect mode from prompt and context:
 | **TDD-first**              | PBI/story exists, code not yet written            | Generate specs from requirements                                  |
 | **Implement-first**        | Code already exists, no/incomplete TCs            | Generate specs from codebase analysis                             |
 | **Update**                 | Existing TCs + code changes / bugfix / PR         | Diff existing TCs against current code/PR, find gaps, update both |
-| **Sync**                   | User says "sync test specs" or bidirectional need | Reconcile feature docs ↔ docs/specs/ (either direction) — see `sync.md` |
+| **Sync**                   | User says "sync test specs" or bidirectional need | Reconcile feature docs ↔ the business spec root (default `docs/specs/`, overridden by `specRoots.business.path` in `docs/project-config.json`), either direction — see `sync.md` |
 | **From-integration-tests** | Tests exist with test spec annotations, no docs   | Extract TC metadata from test code → write to feature docs        |
 
 ### Mode Confirmation (AskUserQuestion)
@@ -145,9 +149,11 @@ Skip confirmation only when mode explicit in `$ARGUMENTS` AND feature name unamb
 
 **Must read FIRST:**
 
-1. `docs/project-reference/feature-spec-reference.md` — correct `{FEATURE}` code for TC IDs
+Reference docs below sit in the project-reference docs root — default `docs/project-reference/`; a `docsRoots.projectReference.path` entry in `docs/project-config.json` overrides the path.
+
+1. `feature-spec-reference.md` — correct `{FEATURE}` code for TC IDs
 2. Target feature doc — Section 8 exists? Read existing TCs to avoid ID collisions
-3. `.claude/skills/shared/sdd-artifact-contract.md` — "Test-Complete Gate" (TC coverage mapping: minimum categories — positive / negative / unauthorized-access / state-transition / event — and depth). `docs/project-reference/spec-principles.md` adds only repo-local test-mapping conventions (§5).
+3. `.claude/skills/shared/sdd-artifact-contract.md` — "Test-Complete Gate" (TC coverage mapping: minimum categories — positive / negative / unauthorized-access / state-transition / event — and depth). `spec-principles.md` adds only repo-local test-mapping conventions (§5).
 
 **Spec Readiness Gate (BLOCKING — implement-first and update modes only):**
 
@@ -166,7 +172,7 @@ If 2+ fail → `AskUserQuestion`: "Spec readiness below TC generation threshold.
 
 **TDD-first mode:**
 
-1. Read PBI/story from `team-artifacts/pbis/` or user-provided
+1. Read PBI/story from `pbis/` under the team-artifacts root (default `team-artifacts/`; a `docsRoots.teamArtifacts.path` entry in `docs/project-config.json` overrides the path) or user-provided
 2. Extract acceptance criteria
 3. Identify TC categories: CRUD, validation, **authorization** (mandatory), workflows, edge cases, seed data, performance, data migration
 4. Cross-reference existing feature doc requirements (Sections 1-7)
@@ -295,19 +301,21 @@ rg "{project read-endpoint patterns}" {target-source-path} -g "{source-file-glob
 > **[RECOMMENDED]** After updating TCs for the target feature, scan for other features whose TCs
 > may be invalidated by the same code change.
 
-**Run these greps against `docs/specs/`:**
+**Run these greps against the business spec root** (default `docs/specs/`; a `specRoots.business.path` entry in `docs/project-config.json` overrides the path):
 
 ```bash
+SPEC_ROOT=docs/specs # default only — read specRoots.business.path from docs/project-config.json first
+
 # 1. Find API endpoint references in other feature docs
-grep -rl "{endpoint}" docs/specs/ | grep -v "{current-module}"
+grep -rl "{endpoint}" "$SPEC_ROOT" | grep -v "{current-module}"
 # Replace {endpoint} with the main API path changed (e.g., /api/orders, /api/customers)
 
 # 2. Find entity references in other feature docs
-grep -rl "{entity-name}" docs/specs/ | grep -v "{current-module}"
+grep -rl "{entity-name}" "$SPEC_ROOT" | grep -v "{current-module}"
 # Replace {entity-name} with key domain entities changed (e.g., Order, Customer)
 
 # 3. Find event references in other feature docs
-grep -rl "{event-name}" docs/specs/ | grep -v "{current-module}"
+grep -rl "{event-name}" "$SPEC_ROOT" | grep -v "{current-module}"
 # Replace {event-name} with events fired by the changed code
 ```
 
@@ -622,7 +630,7 @@ When feature behavior removed or significantly changed:
 
 ## Anti-Patterns
 
-- ❌ Writing TCs to `docs/specs/` as the primary destination (use feature docs Section 8)
+- ❌ Writing TCs to the business spec root (default `docs/specs/`, overridden by `specRoots.business.path` in `docs/project-config.json`) as the primary destination (use feature docs Section 8)
 - ❌ Using `TC-{SVC}-{NNN}` or `TC-{SVC}-{FEATURE}-{NNN}` format (use unified `TC-{FEATURE}-{NNN}`)
 - ❌ Generating TCs without reading existing Section 8 (causes ID collisions)
 - ❌ Skipping the interactive review step (user must approve TC list)

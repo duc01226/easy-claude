@@ -116,7 +116,7 @@ Engine contract: keyboard `←`/`→`/`Home`/`End`, clickable nav dots, live `N 
 
 ## 3. `<iframe srcdoc>` Mockup Embed — HTML-Escaping Spec (HIGHEST-RISK)
 
-Each existing `team-artifacts/pbis/*-mockup.html` is a FULL HTML document containing `"`, `&`, `<`, `>`, and possibly inline `<script>`. It is embedded into the deck via:
+Each existing `pbis/*-mockup.html` under the team-artifacts root (default `team-artifacts/`; `docsRoots.teamArtifacts.path` in `docs/project-config.json` overrides) is a FULL HTML document containing `"`, `&`, `<`, `>`, and possibly inline `<script>`. It is embedded into the deck via:
 
 ```html
 <div class="deck__embed">
@@ -299,5 +299,5 @@ Before completing:
 - [ ] Empty-state slide for any visual-less feature (never a broken/blank iframe)
 - [ ] CSS uses design-system tokens; BEM class names
 - [ ] Real domain entity field names + realistic sample data (not Lorem ipsum)
-- [ ] Saved at `team-artifacts/presentations/{YYMMDD}-presentation-{slug}.html`
+- [ ] Saved at `presentations/{YYMMDD}-presentation-{slug}.html` under the team-artifacts root (default `team-artifacts/`; `docsRoots.teamArtifacts.path` in `docs/project-config.json` overrides)
 - [ ] Fidelity gate (§4) recorded PASS — tokens, components, layout, flows, embeds, demos matched

@@ -319,7 +319,7 @@ echo $?  # Verify exit code
 
 ## Lessons-Informed Rules
 
-These rules derive from project lessons learned (`docs/project-reference/lessons.md`):
+These rules derive from project lessons learned (`lessons.md` in the project-reference docs root — default `docs/project-reference`; a `docsRoots.projectReference.path` entry in `docs/project-config.json` overrides the path):
 
 1. **Mirror copies create staleness traps** — After editing a canonical source, grep for ALL mirrored copies (configs, skill definitions, docs, catalogs) and update them. Verify with `grep` after edits.
 2. **Docs embedding derived data go stale silently** — Documentation that inlines data from a canonical source (workflow sequences, schemas, config tables) must be updated alongside the source. Map all docs that embed canonical data before modifying the source.

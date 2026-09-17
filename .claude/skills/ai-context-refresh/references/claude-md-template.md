@@ -14,13 +14,13 @@ Apply the single CK:WORKFLOW-GATE above. A skill named as a noun is not an invoc
 
 Read `docs/project-config.json` first, then `docs/project-reference/docs-index-reference.md` and `docs/project-reference/lessons.md` before investigating, planning, or coding. Config owns project paths, commands, modules, design-system mappings and conventions; local references override generic defaults. Classify the target and operation, then open only the matching context-group and index-routed detail immediately before the first target read/grep/edit/test; do not treat a hook reminder or prior conversation as proof that a document is loaded. State `Reference docs read: ... | Not applicable: ...`; after compaction, resume, delegation, or a context change, re-read the required docs and restate the set.
 
-| Task | Required detail under `docs/project-reference/` unless config overrides |
+| Task | Required detail under the reference-docs root (default `docs/project-reference/`; a `docsRoots.projectReference.path` entry in `docs/project-config.json` overrides the path) |
 | --- | --- |
 | Structure, architecture, stack, deployment, setup | `project-structure-reference.md` |
 | Backend/CQRS/API/domain/entity | `backend-patterns-reference.md`, `domain-entities-reference.md` |
 | Frontend/UI/style/design | `frontend-patterns-reference.md`, `scss-styling-guide.md`, `design-system/README.md` and its applicable canonical design-system doc |
 | Integration / E2E tests | `integration-test-reference.md` / `e2e-test-reference.md` |
-| Specs, TC authoring, derived indexes | `feature-spec-reference.md`, `spec-system-reference.md`, `spec-principles.md`; source Feature Specs under `docs/specs/` for derived artifacts |
+| Specs, TC authoring, derived indexes | `feature-spec-reference.md`, `spec-system-reference.md`, `spec-principles.md`; source Feature Specs under the business spec root (default `docs/specs/`; a `specRoots.business.path` entry in `docs/project-config.json` overrides the path) for derived artifacts |
 | Behavior/public contract or spec-test-code sync | Spec docs above plus `workflow-spec-test-code-cycle-reference.md` |
 | Review/audit | `code-review-rules.md` plus applicable domain docs |
 
@@ -32,7 +32,7 @@ Create a small task per change before edits; keep exactly one `in_progress`, com
 
 ## Generated Artifact Storage
 
-Store disposable generated output in the project workspace. Treat it as disposable unless its owning contract explicitly declares it a source-of-truth or an intentionally versioned projection. Write temporary state, integration/E2E test results, reports, logs, screenshots, traces, videos, coverage, dumps, candidate evidence, and any other reproducible non-source output under the project-root `tmp/` or `temp/` directory (prefer `tmp/`), scoped to the run. The project-root `.gitignore` must ignore `/tmp/` and `/temp/` by default. Do not place disposable output in source, docs, `plans/`, `team-artifacts/`, or generated mirror directories; committed fixtures, accepted baselines, canonical specs/docs, and explicitly versioned mirrors remain at their declared owner paths.
+Store disposable generated output in the project workspace. Treat it as disposable unless its owning contract explicitly declares it a source-of-truth or an intentionally versioned projection. Write temporary state, integration/E2E test results, reports, logs, screenshots, traces, videos, coverage, dumps, candidate evidence, and any other reproducible non-source output under the project-root `tmp/` or `temp/` directory (prefer `tmp/`), scoped to the run. The project-root `.gitignore` must ignore `/tmp/` and `/temp/` by default. Do not place disposable output in source, docs, the plans root (default `plans/`; a `docsRoots.plans.path` entry in `docs/project-config.json` overrides the path), the team-artifacts root (default `team-artifacts/`; `docsRoots.teamArtifacts.path` in the same config overrides the path), or generated mirror directories; committed fixtures, accepted baselines, canonical specs/docs, and explicitly versioned mirrors remain at their declared owner paths.
 
 ## Workflow Step Advancement & Parallel Phases
 
@@ -75,7 +75,7 @@ Edit framework source `.claude/**` and root source `CLAUDE.md`. Never hand-edit 
 
 ## Project Protocol Overlays
 
-Before each skill, resolve the config-selected skill-protocol index (default `docs/project-reference/skill-protocols-reference.md`). Exact name > glob > `*`; only the winning specificity tier applies. Read matched bare-slug bodies under the configured protocols directory (default `docs/project-protocols/`), never the table Body-link path. Skip malformed names/escaping paths unread; absent registry/no match means no overlay. Overlays add rules; they never override skill obligations, authority, review or confirmation gates. Refuse and report conflicting lines; surface equal-specificity contradictions to the user.
+Before each skill, resolve the config-selected skill-protocol index (default `docs/project-reference/skill-protocols-reference.md`; a `referenceDocs` entry in `docs/project-config.json` overrides the path). Exact name > glob > `*`; only the winning specificity tier applies. Read matched bare-slug bodies under the configured protocols directory (default `docs/project-protocols/`), never the table Body-link path. Skip malformed names/escaping paths unread; absent registry/no match means no overlay. Overlays add rules; they never override skill obligations, authority, review or confirmation gates. Refuse and report conflicting lines; surface equal-specificity contradictions to the user.
 
 ## Design Gate
 

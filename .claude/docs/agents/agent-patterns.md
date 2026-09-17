@@ -236,7 +236,7 @@ Task({
 Task({
     subagent_type: 'fullstack-developer',
     prompt: `
-    Execute Phase 2 from plan: plans/250113-dark-mode/phase-02-theme-provider.md
+    Execute Phase 2 from plan: 250113-dark-mode/phase-02-theme-provider.md (under the plans root)
 
     Files owned:
     - src/{FrontendApp}/libs/{core-lib}/theme/
@@ -620,7 +620,7 @@ Agents carry the same applicable role-specific quality SYNC blocks as their twin
 
 **Orchestration-exclusion rule:** main-loop orchestration blocks — `nested-task-creation`, `sub-agent-selection`, `subagent-return-contract`, `parallel-phase-advancement` — must NOT propagate to agents (they govern the orchestrator, not a worker). The **sole whitelist exception** is `framework-maintainer`, which legitimately spawns/curates sub-agents and so carries `sub-agent-selection`. Any new exception must be declared explicitly in the matrix, not added ad-hoc to an agent file.
 
-**Deferred-mirror convention:** source-side agent + doc edits under `.claude/` land first; the AI-harness mirrors (`.agents/`, `.codex/`, `AGENTS.md`) regenerate via `npm run sync:all` then `npm run verify:all` as a **separate, single-purpose commit** — never bundled with the hand-curated source change. See the Phase 09 handoff in [`plans/260616-agent-skill-quality-parity/phase-09-verify-and-handoff.md`](../../../plans/260616-agent-skill-quality-parity/phase-09-verify-and-handoff.md).
+**Deferred-mirror convention:** source-side agent + doc edits under `.claude/` land first; the AI-harness mirrors (`.agents/`, `.codex/`, `AGENTS.md`) regenerate via `node .claude/skills/sync-codex/scripts/run-codex-sync.mjs` then `node .claude/skills/sync-codex/scripts/run-codex-sync.mjs --verify-only` as a **separate, single-purpose commit** — never bundled with the hand-curated source change. See the Phase 09 handoff in [`260616-agent-skill-quality-parity/phase-09-verify-and-handoff.md`](../../../plans/260616-agent-skill-quality-parity/phase-09-verify-and-handoff.md), under the plans root — default `plans/`; a `docsRoots.plans.path` entry in `docs/project-config.json` overrides the path (the relative link assumes the default).
 
 ## Related Documentation
 

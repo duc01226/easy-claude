@@ -43,6 +43,15 @@ const AGENT_FILES_DISMISSED_PATH = path.join(PROJECT_TMP_DIR, '.agent-files-dism
 const SCAN_STALE_DISMISSED_PATH = path.join(PROJECT_TMP_DIR, '.scan-stale-dismissed');
 const GRAPH_DISMISSED_PATH = path.join(PROJECT_TMP_DIR, '.graph-dismissed');
 const SCAN_STALE_PATH = path.join(PROJECT_TMP_DIR, '.scan-stale');
+// Local freshness ledger: records "this doc was re-verified on DATE and nothing
+// changed", so a scan that correctly writes nothing does not leave the doc looking
+// stale forever. Untracked by design, and that is a REAL trade-off, not a free win:
+// because a no-op scan no longer restamps the doc, the committed `Last scanned` date
+// freezes at the last content change. Freshness is therefore per-workstation — a fresh
+// clone, CI, or a second developer sees the frozen stamp and will warn once the doc
+// passes the staleness window, until a scan runs there too. The gate is warn-only
+// (init-prompt-gate.cjs), so this costs a dismissible notice, never a blocked prompt.
+const SCAN_VERIFIED_PATH = path.join(PROJECT_TMP_DIR, '.scan-verified');
 
 // Session-specific marker files (per-session, no race conditions)
 const MARKERS_DIR = path.join(CK_TMP_DIR, 'markers');
@@ -187,6 +196,7 @@ module.exports = {
     SCAN_STALE_DISMISSED_PATH,
     GRAPH_DISMISSED_PATH,
     SCAN_STALE_PATH,
+    SCAN_VERIFIED_PATH,
 
     // Helpers
     ensureDir,

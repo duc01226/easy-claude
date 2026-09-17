@@ -17,7 +17,15 @@
  */
 
 const { runHook } = require('./lib/hook-runner.cjs');
-const { isGraphAvailable, invokeGraph, ensurePythonDeps, getGitHead, writeLastSeenHead } = require('./lib/graph-utils.cjs');
+const {
+    isGraphAvailable,
+    invokeGraph,
+    ensurePythonDeps,
+    getGitHead,
+    writeLastSeenHead,
+    markDepsUnavailable,
+    clearDepsUnavailable
+} = require('./lib/graph-utils.cjs');
 const { isConfigPopulated } = require('./lib/project-config-loader.cjs');
 
 runHook(
@@ -38,7 +46,17 @@ runHook(
             }
         }
 
-        if (!status.python || !status.deps || !status.graph) return;
+        // Publish the verdict for the per-prompt hook, which cannot afford to
+        // probe it itself. Clearing it here is what makes a repair take effect
+        // IMMEDIATELY: this is the only hook that installs, so without this the
+        // freshly-fixed toolchain would stay suppressed until the TTL expired.
+        if (!status.python || !status.deps) {
+            markDepsUnavailable();
+            return;
+        }
+        clearDepsUnavailable();
+
+        if (!status.graph) return;
 
         const result = invokeGraph('sync', [], 15000);
 

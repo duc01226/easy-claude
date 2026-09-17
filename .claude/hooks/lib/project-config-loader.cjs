@@ -17,6 +17,7 @@ const fs = require('fs');
 const path = require('path');
 const { loadConfig, DEFAULT_PORTABILITY } = require('./ck-config-loader.cjs');
 const { resolveProjectRoot } = require('./project-root.cjs');
+const { normalizeRootPath, escapesRepoRoot, isPathWithinRoot } = require('./ck-path-utils.cjs');
 
 // Resolve from the nearest portable bundle, not the caller's current directory.
 // This keeps Claude hooks and Codex entrypoints equivalent when invoked from a
@@ -73,43 +74,167 @@ function loadProjectConfig() {
     return _cache;
 }
 
-/**
- * Resolve portability path tokens in workflow text destined for the AI.
- * Spec artifacts have a fixed portable home: docs/specs/.
- *
- * Single source of truth — the Codex mirror generator
- * (.claude/scripts/codex/sync-context-workflows.mjs) requires THIS function so both
- * runtimes resolve identically.
- *
- * @param {string} text - raw workflow text (description / injectContext)
- * @param {object} [config] - parsed project-config.json; loaded + cached if omitted
- * @returns {string} input text unchanged when string; input returned unchanged otherwise
- */
-function resolvePortabilityTokens(text, config) {
-    if (typeof text !== 'string' || !text) return text;
-    void config;
-    return text;
-}
-
 // ─────────────────────────────────────────────────────────────────────────────
-// Spec path accessors (fixed portable root)
+// Relocatable docs/spec roots — CONFIGURED, with the framework literal as fallback
 //
-// Runtime gates use this helper instead of per-project configuration. The fixed
-// root keeps copied frameworks predictable across projects.
+// Every root below is declarable in docs/project-config.json (`specRoots`,
+// `docsRoots`). A project that declares nothing gets the exact literal the
+// framework always used, so the unset path is byte-identical to the fixed-root
+// behaviour these accessors replaced.
+//
+// TWO-PLANE CONTRACT (read this before assuming a bad config is caught):
+// Validation plane = fail-CLOSED — `node project-config-schema.cjs --validate
+// docs/project-config.json` errors on a declared-but-invalid key. Runtime plane =
+// fail-SOFT — `loadProjectConfig` catches every read/parse error and caches `{}`
+// (`:66-74`), so a malformed config is INDISTINGUISHABLE from an absent one and
+// every accessor here returns its documented default. See ADR-0003.
+//
+// Fail-soft is deliberate, not an oversight: an accessor that threw on a bad
+// config would run inside hooks and block every tool call in the session — a
+// worse failure than a wrong path. No accessor below throws.
+//
+// This reverses the earlier fixed-root design at the user's explicit request: a
+// project that relocates its specs had no way to tell the framework, and the one
+// runtime line that tells the AI where specs live (`:507`) reported `docs/specs/`
+// regardless. Predictability across copied frameworks is preserved by the
+// defaults, not by refusing configuration.
 // ─────────────────────────────────────────────────────────────────────────────
 
-const SPEC_DOCS_PATH = 'docs/specs/';
+/**
+ * The 8 portability tokens — the SINGLE definition of what each one means.
+ *
+ * `.claude/scripts/codex/sync-context-workflows.mjs` reads THIS table so the Claude
+ * runtime and the Codex mirror generator cannot disagree about `{SPEC_ROOT}` by
+ * construction. Adding a token here is the only place a token is born.
+ *
+ * Every value resolves SLASH-FREE (file tokens resolve to a file path); prose in
+ * the consuming text supplies its own separator, so `{PLANS_ROOT}/{plan-id}/`
+ * cannot produce `plans//`. The two spec ACCESSORS below keep their historical
+ * trailing slash — the token and the accessor deliberately return different forms.
+ *
+ * @type {Record<string, {configPath: string, default: string}>}
+ */
+const PORTABILITY_TOKENS = {
+    SPEC_ROOT: { configPath: 'specRoots.business.path', default: 'docs/specs' },
+    SPEC_ROOT_TECHNICAL: { configPath: 'specRoots.technical.path', default: 'docs/specs-technical' },
+    REF_DOCS_ROOT: { configPath: 'docsRoots.projectReference.path', default: 'docs/project-reference' },
+    ADR_ROOT: { configPath: 'docsRoots.adr.path', default: 'docs/adr' },
+    TEMPLATES_ROOT: { configPath: 'docsRoots.templates.path', default: 'docs/templates' },
+    PLANS_ROOT: { configPath: 'docsRoots.plans.path', default: 'plans' },
+    TEAM_ARTIFACTS_ROOT: { configPath: 'docsRoots.teamArtifacts.path', default: 'team-artifacts' },
+    PRODUCT_ROADMAP_DOC: { configPath: 'docsRoots.productRoadmap.path', default: 'docs/product-roadmap.md' }
+};
+
+/** `docsRoots` key -> the token that owns its default. */
+const DOCS_ROOT_TOKENS = {
+    projectReference: 'REF_DOCS_ROOT',
+    adr: 'ADR_ROOT',
+    templates: 'TEMPLATES_ROOT',
+    plans: 'PLANS_ROOT',
+    teamArtifacts: 'TEAM_ARTIFACTS_ROOT',
+    productRoadmap: 'PRODUCT_ROADMAP_DOC'
+};
 
 function ensureTrailingSlash(p) {
     return p.endsWith('/') ? p : p + '/';
 }
 
+/** Read a dotted path out of a plain object without throwing on any missing hop. */
+function readConfigPath(config, dottedPath) {
+    let node = config;
+    for (const key of dottedPath.split('.')) {
+        if (!node || typeof node !== 'object') return undefined;
+        node = node[key];
+    }
+    return node;
+}
+
 /**
- * Fixed feature/spec single-home root, trailing slash GUARANTEED.
+ * Resolve one token to its slash-free value. Fail-SOFT by construction: a blank,
+ * non-string, or repo-escaping configured value returns the documented default.
+ *
+ * @param {string} token - key of PORTABILITY_TOKENS
+ * @param {object} [config] - parsed project-config.json; loaded + cached if omitted
+ * @returns {string} resolved slash-free root, or '' for an unknown token
+ */
+function resolvePortabilityToken(token, config) {
+    const spec = PORTABILITY_TOKENS[token];
+    if (!spec) return '';
+    const cfg = config || loadProjectConfig();
+    const normalized = normalizeRootPath(readConfigPath(cfg, spec.configPath));
+    if (!normalized || escapesRepoRoot(normalized)) return spec.default;
+    return normalized;
+}
+
+/**
+ * Business feature/spec root, trailing slash GUARANTEED.
+ *
+ * Resolves `specRoots.business.path`; falls back to `'docs/specs/'`. The trailing
+ * slash is part of the long-standing contract — callers such as
+ * `doc-sync-classify.cjs:30,131` CONSTRUCT paths from it — so it is preserved even
+ * though the `{SPEC_ROOT}` token resolves slash-free.
+ *
+ * @param {object} [config] - parsed project-config.json; loaded + cached if omitted
  * @returns {string} e.g. 'docs/specs/'
  */
-function getSpecDocsPath() {
-    return ensureTrailingSlash(SPEC_DOCS_PATH);
+function getSpecDocsPath(config) {
+    return ensureTrailingSlash(resolvePortabilityToken('SPEC_ROOT', config));
+}
+
+/**
+ * Technical spec root, trailing slash GUARANTEED. Same contract as
+ * `getSpecDocsPath` over `specRoots.technical.path`; default `'docs/specs-technical/'`.
+ *
+ * @param {object} [config] - parsed project-config.json; loaded + cached if omitted
+ * @returns {string} e.g. 'docs/specs-technical/'
+ */
+function getTechnicalSpecDocsPath(config) {
+    return ensureTrailingSlash(resolvePortabilityToken('SPEC_ROOT_TECHNICAL', config));
+}
+
+/**
+ * Resolve one of the 6 `docsRoots` keys — `projectReference`, `adr`, `templates`,
+ * `plans`, `teamArtifacts`, `productRoadmap`.
+ *
+ * Returns a SLASH-FREE root (`productRoadmap` returns a file path), so prose can
+ * compose `${getDocsRoot('plans')}/${planId}/` without producing `plans//`. An
+ * unknown key returns `''` rather than throwing — see the fail-soft note above.
+ *
+ * @param {string} key - docsRoots key
+ * @param {object} [config] - parsed project-config.json; loaded + cached if omitted
+ * @returns {string} slash-free root, or '' for an unknown key
+ */
+function getDocsRoot(key, config) {
+    const token = DOCS_ROOT_TOKENS[key];
+    if (!token) return '';
+    return resolvePortabilityToken(token, config);
+}
+
+/**
+ * Resolve portability path tokens in text destined for the AI.
+ *
+ * Single source of truth — the Codex mirror generator
+ * (.claude/scripts/codex/sync-context-workflows.mjs) requires THIS function so both
+ * runtimes resolve identically.
+ *
+ * Unknown `{...}` sequences are left UNTOUCHED ON PURPOSE: `workflows.json` prose
+ * carries `{Bucket}`, `{FeatureName}`, `{plan-id}` and `{n}` placeholders that are
+ * instructions to the AI, not paths. Only the 8 keys of `PORTABILITY_TOKENS` are
+ * replaced.
+ *
+ * @param {string} text - raw text (workflow description / injectContext / whenToUse)
+ * @param {object} [config] - parsed project-config.json; loaded + cached if omitted
+ * @returns {string} text with known tokens resolved; non-strings returned unchanged
+ */
+function resolvePortabilityTokens(text, config) {
+    if (typeof text !== 'string' || !text) return text;
+    if (!text.includes('{')) return text;
+    const cfg = config || loadProjectConfig();
+    return text.replace(/\{([A-Z][A-Z0-9_]*)\}/g, (match, token) =>
+        Object.prototype.hasOwnProperty.call(PORTABILITY_TOKENS, token)
+            ? resolvePortabilityToken(token, cfg)
+            : match
+    );
 }
 
 /**
@@ -362,14 +487,54 @@ function isConfigPopulated(config) {
     return hasModules || hasServices || hasContextGroups || hasFramework || hasTesting || hasStyling || hasFrontendApps || hasLocalization;
 }
 
+/** Directory name of the knowledge workspace inside the resolved docs tree. */
+const KNOWLEDGE_DIR_NAME = 'knowledge';
+
 /**
- * Check if a file path is in the knowledge workspace (docs/knowledge/).
- * Used by coding-specific hooks to skip injection on knowledge files.
+ * Knowledge workspace root, DERIVED from the resolved docs tree.
+ *
+ * The workspace is the `knowledge/` sibling of the project-reference root, so a project
+ * that relocates its docs to `documentation/reference` gets `documentation/knowledge`.
+ * Falls back to `docs/knowledge` when the reference root has no parent directory.
+ *
+ * @param {object} [config] - parsed project-config.json; loaded + cached if omitted
+ * @returns {string} slash-free knowledge root, e.g. 'docs/knowledge'
  */
-const KNOWLEDGE_PATH_RE = /docs[\\/]knowledge[\\/]/i;
-function isKnowledgePath(filePath) {
+function getKnowledgeRoot(config) {
+    const referenceRoot = normalizeRootPath(getDocsRoot('projectReference', config));
+    const parent = referenceRoot.includes('/')
+        ? referenceRoot.slice(0, referenceRoot.lastIndexOf('/'))
+        : '';
+    if (!parent) return `docs/${KNOWLEDGE_DIR_NAME}`;
+    return `${parent}/${KNOWLEDGE_DIR_NAME}`;
+}
+
+/**
+ * Is this file path inside the knowledge workspace?
+ *
+ * Used by coding-specific hooks to skip injection on knowledge files. Matching is
+ * SEGMENT-BOUNDARY (`isPathWithinRoot`), not a frozen `docs/knowledge` regex, so a
+ * relocated docs tree still routes and a sibling such as `docs/knowledge-archive/`
+ * no longer fails open into the workspace.
+ *
+ * Accepts a repo-relative path or an absolute path under the project root; an absolute
+ * path is reduced to its repo-relative form before comparison.
+ *
+ * @param {string} filePath - repo-relative or absolute path
+ * @param {object} [config] - parsed project-config.json; loaded + cached if omitted
+ * @returns {boolean}
+ */
+function isKnowledgePath(filePath, config) {
     if (!filePath) return false;
-    return KNOWLEDGE_PATH_RE.test(filePath.replace(/\\/g, '/'));
+    const normalized = normalizeRootPath(filePath);
+    if (!normalized) return false;
+    const root = getKnowledgeRoot(config);
+    if (isPathWithinRoot(normalized, root)) return true;
+    const repoRoot = normalizeRootPath(PROJECT_DIR);
+    if (repoRoot && normalized.toLowerCase().startsWith(`${repoRoot.toLowerCase()}/`)) {
+        return isPathWithinRoot(normalized.slice(repoRoot.length + 1), root);
+    }
+    return false;
 }
 
 /**
@@ -527,7 +692,12 @@ module.exports = {
     isMultilingualProject,
     isConfigPopulated,
     isKnowledgePath,
+    getKnowledgeRoot,
     generateProjectSummary,
+    PORTABILITY_TOKENS,
+    resolvePortabilityToken,
     resolvePortabilityTokens,
-    getSpecDocsPath
+    getSpecDocsPath,
+    getTechnicalSpecDocsPath,
+    getDocsRoot
 };

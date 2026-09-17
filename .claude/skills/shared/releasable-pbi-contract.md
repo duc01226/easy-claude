@@ -17,7 +17,7 @@ Portable contract for every generated Product Backlog Item and its UI mockup. PB
 
 **Workflow:** evaluate applicability → author one releasable outcome → validate the full flow and UI surface → propagate slice context read-only → record the gate as PASS or BLOCKED.
 
-**Key Rules:** a blocked or technical-only PBI cannot become releasable by assumption; one static screen is not a full-flow UI outcome; ordinary PBI work NEVER creates `docs/product-roadmap.md`.
+**Key Rules:** a blocked or technical-only PBI cannot become releasable by assumption; one static screen is not a full-flow UI outcome; ordinary PBI work NEVER creates the product-roadmap artifact (default `docs/product-roadmap.md`; a `docsRoots.productRoadmap.path` entry in `docs/project-config.json` overrides the path).
 
 ## Releasable PBI outcome
 
@@ -44,7 +44,7 @@ isLargeIdea = multipleIndependentOutcomes
             || oversizedPbiThatMustSplit
 ```
 
-When any signal is true, the owning PBI MUST carry the complete `large_idea_decomposition` block from `product-roadmap-contract.md`, including stable `outcome_slices`, ordered `dependencies_order`, explicit `non_goals`, `risks_evidence` with owners/statuses, and `deferred_work_owner`. The current PBI repeats its owning slice ID and remains one independently releasable actor-facing outcome. Stories, mock-ups, prioritization, plans, and the all-PBI presentation inherit the block read-only and must surface missing/conflicting fields as a gate finding. This embedded block replaces a default roadmap artifact; do not create `docs/product-roadmap.md` unless the user explicitly requests the standalone roadmap capability.
+When any signal is true, the owning PBI MUST carry the complete `large_idea_decomposition` block from `product-roadmap-contract.md`, including stable `outcome_slices`, ordered `dependencies_order`, explicit `non_goals`, `risks_evidence` with owners/statuses, and `deferred_work_owner`. The current PBI repeats its owning slice ID and remains one independently releasable actor-facing outcome. Stories, mock-ups, prioritization, plans, and the all-PBI presentation inherit the block read-only and must surface missing/conflicting fields as a gate finding. This embedded block replaces a default roadmap artifact; do not create the product-roadmap artifact (default `docs/product-roadmap.md`; path from `docsRoots.productRoadmap.path` in `docs/project-config.json`) unless the user explicitly requests the standalone roadmap capability.
 
 When all signals are false, omit the decomposition block and roadmap/milestone placeholders. An existing roadmap supplied by a user is read-only context. An explicit roadmap request, EXEMPT change, or framework/library change follows its own branch in the shared contract.
 

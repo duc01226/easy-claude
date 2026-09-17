@@ -1,6 +1,6 @@
 # Product Roadmap Template
 
-Use this structure for `docs/product-roadmap.md`. Keep milestones outcome-based and keep implementation details out.
+Use this structure for the roadmap document — default `docs/product-roadmap.md`, overridden by a `docsRoots.productRoadmap.path` entry in `docs/project-config.json`. Keep milestones outcome-based and keep implementation details out. Replace `{plans-root}` below with the resolved plans root before writing: a `docsRoots.plans.path` entry in `docs/project-config.json` wins, `.ck.json` `paths.plans` is the fallback when project-config declares nothing, and `plans` is the last-resort default.
 
 ```markdown
 ---
@@ -36,7 +36,7 @@ selected_milestone: M0
 
 ## Selected Milestone
 - ID: M0
-- Scope brief: plans/{plan-id}/scope-brief.md
+- Scope brief: {plans-root}/{plan-id}/scope-brief.md
 - Approval: required | approved
 - Approved on/by: {date and role}
 ```

@@ -546,7 +546,304 @@ const tests = [
     }
 ];
 
+// --- TC-DOCROOT-080..087 — configured roots + segment-boundary matching ------
+//
+// Phase 08 of `plans/260917-0521-config-driven-docs-spec-roots`. These pin SC-5:
+// prefix/regex root matching must NOT fail open on trailing-slash, backslash, or
+// case variance, and every CONSTRUCTION of a configured root goes through
+// `joinRoot` rather than bare template concatenation.
+//
+// `doc-sync-classify.cjs` and `project-config-loader.cjs` cache the project config
+// at module load, so the cases that need a DIFFERENT config are exercised in a
+// spawned child with `CLAUDE_PROJECT_DIR` pointed at a throwaway project — the same
+// device D8/D10 above already use. Cases whose function takes an explicit `config`
+// argument run in-process.
+
+const CLASSIFY = path.join(REPO, '.claude', 'hooks', 'lib', 'doc-sync-classify.cjs');
+const LOADER = path.join(REPO, '.claude', 'hooks', 'lib', 'project-config-loader.cjs');
+const PLAN_RESOLVER = path.join(REPO, '.claude', 'hooks', 'lib', 'ck-plan-resolver.cjs');
+
+const classify = require(CLASSIFY);
+const loader = require(LOADER);
+const planResolver = require(PLAN_RESOLVER);
+
+/**
+ * Run `body` in a child process whose project root is a throwaway directory carrying
+ * `projectConfig` as its `docs/project-config.json`. `body` is a JS expression source
+ * evaluated with `REPO` in scope; its value is JSON-serialised to stdout.
+ */
+function inFakeProject(projectConfig, body) {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), `docroot-08-${process.pid}-`));
+    try {
+        fs.mkdirSync(path.join(dir, '.claude'), { recursive: true });
+        fs.mkdirSync(path.join(dir, 'docs'), { recursive: true });
+        fs.writeFileSync(
+            path.join(dir, 'docs', 'project-config.json'),
+            JSON.stringify(projectConfig, null, 2),
+            'utf8'
+        );
+        const script = path.join(dir, 'probe.cjs');
+        fs.writeFileSync(
+            script,
+            [
+                "'use strict';",
+                `const REPO = ${JSON.stringify(REPO)};`,
+                `const out = (() => { ${body} })();`,
+                'process.stdout.write(JSON.stringify(out));'
+            ].join('\n'),
+            'utf8'
+        );
+        const res = spawnSync(process.execPath, [script], {
+            cwd: dir,
+            encoding: 'utf8',
+            env: { ...process.env, CLAUDE_PROJECT_DIR: dir }
+        });
+        assertEqual(res.status, 0, `probe failed (${res.status}): ${res.stderr || res.stdout}`);
+        return JSON.parse(res.stdout);
+    } finally {
+        fs.rmSync(dir, { recursive: true, force: true });
+    }
+}
+
+const docrootTests = [
+    {
+        name: '[doc-impact-map] TC-DOCROOT-080 doc-sync-classify honours a configured business spec root',
+        fn: () => {
+            const out = inFakeProject(
+                { specRoots: { business: { path: 'spec-library' } } },
+                `
+                const cls = require(REPO + '/.claude/hooks/lib/doc-sync-classify.cjs');
+                const cfg = { enforcedAreas: [{ name: 'Cap' }] };
+                return {
+                    dir: cls.featureSpecDirForArea({ name: 'Cap' }),
+                    hit: !!cls.areaForFeatureDoc('spec-library/Cap/README.X.md', cfg),
+                    oldRootMiss: cls.areaForFeatureDoc('docs/specs/Cap/README.X.md', cfg) === null
+                };
+                `
+            );
+            assertEqual(
+                out.dir,
+                'spec-library/Cap/',
+                'A slash-free configured root must build `spec-library/Cap/` — never `spec-libraryCap/`.'
+            );
+            assertTrue(out.hit, 'A doc under the CONFIGURED spec root must classify as a feature spec.');
+            assertTrue(
+                out.oldRootMiss,
+                'Once the root is relocated, the literal `docs/specs/` tree is no longer the spec root.'
+            );
+        }
+    },
+    {
+        name: '[doc-impact-map] TC-DOCROOT-081 default config classifies docs/specs exactly as before (SC-11)',
+        fn: () => {
+            const cfg = { enforcedAreas: [{ name: 'Cap' }] };
+            assertEqual(
+                classify.featureSpecDirForArea({ name: 'Cap' }, 'docs/specs/'),
+                'docs/specs/Cap/',
+                'The default trailing-slash root must be unchanged.'
+            );
+            assertTrue(
+                !!classify.areaForFeatureDoc('docs/specs/Cap/README.X.md', cfg),
+                'A default-rooted feature spec must still classify (this repo declares specRoots.business = docs/specs).'
+            );
+            assertTrue(
+                classify.areaForFeatureDoc('docs/specs/Other/README.X.md', cfg) === null,
+                'A doc outside every enforced bucket must still miss.'
+            );
+            assertTrue(
+                classify.areaForFeatureDoc('docs/specs/CapLegacy/README.X.md', cfg) === null,
+                'Segment boundary: bucket `Cap` must NOT swallow the sibling `CapLegacy` — the fail-open case.'
+            );
+        }
+    },
+    {
+        name: '[doc-impact-map] TC-DOCROOT-087 featureSpecDirForArea is a joinRoot construction, never a template',
+        fn: () => {
+            // The pre-Phase-08 body was `${FEATURE_SPEC_ROOT}${bucket}/` over a constant
+            // carrying a TRAILING SLASH. Substituting a slash-free configured root into
+            // that template yields `spec-libraryAuth/` — a total mis-classification with
+            // no error. Both root FORMS must now produce the same shape.
+            assertEqual(classify.featureSpecDirForArea({ name: 'Auth' }, 'spec-library'), 'spec-library/Auth/');
+            assertEqual(classify.featureSpecDirForArea({ name: 'Auth' }, 'spec-library/'), 'spec-library/Auth/');
+            assertEqual(classify.featureSpecDirForArea({ name: 'Auth' }, 'docs/specs/'), 'docs/specs/Auth/');
+            assertEqual(classify.featureSpecDirForArea({ name: 'Auth' }, 'docs/specs'), 'docs/specs/Auth/');
+            assertEqual(
+                classify.featureSpecDirForArea({ name: 'Auth' }, 'spec-library\\sub'),
+                'spec-library/sub/Auth/',
+                'A backslashed configured root (a real win32 input) must normalise, not concatenate.'
+            );
+            assertTrue(
+                classify.featureSpecDirForArea({ name: 'Auth' }, 'spec-library') !== 'spec-libraryAuth/',
+                'The forbidden bare-template output must be unreachable.'
+            );
+        }
+    },
+    {
+        name: '[doc-impact-map] TC-DOCROOT-082 a configured root does not prefix-swallow a sibling directory',
+        fn: () => {
+            const cfg = { specRoots: { business: { path: 'docs/spec' } } };
+            const result = mapper.mapChanges([{ status: 'M', file: 'docs/specifications/x.md' }], cfg);
+            assertTrue(
+                docNames(result).some(d => d.endsWith('docs-index-reference.md')),
+                `Root \`docs/spec\` must NOT exclude \`docs/specifications/\` from the docs-tree rule. ` +
+                    `Got: ${docNames(result).join(', ')}`
+            );
+            const inside = mapper.mapChanges([{ status: 'M', file: 'docs/spec/x.md' }], cfg);
+            assertTrue(
+                !docNames(inside).some(d => d.endsWith('docs-index-reference.md')),
+                'A doc genuinely INSIDE the configured spec root must still be excluded (the /spec chain owns it).'
+            );
+        }
+    },
+    {
+        name: '[doc-impact-map] TC-DOCROOT-082a live pre-existing over-match is now fixed at DEFAULTS',
+        fn: () => {
+            // BEFORE Phase 08, doc-impact-map.cjs:368 was
+            //   rel.toLowerCase().startsWith(root.toLowerCase())
+            // with root = `docs/specs` (this repo's DEFAULT specRoots.business.path). That
+            // prefix-matched `docs/specs-technical/**`, so the technical spec tree was
+            // ALREADY silently excluded from the docs-tree rule, at defaults, with no
+            // config change involved. The assertion below FAILS against that old code —
+            // the changed behaviour is the fix, not a regression.
+            const cfg = {
+                specRoots: { business: { path: 'docs/specs' }, technical: { path: 'docs/specs-technical' } }
+            };
+            const overMatch = mapper.mapChanges([{ status: 'M', file: 'docs/specs-technical-notes/x.md' }], cfg);
+            assertTrue(
+                docNames(overMatch).some(d => d.endsWith('docs-index-reference.md')),
+                `\`docs/specs-technical-notes/\` shares a prefix with BOTH configured roots but is inside ` +
+                    `neither, so it must route. Got: ${docNames(overMatch).join(', ')}`
+            );
+            const business = mapper.mapChanges([{ status: 'M', file: 'docs/specs/x.md' }], cfg);
+            assertTrue(
+                !docNames(business).some(d => d.endsWith('docs-index-reference.md')),
+                'A real business-spec path must still be excluded.'
+            );
+            const technical = mapper.mapChanges([{ status: 'M', file: 'docs/specs-technical/x.md' }], cfg);
+            assertTrue(
+                !docNames(technical).some(d => d.endsWith('docs-index-reference.md')),
+                'A real technical-spec path must still be excluded — via its OWN root, not a prefix accident.'
+            );
+        }
+    },
+    {
+        name: '[doc-impact-map] TC-DOCROOT-083 a backslashed or case-variant configured root still matches',
+        fn: () => {
+            const backslashed = mapper.mapChanges([{ status: 'M', file: 'docs/specs/x.md' }], {
+                specRoots: { business: { path: 'docs\\specs' } }
+            });
+            assertTrue(
+                !docNames(backslashed).some(d => d.endsWith('docs-index-reference.md')),
+                `A backslashed configured root (\`docs\\\\specs\`) must still match \`docs/specs/x.md\`. ` +
+                    `Got: ${docNames(backslashed).join(', ')}`
+            );
+            const trailing = mapper.mapChanges([{ status: 'M', file: 'docs/specs/x.md' }], {
+                specRoots: { business: { path: 'docs/specs/' } }
+            });
+            assertTrue(
+                !docNames(trailing).some(d => d.endsWith('docs-index-reference.md')),
+                'A trailing-slash configured root must still match.'
+            );
+            const cased = mapper.mapChanges([{ status: 'M', file: 'docs/specs/x.md' }], {
+                specRoots: { business: { path: 'Docs/Specs' } }
+            });
+            assertTrue(
+                !docNames(cased).some(d => d.endsWith('docs-index-reference.md')),
+                'A case-variant configured root must still match.'
+            );
+        }
+    },
+    {
+        name: '[doc-impact-map] TC-DOCROOT-084 isKnowledgePath derives its root from the configured docs tree',
+        fn: () => {
+            const cfg = { docsRoots: { projectReference: { path: 'documentation/reference' } } };
+            assertEqual(loader.getKnowledgeRoot(cfg), 'documentation/knowledge');
+            assertTrue(
+                loader.isKnowledgePath('documentation/knowledge/x.md', cfg),
+                'A relocated docs tree must still route its knowledge workspace.'
+            );
+            assertTrue(
+                !loader.isKnowledgePath('docs/knowledge/x.md', cfg),
+                'Once relocated, the literal `docs/knowledge/` is no longer the workspace.'
+            );
+            assertTrue(
+                !loader.isKnowledgePath('documentation/knowledge-archive/x.md', cfg),
+                'Segment boundary: a prefix-sharing sibling must NOT fail open into the workspace.'
+            );
+            assertTrue(
+                loader.isKnowledgePath('documentation\\knowledge\\x.md', cfg),
+                'Backslashed input (a real win32 path) must still match.'
+            );
+        }
+    },
+    {
+        name: '[doc-impact-map] TC-DOCROOT-085 isKnowledgePath default is unchanged on an empty config',
+        fn: () => {
+            assertEqual(loader.getKnowledgeRoot({}), 'docs/knowledge');
+            assertTrue(loader.isKnowledgePath('docs/knowledge/x.md', {}), 'Default workspace must still match.');
+            assertTrue(loader.isKnowledgePath('DOCS/KNOWLEDGE/x.md', {}), 'Case variance must still match.');
+            assertTrue(!loader.isKnowledgePath('docs/project-reference/x.md', {}), 'A non-knowledge doc must miss.');
+            assertTrue(!loader.isKnowledgePath('', {}), 'An empty path must miss.');
+        }
+    },
+    {
+        name: '[doc-impact-map] TC-DOCROOT-086 resolvePlansDir precedence: project-config > .ck.json > plans',
+        fn: () => {
+            assertEqual(
+                planResolver.resolvePlansDir({ plans: 'ck-plans' }, { docsRoots: { plans: { path: 'work/plans' } } }),
+                'work/plans',
+                'Tier 1 — docs/project-config.json `docsRoots.plans.path` WINS.'
+            );
+            assertEqual(
+                planResolver.resolvePlansDir({ plans: 'ck-plans' }, {}),
+                'ck-plans',
+                'Tier 2 — the LIVE `.ck.json` `paths.plans` consumer must keep working.'
+            );
+            assertEqual(planResolver.resolvePlansDir({}, {}), 'plans', 'Tier 3 — framework default.');
+            // The `.ck.json` tier keeps its PRE-EXISTING `normalizePath` semantics byte for
+            // byte (SC-11): trailing separators are stripped, backslashes are preserved, and an
+            // ABSOLUTE value stays usable — `sanitizePath` allows it on purpose
+            // (ck-path-utils.cjs:104-107) for the consolidated-plans-elsewhere case, so the
+            // content-root `escapesRepoRoot` guard must NOT be applied to this tier.
+            assertEqual(planResolver.resolvePlansDir({ plans: 'ck-plans/' }, {}), 'ck-plans');
+            assertEqual(planResolver.resolvePlansDir({ plans: 'ck\\plans\\' }, {}), 'ck\\plans');
+            assertEqual(planResolver.resolvePlansDir({ plans: 'D:\\shared\\plans' }, {}), 'D:\\shared\\plans');
+            assertEqual(
+                planResolver.resolvePlansDir({ plans: 'ck-plans' }, { docsRoots: { plans: { path: '../escape' } } }),
+                'ck-plans',
+                'A repo-escaping tier-1 value is rejected and the next tier is used (runtime fail-soft plane).'
+            );
+
+            // getReportsPath composition is FROZEN: `${plansDir}/${reportsDir}/`.
+            // Only plansDir's SOURCE changed. Exercised through the real call site.
+            const out = inFakeProject({ docsRoots: { plans: { path: 'work/plans' } } }, `
+                const r = require(REPO + '/.claude/hooks/lib/ck-plan-resolver.cjs');
+                return {
+                    tier1: r.getReportsPath(null, null, { reportsDir: 'reports' }, { plans: 'ck-plans' }),
+                    session: r.getReportsPath('work/plans/260917-x', 'session', { reportsDir: 'reports' }, {})
+                };
+            `);
+            assertEqual(out.tier1, 'work/plans/reports/', 'getReportsPath must compose from the tier-1 plansDir.');
+            assertEqual(
+                out.session,
+                'work/plans/260917-x/reports/',
+                'Session-resolved plans keep their plan-specific reports path unchanged.'
+            );
+
+            const out2 = inFakeProject({}, `
+                const r = require(REPO + '/.claude/hooks/lib/ck-plan-resolver.cjs');
+                return {
+                    tier2: r.getReportsPath(null, null, { reportsDir: 'reports' }, { plans: 'ck-plans' }),
+                    tier3: r.getReportsPath(null, null, {}, {})
+                };
+            `);
+            assertEqual(out2.tier2, 'ck-plans/reports/', 'With no project-config root, `.ck.json` still drives it.');
+            assertEqual(out2.tier3, 'plans/reports/', 'With neither source, the default composition is unchanged.');
+        }
+    }
+];
+
 module.exports = {
     name: 'doc-impact-map',
-    tests
+    tests: tests.concat(docrootTests)
 };

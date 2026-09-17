@@ -25,7 +25,7 @@ description: '[Project Management] Use when converting ideas to PBIs, validating
 - Acceptance criteria are BDD GIVEN/WHEN/THEN (min 3: happy/edge/error) and MUST satisfy the AI-SDD M1-M5 and M7 gate (Phase 5.1): tech-agnostic Business Intent, logical FR-/BR- IDs first, observable single-interpretation ACs, rebuild-from-scratch validity, and every AC demoable as a business outcome (M7).
 - Estimate twice: Phase 6 drafts story points/man-days against draft scope, then Phase 7.5 RE-DERIVES them against the locked post-interview scope (per SYNC:estimation-framework) — shipping stale Phase 6 numbers is the cardinal failure.
 - The PBI frontmatter MUST carry `story_points`, `complexity`, `man_days_traditional`, `man_days_ai`, and every PBI MUST include a complete Dependencies table (`must-before`/`can-parallel`/`blocked-by`/`independent`).
-- Apply `isLargeIdea = multipleIndependentOutcomes || ambiguousOrResearchHeavy || releaseScopeDecomposition || oversizedPbiThatMustSplit` before elicitation. When true, the owning PBI MUST carry the complete `large_idea_decomposition` block (`outcome_slices`, `dependencies_order`, `non_goals`, `risks_evidence`, and `deferred_work_owner`) and every slice must be independently releasable. Do not create `docs/product-roadmap.md` by default; use the standalone roadmap branch only for an explicit roadmap request. All-false ideas omit roadmap/milestone placeholders. An existing roadmap is read-only context.
+- Apply `isLargeIdea = multipleIndependentOutcomes || ambiguousOrResearchHeavy || releaseScopeDecomposition || oversizedPbiThatMustSplit` before elicitation. When true, the owning PBI MUST carry the complete `large_idea_decomposition` block (`outcome_slices`, `dependencies_order`, `non_goals`, `risks_evidence`, and `deferred_work_owner`) and every slice must be independently releasable. Do not create the product-roadmap artifact (default `docs/product-roadmap.md`; a `docsRoots.productRoadmap.path` entry in `docs/project-config.json` overrides the path) by default; use the standalone roadmap branch only for an explicit roadmap request. All-false ideas omit roadmap/milestone placeholders. An existing roadmap is read-only context.
 - Every generated PBI MUST be one independently releasable, actor-facing business outcome with a complete demonstrable journey. Technical-only, foundation-only, migration-only, or setup-only work belongs as enabling tasks/dependencies under a releasable PBI, never as a standalone PBI. Read `.claude/skills/shared/releasable-pbi-contract.md`.
 - For UI PBIs, the outcome MUST include the page/view inventory, navigation map, component inventory, applicable states, and full-flow demo journey required for a mock app outcome; one isolated screen is insufficient.
 
@@ -57,8 +57,8 @@ description: '[Project Management] Use when converting ideas to PBIs, validating
 - Every PBI MUST ATTENTION include Dependencies table — types: `must-before` | `can-parallel` | `blocked-by` | `independent`
 - Every generated PBI MUST ATTENTION pass the Releasable Outcome Gate: one actor-facing outcome, complete entry-to-result journey, observable evidence, and no standalone technical/foundation scope.
 - UI PBIs MUST ATTENTION define the full-flow surface: all required pages/views, navigation, reusable/domain/page components, applicable states, and a demo journey. A single screen is not a releasable UI PBI.
-- `docs/specs/` — read existing TCs for related features; recommend test spec generation for new PBIs
-- `docs/project-reference/domain-entities-reference.md` — read when task involves business entities/models
+- The business spec root (default `docs/specs/`; a `specRoots.business.path` entry in `docs/project-config.json` overrides the path) — read existing TCs for related features; recommend test spec generation for new PBIs
+- `domain-entities-reference.md`, in the project-reference docs root (default `docs/project-reference/`; a `docsRoots.projectReference.path` entry in `docs/project-config.json` overrides the path) — read when task involves business entities/models
 - `.claude/skills/shared/product-roadmap-contract.md` — read for applicability, the embedded decomposition schema, and the explicit roadmap handoff contract
 - `.claude/skills/shared/releasable-pbi-contract.md` — read for the PBI outcome and UI full-flow contract
 
@@ -66,15 +66,17 @@ description: '[Project Management] Use when converting ideas to PBIs, validating
 
 ## Frontend/UI Context (if applicable)
 
-- Component patterns: `docs/project-reference/frontend-patterns-reference.md`
-- Styling/BEM guide: `docs/project-reference/scss-styling-guide.md`
-- Design system tokens: `docs/project-reference/design-system/README.md`
+Each file below sits in the project-reference docs root — default `docs/project-reference/`; a `docsRoots.projectReference.path` entry in `docs/project-config.json` overrides the path:
+
+- Component patterns: `frontend-patterns-reference.md`
+- Styling/BEM guide: `scss-styling-guide.md`
+- Design system tokens: `design-system/README.md`
 
 ---
 
 ## Greenfield Mode
 
-> **Auto-detected:** No discovered source directories and no manifest files found. Planning artifacts (docs/, plans/, .claude/) don't count.
+> **Auto-detected:** No discovered source directories and no manifest files found. Planning artifacts don't count — the docs tree, `.claude/`, and the plans root (default `plans/`; a `docsRoots.plans.path` entry in `docs/project-config.json` overrides the path).
 
 **When greenfield detected:**
 
@@ -94,10 +96,10 @@ description: '[Project Management] Use when converting ideas to PBIs, validating
 
 If running in workflow (big-feature, greenfield-init, etc.):
 
-1. Glob `plans/*/plan.md` sorted by modification time, or check `TaskList` for plan context
+1. Glob `*/plan.md` under the plans root (default `plans/`; a `docsRoots.plans.path` entry in `docs/project-config.json` overrides the path) sorted by modification time, or check `TaskList` for plan context
 2. Read `plan.md` — project scope, goals, architecture decisions, domain model
 3. Read existing research — `{plan-dir}/research/*.md` for business evaluation, domain analysis
-4. Read `docs/project-reference/domain-entities-reference.md` (if exists) — existing domain entities
+4. Read `domain-entities-reference.md` in the project-reference docs root (default `docs/project-reference/`; a `docsRoots.projectReference.path` entry in `docs/project-config.json` overrides the path), if it exists — existing domain entities
 5. Use plan context — don't re-ask questions answered in prior steps
 
 ## Phase 0.5: Applicability and Large-Idea Decomposition Gate
@@ -106,13 +108,13 @@ Read `.claude/skills/shared/product-roadmap-contract.md` before eliciting PBI de
 
 1. If any signal is true, capture the complete `large_idea_decomposition` block in the owning PBI handoff. Include stable slice IDs, independently releasable outcomes, dependency order, non-goals with owners, risks/evidence with owners and statuses, and deferred-work owners. Ask the owner about material ambiguity; do not invent boundaries.
 2. If all signals are false, omit the decomposition block and all roadmap/milestone/scope-brief placeholders. Preserve the actor, outcome, in-scope behavior, non-goals, lifecycle terms, source-of-truth state, persistence expectation, and evidence directly in the PBI.
-3. If the user explicitly requests a product roadmap, route to `/product-roadmap`; only that explicit branch may require `docs/product-roadmap.md`, a selected milestone, and a scope brief. An existing roadmap supplied by the user is read-only context.
+3. If the user explicitly requests a product roadmap, route to `/product-roadmap`; only that explicit branch may require the product-roadmap artifact (default `docs/product-roadmap.md`; a `docsRoots.productRoadmap.path` entry in `docs/project-config.json` overrides the path), a selected milestone, and a scope brief. An existing roadmap supplied by the user is read-only context.
 4. For a framework/library change, use the shared `FRAMEWORK-LIBRARY` technical branch. For an isolated brownfield change, use the explicit EXEMPT branch. Neither branch creates a product roadmap.
 5. Use `AskUserQuestion` for mismatches or material ambiguity. Do not infer whether “ready,” “published,” “delivered,” or equivalent means reviewable, sellable, visible, or accessible.
 
 ## Phase 1: Idea Intake & Context Loading
 
-1. Read idea artifact from path or find by ID in `team-artifacts/ideas/`
+1. Read idea artifact from path or find by ID in `ideas/` under the team-artifacts root (default `team-artifacts/`; a `docsRoots.teamArtifacts.path` entry in `docs/project-config.json` overrides the path)
 2. Extract: problem statement, value proposition, target users, scope
 3. Check `module` field; if absent, detect via keywords or prompt user
 
@@ -239,7 +241,7 @@ Scenario: Approver reviews a submitted invoice
 
 See `.claude/skills/shared/sdd-artifact-contract.md` → "AI-SDD Mandates (M1-M7)" for BLOCKING criteria. The generated PBI MUST satisfy M1-M5 and M7 or be reworked before Phase 8 writes it:
 
-- **Separate intent from implementation (M1/M2):** Keep a tech-agnostic **Business Intent** narrative (Description, Business Value, Acceptance Criteria) free of framework/product/language/design-pattern names and source identifiers. Put any optional implementation hints in a clearly separated **Implementation Notes** block, and put source references only in evidence carriers (`[Source: namespace/service/id]`, `**Evidence**`). Prose stays tech-agnostic per `docs/project-reference/spec-principles.md` §3.
+- **Separate intent from implementation (M1/M2):** Keep a tech-agnostic **Business Intent** narrative (Description, Business Value, Acceptance Criteria) free of framework/product/language/design-pattern names and source identifiers. Put any optional implementation hints in a clearly separated **Implementation Notes** block, and put source references only in evidence carriers (`[Source: namespace/service/id]`, `**Evidence**`). Prose stays tech-agnostic per `spec-principles.md` §3, in the project-reference docs root (default `docs/project-reference/`; a `docsRoots.projectReference.path` entry in `docs/project-config.json` overrides the path).
 - **Logical Requirement ID first (M3):** Assign each requirement a logical ID (`FR-`/`BR-`) as the PRIMARY citation spine; keep `[Source: namespace/service/id]` abstract-anchor evidence (never physical code coordinates or repository-root paths — those live only in the provenance sidecar) as a SECONDARY carrier in a separate evidence column/section — KEEP it, never remove it.
 - **Testable, observable acceptance criteria (M4):** Every acceptance criterion has ONE valid interpretation, observable completion states, named failure modes, and NO implementation details. Reject vague phrasing ("handle appropriately", "fast", "user-friendly").
 - **Rebuild-from-scratch validation (M5):** Before emitting, confirm a competent team with zero codebase knowledge could re-implement identical business behavior on ANY stack from the PBI alone. If a reader would have to guess a rule, limit, role, or failure mode, add it as a clarification — never guess.
@@ -422,9 +424,9 @@ Record the gate in the PBI inputs before generation:
 
 ## Phase 8: PBI Artifact Generation
 
-**Path:** `team-artifacts/pbis/{YYMMDD}-pbi-{slug}.md` | **ID Pattern:** `PBI-{YYMMDD}-{NNN}`
+**Path:** `pbis/{YYMMDD}-pbi-{slug}.md` under the team-artifacts root — default `team-artifacts/`; a `docsRoots.teamArtifacts.path` entry in `docs/project-config.json` overrides the path | **ID Pattern:** `PBI-{YYMMDD}-{NNN}`
 
-> **Artifact Path (canonical convention)** — Command `/refine` → base path `team-artifacts/pbis/`, role token `ba`, type `pbi`. General filename pattern: `{YYMMDD}-{role}-{type}-{slug}.md` → e.g. `260119-ba-pbi-invoice-approval.md`. Slug = lowercased basename, non-alphanumeric → `-`, trimmed, max 50 chars.
+> **Artifact Path (canonical convention)** — Command `/refine` → base path `pbis/` under the team-artifacts root (default `team-artifacts/`; a `docsRoots.teamArtifacts.path` entry in `docs/project-config.json` overrides the path), role token `ba`, type `pbi`. General filename pattern: `{YYMMDD}-{role}-{type}-{slug}.md` → e.g. `260119-ba-pbi-invoice-approval.md`. Slug = lowercased basename, non-alphanumeric → `-`, trimmed, max 50 chars.
 
 ### PBI Template
 
@@ -682,7 +684,7 @@ Then error "{message}"
 
 ## BA Team Refinement Context (canonical)
 
-> Applies to Writes/Edits under `team-artifacts/pbis/`, `.../stories/`, `team-artifacts/ideas/`. Mirrored for Codex via `SYNC:ba-team-decision-model` / `SYNC:refinement-dor-checklist` in AGENTS.md (do not hand-edit the mirror).
+> Applies to Writes/Edits under `pbis/`, `stories/`, and `ideas/` in the team-artifacts root (default `team-artifacts/`; a `docsRoots.teamArtifacts.path` entry in `docs/project-config.json` overrides the path). Mirrored for Codex via `SYNC:ba-team-decision-model` / `SYNC:refinement-dor-checklist` in AGENTS.md (do not hand-edit the mirror).
 
 **Decision Model:** 2/3 majority vote (UX BA + Designer BA + Dev BA PIC). Dev BA PIC has technical veto.
 **Disagree-and-Commit:** Once decided, everyone commits. No re-litigating.
@@ -728,7 +730,7 @@ Then error "{message}"
 
 ## Project Integration
 
-For domain PBIs: detect module from `docs/specs/` directory names, extract business rules from `docs/specs/{module}/`, load entity context from feature doc. Target 8-12K tokens for feature context.
+For domain PBIs: detect module from the directory names under the business spec root (default `docs/specs/`; a `specRoots.business.path` entry in `docs/project-config.json` overrides the path), extract business rules from that root's `{module}/` subtree, load entity context from feature doc. Target 8-12K tokens for feature context.
 
 ---
 
@@ -773,7 +775,8 @@ For domain PBIs: detect module from `docs/specs/` directory names, extract busin
 > **Assume existing values are intentional — ask WHY before changing OR flagging one as a defect.** Before changing or reporting a constant, limit, flag, cutoff, wording, or pattern, read nearby context and history, the CALLER's ordering, and 2+ sibling call sites of the same convention. A doc stating WHAT without WHY is missing rationale, not proof of a missing guard.
 > **Surface ambiguity before acting — don't pick silently.** Multiple valid interpretations require an explicit question or stated assumption with risk.
 > **Assert the outcome your system owns, not the intermediate state your infrastructure owns.** When verifying async work, assert the final business state — never the delivery/retry bookkeeping held in shared infrastructure that any co-running process can write. Such a check passes when run alone and flakes the moment anything else shares that infrastructure.
-> **Store disposable generated output in the project workspace.** If an output can be regenerated and is not source code, a canonical source-of-truth, or an intentionally versioned projection, write it under the project-root `tmp/` or `temp/` directory (prefer `tmp/`), scoped to the run. This includes temporary state, integration/E2E results, reports, logs, screenshots, traces, videos, coverage, dumps, and candidate evidence. Never put these outputs in source, docs, `plans/`, `team-artifacts/`, or mirror directories; the project-root `.gitignore` must ignore `/tmp/` and `/temp/` by default. Committed fixtures, accepted baselines, canonical specs/docs, and explicitly versioned generated mirrors remain at their declared owner paths.
+> **Store disposable generated output in the project workspace.** If an output can be regenerated and is not source code, a canonical source-of-truth, or an intentionally versioned projection, write it under the project-root `tmp/` or `temp/` directory (prefer `tmp/`), scoped to the run. This includes temporary state, integration/E2E results, reports, logs, screenshots, traces, videos, coverage, dumps, and candidate evidence. Never put these outputs in source, docs, the plans root (default `plans/`; a `docsRoots.plans.path` entry in `docs/project-config.json` overrides the path), the team-artifacts root (default `team-artifacts/`; `docsRoots.teamArtifacts.path` in the same config overrides the path), or mirror directories; the project-root `.gitignore` must ignore `/tmp/` and `/temp/` by default. Committed fixtures, accepted baselines, canonical specs/docs, and explicitly versioned generated mirrors remain at their declared owner paths.
+> **Judge the environment before judging the code.** A bug report, failed test, error, or unexpected output is not proof of a code defect. Before and during adjudication, weigh environment causes as a competing hypothesis — setup, config, version and dependency state, service dependencies, stale artifacts or leftover state, and transient resource pressure (RAM, CPU, disk, handles, network). State the discriminator you ran; fix an environment cause in the environment, never by editing product code or weakening a test to absorb it.
 > **Keep shared guidance role-relevant.** Universal guidance must help every receiving skill or agent; code-specific obligations belong only in code-specific protocols.
 
 <!-- /SYNC:ai-mistake-prevention -->
@@ -782,11 +785,11 @@ For domain PBIs: detect module from `docs/specs/` directory names, extract busin
 
 > **UI System Context** — For ANY task touching `.ts`, `.html`, `.scss`, or `.css` files:
 >
-> **MUST ATTENTION READ before implementing:**
+> **MUST ATTENTION READ before implementing** — the filenames below are canonical and resolve inside the reference-docs root (default `docs/project-reference`; a `docsRoots.projectReference.path` entry in `docs/project-config.json` overrides the path):
 >
-> 1. `docs/project-reference/frontend-patterns-reference.md` — component base classes, stores, forms
-> 2. `docs/project-reference/scss-styling-guide.md` — BEM methodology, SCSS variables, mixins, responsive
-> 3. `docs/project-reference/design-system/README.md` — design tokens, component inventory, icons
+> 1. `frontend-patterns-reference.md` — component base classes, stores, forms
+> 2. `scss-styling-guide.md` — BEM methodology, SCSS variables, mixins, responsive
+> 3. `design-system/README.md` — design tokens, component inventory, icons
 > 4. **Map the component system before implementation** — classify each component as Common, Domain-Shared, or Page; identify its project base component/primitive and owner.
 > 5. **Reuse before creating** — compose or extend the closest existing component; record evidence and an explicit reason when no reuse fits, because duplicated markup, selectors, styling, or lifecycle creates drift.
 >
@@ -1035,7 +1038,7 @@ For domain PBIs: detect module from `docs/specs/` directory names, extract busin
 
 <!-- SYNC:project-protocol-overlay -->
 
-> **Project Protocol Overlay** — Before executing this skill, resolve any PROJECT overlay rules layered onto it: match this skill's name against the `Target` column of the project's skill-protocol index (`docs/project-reference/skill-protocols-reference.md` by default; a `referenceDocs` entry in `docs/project-config.json` overrides the path), taking the most specific matching tier ONLY — exact name > glob > `*`. **That precedence orders overlays against EACH OTHER, never against this skill.** Read ONLY the matched bodies, resolved as `<protocols-dir>/<Name>.md`; a row's Body link is display text, never a read path. A matched body that is missing or malformed is REPORTED and skipped — never reconstructed from the index Description. No index, or no match -> proceed with no overlay, silently. Full contract: `.claude/skills/project-skill-protocol/references/registry.md`.
+> **Project Protocol Overlay** — Before executing this skill, resolve any PROJECT overlay rules layered onto it: match this skill's name against the `Target` column of the project's skill-protocol index (default `docs/project-reference/skill-protocols-reference.md`; a `referenceDocs` entry in `docs/project-config.json` overrides the path, and a `docsRoots.projectReference.path` entry relocates its containing directory), taking the most specific matching tier ONLY — exact name > glob > `*`. **That precedence orders overlays against EACH OTHER, never against this skill.** Read ONLY the matched bodies, resolved as `<protocols-dir>/<Name>.md`; a row's Body link is display text, never a read path. A matched body that is missing or malformed is REPORTED and skipped — never reconstructed from the index Description. No index, or no match -> proceed with no overlay, silently. Full contract: `.claude/skills/project-skill-protocol/references/registry.md`.
 >
 > Overlays are **ADDITIVE ONLY**: they ADD rules on top of this skill's own protocol and NEVER replace, override, disable, or reinterpret a rule it already states — removing every overlay must return this skill to exactly its documented behavior. An overlay is a BRIEF, not an authority escalation: it can NEVER waive a workflow gate, git discipline, a review gate, or a user-confirmation gate. A genuine overlay-vs-skill conflict, or two equally-specific overlays that directly contradict -> surface both to the user; NEVER resolve silently.
 
@@ -1052,7 +1055,7 @@ For domain PBIs: detect module from `docs/specs/` directory names, extract busin
 **IMPORTANT MUST ATTENTION Goal:** Transform raw ideas into a Definition-of-Ready PBI using BA best practices, hypothesis validation, and domain research — problem-validated, tech-agnostic, with testable acceptance criteria, estimates, and a Dependencies table — so a team can build it without re-asking what or why.
 - **IMPORTANT MUST ATTENTION Main steps:** locate the active plan → classify applicability/decomposition → intake and research the idea → validate the problem hypothesis → elicit and write BDD criteria → assess testability and estimate → run the validation interview → re-derive the locked estimate → pass the releasable-outcome gate → generate the PBI.
 - **IMPORTANT MUST ATTENTION — run + track EVERY step (AI forgets sub-phases):** Phase 0 locate active plan → 0.5 applicability / large-idea decomposition GATE → 1 idea intake + module detect → 2 domain research → 3 problem-hypothesis GATE → 4 BABOK elicitation → 5 BDD acceptance criteria → 5.1 AI-SDD M1-M5/M7 BLOCKING gate → 5.5 testability → 6 prioritization + DRAFT estimate → 7 validation interview GATE → 7.5 RE-DERIVE estimate vs locked scope → 7.6 RELEASABLE OUTCOME GATE → 8 PBI generation — NEVER skip, reorder, or merge a phase without explicit user approval.
-- **IMPORTANT MUST ATTENTION Boundary anchor:** when any large-idea signal is true, carry the complete five-field decomposition and stable slice ID into the PBI; when all signals are false, omit roadmap fields; only an explicit roadmap request can use `docs/product-roadmap.md`.
+- **IMPORTANT MUST ATTENTION Boundary anchor:** when any large-idea signal is true, carry the complete five-field decomposition and stable slice ID into the PBI; when all signals are false, omit roadmap fields; only an explicit roadmap request can use the product-roadmap artifact (default `docs/product-roadmap.md`; path from `docsRoots.productRoadmap.path` in `docs/project-config.json`).
 
 **Protocols in force — MUST ATTENTION (concise digest of the SYNC/shared blocks this skill carries):**
 
@@ -1069,13 +1072,13 @@ For domain PBIs: detect module from `docs/specs/` directory names, extract busin
 - **IMPORTANT MUST ATTENTION** UI PBIs MUST include all pages/views, navigation, reusable/domain/page components, applicable states, and a full-flow demo journey; one static screen is NOT a releasable UI outcome
 - **MANDATORY IMPORTANT MUST ATTENTION** break work into small tasks via `TaskCreate` BEFORE starting; mark one `in_progress`, complete it before the next; on context loss `TaskList` first — why: compaction wipes prior-work memory, resume don't duplicate
 - **MANDATORY IMPORTANT MUST ATTENTION** validate decisions with user via `AskUserQuestion` — NEVER auto-decide
-- **MANDATORY IMPORTANT MUST ATTENTION** apply the shared four-signal `isLargeIdea` rule before PBI elicitation; when true, require and propagate the complete five-field `large_idea_decomposition` block and stable slice IDs, then run conditional scenario analysis where needed. Only an explicit roadmap request uses `docs/product-roadmap.md`; ordinary ideas must not create it, and ambiguous product intent is BLOCKED rather than inferred.
+- **MANDATORY IMPORTANT MUST ATTENTION** apply the shared four-signal `isLargeIdea` rule before PBI elicitation; when true, require and propagate the complete five-field `large_idea_decomposition` block and stable slice IDs, then run conditional scenario analysis where needed. Only an explicit roadmap request uses the product-roadmap artifact (default `docs/product-roadmap.md`; path from `docsRoots.productRoadmap.path` in `docs/project-config.json`); ordinary ideas must not create it, and ambiguous product intent is BLOCKED rather than inferred.
 - **IMPORTANT MUST ATTENTION** acceptance criteria are BDD GIVEN/WHEN/THEN (min 3: happy/edge/error) and MUST satisfy the Phase 5.1 AI-SDD M1-M5 and M7 gate — tech-agnostic Business Intent, logical `FR-`/`BR-` IDs first, observable single-interpretation ACs, rebuild-from-scratch validity, every AC demoable as a business outcome — why: a reader who must guess a rule/limit/role re-implements the wrong behavior
 - **IMPORTANT MUST ATTENTION** apply the M7 demo test to every AC's BODY — _"what would a stakeholder SEE change?"_; no answer → TECHNICAL-ONLY, drop it. FAIL a `WHEN` that is an invocation (handler runs, consumer receives, job fires, data syncs) or a `THEN` asserting schema/type/nullability/call-count; NEVER derive the AC count from an architecture inventory — why: M1 governs vocabulary, M7 governs subject matter — a technical AC in tech-free prose passes M1 and still rots the PBI
 - **IMPORTANT MUST ATTENTION** every PBI MUST include `story_points`, `complexity`, `man_days_traditional`, `man_days_ai` frontmatter AND a complete Dependencies table (`must-before`/`can-parallel`/`blocked-by`/`independent`) — fill even when `independent`
 - **IMPORTANT MUST ATTENTION** keep PBI Business Intent prose tech-agnostic — NO framework/product/language/design-pattern names; implementation hints go ONLY in `## Implementation Notes`, source refs ONLY in `[Source: namespace/service/id]` evidence carriers — why: a tech-leaked spec is not rebuildable on another stack (M1/M2)
 - **IMPORTANT MUST ATTENTION** greenfield mode: NEVER ask about tech stack during refinement — capture team skills/scale as signals only; tech decided after business analysis
-- **MANDATORY IMPORTANT MUST ATTENTION** before refining domain PBIs, read existing TCs in `docs/specs/` and `docs/project-reference/domain-entities-reference.md`; grep 3+ existing PBIs/specs for local conventions before authoring — why: project vocabulary and patterns override generic BABOK/INVEST defaults
+- **MANDATORY IMPORTANT MUST ATTENTION** before refining domain PBIs, read existing TCs in the business spec root and `domain-entities-reference.md` in the project-reference docs root (defaults `docs/specs/` and `docs/project-reference/`; `specRoots.business.path` / `docsRoots.projectReference.path` in `docs/project-config.json` override them); grep 3+ existing PBIs/specs for local conventions before authoring — why: project vocabulary and patterns override generic BABOK/INVEST defaults
 - **MANDATORY IMPORTANT MUST ATTENTION** cite `file:line` (or `[Source: ...]`) evidence for every claim, confidence >80% to act, <60% DO NOT recommend — NEVER present a guess as fact
 - **IMPORTANT MUST ATTENTION** complex/lengthy work → persist findings to `tmp/reports/` incrementally — why: prevents silent loss of all findings on context exhaustion
 - **MANDATORY IMPORTANT MUST ATTENTION** add final review task to verify work quality

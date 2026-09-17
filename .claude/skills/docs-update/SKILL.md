@@ -19,7 +19,7 @@ description: '[Documentation] Use when updating impacted documentation after cod
 
 **Summary:**
 
-- **Router, not author:** Phase 0 triage (git diff → categories → deduped modules → existing-doc state) routes each owner (`/spec`, `/spec [mode=tests]`, `/spec [mode=sync]`, `/spec-index`, `/tech-spec`). NEVER write §8, `docs/specs/`, or derived technical views here — why: dual authorship diverges canonical docs and derived views.
+- **Router, not author:** Phase 0 triage (git diff → categories → deduped modules → existing-doc state) routes each owner (`/spec`, `/spec [mode=tests]`, `/spec [mode=sync]`, `/spec-index`, `/tech-spec`). NEVER write §8, Feature Spec content, or derived technical views here — why: dual authorship diverges canonical docs and derived views.
 - **Ordered path:** Phase 0 → Phase 1 impact-scoped context sync → Phase 2 `/spec` → optional Phase 2.5 `/spec-index` and 2.6 `/tech-spec` → Phase 3 `/spec [mode=tests]` → Phase 4 `/spec [mode=sync]` → optional Phase 4.5 `/demo-guide` → Phase 5 report → final Step 2.4 sync-verify. TC modes: `TDD-first|implement-first|update|sync|from-integration-tests`; caller flags: `modules`, `changed_files`, `phases`, `mode`, `tc_mode`, `skip_phases`, `freshness={impact|full|off}`, `base`. Create/track all 9 tasks; every skip needs evidence and a reason.
 - **Gates:** Phase 1 is impact-scoped and parallel; missing Feature Spec with changed behavior BLOCKS at Phase 2; a weakened `[HARD]` BR BLOCKS final review; Phase 2.5/2.6 run only when derived outputs are affected; Phase 2.6 uses configured generation or read-only `--check`; Phase 4.5 runs only when a globbed demo guide is keyed to this change, records `DEFERRED` (detect and report, do NOT invoke) when a downstream `/demo-guide` step owns the refresh — `workflow-feature` and `workflow-bugfix` both order `docs-update → demo-guide` — and records `NOT-APPLICABLE` when no guide is keyed.
 - **Contract:** Keep prose tech-agnostic outside evidence fields, update `FR-`/`BR-`/`OP-`/`TC-` mappings before prose, report generated-mirror status, and ALWAYS write the Phase 5 audit trail.
@@ -46,21 +46,21 @@ git diff → Triage → Phase 1: Project Context Sync (PARALLEL, impact-scoped)
 
 **Key Rules:**
 
-- Router only — NEVER duplicate sub-skill logic or write Section 8 / `docs/specs/` content
+- Router only — NEVER duplicate sub-skill logic or write Section 8 / Feature Spec content
 - **[BLOCKING] Freshness is impact-scoped, never assumed.** Phase 1 verifies only routed `docs/project-reference/**` docs and `docs/project-config.json` sections via `node .claude/scripts/doc-impact-map.cjs`; each gets `FRESH | PATCHED | RESCAN REQUIRED | UNVERIFIED`. Unchecked = UNVERIFIED, NEVER FRESH — why: stale injected context teaches downstream agents obsolete code.
-- **[BLOCKING] Impact-scoped verify NEVER writes `<!-- Last scanned: -->`.** Only full `/scan` with `--target=X` moves it; narrow passes write `<!-- Last verified: ... -->` only after an existing scan stamp (Step 1.6) — why: `Last scanned` drives the 60-day gate (`.claude/hooks/lib/session-init-helpers.cjs:769`).
-- **[BLOCKING] A `PATCHED` `docs/project-reference/**` doc MUST run `/prompt-enhance` on the doc before its verdict**; skip only for stamp/count-only edits — why: injected docs need concise, useful context.
+- **[BLOCKING] Impact-scoped verify NEVER writes a date stamp.** Only full `/scan --target=X` moves `<!-- Last scanned: -->`, and narrow passes write NO stamp at all — they record the pass in the untracked ledger via `doc-stamp-guard.cjs --record-verified` (Step 1.6) — why: `Last scanned` drives the 60-day gate (`.claude/hooks/lib/session-init-helpers.cjs:769`), and a stamp no code reads is pure merge churn.
+- **[BLOCKING] A `PATCHED` project-reference doc MUST run `/prompt-enhance` on the doc before its verdict**; skip only for stamp/count-only edits — why: injected docs need concise, useful context.
 - **Demo guides are in scope, and their absence is a stated verdict.** Phase 4.5 globs the resolved `demoGuide.outputDir` (never a guessed filename), keys each found guide to this change via its `Sources` / `Governing spec` / case `TC-*` / `Scope` header fields, and routes the refresh to `/demo-guide --output {existing path}` — no guide, or none related → explicit `NOT-APPLICABLE` — why: a stale demo guide sends a presenter into a room with retired `TC-*` IDs and an outdated backlog block.
-- Phase 1/docs-manager MUST NOT own any `docs/specs/**`, test-spec, spec-index/ERD, derived technical-view, or demo-guide path.
+- Phase 1/docs-manager MUST NOT own any `docs/specs/**` Feature Spec, test-spec, spec-index/ERD, derived technical-view, or demo-guide path — that business spec root defaults to `docs/specs`; a `specRoots.business.path` entry in `docs/project-config.json` overrides the path.
 - Every excluded artifact is explicitly reserved to its child skill (`/spec`, `/spec-index`, or `/tech-spec`) so one canonical writer owns it.
-- Exclude `docs/specs/**` and generated technical views from every docs-manager brief/write set; check each phase's trigger before invoking.
+- Exclude `docs/specs/**` — the whole business spec tree (default `docs/specs`; a `specRoots.business.path` entry in `docs/project-config.json` overrides the path) — and generated technical views from every docs-manager brief/write set; check each phase's trigger before invoking.
 - Step-to-skill order is fixed and sequential. ALWAYS report what was checked, including no-op phases.
 - Pass changed files, deduped modules, and impacted sections to each sub-skill via `$ARGUMENTS`.
 - MUST ATTENTION dedup module list — backend + frontend changes for same module = ONE entry
 - MUST ATTENTION track step state live: `in_progress` -> execute -> `completed` (or `completed` with skip reason)
 - **MUST ATTENTION** classify every `unrouted` file manually; **NEVER** treat a missing routing rule as proof of no impact.
-- For `.claude` skills/hooks/workflows/sync tooling changes, flag generated mirror sync status (`npm run codex:sync` completed or explicit N/A). `docs-update` routes and reports this check; it does not edit generated mirrors directly.
-- **[BLOCKING] Tech-agnostic output:** when updating spec/specs/README/INDEX, do NOT add framework/product/language/design-pattern names to prose/headings. Preserve evidence carriers (`**Evidence**`, `CoveredBy`, legacy `IntegrationTest`, `[Source:]`, frontmatter, Mermaid). Authority: `docs/project-reference/spec-principles.md` §3.
+- For `.claude` skills/hooks/workflows/sync tooling changes, flag generated mirror sync status (`/sync-codex` completed or explicit N/A). `docs-update` routes and reports this check; it does not edit generated mirrors directly.
+- **[BLOCKING] Tech-agnostic output:** when updating spec/specs/README/INDEX, do NOT add framework/product/language/design-pattern names to prose/headings. Preserve evidence carriers (`**Evidence**`, `CoveredBy`, legacy `IntegrationTest`, `[Source:]`, frontmatter, Mermaid). Authority: `spec-principles.md` §3, in the project-reference docs root — default `docs/project-reference/`; a `docsRoots.projectReference.path` entry in `docs/project-config.json` overrides the path.
 
 > **AI-SDD Artifact Contract** — Keep reusable SDD rules in `.claude`; keep local paths, commands, ownership, and formats in project-reference docs. Require `spec -> plan -> tasks -> implement -> verify -> update spec/docs`, logical-ID traceability, explicit unknowns, and tests that guard intent.
 >
@@ -154,7 +154,7 @@ node .claude/scripts/doc-impact-map.cjs --text
 | Any business/service/frontend code changed | Full sequence |
 | `unrouted` non-empty | NOT a fast exit — classify each unrouted file by hand first (add it to the wave, or record why it carries no doc impact) |
 
-> **[BLOCKING] A `.claude/**`-only (or tooling-only) diff is NOT a full fast exit.** Harness edits can stale glob-derived counts/catalogs in `CLAUDE.md`, `docs-index-reference.md`, and `project-structure-reference.md`; Phases 2-4 only inspect `docs/specs/**`. — why: classifying tooling as no-impact skips the only freshness pass.
+> **[BLOCKING] A `.claude/**`-only (or tooling-only) diff is NOT a full fast exit.** Harness edits can stale glob-derived counts/catalogs in `CLAUDE.md`, `docs-index-reference.md`, and `project-structure-reference.md`; Phases 2-4 only inspect the business spec tree. — why: classifying tooling as no-impact skips the only freshness pass.
 
 ### Step 0.4: Auto-Detect Affected Modules
 
@@ -176,7 +176,7 @@ node -e "process.stdout.write('docs/specs/')"
 
 ### Step 0.5: Check Existing Docs for Each Module
 
-For each detected module, verify its matching `docs/specs/` bucket exists and contains `README.*.md` Feature Specs (or follows the project-reference feature-doc layout); record `hasFeatureSpec` (§1–§7), `hasTestSpecs` (§8), and `hasDerivedIndex` (bucket `INDEX.md`).
+For each detected module, verify its matching bucket under the business spec root — default `docs/specs/`; a `specRoots.business.path` entry in `docs/project-config.json` overrides the path — exists and contains `README.*.md` Feature Specs (or follows the project-reference feature-doc layout); record `hasFeatureSpec` (§1–§7), `hasTestSpecs` (§8), and `hasDerivedIndex` (bucket `INDEX.md`).
 
 ### Step 0.6: Declare the Doc-Update Wave
 
@@ -253,7 +253,7 @@ Verify FIRST; patch NARROW. Run only map-listed `checks`:
 
 > **[BLOCKING] Never fabricate freshness.** "Looks fine", "probably unchanged", and "small diff" are not checks. Unverified = `UNVERIFIED`, never `FRESH` — false FRESH retires the suspicion that would catch later drift.
 
-> **[BLOCKING] Every `PATCHED` `docs/project-reference/**` doc MUST run `/prompt-enhance <doc>` (default `--op=enhance`) before its verdict.** These docs enter every downstream context; re-compress surgical edits. `/scan --target=X` already performs this on full rescan (`scan/SKILL.md` Final Step), so an escalated rescan needs no separate call. Skip ONLY for a stamp/date/count-only edit, and record the reason.
+> **[BLOCKING] Every `PATCHED` project-reference doc MUST run `/prompt-enhance <doc>` (default `--op=enhance`) before its verdict.** These docs enter every downstream context; re-compress surgical edits. `/scan --target=X` already performs this on full rescan (`scan/SKILL.md` Final Step), so an escalated rescan needs no separate call. Skip ONLY for a stamp/date/count-only edit, and record the reason.
 
 ### Step 1.4: project-config.json Drift Check (single writer, schema-validated)
 
@@ -280,21 +280,25 @@ node -e "const {validateConfig}=require('./.claude/hooks/lib/project-config-sche
 Pass Phase 0 diff context to a `docs-manager` sub-agent (`subagent_type="docs-manager"`) in the same wave:
 
 - `README.md` — update if project scope or setup changed (keep under 300 lines)
-- `docs/project-reference/project-structure-reference.md` — update if service architecture or cross-service patterns changed (same agent as README: shared source of truth)
+- `project-structure-reference.md`, in the project-reference docs root — default `docs/project-reference/`; a `docsRoots.projectReference.path` entry in `docs/project-config.json` overrides the path — update if service architecture or cross-service patterns changed (same agent as README: shared source of truth)
 
 Standalone invocation may first delegate 2-4 read-only landscape threads to `researcher`; workflow invocation uses Phase 0 context directly.
 
-This agent NEVER owns `docs/specs/**`, test specs, spec-index/ERD, or derived technical views.
+This agent NEVER owns Feature Specs, test specs, spec-index/ERD, or derived technical views.
 
 ### Step 1.6: Stamp Discipline (BLOCKING)
 
 | What ran | Stamp to write |
 | -------- | -------------- |
 | Full `/scan --target=X` | `<!-- Last scanned: YYYY-MM-DD -->` (owned by `scan`, top of doc) |
-| Impact-scoped verify/patch on a doc that **carries** a `Last scanned` stamp | `<!-- Last verified: YYYY-MM-DD (docs-update, impact-scoped) -->` on the line immediately AFTER that stamp |
-| Impact-scoped verify/patch on a doc with **no** `Last scanned` stamp — `CLAUDE.md`, `.claude/docs/**`, and any other AI-facing instruction file | **Write NO stamp.** Record the doc's verdict in the Step 1.7 output only. — why: those files read as live instruction, and `.claude/agents/docs-manager.md:35` forbids provenance metadata in them; the no-meta-log rule wins over the stamp rule, it is not overridden by it. |
+| Impact-scoped verify/patch on a project-reference doc | **Write NO stamp.** Record the verdict in the Step 1.7 output, and record the pass in the untracked local ledger: `node .claude/hooks/lib/doc-stamp-guard.cjs --record-verified <doc filename>` (filename only, e.g. `backend-patterns-reference.md`). |
+| Impact-scoped verify/patch on any OTHER doc — `CLAUDE.md`, `.claude/docs/**`, any Feature Spec, any AI-facing instruction file | **Write NO stamp and record NO ledger entry.** The verdict in the Step 1.7 output is the whole record. — why: the ledger exists solely to feed the 60-day reference-doc staleness gate, which tracks only the docs in `SCAN_SKILL_MAP`; an entry for anything else is unreadable by that gate and the CLI rejects it. |
+
+> **[BLOCKING] NEVER write `<!-- Last verified: ... -->` into a tracked doc.** No code anywhere parses it — `LAST_SCANNED_RE` (`.claude/hooks/lib/session-init-helpers.cjs:751`, `.claude/scripts/doc-impact-map.cjs:74`) matches `Last scanned` only — so the line was 100% git churn and 0% signal, sitting directly under `Last scanned` and turning the top of every doc into a two-line merge conflict whenever two branches each ran a verify pass. An existing `Last verified` line encountered in a doc is REMOVED as part of the next write that changes that doc's content; never in a write of its own. — why: a stamp nothing reads cannot justify a conflict anyone has to resolve by hand.
 
 > **[BLOCKING] An impact-scoped pass MUST NOT touch `Last scanned`.** It feeds the 60-day full-rescan gate (`getStaleReferenceDocs` → `refreshScanStaleFlag`, `.claude/hooks/lib/session-init-helpers.cjs:769-810`); moving it would disable the net that catches whole-doc rot.
+
+> **[BLOCKING] A verify pass that changes nothing writes nothing.** A `FRESH` verdict is a report, not an edit: do not re-save the file, do not normalize its whitespace, do not move any date. Before saving a patched doc, confirm the edit is real with `node .claude/hooks/lib/doc-stamp-guard.cjs --check <doc> --candidate <file>` (exit 3 = no-op → skip the write).
 
 After any doc in this run WAS fully rescanned, re-evaluate the gate:
 
@@ -373,22 +377,24 @@ For each touched module, diff changed code against its Feature Spec and check th
 **When to skip:**
 
 - Only `docs/`, `.claude/`, or config files changed.
-- No Feature Spec under `docs/specs/{Bucket}/` was touched.
+- No Feature Spec under `{Bucket}/` in the business spec root (default `docs/specs/`; a `specRoots.business.path` entry in `docs/project-config.json` overrides the path) was touched.
 - Phase 2 was skipped (no feature impact).
 - No derived index/ERD is maintained, or `project-config.json` contains `"spec_discovery_update": false`.
 - `spec` already refreshed `INDEX.md` in Phase 2.
 
 ### Step 2.5.1: Resolve the Bucket
 
-- Map changed services to an App Bucket via `docs/project-reference/spec-system-reference.md` → **App Bucket Mapping**.
-- Confirm `docs/specs/{Bucket}/` holds updated Feature Specs.
+- Map changed services to an App Bucket via `spec-system-reference.md` → **App Bucket Mapping**, in the project-reference docs root (default `docs/project-reference/`; a `docsRoots.projectReference.path` entry in `docs/project-config.json` overrides the path).
+- Confirm `{Bucket}/` under the business spec root (default `docs/specs/`; a `specRoots.business.path` entry in `docs/project-config.json` overrides the path) holds updated Feature Specs.
 
 ### Step 2.5.2: Invoke spec-index (Derived Index Mode)
 
+Resolve `<specs>` first — `node -e "console.log(require('./.claude/hooks/lib/project-config-loader.cjs').getSpecDocsPath())"` — then brief:
+
 ```
 /spec-index mode=index bucket={Bucket} artifacts=INDEX[,ERD]
-Source: the canonical Feature Specs in docs/specs/{Bucket}/.
-Output: regenerated DERIVED docs/specs/{Bucket}/INDEX.md (+ {Bucket}.erd.md if maintained), each carrying the DERIVED banner.
+Source: the canonical Feature Specs in <specs>{Bucket}/.
+Output: regenerated DERIVED <specs>{Bucket}/INDEX.md (+ {Bucket}.erd.md if maintained), each carrying the DERIVED banner.
 ```
 
 ### Step 2.5.3: Verify Refresh Complete
@@ -418,16 +424,10 @@ Output: regenerated DERIVED docs/specs/{Bucket}/INDEX.md (+ {Bucket}.erd.md if m
 ### Step 2.6.2: Invoke and Verify
 
 ```text
-npm run tech-spec:generate
-```
-
-Equivalent standalone invocation:
-
-```text
 node .claude/skills/tech-spec/scripts/generate-tech-specs.mjs
 ```
 
-For a read-only gate, use `npm run tech-spec:check` or direct `--check`. If `techSpecScan` is absent, the sync orchestrator records `SKIP (not configured)`; direct generator invocation remains fail-closed for malformed declared contracts.
+For a read-only gate, use `node .claude/skills/tech-spec/scripts/generate-tech-specs.mjs --check --optional`. If `techSpecScan` is absent, the sync orchestrator records `SKIP (not configured)`; direct generator invocation remains fail-closed for malformed declared contracts.
 
 Verify through `/tech-spec`: every emitted view has the DERIVED banner, the technical root has no retired artifacts, anchors are traceable, and a second unchanged check is byte-stable. Report paths, files written/removed/unchanged, and freshness verdict.
 
@@ -495,7 +495,7 @@ Updated TCs from Phase 3: {list of new/changed TC IDs}.
 - Two-way comparison: Feature Spec §8 vs test code (code is technical source of truth)
 - Test cross-reference via configured `TestSpec` across executing tiers and per-TC `CoveredBy:`; legacy `IntegrationTest:` is migration input only
 
-> Do not route to retired dashboard paths `docs/specs/README.md` or `docs/specs/PRIORITY-INDEX.md`; §8 is the canonical business TC registry. Derived aids are bucket `INDEX.md` (Phase 2.5) and the regenerable technical view under `specRoots.technical.path` (Phase 2.6); no hand-maintained `A-E`/`M##` tree.
+> Do not route to the retired dashboard paths `README.md` or `PRIORITY-INDEX.md` at the business spec ROOT (default `docs/specs/`; a `specRoots.business.path` entry in `docs/project-config.json` overrides the path); §8 is the canonical business TC registry. Derived aids are bucket `INDEX.md` (Phase 2.5) and the regenerable technical view under `specRoots.technical.path` (Phase 2.6); no hand-maintained `A-E`/`M##` tree.
 
 ### Step 4.2: Review Sync Results
 
@@ -577,7 +577,7 @@ Confirm the refreshed guide still carries its PBI fences, the header `Cases:` sp
 
 | Section                          | Owner Skill                  | docs-update Role                                       |
 | -------------------------------- | ---------------------------- | ----------------------------------------------------- |
-| `docs/project-reference/**` (authoring) | `/scan --target=X`    | Verify impact-scoped + surgical patch; escalate to the scan when a patch cannot make it true — NEVER hand-author a full reference doc |
+| Project-reference docs (authoring) | `/scan --target=X`    | Verify impact-scoped + surgical patch; escalate to the scan when a patch cannot make it true — NEVER hand-author a full reference doc |
 | `docs/project-config.json` (structure)  | `/project-config`     | Verify + surgical merge of impacted sections with schema validation; escalate whole-section/new-tech changes |
 | §1–§7 (Feature Spec, tech-free)  | `/spec`              | Pass triage context; review output                    |
 | §8 (Test Specifications)         | `/spec [mode=tests]`                  | Pass TC mode + changed files; NEVER write TCs here    |
@@ -613,7 +613,7 @@ Impact map: {N} changed files → {D} docs, {S} config sections, {U} unrouted ({
 
 - Unrouted files classified: {file → why no doc impact}
 - README / project docs: {Updated/Skipped}: {reason}
-- Stamps: {docs given `Last verified`} · {docs fully rescanned and given `Last scanned`} · staleness flag refreshed: {yes/no}
+- Stamps: {docs recorded in the local ledger via `--record-verified`} · {docs fully rescanned and given `Last scanned`} · {docs left untouched because nothing changed} · staleness flag refreshed: {yes/no}
 
 **Phase 2 — Feature Specs (/spec):**
 
@@ -797,7 +797,8 @@ $ARGUMENTS
 > **Assume existing values are intentional — ask WHY before changing OR flagging one as a defect.** Before changing or reporting a constant, limit, flag, cutoff, wording, or pattern, read nearby context and history, the CALLER's ordering, and 2+ sibling call sites of the same convention. A doc stating WHAT without WHY is missing rationale, not proof of a missing guard.
 > **Surface ambiguity before acting — don't pick silently.** Multiple valid interpretations require an explicit question or stated assumption with risk.
 > **Assert the outcome your system owns, not the intermediate state your infrastructure owns.** When verifying async work, assert the final business state — never the delivery/retry bookkeeping held in shared infrastructure that any co-running process can write. Such a check passes when run alone and flakes the moment anything else shares that infrastructure.
-> **Store disposable generated output in the project workspace.** If an output can be regenerated and is not source code, a canonical source-of-truth, or an intentionally versioned projection, write it under the project-root `tmp/` or `temp/` directory (prefer `tmp/`), scoped to the run. This includes temporary state, integration/E2E results, reports, logs, screenshots, traces, videos, coverage, dumps, and candidate evidence. Never put these outputs in source, docs, `plans/`, `team-artifacts/`, or mirror directories; the project-root `.gitignore` must ignore `/tmp/` and `/temp/` by default. Committed fixtures, accepted baselines, canonical specs/docs, and explicitly versioned generated mirrors remain at their declared owner paths.
+> **Store disposable generated output in the project workspace.** If an output can be regenerated and is not source code, a canonical source-of-truth, or an intentionally versioned projection, write it under the project-root `tmp/` or `temp/` directory (prefer `tmp/`), scoped to the run. This includes temporary state, integration/E2E results, reports, logs, screenshots, traces, videos, coverage, dumps, and candidate evidence. Never put these outputs in source, docs, the plans root (default `plans/`; a `docsRoots.plans.path` entry in `docs/project-config.json` overrides the path), the team-artifacts root (default `team-artifacts/`; `docsRoots.teamArtifacts.path` in the same config overrides the path), or mirror directories; the project-root `.gitignore` must ignore `/tmp/` and `/temp/` by default. Committed fixtures, accepted baselines, canonical specs/docs, and explicitly versioned generated mirrors remain at their declared owner paths.
+> **Judge the environment before judging the code.** A bug report, failed test, error, or unexpected output is not proof of a code defect. Before and during adjudication, weigh environment causes as a competing hypothesis — setup, config, version and dependency state, service dependencies, stale artifacts or leftover state, and transient resource pressure (RAM, CPU, disk, handles, network). State the discriminator you ran; fix an environment cause in the environment, never by editing product code or weakening a test to absorb it.
 > **Keep shared guidance role-relevant.** Universal guidance must help every receiving skill or agent; code-specific obligations belong only in code-specific protocols.
 
 <!-- /SYNC:ai-mistake-prevention -->
@@ -823,7 +824,7 @@ $ARGUMENTS
 >
 > 1. Identify scope: file types, domain area, and operation.
 > 2. **Read `docs/project-config.json` first — the project's machine-readable map.** It is the single source of truth for THIS repo (modules/paths, framework + search keywords, test/E2E/integration run-commands, design system, architecture rules, workflow patterns); ground exact paths, run-commands, and conventions on it **before investigating, planning, or coding** — never assume framework defaults (`CLAUDE.md` + reference docs are derived from it). If it — or the docs index, `lessons.md`, `CLAUDE.md`, `AGENTS.md`, or any required reference doc — is missing or stale, auto-run `/project-init` or the narrow route (`/project-config`, `/docs-init`, `/scan-all`, `/scan --target=<key>`, `/ai-context-refresh`) first; if Codex mirrors or `AGENTS.md` are stale, use the explicit `/sync-codex` route, or the documented `/ai-context-refresh` completion handoff when that is the active source-authoring task.
-> 3. Required docs by trigger: always `docs/project-reference/lessons.md`; doc lookup `docs-index-reference.md`; review `code-review-rules.md`; backend/CQRS/API `backend-patterns-reference.md`; domain/entity `domain-entities-reference.md`; frontend/UI `frontend-patterns-reference.md`; styles/design `scss-styling-guide.md` + `design-system/design-system-canonical.md`; integration tests `integration-test-reference.md`; E2E `e2e-test-reference.md`; feature docs/specs `feature-spec-reference.md` + `spec-system-reference.md` + `spec-principles.md`; behavior/public-contract/spec-test-code sync `workflow-spec-test-code-cycle-reference.md`; derived spec index/ERD/reimplementation guides `spec-system-reference.md` + source Feature Specs under `docs/specs/`; architecture/new area `project-structure-reference.md`.
+> 3. Required docs by trigger — every filename below is canonical and resolves inside the reference-docs root (default `docs/project-reference`; a `docsRoots.projectReference.path` entry in `docs/project-config.json` overrides the path): always `lessons.md`; doc lookup `docs-index-reference.md`; review `code-review-rules.md`; backend/CQRS/API `backend-patterns-reference.md`; domain/entity `domain-entities-reference.md`; frontend/UI `frontend-patterns-reference.md`; styles/design `scss-styling-guide.md` + `design-system/design-system-canonical.md`; integration tests `integration-test-reference.md`; E2E `e2e-test-reference.md`; feature docs/specs `feature-spec-reference.md` + `spec-system-reference.md` + `spec-principles.md`; behavior/public-contract/spec-test-code sync `workflow-spec-test-code-cycle-reference.md`; derived spec index/ERD/reimplementation guides `spec-system-reference.md` + source Feature Specs under the business spec root (default `docs/specs`; a `specRoots.business.path` entry in the same config overrides the path); architecture/new area `project-structure-reference.md`.
 > 4. Read every required doc, then before target work state: `Reference docs read: ... | Not applicable: ...`. After compaction, resume, delegation, or a material context change, repeat the route and restate the set; prior conversation and hook output are not proof of current loading.
 >
 > **Ready when:** scope evaluated, `docs/project-config.json` consulted, required docs checked/read or setup route completed, `lessons.md` confirmed, citation emitted.
@@ -917,7 +918,7 @@ $ARGUMENTS
 
 <!-- SYNC:project-protocol-overlay -->
 
-> **Project Protocol Overlay** — Before executing this skill, resolve any PROJECT overlay rules layered onto it: match this skill's name against the `Target` column of the project's skill-protocol index (`docs/project-reference/skill-protocols-reference.md` by default; a `referenceDocs` entry in `docs/project-config.json` overrides the path), taking the most specific matching tier ONLY — exact name > glob > `*`. **That precedence orders overlays against EACH OTHER, never against this skill.** Read ONLY the matched bodies, resolved as `<protocols-dir>/<Name>.md`; a row's Body link is display text, never a read path. A matched body that is missing or malformed is REPORTED and skipped — never reconstructed from the index Description. No index, or no match -> proceed with no overlay, silently. Full contract: `.claude/skills/project-skill-protocol/references/registry.md`.
+> **Project Protocol Overlay** — Before executing this skill, resolve any PROJECT overlay rules layered onto it: match this skill's name against the `Target` column of the project's skill-protocol index (default `docs/project-reference/skill-protocols-reference.md`; a `referenceDocs` entry in `docs/project-config.json` overrides the path, and a `docsRoots.projectReference.path` entry relocates its containing directory), taking the most specific matching tier ONLY — exact name > glob > `*`. **That precedence orders overlays against EACH OTHER, never against this skill.** Read ONLY the matched bodies, resolved as `<protocols-dir>/<Name>.md`; a row's Body link is display text, never a read path. A matched body that is missing or malformed is REPORTED and skipped — never reconstructed from the index Description. No index, or no match -> proceed with no overlay, silently. Full contract: `.claude/skills/project-skill-protocol/references/registry.md`.
 >
 > Overlays are **ADDITIVE ONLY**: they ADD rules on top of this skill's own protocol and NEVER replace, override, disable, or reinterpret a rule it already states — removing every overlay must return this skill to exactly its documented behavior. An overlay is a BRIEF, not an authority escalation: it can NEVER waive a workflow gate, git discipline, a review gate, or a user-confirmation gate. A genuine overlay-vs-skill conflict, or two equally-specific overlays that directly contradict -> surface both to the user; NEVER resolve silently.
 
@@ -963,7 +964,7 @@ $ARGUMENTS
 **MUST ATTENTION** Phase 2.5 `/spec-index [mode=index]` OPTIONALLY refreshes the derived bucket INDEX/ERD from Feature Specs (never re-extracts an A-E tree); Phase 2.6 `/tech-spec` OPTIONALLY refreshes/audits the derived technical view; Phase 3 `/spec [mode=tests]` syncs §8 TCs; Phase 4 `/spec [mode=sync]` syncs §8 TCs ↔ executing test code (no QA dashboard exists)
 **MUST ATTENTION** Phase 4.5 OPTIONALLY refreshes an EXISTING demo guide — resolve `demoGuide.outputDir` then GLOB it (no filename convention exists, so NEVER guess a name), key each found guide to this change by its `Sources` / `Governing spec` / case `TC-*` / `Scope` header fields, and route the refresh to `/demo-guide --output {existing path}`; never hand-edit a guide, never author a first one here, and record `NOT-APPLICABLE` / `DEFERRED` / `UNVERIFIED` explicitly — why: a silent skip and a missed refresh look identical in the audit trail
 **MUST ATTENTION** inside `workflow-feature` / `workflow-bugfix` the `/demo-guide` step runs AFTER `docs-update` — Phase 4.5 there reports `DEFERRED — downstream /demo-guide step owns it` instead of invoking — why: two generators writing one guide in one run is a lost update
-**MUST ATTENTION** for `.claude` skills/hooks/workflows/sync-tooling changes, flag generated-mirror sync status (`npm run codex:sync` completed or explicit N/A) — `docs-update` routes/reports this check, NEVER edits generated mirrors directly
+**MUST ATTENTION** for `.claude` skills/hooks/workflows/sync-tooling changes, flag generated-mirror sync status (`/sync-codex` completed or explicit N/A) — `docs-update` routes/reports this check, NEVER edits generated mirrors directly
 **MUST ATTENTION** ALWAYS write the Phase 5 summary report to `tmp/reports/docs-update-{YYMMDD}-{HHMM}.md` and the final review task (#9) — the report is the audit trail, the review verifies all impacted docs updated with no unjustified skips
 
 **Anti-Rationalization:**
@@ -973,7 +974,8 @@ $ARGUMENTS
 | "Only docs/config changed — skip all phases" | Run Phase 0 triage anyway — fast-exit is a DECISION, not an assumption |
 | "Only `.claude/**` changed — tooling, fast exit" | Harness edits rot glob-derived inventory counts and catalogs in `CLAUDE.md` / docs-index / project-structure. Phase 1 STILL runs; only Phases 2-4 are skipped |
 | "The reference docs looked fine"              | "Looked fine" is not a check. Run the doc's routed checks or report it `UNVERIFIED` |
-| "I updated the doc, so I'll refresh `Last scanned`" | Only a full `/scan --target=X` may move that stamp — an impact-scoped patch writes `Last verified`, and only where a `Last scanned` stamp already exists |
+| "I updated the doc, so I'll refresh `Last scanned`" | Only a full `/scan --target=X` may move that stamp — an impact-scoped patch writes NO stamp and records the pass with `doc-stamp-guard.cjs --record-verified` |
+| "Nothing changed, but I'll re-save the doc with today's date so it looks verified" | A no-op write is pure merge churn. Write nothing, record the ledger entry, and report the verdict |
 | "project-config.json is close enough"        | Re-derive the flagged sections from evidence, prove every touched `pathRegex` still matches a real file, and run schema validation |
 | "The mapper returned unrouted files — nothing to do" | Unrouted means the router had NO RULE, not that the doc is fresh. Classify each by hand |
 | "No feature docs exist — skip Phase 2"       | Mark task completed with reason. NEVER silently omit                   |

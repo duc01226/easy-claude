@@ -1,6 +1,6 @@
 # Goal Contract
 
-> External, durable record of the user goal. Resolution order: active plan `goal.md` → `plans/goals/{YYMMDD-HHmm}-{slug}/goal.md` → create this file from the current user request.
+> External, durable record of the user goal. Resolution order: active plan `goal.md` → `goals/{YYMMDD-HHmm}-{slug}/goal.md` under the plans root (default `plans/`; a `docsRoots.plans.path` entry in `docs/project-config.json` overrides the path) → create this file from the current user request.
 > NEVER store secrets, tokens, credentials, or private customer data here — reference evidence locations and redact sensitive values.
 
 ## Original Request

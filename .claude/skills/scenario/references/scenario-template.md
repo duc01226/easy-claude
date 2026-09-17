@@ -1,6 +1,6 @@
 # Scenario Analysis Template
 
-Use this structure for `plans/{plan-id}/scenario-analysis.md`. Keep scenarios tied to the owning slice, explicit milestone, framework scope, or isolated boundary and express expected behavior in business/operational language.
+Use this structure for `{plan-id}/scenario-analysis.md` under the plans root (default `plans/`; a `docsRoots.plans.path` entry in `docs/project-config.json` overrides the path). Keep scenarios tied to the owning slice, explicit milestone, framework scope, or isolated boundary and express expected behavior in business/operational language.
 
 ```markdown
 # Scenario Analysis: {slice ID / milestone ID / technical scope} — {scope}
@@ -8,8 +8,8 @@ Use this structure for `plans/{plan-id}/scenario-analysis.md`. Keep scenarios ti
 ## Scope Inputs
 - Applicability: EMBEDDED | EXPLICIT-ROADMAP | FRAMEWORK-LIBRARY | EXEMPT
 - Owning artifact: {PBI/spec path and slice ID, or explicit scope owner}
-- Roadmap: {docs/product-roadmap.md — explicit branch only | NOT APPLICABLE — embedded/framework/EXEMPT}
-- Scope handoff: {plans/{plan-id}/scope-brief.md | owning artifact reference | N/A with reason}
+- Roadmap: {the product-roadmap artifact, default docs/product-roadmap.md, relocated by docsRoots.productRoadmap.path in docs/project-config.json — explicit branch only | NOT APPLICABLE — embedded/framework/EXEMPT}
+- Scope handoff: {{plan-id}/scope-brief.md under the plans root, default plans/, relocated by docsRoots.plans.path in docs/project-config.json | owning artifact reference | N/A with reason}
 - Outcome: {actor can... | technical/operational proof...}
 
 ## Scenarios

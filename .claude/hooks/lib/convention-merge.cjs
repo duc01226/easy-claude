@@ -18,12 +18,19 @@ const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 const { isInjectable, skillPath } = require('./file-conventions.cjs');
+const { getDocsRoot } = require('./project-config-loader.cjs');
 
-const SPEC_DOCS = [
-    'docs/project-reference/feature-spec-reference.md',
-    'docs/project-reference/spec-system-reference.md',
-    'docs/project-reference/spec-principles.md'
-];
+// The three spec-authoring reference docs. Only the FILENAMES are fixed; the root resolves from
+// the same config the caller already passes: default `docs/project-reference`, relocated by a `docsRoots.projectReference.path` entry in docs/project-config.json.
+// Hardcoding the root made every
+// `exists()` check in `candidate()` fail in a relocated project, so the feature-spec group lost
+// its referenceDocs silently — every SIBLING group here already reads its docs from config.
+const SPEC_DOC_NAMES = ['feature-spec-reference.md', 'spec-system-reference.md', 'spec-principles.md'];
+
+function specDocs(cfg) {
+    const root = trimSlashes(getDocsRoot('projectReference', cfg));
+    return SPEC_DOC_NAMES.map(name => `${root}/${name}`);
+}
 
 const LANGUAGE_EXTENSIONS = {
     javascript: ['.js', '.cjs', '.mjs', '.jsx'],
@@ -131,7 +138,7 @@ function detectGroups(config, opts = {}) {
             name: 'feature-spec',
             priority: 100,
             pathGlobs: [`${trimSlashes(business.path)}/**/*.md`],
-            referenceDocs: SPEC_DOCS,
+            referenceDocs: specDocs(cfg),
             skills: ['spec']
         }, exists));
     }

@@ -32,7 +32,7 @@ git --version
 |-- settings.json     # Main configuration (hooks, features)
 |-- skills/           # 123 skills (invoked via / prefix, activated by context)
 |-- agents/           # Subagent configurations
-|-- hooks/            # 20 top-level hook files + 35 lib modules
+|-- hooks/            # 20 top-level hook files + 36 lib modules
 |   +-- lib/          # Shared hook libraries
 |-- workflows/        # Development rules and workflows
 +-- scripts/          # Utility scripts
@@ -157,23 +157,23 @@ For more troubleshooting, see [troubleshooting.md](./troubleshooting.md).
 
 ### Commands vs Skills
 
--   **Commands** (`/feature-implement`, `/plan`): Explicitly invoked by user with `/` prefix
--   **Skills**: Automatically activated based on context keywords
+- **Commands** (`/feature-implement`, `/plan`): Explicitly invoked by user with `/` prefix
+- **Skills**: Automatically activated based on context keywords
 
 ### Lessons System
 
 The system that learns from your interactions:
 
-1. **`/learn` skill**: Appends lessons to `docs/project-reference/lessons.md`
+1. **`/learn` skill**: Appends lessons to `lessons.md` in the project-reference docs root — default `docs/project-reference`; a `docsRoots.projectReference.path` entry in `docs/project-config.json` overrides the path
 2. **Lessons delivery**: the read-lessons contract is carried statically in `CLAUDE.md` / `SKILL.md`; re-reading those files re-anchors the lessons after compaction (the former runtime inject/recovery hooks were removed)
 
 ### Workflow Detection
 
 Claude Code automatically detects intent and suggests workflows:
 
--   "implement X" -> `/plan` -> `/feature-implement` -> `/test`
--   "fix X" -> `/fix` -> `/test`
--   "review X" -> `/review`
+- "implement X" -> `/plan` -> `/feature-implement` -> `/test`
+- "fix X" -> `/fix` -> `/test`
+- "review X" -> `/review`
 
 ---
 

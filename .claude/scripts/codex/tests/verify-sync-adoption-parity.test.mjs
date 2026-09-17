@@ -212,19 +212,19 @@ test('the real injector source parses, and every MATRIX list resolves', async ()
     }
 });
 
-test('the sensor is registered in BOTH the runner pipeline and the npm verify allowlist', async () => {
-    // A sensor that exists but is not wired is decoration. PORT-008 locks --only to the runner's
-    // stage set; this asserts THIS sensor specifically is present in both, so it cannot be
-    // silently dropped from the build gate.
-    // Runner half — UNCONDITIONAL: run-codex-sync.mjs travels inside `.claude`, so this must hold in
-    // every adopting project. It is the half that actually gates the build.
+test('the sensor is registered in the runner pipeline and individually runnable from the bundle', async () => {
+    // A sensor that exists but is not wired is decoration. The npm half of this check is gone — no
+    // host package.json drives the framework any more — so BOTH halves are now unconditional, which
+    // is stronger: they hold in every adopting project, not only in this repo.
     const runner = await fs.readFile(
         path.join(repoRoot, '.claude', 'skills', 'sync-codex', 'scripts', 'run-codex-sync.mjs'), 'utf8');
-    assert.match(runner, /id:\s*"sync-adoption-parity"/, 'runner must declare the stage');
+    const stage = runner.match(/\{[^{}]*\bid:\s*"sync-adoption-parity"[^{}]*\}/);
+    assert.ok(stage, 'runner must declare the stage');
+    // No `mutate: true` ⇒ `--verify-only` selects it by derivation, so it cannot fall out of the
+    // everything-verify run the way an omitted id fell out of the old `verify:all --only` list.
+    assert.doesNotMatch(stage[0], /\bmutate:\s*true\b/, 'the sensor must stay in the derived --verify-only set');
 
-    // npm half — framework-repo only: an adopting project keeps its own package.json (or none).
-    const pkg = frameworkPkg(repoRoot);
-    if (!pkg) return;
-    assert.match(String(pkg.scripts['verify:all']), /sync-adoption-parity/, 'verify:all --only must include it');
-    assert.ok(pkg.scripts['codex:verify:sync-adoption-parity'], 'a standalone npm script must exist');
+    const verifier = path.join(repoRoot, '.claude', 'scripts', 'codex', 'verify-sync-adoption-parity.mjs');
+    assert.ok(await fs.access(verifier).then(() => true, () => false),
+        'the verifier must exist at its in-bundle path so it is runnable standalone with plain node');
 });

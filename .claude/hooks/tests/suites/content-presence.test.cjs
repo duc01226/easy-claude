@@ -68,6 +68,16 @@ const readFile = p => fs.readFileSync(p, 'utf8');
 const readAgent = name => readFile(path.join(AGENTS_DIR, `${name}.md`));
 const readSkill = name => readFile(path.join(SKILLS_DIR, name, 'SKILL.md'));
 
+// TC-CP-001 and TC-CP-008 assert the intent router is baked into CLAUDE.md. A project that sets
+// `portability.workflowAutoDetect: false` deliberately has no router, so a flat presence assert
+// would fail a correctly-configured repo. Both TCs therefore assert the state the config declares:
+// present when routing is on, ABSENT when it is off. Asserting absence rather than skipping keeps
+// the off state covered — a generator that leaked the catalog back in would otherwise pass unseen.
+const { isWorkflowAutoDetectEnabled } = require(
+    path.resolve(PROJECT_DIR, '.claude', 'scripts', 'lib', 'workflow-routing-config.cjs')
+);
+const workflowAutoDetect = isWorkflowAutoDetectEnabled({ rootDir: PROJECT_DIR });
+
 // Assert a relocated inject-hook's guidance survives in its target skill. Each phrase is a
 // verbatim load-bearing fragment of the deleted hook's output — NOT a tautology. Fails loudly
 // (naming the deleted hook) if the relocation is dropped, so static parity can't silently rot.
@@ -87,7 +97,15 @@ module.exports = {
                 const claudeMd = readFile(path.resolve(PROJECT_DIR, 'CLAUDE.md'));
                 const missing = [];
                 // Workflow routing gate (Phase 01 — replaces a runtime router injection).
-                if (!claudeMd.includes('WORKFLOW-GATE')) missing.push('WORKFLOW-GATE routing header');
+                // Gated on the routing switch; the path→doc pointers below are unrelated to
+                // routing and are required in BOTH states.
+                if (workflowAutoDetect) {
+                    if (!claudeMd.includes('WORKFLOW-GATE')) missing.push('WORKFLOW-GATE routing header');
+                } else {
+                    if (claudeMd.includes('<!-- CK:WORKFLOW-GATE -->')) {
+                        missing.push('CK:WORKFLOW-GATE block present although portability.workflowAutoDetect is false');
+                    }
+                }
                 if (!/Path\s*→\s*Reference Doc/.test(claudeMd)) missing.push('Path → Reference Doc table heading');
                 // The path→doc pointer rows — each names the reference doc a hook used to inject.
                 for (const doc of [
@@ -112,6 +130,20 @@ module.exports = {
                 );
                 const ids = Object.keys(workflowsDoc.workflows || {});
                 const missing = [];
+
+                if (!workflowAutoDetect) {
+                    // Routing off: the catalog IS the auto-detect affordance, so its absence is
+                    // the invariant. A leaked Workflows Index would let the model route from a
+                    // menu the project switched off.
+                    assertTrue(
+                        !claudeMd.includes('<!-- CK:WORKFLOW-SKILLS -->') &&
+                            !/###\s+Workflows Index \(\d+\)/.test(claudeMd),
+                        'CLAUDE.md still carries the workflow selection catalog although ' +
+                            'portability.workflowAutoDetect is false'
+                    );
+                    return;
+                }
+
                 // The Workflows Index heading — proves the selection catalog (not just the
                 // skills-only table) is statically baked into CLAUDE.md.
                 if (!/###\s+Workflows Index \(\d+\)/.test(claudeMd)) {

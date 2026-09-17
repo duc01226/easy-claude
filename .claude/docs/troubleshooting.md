@@ -4,16 +4,16 @@
 
 ## Quick Navigation
 
--   [Start with context and setup](#start-with-context-and-setup)
--   [Skills or workflows not discovered](#skills-or-workflows-not-discovered)
--   [Hooks not running](#hooks-not-running)
--   [Bash goes silent](#bash-goes-silent)
--   [Configuration not applied](#configuration-not-applied)
--   [An edit or command is blocked](#an-edit-or-command-is-blocked)
--   [Tests or tooling fail](#tests-or-tooling-fail)
--   [Code graph unavailable or stale](#code-graph-unavailable-or-stale)
--   [Generated docs or mirrors are stale](#generated-docs-or-mirrors-are-stale)
--   [Getting help](#getting-help)
+- [Start with context and setup](#start-with-context-and-setup)
+- [Skills or workflows not discovered](#skills-or-workflows-not-discovered)
+- [Hooks not running](#hooks-not-running)
+- [Bash goes silent](#bash-goes-silent)
+- [Configuration not applied](#configuration-not-applied)
+- [An edit or command is blocked](#an-edit-or-command-is-blocked)
+- [Tests or tooling fail](#tests-or-tooling-fail)
+- [Code graph unavailable or stale](#code-graph-unavailable-or-stale)
+- [Generated docs or mirrors are stale](#generated-docs-or-mirrors-are-stale)
+- [Getting help](#getting-help)
 
 ## Start with Context and Setup
 
@@ -32,9 +32,8 @@ Run diagnostics from the project root—the directory that contains `.claude/`.
 2. Run `/project-init`. It is the idempotent setup and re-evaluation entry point for project configuration, reference docs, root instructions, and optional graph setup.
 
 3. Check the generated project context:
-
     - `docs/project-config.json` describes the current project.
-    - `docs/project-reference/` contains project-specific patterns and conventions.
+    - The project-reference docs root — default `docs/project-reference`; a `docsRoots.projectReference.path` entry in `docs/project-config.json` overrides the path — contains project-specific patterns and conventions.
     - `CLAUDE.md` contains the project instructions used by Claude Code.
     - `AGENTS.md` and `.codex/` are relevant when Codex compatibility is enabled.
 
@@ -97,10 +96,10 @@ node --check .claude/hooks/<hook-name>.cjs
 
 Confirm that:
 
--   The hook file named by the registration exists under `.claude/hooks/`.
--   The registration uses the correct Claude Code event and matcher.
--   The command points into the current project's `.claude/hooks/` directory.
--   The session was restarted after changing settings.
+- The hook file named by the registration exists under `.claude/hooks/`.
+- The registration uses the correct Claude Code event and matcher.
+- The command points into the current project's `.claude/hooks/` directory.
+- The session was restarted after changing settings.
 
 ### Run the framework test suites
 
@@ -143,6 +142,7 @@ but the Bash hook chain can now identify its own decision and failure paths.
     The trace is one JSON record per Bash-path hook at the platform temp path
     `ck/debug/bash-hooks.log` (override it with `CLAUDE_HOOK_DEBUG_LOG`). It records hook, decision,
     exit code, duration, and error classification, but never command/path contents.
+
 3. Bisect the seven registrations in `.claude/settings.json` by feeding the same benign payload to each
    hook. A normal result is exit 0 with empty stdout/stderr. Run the following from PowerShell:
 
@@ -169,18 +169,18 @@ but the Bash hook chain can now identify its own decision and failure paths.
     Copy-Item .claude/settings.json .claude/settings.json.bash-silent-backup -Force
     ```
 
-   Remove the one PreToolUse group whose matcher is exactly `Bash` (it contains four hooks), and remove
-   `Bash|` from the two combined matchers so they retain their non-Bash tools. Do not remove the
-   `AskUserQuestion` notification group, delete non-Bash registrations, or set privacy/boundary policy
-   flags to false. Restore the backup immediately after the incident:
+    Remove the one PreToolUse group whose matcher is exactly `Bash` (it contains four hooks), and remove
+    `Bash|` from the two combined matchers so they retain their non-Bash tools. Do not remove the
+    `AskUserQuestion` notification group, delete non-Bash registrations, or set privacy/boundary policy
+    flags to false. Restore the backup immediately after the incident:
 
     ```powershell
     Copy-Item .claude/settings.json.bash-silent-backup .claude/settings.json -Force
     ```
 
-   Restart Claude Code after either edit; hook settings are loaded at session start. A fresh session also
-   recreates the session-scoped Bash/dispatcher path and is the normal recovery when the failure is
-   external to the framework.
+    Restart Claude Code after either edit; hook settings are loaded at session start. A fresh session also
+    recreates the session-scoped Bash/dispatcher path and is the normal recovery when the failure is
+    external to the framework.
 
 The regression suite for this path is:
 
@@ -288,7 +288,7 @@ Some files are generated from canonical sources. Fix the source and then run the
 | ---------------------------------------------------- | ------------------------------------------------------------------ |
 | Skill catalog does not match `.claude/skills/`       | Run `generate_catalogs.py --skills`                                |
 | Project reference docs are missing or generic        | Run `/project-init` or the relevant `/scan --target=<key>`         |
-| `CLAUDE.md` sections are stale                       | Run `/ai-context-refresh` through the project setup route           |
+| `CLAUDE.md` sections are stale                       | Run `/ai-context-refresh` through the project setup route          |
 | `AGENTS.md` or `.codex/` differs from Claude sources | Run `/sync-codex` after updating the canonical Claude-side sources |
 | Graph state does not match the current checkout      | Run the graph `sync` command or `/graph-build`                     |
 
@@ -298,11 +298,11 @@ When stale guidance names a consumer project, first verify whether the problem i
 
 Start with the reference that owns the problem:
 
--   [Universal setup guide](./universal-setup-guide.md) for adoption and project initialization.
--   [Hooks reference](./hooks/README.md) for lifecycle events, registrations, gates, and tests.
--   [Configuration reference](./configuration/README.md) for settings and precedence.
--   [Code graph setup](./code-graph-setup.md) for optional graph prerequisites and commands.
--   [AI debugging protocol](./AI-DEBUGGING-PROTOCOL.md) for evidence-based investigation.
+- [Universal setup guide](./universal-setup-guide.md) for adoption and project initialization.
+- [Hooks reference](./hooks/README.md) for lifecycle events, registrations, gates, and tests.
+- [Configuration reference](./configuration/README.md) for settings and precedence.
+- [Code graph setup](./code-graph-setup.md) for optional graph prerequisites and commands.
+- [AI debugging protocol](./AI-DEBUGGING-PROTOCOL.md) for evidence-based investigation.
 
 Before asking for help, collect:
 

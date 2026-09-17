@@ -69,7 +69,7 @@ tags: [<tag>]                          # optional
 
 ## 2. Index row format
 
-Index: `docs/project-reference/custom-prompts-reference.md`. The header carries a `**Prompts directory:**` line so the index is self-describing about where bodies live.
+Index: `custom-prompts-reference.md` under the reference-docs root (default `docs/project-reference`; a `docsRoots.projectReference.path` entry in `docs/project-config.json` overrides the path). The header carries a `**Prompts directory:**` line so the index is self-describing about where bodies live.
 
 One row per prompt, in a single table:
 

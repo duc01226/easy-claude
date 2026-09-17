@@ -8,8 +8,8 @@ This file records repository-local conventions only. Do not add reusable AI-SDD 
 
 - Shared contract: `shared/sdd-artifact-contract.md`
 - Local configuration: `docs/project-config.json`
-- Local docs index: `docs/project-reference/docs-index-reference.md`
-- Local workflow cycle reference: `docs/project-reference/workflow-spec-test-code-cycle-reference.md`
+- Local docs index: `docs-index-reference.md` in the project-reference docs root — default `docs/project-reference`; a `docsRoots.projectReference.path` entry in `docs/project-config.json` overrides the path
+- Local workflow cycle reference: `workflow-spec-test-code-cycle-reference.md` in that same root
 
 ## 2. Local Source Routing
 

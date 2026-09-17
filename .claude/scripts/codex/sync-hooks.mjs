@@ -22,6 +22,48 @@ const disabledCodexEvents = new Map([
   ["SessionStart", "static-startup-context-authoritative"],
 ]);
 
+// NARROW EXCEPTION to `disabledCodexEvents`.
+//
+// The "static startup context is authoritative" rationale above holds for a
+// SessionStart hook that only RESTATES what AGENTS.md / .codex/CODEX_CONTEXT.md
+// already carry — mirroring those would duplicate context, which is exactly what
+// the skip exists to prevent.
+//
+// It does NOT hold for a SessionStart hook that PRODUCES a runtime signal which a
+// MIRRORED non-SessionStart hook then CONSUMES. Dropping the producer while
+// keeping the consumer leaves the consumer registered in .codex/hooks.json,
+// looking healthy, tested, and permanently unreachable — a silent, unfalsifiable
+// hole. `.scan-stale` was exactly that: `session-init-docs.cjs` is its only
+// writer, `init-prompt-gate.cjs` is its only reader, and the reader is mirrored.
+//
+// Each row names the consumer that forces it. Adding a row asserts that the hook
+// computes something no static carrier can hold; a hook that merely reprints
+// static context does NOT belong here.
+const codexSessionStartMirrors = new Map([
+  [
+    ".claude/hooks/session-init-docs.cjs",
+    "sole writer of the .scan-stale flag, which is the only input to init-prompt-gate's stale-reference-doc branch (UserPromptSubmit — mirrored)",
+  ],
+  [
+    ".claude/hooks/file-convention-inject.cjs",
+    "re-arms per-file convention delivery across a compaction boundary; without it the delivery ledger never learns the transcript was condensed and falls back to the blind age path, which fails CLOSED",
+  ],
+  [
+    ".claude/hooks/prompt-ledger.cjs",
+    "re-anchors the session goal and prompt list after compact/resume; a static carrier cannot hold per-session prompts",
+  ],
+]);
+
+/** Why this SessionStart hook must mirror despite the event-level skip, or null. */
+function sessionStartMirrorReason(rawCommand) {
+  if (typeof rawCommand !== "string") return null;
+  const normalized = rawCommand.replaceAll("\\", "/");
+  for (const [hookPath, reason] of codexSessionStartMirrors) {
+    if (normalized.includes(hookPath)) return reason;
+  }
+  return null;
+}
+
 // A matcher is written against the HOST's tool names, so mirroring one verbatim
 // silently gates a hook on tools Codex never emits. Codex performs every file
 // mutation through `apply_patch` (see `.claude/hooks/lib/file-conventions.cjs`
@@ -65,13 +107,40 @@ export function mapMatcherForCodex(matcher) {
   return added.length === 0 ? matcher : [...tools, ...added].join("|");
 }
 
+// Events Codex actually dispatches, per the official hook reference
+// (https://learn.chatgpt.com/docs/hooks, verified 2026-09-17). An event absent
+// here is reported as `unsupported-by-codex`, so a WRONG entry here is not a
+// no-op — it silently drops a hook the host would have run. Verify against the
+// doc before adding or removing a row.
+//
+// Deliberately NOT mirrored even though Codex supports them, because this repo
+// registers no hook on them: SubagentStart, SubagentStop, PreCompact,
+// PostCompact, Interrupt. `Notification` is absent from the Codex reference
+// entirely, so its skip is correct.
 const supportedEvents = new Set([
+  "SessionStart",
+  "SessionEnd",
   "PreToolUse",
   "PermissionRequest",
   "PostToolUse",
   "UserPromptSubmit",
   "Stop",
 ]);
+
+// Matcher support differs per event on Codex, and the two failure shapes are NOT
+// equally bad:
+//   - SessionStart accepts startup | resume | clear | compact — the same
+//     vocabulary as Claude, so its matchers mirror verbatim.
+//   - SessionEnd accepts ONLY `other`. Claude's `clear|exit|compact` names
+//     nothing Codex emits, so mirroring it verbatim would register a hook that
+//     can NEVER fire. The matcher is therefore dropped and the hook runs on every
+//     session end — unscoped, which is why the drop is recorded rather than silent.
+//   - UserPromptSubmit and Stop IGNORE matchers outright. Preserving one is
+//     behaviourally identical to dropping it today and stays forward-compatible
+//     if Codex ever honors them, so they are deliberately left alone. Never read a
+//     preserved matcher on those two events as evidence the hook is scoped.
+// Only an UNMATCHABLE matcher belongs in this set; an ignored one does not.
+const CODEX_MATCHER_UNSUPPORTED = new Set(["SessionEnd"]);
 
 const nodeHookLauncher = [
   "const fs = require('node:fs');",
@@ -161,10 +230,15 @@ async function main(targetDir = codexDir) {
     target: path.relative(rootDir, codexHooksPath).replaceAll("\\", "/"),
     notes: [
       "Generated Node hook commands resolve from the nearest .claude parent, so the tracked mirror works in worktrees, session subdirectories, and bare framework copies.",
-      "Tool matcher capabilities may vary by Codex runtime; source matchers are preserved when possible.",
-      "UserPromptSubmit and Stop now preserve source matcher filters when present.",
-      "SessionStart hooks are intentionally omitted from the generated Codex config so startup context is not duplicated; both hosts load the same static files, and an adopter may add a local startup hook as an optional accelerator.",
+      "Tool matcher capabilities vary by event on Codex. SessionStart shares Claude's startup|resume|clear|compact vocabulary and mirrors verbatim. SessionEnd accepts only `other`, so Claude's clear|exit|compact is DROPPED — kept verbatim it would name nothing Codex emits and the hook could never fire; it mirrors unscoped instead, recorded as a matcher-unsupported-on-codex-hook-runs-unscoped group skip. UserPromptSubmit and Stop ignore matchers entirely, so theirs are preserved unchanged: identical behaviour today, forward-compatible if Codex ever honors them.",
+      "Hooks belong in .codex/hooks.json ONLY. Codex loads ALL matching hook sources (~/.codex and <repo>/.codex, hooks.json and config.toml) rather than letting a higher layer replace a lower one, so declaring the same hook in both .codex/config.toml and .codex/hooks.json runs it twice. Repo-level hooks load automatically but only when the project layer is trusted.",
+      "SessionStart hooks are omitted from the generated Codex config by default so startup context is not duplicated; both hosts load the same static files, and an adopter may add a local startup hook as an optional accelerator.",
+      "EXCEPTION: SessionStart hooks on the codexSessionStartMirrors allowlist ARE mirrored. They produce a runtime signal that a mirrored non-SessionStart hook consumes, so skipping them would leave the consumer registered and permanently unreachable rather than merely un-accelerated. The report's session_start_mirrors array names each one and the consumer that forces it.",
     ],
+    session_start_mirrors: [...codexSessionStartMirrors].map(([hook, reason]) => ({
+      hook,
+      required_by: reason,
+    })),
     converted_events: [],
     skipped_events: [],
     converted_groups_total: 0,
@@ -173,7 +247,20 @@ async function main(targetDir = codexDir) {
 
   for (const [eventName, groups] of Object.entries(claudeHooks)) {
     const disabledReason = disabledCodexEvents.get(eventName);
-    if (disabledReason) {
+    // A disabled event still mirrors the hooks on its narrow allowlist — those
+    // PRODUCE a signal a mirrored consumer READS. See codexSessionStartMirrors.
+    const mirrorOnly =
+      disabledReason &&
+      eventName === "SessionStart" &&
+      Array.isArray(groups) &&
+      groups.some(group =>
+        (Array.isArray(group?.hooks) ? group.hooks : []).some(hook =>
+          sessionStartMirrorReason(hook?.command)
+        )
+      );
+    // No allowlisted producer in this event → the original event-level skip stands
+    // verbatim, reason unchanged. The exception adds rows; it never rewrites the rule.
+    if (disabledReason && !mirrorOnly) {
       report.skipped_events.push({
         event: eventName,
         reason: disabledReason,
@@ -206,6 +293,7 @@ async function main(targetDir = codexDir) {
 
       const mappedHooks = [];
       for (const hook of hooks) {
+        if (mirrorOnly && !sessionStartMirrorReason(hook?.command)) continue;
         const command = normalizeCommand(hook?.command);
         if (!command) continue;
 
@@ -216,13 +304,22 @@ async function main(targetDir = codexDir) {
       }
 
       if (mappedHooks.length === 0) {
-        pushSkip(report, eventName, i, "no-command-hooks", matcher);
+        pushSkip(
+          report,
+          eventName,
+          i,
+          mirrorOnly ? "session-start-not-on-mirror-allowlist" : "no-command-hooks",
+          matcher
+        );
         continue;
       }
 
       const mappedGroup = { hooks: mappedHooks };
-      if (matcher && matcher !== "*") {
+      if (matcher && matcher !== "*" && !CODEX_MATCHER_UNSUPPORTED.has(eventName)) {
         mappedGroup.matcher = mapMatcherForCodex(matcher);
+      } else if (matcher && matcher !== "*") {
+        // Recorded, not silently dropped: the hook still mirrors, but UNSCOPED.
+        pushSkip(report, eventName, i, "matcher-unsupported-on-codex-hook-runs-unscoped", matcher);
       }
       mappedGroups.push(mappedGroup);
     }

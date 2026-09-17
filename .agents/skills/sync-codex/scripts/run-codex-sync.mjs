@@ -1,14 +1,19 @@
 #!/usr/bin/env node
 
-// Standalone orchestrator for the codex cross-surface pipeline — equivalent to
-// `npm run sync:all && npm run verify:all`.
-// This file is the single source of truth for the pipeline; the package.json
-// `sync:all`/`verify:all` scripts delegate here, so copying `.claude` into a
-// project WITHOUT a root package.json still runs the complete pipeline:
-//   node .claude/skills/sync-codex/scripts/run-codex-sync.mjs            # full
-//   node .claude/skills/sync-codex/scripts/run-codex-sync.mjs --only=... # subset
+// Standalone orchestrator for the codex cross-surface pipeline — sync + verify in one place.
+// This file is the single source of truth for the pipeline. `.claude`/`.codex` are PORTABLE and
+// SELF-RUNNING: copying them into a project with no root `package.json`, no npm and no node_modules
+// still runs the complete pipeline, because every entrypoint is a path inside the bundle:
+//   node .claude/skills/sync-codex/scripts/run-codex-sync.mjs                # full sync + verify
+//   node .claude/skills/sync-codex/scripts/run-codex-sync.mjs --verify-only  # every read-only gate
+//   node .claude/skills/sync-codex/scripts/run-codex-sync.mjs --only=<ids>   # subset
+//   node .claude/skills/sync-codex/scripts/run-codex-sync.mjs --list-stages  # discover the roster
 // Runs all stages sequentially, fails fast on first non-zero exit.
 // No npm dependency — pure node + spawned subprocesses.
+//
+// `--verify-only` is DERIVED from each stage's `mutate` marker, so "run every read-only gate" is a
+// capability of the bundle rather than a stage list transcribed into a host `package.json`. An
+// adopter that hand-copies such a list silently under-verifies the moment a stage is added here.
 
 import { spawn } from "node:child_process";
 import { readFile, readdir } from "node:fs/promises";
@@ -23,6 +28,8 @@ const techSpecGenerator = path.join(rootDir, ".claude", "skills", "tech-spec", "
 
 const args = process.argv.slice(2);
 const verbose = args.includes("--verbose") || args.includes("-v");
+const verifyOnly = args.includes("--verify-only");
+const listStages = args.includes("--list-stages");
 const skipSet = parseListFlag("--skip");
 const onlySet = parseListFlag("--only");
 const migrateFlags = args.filter(arg => arg === "--copy-skills");
@@ -235,9 +242,12 @@ const stages = [
     { id: "sync-divergence",    label: "verify-sync-divergence",    cmd: "node", args: [path.join(sourceScriptsDir, "verify-sync-divergence.mjs")] },
 ];
 
-function shouldRun(id) {
-    if (onlySet && !onlySet.has(id)) return false;
-    if (skipSet && skipSet.has(id)) return false;
+// `--verify-only` is resolved from the stage's own `mutate` marker rather than a roster: the
+// read-only set can never fall behind the pipeline, because a new mutating stage declares itself.
+function shouldRun(stage) {
+    if (verifyOnly && stage.mutate) return false;
+    if (onlySet && !onlySet.has(stage.id)) return false;
+    if (skipSet && skipSet.has(stage.id)) return false;
     return true;
 }
 
@@ -266,7 +276,7 @@ function validateStageSelectors() {
 // all 19 stages INCLUDING the four mutating ones (CLAUDE.md preflight, migrate, sync-hooks, sync-context)
 // instead of doing the narrow thing the reader asked for. A runner that can rewrite the
 // tree must never treat "I did not understand you" as "run everything".
-const KNOWN_FLAGS = ["--verbose", "-v", "--copy-skills"];
+const KNOWN_FLAGS = ["--verbose", "-v", "--copy-skills", "--verify-only", "--list-stages"];
 const KNOWN_LIST_FLAGS = ["--only", "--skip"];
 function validateFlags() {
     const unknown = args.filter(arg =>
@@ -358,10 +368,24 @@ async function runStage(stage, index, total) {
     });
 }
 
+// Self-documenting roster. Without it the only way to learn the stage ids is to read this source or
+// a host `package.json` — the exact dependency the portable contract forbids.
+function printStageRoster() {
+    console.log(`[codex-sync] ${stages.length} stages (in order), from ${rootDir}`);
+    for (const [index, stage] of stages.entries()) {
+        console.log(`  ${String(index + 1).padStart(2)}. ${stage.id.padEnd(24)} ${stage.mutate ? "MUTATE" : "verify"}  ${stage.label}`);
+    }
+    console.log("[codex-sync] --verify-only runs every 'verify' stage above; --only=<ids>/--skip=<ids> select a subset.");
+}
+
 async function main() {
     validateFlags();
     validateStageSelectors();
-    const active = stages.filter(s => shouldRun(s.id));
+    if (listStages) {
+        printStageRoster();
+        return;
+    }
+    const active = stages.filter(shouldRun);
     if (active.length === 0) {
         console.error("[codex-sync] no stages selected; check --only/--skip flags");
         process.exit(1);

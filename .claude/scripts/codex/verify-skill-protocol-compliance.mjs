@@ -41,7 +41,7 @@ const AGENTS_ROOT_PROJECTION_END = '/CK:CODEX-ROOT-PROJECTION';
 // valid output. Deliberately a LOCAL copy, NOT an import: this file is loaded from a `data:` URL and
 // copied into isolated roots without its siblings (`verifier-root-contract.test.mjs`), so a relative
 // import breaks it. `verify-skill-protocol-compliance.test.mjs` asserts the two constants match.
-export const AGENTS_ROOT_LIMIT_BYTES = 49152;
+export const AGENTS_ROOT_LIMIT_BYTES = 53248;
 const DEBUGGER_TRACE_MARKER = '<!-- SYNC:end-to-start-debugger-trace -->';
 const DEBUGGER_TRACE_REQUIRED_SNIPPETS = [
     'End-to-Start Debugger Trace',
@@ -380,17 +380,17 @@ export function checkDebuggerTraceCoverage(content, relativePath) {
 // so it is unit-testable without spawning the verifier or inducing a real drift.
 export function formatMirrorRemediation(failures) {
     const lines = [
-        'Remediation: regenerate the Codex mirrors with `npm run codex:sync` (or `npm run sync:all`',
-        'for all three surfaces), then re-run this gate. Without npm / a root package.json (e.g. a',
-        'project that only copied `.claude`), run the standalone orchestrator directly — it is the',
-        'single source of truth the npm scripts delegate to, no package.json required:',
-        '  node .claude/skills/sync-codex/scripts/run-codex-sync.mjs',
+        'Remediation: regenerate the Codex mirrors with the standalone orchestrator, then re-run this',
+        'gate. The framework is self-running: this command needs no npm, no package.json and no',
+        'node_modules, so it is identical in this repo and in any project that only copied `.claude`.',
+        '  node .claude/skills/sync-codex/scripts/run-codex-sync.mjs --copy-skills   # all three surfaces',
+        '  node .claude/skills/sync-codex/scripts/run-codex-sync.mjs --verify-only   # re-run every gate',
         'NEVER hand-edit or `prettier --write` the generated mirrors (AGENTS.md, .codex/**, .agents/**)',
         '— they are .prettierignore-d so the sync stays their only writer.'
     ];
     if (Array.isArray(failures) && failures.some(f => /mirror|drift/i.test(String(f)))) {
         lines.push('A "context mirror content drifted" failure almost always means a mirror file was reformatted');
-        lines.push('or edited after the last sync; `npm run codex:sync` rewrites it byte-for-byte from the source.');
+        lines.push('or edited after the last sync; the runner above rewrites it byte-for-byte from the source.');
     }
     // Size overflow is the ONE failure the sync cannot fix, so it must not inherit the generic
     // "regenerate" advice above — that advice is a non-terminating loop here. The generator

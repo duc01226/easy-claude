@@ -21,13 +21,13 @@
 
 const fs = require('fs');
 const path = require('path');
-const { loadProjectConfig } = require('./project-config-loader.cjs');
+const { loadProjectConfig, getSpecDocsPath } = require('./project-config-loader.cjs');
 const { resolveProjectRoot } = require('./project-root.cjs');
+const { isPathWithinRoot, joinRoot } = require('./ck-path-utils.cjs');
 const { reportHookInternalError } = require('./debug-log.cjs');
 
 const PROJECT_DIR = resolveProjectRoot({ cwd: process.cwd(), scriptPath: __filename, env: process.env }).rootDir;
 const CONFIG_PATH = path.join(PROJECT_DIR, '.claude', 'hooks', 'config', 'doc-sync-gate.json');
-const FEATURE_SPEC_ROOT = 'docs/specs/';
 
 /**
  * Load gate config. Fail-open: any error yields a disabled config so the gate
@@ -122,27 +122,41 @@ function areaForCodePath(relPath, cfg) {
 }
 
 /**
- * Fixed Feature Spec bucket directory for an enforced area.
- * @param {object} area
- * @returns {string}
+ * Feature Spec bucket directory for an enforced area, TRAILING SLASH guaranteed.
+ *
+ * The root is CONFIG-DRIVEN (`specRoots.business.path` via `getSpecDocsPath`), not a
+ * literal. `getSpecDocsPath` returns a trailing-slash form while a configured root may
+ * be slash-free, so this is built with `joinRoot` and NEVER with a bare template: a
+ * slash-free `spec-library` concatenated into `` `${root}${bucket}/` `` would silently
+ * yield `spec-libraryAuth/` — a total mis-classification with no error.
+ *
+ * @param {object} area - enforced area (its `name` is the bucket)
+ * @param {string} [specRoot] - spec root override; resolved from project-config when omitted
+ * @returns {string} e.g. 'docs/specs/Auth/' at the default root, or 'spec-library/Auth/' when `specRoots.business.path` in docs/project-config.json relocates it
  */
-function featureSpecDirForArea(area) {
+function featureSpecDirForArea(area, specRoot) {
   const bucket = area && typeof area.name === 'string' ? area.name.trim().replace(/^\/+|\/+$/g, '') : '';
-  return `${FEATURE_SPEC_ROOT}${bucket}/`;
+  const root = specRoot === undefined || specRoot === null ? getSpecDocsPath() : specRoot;
+  return joinRoot(root, bucket, '');
 }
 
 /**
- * Is this path a Feature Spec doc under SOME enforced area's fixed bucket dir?
+ * Is this path a Feature Spec doc under SOME enforced area's bucket dir?
+ *
+ * Matches on a SEGMENT BOUNDARY via `isPathWithinRoot` — a bare `startsWith` lets the
+ * bucket `Auth` swallow a sibling `AuthLegacy/…`, which is the fail-open class this
+ * gate must not have.
+ *
  * @param {string} relPath repo-relative posix
  * @param {object} cfg
  * @returns {object|null} the owning area, or null
  */
 function areaForFeatureDoc(relPath, cfg) {
   if (!relPath) return null;
-  const lower = relPath.toLowerCase();
+  const specRoot = getSpecDocsPath();
   return (
     (cfg.enforcedAreas || []).find(
-      a => lower.startsWith(featureSpecDirForArea(a).toLowerCase())
+      a => isPathWithinRoot(relPath, featureSpecDirForArea(a, specRoot))
     ) || null
   );
 }

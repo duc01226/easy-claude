@@ -29,8 +29,10 @@
 - Run 5 mandate checks before showing output to user
 - **Where the project already has a design system or `interface-system.md`, ADOPT it and record the adoption** — re-decide an axis only with a stated reason; surface genuine conflicts to the user, never resolve silently
 - Save reusable patterns to `docs/design-system/interface-system.md` when 2+ uses
-- Component patterns: `docs/project-reference/frontend-patterns-reference.md`
-- Styling/BEM guide: `docs/project-reference/scss-styling-guide.md`
+Both live under the reference-docs root (default `docs/project-reference`; a `docsRoots.projectReference.path` entry in `docs/project-config.json` overrides the path):
+
+- Component patterns: `frontend-patterns-reference.md`
+- Styling/BEM guide: `scss-styling-guide.md`
 
 **Scope:**
 

@@ -85,12 +85,12 @@ Project size controls task grouping and split depth only. It does NOT permit ski
 
 ### Step 2: Create Plan (`$plan`)
 
-Create `plans/{date}-project-config-scan.md`:
+Create `{plans-root}/{date}-project-config-scan.md` in the plans root — default `plans/`; a `docsRoots.plans.path` entry in `docs/project-config.json` overrides the path:
 
 1. Record scale classification from Step 1
 2. Group config sections into phases (≤5 tasks each) while preserving full section coverage
 3. Include review-and-fix cycle after each phase
-4. Include every Phase 2 section (2a–2r) as either its own task or a named task inside a compact group with explicit evidence for each section
+4. Include every Phase 2 section (2a–2s) as either its own task or a named task inside a compact group with explicit evidence for each section
 
 **Phase template:**
 
@@ -128,6 +128,73 @@ Medium/large projects: `mkdir -p tmp/project-config` — write phase reports bef
 
 ---
 
+## ⛔ Local-Only Changes — `docs/project-config.local.json`
+
+`docs/project-config.json` is **team-shared and committed**. Writing a personal preference into it
+pushes that preference onto every teammate on the next pull. The git-ignored sibling
+`docs/project-config.local.json` exists for exactly that case.
+
+**MUST ATTENTION — route by who the change is for, and ask when it is ambiguous.**
+
+| The user says | Write to |
+| --- | --- |
+| "turn X off **for me / on my machine / locally / just here / don't commit it**" | `docs/project-config.local.json` — **never** the team file |
+| "turn X off **for this project / for the team / for everyone**" | `docs/project-config.json` (the normal scan/merge path) |
+| A scan/merge run (Phases 0–7 below) | `docs/project-config.json` — scans describe the repository, which is a team fact |
+| Neither is stated **and** the setting is a behavioural preference rather than a description of the repo (for example `portability.workflowAutoDetect`) | STOP and ask which scope they mean — guessing writes an unwanted file either way |
+
+**Writing the local override:**
+
+1. Confirm it is ignored before writing — `git check-ignore -v docs/project-config.local.json`.
+   It is covered by the repo-root `.gitignore` rule `*.local.json`. If that command reports
+   nothing, the file would be committed: STOP, tell the user, and add the ignore rule first.
+   Never create an un-ignored `*.local.json`; that is the one outcome this whole path exists
+   to prevent.
+2. Write **only the overridden keys**, in the same nesting as the team file. It is a sparse
+   overlay, not a copy — duplicating the whole config guarantees it rots against the team file.
+3. Never delete or rewrite keys the user did not name, and never migrate settings out of the
+   team file into the local one.
+4. Report the absolute path you wrote, that it is git-ignored, and how to undo it (delete the
+   file, or set the key back).
+
+```jsonc
+// docs/project-config.local.json — git-ignored, this machine only, sparse overlay
+{
+  "portability": { "workflowAutoDetect": false }
+}
+```
+
+**Resolution contract** (`.claude/scripts/lib/workflow-routing-config.cjs` implements it for
+`workflowAutoDetect`): framework default → team `docs/project-config.json` → local
+`docs/project-config.local.json`, **later layer wins**. A layer that is absent, unparseable, or
+simply silent on a key expresses no opinion and falls through to the layer below — so a missing
+file never flips a setting, and the override works in BOTH directions (a developer can set `true`
+locally to opt back in when the team set `false`). The local path is derived from the team config
+path, so it follows a `.ck.json` `projectConfigPath` relocation automatically.
+
+**⛔ SCOPE — why the tracked files do NOT change.** `CLAUDE.md`, `AGENTS.md` and
+`.codex/CODEX_CONTEXT.md` are git-tracked. If a local preference rewrote them, it would appear as
+modified tracked files and could be committed onto the team — defeating the whole point. So the
+switch resolves at two scopes:
+
+| Scope | Who resolves it | Layers applied |
+| --- | --- | --- |
+| `team` | every generator writing a **tracked** file (`generate-claude-md.cjs`, `sync-context-workflows.mjs`) | default + team config **only** |
+| `effective` (default) | the **runtime** `UserPromptSubmit` carrier, which writes nothing | default + team + local override |
+
+So a developer who disables routing locally gets it off **at runtime**, while the shared files keep
+the team's content and the repository stays clean. Because those files still contain the gate, the
+runtime carrier additionally states that it **overrides** them — so the model does not route from a
+gate nothing contradicted.
+
+**Do NOT tell the user to run `$ai-context-refresh` to "apply" a local override** — it is already
+in effect at runtime, and regenerating would only rewrite tracked files. The generator prints a
+notice explaining this. `--apply-local-routing` is the explicit escape hatch for a developer who
+genuinely wants the local value baked into their working copy; it produces tracked-file changes
+they must not commit, so only use it when they ask for exactly that.
+
+---
+
 ## ⛔ Schema Protection Rules
 
 **NEVER** rename/remove/restructure top-level sections. **NEVER** change field types. **NEVER** populate deprecated v1 sections for new projects. **NEVER** remove v1 data from existing projects.
@@ -157,6 +224,7 @@ docs/project-config.json
 ├── integrationTestVerify — { guidance, referenceDocs[], quickRunCommand, testProjectPattern, testProjects[], systemCheckCommand, runScript, startupScript }
 ├── workflowPatterns — { architectureStyle, codeHierarchy, cssMethodology, stateManagement, crossModuleValidation, featureDocTemplate, reviewRulesDoc }
 ├── specRoots — { business{ path, authorship, m1Policy }, technical{ path, authorship, m1Policy } }  (drives $spec + $tech-spec)
+├── docsRoots — { projectReference{ path }, adr{ path }, templates{ path }, plans{ path }, teamArtifacts{ path }, productRoadmap{ path } }  (relocatable doc roots; omit a sub-object to keep its default)
 ├── techSpecScan — { sourceRoot, fileExtensions[], annotationPattern }  (enables $tech-spec) | else _techSpecScanNote (deliberate-omission carrier)
 └── DEPRECATED: backendServices, frontendApps, scss, componentFinder, sharedNamespace
 ```
@@ -178,7 +246,7 @@ docs/project-config.json
 
 ---
 
-## Deriving the Spec-System Config From Source (`specRoots` + `techSpecScan`)
+## Deriving the Spec-System Config From Source (`specRoots` + `docsRoots` + `techSpecScan`)
 
 > These two sections drive `$spec` (hand-authored business specs) and `$tech-spec` (derived technical specs). They are **optional in the schema but effectively required for any project that wants `$tech-spec`** — the generator exits non-zero when `techSpecScan` is absent. Derive each value from THIS project's own source; never copy another project's literals. `--describe` (Phase 0b) now emits a `#` derivation note per field — read it.
 
@@ -186,10 +254,34 @@ docs/project-config.json
 
 | Field | Derive from | Typical value |
 | --- | --- | --- |
-| `business.path` | The hand-authored feature-spec dir (where `$spec` writes). | e.g. `docs/specs` |
+| `business.path` | The hand-authored feature-spec dir (where `$spec` writes). | default `docs/specs`; this key in `docs/project-config.json` is what overrides it |
 | `business.authorship` / `business.m1Policy` | Business tree is human-authored, tech-free prose. | `hand` / `strict` |
 | `technical.path` | The generated technical-view dir (where `$tech-spec` writes). | e.g. `docs/tech-specs` |
 | `technical.authorship` / `technical.m1Policy` | Technical tree is projected from code — naming code IS the point. | `derived` / `exempt` |
+
+**`docsRoots`** — the six relocatable documentation roots, sibling to `specRoots` and sharing its exact shape and its exact rules. A project that keeps the framework layout declares NOTHING; every accessor then returns its documented default, byte-identically to a repo with no `docsRoots` at all. Declare a sub-object ONLY when that tree has actually moved, and derive its value from what is on disk — never copy another project's literals.
+
+| Key (all six live under `docsRoots` in `docs/project-config.json`) | Source of truth (derive from) | Framework default | How to derive |
+| --- | --- | --- | --- |
+| `docsRoots.projectReference.path` in `docs/project-config.json` | The generated reference-doc tree `$scan` writes and every skill reads. | `docs/project-reference` | Locate the dir holding `docs-index-reference.md` / `lessons.md`; the `referenceDocs[]` FILENAMES are a canonical floor and never change — only this containing dir is configurable. |
+| `docsRoots.adr.path` in `docs/project-config.json` | The Architecture Decision Record tree. | `docs/adr` | Find the dir of `NNNN-*.md` ADRs (or the one an existing ADR index points at). |
+| `docsRoots.templates.path` in `docs/project-config.json` | The document-template tree. | `docs/templates` | Find the dir the project's doc/spec templates live in. |
+| `docsRoots.plans.path` in `docs/project-config.json` | The implementation-plan tree `$plan` writes. | `plans/` | Find the dir of `{date}-{slug}/plan.md` plan folders. `.ck.json` `paths.plans` is a legacy fallback — this key WINS when both are set. |
+| `docsRoots.teamArtifacts.path` in `docs/project-config.json` | The idea / PBI / story tree. | `team-artifacts` | Find the dir holding `ideas/`, `pbis/`, `stories/`. |
+| `docsRoots.productRoadmap.path` in `docs/project-config.json` | The roadmap document. | `docs/product-roadmap.md` | A FILE path, not a dir — the single roadmap doc `$product-roadmap` maintains. |
+
+Rules that bind every one of the six — identical to `specRoots`, and enforced by the schema, not by convention:
+
+1. **A declared sub-object MUST carry its `path`.** A partial declaration (`"adr": {}`) is an **ERROR**, never a silent default — the same asymmetry `specRoots` already enforces. Absent = default; declared-but-invalid = build failure.
+2. **Paths are repo-relative.** An absolute path or any `..` segment is rejected as repo-escaping.
+3. **A declared path that does not exist on disk is a WARNING**, not an error — it lets `$project-init` seed the block before the tree is created.
+4. **Validate on the fail-CLOSED plane before finishing.** The runtime accessors are fail-SOFT by design: a malformed, unreadable or absent config yields the documented DEFAULT and never throws, so a typo'd key is invisible at runtime. The ONLY surface that catches it is the validator — run it after every edit to this block:
+
+   ```bash
+   node .claude/hooks/lib/project-config-schema.cjs --validate docs/project-config.json
+   ```
+
+5. **Never invent a relocation.** If the tree sits at the default, OMIT the sub-object. A declared key restating the default is noise that later drifts from the code it was supposed to track.
 
 **`techSpecScan`** — how `$tech-spec` finds annotated tests. Derive all three from the stack:
 
@@ -366,22 +458,45 @@ Algorithm: scan source files → extract keys via `contentPattern` regex capture
 
 **IMPORTANT MUST ATTENTION** record detected rules in the plan/report before writing; do not pause for user approval. **IMPORTANT MUST ATTENTION** scope `paths` to relevant dirs (not repo root).
 
+### 2s. Documentation Roots — `docsRoots` (DETECT, then declare only what MOVED)
+
+Run FIRST of the doc-root trio (**2s → 2q → 2r**): 2q normalizes `referenceDocs[]` INSIDE the reference-doc root, and 2r's detection only keeps docs that exist on disk — both read the wrong tree if a relocated root is still undeclared.
+
+**Detect** — probe each of the 6 roots against what the repo actually has. The accessor returns the DEFAULT whenever nothing is declared, so a mismatch between the probe and the tree on disk is exactly the relocation you must record:
+
+```bash
+node -e "const l=require('./.claude/hooks/lib/project-config-loader.cjs');const fs=require('fs');const keys=['projectReference','adr','templates','plans','teamArtifacts','productRoadmap'];console.log(JSON.stringify(keys.map(k=>{const p=l.getDocsRoot(k);return{key:k,resolved:p,exists:fs.existsSync(p)}}),null,2))"
+```
+
+- `exists:true` for every key ⇒ the project uses the framework layout. **Declare NOTHING.**
+- `exists:false` for a key ⇒ glob the repo for that tree's signature (`docs-index-reference.md`/`lessons.md` for `projectReference`; `NNNN-*.md` for `adr`; `{date}-{slug}/plan.md` for `plans`; `ideas/`+`pbis/`+`stories/` for `teamArtifacts`; the roadmap FILE for `productRoadmap`). Found elsewhere ⇒ declare that sub-object with its repo-relative `path`. Not present at all ⇒ still declare nothing; the tree simply does not exist yet.
+
+**Declare** — write only the moved sub-objects, each with its required `path` (a declared-but-pathless sub-object is an ERROR, not a default; see the `docsRoots` derivation section above for all six keys, their defaults, and their rules).
+
+**Validate — MANDATORY, and the only surface that can catch a typo.** Runtime resolution is fail-SOFT (a bad config silently yields defaults); validation is fail-CLOSED:
+
+```bash
+node .claude/hooks/lib/project-config-schema.cjs --validate docs/project-config.json
+```
+
+Errors (missing `path`, absolute or `..`-escaping path) MUST be fixed before continuing. A "does not exist on disk" **warning** is acceptable only when `$project-init` is seeding a tree that is about to be created.
+
 ### 2q. Reference Docs — Canonical Floor (MUST normalize, NEVER raw-import)
 
-⛔ Reference docs are the FRAMEWORK's canonical set, not whatever files happen to sit in `docs/project-reference/`. Do **NOT** build `referenceDocs[]` by listing on-disk files — that silently re-imports drift (legacy filenames like `feature-docs-reference.md`, missing canonical docs, wrong order). Normalize against the canonical floor instead:
+⛔ Reference docs are the FRAMEWORK's canonical set, not whatever files happen to sit in the project-reference docs root — default `docs/project-reference/`; a `docsRoots.projectReference.path` entry in `docs/project-config.json` overrides the path. Do **NOT** build `referenceDocs[]` by listing on-disk files — that silently re-imports drift (legacy filenames like `feature-docs-reference.md`, missing canonical docs, wrong order). Normalize against the canonical floor instead:
 
 ```bash
 node -e "const h=require('./.claude/hooks/lib/session-init-helpers.cjs');const{loadProjectConfig}=require('./.claude/hooks/lib/project-config-loader.cjs');console.log(JSON.stringify(h.normalizeReferenceDocs((loadProjectConfig()||{}).referenceDocs),null,2))"
 ```
 
 - Set `config.referenceDocs` = the returned **`normalized`** array (canonical docs + genuine project-specific extras, canonical order, legacy names resolved, canonical `templatePath`s preserved). Add project-specific reference docs only as EXTRA entries; **never** delete or rename a canonical entry.
-- For each **`renames[]`** `{from,to}`: if `docs/project-reference/<from>` exists — `git mv` it to `<to>` when `<to>` is absent; if `<to>` already exists, `<from>` is a stale duplicate → confirm `<to>` holds the canonical content, then `git rm <from>`. Migrate every downstream textual reference (`docs-index-reference.md`, `project-structure-reference.md`) `<from>` → `<to>`.
+- For each **`renames[]`** `{from,to}`, inside the reference-doc root `<ref>` — default `docs/project-reference/`; a `docsRoots.projectReference.path` entry in `docs/project-config.json` overrides the path: if `<ref>/<from>` exists — `git mv` it to `<to>` when `<to>` is absent; if `<to>` already exists, `<from>` is a stale duplicate → confirm `<to>` holds the canonical content, then `git rm <from>`. Migrate every downstream textual reference (`docs-index-reference.md`, `project-structure-reference.md`) `<from>` → `<to>`.
 - **`added[]`** are canonical docs missing on disk — the SessionStart hook (or the matching `$scan --target=<key>`) creates them. Do not hand-fabricate content; per-doc purpose/sections come from `DEFAULT_REFERENCE_DOCS`.
 - Re-run the probe after merging; `changed:false` with empty `renames`/`added`/`removedLegacy` is the only PASS state.
 
 ### 2r. Convention Classes — Detect & Merge (NEVER clobber)
 
-Per-file convention classes tell the AI which rules, skill protocols and reference docs apply when it reads or edits a file (hook `file-convention-inject.cjs`; hookless fallback = CLAUDE.md "Automatic Skill Activation" table + `node .claude/hooks/lib/file-conventions.cjs --lookup <path>`). Run AFTER 2e/2i/2q so detection sees the final `testing`, `e2eTesting`, `integrationTestVerify`, `specRoots`, `modules` and `framework` values:
+Per-file convention classes tell the AI which rules, skill protocols and reference docs apply when it reads or edits a file (hook `file-convention-inject.cjs`; hookless fallback = CLAUDE.md "Automatic Skill Activation" table + `node .claude/hooks/lib/file-conventions.cjs --lookup <path>`). Run AFTER 2e/2i/2s/2q so detection sees the final `testing`, `e2eTesting`, `integrationTestVerify`, `specRoots`, `modules` and `framework` values. (`docsRoots` is deliberately NOT a detection input: no context group is keyed off a `docsRoots` value, so there is nothing for `convention-merge.cjs` to derive from it. 2s still runs first because detection drops docs that are not on disk, and a relocated-but-undeclared reference root makes every one of them look absent.):
 
 ```bash
 node .claude/hooks/lib/convention-merge.cjs --detect --merge            # dry run: added / refreshed / kept
@@ -453,7 +568,8 @@ Include the project scale, the selected full-coverage task grouping, and confirm
 > **Assume existing values are intentional — ask WHY before changing OR flagging one as a defect.** Before changing or reporting a constant, limit, flag, cutoff, wording, or pattern, read nearby context and history, the CALLER's ordering, and 2+ sibling call sites of the same convention. A doc stating WHAT without WHY is missing rationale, not proof of a missing guard.
 > **Surface ambiguity before acting — don't pick silently.** Multiple valid interpretations require an explicit question or stated assumption with risk.
 > **Assert the outcome your system owns, not the intermediate state your infrastructure owns.** When verifying async work, assert the final business state — never the delivery/retry bookkeeping held in shared infrastructure that any co-running process can write. Such a check passes when run alone and flakes the moment anything else shares that infrastructure.
-> **Store disposable generated output in the project workspace.** If an output can be regenerated and is not source code, a canonical source-of-truth, or an intentionally versioned projection, write it under the project-root `tmp/` or `temp/` directory (prefer `tmp/`), scoped to the run. This includes temporary state, integration/E2E results, reports, logs, screenshots, traces, videos, coverage, dumps, and candidate evidence. Never put these outputs in source, docs, `plans/`, `team-artifacts/`, or mirror directories; the project-root `.gitignore` must ignore `/tmp/` and `/temp/` by default. Committed fixtures, accepted baselines, canonical specs/docs, and explicitly versioned generated mirrors remain at their declared owner paths.
+> **Store disposable generated output in the project workspace.** If an output can be regenerated and is not source code, a canonical source-of-truth, or an intentionally versioned projection, write it under the project-root `tmp/` or `temp/` directory (prefer `tmp/`), scoped to the run. This includes temporary state, integration/E2E results, reports, logs, screenshots, traces, videos, coverage, dumps, and candidate evidence. Never put these outputs in source, docs, the plans root (default `plans/`; a `docsRoots.plans.path` entry in `docs/project-config.json` overrides the path), the team-artifacts root (default `team-artifacts/`; `docsRoots.teamArtifacts.path` in the same config overrides the path), or mirror directories; the project-root `.gitignore` must ignore `/tmp/` and `/temp/` by default. Committed fixtures, accepted baselines, canonical specs/docs, and explicitly versioned generated mirrors remain at their declared owner paths.
+> **Judge the environment before judging the code.** A bug report, failed test, error, or unexpected output is not proof of a code defect. Before and during adjudication, weigh environment causes as a competing hypothesis — setup, config, version and dependency state, service dependencies, stale artifacts or leftover state, and transient resource pressure (RAM, CPU, disk, handles, network). State the discriminator you ran; fix an environment cause in the environment, never by editing product code or weakening a test to absorb it.
 > **Keep shared guidance role-relevant.** Universal guidance must help every receiving skill or agent; code-specific obligations belong only in code-specific protocols.
 
 <!-- /SYNC:ai-mistake-prevention -->
@@ -479,7 +595,7 @@ Include the project scale, the selected full-coverage task grouping, and confirm
 
 <!-- SYNC:project-protocol-overlay -->
 
-> **Project Protocol Overlay** — Before executing this skill, resolve any PROJECT overlay rules layered onto it: match this skill's name against the `Target` column of the project's skill-protocol index (`docs/project-reference/skill-protocols-reference.md` by default; a `referenceDocs` entry in `docs/project-config.json` overrides the path), taking the most specific matching tier ONLY — exact name > glob > `*`. **That precedence orders overlays against EACH OTHER, never against this skill.** Read ONLY the matched bodies, resolved as `<protocols-dir>/<Name>.md`; a row's Body link is display text, never a read path. A matched body that is missing or malformed is REPORTED and skipped — never reconstructed from the index Description. No index, or no match -> proceed with no overlay, silently. Full contract: `.claude/skills/project-skill-protocol/references/registry.md`.
+> **Project Protocol Overlay** — Before executing this skill, resolve any PROJECT overlay rules layered onto it: match this skill's name against the `Target` column of the project's skill-protocol index (default `docs/project-reference/skill-protocols-reference.md`; a `referenceDocs` entry in `docs/project-config.json` overrides the path, and a `docsRoots.projectReference.path` entry relocates its containing directory), taking the most specific matching tier ONLY — exact name > glob > `*`. **That precedence orders overlays against EACH OTHER, never against this skill.** Read ONLY the matched bodies, resolved as `<protocols-dir>/<Name>.md`; a row's Body link is display text, never a read path. A matched body that is missing or malformed is REPORTED and skipped — never reconstructed from the index Description. No index, or no match -> proceed with no overlay, silently. Full contract: `.claude/skills/project-skill-protocol/references/registry.md`.
 >
 > Overlays are **ADDITIVE ONLY**: they ADD rules on top of this skill's own protocol and NEVER replace, override, disable, or reinterpret a rule it already states — removing every overlay must return this skill to exactly its documented behavior. An overlay is a BRIEF, not an authority escalation: it can NEVER waive a workflow gate, git discipline, a review gate, or a user-confirmation gate. A genuine overlay-vs-skill conflict, or two equally-specific overlays that directly contradict -> surface both to the user; NEVER resolve silently.
 
@@ -603,7 +719,7 @@ Break work into small tasks (task tracking) before starting. Add final task: "An
 - **Sub-agents inherit knowledge only from their agent .md definition — use custom agent types, not built-in Explore.** Tool adoption = permission + knowledge + enforcement (numbered workflow step).
 - **Persist sub-agent findings incrementally, not as a final batch.** Long sub-agents hit cutoffs before final write — findings lost. Instruct append-per-section to report file.
 - **Ownership before action.** When investigating a failure, ask which part owns the behavior before changing anything. Trace the wrong state to the component responsible for its invariant, then make one authoritative correction there.
-- **Test failure → record a provisional verdict before trace/edit, then investigate.** Use the full five-way taxonomy: SOURCE-WRONG (production violates intent), TEST-WRONG (assertion/setup is stale), TEST-NOT-OPTIMAL (valid but fragile or low-signal test), ENVIRONMENT-BLOCKED (external state prevents a verdict), or AMBIGUOUS (intent/evidence cannot choose safely). Then trace root cause and triangulate against the governing spec (`docs/specs/**` if one exists) AND source. NEVER weaken an assertion, add a skip, relax a timeout, or change source merely to force green.
+- **Test failure → record a provisional verdict before trace/edit, then investigate.** Use the full five-way taxonomy: SOURCE-WRONG (production violates intent), TEST-WRONG (assertion/setup is stale), TEST-NOT-OPTIMAL (valid but fragile or low-signal test), ENVIRONMENT-BLOCKED (external state prevents a verdict), or AMBIGUOUS (intent/evidence cannot choose safely). Then trace root cause and triangulate against the governing spec if one exists (the business spec root — default `docs/specs`; a `specRoots.business.path` entry in `docs/project-config.json` overrides the path) AND source. NEVER weaken an assertion, add a skip, relax a timeout, or change source merely to force green.
 - **Grep ALL removed names after extraction/refactoring.** Primary file "done" ≠ secondary files clean. Grep entire scope for every removed symbol before declaring complete.
 - **Assume existing values are intentional — ask WHY before changing OR flagging one as a defect.** Pattern-matching as "wrong" skips context. Before changing or reporting any constant/limit/flag/cutoff: read comments, git blame, the CALLER's ordering (the guarantee that makes the value correct usually lives in code running immediately BEFORE the cited line), and 2+ sibling call sites of the same convention. A doc stating WHAT without WHY is missing rationale, not proof of a missing guard — and in a validation pass, an accurate `file:line` citation proves the transcription, never the defect.
 - **Verify ALL affected outputs, not just the first.** One build green ≠ all green. Multi-stack changes (backend/frontend/tests/docs) require verifying EVERY output.
@@ -617,7 +733,8 @@ Break work into small tasks (task tracking) before starting. Add final task: "An
 - **After context compaction, re-verify all prior phase outcomes before continuing.** Summaries describe intent, not environment state (git index, filesystem, processes). On resume, FIRST audit: git status, re-read modified files, verify filesystem. Every "completed" claim is an untested hypothesis until evidence confirms.
 - **OOM/memory: check row count before row size.** Triage: (1) Unbounded query — no DB filter for trigger? Push filter to DB; eliminates OOM. (2) Large rows? Projection reduces proportionally. Row reduction > projection in ROI.
 - **Assert the outcome your system OWNS, never the intermediate state your INFRASTRUCTURE owns.** When testing anything asynchronous (queue/broker delivery, retries, background jobs, caches, replication), assert the final business/entity state. NEVER assert the delivery bookkeeping — consume/send status, attempt counts, last-error, row existence or counts in a broker, scheduler, or outbox/inbox table. That bookkeeping lives in shared infrastructure that ANY co-running process (a peer worker, a second replica, a leftover local container) can write, usually under a deterministic shared key, so the assertion silently tests the developer's environment instead of the system: green when run alone, flaky the instant anything else shares that broker + database. Gate question for every assertion: "would this hold no matter WHICH process did the work?" — if no, assert the converged data state instead. Corollary: process-local fault injection and in-process telemetry cannot gate work any process may perform — use them as stress amplifiers (arm → bounded window → disarm → assert convergence), never as preconditions.
-- **Store disposable generated output in the project workspace.** If an output can be regenerated and is not source code, a canonical source-of-truth, or an intentionally versioned projection, write it under the project-root `tmp/` or `temp/` directory (prefer `tmp/`), scoped to the run. This includes temporary state, integration/E2E results, reports, logs, screenshots, traces, videos, coverage, dumps, and candidate evidence. Never put these outputs in source, docs, `plans/`, `team-artifacts/`, or mirror directories; the project-root `.gitignore` must ignore `/tmp/` and `/temp/` by default. Committed fixtures, accepted baselines, canonical specs/docs, and explicitly versioned generated mirrors remain at their declared owner paths.
+- **Store disposable generated output in the project workspace.** If an output can be regenerated and is not source code, a canonical source-of-truth, or an intentionally versioned projection, write it under the project-root `tmp/` or `temp/` directory (prefer `tmp/`), scoped to the run. This includes temporary state, integration/E2E results, reports, logs, screenshots, traces, videos, coverage, dumps, and candidate evidence. Never put these outputs in source, docs, the plans root (default `plans/`; a `docsRoots.plans.path` entry in `docs/project-config.json` overrides the path), the team-artifacts root (default `team-artifacts/`; `docsRoots.teamArtifacts.path` in the same config overrides the path), or mirror directories; the project-root `.gitignore` must ignore `/tmp/` and `/temp/` by default. Committed fixtures, accepted baselines, canonical specs/docs, and explicitly versioned generated mirrors remain at their declared owner paths.
+- **Judge the environment before judging the code — a competing hypothesis, not a fallback.** A bug, failed test, error, or odd output is NOT proof of a code defect. Before deep tracing and before any verdict, sweep environment preconditions (toolchain/dependency/lockfile state, stale build or cache artifacts, env vars and config profile, service dependencies up-migrated-seeded, ports/network/clock, OS-path/locale, permissions and locks, leftover processes/containers/test data) AND transient resource pressure (RAM/OOM, CPU saturation under parallel workers, disk/temp exhaustion, handle and connection-pool limits, network flakiness, a timeout that is really slowness). Tell-tale shape: non-deterministic, timing-dependent, passes alone but fails in parallel, fails only on one machine or only on CI, or an error naming resources rather than business rules. Cite the discriminator you ran (clean environment? did code on the failing path change since it last passed? one machine or all? concurrency 1 or a clean rebuild?) — a verdict without one is a guess, for code as much as for the environment. Fix an environment cause in the environment or setup; NEVER edit product code or weaken/skip a test to absorb it, and a failure that vanishes on retry stays unexplained until its mechanism is named. — why: forcing green against an environment fault hides the real defect and permanently rots the test.
 - **Keep domain concepts out of generic/shared/infrastructure layers.** Reusable layer (shared library, framework, infra module) must reference NO consumer-specific domain concept — tenant/customer/product IDs, business entities, feature rules. Leak compiles + runs → passes review silently while coupling the "reusable" layer to one consumer. Keep shared type domain-free; push domain fields/logic down into the consumer via subclass/composition. — why: a layer coupled to one consumer's domain is no longer reusable.
 
 <!-- CODEX:SYNC-PROMPT-PROTOCOLS:END -->

@@ -15,20 +15,20 @@ description: '[General] Use when (re)generating a DERIVED navigation index, cros
 
 ## Quick Summary
 
-> **Portability:** `docs/specs/` is the fixed Feature Spec root.
+> **Portability:** the Feature Spec root is CONFIGURED, not fixed — default `docs/specs/`; a `specRoots.business.path` entry in `docs/project-config.json` overrides the path (rationale: `docs/adr/0003-config-driven-doc-and-spec-roots.md`). Every `docs/specs/...` literal below is the DEFAULT; substitute the configured root when one is set.
 
 **Goal:** Generate a regenerable, single-writer navigation layer (catalog, cross-capability ERD, and reimplementation guide) from canonical, tech-free 8-section Feature Specs, so derived aids never become a second source of truth.
 
 **Summary:**
 
 - **Purpose:** DERIVED-aid assembler ONLY — read §1 Overview, §5 Domain Model Mermaid, and §8 TCs to build default `INDEX.md`, optional `{Bucket}.erd.md`, and optional `{Bucket}.reimplementation-guide.md`; NEVER author business content. Feature Specs remain canonical.
-- **Ordered run:** 0 Scope Gate — `AskUserQuestion` confirms bucket/mode/artifacts before reads; no `README.*.md` specs → STOP, route `/spec` → 1 read capability name+link, §1 summary, §8 feature code/TC count/status, §5 entities/relationships → 2 assemble 2a INDEX, 2b ERD, 2c guide → 3 stamp DERIVED banner/date and write each immediately → 4 verify retired outputs absent, links/banner valid, prose tech-free, no canonical claims.
+- **Ordered run:** 0 Scope Gate — `AskUserQuestion` confirms bucket/mode/artifacts before reads; no `README.*.md` specs → STOP, route `/spec` → 1 read capability name+link, §1 summary, §8 feature code/TC count/status, §5 entities/relationships → 2 assemble 2a INDEX, 2b ERD, 2c guide → 3 stamp DERIVED banner/date and write each immediately, skipping any file whose content did not change (`doc-stamp-guard.cjs --check`) → 4 verify retired outputs absent, links/banner valid, prose tech-free, no canonical claims.
 - **Modes:** `index` (default — regenerate derived aids) · `audit` (report derived aids stale vs source specs).
-- **Hard boundary:** NEVER emit retired A-E engineering tree, `M##` dirs, `00-module-registry.md`, `01-domain-erd.md`, `06-reimplementation-guide.md`, or `docs/specs/README.md`/`PRIORITY-INDEX.md`; use `{Bucket}.*` instead — why: an A-E bundle becomes a competing source of truth. Every generated file carries the DERIVED banner, links each row/entity to its source, and keeps INDEX/ERD prose tech-free; only the guide may name a target stack.
+- **Hard boundary:** NEVER emit retired A-E engineering tree, `M##` dirs, `00-module-registry.md`, `01-domain-erd.md`, `06-reimplementation-guide.md`, or `README.md`/`PRIORITY-INDEX.md` at the spec root (default `docs/specs`; `specRoots.business.path` in `docs/project-config.json` overrides it); use `{Bucket}.*` instead — why: an A-E bundle becomes a competing source of truth. Every generated file carries the DERIVED banner, links each row/entity to its source, and keeps INDEX/ERD prose tech-free; only the guide may name a target stack.
 
 > **Routing:** `/spec-index` owns derived index/ERD/reimplementation aids; `/spec` owns canonical Feature Specs.
 
-> **[SCOPE]** Assemble a **DERIVED** index / ERD / reimplementation guide over canonical Feature Specs. MUST NOT emit per-module A-E engineering files (`A-domain-model`, `B-business-rules`, `C-api-contracts`, `D-events`, `E-user-journeys`), `M##` directories, `00-module-registry.md`, `01-domain-erd.md`, `06-reimplementation-guide.md`, or `docs/specs/README.md`/`PRIORITY-INDEX.md`; those contents live in the Feature Spec. Thin-index-only contract: output is DERIVED, never an A-E bundle. Authority: [`docs/project-reference/spec-system-reference.md`](../../../docs/project-reference/spec-system-reference.md).
+> **[SCOPE]** Assemble a **DERIVED** index / ERD / reimplementation guide over canonical Feature Specs. MUST NOT emit per-module A-E engineering files (`A-domain-model`, `B-business-rules`, `C-api-contracts`, `D-events`, `E-user-journeys`), `M##` directories, `00-module-registry.md`, `01-domain-erd.md`, `06-reimplementation-guide.md`, or `README.md`/`PRIORITY-INDEX.md` at the spec root (default `docs/specs`; `specRoots.business.path` in `docs/project-config.json` overrides it); those contents live in the Feature Spec. Thin-index-only contract: output is DERIVED, never an A-E bundle. Authority: [`docs/project-reference/spec-system-reference.md`](../../../docs/project-reference/spec-system-reference.md) (project-reference docs root default `docs/project-reference`; `docsRoots.projectReference.path` overrides it).
 
 **Inputs:** canonical 8-section Feature Specs (§1 Overview, §5 Domain Model Mermaid, §8 TCs). Code is the technical source of truth; read it ONLY for unresolved cross-spec ERD relationships or reimplementation build order, never to populate a parallel spec layer.
 
@@ -44,16 +44,16 @@ description: '[General] Use when (re)generating a DERIVED navigation index, cros
 **Key Rules:**
 
 - **[BLOCKING]** Output is **DERIVED and regenerable** — every generated file carries a `> DERIVED — regenerate via /spec-index; do NOT hand-edit` banner. It is NEVER a second source of truth.
-- **[BLOCKING]** MUST NOT emit `M##` dirs, `A-E` files, `00-module-registry.md`, `01-domain-erd.md`, `06-reimplementation-guide.md`, `docs/specs/README.md`, or `docs/specs/PRIORITY-INDEX.md` (all retired). See **Hard Prohibitions**.
+- **[BLOCKING]** MUST NOT emit `M##` dirs, `A-E` files, `00-module-registry.md`, `01-domain-erd.md`, `06-reimplementation-guide.md`, or a `README.md`/`PRIORITY-INDEX.md` at the spec root (default `docs/specs`; `specRoots.business.path` in `docs/project-config.json` overrides it) — all retired. See **Hard Prohibitions**.
 - §1-7 Feature Spec prose is tech-free; derived INDEX/ERD inherit that. The **reimplementation guide is the sole artifact allowed to name a target stack** (`spec-principles.md` §3 rebuild-guide exception).
 - Every catalog row / ERD entity links back to the source Feature Spec; mark `[UNVERIFIED]` rather than guessing.
-- Read [`docs/project-reference/spec-principles.md`](../../../docs/project-reference/spec-principles.md) §3 (tech-agnostic + banned-token list) before writing any prose.
+- Read [`docs/project-reference/spec-principles.md`](../../../docs/project-reference/spec-principles.md) §3 (tech-agnostic + banned-token list) before writing any prose — project-reference docs root default `docs/project-reference`; a `docsRoots.projectReference.path` entry in `docs/project-config.json` overrides the path.
 
 ---
 
 ## App Bucket Mapping
 
-Derived aids use **App Bucket** (single-home spec tree). Resolve service→bucket assignments from the canonical table in [`docs/project-reference/spec-system-reference.md`](../../../docs/project-reference/spec-system-reference.md) → **App Bucket Mapping**; do not inline project-specific bucket names.
+Derived aids use **App Bucket** (single-home spec tree). Resolve service→bucket assignments from the canonical table in [`docs/project-reference/spec-system-reference.md`](../../../docs/project-reference/spec-system-reference.md) → **App Bucket Mapping** (project-reference docs root default `docs/project-reference`; a `docsRoots.projectReference.path` entry in `docs/project-config.json` overrides the path); do not inline project-specific bucket names.
 
 ---
 
@@ -63,18 +63,18 @@ Before any read, use `AskUserQuestion`. Confirm:
 
 | Dimension      | Question                                                                                                  | Auto-Default                  |
 | -------------- | -------------------------------------------------------------------------------------------------------- | ----------------------------- |
-| **Bucket** ★   | Which App Bucket(s) — one bucket, several, or all of `docs/specs/`?                                       | — must confirm                |
+| **Bucket** ★   | Which App Bucket(s) — one bucket, several, or all of the spec root (default `docs/specs/`; `specRoots.business.path` in `docs/project-config.json` overrides it)? | — must confirm                |
 | **Mode** ★     | `index` (regenerate derived aids) OR `audit` (report which derived aids are stale vs their source specs)? | `index`                       |
 | **Artifacts**  | Which derived aids: bucket `INDEX.md` / cross-capability ERD / reimplementation guide?                    | `INDEX.md` only               |
 | **Stack note** | (reimplementation guide only) Name a target rebuild stack, or keep stack-neutral build order?            | Stack-neutral                 |
 
-> **[BLOCKING]** If the target bucket has **no** Feature Specs matching `docs/specs/{Bucket}/README.*.md`, STOP and route the user to `/spec`; there is nothing to derive. NEVER fabricate a spec to index.
+> **[BLOCKING]** If the target bucket has **no** Feature Specs matching `<spec root>/{Bucket}/README.*.md` (default `docs/specs`; a `specRoots.business.path` entry in `docs/project-config.json` overrides the path), STOP and route the user to `/spec`; there is nothing to derive. NEVER fabricate a spec to index.
 
 ---
 
 ## Step 1 — Read the Source Feature Specs
 
-1. `Glob docs/specs/{Bucket}/README.*.md` → enumerate the canonical specs.
+1. `Glob <spec root>/{Bucket}/README.*.md` — default `docs/specs`; a `specRoots.business.path` entry in `docs/project-config.json` overrides the path → enumerate the canonical specs.
 2. For each spec, read and extract ONLY:
     - **Capability name** + file link
     - **Summary** — first sentence of `## 1. Overview`
@@ -90,7 +90,7 @@ Before any read, use `AskUserQuestion`. Confirm:
 
 ### 2a. Bucket `INDEX.md` (default)
 
-Regenerate `docs/specs/{Bucket}/INDEX.md` as a feature catalog:
+Regenerate `<spec root>/{Bucket}/INDEX.md` as a feature catalog — default `docs/specs`; a `specRoots.business.path` entry in `docs/project-config.json` overrides the path (substitute it into the banner below when configured):
 
 ```markdown
 > **DERIVED — regenerate via `/spec-index`; do NOT hand-edit.** Source of truth: the Feature Specs in `docs/specs/{Bucket}/README.*.md`.
@@ -110,26 +110,27 @@ Assemble one Mermaid `erDiagram` from every spec's §5 block in the bucket:
 
 - Merge/dedupe entities by name; keep cross-capability relationships.
 - Resolve code-only relationships by reading code; keep ERD prose tech-free (entity + relationship names only, no class/table identifiers).
-- Write to `docs/specs/{Bucket}/{Bucket}.erd.md` with the DERIVED banner. **Do NOT** name it `01-domain-erd.md` (retired).
+- Write to `<spec root>/{Bucket}/{Bucket}.erd.md` (default `docs/specs`; a `specRoots.business.path` entry in `docs/project-config.json` overrides the path) with the DERIVED banner. **Do NOT** name it `01-domain-erd.md` (retired).
 
 ### 2c. Reimplementation Guide (on explicit request only)
 
 A build-order narrative: capability dependency order, integration touchpoints, suggested rebuild sequence.
 
 - This is the **only** derived artifact permitted to name a target stack (`spec-principles.md` §3 rebuild-guide exception).
-- Write to `docs/specs/{Bucket}/{Bucket}.reimplementation-guide.md` with the DERIVED banner. **Do NOT** name it `06-reimplementation-guide.md` (retired).
+- Write to `<spec root>/{Bucket}/{Bucket}.reimplementation-guide.md` (default `docs/specs`; a `specRoots.business.path` entry in `docs/project-config.json` overrides the path) with the DERIVED banner. **Do NOT** name it `06-reimplementation-guide.md` (retired).
 
 ---
 
 ## Step 3 — Stamp & Write
 
 - Every generated file opens with the `> DERIVED — regenerate via /spec-index; do NOT hand-edit` banner + regenerate date; write each file immediately after assembly. Do NOT accumulate large outputs in context.
+- **[BLOCKING] A regeneration that produces the same content writes NOTHING — not the date either.** Before writing each file, compare the assembled candidate against the file on disk: `node .claude/hooks/lib/doc-stamp-guard.cjs --check <output path> --candidate <candidate file>`. Exit `3` = no-op → skip that file and report it `unchanged (no write)`; exit `0` = write it, banner date and all. — why: these outputs are DERIVED, so re-running the skill on unchanged specs is routine — and a rewrite that moves only the regenerate date is an unmergeable line that makes two branches conflict over a value neither of them decided.
 
 ---
 
 ## Step 4 — Verify (self-check before completing)
 
-- **MUST ATTENTION** No retired artifacts: grep output paths; require zero `M[0-9]`, zero `A-domain-model`/`B-business-rules`/`C-api-contracts`/`D-events`/`E-user-journeys`, zero `00-module-registry`/`01-domain-erd`/`06-reimplementation-guide`, zero `docs/specs/README.md`/`PRIORITY-INDEX.md`.
+- **MUST ATTENTION** No retired artifacts: grep output paths; require zero `M[0-9]`, zero `A-domain-model`/`B-business-rules`/`C-api-contracts`/`D-events`/`E-user-journeys`, zero `00-module-registry`/`01-domain-erd`/`06-reimplementation-guide`, zero `README.md`/`PRIORITY-INDEX.md` at the spec root (default `docs/specs`; `specRoots.business.path` in `docs/project-config.json` overrides it).
 - **MUST ATTENTION** Every catalog row links to an existing Feature Spec; no dangling links.
 - **MUST ATTENTION** DERIVED banner present on each generated file.
 - **MUST ATTENTION** §1-7-derived prose tech-free (INDEX/ERD); only the reimplementation guide may name a stack.
@@ -148,8 +149,8 @@ This skill produces only the DERIVED index / ERD / reimplementation guide. Emitt
 | `00-module-registry.md`                                                       | Retired registry — bucket `INDEX.md` is the catalog               |
 | `01-domain-erd.md`                                                            | Retired per-system ERD name — use `{Bucket}.erd.md`               |
 | `06-reimplementation-guide.md`                                                | Retired per-system name — use `{Bucket}.reimplementation-guide.md` |
-| `docs/specs/README.md`, `docs/specs/PRIORITY-INDEX.md`                        | Retired QA dashboards — Section 8 is the canonical TC registry     |
-| `docs/business-features/**`                                                   | Not a spec home — all specs live under `docs/specs/`               |
+| `README.md`, `PRIORITY-INDEX.md` at the spec root (default `docs/specs`; `specRoots.business.path` in `docs/project-config.json` overrides it) | Retired QA dashboards — Section 8 is the canonical TC registry     |
+| `docs/business-features/**`                                                   | Not a spec home — all specs live under the configured spec root (default `docs/specs`; `specRoots.business.path` in `docs/project-config.json` overrides it) |
 
 If a user explicitly asks for an A-E bundle, explain it is retired and offer the derived index/ERD instead. The thin-index-only contract applies — output is DERIVED, never an A-E bundle.
 
@@ -224,7 +225,8 @@ If a user explicitly asks for an A-E bundle, explain it is retired and offer the
 > **Assume existing values are intentional — ask WHY before changing OR flagging one as a defect.** Before changing or reporting a constant, limit, flag, cutoff, wording, or pattern, read nearby context and history, the CALLER's ordering, and 2+ sibling call sites of the same convention. A doc stating WHAT without WHY is missing rationale, not proof of a missing guard.
 > **Surface ambiguity before acting — don't pick silently.** Multiple valid interpretations require an explicit question or stated assumption with risk.
 > **Assert the outcome your system owns, not the intermediate state your infrastructure owns.** When verifying async work, assert the final business state — never the delivery/retry bookkeeping held in shared infrastructure that any co-running process can write. Such a check passes when run alone and flakes the moment anything else shares that infrastructure.
-> **Store disposable generated output in the project workspace.** If an output can be regenerated and is not source code, a canonical source-of-truth, or an intentionally versioned projection, write it under the project-root `tmp/` or `temp/` directory (prefer `tmp/`), scoped to the run. This includes temporary state, integration/E2E results, reports, logs, screenshots, traces, videos, coverage, dumps, and candidate evidence. Never put these outputs in source, docs, `plans/`, `team-artifacts/`, or mirror directories; the project-root `.gitignore` must ignore `/tmp/` and `/temp/` by default. Committed fixtures, accepted baselines, canonical specs/docs, and explicitly versioned generated mirrors remain at their declared owner paths.
+> **Store disposable generated output in the project workspace.** If an output can be regenerated and is not source code, a canonical source-of-truth, or an intentionally versioned projection, write it under the project-root `tmp/` or `temp/` directory (prefer `tmp/`), scoped to the run. This includes temporary state, integration/E2E results, reports, logs, screenshots, traces, videos, coverage, dumps, and candidate evidence. Never put these outputs in source, docs, the plans root (default `plans/`; a `docsRoots.plans.path` entry in `docs/project-config.json` overrides the path), the team-artifacts root (default `team-artifacts/`; `docsRoots.teamArtifacts.path` in the same config overrides the path), or mirror directories; the project-root `.gitignore` must ignore `/tmp/` and `/temp/` by default. Committed fixtures, accepted baselines, canonical specs/docs, and explicitly versioned generated mirrors remain at their declared owner paths.
+> **Judge the environment before judging the code.** A bug report, failed test, error, or unexpected output is not proof of a code defect. Before and during adjudication, weigh environment causes as a competing hypothesis — setup, config, version and dependency state, service dependencies, stale artifacts or leftover state, and transient resource pressure (RAM, CPU, disk, handles, network). State the discriminator you ran; fix an environment cause in the environment, never by editing product code or weakening a test to absorb it.
 > **Keep shared guidance role-relevant.** Universal guidance must help every receiving skill or agent; code-specific obligations belong only in code-specific protocols.
 
 <!-- /SYNC:ai-mistake-prevention -->
@@ -286,7 +288,7 @@ If a user explicitly asks for an A-E bundle, explain it is retired and offer the
 
 <!-- SYNC:project-protocol-overlay -->
 
-> **Project Protocol Overlay** — Before executing this skill, resolve any PROJECT overlay rules layered onto it: match this skill's name against the `Target` column of the project's skill-protocol index (`docs/project-reference/skill-protocols-reference.md` by default; a `referenceDocs` entry in `docs/project-config.json` overrides the path), taking the most specific matching tier ONLY — exact name > glob > `*`. **That precedence orders overlays against EACH OTHER, never against this skill.** Read ONLY the matched bodies, resolved as `<protocols-dir>/<Name>.md`; a row's Body link is display text, never a read path. A matched body that is missing or malformed is REPORTED and skipped — never reconstructed from the index Description. No index, or no match -> proceed with no overlay, silently. Full contract: `.claude/skills/project-skill-protocol/references/registry.md`.
+> **Project Protocol Overlay** — Before executing this skill, resolve any PROJECT overlay rules layered onto it: match this skill's name against the `Target` column of the project's skill-protocol index (default `docs/project-reference/skill-protocols-reference.md`; a `referenceDocs` entry in `docs/project-config.json` overrides the path, and a `docsRoots.projectReference.path` entry relocates its containing directory), taking the most specific matching tier ONLY — exact name > glob > `*`. **That precedence orders overlays against EACH OTHER, never against this skill.** Read ONLY the matched bodies, resolved as `<protocols-dir>/<Name>.md`; a row's Body link is display text, never a read path. A matched body that is missing or malformed is REPORTED and skipped — never reconstructed from the index Description. No index, or no match -> proceed with no overlay, silently. Full contract: `.claude/skills/project-skill-protocol/references/registry.md`.
 >
 > Overlays are **ADDITIVE ONLY**: they ADD rules on top of this skill's own protocol and NEVER replace, override, disable, or reinterpret a rule it already states — removing every overlay must return this skill to exactly its documented behavior. An overlay is a BRIEF, not an authority escalation: it can NEVER waive a workflow gate, git discipline, a review gate, or a user-confirmation gate. A genuine overlay-vs-skill conflict, or two equally-specific overlays that directly contradict -> surface both to the user; NEVER resolve silently.
 
@@ -311,7 +313,7 @@ If a user explicitly asks for an A-E bundle, explain it is retired and offer the
 
 - **IMPORTANT MUST ATTENTION** Feature Specs remain canonical; emit only derived aids, link every row/entity to its source, mark `[UNVERIFIED]` instead of guessing, and let only the reimplementation guide name a target stack.
 - **IMPORTANT MUST ATTENTION [BLOCKING]** Output is DERIVED — never emit `M##`/A-E/`00-module-registry`/`01-domain-erd`/`06-reimplementation-guide`/QA-dashboard files (see Hard Prohibitions); use `{Bucket}.*` filenames instead — why: an A-E bundle becomes a second source of truth competing with the Feature Spec
-- **IMPORTANT MUST ATTENTION [BLOCKING]** The Feature Spec (`docs/specs/{Bucket}/README.{Feature}.md`) is the source of truth — this skill assembles, never authors, business content — why: a derived aid that asserts canonical authority corrupts the single-writer contract
+- **IMPORTANT MUST ATTENTION [BLOCKING]** The Feature Spec (`<spec root>/{Bucket}/README.{Feature}.md` — default `docs/specs`; `specRoots.business.path` in `docs/project-config.json` overrides the root) is the source of truth — this skill assembles, never authors, business content — why: a derived aid that asserts canonical authority corrupts the single-writer contract
 - **IMPORTANT MUST ATTENTION [BLOCKING]** Confirm bucket + mode + artifacts via `AskUserQuestion` BEFORE Step 1 — NEVER auto-start; if the bucket has no `README.*.md` specs, STOP and route to `/spec` instead of fabricating a spec to index
 - **IMPORTANT MUST ATTENTION [BLOCKING]** Context compaction/session resume → `TaskList` FIRST; resume existing tasks, never re-run a completed generation pass — why: summaries describe intent, not filesystem state
 - **IMPORTANT MUST ATTENTION [BLOCKING]** Stamp the DERIVED banner + regenerate date on every generated file; write after each artifact, never accumulate large outputs in context

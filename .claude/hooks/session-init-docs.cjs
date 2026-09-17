@@ -12,8 +12,8 @@
  *
  * Generic skills rely on this hook as the project-specific extension point:
  * skills stay portable, while local conventions live in configured project
- * config and reference-doc paths. Defaults are docs/project-config.json and
- * docs/project-reference/* unless portability paths override them.
+ * config and reference-doc paths. Defaults are docs/project-config.json and docs/project-reference/*
+ * unless the portability paths and `docsRoots` entries in docs/project-config.json override them.
  *
  * Idempotent — skips files that already exist.
  *
@@ -45,6 +45,7 @@ const { SCAN_STALE_PATH, ensureProjectTmpDir } = require('./lib/ck-paths.cjs');
 const {
     getConfiguredProjectConfigPath,
     getConfiguredDocsIndexPath,
+    getDocsRoot,
     loadProjectConfig
 } = require('./lib/project-config-loader.cjs');
 const { resolveProjectRoot } = require('./lib/project-root.cjs');
@@ -54,7 +55,16 @@ const { resolveProjectRoot } = require('./lib/project-root.cjs');
 // dest on first SessionStart if absent — same bootstrap-once contract as
 // referenceDocs[].templatePath. See phase-08A.
 const FEATURE_DOC_TEMPLATE_SOURCE = '.claude/templates/detailed-feature-spec-template.md';
-const DEFAULT_FEATURE_DOC_TEMPLATE_DEST = 'docs/templates/detailed-feature-spec-template.md';
+const FEATURE_DOC_TEMPLATE_FILENAME = 'detailed-feature-spec-template.md';
+
+/**
+ * Bootstrap destination when `workflowPatterns.featureDocTemplate` is unset: the template
+ * filename under the CONFIGURED template root, so a project that relocated `docsRoots.templates`
+ * is not seeded into the abandoned default tree. Resolves to the documented default `docs/templates/` when no `docsRoots.templates.path` entry in docs/project-config.json overrides it.
+ */
+function defaultFeatureDocTemplateDest() {
+    return `${getDocsRoot('templates')}/${FEATURE_DOC_TEMPLATE_FILENAME}`;
+}
 
 const rootResolution = resolveProjectRoot({ cwd: process.cwd(), scriptPath: __filename, env: process.env });
 const PROJECT_DIR = rootResolution.rootDir;
@@ -164,7 +174,7 @@ function main() {
             const wp = (loadProjectConfig() || {}).workflowPatterns || {};
             const templateDestRel = (typeof wp.featureDocTemplate === 'string' && wp.featureDocTemplate.trim() !== '')
                 ? wp.featureDocTemplate.trim()
-                : DEFAULT_FEATURE_DOC_TEMPLATE_DEST;
+                : defaultFeatureDocTemplateDest();
             const templateDest = path.join(PROJECT_DIR, templateDestRel);
             const templateSource = path.join(PROJECT_DIR, FEATURE_DOC_TEMPLATE_SOURCE);
             if (!fs.existsSync(templateDest) && fs.existsSync(templateSource) && fs.statSync(templateSource).isFile()) {

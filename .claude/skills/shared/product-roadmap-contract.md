@@ -4,13 +4,13 @@ Project-neutral contract for outcome-first planning. This contract is upstream o
 
 ## Quick Summary
 
-**Goal:** Keep product boundaries outcome-first while preventing ordinary idea, spec, and PBI workflows from creating `docs/product-roadmap.md`; embed decomposition only for genuinely large ideas, and reserve the standalone roadmap writer for explicit requests.
+**Goal:** Keep product boundaries outcome-first while preventing ordinary idea, spec, and PBI workflows from creating the product roadmap artifact (default `docs/product-roadmap.md`; a `docsRoots.productRoadmap.path` entry in `docs/project-config.json` overrides the path); embed decomposition only for genuinely large ideas, and reserve the standalone roadmap writer for explicit requests.
 
 **Summary:**
 
 - **Default chain:** idea → four-signal `isLargeIdea` check → complete `large_idea_decomposition` in the owning PBI/spec only when true → read-only propagation to stories, scenarios, mock-ups, presentations, plans, and tests.
 - **Ordinary chain:** all signals false → omit decomposition, roadmap, milestone, and scope-brief placeholders; continue the owning workflow without a roadmap writer.
-- **Explicit chain:** explicit roadmap request → `docs/product-roadmap.md` → approved milestone/scope brief → scenario → `## Plan Gate` → plan/review/validation/implementation.
+- **Explicit chain:** explicit roadmap request → `{roadmap-file}` → approved milestone/scope brief → scenario → `## Plan Gate` → plan/review/validation/implementation.
 - **Technical branches:** framework/library changes use `FRAMEWORK-LIBRARY`; isolated brownfield changes use `EXEMPT`; neither branch fabricates product roadmap artifacts.
 
 **Main steps:** classify the branch → evaluate the four signals → require or omit the five-field decomposition → propagate stable slice IDs read-only → apply the matching Plan Gate and owner approval.
@@ -18,6 +18,13 @@ Project-neutral contract for outcome-first planning. This contract is upstream o
 **Workflow:** classify branch → verify the four signals → validate all five decomposition fields when triggered → propagate stable slice IDs read-only → apply the matching Plan Gate and owner approval.
 
 **Key Rules:** ordinary routes NEVER write a roadmap file; independentlySliceable alone is not a trigger; downstream artifacts MUST NOT reinterpret or create decomposition; explicit roadmap writing requires explicit user intent.
+
+## Path placeholders
+
+Two roots in this contract are relocatable. Resolve both before writing or citing any path; the two placeholders below stand for the RESOLVED value everywhere they appear in this document.
+
+- `{roadmap-file}` — the product roadmap artifact: default `docs/product-roadmap.md`; a `docsRoots.productRoadmap.path` entry in `docs/project-config.json` overrides the path.
+- `{plan-dir}` — one plan's stable handoff directory, `{plans-root}/{plan-id}/`. The plans root resolves in THREE tiers, highest first: a `docsRoots.plans.path` entry in `docs/project-config.json` WINS; `.ck.json` `paths.plans` is the fallback when project-config declares nothing; the hardcoded `plans/` is last. The `{plan-id}` naming convention (`{YYMMDD-HHmm}-{slug}`) is unchanged by the root.
 
 ## Artifact chains
 
@@ -35,10 +42,10 @@ Only an explicit product-roadmap deliverable uses the separate product artifact 
 
 ```text
 explicit roadmap request
-  -> docs/product-roadmap.md
+  -> {roadmap-file}
   -> selected milestone + approved scope brief
-  -> plans/{plan-id}/scenario-analysis.md
-  -> plans/{plan-id}/plan.md with ## Plan Gate
+  -> {plan-dir}/scenario-analysis.md
+  -> {plan-dir}/plan.md with ## Plan Gate
   -> plan review + human validation
   -> implementation
 ```
@@ -48,14 +55,14 @@ A framework/library protocol change uses a technical chain:
 ```text
 framework/library change
   -> technical scope brief + operational scenarios
-  -> plans/{plan-id}/plan.md with ## Plan Gate
+  -> {plan-dir}/plan.md with ## Plan Gate
   -> plan review + human validation
   -> implementation and verifier evidence
 ```
 
-Each arrow is a handoff. A roadmap path and milestone ID are required only for the explicit roadmap chain. Embedded and framework/library artifacts MUST use their own branch values and MUST NOT fabricate `docs/product-roadmap.md`, a product milestone, or a scope brief merely because the idea is large.
+Each arrow is a handoff. A roadmap path and milestone ID are required only for the explicit roadmap chain. Embedded and framework/library artifacts MUST use their own branch values and MUST NOT fabricate `{roadmap-file}`, a product milestone, or a scope brief merely because the idea is large.
 
-When no active `plan.md` exists yet, an explicit roadmap selection, an embedded large-idea handoff, an explicit EXEMPT scope, or a framework/library change creates the stable handoff directory `plans/{YYMMDD-HHmm}-{slug}/`. Any required scope brief, scenario analysis, and later plan MUST use that same `plan-id`; `tmp/reports/` is reserved for review/report artifacts and is not a scope-brief handoff location.
+When no active `plan.md` exists yet, an explicit roadmap selection, an embedded large-idea handoff, an explicit EXEMPT scope, or a framework/library change creates the stable handoff directory `{plan-dir}` — that is, `{YYMMDD-HHmm}-{slug}/` under the plans root (default `plans/`; a `docsRoots.plans.path` entry in `docs/project-config.json` overrides the root, with `.ck.json` `paths.plans` as the fallback tier). Any required scope brief, scenario analysis, and later plan MUST use that same `plan-id`; `tmp/reports/` is reserved for review/report artifacts and is not a scope-brief handoff location.
 
 ## Product roadmap versus implementation plan
 
@@ -80,7 +87,7 @@ isLargeIdea = multipleIndependentOutcomes
             || oversizedPbiThatMustSplit
 ```
 
-- When `isLargeIdea=true`, keep the milestone mindset inside `large_idea_decomposition`; do not create `docs/product-roadmap.md` unless the user explicitly requests a roadmap deliverable.
+- When `isLargeIdea=true`, keep the milestone mindset inside `large_idea_decomposition`; do not create `{roadmap-file}` unless the user explicitly requests a roadmap deliverable.
 - When all four signals are false, omit the decomposition block, roadmap path, milestone ID, and scope-brief requirement unless the user supplies an existing roadmap as read-only context.
 - `independentlySliceable` is a property of an outcome slice, not a fifth trigger by itself.
 - When a user explicitly requests a product roadmap, route to the standalone writer and apply `Required roadmap content`.
@@ -144,7 +151,7 @@ For a small isolated brownfield change or a bugfix, record an explicit exemption
 
 An exemption is not permission to guess behavior, skip the existing spec/test gates, or skip user confirmation when a material decision remains.
 
-EXEMPT is a separate applicability branch, not a roadmap status. It does not require `docs/product-roadmap.md` or a milestone ID, and downstream artifacts MUST use explicit `EXEMPT`/`N/A — {reason}` values instead of fabricated roadmap or milestone placeholders. The branch still requires a stable scope brief, scenario analysis, existing spec/test/review gates, commands, observable evidence, and accepting-owner approval.
+EXEMPT is a separate applicability branch, not a roadmap status. It does not require `{roadmap-file}` or a milestone ID, and downstream artifacts MUST use explicit `EXEMPT`/`N/A — {reason}` values instead of fabricated roadmap or milestone placeholders. The branch still requires a stable scope brief, scenario analysis, existing spec/test/review gates, commands, observable evidence, and accepting-owner approval.
 
 For a reusable framework or library change, record the technical branch instead:
 
@@ -157,11 +164,11 @@ For a reusable framework or library change, record the technical branch instead:
 - Evidence: {tests, generated-carrier parity, operational checks}
 ```
 
-`FRAMEWORK-LIBRARY` requires a stable technical scope brief, operational scenario analysis, known commands, named evidence owners, preserved spec/test/review gates, and accepting-owner approval. It MUST NOT create `docs/product-roadmap.md` or a product milestone.
+`FRAMEWORK-LIBRARY` requires a stable technical scope brief, operational scenario analysis, known commands, named evidence owners, preserved spec/test/review gates, and accepting-owner approval. It MUST NOT create `{roadmap-file}` or a product milestone.
 
 ## Required roadmap content
 
-For roadmap-applicable work, `docs/product-roadmap.md` is the canonical product-level artifact. It MUST contain:
+For roadmap-applicable work, `{roadmap-file}` — default `docs/product-roadmap.md`, relocatable via `docsRoots.productRoadmap.path` in `docs/project-config.json` — is the canonical product-level artifact. It MUST contain:
 
 1. Product outcome and the hypothesis being validated.
 2. Actors/owners and the boundary of the product or capability.
@@ -181,7 +188,7 @@ Milestones are not screens, endpoint lists, or calendar promises. “MVP” mean
 
 For a roadmap-applicable selection, the selected milestone MUST produce `scope-brief.md` with:
 
-- `roadmap: docs/product-roadmap.md`;
+- `roadmap: {roadmap-file}` (the resolved path, not the placeholder);
 - `milestone_id` and approved milestone outcome;
 - primary actor and user outcome;
 - in-scope behaviors and explicit non-goals;
@@ -190,7 +197,7 @@ For a roadmap-applicable selection, the selected milestone MUST produce `scope-b
 - known risks and human decisions, each `confirmed`, `deferred`, or `blocked`;
 - completion evidence and redaction rules.
 
-The scope brief lives at `plans/{plan-id}/scope-brief.md`. If selection happens before an active plan exists, generate `{plan-id}` once from the selection timestamp and milestone slug, create that directory, and pass the exact path to `/scenario` and `/plan`.
+The scope brief lives at `{plan-dir}/scope-brief.md`. If selection happens before an active plan exists, generate `{plan-id}` once from the selection timestamp and milestone slug, create that directory, and pass the exact path to `/scenario` and `/plan`.
 
 For an EXEMPT isolated change, the same stable path MUST contain:
 
@@ -217,10 +224,10 @@ For roadmap-applicable work, `plan.md` MUST include one machine-readable status 
 ```markdown
 ## Plan Gate
 - Status: READY | BLOCKED
-- Roadmap: docs/product-roadmap.md
+- Roadmap: {roadmap-file}
 - Milestone: M{n} — {outcome}
-- Scope brief: plans/{plan-id}/scope-brief.md
-- Scenarios: plans/{plan-id}/scenario-analysis.md
+- Scope brief: {plan-dir}/scope-brief.md
+- Scenarios: {plan-dir}/scenario-analysis.md
 - Product decisions: CONFIRMED | OPEN — {decision IDs}
 - Project skeleton: CONFIRMED | MISSING — {frontend/backend/data/config status}
 - Commands: CONFIRMED | MISSING — {build/test/run commands}
@@ -237,8 +244,8 @@ For an EXEMPT change, use this branch instead of the roadmap/milestone fields ab
 - Status: EXEMPT
 - Roadmap: EXEMPT — {reason}
 - Milestone: EXEMPT — product-level scope unchanged
-- Scope brief: plans/{plan-id}/scope-brief.md
-- Scenarios: plans/{plan-id}/scenario-analysis.md
+- Scope brief: {plan-dir}/scope-brief.md
+- Scenarios: {plan-dir}/scenario-analysis.md
 - Product decisions: N/A — {why no product decision changed}
 - Project skeleton: CONFIRMED | MISSING — {frontend/backend/data/config status}
 - Commands: CONFIRMED | MISSING — {build/test/run commands}
@@ -272,8 +279,8 @@ For a framework/library change, use this branch:
 - Status: FRAMEWORK-LIBRARY | BLOCKED
 - Roadmap: NOT APPLICABLE — framework/library branch
 - Milestone: {technical registry ID or NOT APPLICABLE}
-- Scope brief: plans/{plan-id}/scope-brief.md
-- Scenarios: plans/{plan-id}/scenario-analysis.md
+- Scope brief: {plan-dir}/scope-brief.md
+- Scenarios: {plan-dir}/scenario-analysis.md
 - Product decisions: N/A — no adopter product intent changed
 - Framework owner: APPROVED | REQUIRED
 - Project skeleton: CONFIRMED | MISSING — {status}
@@ -297,7 +304,7 @@ Use observable business evidence: persisted state after refresh/reopen, valid/in
 
 ## Closing Reminders
 
-**IMPORTANT MUST ATTENTION Goal:** Keep product boundaries outcome-first: classify the four signals, embed the complete five-field decomposition only for a true large idea, propagate stable slice IDs read-only, and create/update `docs/product-roadmap.md` only after an explicit roadmap request.
+**IMPORTANT MUST ATTENTION Goal:** Keep product boundaries outcome-first: classify the four signals, embed the complete five-field decomposition only for a true large idea, propagate stable slice IDs read-only, and create/update the product roadmap artifact (default `docs/product-roadmap.md`; `docsRoots.productRoadmap.path` in `docs/project-config.json` overrides the path) only after an explicit roadmap request.
 
 **IMPORTANT MUST ATTENTION Main steps:** classify branch → evaluate `isLargeIdea` → require/omit the decomposition block → select EXPLICIT-ROADMAP, DECOMPOSITION-EMBEDDED, FRAMEWORK-LIBRARY, or EXEMPT Plan Gate → verify scenario/evidence/commands/approval → hand off to plan/review/implementation.
 

@@ -17,6 +17,11 @@
  *    must still sync — the guard must not over-trigger.
  *  - The per-prompt hook must NOT spawn Python when HEAD is unchanged; that gate is the
  *    only thing making a UserPromptSubmit hook affordable.
+ *  - When HEAD HAS moved but the toolchain is missing, the HEAD gate CANNOT fire — the
+ *    marker is only written for a decided sync. Without a second gate, that state taxes
+ *    every single prompt with two Python spawns, forever, and never self-heals. A bounded
+ *    negative cache must absorb it, and observing a working toolchain must clear it so a
+ *    repair is honoured immediately rather than after the TTL.
  *
  * Python-dependent cases skip cleanly when the graph toolchain is absent, so the suite
  * stays green on a host that never installed tree-sitter.
@@ -169,7 +174,7 @@ const guardTests = [
 // Hook-side: the per-prompt HEAD-change gate
 // ---------------------------------------------------------------------------
 
-function runPromptHook({ unchanged = false, available = true, locked = false, result = { reason: 'synced' } } = {}) {
+function runPromptHook({ unchanged = false, available = true, locked = false, cachedUnavailable = false, result = { reason: 'synced' } } = {}) {
     const root = fs.mkdtempSync(path.join(os.tmpdir(), 'ckgraph-prompt-'));
     const head = 'a'.repeat(40);
     const initial = unchanged ? head : '0'.repeat(40);
@@ -192,6 +197,9 @@ function runPromptHook({ unchanged = false, available = true, locked = false, re
                 readLastSeenHead: () => fs.readFileSync(path.join(root, '.last-seen-head'), 'utf8'),
                 writeLastSeenHead: value => { record(['write', value]); fs.writeFileSync(path.join(root, '.last-seen-head'), value); },
                 isGraphAvailable: () => { record(['available']); return { available: ${available} }; },
+                isDepsUnavailableCached: () => { record(['cached?']); return ${cachedUnavailable}; },
+                markDepsUnavailable: () => record(['mark']),
+                clearDepsUnavailable: () => record(['clear']),
                 acquireUpdateLock: () => { record(['acquire']); return ${!locked}; },
                 releaseUpdateLock: () => record(['release']),
                 invokeGraph: (...args) => { record(['sync', ...args]); return ${JSON.stringify(result)}; }
@@ -220,6 +228,30 @@ function runPromptHook({ unchanged = false, available = true, locked = false, re
     }
 }
 
+/**
+ * Normalise a recorded call list for shape comparison.
+ *
+ * The sync timeout is no longer the constant 15000 — the hook subtracts the wall
+ * time already spent from its own total budget, so the exact value is genuinely
+ * nondeterministic. Asserting it exactly would make the suite flaky on a slow
+ * host; asserting nothing would let a budget of 0 — which silently disables the
+ * sync — pass. So the value is checked for its INVARIANT (a usable slice of time,
+ * never above the declared per-call cap) and then collapsed to a token.
+ * @param {Array<Array>} calls - Recorded stub invocations
+ * @returns {Array<Array>} Same list with sync timeouts collapsed to 'BUDGETED'
+ */
+function shapeOf(calls) {
+    return calls.map((call) => {
+        if (call[0] !== 'sync') return call;
+        const timeout = call[3];
+        assertTrue(
+            typeof timeout === 'number' && timeout > 0 && timeout <= 15000,
+            `sync timeout must be a positive slice of the hook budget capped at 15000, got ${timeout}`
+        );
+        return [...call.slice(0, 3), 'BUDGETED'];
+    });
+}
+
 const hookTests = [
     {
         name: 'TC-GRAPHHEAD-010: prompt hook exposes the HEAD gate helpers it depends on',
@@ -244,18 +276,126 @@ const hookTests = [
             for (const reason of ['synced', 'graph_ahead_skipped']) {
                 const r = runPromptHook({ result: { reason } });
                 assertEqual(r.marker, r.head, `${reason}: a decided sync must record the evaluated HEAD`);
-                assertEqual(JSON.stringify(r.calls), JSON.stringify([
-                    ['available'], ['acquire'], ['sync', 'sync', [], 15000], ['write', r.head], ['release']
+                assertEqual(JSON.stringify(shapeOf(r.calls)), JSON.stringify([
+                    ['cached?'], ['available'], ['clear'], ['acquire'], ['sync', 'sync', [], 'BUDGETED'], ['write', r.head], ['release']
                 ]), `${reason}: sync must hold its lock, write once and release`);
             }
             for (const scenario of [
-                { options: { available: false }, calls: [['available']], label: 'unavailable dependencies' },
-                { options: { locked: true }, calls: [['available'], ['acquire']], label: 'held lock' },
-                { options: { result: null }, calls: [['available'], ['acquire'], ['sync', 'sync', [], 15000], ['release']], label: 'failed sync' }
+                { options: { available: false }, calls: [['cached?'], ['available'], ['mark']], label: 'unavailable dependencies' },
+                { options: { cachedUnavailable: true }, calls: [['cached?']], label: 'cached-unavailable verdict' },
+                { options: { locked: true }, calls: [['cached?'], ['available'], ['clear'], ['acquire']], label: 'held lock' },
+                { options: { result: null }, calls: [['cached?'], ['available'], ['clear'], ['acquire'], ['sync', 'sync', [], 'BUDGETED'], ['release']], label: 'failed sync' }
             ]) {
                 const r = runPromptHook(scenario.options);
                 assertEqual(r.marker, r.initial, `${scenario.label}: retain stale marker so the next prompt can retry`);
-                assertEqual(JSON.stringify(r.calls), JSON.stringify(scenario.calls), `${scenario.label}: no forbidden sync/write/unlock`);
+                assertEqual(JSON.stringify(shapeOf(r.calls)), JSON.stringify(scenario.calls), `${scenario.label}: no forbidden sync/write/unlock`);
+            }
+        }
+    },
+    {
+        name: 'TC-GRAPHHEAD-015: a recorded "deps unavailable" verdict costs nothing to honour',
+        fn() {
+            // The defect this guards: the HEAD gate can only fire once a sync has been
+            // DECIDED. With the toolchain missing no sync is ever decided, so HEAD stays
+            // ahead of the marker forever, and isGraphAvailable() — two Python spawns,
+            // 5s cap each, in a fresh process that keeps no in-memory memo — was paid on
+            // literally every prompt to rediscover the same missing package.
+            const r = runPromptHook({ cachedUnavailable: true });
+            assertEqual(
+                JSON.stringify(r.calls), JSON.stringify([['cached?']]),
+                'a cached negative verdict must short-circuit BEFORE isGraphAvailable, or it saves nothing'
+            );
+            assertEqual(r.marker, r.initial, 'a skipped probe must never claim the graph is synced');
+        }
+    },
+    {
+        name: 'TC-GRAPHHEAD-016: the verdict is recorded when unavailable and dropped when available',
+        fn() {
+            // Recording without clearing would be worse than no cache at all: a repaired
+            // install would stay suppressed for the whole TTL.
+            const unavailable = runPromptHook({ available: false });
+            assertContains(
+                JSON.stringify(unavailable.calls), '["mark"]',
+                'an unavailable toolchain must be recorded so the next prompt skips the probe'
+            );
+            assertEqual(
+                JSON.stringify(unavailable.calls).includes('"clear"'), false,
+                'an unavailable toolchain must never clear the verdict'
+            );
+
+            const available = runPromptHook({});
+            assertContains(
+                JSON.stringify(available.calls), '["clear"]',
+                'observing a working toolchain must drop any recorded verdict immediately'
+            );
+            assertEqual(
+                JSON.stringify(available.calls).includes('"mark"'), false,
+                'a working toolchain must never record itself unavailable'
+            );
+        }
+    },
+    {
+        name: 'TC-GRAPHHEAD-017: graph-utils owns the negative-cache helpers and bounds the TTL',
+        fn() {
+            const utils = require(UTILS);
+            for (const fnName of ['getDepsUnavailablePath', 'isDepsUnavailableCached', 'markDepsUnavailable', 'clearDepsUnavailable']) {
+                assertEqual(typeof utils[fnName], 'function', `graph-utils must export ${fnName}`);
+            }
+
+            // Exercised in an isolated project root, through the real filesystem, because
+            // the semantics under test ARE filesystem semantics: the marker's directory may
+            // not exist yet, and the verdict's age is its mtime. An in-process stub would
+            // assert the test's own bookkeeping instead.
+            const root = fs.mkdtempSync(path.join(os.tmpdir(), 'ckgraph-deps-'));
+            // A `.claude` directory is what makes a root RESOLVABLE. Without it the marker
+            // writers no-op by design — exactly as `writeLastSeenHead` does — rather than
+            // scattering state into an unidentified directory, so the probe below would
+            // otherwise be measuring that refusal instead of the TTL.
+            fs.mkdirSync(path.join(root, '.claude'));
+            try {
+                const script = `
+                    const u = require(${JSON.stringify(UTILS)});
+                    const out = [];
+                    out.push(['absent', u.isDepsUnavailableCached(60000)]);
+                    u.markDepsUnavailable();
+                    out.push(['under-root', u.getDepsUnavailablePath().startsWith(process.cwd())]);
+                    out.push(['fresh', u.isDepsUnavailableCached(60000)]);
+                    out.push(['expired', u.isDepsUnavailableCached(0)]);
+                    // A marker whose mtime sits slightly ahead of the clock is the
+                    // ordinary just-written case on a filesystem with coarse timestamp
+                    // granularity, NOT an invalid verdict.
+                    const marker = u.getDepsUnavailablePath();
+                    const soon = new Date(Date.now() + 2000);
+                    require('fs').utimesSync(marker, soon, soon);
+                    out.push(['future-skew', u.isDepsUnavailableCached(60000)]);
+                    // A marker a whole TTL ahead is a broken clock, not a verdict.
+                    const farFuture = new Date(Date.now() + 120000);
+                    require('fs').utimesSync(marker, farFuture, farFuture);
+                    out.push(['absurd-future', u.isDepsUnavailableCached(60000)]);
+                    u.clearDepsUnavailable();
+                    out.push(['cleared', u.isDepsUnavailableCached(60000)]);
+                    u.clearDepsUnavailable(); // clearing an absent verdict must not throw
+                    console.log(JSON.stringify(out));
+                `;
+                const child = spawnSync(process.execPath, ['-e', script], {
+                    encoding: 'utf8', timeout: 20000, cwd: root, windowsHide: true,
+                    env: { ...process.env, CLAUDE_PROJECT_DIR: root, CK_DEBUG: '0', CLAUDE_HOOK_DEBUG: '0', NODE_OPTIONS: '' },
+                    stdio: ['pipe', 'pipe', 'pipe']
+                });
+                assertEqual(child.status, 0, `negative-cache probe must succeed: ${child.stderr}`);
+                const observed = Object.fromEntries(JSON.parse(child.stdout.trim().split('\n').pop()));
+
+                assertEqual(observed.absent, false, 'no verdict on record must probe for real, never assume unavailable');
+                assertEqual(observed['under-root'], true, 'the marker must live under the project root, not a shared temp path');
+                assertEqual(observed.fresh, true, 'a just-recorded verdict must be honoured');
+                // The TTL is the only thing making a cached negative safe to write at all:
+                // without it a repair performed outside this framework stays suppressed forever.
+                assertEqual(observed.expired, false, 'an aged-out verdict must be re-probed, not trusted');
+                assertEqual(observed['future-skew'], true, 'a marker whose mtime is a moment ahead of the clock is freshly written, not invalid');
+                assertEqual(observed['absurd-future'], false, 'a marker a whole TTL ahead is a broken clock and must be re-probed');
+                assertEqual(observed.cleared, false, 'clearing must make the next check probe for real');
+            } finally {
+                fs.rmSync(root, { recursive: true, force: true });
             }
         }
     },

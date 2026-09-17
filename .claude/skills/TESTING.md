@@ -204,7 +204,7 @@ Expected: Side effects in event handler, not command handler
 
 ## Frontend Skills
 
-_(framework-specific frontend skill removed — frontend patterns handled by `docs/project-reference/frontend-patterns-reference.md` + auto-injected by frontend context)_
+_(framework-specific frontend skill removed — frontend patterns handled by `frontend-patterns-reference.md` in the project-reference docs root (default `docs/project-reference/`; path from `docsRoots.projectReference.path` in `docs/project-config.json`) + auto-injected by frontend context)_
 
 ---
 

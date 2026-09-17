@@ -24,20 +24,20 @@ disable-model-invocation: false
 
 **Workflow:** Confirm mode/capability → resolve the selected `init-full`, `update`, or `audit` manifest (fingerprint + occurrence IDs) → trace the full vertical chain → create tasks/ledger → invoke exactly the declared spec/test/review/docs gates → report coverage and close. **MUST ATTENTION** keep steps ordered and evidence-backed.
 
-> **[SINGLE HOME]** There is ONE canonical artifact — the tech-free 8-section Feature Spec authored by `spec` at `docs/specs/{Bucket}/`. There is no parallel A-E "Engineering Spec" bundle and no separate Business Feature Docs tree; `spec-index` only regenerates a DERIVED index/ERD over the Feature Specs. Authority: [`docs/project-reference/spec-system-reference.md`](../../../docs/project-reference/spec-system-reference.md).
+> **[SINGLE HOME]** There is ONE canonical artifact — the tech-free 8-section Feature Spec authored by `spec` at `{Bucket}/` under the business spec root (default `docs/specs/`; a `specRoots.business.path` entry in `docs/project-config.json` overrides the path). There is no parallel A-E "Engineering Spec" bundle and no separate Business Feature Docs tree; `spec-index` only regenerates a DERIVED index/ERD over the Feature Specs. Authority: [`spec-system-reference.md`](../../../docs/project-reference/spec-system-reference.md), in the project-reference docs root (default `docs/project-reference/`, relocated by `docsRoots.projectReference.path`).
 
 ### One Canonical Artifact + Derived Aids
 
 | Artifact               | Path                                      | Canonical?                       | Maintained By             |
 | ---------------------- | ----------------------------------------- | -------------------------------- | ------------------------- |
-| **Feature Spec**       | `docs/specs/{Bucket}/README.{Feature}.md` | **Yes — single source of truth** | `spec`                    |
+| **Feature Spec**       | `{Bucket}/README.{Feature}.md` under the business spec root (default `docs/specs/`; `specRoots.business.path` in `docs/project-config.json` overrides) | **Yes — single source of truth** | `spec`                    |
 | Section 8 — Test Specs | Same file, **Section 8**                  | Yes — canonical TC registry      | `spec [mode=tests]`       |
-| Bucket `INDEX.md`      | `docs/specs/{Bucket}/INDEX.md`            | Derived — regenerable            | `spec` / `spec-index`     |
+| Bucket `INDEX.md`      | `{Bucket}/INDEX.md` under the same business spec root (default `docs/specs/`; `specRoots.business.path` in `docs/project-config.json` overrides) | Derived — regenerable            | `spec` / `spec-index`     |
 | System index / ERD     | (generated on demand)                     | Derived — never canonical        | `spec-index` (repurposed) |
 
 ### App Bucket Mapping
 
-Resolve service→bucket assignments from the canonical table in [`docs/project-reference/spec-system-reference.md`](../../../docs/project-reference/spec-system-reference.md) → **App Bucket Mapping** — do not inline project-specific bucket names in this skill.
+Resolve service→bucket assignments from the canonical table in [`spec-system-reference.md`](../../../docs/project-reference/spec-system-reference.md) — in the project-reference docs root, default `docs/project-reference/`, relocated by `docsRoots.projectReference.path` in `docs/project-config.json` → **App Bucket Mapping** — do not inline project-specific bucket names in this skill.
 
 **Mode Routing:**
 
@@ -59,7 +59,7 @@ Resolve service→bucket assignments from the canonical table in [`docs/project-
 - For multi-bucket/whole-project scope, maintain the resumable Coverage Ledger (Step B.3) and clear the Whole-Project Completeness Gate before `/workflow-end`
 - §1-7 of every Feature Spec are STRICTLY tech-free; the §5 Mermaid ERD is authored **inside** the Feature Spec — there is no separate ERD file
 - Write findings incrementally after each section — NEVER hold in memory
-- If shared skills/workflows/hooks/sync tooling changed, run `npm run codex:sync` before `/workflow-end` or record explicit N/A evidence; verify generated mirrors are current.
+- If shared skills/workflows/hooks/sync tooling changed, run `/sync-codex` before `/workflow-end` or record explicit N/A evidence; verify generated mirrors are current.
 
 ---
 
@@ -67,10 +67,10 @@ Resolve service→bucket assignments from the canonical table in [`docs/project-
 
 Use `AskUserQuestion` to confirm mode before any action.
 
-**Auto-detection rules:**
+**Auto-detection rules** (resolve the business spec root first — default `docs/specs/`; a `specRoots.business.path` entry in `docs/project-config.json` overrides the path):
 
 ```
-IF docs/specs/{Bucket}/ has NO Feature Spec for the target scope
+IF the business spec root's {Bucket}/ has NO Feature Spec for the target scope
   → Suggest: init-full
 
 IF git diff has service/frontend changes touching an already-spec'd capability
@@ -82,7 +82,7 @@ IF explicit --audit flag OR user says "audit" / "check freshness" / "are docs st
 
 **Bucket + capability confirmation:**
 
-- Probe `Glob docs/specs/{Bucket}/README.*.md` to see which capabilities already have a Feature Spec.
+- Probe `Glob {Bucket}/README.*.md` under the business spec root (default `docs/specs/`; `specRoots.business.path` in `docs/project-config.json` overrides) to see which capabilities already have a Feature Spec.
 - Map the changed services to a Bucket via the **App Bucket Mapping** table above.
 - Confirm the capability name (PascalCase) with the user — this becomes `README.{Feature}.md`.
 
@@ -94,7 +94,7 @@ Present the detected mode with reasoning. User confirms before proceeding.
 
 ### When to Use
 
-Starting from zero: no `docs/specs/{Bucket}/README.{Feature}.md` for the target scope.
+Starting from zero: no `{Bucket}/README.{Feature}.md` under the business spec root (default `docs/specs/`; `specRoots.business.path` in `docs/project-config.json` overrides) for the target scope.
 
 ### Step Sequence
 
@@ -151,16 +151,16 @@ the guard for "the whole-project code-to-spec works flawlessly and nothing is mi
 
    | Bucket | Capability | Spec path | §1-7 | §6 (UI) | §8 TCs | Chain trace | Status |
    | ------ | ---------- | --------- | :--: | :-----: | :----: | :---------: | ------ |
-   | {Bucket} | {Capability} | docs/specs/{Bucket}/README.{Feature}.md | ⬜ | ⬜ | 0 | ⬜ | NOT STARTED |
+   | {Bucket} | {Capability} | `{Bucket}/README.{Feature}.md` under the business spec root (default `docs/specs/`; `specRoots.business.path` in `docs/project-config.json` overrides) | ⬜ | ⬜ | 0 | ⬜ | NOT STARTED |
 
 3. **Update the ledger row after each capability completes** (incremental persistence — never batch).
    `Status` ∈ NOT STARTED → IN PROGRESS → SPEC DONE → REVIEWED. `§6 (UI)` is `n/a` for backend-only.
 4. **Resume rule:** on any session start / after compaction, read the ledger FIRST, re-glob
-   `docs/specs/**` to confirm, and continue from the first non-REVIEWED row — NEVER re-author a done
+   the business spec root (default `docs/specs/**`; `specRoots.business.path` in `docs/project-config.json` overrides) to confirm, and continue from the first non-REVIEWED row — NEVER re-author a done
    capability, NEVER re-run investigate for already-enumerated buckets.
 5. **[BLOCKING] Whole-Project Completeness Gate (before `/workflow-end`):** every row is `REVIEWED`,
    OR carries an explicit, recorded deferral reason. A bucket/capability discovered in investigate but
-   absent from `docs/specs/**` with no deferral reason = the workflow is NOT complete. Report the
+   absent from the business spec root (default `docs/specs/**`; `specRoots.business.path` in `docs/project-config.json` overrides) with no deferral reason = the workflow is NOT complete. Report the
    final coverage as `{reviewed}/{total} capabilities` in `/watzup`.
 
 TaskCreate: "size-evaluation — classify scope breadth, count capabilities, build coverage ledger (whole-project), decide split strategy"
@@ -192,7 +192,7 @@ TaskCreate: "size-evaluation — classify scope breadth, count capabilities, bui
       §5 Domain Model (Mermaid ERD — MANDATORY, authored INSIDE this file) ·
       §6 Process Flows · §7 Permissions & Roles · §8 Test Specifications
   → §1-7 STRICTLY tech-free; identifiers live only in §8 evidence carriers + `[Source: ns/service/id]` + ` ```mermaid ``` ` blocks
-  → Output: docs/specs/{Bucket}/README.{Feature}.md + bucket INDEX.md
+  → Output: {Bucket}/README.{Feature}.md + bucket INDEX.md, under the business spec root (default docs/specs/; specRoots.business.path in docs/project-config.json overrides)
   → Sub-agents for 4+ capabilities (BLOCKING: ONE message spawn); each prompt includes capability name, output path, tech-agnostic contract, SYNC protocols
   → No line-count cap applies — split when TCs>40 or distinct module-level capabilities emerge
 
@@ -370,7 +370,7 @@ Budget multiplier: If last audit was >90 days ago → ×1.5 (more drift expected
 Each `spec` sub-agent receives:
 
 - Capability name + bucket
-- Output path: `docs/specs/{Bucket}/README.{Feature}.md`
+- Output path: `{Bucket}/README.{Feature}.md` under the business spec root (default `docs/specs/`; `specRoots.business.path` in `docs/project-config.json` overrides)
 - Tech-agnostic contract (§1-7 tech-free; §5 ERD mandatory)
 - Incremental persistence instruction (write after each section)
 
@@ -428,10 +428,10 @@ The Feature Spec stays in sync on every feature/bugfix/refactor workflow.
 > **[BLOCKING]** Invoke `Skill` tool for EACH step — NEVER batch-complete, NEVER mark done without skill invocation.
 > **[BLOCKING]** Confirm mode via `AskUserQuestion` BEFORE any action — NEVER skip Step 0.
 > **[BLOCKING]** Spawn sub-agents for 4+ capabilities in ONE message — NEVER sequential spawning.
-> **[BLOCKING — Context Compaction / Session Resume]** At any session start or after context compaction: (1) `TaskList` FIRST — resume existing, NEVER create duplicates; (2) re-glob `docs/specs/{Bucket}/` to see which capabilities already have a Feature Spec — skip those; (3) NEVER re-run `/investigate` or `/plan` in a resumed session.
-> **[BLOCKING]** Read `docs/project-reference/spec-principles.md` before running any author/update/audit step — it is the shared spec quality baseline (tech-agnostic rule + banned-token list).
+> **[BLOCKING — Context Compaction / Session Resume]** At any session start or after context compaction: (1) `TaskList` FIRST — resume existing, NEVER create duplicates; (2) re-glob `{Bucket}/` under the business spec root (default `docs/specs/`; `specRoots.business.path` in `docs/project-config.json` overrides) to see which capabilities already have a Feature Spec — skip those; (3) NEVER re-run `/investigate` or `/plan` in a resumed session.
+> **[BLOCKING]** Read `spec-principles.md` — in the project-reference docs root, default `docs/project-reference/`, relocated by `docsRoots.projectReference.path` in `docs/project-config.json` — before running any author/update/audit step — it is the shared spec quality baseline (tech-agnostic rule + banned-token list).
 
-> **Goal Contract propagation (workflow-owned):** At workflow start, resolve the active Goal Contract per `SYNC:goal-contract-satisfaction-loop` (active plan `goal.md` → `plans/goals/{YYMMDD-HHmm}-{slug}/goal.md` → create from the spec request). Map each spec/test/code cycle output (Feature Specs authored, TCs written, audit findings fixed) to the saved success criteria and append the evidence to the goal file's Iteration Log per cycle. Before `/workflow-end`, emit the Goal Satisfaction matrix (PASS/FAIL/BLOCKED); completion requires every required criterion PASS or BLOCKED with a user-facing escalation.
+> **Goal Contract propagation (workflow-owned):** At workflow start, resolve the active Goal Contract per `SYNC:goal-contract-satisfaction-loop` (active plan `goal.md` → `goals/{YYMMDD-HHmm}-{slug}/goal.md` under the plans root, default `plans/`, relocated by `docsRoots.plans.path` in `docs/project-config.json` → create from the spec request). Map each spec/test/code cycle output (Feature Specs authored, TCs written, audit findings fixed) to the saved success criteria and append the evidence to the goal file's Iteration Log per cycle. Before `/workflow-end`, emit the Goal Satisfaction matrix (PASS/FAIL/BLOCKED); completion requires every required criterion PASS or BLOCKED with a user-facing escalation.
 
 <!-- SYNC:nested-task-creation -->
 
@@ -469,7 +469,8 @@ The Feature Spec stays in sync on every feature/bugfix/refactor workflow.
 > **Assume existing values are intentional — ask WHY before changing OR flagging one as a defect.** Before changing or reporting a constant, limit, flag, cutoff, wording, or pattern, read nearby context and history, the CALLER's ordering, and 2+ sibling call sites of the same convention. A doc stating WHAT without WHY is missing rationale, not proof of a missing guard.
 > **Surface ambiguity before acting — don't pick silently.** Multiple valid interpretations require an explicit question or stated assumption with risk.
 > **Assert the outcome your system owns, not the intermediate state your infrastructure owns.** When verifying async work, assert the final business state — never the delivery/retry bookkeeping held in shared infrastructure that any co-running process can write. Such a check passes when run alone and flakes the moment anything else shares that infrastructure.
-> **Store disposable generated output in the project workspace.** If an output can be regenerated and is not source code, a canonical source-of-truth, or an intentionally versioned projection, write it under the project-root `tmp/` or `temp/` directory (prefer `tmp/`), scoped to the run. This includes temporary state, integration/E2E results, reports, logs, screenshots, traces, videos, coverage, dumps, and candidate evidence. Never put these outputs in source, docs, `plans/`, `team-artifacts/`, or mirror directories; the project-root `.gitignore` must ignore `/tmp/` and `/temp/` by default. Committed fixtures, accepted baselines, canonical specs/docs, and explicitly versioned generated mirrors remain at their declared owner paths.
+> **Store disposable generated output in the project workspace.** If an output can be regenerated and is not source code, a canonical source-of-truth, or an intentionally versioned projection, write it under the project-root `tmp/` or `temp/` directory (prefer `tmp/`), scoped to the run. This includes temporary state, integration/E2E results, reports, logs, screenshots, traces, videos, coverage, dumps, and candidate evidence. Never put these outputs in source, docs, the plans root (default `plans/`; a `docsRoots.plans.path` entry in `docs/project-config.json` overrides the path), the team-artifacts root (default `team-artifacts/`; `docsRoots.teamArtifacts.path` in the same config overrides the path), or mirror directories; the project-root `.gitignore` must ignore `/tmp/` and `/temp/` by default. Committed fixtures, accepted baselines, canonical specs/docs, and explicitly versioned generated mirrors remain at their declared owner paths.
+> **Judge the environment before judging the code.** A bug report, failed test, error, or unexpected output is not proof of a code defect. Before and during adjudication, weigh environment causes as a competing hypothesis — setup, config, version and dependency state, service dependencies, stale artifacts or leftover state, and transient resource pressure (RAM, CPU, disk, handles, network). State the discriminator you ran; fix an environment cause in the environment, never by editing product code or weakening a test to absorb it.
 > **Keep shared guidance role-relevant.** Universal guidance must help every receiving skill or agent; code-specific obligations belong only in code-specific protocols.
 
 <!-- /SYNC:ai-mistake-prevention -->
@@ -564,6 +565,32 @@ The Feature Spec stays in sync on every feature/bugfix/refactor workflow.
 
 <!-- /SYNC:session-goal-ledger -->
 
+<!-- SYNC:workflow-registry-binding -->
+
+> **Workflow ⇄ Registry Two-Way Binding** — a workflow is defined in TWO places that MUST agree: the machine registry `.claude/workflows.json` → `workflows.<workflow-id>`, and this skill's `SKILL.md`. Neither is complete alone. Read BOTH before executing, in this order.
+>
+> **1. Registry → skill (what the registry owns).** Before the first step, read `.claude/workflows.json` → `workflows.<workflow-id>` and treat it as CANONICAL for:
+>
+> | Registry field | Governs | Rule |
+> | --- | --- | --- |
+> | `sequence` | the ordered step list | Execute 1:1. NEVER improvise, reorder, add, or drop a step. |
+> | `sequence[].applicability` | every conditional step | `when` is the ONLY run condition; on skip, record `skipReason` VERBATIM as the step's evidence. |
+> | `sequence[].args` | step flags | Pass exactly as declared. |
+> | `parallelGroups` | all-return barriers | Spawn all members in ONE message; advance only after EVERY member returns. |
+> | `stepMeta` | inline vs sub-agent, context budget | Overrides the skill's own front matter. |
+> | `preActions.injectContext` | mandatory pre-read context | Apply before step 1. |
+> | `variants` / `defaultMode` | mode selection | A variant is a COMPLETE sequence; it inherits nothing from the base. |
+>
+> **2. Skill → registry (what this SKILL.md owns).** The registry declares WHICH steps run in WHAT order; this SKILL.md declares HOW each step executes — protocols, gates, loops, evidence bars, escalation. Each `sequence[].skill` resolves to `.claude/skills/<skill>/SKILL.md`; the workflow's `preActions.readFiles` names this file as the reverse pointer. Read a step's own SKILL.md before running it.
+>
+> **3. Precedence on conflict.** Registry WINS on step identity, order, args, applicability, barriers and execution mode. SKILL.md WINS on how to perform a step and on the quality bar it must clear. A genuine contradiction between the two — a step in one and not the other, a different order, or an applicability note whose meaning differs — is DRIFT: note the mismatch in your evidence, continue under the precedence above, and report it when the run ends. NEVER silently pick a side, and NEVER edit one side to match without saying so.
+>
+> **4. Keep both sides equal when editing either.** Changing a sequence, an occurrence ID, or an `applicability` note in `workflows.json` REQUIRES the matching update in this SKILL.md, and vice versa. Specifically: the `**IMPORTANT MANDATORY Steps:**` line MUST remain a clean `->` chain equal to the registry `sequence` (it is parsed, not prose — annotations there break the gate), any conditional step's note here MUST carry the registry's `skipReason` verbatim, and the step-task table's `Conditional?` column MUST match the presence of `applicability`. After editing either side, re-mirror with `/sync-codex` (`node .claude/skills/sync-codex/scripts/run-codex-sync.mjs`).
+>
+> **Blocked until:** the registry entry for this workflow has been read, its `sequence` reproduced 1:1 into the task list, and every `applicability` condition evaluated with its verdict recorded.
+
+<!-- /SYNC:workflow-registry-binding -->
+
 <!-- SYNC:nested-task-creation:reminder -->
 
 - **MANDATORY** Parent workflow rows do not replace child phase tracking; expand phases and link the parent when nested.
@@ -573,7 +600,7 @@ The Feature Spec stays in sync on every feature/bugfix/refactor workflow.
 
 <!-- SYNC:goal-contract-satisfaction-loop:reminder -->
 
-- **MANDATORY** Resolve the active Goal Contract BEFORE work (active plan `goal.md` → `plans/goals/{YYMMDD-HHmm}-{slug}/goal.md` → create from current request) and read saved success criteria before editing.
+- **MANDATORY** Resolve the active Goal Contract BEFORE work (active plan `goal.md` → `<plans root>/goals/{YYMMDD-HHmm}-{slug}/goal.md`, plans root default `plans` and overridable via a `docsRoots.plans.path` entry in `docs/project-config.json` → create from current request) and read saved success criteria before editing.
 - **MANDATORY** Append iteration evidence after execution; emit a Goal Satisfaction matrix (PASS/FAIL/BLOCKED) before reporting PASS; loop on validated FAIL; escalate repeated no-progress or blockers. NEVER store secrets in goal files.
 
 <!-- /SYNC:goal-contract-satisfaction-loop:reminder -->
@@ -622,7 +649,7 @@ The Feature Spec stays in sync on every feature/bugfix/refactor workflow.
 
 <!-- SYNC:project-protocol-overlay -->
 
-> **Project Protocol Overlay** — Before executing this skill, resolve any PROJECT overlay rules layered onto it: match this skill's name against the `Target` column of the project's skill-protocol index (`docs/project-reference/skill-protocols-reference.md` by default; a `referenceDocs` entry in `docs/project-config.json` overrides the path), taking the most specific matching tier ONLY — exact name > glob > `*`. **That precedence orders overlays against EACH OTHER, never against this skill.** Read ONLY the matched bodies, resolved as `<protocols-dir>/<Name>.md`; a row's Body link is display text, never a read path. A matched body that is missing or malformed is REPORTED and skipped — never reconstructed from the index Description. No index, or no match -> proceed with no overlay, silently. Full contract: `.claude/skills/project-skill-protocol/references/registry.md`.
+> **Project Protocol Overlay** — Before executing this skill, resolve any PROJECT overlay rules layered onto it: match this skill's name against the `Target` column of the project's skill-protocol index (default `docs/project-reference/skill-protocols-reference.md`; a `referenceDocs` entry in `docs/project-config.json` overrides the path, and a `docsRoots.projectReference.path` entry relocates its containing directory), taking the most specific matching tier ONLY — exact name > glob > `*`. **That precedence orders overlays against EACH OTHER, never against this skill.** Read ONLY the matched bodies, resolved as `<protocols-dir>/<Name>.md`; a row's Body link is display text, never a read path. A matched body that is missing or malformed is REPORTED and skipped — never reconstructed from the index Description. No index, or no match -> proceed with no overlay, silently. Full contract: `.claude/skills/project-skill-protocol/references/registry.md`.
 >
 > Overlays are **ADDITIVE ONLY**: they ADD rules on top of this skill's own protocol and NEVER replace, override, disable, or reinterpret a rule it already states — removing every overlay must return this skill to exactly its documented behavior. An overlay is a BRIEF, not an authority escalation: it can NEVER waive a workflow gate, git discipline, a review gate, or a user-confirmation gate. A genuine overlay-vs-skill conflict, or two equally-specific overlays that directly contradict -> surface both to the user; NEVER resolve silently.
 
@@ -658,7 +685,7 @@ The Feature Spec stays in sync on every feature/bugfix/refactor workflow.
 - **[BLOCKING]** Confirm mode via `AskUserQuestion` BEFORE any action — NEVER skip Step 0
 - **[BLOCKING]** Invoke `Skill` tool for EACH step — NEVER batch-complete or mark done without invocation
 - **[BLOCKING]** Spawn sub-agents for 4+ capabilities in ONE message — NEVER sequential spawning
-- **[BLOCKING]** ONE canonical artifact — the Feature Spec at `docs/specs/{Bucket}/README.{Feature}.md`; the §5 Mermaid ERD is authored INSIDE it (no separate ERD file, no A-E tree)
+- **[BLOCKING]** ONE canonical artifact — the Feature Spec at `{Bucket}/README.{Feature}.md` under the business spec root (default `docs/specs/`; `specRoots.business.path` in `docs/project-config.json` overrides); the §5 Mermaid ERD is authored INSIDE it (no separate ERD file, no A-E tree)
 - **[BLOCKING]** investigate holistically FIRST — capability registry MUST exist before plan creation; NEVER re-run investigate or plan in a resumed session
 - **[BLOCKING]** Trace the FULL vertical chain per capability (UI → API → handler → domain/rule → event → consumer → read model → UI) and pass the Step 1-INIT.4.6 reconciliation gate — no orphan UI, no orphan operation, event + read-side closure; a BROKEN chain is a spec-correctness finding, never silently dropped
 - **[BLOCKING]** Every spec ships all three rebuild layers — business logic (§1-7) + UI/UX interaction surface (§6.2-6.5, or stated backend-only skip) + test specs (§8); a UI feature missing §6 fails review

@@ -21,7 +21,7 @@ description: '[Documentation] Use when orchestrating all reference doc scans in 
 **Key Rules:**
 
 - All 12 scans run in PARALLEL for speed
-- Does NOT modify code — only populates docs/project-reference/
+- Does NOT modify code — only populates the project-reference docs root (default `docs/project-reference/`; a `docsRoots.projectReference.path` entry in `docs/project-config.json` overrides the path)
 - Clears `.claude/.scan-stale` flag after completion
 - `/prompt-enhance` ensures AI attention anchoring on all generated docs
 
@@ -39,7 +39,7 @@ description: '[Documentation] Use when orchestrating all reference doc scans in 
 
 ## Execution
 
-Each scan reads real code evidence and (re)populates ONE reference doc under `docs/project-reference/`. Those docs are injected into AI context downstream, so scanning is what keeps that guidance true to the current codebase — the **Purpose** column says what each scan documents and therefore why it matters. Launch all 12 code-derived scans in parallel:
+Each scan reads real code evidence and (re)populates ONE reference doc under the project-reference docs root — default `docs/project-reference/`; a `docsRoots.projectReference.path` entry in `docs/project-config.json` overrides the path. Those docs are injected into AI context downstream, so scanning is what keeps that guidance true to the current codebase — the **Purpose** column says what each scan documents and therefore why it matters. Launch all 12 code-derived scans in parallel:
 
 | #   | Invocation                         | Target Doc                       | Purpose — what the scan documents |
 | --- | ---------------------------------- | -------------------------------- | --------------------------------- |
@@ -90,22 +90,24 @@ Each scan-\* sub-skill now self-enhances its own doc as its final step. After gr
 
 **TaskCreate one task per doc, parallel OK:**
 
-| #   | Target File                                             |
-| --- | ------------------------------------------------------- |
-| 1   | `docs/project-reference/project-structure-reference.md` |
-| 2   | `docs/project-reference/backend-patterns-reference.md`  |
-| 3   | `docs/project-reference/seed-test-data-reference.md`    |
-| 4   | `docs/project-reference/frontend-patterns-reference.md` |
-| 5   | `docs/project-reference/integration-test-reference.md`  |
-| 6   | `docs/project-reference/feature-spec-reference.md`      |
-| 7   | `docs/project-reference/code-review-rules.md`           |
-| 8   | `docs/project-reference/scss-styling-guide.md`          |
-| 9   | `docs/project-reference/design-system/README.md`        |
-| 10  | `docs/project-reference/e2e-test-reference.md`          |
-| 11  | `docs/project-reference/domain-entities-reference.md`   |
-| 12  | `docs/project-reference/docs-index-reference.md`        |
+Every target below is a filename inside the project-reference docs root — default `docs/project-reference/`; a `docsRoots.projectReference.path` entry in `docs/project-config.json` overrides the path. The filenames themselves are fixed.
 
-Run via: `/prompt-enhance docs/project-reference/{filename}`
+| #   | Target File                      |
+| --- | -------------------------------- |
+| 1   | `project-structure-reference.md` |
+| 2   | `backend-patterns-reference.md`  |
+| 3   | `seed-test-data-reference.md`    |
+| 4   | `frontend-patterns-reference.md` |
+| 5   | `integration-test-reference.md`  |
+| 6   | `feature-spec-reference.md`      |
+| 7   | `code-review-rules.md`           |
+| 8   | `scss-styling-guide.md`          |
+| 9   | `design-system/README.md`        |
+| 10  | `e2e-test-reference.md`          |
+| 11  | `domain-entities-reference.md`   |
+| 12  | `docs-index-reference.md`        |
+
+Run via: `/prompt-enhance {project-reference-root}/{filename}`, resolving the root from `docsRoots.projectReference.path` in `docs/project-config.json` (default `docs/project-reference/`).
 
 ## Summary Output
 
@@ -114,7 +116,7 @@ After all scans complete, report:
 "Scan All Complete:
 
 - {X}/12 scans succeeded
-- Reference docs refreshed in docs/project-reference/
+- Reference docs refreshed in the project-reference docs root (default `docs/project-reference/`; path from `docsRoots.projectReference.path` in `docs/project-config.json`)
 - Staleness gate cleared
 - Prompt-enhanced {Y}/12 docs
 - Knowledge graph rebuilt via /graph-build"
@@ -158,7 +160,8 @@ After all scans complete, report:
 > **Assume existing values are intentional — ask WHY before changing OR flagging one as a defect.** Before changing or reporting a constant, limit, flag, cutoff, wording, or pattern, read nearby context and history, the CALLER's ordering, and 2+ sibling call sites of the same convention. A doc stating WHAT without WHY is missing rationale, not proof of a missing guard.
 > **Surface ambiguity before acting — don't pick silently.** Multiple valid interpretations require an explicit question or stated assumption with risk.
 > **Assert the outcome your system owns, not the intermediate state your infrastructure owns.** When verifying async work, assert the final business state — never the delivery/retry bookkeeping held in shared infrastructure that any co-running process can write. Such a check passes when run alone and flakes the moment anything else shares that infrastructure.
-> **Store disposable generated output in the project workspace.** If an output can be regenerated and is not source code, a canonical source-of-truth, or an intentionally versioned projection, write it under the project-root `tmp/` or `temp/` directory (prefer `tmp/`), scoped to the run. This includes temporary state, integration/E2E results, reports, logs, screenshots, traces, videos, coverage, dumps, and candidate evidence. Never put these outputs in source, docs, `plans/`, `team-artifacts/`, or mirror directories; the project-root `.gitignore` must ignore `/tmp/` and `/temp/` by default. Committed fixtures, accepted baselines, canonical specs/docs, and explicitly versioned generated mirrors remain at their declared owner paths.
+> **Store disposable generated output in the project workspace.** If an output can be regenerated and is not source code, a canonical source-of-truth, or an intentionally versioned projection, write it under the project-root `tmp/` or `temp/` directory (prefer `tmp/`), scoped to the run. This includes temporary state, integration/E2E results, reports, logs, screenshots, traces, videos, coverage, dumps, and candidate evidence. Never put these outputs in source, docs, the plans root (default `plans/`; a `docsRoots.plans.path` entry in `docs/project-config.json` overrides the path), the team-artifacts root (default `team-artifacts/`; `docsRoots.teamArtifacts.path` in the same config overrides the path), or mirror directories; the project-root `.gitignore` must ignore `/tmp/` and `/temp/` by default. Committed fixtures, accepted baselines, canonical specs/docs, and explicitly versioned generated mirrors remain at their declared owner paths.
+> **Judge the environment before judging the code.** A bug report, failed test, error, or unexpected output is not proof of a code defect. Before and during adjudication, weigh environment causes as a competing hypothesis — setup, config, version and dependency state, service dependencies, stale artifacts or leftover state, and transient resource pressure (RAM, CPU, disk, handles, network). State the discriminator you ran; fix an environment cause in the environment, never by editing product code or weakening a test to absorb it.
 > **Keep shared guidance role-relevant.** Universal guidance must help every receiving skill or agent; code-specific obligations belong only in code-specific protocols.
 
 <!-- /SYNC:ai-mistake-prevention -->
@@ -183,7 +186,7 @@ After all scans complete, report:
 
 <!-- SYNC:project-protocol-overlay -->
 
-> **Project Protocol Overlay** — Before executing this skill, resolve any PROJECT overlay rules layered onto it: match this skill's name against the `Target` column of the project's skill-protocol index (`docs/project-reference/skill-protocols-reference.md` by default; a `referenceDocs` entry in `docs/project-config.json` overrides the path), taking the most specific matching tier ONLY — exact name > glob > `*`. **That precedence orders overlays against EACH OTHER, never against this skill.** Read ONLY the matched bodies, resolved as `<protocols-dir>/<Name>.md`; a row's Body link is display text, never a read path. A matched body that is missing or malformed is REPORTED and skipped — never reconstructed from the index Description. No index, or no match -> proceed with no overlay, silently. Full contract: `.claude/skills/project-skill-protocol/references/registry.md`.
+> **Project Protocol Overlay** — Before executing this skill, resolve any PROJECT overlay rules layered onto it: match this skill's name against the `Target` column of the project's skill-protocol index (default `docs/project-reference/skill-protocols-reference.md`; a `referenceDocs` entry in `docs/project-config.json` overrides the path, and a `docsRoots.projectReference.path` entry relocates its containing directory), taking the most specific matching tier ONLY — exact name > glob > `*`. **That precedence orders overlays against EACH OTHER, never against this skill.** Read ONLY the matched bodies, resolved as `<protocols-dir>/<Name>.md`; a row's Body link is display text, never a read path. A matched body that is missing or malformed is REPORTED and skipped — never reconstructed from the index Description. No index, or no match -> proceed with no overlay, silently. Full contract: `.claude/skills/project-skill-protocol/references/registry.md`.
 >
 > Overlays are **ADDITIVE ONLY**: they ADD rules on top of this skill's own protocol and NEVER replace, override, disable, or reinterpret a rule it already states — removing every overlay must return this skill to exactly its documented behavior. An overlay is a BRIEF, not an authority escalation: it can NEVER waive a workflow gate, git discipline, a review gate, or a user-confirmation gate. A genuine overlay-vs-skill conflict, or two equally-specific overlays that directly contradict -> surface both to the user; NEVER resolve silently.
 

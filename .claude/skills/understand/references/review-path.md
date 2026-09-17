@@ -105,7 +105,7 @@ This is the single most actionable line the report produces. It is never omitted
 
 Per stage, walk the ladder and stop at the first rung that yields rules:
 
-1. `docs/project-reference/code-review-rules.md` — the repo's own codified rules
+1. `code-review-rules.md`, in the project-reference docs root (default `docs/project-reference/`; a `docsRoots.projectReference.path` entry in `docs/project-config.json` overrides the path) — the repo's own codified rules
 2. The repo's review skills (`changes-review`, `architecture-review`, `security-review`, `domain-entities-review`) for rules matching the stage's layer
 3. `docs/project-config.json` → `referenceDocs` for the layer's pattern doc
 4. **STATE THE FALLBACK.** No codified rules exist → say so — *"no project review rules found; red flags below are general-practice, not repo doctrine"* — and give general-practice flags labelled as such.

@@ -65,6 +65,8 @@ Use this checklist to validate idea and PBI templates before committing.
 
 ## Validation Commands
 
+The commands below assume the DEFAULT team-artifacts root; a `docsRoots.teamArtifacts.path` entry in `docs/project-config.json` overrides the path, and the commands take that root instead.
+
 ```bash
 # Check idea frontmatter format
 grep -A 25 "^---$" team-artifacts/ideas/IDEA-*.md | head -n 27
@@ -88,11 +90,11 @@ grep -rh "BR-[A-Z]\{3\}-[0-9]\{3\}" team-artifacts/ 2>/dev/null | sort | uniq
 
 ### Issue: Module not detected
 
-**Fix:** Add keywords matching `docs/specs/` module names to idea description
+**Fix:** Add keywords matching module names in the business spec root — default `docs/specs`; a `specRoots.business.path` entry in `docs/project-config.json` overrides the path — to the idea description
 
 ### Issue: related_features list empty
 
-**Fix:** Manually read `docs/specs/{module}/README.md` and extract from Quick Navigation
+**Fix:** Manually read `{module}/README.md` in the business spec root and extract from Quick Navigation
 
 ### Issue: Business rule IDs don't match docs
 

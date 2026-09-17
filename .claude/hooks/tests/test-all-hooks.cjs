@@ -357,6 +357,39 @@ function createMarkedTestProject() {
     return tmpDir;
 }
 
+/**
+ * Read `session-init-helpers.SKELETON` as it would be built inside a throwaway project
+ * whose `.claude/.ck.json` declares `portability.docsIndexPath`.
+ *
+ * Must run in a CHILD process: the helper module resolves the project root once at load
+ * time, so the parent runner's already-loaded copy could never observe the fixture.
+ *
+ * @param {string|null} docsIndexPath - configured docs-index path, or null for the default
+ * @returns {object} the skeleton object the fixture project would be initialised with
+ */
+function readSkeletonWithDocsIndex(docsIndexPath) {
+    const tmpDir = createMarkedTestProject();
+    try {
+        if (docsIndexPath) {
+            fs.writeFileSync(
+                path.join(tmpDir, '.claude', '.ck.json'),
+                JSON.stringify({ portability: { docsIndexPath } }, null, 2),
+                'utf-8'
+            );
+        }
+        const helperPath = path.join(HOOKS_DIR, 'lib', 'session-init-helpers.cjs');
+        const script = `process.stdout.write(JSON.stringify(require(${JSON.stringify(helperPath)}).SKELETON));`;
+        const out = require('child_process').execFileSync(process.execPath, ['-e', script], {
+            cwd: tmpDir,
+            env: { ...process.env, CLAUDE_PROJECT_DIR: tmpDir },
+            encoding: 'utf-8'
+        });
+        return JSON.parse(out);
+    } finally {
+        cleanupTempDir(tmpDir);
+    }
+}
+
 async function testProjectConfigInit() {
     logSection('SessionStart: session-init-docs.cjs (config init)');
 
@@ -402,7 +435,91 @@ async function testProjectConfigInit() {
                 logResult('Skeleton has styling', !!config.styling);
                 logResult('Skeleton has componentSystem', !!config.componentSystem);
                 logResult('Skeleton has referenceDocs', Array.isArray(config.referenceDocs));
+                // TC-DOCROOT-073 — a FRESH config self-documents the 6 relocatable roots.
+                const roots = config.docsRoots || {};
+                logResult(
+                    'TC-DOCROOT-073 skeleton seeds docsRoots with all 6 keys at their defaults',
+                    roots.projectReference?.path === 'docs/project-reference' &&
+                        roots.adr?.path === 'docs/adr' &&
+                        roots.templates?.path === 'docs/templates' &&
+                        roots.plans?.path === 'plans' &&
+                        roots.teamArtifacts?.path === 'team-artifacts' &&
+                        roots.productRoadmap?.path === 'docs/product-roadmap.md'
+                );
             }
+        } finally {
+            cleanupTempDir(tmpDir);
+        }
+    }
+
+    // Test 2b: SC-10 — the skeleton DERIVES its doc paths from the configured
+    // docs-index location instead of re-writing `docs/project-reference` literals,
+    // so `/project-init` cannot re-break a relocated project (R9).
+    {
+        const relocated = readSkeletonWithDocsIndex('documentation/reference/docs-index-reference.md');
+        logResult(
+            'TC-DOCROOT-070 relocated docsIndexPath derives framework.backendPatternsDoc',
+            relocated.framework.backendPatternsDoc === 'documentation/reference/backend-patterns-reference.md'
+        );
+        logResult(
+            'TC-DOCROOT-071 relocated docsIndexPath derives designSystem.docsPath',
+            relocated.designSystem.docsPath === 'documentation/reference/design-system'
+        );
+        logResult(
+            'TC-DOCROOT-071b relocated docsIndexPath derives docsRoots.projectReference.path',
+            relocated.docsRoots.projectReference.path === 'documentation/reference'
+        );
+        logResult(
+            'TC-DOCROOT-072 skeleton paths contain no backslash on any platform',
+            !JSON.stringify(relocated).includes('\\\\')
+        );
+
+        // TC-DOCROOT-075 — SC-11: with the DEFAULT docsIndexPath every derived value is
+        // byte-identical to the pre-change literal skeleton.
+        const fresh = readSkeletonWithDocsIndex(null);
+        logResult(
+            'TC-DOCROOT-075 default docsIndexPath reproduces the pre-change literals',
+            fresh.framework.backendPatternsDoc === 'docs/project-reference/backend-patterns-reference.md' &&
+                fresh.framework.frontendPatternsDoc === 'docs/project-reference/frontend-patterns-reference.md' &&
+                fresh.framework.codeReviewDoc === 'docs/project-reference/code-review-rules.md' &&
+                fresh.framework.integrationTestDoc === 'docs/project-reference/integration-test-reference.md' &&
+                fresh.designSystem.docsPath === 'docs/project-reference/design-system'
+        );
+    }
+
+    // Test 2c: TC-DOCROOT-074 — R9 regression guard. The skeleton SEEDS, it never
+    // overwrites: an existing config keeps its customised values across an init run.
+    {
+        const tmpDir = createMarkedTestProject();
+        try {
+            const docsDir = path.join(tmpDir, 'docs');
+            fs.mkdirSync(docsDir, { recursive: true });
+            fs.mkdirSync(path.join(tmpDir, 'src'), { recursive: true });
+            const configPath = path.join(docsDir, 'project-config.json');
+            fs.writeFileSync(
+                configPath,
+                JSON.stringify(
+                    {
+                        schemaVersion: 2,
+                        project: { name: 'relocated', description: 'x', languages: ['js'], packageManagers: ['npm'] },
+                        framework: { name: 'x', codeReviewDoc: 'custom/rules.md' },
+                        docsRoots: { projectReference: { path: 'documentation/reference' } }
+                    },
+                    null,
+                    2
+                ) + '\n',
+                'utf-8'
+            );
+            await runHook('session-init-docs.cjs', { source: 'startup' }, { env: { CLAUDE_PROJECT_DIR: tmpDir } });
+            const after = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
+            logResult(
+                'TC-DOCROOT-074 existing framework.codeReviewDoc survives an init run',
+                after.framework.codeReviewDoc === 'custom/rules.md'
+            );
+            logResult(
+                'TC-DOCROOT-074b existing docsRoots.projectReference.path survives an init run',
+                after.docsRoots?.projectReference?.path === 'documentation/reference'
+            );
         } finally {
             cleanupTempDir(tmpDir);
         }

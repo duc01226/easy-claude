@@ -630,6 +630,10 @@ async function copiedGenerator(f, changes = {}) {
     await fs.mkdir(path.dirname(path.join(f.root, file)), { recursive: true });
     await fs.writeFile(path.join(f.root, file), text);
   }
+  // section-builders.cjs resolves relocatable roots through the portability accessors. The require
+  // is optional (a compact copy degrades to the default literals), so the copied skill must carry
+  // hooks/lib for a fixture to exercise the CONFIG-DERIVED path rather than the degraded one.
+  await fs.cp(path.join(repoRoot, ".claude", "hooks", "lib"), path.join(f.root, ".claude", "hooks", "lib"), { recursive: true });
   return path.join(f.root, files[0]);
 }
 
@@ -777,4 +781,214 @@ test("TC-HARNESS-015 re-stamp after a CRLF text-mode rewrite is idempotent and a
   await cycle(m, mutant);
   const mutantSecond = await cycle(m, mutant);
   assert.ok(longestBlankRun(mutantSecond) > mutantBaseline, "LF-only strip mutant must accumulate blank lines");
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// TC-DOCROOT-060..067 — buildDocIndex / buildDocLookup derive their roots from config.
+//
+// Before this, `buildDocIndex` hardcoded `path.join(projectDir, 'docs')` and returned `null` for
+// any project whose docs tree lives elsewhere. `null` is not a harmless skip: the splicer drops the
+// whole section INCLUDING its `<!-- SECTION:doc-index -->` markers (the open-marker falsy branch and
+// the `if (sections[currentKey])` close branch in generate-claude-md.cjs), so the block vanished
+// with no error anywhere and `--mode update` could never restore it. TC-DOCROOT-061/062 are the
+// regression guards for exactly that silent-deletion path.
+// ─────────────────────────────────────────────────────────────────────────────
+
+const nodeFs = require("node:fs");
+
+/** Materialize a synthetic project tree; `layout` maps repo-relative path -> file content. */
+async function docsFixture(t, layout) {
+  const root = await fs.mkdtemp(path.join(os.tmpdir(), "docroot-builders-"));
+  t.after(() => fs.rm(root, { recursive: true, force: true }));
+  for (const [rel, content] of Object.entries(layout)) {
+    const abs = path.join(root, ...rel.split("/"));
+    await fs.mkdir(path.dirname(abs), { recursive: true });
+    await fs.writeFile(abs, content, "utf8");
+  }
+  return root;
+}
+
+const freshBuilders = () => require(buildersPath);
+
+/** Pre-change `buildDocIndex`, verbatim — the independent oracle for the SC-11 default. */
+function legacyDocIndex(projectDir) {
+  const docsDir = path.join(projectDir, "docs");
+  if (!nodeFs.existsSync(docsDir)) return null;
+  const countMarkdownDeep = (dir, depth = 0) => {
+    if (depth > 4) return 0;
+    let total = 0;
+    for (const item of nodeFs.readdirSync(dir, { withFileTypes: true })) {
+      if (item.name.startsWith(".")) continue;
+      if (item.isDirectory()) total += countMarkdownDeep(path.join(dir, item.name), depth + 1);
+      else if (item.name.endsWith(".md")) total += 1;
+    }
+    return total;
+  };
+  const tree = [];
+  for (const entry of nodeFs.readdirSync(docsDir, { withFileTypes: true }).sort((a, b) => a.name.localeCompare(b.name))) {
+    if (entry.name.startsWith(".")) continue;
+    if (entry.isDirectory()) tree.push(`docs/${entry.name}/  (${countMarkdownDeep(path.join(docsDir, entry.name))} files)`);
+    else if (entry.name.endsWith(".md")) tree.push(`docs/${entry.name}`);
+  }
+  if (tree.length === 0) return null;
+  return "```\n" + tree.join("\n") + "\n```";
+}
+
+/** Pre-change `buildDocLookup`, verbatim — the independent oracle for the SC-11 default. */
+function legacyDocLookup(config) {
+  const modules = config.modules || [];
+  const featureRoot = "docs/specs";
+  const rows = modules.filter(m => m.meta?.domain).map(m => `| ${m.meta.domain} | \`${featureRoot}/${m.name}/\` |`);
+  rows.push(`| Feature specs, capability behavior, business rules, test cases | \`${featureRoot}/\` + \`docs/project-reference/feature-spec-reference.md\` |`);
+  rows.push("| Spec paths, TC format, canonical vs derived spec artifacts | `docs/project-reference/spec-system-reference.md` |");
+  rows.push("| Spec quality, AI-implementability, tech-agnostic prose | `docs/project-reference/spec-principles.md` |");
+  rows.push("| Behavior or public contract changes, spec-test-code sync | `docs/project-reference/workflow-spec-test-code-cycle-reference.md` |");
+  if (config.framework?.backendPatternsDoc) rows.push(`| Backend patterns, CQRS, validation | \`${config.framework.backendPatternsDoc}\` |`);
+  if (config.framework?.frontendPatternsDoc) rows.push(`| Frontend patterns, components, stores | \`${config.framework.frontendPatternsDoc}\` |`);
+  return `| If user prompt mentions... | Read first |\n|---|---|\n${rows.join("\n")}`;
+}
+
+test("TC-DOCROOT-060 buildDocIndex scans the configured docs tree and prefixes entries with it", async t => {
+  const root = await docsFixture(t, {
+    "documentation/reference/backend-patterns-reference.md": "# ref",
+    "documentation/reference/nested/deep.md": "# deep",
+    "documentation/overview.md": "# overview",
+    "docs/decoy.md": "# the default tree must NOT be scanned when a root is configured",
+  });
+  const out = freshBuilders().buildDocIndex({ docsRoots: { projectReference: { path: "documentation/reference" } } }, root);
+
+  assert.ok(out, "a configured docs tree must produce content");
+  assert.ok(out.includes("documentation/reference/  (2 files)"), `nested count under the resolved root; got:\n${out}`);
+  assert.ok(out.includes("documentation/overview.md"), `top-level markdown under the resolved root; got:\n${out}`);
+  assert.ok(!out.includes("docs/"), `the hardcoded default tree must not leak into the output; got:\n${out}`);
+});
+
+test("TC-DOCROOT-061 a resolved-but-missing docs tree returns a VISIBLE block, never null", async t => {
+  const root = await docsFixture(t, { "docs/decoy.md": "# present but not the configured tree" });
+  const out = freshBuilders().buildDocIndex({ docsRoots: { projectReference: { path: "documentation/reference" } } }, root);
+
+  // The regression this guards: returning null here deleted the section AND its markers.
+  assert.notEqual(out, null, "a missing docs tree must not return null — that deletes the section markers");
+  assert.equal(typeof out, "string");
+  assert.ok(out.trim().length > 0, "the block must be non-empty so the splicer keeps the markers");
+  assert.ok(out.includes("documentation/"), `the note must name the resolved path it failed to find; got:\n${out}`);
+});
+
+test("TC-DOCROOT-062 rendering a template with a missing docs tree keeps both SECTION:doc-index markers", async t => {
+  // End-to-end through populateTemplate — the splicer that drops a falsy section INCLUDING its
+  // markers. The shipped template carries no doc-index marker pair (it is inserted by heading
+  // detection on update), so the fixture template adds one.
+  const templateRel = ".claude/skills/ai-context-refresh/references/claude-md-template.md";
+  const buildersRel = ".claude/skills/ai-context-refresh/scripts/section-builders.cjs";
+  const withDocIndexMarkers = text =>
+    text.replace("<!-- SECTION:doc-lookup -->", "<!-- SECTION:doc-index -->\n<!-- /SECTION:doc-index -->\n\n<!-- SECTION:doc-lookup -->");
+  const relocated = { docsRoots: { projectReference: { path: "documentation/reference" } } };
+
+  const f = await fixture(t, relocated);
+  await f.run(["--mode", "init"], await copiedGenerator(f, { [templateRel]: withDocIndexMarkers }));
+  const claudeMd = await f.read();
+
+  assert.ok(claudeMd.includes("<!-- SECTION:doc-index -->"), "the OPEN marker must survive a docs tree that could not be found");
+  assert.ok(claudeMd.includes("<!-- /SECTION:doc-index -->"), "the CLOSE marker must survive a docs tree that could not be found");
+  const body = claudeMd.split("<!-- SECTION:doc-index -->")[1].split("<!-- /SECTION:doc-index -->")[0];
+  assert.ok(body.includes("documentation/"), `the surviving block must name the resolved path; got:\n${body}`);
+
+  // Mutant: restore the pre-change `return null`. The SAME oracle must observe the whole block —
+  // markers included — disappear, which is precisely the silent, unrecoverable loss being closed.
+  const m = await fixture(t, relocated);
+  const mutant = await copiedGenerator(m, {
+    [templateRel]: withDocIndexMarkers,
+    [buildersRel]: s => s.replace(
+      "if (!fs.existsSync(docsDir)) return docsNoteBlock",
+      "if (!fs.existsSync(docsDir)) return null; if (false) return docsNoteBlock"
+    ),
+  });
+  await m.run(["--mode", "init"], mutant);
+  const mutantMd = await m.read();
+  assert.ok(!mutantMd.includes("<!-- SECTION:doc-index -->"), "the null-returning mutant must delete the open marker");
+  assert.ok(!mutantMd.includes("<!-- /SECTION:doc-index -->"), "the null-returning mutant must delete the close marker");
+});
+
+test("TC-DOCROOT-063 buildDocLookup derives the feature-spec root and module rows from specRoots", () => {
+  const out = freshBuilders().buildDocLookup({
+    specRoots: { business: { path: "spec-library" } },
+    modules: [{ name: "alpha", meta: { domain: "Alpha domain" } }],
+  });
+
+  assert.ok(out.includes("| Alpha domain | `spec-library/alpha/` |"), `module-domain row uses the configured root; got:\n${out}`);
+  assert.ok(out.includes("`spec-library/` +"), `feature-spec row uses the configured root; got:\n${out}`);
+  assert.ok(!out.includes("docs/specs"), `the hardcoded spec root must not survive; got:\n${out}`);
+});
+
+test("TC-DOCROOT-064 buildDocLookup builds the four reference rows under the configured reference root", () => {
+  const out = freshBuilders().buildDocLookup({ docsRoots: { projectReference: { path: "documentation/reference" } } });
+
+  for (const file of [
+    "feature-spec-reference.md",
+    "spec-system-reference.md",
+    "spec-principles.md",
+    "workflow-spec-test-code-cycle-reference.md",
+  ]) {
+    assert.ok(out.includes(`\`documentation/reference/${file}\``), `${file} must be routed under the configured root; got:\n${out}`);
+  }
+  assert.ok(!out.includes("docs/project-reference/"), `the hardcoded reference root must not survive; got:\n${out}`);
+});
+
+test("TC-DOCROOT-065 SC-11: with no root config both builders match the pre-change implementation", async t => {
+  const root = await docsFixture(t, {
+    "docs/project-reference/lessons.md": "# lessons",
+    "docs/specs/Capability/README.spec.md": "# spec",
+    "docs/adr/0001.md": "# adr",
+    "docs/overview.md": "# overview",
+  });
+  const b = freshBuilders();
+
+  for (const config of [
+    {},
+    { modules: [{ name: "alpha", meta: { domain: "Alpha domain" } }] },
+    { framework: { backendPatternsDoc: "docs/b.md", frontendPatternsDoc: "docs/f.md" } },
+    { specRoots: { business: { path: "docs/specs" } }, docsRoots: { projectReference: { path: "docs/project-reference" } } },
+  ]) {
+    assert.equal(b.buildDocIndex(config, root), legacyDocIndex(root), "doc-index default output must be byte-identical");
+    assert.equal(b.buildDocLookup(config), legacyDocLookup(config), "doc-lookup default output must be byte-identical");
+  }
+  // The live repository is the strongest default fixture there is — WHEN it has a docs tree.
+  // `.claude` is portable, so this suite also runs in an adopting project that has copied the bundle
+  // but not yet generated any `docs/**` markdown. There the two builders diverge BY DESIGN: the
+  // legacy implementation returned `null` and dropped the section, while the current one emits the
+  // `(doc-index unavailable)` note precisely to keep the section and its markers alive
+  // (`section-builders.cjs:99-102`). Asserting byte-parity there graded an intentional improvement as
+  // a regression. The empty case is asserted explicitly rather than skipped, so both shapes stay covered.
+  const liveIndex = b.buildDocIndex({}, repoRoot);
+  if (legacyDocIndex(repoRoot) === null) {
+    assert.match(liveIndex, /\(doc-index unavailable\)/,
+      "with no docs markdown the current builder must emit the visible note the legacy null dropped");
+  } else {
+    assert.equal(liveIndex, legacyDocIndex(repoRoot), "repo docs tree renders byte-identically");
+  }
+});
+
+test("TC-DOCROOT-066 single-segment guard: a one-segment reference root never becomes the repo root", async t => {
+  // `path.dirname('reference')` is `'.'` — the project root. Walking it would emit node_modules/,
+  // tmp/ and every sibling tree into the generated CLAUDE.md. The configured root itself wins.
+  const root = await docsFixture(t, {
+    "reference/lessons.md": "# lessons",
+    "node_modules/pkg/readme.md": "# dependency noise",
+    "tmp/scratch.md": "# disposable",
+    ".claude/skills/x/SKILL.md": "# harness",
+    "docs/decoy.md": "# default tree",
+  });
+  const out = freshBuilders().buildDocIndex({ docsRoots: { projectReference: { path: "reference" } } }, root);
+
+  assert.ok(out.includes("reference/lessons.md"), `the configured root itself is the docs tree; got:\n${out}`);
+  for (const sibling of ["node_modules", "tmp", ".claude", "docs/decoy"]) {
+    assert.ok(!out.includes(sibling), `a repo-root sibling leaked into the doc index: ${sibling}\n${out}`);
+  }
+});
+
+test("TC-DOCROOT-067 a traversing reference root falls back to the default docs tree", async t => {
+  const root = await docsFixture(t, { "docs/overview.md": "# overview" });
+  const out = freshBuilders().buildDocIndex({ docsRoots: { projectReference: { path: "../escape" } } }, root);
+
+  assert.equal(out, "```\ndocs/overview.md\n```", `an escaping root must degrade to the default tree; got:\n${out}`);
 });

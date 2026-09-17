@@ -6,14 +6,17 @@
  * and allowed (bypassing path blocking).
  */
 
-// Replicate the patterns from scout-block.cjs
-const BUILD_COMMAND_PATTERN = /^(npm|pnpm|yarn|bun)\s+([^\s]+\s+)*(run\s+)?(build|test|lint|dev|start|install|ci|add|remove|update|publish|pack|init|create|exec)/;
-const TOOL_COMMAND_PATTERN = /^(\.\/)?(npx|pnpx|bunx|tsc|esbuild|vite|webpack|rollup|turbo|nx|jest|vitest|mocha|eslint|prettier|go|cargo|make|mvn|mvnw|gradle|gradlew|dotnet|docker|podman|kubectl|helm|terraform|ansible|bazel|cmake|sbt|flutter|swift|ant|ninja|meson)/;
+// Drives the REAL gate. This file used to replicate scout-block.cjs's patterns
+// inline and assert against the copy — so every case here passed no matter what
+// the shipped hook did, and the copy had already drifted (it was missing the
+// python/pip tools and the compound-command split that the live path grew).
+// A build command is "allowed" iff the live PreToolUse evaluation does not block
+// it, which is the property these cases were always meant to protect.
+const { evaluate } = require('../../scout-block.cjs');
 
-function isBuildCommand(command) {
-  if (!command || typeof command !== 'string') return false;
-  const trimmed = command.trim();
-  return BUILD_COMMAND_PATTERN.test(trimmed) || TOOL_COMMAND_PATTERN.test(trimmed);
+function isAllowed(command) {
+  const result = evaluate({ tool_name: 'Bash', tool_input: { command } });
+  return !(result && result.decision === 'block');
 }
 
 const tests = [
@@ -121,7 +124,7 @@ let passed = 0;
 let failed = 0;
 
 for (const test of tests) {
-  const result = isBuildCommand(test.cmd);
+  const result = isAllowed(test.cmd);
   const success = result === test.expected;
 
   if (success) {

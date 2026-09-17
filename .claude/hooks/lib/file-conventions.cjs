@@ -394,7 +394,15 @@ function frameLines(activeEntries, rels, opts) {
     if (skills.length) parts.push(`follow skill protocol: ${skills.join(', ')}`);
     const opening = `[conventions] ${label} — ${parts.length ? parts.join('; ') : 'follow the conventions below'}`;
     const reread = docs.length ? ` Re-read before editing: ${docs.join(', ')}.` : '';
-    const closing = `[conventions] Earlier section wins on conflict.${reread} Lookup: ${LOOKUP_COMMAND} ${rels.length ? displayPath(rels[0]) : '<path>'}`;
+    // State the delivery boundary explicitly. This digest is produced by a
+    // PostToolUse hook matched on the file TOOLS (Read/Edit/Write/MultiEdit/
+    // NotebookEdit, plus Codex `apply_patch`). A file opened or rewritten through
+    // the shell — `cat`, `sed -n`, a heredoc — is not one of those events, so no
+    // digest is produced and nothing records the omission: the agent simply never
+    // learns the conventions exist. That is invisible from inside the session
+    // unless the boundary is named, and some hosts actively steer toward shell
+    // file access, so name it every time rather than let silence imply coverage.
+    const closing = `[conventions] Earlier section wins on conflict.${reread} A file read or edited via Bash gets NO digest — run the lookup for those. Lookup: ${LOOKUP_COMMAND} ${rels.length ? displayPath(rels[0]) : '<path>'}`;
     return { opening, closing };
 }
 

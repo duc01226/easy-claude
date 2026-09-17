@@ -1,5 +1,4 @@
 <!-- Last scanned: 2026-09-14 -->
-<!-- Last verified: 2026-09-16 (docs-update, impact-scoped) -->
 
 # Documentation Index Reference
 
@@ -37,16 +36,25 @@
 
 289 unique authored/tracked markdown files across 11 indexed categories. Last scanned: 2026-09-14.
 
+**Relocatable roots.** Four of the categories below are anchored on a configurable root. Resolve each one before running its glob:
+
+- Project-reference docs root — default `docs/project-reference`; a `docsRoots.projectReference.path` entry in `docs/project-config.json` overrides the path.
+- Business/feature spec root — default `docs/specs`; a `specRoots.business.path` entry in `docs/project-config.json` overrides the path.
+- ADR root — default `docs/adr`; a `docsRoots.adr.path` entry in `docs/project-config.json` overrides the path.
+- Templates root — default `docs/templates`; a `docsRoots.templates.path` entry in `docs/project-config.json` overrides the path.
+
+The **Reproducible scope** column states each glob relative to its category's root; the remaining categories carry absolute framework paths that are not configurable.
+
 | Category               | Verified count | Reproducible scope                                                                    |
 | ---------------------- | -------------: | ------------------------------------------------------------------------------------- |
 | Root-Level Docs        |              3 | root-only `*.md`                                                                      |
-| Project Reference      |             18 | `docs/project-reference/**/*.md`                                                      |
+| Project Reference      |             18 | `**/*.md` under the project-reference docs root                                       |
 | Operations             |              0 | direct getting-started/deployment/operations/runbook/setup/install/configuration docs |
-| Design System          |              1 | `docs/project-reference/design-system/**/*.md`                                        |
-| Feature Specs          |              2 | `docs/specs/*/README.*.md`                                                            |
-| Spec Catalogs          |              1 | `docs/specs/*/INDEX.md`                                                               |
-| Architecture Decisions |              2 | `docs/adr/**/*.md`                                                                    |
-| Templates              |              1 | `docs/templates/**/*.md`                                                              |
+| Design System          |              1 | `design-system/**/*.md` under the project-reference docs root                         |
+| Feature Specs          |              2 | `*/README.*.md` under the business spec root                                          |
+| Spec Catalogs          |              1 | `*/INDEX.md` under the business spec root                                             |
+| Architecture Decisions |              2 | `**/*.md` under the ADR root                                                          |
+| Templates              |              1 | `**/*.md` under the templates root                                                    |
 | Release Notes          |              1 | `docs/release/**/*.md`                                                                |
 | Framework Docs         |             35 | `.claude/docs/**/*.md`                                                                |
 | Skill Markdown         |            226 | `rg --files .claude/skills -g '*.md'`                                                 |
@@ -54,6 +62,8 @@
 The unique total is the normalized union returned by `rg --files` for Root-Level Docs, all `docs/**/*.md`, Framework Docs, and Skill Markdown. Design System is nested inside Project Reference, so its count is informative rather than additive. Ignored dependency artifacts such as skill-local `.venv/` files are excluded.
 
 ## Documentation Graph
+
+The tree below shows the DEFAULT location of every relocatable root; `docs/project-config.json` (`specRoots` / `docsRoots`) moves them.
 
 ```text
 easy-claude/
@@ -104,6 +114,8 @@ Absent whitelist branches: Operations only.
 
 ## Key Doc Relationships
 
+Paths below use the DEFAULT roots; `docs/project-config.json` (`specRoots` / `docsRoots`) relocates them.
+
 ```text
 README.md
 ├── .claude/docs/claude-ai-agent-framework-guide.md
@@ -135,37 +147,43 @@ Evidence: `README.md:395-401`, `CLAUDE.md:264-267`, `CLAUDE.md:357`, `CLAUDE.md:
 
 ## Doc Lookup Guide
 
-| Category               | Keyword / topic                          | Unique path or status                                               |
-| ---------------------- | ---------------------------------------- | ------------------------------------------------------------------- |
-| Root-Level Docs        | overview, install, adoption              | `README.md`                                                         |
-| Root-Level Docs        | Claude project instructions              | `CLAUDE.md`                                                         |
-| Root-Level Docs        | Codex, agents, harness instructions      | `AGENTS.md`                                                         |
-| Project Reference      | project structure, modules, tech stack   | `docs/project-reference/project-structure-reference.md`             |
-| Project Reference      | backend, hooks, validation, state        | `docs/project-reference/backend-patterns-reference.md`              |
-| Project Reference      | seed test data, dev data                 | `docs/project-reference/seed-test-data-reference.md`                |
-| Project Reference      | frontend, components, state management   | `docs/project-reference/frontend-patterns-reference.md`             |
-| Project Reference      | integration tests, fixtures, assertions  | `docs/project-reference/integration-test-reference.md`              |
-| Project Reference      | Feature Spec structure, TC format        | `docs/project-reference/feature-spec-reference.md`                  |
-| Project Reference      | spec routing, canonical artifacts        | `docs/project-reference/spec-system-reference.md`                   |
-| Project Reference      | spec principles, local SDD rules         | `docs/project-reference/spec-principles.md`                         |
-| Project Reference      | spec-test-code synchronization           | `docs/project-reference/workflow-spec-test-code-cycle-reference.md` |
-| Project Reference      | code review, anti-patterns               | `docs/project-reference/code-review-rules.md`                       |
-| Project Reference      | domain concepts, entities, DTOs          | `docs/project-reference/domain-entities-reference.md`               |
-| Project Reference      | E2E, browser tests, Page Objects         | `docs/project-reference/e2e-test-reference.md`                      |
-| Project Reference      | SCSS, BEM, styling                       | `docs/project-reference/scss-styling-guide.md`                      |
-| Project Reference      | documentation tree, counts, lookup       | `docs/project-reference/docs-index-reference.md`                    |
-| Project Reference      | learned lessons                          | `docs/project-reference/lessons.md`                                 |
-| Project Reference      | custom prompts, saved prompts, playbooks | `docs/project-reference/custom-prompts-reference.md`                |
-| Project Reference      | skill protocol overlays, project rules   | `docs/project-reference/skill-protocols-reference.md`               |
-| Design System          | tokens, components, app mapping          | `docs/project-reference/design-system/README.md`                    |
-| Operations             | getting started, deployment, runbook     | No authored Operations file                                         |
-| Feature Specs          | business capability specifications       | `docs/specs/ContextDelivery/README.*.md` (PFCI, SPL)                |
-| Spec Catalogs          | bucket indexes, spec catalogs            | `docs/specs/ContextDelivery/INDEX.md`                               |
-| Architecture Decisions | ADRs, architecture decisions             | `docs/adr/`                                                         |
-| Templates              | detailed Feature Spec template           | `docs/templates/detailed-feature-spec-template.md`                  |
-| Release Notes          | release history                          | `docs/release/`                                                     |
-| Framework Docs         | framework guides, hooks, configuration   | `.claude/docs/README.md`                                            |
-| Skill Markdown         | authored skills, references, templates   | `.claude/skills/`                                                   |
+Filenames are immutable; only the containing root is configurable. Rows in the **Project Reference** and **Design System** categories resolve inside the project-reference docs root — default `docs/project-reference`; a `docsRoots.projectReference.path` entry in `docs/project-config.json` overrides the path. **Feature Specs** and **Spec Catalogs** resolve inside the business spec root — default `docs/specs`; a `specRoots.business.path` entry in `docs/project-config.json` overrides the path. **Architecture Decisions** resolve inside the ADR root — default `docs/adr`; a `docsRoots.adr.path` entry in `docs/project-config.json` overrides the path. **Templates** resolve inside the templates root — default `docs/templates`; a `docsRoots.templates.path` entry in `docs/project-config.json` overrides the path.
+
+| Category               | Keyword / topic                          | Unique path (relative to its category root) or status |
+| ---------------------- | ---------------------------------------- | ----------------------------------------------------- |
+| Root-Level Docs        | overview, install, adoption              | `README.md`                                           |
+| Root-Level Docs        | Claude project instructions              | `CLAUDE.md`                                           |
+| Root-Level Docs        | Codex, agents, harness instructions      | `AGENTS.md`                                           |
+| Project Reference      | project structure, modules, tech stack   | `project-structure-reference.md`                      |
+| Project Reference      | backend, hooks, validation, state        | `backend-patterns-reference.md`                       |
+| Project Reference      | seed test data, dev data                 | `seed-test-data-reference.md`                         |
+| Project Reference      | frontend, components, state management   | `frontend-patterns-reference.md`                      |
+| Project Reference      | integration tests, fixtures, assertions  | `integration-test-reference.md`                       |
+| Project Reference      | Feature Spec structure, TC format        | `feature-spec-reference.md`                           |
+| Project Reference      | spec routing, canonical artifacts        | `spec-system-reference.md`                            |
+| Project Reference      | spec principles, local SDD rules         | `spec-principles.md`                                  |
+| Project Reference      | spec-test-code synchronization           | `workflow-spec-test-code-cycle-reference.md`          |
+| Project Reference      | code review, anti-patterns               | `code-review-rules.md`                                |
+| Project Reference      | domain concepts, entities, DTOs          | `domain-entities-reference.md`                        |
+| Project Reference      | E2E, browser tests, Page Objects         | `e2e-test-reference.md`                               |
+| Project Reference      | SCSS, BEM, styling                       | `scss-styling-guide.md`                               |
+| Project Reference      | documentation tree, counts, lookup       | `docs-index-reference.md`                             |
+| Project Reference      | learned lessons                          | `lessons.md`                                          |
+| Project Reference      | custom prompts, saved prompts, playbooks | `custom-prompts-reference.md`                         |
+| Project Reference      | skill protocol overlays, project rules   | `skill-protocols-reference.md`                        |
+| Design System          | tokens, components, app mapping          | `design-system/README.md`                             |
+| Operations             | getting started, deployment, runbook     | No authored Operations file                           |
+| Feature Specs          | business capability specifications       | `ContextDelivery/README.*.md` (PFCI, SPL)             |
+| Spec Catalogs          | bucket indexes, spec catalogs            | `ContextDelivery/INDEX.md`                            |
+| Architecture Decisions | ADRs, architecture decisions             | the ADR root itself                                   |
+| Templates              | detailed Feature Spec template           | `detailed-feature-spec-template.md`                   |
+| Release Notes          | release history                          | `docs/release/`                                       |
+| Framework Docs         | framework guides, hooks, configuration   | `.claude/docs/README.md`                              |
+| Skill Markdown         | authored skills, references, templates   | `.claude/skills/`                                     |
+
+### Resolved default paths (tooling index)
+
+With no `docsRoots.projectReference.path` entry in `docs/project-config.json`, the 18 project-reference docs above resolve to: `docs/project-reference/backend-patterns-reference.md`, `docs/project-reference/code-review-rules.md`, `docs/project-reference/custom-prompts-reference.md`, `docs/project-reference/design-system/README.md`, `docs/project-reference/docs-index-reference.md`, `docs/project-reference/domain-entities-reference.md`, `docs/project-reference/e2e-test-reference.md`, `docs/project-reference/feature-spec-reference.md`, `docs/project-reference/frontend-patterns-reference.md`, `docs/project-reference/integration-test-reference.md`, `docs/project-reference/lessons.md`, `docs/project-reference/project-structure-reference.md`, `docs/project-reference/scss-styling-guide.md`, `docs/project-reference/seed-test-data-reference.md`, `docs/project-reference/skill-protocols-reference.md`, `docs/project-reference/spec-principles.md`, `docs/project-reference/spec-system-reference.md`, `docs/project-reference/workflow-spec-test-code-cycle-reference.md`. An override moves every one of them; the filenames never change.
 
 ## Uncategorized Files
 

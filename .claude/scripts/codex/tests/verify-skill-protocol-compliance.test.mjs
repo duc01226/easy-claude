@@ -227,14 +227,17 @@ test('TC-DEBUGTRACE-002: fails when end-to-start debugger trace gate is missing'
 // locks the actionable guidance in so it can't silently regress to a bare failure list again.
 test('TC-REMEDIATE-001: remediation names the sync entrypoints and forbids hand-formatting mirrors', () => {
     const msg = formatMirrorRemediation(['some non-mirror failure']);
-    assert.match(msg, /npm run codex:sync/);
-    assert.match(msg, /npm run sync:all/);
     assert.match(msg, /prettier --write/);
     assert.match(msg, /AGENTS\.md/);
     assert.match(msg, /\.prettierignore/);
-    // Portability: the remediation MUST also give the no-npm / no-package.json path so a project that
-    // only copied `.claude` can still regenerate the mirrors. Locks the standalone runner reference in.
-    assert.match(msg, /run-codex-sync\.mjs/);
+    // Portability: the remediation must name ONLY the in-bundle runner. It previously named
+    // `npm run codex:sync` / `npm run sync:all` FIRST and the standalone path as a fallback — but the
+    // reader most likely to hit this gate is a project that copied `.claude` and has no package.json,
+    // for whom the headline command simply does not exist. Both the full-surface regenerate and the
+    // re-verify command must be present, and no npm script may be named at all.
+    assert.match(msg, /run-codex-sync\.mjs --copy-skills/, 'must give the all-surfaces regenerate command');
+    assert.match(msg, /run-codex-sync\.mjs --verify-only/, 'must give the re-run-every-gate command');
+    assert.doesNotMatch(msg, /npm run /, 'must not name a host npm script an adopting project does not have');
 });
 
 // TC-REMEDIATE-002 — a mirror-drift failure adds the drift-specific explainer (the exact failure
