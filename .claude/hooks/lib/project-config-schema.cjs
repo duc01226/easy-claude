@@ -599,18 +599,24 @@ const SCHEMA = {
                         type: 'object',
                         required: true,
                         properties: {
-                            filePattern: { type: 'string', required: true },
-                            contentPattern: { type: 'string', required: true },
-                            keyGroup: { type: 'number', required: true }
+                            filePattern: { type: 'string', required: false },
+                            filePatterns: { type: 'array', required: false },
+                            contentPattern: { type: 'string', required: false },
+                            pathPattern: { type: 'string', required: false },
+                            keyGroup: { type: 'number', required: false },
+                            paths: { type: 'array', required: false }
                         }
                     },
                     target: {
                         type: 'object',
                         required: true,
                         properties: {
-                            filePattern: { type: 'string', required: true },
-                            contentPattern: { type: 'string', required: true },
-                            keyGroup: { type: 'number', required: true }
+                            filePattern: { type: 'string', required: false },
+                            filePatterns: { type: 'array', required: false },
+                            contentPattern: { type: 'string', required: false },
+                            pathPattern: { type: 'string', required: false },
+                            keyGroup: { type: 'number', required: false },
+                            paths: { type: 'array', required: false }
                         }
                     },
                     matchBy: { type: 'string', required: true }

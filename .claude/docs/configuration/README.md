@@ -237,6 +237,26 @@ Records live in `tmp/prompt-ledger/<session>/` (override `CK_PROMPT_LEDGER_DIR`)
 
 ---
 
+### opencode.json (recommended defaults)
+
+**Purpose:** opencode's project config. The framework ships recommended defaults and reconciles them into each consuming project through `$sync-opencode`.
+
+| Item | Path |
+| --- | --- |
+| Source of truth (edit this to change defaults) | `.opencode/opencode.recommended.json` |
+| Generated target (created/updated by the sync) | `<project-root>/opencode.json` |
+| Writer / verifier | `.claude/scripts/opencode/sync-config.mjs` (`--check` verifies) |
+
+**To update a default recommended opencode setting:** edit `.opencode/opencode.recommended.json` and run `$sync-opencode` (or `node .claude/skills/sync-opencode/scripts/run-opencode-sync.mjs`). The `config` stage deep-merges the recommended defaults into the project-root `opencode.json` — recommended keys win at every leaf, project-only keys survive untouched, and a project with no root config receives the recommended defaults verbatim. A malformed existing root config is reported, never clobbered.
+
+**Adopting the framework in a new project:** copy the whole `.opencode/` folder (including `opencode.recommended.json`) plus `.claude/`, then run `$sync-opencode` to generate/update the project's root `opencode.json` and hooks bridge.
+
+> `.opencode/opencode.recommended.json` MUST NOT be renamed to `.opencode/opencode.json`: opencode auto-loads that path as project config, so it would stop being a template.
+
+**See:** the `sync-opencode` skill for the full stage roster and merge/portability contract.
+
+---
+
 ## Quick Configuration Guide
 
 ### Enable/Disable Features

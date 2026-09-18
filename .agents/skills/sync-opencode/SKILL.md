@@ -1,6 +1,6 @@
 ---
 name: sync-opencode
-description: '[opencode] Use when running the opencode hooks sync and verify pipeline (generate the .opencode hooks bridge plugin, run tooling tests, verify drift).'
+description: '[opencode] Use when running the opencode sync and verify pipeline (reconcile the recommended root opencode.json, generate the .opencode hooks bridge plugin, run tooling tests, verify drift).'
 disable-model-invocation: true
 ---
 
@@ -43,7 +43,7 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 
 ## Quick Summary
 
-**Goal:** Synchronize the project's Claude hooks (`.claude/settings.json`) into a portable opencode plugin (`.opencode/plugins/easy-claude-hooks.js`) and verify it. This runner is the **single and only** entrypoint for the opencode hooks pipeline.
+**Goal:** Reconcile the project-root `opencode.json` with the framework's recommended opencode defaults, compile `.claude/settings.json` into a portable opencode plugin (`.opencode/plugins/easy-claude-hooks.js`), and verify both. This runner is the **single and only** entrypoint for the opencode surface pipeline.
 
 > **PORTABILITY CONTRACT — `.claude/` and `.opencode/` are portable, self-running and self-testing.**
 > Copy them into ANY repository — a Python repo, a .NET repo, a repo with no `package.json` at all —
@@ -60,27 +60,34 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 **Summary:**
 
 - opencode has **no shell-command hook system** — hooks are JavaScript plugin callbacks. This skill compiles `.claude/settings.json` into a bridge plugin whose runtime drives the original Claude hooks from opencode's plugin events.
-- Scope is **HOOKS ONLY**. opencode already auto-discovers skills from `.claude/skills` and `.agents/skills`, so there is **no skill mirroring** here (unlike `$sync-codex`).
+- **Recommended opencode config is part of the framework.** `.opencode/opencode.recommended.json` is the single source of truth for the framework's opencode defaults; the `config` stage deep-merges it into the project-root `opencode.json` (recommended keys win, project-only keys survive).
+- Scope is **hooks + recommended config only**. opencode already auto-discovers skills from `.claude/skills` and `.agents/skills`, so there is **no skill mirroring** here (unlike `$sync-codex`).
 - Keep `.claude` canonical: edit `.claude/settings.json` / `.claude/hooks/**` and re-run this pipeline; never hand-edit the generated `.opencode/plugins/easy-claude-hooks.js`.
+- To change a default opencode setting, edit `.opencode/opencode.recommended.json`, then re-run this pipeline to propagate it into the root config of every project the `.opencode/` folder is copied into.
 - The legacy hand-written `.opencode/plugins/notification.js` is superseded by the generated bridge; the runner backs it up under `tmp/opencode-legacy/` and removes it so notifications are not sent twice.
 
 **Workflow:**
 
-1. **Sync** — `node .claude/skills/sync-opencode/scripts/run-opencode-sync.mjs` regenerates the bridge plugin and the sync report.
-2. **Test** — the runner executes the opencode tooling tests (writer + generated-plugin runtime).
-3. **Verify** — the runner re-renders the plugin in memory with the REAL writer and byte-compares it with the tracked file.
-4. **Inspect** — on failure, re-run the failing stage with `--only=<stage> --verbose`.
+1. **Config** — `node .claude/scripts/opencode/sync-config.mjs` deep-merges `.opencode/opencode.recommended.json` into the project-root `opencode.json`.
+2. **Sync** — `node .claude/skills/sync-opencode/scripts/run-opencode-sync.mjs` regenerates the bridge plugin and the sync report.
+3. **Test** — the runner executes the opencode tooling tests (config + writer + generated-plugin runtime).
+4. **Verify** — the runner re-merges/re-renders in memory with the REAL writers and byte-compares against the tracked files.
+5. **Inspect** — on failure, re-run the failing stage with `--only=<stage> --verbose`.
 
 **Key Rules:**
 
 - MUST run stages in order — the orchestrator fails fast on the first non-zero exit
 - NEVER hand-edit `.opencode/plugins/easy-claude-hooks.js`; regenerate it from `.claude/settings.json`
+- **NEVER hand-edit a project-root `opencode.json` as the way to change framework defaults** — edit `.opencode/opencode.recommended.json` and re-run the pipeline
+- `.opencode/opencode.recommended.json` MUST NOT be named `.opencode/opencode.json`; opencode auto-loads that path as project config
 - The generated plugin and `.opencode/plugins/**` are the only opencode hook surface; no skill mirror is produced
 - Only `node "$CLAUDE_PROJECT_DIR"/...` hook commands are compiled; other command shapes are reported as `unsupported-command-shape`
 - Claude events opencode cannot reproduce are reported as `skipped-events` in the sync report — never silently dropped
-- Idempotent — re-running the sync produces byte-identical plugin output
+- Idempotent — re-running the sync produces byte-identical plugin and config output
 
 ## Why a bridge plugin (not a config mirror)
+
+> The `config` stage above reconciles framework-recommended opencode **defaults**; it is not a mirror of Claude settings. This section explains why the project's *hook* surface is generated as a plugin.
 
 Codex supports lifecycle hooks and can be driven by `.codex/hooks.json`. opencode cannot: its only
 extension point for lifecycle behavior is a JS/TS plugin under `.opencode/plugins/` (or an npm plugin).
@@ -91,6 +98,23 @@ spawns the canonical Claude hook scripts and translates both directions:
 | --- | --- |
 | opencode → Claude hook | event name, tool id → Claude matcher name, opencode args → `tool_input` field names |
 | Claude hook → opencode | exit `0` = allow · exit `2` = block (throw) · stdout `hookSpecificOutput.updatedInput` = argument rewrite · stdout `hookSpecificOutput.additionalContext` = injected context · stdout `hookSpecificOutput.permissionDecision: "deny"` = block |
+
+## Recommended opencode config (source of truth)
+
+The framework ships recommended opencode defaults as a portable template and
+reconciles them into whatever project the `.opencode/` folder is copied into.
+
+| Item | Path |
+| --- | --- |
+| **Source of truth (edit this)** | `.opencode/opencode.recommended.json` |
+| **Generated target (never hand-edit for defaults)** | `<project-root>/opencode.json` |
+| Writer / verifier | `.claude/scripts/opencode/sync-config.mjs` (`--check` for verify) |
+
+> **To change a default recommended opencode setting in the future, edit `.opencode/opencode.recommended.json`** and re-run `$sync-opencode`. Every project that receives the `.opencode/` folder then gets the updated default the next time the pipeline runs. The recommended file is deliberately NOT named `.opencode/opencode.json` because opencode auto-loads that path as project config — keeping the `.recommended.json` name makes it a template, not an active config.
+
+**Merge semantics:** the writer deep-merges the recommended defaults into the existing root `opencode.json`. Recommended keys win at every leaf; object keys that exist only in the project survive untouched; arrays in the recommended file replace the project's array. A project with no root config receives the recommended defaults verbatim. A malformed existing root config is reported, never clobbered.
+
+**Copying the framework into a new project:** copy `.claude/` and `.opencode/` (including `.opencode/opencode.recommended.json`), then run `$sync-opencode` — it generates/updates that project's root `opencode.json`, bridge plugin, and reports.
 
 ## Hook mapping
 
@@ -150,6 +174,12 @@ node .claude/scripts/opencode/sync-hooks.mjs
 # Just verify the tracked plugin is current:
 node .claude/scripts/opencode/sync-hooks.mjs --check
 
+# Just reconcile the recommended root opencode.json:
+node .claude/scripts/opencode/sync-config.mjs
+
+# Just verify the root opencode.json is current:
+node .claude/scripts/opencode/sync-config.mjs --check
+
 # Skip a stage while debugging:
 node .claude/skills/sync-opencode/scripts/run-opencode-sync.mjs --skip=hooks
 ```
@@ -158,13 +188,15 @@ node .claude/skills/sync-opencode/scripts/run-opencode-sync.mjs --skip=hooks
 
 ## Stages
 
-3 stages, sequential — the complete opencode hooks pipeline, owned entirely by this runner:
+5 stages, sequential — the complete opencode surface pipeline, owned entirely by this runner:
 
 | # | Stage | Script | Effect |
 | --- | --- | --- | --- |
-| 1 | hooks | `.claude/scripts/opencode/sync-hooks.mjs` | Generate `.opencode/plugins/easy-claude-hooks.js` + `tmp/opencode-hooks.sync.report.json`; back up/remove legacy `notification.js` |
-| 2 | tests | Runner discovers `.claude/scripts/opencode/tests/*.test.{mjs,cjs}` | Run opencode tooling tests; missing or empty discovery fails |
-| 3 | verify-hooks | `.claude/scripts/opencode/sync-hooks.mjs --check` | Re-render with the REAL writer and byte-compare with the tracked plugin |
+| 1 | config | `.claude/scripts/opencode/sync-config.mjs` | Deep-merge `.opencode/opencode.recommended.json` into the project-root `opencode.json` |
+| 2 | hooks | `.claude/scripts/opencode/sync-hooks.mjs` | Generate `.opencode/plugins/easy-claude-hooks.js` + `tmp/opencode-hooks.sync.report.json`; back up/remove legacy `notification.js` |
+| 3 | tests | Runner discovers `.claude/scripts/opencode/tests/*.test.{mjs,cjs}` | Run opencode tooling tests; missing or empty discovery fails |
+| 4 | verify-config | `.claude/scripts/opencode/sync-config.mjs --check` | Re-merge with the REAL writer and byte-compare with the project-root `opencode.json` |
+| 5 | verify-hooks | `.claude/scripts/opencode/sync-hooks.mjs --check` | Re-render with the REAL writer and byte-compare with the tracked plugin |
 
 ## Closing Reminders
 
@@ -175,7 +207,9 @@ node .claude/skills/sync-opencode/scripts/run-opencode-sync.mjs --skip=hooks
 
 **MUST ATTENTION** keep the `$sync-opencode` skill user-invoked-only; no unrelated skill, agent, or workflow may auto-run the mutating pipeline.
 **MUST ATTENTION** edit `.claude/settings.json` and `.claude/hooks/**` as the source, then regenerate; NEVER hand-edit `.opencode/plugins/easy-claude-hooks.js`
+**MUST ATTENTION** the framework's default opencode settings live in `.opencode/opencode.recommended.json` — edit THAT file to change defaults, then re-run this pipeline; never treat a project-root `opencode.json` as the source
 **MUST ATTENTION** the generated plugin must import only `node:` built-ins so `.claude`/`.opencode` stay portable into any project
+**MUST ATTENTION** the `config` stage deep-merges (recommended wins, project-only keys survive) and never clobbers a malformed root config — it reports instead
 **MUST ATTENTION** the runner auto-resolves the repo root from its own path — do not pass a cwd flag
 **MUST ATTENTION** the legacy `notification.js` is backed up, never destroyed, before removal
 
@@ -184,6 +218,8 @@ node .claude/skills/sync-opencode/scripts/run-opencode-sync.mjs --skip=hooks
 | Evasion | Rebuttal |
 | --- | --- |
 | "Just edit the .opencode plugin directly" | Next sync overwrites it. Edit `.claude/settings.json` and regenerate. |
+| "Just edit the project-root opencode.json to change the defaults" | The next sync re-merges the recommended file and your default is lost, and no other project gets it. Edit `.opencode/opencode.recommended.json` and re-run. |
+| "Make the recommended file `.opencode/opencode.json`" | opencode auto-loads that exact path as project config, so it would stop being a template. Keep the `.recommended.json` name. |
 | "Skip the tests stage" | The tests exercise the generated plugin against real hook subprocesses; skipping ships an untested bridge. |
 | "Mirror skills too for symmetry with sync-codex" | opencode already discovers `.claude/skills`; a mirror would duplicate and drift. Out of scope by design. |
 

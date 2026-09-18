@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-// Standalone orchestrator for the opencode hooks pipeline — sync + verify in one
+// Standalone orchestrator for the opencode surface pipeline — sync + verify in one
 // place. `.claude`/`.opencode` are PORTABLE and SELF-RUNNING: copying them into
 // a project with no root package.json, no npm and no node_modules still runs the
 // complete pipeline, because every entrypoint is a path inside the bundle:
@@ -11,8 +11,10 @@
 // Runs all stages sequentially, fails fast on first non-zero exit.
 // No npm dependency — pure node + spawned subprocesses.
 //
-// Scope: HOOKS ONLY. opencode auto-discovers skills from .claude/skills and
-// .agents/skills, so no skill mirroring happens here (unlike sync-codex).
+// Scope: opencode SURFACE = the generated hooks bridge + the recommended
+// root `opencode.json` defaults. opencode auto-discovers skills from
+// .claude/skills and .agents/skills, so no skill mirroring happens here
+// (unlike sync-codex).
 
 import { spawn } from "node:child_process";
 import { readdir } from "node:fs/promises";
@@ -79,8 +81,10 @@ const testConcurrencyArgs = supportsTestConcurrencyFlag ? ["--test-concurrency=1
 
 const testsDir = path.join(sourceScriptsDir, "tests");
 const stages = [
+    { id: "config", label: "sync-opencode-config", mutate: true, cmd: process.execPath, args: [path.join(sourceScriptsDir, "sync-config.mjs")] },
     { id: "hooks", label: "sync-opencode-hooks", mutate: true, cmd: process.execPath, args: [path.join(sourceScriptsDir, "sync-hooks.mjs")] },
     { id: "tests", label: "test-opencode", cmd: process.execPath, argsAsync: async () => ["--test", ...testConcurrencyArgs, ...await listTestFiles(testsDir)] },
+    { id: "verify-config", label: "verify-opencode-config", cmd: process.execPath, args: [path.join(sourceScriptsDir, "sync-config.mjs"), "--check"] },
     { id: "verify-hooks", label: "verify-opencode-hooks", cmd: process.execPath, args: [path.join(sourceScriptsDir, "sync-hooks.mjs"), "--check"] },
 ];
 

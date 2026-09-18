@@ -152,6 +152,17 @@ This creates edges like `TRIGGERS_EVENT`, `MESSAGE_BUS`, `PRODUCES_EVENT` betwee
 - **Free-format bus messages** — `new XxxBusMessage` → `PlatformApplicationMessageBusConsumer<XxxBusMessage>` (`MESSAGE_BUS`)
 - **Command event handlers** — Command → CommandEventApplicationHandler (`TRIGGERS_COMMAND_EVENT`)
 
+**Rule shape.** Each rule has a `source` and a `target`; both sides are scanned independently and joined on a captured key. Per side:
+
+- `contentPattern` — regex over each file line; the joined key is the captured group (`keyGroup`, default 1). Use for keys that appear in code (e.g. `SPEC_REFERENCE` in a comment, a queue constant name).
+- `pathPattern` — regex over the repo-relative POSIX path; the key is captured from the **filename** (e.g. `^specs/([a-z0-9-]+/\d+-[a-z0-9-]+)\.md$`, which is how a spec file is addressed by id+slug). Use when the key lives in the path, not the content.
+- `paths` — scope each side to its own directories; `filePatterns` / `filePattern` — glob(s) the side scans. A rule may use `contentPattern` on one side and `pathPattern` on the other.
+- `matchBy` — `key-equals` (default) or `key-contains`.
+
+If a pattern declares no capture group, that rule's side is skipped (a whole-line hash would join nothing).
+
+**Scan scope.** The connector walks the repo from the root; add generated/heavy trees to `graphSettings.scanSkipDirs` in `docs/project-config.json` (e.g. `[".next-e2e"]`) so they are not scanned.
+
 **Auto-connect:** After every `build`, `update`, and `sync`, implicit connections are automatically refreshed — no manual `connect-implicit` needed. The auto-connect also refreshes API endpoint connections (`connect-api`).
 
 ## Frontend↔Backend API Connections (Zero-Config)
@@ -166,6 +177,7 @@ The graph automatically detects frontend HTTP calls and matches them to backend 
 | React (`react` in package.json)           | Spring (`pom.xml` + `spring-boot`)         |
 | Vue (`vue.config.js`, `vue`)              | Express (`express` in package.json)        |
 | Next.js (`next.config.js`)                | NestJS (`@nestjs/core`)                    |
+|                                           | Next.js App Router (`app/**/route.ts`)     |
 | Svelte (`svelte.config.js`)               | FastAPI (`fastapi` in requirements.txt)    |
 |                                           | Django (`manage.py`)                       |
 |                                           | Rails (`Gemfile` + `rails`)                |
@@ -180,7 +192,7 @@ The graph automatically detects frontend HTTP calls and matches them to backend 
 
 ### Custom Patterns (Optional)
 
-For projects with custom HTTP service base classes, add patterns to `docs/project-config.json`:
+For projects with custom HTTP service base classes (or file-based routes the detector cannot infer), configure `docs/project-config.json`:
 
 ```json
 {
@@ -203,6 +215,32 @@ For projects with custom HTTP service base classes, add patterns to `docs/projec
 ```
 
 Custom patterns **extend** (not replace) built-in framework patterns.
+
+**File-based routes (e.g. Next.js App Router).** When routes live in files rather than decorators, point `paths` at each route tree and declare how the file maps to a URL:
+
+```json
+{
+    "graphConnectors": {
+        "apiEndpoints": {
+            "enabled": true,
+            "frontend": { "framework": "nextjs", "paths": ["apps/web/app"] },
+            "backend": {
+                "framework": "next-app-router",
+                "routeFile": "route.ts",
+                "methodExports": ["GET", "POST", "PUT", "PATCH", "DELETE", "HEAD", "OPTIONS"],
+                "paths": [
+                    { "dir": "apps/web/app/api", "urlPrefix": "/api" },
+                    { "dir": "apps/portal/app/api", "urlPrefix": "/api" }
+                ]
+            }
+        }
+    }
+}
+```
+
+- `routeFile` — filename that marks a route module (default `route.ts`); `urlPrefix` on a path entry (or `routePrefix` as a fallback) is prepended to the derived route.
+- `methodExports` — exported HTTP method names, one edge per method; defaults to the standard set above.
+- `paths` entries are either a bare string or `{ "dir", "urlPrefix" }`; a bare string uses `routePrefix`.
 
 ## Supported Languages
 

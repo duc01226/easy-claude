@@ -146,9 +146,10 @@ def _find_tests_for(store: GraphStore, node, name: str) -> list[dict]:
     qn = node.qualified_name if node else name
     tests = []
     if node:
-        for e in store.get_edges_by_target(qn):
+        # TESTED_BY: source = production function, target = the test that calls it.
+        for e in store.get_edges_by_source(qn):
             if e.kind == "TESTED_BY":
-                test = store.get_node(e.source_qualified)
+                test = store.get_node(e.target_qualified)
                 if test:
                     tests.append(node_to_dict(test))
     test_nodes = store.search_nodes(f"test_{name}", limit=10)
@@ -587,15 +588,6 @@ def query_graph(
                     if caller:
                         results.append(_n2d(caller))
                     edges_out.append(_e2d(e))
-            # Fallback: CALLS edges store unqualified target names
-            # (e.g. "generateTestCode") while qn is fully qualified
-            # (e.g. "file.ts::generateTestCode"). Search by plain name too.
-            if not results and node:
-                for e in store.search_edges_by_target_name(node.name):
-                    caller = store.get_node(e.source_qualified)
-                    if caller:
-                        results.append(_n2d(caller))
-                    edges_out.append(_e2d(e))
 
         elif pattern == "callees_of":
             for e in store.get_edges_by_source(qn):
@@ -775,16 +767,41 @@ def get_connections(
                     caller = store.get_node(e.source_qualified)
                     if caller:
                         callers.append(_n2d(caller))
-            # Fallback: search by plain name
-            if not callers:
-                for e in store.search_edges_by_target_name(node.name):
-                    caller = store.get_node(e.source_qualified)
-                    if caller:
-                        callers.append(_n2d(caller))
         sections["callers_of"] = callers[:cap]
 
         # tests_for
         sections["tests_for"] = _find_tests_for(store, node, node.name)[:cap]
+
+        # Connector edges (API_ENDPOINT, SPEC_REFERENCE, and any other implicit
+        # connector kind) — surfaced generically so configured connectors are
+        # visible here without hardcoding edge-kind names.
+        _STRUCTURAL = {"CALLS", "IMPORTS_FROM", "CONTAINS", "INHERITS",
+                       "IMPLEMENTS", "TESTED_BY"}
+        connector_out: list[dict] = []
+        connector_in: list[dict] = []
+        source_ids = [qn]
+        target_ids = [qn]
+        if node.file_path and node.file_path not in source_ids:
+            source_ids.append(node.file_path)
+            target_ids.append(node.file_path)
+        for file_or_qn in source_ids:
+            for e in store.get_edges_by_source(file_or_qn):
+                if e.kind not in _STRUCTURAL:
+                    connector_out.append({
+                        **edge_to_compact_dict(e, root_str),
+                        "from_path": _to_relative(e.source_qualified, root_str),
+                        "to_path": _to_relative(e.target_qualified, root_str),
+                    })
+        for file_or_qn in target_ids:
+            for e in store.get_edges_by_target(file_or_qn):
+                if e.kind not in _STRUCTURAL:
+                    connector_in.append({
+                        **edge_to_compact_dict(e, root_str),
+                        "from_path": _to_relative(e.source_qualified, root_str),
+                        "to_path": _to_relative(e.target_qualified, root_str),
+                    })
+        sections["connector_edges_out"] = connector_out[:cap]
+        sections["connector_edges_in"] = connector_in[:cap]
 
         # Apply node-mode filter to sections that contain node dicts
         allowed_kinds = _NODE_MODE_KINDS.get(node_mode)

@@ -823,39 +823,66 @@ class GraphStore:
                     r["target_qualified"]
                 )
 
-        # Step 4: Resolve edges
+        # Step 3b: one-hop re-export expansion so barrel imports
+        # (``@scope/pkg`` → index that re-exports Button) count as in-scope.
+        file_imports: dict[str, set[str]] = {}
+        for chunk in self._chunks(sorted({t for ts in import_cache.values() for t in ts})):
+            placeholders = ",".join("?" for _ in chunk)
+            rows = self._conn.execute(  # nosec B608
+                "SELECT source_qualified, target_qualified FROM edges "
+                "WHERE kind = 'IMPORTS_FROM' "
+                f"AND source_qualified IN ({placeholders})",
+                chunk,
+            ).fetchall()
+            for r in rows:
+                file_imports.setdefault(r["source_qualified"], set()).add(
+                    r["target_qualified"]
+                )
+
+        scope_cache: dict[str, set[str]] = {}
+
+        def _scope(caller_file: str) -> set[str]:
+            cached = scope_cache.get(caller_file)
+            if cached is not None:
+                return cached
+            direct = import_cache.get(caller_file, set())
+            scope = {caller_file} | set(direct)
+            for target in direct:
+                scope |= file_imports.get(target, set())
+            scope_cache[caller_file] = scope
+            return scope
+
+        # Step 4: Resolve edges — only to candidates a caller can actually
+        # reach (same file, a direct import, or a one-hop re-export). A global
+        # unique-name match outside that scope is a false cross-file link
+        # (e.g. a local useState setter sharing a name with an unrelated
+        # function elsewhere), so it stays bare.
         resolved_unique = 0
         resolved_import = 0
         ambiguous = 0
         no_match = 0
+        unscoped = 0
         updates: list[tuple[str, int]] = []
 
         for edge in bare_edges:
             target_name = edge["target_qualified"]
             candidates = name_to_qns.get(target_name, [])
-
-            if len(candidates) == 0:
+            if not candidates:
                 no_match += 1
-            elif len(candidates) == 1:
-                updates.append((candidates[0], edge["id"]))
+                continue
+
+            scope = _scope(edge["file_path"])
+            in_scope = [qn for qn in candidates if qn.split("::")[0] in scope]
+
+            if len(in_scope) == 1:
+                updates.append((in_scope[0], edge["id"]))
                 resolved_unique += 1
+            elif len(candidates) == 1:
+                # Unique globally but unreachable from the caller → leave bare.
+                unscoped += 1
             else:
-                # Ambiguous: try import-based disambiguation
-                source_file = edge["file_path"]
-                imported = import_cache.get(source_file, set())
-                # Check which candidate's file is imported by the calling file
-                matched = []
-                for qn in candidates:
-                    # Extract file path from qualified name (before ::)
-                    cand_file = qn.split("::")[0] if "::" in qn else ""
-                    # Check if any import target is a prefix/suffix of candidate file
-                    for imp_target in imported:
-                        if (imp_target in cand_file or
-                                cand_file.endswith(imp_target) or
-                                imp_target.replace(".", "/") in cand_file or
-                                imp_target.replace(".", "\\") in cand_file):
-                            matched.append(qn)
-                            break
+                direct = import_cache.get(edge["file_path"], set())
+                matched = [qn for qn in in_scope if qn.split("::")[0] in direct]
                 if len(matched) == 1:
                     updates.append((matched[0], edge["id"]))
                     resolved_import += 1
@@ -873,11 +900,11 @@ class GraphStore:
         total_bare = len(bare_edges)
         logger.info(
             "resolve_bare_calls: %d bare → %d unique + %d import = %d resolved "
-            "(%.0f%%), %d ambiguous, %d no-match",
+            "(%.0f%%), %d ambiguous, %d unscoped, %d no-match",
             total_bare, resolved_unique, resolved_import,
             resolved_unique + resolved_import,
             (resolved_unique + resolved_import) * 100 / max(total_bare, 1),
-            ambiguous, no_match,
+            ambiguous, unscoped, no_match,
         )
 
         return {
@@ -885,6 +912,7 @@ class GraphStore:
             "resolved_unique": resolved_unique,
             "resolved_import": resolved_import,
             "ambiguous": ambiguous,
+            "unscoped": unscoped,
             "no_match": no_match,
         }
 

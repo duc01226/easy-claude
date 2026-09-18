@@ -75,14 +75,31 @@ def _call_noise_extra(repo_root: Path) -> Optional[dict]:
     return extra_noise or None
 
 
-def _make_parser(repo_root: Path) -> CodeParser:
-    """Create a CodeParser with project-specific call noise filter.
+def _resolver_snapshot(repo_root: Path) -> Optional[dict]:
+    """Picklable module-resolution snapshot (aliases + workspace packages)."""
+    try:
+        from .resolver import build_resolver_snapshot
+        return build_resolver_snapshot(repo_root, load_project_config(repo_root))
+    except Exception as exc:  # noqa: BLE001 - resolution is best-effort
+        logger.warning("Module resolver unavailable (%s); using relative-only resolution", exc)
+        return None
 
-    Reads optional graphSettings.callNoiseFilter from project-config.json
-    and passes extra entries to the parser. Falls back to engine defaults
-    if no config exists.
+
+def _make_parser(repo_root: Path) -> CodeParser:
+    """Create a CodeParser with project-specific call noise + module resolver.
+
+    Reads optional graphSettings.callNoiseFilter and discovers tsconfig path
+    aliases / workspace packages so imported symbols resolve to real files.
+    Falls back to engine defaults if no config exists.
     """
-    return CodeParser(call_noise_extra=_call_noise_extra(repo_root))
+    from .resolver import ModuleResolver
+
+    snapshot = _resolver_snapshot(repo_root)
+    resolver = ModuleResolver.from_snapshot(snapshot)
+    return CodeParser(
+        call_noise_extra=_call_noise_extra(repo_root),
+        module_resolver=resolver,
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -90,11 +107,13 @@ def _make_parser(repo_root: Path) -> CodeParser:
 # ---------------------------------------------------------------------------
 
 _WORKER_NOISE: Optional[dict] = None
+_WORKER_RESOLVER_SNAPSHOT: Optional[dict] = None
 
 
-def _init_parse_worker(noise_extra: Optional[dict]) -> None:
-    global _WORKER_NOISE
+def _init_parse_worker(noise_extra: Optional[dict], resolver_snapshot: Optional[dict] = None) -> None:
+    global _WORKER_NOISE, _WORKER_RESOLVER_SNAPSHOT
     _WORKER_NOISE = noise_extra
+    _WORKER_RESOLVER_SNAPSHOT = resolver_snapshot
 
 
 def _parse_job(job: tuple[str, str, Optional[str]]) -> tuple:
@@ -108,7 +127,10 @@ def _parse_job(job: tuple[str, str, Optional[str]]) -> tuple:
     rel_path, abs_path, expected_hash = job
     try:
         from .parser import CodeParser  # lazy: workers only pay this when parsing
-        parser = CodeParser(call_noise_extra=_WORKER_NOISE)
+        from .resolver import ModuleResolver
+
+        resolver = ModuleResolver.from_snapshot(_WORKER_RESOLVER_SNAPSHOT)
+        parser = CodeParser(call_noise_extra=_WORKER_NOISE, module_resolver=resolver)
         path = Path(abs_path)
         source = path.read_bytes()
         fhash = hashlib.sha256(source).hexdigest()
@@ -135,22 +157,28 @@ def _parse_workers(n_jobs: int) -> int:
     return min(4, os.cpu_count() or 1)
 
 
-def _run_parse_jobs(jobs: list[tuple], noise_extra: Optional[dict]) -> list[tuple]:
+def _run_parse_jobs(
+    jobs: list[tuple],
+    noise_extra: Optional[dict],
+    resolver_snapshot: Optional[dict] = None,
+) -> list[tuple]:
     """Run parse jobs with a bounded process pool, falling back to serial."""
     workers = _parse_workers(len(jobs))
     if workers <= 1:
-        _init_parse_worker(noise_extra)
+        _init_parse_worker(noise_extra, resolver_snapshot)
         return [_parse_job(j) for j in jobs]
     try:
         from concurrent.futures import ProcessPoolExecutor
 
         with ProcessPoolExecutor(
-            max_workers=workers, initializer=_init_parse_worker, initargs=(noise_extra,)
+            max_workers=workers,
+            initializer=_init_parse_worker,
+            initargs=(noise_extra, resolver_snapshot),
         ) as executor:
             return list(executor.map(_parse_job, jobs))
     except Exception as exc:  # pragma: no cover - environment dependent
         logger.warning("Parallel parse unavailable (%s); falling back to serial", exc)
-        _init_parse_worker(noise_extra)
+        _init_parse_worker(noise_extra, resolver_snapshot)
         return [_parse_job(j) for j in jobs]
 
 logger = logging.getLogger(__name__)
@@ -396,6 +424,7 @@ def full_build(repo_root: Path, store: GraphStore) -> dict:
     """Full rebuild of the entire graph."""
     files = collect_all_files(repo_root)
     noise_extra = _call_noise_extra(repo_root)
+    resolver_snapshot = _resolver_snapshot(repo_root)
 
     # Purge stale data from files no longer on disk
     existing_files = set(store.get_all_files())
@@ -407,7 +436,7 @@ def full_build(repo_root: Path, store: GraphStore) -> dict:
         (rel_path.replace("\\", "/"), str(repo_root / rel_path), None)
         for rel_path in files
     ]
-    results = _run_parse_jobs(jobs, noise_extra)
+    results = _run_parse_jobs(jobs, noise_extra, resolver_snapshot)
 
     total_nodes = 0
     total_edges = 0
@@ -481,6 +510,7 @@ def incremental_update(
     reparsed_files: set[str] = set()
 
     noise_extra = _call_noise_extra(repo_root)
+    resolver_snapshot = _resolver_snapshot(repo_root)
     jobs = []
     for rel_path in all_files:
         if _should_ignore(rel_path, ignore_patterns):
@@ -498,7 +528,7 @@ def incremental_update(
             store.get_file_hash(rel_path.replace("\\", "/")),
         ))
 
-    for rel_path, fhash, nodes, edges, err in _run_parse_jobs(jobs, noise_extra):
+    for rel_path, fhash, nodes, edges, err in _run_parse_jobs(jobs, noise_extra, resolver_snapshot):
         if err:
             logger.warning("Error parsing %s: %s", rel_path, err)
             errors.append({"file": rel_path, "error": err})
@@ -653,7 +683,7 @@ def sync_with_git(repo_root: Path, store: GraphStore) -> dict:
                 continue
             jobs.append((rel_path.replace("\\", "/"), str(abs_path), None))
         for rel_path, fhash, nodes, edges, err in _run_parse_jobs(
-            jobs, _call_noise_extra(repo_root)
+            jobs, _call_noise_extra(repo_root), _resolver_snapshot(repo_root)
         ):
             if err:
                 errors.append({"file": rel_path, "error": err})
@@ -730,7 +760,7 @@ def sync_with_git(repo_root: Path, store: GraphStore) -> dict:
             store.get_file_hash(rel_path.replace("\\", "/")),
         ))
     for rel_path, fhash, nodes, edges, err in _run_parse_jobs(
-        jobs, _call_noise_extra(repo_root)
+        jobs, _call_noise_extra(repo_root), _resolver_snapshot(repo_root)
     ):
         if err:
             errors.append({"file": rel_path, "error": err})
