@@ -244,7 +244,7 @@ test("TC-WSC-009 framework guide carries the current workflow count and conditio
   const workflowCount = Object.keys(workflowsDoc.workflows).length;
   assert.match(guide, new RegExp(`Workflow Catalog \\(${workflowCount} Workflows\\)`));
   assert.match(guide, /workflow-integration-test-green/);
-  assert.match(guide, /test → scan --target=domain-entities → docs-update/);
+  assert.match(guide, /scan --target=domain-entities → docs-update/);
   assert.match(guide, /only when the final diff changes an entity\/model, DTO\/data contract, persistence schema\/migration, or entity-sync evidence/i);
   assert.match(guide, /otherwise complete the scan task with a cited skip reason/i);
 });
@@ -326,18 +326,36 @@ test("TC-DOCROOT-048 renderWorkflowsSection resolves whenToUse tokens from confi
   }
 });
 
-// TC-DOCROOT-049 (catalog half) — an EMPTY config renders exactly the DEFAULT-config catalog.
+// TC-DOCROOT-049 (catalog half) — an EMPTY config renders every token at its DOCUMENTED DEFAULT.
 //
 // Originally phrased as "a no-op on token-free content". Phase 05 tokenised the routed fields, so
 // the `When to use` cell now equals `condenseWhenToUse(whenToUse RESOLVED to the defaults)` rather
 // than the raw string. The invariant that still binds — and the one the backward-compat claim
-// rests on — is that an absent/empty config produces the same bytes the default config produces.
-test("TC-DOCROOT-049 empty-config catalog rendering equals default-config rendering", () => {
+// rests on — is that a `{}` config resolves every token to the default the loader documents.
+//
+// PORTABILITY: this test used to assert `render(entries, repoRoot, {})` equals
+// `render(entries, repoRoot)`. Those are NOT the same thing. Omitting the config argument means
+// "LOAD the project config from disk", which equals the `{}` rendering only in a repo that
+// overrides no root — i.e. the upstream framework repo. Every adopter that relocates a root (the
+// entire point of `specRoots` / `docsRoots`) failed here, so the assertion was testing "nobody
+// customized anything", not the backward-compat claim in its own name. The two real invariants are
+// asserted separately below: `{}` renders the DEFAULTS, and an omitted config renders the LOADED
+// config. Both hold in any repo, configured or not.
+test("TC-DOCROOT-049 empty-config catalog rendering resolves every token to its default", () => {
   const entries = Object.entries(workflowsDoc.workflows).sort((a, b) => a[0].localeCompare(b[0]));
 
   const withEmptyConfig = renderWorkflowsSection(entries, repoRoot, {});
-  const withDefaultConfig = renderWorkflowsSection(entries, repoRoot);
-  assert.equal(withEmptyConfig, withDefaultConfig);
+
+  // An OMITTED config means "load from disk" — so it must equal rendering with the config the
+  // loader actually returns for this repo, whatever that repo configured.
+  const { loadProjectConfig } = require(
+    path.join(repoRoot, ".claude", "hooks", "lib", "project-config-loader.cjs")
+  );
+  assert.equal(
+    renderWorkflowsSection(entries, repoRoot),
+    renderWorkflowsSection(entries, repoRoot, loadProjectConfig()),
+    "omitting the config argument must resolve tokens from the LOADED project config"
+  );
 
   for (const [id, wf] of entries) {
     const { resolvePortabilityTokens } = require(
@@ -357,8 +375,10 @@ test("TC-DOCROOT-049 empty-config catalog rendering equals default-config render
     );
   }
 
+  // Same omitted-vs-empty distinction at the whole-catalog level: omitting `config` loads from
+  // disk, so it is compared against the LOADED config, not against `{}`.
   assert.equal(
-    buildWorkflowSkillsCatalog({ rootDir: repoRoot, config: {} }),
+    buildWorkflowSkillsCatalog({ rootDir: repoRoot, config: loadProjectConfig() }),
     buildWorkflowSkillsCatalog({ rootDir: repoRoot })
   );
 });

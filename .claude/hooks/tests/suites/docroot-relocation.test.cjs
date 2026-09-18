@@ -562,6 +562,105 @@ const tests = [
         }
     },
 
+    // ── SC-6b — ONE knob must be enough ─────────────────────────────────────
+    {
+        name: '[docroot-relocation] TC-DOCROOT-166 the DOCUMENTED knob alone relocates the reference root',
+        fn: () => {
+            // TC-DOCROOT-162 proves the two derivations AGREE — but its fixture sets BOTH knobs, so
+            // it cannot see the failure this guards: a project that relocates only
+            // `docsRoots.projectReference.path` (the knob CLAUDE.md, the schema and the codex
+            // residue verifier all document) while leaving `.ck.json` alone.
+            //
+            // `getConfiguredDocsIndexPath` used to read ONLY `.ck.json`'s `portability.docsIndexPath`,
+            // so such a project resolved to the DEFAULT root here. `session-init-helpers` derives
+            // `REFERENCE_DOCS_DIR` from this value, so it then scaffolded a full 18-file stub tree at
+            // `docs/project-reference/` beside the project's real docs, and every consumer read the
+            // stubs. Two sources of truth for one root; following the documented one half-worked.
+            const mk = (ck) => {
+                const dir = fs.mkdtempSync(path.join(os.tmpdir(), `docroot-164-${process.pid}-`));
+                fs.mkdirSync(path.join(dir, 'docs'), { recursive: true });
+                fs.writeFileSync(
+                    path.join(dir, 'docs', 'project-config.json'),
+                    JSON.stringify({ docsRoots: { projectReference: { path: 'handbook/reference' } } }),
+                    'utf8'
+                );
+                if (ck) {
+                    fs.mkdirSync(path.join(dir, '.claude'), { recursive: true });
+                    fs.writeFileSync(path.join(dir, '.claude', '.ck.json'), JSON.stringify(ck), 'utf8');
+                }
+                return dir;
+            };
+
+            const probe = `
+                const path = require('path');
+                const L = require(REPO + '/.claude/hooks/lib/project-config-loader.cjs');
+                const cfg = JSON.parse(require('fs').readFileSync(FIXTURE + '/docs/project-config.json', 'utf8'));
+                const rel = p => path.relative(FIXTURE, p).replace(/\\\\/g, '/');
+                return {
+                    referenceRoot: rel(path.dirname(L.getConfiguredDocsIndexPath())),
+                    fromGetDocsRoot: L.getDocsRoot('projectReference', cfg)
+                };
+            `;
+
+            // (a) docsRoots alone relocates the root, and the TC-DOCROOT-162 invariant still holds.
+            const soloDir = mk(null);
+            try {
+                const solo = inFixture(soloDir, probe);
+                assertEqual(
+                    solo.referenceRoot,
+                    'handbook/reference',
+                    'the documented `docsRoots.projectReference.path` alone must relocate the docs-index root'
+                );
+                assertEqual(
+                    solo.referenceRoot,
+                    solo.fromGetDocsRoot,
+                    'both derivations must name the SAME reference root when only the documented knob is set'
+                );
+            } finally {
+                fs.rmSync(soloDir, { recursive: true, force: true });
+            }
+
+            // (a2) A repo-ESCAPING docsRoots value falls back to the default instead of resolving
+            //      outside the project. The schema plane already errors on such a value
+            //      (`validateDocsRootsSemantics`), but the runtime plane is fail-SOFT by contract
+            //      (ADR-0003), so it must degrade rather than trust it. Guarding the ABSOLUTE form
+            //      specifically: `resolveConfiguredPath` honours absolute paths verbatim, so a
+            //      `..`-only check would let this one through and scaffold stubs outside the repo.
+            for (const escaping of ['/etc/reference', 'C:/elsewhere/reference', '../outside']) {
+                const escDir = fs.mkdtempSync(path.join(os.tmpdir(), `docroot-166e-${process.pid}-`));
+                fs.mkdirSync(path.join(escDir, 'docs'), { recursive: true });
+                fs.writeFileSync(
+                    path.join(escDir, 'docs', 'project-config.json'),
+                    JSON.stringify({ docsRoots: { projectReference: { path: escaping } } }),
+                    'utf8'
+                );
+                try {
+                    assertEqual(
+                        inFixture(escDir, probe).referenceRoot,
+                        'docs/project-reference',
+                        `a repo-escaping docsRoots value (${escaping}) must fall back to the default root`
+                    );
+                } finally {
+                    fs.rmSync(escDir, { recursive: true, force: true });
+                }
+            }
+
+            // (b) An EXPLICIT `.ck.json` tier still wins, so no project that already pinned its
+            //     docs index moves underneath it.
+            const pinnedDir = mk({ portability: { docsIndexPath: 'pinned/elsewhere/docs-index-reference.md' } });
+            try {
+                const pinned = inFixture(pinnedDir, probe);
+                assertEqual(
+                    pinned.referenceRoot,
+                    'pinned/elsewhere',
+                    'an explicit `.ck.json` portability.docsIndexPath must keep precedence over docsRoots'
+                );
+            } finally {
+                fs.rmSync(pinnedDir, { recursive: true, force: true });
+            }
+        }
+    },
+
     // ── SC-9 — the build-gating verifier ────────────────────────────────────
     {
         name: '[docroot-relocation] TC-DOCROOT-163 verify-sdd resolves its roots under relocation and its anti-R6 guard is live',

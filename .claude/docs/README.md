@@ -7,7 +7,7 @@
 | Goal                           | Document                                                                                                                           |
 | ------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------- |
 | **New to Claude Code?**        | [quick-start.md](./quick-start.md) - 5-minute onboarding                                                                           |
-| **Need a skill?**              | [skills/README.md](./skills/README.md) - 123 skills catalog                                                                        |
+| **Need a skill?**              | [skills/README.md](./skills/README.md) - 124 skills catalog                                                                        |
 | **Building a feature?**        | [skills/README.md](./skills/README.md) + project-reference root patterns                                                           |
 | **Verifying user experience?** | [configuration/experience-verification.md](./configuration/experience-verification.md) - portable evidence and acceptance contract |
 | **Understanding hooks?**       | [hooks/README.md](./hooks/README.md) - 20 top-level hook files deep-dive                                                           |
@@ -26,7 +26,7 @@ Project-owned branches below sit at their DEFAULT roots; `docs/project-config.js
 |-- README.md                 <- You are here (Navigation hub)
 |-- quick-start.md            5-minute onboarding guide
 |
-|-- skills/                   123 skills across 15+ domains
+|-- skills/                   124 skills across 15+ domains
 |   |-- README.md             Skills overview + full catalog
 |   +-- (patterns)           → docs/project-reference/
 |
@@ -151,9 +151,9 @@ Unprefixed filenames resolve inside the project-reference docs root — default 
 
 | Category               | Count |
 | ---------------------- | ----- |
-| Skills                 | 123   |
+| Skills                 | 124   |
 | Hook files (top-level) | 20    |
-| Lib Modules            | 35    |
+| Lib Modules            | 36    |
 | Hook Events            | 8     |
 | Agents                 | 23    |
 | Workflows              | 19    |

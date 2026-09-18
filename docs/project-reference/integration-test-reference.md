@@ -59,7 +59,7 @@ Source: `.claude/hooks/tests/suites/integration.test.cjs:66-76`.
 
 ## Configuration
 
-Canonical commands live in `docs/project-config.json:120-130` and `package.json:44-46`. No `integrationTestVerify` override, database connection, or startup/system-check command is configured.
+Canonical commands live in `docs/project-config.json:158-169` (`testing.commands`). There is no host `package.json` script — the framework is self-running by design. No `integrationTestVerify` override, database connection, or startup/system-check command is configured.
 
 The suite runner sets `CLAUDE_PROJECT_DIR` before loading suites (`.claude/hooks/tests/run-all-tests.cjs:16-24`). Child-process helpers merge per-call `env`; parent-process mutations must use `createEnvSaver`/`setupClaudeEnvFile` and restore in `finally` (`.claude/hooks/tests/lib/test-utils.cjs:141-195`).
 
@@ -98,7 +98,7 @@ node .claude/hooks/tests/run-all-tests.cjs --filter=security --verbose
 
 The filter selects suite names and runs every test in each selected suite; a non-matching explicit filter exits `1` to prevent a vacuous green (`.claude/hooks/tests/run-all-tests.cjs:158-164`, `.claude/hooks/tests/run-all-tests.cjs:275-286`). A complete, clean run exits `1` for a second, non-test reason: a post-summary count guard compares the tests it discovered against the aggregate count documented in `.claude/docs/hooks/README.md` and fails the process on drift, so the summary can read `All N tests passed` while the exit code is still `1` (`.claude/hooks/tests/run-all-tests.cjs:333-400`). It keys on the DISCOVERED total (passed + failed + skipped) rather than the pass count, because host-gated tests move the passed/skipped split per machine, and it stays silent under `--filter` or after any failure — neither total is the canonical figure. Although `--parallel` is parsed and advertised, the runner currently awaits suites in a sequential loop (`.claude/hooks/tests/run-all-tests.cjs:51-75`, `.claude/hooks/tests/run-all-tests.cjs:295-304`).
 
-**Repeatability gate:** run `npm test`, then run `npm test` again without deleting temp/global state or resetting the repository. Both consecutive runs **MUST** pass.
+**Repeatability gate:** run `node .claude/hooks/tests/run-all-tests.cjs`, then run it again without deleting temp/global state or resetting the repository. Both consecutive runs **MUST** pass.
 
 Use live expressions instead of hardcoded coverage totals:
 

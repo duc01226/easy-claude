@@ -15,9 +15,16 @@
 
 const fs = require('fs');
 const path = require('path');
-const { loadConfig, DEFAULT_PORTABILITY } = require('./ck-config-loader.cjs');
+const {
+    loadConfig,
+    loadConfigFromPath,
+    DEFAULT_PORTABILITY,
+    LOCAL_OVERRIDE_PATH,
+    LOCAL_CONFIG_PATH,
+    GLOBAL_CONFIG_PATH
+} = require('./ck-config-loader.cjs');
 const { resolveProjectRoot } = require('./project-root.cjs');
-const { normalizeRootPath, escapesRepoRoot, isPathWithinRoot } = require('./ck-path-utils.cjs');
+const { normalizeRootPath, escapesRepoRoot, isPathWithinRoot, joinRoot, sanitizePath } = require('./ck-path-utils.cjs');
 
 // Resolve from the nearest portable bundle, not the caller's current directory.
 // This keeps Claude hooks and Codex entrypoints equivalent when invoked from a
@@ -43,16 +50,102 @@ function getConfiguredProjectConfigPath() {
     }
 }
 
+/**
+ * The default docs-index path, tolerant of a STUBBED `ck-config-loader`.
+ *
+ * `test-lib-modules-extended.cjs` evaluates this module in a VM sandbox whose `ck-config-loader`
+ * stub omits `DEFAULT_PORTABILITY.docsIndexPath`, so anything that dereferences it at module scope
+ * throws before a single helper runs. Resolve it lazily, with the framework literal as the last
+ * resort, so a partial stub degrades instead of exploding.
+ */
+const FALLBACK_DOCS_INDEX_PATH = 'docs/project-reference/docs-index-reference.md';
+
+function defaultDocsIndexPath() {
+    const declared = DEFAULT_PORTABILITY?.docsIndexPath;
+    return typeof declared === 'string' && declared.trim() ? declared.trim() : FALLBACK_DOCS_INDEX_PATH;
+}
+
+/** The docs-index FILENAME, taken from the default path so the two never drift apart. */
+function docsIndexBasename() {
+    return path.posix.basename(defaultDocsIndexPath().replace(/\\/g, '/')) || 'docs-index-reference.md';
+}
+
+/**
+ * An EXPLICITLY declared `portability.docsIndexPath`, or `null` when no config file declares one.
+ *
+ * `loadConfig()` merges `DEFAULT_PORTABILITY` in, so its `docsIndexPath` is NEVER absent — an unset
+ * knob is indistinguishable there from one deliberately pinned to the default. Distinguishing the
+ * two is the whole point here, so the raw files are read directly, highest priority first.
+ */
+function explicitDocsIndexPath() {
+    for (const candidate of [LOCAL_OVERRIDE_PATH, LOCAL_CONFIG_PATH, GLOBAL_CONFIG_PATH]) {
+        const declared = loadConfigFromPath(candidate)?.portability?.docsIndexPath;
+        if (typeof declared !== 'string' || !declared.trim()) continue;
+        // Reading raw bypasses `loadConfig`'s `sanitizeConfig`, so re-apply the SAME guard the old
+        // tier-1 path got for free: `sanitizePath` honours an absolute value verbatim but rejects a
+        // relative value that escapes the repo root (and null-byte payloads). Without this a
+        // malformed `.ck.json` steers docs scaffolding/scanning outside the project instead of
+        // failing soft to the default — the exact regression this clause restores.
+        const safe = sanitizePath(declared.trim(), PROJECT_DIR);
+        if (safe) return safe;
+    }
+    return null;
+}
+
+/**
+ * `docsRoots.projectReference.path`, slash-normalized, or `null` when undeclared/unsafe.
+ *
+ * Read with an uncached parse rather than `loadProjectConfig()` ON PURPOSE. This function runs at
+ * module scope in consumers (`session-init-helpers.cjs` derives `REFERENCE_DOCS_DIR` from it at
+ * require time), and `loadProjectConfig` caches for the process lifetime — warming that cache at
+ * require time would change when the config is first read for every hook, so a test that requires a
+ * module and only then writes its fixture config would silently observe the pre-write value.
+ */
+function projectReferenceRootFromConfig() {
+    const declared = loadConfigFromPath(CONFIG_PATH)?.docsRoots?.projectReference?.path;
+    if (typeof declared !== 'string' || !declared.trim()) return null;
+    // A repo-escaping value falls back rather than resolving outside the project. Use the SAME
+    // predicate the schema's fail-closed plane uses (`validateDocsRootsSemantics`), not a hand-rolled
+    // subset: a `..`-only check would still let an ABSOLUTE root through, and `resolveConfiguredPath`
+    // honours absolute paths verbatim — so the stub tree would land outside the repo entirely.
+    if (escapesRepoRoot(declared.trim())) return null;
+    const normalized = normalizeRootPath(declared.trim());
+    return normalized || null;
+}
+
+/**
+ * Where the docs index lives — ONE root, resolved from a declared precedence.
+ *
+ * WHY THE `docsRoots` TIER EXISTS
+ * The reference-docs root had TWO independent sources of truth: this function read only
+ * `.ck.json`'s `portability.docsIndexPath`, while `CLAUDE.md`, the project-config schema and the
+ * codex residue verifier all treat `docsRoots.projectReference.path` as THE override. A project
+ * that followed the documented instruction and relocated only the latter was still resolved to the
+ * DEFAULT root here — so `session-init-helpers`, which derives `REFERENCE_DOCS_DIR` from this
+ * value, scaffolded a full stub tree at `docs/project-reference/` beside the project's real docs,
+ * and every downstream consumer then read the stubs. Measured: 18 stub files created and the
+ * count-drift guard red, against a green suite once both knobs agreed.
+ *
+ * Precedence, highest first:
+ *   1. an EXPLICIT `.ck.json` `portability.docsIndexPath` — a full path to the index FILE, and the
+ *      only tier that can point the index somewhere other than beside the reference docs;
+ *   2. `docsRoots.projectReference.path` from the project config — the documented root knob;
+ *   3. the framework default.
+ *
+ * Tier 1 stays on top so no project that already pinned the index moves underneath it.
+ */
 function getConfiguredDocsIndexPath() {
     try {
-        const ckConfig = loadConfig({
-            includeProject: false,
-            includeAssertions: false,
-            includeLocale: false
-        });
-        return resolveConfiguredPath(ckConfig.portability?.docsIndexPath, DEFAULT_PORTABILITY.docsIndexPath);
+        const explicit = explicitDocsIndexPath();
+        if (explicit) return resolveConfiguredPath(explicit);
+
+        const referenceRoot = projectReferenceRootFromConfig();
+        // `joinRoot`, never bare template concatenation — see the contract at ck-path-utils.cjs:256.
+        if (referenceRoot) return resolveConfiguredPath(joinRoot(referenceRoot, docsIndexBasename()));
+
+        return resolveConfiguredPath(defaultDocsIndexPath());
     } catch {
-        return resolveConfiguredPath(DEFAULT_PORTABILITY.docsIndexPath);
+        return resolveConfiguredPath(defaultDocsIndexPath());
     }
 }
 

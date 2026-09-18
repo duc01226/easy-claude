@@ -11,7 +11,7 @@
 3. **Design Review** — `/why-review` (rationale), `/spec [mode=tests]` + `/artifact-review --type=spec-tests` (test specs)
 4. **Implement** — `/feature-implement` or `/plan-execute`, compile-check after every file change
 5. **Verify** — `/test`, `/integration-test`, `/spec [mode=sync]`
-6. **Quality** — `/workflow-review-changes` (initial parallel phase: inline changes-review + whole-target why-review → findings validation → specialist parallel batch → code-simplifier → fix/re-review → final whole-target why-review)
+6. **Quality** — `/workflow-review-changes` (initial parallel phase: inline changes-review + whole-target why-review → specialist parallel batch → code-simplifier → fix/re-review → final whole-target why-review, conditional on the fix cycle having changed files)
 7. **Ship** — `/production-readiness-review`, `/security-review`, `/docs-update`, `/watzup`, `/workflow-end`
 
 **Key Rules:**
@@ -69,7 +69,7 @@
 
 ## Phase 5: Quality
 
--   Use `/workflow-review-changes` for the canonical changes-review workflow (inline changes-review + whole-target why-review in parallel → findings validation → specialist reviewers → code-simplifier → fix/re-review → final whole-target why-review), then continue until the current severity bar is clear (Round 2+ LOW-only findings are deferred)
+-   Use `/workflow-review-changes` for the canonical changes-review workflow (inline changes-review + whole-target why-review in parallel → specialist reviewers → code-simplifier → fix/re-review → final whole-target why-review, conditional on the fix cycle having changed files), then continue until the current severity bar is clear (Round 2+ LOW-only findings are deferred)
 -   Alternatively use individual skills: `/code-simplifier`, `/code-review`, `/architecture-review`, `/performance-review`
 -   Follow coding standards and conventions
 -   Optimize for performance and maintainability

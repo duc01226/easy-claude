@@ -150,14 +150,23 @@ test("investigation and fan-out skills retain graph and shard discipline (CR-020
   assert.match(scan, /sole writer/i);
 });
 
-test("mutating workflow closures refresh domain-entity references immediately before docs-update (CR-102)", async () => {
+test("mutating workflow closures refresh domain-entity references before docs-update or delegate to workflow-review-changes (CR-102)", async () => {
   const workflows = JSON.parse(await read(".claude/workflows.json")).workflows;
-  for (const id of ["workflow-greenfield-init", "workflow-refactor", "workflow-review-changes"]) {
+  // Workflows that still own the terminal refresh carry scan -> docs-update explicitly.
+  for (const id of ["workflow-review-changes"]) {
     const sequence = workflows[id].sequence;
     const scanIndex = sequence.indexOf("scan --target=domain-entities");
     assert.ok(scanIndex >= 0, `${id} must carry the refresh step`);
     assert.equal(sequence[scanIndex + 1], "docs-update");
     assert.match(workflows[id].preActions.domainEntityReferenceRefresh, /cited skip reason/);
+  }
+  // Workflows that delegate their review/docs tail to the nested workflow-review-changes must name
+  // it — the nested workflow owns the scan -> docs-update refresh and the cited-skip-reason rule.
+  for (const id of ["workflow-greenfield-init", "workflow-refactor"]) {
+    assert.ok(
+      workflows[id].sequence.includes("workflow-review-changes"),
+      `${id} must delegate the terminal domain-entity refresh to workflow-review-changes`
+    );
   }
 });
 

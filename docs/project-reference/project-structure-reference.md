@@ -51,12 +51,12 @@ Delivery stack: **undetermined (no CI/IaC config found)**. Root commands cover l
 
 ## Environment Configuration
 
-| Setting group                 | Surface                                         | Purpose                                                                                              |
-| ----------------------------- | ----------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
-| Framework runtime             | `.claude/settings.json:24-30`                   | `CLAUDE_BASH_MAINTAIN_PROJECT_WORKING_DIR`, context/auto-memory controls, stop-hook cap, MCP timeout |
-| MCP authentication references | `.claude/.mcp.json:6-7`                         | `GITHUB_PERSONAL_ACCESS_TOKEN`                                                                       |
-| Notification references       | `.claude/hooks/notifications/.env.example:8-21` | Telegram, Discord, and Slack reference names                                                         |
-| Optional skill credentials    | `.claude/.env.example:34-50`                    | Shared AI/ML API key reference names with per-skill override precedence                              |
+| Setting group                 | Surface                                         | Purpose                                                                 |
+| ----------------------------- | ----------------------------------------------- | ----------------------------------------------------------------------- |
+| Framework runtime             | `.claude/settings.json:24-30`                   | Context/auto-memory/todo controls, stop-hook cap, MCP timeout           |
+| MCP authentication references | `.claude/.mcp.json:6-7`                         | `GITHUB_PERSONAL_ACCESS_TOKEN`                                          |
+| Notification references       | `.claude/hooks/notifications/.env.example:8-21` | Telegram, Discord, and Slack reference names                            |
+| Optional skill credentials    | `.claude/.env.example:34-50`                    | Shared AI/ML API key reference names with per-skill override precedence |
 
 MUST ATTENTION record setting keys/reference names only; keep credential values in environment or secret stores.
 
@@ -82,14 +82,14 @@ None. No frontend framework dependency, app mapping, dev-server port, or fronten
 | -------------- | --------------------------------------------------------------------------------------------- | ----------------------------- | ----------------------------------------------------------------------------------- |
 | Hooks          | <!-- COUNT:hooks -->20<!-- /COUNT -->                                                         | `.claude/hooks/*.cjs`         | Top-level CommonJS Node.js hook scripts counted by ADR-0002                         |
 | Hook Libraries | <!-- COUNT:lib-modules -->36<!-- /COUNT -->                                                   | `.claude/hooks/lib/*.cjs`     | CommonJS utility modules                                                            |
-| Skills         | <!-- COUNT:skills -->123<!-- /COUNT -->                                                       | `.claude/skills/*/SKILL.md`   | Markdown + YAML frontmatter                                                         |
+| Skills         | <!-- COUNT:skills -->124<!-- /COUNT -->                                                       | `.claude/skills/*/SKILL.md`   | Markdown + YAML frontmatter                                                         |
 | Agents         | <!-- COUNT:agents -->23<!-- /COUNT -->                                                        | `.claude/agents/*.md`         | Markdown definitions                                                                |
 | Workflows      | <!-- COUNT:workflows -->19<!-- /COUNT -->                                                     | `.claude/workflows.json`      | JSON workflow definitions                                                           |
 | Output Styles  | 6                                                                                             | `.claude/output-styles/*.md`  | Coding level presets (ELI5→God)                                                     |
 | Scripts        | 34                                                                                            | `.claude/scripts/*`           | CJS/ESM + Python utilities (top-level; excludes tests and non-executable data/docs) |
-| Codex Scripts  | 16                                                                                            | `.claude/scripts/codex/*.mjs` | Top-level ESM sync, migration, notification, and verification tools                 |
-| Hook Tests     | 35 suites + 13 `test-*` files                                                                 | `.claude/hooks/tests/`        | CJS/JS test files; top-level `test-*` files plus `run-all-tests.cjs` aggregate      |
-| Codex Mirrors  | <!-- COUNT:skills -->123<!-- /COUNT --> skills, <!-- COUNT:agents -->23<!-- /COUNT --> agents | `.agents/`, `.codex/`         | Generated Codex-compatible copy                                                     |
+| Codex Scripts  | 17                                                                                            | `.claude/scripts/codex/*.mjs` | Top-level ESM sync, migration, notification, and verification tools                 |
+| Hook Tests     | 38 suites + 13 `test-*` files                                                                 | `.claude/hooks/tests/`        | CJS/JS test files; top-level `test-*` files plus `run-all-tests.cjs` aggregate      |
+| Codex Mirrors  | <!-- COUNT:skills -->124<!-- /COUNT --> skills, <!-- COUNT:agents -->23<!-- /COUNT --> agents | `.agents/`, `.codex/`         | Generated Codex-compatible copy                                                     |
 
 ## Project Directory Tree
 
@@ -134,16 +134,16 @@ easy-claude/
 | ---- | -------------- | ------------------------------ | ------------------------------------------------------------------------------------------------------------------------- |
 | HK   | Hooks          | `.claude/hooks/`               | <!-- COUNT:hooks -->20<!-- /COUNT --> top-level `.cjs` runtime hook files (session init, safety gates, graph, formatting) |
 | HL   | Hook Libraries | `.claude/hooks/lib/`           | <!-- COUNT:lib-modules -->36<!-- /COUNT --> shared utility modules for hooks                                              |
-| SK   | Skills         | `.claude/skills/`              | <!-- COUNT:skills -->123<!-- /COUNT --> task automation skill definitions                                                 |
+| SK   | Skills         | `.claude/skills/`              | <!-- COUNT:skills -->124<!-- /COUNT --> task automation skill definitions                                                 |
 | AG   | Agents         | `.claude/agents/`              | <!-- COUNT:agents -->23<!-- /COUNT --> specialized subagent role definitions                                              |
 | WF   | Workflows      | `.claude/workflows.json`       | <!-- COUNT:workflows -->19<!-- /COUNT --> end-to-end process orchestrations                                               |
 | SC   | Scripts        | `.claude/scripts/`             | 34 top-level CJS/ESM/Python utilities; excludes tests and non-executable data/docs                                        |
-| CX   | Codex Tooling  | `.claude/scripts/codex/`       | 16 top-level ESM sync, migration, notification, and verification scripts                                                  |
+| CX   | Codex Tooling  | `.claude/scripts/codex/`       | 17 top-level ESM sync, migration, notification, and verification scripts                                                  |
 | CM   | Codex Mirrors  | `.agents/`, `.codex/`          | Generated Codex-compatible skills, agents, hooks                                                                          |
 | OS   | Output Styles  | `.claude/output-styles/`       | 6 coding level presets                                                                                                    |
 | NT   | Notifications  | `.claude/hooks/notifications/` | `notify.cjs` dispatcher + 4 channel providers in `providers/` (desktop, telegram, discord, slack)                         |
 | SB   | Scout Block    | `.claude/hooks/scout-block/`   | Broad search prevention subsystem (4 modules)                                                                             |
-| HT   | Hook Tests     | `.claude/hooks/tests/`         | 35 suite files + 13 top-level `test-*` files + `run-all-tests.cjs` aggregate                                              |
+| HT   | Hook Tests     | `.claude/hooks/tests/`         | 38 suite files + 13 top-level `test-*` files + `run-all-tests.cjs` aggregate                                              |
 
 ## Hooks (<!-- COUNT:hooks -->20<!-- /COUNT --> top-level `.cjs` files)
 

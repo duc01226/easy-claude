@@ -347,14 +347,113 @@ test("verify-workflow-cycle-compliance accepts the domain refresh for delivery w
   }
 });
 
-test("verify-workflow-cycle-compliance enforces terminal domain-entity reference refresh policy", async () => {
+test("verify-workflow-cycle-compliance accepts delegation of review/docs/refresh to nested workflow-review-changes", async () => {
+  const tempRoot = await fs.mkdtemp(path.join(os.tmpdir(), "codex-verify-cycle-delegated-"));
+
+  try {
+    await fs.mkdir(path.join(tempRoot, ".claude"), { recursive: true });
+    await fs.mkdir(path.join(tempRoot, ".claude", "skills"), { recursive: true });
+    await fs.mkdir(path.join(tempRoot, ".agents", "skills"), { recursive: true });
+
+    const workflowsJson = makeWorkflowJson();
+    const delegatedRemovals = ["integration-test-review", "scan --target=domain-entities", "docs-update"];
+    for (const workflowId of workflowIds) {
+      const entry = workflowsJson.workflows[`workflow-${workflowId}`];
+      // A parent may only delegate docs-update while the nested review observes the settled docs
+      // state. When a canonical spec step still runs AFTER the nested review, that mutation lands
+      // after the nested docs-update, so the parent owes its own terminal docs-update and may not
+      // drop it (see the rejection case in the sibling test).
+      const nestedIndex = entry.sequence.indexOf("workflow-review-changes");
+      const integrationIndex = entry.sequence.indexOf("integration-test");
+      // A nested review stands in for `integration-test-review` ONLY when it runs AFTER the
+      // integration test it reviews. A workflow whose nested review precedes `integration-test`
+      // (e.g. the spec-sync shape) must keep its own `integration-test-review` step.
+      const nestedAfterIntegration =
+        nestedIndex >= 0 && integrationIndex >= 0 && nestedIndex > integrationIndex;
+      const specAfterNested =
+        nestedIndex >= 0 &&
+        entry.sequence
+          .slice(nestedIndex + 1)
+          .some((step) => step === "spec" || step.startsWith("spec "));
+      let removals = specAfterNested
+        ? delegatedRemovals.filter((step) => step !== "docs-update")
+        : delegatedRemovals;
+      if (!nestedAfterIntegration) {
+        removals = removals.filter((step) => step !== "integration-test-review");
+      }
+      entry.sequence = entry.sequence.filter((step) => !removals.includes(step));
+    }
+
+    await fs.writeFile(
+      path.join(tempRoot, ".claude", "workflows.json"),
+      `${JSON.stringify(workflowsJson, null, 2)}\n`,
+      "utf8"
+    );
+
+    for (const workflowId of workflowIds) {
+      const steps = workflowsJson.workflows[`workflow-${workflowId}`].sequence;
+      const build = (prefix) => steps.map((step) => `${prefix}${toSkillStepToken(step)}`).join(" -> ");
+      await writeSkillFile(path.join(tempRoot, ".claude", "skills"), workflowId, build("/"));
+      await writeSkillFile(path.join(tempRoot, ".agents", "skills"), workflowId, build("$"));
+    }
+
+    // Only a parent that runs the nested workflow-review-changes may drop the duplicated
+    // integration-test-review / terminal scan / docs-update steps and still pass.
+    await execFileAsync(process.execPath, [verifyScript], { cwd: tempRoot });
+  } finally {
+    await fs.rm(tempRoot, { recursive: true, force: true });
+  }
+});
+
+test("verify-workflow-cycle-compliance rejects docs delegation that lands before a later spec mutation", async () => {
+  const tempRoot = await fs.mkdtemp(path.join(os.tmpdir(), "codex-verify-cycle-docs-order-"));
+
+  try {
+    await fs.mkdir(path.join(tempRoot, ".claude"), { recursive: true });
+    await fs.mkdir(path.join(tempRoot, ".claude", "skills"), { recursive: true });
+    await fs.mkdir(path.join(tempRoot, ".agents", "skills"), { recursive: true });
+
+    const workflowsJson = makeWorkflowJson();
+    // workflow-spec-sync shape: `workflow-review-changes` runs FIRST and canonical spec steps mutate
+    // afterwards, so the nested docs-update cannot satisfy this workflow's closure — the parent must
+    // keep its own terminal docs-update. Dropping it must fail the gate.
+    const removals = ["integration-test-review", "scan --target=domain-entities", "docs-update"];
+    workflowsJson.workflows["workflow-spec-sync"].sequence = workflowsJson.workflows[
+      "workflow-spec-sync"
+    ].sequence.filter((step) => !removals.includes(step));
+
+    await fs.writeFile(
+      path.join(tempRoot, ".claude", "workflows.json"),
+      `${JSON.stringify(workflowsJson, null, 2)}\n`,
+      "utf8"
+    );
+
+    for (const workflowId of workflowIds) {
+      const steps = workflowsJson.workflows[`workflow-${workflowId}`].sequence;
+      const build = (prefix) => steps.map((step) => `${prefix}${toSkillStepToken(step)}`).join(" -> ");
+      await writeSkillFile(path.join(tempRoot, ".claude", "skills"), workflowId, build("/"));
+      await writeSkillFile(path.join(tempRoot, ".agents", "skills"), workflowId, build("$"));
+    }
+
+    await assert.rejects(
+      execFileAsync(process.execPath, [verifyScript], { cwd: tempRoot }),
+      /missing ordered closure docs-update -> workflow-end/,
+      "docs delegation is invalid when canonical spec steps still run after the nested review"
+    );
+  } finally {
+    await fs.rm(tempRoot, { recursive: true, force: true });
+  }
+});
+
+test("verify-workflow-cycle-compliance enforces terminal domain-entity reference refresh policy for non-delegating workflows", async () => {
   const cases = [
     {
       name: "missing scan",
       mutate(workflowsJson) {
-        workflowsJson.workflows["workflow-bugfix"].sequence = workflowsJson.workflows[
-          "workflow-bugfix"
-        ].sequence.filter((step) => step !== "scan --target=domain-entities");
+        const sequence = workflowsJson.workflows["workflow-bugfix"].sequence;
+        workflowsJson.workflows["workflow-bugfix"].sequence = sequence.filter(
+          (step) => step !== "scan --target=domain-entities" && step !== "workflow-review-changes"
+        );
       },
       expected: /requires exactly one terminal domain-entity reference refresh/,
     },
@@ -365,16 +464,19 @@ test("verify-workflow-cycle-compliance enforces terminal domain-entity reference
         const scanIndex = sequence.indexOf("scan --target=domain-entities");
         sequence.splice(scanIndex, 1);
         sequence.splice(sequence.indexOf("test"), 0, "scan --target=domain-entities");
+        workflowsJson.workflows["workflow-feature"].sequence = sequence.filter(
+          (step) => step !== "workflow-review-changes"
+        );
       },
       expected: /missing terminal domain-entity reference refresh/,
     },
     {
       name: "duplicate scan",
       mutate(workflowsJson) {
-        workflowsJson.workflows["workflow-feature"].sequence.splice(
-          0,
-          0,
-          "scan --target=domain-entities"
+        const sequence = workflowsJson.workflows["workflow-feature"].sequence;
+        sequence.splice(0, 0, "scan --target=domain-entities");
+        workflowsJson.workflows["workflow-feature"].sequence = sequence.filter(
+          (step) => step !== "workflow-review-changes"
         );
       },
       expected: /requires exactly one terminal domain-entity reference refresh/,
@@ -384,6 +486,9 @@ test("verify-workflow-cycle-compliance enforces terminal domain-entity reference
       mutate(workflowsJson) {
         workflowsJson.workflows["workflow-big-feature"].preActions.injectContext =
           "After /test and before /docs-update, run /scan --target=domain-entities for every final diff, including entity/model, DTO/data contract, persistence schema/migration, and entity-sync evidence. Record a cited skip reason for changes outside scope.";
+        workflowsJson.workflows["workflow-big-feature"].sequence = workflowsJson.workflows[
+          "workflow-big-feature"
+        ].sequence.filter((step) => step !== "workflow-review-changes");
       },
       expected: /missing conditional domain-entity reference refresh context term\(s\)/,
     },
@@ -934,18 +1039,23 @@ test("cycle verifier rejects repeated explicit occurrence IDs instead of collaps
   );
 });
 
-test("read-workflow-entry returns the complete Big Feature entry through its terminal refresh", async () => {
+test("read-workflow-entry returns the complete Big Feature entry through its terminal review", async () => {
   const { stdout } = await execFileAsync(process.execPath, [
     readWorkflowEntryScript,
     "workflow-big-feature",
   ]);
   const workflow = JSON.parse(stdout);
-  const scanIndex = workflow.sequence.indexOf("scan --target=domain-entities");
 
-  assert.ok(scanIndex > 0, "expected Big Feature entry to include the domain-entity scan");
-  assert.equal(workflow.sequence[scanIndex - 1], "test");
-  assert.equal(workflow.sequence[scanIndex + 1], "docs-update");
-  assert.match(workflow.preActions.injectContext, /DOMAIN-ENTITY REFERENCE REFRESH/);
+  // Big Feature delegates the reviewer + terminal docs refresh to the nested
+  // workflow-review-changes, so its own sequence must NOT duplicate those steps.
+  assert.ok(
+    workflow.sequence.includes("workflow-review-changes"),
+    "Big Feature must route review through the nested workflow-review-changes"
+  );
+  assert.equal(workflow.sequence.includes("scan --target=domain-entities"), false);
+  assert.equal(workflow.sequence.at(-2), "workflow-end");
+  assert.equal(workflow.sequence.at(-1), "watzup");
+  assert.doesNotMatch(workflow.preActions.injectContext, /DOMAIN-ENTITY REFERENCE REFRESH/);
 });
 
 test("read-workflow-entry rejects an unknown workflow ID", async () => {

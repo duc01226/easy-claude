@@ -55,7 +55,7 @@ Notifications use Slack Block Kit with:
 |-------|-------------|
 | Stop | Main session completed |
 | SubagentStop | Subagent task completed |
-| AskUserPrompt | Claude needs user input |
+| AskUserPrompt | AI agent needs user input |
 
 ## Troubleshooting
 

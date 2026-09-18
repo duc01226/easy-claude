@@ -80,7 +80,7 @@ Resolve service→bucket assignments from the canonical table in [`spec-system-r
 | Mode        | When to Use                                  | Step Sequence                                                                                                                                                                                                                           |
 | ----------- | -------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `init-full` | Zero — no Feature Spec for target scope      | investigate → **size-evaluation** → **plan** → **plan-review** → **plan-validate** → spec [mode=init] → **spec [mode=tests]** → **artifact-review --type=spec-tests** → artifact-review → **docs-update(final sync)** → workflow-end → watzup |
-| `update`    | Code changed, new requirement, new PBI       | workflow-review-changes → spec [mode=update] → **spec [mode=tests]** → **artifact-review --type=spec-tests** → spec [mode=sync] → changes-review → **docs-update(final sync)** → workflow-end → watzup                                  |
+| `update`    | Code changed, new requirement, new PBI       | workflow-review-changes → spec [mode=update] → **spec [mode=tests]** → **artifact-review --type=spec-tests** → spec [mode=sync] → **docs-update(final sync)** → workflow-end → watzup                                  |
 | `audit`     | Quarterly health check, verify doc freshness | investigate → spec [mode=audit] → artifact-review → **docs-update(final sync)** → workflow-end → watzup                                                                                                                                       |
 
 **Key Rules:**
@@ -301,13 +301,9 @@ $spec [mode=sync]
 
 > **UI-intent maintenance (conditional)** — runs alongside the `$spec [mode=sync]` / spec authoring step, **only when the change carries user-facing behavior** (else state the skip reason — backend-only change, no §6 change). When the reverse-engineered code carries user-facing behavior, the spec authoring step MUST refresh the Feature Spec **§6** interaction surface from the implemented capability — View Inventory, Key UI States, and the per-story (`US-`/`OP-`/`BR-`) click-path — and link the governing `$design-spec`/mockup in the spec frontmatter so §6 and the design artifact stay coupled to what the code actually does. The rules live in the shared block below (`SYNC:ui-intent-layer`) — follow it; do not restate it here.
 
-$changes-review
-  → Holistic review of Feature Spec changes
-  → Verify: spec changes match code changes (no over/under documentation); §8 covers all new functionality
-
 $docs-update
   → Near-final synchronization sweep across project docs, the Feature Spec(s), and Section 8
-  → MUST run after changes-review fixes and before $workflow-end
+  → MUST run after the spec [mode=sync] step and before $workflow-end
   → Report skipped sub-phases explicitly when no impacted docs exist
 
 $workflow-end
@@ -708,7 +704,7 @@ The Feature Spec stays in sync on every feature/bugfix/refactor workflow.
 
 **IMPORTANT MUST ATTENTION Goal:** Keep one canonical, tech-free 8-section Feature Spec synchronized with implementation, tests, and project docs through the correct init-full/update/audit workflow; derive indexes only, never a parallel engineering tree.
 
-**IMPORTANT MUST ATTENTION Main steps:** Step 0 confirm mode → resolve the selected manifest → invoke its exact occurrence list: `init-full` (investigate → plan → plan-review → plan-validate → spec init → spec tests → artifact reviews → docs-update → workflow-end → watzup), `update` (workflow-review-changes → spec update/tests → TC review → spec sync → changes-review → docs-update → workflow-end → watzup), or `audit` (investigate → spec audit → artifact-review → docs-update → workflow-end → watzup). **NEVER** skip gates, vertical-chain reconciliation, or coverage closure; record the resolver fingerprint and every returned occurrence.
+**IMPORTANT MUST ATTENTION Main steps:** Step 0 confirm mode → resolve the selected manifest → invoke its exact occurrence list: `init-full` (investigate → plan → plan-review → plan-validate → spec init → spec tests → artifact reviews → docs-update → workflow-end → watzup), `update` (workflow-review-changes → spec update/tests → TC review → spec sync → docs-update → workflow-end → watzup), or `audit` (investigate → spec audit → artifact-review → docs-update → workflow-end → watzup). **NEVER** skip gates, vertical-chain reconciliation, or coverage closure; record the resolver fingerprint and every returned occurrence.
 
 **Protocols in force (concise digest of the SYNC/shared blocks this skill carries):**
 

@@ -426,8 +426,8 @@ const tests = [
     {
         name: 'TC-PFCI-013 settings ranges validated',
         fn: () => {
-            const outside = { maxChars: [499, 10001, 1.5], maxClassesPerEdit: [0, 11], reinjectAfterBytes: [49999], reinjectAfterMinutes: [0, 1441], blindReinjectAfterMinutes: [0, 1441] };
-            const edges = { maxChars: [500, 10000], maxClassesPerEdit: [1, 10], reinjectAfterBytes: [50000, Number.MAX_SAFE_INTEGER], reinjectAfterMinutes: [1, 1440], blindReinjectAfterMinutes: [1, 1440] };
+            const outside = { maxChars: [499, 10001, 1.5], maxClassesPerEdit: [0, 11], reinjectAfterBytes: [4499999], reinjectAfterMinutes: [0, 1441], blindReinjectAfterMinutes: [0, 1441] };
+            const edges = { maxChars: [500, 10000], maxClassesPerEdit: [1, 10], reinjectAfterBytes: [4500000, Number.MAX_SAFE_INTEGER], reinjectAfterMinutes: [1, 1440], blindReinjectAfterMinutes: [1, 1440] };
             for (const [field, values] of Object.entries(outside)) {
                 for (const value of values) {
                     // Given one setting just outside its range / When validated / Then an error names that setting and its range
@@ -949,7 +949,7 @@ const tests = [
     {
         name: 'TC-PFCI-036 byte distance re-arms',
         fn: async () => withFixture(async fx => {
-            const LIMIT = 50000;
+            const LIMIT = 4500000;
             const settings = conventions.resolveSettings(enabled([], { reinjectAfterBytes: LIMIT }));
             // Property: present iff 0 <= growth < limit, for all growth values including both boundaries;
             // a history shorter than at delivery (negative growth) was replaced → absent
@@ -958,8 +958,8 @@ const tests = [
                 const ctx = { lastCompactionAt: -Infinity, transcriptSize: 1000 + growth, now: NOW };
                 assert.equal(ledger.isPresent(record, 'h', ctx, settings), growth >= 0 && growth < LIMIT, `growth ${growth}`);
             }
-            // And the default limit is about ninety thousand tokens of history (bytes, not tokens)
-            assert.equal(conventions.resolveSettings(enabled([])).reinjectAfterBytes, 2000000);
+            // And the default limit is about two hundred thousand tokens of history (bytes, not tokens)
+            assert.equal(conventions.resolveSettings(enabled([])).reinjectAfterBytes, 4500000);
             // Scenario (end-to-end): given delivery at 1000 bytes of history
             const config = enabled([hooksGroup()], { reinjectAfterBytes: LIMIT });
             const transcript = path.join(fx.transcripts, 'main.jsonl');
@@ -1037,9 +1037,9 @@ const tests = [
             assert.ok((await deliver(fx, config, condensedInput)).includes('hooks-context'));
             assert.ok(ledger.readRecord(fx.store, 'session-condensed', 'main', 'hooks-context'), 'delivery recorded');
             // Edge: a first look at a history already at the distance limit starts at its end (earlier marks are moot)
-            const bigSettings = conventions.resolveSettings(enabled([], { reinjectAfterBytes: 50000 }));
+            const bigSettings = conventions.resolveSettings(enabled([], { reinjectAfterBytes: 4500000 }));
             const big = path.join(fx.transcripts, 'big.jsonl');
-            fs.writeFileSync(big, `${JSON.stringify({ subtype: 'compact_boundary', timestamp: new Date(NOW - MINUTE).toISOString() })}\n${'p'.repeat(50000)}\n`);
+            fs.writeFileSync(big, `${JSON.stringify({ subtype: 'compact_boundary', timestamp: new Date(NOW - MINUTE).toISOString() })}\n${'p'.repeat(4500000)}\n`);
             assert.equal(ledger.scanCompaction(fx.store, 'session-big', 'main', big, bigSettings, NOW), null);
             assert.equal(JSON.parse(fs.readFileSync(path.join(fx.store, 'session-big', 'main', '_scan.json'), 'utf8')).offset, fs.statSync(big).size);
             // Counter-case: a short history on first look → scanned from the start, the mark is found

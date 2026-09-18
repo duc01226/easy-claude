@@ -197,7 +197,7 @@ SESSION START (7 hooks)                         DURING SESSION
 
 ## Lib Modules
 
-35 modules under `.claude/hooks/lib/`.
+36 modules under `.claude/hooks/lib/`.
 
 ### State Management
 
@@ -296,7 +296,7 @@ Keeps the right conventions in the model's attention at the moment it reads or c
         "enabled": true,
         "maxChars": 4000,
         "maxClassesPerEdit": 4,
-        "reinjectAfterBytes": 2000000,
+        "reinjectAfterBytes": 4500000,
         "reinjectAfterMinutes": 30,
         "blindReinjectAfterMinutes": 5,
         "onRead": true
@@ -307,7 +307,7 @@ Keeps the right conventions in the model's attention at the moment it reads or c
 - **Membership:** `fileExtensions` filter (if any) AND any include (`pathRegexes` on `/`-prefixed repo-relative path, `pathGlobs`, `fileNameRegexes` on the base name) AND no exclude. Case-insensitive; files outside the project, folders, removals and host-reported failures are ignored.
 - **Deliverable:** a class with `rules`, `skills`, `referenceDocs`, `guideDoc` or `patternsDoc`. Styling/design-only classes are never delivered.
 - **Precedence:** `priority` ascending (100 specific · 500 default · 900 general), ties by declaration order, capped at `maxClassesPerEdit` before presence; the reminder says "earlier section wins on conflict". A rule shared by several classes is shown once.
-- **Only what is missing:** a class is skipped while its record in this session + working context (main, or the helper agent id) has the current content version, was delivered after the last condensation, and the conversation grew less than `reinjectAfterBytes` since (transcript bytes, ~5–6 per visible character, so the 2000000 default ≈ 90K tokens; a history shorter than at delivery counts as absent; size unknown ⇒ age below a time limit, `blindReinjectAfterMinutes` (5) when the scope is blind — no transcript AND no condensation ever observed for it — and `reinjectAfterMinutes` (30) otherwise). A class left out by the size budget is never recorded. A current `[[convention:name@hash8]]` tag in EVERY existing root carrier (CLAUDE.md and AGENTS.md) counts as delivered at session start for the main context only. Condensation signals: SessionStart `compact|clear` (Claude) and `compact_boundary`/`compactionMarkers` lines in the transcript. The SessionStart report does not name the condensed context, so it re-arms main plus any helper whose own transcript cannot be measured; a helper with a measurable transcript uses its own marks only.
+- **Only what is missing:** a class is skipped while its record in this session + working context (main, or the helper agent id) has the current content version, was delivered after the last condensation, and the conversation grew less than `reinjectAfterBytes` since (transcript bytes, ~5–6 per visible character, so the 4500000 default ≈ 200K tokens; a history shorter than at delivery counts as absent; size unknown ⇒ age below a time limit, `blindReinjectAfterMinutes` (5) when the scope is blind — no transcript AND no condensation ever observed for it — and `reinjectAfterMinutes` (30) otherwise). A class left out by the size budget is never recorded. A current `[[convention:name@hash8]]` tag in EVERY existing root carrier (CLAUDE.md and AGENTS.md) counts as delivered at session start for the main context only. Condensation signals: SessionStart `compact|clear` (Claude) and `compact_boundary`/`compactionMarkers` lines in the transcript. The SessionStart report does not name the condensed context, so it re-arms main plus any helper whose own transcript cannot be measured; a helper with a measurable transcript uses its own marks only.
 - **Content version:** `hash8` covers the rendered items AND membership (`pathRegexes`, `pathGlobs`, `fileNameRegexes`, `excludePath*`, normalized `fileExtensions`) plus the renderer version, so a matcher edit re-delivers and refreshes the static rows. Changing it invalidates every carrier tag: regenerate CLAUDE.md/AGENTS.md (`run-codex-sync.mjs`) or consumers lose static credit until they do — an extra reminder, never a missed one.
 - **Cost and opt-out:** the `Read` trigger costs ~15 ms per read (one config load plus a stat of the transcript) and is kept because a read almost always precedes the first edit of a file. To silence reads set `conventionInjection.onRead: false` (the hook still runs); to remove the cost entirely delete the PostToolUse group from `.claude/settings.json` — static rows and `--lookup` keep working.
 - **Diagnostics:** `CK_DEBUG=1` (or `true`) makes the hook explain each decision on stderr (`[file-convention-inject] skip: …` / `delivered: …`). Diagnostics never touch stdout and never change delivery.
@@ -488,12 +488,12 @@ Doc paths in this file are defaults resolved against the project-reference docs 
 
 ## Testing
 
-Primary hook test status: `test-all-hooks.cjs` passes with 232 tests on a clean configured project. Aggregate discovery status: `run-all-tests.cjs` discovers 661 tests on the current suite set. These totals are maintained by the test-runner count guards; rerun both commands below before publishing a new count. The discovered total includes the process-boundary Bash contract suite and varies only when suites are intentionally added or removed.
+Primary hook test status: `test-all-hooks.cjs` passes with 232 tests on a clean configured project. Aggregate discovery status: `run-all-tests.cjs` discovers 662 tests on the current suite set. These totals are maintained by the test-runner count guards; rerun both commands below before publishing a new count. The discovered total includes the process-boundary Bash contract suite and varies only when suites are intentionally added or removed.
 
 | Test Surface          | Count | File/Location                                                     |
 | --------------------- | ----- | ----------------------------------------------------------------- |
 | Primary hook runner   | 232   | `.claude/hooks/tests/test-all-hooks.cjs`                          |
-| Aggregate runner      | 661   | `.claude/hooks/tests/run-all-tests.cjs` (all suites, discovered)  |
+| Aggregate runner      | 662   | `.claude/hooks/tests/run-all-tests.cjs` (all suites, discovered)  |
 | Standalone test files | TODO  | `tests/test-*.cjs/.js` excluding runner (re-verify before citing) |
 | Scout-block tests     | TODO  | `scout-block/tests/test-*.js` (re-verify before citing)           |
 | Lib unit tests        | TODO  | `lib/__tests__/*.test.cjs` (re-verify before citing)              |

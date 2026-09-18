@@ -29,8 +29,10 @@ const DEFAULTS = Object.freeze({
     maxChars: 4000,
     maxClassesPerEdit: 4,
     // Transcript bytes, not tokens: history files store roughly 5-6 bytes per visible character
-    // (measured), so 2000000 bytes is about ninety thousand tokens of conversation (BR-PFCI-05).
-    reinjectAfterBytes: 2000000,
+    // (measured; about 22 bytes per token), so 4500000 bytes is about two hundred thousand
+    // tokens of conversation (BR-PFCI-05). 4500000 is also the enforced floor below, so a
+    // re-injection can never be requested closer than ~200K tokens of conversation growth.
+    reinjectAfterBytes: 4500000,
     reinjectAfterMinutes: 30,
     // Used only when the working context is BLIND: its size cannot be measured AND no condensation was ever
     // observed for it, so the condensation test is vacuous and age is the only signal left. A much shorter
@@ -46,7 +48,8 @@ const DEFAULTS = Object.freeze({
 const RANGES = Object.freeze({
     maxChars: Object.freeze([500, 10000]),
     maxClassesPerEdit: Object.freeze([1, 10]),
-    reinjectAfterBytes: Object.freeze([50000, Number.MAX_SAFE_INTEGER]),
+    // Floor = the ~200K-token distance (BR-PFCI-05/15): a shorter window would re-inject too near.
+    reinjectAfterBytes: Object.freeze([4500000, Number.MAX_SAFE_INTEGER]),
     reinjectAfterMinutes: Object.freeze([1, 1440]),
     blindReinjectAfterMinutes: Object.freeze([1, 1440])
 });

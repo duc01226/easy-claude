@@ -141,13 +141,19 @@ test('TC-WFADV-022: whole-target why-review starts in parallel with changes-revi
     );
 
     assert.deepEqual(
-        workflow.sequence.slice(0, 3).map((occurrence) =>
+        workflow.sequence.slice(0, 2).map((occurrence) =>
             typeof occurrence === 'string'
                 ? occurrence
                 : `${occurrence.skill}${occurrence.args ? ` ${occurrence.args}` : ''}`
         ),
-        ['changes-review', 'why-review --target=whole-review-target', 'why-review'],
-        'initial whole-target review must be a distinct sequence occurrence before findings validation'
+        ['changes-review', 'why-review --target=whole-review-target'],
+        'initial whole-target review must be a distinct sequence occurrence before the specialist batch'
+    );
+    assert.ok(
+        !workflow.sequence.some((occurrence) =>
+            typeof occurrence === 'object' && occurrence.id === 'findings-validation'
+        ),
+        'the separate findings-validation step must be removed'
     );
     assert.deepEqual(
         workflow.parallelGroups.find(group => group.id === 'initial-reviews'),
@@ -165,34 +171,47 @@ test('TC-WFADV-022: whole-target why-review starts in parallel with changes-revi
         'the initial changes-review occurrence remains inline while whole-target why-review runs out-of-band'
     );
     assert.deepEqual(
-        workflow.sequence.slice(-7).map((occurrence) =>
+        workflow.sequence.slice(-6).map((occurrence) =>
             typeof occurrence === 'string'
                 ? occurrence
                 : `${occurrence.skill}${occurrence.args ? ` ${occurrence.args}` : ''}`
         ),
-        ['changes-review', 'why-review', 'experience-review', 'scan --target=domain-entities', 'docs-update', 'workflow-end', 'watzup'],
-        'the settled-state final holistic why-review must remain after the conditional re-review and before optional experience evidence and terminal documentation sync'
+        ['why-review', 'experience-review', 'scan --target=domain-entities', 'docs-update', 'workflow-end', 'watzup'],
+        'the conditional post-fix holistic why-review must precede optional experience evidence and terminal documentation sync'
+    );
+    const postFixWhyReview = workflow.sequence.find((occurrence) =>
+        typeof occurrence === 'object' && occurrence.id === 'why-review'
+    );
+    assert.ok(
+        postFixWhyReview && postFixWhyReview.applicability && postFixWhyReview.applicability.when && postFixWhyReview.applicability.skipReason,
+        'the post-fix why-review must be conditional on the fix cycle having changed files'
+    );
+    assert.ok(
+        !workflow.sequence.some((occurrence) =>
+            typeof occurrence === 'object' && occurrence.id === 'final-changes-review'
+        ),
+        'the inline changes-review re-review step must be removed'
     );
     assert.match(skillText, /Initial Parallel Phase \(Steps 1[–-]2\)/);
     assert.match(skillText, /fresh `code-reviewer` sub-agent[^\n]*FULL mode/);
     assert.match(skillText, /Advance only after BOTH return/);
-    assert.match(skillText, /step 16[^\n]*settled[^\n]*whole target/i);
+    assert.match(skillText, /step 14[^\n]*settled[^\n]*whole target/i);
     assert.match(
         codexContextText,
-        /plan-execute -> changes-review -> why-review -> experience-review -> scan --target=domain-entities -> docs-update/,
-        'generated guidance must preserve the later conditional changes-review occurrence and optional experience evidence'
+        /plan-execute -> why-review -> experience-review -> scan --target=domain-entities -> docs-update/,
+        'generated guidance must preserve the conditional post-fix why-review occurrence and optional experience evidence'
     );
-    assert.match(loopSkillText, /full 21-step sequence/);
-    assert.doesNotMatch(loopSkillText, /full (?:19|20)-step sequence/);
-    assert.match(loopSkillText, /fix cycle, steps 12[–-]15/);
-    assert.doesNotMatch(loopSkillText, /fix cycle, steps 11[–-]14/);
+    assert.match(loopSkillText, /full 19-step sequence/);
+    assert.doesNotMatch(loopSkillText, /full (?:20|21)-step sequence/);
+    assert.match(loopSkillText, /fix cycle, steps 11[–-]14/);
+    assert.doesNotMatch(loopSkillText, /fix cycle, steps 12[–-]15/);
     assert.doesNotMatch(
         loopSkillText,
         /workflow-review-changes\/SKILL\.md:\d/,
         'loop protocol must use stable named-section references instead of shifted line coordinates'
     );
-    assert.match(workflowVerifierText, /step-15 re-review is inline by design/);
-    assert.doesNotMatch(workflowVerifierText, /step-12 re-review is inline by design/);
+    assert.match(workflowVerifierText, /step-14 re-review is inline by design/);
+    assert.doesNotMatch(workflowVerifierText, /step-15 re-review is inline by design/);
 });
 
 // Given the outer zero-fix convergence loop is an OPTIONAL `--fix-loop` mode of workflow-review-changes

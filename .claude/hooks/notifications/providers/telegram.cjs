@@ -63,7 +63,7 @@ Specialized agent completed its task.
 📁 *Project:* ${projectName}
 🆔 *Session:* ${sessionDisplay}
 
-Claude is waiting for your input.
+AI agent is waiting for your input.
 
 📍 *Location:* \`${projectDir}\``;
 

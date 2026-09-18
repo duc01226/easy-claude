@@ -16,7 +16,7 @@
 // adopter that hand-copies such a list silently under-verifies the moment a stage is added here.
 
 import { spawn } from "node:child_process";
-import { readFile, readdir } from "node:fs/promises";
+import { access, readFile, readdir } from "node:fs/promises";
 import path from "node:path";
 import url from "node:url";
 
@@ -378,6 +378,37 @@ function printStageRoster() {
     console.log("[codex-sync] --verify-only runs every 'verify' stage above; --only=<ids>/--skip=<ids> select a subset.");
 }
 
+async function pathExists(target) {
+    try {
+        await access(target);
+        return true;
+    } catch {
+        return false;
+    }
+}
+
+// POST-RUN HANDOFF (deliberately NOT a stage): when the consuming project has a
+// project-local `.opencode/` directory, sync the opencode hooks surface too. The Codex
+// roster is a pinned 19-stage contract and the opencode pipeline owns its own roster and
+// verify gates, so this is a handoff rather than a 20th stage. Under `--verify-only` the
+// handoff is read-only too, preserving the "no mutation" contract of that mode.
+async function syncOpencodeIfPresent() {
+    const opencodeDir = path.join(rootDir, ".opencode");
+    if (!(await pathExists(opencodeDir))) return { ran: false };
+    const opencodeRunner = path.join(rootDir, ".claude", "skills", "sync-opencode", "scripts", "run-opencode-sync.mjs");
+    if (!(await pathExists(opencodeRunner))) {
+        console.log("[codex-sync] .opencode/ present but the sync-opencode runner is absent; skipping opencode sync");
+        return { ran: false };
+    }
+    console.log(`[codex-sync] .opencode/ present → handoff to sync-opencode${verifyOnly ? " (--verify-only)" : ""}`);
+    const result = await runCaptured(process.execPath, [opencodeRunner, ...(verifyOnly ? ["--verify-only"] : [])]);
+    relay(result);
+    if (result.code !== 0) {
+        throw Object.assign(new Error("sync-opencode handoff failed"), { exitCode: result.code || 1 });
+    }
+    return { ran: true };
+}
+
 async function main() {
     validateFlags();
     validateStageSelectors();
@@ -399,6 +430,22 @@ async function main() {
             await runStage(active[i], i + 1, active.length);
         } catch (err) {
             console.error(`[codex-sync] aborted at stage '${err.stage}' (exit ${err.exitCode ?? "?"})`);
+            process.exit(err.exitCode || 1);
+        }
+    }
+
+    // The handoff is defined as running "after all stages pass", so a subset run
+    // (--only/--skip) must not trigger it, and its failure must surface the opencode
+    // stage's own exit code instead of an unhandled rejection. `await main()` has no
+    // top-level catch, so without this wrapper a throw here exits 1 and prints a stack.
+    const subsetRun = Boolean((onlySet && onlySet.size) || (skipSet && skipSet.size));
+    if (subsetRun) {
+        console.log("[codex-sync] subset run (--only/--skip): skipping the opencode handoff (it runs only after the full roster passes)");
+    } else {
+        try {
+            await syncOpencodeIfPresent();
+        } catch (err) {
+            console.error(`[codex-sync] opencode handoff failed (exit ${err.exitCode ?? "?"})`);
             process.exit(err.exitCode || 1);
         }
     }

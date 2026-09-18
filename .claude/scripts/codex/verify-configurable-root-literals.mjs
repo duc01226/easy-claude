@@ -50,8 +50,72 @@ export const TRACKED_LITERALS = [
     'docs/product-roadmap.md',
 ];
 
-/** The surfaces SC-7 claims: authored framework files an agent reads directly. */
+/**
+ * The surfaces SC-7 claims: authored files an agent reads directly.
+ *
+ * The third entry is the PROJECT-REFERENCE root at its DEFAULT value. That root is itself
+ * relocatable (`docsRoots.projectReference.path`), so this constant is the default table, not the
+ * scan scope — use `resolveScanRoots(rootDir)`, which substitutes the configured value. Keeping the
+ * literal here would have meant the gate silently scanned NOTHING in any project that relocated its
+ * reference docs: the exact class of defect this verifier exists to catch, in the verifier itself.
+ */
 export const SCAN_ROOTS = ['.claude', 'CLAUDE.md', 'docs/project-reference'];
+
+/** Scan roots that are FIXED framework invariants — no config key, never relocatable. */
+const FRAMEWORK_SCAN_ROOTS = ['.claude', 'CLAUDE.md'];
+
+/** Read + parse a JSON file, or `null` when absent/unreadable/malformed. */
+async function readJsonFile(absPath) {
+    try {
+        return JSON.parse(await fs.readFile(absPath, 'utf8'));
+    } catch {
+        return null;
+    }
+}
+
+/**
+ * Locate the project config, honoring `.claude/.ck.json`'s `portability.projectConfigPath`.
+ *
+ * Read with a plain parse rather than `hooks/lib/project-config-loader` on purpose: PORT-001
+ * requires every pipeline script to import only `node:` built-ins and relative files, so this
+ * verifier must not reach across into the hook layer.
+ */
+async function projectConfigPathFor(rootDir) {
+    const configured = (await readJsonFile(path.join(rootDir, '.claude', '.ck.json')))?.portability?.projectConfigPath;
+    const rel = typeof configured === 'string' && configured.trim() ? configured.trim() : 'docs/project-config.json';
+    return path.isAbsolute(rel) ? rel : path.join(rootDir, rel);
+}
+
+/** The configured project-reference root, slash-free, falling back to the documented default. */
+export async function resolveRefDocsRoot(rootDir) {
+    const configured = (await readJsonFile(await projectConfigPathFor(rootDir)))?.docsRoots?.projectReference?.path;
+    if (typeof configured !== 'string' || !configured.trim()) return 'docs/project-reference';
+    const raw = configured.trim();
+    // Reject absolute/rooted values BEFORE normalization. Stripping a leading slash or backslash
+    // turns `/etc/ref` into the harmless-looking `etc/ref` and `C:\\ref` into `C:/ref`, masking an
+    // escape the canonical loader rejects — `project-config-loader.cjs` documents this exact class
+    // ("a `..`-only check would still let an ABSOLUTE root through").
+    if (raw.startsWith('/') || raw.startsWith('\\') || /^[a-zA-Z]:/.test(raw)) return 'docs/project-reference';
+    const normalized = raw.replaceAll('\\', '/').replace(/^\/+|\/+$/g, '');
+    // A blank or repo-escaping value falls back rather than scanning outside the repository.
+    if (!normalized || normalized.split('/').includes('..')) return 'docs/project-reference';
+    return normalized;
+}
+
+/**
+ * Framework-plane surfaces: `.claude/**` plus the root-level filenames the framework allowlist owns.
+ * A project-plane allowlist entry targeting one of these would let an adopter silently disable
+ * residue enforcement on the portable bundle — the cross-plane leakage the two-plane split prevents.
+ */
+function isFrameworkPlaneFile(file) {
+    const normalized = String(file).replaceAll('\\', '/').replace(/^\.\//, '');
+    return normalized === 'CLAUDE.md' || normalized.startsWith('.claude/');
+}
+
+/** The scan scope for THIS repository: the fixed framework roots plus the configured docs root. */
+export async function resolveScanRoots(rootDir) {
+    return [...FRAMEWORK_SCAN_ROOTS, await resolveRefDocsRoot(rootDir)];
+}
 
 /**
  * Generated mirrors carry the converted text only after the user runs `/sync-codex`. Scanning them
@@ -81,6 +145,27 @@ const CONFIG_EXAMPLE_KEYS = /"(specRoots|docsRoots)"\s*:/;
 
 const DEFAULT_ALLOWLIST_REL = '.claude/scripts/codex/config/root-literal-allowlist.json';
 
+/**
+ * The PROJECT-plane allowlist, resolved beside the reference docs it suppresses.
+ *
+ * WHY THERE ARE TWO
+ * The framework allowlist above ships inside `.claude` and is copied verbatim into every adopting
+ * project, so an adopter's own file paths must never be written into it — that is project residue in
+ * a portable file, and it would carry one project's suppressions into the next one that copies the
+ * bundle. `verify-no-project-residue` exists to stop exactly that.
+ *
+ * The project plane (`{REF_DOCS_ROOT}/**`) is project-authored content: `/scan` fills those docs
+ * with the project's OWN resolved paths, which is why an adopter accumulates literals there that are
+ * correct rather than residual. Those suppressions belong to the project, so they live with the
+ * project — in a file that relocates automatically with the configured root and is simply absent in
+ * the upstream framework repo.
+ *
+ * Absent file = zero entries and no error. It is optional by construction.
+ */
+async function projectAllowlistRelFor(rootDir) {
+    return `${await resolveRefDocsRoot(rootDir)}/root-literal-allowlist.json`;
+}
+
 async function exists(target) {
     try {
         await fs.access(target);
@@ -96,6 +181,9 @@ function toRel(rootDir, target) {
 
 /** True when a repo-relative path is outside the scan contract for any reason. */
 export function isExcluded(relPath) {
+    // A root-literal allowlist is a suppression LIST, not prose an agent reads: every key in it is
+    // necessarily a path containing a tracked literal, so scanning one makes it flag itself.
+    if (path.posix.basename(relPath) === 'root-literal-allowlist.json') return true;
     if (MIRROR_PREFIXES.some(prefix => relPath === prefix || relPath.startsWith(prefix))) return true;
     if (EXCLUDED_PREFIXES.some(prefix => relPath.startsWith(prefix))) return true;
     if (SKILL_TESTS_PATTERN.test(relPath)) return true;
@@ -200,10 +288,11 @@ export function parseAllowlist(raw, relPath = DEFAULT_ALLOWLIST_REL) {
 }
 
 /** Walk the scan scope and return `{ residue: Map<relPath, occurrence[]>, scanned: number }`. */
-export async function scanRepository(rootDir, { scanRoots = SCAN_ROOTS } = {}) {
+export async function scanRepository(rootDir, { scanRoots } = {}) {
+    const roots = scanRoots ?? await resolveScanRoots(rootDir);
     const residue = new Map();
     let scanned = 0;
-    for (const scanRoot of scanRoots) {
+    for (const scanRoot of roots) {
         for await (const filePath of walk(rootDir, path.join(rootDir, scanRoot))) {
             const content = await fs.readFile(filePath, 'utf8').catch(() => null);
             if (content === null) continue;
@@ -223,6 +312,7 @@ function parseCliArgs(argv) {
         optional: false,
         emitAllowlist: false,
         allowlistPath: null,
+        projectAllowlistPath: null,
         scanRoots: null,
     };
     for (const argument of argv) {
@@ -234,6 +324,7 @@ function parseCliArgs(argv) {
         else if (argument.startsWith('--out=')) options.outPath = argument.slice('--out='.length);
         else if (argument.startsWith('--root=')) options.rootDir = path.resolve(argument.slice('--root='.length));
         else if (argument.startsWith('--allowlist=')) options.allowlistPath = argument.slice('--allowlist='.length);
+        else if (argument.startsWith('--project-allowlist=')) options.projectAllowlistPath = argument.slice('--project-allowlist='.length);
         else if (argument.startsWith('--scan-roots=')) options.scanRoots = argument.slice('--scan-roots='.length).split(',').filter(Boolean);
     }
     return options;
@@ -244,7 +335,7 @@ export async function run(options) {
     const allowlistRel = options.allowlistPath ?? DEFAULT_ALLOWLIST_REL;
     const allowlistAbs = path.isAbsolute(allowlistRel) ? allowlistRel : path.join(rootDir, allowlistRel);
 
-    const { residue, scanned } = await scanRepository(rootDir, { scanRoots: options.scanRoots ?? SCAN_ROOTS });
+    const { residue, scanned } = await scanRepository(rootDir, { scanRoots: options.scanRoots ?? undefined });
 
     if (options.emitAllowlist) {
         const files = {};
@@ -261,6 +352,34 @@ export async function run(options) {
     }
 
     const { entries, errors } = parseAllowlist(raw, allowlistRel);
+    const frameworkFiles = new Set(entries.keys());
+
+    // Merge the OPTIONAL project-plane allowlist. Absent file = no entries, no error: the upstream
+    // framework repo ships none, and an adopter that has not needed one yet must stay green.
+    const projectAllowlistRel = options.projectAllowlistPath ?? await projectAllowlistRelFor(rootDir);
+    const projectAllowlistAbs = path.isAbsolute(projectAllowlistRel)
+        ? projectAllowlistRel
+        : path.join(rootDir, projectAllowlistRel);
+    const projectRaw = await fs.readFile(projectAllowlistAbs, 'utf8').catch(() => null);
+    const projectParsed = projectRaw === null
+        ? { entries: new Map(), errors: [] }
+        : parseAllowlist(projectRaw, projectAllowlistRel);
+    // A path declared in BOTH planes keeps the framework reason: the portable file is authoritative
+    // for its own surfaces, and a project must not silently re-explain a framework suppression.
+    for (const [file, reason] of projectParsed.entries) {
+        // The project plane owns project docs only. A key targeting the portable framework bundle
+        // (.claude/**, CLAUDE.md) is rejected loudly: the framework plane is authoritative there,
+        // and silently honouring it would suppress a framework violation the portable file never
+        // blessed (the $contract's "FRAMEWORK PLANE ONLY" rule).
+        if (isFrameworkPlaneFile(file)) {
+            errors.push(`${projectAllowlistRel}: project-plane entry targets a framework surface (${file}) — the framework plane at ${allowlistRel} is authoritative for .claude/** and CLAUDE.md; remove the project entry`);
+            continue;
+        }
+        if (!entries.has(file)) entries.set(file, reason);
+    }
+    errors.push(...projectParsed.errors);
+    /** Which allowlist a suppression came from — so a stale-entry message names the file to edit. */
+    const ownerOf = file => (frameworkFiles.has(file) ? allowlistRel : projectAllowlistRel);
 
     const violations = [];
     for (const [file, occurrences] of [...residue.entries()].sort(([a], [b]) => a.localeCompare(b))) {
@@ -271,7 +390,7 @@ export async function run(options) {
     }
 
     const stale = [...entries.keys()].filter(file => !residue.has(file)).sort();
-    const staleMessages = stale.map(file => `${file} — allowlisted (${entries.get(file)}) but has ZERO remaining occurrences; delete the entry`);
+    const staleMessages = stale.map(file => `${file} — allowlisted (${entries.get(file)}) but has ZERO remaining occurrences; delete the entry from ${ownerOf(file)}`);
 
     return {
         residue,

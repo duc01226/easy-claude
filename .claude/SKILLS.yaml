@@ -1,10 +1,10 @@
 metadata:
   title: Skills Catalog
   description: Auto-generated catalog of all available skills in ClaudeKit Engineer
-  last_updated: '2026-09-16'
-  total_skills: 123
+  last_updated: '2026-09-18'
+  total_skills: 124
   total_by_status:
-    active: 123
+    active: 124
     deprecated: 0
     experimental: 0
 categories:
@@ -950,6 +950,18 @@ skills:
       path: sync-codex/SKILL.md
       description: '[Codex] Use when running the full Codex mirror sync and verify
         pipeline (migrate, hooks, context, verify).'
+      category: other
+      has_scripts: true
+      has_references: false
+      status: active
+      deprecated_by: null
+      deprecated_since: null
+      removal_after: null
+    - name: sync-opencode
+      path: sync-opencode/SKILL.md
+      description: '[opencode] Use when running the opencode hooks sync and verify
+        pipeline (generate the .opencode hooks bridge plugin, run tooling tests, verify
+        drift).'
       category: other
       has_scripts: true
       has_references: false

@@ -529,7 +529,7 @@ Update report with final sections:
 
 > **MANDATORY — NO EXCEPTIONS:** If NOT already in a workflow, MUST use ask the user directly to ask user. Do NOT judge task complexity or decide "simple enough to skip" — user decides, not you:
 >
-> 1. **Activate `workflow-review-changes` workflow** (Recommended) — run the canonical workflow from `.claude/workflows.json`; it runs UI review in TWO places by design (keep both) — internally as `$changes-review`'s UI dimension AND as a dedicated conditional parallel-batch reviewer (step 9) — alongside findings validation, the other parallel reviewers, `code-simplifier` self-review, fix-plan cycle, full re-review restart, docs, and handoff.
+> 1. **Activate `workflow-review-changes` workflow** (Recommended) — run the canonical workflow from `.claude/workflows.json`; it runs UI review in TWO places by design (keep both) — internally as `$changes-review`'s UI dimension AND as a dedicated conditional parallel-batch reviewer (step 9) — alongside the other parallel reviewers, `code-simplifier` self-review, fix-plan cycle, full re-review restart, docs, and handoff.
 > 2. **Execute `$ui-review` directly** — run this skill standalone
 
 ---

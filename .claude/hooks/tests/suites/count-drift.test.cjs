@@ -245,15 +245,33 @@ const tests = [
                 new RegExp(`\\*\\*${hookCount} top-level hook files\\*\\*,\\s*\\*\\*${skillCount} skills\\*\\*`),
                 'hook + skill totals'
             );
-            // Root README is project-owned and is intentionally absent from a `.claude`-only
-            // adopter copy. Keep these assertions when the adopter supplies that document.
-            if (rootReadme) {
+            // Root README: assert the COUNTS only when this README is the framework's own
+            // inventory front page.
+            //
+            // PORTABILITY: the previous guard was `if (rootReadme)` — "keep these assertions when
+            // the adopter supplies that document". That conflates HAVING a root README with having
+            // the FRAMEWORK'S root README. Practically every project has a README.md and almost
+            // none of them is a framework inventory doc, so a `.claude` copied into any real
+            // repository failed here demanding that the project's own front page advertise a skill
+            // count. Detect the inventory SHAPE instead (self-identifying, same philosophy as
+            // framework-repo.helper.mjs): when the headings exist the numbers inside them must be
+            // current; when they do not, this is someone's project README and none of our business.
+            //
+            // This cannot silently drop upstream coverage: `.claude/docs/README.md`,
+            // `quick-start.md` and `claude-ai-agent-framework-guide.md` are asserted
+            // UNCONDITIONALLY above, and those are the inventory surfaces that travel with the
+            // framework. The root README is the only one that does not.
+            const ROOT_README_SKILL_HEADING = /###\s+Skills\s+\(\d+ definitions\)/;
+            const ROOT_README_TOTALS = /\d+ Hook Files\s+\+\s+\d+ Skills/;
+            if (rootReadme && ROOT_README_SKILL_HEADING.test(rootReadme)) {
                 assertMatches(
                     'README.md',
                     rootReadme,
                     new RegExp(`###\\s+Skills\\s+\\(${skillCount} definitions\\)`),
                     'skill'
                 );
+            }
+            if (rootReadme && ROOT_README_TOTALS.test(rootReadme)) {
                 assertMatches(
                     'README.md',
                     rootReadme,

@@ -265,8 +265,95 @@ test('TC-DOCROOT-038: the real repository passes the residue gate (build gate vi
     assert.equal(
         result.status,
         0,
-        `root-literal residue gate failed. Convert the file, or add it to `
-            + `.claude/scripts/codex/config/root-literal-allowlist.json with a reason naming its owning phase.\n${output}`
+        `root-literal residue gate failed. Convert the file; or, for a FRAMEWORK surface, add it to `
+            + `.claude/scripts/codex/config/root-literal-allowlist.json with a reason naming its owning phase; `
+            + `or, for this project's own reference-doc prose, add it to `
+            + `<docsRoots.projectReference.path>/root-literal-allowlist.json — never put a project path in the `
+            + `portable framework file.\n${output}`
     );
     assert.match(output, /\[codex-verify-root-literals\] PASS/);
+});
+
+// ── Portability: the PROJECT plane is config-resolved and project-owned ──────────────────────────
+//
+// Two defects made this gate unusable in any repository that was not the upstream framework repo,
+// and both were in the verifier rather than in the repositories it judged:
+//
+//   1. the project-reference scan root was the LITERAL `docs/project-reference`, although that root
+//      is relocatable via `docsRoots.projectReference.path`. A project that moved it was scanned
+//      NOWHERE and passed vacuously — the exact defect class this verifier exists to catch;
+//   2. the only allowlist shipped INSIDE `.claude`, so the sole way to account for an adopter's own
+//      reference-doc prose was to write that project's paths into a portable file, carrying one
+//      project's suppressions into the next repository that copied the bundle.
+//
+// The project plane now resolves from config and carries its own optional allowlist beside the docs
+// it suppresses. The framework file stays project-free and portable.
+
+test('TC-DOCROOT-039: the project-reference scan root resolves from docsRoots.projectReference.path', () => {
+    const root = makeRepo();
+    try {
+        const bare = `Read ${SPEC_LITERAL}/ first.\n`;
+        writeFixture(root, 'docs/project-config.json', JSON.stringify({
+            docsRoots: { projectReference: { path: 'handbook/reference' } },
+        }));
+        // The DEFAULT location must no longer be scanned once the root is relocated…
+        writeFixture(root, 'docs/project-reference/stale.md', bare);
+        writeAllowlist(root, {});
+        const relocated = invoke(root, ['--json']);
+        assert.equal(relocated.status, 0, relocated.output);
+        assert.equal(JSON.parse(relocated.stdout).perFile['docs/project-reference/stale.md'], undefined);
+
+        // …and the CONFIGURED location must be.
+        writeFixture(root, 'handbook/reference/guide.md', bare);
+        const dirty = invoke(root, ['--json']);
+        assert.equal(dirty.status, 1, dirty.output);
+        assert.equal(JSON.parse(dirty.stdout).perFile['handbook/reference/guide.md'], 1);
+    } finally {
+        cleanup(root);
+    }
+});
+
+test('TC-DOCROOT-040: an optional project-plane allowlist suppresses project prose; absence is not an error', () => {
+    const root = makeRepo();
+    try {
+        writeFixture(root, 'docs/project-reference/spec-system-reference.md', `This project does not use ${SPEC_LITERAL}/.\n`);
+        writeAllowlist(root, {});
+
+        // Absent project allowlist: the occurrence is unaccounted for, and the run fails LOUDLY
+        // rather than treating a missing optional file as a pass.
+        const before = invoke(root);
+        assert.equal(before.status, 1, before.output);
+
+        // Present project allowlist at <REF_DOCS_ROOT>/root-literal-allowlist.json — discovered
+        // with no flag, because an adopter must not have to re-wire the pipeline invocation.
+        writeFixture(root, 'docs/project-reference/root-literal-allowlist.json', JSON.stringify({
+            files: {
+                'docs/project-reference/spec-system-reference.md': {
+                    reason: 'permanent — prose stating the default root is unused in this project',
+                },
+            },
+        }));
+        const after = invoke(root);
+        assert.equal(after.status, 0, after.output);
+        assert.match(after.output, /PASS/);
+    } finally {
+        cleanup(root);
+    }
+});
+
+test('TC-DOCROOT-041: an allowlist file is excluded from the scan and cannot flag itself', () => {
+    const root = makeRepo();
+    try {
+        // Every key in an allowlist is by definition a path containing a tracked literal, so a
+        // scanned allowlist reports itself and can never be cleared except by allowlisting itself.
+        writeFixture(root, 'docs/project-reference/root-literal-allowlist.json', JSON.stringify({
+            files: { [`${SPEC_LITERAL}/anything.md`]: { reason: 'permanent — fixture' } },
+        }));
+        writeAllowlist(root, {});
+        const result = invoke(root, ['--json']);
+        assert.equal(result.status, 0, result.output);
+        assert.equal(JSON.parse(result.stdout).perFile['docs/project-reference/root-literal-allowlist.json'], undefined);
+    } finally {
+        cleanup(root);
+    }
 });

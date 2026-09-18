@@ -96,11 +96,11 @@ tests.push({
     name: '[TC-HARNESS-003] dialog event selection, copy and timeouts remain intact',
     fn: async () => {
         const events = [
-            [{ hook_event_name: 'Stop' }, 'Claude Code Complete', 'Session completed successfully'],
-            [{ hook_event_name: 'AskUserQuestion' }, 'Claude Has a Question', 'Claude is asking a question — please check and answer'],
-            [{ notification_type: 'idle_prompt' }, 'Claude Waiting for Input', 'Claude is waiting for your input'],
-            [{ notification_type: 'AskUserPrompt' }, 'Claude Needs Input', 'Waiting for your input'],
-            [{ notification_type: 'permission_prompt' }, 'Claude Needs Permission', 'Claude is asking for tool permission']
+            [{ hook_event_name: 'Stop' }, 'AI Agent Session Complete', 'Session completed successfully'],
+            [{ hook_event_name: 'AskUserQuestion' }, 'AI Agent Has a Question', 'AI agent is asking a question — please check and answer'],
+            [{ notification_type: 'idle_prompt' }, 'AI Agent Waiting for Input', 'AI agent is waiting for your input'],
+            [{ notification_type: 'AskUserPrompt' }, 'AI Agent Needs Input', 'Waiting for your input'],
+            [{ notification_type: 'permission_prompt' }, 'AI Agent Needs Permission', 'AI agent is asking for tool permission']
         ];
         for (const platform of ['linux', 'win32', 'darwin']) {
             let dialogScript;
@@ -128,7 +128,7 @@ tests.push({
                 assert.equal(result.error, fallbackError?.message);
                 assert.equal(calls.length, 2);
                 assert.equal(calls[1].file, 'kdialog');
-                assert.deepEqual(calls[1].args, ['--msgbox', 'Session completed successfully', '--title', '[$(echo INERT)] Claude Code Complete']);
+                assert.deepEqual(calls[1].args, ['--msgbox', 'Session completed successfully', '--title', '[$(echo INERT)] AI Agent Session Complete']);
                 assert.equal(calls[1].options.shell, false);
                 assert.equal(calls[1].options.timeout, 30000);
             }

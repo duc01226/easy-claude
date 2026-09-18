@@ -72,9 +72,9 @@
 
 ### Worked Example — Review Fan-Out (live precedent)
 
-`workflow-review-changes` is the canonical wave partition in this repo: it declares its waves as `parallelGroups` in `.claude/workflows.json:358-379`, and fixes the member → `agent_type` mapping in that workflow's `preActions.injectContext` (`.claude/workflows.json:381`).
+`workflow-review-changes` is the canonical wave partition in this repo: it declares its waves as `parallelGroups` in `.claude/workflows.json:454-475`, and fixes the member → `agent_type` mapping in that workflow's `preActions.injectContext` (`.claude/workflows.json:478`).
 
-Wave 1 (`initial-reviews`, `barrier: true`) — `changes-review` plus `why-review --target=whole-review-target`, which consumes no step-1 output. Wave 2 (`reviewers`, `barrier: true`) is the fan-out: seven review steps across six specialist agent types, spawned together, never serialized.
+Wave 1 (`initial-reviews`, `barrier: true`) — `changes-review` plus `why-review --target=whole-review-target`, which consumes no step-1 output. Wave 2 (`reviewers`, `barrier: true`) is the fan-out: the seven specialist review steps across six specialist agent types, spawned together, never serialized — no separate findings-validation member.
 
 | Wave-2 member                 | Sub-agent type          | Dispatch condition                                        |
 | ----------------------------- | ----------------------- | --------------------------------------------------------- |
@@ -88,7 +88,7 @@ Wave 1 (`initial-reviews`, `barrier: true`) — `changes-review` plus `why-revie
 
 Why one wave: all seven are read-only, share no mutable state, and none consumes another's output — so the only cost of serializing them is context burned absorbing each inline report.
 
-**Conditional members** listed in `conditionalMembers` (`.claude/workflows.json:376`) are **skipped entirely — not spawned** when their trigger files are absent, and a skipped member **counts as "returned"** for the barrier. The barrier is not "all spawned agents returned"; it is "every member is either returned or skipped".
+**Conditional members** listed in `conditionalMembers` (`.claude/workflows.json:472`) are **skipped entirely — not spawned** when their trigger files are absent, and a skipped member **counts as "returned"** for the barrier. The barrier is not "all spawned agents returned"; it is "every member is either returned or skipped".
 
 **Mutating steps wait for the barrier.** `code-simplifier` modifies code and must operate on the consolidated review snapshot, so it starts only after every wave-2 member has returned or been skipped.
 

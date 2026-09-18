@@ -585,9 +585,22 @@ test("TC-HARNESS-015 legacy backup invocation stays compatible", async t => {
   }
 });
 
+// PORTABILITY: both root inputs below are OPTIONAL everywhere else in the framework — the project
+// config is absent in a fresh adopter (every consumer falls back to the documented defaults), and
+// the root CLAUDE.md does not exist until the pipeline's own stage 1 generates it. Reading either
+// unconditionally made this test the single hard failure a project hit when it copied `.claude` in
+// and ran the pipeline, with an ENOENT that named neither the cause nor the remedy. The subject
+// under test is the update/backup/router contract over whatever the live root contains, so an
+// absent config degrades to `{}` (= defaults) and an absent root skips, exactly as TC-WSC-008 does.
 test("TC-HARNESS-008 current root COPY updates with one router and owned backup; no live writes", async t => {
-  const f = await fixture(t, JSON.parse(await fs.readFile(path.join(repoRoot, "docs/project-config.json"), "utf8")));
-  const liveBytes = await fs.readFile(path.join(repoRoot, "CLAUDE.md"));
+  const liveRoot = path.join(repoRoot, "CLAUDE.md");
+  const liveBytes = await fs.readFile(liveRoot).catch(() => null);
+  if (liveBytes === null) {
+    t.skip("root CLAUDE.md is not part of a .claude-only adopter copy");
+    return;
+  }
+  const configRaw = await fs.readFile(path.join(repoRoot, "docs/project-config.json"), "utf8").catch(() => "{}");
+  const f = await fixture(t, JSON.parse(configRaw));
   const custom = "\n\n\n## Synthetic user prose\r\nretain exact λ spacing  \r\n\r\n\r\ncustom tail\r\n";
   const original = Buffer.concat([liveBytes, Buffer.from(custom)]);
   await fs.writeFile(path.join(f.root, "CLAUDE.md"), original);

@@ -232,7 +232,7 @@ test("variants: shipped research/spec/visualize workflows resolve every complete
     },
     "workflow-code-to-spec": {
       "init-full": ["investigate", "plan", "plan-review", "plan-validate", "spec [mode=init]", "spec [mode=tests]", "artifact-review --type=spec-tests", "artifact-review", "docs-update", "workflow-end", "watzup"],
-      update: ["workflow-review-changes", "spec [mode=update]", "spec [mode=tests]", "artifact-review --type=spec-tests", "spec [mode=sync]", "changes-review", "docs-update", "workflow-end", "watzup"],
+      update: ["workflow-review-changes", "spec [mode=update]", "spec [mode=tests]", "artifact-review --type=spec-tests", "spec [mode=sync]", "docs-update", "workflow-end", "watzup"],
       audit: ["investigate", "spec [mode=audit]", "artifact-review", "docs-update", "workflow-end", "watzup"]
     },
     "workflow-visualize": {
@@ -250,10 +250,10 @@ test("variants: shipped research/spec/visualize workflows resolve every complete
 test("production workflows declare required and opt-in near-end E2E handoffs", () => {
   const registry = JSON.parse(fs.readFileSync(path.join(root, ".claude/workflows.json"), "utf8"));
   const cases = [
-    ["workflow-greenfield-init", "security-review", true],
-    ["workflow-big-feature", "security-review", true],
-    ["workflow-feature", "security-review", false],
-    ["workflow-bugfix", "scan", false],
+    ["workflow-greenfield-init", "test", true],
+    ["workflow-big-feature", "test", true],
+    ["workflow-feature", "test", false],
+    ["workflow-bugfix", "demo-guide", false],
   ];
   for (const [workflowId, nextSkill, required] of cases) {
     const manifest = resolve(registry, workflowId, { rootDir: root });

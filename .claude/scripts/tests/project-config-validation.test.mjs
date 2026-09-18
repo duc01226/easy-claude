@@ -34,8 +34,26 @@ const validate = configPath =>
         windowsHide: true
     });
 
-test('TC-DOCROOT-011: the real docs/project-config.json passes --validate (exit 0)', () => {
-    const result = validate(path.join(repoRoot, 'docs', 'project-config.json'));
+// PORTABILITY: `docs/project-config.json` is OPTIONAL — this file's own docblock above describes
+// the loader caching `{}` for an absent config, and TC-CONV-CONFIG-001 already skips on "no project
+// config". Reading it unconditionally made three of these cases fail with a raw ENOENT in any
+// project that copied `.claude` in before writing a config, which is the normal first-run order.
+// A project that HAS a config still gets the full assertion; one that does not is not yet in scope.
+const realConfigPath = path.join(repoRoot, 'docs', 'project-config.json');
+const readRealConfig = () => {
+    try {
+        return JSON.parse(fs.readFileSync(realConfigPath, 'utf-8'));
+    } catch {
+        return null;
+    }
+};
+
+test('TC-DOCROOT-011: the real docs/project-config.json passes --validate (exit 0)', t => {
+    if (!fs.existsSync(realConfigPath)) {
+        t.skip('no project config — an absent config is the documented default, not an invalid one');
+        return;
+    }
+    const result = validate(realConfigPath);
     assert.equal(result.status, 0, `--validate failed:\n${result.stdout}${result.stderr}`);
 });
 
@@ -52,9 +70,9 @@ test('TC-DOCROOT-012: the hooks test fixture config passes --validate (R14, ever
 test('TC-DOCROOT-015: --validate exits NON-ZERO on a declared docsRoots path that escapes the repo root', () => {
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'ck-pcfg-'));
     try {
-        const source = JSON.parse(
-            fs.readFileSync(path.join(repoRoot, 'docs', 'project-config.json'), 'utf-8')
-        );
+        // The real config is only a realistic BASE; the subject under test is the injected
+        // `docsRoots`, so `{}` is an equally valid base when the project has no config yet.
+        const source = readRealConfig() ?? {};
         const bad = path.join(dir, 'project-config.json');
         fs.writeFileSync(bad, JSON.stringify({ ...source, docsRoots: { plans: { path: '../escape' } } }), 'utf-8');
 
@@ -69,9 +87,7 @@ test('TC-DOCROOT-015: --validate exits NON-ZERO on a declared docsRoots path tha
 test('TC-DOCROOT-006: --validate exits NON-ZERO on a partially declared docsRoots sub-object', () => {
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'ck-pcfg-'));
     try {
-        const source = JSON.parse(
-            fs.readFileSync(path.join(repoRoot, 'docs', 'project-config.json'), 'utf-8')
-        );
+        const source = readRealConfig() ?? {};
         const bad = path.join(dir, 'project-config.json');
         fs.writeFileSync(bad, JSON.stringify({ ...source, docsRoots: { adr: {} } }), 'utf-8');
 

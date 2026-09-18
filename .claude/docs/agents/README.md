@@ -382,4 +382,4 @@ Partition: 17 Code-10 + 2 Readonly-Code + 4 Core-6 = 23 agents (pairwise disjoin
 
 ---
 
-_Source: Task tool system prompt | 29 specialized agent types_
+_Source: Task tool system prompt | 23 specialized agent types_

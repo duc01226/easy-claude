@@ -107,17 +107,22 @@ class BaseExtractor(ABC):
             dir_path = root / scan_dir
             if not dir_path.is_dir():
                 continue
-            for file_path in dir_path.rglob("*"):
-                if file_path.suffix.lower() not in self.extensions:
-                    continue
-                if file_path.is_symlink() or not file_path.is_file():
-                    continue
-                try:
-                    content = file_path.read_text(errors="replace")
-                except (OSError, PermissionError):
-                    continue
-                for ep in self._extract_from_content(str(file_path), content):
-                    endpoints.append(ep)
+            # os.walk (not rglob) so generated/vendored trees are pruned before
+            # traversal instead of enumerated and filtered afterwards.
+            for dirpath_str, dirnames, filenames in os.walk(str(dir_path)):
+                dirnames[:] = [d for d in dirnames if d not in _SKIP_DIRS]
+                for fname in filenames:
+                    file_path = Path(dirpath_str) / fname
+                    if file_path.suffix.lower() not in self.extensions:
+                        continue
+                    if file_path.is_symlink() or not file_path.is_file():
+                        continue
+                    try:
+                        content = file_path.read_text(errors="replace")
+                    except (OSError, PermissionError):
+                        continue
+                    for ep in self._extract_from_content(str(file_path), content):
+                        endpoints.append(ep)
         return endpoints
 
     @abstractmethod

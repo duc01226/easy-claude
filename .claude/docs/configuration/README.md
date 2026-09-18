@@ -148,7 +148,7 @@ The `codeReview` section records which project-specific review-rule doc the revi
 | `enabled`                   | `false`   | boolean       | Explicit opt-in                                                                                                 |
 | `maxChars`                  | `4000`    | 500–10000     | Reminder size cap                                                                                               |
 | `maxClassesPerEdit`         | `4`       | 1–10          | Classes per trigger (applied before dedup)                                                                      |
-| `reinjectAfterBytes`        | `2000000` | ≥ 50000       | Conversation-history growth (transcript bytes, ~5–6 per visible character) that re-arms a class                 |
+| `reinjectAfterBytes`        | `4500000` | ≥ 4500000     | Conversation-history growth (transcript bytes, ~5–6 per visible character, ≈200K tokens) that re-arms a class |
 | `reinjectAfterMinutes`      | `30`      | 1–1440        | Age re-arm when history size is unknown but condensations ARE observed (host report or transcript mark)         |
 | `blindReinjectAfterMinutes` | `5`       | 1–1440        | Age re-arm when the scope is blind — no transcript AND no condensation ever observed, so age is the only signal |
 | `onRead`                    | `true`    | boolean       | Reads trigger reminders too                                                                                     |
@@ -206,7 +206,7 @@ Records live in `tmp/prompt-ledger/<session>/` (override `CK_PROMPT_LEDGER_DIR`)
 | `workflow-feature`        | investigate → … → plan → plan-review → … → plan-execute → … → integration-test → … → workflow-end                                                                    | Well-defined feature implementation               |
 | `workflow-bugfix`         | investigate → debug-investigate → … → fix → … → workflow-end                                                                                                         | Bug, error, crash, regression; end-to-start trace |
 | `workflow-refactor`       | investigate → plan → … → plan-execute → … → workflow-end                                                                                                             | Restructure code without behavior change          |
-| `workflow-review-changes` | [parallel: changes-review + whole-target why-review] → validate findings → parallel specialists → code-simplifier → … → final whole-target why-review → workflow-end | Review uncommitted changes before committing      |
+| `workflow-review-changes` | [parallel: changes-review + whole-target why-review] → parallel specialists → code-simplifier → … → final whole-target why-review (conditional on fix-cycle changes) → workflow-end | Review uncommitted changes before committing      |
 
 ---
 
@@ -309,7 +309,6 @@ Configuration is loaded in order with later files overriding earlier:
 | Variable                                   | Purpose                                        |
 | ------------------------------------------ | ---------------------------------------------- |
 | `CLAUDE_PROJECT_DIR`                       | Project root directory (used in hook commands) |
-| `CLAUDE_BASH_MAINTAIN_PROJECT_WORKING_DIR` | Keep working directory in Bash                 |
 | `CK_DEBUG`                                 | Enable hook debug logging                      |
 | `GITHUB_PERSONAL_ACCESS_TOKEN`             | GitHub MCP server auth                         |
 

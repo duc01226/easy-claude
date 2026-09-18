@@ -15,13 +15,13 @@ const { send } = require('../lib/sender.cjs');
 function getTitle(hookType) {
   switch (hookType) {
     case 'Stop':
-      return 'Claude Code Session Complete';
+      return 'AI Agent Session Complete';
     case 'SubagentStop':
-      return 'Claude Code Subagent Complete';
+      return 'Subagent Complete';
     case 'AskUserPrompt':
-      return 'Claude Code Needs Input';
+      return 'AI Agent Needs Input';
     default:
-      return 'Claude Code Event';
+      return 'AI Agent Event';
   }
 }
 
@@ -83,7 +83,7 @@ function formatMessage(input) {
   const sessionId = (input.session_id || '').slice(0, 8);
 
   return {
-    text: `Claude Code: ${hookType} in ${projectName}`, // Fallback required
+    text: `AI Agent: ${hookType} in ${projectName}`, // Fallback required
     blocks: buildBlocks(input, hookType, projectName, sessionId)
   };
 }

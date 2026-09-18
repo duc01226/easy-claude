@@ -1630,7 +1630,7 @@ async function testNotification() {
     }
 
     {
-        const result = await runHook(ROUTER, { notification_type: 'idle_prompt', hook_event_name: 'Notification', message: 'Claude is waiting for your input', cwd: 'D:/Projects/MyProject' }, testEnv);
+        const result = await runHook(ROUTER, { notification_type: 'idle_prompt', hook_event_name: 'Notification', message: 'AI agent is waiting for your input', cwd: 'D:/Projects/MyProject' }, testEnv);
         logResult('idle_prompt event routed (exit 0)', result.code === 0);
         logResult('idle_prompt passes whitelist', !result.stderr.includes('not in whitelist'));
     }

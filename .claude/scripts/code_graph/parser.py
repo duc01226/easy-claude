@@ -9,10 +9,9 @@ from __future__ import annotations
 import hashlib
 import logging
 import re
+from functools import lru_cache
 from pathlib import Path
 from typing import Optional
-
-import tree_sitter_language_pack as tslp
 
 from .models import EdgeInfo, NodeInfo, qualify  # noqa: F401 — re-exported
 
@@ -136,6 +135,21 @@ _CALL_TYPES: dict[str, list[str]] = {
     "php": ["function_call_expression", "member_call_expression"],
     "solidity": ["call_expression"],
 }
+
+
+@lru_cache(maxsize=None)
+def _types_for(language: str) -> tuple[frozenset, frozenset, frozenset, frozenset]:
+    """Return the (class, function, import, call) node-type sets for a language.
+
+    The sets are immutable and identical for every visit to a language's AST,
+    so rebuilding them per node only added allocation churn on large files.
+    """
+    return (
+        frozenset(_CLASS_TYPES.get(language, [])),
+        frozenset(_FUNCTION_TYPES.get(language, [])),
+        frozenset(_IMPORT_TYPES.get(language, [])),
+        frozenset(_CALL_TYPES.get(language, [])),
+    )
 
 # Per-language built-in call noise — names that tree-sitter captures as call
 # expressions but are language keywords, built-in functions, or base-class
@@ -280,6 +294,7 @@ class CodeParser:
     def _get_parser(self, language: str):  # type: ignore[arg-type]
         if language not in self._parsers:
             try:
+                import tree_sitter_language_pack as tslp  # lazy: keep it off the read-only import path
                 self._parsers[language] = tslp.get_parser(language)  # type: ignore[arg-type]
             except Exception:
                 return None
@@ -597,10 +612,7 @@ class CodeParser:
         """Recursively walk the AST and extract nodes/edges."""
         if _depth > self._MAX_AST_DEPTH:
             return
-        class_types = set(_CLASS_TYPES.get(language, []))
-        func_types = set(_FUNCTION_TYPES.get(language, []))
-        import_types = set(_IMPORT_TYPES.get(language, []))
-        call_types = set(_CALL_TYPES.get(language, []))
+        class_types, func_types, import_types, call_types = _types_for(language)
 
         for child in root.children:
             node_type = child.type
@@ -1029,7 +1041,10 @@ class CodeParser:
 
         resolved = self._do_resolve_module(module, file_path, language)
         if len(self._module_file_cache) >= self._MODULE_CACHE_MAX:
-            self._module_file_cache.clear()
+            # Evict the oldest ~10% instead of clearing everything, so warm
+            # entries survive a burst of distinct modules on huge repos.
+            for _ in range(max(1, self._MODULE_CACHE_MAX // 10)):
+                self._module_file_cache.pop(next(iter(self._module_file_cache)), None)
         self._module_file_cache[cache_key] = resolved
         return resolved
 

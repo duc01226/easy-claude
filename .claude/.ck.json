@@ -33,8 +33,7 @@
   "portability": {
     "enabled": true,
     "rule": "Reusable skills and protocol text stay project-neutral; project-specific conventions are discovered from docs/project-config.json and docs/project-reference/.",
-    "projectConfigPath": "docs/project-config.json",
-    "docsIndexPath": "docs/project-reference/docs-index-reference.md"
+    "projectConfigPath": "docs/project-config.json"
   },
   "plan": {
     "dateFormat": "YYMMDD-HHmm",

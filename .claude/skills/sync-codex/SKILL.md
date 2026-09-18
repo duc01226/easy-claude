@@ -52,6 +52,24 @@ Also bootstraps team-wide Codex completion notifications by copying the portable
 - The `SYNC:ai-sdd-artifact-contract` marker must appear after sync in `.codex/CODEX_CONTEXT.md` and `AGENTS.md`
 - No npm dependency — pure `node` + spawned subprocesses
 - Idempotent — safe to re-run; second run produces only timestamp diffs
+- **opencode handoff:** when the project has a local `.opencode/` directory, the runner hands off to `$sync-opencode` after all 19 stages pass (its `--verify-only` form under `--verify-only`). The handoff is an integration step, NOT a 20th stage — the 19-stage roster stays fixed
+
+## opencode handoff (when `.opencode/` exists)
+
+opencode has no shell-command hooks, so its hook surface is a generated JS bridge at
+`.opencode/plugins/easy-claude-hooks.js` produced by `$sync-opencode` from `.claude/settings.json`.
+Because a project running opencode expects that bridge to track the same canonical hooks, a full
+`$sync-codex` run automatically hands off to the opencode pipeline once the 19 Codex stages pass:
+
+```bash
+# Runs automatically at the end of a full codex sync when .opencode/ exists:
+node .claude/skills/sync-opencode/scripts/run-opencode-sync.mjs
+```
+
+- The handoff is skipped silently when the project has no `.opencode/` directory, and skipped with an explicit message when `.opencode/` exists but the opencode runner is absent.
+- Under `--verify-only` the handoff inherits the read-only contract (`run-opencode-sync.mjs --verify-only`), so no invocation of the codex runner ever mutates the opencode surface in verify mode.
+- A handoff failure fails the codex run with the opencode stage's exit code — a green `$sync-codex` never hides a red opencode surface.
+- opencode discovers skills directly from `.claude/skills` and `.agents/skills`, so the handoff syncs **hooks only** — no skill mirror is produced.
 
 ## Bootstrap Gate (when AGENTS.md is missing or incomplete)
 

@@ -294,7 +294,7 @@ const routerExecutionTests = [
                 notification_type: 'idle_prompt',
                 cwd: '/test',
                 session_id: 'idle-test-' + Date.now(), // Unique session to avoid throttle
-                message: 'Claude is waiting for input'
+                message: 'AI agent is waiting for input'
             };
             const result = await runHook(NOTIFY_SCRIPT, input, { timeout: 5000, env: testEnv });
             assertEqual(result.code, 0, 'Should exit cleanly');

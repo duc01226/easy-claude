@@ -5,7 +5,7 @@
 **Audience:** AI engineers, tech leads, and teams wanting to build reliable AI-assisted development systems.
 **Scope:** What each layer does, why it exists, how the pieces compose, the design principles behind every decision, and which AI agent best practices each addresses.
 
-> **Document Sync Status** — Current local verification (2026-09-16): **20 top-level hook files · 123 skills · 19 workflows · 23 agents** using the ADR-0002 filesystem metrics. Codex mirrors are committed under `.agents/`, `.codex/`, and `AGENTS.md`. Notable mechanisms documented here include multi-AI-tool portability (§13), behavioral-principle injection (§8.21), self-validating review (§8.20), and embedded sequential-thinking.
+> **Document Sync Status** — Current local verification (2026-09-16): **20 top-level hook files · 124 skills · 19 workflows · 23 agents** using the ADR-0002 filesystem metrics. Codex mirrors are committed under `.agents/`, `.codex/`, and `AGENTS.md`. Notable mechanisms documented here include multi-AI-tool portability (§13), behavioral-principle injection (§8.21), self-validating review (§8.20), and embedded sequential-thinking.
 
 > **Relocatable roots — read this before any path in this guide.** Diagrams, tables, and examples below name roots by ROLE ("the plans root", "the business spec root"). Each role resolves as follows:
 >
@@ -58,7 +58,7 @@
 
 ## 1. Executive Summary
 
-This framework wraps Claude Code in a three-pillar execution framework — **20 top-level hook files**, **123 skills**, **19 registered workflows**, and **23 specialized agents** — that transforms a generic LLM into a project-aware, quality-enforced, hallucination-resistant development agent. The framework covers the **entire software development lifecycle** — from idea capture and TDD test specification through implementation, testing, E2E testing, code review, and documentation — with AI as a first-class participant at every stage.
+This framework wraps Claude Code in a three-pillar execution framework — **20 top-level hook files**, **124 skills**, **19 registered workflows**, and **23 specialized agents** — that transforms a generic LLM into a project-aware, quality-enforced, hallucination-resistant development agent. The framework covers the **entire software development lifecycle** — from idea capture and TDD test specification through implementation, testing, E2E testing, code review, and documentation — with AI as a first-class participant at every stage.
 
 It is also **harness- and project-agnostic**: the `.claude/` source compiles to verified OpenAI Codex mirrors (`AGENTS.md`, `.agents/`, `.codex/`), while all project-specific knowledge is factored into `project-config.json` + reference docs — so the same behavior runs on any supported AI tool and ports to any codebase (Section 13).
 
@@ -130,7 +130,7 @@ graph TB
         end
     end
 
-    subgraph "Intelligence Layer — 123 Skills"
+    subgraph "Intelligence Layer — 124 Skills"
         SP[Shared Protocols<br/>10 files]
         IS[Implementation Skills<br/>feature-implement, fix, refactor]
         QS[Quality Skills<br/>code-review, why-review]
@@ -475,11 +475,11 @@ allowed-tools: Read, Grep, Glob, Bash, Write, TaskCreate
 2. Declare confidence level...
 ```
 
-### 5.2 Skill Categories (123 skills)
+### 5.2 Skill Categories (124 skills)
 
 ```mermaid
 mindmap
-  root((123 Skills))
+  root((124 Skills))
     Quality & Verification
       code-review
       dor-gate
@@ -889,7 +889,7 @@ The hook and skill system is **project-agnostic**. All project-specific knowledg
 graph LR
     subgraph "Generic Framework (reusable)"
         H[20 Hook Files]
-        S[123 Skills]
+        S[124 Skills]
         W[19 Workflows]
     end
 
@@ -1572,13 +1572,12 @@ feature:
   investigate → spec-discovery → domain-analysis → why-review → spec → spec-clarify →
   plan → plan-review → plan-validate →
   spec [mode=tests] → artifact-review --type=spec-tests → plan → plan-review →
-  plan-execute → seed-test-data → domain-entities-review → spec [mode=tests] → artifact-review --type=spec-tests →
-  spec [mode=sync] → integration-test → integration-test-review →
-  integration-test-verify → workflow-review-changes →
-  security-review → test → scan --target=domain-entities → docs-update → workflow-end → watzup
+  plan-execute → seed-test-data → spec [mode=tests] → artifact-review --type=spec-tests →
+  spec [mode=sync] → integration-test → integration-test-verify →
+  workflow-review-changes → test → demo-guide → workflow-end → watzup
 ```
 
-**Note:** `feature` includes a second planning round (`plan → plan-review`) that refines the implementation plan with test strategy after specs are written, and two verification points after implementation — `/integration-test-verify` following integration-test generation and the final `/test` regression check. After that test and before `/docs-update`, run `/scan --target=domain-entities` only when the final diff changes an entity/model, DTO/data contract, persistence schema/migration, or entity-sync evidence; otherwise complete the scan task with a cited skip reason.
+**Note:** `feature` includes a second planning round (`plan → plan-review`) that refines the implementation plan with test strategy after specs are written, and two verification points after implementation — `/integration-test-verify` following integration-test generation and the final `/test` regression check. The reviewer and documentation tail is delegated to the nested `/workflow-review-changes` call (it owns `integration-test-review`, `security-review`, and the terminal `scan --target=domain-entities → docs-update` refresh): it runs `/scan --target=domain-entities` only when the final diff changes an entity/model, DTO/data contract, persistence schema/migration, or entity-sync evidence, otherwise complete the scan task with a cited skip reason.
 
 ---
 
@@ -3263,7 +3262,7 @@ Both directions are queryable without reading source code, making the spec-drive
 
 The hardest hallucination to catch is the one inside the review itself. A review agent that fabricates a finding — wrong `file:line`, inflated severity, a "bug" that re-traces as correct — poisons everything downstream: the fix targets nothing, the human burns trust, the audit trail records noise. Evidence gates (Section 8.6) protect the _implementation_; this gate protects the _review_.
 
-The mechanism is a **recursion-guarded self-review loop**: after any review produces findings, the reviewer re-reviews its own output once more in a terminal mode, and a bounded re-do loop reconciles until the findings are clean. It ships in `/why-review`; standalone `/changes-review` runs it in Phase 6. `$workflow-review-changes` launches a FULL-mode whole-target `/why-review` sub-agent in parallel with inline `/changes-review` (steps 1–2), then runs the parent findings-validation gate at step 3 over the `/changes-review` findings before specialist reviewers and fix planning.
+The mechanism is a **recursion-guarded self-review loop**: after any review produces findings, the reviewer re-reviews its own output once more in a terminal mode, and a bounded re-do loop reconciles until the findings are clean. It ships in `/why-review`; standalone `/changes-review` runs it in Phase 6. `$workflow-review-changes` launches a FULL-mode whole-target `/why-review` sub-agent in parallel with inline `/changes-review` (steps 1–2); the step-2 whole-target pass validates its own findings, while the step-1 `/changes-review` findings flow straight to the fix cycle — the parent has no separate findings-validation step.
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
@@ -3300,9 +3299,9 @@ A naive "review your review" instruction recurses forever — the validation pas
 | Rule                                                                                                                                                                                | What it prevents                                                               |
 | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------ |
 | `validate-findings` is **terminal** — never calls `/why-review`, never re-runs the gate, never spawns a sub-agent                                                                   | Infinite self-recursion                                                        |
-| The re-do loop lives in the **caller** (standalone `/changes-review` Phase 6, the initial whole-target reviewer, or `$workflow-review-changes` parent step 3), not in validate mode | Diffuse, unbounded looping across agents                                       |
+| The re-do loop lives in the **caller** (standalone `/changes-review` Phase 6, or the initial whole-target reviewer), not in validate mode | Diffuse, unbounded looping across agents                                       |
 | **Bounded at max 1 re-do** (2 validation passes total), then `AskUserQuestion` escalation                                                                                           | A finding the AI can neither prove nor drop silently looping forever           |
-| Each review's validation passes stay in that review's own session (the initial whole-target lane is a sub-agent; the parent step-3 lane is main-session)                            | Context loss between validation rounds; the validator sees the real cited code |
+| Each review's validation passes stay in that review's own session (the initial whole-target lane is a sub-agent; the standalone `/changes-review` lane is main-session)             | Context loss between validation rounds; the validator sees the real cited code |
 
 #### Why this matters operationally
 
@@ -3442,9 +3441,9 @@ sequenceDiagram
 | Runner                               | Tests   | Scope                                                                                      |
 | ------------------------------------ | ------- | ------------------------------------------------------------------------------------------ |
 | `test-all-hooks.cjs` (primary gate)  | **232** | All hook behaviors + bridged suites + count-drift guard                                    |
-| `run-all-tests.cjs` (full aggregate) | **661** | Primary + extended lib, swap-engine, shared-utilities, and every `tests/suites/*.test.cjs` |
+| `run-all-tests.cjs` (full aggregate) | **662** | Primary + extended lib, swap-engine, shared-utilities, and every `tests/suites/*.test.cjs` |
 
-> Counts are live-verified (`test-all-hooks.cjs` = 232, `run-all-tests.cjs` = 661) and are now
+> Counts are live-verified (`test-all-hooks.cjs` = 232, `run-all-tests.cjs` = 662) and are now
 > GUARDED: each runner asserts the figures above against its own live total on every full run,
 > so a stale number fails the suite instead of sitting here. They previously drifted to 215/300
 > behind a single guarded sentence elsewhere. Derive counts from a live run, never a static table.
@@ -3508,7 +3507,7 @@ flowchart TB
 | **Context injection at decision points**       | Static path→patternsDoc guidance in CLAUDE.md / SKILL.md (was hook-injected)                                           | Skills/Config |
 | **Reminder rules prevent forgetting**          | Static SYNC rules + the workflow catalog baked into CLAUDE.md, re-read every prompt                                    | Skills/Config |
 | **Generic & configurable via config**          | project-config.json drives path→patternsDoc routing                                                                    | Config        |
-| **Prompt engineering quality**                 | 123 skills with YAML frontmatter + behavior protocols                                                                  | Skills        |
+| **Prompt engineering quality**                 | 124 skills with YAML frontmatter + behavior protocols                                                                  | Skills        |
 | **Auto-select workflow path before acting**    | Model reads the static catalog → direct/skill/workflow/custom path                                                     | Workflows     |
 | **Confirm plan with questions**                | /plan-validate asks 3-8 questions before implementation                                                                | Skills        |
 | **Sequential thinking for complex problems**   | `SYNC:sequential-thinking-protocol` inlined in skills + /debug-investigate skill                                       | Skills        |
@@ -3562,7 +3561,7 @@ flowchart TB
 │   │   ├── todo-state.cjs
 │   │   └── ...
 │   └── tests/ ────────── Test suites
-├── skills/ ────────────── 123 skill definitions
+├── skills/ ────────────── 124 skill definitions
 │   ├── {skill-name}/SKILL.md
 │   ├── shared/ ───────── 10 shared reference/protocol files
 │   └── _templates/ ───── Skill scaffolding
@@ -3764,7 +3763,7 @@ The `tech-spec-freshness` stage runs `generate-tech-specs.mjs --check`; it compa
 
 ### 13.5 The SYNC-Tag Mechanism — One Protocol, Identical Everywhere
 
-The framework's protocols (evidence-based reasoning, critical-thinking mindset, AI-SDD contract, end-to-start debugger trace, …) must read **identically** across all 123 skills _and_ across both tools. They are kept identical by **inlining, not referencing**:
+The framework's protocols (evidence-based reasoning, critical-thinking mindset, AI-SDD contract, end-to-start debugger trace, …) must read **identically** across all 124 skills _and_ across both tools. They are kept identical by **inlining, not referencing**:
 
 1. Each shared protocol is authored **once** under a `## SYNC:{tag}` heading in `.claude/skills/shared/sync-inline-versions.md` (~67 tagged protocols).
 2. In every consuming skill the content is inlined **verbatim** between `<!-- SYNC:{tag} -->` … `<!-- /SYNC:{tag} -->` fences.
@@ -3878,7 +3877,7 @@ The framework succeeds because it aligns with how LLMs actually fail:
 
 ### The Result
 
-**20 top-level hook files**, **123 skills**, **19 registered workflows**, and **23 specialized agents** working in concert to deliver:
+**20 top-level hook files**, **124 skills**, **19 registered workflows**, and **23 specialized agents** working in concert to deliver:
 
 - **Fewer hallucinations** — Evidence gates and proof traces catch AI fabrications before they reach files
 - **Better code quality** — Pattern injection ensures AI follows project conventions, not generic training data
@@ -3886,7 +3885,7 @@ The framework succeeds because it aligns with how LLMs actually fail:
 - **Consistent adherence** — Programmatic enforcement means quality doesn't degrade in long sessions or complex tasks
 - **Recovery from amnesia** — External state persistence means context compaction doesn't lose progress
 - **Persistent learning** — Mistakes captured once prevent recurrence across all future sessions
-- **Prompt engineering depth** — Role prompting, chain-of-thought, few-shot, negative prompting, and iterative refinement applied systematically across 123 skills (Section 8.15)
+- **Prompt engineering depth** — Role prompting, chain-of-thought, few-shot, negative prompting, and iterative refinement applied systematically across 124 skills (Section 8.15)
 - **Context engineering precision** — JIT injection, dedup, external memory, budget management, and recovery keep the AI informed without overwhelming its context window (Section 8.16)
 
 The framework is **generic and reusable**. Replace `project-config.json` with your project's specifics, and the entire system adapts — different tech stack, different patterns, different conventions, same quality enforcement.

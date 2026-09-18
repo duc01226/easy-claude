@@ -1,6 +1,14 @@
 {
     "$schema": "per-file suppression list for verify-configurable-root-literals.mjs",
     "$contract": [
+        "FRAMEWORK PLANE ONLY. This file ships inside the portable .claude bundle and is copied",
+        "verbatim into every adopting project, so it must contain NO path belonging to one particular",
+        "project — such an entry would carry that project's suppressions into the next repository that",
+        "copies the bundle. Entries here are `.claude/**` plus root-level filenames that exist in every",
+        "project (CLAUDE.md).",
+        "An adopting project's OWN reference-doc prose belongs in the project plane instead, at",
+        "<docsRoots.projectReference.path>/root-literal-allowlist.json — discovered automatically,",
+        "optional, and absent in this repository.",
         "SUPPRESSION ONLY — never the source of truth for what remains. The verifier recomputes the",
         "live per-file residue on every run; a file that gets converted simply stops appearing in the",
         "residue report and needs NO edit here.",

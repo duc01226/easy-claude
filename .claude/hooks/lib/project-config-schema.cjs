@@ -284,7 +284,7 @@ const SCHEMA = {
     conventionInjection: {
         type: 'object',
         required: false,
-        describe: 'Opt-in hook delivery of contextGroups (absent/enabled:false => off). Ranges: maxChars 500..10000 (4000), maxClassesPerEdit 1..10 (4), reinjectAfterBytes >=50000 (2000000), reinjectAfterMinutes 1..1440 (30), blindReinjectAfterMinutes 1..1440 (5), onRead (true).',
+        describe: 'Opt-in hook delivery of contextGroups (absent/enabled:false => off). Ranges: maxChars 500..10000 (4000), maxClassesPerEdit 1..10 (4), reinjectAfterBytes >=4500000 (4500000), reinjectAfterMinutes 1..1440 (30), blindReinjectAfterMinutes 1..1440 (5), onRead (true).',
         properties: {
             enabled: { type: 'boolean', required: false },
             maxChars: { type: 'number', required: false },
@@ -1131,7 +1131,7 @@ function validateContextGroupSemantics(config, errors, warnings) {
 const CONVENTION_INJECTION_RANGES = [
     ['maxChars', 500, 10000],
     ['maxClassesPerEdit', 1, 10],
-    ['reinjectAfterBytes', 50000, Number.MAX_SAFE_INTEGER],
+    ['reinjectAfterBytes', 4500000, Number.MAX_SAFE_INTEGER],
     ['reinjectAfterMinutes', 1, 1440],
     ['blindReinjectAfterMinutes', 1, 1440]
 ];

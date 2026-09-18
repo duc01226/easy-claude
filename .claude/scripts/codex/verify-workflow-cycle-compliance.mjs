@@ -64,6 +64,19 @@ const DOMAIN_ENTITY_REFERENCE_REFRESH_WORKFLOW_IDS = new Set([
   "workflow-bugfix",
   "workflow-feature",
 ]);
+
+// A parent workflow that runs `workflow-review-changes` INLINE delegates the nested review gates
+// to it: that workflow owns the specialist reviewers (notably `integration-test-review`) and the
+// terminal `scan --target=domain-entities` reference refresh. It also owns `docs-update` — but ONLY
+// when the nested review is the parent's last docs-mutating step: if a canonical spec step still
+// runs AFTER the nested review, that mutation lands after the nested `docs-update`, so the parent
+// owes its own terminal docs-update (see the positional `docsClosureSatisfied` guard below). The
+// gate is NOT dropped for a workflow that runs no nested review: `delegatesNestedReview` is false
+// there and each explicit requirement still applies.
+const NESTED_REVIEW_WORKFLOW_ID = "workflow-review-changes";
+function delegatesNestedReview(sequence) {
+  return Array.isArray(sequence) && sequence.includes(NESTED_REVIEW_WORKFLOW_ID);
+}
 // The domain-entity refresh is anchored on the step it must follow. That anchor is derived from the
 // workflow's own sequence rather than hard-coded, because not every delivery workflow ends its
 // verification with the same step: `workflow-bugfix` runs no standalone `test` step (its regression
@@ -163,7 +176,7 @@ const GOAL_CONTRACT_FILE_REQUIRED_SECTIONS = [
 
 // --- workflow-review-changes inline-in-main-session execution policy -----------------------------
 // workflow-review-changes is the documented EXCEPTION to "nested workflow -> sub-agent": its Step 0
-// `/goal` gate binds the session Stop hook and its step-15 re-review is inline by design, so a
+// `/goal` gate binds the session Stop hook and its step-14 re-review is inline by design, so a
 // sub-agent cannot host it without silently dropping the unabandonable review->fix->re-review loop.
 // These checks assert the canonical `.claude` surfaces DECLARE the inline mandate and carry NO
 // residual whole-workflow sub-agent mandate. `.agents/**` mirrors are owned by the sync tooling
@@ -617,25 +630,54 @@ export function checkWorkflowDebuggerTracePolicy(workflowId, workflow) {
 }
 
 function ensureWorkflowPolicy(workflowId, workflow, sequence, failures) {
-  if (
-    !hasOrderedSubsequence(sequence, [
+  const nestedReview = delegatesNestedReview(sequence);
+  const nestedReviewIndex = sequence.indexOf(NESTED_REVIEW_WORKFLOW_ID);
+  const integrationIndex = sequence.indexOf("integration-test");
+  const integrationVerifyIndex = sequence.indexOf("integration-test-verify");
+  // A delegated review stands in for `integration-test-review` ONLY when it runs AFTER the
+  // integration test it is meant to review. A position-blind `includes` let `workflow-spec-sync`
+  // pass the gate with a nested review that executes BEFORE the integration test — the review
+  // reviewed the wrong state. Mirror the positional `docsClosure` guard below.
+  const nestedReviewAfterIntegration =
+    nestedReviewIndex >= 0 && integrationIndex >= 0 && nestedReviewIndex > integrationIndex;
+  const integrationGateSatisfied =
+    hasOrderedSubsequence(sequence, [
       "integration-test",
       "integration-test-review",
       "integration-test-verify",
-    ])
-  ) {
+    ]) ||
+    (nestedReview && nestedReviewAfterIntegration &&
+      hasOrderedSubsequence(sequence, ["integration-test", "integration-test-verify"]));
+  if (!integrationGateSatisfied) {
     failures.push(
-      `Workflow policy violation (${workflowId}): missing ordered integration gate integration-test -> integration-test-review -> integration-test-verify`
+      `Workflow policy violation (${workflowId}): missing ordered integration gate integration-test -> integration-test-review -> integration-test-verify (a nested workflow-review-changes occurrence satisfies integration-test-review)`
     );
   }
 
-  if (!hasOrderedSubsequence(sequence, ["docs-update", "workflow-end"])) {
+  // Delegated docs closure is only valid when the nested review observes the SETTLED docs state: if
+  // the parent still runs a canonical spec step AFTER the nested review, that mutation lands after
+  // the nested `docs-update`, so the parent owes its own terminal docs-update. Without this
+  // positional guard a workflow could place `workflow-review-changes` first, mutate specs
+  // afterwards, and still pass the closure check with no docs sync over its own changes.
+  const specStepsAfterNestedReview =
+    nestedReviewIndex >= 0 &&
+    sequence.slice(nestedReviewIndex + 1).some((step) => isCanonicalSpecStep(step));
+  const docsClosureSatisfied =
+    hasOrderedSubsequence(sequence, ["docs-update", "workflow-end"]) ||
+    (nestedReview && sequence.includes("workflow-end") && !specStepsAfterNestedReview);
+  if (!docsClosureSatisfied) {
     failures.push(
-      `Workflow policy violation (${workflowId}): missing ordered closure docs-update -> workflow-end`
+      `Workflow policy violation (${workflowId}): missing ordered closure docs-update -> workflow-end (a nested workflow-review-changes occurrence satisfies docs-update only when no canonical spec step runs after it)`
     );
   }
 
-  if (DOMAIN_ENTITY_REFERENCE_REFRESH_WORKFLOW_IDS.has(workflowId)) {
+  // The terminal domain-entity reference refresh is owned by the nested workflow-review-changes ONLY
+  // when that review runs after the parent's terminal verification (i.e. it observes the settled
+  // state). A nested review placed before verification must not absorb the requirement.
+  const nestedReviewCoversTerminalState =
+    nestedReviewIndex >= 0 &&
+    (integrationVerifyIndex < 0 || nestedReviewIndex > integrationVerifyIndex);
+  if (DOMAIN_ENTITY_REFERENCE_REFRESH_WORKFLOW_IDS.has(workflowId) && !nestedReviewCoversTerminalState) {
     const domainEntityScanStep = "scan --target=domain-entities";
     const scanCount = sequence.filter((step) => step === domainEntityScanStep).length;
     const scanIndex = sequence.indexOf(domainEntityScanStep);
@@ -748,28 +790,37 @@ function ensureSddWorkflowPolicy(workflowId, sequence, failures) {
 
   const implementationTail = sequence.slice(implementationIndex);
   const implementationStep = sequence[implementationIndex];
-  if (
-    !hasOrderedSubsequence(implementationTail, [
+  const nestedReview = delegatesNestedReview(sequence);
+  const implementationVerified =
+    hasOrderedSubsequence(implementationTail, [
       implementationStep,
       "integration-test",
       "integration-test-review",
       "integration-test-verify",
-    ])
-  ) {
+    ]) ||
+    (nestedReview &&
+      hasOrderedSubsequence(implementationTail, [
+        implementationStep,
+        "integration-test",
+        "integration-test-verify",
+      ]));
+  if (!implementationVerified) {
     failures.push(
-      `Workflow policy violation (${workflowId}): implementation must be verified by integration-test -> integration-test-review -> integration-test-verify after '${implementationStep}'`
+      `Workflow policy violation (${workflowId}): implementation must be verified by integration-test -> integration-test-review -> integration-test-verify after '${implementationStep}' (a nested workflow-review-changes occurrence satisfies integration-test-review)`
     );
   }
 
-  if (
-    !hasOrderedSubsequence(implementationTail, [
+  const specSyncBeforeDocs =
+    hasOrderedSubsequence(implementationTail, [
       implementationStep,
       "spec [mode=sync]",
       "docs-update",
-    ])
-  ) {
+    ]) ||
+    (nestedReview &&
+      hasOrderedSubsequence(implementationTail, [implementationStep, "spec [mode=sync]"]));
+  if (!specSyncBeforeDocs) {
     failures.push(
-      `Workflow policy violation (${workflowId}): implementation must be followed by spec [mode=sync] before docs-update`
+      `Workflow policy violation (${workflowId}): implementation must be followed by spec [mode=sync] before docs-update (a nested workflow-review-changes occurrence satisfies docs-update)`
     );
   }
 }

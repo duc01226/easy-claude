@@ -1220,11 +1220,28 @@ test("TC-DOCROOT-098: PROJECT_LAYOUT_TERMS get no sentence exemption", async () 
   });
 });
 
+// PORTABILITY: `runChecks` returns the declared checks' findings AND the corpus-wide sweeps
+// (SDD022 tech-agnostic prose, SDD024 prose source identifiers, …) that run regardless of the
+// `checks` argument. Those sweeps are non-blocking by design — the verifier's own exit path counts
+// only `severity: 'error'`, and it reports PASS with them present. Asserting `failures === []`
+// therefore asserted something this test never claimed: that the repository contains NO SPEC PROSE
+// AT ALL. It held only in the upstream framework repo, whose spec corpus is empty; any adopter with
+// real specs failed here while the gate it names was green. Scope the assertion to the three codes
+// in the test's own name, and to the severity that actually blocks.
 test("TC-DOCROOT-099: SDD003 / SDD009 / SDD010 still pass against the live repository", async () => {
-  const liveChecks = CHECKS.filter((check) => ["SDD003", "SDD009", "SDD010"].includes(check.code));
+  const codes = ["SDD003", "SDD009", "SDD010"];
+  const liveChecks = CHECKS.filter((check) => codes.includes(check.code));
   assert.equal(liveChecks.length, 3);
   const result = await runChecks(repoRoot, liveChecks);
-  assert.deepEqual(result.failures, []);
+  assert.deepEqual(
+    result.failures.filter((failure) => codes.includes(failure.code)),
+    []
+  );
+  // The declared checks are hard gates: none of them may report a non-blocking severity either.
+  assert.deepEqual(
+    result.failures.filter((failure) => codes.includes(failure.code) && failure.severity !== "error"),
+    []
+  );
 });
 
 test("TC-DOCROOT-099b: both build gates agree on what a form-(b) sentence looks like", async () => {

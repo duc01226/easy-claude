@@ -280,7 +280,7 @@ Some workflow steps ARE themselves full workflows. The DEFAULT for a step that a
 
 | Step                       | Workflow activated        | Execution mode                  | Why                                                                                          |
 | -------------------------- | ------------------------- | ------------------------------- | -------------------------------------------------------------------------------------------- |
-| `/workflow-review-changes` | `workflow-review-changes` | **INLINE — main session agent** | Its Step 0 `/goal` gate binds the session Stop hook + its step-15 re-review is inline by design; a sub-agent cannot own the Stop hook, so delegating it silently breaks the unabandonable review→fix→re-review loop. Context stays bounded because its OWN step 2 and steps 4–10 reviewers are sub-agents writing to `tmp/reports/`. |
+| `/workflow-review-changes` | `workflow-review-changes` | **INLINE — main session agent** | Its Step 0 `/goal` gate binds the session Stop hook + its step-14 re-review is inline by design; a sub-agent cannot own the Stop hook, so delegating it silently breaks the unabandonable review→fix→re-review loop. Context stays bounded because its OWN step 2 and steps 3–9 reviewers are sub-agents writing to `tmp/reports/`. |
 
 When `/workflow-review-changes` appears in any workflow sequence (e.g. `workflow-feature`, `workflow-bugfix`, `workflow-refactor`), invoke it via the `Skill` tool INLINE — do NOT spawn it as an `Agent` sub-agent.
 

@@ -270,13 +270,13 @@ Detection proposes classes only from project knowledge the configuration already
 
 ### BR-PFCI-15: Reminder distance re-arms delivery [HARD]
 
-**Statement:** A delivery stops counting as present once the conversation has grown by the configured amount or more since it, measured in bytes of conversation history (default 2000000 bytes, roughly ninety thousand tokens' worth — history files store about five to six bytes per visible character). A conversation history that is shorter than it was at the delivery has been replaced, so that delivery stops counting as present. When the conversation size cannot be measured, it stops counting once the configured time or longer has passed.
+**Statement:** A delivery stops counting as present once the conversation has grown by the configured amount or more since it, measured in bytes of conversation history (default 4500000 bytes, roughly two hundred thousand tokens' worth — history files store about five to six bytes per visible character). A conversation history that is shorter than it was at the delivery has been replaced, so that delivery stops counting as present. When the conversation size cannot be measured, it stops counting once the configured time or longer has passed.
 
 Two time limits exist, because two situations that both fall back on time are not equally informed:
 
 | Working context | Size measurable | Condensation observed                            | Limit used          | Default        |
 | --------------- | --------------- | ------------------------------------------------ | ------------------- | -------------- |
-| Measured        | Yes             | either                                           | conversation growth | 2000000 bytes  |
+| Measured        | Yes             | either                                           | conversation growth | 4500000 bytes  |
 | Partly measured | No              | Yes — a host report or a mark in its own history | measured time limit | thirty minutes |
 | Blind           | No              | No — none has ever been seen for it              | blind time limit    | five minutes   |
 
@@ -336,15 +336,15 @@ ConventionDigest     1──N DigestSection       (one per delivered class)
 
 ### Entity: DeliverySettings
 
-| Property                   | Type         | Required | Constraints                                           | Business Meaning                         |
-| -------------------------- | ------------ | -------- | ----------------------------------------------------- | ---------------------------------------- |
-| Delivery switch            | yes-no       | No       | Absent means off                                      | Turns automatic delivery on              |
-| Size limit                 | number       | No       | 500–10000 characters; default 4000                    | Maximum digest size                      |
-| Classes per trigger        | number       | No       | 1–10; default 4                                       | Maximum classes considered at once       |
-| Distance limit             | number       | No       | At least 50000 bytes of conversation; default 2000000 | When a delivery has faded                |
-| Time limit                 | number       | No       | 1–1440 minutes; default 30                            | Fade rule when size cannot be measured   |
-| Read trigger               | yes-no       | No       | Default yes                                           | Whether reading a file triggers delivery |
-| Extra condensation markers | list of text | No       | Well-formed                                           | Additional host signals of condensation  |
+| Property                   | Type         | Required | Constraints                                             | Business Meaning                         |
+| -------------------------- | ------------ | -------- | ------------------------------------------------------- | ---------------------------------------- |
+| Delivery switch            | yes-no       | No       | Absent means off                                        | Turns automatic delivery on              |
+| Size limit                 | number       | No       | 500–10000 characters; default 4000                      | Maximum digest size                      |
+| Classes per trigger        | number       | No       | 1–10; default 4                                         | Maximum classes considered at once       |
+| Distance limit             | number       | No       | At least 4500000 bytes of conversation; default 4500000 | When a delivery has faded                |
+| Time limit                 | number       | No       | 1–1440 minutes; default 30                              | Fade rule when size cannot be measured   |
+| Read trigger               | yes-no       | No       | Default yes                                             | Whether reading a file triggers delivery |
+| Extra condensation markers | list of text | No       | Well-formed                                             | Additional host signals of condensation  |
 
 ### Entity: DeliveryRecord
 
@@ -934,7 +934,7 @@ boundaryCounterCase: 'the same class with one valid include pattern and a unique
 Given delivery settings with a size limit of 499 characters
 When the configuration is validated
 Then validation fails naming the size limit setting
-And a class maximum of 0, a distance of 49999, a measured time limit of 1441 minutes and a blind time limit of 1441 minutes each fail naming their setting
+And a class maximum of 0, a distance of 4499999, a measured time limit of 1441 minutes and a blind time limit of 1441 minutes each fail naming their setting
 And every setting at its exact range edge passes
 And every range-checked setting is a declared setting, so a mistyped name is reported as an unknown field rather than silently ignored
 ```
@@ -961,7 +961,7 @@ And every range-checked setting is a declared setting, so a mistyped name is rep
         "enabled": true,
         "maxChars": 499,
         "maxClassesPerEdit": 0,
-        "reinjectAfterBytes": 49999,
+        "reinjectAfterBytes": 4499999,
         "reinjectAfterMinutes": 1441,
         "blindReinjectAfterMinutes": 1441
     }
@@ -969,9 +969,9 @@ And every range-checked setting is a declared setting, so a mistyped name is rep
 ```
 
 ```yaml
-inputDomain: 'each delivery setting at any value outside its range (size limit <500 or >10000; class maximum <1 or >10; distance <50000; measured minutes <1 or >1440; blind minutes <1 or >1440)'
+inputDomain: 'each delivery setting at any value outside its range (size limit <500 or >10000; class maximum <1 or >10; distance <4500000; measured minutes <1 or >1440; blind minutes <1 or >1440)'
 invariant: 'validation fails naming that setting, and delivery ignores that value and uses the default — for ALL such values'
-boundaryCounterCase: 'each setting at its exact edge (500, 10000, 1, 10, 50000, 1, 1440) → validation passes and delivery uses exactly that value'
+boundaryCounterCase: 'each setting at its exact edge (500, 10000, 1, 10, 4500000, 1, 1440) → validation passes and delivery uses exactly that value'
 ```
 
 **Edge Cases:**
@@ -1821,7 +1821,7 @@ Then no reminder is shown
 **Preconditions:**
 
 - "hooks-context" delivered when the conversation was small
-- Distance limit set to its minimum allowed value (fifty thousand bytes of conversation history)
+- Distance limit set to its minimum allowed value (four million five hundred thousand bytes of conversation history, about two hundred thousand tokens)
 
 **Real-World Reachability:** A long session without condensation continues editing hooks hours later.
 
@@ -1866,7 +1866,7 @@ boundaryCounterCase: 'g = distance limit - 1 → not delivered; g = distance lim
 
 - Limit raised by maintainer → takes effect on the next trigger
 - Conversation history shorter than at delivery (replaced) → reminder shown again, and the record then counts from the shorter history
-- No distance limit configured → default of about ninety thousand tokens of history applies
+- No distance limit configured → default of about two hundred thousand tokens of history applies
 
 <!-- machine-only carrier — ignore when reading as BA/QA -->
 

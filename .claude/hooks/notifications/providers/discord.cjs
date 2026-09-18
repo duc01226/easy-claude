@@ -60,7 +60,7 @@ function buildStopEmbed(input) {
   const projectName = getProjectName(cwd);
 
   return {
-    title: 'Claude Code Session Complete',
+    title: 'AI Agent Session Complete',
     description: 'Session completed successfully',
     color: COLORS.Stop,
     timestamp: new Date().toISOString(),
@@ -85,7 +85,7 @@ function buildSubagentStopEmbed(input) {
   const projectName = getProjectName(cwd);
 
   return {
-    title: 'Claude Code Subagent Complete',
+    title: 'Subagent Complete',
     description: 'Specialized agent completed its task',
     color: COLORS.SubagentStop,
     timestamp: new Date().toISOString(),
@@ -110,8 +110,8 @@ function buildAskUserPromptEmbed(input) {
   const projectName = getProjectName(cwd);
 
   return {
-    title: 'Claude Code Needs Input',
-    description: 'Claude is waiting for user input',
+    title: 'AI Agent Needs Input',
+    description: 'AI agent is waiting for user input',
     color: COLORS.AskUserPrompt,
     timestamp: new Date().toISOString(),
     footer: { text: `Project • ${projectName}` },
@@ -135,8 +135,8 @@ function buildDefaultEmbed(input) {
   const projectName = getProjectName(cwd);
 
   return {
-    title: 'Claude Code Event',
-    description: 'Claude Code event triggered',
+    title: 'AI Agent Event',
+    description: 'AI agent event triggered',
     color: COLORS.default,
     timestamp: new Date().toISOString(),
     footer: { text: `Project • ${projectName}` },

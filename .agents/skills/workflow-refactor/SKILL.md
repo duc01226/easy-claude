@@ -53,7 +53,7 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 2. **Execute** — apply required steps with evidence-backed actions.
 3. **Verify** — confirm constraints, output quality, and completion evidence.
 
-**Ordered route:** `$investigate` → `$plan` → `$plan-review` → `$plan-validate` → `$plan-execute` → specs/tests → integration review/verification → changes review → `$test` → entity scan → `$docs-update` → `$workflow-end` → `$watzup`.
+**Ordered route:** `$investigate` → `$plan` → `$plan-review` → `$plan-validate` → `$plan-execute` → specs/tests → integration verification → `$workflow-review-changes` (owns `$integration-test-review` and the conditional entity scan → `$docs-update` refresh) → `$test` → `$workflow-end` → `$watzup`.
 
 **Key Rules:**
 
@@ -66,7 +66,7 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 
 ---
 
-**IMPORTANT MANDATORY Steps:** $investigate -> $plan -> $plan-review -> $plan-validate -> $plan-execute -> $spec [mode=tests] -> $artifact-review --type=spec-tests -> $spec [mode=sync] -> $integration-test -> $integration-test-review -> $integration-test-verify -> $workflow-review-changes -> $test -> $scan --target=domain-entities -> $docs-update -> $workflow-end -> $watzup
+**IMPORTANT MANDATORY Steps:** $investigate -> $plan -> $plan-review -> $plan-validate -> $plan-execute -> $spec [mode=tests] -> $artifact-review --type=spec-tests -> $spec [mode=sync] -> $integration-test -> $integration-test-verify -> $workflow-review-changes -> $test -> $workflow-end -> $watzup
 
 > **[EXPERIENCE ACCEPTANCE HANDOFF]** `$workflow-review-changes` carries the conditional `$experience-review` gate after refactor review convergence. Behavior-preservation evidence is exercised and inspected for affected observable surfaces; unchanged surfaces retain their accepted protection.
 
@@ -74,9 +74,9 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 
 Activate the `workflow-refactor` workflow. Run `$start-workflow workflow-refactor` with the user's prompt as context.
 
-**Steps:** $investigate → $plan → $plan-review → $plan-validate → $plan-execute → $spec [mode=tests] → $artifact-review --type=spec-tests → $spec [mode=sync] → $integration-test → $integration-test-review → $integration-test-verify → $workflow-review-changes → $test → $scan --target=domain-entities → $docs-update → $workflow-end → $watzup
+**Steps:** $investigate → $plan → $plan-review → $plan-validate → $plan-execute → $spec [mode=tests] → $artifact-review --type=spec-tests → $spec [mode=sync] → $integration-test → $integration-test-verify → $workflow-review-changes → $test → $workflow-end → $watzup
 
-> **[CONDITIONAL TERMINAL DOMAIN-ENTITY REFERENCE REFRESH]** After `$test` and before `$docs-update`, run `$scan --target=domain-entities` to refresh the project-reference entity catalog only when the final diff changes an entity/model, DTO/data contract, persistence schema/migration, or entity-sync evidence represented in `domain-entities-reference.md` in the project-reference docs root (default `docs/project-reference/`; path from `docsRoots.projectReference.path` in `docs/project-config.json`). Otherwise mark the scan step completed with a cited skip reason naming the changed files and why they are outside this scope; this is the explicitly authorized exception to the per-step skill-invocation rule.
+> **[CONDITIONAL TERMINAL DOMAIN-ENTITY REFERENCE REFRESH — DELEGATED]** The terminal `scan --target=domain-entities` → `docs-update` refresh is owned by the nested `$workflow-review-changes` occurrence: it runs the scan when the final diff changes an entity/model, DTO/data contract, persistence schema/migration, or entity-sync evidence represented in `domain-entities-reference.md` in the project-reference docs root (default `docs/project-reference/`; path from `docsRoots.projectReference.path` in `docs/project-config.json`), otherwise completes it with a cited skip reason. Do not repeat the scan in this workflow's tail.
 
 > **[PERFORMANCE-SDD ROUTE]** If this refactor is performance-driven (query optimization, caching, reducing allocations, improving throughput), run `$performance-review` for benchmark evidence while preserving observable behavior. Do not use performance/refactor scope to bypass spec, test, or docs sync when behavior, public contract, SLA, performance constraint, state timing boundary, or docs/spec boundary changes. Pure behavior-preserving optimization may skip new TC/integration-test generation only with explicit skip reason and invariant-preservation evidence. `$test` remains mandatory.
 
@@ -84,7 +84,7 @@ Activate the `workflow-refactor` workflow. Run `$start-workflow workflow-refacto
 
 > **[IMPORTANT]** Analyze how big the task is and break it into many small todo tasks systematically before starting — this is very important.
 
-**IMPORTANT MANDATORY Steps:** $investigate -> $plan -> $plan-review -> $plan-validate -> $plan-execute -> $spec [mode=tests] -> $artifact-review --type=spec-tests -> $spec [mode=sync] -> $integration-test -> $integration-test-review -> $integration-test-verify -> $workflow-review-changes -> $test -> $scan --target=domain-entities -> $docs-update -> $workflow-end -> $watzup
+**IMPORTANT MANDATORY Steps:** $investigate -> $plan -> $plan-review -> $plan-validate -> $plan-execute -> $spec [mode=tests] -> $artifact-review --type=spec-tests -> $spec [mode=sync] -> $integration-test -> $integration-test-verify -> $workflow-review-changes -> $test -> $workflow-end -> $watzup
 
 <!-- SYNC:nested-task-creation -->
 
@@ -260,7 +260,7 @@ Activate the `workflow-refactor` workflow. Run `$start-workflow workflow-refacto
 
 **IMPORTANT MUST ATTENTION Goal:** Run the Code Refactoring workflow to restructure existing code without changing behavior, with evidence-backed planning, validation, spec/test/docs synchronization, and a clean final review.
 
-**IMPORTANT MUST ATTENTION Main steps:** `$investigate` → `$plan` → `$plan-review` → `$plan-validate` → `$plan-execute` → `$spec [mode=tests]` → `$artifact-review --type=spec-tests` → `$spec [mode=sync]` → `$integration-test` → `$integration-test-review` → `$integration-test-verify` → `$workflow-review-changes` → `$test` → conditional `$scan --target=domain-entities` → `$docs-update` → `$workflow-end` → `$watzup`. **NEVER** skip behavior-preservation evidence, required gates, or conditional skip reasons.
+**IMPORTANT MUST ATTENTION Main steps:** `$investigate` → `$plan` → `$plan-review` → `$plan-validate` → `$plan-execute` → `$spec [mode=tests]` → `$artifact-review --type=spec-tests` → `$spec [mode=sync]` → `$integration-test` → `$integration-test-verify` → `$workflow-review-changes` (owns `$integration-test-review` and the conditional `$scan --target=domain-entities` → `$docs-update` refresh) → `$test` → `$workflow-end` → `$watzup`. **NEVER** skip behavior-preservation evidence, required gates, or conditional skip reasons.
 
 **IMPORTANT MUST ATTENTION Protocols in force (concise digest of the SYNC/shared blocks this skill carries):**
 

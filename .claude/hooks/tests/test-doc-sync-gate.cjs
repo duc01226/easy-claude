@@ -178,13 +178,24 @@ function testClassifier() {
   logResult('no hit: unenforced service .cs', cls.behavioralCodeHit('src/Services/Other/Foo.cs', cfg) === null);
   logResult('no hit: test .cs (fast-exit)', cls.behavioralCodeHit('src/Services/ExampleArea/Example.IntegrationTests/X.cs', cfg) === null);
 
+  // PORTABILITY: `areaForFeatureDoc` resolves the spec root from `specRoots.business.path` via
+  // `getSpecDocsPath()`, so a hardcoded `docs/specs/...` fixture only matches in a repo that leaves
+  // that root at its default. Any adopter relocating it (e.g. to `specs/`) failed here — the test
+  // was asserting the DEFAULT root rather than the classifier's segment-boundary logic. Build both
+  // fixture paths from the module's own `featureSpecDirForArea`, which is the same resolver the
+  // function under test uses, so the assertion travels with the config.
+  const enforcedArea = cfg.enforcedAreas[0];
+  const enforcedDir = cls.featureSpecDirForArea(enforcedArea);
+  const otherDir = cls.featureSpecDirForArea({ name: 'Other' });
   logResult(
     'feature-doc area resolves',
-    !!cls.areaForFeatureDoc('docs/specs/ExampleArea/README.SampleFeature.md', cfg)
+    !!cls.areaForFeatureDoc(`${enforcedDir}README.SampleFeature.md`, cfg),
+    enforcedDir
   );
   logResult(
     'feature-doc area null for other docs',
-    cls.areaForFeatureDoc('docs/specs/Other/README.X.md', cfg) === null
+    cls.areaForFeatureDoc(`${otherDir}README.X.md`, cfg) === null,
+    otherDir
   );
   logResult('toRepoRel strips project root', typeof cls.toRepoRel('foo/bar.cs') === 'string');
 }

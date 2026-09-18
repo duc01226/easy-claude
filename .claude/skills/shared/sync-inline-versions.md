@@ -783,7 +783,7 @@
 > | Suppressing context | Deferral line |
 > | ------------------- | ------------- |
 > | The running skill IS `/domain-entities-review` | `Gate is this skill's own body — A–P checklist owns it.` |
-> | Invoked inside `/workflow-review-changes` (its step 5 runs `/domain-entities-review` as a dedicated conditional parallel member) | `Gate deferred to workflow step 5 /domain-entities-review.` |
+> | Invoked inside `/workflow-review-changes` (its step 4 runs `/domain-entities-review` as a dedicated conditional parallel member) | `Gate deferred to workflow step 4 /domain-entities-review.` |
 > | `/why-review` running in `--validate-findings` terminal mode | `Gate N/A — validate-findings is terminal, no sub-skill calls.` |
 >
 > — why: unguarded, this edge duplicates a review the parent workflow already runs and closes a `changes-review → domain-entities-review → why-review → changes-review` cycle.

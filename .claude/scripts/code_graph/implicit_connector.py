@@ -16,6 +16,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
+from .api_connector import _SKIP_DIRS
 from .graph import GraphStore
 from .models import EdgeInfo
 
@@ -118,6 +119,8 @@ class ImplicitConnector:
             if not scan_root.is_dir():
                 continue
             for file_path in scan_root.rglob(side.file_pattern):
+                if any(part in _SKIP_DIRS for part in file_path.parts):
+                    continue
                 if not file_path.is_file() or file_path.is_symlink():
                     continue
                 try:

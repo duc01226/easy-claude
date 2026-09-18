@@ -23,15 +23,16 @@ function runNotification(file, args, options) {
     });
 }
 
-// Notification titles by event type
+// Notification titles by event type (host-agnostic: this framework runs under
+// Claude Code, Codex and opencode, so notifications must not name one host).
 const TITLES = {
-    Stop: 'Claude Code Complete',
+    Stop: 'AI Agent Session Complete',
     SubagentStop: 'Subagent Complete',
-    AskUserPrompt: 'Claude Needs Input',
-    AskUserQuestion: 'Claude Has a Question',
-    idle_prompt: 'Claude Waiting for Input',
-    permission_prompt: 'Claude Needs Permission',
-    default: 'Claude Code'
+    AskUserPrompt: 'AI Agent Needs Input',
+    AskUserQuestion: 'AI Agent Has a Question',
+    idle_prompt: 'AI Agent Waiting for Input',
+    permission_prompt: 'AI Agent Needs Permission',
+    default: 'AI Agent'
 };
 
 // Notification messages by event type
@@ -39,9 +40,9 @@ const MESSAGES = {
     Stop: 'Session completed successfully',
     SubagentStop: 'Specialized agent finished',
     AskUserPrompt: 'Waiting for your input',
-    AskUserQuestion: 'Claude is asking a question — please check and answer',
-    idle_prompt: 'Claude is waiting for your input',
-    permission_prompt: 'Claude is asking for tool permission',
+    AskUserQuestion: 'AI agent is asking a question — please check and answer',
+    idle_prompt: 'AI agent is waiting for your input',
+    permission_prompt: 'AI agent is asking for tool permission',
     default: 'Event triggered'
 };
 
