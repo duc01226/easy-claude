@@ -3441,9 +3441,9 @@ sequenceDiagram
 | Runner                               | Tests   | Scope                                                                                      |
 | ------------------------------------ | ------- | ------------------------------------------------------------------------------------------ |
 | `test-all-hooks.cjs` (primary gate)  | **232** | All hook behaviors + bridged suites + count-drift guard                                    |
-| `run-all-tests.cjs` (full aggregate) | **662** | Primary + extended lib, swap-engine, shared-utilities, and every `tests/suites/*.test.cjs` |
+| `run-all-tests.cjs` (full aggregate) | **664** | Primary + extended lib, swap-engine, shared-utilities, and every `tests/suites/*.test.cjs` |
 
-> Counts are live-verified (`test-all-hooks.cjs` = 232, `run-all-tests.cjs` = 662) and are now
+> Counts are live-verified (`test-all-hooks.cjs` = 232, `run-all-tests.cjs` = 664) and are now
 > GUARDED: each runner asserts the figures above against its own live total on every full run,
 > so a stale number fails the suite instead of sitting here. They previously drifted to 215/300
 > behind a single guarded sentence elsewhere. Derive counts from a live run, never a static table.

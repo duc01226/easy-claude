@@ -326,6 +326,24 @@ const SCHEMA = {
             layerClassification: { type: 'map', required: false }
         }
     },
+    formatting: {
+        type: 'object',
+        required: false,
+        properties: {
+            // Preset id the post-edit formatter hook uses (`prettier` default,
+            // `biome`, or `none` to disable). Absent -> framework default (prettier).
+            formatter: { type: 'string', required: false },
+            // Explicit command template; `{file}` is replaced with the path.
+            // Overrides `formatter` when set.
+            command: { type: 'string', required: false },
+            // Extra CLI args inserted before the file path.
+            args: { type: 'array', required: false, itemType: 'string' },
+            // Extensions to format; defaults to the resolved preset's own set.
+            fileExtensions: { type: 'array', required: false },
+            // Extra path substrings (treated literally) to skip on edit.
+            skipPaths: { type: 'array', required: false }
+        }
+    },
     framework: {
         type: 'object',
         required: true,

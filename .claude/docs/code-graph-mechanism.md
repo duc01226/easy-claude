@@ -427,14 +427,15 @@ The BFS trace algorithm (`tools.py:trace_connections`) follows both structural e
 
 | File                    | Lines | Purpose                                                                                                                               |
 | ----------------------- | ----- | ------------------------------------------------------------------------------------------------------------------------------------- |
-| `parser.py`             | ~1350 | Tree-sitter AST walker, 14 languages, multi-language noise filter (`_BUILTIN_CALL_NOISE`), C# `base_list` INHERITS                    |
+| `parser.py`             | ~1350 | Tree-sitter AST walker, 14 languages, multi-language noise filter (`_BUILTIN_CALL_NOISE`), C# `base_list` INHERITS; import targets resolved via `resolver.py`; emits cross-file TESTED_BY                    |
+| `resolver.py`           | ~450  | Import/alias resolver: relative paths, tsconfig `paths`, and pnpm-workspace packages via `exports`/`main`/`module`; shared by parser and incremental builds |
 | `graph.py`              | ~750  | SQLite GraphStore, BFS impact, `resolve_bare_calls()` post-build resolution, `get_distinct_edge_kinds()`, NetworkX caching            |
 | `incremental.py`        | ~750  | git diff detection, full/incremental/sync build, `find_project_config()`, `load_project_config()`, `_make_parser()` multi-lang config |
 | `tools.py`              | ~1100 | Query/analysis tools, `trace_connections()` with auto-discover edge kinds, class-name resolution, Class node seeding                  |
 | `cli.py`                | ~650  | CLI with 17 subcommands, `_auto_connect()`, `_generate_build_suggestions()`, `--json` output, `--node-mode` option                    |
-| `implicit_connector.py` | ~250  | Regex-based implicit connection engine: reads rules from `project-config.json → graphConnectors.implicitConnections[]`                |
+| `implicit_connector.py` | ~250  | Regex-based implicit connection engine: reads rules from `project-config.json → graphConnectors.implicitConnections[]`; joins on `contentPattern` (code) or `pathPattern` (filename), per-side `paths`, and honours `graphSettings.scanSkipDirs`                |
 | `mermaid_exporter.py`   | ~150  | Export single-file graph as Mermaid flowchart markdown                                                                                |
-| `api_connector.py`      | ~620  | Detect frontend-backend API connections, delegates config to shared `find_project_config()`                                           |
+| `api_connector.py`      | ~620  | Detect frontend-backend API connections, delegates config to shared `find_project_config()`; file-based routes via configurable `routeFile`/`methodExports`/`urlPrefix`                                           |
 | `api_patterns.py`       | ~85   | Framework-specific HTTP call and route patterns                                                                                       |
 | `models.py`             | ~50   | Data classes: `NodeInfo`, `EdgeInfo` for parser output                                                                                |
 | `descriptions.py`       | ~150  | MCP-style structured descriptions for `describe` command                                                                              |

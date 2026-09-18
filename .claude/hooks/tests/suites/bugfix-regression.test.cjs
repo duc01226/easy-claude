@@ -483,6 +483,92 @@ const prettierSkipPatternTests = [
         }
     },
     {
+        // The hook is FRAMEWORK code: the formatter must come from the project
+        // config, not from a hardcoded tool. `formatting.command` is the most
+        // explicit form of that, so it is the deterministic one to assert on.
+        name: '[formatter-config] runs the formatter declared in project config',
+        fn: async () => {
+            const tmpDir = createTempDir();
+            try {
+                const markerFile = path.join(tmpDir, 'formatter-ran.txt');
+                const formatterScript = path.join(tmpDir, 'custom-formatter.cjs');
+                fs.writeFileSync(
+                    formatterScript,
+                    [
+                        "const fs = require('fs');",
+                        "const path = require('path');",
+                        "fs.writeFileSync(path.join(__dirname, 'formatter-ran.txt'), process.argv[2] || '');",
+                        ''
+                    ].join('\n')
+                );
+
+                const configDir = path.join(tmpDir, 'docs');
+                fs.mkdirSync(configDir, { recursive: true });
+                fs.writeFileSync(
+                    path.join(configDir, 'project-config.json'),
+                    JSON.stringify({
+                        formatting: {
+                            command: `"${process.execPath}" "${formatterScript}" {file}`
+                        }
+                    })
+                );
+
+                const srcDir = path.join(tmpDir, 'src');
+                fs.mkdirSync(srcDir, { recursive: true });
+                const srcFile = path.join(srcDir, 'app.ts');
+                fs.writeFileSync(srcFile, 'const x=1');
+
+                const input = createPostToolUseInput('Edit', { file_path: srcFile });
+                const result = await runHook(POST_EDIT_PRETTIER, input, {
+                    cwd: tmpDir,
+                    timeout: SPAWN_TIMEOUT_MS
+                });
+
+                assertAllowed(result.code, 'Configured formatting should not crash');
+                assertTrue(fs.existsSync(markerFile), 'The project-configured formatter should have run');
+            } finally {
+                cleanupTempDir(tmpDir);
+            }
+        }
+    },
+    {
+        name: '[formatter-config] skips formatting when formatter is "none"',
+        fn: async () => {
+            const tmpDir = createTempDir();
+            try {
+                // A working local prettier fixture WOULD reformat; `none` must bypass it.
+                createLocalPrettierFixture(tmpDir);
+
+                const configDir = path.join(tmpDir, 'docs');
+                fs.mkdirSync(configDir, { recursive: true });
+                fs.writeFileSync(
+                    path.join(configDir, 'project-config.json'),
+                    JSON.stringify({ formatting: { formatter: 'none' } })
+                );
+
+                const srcDir = path.join(tmpDir, 'src');
+                fs.mkdirSync(srcDir, { recursive: true });
+                const srcFile = path.join(srcDir, 'app.js');
+                fs.writeFileSync(srcFile, 'const x=1;');
+
+                const input = createPostToolUseInput('Edit', { file_path: srcFile });
+                const result = await runHook(POST_EDIT_PRETTIER, input, {
+                    cwd: tmpDir,
+                    timeout: SPAWN_TIMEOUT_MS
+                });
+
+                assertAllowed(result.code, 'Disabled formatting should not crash');
+                assertEqual(
+                    fs.readFileSync(srcFile, 'utf8'),
+                    'const x=1;',
+                    'File must be left untouched when formatting is disabled'
+                );
+            } finally {
+                cleanupTempDir(tmpDir);
+            }
+        }
+    },
+    {
         name: '[prettier-lifecycle] terminates timed-out formatter tree before cleanup',
         fn: async () => {
             const tmpDir = createTempDir();
