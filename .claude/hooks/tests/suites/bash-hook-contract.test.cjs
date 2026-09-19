@@ -339,7 +339,7 @@ EOF`,
       const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'bash-hook-debug-'));
       const logPath = path.join(dir, 'debug', 'bash-hooks.log');
       try {
-        assert.equal(HOOKS.length, 7, 'Settings must expose all seven Bash PreToolUse hooks');
+        assert.equal(HOOKS.length, 8, 'Settings must expose all eight Bash PreToolUse hooks');
         assert.equal(new Set(HOOKS).size, HOOKS.length, 'Bash hook registration must not duplicate a hook');
         for (const file of HOOKS) {
           const result = await runHook(file, BENIGN, {

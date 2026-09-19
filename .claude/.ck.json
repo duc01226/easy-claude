@@ -1,19 +1,8 @@
 {
   "assertions": [
     "Read project-structure-reference.md in the project-reference docs root for project tech stack and architecture",
-    "Backend: Use service-specific repositories - see backend-patterns-reference.md in the project-reference docs root",
-    "Backend: Use project validation fluent API - see backend-patterns-reference.md in the project-reference docs root",
-    "Backend: Side effects go in Entity Event Handlers (UseCaseEvents/) - never in command handlers",
-    "Backend: DTOs own mapping - see backend-patterns-reference.md in the project-reference docs root",
-    "Backend: Command + Result + Handler in ONE file under UseCaseCommands/{Feature}/",
-    "Backend: Cross-service communication via message bus only - never direct database access",
-    "Frontend: Extend project component base classes - see frontend-patterns-reference.md in the project-reference docs root",
-    "Frontend: Use project state management - see frontend-patterns-reference.md in the project-reference docs root",
-    "Frontend: Extend project API service base for HTTP calls - see frontend-patterns-reference.md in the project-reference docs root",
-    "Frontend: Always use .pipe(this.untilDestroyed()) for subscriptions - never manual unsubscribe",
-    "Frontend: All template elements must have BEM classes (block__element --modifier)",
     "Architecture: Search for existing implementations before creating new code",
-    "Architecture: Place logic in LOWEST layer (Entity > Service > Component) to enable reuse",
+    "Architecture: Place logic in the lowest appropriate layer, following the project's documented architecture",
     "Architecture: Plan before implementing non-trivial tasks"
   ],
   "codeReview": {
@@ -37,7 +26,6 @@
   },
   "plan": {
     "dateFormat": "YYMMDD-HHmm",
-    "issuePrefix": "GH-",
     "namingFormat": "{date}-{issue}-{slug}",
     "reportsDir": "reports",
     "resolution": {
@@ -60,10 +48,10 @@
   "subagent": {
     "agents": {
       "backend-developer": {
-        "contextPrefix": "Focus: Backend CQRS development. Read backend-patterns-reference.md in the project-reference docs root for patterns."
+        "contextPrefix": "Focus: Backend development. Read backend-patterns-reference.md in the project-reference docs root for this project's architecture and patterns."
       },
       "integration-tester": {
-        "contextPrefix": "Focus: Integration tests. Read integration-test-reference.md in the project-reference docs root for patterns. Use TC-{FEATURE}-{NNN} format."
+        "contextPrefix": "Focus: Integration tests. Read integration-test-reference.md in the project-reference docs root for this project's test patterns and naming conventions."
       },
       "researcher": {
         "contextPrefix": "Focus: Technology research. Check codebase for existing implementations first."

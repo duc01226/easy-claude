@@ -492,6 +492,14 @@ Evaluate after every round, **in this order — the first matching row decides**
 
 Emit a concise convergence recap: rounds run, total fixes applied per round (the shrinking sequence), the final clean-pass evidence, and the Goal Satisfaction matrix (required criterion PASS). Point to each round's report under `tmp/reports/` and the Goal Contract Iteration Log. Do NOT commit or push unless the user explicitly asks.
 
+**Mint the review receipt (MANDATORY terminal action).** Once converged, run:
+
+```bash
+node .claude/hooks/lib/review-receipt.cjs issue --kind=workflow-review-changes
+```
+
+This records — for the review-before-commit gate (`review-commit-gate.cjs`) — that this changeset passed the whole `workflow-review-changes --fix-loop`. Run it as the LAST content-mutating action: any edit afterwards changes the fingerprint and invalidates the receipt. Treat `No local changes to review` as `review-receipt: N/A — non-changeset scope` and continue.
+
 ### Fix-Loop Convergence Detection — Why Two Conditions
 
 A round counts as converged ONLY when **both** hold: (a) the working tree is unchanged by the round, AND (b) the reviews reported clean at that round's bar — no validated findings in round 1, no validated CRITICAL/HIGH/MEDIUM from round 2 (deferred LOWs listed, not fixed). Both are required because:
@@ -501,7 +509,7 @@ A round counts as converged ONLY when **both** hold: (a) the working tree is unc
 
 When (a) is true but (b) is false → **escalate** (a real finding the loop cannot close). When (b) is true but (a) is false → the round DID fix things → run another round to re-prove clean.
 
-**IMPORTANT MANDATORY `--fix-loop` sequence:** FL-0 (scope + Goal Contract) → FL-0b (bind the convergence loop: protocol loop primary + optional `/goal` accelerator) → FL-1 (round loop: run default `$workflow-review-changes` INLINE → detect fixes → log) → FL-2 (converge on zero-fix round / escalate on non-progress) → FL-3 (recap). Shared protocols this mode relies on — `SYNC:review-policy`, `SYNC:goal-contract-satisfaction-loop`, `SYNC:severity-rubric`, `SYNC:trade-off-interrogation-gate` — are carried once below; never re-copy them into this section.
+**IMPORTANT MANDATORY `--fix-loop` sequence:** FL-0 (scope + Goal Contract) → FL-0b (bind the convergence loop: protocol loop primary + optional `/goal` accelerator) → FL-1 (round loop: run default `$workflow-review-changes` INLINE → detect fixes → log) → FL-2 (converge on zero-fix round / escalate on non-progress) → FL-3 (recap + mint the review receipt). Shared protocols this mode relies on — `SYNC:review-policy`, `SYNC:goal-contract-satisfaction-loop`, `SYNC:severity-rubric`, `SYNC:trade-off-interrogation-gate` — are carried once below; never re-copy them into this section.
 
 <!-- FIX-LOOP-MODE:END -->
 

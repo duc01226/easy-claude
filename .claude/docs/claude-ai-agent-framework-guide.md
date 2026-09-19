@@ -5,7 +5,7 @@
 **Audience:** AI engineers, tech leads, and teams wanting to build reliable AI-assisted development systems.
 **Scope:** What each layer does, why it exists, how the pieces compose, the design principles behind every decision, and which AI agent best practices each addresses.
 
-> **Document Sync Status** — Current local verification (2026-09-16): **20 top-level hook files · 124 skills · 19 workflows · 23 agents** using the ADR-0002 filesystem metrics. Codex mirrors are committed under `.agents/`, `.codex/`, and `AGENTS.md`. Notable mechanisms documented here include multi-AI-tool portability (§13), behavioral-principle injection (§8.21), self-validating review (§8.20), and embedded sequential-thinking.
+> **Document Sync Status** — Current local verification (2026-09-16): **21 top-level hook files · 124 skills · 19 workflows · 23 agents** using the ADR-0002 filesystem metrics. Codex mirrors are committed under `.agents/`, `.codex/`, and `AGENTS.md`. Notable mechanisms documented here include multi-AI-tool portability (§13), behavioral-principle injection (§8.21), self-validating review (§8.20), and embedded sequential-thinking.
 
 > **Relocatable roots — read this before any path in this guide.** Diagrams, tables, and examples below name roots by ROLE ("the plans root", "the business spec root"). Each role resolves as follows:
 >
@@ -58,7 +58,7 @@
 
 ## 1. Executive Summary
 
-This framework wraps Claude Code in a three-pillar execution framework — **20 top-level hook files**, **124 skills**, **19 registered workflows**, and **23 specialized agents** — that transforms a generic LLM into a project-aware, quality-enforced, hallucination-resistant development agent. The framework covers the **entire software development lifecycle** — from idea capture and TDD test specification through implementation, testing, E2E testing, code review, and documentation — with AI as a first-class participant at every stage.
+This framework wraps Claude Code in a three-pillar execution framework — **21 top-level hook files**, **124 skills**, **19 registered workflows**, and **23 specialized agents** — that transforms a generic LLM into a project-aware, quality-enforced, hallucination-resistant development agent. The framework covers the **entire software development lifecycle** — from idea capture and TDD test specification through implementation, testing, E2E testing, code review, and documentation — with AI as a first-class participant at every stage.
 
 It is also **harness- and project-agnostic**: the `.claude/` source compiles to verified OpenAI Codex mirrors (`AGENTS.md`, `.agents/`, `.codex/`), while all project-specific knowledge is factored into `project-config.json` + reference docs — so the same behavior runs on any supported AI tool and ports to any codebase (Section 13).
 
@@ -109,7 +109,7 @@ graph TB
         AUQ[Model Auto-Select<br/>start-workflow]
     end
 
-    subgraph "Enforcement Layer — 20 Top-Level Hook Files"
+    subgraph "Enforcement Layer — 21 Top-Level Hook Files"
         subgraph "Safety Hooks"
             PB[Path Boundary Block]
             PR[Privacy Block]
@@ -888,7 +888,7 @@ The hook and skill system is **project-agnostic**. All project-specific knowledg
 ```mermaid
 graph LR
     subgraph "Generic Framework (reusable)"
-        H[20 Hook Files]
+        H[21 Hook Files]
         S[124 Skills]
         W[19 Workflows]
     end
@@ -3441,9 +3441,9 @@ sequenceDiagram
 | Runner                               | Tests   | Scope                                                                                      |
 | ------------------------------------ | ------- | ------------------------------------------------------------------------------------------ |
 | `test-all-hooks.cjs` (primary gate)  | **232** | All hook behaviors + bridged suites + count-drift guard                                    |
-| `run-all-tests.cjs` (full aggregate) | **664** | Primary + extended lib, swap-engine, shared-utilities, and every `tests/suites/*.test.cjs` |
+| `run-all-tests.cjs` (full aggregate) | **671** | Primary + extended lib, swap-engine, shared-utilities, and every `tests/suites/*.test.cjs` |
 
-> Counts are live-verified (`test-all-hooks.cjs` = 232, `run-all-tests.cjs` = 664) and are now
+> Counts are live-verified (`test-all-hooks.cjs` = 232, `run-all-tests.cjs` = 671) and are now
 > GUARDED: each runner asserts the figures above against its own live total on every full run,
 > so a stale number fails the suite instead of sitting here. They previously drifted to 215/300
 > behind a single guarded sentence elsewhere. Derive counts from a live run, never a static table.
@@ -3877,7 +3877,7 @@ The framework succeeds because it aligns with how LLMs actually fail:
 
 ### The Result
 
-**20 top-level hook files**, **124 skills**, **19 registered workflows**, and **23 specialized agents** working in concert to deliver:
+**21 top-level hook files**, **124 skills**, **19 registered workflows**, and **23 specialized agents** working in concert to deliver:
 
 - **Fewer hallucinations** — Evidence gates and proof traces catch AI fabrications before they reach files
 - **Better code quality** — Pattern injection ensures AI follows project conventions, not generic training data

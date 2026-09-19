@@ -4,7 +4,7 @@
 
 ## What is this?
 
-**easy-claude** is a portable `.claude` template you copy into any project to supercharge Claude Code with **20 top-level hook files**, **124 skills**, **19 workflows**, and **23 specialized agents**. It covers the entire software development lifecycle — from idea capture and test specification through implementation, code review, and documentation. The Claude-authored source also syncs to Codex mirrors under `.agents/` and `.codex/`.
+**easy-claude** is a portable `.claude` template you copy into any project to supercharge Claude Code with **21 top-level hook files**, **124 skills**, **19 workflows**, and **23 specialized agents**. It covers the entire software development lifecycle — from idea capture and test specification through implementation, code review, and documentation. The Claude-authored source also syncs to Codex mirrors under `.agents/` and `.codex/`.
 
 **Core insight:** LLMs forget, hallucinate, and drift. Instead of hoping the AI "just gets it right," this framework uses **programmatic guardrails** (hooks) and **prompt-engineered protocols** (skills/workflows) to enforce correctness at every stage.
 
@@ -245,7 +245,7 @@ easy-claude/
 ├── .codex/                   # Codex agents, hooks, and context parity files
 ├── .claude/                  # <-- The framework template (copy this to your project)
 │   ├── agents/               # 23 specialized agent definitions
-│   ├── hooks/                # 20 top-level hook files + lib/ utilities
+│   ├── hooks/                # 21 top-level hook files + lib/ utilities
 │   │   ├── lib/              # Shared hook libraries
 │   │   ├── notifications/    # Multi-channel notification system
 │   │   ├── scout-block/      # Broad search prevention
@@ -282,7 +282,7 @@ The entire framework is **project-agnostic**. All project-specific knowledge liv
 ```
 ┌─────────────────────────────────────┐
 │     Generic Framework (reusable)    │
-│ 20 Hook Files + 124 Skills + 19 Flows │
+│ 21 Hook Files + 124 Skills + 19 Flows │
 └──────────────┬──────────────────────┘
                │
         ┌──────┴──────┐

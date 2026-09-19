@@ -106,6 +106,10 @@
           {
             "command": "node \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/doc-sync-gate.cjs",
             "type": "command"
+          },
+          {
+            "command": "node \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/review-commit-gate.cjs",
+            "type": "command"
           }
         ],
         "matcher": "Bash"

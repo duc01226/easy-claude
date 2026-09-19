@@ -185,7 +185,12 @@ const AGENTS_ROOT_PROJECTION_END = "<!-- /CK:CODEX-ROOT-PROJECTION -->";
 // Codex otherwise gets zero always-on copies of) costs ~1.4 KiB. Same trade as the 32768 -> 49152
 // raise: a correctness guardrail beats bytes. Still a PROJECT budget, not a host limit — revisit with
 // a measured host budget, never to silence an overflow warning.
-const AGENTS_ROOT_LIMIT_BYTES = 53248;
+// 2026-09-19: raised 53248 -> 61440 (52 -> 60 KiB). CLAUDE.md is prettier-managed source; the
+// project formatter pads markdown tables, and the 52 KiB ceiling had been set against an un-padded
+// root, so the first ordinary edit (which runs `post-edit-prettier.cjs`) inflates the projected
+// mirror past it. A padded root is the documented steady state, so the budget must fit it. Still a
+// PROJECT budget, not a host limit — revisit with a measured host budget, never to hide an overflow.
+const AGENTS_ROOT_LIMIT_BYTES = 61440;
 const AGENTS_PROJECTION_HEADINGS = [
   /^## Workflow Step Advancement & Parallel Phases$/m,
   /^## TL;DR — What You Must Know Before Writing Any Code$/m,

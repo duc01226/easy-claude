@@ -564,6 +564,14 @@ Evaluate after every round, **in this order — the first matching row decides**
 
 Emit a concise convergence recap: rounds run, validated findings per round (the shrinking sequence, split by severity), the fixes applied each round, the final PASS evidence (zero findings, or zero CRITICAL/HIGH/MEDIUM when the loop ended on the round-2 severity floor), a `## Deferred LOW Findings (severity floor, round ≥2)` list of every LOW left unfixed with `file:line`, and the Goal Satisfaction matrix (required criterion PASS). Point to each round's report under `tmp/reports/` and the Goal Contract Iteration Log. Then ask the deferred next-step question via `AskUserQuestion`. Do NOT commit or push unless the user explicitly asks.
 
+**Mint the review receipt (MANDATORY terminal action).** Once converged, run:
+
+```bash
+node .claude/hooks/lib/review-receipt.cjs issue --kind=why-review
+```
+
+This records — for the review-before-commit gate (`review-commit-gate.cjs`) — that this changeset passed a `why-review --fix-loop`. Run it as the LAST content-mutating action: any edit afterwards changes the fingerprint and invalidates the receipt. Treat `No local changes to review` (for example a plan/spec review with no working-tree diff) as `review-receipt: N/A — non-changeset target` and continue.
+
 ### Convergence Detection — Why a Fresh Full Re-Review Is Required
 
 A round converges ONLY when a full-mode pass that ran over the **current, post-fix** target returns PASS with zero findings that block the current round bar. Both properties are required because:
@@ -573,7 +581,7 @@ A round converges ONLY when a full-mode pass that ran over the **current, post-f
 
 When findings remain but cannot be fixed (owner/product input needed) → **escalate**, do not loop. When a fix lands but the next fresh review still finds issues → run another round. Convergence is a fixed point, not a single clean read.
 
-**IMPORTANT MANDATORY fix-loop sequence:** Step FL-0 (resolve target + Goal Contract + loop task plan) → Step FL-0b (bind the convergence loop: protocol loop primary + optional `/goal` accelerator) → Step FL-1 (round loop: full-mode pass INLINE → Trade-Off Gate on the fix set → `/fix` on validated findings → log) → Step FL-2 (converge on a fresh review with zero blocking findings at that round's bar / escalate on non-progress) → Step FL-3 (recap).
+**IMPORTANT MANDATORY fix-loop sequence:** Step FL-0 (resolve target + Goal Contract + loop task plan) → Step FL-0b (bind the convergence loop: protocol loop primary + optional `/goal` accelerator) → Step FL-1 (round loop: full-mode pass INLINE → Trade-Off Gate on the fix set → `/fix` on validated findings → log) → Step FL-2 (converge on a fresh review with zero blocking findings at that round's bar / escalate on non-progress) → Step FL-3 (recap + mint the review receipt).
 
 <!-- FIX-LOOP-MODE:END -->
 

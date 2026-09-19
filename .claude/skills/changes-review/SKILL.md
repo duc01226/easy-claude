@@ -1073,7 +1073,7 @@ If `architectureRules` not present in project-config.json, skip silently.
 - **Round cap (default 2, extendable ONCE to 3)** and **review-blockers-not-shrinking / increasing → STOP & escalate** via `AskUserQuestion`. NEVER loop open-ended. Round 3 is granted only when round 2 leaves a validated CRITICAL/HIGH open (a failed non-test binary gate counts as CRITICAL), is checked before the count-based stops, never renews, and round 2 blocked by MEDIUM alone escalates instead. A failing test gate is never capped: the loop keeps fixing and re-running until the tests pass. Cap exhaustion escalates only when CRITICAL/HIGH/MEDIUM remain — a LOW-only round converges via the severity floor.
 - **The severity floor bounds ITERATION, never the standard.** It ends the loop; it never authorizes shipping a known CRITICAL/HIGH/MEDIUM, never lowers the ≥85% finding-survival bar, and never applies to a binary gate (a failing test is a failure, not a LOW finding).
 
-**Mode sequence:** Step 0 (resolve diff scope + Goal Contract) → Step 0b (bind the convergence loop: protocol loop primary + optional `/goal` accelerator) → Step 1 (round loop: report-only review pass INLINE → `/why-review --validate-findings` → `/fix` on validated blocking findings → log) → Step 2 (converge when a fresh review clears the round's bar / escalate on non-progress) → Step 3 (terminal Phase 8 `/docs-update` + recap).
+**Mode sequence:** Step 0 (resolve diff scope + Goal Contract) → Step 0b (bind the convergence loop: protocol loop primary + optional `/goal` accelerator) → Step 1 (round loop: report-only review pass INLINE → `/why-review --validate-findings` → `/fix` on validated blocking findings → log) → Step 2 (converge when a fresh review clears the round's bar / escalate on non-progress) → Step 3 (terminal Phase 8 `/docs-update` + mint the review receipt + recap).
 
 ### Fix-Loop First Principle — Convergence, Not Motion
 
@@ -1145,7 +1145,14 @@ Evaluate after every round, **in this order — the first matching row decides**
 ### Fix-Loop Step 3 — Terminal Docs-Update + Recap
 
 1. **Terminal docs-update (MANDATORY once converged).** Each round's pass stopped before Phase 8, so run the **Phase 8 protocol** exactly once now — `/docs-update` INLINE over the full changeset, with any SPEC-STALE/SPEC-SILENT `/spec` updates first and its termination guarantee — once a fresh full review pass clears the round's exit bar (zero validated findings in round 1, or zero validated CRITICAL/HIGH/MEDIUM from round 2 onward with LOW deferred), so no stale docs survive.
-2. **Recap.** Emit a concise convergence recap: rounds run, validated findings per round (the shrinking sequence), the fixes applied at each round, the final zero-findings evidence, the deferred LOWs, and the Goal Satisfaction matrix (required criterion PASS). Point to each round's review report under `tmp/reports/` and the Goal Contract Iteration Log. Do NOT commit or push unless the user explicitly asks.
+2. **Mint the review receipt (MANDATORY terminal action).** Once converged AND the terminal docs-update has landed, run:
+
+   ```bash
+   node .claude/hooks/lib/review-receipt.cjs issue --kind=changes-review
+   ```
+
+   This records — for the review-before-commit gate (`review-commit-gate.cjs`) — that THIS exact changeset passed a fix-loop. The command computes the changeset fingerprint itself, so run it as the LAST action: any content edit afterwards invalidates the receipt and the commit gate refuses the commit. Treat `No local changes to review` as `review-receipt: N/A — non-changeset scope` and continue.
+3. **Recap.** Emit a concise convergence recap: rounds run, validated findings per round (the shrinking sequence), the fixes applied at each round, the final zero-findings evidence, the deferred LOWs, and the Goal Satisfaction matrix (required criterion PASS). Point to each round's review report under `tmp/reports/` and the Goal Contract Iteration Log. Do NOT commit or push unless the user explicitly asks.
 
 ### Fix-Loop Convergence Detection — Why a Fresh Full Re-Review Is Required
 

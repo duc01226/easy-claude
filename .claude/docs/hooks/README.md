@@ -75,6 +75,7 @@ The PreToolUse / UserPromptSubmit hooks are gates — not content injectors.
 | `bash-shell-guard.cjs`         | `Bash`                                                                | Block PowerShell here-strings (`@' … '@`) and name the POSIX heredoc replacement — Git Bash reports only `@: command not found`                                                                                                                                                                                                                                                                                   |
 | `git-commit-block.cjs`         | `Bash`                                                                | Deny protected Git statements — and the GitHub CLI's modeled write verbs (`gh pr create\|merge`, `gh release create`, `gh api -X POST\|PUT\|PATCH\|DELETE`, …) — unless the current session has an exact, unexpired lease for the resolved repository and operation; `--amend` is unconditional deny                                                                                                              |
 | `doc-sync-gate.cjs`            | `Bash` and `Write\|Edit\|MultiEdit`                                   | Doc⇄Code sync gate — WARN-only (every path exits 0; warnings go to stderr): warns when a `git commit` stages behavioral code in an enforced area without touching its Feature Spec, and per-edit when enforced-area code drifts past `last_synced`                                                                                                                                                                |
+| `review-commit-gate.cjs`       | `Bash`                                                                | Review-before-commit gate — block an agent `git commit` whose changeset has no review fix-loop receipt (`changes-review --fix-loop` / `why-review --fix-loop` / `workflow-review-changes --fix-loop`) and no user-approved `skip` receipt; fail-open on uninspectable input or a broken git. Receipts are content-fingerprinted (`lib/review-receipt.cjs`), so any edit after the review re-arms the gate |
 | `scout-block.cjs`              | `Bash\|Glob\|Grep\|Read\|Edit\|Write\|NotebookEdit`                   | Prevent bulk reads outside approved scope                                                                                                                                                                                                                                                                                                                                                                         |
 | `privacy-block.cjs`            | `Bash\|Glob\|Grep\|Read\|Edit\|Write\|NotebookEdit`                   | Block access to sensitive files (.env, keys, credentials)                                                                                                                                                                                                                                                                                                                                                         |
 | `path-boundary-block.cjs`      | `Bash\|Edit\|Write\|MultiEdit\|NotebookEdit` and `mcp__filesystem__*` | Block file access outside project root (security-critical)                                                                                                                                                                                                                                                                                                                                                        |
@@ -116,6 +117,7 @@ Lessons are managed via the `/learn` skill. See `.claude/skills/learn/SKILL.md`.
 | `windows-command-detector.cjs` | `Bash`                                                             | Detect/block Windows CMD syntax; auto-rewrite `\!` in `node -e` commands                                                          |
 | `bash-shell-guard.cjs`         | `Bash`                                                             | Block PowerShell here-strings (`@' … '@`); name the POSIX heredoc form                                                            |
 | `git-commit-block.cjs`         | `Bash`                                                             | Enforce deny-wins Git **and GitHub CLI** statement classification and exact session/repository/operation leases; no marker bypass |
+| `review-commit-gate.cjs`       | `Bash`                                                             | Require a review fix-loop receipt over the exact changeset before an agent commit; a user-approved `skip` receipt clears it       |
 | `github-mcp-write-block.cjs`   | `mcp__github__*`                                                   | Gate GitHub MCP writes behind the same session push lease; the third publish path, reached without a shell                        |
 
 ### Context Management & Utility
@@ -416,7 +418,7 @@ while `UserPromptSubmit` specifically accepts plaintext context.
 | `0`  | Success, allow operation to proceed            |
 | `2`  | Block operation (with error message on stderr) |
 
-> All hooks exit 0 (non-blocking) except blocking safety gates (`path-boundary-block`, `privacy-block`, `scout-block`, `git-commit-block`, `github-mcp-write-block`) which exit 2 to block. `init-prompt-gate.cjs` and `doc-sync-gate.cjs` are WARN-only — every code path exits 0.
+> All hooks exit 0 (non-blocking) except blocking safety gates (`path-boundary-block`, `privacy-block`, `scout-block`, `git-commit-block`, `review-commit-gate`, `github-mcp-write-block`) which exit 2 to block. `init-prompt-gate.cjs` and `doc-sync-gate.cjs` are WARN-only — every code path exits 0.
 
 ### Bash PreToolUse reliability contract
 
@@ -488,12 +490,12 @@ Doc paths in this file are defaults resolved against the project-reference docs 
 
 ## Testing
 
-Primary hook test status: `test-all-hooks.cjs` passes with 232 tests on a clean configured project. Aggregate discovery status: `run-all-tests.cjs` discovers 664 tests on the current suite set. These totals are maintained by the test-runner count guards; rerun both commands below before publishing a new count. The discovered total includes the process-boundary Bash contract suite and varies only when suites are intentionally added or removed.
+Primary hook test status: `test-all-hooks.cjs` passes with 232 tests on a clean configured project. Aggregate discovery status: `run-all-tests.cjs` discovers 671 tests on the current suite set. These totals are maintained by the test-runner count guards; rerun both commands below before publishing a new count. The discovered total includes the process-boundary Bash contract suite and varies only when suites are intentionally added or removed.
 
 | Test Surface          | Count | File/Location                                                     |
 | --------------------- | ----- | ----------------------------------------------------------------- |
 | Primary hook runner   | 232   | `.claude/hooks/tests/test-all-hooks.cjs`                          |
-| Aggregate runner      | 664   | `.claude/hooks/tests/run-all-tests.cjs` (all suites, discovered)  |
+| Aggregate runner      | 671   | `.claude/hooks/tests/run-all-tests.cjs` (all suites, discovered)  |
 | Standalone test files | TODO  | `tests/test-*.cjs/.js` excluding runner (re-verify before citing) |
 | Scout-block tests     | TODO  | `scout-block/tests/test-*.js` (re-verify before citing)           |
 | Lib unit tests        | TODO  | `lib/__tests__/*.test.cjs` (re-verify before citing)              |

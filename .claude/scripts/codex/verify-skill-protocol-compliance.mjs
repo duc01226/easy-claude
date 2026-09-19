@@ -41,7 +41,11 @@ const AGENTS_ROOT_PROJECTION_END = '/CK:CODEX-ROOT-PROJECTION';
 // valid output. Deliberately a LOCAL copy, NOT an import: this file is loaded from a `data:` URL and
 // copied into isolated roots without its siblings (`verifier-root-contract.test.mjs`), so a relative
 // import breaks it. `verify-skill-protocol-compliance.test.mjs` asserts the two constants match.
-export const AGENTS_ROOT_LIMIT_BYTES = 53248;
+// 2026-09-19: raised 53248 -> 61440 (52 -> 60 KiB) in lockstep with the generator. CLAUDE.md is
+// prettier-managed source; its table padding inflates the projected mirror, so the old ceiling was
+// set against an un-padded root and overflowed on the first ordinary edit. Kept equal to the
+// generator via `verify-skill-protocol-compliance.test.mjs`.
+export const AGENTS_ROOT_LIMIT_BYTES = 61440;
 const DEBUGGER_TRACE_MARKER = '<!-- SYNC:end-to-start-debugger-trace -->';
 const DEBUGGER_TRACE_REQUIRED_SNIPPETS = [
     'End-to-Start Debugger Trace',

@@ -10,7 +10,7 @@
 | **Need a skill?**              | [skills/README.md](./skills/README.md) - 124 skills catalog                                                                        |
 | **Building a feature?**        | [skills/README.md](./skills/README.md) + project-reference root patterns                                                           |
 | **Verifying user experience?** | [configuration/experience-verification.md](./configuration/experience-verification.md) - portable evidence and acceptance contract |
-| **Understanding hooks?**       | [hooks/README.md](./hooks/README.md) - 20 top-level hook files deep-dive                                                           |
+| **Understanding hooks?**       | [hooks/README.md](./hooks/README.md) - 21 top-level hook files deep-dive                                                           |
 | **Understanding workflows?**   | `CLAUDE.md` workflow catalog (project root) - 19 workflows                                                                         |
 | **Configuring Claude?**        | [configuration/README.md](./configuration/README.md)                                                                               |
 | **Team collaboration?**        | [team-collaboration-guide.md](./team-collaboration-guide.md) - PO, BA, QA, QC, UX workflows                                        |
@@ -30,7 +30,7 @@ Project-owned branches below sit at their DEFAULT roots; `docs/project-config.js
 |   |-- README.md             Skills overview + full catalog
 |   +-- (patterns)           → docs/project-reference/
 |
-|-- hooks/                    20 top-level hook files, 36 lib modules
+|-- hooks/                    21 top-level hook files, 37 lib modules
 |   |-- README.md             Hooks overview, lessons system, session lifecycle
 |   +-- extending-hooks.md    How to create custom hooks
 |
@@ -152,7 +152,7 @@ Unprefixed filenames resolve inside the project-reference docs root — default 
 | Category               | Count |
 | ---------------------- | ----- |
 | Skills                 | 124   |
-| Hook files (top-level) | 20    |
+| Hook files (top-level) | 21    |
 | Lib Modules            | 36    |
 | Hook Events            | 8     |
 | Agents                 | 23    |

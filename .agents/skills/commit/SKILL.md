@@ -55,6 +55,7 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 - **STEP 2.9 — DERIVE THE ESTIMATE** via the carried `SYNC:estimation-framework` against the STAGED diff (or reuse the implemented plan/PBI/story frontmatter with `(source: <path>)`). SP is DERIVED from `likely_days`, never eyeballed; discount generated/lockfile/docs churn first.
 - **STEP 3 — GENERATE MESSAGE.** Subject `type(scope): description`; body OPENS with the Estimate line, then purpose/kind → what changed → how it works, then the Reviewers block.
 - **STEP 3.5 — TEST-VERIFY GATE (BLOCKING when code changed).** ask the user directly, default **verify** via `$workflow-integration-test-green`. Only an explicit **Yes — already verified** or **Skip** proceeds; NEVER choose skip on the user's behalf. If the gate mutates the staged set, **re-stage AND re-derive the estimate**.
+- **STEP 3.6 — REVIEW GATE (BLOCKING — always).** Check for a review fix-loop receipt over the CURRENT changeset: `node .claude/hooks/lib/review-receipt.cjs check`. A non-null `review` (from `$changes-review --fix-loop`, `$why-review --fix-loop`, or `$workflow-review-changes --fix-loop`) or an existing `skip` proceeds. Otherwise ask the user directly: run a fix-loop (default), or **the user** explicitly skips (which mints a `skip` receipt). NEVER choose skip for the user. The hook `review-commit-gate.cjs` enforces this mechanically; if the fix-loop changed the staged set, **re-stage AND re-derive the estimate**.
 - **STEP 4 — COMMIT** with the HEREDOC form (subject → blank → Estimate → body → Reviewers → footer).
 - **STEP 5 — VERIFY** via `git status` + `git log`; confirm the first body line IS the Estimate line, then re-present the reviewer assignment.
 - **STEP 6 — REFRESH THE CODE GRAPH (post-commit, BACKGROUND, non-blocking).** Only when `.code-graph/` exists: fire `$graph-build --scope=sync` in the background so the commit that just moved HEAD is re-parsed AND the graph's `last_synced_commit` advances with it. NEVER blocks or gates the commit; a failure is reported, never retried inline.
@@ -69,8 +70,9 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 5. **Derive Estimate** — Apply the carried `SYNC:estimation-framework` to the staged diff (or reuse the frontmatter of the plan/PBI/story this commit implements) to derive `story_points` + `man_days_ai` — computed BEFORE the message so the numbers can head the body
 6. **Generate Message** — Detect type (feat/fix/refactor/etc.), extract scope from paths, write subject, open the body with the **Estimate** line from step 5, add a detailed body structured as **purpose/kind → what changed → how it works**, and append the **Reviewers** block from step 4
 7. **Test-Verify Gate** — When staged changes include code that might need tests, ask the user (ask the user directly, default **verify**) to verify via `$workflow-integration-test-green`, confirm **Yes — already verified**, or explicitly **Skip**. Default = verify first, and verify means drive the suite to green, not merely report it
-8. **Commit** — Create commit with HEREDOC (title + Estimate line + detailed summary + Reviewers block + attribution footer)
-9. **Verify** — Confirm with git status and git log
+8. **Review Gate** — Require a review fix-loop receipt over the current changeset (`node .claude/hooks/lib/review-receipt.cjs check`); if absent, ask the user to run `$changes-review --fix-loop` (default), `$why-review --fix-loop`, or explicitly skip (which mints a `skip` receipt). NEVER skip on the user's behalf. The `review-commit-gate.cjs` hook blocks a commit that has neither
+9. **Commit** — Create commit with HEREDOC (title + Estimate line + detailed summary + Reviewers block + attribution footer)
+10. **Verify** — Confirm with git status and git log
 
 **Key Rules:**
 
@@ -78,6 +80,7 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 - Write a detailed body — **purpose/kind → what changed → how it works** — so the next human reading `git log`/`git blame` understands the change without opening the diff. As detailed as the change needs (wrap ~72 chars); no title-only commits for non-trivial changes
 - Embed a **Reviewers** block in the commit message — the per-area reviewers (last author per touched file vs `HEAD`, commit author excluded) — computed BEFORE committing so it lives in the message body, not just as a side report
 - When staged changes include code that might need tests, **gate the commit on test verification** — ask the user to verify via `$workflow-integration-test-green` (default), confirm already-verified, or explicitly skip; only an explicit **Yes** or **Skip** proceeds straight to commit, and the agent NEVER chooses skip on the user's behalf
+- **Gate the commit on a review fix-loop receipt (Step 3.6, blocking — always)** — check `node .claude/hooks/lib/review-receipt.cjs check`; a non-null `review` (from `$changes-review --fix-loop`, `$why-review --fix-loop`, or `$workflow-review-changes --fix-loop`) or an existing `skip` proceeds. Otherwise ASK the user to run a fix-loop (default) or explicitly skip (which mints a `skip` receipt). NEVER choose skip yourself; `review-commit-gate.cjs` blocks a commit with neither
 - Stop after the commit; push only when the user explicitly requests it (or passes `--push` / says "commit and push" → stage + commit + push via `git-manager`)
 - Never commit secrets, credentials, or .env files
 - Never use `--amend` or `--no-verify` unless explicitly requested
@@ -352,6 +355,45 @@ Rules:
 - **If the verify branch changed ANY file, re-stage and RE-DERIVE before Step 4.** Option 1 can land test or source fixes AFTER Step 2.9 already ran, so the diff the estimate described is no longer the diff being committed. Mirror Step 2.5: re-stage the new changes with `git add`, then re-run Step 2.9 over the updated `git diff --cached` and put the fresh numbers in the message. Options 2 and 3 mutate nothing, so the original Step 2.9 numbers stand.
 - This gate is independent of `--push`: it runs before the commit in every mode.
 
+### Step 3.6: Review Gate (blocking — always)
+
+No commit may reach Step 4 without a review fix-loop receipt over the **current changeset**. This runs after Step 3.5 so the review covers the FINAL code — never commit content no fix-loop saw.
+
+**Check for a receipt:**
+
+```bash
+node .claude/hooks/lib/review-receipt.cjs check
+```
+
+Read the JSON:
+
+- `review` is a kind (`changes-review` | `why-review` | `workflow-review-changes`) → a fix-loop already converged over this exact changeset; proceed to Step 4.
+- `review` is `null` but `skip` is `skip` → the user already approved skipping for this changeset; proceed to Step 4.
+- both `null` → STOP and ask the user with ask the user directly (never commit yet):
+
+  > Header: `Review gate`
+  > Question: `No review fix-loop has covered this exact changeset. Review before committing, or skip?`
+  > Options (in order — first is the default):
+  > 1. `Run $changes-review --fix-loop` (Recommended) — do NOT commit yet; activate the `changes-review` skill in `--fix-loop` mode. It reviews, validates findings, fixes at the owning layer, and runs a fresh full re-review until it converges, then mints the receipt. Return to this step when it converges (and re-derive if it changed files).
+  > 2. `Run $why-review --fix-loop` — same, using the rationale-review loop (`why-review` in `--fix-loop` mode); it mints the receipt on convergence.
+  > 3. `Skip — commit without review` — the user's explicit, recorded decision. Ask them to confirm, then mint the approved skip and proceed:
+
+     ```bash
+     node .claude/hooks/lib/review-receipt.cjs skip --reason="user approved skip"
+     ```
+
+     Record `Review gate: skipped by user` in the response (never in the commit message).
+
+Rules:
+
+- **Default is option 1 (review).** If the user does not actively choose a skip, review first — never commit unreviewed content on assumption.
+- **Skip is the user's call alone.** Offer it, never recommend it, and NEVER select it yourself — an agent that can skip its own gate has no gate.
+- **The receipt is bound to the changeset fingerprint** (`git diff HEAD --binary`). Staging does not invalidate it; ANY content edit after the review does. So after the fix-loop converges, do not edit files. If Step 3.5's verify (or any later step) changed files after the review, re-run the relevant gate and mint a fresh receipt over the new content.
+- **Minting is the fix-loop's job, not yours.** The three fix-loop skills mint the receipt at their terminal step; you only mint a `skip` receipt, and only after the user explicitly approves.
+- **Mechanical enforcement:** `review-commit-gate.cjs` (a `PreToolUse` hook on Bash) refuses an agent `git commit` whose changeset has neither a review receipt nor a skip receipt — so a forgotten review cannot slip through. The check above exists so the gate is handled deliberately instead of by a hook bounce.
+- Re-run this gate only once per commit; after a review-or-skip decision, proceed to Step 4 without re-asking.
+- This gate is independent of `--push`: it runs before the commit in every mode.
+
 ### Step 4: Commit
 
 Use a structured message file/stdin so the mandatory body fields cannot be
@@ -435,8 +477,10 @@ Generated by AI
 
 ## Critical Rules
 
+- **This skill is the ONLY supported commit path** — a raw ad-hoc `git commit` from the agent is refused by `review-commit-gate.cjs` unless a review fix-loop receipt (or a user-approved `skip` receipt) exists for the changeset. Always run the Review Gate (Step 3.6) before committing
 - **Stage only the user-authorized paths** before committing — never use a repository-wide `git add .` when unrelated work may be present; preserve other owners' index/worktree changes
 - **Test-Verify Gate (Step 3.5):** when staged changes include code that might need tests, ask the user to verify via `$workflow-integration-test-green` (default — it converges the suite to green), confirm already-verified, or explicitly skip; only an explicit **Yes** or user-chosen **Skip** commits without verifying, and the agent NEVER picks skip itself. Bypass the gate entirely only when the staged set is docs, specs, or config with no source-code change
+- **Review Gate (Step 3.6, blocking — ALWAYS):** no commit without a review fix-loop receipt over the current changeset. `node .claude/hooks/lib/review-receipt.cjs check` must report a `review` kind (`changes-review` | `why-review` | `workflow-review-changes`) or an existing `skip`; otherwise ASK the user to run `$changes-review --fix-loop` (default), `$why-review --fix-loop`, or explicitly skip (minting a `skip` receipt). The agent NEVER chooses skip on the user's behalf. `review-commit-gate.cjs` enforces this mechanically, and the receipt is invalidated by any content edit after the review
 - **Estimate line is MANDATORY and comes FIRST in the body** — `Estimate: <n> SP | man_days_ai: <x>d | man_days_traditional: <y>d`, derived bottom-up per the carried `SYNC:estimation-framework` against the STAGED diff (Step 2.9), or reused from the implemented plan/PBI/story frontmatter with `(source: <path>)`. Story points and AI man-days are required; discount generated/lockfile/docs churn before estimating
 - **Stop after the commit; push** to remote only when the user explicitly requests it
 - **Refresh the code graph after committing (Step 6)** — when `.code-graph/` exists, fire `$graph-build --scope=sync` in the BACKGROUND (`run_in_background: true`) so the commit that moved HEAD is re-parsed and `last_synced_commit` advances with it; skip silently when the dir is absent. Non-blocking by design: it NEVER gates, delays, or fails the commit

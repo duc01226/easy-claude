@@ -60,7 +60,7 @@ CLAUDE.md                # Project instructions at repo root (read by Claude)
 
 ### .ck.json
 
-**Purpose:** Claude Kit-specific configuration for output styles, planning, and project rules.
+**Purpose:** Claude Kit settings for output style, planning, and hook behavior. Project-specific architecture and coding conventions belong in `docs/project-config.json` and its referenced project documentation.
 
 ```json
 {
@@ -75,7 +75,10 @@ CLAUDE.md                # Project instructions at repo root (read by Claude)
             "maxQuestions": 8
         }
     },
-    "assertions": ["Backend: Use service-specific repositories", "Frontend: Use project store base for state"]
+    "assertions": [
+        "Search for existing implementations before creating new code",
+        "Follow the project's documented architecture and conventions"
+    ]
 }
 ```
 
@@ -85,9 +88,11 @@ CLAUDE.md                # Project instructions at repo root (read by Claude)
 | `privacyBlock`      | boolean  | Enable privacy blocking hook                 |
 | `plan.namingFormat` | string   | Plan directory naming pattern                |
 | `plan.validation`   | object   | Plan validation settings                     |
-| `assertions`        | string[] | Project-specific rules injected into context |
+| `assertions`        | string[] | Optional stack-neutral reminders; project conventions belong in `docs/project-config.json` and its reference docs |
 | `locale`            | object   | Language settings for thinking/responses     |
 | `trust`             | object   | Trust passphrase configuration               |
+
+In this repository, the SessionStart hook loads `.ck.json` settings but does not inject the `assertions` array into prompt text.
 
 **See:** [output-styles.md](./output-styles.md) for coding levels 0-5.
 
@@ -276,14 +281,19 @@ Records live in `tmp/prompt-ledger/<session>/` (override `CK_PROMPT_LEDGER_DIR`)
 }
 ```
 
-### Add Custom Assertions
+### Add Optional Assertion Reminders
 
 ```json
 // .ck.json
 {
-    "assertions": ["Always use Prettier for formatting", "Never commit directly to main branch", "Use conventional commit messages"]
+    "assertions": [
+        "Read relevant project references before applying architecture-specific conventions",
+        "Prefer an existing implementation when it fits the requirement"
+    ]
 }
 ```
+
+Keep tracked `.claude` defaults stack-neutral. Define durable project-specific rules in `docs/project-config.json` and the referenced project documentation.
 
 ### Customize Plan Naming
 

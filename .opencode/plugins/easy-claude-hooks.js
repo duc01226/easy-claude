@@ -95,6 +95,10 @@ const HOOKS = {
         {
           "type": "command",
           "command": ".claude/hooks/doc-sync-gate.cjs"
+        },
+        {
+          "type": "command",
+          "command": ".claude/hooks/review-commit-gate.cjs"
         }
       ],
       "matcher": "Bash"

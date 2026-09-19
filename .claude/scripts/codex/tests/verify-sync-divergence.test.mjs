@@ -276,7 +276,10 @@ const EXPECTED_RENDERED_GROUPS = [
     // Already carries Codex's own `update_plan`, so no file-tool widening applies.
     ['PostToolUse', 'TodoWrite|TaskCreate|TaskUpdate|update_plan', 1],
     ['PreToolUse', 'AskUserQuestion', 1],
-    ['PreToolUse', 'Bash', 4],
+    // review-commit-gate (2026-09-19): review-before-commit receipt gate, a fifth Bash
+    // PreToolUse hook alongside windows-command-detector / bash-shell-guard /
+    // git-commit-block / doc-sync-gate.
+    ['PreToolUse', 'Bash', 5],
     ['PreToolUse', 'Bash|Glob|Grep|Read|Edit|Write|NotebookEdit|apply_patch', 2],
     ['PreToolUse', 'Bash|Edit|Write|MultiEdit|NotebookEdit|apply_patch', 1],
     ['PreToolUse', 'Write|Edit|MultiEdit|apply_patch', 1],
