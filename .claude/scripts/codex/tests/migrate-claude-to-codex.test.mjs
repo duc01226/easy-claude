@@ -39,9 +39,16 @@ async function copyPortableCodexTooling(tempRoot) {
     const sourceLibDir = path.join(repoRoot, '.claude', 'scripts', 'lib');
     const libEntries = await fs.readdir(sourceLibDir, { withFileTypes: true });
     for (const entry of libEntries) {
-        if (!entry.isFile() || !entry.name.endsWith('.cjs')) continue;
+        if (!entry.isFile() || !/\.(cjs|mjs)$/.test(entry.name)) continue;
         await fs.copyFile(path.join(sourceLibDir, entry.name), path.join(targetLibDir, entry.name));
     }
+
+    const sharedTarget = path.join(tempRoot, '.claude', 'skills', 'shared');
+    await fs.mkdir(sharedTarget, { recursive: true });
+    await fs.copyFile(
+        path.join(repoRoot, '.claude', 'skills', 'shared', 'workflow-first-gate.md'),
+        path.join(sharedTarget, 'workflow-first-gate.md')
+    );
 }
 
 test('migrate-claude-to-codex mirrors skills and injects protocol block', async () => {
@@ -171,9 +178,8 @@ test('migrate-claude-to-codex mirrors skills and injects protocol block', async 
 
         assert.match(mirroredSkill, /CODEX:SYNC-PROMPT-PROTOCOLS:START/);
         assert.match(mirroredSkill, /Static Prompt Protocol Mirror/);
-        assert.match(mirroredSkill, /Custom portable rule from local config\./);
-        assert.match(mirroredSkill, /custom\/project-config\.json/);
-        assert.match(mirroredSkill, /custom\/docs-index\.md/);
+        assert.doesNotMatch(mirroredSkill, /Custom portable rule from local config\./);
+        assert.doesNotMatch(mirroredSkill, /WORKFLOW-EXECUTION-PROTOCOL|Auto-select|Workflow Catalog/i);
         assert.doesNotMatch(mirroredSkill, /Lessons Stub/);
         assert.doesNotMatch(mirroredSkill, /Workflow Protocol Stub|Critical Context Stub|Lesson Reminder Stub/);
         assert.doesNotMatch(mirroredSkill, /prompt-injections\.cjs/);
@@ -200,6 +206,9 @@ test('migrate-claude-to-codex mirrors skills and injects protocol block', async 
         assert.match(mirroredAgent, /name = "sample-agent"/);
         assert.match(mirroredAgent, new RegExp(subagentAuthorizationSnippet.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
         assert.match(codexConfig, /notify = \["node", "\.codex\/scripts\/codex\/codex-notify\.mjs"\]/);
+        assert.match(codexConfig, /^model_auto_compact_token_limit = 500000$/m);
+        assert.equal([...codexConfig.matchAll(/^model_auto_compact_token_limit\s*=/gm)].length, 1);
+        assert.ok(codexConfig.indexOf('model_auto_compact_token_limit = 500000') < codexConfig.indexOf('[[profiles]]'));
         assert.match(codexConfig, /\[tui\]/);
         assert.match(codexConfig, /notifications = true/);
         assert.match(codexConfig, /notification_condition = "always"/);
@@ -303,6 +312,7 @@ test('sync-codex runner works from copied .claude without a root scripts folder'
         const codexConfig = await fs.readFile(path.join(tempRoot, '.codex', 'config.toml'), 'utf8');
         const mirroredSkill = await fs.readFile(path.join(tempRoot, '.agents', 'skills', 'sample-skill', 'SKILL.md'), 'utf8');
         assert.match(codexConfig, /notify = \["node", "\.codex\/scripts\/codex\/codex-notify\.mjs"\]/);
+        assert.match(codexConfig, /^model_auto_compact_token_limit = 500000$/m);
         assert.match(codexConfig, /status_line = \["model-with-reasoning", "current-dir", "project-root", "context-used", "five-hour-limit", "weekly-limit"\]/);
         assert.doesNotMatch(mirroredSkill, /Lessons Stub/);
         assert.doesNotMatch(mirroredSkill, /Workflow Protocol Stub|Critical Context Stub|Lesson Reminder Stub|prompt-injections\.cjs/);

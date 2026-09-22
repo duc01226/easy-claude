@@ -1,6 +1,6 @@
 ---
 name: scan-all
-description: '[Documentation] Use when orchestrating all reference doc scans in parallel.'
+description: '[Documentation] Use when refreshing all selected and evidence-applicable reference-doc scan targets.'
 ---
 
 > Codex compatibility note:
@@ -29,7 +29,7 @@ When coding, planning, debugging, testing, or reviewing, open project docs expli
 **Situation-based docs:**
 - Project structure/architecture/tech-stack/deployment/setup (any layer — backend, frontend, or infra): `project-structure-reference.md`
 - Backend/CQRS/API/domain/entity changes: `backend-patterns-reference.md`, `domain-entities-reference.md`
-- Frontend/UI/styling/design-system: `frontend-patterns-reference.md`, `scss-styling-guide.md`, `design-system/README.md`
+- Frontend/UI/styling/design-system: `frontend-patterns-reference.md`, `configured styling reference`, `design-system/README.md`
 - Spec authoring, `docs/specs/` pathing, or TC format: `feature-spec-reference.md`, `spec-system-reference.md`, `spec-principles.md`
 - Behavior/public-contract changes or spec-test-code sync: `workflow-spec-test-code-cycle-reference.md` plus the spec docs above
 - Derived spec indexes/ERDs/reimplementation guides: `spec-system-reference.md` and source Feature Specs under `docs/specs/`
@@ -42,120 +42,80 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 
 ## Quick Summary
 
-**Goal:** Run all 12 scan-\* skills in parallel and clear the staleness gate.
+**Goal:** Discover and refresh selected, evidence-applicable built-in targets and explicitly generic custom reference docs without assuming every project has every capability.
 
 **Workflow:**
 
-1. **Check Prerequisites** — Verify project has content (not empty)
-2. **Launch Parallel Scans** — All 12 skills simultaneously
-3. **Collect Results** — Read scan output from reference docs
-4. **Clear Staleness Flag** — Re-evaluate all docs via `refreshScanStaleFlag()`, which removes `.claude/.scan-stale` once every doc is fresh (see Post-Scan Cleanup)
-5. **Build Knowledge Graph** — Run `$graph-build` to update structural graph
-6. **Enhance Docs** — Run `$prompt-enhance` on all 12 scanned docs
-7. **Summarize** — Report what was refreshed
+1. **Validate** — Require a schema-valid project-config file with a non-empty `project.name`.
+2. **Resolve** — Read always-on inputs separately and resolve the effective task-specific `referenceDocs` selection.
+3. **Filter** — Resolve exact built-in targets, selected generic custom docs, and manually owned docs; verify capability evidence for each scan.
+4. **Scan** — Run eligible targets in parallel only when their output write sets are disjoint.
+5. **Verify** — Check every result and skip; clear stale status only after all required owners are current.
+6. **Summarize** — Report refreshed, unchanged, skipped, blocked, and manual docs with evidence.
 
 **Key Rules:**
 
-- All 12 scans run in PARALLEL for speed
-- Does NOT modify code — only populates the project-reference docs root (default `docs/project-reference/`; a `docsRoots.projectReference.path` entry in `docs/project-config.json` overrides the path)
-- Clears `.claude/.scan-stale` flag after completion
-- `$prompt-enhance` ensures AI attention anchoring on all generated docs
+- The registered targets are an option catalog, not a required scan list.
+- `referenceDocs` absent resolves to no task-specific docs for a minimal project, adding only refs supported by config/repository evidence. An explicit array, including `[]`, is exact.
+- `lessons.md` and the docs index are project-init-owned always-on context inputs; they are outside task-specific selection.
+- Each built-in scanner writes only its manifest `doc`. A custom doc defaults to manual ownership; only `scanTarget: "generic"` opts it into an evidence-based generic scan. Never infer a built-in target from a basename.
+- The generic scanner writes only the exact selected filename and uses its configured `purpose` and optional `sections`. Generic docs receive conservative non-disposable repository-wide impact routing; manual docs are not auto-scanned, freshness-tracked, or impact-routed.
+- Optional capabilities that are not evidenced are skipped with the checked config/source evidence.
+- Scans update reference documentation only. Graph work or any broader setup is conditional on project capability and a separate owner.
 
 ## When to Use
 
 - Staleness gate blocks prompts ("BLOCKED: Reference docs are stale")
-- First time using easy-claude on an existing project (project onboarding)
+- First time initializing reference documentation for a content-bearing project
 - Periodic refresh when codebase has changed significantly
 - User runs `$scan-all` manually
 
 ## When to Skip
 
-- Empty/greenfield project (no code to scan)
-- All reference docs are already fresh (no staleness warning)
+- Empty/greenfield project without evidenced capabilities; project-init handles its always-on context and no capability scans run.
+- No selected applicable docs are stale and project-init-owned always-on inputs are current.
 
 ## Execution
 
-Each scan reads real code evidence and (re)populates ONE reference doc under the project-reference docs root — default `docs/project-reference/`; a `docsRoots.projectReference.path` entry in `docs/project-config.json` overrides the path. Those docs are injected into AI context downstream, so scanning is what keeps that guidance true to the current codebase — the **Purpose** column says what each scan documents and therefore why it matters. Launch all 12 code-derived scans in parallel:
+### 1. Validate and resolve config
 
-| #   | Invocation                         | Target Doc                       | Purpose — what the scan documents |
-| --- | ---------------------------------- | -------------------------------- | --------------------------------- |
-| 1   | `$scan --target=project-structure` | `project-structure-reference.md` | Service architecture, ports, directory layout, tech stack, deployment & module registry (spans backend, frontend, infra) |
-| 2   | `$scan --target=backend-patterns`  | `backend-patterns-reference.md`  | Repository, CQRS, validation, entity, event & migration patterns |
-| 3   | `$scan --target=seed-test-data`    | `seed-test-data-reference.md`    | Seeder patterns & conventions, from real code evidence |
-| 4   | `$scan --target=frontend-patterns` | `frontend-patterns-reference.md` | Component, state, form, API, routing & styling patterns |
-| 5   | `$scan --target=integration-tests` | `integration-test-reference.md`  | Integration-test base classes, fixtures, helpers & service setup |
-| 6   | `$scan --target=feature-spec`      | `feature-spec-reference.md`      | Feature-doc structure, app→service mapping, spec templates & conventions |
-| 7   | `$scan --target=code-review-rules` | `code-review-rules.md`           | Code conventions, anti-patterns, architecture rules & review checklists |
-| 8   | `$scan --target=scss-styling`      | `scss-styling-guide.md`          | SCSS architecture, BEM conventions, mixins, variables, theming & responsive patterns |
-| 9   | `$scan --target=design-system`     | `design-system/README.md`        | Design tokens, component inventory & app→doc design-system mappings |
-| 10  | `$scan --target=e2e-tests`         | `e2e-test-reference.md`          | E2E architecture, page objects, step definitions, config & framework patterns |
-| 11  | `$scan --target=domain-entities`   | `domain-entities-reference.md`   | Domain entities, DTOs, aggregate boundaries, sync patterns & ER diagrams |
-| 12  | `$scan --target=docs-index`        | `docs-index-reference.md`        | Documentation structure, categories, relationships & lookup tables |
+Resolve the configured project-config file through `.claude/hooks/lib/project-config-loader.cjs` (default `docs/project-config.json`). Require a valid schema and non-empty `project.name`; repair a missing or invalid file through project initialization before scanning. Optional capability sections may be omitted. A declared incomplete or unsupported section blocks the run.
 
-> **Coverage & count.** These 12 are the *code-derived* docs. The child `scan` skill exposes a 13th key, `ui-system` — a meta-target that only fan-runs #4, #8, #9 together — intentionally excluded here to avoid double-scanning. Curated/static docs (`lessons.md`, `spec-principles.md`, `spec-system-reference.md`, `workflow-spec-test-code-cycle-reference.md`) are hand-authored, not scanned, so they are absent by design. Purpose text mirrors each target's `description` in `.claude/skills/scan/references/targets.md` — update it THERE first if a target's scope changes, then reflect it here.
+Use `.claude/hooks/lib/session-init-helpers.cjs` to resolve the effective `referenceDocs` selection; do not copy the full registry into this skill:
 
-## Post-Scan Cleanup
+- When `referenceDocs` is absent, the resolver supplies only the portable baseline and capability references supported by config/repository evidence. A minimal project with no evidenced capability resolves to no task-specific references.
+- When `referenceDocs` is an explicit array, including `[]`, the array is the exact task-specific selection.
+- The always-on `lessons.md` and docs-index inputs are owned by project initialization and remain outside this selection. Confirm those inputs through their owner; do not append them to task-specific work.
 
-After all scans complete, clear the staleness flag:
+### 2. Map selected docs to targets
+
+Read `.claude/skills/scan/references/targets.md`. Resolve each selected filename exactly. Built-in filenames use only their framework-owned manifest target; a custom filename with `scanTarget: "generic"` uses `$scan --target=generic-reference-doc --filename="<filename>"`; a custom filename with no target or `scanTarget: "manual"` remains under curated project ownership. Resolve the containing root from `docsRoots.projectReference.path` (default `docs/project-reference/`; `docsRoots.projectReference.path` in `docs/project-config.json` overrides it).
+
+- Custom `referenceDocs` entries require `filename` and `purpose`, with optional `sections`, `templatePath`, and `scanTarget`. Config validation rejects unknown targets and unsafe paths; runtime path resolution also rejects physical symlink escapes.
+- Registered targets are optional capabilities. Apply each entry's `applies when` and `skip when` evidence before launching it. Config can select a scan or guide source search, but source examples and patterns must still be verified.
+- If a selected built-in target's capability is absent, report `SKIPPED` with the config/source paths checked. Do not create a placeholder or claim the doc is refreshed. Generic scans use only their configured purpose and selected output; manual docs are not scan candidates.
+- Do not launch `ui-system` alongside its child targets. `scan-all` selects individual docs from the effective list; an explicitly routed UI orchestration can fan out only to applicable children.
+- Deduplicate identical targets. Targets with different owned output docs may run in parallel; shared output owners run once.
+
+### 3. Run and verify
+
+For each eligible built-in or generic target, invoke its exact scan command and accept only its evidence-backed result. Generic targets include their configured filename. A scan can finish as `UPDATED`, `UNCHANGED`, `SKIPPED`, or `BLOCKED`; preserve the target report and surface every non-complete status.
+
+Check the exact selected outputs and the always-on owner inputs. Clear `.claude/.scan-stale` only after the selected automatically scannable docs are current and project-init-owned inputs are confirmed; skipped or stale docs keep the result open. Manual docs do not enter the automated freshness gate. Use the owner helper only after this check:
 
 ```bash
 node -e "require('./.claude/hooks/lib/session-init-helpers.cjs').refreshScanStaleFlag()"
 ```
 
-This re-evaluates all docs and removes the `.scan-stale` gate if all are now fresh.
+Each changed scan output follows its target's enhancement rule. Verify that enhancement in the scan result; do not run a second hardcoded enhancement list or rewrite unchanged/skipped docs.
 
-## Post-Scan: Build Knowledge Graph (MANDATORY)
+## Optional Graph Refresh
 
-After all scans complete, **MUST ATTENTION create a follow-up task:**
-
-**Task tracking: "Run $graph-build to build/update code knowledge graph"**
-
-The knowledge graph uses `project-config.json` (populated by scans) for API connector patterns and implicit connection rules. Building the graph after scans ensures:
-
-- Frontend↔backend API_ENDPOINT edges use accurate service paths
-- MESSAGE_BUS implicit edges use correct consumer patterns
-- Graph trace shows full system flow (frontend → backend → cross-service consumers)
-
-```bash
-python .claude/scripts/code_graph build --json
-```
-
-## Post-Scan: Enhance Generated Docs (MANDATORY)
-
-Each scan-\* sub-skill now self-enhances its own doc as its final step. After graph build, **MUST ATTENTION confirm `$prompt-enhance` ran on every scanned doc and backfill any that were skipped.** Reference docs are injected into AI context — attention anchoring (top/bottom summaries, inline READ summaries, token density) directly improves AI output quality.
-
-**task tracking one task per doc, parallel OK:**
-
-Every target below is a filename inside the project-reference docs root — default `docs/project-reference/`; a `docsRoots.projectReference.path` entry in `docs/project-config.json` overrides the path. The filenames themselves are fixed.
-
-| #   | Target File                      |
-| --- | -------------------------------- |
-| 1   | `project-structure-reference.md` |
-| 2   | `backend-patterns-reference.md`  |
-| 3   | `seed-test-data-reference.md`    |
-| 4   | `frontend-patterns-reference.md` |
-| 5   | `integration-test-reference.md`  |
-| 6   | `feature-spec-reference.md`      |
-| 7   | `code-review-rules.md`           |
-| 8   | `scss-styling-guide.md`          |
-| 9   | `design-system/README.md`        |
-| 10  | `e2e-test-reference.md`          |
-| 11  | `domain-entities-reference.md`   |
-| 12  | `docs-index-reference.md`        |
-
-Run via: `$prompt-enhance {project-reference-root}/{filename}`, resolving the root from `docsRoots.projectReference.path` in `docs/project-config.json` (default `docs/project-reference/`).
+A graph is not a universal scan prerequisite. If the project config and repository show a supported code graph is part of this project, run its owning graph workflow when the graph is stale or the setup explicitly requests refresh. Otherwise report graph work as not applicable; never block documentation scans on an absent graph.
 
 ## Summary Output
 
-After all scans complete, report:
-
-"Scan All Complete:
-
-- {X}/12 scans succeeded
-- Reference docs refreshed in the project-reference docs root (default `docs/project-reference/`; path from `docsRoots.projectReference.path` in `docs/project-config.json`)
-- Staleness gate cleared
-- Prompt-enhanced {Y}/12 docs
-- Knowledge graph rebuilt via $graph-build"
+Report each selected target with its status, output path, and evidence-backed reason. List always-on inputs checked, manual docs left to their owner, and any blocked stale gate. Do not claim all docs are refreshed when optional targets were skipped or unselected.
 
 ---
 
@@ -186,6 +146,7 @@ After all scans complete, report:
 
 > **AI Mistake Prevention** — Failure modes to avoid on every task:
 >
+> **Project applicability gate.** Before applying a stack, layer, style, tool, or architecture rule, read the project's config and relevant references, then check local implementations. Treat framework examples as examples; honor explicit N/A and do not require a technology or convention the project does not use.
 > **ROOT-CAUSE GATE — INVESTIGATE FIRST.** Before applying any project-related correction, always use the project's root-cause investigation protocol and establish the cause; the failure site may be only a symptom.
 > **FAILED-TEST GATE.** For any failed or unstable test, use the project's test-investigation protocol before editing source or tests; never change either side merely to force green.
 > **Re-read files after context changes.** Context compaction, resume, or long-running work can make memory stale; verify current files before acting.
@@ -210,19 +171,19 @@ After all scans complete, report:
 
 <!-- SYNC:critical-thinking-mindset:reminder -->
 
-**MUST ATTENTION** apply critical + sequential thinking — every claim needs appropriate traced evidence (`file:line` for repo/code claims; source URL or artifact section for research, product, content, and docs claims); confidence >80% to act, <60% DO NOT recommend. Anti-hallucination: never present guess as fact, admit uncertainty freely, cross-reference independently, stay skeptical of own confidence.
+**MUST ATTENTION** critical + sequential thinking: every claim carries traced evidence (`file:line` for code, source URL or artifact section otherwise); confidence >80% to act, <60% do NOT recommend. Never present a guess as fact; admit uncertainty and stay skeptical of your own confidence.
 
 <!-- /SYNC:critical-thinking-mindset:reminder -->
 
 <!-- SYNC:ai-mistake-prevention:reminder -->
 
-**MUST ATTENTION** ROOT-CAUSE GATE: before any project-related correction, use the appropriate root-cause investigation protocol; failed/unstable tests require the test-investigation protocol before editing source/tests — never force green.
+**MUST ATTENTION** Check project config, relevant references, and local evidence before applying stack-specific conventions; honor explicit N/A. ROOT-CAUSE GATE: before any project-related correction, use the appropriate root-cause investigation protocol; failed/unstable tests require the test-investigation protocol before editing source/tests — never force green.
 
 <!-- /SYNC:ai-mistake-prevention:reminder -->
 
 <!-- SYNC:project-protocol-overlay -->
 
-> **Project Protocol Overlay** — Before executing this skill, resolve any PROJECT overlay rules layered onto it: match this skill's name against the `Target` column of the project's skill-protocol index (default `docs/project-reference/skill-protocols-reference.md`; a `referenceDocs` entry in `docs/project-config.json` overrides the path, and a `docsRoots.projectReference.path` entry relocates its containing directory), taking the most specific matching tier ONLY — exact name > glob > `*`. **That precedence orders overlays against EACH OTHER, never against this skill.** Read ONLY the matched bodies, resolved as `<protocols-dir>/<Name>.md`; a row's Body link is display text, never a read path. A matched body that is missing or malformed is REPORTED and skipped — never reconstructed from the index Description. No index, or no match -> proceed with no overlay, silently. Full contract: `.claude/skills/project-skill-protocol/references/registry.md`.
+> **Project Protocol Overlay** — Before executing this skill, resolve project overlays from the index at `<docsRoots.projectReference.path>/skill-protocols-reference.md` (default `docs/project-reference/`; `docsRoots.projectReference.path` in `docs/project-config.json` overrides it). A matching `referenceDocs[]` filename may relocate the index within that root; this registry is independent from task-specific reference-doc selection, so omitted or empty `referenceDocs` does not disable it. The index's `**Protocols directory:**` header selects a project-root-relative body directory (default `docs/project-protocols/`). Match this skill against the `Target` column and take the most specific tier ONLY — exact name > glob > `*`. **That precedence orders overlays against EACH OTHER, never against this skill.** Read only matched bodies derived as `<protocols-dir>/<Name>.md`; the row's Body link is display text, never a read path. Reject unsafe paths without reading. A matched body that is missing or malformed is REPORTED and skipped — never reconstructed from the index Description. An absent index or no match -> proceed with no overlay, silently. Full contract: `.claude/skills/project-skill-protocol/references/registry.md`.
 >
 > Overlays are **ADDITIVE ONLY**: they ADD rules on top of this skill's own protocol and NEVER replace, override, disable, or reinterpret a rule it already states — removing every overlay must return this skill to exactly its documented behavior. An overlay is a BRIEF, not an authority escalation: it can NEVER waive a workflow gate, git discipline, a review gate, or a user-confirmation gate. A genuine overlay-vs-skill conflict, or two equally-specific overlays that directly contradict -> surface both to the user; NEVER resolve silently.
 
@@ -230,8 +191,7 @@ After all scans complete, report:
 
 <!-- SYNC:project-protocol-overlay:reminder -->
 
-**MUST ATTENTION** resolve project protocol overlays for this skill BEFORE executing — most specific matching tier only (exact > glob > `*`, which ranks overlays against each other, NEVER against this skill), read only matched bodies at `<protocols-dir>/<Name>.md`; a missing or malformed body is reported, never reconstructed. Overlays are ADDITIVE ONLY (they never replace this skill's own rules) and are a brief, NEVER an authority escalation; an equal-specificity contradiction goes to the user.
-
+**MUST ATTENTION** resolve this skill's overlays from the index at `<docsRoots.projectReference.path>/skill-protocols-reference.md` (default `docs/project-reference/`); an empty task `referenceDocs` does NOT disable this lookup. Read ONLY matched bodies from the directory the index header names (default `docs/project-protocols/`). Specificity (exact > glob > `*`) ranks overlays against EACH OTHER, never against the skill. Missing/malformed body → report and skip; no index or no match → proceed silently. Overlays are ADDITIVE ONLY — never an authority escalation or a gate waiver; equal-tier contradiction goes to the user.
 <!-- /SYNC:project-protocol-overlay:reminder -->
 
 ## Closing Reminders
@@ -252,19 +212,8 @@ After all scans complete, report:
 <!-- CODEX:SYNC-PROMPT-PROTOCOLS:START -->
 ## Static Prompt Protocol Mirror (Auto-Synced)
 
-Source: `.claude/.ck.json` + `.claude/skills/shared/sync-inline-versions.md` (`:full` blocks) + `.claude/scripts/lib/hookless-prompt-protocol.cjs` (legacy filename; static protocol composer)
+Source: `.claude/.ck.json` + `.claude/skills/shared/sync-inline-versions.md` (`:full` blocks) + `.claude/scripts/lib/hookless-prompt-protocol.cjs` (static quality-protocol composer)
 
-## [WORKFLOW-EXECUTION-PROTOCOL] [BLOCKING] Workflow Execution Protocol — MANDATORY IMPORTANT MUST CRITICAL. Do not skip for any reason.
-
-**Generic portability boundary:** Reusable skills and protocol text stay project-neutral; project-specific conventions are discovered from docs/project-config.json and docs/project-reference/. Apply shared AI-SDD from `shared/sdd-artifact-contract.md`. Read `docs/project-config.json` and `docs/project-reference/docs-index-reference.md`, then open the project reference docs named there immediately before the first target read, grep, edit, test, or analysis. For spec, test-case, behavior-change, public-contract, or `docs/specs/` work, route through the local spec docs named by the docs index: `feature-spec-reference.md`, `spec-system-reference.md`, `spec-principles.md`, and `workflow-spec-test-code-cycle-reference.md` when specs/tests/code must stay synchronized. If either file or a required reference doc is missing or stale, auto-run `$project-init` (or the narrow lower-level route such as `$project-config`, `$docs-init`, `$scan-all`, or `$scan --target=<key>`) before ordinary project-specific work. After compaction, resume, delegation, or a material context change, re-read the required docs and state `Reference docs read: ... | Not applicable: ...`; a hook reminder or prior conversation is not proof that the files are loaded. Any supported AI tool may execute when this shared context and local docs are available.
-
-1. **DETECT:** If the prompt starts with an explicit slash skill/workflow command, execute it directly. Otherwise match the prompt against the workflow catalog and skill list.
-2. **ANALYZE:** Choose the best option: execute directly, invoke a skill, activate a standard workflow, or compose a custom step combination.
-3. **AUTO-SELECT:** Pick the best option yourself. Do not ask the user to choose between direct execution, skill, standard workflow, or custom workflow.
-4. **ACTIVATE:** For a selected workflow, call `$start-workflow <workflowId>`; for a selected skill, invoke that skill; for a custom workflow, sequence custom steps directly; for direct execution, proceed with the task.
-5. **CREATE TASKS:** task tracking for ALL workflow/skill/custom steps before execution when the selected path has multiple steps.
-6. **PARALLELIZE:** Before executing the task list, tag each task `PAR` (independent inputs + write set disjoint from every other `PAR` task) or `SEQ` (name the blocking dependency), group `PAR` tasks into waves, declare the wave plan, and spawn each wave's sub-agents in ONE message — all-return barrier per wave, fan-out one level deep unless a sub-agent's own definition authorizes further fan-out. Sequential-by-default is a defect when tasks are independent; do not parallelize shared write targets, output-consuming tasks, trivial single-file work, ordering a skill or workflow explicitly fixes, or user-approval gates.
-7. **EXECUTE:** Advance per the **Workflow Step Advancement & Parallel Phases** rule in your context instructions — model-driven; a sub-agent completion advances a step identically to an inline call; a parallel-phase group is an all-return barrier (advance only after ALL members return, never serialize it)
 ## Shared AI-SDD Protocol Markers
 
 Source: `.claude/skills/shared/sync-inline-versions.md`
@@ -275,7 +224,7 @@ Source: `.claude/skills/shared/sync-inline-versions.md`
 >
 > 1. Keep reusable AI-SDD principles in `.claude`; put repository-specific paths, commands, owners, products, and formats in project config/reference docs.
 > 2. Preserve cycle: `spec -> plan -> tasks -> implement -> verify -> update spec/docs`.
-> 3. Trace every requirement or invariant through decision, task, TC/test, source evidence, and docs/spec update.
+> 3. Resolve `specArtifacts` before selecting identity or carrier: use a valid profile, use strict-default TC/test identity only when the profile is absent, and block a malformed or unsupported declaration. Trace every requirement or invariant through decision, task, configured case/test identity and inspected assertion evidence, then carry it through source evidence and canonical docs/spec updates.
 > 4. Treat code-to-spec extraction as reference-only until accepted by the canonical spec owner.
 > 5. Any supported AI tool may plan, implement, review, or verify with synced context; using multiple tools is optional.
 > 6. Update `.claude` source first, then sync generated mirrors; do not manually edit `.agents`, `.codex`, or `AGENTS.md`. — why: mirrors are generated artifacts; hand-edits are overwritten on the next sync
@@ -288,10 +237,11 @@ Source: `.claude/skills/shared/sync-inline-versions.md`
 ## SYNC:ai-sdd-artifact-contract:reminder
 
 - **MANDATORY** Apply `shared/sdd-artifact-contract.md`; keep reusable AI-SDD in `.claude` and local rules in project docs.
+- **MANDATORY** Resolve and validate `specArtifacts`: use valid native owner/case/variant identity and assertion-bearing evidence; use strict-default TC/TestSpec only when the profile is absent; block a malformed or unsupported declaration without fallback.
 - **MANDATORY** Code-to-spec extraction is reference-only until canonical acceptance; any supported AI tool may execute with synced context.
 - **MANDATORY** Update `.claude` source before syncing generated mirrors; do not manually edit `.agents`, `.codex`, or `AGENTS.md`.
 - **MANDATORY** Missing or stale project config, root instruction files, or required reference docs route project-specific work through `$project-init` or the narrow setup route automatically.
-**[TASK-PLANNING] [MANDATORY]** BEFORE executing any workflow or skill step, create/update task tracking for all planned steps, analyze the task graph (output dependencies, shared write targets) into ordered parallel waves per PARALLELIZE before starting any task, then keep it synchronized as each step starts/completes.
+**[TASK-PLANNING] [MANDATORY]** BEFORE executing any workflow or skill step, create/update task tracking for all planned steps, analyze the task graph (output dependencies, shared write targets) into ordered parallel waves per PARALLELIZE before starting any task, then keep it synchronized as each step starts/completes. Preserve fixed ordering when a skill or workflow explicitly fixes it.
 - **MANDATORY** Pin `Original goal:` before the first action and keep `User prompts this session: P1…Pn` current; re-read both at every step, before delegation, and after compaction.
 - **MANDATORY** Before claiming done, map the result to the original goal and every prompt (`P# → done | deferred | n/a`); never store secrets in them.
 ## [LESSON-LEARNED-REMINDER] [BLOCKING] Task Planning & Continuous Improvement — MANDATORY. Do not skip.
@@ -313,6 +263,7 @@ Break work into small tasks (task tracking) before starting. Add final task: "An
 **Tests verify intent:** Tests must protect business rules/invariants and fail when the protected intent breaks, not only mirror current behavior.
 ## Common AI Mistake Prevention (System Lessons)
 
+- **Resolve project applicability before using framework examples.** Read the project config and relevant references, then inspect local evidence; honor explicit N/A and never impose a language, framework, architecture layer, styling method, tool, or runtime surface the project does not use.
 - **ROOT-CAUSE GATE — INVESTIGATE FIRST.** Before applying any project-related correction, always use the project's root-cause investigation protocol and establish the cause; the failure site may be only a symptom.
 - **FAILED-TEST GATE.** For any failed or unstable test, use the project's test-investigation protocol before editing source or tests; never change either side merely to force green.
 - **Re-read files after context compaction.** Edit requires prior Read in same context; compaction wipes read state. Re-read before editing.
@@ -337,7 +288,6 @@ Break work into small tasks (task tracking) before starting. Add final task: "An
 - **Holistic analysis — resist the nearest-attention trap.** Do not dive into the first plausible cause. List every precondition (configuration, environment, inputs, dependencies, versions, permissions, and state). Verify each against evidence, not intuition. Ask "what would falsify this?" — if nothing, it is not a hypothesis. The most expensive failure is going deeper into an assumed area while the real issue sits in an unexamined condition.
 - **Minimal changes — apply the relevance test.** Every change must trace to the reported problem; avoid unrelated cleanup. For review or enhancement work, announce improvements beyond the main request rather than silently expanding scope. Ask: "Would this change exist if I were not addressing this request?" — if not, remove it or disclose it.
 - **Surface ambiguity before coding — don't pick silently.** Multiple valid interpretations → present each with effort: "[Request] could mean (1) [N h], (2) [N h]. Which matters?" List scope/format/volume/constraints assumptions first. If simpler path exists, say so. Never silently pick.
-- **[MANDATORY FIRST ACTION] ALWAYS activate a suitable skill or workflow BEFORE responding.** Match task against workflow catalog + skill list; invoke via skill invocation or `$start-workflow <workflowId>`. NEVER answer or write code before checking. Skip = protocol violation.
 - **Why-Review adversarial mindset — apply when reviewing any plan, decision, or design.** Default SKEPTIC not VALIDATOR: steel-man a rejected alternative, invert each stated reason ("what does it sacrifice?"), stress-test top 2-3 assumptions, run pre-mortem ("ships, fails in 3 months — what breaks?"), surface 1-2 alternatives author missed. Section presence ≠ quality; quality = causal reasoning + concrete mitigations + evidence, not "it's better" or "monitor closely".
 - **Front-load report-write in sub-agent prompts for large reviews.** Many-file sub-agents hit budget before final write — findings lost. Design prompts so: (1) report-write is first explicit deliverable, (2) append per-file/section (not batched), (3) scope bounded so reads don't exhaust budget. Truncated mid-sentence with no report file → spawn narrower scope, don't retry same prompt.
 - **After context compaction, re-verify all prior phase outcomes before continuing.** Summaries describe intent, not environment state (git index, filesystem, processes). On resume, FIRST audit: git status, re-read modified files, verify filesystem. Every "completed" claim is an untested hypothesis until evidence confirms.
@@ -345,6 +295,7 @@ Break work into small tasks (task tracking) before starting. Add final task: "An
 - **Assert the outcome your system OWNS, never the intermediate state your INFRASTRUCTURE owns.** When testing anything asynchronous (queue/broker delivery, retries, background jobs, caches, replication), assert the final business/entity state. NEVER assert the delivery bookkeeping — consume/send status, attempt counts, last-error, row existence or counts in a broker, scheduler, or outbox/inbox table. That bookkeeping lives in shared infrastructure that ANY co-running process (a peer worker, a second replica, a leftover local container) can write, usually under a deterministic shared key, so the assertion silently tests the developer's environment instead of the system: green when run alone, flaky the instant anything else shares that broker + database. Gate question for every assertion: "would this hold no matter WHICH process did the work?" — if no, assert the converged data state instead. Corollary: process-local fault injection and in-process telemetry cannot gate work any process may perform — use them as stress amplifiers (arm → bounded window → disarm → assert convergence), never as preconditions.
 - **Store disposable generated output in the project workspace.** If an output can be regenerated and is not source code, a canonical source-of-truth, or an intentionally versioned projection, write it under the project-root `tmp/` or `temp/` directory (prefer `tmp/`), scoped to the run. This includes temporary state, integration/E2E results, reports, logs, screenshots, traces, videos, coverage, dumps, and candidate evidence. Never put these outputs in source, docs, the plans root (default `plans/`; a `docsRoots.plans.path` entry in `docs/project-config.json` overrides the path), the team-artifacts root (default `team-artifacts/`; `docsRoots.teamArtifacts.path` in the same config overrides the path), or mirror directories; the project-root `.gitignore` must ignore `/tmp/` and `/temp/` by default. Committed fixtures, accepted baselines, canonical specs/docs, and explicitly versioned generated mirrors remain at their declared owner paths.
 - **Judge the environment before judging the code — a competing hypothesis, not a fallback.** A bug, failed test, error, or odd output is NOT proof of a code defect. Before deep tracing and before any verdict, sweep environment preconditions (toolchain/dependency/lockfile state, stale build or cache artifacts, env vars and config profile, service dependencies up-migrated-seeded, ports/network/clock, OS-path/locale, permissions and locks, leftover processes/containers/test data) AND transient resource pressure (RAM/OOM, CPU saturation under parallel workers, disk/temp exhaustion, handle and connection-pool limits, network flakiness, a timeout that is really slowness). Tell-tale shape: non-deterministic, timing-dependent, passes alone but fails in parallel, fails only on one machine or only on CI, or an error naming resources rather than business rules. Cite the discriminator you ran (clean environment? did code on the failing path change since it last passed? one machine or all? concurrency 1 or a clean rebuild?) — a verdict without one is a guess, for code as much as for the environment. Fix an environment cause in the environment or setup; NEVER edit product code or weaken/skip a test to absorb it, and a failure that vanishes on retry stays unexplained until its mechanism is named. — why: forcing green against an environment fault hides the real defect and permanently rots the test.
+- **Cross-platform execution is a required contract.** Before authoring or changing a tool, script, process launcher, path assertion, or filesystem test, name the supported Windows, macOS, and Linux behaviors. Use platform-neutral Node APIs and literal argv vectors; never infer shell, temporary-path, executable-extension, ACL, or symlink semantics from the current host. Canonicalize existing paths before identity, hashing, or equality checks; test native Windows and POSIX seams when behavior differs; keep CI platform matrices authoritative. Preserve fail-closed security boundaries — repair the fixture or platform branch, never weaken the guard just to make one OS green.
 - **Keep domain concepts out of generic/shared/infrastructure layers.** Reusable layer (shared library, framework, infra module) must reference NO consumer-specific domain concept — tenant/customer/product IDs, business entities, feature rules. Leak compiles + runs → passes review silently while coupling the "reusable" layer to one consumer. Keep shared type domain-free; push domain fields/logic down into the consumer via subclass/composition. — why: a layer coupled to one consumer's domain is no longer reusable.
 
 <!-- CODEX:SYNC-PROMPT-PROTOCOLS:END -->

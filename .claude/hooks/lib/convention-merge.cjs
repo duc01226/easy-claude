@@ -325,10 +325,23 @@ function runCli(argv) {
     const { getConfiguredProjectConfigPath } = require('./project-config-loader.cjs');
     const projectDir = resolveProjectRoot({ cwd: process.cwd(), scriptPath: __filename, env: process.env }).rootDir;
     const configPath = args.config ? path.resolve(process.cwd(), args.config) : getConfiguredProjectConfigPath();
-    const config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
+    // The project config is OPTIONAL. Detection is pure inspection of the repository, and
+    // `detectGroups` already tolerates an empty config, so a project without one gets its
+    // detected groups instead of a raw ENOENT. Writing is different: merging into a file that
+    // does not exist would fabricate a project config as a side effect of an inspection
+    // command, so that path stops and names the skill that owns creating it.
+    const configMissing = !fs.existsSync(configPath);
+    if (configMissing && (args.merge || args.write)) {
+        process.stderr.write(
+            `convention-merge: no project config at ${configPath}. The config is optional, but ` +
+            `--merge/--write need one to merge into. Run /project-config to create it, then re-run.\n`
+        );
+        return 1;
+    }
+    const config = configMissing ? {} : JSON.parse(fs.readFileSync(configPath, 'utf8'));
     const detected = detectGroups(config, { projectDir });
     if (!args.merge) {
-        process.stdout.write(JSON.stringify({ configPath, detected }, null, 2) + '\n');
+        process.stdout.write(JSON.stringify({ configPath, configMissing, detected }, null, 2) + '\n');
         return 0;
     }
     const result = mergeDetected(config.contextGroups, detected);

@@ -1,7 +1,7 @@
 ---
 name: scaffold
 version: 1.1.0
-description: '[Architecture] Use when scaffolding reusable OOP/SOLID project foundations before feature implementation.'
+description: '[Architecture] Use when scaffolding project foundations and golden-path examples selected by the target project architecture before feature implementation.'
 ---
 
 <!-- PROMPT-ENHANCE:STEP-TASK-ANCHOR:START -->
@@ -15,13 +15,13 @@ description: '[Architecture] Use when scaffolding reusable OOP/SOLID project fou
 
 ## Quick Summary
 
-**Goal:** Generate a copy-ready, OOP/SOLID-compliant architecture foundation—base classes, interfaces, infrastructure abstractions, reusable examples, and quality gates—before feature implementation, so every feature story starts from a validated, maintainable foundation.
+**Goal:** Generate a copy-ready architecture foundation that follows the project's chosen paradigm—applicable abstractions, infrastructure, examples, and quality gates—before feature implementation.
 
 **Summary:**
 - **Purpose + scope:** Build reusable architecture infrastructure and golden-path examples, not feature code; adapt checklist templates to the detected stack and plan, skip irrelevant items with evidence.
-- **Ordered main flow:** (1) Activation Guards → (2) Read Plan → (3) Generate Backend/Frontend/UI checklist → (4) Validate against Plan → (5) confirm via `AskUserQuestion` → (6) scaffold abstractions + 5 foundations + examples → (7) verify build/OOP-SOLID/testability/Verification Gate → (8) `/linter-setup` → `/harness-setup` → `AskUserQuestion` handoff.
+- **Ordered main flow:** (1) Activation Guards → (2) Read Plan → (3) Generate the applicable Backend and/or Frontend/UI checklist → (4) Validate against Plan → (5) confirm via `AskUserQuestion` → (6) scaffold approved abstractions + applicable foundations + examples → (7) verify build, architecture, testability, and Verification Gate → (8) `/linter-setup` → `/harness-setup` → `AskUserQuestion` handoff.
 - **Testability gate:** Resolve Unit/Integration/System/E2E and warranted Performance/Scale applicability or evidence-backed `N/A`; record owner/root/data, copy-ready full/focused commands, zero-match failure, CI/simple-Windows entry, host/container modes, environment reach, identity, idempotent/additive isolation, and repeat proof. Unresolved applicable fields block; do not invent E2E coverage.
-- **Non-negotiables:** Existing scaffolding or wrong workflow → SKIP and mark completed; every plan decision maps to a checklist item; OOP/SOLID and all 5 foundations must pass; sensor setup only via `/linter-setup` then `/harness-setup`; block `/feature-implement` until verification passes; cite evidence and confidence.
+- **Non-negotiables:** Existing scaffolding or wrong workflow → SKIP and mark completed; every plan decision maps to a checklist item; applicable project foundations must pass; sensor setup only via `/linter-setup` then `/harness-setup`; block `/feature-implement` until verification passes; cite evidence and confidence.
 
 **Workflow (after Activation Guards, in order):** Read Plan → Generate Checklist → Validate Against Plan → `AskUserQuestion` confirmation → Scaffold → Verify → `/linter-setup` → `/harness-setup` → `AskUserQuestion` handoff.
 
@@ -29,7 +29,7 @@ description: '[Architecture] Use when scaffolding reusable OOP/SOLID project fou
 
 - **MUST ATTENTION** use evidence to resolve applicability, scope, and completion; **NEVER** guess missing runners, commands, or patterns.
 - **MUST ATTENTION** treat checklists as adaptable templates and confirm the final checklist before generating code.
-- **MUST ATTENTION** preserve OOP/SOLID, verify all 5 foundations, and keep `/feature-implement` blocked until the Verification Gate passes.
+- **MUST ATTENTION** apply the project's selected architecture and applicable design principles, verify required foundations, and keep `/feature-implement` blocked until the Verification Gate passes.
 
 ## Activation Guards (MANDATORY — Check Before Executing)
 
@@ -55,11 +55,11 @@ description: '[Architecture] Use when scaffolding reusable OOP/SOLID project fou
 ## Workflow
 
 1. **Read Plan** — Parse architecture decisions, tech stack, and domain model.
-2. **Generate Scaffolding Checklist** — Cover required base classes and infrastructure from the Backend + Frontend checklists below.
+2. **Generate Scaffolding Checklist** — Cover applicable abstractions and infrastructure identified by the plan, using the Backend and/or Frontend/UI categories below.
 3. **Validate Against Plan** — Map every architecture decision to a scaffolding item.
 4. **Present to User** — Use `AskUserQuestion` to confirm the checklist before code generation.
-5. **Scaffold** — Create base classes, interfaces, abstractions, infrastructure, and required foundations/examples.
-6. **Verify** — Compile/build; validate OOP/SOLID, testability, and the Verification Gate; then invoke `/linter-setup` → `/harness-setup` and present the `AskUserQuestion` handoff.
+5. **Scaffold** — Create only the abstractions, infrastructure, and examples selected by the plan and supported by project conventions.
+6. **Verify** — Build; validate the selected architecture, testability, and the Verification Gate; then invoke `/linter-setup` → `/harness-setup` and present the `AskUserQuestion` handoff.
 
 ## Backend Scaffolding Categories
 
@@ -98,58 +98,54 @@ AI must self-investigate chosen tech stack, produce a checklist covering these c
 
 ## Frontend Scaffolding Categories
 
-### Core Architecture
+### Core Architecture Candidates
 
-- [ ] Base component with lifecycle/destroy cleanup
-- [ ] Base form component with validation, dirty tracking
-- [ ] Base list component with pagination, sorting, filtering
+- [ ] Base component or shared lifecycle abstraction — only when the configured architecture or demonstrated shared behavior calls for one
+- [ ] Form abstraction with validation/dirty tracking — only when the project pattern and reuse justify it
+- [ ] List abstraction with pagination/sorting/filtering — only when the platform and product need a shared owner
 
-### State & API
+### State & API Candidates
 
-- [ ] Base state store with loading/error/data pattern
-- [ ] Base API service with interceptors, error handling
-- [ ] Auth interceptor + environment config
+- [ ] Shared state abstraction with relevant loading/error/data behavior — only when configured or required by the plan
+- [ ] API/request wrapper with interceptors and error handling — only when the project architecture calls for one
+- [ ] Auth/request configuration — follow the project's existing security and environment model; do not add a generic interceptor by default
 
-### Shared Utilities
+### Shared Utilities Candidates
 
-- [ ] Base model with serialization helpers
-- [ ] Common utility functions (date, validation, formatting)
+- [ ] Shared model/serialization helpers — only when supported by the chosen architecture
+- [ ] Common utility functions — only for behavior with a demonstrated shared owner
 
 ### UI Foundation
 
-> **Skip if:** Backend-only project, no frontend component. **Apply if:** Project has ANY frontend.
+> **Apply only when:** the plan includes a user-facing UI. Select items for the configured web, mobile, desktop, or other UI platform; skip the entire section for projects or changes without a UI.
 
-#### Design Token Files
+#### Design Tokens (only when the plan establishes a shared system)
 
-- [ ] Create design token file(s) per chosen format (CSS custom properties / SCSS variables / JSON)
-- [ ] Define minimum token set: colors (primary, secondary, surface, bg, text, error, success, warning), spacing (xs-xl), typography (heading/body/caption families + sizes), breakpoints, shadows, z-index
-- [ ] Create theme file(s) if theming required (light/dark CSS classes or theme provider)
+- [ ] Create a token source in the project's chosen format only when a shared design system is in scope
+- [ ] Define only the color, spacing, typography, layout, motion, or layering values the target needs; do not impose a minimum token catalog
+- [ ] Add theme support only when the product requires it and its platform has a relevant theming mechanism
 
-#### Base Layout & Responsive
+#### Layout and Size Adaptation (where supported)
 
-- [ ] Base layout component (app shell: header, sidebar/nav, main content, footer)
-- [ ] Responsive container/grid utility
-- [ ] Responsive mixin/utility for breakpoints
-- [ ] Mobile-first media query definitions
+- [ ] App shell or window/navigation structure when required by the plan and platform
+- [ ] Layout/container primitives that solve an evidenced reuse or responsive need
+- [ ] Platform-supported size adaptation (for example CSS breakpoints, native size classes, or resizable-window layouts) when required by the target
 
-#### Base UI Components
+#### Shared UI Components (only when the plan requires them)
 
-- [ ] Loading indicator component (spinner or skeleton)
-- [ ] Error display component (inline + page-level)
-- [ ] Empty state component (message + action)
-- [ ] Notification/toast component
-- [ ] Base button component with variants (primary, secondary, ghost, danger)
-- [ ] Base input component with validation display
+- [ ] Shared loading, error, or empty-state component when multiple surfaces need a common owner
+- [ ] Notification/feedback component when required by the product interaction model
+- [ ] Shared button/input abstractions only when existing components, planned reuse, and platform APIs support them
 
-#### Design System Documentation
+#### UI Convention Documentation (when established by the plan)
 
-- [ ] Create a `design-system/README.md` skeleton in the project-reference docs root (default `docs/project-reference/`; a `docsRoots.projectReference.path` entry in `docs/project-config.json` overrides the path) with: token naming conventions, component tier classification (Common/Domain-Shared/Page), usage examples
-- [ ] **Author `ui-review-principles.md`** in that same project-reference docs root (default `docs/project-reference/`; path from `docsRoots.projectReference.path` in `docs/project-config.json`) (the project-adopted UI-review PRINCIPLES the later `/ui-review` gate reads — these are design-time decisions, hand-authored, NOT code-derived). Capture, as project-enforced principles, every UI-review dimension: **Overflow & scroll containment** (long-content truncation/wrap) · **Responsive & small-screen** (flex-wrap / row-to-column so it stays usable on small devices) · **Flex-vs-fixed sizing** (flex-grow vs hard-coded dimensions) · **z-index discipline** (a documented layering scale, no ad-hoc values) · **BEM on all elements** · **Async states** (loading indicator, user-visible error surface, empty state, in-flight disable) · **Nesting depth ≤ 3 / no magic numbers**. **Cross-link** to `design-system/README.md` and `scss-styling-guide` so the seeded principle doc and the scan-derived docs form one navigable set. Contains NO real endpoints/keys.
-  - **No-UI skip rule:** author this doc ONLY when a frontend/UI stack is scaffolded. Backend-only project → SKIP and log the reason.
+- [ ] Create a `design-system/README.md` only when the project establishes a shared design system; document its real tokens, components, tiers, or platform concepts rather than preselecting them
+- [ ] Author `ui-review-principles.md` only when the project adopts explicit UI review rules. Base it on the configured platform, styling, accessibility, responsive, layering, and async-state conventions. BEM and CSS nesting limits are examples only when the project selects CSS/BEM rules.
+- **No-UI skip rule:** create no UI convention or design-system documents when the project has no UI surface.
 
-## Example / Golden-Path Reference Scaffolding (copy-me implementations — MANDATORY)
+## Example / Golden-Path Reference Scaffolding (when it improves adoption)
 
-> **MANDATORY when scaffolding a foundation:** beyond the empty base abstractions above, emit **ONE worked, compile-checked example per best-practice pattern** — a copy-me reference implementation per layer. Empty abstractions are unverified skeletons; a worked example built ON TOP turns each base class into demonstrated, reviewable usage. This example set is exactly what Phase-02's `/architecture-review-full` grades, so it must exist before that gate runs.
+> When the selected foundation introduces reusable patterns, consider a small, compile-checked golden-path example for each applicable pattern. Examples make chosen contracts reviewable and easy to copy; do not create them for unselected patterns, absent layers, or project types where examples add no value. The architecture report/configuration determines the expected set.
 
 ### Location & lifecycle (isolated, production-excluded)
 
@@ -158,21 +154,21 @@ AI must self-investigate chosen tech stack, produce a checklist covering these c
 - **CI-compiled/linted but EXCLUDED from the production build** via a project-appropriate mechanism (separate compile target / tsconfig references / test-only project / build-exclude glob).
 - Devs COPY an example into `src/` to start a real feature; the whole `examples/` tree is deleted wholesale once no longer needed.
 
-### One worked example per applicable pattern (target ≥ 11)
+### One worked example per selected, applicable pattern (no fixed count)
 
-- **Backend:** command · query · command/query handler · entity-with-invariants · value-object · repository (concrete impl) · domain event + event handler.
-- **Frontend (only if a UI stack is present):** form component · list component · state store · API service.
-- **Tests:** one example integration test exercising the example command/query on BOTH the happy path AND a failure path.
-- **Absent-layer skips:** render fewer ONLY when a layer is genuinely absent (e.g. a backend-only project skips the frontend examples) — LOG each skipped example and WHY.
+- **Backend:** include only patterns selected by the architecture (for example, a use-case entry point, domain invariant, repository boundary, or event consumer).
+- **Frontend (only for patterns established by the plan):** one representative UI example using the selected component/state/request architecture; do not generate a store, API service, or base component unless the project has chosen one.
+- **Tests:** include examples only for test layers the project actually has; follow its configured test style and cover important success/failure outcomes when relevant.
+- **Absent/unselected pattern skips:** omit patterns that are not selected, not useful at the project's scale, or belong to an absent layer; record the reason in the scaffold report without inventing architecture.
 
 ### Every example MUST
 
 1. Follow the project's detected patterns — read `*-patterns-reference.md` in the project-reference docs root (default `docs/project-reference/`; path from `docsRoots.projectReference.path` in `docs/project-config.json`) and mirror the exact shapes.
-2. USE the scaffolded base abstractions (demonstrate them in action; do NOT re-implement them).
+2. Use an abstraction when the plan establishes it; otherwise demonstrate the target platform's idiomatic approach without inventing a base class, store, or wrapper.
 3. Compile/lint clean under the CI (non-production) target.
 4. Carry this header comment verbatim (adapt the comment syntax to the language): `GOLDEN-PATH EXAMPLE — copy into src/ for real features; the examples/ tree is deleted when unused; NOT compiled into the production build.`
 5. Contain **NO secrets, real credentials, or real endpoints** — use obvious placeholders ONLY (`EXAMPLE_API_KEY`, `example.invalid`, `00000000-0000-0000-0000-000000000000`).
-6. **Frontend examples only — carry the project's token system, never literals (`DD-2`, `DD-8`).** Every colour, size, spacing, radius, and type value in a frontend golden-path example resolves to the scaffolded design tokens or the project's design-system doc; raw hex and magic numbers are forbidden here more strictly than anywhere else in the codebase. **These four files are the shape every later feature copies, so a generic example propagates further than a generic screen** — if the foundation has no design plan yet, the examples adopt the design-system doc and the scaffold report NAMES the missing plan as an open decision rather than inventing a palette. Demonstrate the five states (default/hover/focus/active/disabled) plus loading/error/empty on the form and list examples, and keep the visible strings written as real interface copy (`SYNC:ui-copywriting`) — an example that ships "Submit" and "lorem ipsum" teaches both.
+6. **Frontend examples only — follow the chosen visual authority.** Use configured tokens and components when present. If no shared system exists, use values appropriate to the platform and brief; introduce project-wide tokens only when the plan approves a design system. Demonstrate the states required by the feature and platform on applicable examples, and use real interface copy where the example is user-facing.
 
 ### Right-sizing
 
@@ -190,30 +186,29 @@ Read the completed `architecture-design` Testability & Execution Contract matrix
 
 For each applicable persistent tier, the handoff also records the run/test identity and unique business-data suffix, supported public setup path, realistic valid data, count-before-create idempotent/restart-safe reference setup, additive/no-reset accumulation, mutable-root and parallel-worker isolation, realistic pacing/arrange barrier, exact result, and two consecutive no-reset full runs. If scaffold has not executed the commands yet, record `planned — {owner}` rather than claiming a pass. Include these contract rows in the existing user-confirmed final checklist; unresolved material tool choices still use the existing `AskUserQuestion` gate.
 
-## Code Quality Gate Tooling (MANDATORY MUST ATTENTION — Setup Before Any Feature Code)
+## Code Quality Gate Selection (MANDATORY MUST ATTENTION — Before Feature Code)
 
-**MANDATORY IMPORTANT MUST ATTENTION** scaffold ALL code quality enforcement tools as part of project infrastructure — code that passes without quality gates is technical debt from day one.
+Select automated checks that fit the project's languages, runtime, risk, and delivery process. Reuse existing checks; add only controls that catch a relevant defect class and can be maintained. Record why a check is not applicable instead of adding a tool solely to complete this list.
 
 ### Static Analysis & Linting
 
-- [ ] **MANDATORY MUST ATTENTION** configure language-appropriate linter with strict ruleset (zero warnings policy on new code)
-- [ ] **MANDATORY MUST ATTENTION** configure static code analyzer with quality gate thresholds (complexity, duplication) — treat line-coverage as a reported DIAGNOSTIC, NOT a build-failing threshold
-- [ ] **MANDATORY MUST ATTENTION** enable compiler/transpiler strict mode and treat warnings as errors on build
-- [ ] **MANDATORY MUST ATTENTION** add code style formatter with shared config (enforce consistent formatting across team)
+- [ ] Configure a language-appropriate linter/analyzer when the ecosystem and codebase support a useful, maintainable ruleset.
+- [ ] Set warning/strictness thresholds for new code according to tool quality and project conventions; do not adopt a rule that produces noisy or unreviewable output.
+- [ ] Use compiler/type/static checks where available and relevant; treat line coverage as a diagnostic, not proof of behavior quality.
+- [ ] Use a formatter/shared style config when the language and team benefit from consistent automated formatting.
 
 ### Build-Time Quality Enforcement
 
-- [ ] **MANDATORY MUST ATTENTION** configure pre-commit hooks to run linter + formatter automatically
-- [ ] **MANDATORY MUST ATTENTION** configure CI pipeline to fail on any linter violation, analyzer warning, or test failure
-- [ ] **MANDATORY MUST ATTENTION** do NOT gate the build on a line-coverage %; report line-coverage as a diagnostic only (low = useful untested-area signal, high ≠ quality). If a test-strength gate is wanted, gate on mutation score (surviving mutant = missing/weak assertion) with line-coverage as the diagnostic. Keep behavior/change-coverage (each behavior-changing file has a test asserting the changed outcome) as the meaningful coverage notion
-- [ ] **MANDATORY MUST ATTENTION** enable security vulnerability scanning in dependency management
+- [ ] Choose the fastest useful local/commit checks and enforce the authoritative set in CI when CI exists; avoid running the same expensive check redundantly at every lifecycle stage.
+- [ ] Make relevant build, test, lint, type, and security checks fail clearly when they find a project-relevant defect.
+- [ ] Assess test strength through meaningful outcome assertions; use mutation/fault-injection tools where they fit, otherwise use an evidence-backed assertion review or focused defect-seeding exercise. Do not require a mutation score tool where none is workable.
+- [ ] Scan dependencies/secrets when the project has managed dependencies, credentials, or a real supply-chain exposure; document the selected control.
 
 ### Code Rules & Standards
 
-- [ ] **MANDATORY MUST ATTENTION** create shared linter config file at project root (team-wide consistency)
-- [ ] **MANDATORY MUST ATTENTION** create shared formatter config file at project root
-- [ ] **MANDATORY MUST ATTENTION** create `.editorconfig` for cross-IDE consistency (indentation, encoding, line endings)
-- [ ] **MANDATORY MUST ATTENTION** document code quality standards in project README or contributing guide
+- [ ] Store shared tool configuration in the location supported by the selected toolchain.
+- [ ] Add `.editorconfig` or equivalent only when contributors/tools benefit from it.
+- [ ] Document non-obvious quality commands and contribution expectations where project documentation is maintained.
 
 ### Harness Integration (MANDATORY — Do Not Skip)
 
@@ -225,71 +220,72 @@ For each applicable persistent tier, the handoff also records the run/test ident
 
 **WHY:** Code quality tooling is part of the project's outer agent harness. A checklist of installs is not a harness — a harness is a system of guides and sensors where each control fires at the right lifecycle stage and produces signals the agent can consume.
 
-**After scaffold, invoke (in order):**
+**After scaffold, invoke for applicable selected work (in order):**
 
 1. `/linter-setup` — computational feedback sensors (deterministic, fast, always-on)
 2. `/harness-setup` — full harness inventory (all feedforward guides + all feedback sensors)
 
 **Do NOT proceed to `/feature-implement` until both complete.** (`/scaffold` verification gate enforces this)
 
-## Production Readiness Scaffolding (MANDATORY)
+## Project Foundation Selection (MANDATORY assessment; foundations are conditional)
 
 > **Scaffold Production Readiness** — See the `SYNC:scaffold-production-readiness` block above for the full inline protocol. (Written WITHOUT the HTML-comment delimiters on purpose: a literal open marker in prose is counted as a second opening fence by `sync-update-blocks.py`, which then refuses the file as unbalanced and silently leaves the block stale.)
 
-Every scaffolded project MUST ATTENTION include these 5 foundations. AI must detect tech stack from the plan/architecture report, present 2-3 options per concern via `AskUserQuestion`.
+Assess each concern against the project profile and architecture report. Generate only foundations the runtime, users, delivery model, and real boundaries need; record `NOT-APPLICABLE` with evidence for the rest. Do not create frontend, HTTP, database, container, or integration infrastructure merely to satisfy this checklist. Use project configuration and accepted decisions first, then confirm material choices with the user.
 
 ### 1. Code Quality Tooling
 
 Handled by `/linter-setup` skill — do NOT duplicate here.
-Verify completion: check that `.editorconfig`, linter config, and pre-commit hook config files exist.
-If missing → block scaffold completion, invoke `/linter-setup`.
+Verify the configured formatter, linter, type/static analysis, or other applicable quality checks. Require files/hooks only when the chosen toolchain uses them; if missing, invoke `/linter-setup` for that concern.
 
 ### 2. Error Handling Foundation
 
-- Detect frontend framework → select from protocol's framework patterns
-- Generate: error types, HTTP interceptor, notification service, global error handler
-- Minimum 4 files for frontend, 3 for backend-only
-- Run protocol's verification checklist
+- Select the runtime's error contract and handling boundary from the project profile (for example UI error presentation, API response mapping, CLI exit/reporting, or background-job retry/recovery).
+- Add an HTTP interceptor or global handler only when the selected runtime and architecture use one.
+- Keep expected business failures distinguishable from unexpected faults; reuse project conventions.
+- Run applicable verification checks; do not require a fixed file count.
 
 ### 3. Loading State Management
 
-- Detect frontend framework → select from protocol's framework patterns
-- Generate: loading service, HTTP loading interceptor, loading indicator component
-- Counter-based tracking, 300ms display delay, skip token mechanism
-- Run protocol's verification checklist
+- Apply only when the project has a user-facing interface with asynchronous work.
+- Keep pending state with the narrowest useful component/store owner; add shared loading coordination only when multiple views or requests need it.
+- Select delay, cancellation, background-request, and progress behavior from user experience requirements and the configured UI pattern.
+- Run applicable interaction/state checks; a global HTTP interceptor or shared service is not a default.
 
-### 4. Docker Development Environment
+### 4. Container / Development Environment (when it fits)
 
-- Always scaffold (unless user explicitly opts out)
-- Generate: docker-compose.yml (with profiles), Dockerfile (multi-stage), .dockerignore, .env.example
-- Use 127.0.0.1 binding, health checks on all services, non-root user in prod
-- Run protocol's verification checklist
+- Use containers/Compose when required by deployment or when they materially improve reproducibility of the runtime/dependencies for this project.
+- When selected, generate only the artifacts the target needs (for example an image, Compose topology, ignore rules, or environment example); configure health checks for long-running services and least-privilege image defaults where supported.
+- When containers do not fit, document and verify the supported native, managed, device, or other development/test path.
+- Verify each execution mode the project supports or promises; do not require both host and container modes universally.
 
 ### 5. Integration Points
 
-- Document each outbound boundary (downstream service, queue, third-party API, shared DB)
-- Configure retry + circuit breaker + timeout per outbound dependency
-- Generate integration tests for both the happy path and the failure path
-- Run protocol's verification checklist
+- Apply when the project has outbound dependencies or separately owned modules/services.
+- Document each real boundary; configure timeout, retry, circuit breaking, or idempotency according to that dependency's failure and retry contract.
+- Add integration checks for important success and failure outcomes using the project's configured harness.
+- Do not add a broker, circuit breaker, or test suite for a boundary the project does not have.
 
 ### Scaffold Handoff from Architecture-Design
 
 If an architecture report exists (from `/architecture-design`), read the "Scaffold Handoff — Tool Choices" table and use those selections instead of re-asking the user.
 
-## OOP/SOLID Compliance Rules (ENFORCE)
+## OOP/SOLID Compliance Rules (when selected by the project)
+
+Apply these checks only when the plan, configuration, or observed architecture selects OOP/SOLID principles. For other paradigms, validate against the project's documented architecture rules instead.
 
 1. **Single Responsibility** — Each base class handles ONE concern
 2. **Open/Closed** — Base classes are extensible via inheritance, closed for modification
 3. **Liskov Substitution** — Concrete implementations are substitutable for their base
 4. **Interface Segregation** — Small, focused interfaces (not one giant IService)
-5. **Dependency Inversion** — All infrastructure behind interfaces, injected via DI
+5. **Dependency Inversion** — Keep policy independent from volatile details at real boundaries; use the project's composition mechanism without introducing an interface for every dependency
 
 **Purpose-oriented abstraction naming gate:** Name generated public or cross-layer interfaces, ports, and base abstractions by capability or domain contract; keep provider, SDK, framework, database, and transport details on concrete adapters (`IStorage`/`Storage` → `AzureBlobStorage`). Verify the name against the plan, callers, and implementations, preserve local language syntax, and add an abstraction only for an evidenced boundary, substitution need, or multiple meaningful implementations.
 
 **Anti-patterns to prevent:**
 
 - God classes combining multiple concerns
-- Concrete dependencies (always depend on abstractions)
+- Unnecessary concrete coupling at volatile or independently owned boundaries; direct concrete use inside a stable module is acceptable
 - Base classes with unused methods that subclasses must override
 - Missing generic type parameters where applicable
 
@@ -307,29 +303,28 @@ The checklists above are **templates**. Before scaffolding:
 
 After scaffolding is complete:
 
-1. **Scaffolding Report** — List of all created files with brief descriptions
-2. **Build Verification** — Compilation/type-check passes
-3. **Architecture Diagram** — Optional: generate diagram showing the base class hierarchy
-4. **Production Readiness Verification** — All 5 concern areas verified via protocol checklists
-5. **Config Files Generated** — Linter, formatter, pre-commit, Docker configs all created
-6. **Golden-Path Examples** — one worked, compile-checked example per applicable pattern emitted under the isolated, production-excluded `examples/` tree; absent-layer skips logged with reason
-7. **Testability Contract Resolution** — per-tier example/documentation, applicability evidence or N/A, full/focused/zero-match commands, CI/simple-Windows entry point, identity/data policy, and repeat-proof status
+1. **Scaffolding Report** — List created files and evidence-backed `NOT-APPLICABLE` decisions
+2. **Build Verification** — Run the project's configured build, package, or type-check command when applicable
+3. **Architecture Diagram** — Optional; include only when it clarifies the selected architecture
+4. **Foundation Verification** — Verify each selected concern; skipped concerns include reasons
+5. **Config Files Generated** — List only files selected for this project profile
+6. **Golden-Path Examples** — selected, applicable examples under the chosen isolated location, if examples improve adoption
+7. **Testability Contract Resolution** — applicable tiers have owner/runner, commands, environment reach, data policy, and evidence-backed applicability
 
 ## Verification Gate (MANDATORY before proceeding to /feature-implement)
 
-Run ALL verification checklists from the production readiness protocol:
+Verify each selected, applicable foundation from the project readiness protocol:
 
-- [ ] Code quality tooling verified (Section 1)
-- [ ] Error handling foundation verified (Section 2)
-- [ ] Loading state management verified (Section 3)
-- [ ] Docker development environment verified (Section 4)
-- [ ] Integration points verified (Section 5)
-- [ ] `/linter-setup` completed (linter + formatter + pre-commit + CI gate configured)
-- [ ] `/harness-setup` completed (harness-inventory.md produced, feedforward guides in place)
-- [ ] Golden-path examples present — one worked example per applicable pattern under an isolated, production-excluded `examples/` tree; each compiles/lints under the CI (non-production) target; every example carries the `GOLDEN-PATH EXAMPLE` header and NO secrets/real endpoints; absent-layer skips logged with reason
-- [ ] Testability Contract resolved — Unit/Integration/System/E2E each has evidence-backed applicability or N/A; applicable tiers have owner/root/runner, full + focused commands, zero-match behavior, CI/simple-Windows entry point, identity/data policy, and repeat proof
+- [ ] Every category is selected or has an evidence-backed `NOT-APPLICABLE` reason.
+- [ ] Selected code quality checks run through the project's chosen local/CI path.
+- [ ] The runtime's error contract is covered; UI loading-state checks apply only when the project has asynchronous user-facing UI.
+- [ ] Each supported or required execution mode is verified; a second mode is not required without project evidence.
+- [ ] Real outbound/integration boundaries and their important success/failure outcomes are covered.
+- [ ] `/linter-setup` and `/harness-setup` complete the controls selected for this project.
+- [ ] Golden-path examples are present only for selected patterns where they improve adoption, and follow the project's build/test conventions.
+- [ ] The testability contract records applicable tiers, commands, environment reach, data policy, and evidence.
 
-**BLOCK proceeding to `/feature-implement` if ANY verification item fails.** Fix issues first, then re-verify.
+**BLOCK proceeding to `/feature-implement` if a selected verification fails or a material applicability decision is unresolved.** Fix issues first, then re-verify.
 
 ## Next Steps
 
@@ -363,11 +358,11 @@ Run ALL verification checklists from the production readiness protocol:
 > **Project Reference Docs Gate (static JIT)** — Run after task-tracking bootstrap and immediately before target/source file reads, grep, edits, tests, or analysis. Project docs override generic framework assumptions; hooks may remind or accelerate this gate, but never prove that it ran.
 >
 > 1. Identify scope: file types, domain area, and operation.
-> 2. **Read `docs/project-config.json` first — the project's machine-readable map.** It is the single source of truth for THIS repo (modules/paths, framework + search keywords, test/E2E/integration run-commands, design system, architecture rules, workflow patterns); ground exact paths, run-commands, and conventions on it **before investigating, planning, or coding** — never assume framework defaults (`CLAUDE.md` + reference docs are derived from it). If it — or the docs index, `lessons.md`, `CLAUDE.md`, `AGENTS.md`, or any required reference doc — is missing or stale, auto-run `/project-init` or the narrow route (`/project-config`, `/docs-init`, `/scan-all`, `/scan --target=<key>`, `/ai-context-refresh`) first; if Codex mirrors or `AGENTS.md` are stale, use the explicit `/sync-codex` route, or the documented `/ai-context-refresh` completion handoff when that is the active source-authoring task.
-> 3. Required docs by trigger — every filename below is canonical and resolves inside the reference-docs root (default `docs/project-reference`; a `docsRoots.projectReference.path` entry in `docs/project-config.json` overrides the path): always `lessons.md`; doc lookup `docs-index-reference.md`; review `code-review-rules.md`; backend/CQRS/API `backend-patterns-reference.md`; domain/entity `domain-entities-reference.md`; frontend/UI `frontend-patterns-reference.md`; styles/design `scss-styling-guide.md` + `design-system/design-system-canonical.md`; integration tests `integration-test-reference.md`; E2E `e2e-test-reference.md`; feature docs/specs `feature-spec-reference.md` + `spec-system-reference.md` + `spec-principles.md`; behavior/public-contract/spec-test-code sync `workflow-spec-test-code-cycle-reference.md`; derived spec index/ERD/reimplementation guides `spec-system-reference.md` + source Feature Specs under the business spec root (default `docs/specs`; a `specRoots.business.path` entry in the same config overrides the path); architecture/new area `project-structure-reference.md`.
-> 4. Read every required doc, then before target work state: `Reference docs read: ... | Not applicable: ...`. After compaction, resume, delegation, or a material context change, repeat the route and restate the set; prior conversation and hook output are not proof of current loading.
+> 2. **Read the configured project-config file first, if it exists.** Resolve its path through the project-config loader (default `docs/project-config.json`). **The project config is OPTIONAL: a project with no config is a supported, first-class state, not an error.** When it is absent, run on the framework's portable defaults and derive project facts (paths, run commands, conventions, architecture, test and spec layout) from repository evidence — manifests, lockfiles, scripts, CI definitions, directory layout, root instruction files — stating the assumption whenever one is material; do not block, and do not demand a bootstrap route before ordinary work. When it IS present, the minimum valid shape has a non-empty `project.name`; omitted optional capability properties use neutral defaults or skip that capability. A section its author DECLARED but left malformed or incomplete is a configuration error: fail closed on that section and run `/project-init` or `/project-config` before relying on it, because silently substituting defaults would present wrong project facts as authoritative. Use valid config for the adopter's paths, commands, architecture, specs, tests, and workflows, then verify material hints against repository evidence; never assume generic defaults are project facts.
+> 3. **Always-on vs task-specific references:** Project initialization owns and ensures the project's `lessons.md` and docs-index inputs at their configured owner paths. Read them under the static project-context contract independently of task-specific `referenceDocs`; do not append them to that selection. For task-specific docs, when the configured `referenceDocs` property is an array, follow it exactly, including subsets and `[]`. When absent, use the runtime capability-aware resolver: its portable baseline plus only configuration- or repository-evidenced capabilities; a minimal project with no capability evidence may resolve to an empty task-specific set. The full scan-target manifest is a registry of metadata/aliases, not a default selection. Resolve configured paths using `docsRoots.projectReference.path` when present (default `docs/project-reference`; `docsRoots.projectReference.path` in `docs/project-config.json` overrides it). A custom reference doc declares `filename` and `purpose`, with optional `sections`, `templatePath`, and `scanTarget`. Built-in filenames keep their exact framework-owned target; other custom docs default to manual ownership, while `scanTarget: "generic"` opts one exact selected file into evidence-based scanning. Manual docs are not freshness-tracked or impact-routed. Never infer a target by basename; config and runtime path resolution reject lexical traversal and physical symlink escapes.
+> 4. Read selected task-specific docs just in time before target work, then state: `Reference docs read: ... | Not applicable: ...`; an explicit empty selection means no task-specific docs are selected by the catalog. Still honor separately required references named by the active skill or task. An absent project config is not a missing doc: proceed on repository evidence and, at most, OFFER `/project-init` or `/project-config` as an optional one-time recording of those facts. If an always-on input or a selected/otherwise required doc is missing or stale, or a declared config section is malformed, use `/project-init` or the narrow owner route (`/project-config`, `/docs-init`, `/scan --target=<key>`, `/ai-context-refresh`) before relying on that input. If Codex mirrors are stale, use the explicit `/sync-codex` route or its documented `/ai-context-refresh` completion handoff for the active source-authoring task. After compaction, resume, delegation, or material context change, repeat selection and reading; prior conversation and hook output are not proof of current loading.
 >
-> **Ready when:** scope evaluated, `docs/project-config.json` consulted, required docs checked/read or setup route completed, `lessons.md` confirmed, citation emitted.
+> **Ready when:** scope evaluated, the configured project-config file consulted or its absence recorded and the portable-defaults fallback applied, root always-on inputs are confirmed (completing project initialization if they are missing or stale), the declared task-specific `referenceDocs` selection is applied exactly or, when absent, the runtime capability-aware resolver output is applied (which may be empty), selected docs are read or an explicit empty selection is recorded, and the citation emitted.
 
 <!-- /SYNC:project-reference-docs-guide -->
 
@@ -380,31 +375,31 @@ Run ALL verification checklists from the production readiness protocol:
 
 <!-- SYNC:understand-code-first -->
 
-> **Understand Code First** — HARD-GATE: Do NOT write, plan, or fix until you READ existing code.
+> **Understand Existing Code First** — For code changes, read and trace the target before planning or editing; do not apply a code workflow to work with no code surface.
 >
-> 1. Search 3+ similar patterns (`grep`/`glob`) — cite `file:line` evidence
-> 2. Read existing files in target area — understand structure, base classes, conventions
-> 3. Run `python .claude/scripts/code_graph trace <file> --direction both --json` when `.code-graph/graph.db` exists
-> 4. Map dependencies via `connections` or `callers_of` — know what depends on your target
-> 5. Write investigation to `tmp/analysis/` for non-trivial tasks (3+ files)
-> 6. Re-read analysis file before implementing — never work from memory alone. — why: long context drifts from the file; the file is ground truth
-> 7. NEVER invent new patterns when existing ones work — match exactly or document deviation. — why: divergent patterns fragment the codebase and slow every future reader
+> 1. Search for relevant existing implementations and cite `file:line`; aim for 3+ comparable examples when they exist, and record when the project has fewer or none.
+> 2. Read the target area and its configured project references; identify actual structure, owners, and conventions without assuming a framework, layer model, or base class.
+> 3. Run `python .claude/scripts/code_graph trace <file> --direction both --json` when `.code-graph/graph.db` exists and the task concerns code relationships.
+> 4. Map affected dependencies and callers with available repository tools; do not block on an absent graph or unsupported tool.
+> 5. Write investigation to `tmp/analysis/` for non-trivial tasks (3+ files).
+> 6. Re-read the analysis before implementing; update it when evidence changes.
+> 7. Follow a fitting local pattern, or state why no suitable pattern exists and justify a project-appropriate choice.
 >
-> **BLOCKED until:** `- [ ]` Read target files `- [ ]` Grep 3+ patterns `- [ ]` Graph trace (if graph.db exists) `- [ ]` Assumptions verified with evidence
+> **BLOCKED until:** target and relevant existing patterns are inspected, applicable dependencies are traced, and material assumptions have evidence. If an item does not apply or the repository has no comparable implementation, record that fact rather than fabricating a gate result.
 
 <!-- /SYNC:understand-code-first -->
 
 <!-- SYNC:scaffold-production-readiness -->
 
-> **Scaffold Production Readiness** — Every scaffolded project MUST ATTENTION include 5 foundations:
+> **Scaffold Readiness** — Evaluate these foundation areas against the requested artifact, project config, and deployment model. Include applicable foundations; mark non-applicable areas N/A with a reason instead of adding unrelated stack requirements:
 >
-> 1. **Code Quality Tooling** — linting, formatting, pre-commit hooks, CI gates. Specific tool choices → `docs/project-reference/` or `project-config.json`.
-> 2. **Error Handling Foundation** — HTTP interceptor, error classification (4xx/5xx taxonomy), user notification, global uncaught handler.
-> 3. **Loading State Management** — counter-based tracker (not boolean toggle), skip-token for background requests, 300ms flicker guard.
-> 4. **Docker Development Environment** — compose profiles (`dev`/`test`/`infra`), multi-stage Dockerfile, health checks on all services, non-root production user. **Both run modes must be PROVEN, not merely configured:** the bare-host path AND the fully-containerized path each start the system and run the test suite, from ONE source of truth for config and topology — record the command for each, and which one CI exercises. A configured-but-never-run mode rots silently, and a claimed-but-rotten mode is worse than one never claimed (`SYNC:engineering-foundation-gate` **F2**).
-> 5. **Integration Points** — document each outbound boundary; configure retry + circuit breaker + timeout; integration tests for happy path and failure path.
+> 1. **Quality tooling** — use or propose tooling appropriate to the language, repository, and delivery process; document selected tools in project references/config when available.
+> 2. **Error handling** — define behavior at applicable process, API, CLI, library, or user-interface boundaries; use HTTP status handling or user notifications only when those surfaces exist.
+> 3. **Asynchronous interaction** — provide progress/loading and cancellation behavior when the artifact exposes long-running work to a user or caller; do not add a universal loading tracker to non-interactive projects.
+> 4. **Runtime and deployment** — use the declared hosting and deployment model. Container files and multiple run modes are required only when selected by the project; prove each supported mode with its actual command.
+> 5. **External integrations** — document and test applicable outbound boundaries; choose timeout, retry, idempotency, or circuit-breaking behavior to fit the protocol and failure modes.
 >
-> **BLOCK `/feature-implement` if any foundation is unchecked.** Present 2-3 options per concern via `AskUserQuestion` before implementing.
+> **Gate:** resolve every applicable foundation before implementation. Ask for a decision only when an unresolved choice materially changes the architecture or user-visible behavior.
 
 <!-- /SYNC:scaffold-production-readiness -->
 
@@ -418,16 +413,16 @@ Run ALL verification checklists from the production readiness protocol:
 > | ----------- | ------------- | ----------------------------------------------------------------------------- | ---------------- |
 > | Feedforward | Computational | `.editorconfig`, strict compiler flags, enforced module boundaries            | Always-on        |
 > | Feedforward | Inferential   | `CLAUDE.md` conventions, skill prompts, architecture notes, pattern catalogs  | Always-on        |
-> | Feedback    | Computational | Linters, type checks, pre-commit hooks, ArchUnit/arch-fitness tests, mutation-score gate, CI gates | Pre-commit → CI  |
+> | Feedback    | Computational | Linters, type checks, selected architecture tests, fault/mutation checks where useful, CI gates | Local/commit → CI |
 > | Feedback    | Inferential   | `/code-review` skill, `/production-readiness-review`, `/security-review`, LLM-as-judge passes         | Post-commit → CI |
 >
-> **Test-strength sensor — gate on mutation score, NOT line coverage.** Line coverage is a DIAGNOSTIC only: low coverage is a useful NEGATIVE signal (something is untested); high coverage is NOT evidence of quality (tests can execute lines without asserting intent) — NEVER fail a build on a line-coverage %. The real test-strength metric is **mutation score** (inject faults into changed code; surviving mutant = a missing/weak assertion = write the killing test); gate the build on it where a mutation tool exists. **Where no workable tool exists the obligation does NOT lapse — it falls back to the deliberate defect-seeding drill:** break the production code behind a top invariant, run the suite, record WHICH NAMED TEST went red, restore. Nothing went red ⇒ that behavior has no protection; write the killing test. The drill needs no tooling, works in every ecosystem, costs one edit-run-revert cycle per behavior, and is what makes test-strength checkable rather than aspirational — full contract in `SYNC:engineering-foundation-gate` **F4**. Add **property coverage** as a second sensor — each [HARD] §4 rule / §5 invariant guarded by ≥1 property/metamorphic test. The property tests themselves are REQUIRED for invariant-owning behaviors (`spec [mode=tests]` + `integration-test` force them, not opt-in); what is optional is only wiring property coverage as an *automated CI sensor* on top. Keep **behavior/change-coverage** (does each behavior-changing file have a test that asserts the changed outcome) — that notion is meaningful and stays.
+> **Test-strength evidence — protect intent, choose signals by risk and fit.** Line coverage is a diagnostic: low coverage can reveal untested areas, while high coverage does not prove assertions protect behavior. Do not make a mutation score, property-test tool, or manual defect-seeding exercise a universal build gate. For important or high-risk invariants, choose useful evidence supported by the project's stack and budget: assertion-intent review, targeted mutation/fault injection, property/metamorphic checks, contract checks, or a focused defect-seeding probe. If a sensor is automated, gate only on a meaningful threshold the team can maintain; record what it proves and its limits. See `SYNC:engineering-foundation-gate` **F4** for the profile-aware foundation check.
 >
 > **Three harness types:**
 >
 > 1. **Maintainability** — Complexity, duplication, line-coverage (diagnostic only — never a gate), style. Easiest: rich deterministic tooling.
 > 2. **Architecture fitness** — Module boundaries, dependency direction, performance budgets, observability conventions, and **build scalability** (an unchanged module is not rebuilt; the affected-only set is computable because dependencies are declared; cache hit-rate is measured, not assumed). Build scoping belongs here because it is enforced by the same boundary declarations — unenforced boundaries decay until the affected set is "everything".
-> 3. **Behaviour** — Functional correctness. Hardest: gate on mutation score + property coverage; line coverage stays a diagnostic.
+> 3. **Behaviour** — Functional correctness. Assert important owned outcomes; add mutation, property, contract, or change-coverage sensors when their benefit and tool support justify them. Line coverage stays a diagnostic.
 >
 > **Keep quality left:** pre-commit sensors fire first (cheap), CI sensors fire second, post-review last (expensive).
 >
@@ -441,6 +436,7 @@ Run ALL verification checklists from the production readiness protocol:
 
 > **AI Mistake Prevention** — Failure modes to avoid on every task:
 >
+> **Project applicability gate.** Before applying a stack, layer, style, tool, or architecture rule, read the project's config and relevant references, then check local implementations. Treat framework examples as examples; honor explicit N/A and do not require a technology or convention the project does not use.
 > **ROOT-CAUSE GATE — INVESTIGATE FIRST.** Before applying any project-related correction, always use the project's root-cause investigation protocol and establish the cause; the failure site may be only a symptom.
 > **FAILED-TEST GATE.** For any failed or unstable test, use the project's test-investigation protocol before editing source or tests; never change either side merely to force green.
 > **Re-read files after context changes.** Context compaction, resume, or long-running work can make memory stale; verify current files before acting.
@@ -459,23 +455,23 @@ Run ALL verification checklists from the production readiness protocol:
 
 <!-- SYNC:test-architecture-execution-contract -->
 
-> **Test Architecture & Execution Contract** — Treat testability as a setup/architecture acceptance condition. For every potentially applicable tier — Unit, Integration/System, E2E, and Performance/Scale (warranted at `T1+`/`B2+`) — record `APPLICABLE` only with evidence of its runner/framework/configuration; otherwise record `N/A — <evidence>` and never fabricate coverage.
+> **Test Architecture & Execution Contract** — Treat testability as a setup/architecture acceptance condition. Identify the test types and execution modes required by the project contract and task risk; examples include unit, integration/system, E2E, and performance/scale. Record `APPLICABLE` only with evidence of a relevant runner/framework/configuration; otherwise record `N/A — <evidence>` and never fabricate coverage or impose a universal tier threshold.
 >
-> 0. **Given / When / Then is mandatory for every assertion-bearing test.** Every Unit, Integration/System, E2E, Performance/Scale, contract, architecture, security, accessibility, visual, property, mutation, and harness test must expose one explicit scenario: `Given` = actor/input/precondition/fixture/environment · `When` = the behavior, request, event, check, or workload trigger · `Then` = the observable business/technical outcome, invariant, error/access decision, visual state, or asserted budget. Use `And` only as a continuation. Framework-native BDD blocks, named helpers, or comments are valid representations; bare `Arrange/Act/Assert` is insufficient unless those three phases are also labeled `Given/When/Then`.
->    Record `Business Intent / Invariant Guarded` (or the technical contract being checked), keep one behavior per case, and split unrelated outcomes. `Then` asserts the outcome the test owns, not only an internal call, delivery bookkeeping, or setup side effect. Fixture/runner glue is exempt only when it contains no test assertion; every assertion-bearing test entry point is in scope. Convert legacy brownfield cases when touched; a broader migration is a named owned opportunity, while a safety-critical case without clear phases is `BLOCKED`.
+> 0. **Make the protected intent explicit in the project's test format.** Every assertion-bearing test states the behavior or technical invariant it protects and makes its relevant inputs, trigger, and owned outcome understandable. Use `Given / When / Then` when the project's spec/config selects it or when it fits the test; otherwise preserve the project's native organization. Property/fuzz tests may describe an input space or generator and the property checked; harness and mutation tests may use their native contract. Do not rewrite a test solely to adopt a framework-wide syntax.
+>    Link the case to the configured owner/case/scenario identity and its `intent` or `contracts` role when `specArtifacts` is valid; when absent, record `Business Intent / Invariant Guarded` (or the technical contract). A malformed declared profile blocks without fallback. Keep one behavior per case and split unrelated outcomes. The final assertion must prove the outcome the test owns, not only an internal call, delivery bookkeeping, or setup side effect. Fixture/runner glue is exempt only when it contains no test assertion; every assertion-bearing test entry point is in scope. Convert legacy brownfield cases when touched; a broader migration is a named owned opportunity, while a safety-critical case without clear phases is `BLOCKED`.
 >
-> 1. **Matrix before implementation:** Record applicability, owner, runner/framework, test root, fixture/data strategy, full command, focused/partial command, zero-match behavior, CI gate, a simple/Windows entry point (a `.cmd` when the project needs one), the **host-mode AND container-mode commands** where the project supports both, and the **environment reach** (which of local / CI / production-shaped this tier can target).
+> 1. **Matrix before implementation:** For each required test type, record applicability, owner, runner/framework, test root, fixture/data strategy, full command, focused/partial command, zero-match behavior, CI gate, a simple/platform-appropriate entry point when useful, each supported execution mode, and the environments the project promises to support.
 > 1a. **E2E profile handoff:** For E2E, also record the selected `surfaceIds[]`, the linked `localRun` owner, auth mode/reference, seed/data mode, browser runner/engine/headed setting, action-delay policy, evidence root/capture/redaction policy, and convergence cap. Missing fields remain explicit blockers or N/A; they are never filled from generic browser defaults.
-> 2. **Runnable scopes:** Full and focused commands must be copy-ready, fail on invalid or zero-match selections, report exact counts and exit status, and be safe to repeat. E2E uses only configured browser/service commands. Before every browser/UI E2E operation on a UI control, use the canonical bounded `waitUntil(condition, options)` helper for readiness/actionability and applicable blocking error-alert absence; after the operation, use it for the expected positive/negative postcondition or error-alert state, then wait exactly **500ms** at the end. The delay is presentation pacing, never a readiness or settle mechanism, and applies to automation as well as visible human-QC.
-> 2a. **E2E object-model gate (when E2E is applicable):** Build and reuse a three-tier test object model — **Common components** for cross-feature controls, **Domain-Shared components** for reusable domain behavior, and **Page components/objects** for page-specific composition. Each object records its tier, owner, and base abstraction.
-> 2b. **E2E abstraction and DRY gate:** Use an idiomatic abstract base class or language-equivalent protocol/trait for shared lifecycle, locator, readiness, and pacing behavior; centralize purpose-specific utilities/helpers for data, auth, and evidence; keep assertions in tests. Reuse or compose existing objects before creating new ones, keep one canonical owner for each selector/action/wait, and treat duplicated wrappers or setup as a finding; extract at 3+ similar implementations.
-> 2c. **E2E test layering:** Test a reusable Common or Domain-Shared component contract once, then let Page tests cover page-specific composition and outcomes; do not copy lower-tier component cases into every Page test.
-> 2d. **E2E wait-until gate:** The object model MUST expose or compose one reusable `waitUntil(condition, options)` utility accepting a positive or negative boolean/async predicate, bounded timeout/poll settings, and a diagnostic description. Before each action wait for a ready/actionable control and the applicable error-free precondition; after each action wait for the expected state transition, dropdown/options visibility, selected state, or expected error-alert presence/absence. Keep the final business assertion in the test and fail with the wait diagnostics on timeout.
-> 3. **Fresh valid state:** Each run/test owns a unique run identity and business-data suffix, arranges through supported public paths, and uses realistic valid data. Reference setup is count-before-create, idempotent, and restart-safe. Intentional accumulation is additive, keyed, and integrity-checked; never hide contamination with destructive reset.
+> 2. **Runnable scopes:** Full and focused commands must be copy-ready, fail on invalid or zero-match selections, report exact counts and exit status, and be safe to repeat. E2E uses configured browser/service commands and the project's documented synchronization strategy. Browser UI actions should wait for bounded, observable readiness and outcome conditions using runner-native waits or a configured helper; apply action delays only when the project contract specifies them.
+> 2a. **E2E organization gate (when E2E is applicable):** Inspect the configured/discovered local test organization and reuse it — fixtures, shared helpers, scoped locator handles, page objects, or another evidenced structure. Record actual owners and boundaries; describe tiers or base abstractions only when the project uses them. A Page Object Model is one valid pattern, never a universal requirement.
+> 2b. **E2E reuse and DRY gate:** Keep shared lifecycle, locator, readiness, auth, data, and evidence behavior at the project's existing reusable owner; keep final outcome assertions in the test. Reuse or compose existing helpers/objects before creating new ones, preserve one canonical owner for each selector/action/wait, and treat duplicated wrappers or setup as a review signal; use occurrence counts only as evidence, and extract when a shared owner reduces change cost without crossing project boundaries.
+> 2c. **E2E test layering:** Test reusable shared behavior at its actual owner where the harness supports it; feature tests cover user outcomes and local composition. Do not invent component tiers or require lower-tier contract tests when the project has no such model.
+> 2d. **E2E synchronization:** Use bounded runner-native waits or the configured project helper for observable preconditions and postconditions where the runner supports them. Include useful timeout diagnostics; keep the final business assertion in the test and avoid fixed sleeps as readiness evidence.
+> 3. **Fresh valid state (when mutable or shared state applies):** Isolate each test/run using the project's supported setup and public paths where applicable. Use unique identities for shared mutable data, realistic valid data for behavior under test, and idempotent/restart-safe setup when fixtures or seeders can persist. Intentional accumulation is additive and integrity-checked; never hide contamination with destructive reset.
 >    Run-scoped cleanup, when supported, is opt-in and idempotent: after evidence capture it may remove only ephemeral resources owned by the current run; it must never delete persistent/additive data or another run's data, reset shared state, or replace no-reset proof.
-> 4. **Isolation and fidelity:** Isolate mutable roots and parallel workers; share only immutable/reference data. Preserve real actor pacing and observable arrange barriers. Do not widen retries or weaken assertions to make a scenario pass.
-> 5. **Evidence gate:** Report command, scope, identity, seed/accumulation mode, exact result, and repeat proof. For each applicable persistent-state suite, require two consecutive no-reset full runs. Treat line coverage as diagnostic only; use meaningful property/invariant, mutation, change, and behavior coverage signals.
-> 6. **Execution modes and environment reach:** A tier claiming two run modes must have **BOTH exercised** — the bare-host command and the fully-containerized command, driven from ONE source of truth for config and topology; record which mode CI exercises, because an unexercised mode rots silently and a claimed-but-rotten mode is worse than one never claimed. The SAME suite must reach local, CI and (where warranted) a production-shaped target, **parameterized by configuration, never by forked test code** — only one fork ever stays maintained, so forking guarantees divergence. A target lacking a required capability reports `ENVIRONMENT-BLOCKED`, never a silent pass. Tests unsafe against production are excluded by an **ENFORCED** mechanism whose absence fails loudly, not by a convention someone must remember; *"runs in prod"* means a safe, declared, **NON-MUTATING** subset. Reproducibility underwrites all of it — pinned toolchain, locked dependencies, declared external prerequisites — which is the difference between a suite that passes anywhere and one that passes on its author's machine. Depth → `SYNC:engineering-foundation-gate` **F1/F2/F3**.
+> 4. **Isolation and fidelity:** When tests touch mutable/shared state, isolate their data and parallel workers; share only immutable/reference data. Use realistic input and observable arrange barriers where the behavior depends on them. Do not widen retries or weaken assertions to make a scenario pass.
+> 5. **Evidence gate:** Report command, scope, relevant identity/data mode, exact result, and repeat proof. For persistent-state suites, verify repeatability without destructive reset at the level required by the project gate. Treat line coverage as diagnostic only; use meaningful property/invariant, mutation, change, or behavior signals when supported by the project's tooling.
+> 6. **Execution modes and environment reach:** Exercise each mode and environment the project declares it supports (for example host/container or local/CI); parameterize supported targets when that fits the existing test architecture instead of maintaining needless forks. Record unexercised declared capabilities as a gap. A production-shaped target is applicable only when the project requires it; tests that can reach production need an enforced safe scope, and must report `ENVIRONMENT-BLOCKED` when it is missing. Pin dependencies and declare external prerequisites where the project's reproducibility contract requires them. Depth → `SYNC:engineering-foundation-gate` **F1/F2/F3**.
 >
 > **Ownership:** Architecture/harness defines the matrix; scaffold/workflow makes it runnable; test writers implement tier-specific cases; reviewers verify the contract; the runner reports; seed-data owners preserve uniqueness, idempotency, realism, and accumulation integrity. Missing required evidence blocks setup completion.
 
@@ -516,17 +512,17 @@ Run ALL verification checklists from the production readiness protocol:
 >
 > **`CL-3` Severity, then a cap (§0.3).** `P0` blocks task completion / loses data / excludes a protected group (ship blocker) · `P1` significant friction or a legal accessibility floor (fix before release) · `P2` measurable inefficiency (next iteration) · `P3` polish (backlog) · `P4` note. Cap the report at the top 10 by severity unless a full audit was requested. A clean section reports "no issues found" — NEVER pad. Every `P0`/`P1` carries a concrete fix.
 >
-> **`CL-4` Section sweep, in order.** §A core usability heuristics · §B cognitive load & decision design · §C visual design & hierarchy · §D interaction + **the eight screen states** (ideal, empty, first-run, loading, partial, error, offline, maximum-data) · §E information architecture · **§F web / §G mobile / §H desktop — conditional on platform** · §I accessibility (WCAG 2.2 AA; every item `P1` minimum, `P0` when it blocks the task) · §J content & UX writing · §K trust, ethics & privacy (dark patterns are `P0`) · **§L AI & agentic patterns — conditional on the product having AI features** · §M cross-cutting consistency · §N edge-case probes. One focused pass per section — why: a section skipped in the long middle silently becomes an unreported defect class.
+> **`CL-4` Section sweep, in order.** §A core usability heuristics · §B cognitive load & decision design · §C visual design & hierarchy · §D interaction and relevant product states · §E information architecture · **§F web / §G mobile / §H desktop — conditional on platform** · §I accessibility: use WCAG 2.2 AA as the web baseline and meet any stricter applicable legal or project requirement; for other platforms, use the documented platform standard. Record the selected standard and its source; severity follows the governing release contract · §J content & UX writing · §K trust, ethics & privacy · **§L AI & agentic patterns — conditional on the product having AI features** · §M cross-cutting consistency · §N edge-case probes. Make one focused pass per applicable section and record N/A with evidence for sections the surface does not support.
 >
-> **`CL-5` Quick Triage Pass (§P)** when a full sweep is not possible — these 10 catch the majority of serious defects: (1) can a new user complete the primary task unaided · (2) does every action give visible feedback within 400ms · (3) do empty/loading/error states exist AND offer a forward path · (4) is the primary action obvious, singular, reachable · (5) text ≥4.5:1 contrast and focus visible · (6) whole flow completable by keyboard · (7) touch targets ≥44/48px · (8) destructive actions reversible · (9) holds at 320px and 200% zoom · (10) any dark patterns.
+> **`CL-5` Quick Triage Pass (§P)** when a full sweep is not possible — use these prompts for applicable surfaces: (1) can a new user complete the primary task unaided · (2) is feedback timely against the project/platform expectation · (3) do relevant empty/loading/error states offer a forward path · (4) is the primary action obvious and reachable for supported inputs · (5) do contrast and focus meet the selected accessibility standard (WCAG 2.2 AA baseline for web) · (6) can users operate the surface with its supported input modes · (7) do interactive targets meet the platform's size/spacing guidance · (8) are destructive actions recoverable where appropriate · (9) does the surface work at its smallest supported size and required zoom/reflow · (10) are there deceptive or coercive patterns.
 >
 > **`CL-6` Report shape (§O).** Context (+ known gaps) → Verdict (Ship / Ship with fixes / Do not ship) → What works (2–4 specific strengths, cited) → Findings grouped `P0`→`P3`, each with Location · Evidence + tag · Impact · Principle (checklist ID) · Fix → Open questions → Coverage table. Any `P0` caps the grade at Fail regardless of score; report a score only ALONGSIDE findings, never instead of them.
 >
-> **Component architecture pass (§M6–§M9) when source code is in scope.** Verify the component tier (Common/Domain-Shared/Page), base abstraction and owner, reuse/composition decision, and absence of duplicated component markup, selectors, styling, lifecycle, or lower-tier test cases. Report the applicable checklist ID with `file:line` evidence; do not infer code architecture from a screenshot alone.
+> **Component architecture pass (§M6–§M9) when source code is in scope.** Verify the ownership model documented or demonstrated by the project, reuse/composition decisions, and whether shared behavior is duplicated without a reason. Do not require tiers, a base abstraction, or a particular test hierarchy unless the project uses one. Report applicable checklist IDs with `file:line` evidence; do not infer source architecture from a screenshot alone.
 >
 > **Precedence and no-double-counting.** The project's design-system / SCSS / frontend-pattern docs and accepted ADRs OUTRANK this checklist; the brief's stated direction outranks aesthetic judgment. A deliberate, documented convention is NEVER a defect — check intent before flagging, and surface a genuine conflict to the user with both sides, NEVER resolve it silently. This checklist is the review PROCEDURE, not a third set of taste rules: `UI-1.1`–`UI-9.4` ask "does it meet the usability floor?", `DD-1`–`DD-8` ask "is this THIS product's interface?", and these checks ask "did the review actually look, with evidence, and rank it?". Where a check restates a `UI-*` or `DD-*` clause, report the defect ONCE under whichever ID the consuming skill already uses.
 >
-> **For a PLAN or a PLAN REVIEW.** When the plan contains front-end work, the checklist binds the plan's ACCEPTANCE CRITERIA, not a built page: name the platform, the applicable conditional sections (§F/§G/§H, §L), the eight screen states each UI phase must deliver (§D2), and the §I accessibility floor — so the work is specified against the checklist before it is written. A UI phase whose acceptance criteria omit the states and the a11y floor is INCOMPLETE — say so.
+> **For a PLAN or a PLAN REVIEW.** When the plan contains UI work, bind applicable acceptance criteria to the target platform/surface, relevant user states, and the selected accessibility standard. Use WCAG 2.2 AA as the web baseline and meet any stricter applicable legal or project requirement; for other platforms, identify the documented platform standard. Identify conditional sections (§F/§G/§H, §L) that apply. Do not require every catalogued state; record the standard and its source, and keep unsupported checks N/A.
 
 <!-- /SYNC:design-review-checklist -->
 
@@ -537,7 +533,7 @@ Run ALL verification checklists from the production readiness protocol:
 > 1. **Derive the project profile FIRST — from evidence, never assumed.** `Lifecycle` **G** greenfield (foundation being created) / **B** brownfield (foundation exists, under audit) · scale `T0`–`T3` (**reuse** `scale-technique-catalog.md`, never re-derive) · criticality `B0`–`B3` with its criticality-signal floor (**reuse** `scenario-stress-catalog.md`) · repo shape `R0` single module / `R1` few (2–5) / `R2` many modules, multi-team / `R3` monorepo estate · runtime surface. Cite `file:line`/config/CI + confidence. Unknown axis → state the assumption and take the **LOWER** tier; NEVER default to `T3`/`B3`/`R3` — an over-stated profile turns this gate into busywork a small team correctly ignores.
 > 2. **Judge all 7 dimensions — always all 7, never a filtered subset** (an omitted row is indistinguishable from an overlooked one). Depth belongs to the named owner; this gate decides only present/absent:
 >    - **F1 Reproducible environment** (ALL profiles — the floor) — one documented path takes a clean machine to a running system; toolchain versions pinned; dependencies locked to exact versions; every external prerequisite declared with a way to obtain or fake it; config environment-injected, never machine-implicit; build deterministic. This is what kills _"works on my machine"_ — not carelessness, but a build depending on ambient state nobody declared. → `scaffold` · `architecture-scalability-review`
->    - **F2 Dual execution modes** (`T1+`, multi-contributor, or containerized target; `B2+` regardless of scale) — the system runs on the **bare host** AND **fully containerized** from ONE source of truth for config and topology, and the suites run in BOTH directions (host-run against a containerized system, and wholly inside a container). Both modes **exercised**, so neither rots. Host mode buys a fast inner loop and a debugger; container mode buys CI/production parity and a trustworthy day one — a project with only one teaches people to work around it undocumented. A mode honestly dropped with a stated reason is `N/A`; the defect is the **claimed-but-rotten** mode. → `scaffold` · `production-readiness-review`
+>    - **F2 Supported execution modes** (judge the modes this project uses or requires; a second mode is not universal) — document and exercise each supported/required developer, test, and deployment path (for example host/container, local/managed, simulator/device). Keep shared configuration/topology in one source where possible. If only one mode fits the runtime, platform, team, and delivery model, verify it and mark the second-mode comparison `N/A-by-profile`; do not invent Docker, Compose, or a host path. The defect is a claimed or required mode that is broken or irreproducible. → `scaffold` · `production-readiness-review`
 >    - **F3 Environment-portable tests** (local+CI all profiles; production-shaped `T1+`/`B2+`) — the SAME suites run against local, CI and production-like targets, **parameterized by configuration, never by forked test code** (only one fork ever stays maintained, so forking guarantees divergence). Missing capability reports `ENVIRONMENT-BLOCKED` rather than silently passing; unsafe-in-production tests are excluded by an **enforced** mechanism whose absence fails loudly, not by a convention someone must remember. _"Runs in prod"_ means a safe, declared, **NON-MUTATING** subset. → `test-architecture-execution-contract` · `integration-test-review`
 >    - **F4 Test-strength proof** (wherever tests exist) — evidence the suite **actually fails when the code is wrong**; a passing suite means nothing until it is known to be capable of failing for the right reason. Strongest available first: (a) **automated fault injection** scoped to CHANGED code — a surviving defect is a missing or vacuous assertion; gate on it where the ecosystem offers a workable tool. (b) **Deliberate defect-seeding drill — the universal fallback, needing no tooling and available in every ecosystem:** break the production code behind a top invariant, run the suite, record **WHICH NAMED TEST went red**, restore. Nothing went red ⇒ that behavior has no protection — write the killing test. (c) **Assertion-intent audit:** flag assertions that would still hold under an inverted implementation, that assert only non-nullness or a type, that re-assert the input, or that assert infrastructure bookkeeping instead of the outcome the system owns. **Line coverage is a DIAGNOSTIC, never a gate** — low coverage is a useful negative signal; high coverage is not evidence of quality, and gating on the percentage reliably produces tests written to touch lines rather than protect behavior. **Scope boundary — do NOT re-litigate a solved question:** this gate asks only whether the PROJECT HAS a test-strength mechanism wired into its harness at all; PER-CHANGE enforcement is already owned by `integration-test-review` Gate 1's Mutation Probe Ledger (tool path + manual fallback, ledger required either way). Report the setup gap here, the assertion gap there, never both. → `harness-setup` (sensor design) · `integration-test-review` (per-change enforcement)
 >    - **F5 Performance & scale-under-data** (`T1+`/`B2+` for a real tier; `T0`/`B0` = one documented largest-expected-volume check) — performance **MEASURED by something that RUNS and CAN FAIL**, not reasoned about. The companion gates can be fully satisfied by a system that has never once been run against a large dataset; this is the executable counterpart. Requires: a runnable perf tier with a documented command (it belongs in the tier matrix); on-demand **realistic volume AND realistic shape** — distribution, cardinality, skew, not a million identical rows; **named latency/throughput/memory budgets the run ASSERTS** (a perf test that only reports numbers is a dashboard, and eventually nobody reads it); growth compared across **≥2 volumes ~10× apart**, because one data point cannot distinguish O(n) from O(n²); and resource exhaustion as a **tested, bounded** outcome — backpressure, paging or a clean error rather than an OOM kill, with unbounded result-sets, unbounded in-memory accumulation and unbounded concurrency provably absent or bounded on the paths that matter. State whether a number is a regression signal or a capacity statement. → `performance-review` · `seed-test-data`
@@ -555,39 +551,40 @@ Run ALL verification checklists from the production readiness protocol:
 
 <!-- SYNC:understand-code-first:reminder -->
 
-**IMPORTANT MUST ATTENTION** search 3+ existing patterns and read code BEFORE any modification. Run graph trace when graph.db exists.
+**IMPORTANT MUST ATTENTION** search 3+ existing patterns and read code/conventions BEFORE any modification or explanation. Run graph trace when graph.db exists.
 
 <!-- /SYNC:understand-code-first:reminder -->
 
 <!-- SYNC:evidence-based-reasoning:reminder -->
 
-- **MANDATORY IMPORTANT MUST ATTENTION** cite `file:line` evidence for every claim. Confidence >80% to act, <60% = do NOT recommend.
+**IMPORTANT MUST ATTENTION** cite `file:line` evidence for every claim; never speculate. Confidence >80% to act, <60% = do NOT recommend; "not enough evidence" is valid output.
+
 <!-- /SYNC:evidence-based-reasoning:reminder -->
 
 <!-- SYNC:scaffold-production-readiness:reminder -->
 
-**IMPORTANT MUST ATTENTION** verify all 5 production-readiness foundations (code quality, error handling, loading state, Docker, integration points) before marking scaffold complete.
+Assess quality, error handling, async interaction, runtime/deployment, and integrations against project config and the actual target. Include and verify applicable foundations; mark the rest `N/A` with a reason. Do not require UI, containers, a broker, or a test layer the project does not use.
 
 <!-- /SYNC:scaffold-production-readiness:reminder -->
 
 <!-- SYNC:critical-thinking-mindset:reminder -->
 
-**MUST ATTENTION** apply critical + sequential thinking — every claim needs appropriate traced evidence (`file:line` for repo/code claims; source URL or artifact section for research, product, content, and docs claims); confidence >80% to act, <60% DO NOT recommend. Anti-hallucination: never present guess as fact, admit uncertainty freely, cross-reference independently, stay skeptical of own confidence.
+**MUST ATTENTION** critical + sequential thinking: every claim carries traced evidence (`file:line` for code, source URL or artifact section otherwise); confidence >80% to act, <60% do NOT recommend. Never present a guess as fact; admit uncertainty and stay skeptical of your own confidence.
 
 <!-- /SYNC:critical-thinking-mindset:reminder -->
 
 <!-- SYNC:ai-mistake-prevention:reminder -->
 
-**MUST ATTENTION** ROOT-CAUSE GATE: before any project-related correction, use the appropriate root-cause investigation protocol; failed/unstable tests require the test-investigation protocol before editing source/tests — never force green.
+**MUST ATTENTION** Check project config, relevant references, and local evidence before applying stack-specific conventions; honor explicit N/A. ROOT-CAUSE GATE: before any project-related correction, use the appropriate root-cause investigation protocol; failed/unstable tests require the test-investigation protocol before editing source/tests — never force green.
 
 <!-- /SYNC:ai-mistake-prevention:reminder -->
 
 <!-- SYNC:project-reference-docs-guide:reminder -->
 
-- **MANDATORY** Before investigating, planning, or coding, read `docs/project-config.json` (the project map: modules/paths, run-commands, conventions, architecture/workflow rules) + the required project-reference docs, and cite `Reference docs read: ...`.
-- **MANDATORY** Load detail just in time immediately before the first target read/grep/edit/test; hooks may provide a pointer, but a hook event or prior turn is never evidence that the current files were read.
-- **MANDATORY** Always include `lessons.md`; project config + conventions override generic framework defaults.
-- **MANDATORY** If project config, root instruction files, or any required reference doc is missing or stale, auto-run `/project-init` or the narrow lower-level route before ordinary project-specific work. On compaction, resume, delegation, or a context change, re-read the required docs and restate the route before continuing.
+- **MANDATORY** Before project-specific work, load the OPTIONAL project-config (default `docs/project-config.json`) via its loader. No config is supported — fall back to portable defaults plus repository evidence, state material assumptions, never block. When present: require non-empty `project.name`, use neutral defaults/skips for omitted optional capabilities, and fail closed on a declared malformed section.
+- **MANDATORY** Apply an explicit `referenceDocs` array exactly, including `[]`; when absent use only the capability-aware resolver output, which may be empty. Cite `Reference docs read: ...` and note the selected or empty set.
+- **MANDATORY** Load detail JUST IN TIME, immediately before the first target read/grep/edit/test — a hook event or a prior turn is NEVER evidence that the current files were read. Re-resolve selection and re-read after compaction, resume, delegation, or a context change.
+- **MANDATORY** The project-init-owned `lessons.md` and docs-index inputs are always-on at their configured owner paths, read independently of task-specific `referenceDocs`. A missing/stale root instruction file or required reference doc, or a malformed declared config section → auto-run `/project-init` (or the narrow lower-level route) before relying on that input. An absent config never gates work — offer `/project-init` or `/project-config` once. Project config and conventions override generic framework defaults.
 
 <!-- /SYNC:project-reference-docs-guide:reminder -->
 
@@ -611,7 +608,7 @@ Run ALL verification checklists from the production readiness protocol:
 
 <!-- SYNC:project-protocol-overlay -->
 
-> **Project Protocol Overlay** — Before executing this skill, resolve any PROJECT overlay rules layered onto it: match this skill's name against the `Target` column of the project's skill-protocol index (default `docs/project-reference/skill-protocols-reference.md`; a `referenceDocs` entry in `docs/project-config.json` overrides the path, and a `docsRoots.projectReference.path` entry relocates its containing directory), taking the most specific matching tier ONLY — exact name > glob > `*`. **That precedence orders overlays against EACH OTHER, never against this skill.** Read ONLY the matched bodies, resolved as `<protocols-dir>/<Name>.md`; a row's Body link is display text, never a read path. A matched body that is missing or malformed is REPORTED and skipped — never reconstructed from the index Description. No index, or no match -> proceed with no overlay, silently. Full contract: `.claude/skills/project-skill-protocol/references/registry.md`.
+> **Project Protocol Overlay** — Before executing this skill, resolve project overlays from the index at `<docsRoots.projectReference.path>/skill-protocols-reference.md` (default `docs/project-reference/`; `docsRoots.projectReference.path` in `docs/project-config.json` overrides it). A matching `referenceDocs[]` filename may relocate the index within that root; this registry is independent from task-specific reference-doc selection, so omitted or empty `referenceDocs` does not disable it. The index's `**Protocols directory:**` header selects a project-root-relative body directory (default `docs/project-protocols/`). Match this skill against the `Target` column and take the most specific tier ONLY — exact name > glob > `*`. **That precedence orders overlays against EACH OTHER, never against this skill.** Read only matched bodies derived as `<protocols-dir>/<Name>.md`; the row's Body link is display text, never a read path. Reject unsafe paths without reading. A matched body that is missing or malformed is REPORTED and skipped — never reconstructed from the index Description. An absent index or no match -> proceed with no overlay, silently. Full contract: `.claude/skills/project-skill-protocol/references/registry.md`.
 >
 > Overlays are **ADDITIVE ONLY**: they ADD rules on top of this skill's own protocol and NEVER replace, override, disable, or reinterpret a rule it already states — removing every overlay must return this skill to exactly its documented behavior. An overlay is a BRIEF, not an authority escalation: it can NEVER waive a workflow gate, git discipline, a review gate, or a user-confirmation gate. A genuine overlay-vs-skill conflict, or two equally-specific overlays that directly contradict -> surface both to the user; NEVER resolve silently.
 
@@ -619,15 +616,14 @@ Run ALL verification checklists from the production readiness protocol:
 
 <!-- SYNC:project-protocol-overlay:reminder -->
 
-**MUST ATTENTION** resolve project protocol overlays for this skill BEFORE executing — most specific matching tier only (exact > glob > `*`, which ranks overlays against each other, NEVER against this skill), read only matched bodies at `<protocols-dir>/<Name>.md`; a missing or malformed body is reported, never reconstructed. Overlays are ADDITIVE ONLY (they never replace this skill's own rules) and are a brief, NEVER an authority escalation; an equal-specificity contradiction goes to the user.
-
+**MUST ATTENTION** resolve this skill's overlays from the index at `<docsRoots.projectReference.path>/skill-protocols-reference.md` (default `docs/project-reference/`); an empty task `referenceDocs` does NOT disable this lookup. Read ONLY matched bodies from the directory the index header names (default `docs/project-protocols/`). Specificity (exact > glob > `*`) ranks overlays against EACH OTHER, never against the skill. Missing/malformed body → report and skip; no index or no match → proceed silently. Overlays are ADDITIVE ONLY — never an authority escalation or a gate waiver; equal-tier contradiction goes to the user.
 <!-- /SYNC:project-protocol-overlay:reminder -->
 
 <!-- SYNC:test-architecture-execution-contract:reminder -->
 
-**MUST ATTENTION** Every assertion-bearing test entry point — Unit, Integration/System, E2E, Performance/Scale, contract, architecture, security, accessibility, visual, property, mutation, and harness — uses explicit `Given` → `When` → `Then` sections (framework-native BDD, named helpers, or comments; bare AAA is insufficient), names `Business Intent / Invariant Guarded` or the technical contract, and asserts an owned outcome rather than only internal calls, setup side effects, or infrastructure bookkeeping. Convert touched brownfield cases; assign an owner and next step for broad legacy migration; block safety-critical cases with an ambiguous or missing phase.
+**MUST ATTENTION** Each assertion-bearing test names the behavior or technical contract it protects and asserts an outcome it owns. Use the project's configured/native test format — Given/When/Then is one valid format, never a framework-wide requirement. When `specArtifacts` is valid, link configured owner/case/variant identity and `intent/contracts` evidence; when absent, name the guarded business intent or technical contract. A malformed declared profile BLOCKS without fallback. Broad test-format migration → assign an owner and next step, never rewrite cases outside scope.
 
-**MUST ATTENTION** Before implementation, record evidence-backed Unit/Integration/System/E2E **and Performance/Scale** (`T1+`/`B2+`) applicability (or explicit N/A), copy-ready full + focused commands, zero-match behavior, a simple/Windows entry point, **the host-mode AND container-mode commands where both are supported, plus each tier's environment reach (local / CI / production-shaped)**, unique run identity, realistic valid data, idempotent/restart-safe reference setup, intentional additive accumulation, parallel isolation, exact results, and two no-reset full runs for each applicable persistent-state suite. **Both claimed run modes must be EXERCISED** (an unexercised mode rots; a claimed-but-rotten mode is worse than one never claimed), the same suite reaches every target **parameterized by config, never by forked test code**, a missing capability reports `ENVIRONMENT-BLOCKED` rather than passing silently, and *"runs in prod"* means a safe, declared, **NON-MUTATING** subset excluded by an enforced mechanism, not by convention. For applicable browser/UI E2E, every UI-control operation also uses the canonical bounded `waitUntil(condition, options)` helper before the action for readiness/actionability and applicable error-alert absence, then after the action for the expected positive/negative state, dropdown/options, selected state, or error-alert presence/absence, followed by the mandatory post-operation **500ms** presentation delay. The object model still requires three-tier Common/Domain-Shared/Page reuse with an idiomatic abstract base, cohesive helpers/utilities, and reusable lower-tier component tests.
+**MUST ATTENTION** Before implementation record evidence-backed applicability for the test types and modes the task/project contract requires: copy-ready full and focused commands where available, zero-match behavior, a useful platform-appropriate entry point, supported execution modes and environments, state-isolation requirements, exact results, and repeat evidence where persistent state makes it relevant. Exercise claimed modes; report a missing required capability as `ENVIRONMENT-BLOCKED`. Never invent production targets or impose a test format. Browser/UI E2E uses the configured runner's waits or project helper for observable readiness and outcomes; apply action pacing only where the project contract specifies it. Reuse the project's evidenced test organization — require a POM, base class, or component taxonomy only when the project actually selects it.
 
 <!-- /SYNC:test-architecture-execution-contract:reminder -->
 
@@ -639,22 +635,22 @@ Run ALL verification checklists from the production readiness protocol:
 
 <!-- SYNC:design-review-checklist:reminder -->
 
-- **MUST ATTENTION** when the change/plan/artifact has a user-facing front-end surface, READ `.claude/docs/design-review-checklist.md` and run it: `CL-1` establish context first (platform · user · task · metric · constraints · scope · artifacts — fewer than four → state the gap, findings are low confidence) · `CL-2` evidence or nothing, cite a location per finding, NEVER invent a measurement (unmeasurable → `NOT VERIFIABLE`), tag `MEASURED`/`OBSERVED`/`HEURISTIC` · `CL-3` rank `P0`–`P4`, cap at top 10 by severity, NEVER pad, concrete fix on every `P0`/`P1` · `CL-4` sweep §A–§N in order, one focused pass each, with §F/§G/§H and §L applied only when the platform/product matches and §I (WCAG 2.2 AA) as a `P1` floor · `CL-5` short on time → run the 10-check §P triage · `CL-6` report in the §O shape · for source code, run the §M6–§M9 component architecture pass (Common/Domain-Shared/Page tier, base/owner, reuse, and duplication). Project design-system docs and ADRs OUTRANK the checklist; report a defect ONCE across `UI-*`/`DD-*`/`CL-*`. For a plan, the checklist binds the UI phases' acceptance criteria (platform, conditional sections, the eight screen states, the a11y floor). Skip ONLY when the change has NO user-facing front-end surface, stated explicitly.
+- **MUST ATTENTION** when the change/plan/artifact has an applicable user-facing UI surface, READ `.claude/docs/design-review-checklist.md` and run it: `CL-1` establish context first (platform · user · task · metric · constraints · scope · artifacts — state missing context and its confidence impact) · `CL-2` evidence or nothing, cite a location per finding, NEVER invent a measurement (unmeasurable → `NOT VERIFIABLE`), tag `MEASURED`/`OBSERVED`/`HEURISTIC` · `CL-3` rank `P0`–`P4`, cap at top 10 by severity, NEVER pad, concrete fix on every `P0`/`P1` · `CL-4` sweep §A–§N, applying only relevant platform/product sections and the WCAG 2.2 AA web baseline plus any stricter applicable legal/project requirement, or the documented standard for other platforms · `CL-5` short on time → use the §P prompts · `CL-6` report in the §O shape · for source code, assess component ownership, base abstractions, reuse, and duplication using the project's documented taxonomy or observed boundaries. Project design-system docs and ADRs OUTRANK the checklist; report a defect ONCE across `UI-*`/`DD-*`/`CL-*`. For a plan, bind only applicable sections and states to acceptance criteria. Skip when the work has no user-facing UI surface, and state why.
 
 <!-- /SYNC:design-review-checklist:reminder -->
 
 <!-- SYNC:engineering-foundation-gate:reminder -->
 
-**IMPORTANT MUST ATTENTION** engineering-foundation gate — judges whether the team can **build, run, test and change** the system safely, anywhere, as it grows (its companions judge the running system's design; a system can pass both while nobody but its author can build it). Derive the profile from evidence FIRST: lifecycle **G**reenfield/**B**rownfield · scale `T0`–`T3` (reuse `scale-technique-catalog.md`) · criticality `B0`–`B3` with its signal floor (reuse `scenario-stress-catalog.md`) · repo shape `R0`–`R3` — take the **LOWER** tier when unknown, NEVER default to `T3`/`B3`/`R3`. Judge **ALL 7** dimensions, never a subset: **F1** reproducible environment (pinned toolchain, locked deps, declared prerequisites, deterministic build — kills _"works on my machine"_) · **F2** dual execution modes (bare host AND fully containerized from one source of truth, suites runnable BOTH directions, both exercised so neither rots — the defect is the claimed-but-rotten mode) · **F3** environment-portable tests (same suites local/CI/production-shaped, parameterized by CONFIG not forked code; missing capability ⇒ `ENVIRONMENT-BLOCKED` not silent pass; _"runs in prod"_ = a safe NON-MUTATING subset) · **F4** test-strength proof (automated fault injection on changed code where a tool exists, else the universal **defect-seeding drill** — break the code behind a top invariant, record WHICH NAMED TEST went red, restore; nothing red ⇒ no protection. **Line coverage is a DIAGNOSTIC, never a gate**) · **F5** performance measured by something that **RUNS and CAN FAIL** (realistic volume AND shape, **asserted** budgets not a dashboard, ≥2 volumes ~10× apart to expose super-linear growth, resource exhaustion bounded rather than an OOM kill) · **F6** build & change scalability (computable affected set, measured incrementality, **mechanically** enforced boundaries, a **declared** architecture style, implementation hidden behind abstraction) · **F7** mechanical harness completeness (every machine-catchable class accounted for or `N/A`; local and CI run the SAME command; checks **ENFORCE**, not warn; brownfield uses a fail-on-new **ratchet**). Verdicts: `PRESENT`/`MISSING-WARRANTED`/`PARTIAL-WITH-PATH`/`N/A-by-profile`/`OVER-ENGINEERED`/`UNVERIFIED`. **Authority splits — CREATING a foundation ⇒ `MISSING-WARRANTED` is BLOCKING; AUDITING one ⇒ ADVISORY ONLY, never mutating any score, verdict band or PASS/FAIL.** Anti-over-engineering is first-class and symmetric (a correctly-lean project is a PASS; never under-harden a `B2+` system for low traffic). Every brownfield gap names the smallest next step. **State OUTCOMES, never tools.** Full catalog → `.claude/docs/engineering-foundation-catalog.md` (authoritative — update it FIRST, then re-run `inject_engineering_foundation_gate.py`).
+**IMPORTANT MUST ATTENTION** engineering-foundation gate — judges whether the team can build, run, test, and change the system repeatably as it grows. Derive lifecycle, scale, criticality, repository shape, and runtime from evidence; take the lower supported tier when unknown. Judge all 7 dimensions, using `N/A-by-profile` with evidence when a concern truly does not apply. **F1** reproducible build/run/test path · **F2** document and exercise each supported or required execution mode; dual host/container or other modes only when the project uses or needs them · **F3** environment portability at applicable local/CI/production-shaped targets · **F4** meaningful test-strength evidence without making one mutation tool universal · **F5** measured performance where scale/risk warrants it · **F6** change/build scalability where the repository has meaningful module boundaries · **F7** mechanical checks selected for the stack/profile. For each, judge outcomes rather than tools, and preserve anti-over-engineering. Foundation creation may block on missing warranted outcomes; brownfield audits advise and name the smallest next step. Catalog → `.claude/docs/engineering-foundation-catalog.md` (update first, then re-run `inject_engineering_foundation_gate.py`).
 
 <!-- /SYNC:engineering-foundation-gate:reminder -->
 
 ## Closing Reminders
 
 **IMPORTANT MUST ATTENTION** Testability contract: resolve evidence-backed Unit/Integration/System/E2E rows, copy-ready full/focused commands, zero-match failures, owner/root/data, CI/simple-Windows entry, unique run identity, and repeat proof before claiming setup, review, or test completion.
-**IMPORTANT MUST ATTENTION Goal:** Generate a copy-ready, OOP/SOLID-compliant architecture foundation—base classes, interfaces, infrastructure abstractions, reusable examples, and quality gates—before feature implementation, so every feature story starts from a validated, maintainable foundation.
+**IMPORTANT MUST ATTENTION Goal:** Generate a copy-ready architecture foundation that follows the project's chosen paradigm, conventions, and applicable quality gates before feature implementation.
 
-**MUST ATTENTION — Main steps (execute ALL, in order; AI keeps forgetting these):** (1) Read Plan → (2) Generate Scaffolding Checklist (Backend + Frontend/UI categories) → (3) Validate Against Plan → (4) Present to User via `AskUserQuestion` → (5) Scaffold base classes/interfaces/infra + 5 production-readiness foundations → (6) Verify (build + OOP/SOLID + Verification Gate) → invoke `/linter-setup` → `/harness-setup` → `AskUserQuestion` handoff. NEVER skip, reorder, or merge a step without explicit user approval.
+**MUST ATTENTION — Main steps (execute ALL, in order; AI keeps forgetting these):** (1) Read Plan → (2) Generate the applicable Backend and/or Frontend/UI checklist → (3) Validate Against Plan → (4) Present to User via `AskUserQuestion` → (5) Scaffold only the abstractions and foundations selected by the plan → (6) Verify the project build, chosen architecture, and Verification Gate → invoke `/linter-setup` → `/harness-setup` → `AskUserQuestion` handoff. NEVER skip, reorder, or merge a step without explicit user approval.
 
 **MUST ATTENTION — Protocols in force (concise digest of the SYNC/shared blocks this skill carries):**
 
@@ -662,18 +658,18 @@ Run ALL verification checklists from the production readiness protocol:
 - **Project Reference Docs Guide:** Read required project docs; ALWAYS include `lessons.md`.
 - **Critical Thinking Mindset:** Traced proof per claim; confidence >80% to act.
 - **Understand Code First:** Grep 3+ patterns, read code before modifying.
-- **Scaffold Production Readiness:** Verify 5 foundations before scaffold complete.
-- **Harness Setup:** Gate on mutation score; NEVER gate on line coverage.
+- **Project Foundation Selection:** Verify selected foundations; record evidence for skipped categories.
+- **Harness Setup:** Verify the selected checks enforce their stated intent; line coverage is diagnostic, not a behavioral quality gate.
 - **AI Mistake Prevention:** verify generated content against evidence, trace downstream references, verify all affected outputs, re-read after context loss, surface ambiguity.
 
 **MANDATORY IMPORTANT MUST ATTENTION** check Activation Guards FIRST — proceed ONLY in `workflow-greenfield-init`/`workflow-big-feature` AND when grep finds NO existing base/abstract/infrastructure scaffolding; otherwise SKIP and mark step completed — why: re-scaffolding an established project duplicates foundations and corrupts existing abstractions.
 **MANDATORY IMPORTANT MUST ATTENTION** grep 3+ existing base/abstract/infra patterns (`abstract class.*Base`, `interface I\w+<`, `IRepository`, `base.*component`, DI registration) and cite `file:line` BEFORE generating any scaffolding — existing scaffolding found = SKIP — why: scaffolding over real foundations is the failure the Activation Guards exist to prevent.
-**MANDATORY IMPORTANT MUST ATTENTION** BLOCK `/feature-implement` until the Verification Gate passes — all 5 production-readiness foundations verified AND both `/linter-setup` and `/harness-setup` complete — why: code shipped without quality gates is technical debt from day one.
+**MANDATORY IMPORTANT MUST ATTENTION** BLOCK `/feature-implement` until the Verification Gate passes — selected foundations are verified or explicitly `NOT-APPLICABLE`, and `/linter-setup` plus `/harness-setup` complete their selected work — why: code shipped without the project's warranted quality gates is technical debt from day one.
 **MANDATORY IMPORTANT MUST ATTENTION** delegate ALL sensor setup to `/linter-setup` then `/harness-setup` — NEVER hand-configure linters/formatters/pre-commit hooks in this skill — why: a checklist of installs is not a harness; the harness skills wire each control to its lifecycle stage.
-**MANDATORY IMPORTANT MUST ATTENTION** enforce OOP/SOLID on EVERY base class (SRP per concern, depend on abstractions, small focused interfaces, no unused methods subclasses must override) — why: a god/concrete base class propagates its design flaw into every feature story that inherits it.
+**MANDATORY IMPORTANT MUST ATTENTION** when the chosen architecture uses base abstractions, apply its relevant design principles (including SOLID where appropriate) and keep each base focused — why: an unnecessary or oversized base spreads its design flaw to every dependent feature.
 **MANDATORY IMPORTANT MUST ATTENTION** the checklists are TEMPLATES — self-investigate the chosen tech stack, adapt naming to framework conventions, skip irrelevant items, and confirm the final checklist via `AskUserQuestion` before generating code — NEVER auto-decide scope — why: scaffolding the wrong stack's idioms forces a costly rewrite before any feature lands.
 **MANDATORY IMPORTANT MUST ATTENTION** evaluate fit before copying a nearby pattern — closest example ≠ matching preconditions; verify the new context shares the same base classes, scope, and lifetime — why: a foundation lifted from a mismatched context fails silently.
-**MANDATORY IMPORTANT MUST ATTENTION** gate the build on mutation score, NOT a line-coverage % — line coverage is a DIAGNOSTIC only (low = useful untested signal, high ≠ quality) — why: tests can execute lines without asserting intent, so a coverage gate rewards hollow tests.
+**MANDATORY IMPORTANT MUST ATTENTION** assert that tests protect intended outcomes; use mutation or property tools where the stack and risk justify them, and do not treat line coverage as behavioral proof — why: a test can execute code without asserting its intent.
 **MANDATORY IMPORTANT MUST ATTENTION** cite `file:line` proof + confidence % for EVERY claim (>80% to act, <60% DO NOT recommend) — NEVER present a guess as fact — why: speculation without evidence is the root of hallucinated foundations.
 **MANDATORY IMPORTANT MUST ATTENTION** break work into small todo tasks using `TaskCreate` BEFORE starting, mark one `in_progress`, mark `completed` immediately after evidence lands, and add a final review todo — why: external task state survives context compaction; memory does not.
 **MANDATORY IMPORTANT MUST ATTENTION** after scaffold, present `/feature-implement` vs `/workflow-review-changes` vs skip via `AskUserQuestion` — the user decides; do NOT skip because it "seems obvious" — why: the user owns the handoff decision.
@@ -685,10 +681,10 @@ Run ALL verification checklists from the production readiness protocol:
 | "It's a new feature, just scaffold it"                 | Check Activation Guards first — wrong workflow OR existing scaffolding = SKIP and mark completed.  |
 | "Already searched for base classes"                    | Show `file:line` grep evidence for all 6 guard patterns. No proof = no search.                    |
 | "I'll just configure the linter inline, it's quick"    | NEVER hand-configure sensors — delegate to `/linter-setup` then `/harness-setup`. Installs ≠ harness. |
-| "Coverage is high, the foundation is well-tested"      | Line coverage is a diagnostic, not a gate. Gate on mutation score; high coverage ≠ asserted intent. |
+| "Coverage is high, the foundation is well-tested"      | Line coverage is a diagnostic, not proof. Check whether assertions protect intended outcomes; use mutation tools when they fit. |
 | "The stack is obvious, skip the AskUserQuestion"       | Checklists are templates — confirm the adapted final checklist with the user before generating code. |
 | "Found a nearby base class, just copy it"              | Evaluate fit first — same base classes/scope/lifetime? Closest ≠ matching. Verify before reusing.  |
-| "Scaffold's done, jump straight to /feature-implement" | BLOCKED until the Verification Gate passes — all 5 foundations + `/linter-setup` + `/harness-setup`. |
+| "Scaffold's done, jump straight to /feature-implement" | BLOCKED until the Verification Gate passes — applicable foundations + `/linter-setup` + `/harness-setup`. |
 
 **IMPORTANT MUST ATTENTION** check Activation Guards FIRST (SKIP if existing scaffolding or wrong workflow) · BLOCK `/feature-implement` until the Verification Gate passes · cite `file:line` + confidence >80% for every claim.
 

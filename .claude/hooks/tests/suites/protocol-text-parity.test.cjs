@@ -18,7 +18,7 @@
 //   P1  wrapper-delegates  injectCriticalContext('',true)     == canonical SYNC:critical-thinking-mindset:full
 //   P2  wrapper-delegates  injectAiMistakePrevention('',true) == canonical SYNC:ai-mistake-prevention:full
 //   P3  CLAUDE.md TOP CK:CRITICAL-THINKING / CK:AI-MISTAKE-PREVENTION blocks == canonical :full
-//   P4  CLAUDE.md BOTTOM CK blocks == TOP CK blocks (exactly 2 occurrences each, primacy==recency)
+//   P4  CLAUDE.md carries exactly ONE copy of each CK block (top primacy; EOF recency copy removed)
 //   P5  canonical CONDENSED critical-thinking-mindset / ai-mistake-prevention == every skill embed
 //   GUARD comparator is not vacuously true (drift IS detected; empty extraction fails)
 //
@@ -154,25 +154,28 @@ module.exports = {
             },
         },
 
-        // ── P4 — primacy/recency anchors: bottom blocks == top blocks (exactly 2 occurrences each).
+        // ── P4 — single-copy invariant: exactly ONE occurrence of each block, at the top.
+        //    The EOF recency copy `stampFooter` used to append was removed by owner decision
+        //    (2026-09-22) because the `:full` pair cost ~3,224 tokens in every session. These two
+        //    asserts are what keeps it removed: re-adding the footer makes them fail. The trade-off
+        //    is accepted and deliberate — CLAUDE.md no longer has a tail anchor against attention
+        //    decay, so the top copy (P3) is the only placement protecting the protocol.
         {
-            name: 'TC-CTXP-032 P4: CLAUDE.md CRITICAL-THINKING bottom==top (2 occurrences)',
+            name: 'TC-CTXP-032 P4: CLAUDE.md CRITICAL-THINKING single copy (no EOF recency duplicate)',
             skip: !HAS_CLAUDE_MD,
             fn() {
                 const claudeMd = fs.readFileSync(CLAUDE_MD_PATH, 'utf8');
                 const bodies = extractAllCkBodies(claudeMd, 'CRITICAL-THINKING');
-                assertEqual(bodies.length, 2, 'expected exactly 2 CK:CRITICAL-THINKING blocks (top primacy + bottom recency)');
-                assertEqual(normTrim(bodies[1]), normTrim(bodies[0]), 'CLAUDE.md bottom critical anchor drifted from top');
+                assertEqual(bodies.length, 1, 'expected exactly 1 CK:CRITICAL-THINKING block (top primacy only; the EOF recency copy was removed)');
             },
         },
         {
-            name: 'TC-CTXP-032 P4: CLAUDE.md AI-MISTAKE-PREVENTION bottom==top (2 occurrences)',
+            name: 'TC-CTXP-032 P4: CLAUDE.md AI-MISTAKE-PREVENTION single copy (no EOF recency duplicate)',
             skip: !HAS_CLAUDE_MD,
             fn() {
                 const claudeMd = fs.readFileSync(CLAUDE_MD_PATH, 'utf8');
                 const bodies = extractAllCkBodies(claudeMd, 'AI-MISTAKE-PREVENTION');
-                assertEqual(bodies.length, 2, 'expected exactly 2 CK:AI-MISTAKE-PREVENTION blocks (top primacy + bottom recency)');
-                assertEqual(normTrim(bodies[1]), normTrim(bodies[0]), 'CLAUDE.md bottom ai-mistake anchor drifted from top');
+                assertEqual(bodies.length, 1, 'expected exactly 1 CK:AI-MISTAKE-PREVENTION block (top primacy only; the EOF recency copy was removed)');
             },
         },
 

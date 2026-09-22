@@ -9,14 +9,8 @@
  * load-bearing phrases, not "file is non-empty").
  *
  * Coverage (what THIS suite asserts today):
- *   TC-CP-001 — CLAUDE.md carries the workflow routing gate + the
- *               path→reference-doc pointer table (backend/frontend/integration/
- *               e2e/spec/scss rows). Replaces the deleted workflow-router injection.
- *   TC-CP-008 — CLAUDE.md carries the full workflow SELECTION catalog (Workflows Index
- *               listing every workflow id from workflows.json) so a static read picks
- *               the right workflow WITHOUT the workflow-router.cjs hook. This is the
- *               static-bake half of "Claude has no hooks"; the mirrors (AGENTS.md)
- *               bake the same catalog from the same source.
+ *   TC-CP-001 — CLAUDE.md carries the workflow route gate and path→reference-doc pointer table.
+ *   TC-CP-008 — tracked context surfaces carry the route gate without a duplicated catalog.
  *   TC-CP-002 — the universal subagent-bootstrap phrases are present in a
  *               representative sample of agents (one code, one non-code).
  *   TC-CP-003 — agent-code-standards (dev-rules + pattern docs) is present in a
@@ -68,16 +62,6 @@ const readFile = p => fs.readFileSync(p, 'utf8');
 const readAgent = name => readFile(path.join(AGENTS_DIR, `${name}.md`));
 const readSkill = name => readFile(path.join(SKILLS_DIR, name, 'SKILL.md'));
 
-// TC-CP-001 and TC-CP-008 assert the intent router is baked into CLAUDE.md. A project that sets
-// `portability.workflowAutoDetect: false` deliberately has no router, so a flat presence assert
-// would fail a correctly-configured repo. Both TCs therefore assert the state the config declares:
-// present when routing is on, ABSENT when it is off. Asserting absence rather than skipping keeps
-// the off state covered — a generator that leaked the catalog back in would otherwise pass unseen.
-const { isWorkflowAutoDetectEnabled } = require(
-    path.resolve(PROJECT_DIR, '.claude', 'scripts', 'lib', 'workflow-routing-config.cjs')
-);
-const workflowAutoDetect = isWorkflowAutoDetectEnabled({ rootDir: PROJECT_DIR });
-
 // Assert a relocated inject-hook's guidance survives in its target skill. Each phrase is a
 // verbatim load-bearing fragment of the deleted hook's output — NOT a tautology. Fails loudly
 // (naming the deleted hook) if the relocation is dropped, so static parity can't silently rot.
@@ -92,21 +76,13 @@ module.exports = {
     name: 'content-presence',
     tests: [
         {
-            name: '[content-presence] TC-CP-001 CLAUDE.md carries workflow routing gate + path→doc pointers',
+            name: '[content-presence] TC-CP-001 CLAUDE.md carries the route gate and path→doc pointers',
             fn: () => {
                 const claudeMd = readFile(path.resolve(PROJECT_DIR, 'CLAUDE.md'));
                 const missing = [];
-                // Workflow routing gate (Phase 01 — replaces a runtime router injection).
-                // Gated on the routing switch; the path→doc pointers below are unrelated to
-                // routing and are required in BOTH states.
-                if (workflowAutoDetect) {
-                    if (!claudeMd.includes('WORKFLOW-GATE')) missing.push('WORKFLOW-GATE routing header');
-                } else {
-                    if (claudeMd.includes('<!-- CK:WORKFLOW-GATE -->')) {
-                        missing.push('CK:WORKFLOW-GATE block present although portability.workflowAutoDetect is false');
-                    }
-                }
-                if (!/Path\s*→\s*Reference Doc/.test(claudeMd)) missing.push('Path → Reference Doc table heading');
+                if (!claudeMd.includes('<!-- CK:WORKFLOW-GATE -->')) missing.push('workflow route gate');
+                if (!/Path Pattern/.test(claudeMd)) missing.push('Path Pattern routing table');
+                if (!/Read first/.test(claudeMd)) missing.push('prompt → reference-doc lookup table');
                 // The path→doc pointer rows — each names the reference doc a hook used to inject.
                 for (const doc of [
                     'backend-patterns-reference.md',
@@ -122,39 +98,17 @@ module.exports = {
             },
         },
         {
-            name: '[content-presence] TC-CP-008 CLAUDE.md carries the full workflow selection catalog (hook-independent)',
+            name: '[content-presence] TC-CP-008 tracked contexts carry routing without duplicated catalogs',
             fn: () => {
-                const claudeMd = readFile(path.resolve(PROJECT_DIR, 'CLAUDE.md'));
-                const workflowsDoc = JSON.parse(
-                    readFile(path.resolve(PROJECT_DIR, '.claude', 'workflows.json'))
-                );
-                const ids = Object.keys(workflowsDoc.workflows || {});
-                const missing = [];
-
-                if (!workflowAutoDetect) {
-                    // Routing off: the catalog IS the auto-detect affordance, so its absence is
-                    // the invariant. A leaked Workflows Index would let the model route from a
-                    // menu the project switched off.
-                    assertTrue(
-                        !claudeMd.includes('<!-- CK:WORKFLOW-SKILLS -->') &&
-                            !/###\s+Workflows Index \(\d+\)/.test(claudeMd),
-                        'CLAUDE.md still carries the workflow selection catalog although ' +
-                            'portability.workflowAutoDetect is false'
-                    );
-                    return;
+                for (const relative of ['CLAUDE.md', 'AGENTS.md', '.codex/CODEX_CONTEXT.md']) {
+                    const body = readFile(path.resolve(PROJECT_DIR, relative));
+                    assertTrue(body.includes('<!-- CK:WORKFLOW-GATE -->'),
+                        `${relative} omits the workflow route gate`);
+                    assertTrue(!body.includes('<!-- CK:WORKFLOW-SKILLS -->'),
+                        `${relative} carries the runtime workflow catalog`);
+                    assertTrue(!/###\s+Workflows Index \(\d+\)/.test(body),
+                        `${relative} carries a static Workflows Index`);
                 }
-
-                // The Workflows Index heading — proves the selection catalog (not just the
-                // skills-only table) is statically baked into CLAUDE.md.
-                if (!/###\s+Workflows Index \(\d+\)/.test(claudeMd)) {
-                    missing.push('Workflows Index heading (### Workflows Index (N))');
-                }
-                // Every workflow id must be selectable from the file alone — no hook required.
-                for (const id of ids) {
-                    if (!claudeMd.includes(`\`${id}\``)) missing.push(`workflow row for ${id}`);
-                }
-                assertTrue(missing.length === 0,
-                    `CLAUDE.md missing the hook-independent workflow selection catalog:\n  ${missing.join('\n  ')}`);
             },
         },
         {
@@ -241,11 +195,11 @@ module.exports = {
                 // Keyed per-rule (not the literal block prose) so a phrasing tweak that PRESERVES the
                 // rule still passes, but DROPPING a rule from any family skill fails loudly.
                 const rules = {
-                    'verify-whole-system': 'Verify the WHOLE system passes',
-                    'real-use-case-no-seed-hack': 'NEVER hack seed data',
+                    'verify-configured-suite': 'Verify the configured relevant suite',
+                    'no-shortcut-that-skips-invariant': 'Never use a shortcut that skips the behavior the assertion is meant to protect',
                     'debug-investigate-on-failure': '`/debug-investigate` the root cause',
-                    'sixty-second-cap': '60-second runtime cap',
-                    'loop-until-green': 'Loop until the whole suite is green',
+                    'timeouts-are-budgets': 'Use project timeouts as budgets, not as fixes',
+                    'configured-repeat-policy': 'Follow the configured repeat policy',
                 };
                 // Every integration-test-family skill — write (integration-test), review, verify,
                 // and the workflow that chains them. Adding a family skill without these rules
@@ -273,15 +227,15 @@ module.exports = {
             name: '[content-presence] TC-CP-010 test-failure fault-adjudication rules present in EVERY debug/fix/test-family skill',
             fn: () => {
                 // The load-bearing rules the user requires across the whole debug/fix/test family:
-                // when a test fails, root-cause it, triangulate the failure against the spec AND the
-                // source to decide whether the SOURCE or the TEST is at fault, and ask the user when
-                // the spec is silent/ambiguous. Keyed per-rule (verbatim fragments of
-                // SYNC:test-failure-fault-adjudication) so a phrasing tweak that PRESERVES a rule
+                // when a test fails, root-cause it, triangulate the failure against the owner
+                // artifact AND the source to decide whether the SOURCE or the TEST is at fault, and
+                // ask the user when the spec is silent/ambiguous. Keyed per-rule (verbatim fragments
+                // of SYNC:test-failure-fault-adjudication) so a phrasing tweak that PRESERVES a rule
                 // still passes, but DROPPING a rule from any family skill fails loudly.
                 const rules = {
                     'who-is-at-fault': 'who is at fault — the source code or the test code',
                     'root-cause-first': 'trace end-to-start before editing',
-                    'triangulate-spec-and-source': 'Triangulate against the spec AND the source',
+                    'triangulate-owner-and-source': 'Triangulate against the owner artifact AND the source',
                     'classify-source-wrong': 'SOURCE-WRONG',
                     'classify-test-wrong': 'TEST-WRONG',
                     'ask-user-when-unclear': 'Ask the user when intended behavior is unclear',
@@ -640,12 +594,18 @@ module.exports = {
                     path.join(PROJECT_DIR, '.claude', 'config'),
                 ];
                 const EXT = /\.(?:md|ya?ml|json|c?js|mjs)$/i;
+                // Skill-local dependencies are installed beside documented skill
+                // runners. Their third-party CHANGELOGs are not framework guidance.
+                const IGNORED_DIRS = new Set(['node_modules']);
                 const files = [];
                 const walk = dir => {
                     if (!fs.existsSync(dir)) return;
                     for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
                         const p = path.join(dir, e.name);
-                        if (e.isDirectory()) walk(p);
+                        if (e.isDirectory()) {
+                            if (IGNORED_DIRS.has(e.name)) continue;
+                            walk(p);
+                        }
                         else if (EXT.test(e.name)) files.push(p);
                     }
                 };

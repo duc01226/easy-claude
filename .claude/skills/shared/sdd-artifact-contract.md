@@ -20,9 +20,9 @@ Project-neutral shared contract for AI spec-driven development. This is the home
 **Key Rules:**
 
 - MUST ATTENTION keep reusable principles in `.claude`; project-reference docs only add local repository extensions.
-- MUST ATTENTION require traceability from requirement -> design decision -> task -> TC/test -> code evidence -> docs/spec update.
+- MUST ATTENTION require traceability from requirement -> accepted decision -> accountable task -> canonical scenario/case (TC by default) -> executing test/assertion -> code evidence -> docs/spec update.
 - MUST ATTENTION mark unknowns explicitly; never let AI guess missing acceptance criteria, invariants, auth rules, or failure behavior.
-- MUST ATTENTION treat tests as intent guards: each TC names the business intent/invariant and fails when that intent breaks.
+- MUST ATTENTION treat tests as intent guards: each canonical case (TC under the strict default profile) names the business intent/invariant and maps to an executing assertion that fails when that intent breaks.
 - MUST ATTENTION exclude migration code from test-writing scope: schema/data migrations are one-time execution paths, not core application logic.
 - MUST ATTENTION allow any supported AI tool to plan, implement, review, or verify when it has this contract, synced context, and local project docs.
 - NEVER edit generated agent mirrors directly; update `.claude` source and sync later.
@@ -56,6 +56,30 @@ Common maturity levels:
 
 Move toward spec-as-source only after drift metrics, traceability, and verification are consistently healthy.
 
+## Semantic Obligations And Representation Profiles
+
+The quality obligations are representation-neutral. Resolve `docs/project-config.json → specArtifacts` before authoring or reviewing: a valid profile selects its configured spec layout, identifiers, carriers, and cardinality; an absent profile selects the strict default below. A declared but malformed, unsupported, or unresolvable profile is `BLOCKED`; report the validation evidence and never treat it as absent or fall back. Do not infer a profile from repository language, a file extension, or one example.
+
+When `specArtifacts` is absent, the strict business default is the TC format in `shared/tc-format.md`, including its Section 8 representation and one-TC-to-many-tests mapping. A valid native profile replaces the default representation at the canonical owner; it does not add a parallel case registry. A configured YAML, inline-data, or other carrier is a representation choice, not another source of truth.
+
+Every profile preserves this semantic chain:
+
+`Requirement/Invariant -> accepted Decision -> accountable Task -> canonical Scenario/Case -> executing Test + inspected assertion/result -> Source evidence -> spec/doc reconciliation`
+
+The canonical scenario or case remains linked to its requirement or invariant, intent, expected positive and negative outcomes, actual executor and assertion, implementation evidence, and reconciliation status. Every case requiring executable proof maps to at least one actually executing test or an explicitly approved manual-QC carrier; otherwise report it as uncovered or `UNKNOWN`/`BLOCKED` per the selected profile, never `PASS`. A profile may define one test for several scenarios, several test or variant rows for one scenario, or another explicit cardinality. Preserve the owner-qualified scenario identity and any variant-row identity; map every claimed result to its actual executor and inspected assertion. An aggregate result proves only the rows whose assertions are shown to execute.
+
+For example, a configured native profile may keep scenario IDs in the owning spec and its existing YAML or inline case-data carrier, let one aggregate executor cover several owner-qualified scenarios, and let one scenario have multiple variant rows. The rows express the existing scenario contract; they do not create a second scenario registry.
+
+| Profile check | Pass condition | Fail condition |
+| --- | --- | --- |
+| Strict default business profile | `specArtifacts` is absent, so canonical business cases use the TC/Section 8 contract in `shared/tc-format.md`. | A consumer silently omits TC/Section 8 obligations or treats an unconfigured format as native. |
+| Configured native profile | A valid profile selects one canonical source, its identifiers, carriers, and cardinality; each owner/scenario/variant maps to the actual test assertion and outcome. | A profile-specific test summary is accepted without inspecting its mapped assertions or scenario outcomes. |
+| Declared invalid profile | A malformed, unsupported, or unresolvable `specArtifacts` profile blocks with its validation evidence; it is never treated as absence. | The strict default is silently substituted or a guessed profile is used. |
+| Registry ownership | Native cases replace the default representation at the same canonical owner; indexes or generated views remain projections. | TC and native scenario records duplicate the same case or split its intent across competing registries. |
+| Product decomposition | Independent, releasable product outcomes drive outcome slices; technical tasks remain delivery tasks. | Numbered technical stages are counted as product outcomes solely because they are separately ordered or verified. |
+
+Profile selection may change representation and cardinality only. It does not waive M1-M7, evidence quality, intent and outcome checks, invariant/property and boundary-case coverage, preservation of healthy behavior, actual test execution, operation-authority gates, or reconciliation to the canonical owner. The TC-specific section and field names below describe the strict default profile; apply their semantic checks through the corresponding fields in a configured native profile.
+
 ## AI-SDD Mandates (M1-M7) — BLOCKING
 
 Every AI-SDD artifact (feature doc, engineering spec, test spec, PBI/story, idea) MUST satisfy the mandates that apply to its tree and authorship model or be REJECTED and reworked. M1-M6 are the default gates for canonical business artifacts; M7 is a business-tree gate and a routing rule for keeping architecture-derived cases in the technical tree. Derived technical specs declare their exemptions explicitly (for example, M1-exempt) and still MUST NOT author business content or weaken M7 for the business tree. These are hard gates, not guidance. Create/update skills MUST NOT emit violations; review/gate skills MUST FAIL on applicable mandate violations (M6). Each mandate points to the detailed gate/section that defines its full checklist, so this block stays a stable named anchor rather than a duplicate of the gates below.
@@ -64,11 +88,11 @@ Every AI-SDD artifact (feature doc, engineering spec, test spec, PBI/story, idea
 | ------ | ----------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---------------------------- |
 | **M1** | Tech-agnostic prose           | Narrative, headings, summaries, tables, glossaries MUST NOT name frameworks, products, language-native types, or product/design-pattern class names.                           | Tech-Agnostic Spec Writing   |
 | **M2** | No source code in prose       | Prose MUST NOT contain class/method names, file paths, namespaces, or language constructs; use business operation names. Source identifiers live only inside evidence carriers. | Tech-Agnostic Spec Writing   |
-| **M3** | Abstract-IDs-first trace      | Logical IDs (FR-/BR-/OP-/TC-) are the PRIMARY citation spine in prose; evidence rides on stack-portable abstract anchors (`[Source: namespace/service/id]`), NEVER physical `file:line`. Physical coordinates live only in the provenance sidecar. Taxonomy: `shared/tc-format.md`. | Traceability Schema          |
+| **M3** | Abstract-IDs-first trace      | Configured logical requirement, rule, operation, and scenario/case IDs are the PRIMARY citation spine; the strict default business profile uses FR-/BR-/OP-/TC-. Evidence uses stack-portable abstract anchors (`[Source: namespace/service/id]`), NEVER physical `file:line`. | Traceability Schema          |
 | **M4** | AI-implementability           | One valid interpretation per requirement; observable completion states; named failure modes; no hallucination bait.                                                            | AI-Implementability Gate     |
 | **M5** | Rebuild-from-scratch purpose  | A competent team with zero codebase knowledge can re-implement identical business behavior on ANY stack from the artifact alone.                                                | Implementation-Complete Gate |
 | **M6** | Review enforces applicable mandates | Every review/gate skill MUST check every mandate that applies to the artifact tree/model and FAIL with the specific mandate ID(s) violated and a concrete reason.                         | Enforcement Roles            |
-| **M7** | Business-visibility           | A business-tree artifact contains ONLY cases a user or QC can **demo** as a business outcome. Architecture-derived cases, and TC counts derived from an architecture inventory, are FORBIDDEN — they belong to the technical tree. | Business-Visibility Gate     |
+| **M7** | Business-visibility           | A business-tree artifact contains ONLY cases a user or QC can **demo** as a business outcome. Architecture-derived cases or case counts (TCs in the strict default profile) are FORBIDDEN — they belong to technical coverage. | Business-Visibility Gate     |
 
 **Carrier carve-outs (NOT M1/M2 violations):** `[Source: ...]`, `**Evidence**`, `CoveredBy:` fields (legacy `**IntegrationTest:**` only as migration input); YAML frontmatter keys; ` ```mermaid ``` ` blocks; and dedicated rebuild/reimplementation guides. Source identifiers are permitted ONLY inside these carriers — never in narrative prose. — why: quarantining real references keeps prose stack-portable while preserving an auditable code link.
 
@@ -89,7 +113,7 @@ Every non-trivial code-changing workflow follows:
 
 Bugfix workflows use the same cycle with a root-cause gate before regression tests:
 
-`current behavior -> expected behavior -> code bug vs spec bug -> regression TC -> fix -> proof -> sync`
+`current behavior -> expected behavior -> code bug vs spec bug -> regression case in the configured profile (TC by default) -> fix -> proof -> sync`
 
 ## Required Artifacts
 
@@ -99,9 +123,9 @@ Bugfix workflows use the same cycle with a root-cause gate before regression tes
 | Acceptance criteria          | Feature, PBI, bugfix               | Given/When/Then, EARS, or equivalent testable conditions                                    |
 | Design/plan                  | Code-changing work                 | chosen approach, rejected alternatives, risk, affected files, verification strategy         |
 | Task graph                   | Multi-step work                    | independently verifiable tasks, dependencies, safe parallelization notes                    |
-| Test specs                   | Behavior change                    | TC IDs, intent/invariant guarded, priority, evidence, expected failure mode                 |
+| Test specs                   | Behavior change                    | Canonical scenario/case identity (TC by default), intent/invariant guarded, priority, evidence, expected outcome/failure, and configured test mapping |
 | Implementation evidence      | Code changes                       | files changed, source references, verification output                                       |
-| Docs/spec sync               | Behavior or public contract change | updated canonical spec/docs, §8 TC ↔ test-code sync if applicable, skipped reason if not applicable |
+| Docs/spec sync               | Behavior or public contract change | updated canonical spec/docs and configured case ↔ executing-test reconciliation (Section 8 TC sync under the strict default profile); skipped reason if not applicable |
 | Handoff/closeout             | All workflows                      | remaining risks, commands run, artifacts updated                                            |
 
 ## Requirement Quality
@@ -137,16 +161,16 @@ Minimum checklist:
 
 ## Test-Complete Gate
 
-A spec is test-complete when tests can be derived without reading implementation source.
+A spec is test-complete when tests can be derived without reading implementation source. The rules below refer to canonical scenarios/cases; they use TC IDs under the strict default profile and the configured logical identity and carrier under a native profile.
 
 Minimum checklist:
 
-- every functional requirement maps to at least one positive TC
-- every business rule maps to at least one negative TC
-- every authorization rule maps to at least one unauthorized-access TC
-- every state transition maps to at least one valid and one invalid transition TC where applicable
-- every integration event maps to a publish/consume/idempotency TC where applicable
-- bugfix specs include preservation TCs for behavior that must not regress
+- every functional requirement maps to at least one positive canonical case
+- every business rule maps to at least one negative canonical case
+- every authorization rule maps to at least one unauthorized-access case
+- every state transition maps to at least one valid and one invalid transition case where applicable
+- every integration event maps to a publish/consume/idempotency case where applicable
+- bugfix specs include preservation cases for behavior that must not regress
 - every test names the business intent or invariant it protects and would fail if that intent breaks
 - migration code is excluded from test-writing scope because schema/data migrations are one-time execution paths, not core application logic
 
@@ -172,6 +196,8 @@ Ambiguity test: Could two engineers produce different implementations while both
 
 **[BLOCKING — M7]** The business tree states **intended business behavior**; the technical tree states **how one implementation delivers it**. Both are real; only their contents differ. **M1 (tech-agnostic prose) is NOT sufficient to keep them apart** — M1 governs *vocabulary*, M7 governs *subject matter*, and a technical case written in impeccably tech-free prose satisfies M1 while violating M7. **That gap is the single most common way business specs rot.**
 
+The strict default profile calls business cases Section 8 TCs. A configured native profile may use different identifiers, files, tables, or YAML/test-data carriers; apply the same demo test, coverage-resolution, anti-amputation, and deletion safeguards to its canonical case and variant rows. Do not add TC entries beside an established native case source. The detailed TC headings and carrier examples below describe the default representation; their semantic safeguards apply through the configured profile's fields and identity rules.
+
 ### The operative test
 
 > **Could a QC engineer DEMO this as a business outcome, and would a stakeholder recognize the value?**
@@ -188,7 +214,7 @@ If the only way to observe it is to inspect a queue, a projection, a consumer, a
 
 *(Examples are illustrative, never exhaustive — the demo test governs. When genuinely uncertain, ask: "what would the stakeholder SEE change?" No answer → TECHNICAL-ONLY.)*
 
-### Finding the technical TCs that ALREADY EXIST — the detection recipe (REPORTS, never blocks)
+### Finding the technical cases that ALREADY EXIST — the detection recipe (REPORTS, never blocks)
 
 The demo test above governs **authoring**. It detects **nothing already written** — and a banned-token list cannot
 close that gap, because **the tokens are not there**. A technical TC that names no technology scores 0 on every token
@@ -378,24 +404,24 @@ Public API paths, product-specific role names, domain terms, or externally visib
 
 ## Traceability Schema
 
-**[M3 — Abstract-IDs-first]** Logical identifiers (`RequirementId`/`Invariant`, `TC`) are the PRIMARY citation spine and MUST appear in requirement and rule statements. `Source` evidence uses stack-portable abstract anchors (`[Source: namespace/service/id]`), NEVER physical `file:line` — an anchor names WHICH logical artifact implements/verifies behavior, never WHAT the requirement is, and stays out of narrative prose. Physical coordinates are recoverable only via the provenance sidecar (`.sdd-provenance-map.jsonl` at the business spec root — default `docs/specs/`; a `specRoots.business.path` entry in `docs/project-config.json` overrides the path — created on demand; anchor taxonomy in `shared/tc-format.md`). Keeping the logical spine + abstract anchors stable lets specs survive a stack migration with zero re-pointing.
+**[M3 — Abstract-IDs-first]** Logical identifiers for requirements/invariants and canonical scenarios/cases are the PRIMARY citation spine and MUST appear in requirement and rule statements. The strict default business profile uses its TC identifiers; a configured native profile uses its declared logical IDs. `Source` evidence uses stack-portable abstract anchors (`[Source: namespace/service/id]`), NEVER physical `file:line` — an anchor names WHICH logical artifact implements/verifies behavior, never WHAT the requirement is, and stays out of narrative prose. Physical coordinates are recoverable only through a provenance sidecar rooted at the configured business-spec root (default `docs/specs/`; `specRoots.business.path` in `docs/project-config.json` overrides it); the default business profile uses `.sdd-provenance-map.jsonl`. Keeping the logical spine + abstract anchors stable lets specs survive a stack migration with zero re-pointing.
 
 Each requirement or bugfix invariant should trace through this chain:
 
-`Requirement/Invariant -> Design decision -> Task -> TC -> Test code -> Source evidence -> Docs/spec update`
+`Requirement/Invariant -> accepted Decision -> accountable Task -> canonical Scenario/Case -> executing Test + inspected assertion/result -> Source evidence -> Docs/spec reconciliation`
 
 Minimum trace fields:
 
 - `RequirementId` or `Invariant`
 - `Decision`
 - `Task`
-- `TC`
-- `Test`
+- canonical `Scenario/Case` identity (a TC under the strict default profile)
+- actual `Test` executor(s), assertion(s), and result(s), using the configured cardinality
 - `Source`
 - `Docs`
 - `Status`
 
-**TC ↔ Test cardinality is one-to-many.** A `TC` is a business / user-story acceptance scenario written tech-agnostic; it is verified by **one or more** `Test` methods (integration and/or unit, across many components and services), all joined to the TC by the test-spec annotation. The `Test` trace field therefore holds a SET, and a TC is covered when ≥1 annotation-tagged test passes. NEVER split, narrow, or technicalize a business TC to force a 1:1 map to a single test method or production class — that breaks M1 (tech-agnostic) and M5 (rebuild-from-business-intent) and turns the spec into a code mirror instead of a business contract. Conversely, each test maps to exactly one primary TC. (Canonical cardinality contract: `shared/tc-format.md` → TC ↔ Test Code Cardinality.)
+**Default TC ↔ Test cardinality is one-to-many.** Under `shared/tc-format.md`, a business TC is a user-story acceptance scenario verified by **one or more** tests, with each test mapped to one primary TC except a documented alias/deprecation bridge. This is the strict default profile. A configured native profile may declare another relation, including one executor covering multiple owner-qualified scenarios and multiple variant rows or tests for one scenario. In every profile, do not split a business outcome to fit a test method; do not mark aggregate coverage without tracing every claimed scenario/variant to an actual executing assertion and result. Unknown coverage remains unknown. (Default cardinality details: `shared/tc-format.md` → TC ↔ Test Code Cardinality.)
 
 Use `N/A` only with evidence:
 
@@ -409,7 +435,7 @@ Code-to-spec extraction:
 - distinguish implemented behavior, intended behavior, and accidental behavior
 - cite source evidence for implemented behavior
 - mark unverified claims instead of filling gaps with plausible assumptions
-- treat extracted specs, TCs, and behavior notes as reference-only until accepted by the canonical spec owner; extraction evidence may inform the spec but must not silently replace accepted intent
+- treat extracted specs, cases (TCs under the strict default profile), and behavior notes as reference-only until accepted by the canonical spec owner; extraction evidence may inform the spec but must not silently replace accepted intent
 - record staleness when source changed after the last spec extraction
 
 Spec-to-code implementation:
@@ -425,11 +451,11 @@ Spec-to-code implementation:
 Reconcile every spec/code/test disagreement to canonical intent using the gates below; never normalize drift only because current code or tests pass. — why: green code/tests can encode the drift itself, silently ratifying the wrong behavior.
 
 - If spec and code disagree, adjudicate canonical product/spec intent before editing either side.
-- If the spec is wrong, update the spec first, then update TCs/tests.
-- If code is wrong, write/update regression TCs against intended behavior before implementation.
+- If the spec is wrong, update the spec first, then update cases and tests in the configured profile.
+- If code is wrong, write/update a regression case against intended behavior before implementation.
 - If tests are stale, update tests to protect intended behavior, not just current behavior.
-- If a dashboard differs from the canonical TC source, forward-sync from the canonical source unless an explicit recovery workflow is approved.
-- If code correctly enforces a rule the spec never states (spec-silent), add the missing rule and its TC to the spec, then a guarding test — never leave a discovered invariant unwritten. — why: an unwritten invariant is one refactor away from being silently deleted.
+- If a dashboard differs from the canonical case source, forward-sync from that source unless an explicit recovery workflow is approved.
+- If code correctly enforces a rule the spec never states (spec-silent), add the missing rule and its canonical case to the spec, then a guarding test — never leave a discovered invariant unwritten. — why: an unwritten invariant is one refactor away from being silently deleted.
 
 ### [HARD] A translated or duplicated spec is a MIRROR, not a peer
 
@@ -581,6 +607,6 @@ Useful external references to re-check when changing the contract:
 
 - MUST ATTENTION shared reusable principles live in `.claude` and sync to generated agent mirrors; project-reference docs only add local repository extensions.
 - MUST ATTENTION core cycle is `spec -> plan -> tasks -> implement -> verify -> update spec/docs`.
-- MUST ATTENTION specs, tests, and code stay traceable through requirements, decisions, tasks, TCs, evidence, and docs.
+- MUST ATTENTION specs, tests, and code stay traceable through requirements, decisions, tasks, canonical scenarios/cases (TCs under the strict default profile), evidence, and docs.
 - MUST ATTENTION when adapting this contract, read `docs/project-config.json` and `docs/project-reference/docs-index-reference.md`; if either file or a required reference doc is missing or stale, auto-run `/project-init` or the narrow setup route before ordinary project-specific work.
 - NEVER edit `.agents`, `.codex`, or `AGENTS.md` mirrors directly; source change belongs in `.claude`, sync happens later.

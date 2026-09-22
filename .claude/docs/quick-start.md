@@ -32,7 +32,7 @@ git --version
 |-- settings.json     # Main configuration (hooks, features)
 |-- skills/           # 124 skills (invoked via / prefix, activated by context)
 |-- agents/           # Subagent configurations
-|-- hooks/            # 21 top-level hook files + 37 lib modules
+|-- hooks/            # 14 top-level hook files + 43 lib modules
 |   +-- lib/          # Shared hook libraries
 |-- workflows/        # Development rules and workflows
 +-- scripts/          # Utility scripts
@@ -116,7 +116,7 @@ Claude Code intercepts these event types (there is no `SubagentStart` hook — a
 | `SessionEnd`       | Claude Code exits        | `session-end.cjs`          |
 | `UserPromptSubmit` | Before each user message | `init-prompt-gate.cjs`     |
 | `PostToolUse`      | After tool execution     | `post-edit-prettier.cjs`   |
-| `PreToolUse`       | Before tool execution    | `privacy-block.cjs`        |
+| `PreToolUse`       | Before tool execution    | `review-commit-gate.cjs`   |
 | `Stop`             | Response complete        | `notifications/notify.cjs` |
 | `Notification`     | Idle/waiting events      | `notifications/notify.cjs` |
 

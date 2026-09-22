@@ -50,6 +50,7 @@ function requireQuiet(rel) {
 }
 
 const helpers = requireQuiet('../hooks/lib/session-init-helpers.cjs');
+const referenceRegistry = requireQuiet('../hooks/lib/project-reference-registry.cjs');
 const loader = requireQuiet('../hooks/lib/project-config-loader.cjs');
 const pathUtils = requireQuiet('../hooks/lib/ck-path-utils.cjs');
 
@@ -77,7 +78,7 @@ const isPathWithinRoot =
     });
 
 /** doc filename -> the scan invocation that fully regenerates it. */
-const SCAN_SKILL_MAP = (helpers && helpers.SCAN_SKILL_MAP) || {
+const SCAN_SKILL_MAP = (referenceRegistry && referenceRegistry.SCAN_SKILL_MAP) || (helpers && helpers.SCAN_SKILL_MAP) || {
     'project-structure-reference.md': 'scan --target=project-structure',
     'backend-patterns-reference.md': 'scan --target=backend-patterns',
     'seed-test-data-reference.md': 'scan --target=seed-test-data',
@@ -126,11 +127,7 @@ function toRepoRel(p) {
     return s.replace(/^\.\//, '').replace(/^\/+/, '');
 }
 
-/**
- * Config `pathRegex` values are authored against absolute-ish paths and start
- * with a `[\\/]` separator class, so a repo-relative path must be probed with a
- * leading slash or every module regex silently misses.
- */
+/** Context-group pathRegexes use slash-prefixed probes; module pathRegexes use repo-relative paths. */
 function probePath(relPath) {
     return '/' + relPath;
 }
@@ -240,7 +237,15 @@ function collectChangedFiles(baseRef) {
 
 function refDoc(name) {
     // design-system/README.md style keys keep their subpath.
-    return toRepoRel(path.join(REFERENCE_DOCS_DIR, name));
+    try {
+        const abs = helpers && typeof helpers.getReferenceDocPath === 'function'
+            ? helpers.getReferenceDocPath(name)
+            : path.join(REFERENCE_DOCS_DIR, name);
+        return toRepoRel(abs);
+    } catch (error) {
+        warnings.push(`Unsafe project-reference path ${name}: ${error.message}`);
+        return '';
+    }
 }
 
 /** A doc target that is not a scannable reference doc (e.g. CLAUDE.md). */
@@ -248,10 +253,68 @@ function plainDoc(relPath) {
     return toRepoRel(relPath);
 }
 
+/**
+ * The always-on docs-index document, resolved through its CONFIGURED owner.
+ *
+ * The index filename is configurable — an explicit `.claude/.ck.json` `portability.docsIndexPath`
+ * (a full path to the index FILE) or a relocated `docsRoots.projectReference.path`. Spelling the
+ * framework default alias here reaches the WRONG file for a custom-named index: the map would
+ * report a missing default sibling while `/docs-update` treats `exists: false` as work to repair,
+ * so verification keeps targeting a file the scan owner never writes. `project-config-loader`
+ * already owns the precedence; ask it instead of re-deriving the path.
+ */
+function docsIndexDoc() {
+    let filename = 'docs-index-reference.md';
+    try {
+        if (loader && typeof loader.getConfiguredDocsIndexPath === 'function') {
+            const configured = String(loader.getConfiguredDocsIndexPath() || '').replace(/\\/g, '/');
+            filename = path.posix.basename(configured) || filename;
+        }
+    } catch (error) {
+        warnings.push(`docs-index path resolution failed: ${error.message}`);
+    }
+    return refDoc(filename);
+}
+
 function buildRules(config) {
     const rules = [];
+
+    // The canonical task-specific selection. `getReferenceDocs` already resolves an ABSENT array
+    // to its evidence-backed set and treats an explicit array (including `[]`) as exact, so the
+    // mapper consumes that ONE owner instead of re-deriving selection policy.
+    let selectionAvailable = !!(helpers && typeof helpers.getReferenceDocs === 'function');
+    let selectedFilenames = new Set();
+    if (selectionAvailable) {
+        try {
+            selectedFilenames = new Set(
+                (helpers.getReferenceDocs(config) || []).map(doc => doc && doc.filename).filter(Boolean)
+            );
+        } catch (error) {
+            // Fail-open: a broken resolver must not silently erase every task-specific route.
+            warnings.push(`reference selection failed: ${error.message}`);
+            selectionAvailable = false;
+        }
+    }
+
+    /**
+     * A TASK-SPECIFIC built-in reference output, emitted only when its filename is in the exact
+     * selected set. Always-on docs (the docs index through `docsIndexDoc`) and config-owned
+     * `contextGroups` paths (`plainDoc`) are separate owners and are deliberately NOT filtered.
+     */
+    function builtinRefDoc(name) {
+        if (selectionAvailable && !selectedFilenames.has(name)) return '';
+        return refDoc(name);
+    }
+
     const add = rule => {
-        if (rule && rule.match) rules.push(rule);
+        if (!rule || !rule.match) return;
+        const docs = (rule.docs || []).filter(Boolean);
+        const configSections = rule.configSections || [];
+        // A rule that produced no output at all would still MATCH and, when grounded, suppress
+        // the conventions fallback while contributing nothing — silently dropping the file from
+        // `unrouted`. Drop it instead so unrouted accounting stays honest.
+        if (!docs.length && !configSections.length) return;
+        rules.push({ ...rule, docs });
     };
 
     // R1 — contextGroups: the config's own code-area -> guidance-doc mapping.
@@ -278,10 +341,12 @@ function buildRules(config) {
         add({
             id: `module:${mod.name}`,
             reason: `module "${mod.name}" changed — module registry, directory map and description can drift`,
-            docs: [refDoc('project-structure-reference.md')],
+            docs: [builtinRefDoc('project-structure-reference.md')],
             configSections: ['modules'],
             checks: ['claims', 'coverage', 'counts'],
-            match: rel => re.test(probePath(rel))
+            // modules[].pathRegex follows the repo-relative POSIX contract used by
+            // project-config-loader.getModuleForPath(); keep it separate from R1.
+            match: rel => re.test(toRepoRel(rel))
         });
     }
 
@@ -294,7 +359,7 @@ function buildRules(config) {
     add({
         id: 'testing',
         reason: 'test surface changed — base classes, fixtures, helpers, run commands can drift',
-        docs: [refDoc('integration-test-reference.md')],
+        docs: [builtinRefDoc('integration-test-reference.md')],
         configSections: ['testing', 'integrationTestVerify'],
         checks: ['claims', 'coverage', 'commands'],
         match: rel =>
@@ -312,7 +377,7 @@ function buildRules(config) {
         add({
             id: 'e2e',
             reason: 'E2E surface changed — page objects, fixtures, config can drift',
-            docs: [refDoc('e2e-test-reference.md')],
+            docs: [builtinRefDoc('e2e-test-reference.md')],
             configSections: ['e2eTesting'],
             checks: ['claims', 'coverage'],
             match: rel => e2eMatchers.some(m => m.test(rel))
@@ -329,7 +394,7 @@ function buildRules(config) {
     add({
         id: 'styling',
         reason: 'styling/design-system source changed — tokens, BEM conventions, component inventory can drift',
-        docs: [refDoc('scss-styling-guide.md'), refDoc('design-system/README.md')],
+        docs: [builtinRefDoc('scss-styling-guide.md'), builtinRefDoc('design-system/README.md')],
         configSections: ['styling', 'designSystem', 'componentSystem'],
         checks: ['claims', 'coverage', 'conventions'],
         match: rel => ['.scss', '.sass', '.less', '.css'].includes(ext(rel)) || styleMatchers.some(m => m.test(rel))
@@ -341,7 +406,7 @@ function buildRules(config) {
     add({
         id: 'manifest',
         reason: 'dependency/build manifest changed — tech stack, versions and run commands can drift',
-        docs: [refDoc('project-structure-reference.md')],
+        docs: [builtinRefDoc('project-structure-reference.md')],
         configSections: ['project', 'framework', 'testing'],
         checks: ['claims', 'versions', 'commands'],
         match: rel => MANIFESTS.test(rel)
@@ -353,7 +418,7 @@ function buildRules(config) {
     add({
         id: 'infrastructure',
         reason: 'infrastructure/CI/env config changed — ports, deployment stages, environment keys can drift',
-        docs: [refDoc('project-structure-reference.md')],
+        docs: [builtinRefDoc('project-structure-reference.md')],
         configSections: ['infrastructure', 'databases', 'messaging', 'api'],
         checks: ['claims', 'ports', 'commands'],
         match: rel => INFRA.test(rel) || /\.tf(\.json)?$/i.test(rel) || /\.bicep$/i.test(rel)
@@ -366,7 +431,7 @@ function buildRules(config) {
     add({
         id: 'harness',
         reason: 'AI-harness surface changed — skill/hook/agent/workflow inventory counts and catalogs are glob-derived and drift silently',
-        docs: [plainDoc('CLAUDE.md'), refDoc('docs-index-reference.md'), refDoc('project-structure-reference.md')],
+        docs: [plainDoc('CLAUDE.md'), docsIndexDoc(), builtinRefDoc('project-structure-reference.md')],
         configSections: ['modules', 'referenceDocs', 'skillConventions'],
         checks: ['counts', 'catalog', 'coverage'],
         match: rel =>
@@ -405,7 +470,7 @@ function buildRules(config) {
     add({
         id: 'docs-tree',
         reason: 'documentation tree changed — docs index, categories and cross-links can drift',
-        docs: [refDoc('docs-index-reference.md')],
+        docs: [docsIndexDoc()],
         configSections: ['referenceDocs'],
         checks: ['claims', 'counts', 'links'],
         // `isPathWithinRoot` matches on a SEGMENT BOUNDARY and normalizes both sides.
@@ -426,7 +491,7 @@ function buildRules(config) {
         id: 'domain-entities',
         heuristic: true,
         reason: 'entity/domain-model path changed (heuristic) — entity inventory, aggregates and ERD can drift',
-        docs: [refDoc('domain-entities-reference.md')],
+        docs: [builtinRefDoc('domain-entities-reference.md')],
         configSections: [],
         checks: ['claims', 'coverage'],
         match: rel => /(^|\/)(entities|entity|domain|models|aggregates)(\/|$)/i.test(rel)
@@ -437,11 +502,39 @@ function buildRules(config) {
         id: 'seed-test-data',
         heuristic: true,
         reason: 'seeder path changed (heuristic) — seeder inventory and conventions can drift',
-        docs: [refDoc('seed-test-data-reference.md')],
+        docs: [builtinRefDoc('seed-test-data-reference.md')],
         configSections: [],
         checks: ['claims', 'coverage'],
         match: rel => /(^|\/)(seed|seeds|seeders|seeding)(\/|$)/i.test(rel) || /seed[-_.]?data/i.test(rel)
     });
+
+    // Explicit generic docs opt in to conservative repository-wide source impact.
+    // Their purpose/sections decide what the scan records; because the config has no
+    // path-scope declaration, every non-disposable project change can affect the doc.
+    // Curated/manual docs are deliberately excluded from automatic freshness claims.
+    const selectedReferenceDocs = helpers && typeof helpers.getReferenceDocs === 'function'
+        ? helpers.getReferenceDocs(config)
+        : [];
+    const disposablePath = /(^|\/)(\.git|node_modules|\.next|dist|build|coverage|tmp|temp|vendor|target)(\/|$)/i;
+    for (const doc of selectedReferenceDocs) {
+        const target = helpers.getReferenceDocScanTarget(doc);
+        if (target.kind !== 'generic') continue;
+        const outputDoc = refDoc(doc.filename);
+        if (!outputDoc) continue;
+        add({
+            id: `generic-reference:${doc.filename}`,
+            reason: `selected generic reference "${doc.filename}" summarizes repository evidence and may be stale after project changes`,
+            docs: [outputDoc],
+            configSections: ['referenceDocs'],
+            checks: ['claims', 'coverage', 'conventions'],
+            // A repo-wide "may be stale" route is NOT proof that it OWNS the conventions for a
+            // path. It must stay additive: if a distinct selected owner (e.g. code-review-rules)
+            // also applies, that owner must survive. A genuinely specific configured rule still
+            // suppresses the fallback through its own grounded status.
+            suppressesFallback: false,
+            match: rel => toRepoRel(rel) !== outputDoc && !disposablePath.test(toRepoRel(rel))
+        });
+    }
 
     // R12 — any source file that reached none of the above still carries
     // conventions. Applied only as a fallback so it never floods the wave.
@@ -453,7 +546,7 @@ function buildRules(config) {
         id: 'code-conventions',
         fallback: true,
         reason: 'source file changed — naming, structure and review conventions can drift',
-        docs: [refDoc('code-review-rules.md')],
+        docs: [builtinRefDoc('code-review-rules.md')],
         configSections: [],
         checks: ['conventions'],
         match: rel => CODE_EXT.has(ext(rel))
@@ -466,7 +559,14 @@ function buildRules(config) {
 // Mapping
 // ---------------------------------------------------------------------------
 
-function docMeta(relDocPath) {
+function referenceFilename(relDocPath) {
+    const absolute = path.resolve(PROJECT_DIR, relDocPath);
+    const relative = path.relative(REFERENCE_DOCS_DIR, absolute).replace(/\\/g, '/');
+    if (!relative || relative === '..' || relative.startsWith('../') || path.isAbsolute(relative)) return null;
+    return relative;
+}
+
+function docMeta(relDocPath, config) {
     const abs = path.join(PROJECT_DIR, relDocPath);
     const exists = fs.existsSync(abs);
     let lastScanned = null;
@@ -484,9 +584,35 @@ function docMeta(relDocPath) {
             /* non-blocking */
         }
     }
-    const base = toRepoRel(relDocPath);
-    const key = Object.keys(SCAN_SKILL_MAP).find(k => base.endsWith(k));
-    return { exists, lastScanned, ageDays, scanTarget: key ? SCAN_SKILL_MAP[key] : null };
+    const filename = referenceFilename(relDocPath);
+    const scanTarget = resolveDocScanTarget(filename, config);
+    return { exists, lastScanned, ageDays, scanTarget };
+}
+
+/**
+ * The runnable scan command for a routed doc, or null when none is authorized.
+ *
+ * A command is emitted ONLY for a doc the scan contract actually owns: a member of the exact
+ * task-specific selection, or the always-on docs index. A config-owned `contextGroups` route may
+ * legitimately NAME an unselected built-in filename, but that must stay a reader-impact route —
+ * inheriting a command from its basename would hand `/docs-update` a scan the exact-selection
+ * gate is guaranteed to block. Always-on docs are resolved separately from `referenceDocs`.
+ */
+function resolveDocScanTarget(filename, config) {
+    if (!filename) return null;
+    if (helpers && typeof helpers.getReferenceDocScanTarget === 'function') {
+        const selected = typeof helpers.getReferenceDocs === 'function'
+            ? helpers.getReferenceDocs(config).find(doc => doc.filename === filename)
+            : null;
+        const alwaysOn = !!selected
+            || (typeof helpers.getAlwaysOnReferenceDocs === 'function'
+                && helpers.getAlwaysOnReferenceDocs().some(doc => doc.filename === filename));
+        if (!selected && !alwaysOn) return null;
+        const resolved = helpers.getReferenceDocScanTarget(selected || filename);
+        return (resolved && resolved.command) || null;
+    }
+    // Fail-open fallback: legacy literal table when the shared resolver is unavailable.
+    return SCAN_SKILL_MAP[filename] || null;
 }
 
 function mapChanges(rows, config) {
@@ -504,11 +630,14 @@ function mapChanges(rows, config) {
                 return false;
             }
         });
-        // A fallback rule (conventions) is suppressed only by a CONFIG-DERIVED
-        // hit. A heuristic-only hit is a guess, so it must not silence the
-        // fallback — otherwise a guess would shrink the verified surface.
-        const grounded = hits.filter(h => !h.fallback && !h.heuristic);
-        const applied = grounded.length ? hits.filter(h => !h.fallback) : hits;
+        // A fallback rule (conventions) is suppressed only by a CONFIG-DERIVED hit that actually
+        // OWNS a document. A heuristic hit is a guess; a generic repo-wide hit is possible
+        // staleness, not ownership (`suppressesFallback: false`); and a rule whose selected docs
+        // were all filtered out owns nothing. None of them may shrink the verified surface.
+        const suppressors = hits.filter(
+            h => !h.fallback && !h.heuristic && h.suppressesFallback !== false && (h.docs || []).length > 0
+        );
+        const applied = suppressors.length ? hits.filter(h => !h.fallback) : hits;
 
         if (!applied.length) {
             unrouted.push(rel);
@@ -520,7 +649,7 @@ function mapChanges(rows, config) {
                 if (!docs.has(doc)) {
                     docs.set(doc, {
                         doc,
-                        ...docMeta(doc),
+                        ...docMeta(doc, config),
                         reasons: new Set(),
                         rules: new Set(),
                         checks: new Set(),
@@ -570,8 +699,11 @@ const CLAIM_RE = /`([^`\n]*?[\\/][^`\n]*?\.[A-Za-z0-9]{1,6})(?::\d+(?:-\d+)?)?`/
 
 /** Line-scoped marker that exempts a DELIBERATELY unresolvable citation from the dead list. */
 const CLAIM_OPT_OUT = '<!-- dead-link-ok -->';
+/** Line-scoped roles for valid paths that are intentionally not repository source files. */
+const CLAIM_ROLE_OPT_OUT = /<!--\s*path-role:\s*(?:generated-output|proposed|user-local)\s*-->/i;
 
 let trackedFilesCache = null;
+let workspacePackagesCache = null;
 /** Repo file list, used to resolve short-form citations before calling one dead. */
 function trackedFiles() {
     if (trackedFilesCache) return trackedFilesCache;
@@ -580,6 +712,84 @@ function trackedFiles() {
         .map(l => l.trim().replace(/\\/g, '/'))
         .filter(Boolean);
     return trackedFilesCache;
+}
+
+/**
+ * Workspace packages indexed by their public package name. This lets claims mode distinguish
+ * a real package export (`@scope/pkg/subpath`) from a repository-relative file reference.
+ */
+function workspacePackages() {
+    if (workspacePackagesCache) return workspacePackagesCache;
+    workspacePackagesCache = new Map();
+    for (const relative of trackedFiles().filter(file => path.posix.basename(file) === 'package.json')) {
+        try {
+            const manifestPath = path.join(PROJECT_DIR, relative);
+            const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
+            if (typeof manifest.name !== 'string' || !manifest.name.trim()) continue;
+            const entries = workspacePackagesCache.get(manifest.name) || [];
+            entries.push({ root: path.dirname(manifestPath), manifest });
+            workspacePackagesCache.set(manifest.name, entries);
+        } catch {
+            // A malformed/unreadable package manifest cannot validate a package citation.
+        }
+    }
+    return workspacePackagesCache;
+}
+
+function exportValueForSubpath(exportsField, subpath) {
+    if (typeof exportsField === 'string' || Array.isArray(exportsField) || exportsField === null) {
+        return subpath === '.' ? { value: exportsField, wildcard: null } : null;
+    }
+    if (!exportsField || typeof exportsField !== 'object') return null;
+
+    const keys = Object.keys(exportsField);
+    const isSubpathMap = keys.some(key => key.startsWith('.'));
+    if (!isSubpathMap) return subpath === '.' ? { value: exportsField, wildcard: null } : null;
+    if (Object.prototype.hasOwnProperty.call(exportsField, subpath)) {
+        return { value: exportsField[subpath], wildcard: null };
+    }
+
+    const wildcardKeys = keys.filter(key => key.includes('*'))
+        .sort((a, b) => b.length - a.length);
+    for (const pattern of wildcardKeys) {
+        const [prefix, suffix] = pattern.split('*');
+        if (!subpath.startsWith(prefix) || !subpath.endsWith(suffix)) continue;
+        const wildcard = subpath.slice(prefix.length, subpath.length - suffix.length);
+        return { value: exportsField[pattern], wildcard };
+    }
+    return null;
+}
+
+function exportTargets(value, wildcard) {
+    if (typeof value === 'string') return [wildcard === null ? value : value.replace(/\*/g, wildcard)];
+    if (Array.isArray(value)) return value.flatMap(item => exportTargets(item, wildcard));
+    if (value && typeof value === 'object') return Object.values(value).flatMap(item => exportTargets(item, wildcard));
+    return [];
+}
+
+/** Return true only when a workspace package reference resolves to a real file. */
+function isWorkspacePackageReference(claim) {
+    const match = claim.match(/^(@[^/]+\/[^/]+|[^/]+)\/(.+)$/);
+    if (!match) return false;
+    const [, packageName, subpath] = match;
+    const candidates = workspacePackages().get(packageName) || [];
+    if (candidates.length !== 1) return false;
+
+    const { root, manifest } = candidates[0];
+    const exportsField = Object.prototype.hasOwnProperty.call(manifest, 'exports') ? manifest.exports : undefined;
+    const selected = exportsField === undefined
+        ? { value: `./${subpath}`, wildcard: null }
+        : exportValueForSubpath(exportsField, `./${subpath}`);
+    if (!selected) return false;
+
+    return exportTargets(selected.value, selected.wildcard).some(target => {
+        const normalized = target.replace(/\\/g, '/');
+        if (!normalized.startsWith('./') || normalized.split('/').some(segment => segment === '..')) return false;
+        const absolute = path.resolve(root, normalized);
+        const relative = path.relative(root, absolute);
+        if (relative === '..' || relative.startsWith(`..${path.sep}`) || path.isAbsolute(relative)) return false;
+        return fs.existsSync(absolute);
+    });
 }
 
 function checkClaims(relDocPath) {
@@ -601,7 +811,7 @@ function checkClaims(relDocPath) {
     // would silently exempt future rot in the same file.
     const suppressed = new Set();
     text.split('\n').forEach((line, i) => {
-        if (line.includes(CLAIM_OPT_OUT)) suppressed.add(i);
+        if (line.includes(CLAIM_OPT_OUT) || CLAIM_ROLE_OPT_OUT.test(line)) suppressed.add(i);
     });
     const lineOf = index => text.slice(0, index).split('\n').length - 1;
     let m;
@@ -620,7 +830,7 @@ function checkClaims(relDocPath) {
         if (!claim.includes('/')) continue;
         // Elided citations (`Client/.../thing.service.ts`) name a real file with the
         // middle cut out: unresolvable BY CONSTRUCTION, so calling them dead is noise.
-        if (claim.includes('...')) continue;
+        if (claim.includes('...') || claim.includes('…')) continue;
         const base = claim.slice(claim.lastIndexOf('/') + 1);
         // `0.5/0.75/1/1.5rem` — a slash-joined value list, not a path. A basename
         // opening with a digit-dot is a number, never a filename in this tree.
@@ -633,6 +843,7 @@ function checkClaims(relDocPath) {
         if (seen.has(claim)) continue;
         seen.add(claim);
         if (fs.existsSync(path.join(PROJECT_DIR, claim))) continue;
+        if (isWorkspacePackageReference(claim)) continue;
         if (trackedFiles().some(f => f.toLowerCase().endsWith('/' + claim.toLowerCase()))) {
             ambiguous.push(claim);
             continue;

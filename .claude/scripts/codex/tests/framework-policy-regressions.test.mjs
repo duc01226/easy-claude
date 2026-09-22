@@ -1,14 +1,26 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { promises as fs } from "node:fs";
+import { createRequire } from "node:module";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(here, "..", "..", "..", "..");
+const require = createRequire(import.meta.url);
+const { getDocsRoot } = require("../../../hooks/lib/project-config-loader.cjs");
 
 async function read(rel) {
   return fs.readFile(path.join(repoRoot, ...rel.split("/")), "utf8");
+}
+
+async function readIfExists(rel) {
+  try {
+    return await read(rel);
+  } catch (error) {
+    if (error?.code === "ENOENT") return null;
+    throw error;
+  }
 }
 
 test("orchestrator tier includes every proven direct-dispatch skill (CR-089)", async () => {
@@ -66,6 +78,125 @@ test("docs-update reserves spec and generated-doc paths to canonical child skill
   assert.match(skill, /MUST NOT own any `docs\/specs\/\*\*`/);
   assert.match(skill, /explicitly reserved to its child skill/);
   assert.match(skill, /Exclude `docs\/specs\/\*\*`/);
+});
+
+const NO_STAMP_POLICY_INDEX_FIXTURE = "# Docs index\n\nNo applicable stamp rule is declared.\n";
+const EXPLICIT_LAST_VERIFIED_INDEX_FIXTURE =
+  "# Docs index\n\n## Narrow edits\nImpact-scoped patches add `<!-- Last verified: YYYY-MM-DD -->`.\n";
+
+function hasImpactScopedLastVerifiedRule(localDocsIndex) {
+  return localDocsIndex
+    .replace(/\r\n/g, "\n")
+    .split("\n")
+    .some((line) => /impact-scoped/i.test(line) && /Last verified/i.test(line));
+}
+
+function assertDocsUpdateStampPolicy(skillInput, localDocsIndexFixture) {
+  const skill = skillInput.replace(/\r\n/g, "\n");
+  const start = skill.indexOf("### Step 1.6: Stamp Discipline (BLOCKING)");
+  const end = skill.indexOf("### Step 1.7: Phase 1 Output", start);
+  assert.ok(start >= 0 && end > start, "docs-update must keep its bounded Step 1.6 stamp policy");
+  const stampPolicy = skill.slice(start, end);
+
+  assert.match(stampPolicy, /Resolve and read `docs-index-reference\.md`[\s\S]*`docsRoots\.projectReference\.path`/);
+  assert.match(stampPolicy, /Only a full scan may[^\n.]*Last scanned/i);
+  assert.match(stampPolicy, /If an applicable local rule explicitly requires `Last verified`, write or update it exactly as specified/i);
+  assert.match(stampPolicy, /Follow any applicable explicit stamp rule exactly, including its scope, format, and placement/i);
+  assert.match(stampPolicy, /otherwise write NO tracked date stamp/i);
+  assert.match(stampPolicy, /if no applicable explicit rule exists, the portable default is NO tracked date stamp/i);
+  assert.match(stampPolicy, /record the pass in the untracked local ledger: `node \.claude\/hooks\/lib\/doc-stamp-guard\.cjs --record-verified/);
+  assert.match(stampPolicy, /impact-scoped pass MUST NOT add, update, or move `Last scanned`/i);
+  assert.match(stampPolicy, /A verify pass that changes nothing writes nothing, regardless of any local stamp rule/i);
+  assert.match(stampPolicy, /When the applicable rule does not allow this stamp[\s\S]*remove a pre-existing `Last verified` line only as part of an otherwise-required content patch, never in a stamp-only write/i);
+  assert.match(stampPolicy, /doc-stamp-guard\.cjs --check <doc> --candidate <file>/);
+  assert.match(stampPolicy, /exit 3 = no-op/);
+
+  if (hasImpactScopedLastVerifiedRule(localDocsIndexFixture)) {
+    assert.match(stampPolicy, /If an applicable local rule explicitly requires `Last verified`, write or update it exactly as specified/i);
+  } else {
+    assert.match(stampPolicy, /if the local docs-index is missing or has no applicable explicit rule, write NO tracked date stamp/i);
+  }
+  assert.match(skill, /Stamps: .*`Last verified`.*local docs-index rule/);
+  assert.match(
+    skill,
+    /\| "I updated the doc, so I'll refresh `Last scanned`" \|[^\n]*Last scanned[^\n]*Last verified[^\n]*local docs-index/i,
+    "anti-rationalization text must use the same local-policy rule",
+  );
+
+  assert.doesNotMatch(skill, /NEVER write .*Last verified.*tracked doc/i, "there must be no absolute Last verified prohibition");
+  assert.doesNotMatch(skill, /(?:every|all) impact-scoped[^\n.]{0,120}(?:must|shall|always|required)[^\n.]{0,80}Last verified/i, "there must be no universal Last verified mandate");
+  assert.doesNotMatch(skill, /Last verified[^\n.]{0,100}(?:must|shall|always|required)[^\n.]{0,80}(?:every|all) impact-scoped/i, "there must be no universal Last verified mandate");
+}
+
+test("docs-update keeps local stamp rules optional and the no-rule default portable (TC-FIT-026)", async () => {
+  const skill = await read(".claude/skills/docs-update/SKILL.md");
+
+  assert.equal(hasImpactScopedLastVerifiedRule(NO_STAMP_POLICY_INDEX_FIXTURE), false);
+  assert.equal(hasImpactScopedLastVerifiedRule(EXPLICIT_LAST_VERIFIED_INDEX_FIXTURE), true);
+  assertDocsUpdateStampPolicy(skill, NO_STAMP_POLICY_INDEX_FIXTURE);
+  assertDocsUpdateStampPolicy(skill, EXPLICIT_LAST_VERIFIED_INDEX_FIXTURE);
+
+  for (const forbiddenRule of [
+    "NEVER write `<!-- Last verified: YYYY-MM-DD -->` into a tracked doc.",
+    "Every impact-scoped patch must write `Last verified`.",
+  ]) {
+    assert.throws(
+      () => assertDocsUpdateStampPolicy(`${skill}\n${forbiddenRule}`, EXPLICIT_LAST_VERIFIED_INDEX_FIXTURE),
+      { code: "ERR_ASSERTION" },
+    );
+  }
+
+  const lastScannedMutant = skill.replaceAll(
+    "An impact-scoped pass MUST NOT add, update, or move `Last scanned`.",
+    "An impact-scoped pass MAY update `Last scanned`.",
+  );
+  assert.notEqual(lastScannedMutant, skill, "Last-scanned mutation anchor exists");
+  assert.throws(() => assertDocsUpdateStampPolicy(lastScannedMutant, NO_STAMP_POLICY_INDEX_FIXTURE), { code: "ERR_ASSERTION" });
+});
+
+test("the configured docs-index Last verified rule is honored when present (TC-FIT-026 local integration)", async (t) => {
+  const configInput = await readIfExists("docs/project-config.json");
+  if (configInput === null) {
+    t.skip("adopter has no docs/project-config.json; portable fixture contract still runs");
+    return;
+  }
+
+  const config = JSON.parse(configInput);
+  const referenceRoot = getDocsRoot("projectReference", config).replace(/\/+$/, "");
+  const [skill, localDocsIndex] = await Promise.all([
+    read(".claude/skills/docs-update/SKILL.md"),
+    readIfExists(`${referenceRoot}/docs-index-reference.md`),
+  ]);
+  if (localDocsIndex === null) {
+    t.skip("adopter has no resolved docs-index-reference.md; portable fixture contract still runs");
+    return;
+  }
+
+  assertDocsUpdateStampPolicy(skill, localDocsIndex);
+  if (!hasImpactScopedLastVerifiedRule(localDocsIndex)) return;
+
+  const stampRule = localDocsIndex
+    .replace(/\r\n/g, "\n")
+    .split("\n")
+    .find((line) => /impact-scoped/i.test(line) && /Last verified/i.test(line));
+  if (!stampRule || !/impact-scoped patch adds `<!-- Last verified: YYYY-MM-DD -->` on following line/i.test(stampRule)) {
+    return;
+  }
+
+  assert.match(stampRule, /only full `scan --target=<key>` may move `<!-- Last scanned: -->`/i);
+  assert.match(stampRule, /files with no scan stamp \(`CLAUDE\.md`, `\.claude\/\*\*`\) get \*\*no\*\* stamp/i);
+});
+
+test("docs-manager follows the docs-update local stamp contract", async () => {
+  const role = (await read(".claude/agents/docs-manager.md")).replace(/\r\n/g, "\n");
+  const stampRule = role.split("\n").find((line) => /Stamp discipline:/i.test(line));
+
+  assert.ok(stampRule, "docs-manager must keep one explicit stamp rule");
+  assert.match(stampRule, /follow Step 1\.6 of `\.claude\/skills\/docs-update\/SKILL\.md`/i);
+  assert.match(stampRule, /update `Last verified` only when the resolved local docs-index explicitly requires it/i);
+  assert.match(stampRule, /Preserve explicit no-stamp paths such as `CLAUDE\.md` and `\.claude\/\*\*`/);
+  assert.match(stampRule, /record the pass in the untracked ledger/i);
+  assert.doesNotMatch(stampRule, /impact-scoped patch writes NO stamp at all/i);
 });
 
 test("parallel and adjudication contracts retain fixed-order and exact artifact semantics (CR-024, CR-099..101)", async () => {

@@ -2,6 +2,10 @@
 >
 > **`{TechRoot}` = `docs/project-config.json` → `specRoots.technical.path`.** Resolve it at run time. NEVER hardcode a root. `{Service}` and `{Component}` are **patterns**, never literal names.
 
+## Profile and generator applicability
+
+Resolve `specArtifacts`, `techSpecScan`, and the generator's supported annotation contract before deriving anything. This reference applies only to the annotation-derived `TestSpec` / `TechnicalSpec` view. If a native artifact profile applies, return `UNSUPPORTED` for native technical-view generation before invoking the generator; do not translate native scenarios into duplicate TC annotations or emit an empty view. With no native profile, preserve the strict §8/TC default for annotation adopters. An absent `techSpecScan` is `NOT CONFIGURED`, never a successful zero-case map.
+
 # Mode: Generate the DERIVED Technical View
 
 ## The Determinism Contract — read before emitting anything

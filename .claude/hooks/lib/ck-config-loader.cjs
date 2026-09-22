@@ -209,7 +209,6 @@ function getDefaultConfig(
   const result = {
     plan: { ...DEFAULT_CONFIG.plan },
     paths: { ...DEFAULT_CONFIG.paths },
-    codingLevel: -1, // Default: disabled (no injection, saves tokens)
     workflow: { ...DEFAULT_CONFIG.workflow },
     referenceDocs: { ...DEFAULT_CONFIG.referenceDocs },
     portability: { ...DEFAULT_CONFIG.portability },
@@ -282,9 +281,6 @@ function loadConfig(options = {}) {
     if (includeAssertions) {
       result.assertions = merged.assertions || [];
     }
-    // Coding level for output style selection (-1 to 5, default: -1 = disabled)
-    result.codingLevel = merged.codingLevel ?? -1;
-
     // Workflow behavior (user-configurable, always included)
     result.workflow = merged.workflow || DEFAULT_CONFIG.workflow;
 

@@ -7,7 +7,7 @@
  *   A. Pure classifier unit tests (lib/doc-sync-classify.cjs) — no git.
  *   B. Integration tests against an ISOLATED throwaway git repo created in the
  *      OS temp dir, exercising the real hook via stdin/exit-code (mirrors
- *      test-git-commit-block.cjs). The hook's lib resolves config + runs git in
+ *      test-git-statement.cjs). The hook's lib resolves config + runs git in
  *      CLAUDE_PROJECT_DIR, so pointing that at the temp repo fully isolates the
  *      suite from the host project's real index.
  *

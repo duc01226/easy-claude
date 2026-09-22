@@ -7,6 +7,7 @@
 - [Start with context and setup](#start-with-context-and-setup)
 - [Skills or workflows not discovered](#skills-or-workflows-not-discovered)
 - [Hooks not running](#hooks-not-running)
+- [Windows Git or Git Bash unavailable](#windows-git-or-git-bash-unavailable)
 - [Bash goes silent](#bash-goes-silent)
 - [Configuration not applied](#configuration-not-applied)
 - [An edit or command is blocked](#an-edit-or-command-is-blocked)
@@ -123,6 +124,50 @@ printf '%s\n' '{"hook_event_name":"SessionStart"}' | node .claude/hooks/session-
 
 Read [hooks/README.md](./hooks/README.md) for the event table, registration rules, safety gates, and test-runner details.
 
+## Windows Git or Git Bash Unavailable
+
+The portable Windows capability check is owned by the same integrity-first
+`verify-install.cjs` SessionStart hook. It probes existing Git-for-Windows before
+attempting repair and requires a native Git root with `git.exe`, `git-bash.exe`,
+and a working `bash.exe` beneath that root. A WSL/System32 `bash.exe` or a
+Windows App Execution Alias is not Git Bash for this contract.
+
+Repair is attempted only for an explicit `startup` event. When the capability is
+missing, broken, or incomplete, the hook validates a trusted App Installer/WinGet
+binary and may start one detached, bounded worker for the fixed `Git.Git`
+package. `resume`, `clear`, and `compact` only probe; they never launch repair.
+If WinGet/App Installer, UAC, policy, ACL, or process creation cannot be proved
+safe, the hook reports a fixed advisory outcome and leaves the host unchanged.
+The next startup probes again, so a repaired installation does not require a
+second installer path.
+
+The resulting `PATH` prefix and `CK_GIT_EXE`, `CK_GIT_BASH_EXE`, and
+`CK_GIT_BASH_PATH` values are child/session-local. They make Git and Git Bash
+available to hooks or manager children that the framework launches; they cannot
+change the already-running PowerShell/cmd parent. A healthy native installation
+therefore produces no repair diagnostic even if the parent shell's `bash` name
+still resolves to another provider.
+
+Optional policy is `hooks.windowsGit.enabled` and `hooks.windowsGit.autoRepair`.
+Both default to `true`; `enabled: false` disables integration and repair, while
+`autoRepair: false` keeps the read-only probe. An invalid project config skips
+repair but does not disable `.claude` integrity verification. PortableGit and
+generic installer fallbacks are intentionally not part of this automatic path.
+
+To exercise the path without changing the machine, run the focused suite:
+
+```text
+node .claude/hooks/tests/run-all-tests.cjs --filter=windows-git --verbose
+```
+
+If the startup capability or dependency install appears stuck, do not delete a
+lock because of its age. The lock is outside the project and is reclaimable only
+when its recorded canonical root, host, PID/process-start identity, descendant
+state, and owner token still match and positive evidence proves every owner
+process is dead. If any part of that proof is unavailable, leave the lock in
+place and retry at a later startup; the runner fails closed rather than starting
+a duplicate manager or repair worker.
+
 ## Bash Goes Silent
 
 If every Bash call suddenly returns no output and exit 0, while a deliberately failing probe such as
@@ -143,22 +188,21 @@ but the Bash hook chain can now identify its own decision and failure paths.
     `ck/debug/bash-hooks.log` (override it with `CLAUDE_HOOK_DEBUG_LOG`). It records hook, decision,
     exit code, duration, and error classification, but never command/path contents.
 
-3. Bisect the seven registrations in `.claude/settings.json` by feeding the same benign payload to each
+3. Bisect the two Bash registrations in `.claude/settings.json` by feeding the same benign payload to each
    hook. A normal result is exit 0 with empty stdout/stderr. Run the following from PowerShell:
 
     ```powershell
     $payload = '{"hook_event_name":"PreToolUse","tool_name":"Bash","tool_input":{"command":"echo hi"}}'
-    $payload | node .claude/hooks/windows-command-detector.cjs
+    $payload | node .claude/hooks/doc-sync-gate.cjs
     $LASTEXITCODE
     ```
 
-    Repeat for `bash-shell-guard.cjs`, `git-commit-block.cjs`, `doc-sync-gate.cjs`, `scout-block.cjs`,
-    `privacy-block.cjs`, and `path-boundary-block.cjs`. An error must be visible; Git/privacy/path
-    evaluation errors intentionally exit 2. From a POSIX shell, use the same payload with:
+    Repeat for `review-commit-gate.cjs`. An error must be visible; gate evaluation errors
+    intentionally exit 2. From a POSIX shell, use the same payload with:
 
     ```bash
     payload='{"hook_event_name":"PreToolUse","tool_name":"Bash","tool_input":{"command":"echo hi"}}'
-    printf '%s\n' "$payload" | node .claude/hooks/windows-command-detector.cjs
+    printf '%s\n' "$payload" | node .claude/hooks/doc-sync-gate.cjs
     printf 'exit=%s\n' "$?"
     ```
 
@@ -169,10 +213,9 @@ but the Bash hook chain can now identify its own decision and failure paths.
     Copy-Item .claude/settings.json .claude/settings.json.bash-silent-backup -Force
     ```
 
-    Remove the one PreToolUse group whose matcher is exactly `Bash` (it contains four hooks), and remove
-    `Bash|` from the two combined matchers so they retain their non-Bash tools. Do not remove the
-    `AskUserQuestion` notification group, delete non-Bash registrations, or set privacy/boundary policy
-    flags to false. Restore the backup immediately after the incident:
+    Remove the one PreToolUse group whose matcher is exactly `Bash` (it contains two hooks). Leave
+    the other groups intact: `AskUserQuestion` notification and `Write|Edit|MultiEdit` doc-sync warning.
+    Restore the backup immediately after the incident:
 
     ```powershell
     Copy-Item .claude/settings.json.bash-silent-backup .claude/settings.json -Force
@@ -225,11 +268,7 @@ Blocking is expected when a safety gate detects a risky target or command. Use t
 
 | Gate                                                     | Typical cause                                                | Safe next check                                                                  |
 | -------------------------------------------------------- | ------------------------------------------------------------ | -------------------------------------------------------------------------------- |
-| `path-boundary-block.cjs`                                | The target is outside the project root                       | Confirm the path and run from the correct project root                           |
-| `privacy-block.cjs`                                      | The target may contain secrets or credentials                | Narrow the request and keep secrets out of general documentation or source files |
-| `scout-block.cjs`                                        | A read/search is broader than the approved scope             | Search a smaller, explicit path first                                            |
-| `git-commit-block.cjs`                                   | A commit or push was attempted without the approved workflow | Review the diff, then use the explicit commit workflow when authorized           |
-| `windows-command-detector.cjs` or `bash-shell-guard.cjs` | Shell syntax does not match the active shell                 | Rewrite the command using the syntax named by the diagnostic                     |
+| `review-commit-gate.cjs`                                 | A commit was attempted without a review fix-loop receipt     | Review the intended candidate, then use the explicit commit workflow             |
 
 Do not disable a safety gate globally to bypass one blocked operation. Confirm the target, reduce the scope, or correct the command first.
 

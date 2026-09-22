@@ -56,7 +56,7 @@ const DEBUGGER_TRACE_REQUIRED_SNIPPETS = [
     'forward convergence proof'
 ];
 
-const DEBUGGER_TRACE_REQUIRED_SOURCE_PATHS = [
+export const DEBUGGER_TRACE_REQUIRED_SOURCE_PATHS = [
     '.claude/skills/graph-trace/SKILL.md',
     '.claude/skills/graph-query/SKILL.md',
     '.claude/skills/investigate/SKILL.md',
@@ -67,7 +67,7 @@ const DEBUGGER_TRACE_REQUIRED_SOURCE_PATHS = [
     '.claude/skills/changes-review/SKILL.md',
     '.claude/skills/workflow-review-changes/SKILL.md',
     '.claude/skills/code-review/SKILL.md',
-    '.claude/skills/why-review/skill.md',
+    '.claude/skills/why-review/SKILL.md',
     '.claude/agents/code-reviewer.md',
     '.claude/skills/workflow-bugfix/SKILL.md',
     '.claude/skills/workflow-feature/SKILL.md'

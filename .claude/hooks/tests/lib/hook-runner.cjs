@@ -179,7 +179,7 @@ async function runHooksParallel(hooks, options = {}) {
 
 /**
  * Get the absolute path to a hook in the hooks directory
- * @param {string} hookName - Hook filename (e.g., 'privacy-block.cjs')
+ * @param {string} hookName - Hook filename (e.g., 'doc-sync-gate.cjs')
  * @returns {string} Absolute path to the hook
  */
 function getHookPath(hookName) {

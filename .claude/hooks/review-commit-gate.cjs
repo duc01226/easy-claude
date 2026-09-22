@@ -12,24 +12,22 @@
  * after the agent asks. This is a bounded speedbump, not a security boundary:
  * it exists so an unreviewed commit cannot happen by forgetfulness.
  *
- * Fail-open by design (unlike `git-commit-block.cjs`): a command this hook
- * cannot classify, or a repository whose fingerprint cannot be computed, is
- * allowed through. Over-blocking routine commits is what drives a user to
- * disable the hook, and this gate's job is to catch the ordinary case, not to
- * withstand an adversary.
+ * Fail closed for commit statements whose target or candidate cannot be
+ * resolved safely. CLEAN, CHANGED and ERROR are distinct; only a confirmed
+ * CLEAN candidate bypasses a receipt. Unsupported invocation contexts return
+ * actionable recovery guidance and never become a clean result.
  *
- * Composes AFTER `git-commit-block.cjs` (which denies unauthorised and
- * irreversible commits) and `doc-sync-gate.cjs`.
+ * Composes AFTER `doc-sync-gate.cjs`.
  *
  * @hook PreToolUse
  * @matcher Bash
  */
 const { inspectCommand } = require('./lib/command-inspection.cjs');
-const { classifyStatement, findRepository, canonical } = require('./git-commit-block.cjs');
+const { classifyStatement, findRepository, canonical } = require('./lib/git-statement.cjs');
 const { runPreToolHookSync } = require('./lib/hook-runner.cjs');
 const { reportHookInternalError } = require('./lib/debug-log.cjs');
 const {
-  computeChangeFingerprint,
+  captureReviewTarget,
   matchReviewReceipt,
   matchSkipReceipt
 } = require('./lib/review-receipt.cjs');
@@ -38,63 +36,239 @@ function statementCwd(input) {
   return input?.tool_input?.cwd || input?.cwd || process.cwd();
 }
 
-/**
- * Every repository targeted by a `git commit` in this command, resolving
- * `-C`/wrappers via the shared classifier. Deny-wins: the caller must find a
- * receipt for EACH, so a compound `git -C a commit && git -C b commit` cannot
- * slip an unreviewed commit through on the first statement's receipt.
- */
-function resolveCommitRepositories(command, cwd) {
+const UNSUPPORTED_COMMIT_FLAGS = new Set([
+  '--include', '-i', '--only', '-o', '--interactive', '--patch', '-p',
+  '--pathspec-from-file', '--pathspec-file-nul', '--amend'
+]);
+const COMMIT_VALUE_FLAGS = new Set([
+  '--message', '-m', '--file', '-F', '--author', '--date', '--cleanup',
+  '--template', '-t', '--reuse-message', '-C', '--reedit-message', '-c',
+  '--trailer', '--fixup', '--squash'
+]);
+const SAFE_COMMIT_FLAGS = new Set([
+  '--all', '-a', '--allow-empty', '--allow-empty-message', '--no-verify',
+  '--verify', '--signoff', '-s', '--quiet', '-q', '--verbose', '-v',
+  '--status', '--no-status', '--reset-author', '--no-post-rewrite',
+  '--gpg-sign', '-S', '--no-gpg-sign', '--no-edit'
+]);
+const NO_COMMIT_FLAGS = new Set(['--dry-run', '--help', '-h']);
+const SAFE_SHORT_FLAGS = new Set(['-s', '-q', '-v', '-n']);
+const CONTEXT_GIT_ASSIGNMENT = /^GIT_(?:INDEX_FILE|DIR|WORK_TREE|COMMON_DIR|CONFIG(?:_|$)|OBJECT_DIRECTORY|ALTERNATE_OBJECT_DIRECTORIES|REPLACE_REF_BASE|NO_REPLACE_OBJECTS|PREFIX|CEILING_DIRECTORIES|DISCOVERY_ACROSS_FILESYSTEM|NAMESPACE|ATTR_NOSYSTEM|ATTR_SOURCE|SHALLOW_FILE|INDEX_VERSION|LITERAL_PATHSPECS|GLOB_PATHSPECS|NOGLOB_PATHSPECS|ICASE_PATHSPECS)/i;
+
+function tokenValue(token) {
+  return typeof token === 'string' ? token : token?.value;
+}
+
+function tokenValues(tokens) {
+  return (tokens || []).map(tokenValue);
+}
+
+// A real invocation is `git [global-option...] commit ...`, so ADJACENCY is the signal: `git`,
+// then only option-shaped tokens (each optionally taking one value), then `commit` as the very next
+// operand.
+//
+// The previous pattern asked only whether the words `git` and `commit` BOTH appeared anywhere in
+// the text, in either order, at any distance. Every caller of this function sits in a branch that
+// has ALREADY failed to parse the statement and fails closed, so that loose match denied ordinary
+// read-only work whose text merely mentioned both words:
+//   grep -rln "pre-commit-config"         — a filename; `-commit` is not a separate operand
+//   grep -iE "git|commit|authority"       — an alternation; `|commit` is not a separate operand
+//   a heredoc body citing `git log -S` and the word commit — `log` intervenes, so not adjacent
+// Adjacency rejects all three and still matches what the gate exists for: `git commit`,
+// `git -c user.name=x commit`, `git -C /repo commit` and `sh -c "git commit -m x"`.
+const GIT_COMMIT_ADJACENT_RE =
+  /(?:^|[\s'"(;|&])git(?:\.exe)?(?:\s+-{1,2}[A-Za-z][\w-]*(?:=\S+)?(?:\s+(?!-)\S+)?)*\s+commit\b/i;
+
+function isPotentialCommit(command, statements = []) {
+  if (GIT_COMMIT_ADJACENT_RE.test(command)) return true;
+  return statements.some(statement => {
+    const text = tokenValues(statement.argv || statement.tokens).filter(Boolean).join(' ');
+    return GIT_COMMIT_ADJACENT_RE.test(text);
+  });
+}
+
+function unsupportedGlobalContext(statement) {
+  for (const assignment of statement.assignments || []) {
+    if (CONTEXT_GIT_ASSIGNMENT.test(assignment.name || '')) {
+      return `Git context assignment ${assignment.name} is unsupported`;
+    }
+  }
+  const argv = tokenValues(statement.argv);
+  if ((argv[0] || '').split(/[\\/]/).pop()?.replace(/\.exe$/i, '').toLowerCase() !== 'git') {
+    return 'The Git wrapper did not resolve to a direct supported statement';
+  }
+  let i = 1;
+  while (i < argv.length) {
+    const value = argv[i];
+    if (value === '-C') {
+      if (!argv[i + 1]) return 'Git -C is missing its directory';
+      i += 2;
+      continue;
+    }
+    if (value?.startsWith('-C') && value.length > 2) { i++; continue; }
+    if (value?.startsWith('-')) return `Git global option ${value} is unsupported for receipt matching`;
+    break;
+  }
+  return null;
+}
+
+function parseCommitDescriptor(classification) {
+  const resolved = classification.resolved;
+  const statement = classification.statement || {};
+  const unsupported = unsupportedGlobalContext(statement);
+  if (unsupported) return { error: unsupported };
+  const argv = tokenValues(resolved?.operationArgv);
+  if (argv.length < 2 || argv.some(value => typeof value !== 'string')) return { error: 'Commit argv is unresolved' };
+  const args = argv.slice(2);
+  let mode = 'staged';
+  let sawAll = false;
+  let literalPaths = [];
+  let afterTerminator = false;
+  for (let i = 0; i < args.length; i++) {
+    const arg = args[i];
+    if (afterTerminator) { literalPaths.push(arg); continue; }
+    if (arg === '--') { afterTerminator = true; continue; }
+    if (!arg.startsWith('-')) return { error: `Commit positional argument ${arg} is unsupported; use -- before exact file paths` };
+    const flag = arg.includes('=') ? arg.slice(0, arg.indexOf('=')) : arg;
+    if (NO_COMMIT_FLAGS.has(flag)) return { noCommit: true };
+    if (arg.startsWith('-') && !arg.startsWith('--') && arg.length > 2) {
+      const cluster = arg.slice(1);
+      for (let position = 0; position < cluster.length; position++) {
+        const shortFlag = `-${cluster[position]}`;
+        if (shortFlag === '-a') { sawAll = true; continue; }
+        if (UNSUPPORTED_COMMIT_FLAGS.has(shortFlag)) return { error: `Commit mode ${shortFlag} is unsupported` };
+        if (COMMIT_VALUE_FLAGS.has(shortFlag)) {
+          if (position === cluster.length - 1) {
+            if (i + 1 >= args.length || args[i + 1] === '--') return { error: `Commit option ${shortFlag} requires a value` };
+            i++;
+          }
+          break;
+        }
+        if (shortFlag === '-S') break;
+        if (SAFE_SHORT_FLAGS.has(shortFlag)) continue;
+        return { error: `Unrecognized commit option ${shortFlag} is unsupported for receipt matching` };
+      }
+      continue;
+    }
+    if (UNSUPPORTED_COMMIT_FLAGS.has(flag)) return { error: `Commit mode ${flag} is unsupported` };
+    if (flag === '-a' || flag === '--all') { sawAll = true; continue; }
+    if (COMMIT_VALUE_FLAGS.has(flag)) {
+      if (!arg.includes('=')) {
+        if (arg.length > 2 && arg.startsWith('-') && !arg.startsWith('--')) {
+          // Compact short forms such as -mmessage and -Fmessage consume their suffix.
+          if (flag === '-m' || flag === '-F' || flag === '-C' || flag === '-c') continue;
+          return { error: `Compact commit option ${arg} is unsupported` };
+        }
+        if (i + 1 >= args.length || args[i + 1] === '--') return { error: `Commit option ${flag} requires a value` };
+        i++;
+      }
+      continue;
+    }
+    if (!SAFE_COMMIT_FLAGS.has(flag)) return { error: `Unrecognized commit option ${flag} is unsupported for receipt matching` };
+  }
+  if (sawAll && literalPaths.length) return { error: 'Combining -a/--all with explicit paths is unsupported' };
+  if (literalPaths.length) mode = 'literal-paths';
+  else if (sawAll) mode = 'all';
+  const descriptor = {
+    repository: canonical(resolved.repository),
+    cwd: canonical(resolved.cwd),
+    mode,
+    literalPaths
+  };
+  if (!descriptor.repository || !descriptor.cwd) return { error: 'Repository or effective cwd could not be canonicalized' };
+  return { descriptor };
+}
+
+/** Preserve one descriptor per commit statement; never merge by repository. */
+function resolveCommitDescriptors(command, cwd) {
   const inspected = inspectCommand(command);
   if (inspected.status !== 'KNOWN' && inspected.statements.length === 0) {
     return { known: false, reason: 'command could not be inspected' };
   }
-  const repositories = new Set();
-  for (const statement of inspected.statements) {
+  const descriptors = [];
+  const statementRepos = new Set();
+  for (let index = 0; index < inspected.statements.length; index++) {
+    const statement = inspected.statements[index];
     let classification;
     try {
       classification = classifyStatement(statement, cwd);
     } catch (error) {
       reportHookInternalError('review-commit-gate', 'statement classification failed', error);
+      if (isPotentialCommit(command, [statement])) return { known: false, reason: 'Git commit statement classification failed' };
       continue;
     }
-    if (classification.operation !== 'commit') continue;
-    // `--amend` is denied unconditionally by git-commit-block.cjs; nothing to add here.
-    if (classification.kind === 'deny') continue;
-    const repository = canonical(classification.resolved?.repository || findRepository(cwd));
-    if (repository) repositories.add(repository);
+    if (classification.operation !== 'commit') {
+      if (classification.kind === 'unknown' && isPotentialCommit(command, [statement])) {
+        return { known: false, reason: classification.reason || 'unresolved Git commit wrapper' };
+      }
+      if (['cd', 'pushd', 'popd'].includes(String(statement.command?.value || '').toLowerCase()) && isPotentialCommit(command, inspected.statements.slice(index + 1))) {
+        return { known: false, reason: 'A working-directory change precedes the commit; use git -C with a literal directory' };
+      }
+      continue;
+    }
+    if (!classification.resolved?.known || !classification.resolved.repository || !classification.resolved.cwd) {
+      return { known: false, reason: classification.reason || classification.resolved?.reason || 'commit repository context is unresolved' };
+    }
+    if (classification.kind === 'deny') return { known: false, reason: classification.reason || 'commit mode is denied' };
+    const parsed = parseCommitDescriptor(classification);
+    if (parsed.noCommit) continue;
+    if (parsed.error) return { known: false, reason: parsed.error };
+    const descriptor = parsed.descriptor;
+    if (statementRepos.has(descriptor.repository)) {
+      return { known: false, reason: 'Multiple sequential commits to one repository require separate reviewed invocations' };
+    }
+    statementRepos.add(descriptor.repository);
+    descriptors.push(descriptor);
   }
-  return { known: true, repositories: [...repositories] };
+  if (inspected.status !== 'KNOWN' && isPotentialCommit(command, inspected.statements)) {
+    return { known: false, reason: 'Git commit command contains unsupported or ambiguous shell syntax' };
+  }
+  return { known: true, descriptors };
 }
 
-function blockMessage(repository, fingerprint) {
-  const short = fingerprint.slice(0, 12);
+function blockMessage(repository, snapshot, descriptor, reason) {
+  const fingerprint = snapshot?.fingerprint;
+  const short = typeof fingerprint === 'string' ? `${fingerprint.slice(0, 12)}…` : 'unavailable';
+  const shellQuote = value => `'${String(value).replace(/'/g, "'\\''")}'`;
+  const skipRecovery = descriptor
+    ? [
+      'If the user explicitly decides to commit without review, ASK them first, then mint a descriptor-bound skip (the user alone decides):',
+      '',
+      `  node .claude/hooks/lib/review-receipt.cjs snapshot --target=commit-descriptor --descriptor-json=${shellQuote(JSON.stringify(descriptor))}`,
+      '  node .claude/hooks/lib/review-receipt.cjs issue --kind=skip --scope=full-changeset --snapshot-json=\'<exact snapshot JSON returned above>\' --reason="user approved skip"',
+      '',
+      'Use this exact descriptor for the snapshot and commit. The `skip` shorthand captures only the worktree and may not match this commit candidate.'
+    ]
+    : [
+      'This Git context has no supported exact commit descriptor, so a skip receipt cannot match it. Use the `commit` skill to prepare a supported candidate, then review or explicitly skip that exact candidate.'
+    ];
   return [
-    '[BLOCKED] Commit refused — the current changeset has no review fix-loop receipt.',
+    '[BLOCKED] Commit refused — the exact commit candidate has no matching review fix-loop receipt.',
     '',
     `Repository: ${repository}`,
-    `Changeset fingerprint: ${short}…`,
+    `Candidate fingerprint: ${short}`,
+    ...(descriptor ? [`Commit mode: ${descriptor.mode}`, `Effective cwd: ${descriptor.cwd}`] : []),
+    ...(snapshot?.errorCode ? [`Candidate status: ERROR (${snapshot.errorCode})`] : []),
+    ...(reason ? [`Reason: ${reason}`] : []),
     '',
-    'A commit MUST be preceded by at least one review fix-loop over this exact changeset.',
-    'Run ONE of these to convergence, then retry the commit (do not editor-touch files after it):',
+    'A commit MUST be preceded by a review fix-loop over this exact full candidate.',
+    'Review the intended candidate, issue its receipt, then retry the commit:',
     '',
     '  /changes-review --fix-loop      # review, validate findings, fix, full re-review',
     '  /why-review --fix-loop          # rationale review + fix + fresh full re-review',
     '  /workflow-review-changes --fix-loop',
     '',
-    'Each fix-loop mints a receipt for the reviewed changeset when it converges. Any edit',
-    'afterwards changes the fingerprint and re-arms this gate, so review the FINAL content.',
+    'Use the supported default staged, -a/--all, or exact literal -- <files> mode. Unsupported',
+    'Git contexts and candidate errors fail closed. Restore the normal repository/default index,',
+    'stage the intended content, and review that exact full candidate before retrying.',
     '',
-    'If the user explicitly decides to commit without review, ASK them first, then mint the',
-    'approved skip (this is the user\'s call alone — never choose it for them):',
-    '',
-    '  node .claude/hooks/lib/review-receipt.cjs skip --reason="user approved skip"',
+    ...skipRecovery,
     '',
     'Then retry the commit. Committing through the `commit` skill is the supported path.'
   ].join('\n');
 }
 
-function evaluate(input) {
+function evaluate(input, dependencies = {}) {
   if (input?.tool_name !== 'Bash') return undefined;
   const command = input?.tool_input?.command;
   if (typeof command !== 'string' || command.length === 0) return undefined;
@@ -102,28 +276,34 @@ function evaluate(input) {
   if (!/commit/.test(command)) return undefined;
 
   const cwd = statementCwd(input);
-  const resolved = resolveCommitRepositories(command, cwd);
-  if (!resolved.known) return undefined; // Fail-open: uninspectable command.
-  if (resolved.repositories.length === 0) return undefined; // No commit, or an unresolvable repo.
+  const resolved = resolveCommitDescriptors(command, cwd);
+  if (!resolved.known) {
+    return { code: 2, stderr: `${blockMessage(findRepository(cwd) || cwd, null, null, resolved.reason)}\n`, decision: 'block' };
+  }
+  if (resolved.descriptors.length === 0) return undefined;
 
-  // Deny-wins across every commit statement: ALL must have a receipt.
-  for (const repository of resolved.repositories) {
-    let fingerprint;
+  const capture = dependencies.captureReviewTarget || captureReviewTarget;
+  for (const descriptor of resolved.descriptors) {
+    const repository = descriptor.repository;
+    let snapshot;
     try {
-      fingerprint = computeChangeFingerprint(repository);
+      snapshot = capture({ repository, cwd: descriptor.cwd, target: 'commit-descriptor', descriptor });
     } catch (error) {
-      reportHookInternalError('review-commit-gate', 'fingerprint failed', error);
-      return undefined; // Fail-open: a broken git must not brick commits.
+      reportHookInternalError('review-commit-gate', 'candidate capture failed', error);
+      snapshot = { status: 'ERROR', errorCode: 'CANDIDATE_COMPUTATION_FAILED' };
     }
-    if (fingerprint === null) continue; // No local changes → nothing to review here.
+    if (!snapshot || snapshot.status === 'ERROR') {
+      return { code: 2, stderr: `${blockMessage(repository, snapshot, descriptor, snapshot?.errorMessage || 'candidate could not be computed safely')}\n`, decision: 'block' };
+    }
+    if (snapshot.status === 'CLEAN') continue;
 
-    const receipt = { repository, fingerprint };
+    const receipt = { repository, snapshot };
     if (matchReviewReceipt(receipt)) continue;
     if (matchSkipReceipt(receipt)) continue;
 
     return {
       code: 2,
-      stderr: `${blockMessage(repository, fingerprint)}\n`,
+      stderr: `${blockMessage(repository, snapshot, descriptor)}\n`,
       decision: 'block'
     };
   }
@@ -132,11 +312,10 @@ function evaluate(input) {
 
 if (require.main === module) {
   runPreToolHookSync('review-commit-gate', evaluate, {
-    // Fail-open: an unreadable payload or an internal fault must not brick commits.
-    // The gate blocks only via an explicit { code: 2 } from a completed evaluation.
-    inputErrorCode: 0,
-    errorExitCode: 0
+    // A malformed input or failed evaluation cannot be treated as permission for commit.
+    inputErrorCode: 2,
+    errorExitCode: 2
   });
 }
 
-module.exports = { evaluate, resolveCommitRepositories, blockMessage };
+module.exports = { evaluate, resolveCommitDescriptors, parseCommitDescriptor, blockMessage };

@@ -17,7 +17,6 @@
 // ═══════════════════════════════════════════════════════════════════════════
 
 const CK_SCHEMA = {
-  codingLevel: { type: "number", required: false, min: -1, max: 5 },
   locale: {
     type: "object",
     required: false,
@@ -40,7 +39,6 @@ const CK_SCHEMA = {
   project: { type: "object", required: false, freeform: true },
   codeReview: { type: "object", required: false, freeform: true },
   subagent: { type: "object", required: false, freeform: true },
-  privacyBlock: { type: "boolean", required: false },
   referenceDocs: {
     type: "object",
     required: false,
@@ -69,6 +67,26 @@ const CK_SCHEMA = {
       rule: { type: "string", required: false },
       projectConfigPath: { type: "string", required: false },
       docsIndexPath: { type: "string", required: false },
+      workflowAutoDetect: { type: "boolean", required: false },
+      // Optional custom protocol appended to the runtime workflow-route reminder. A string is
+      // inline markdown; an object carries inline `text` and/or a repo-relative `path`. The
+      // tracked team value lives in the project-config file; a developer overrides it in
+      // git-ignored `.claude/.ck.local.json` (local replaces team).
+      workflowRouteProtocol: {
+        type: "union",
+        required: false,
+        oneOf: [
+          { type: "string" },
+          {
+            type: "object",
+            properties: {
+              text: { type: "string", required: false },
+              path: { type: "string", required: false },
+            },
+          },
+        ],
+      },
+      requireUniversalGuides: { type: "boolean", required: false },
     },
   },
 };
@@ -100,6 +118,24 @@ function validateField(value, fieldSchema, path, errors, warnings) {
     if (fieldSchema.required) {
       errors.push(`${path}: required field is missing`);
     }
+    return;
+  }
+
+  // Union field: valid when it satisfies ANY alternative. Used by
+  // `portability.workflowRouteProtocol` (inline string | { text?, path? }).
+  if (Array.isArray(fieldSchema.oneOf)) {
+    const failedTypes = [];
+    for (const alternative of fieldSchema.oneOf) {
+      const altErrors = [];
+      const altWarnings = [];
+      validateField(value, alternative, path, altErrors, altWarnings);
+      if (altErrors.length === 0) {
+        warnings.push(...altWarnings);
+        return;
+      }
+      failedTypes.push(alternative.type || "value");
+    }
+    errors.push(`${path}: expected one of ${failedTypes.join(" | ")}`);
     return;
   }
 

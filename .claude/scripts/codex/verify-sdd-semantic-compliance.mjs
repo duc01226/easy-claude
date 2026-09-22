@@ -2,6 +2,7 @@
 
 import fs from "node:fs/promises";
 import path from "node:path";
+import { createHash } from "node:crypto";
 import { fileURLToPath } from "node:url";
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
@@ -48,6 +49,18 @@ try {
   loaderResolvePortabilityTokens = null;
 }
 
+// The resolver is part of the hook-side project bundle. Stripped portable copies still run
+// with legacy defaults when no profile is declared; declaring a profile without its validator
+// is an actionable configuration error, never a reason to silently skip profile semantics.
+let resolveSpecArtifactProfile = null;
+let sectionHeadingIdentity = null;
+try {
+  ({ resolveSpecArtifactProfile, sectionHeadingIdentity } = require("../../hooks/lib/spec-artifact-profile.cjs"));
+} catch {
+  resolveSpecArtifactProfile = null;
+  sectionHeadingIdentity = null;
+}
+
 const PORTABILITY_TOKEN_DEFAULTS = {
   SPEC_ROOT: "docs/specs",
   SPEC_ROOT_TECHNICAL: "docs/specs-technical",
@@ -74,6 +87,35 @@ function resolveTokens(text, config) {
   if (typeof text !== "string" || !text.includes("{")) return text;
   if (!loaderResolvePortabilityTokens) return resolveTokensToDefaults(text);
   return loaderResolvePortabilityTokens(text, config ?? {});
+}
+
+function resolveProjectSpecArtifactProfile(config) {
+  if (!Object.prototype.hasOwnProperty.call(config ?? {}, "specArtifacts")) return null;
+  if (!resolveSpecArtifactProfile) {
+    throw verifierConfigError(
+      `Cannot validate ${PROJECT_CONFIG_PATH} specArtifacts: the portable spec-artifact-profile resolver is unavailable.`
+    );
+  }
+  try {
+    return resolveSpecArtifactProfile(config);
+  } catch (error) {
+    const location = error?.path ? `${error.path}: ` : "";
+    throw verifierConfigError(
+      `Invalid ${PROJECT_CONFIG_PATH} specArtifacts profile: ${location}${error?.message ?? String(error)}`,
+      error
+    );
+  }
+}
+
+function verifierConfigError(message, cause) {
+  const error = new Error(message, cause ? { cause } : undefined);
+  error.code = "ERR_SDD_PROJECT_CONFIG";
+  return error;
+}
+
+function normalizeDirectoryRoot(root) {
+  const normalized = String(root).replaceAll("\\", "/").replace(/\/+$/, "");
+  return normalized ? `${normalized}/` : "";
 }
 
 /**
@@ -108,6 +150,32 @@ function hasBareOccurrence(content, literal) {
   return content
     .split(/\r?\n/)
     .some((line) => line.includes(literal) && !isFormBOverrideSentence(line));
+}
+
+/**
+ * The profile-qualified fallback sentence:
+ *   Under the strict default, Section 8 is the canonical TC registry; … Under a native
+ *   profile, update only the declared owner/carriers …
+ *
+ * A default-profile literal inside such a sentence is shared framework prose naming the
+ * DEFAULT and the OVERRIDE that supersedes it — the exact analogue of a relocatable-root
+ * literal inside a form-(b) sentence. It must clear, because SDD007's strict-default branch
+ * REQUIRES this literal while its native branch FORBIDS it, and one skill text ships to
+ * every adopter: without the exemption no single text can satisfy both profiles.
+ */
+const STRICT_DEFAULT_MARKER = "strict default";
+const NATIVE_PROFILE_MARKER = "native profile";
+
+function isProfileFallbackSentence(line) {
+  const lower = line.toLowerCase();
+  return lower.includes(STRICT_DEFAULT_MARKER) && lower.includes(NATIVE_PROFILE_MARKER);
+}
+
+/** True when `literal` appears on at least one line that is NOT a profile-qualified fallback sentence. */
+function hasUnqualifiedOccurrence(content, literal) {
+  return content
+    .split(/\r?\n/)
+    .some((line) => line.includes(literal) && !isProfileFallbackSentence(line));
 }
 
 const STALE_PERFORMANCE_SKIP_TERMS = [
@@ -200,9 +268,15 @@ const SDD022_EXEMPT_FILES = new Set(SDD022_EXEMPT_FILE_TOKENS.map(resolveTokensT
 
 /** Resolve the SDD022 scan scope against the live config. */
 function resolveSdd022Scope(config) {
+  const profile = resolveProjectSpecArtifactProfile(config);
+  const m1ExemptRoot = config?.specRoots?.technical?.m1Policy === "exempt"
+    ? resolveTokens("{SPEC_ROOT_TECHNICAL}", config)
+    : null;
   return {
     scanRoots: SDD022_SCAN_ROOT_TOKENS.map((root) => resolveTokens(root, config)),
     exemptFiles: new Set(SDD022_EXEMPT_FILE_TOKENS.map((file) => resolveTokens(file, config))),
+    m1ExemptRoots: m1ExemptRoot ? [normalizeDirectoryRoot(m1ExemptRoot)] : [],
+    profile,
   };
 }
 // Per-bucket reimplementation guides (`{Bucket}.reimplementation-guide.md`) are the ONE derived
@@ -577,6 +651,14 @@ function evaluateRoadmapBoundary(surface = {}, policy = ROADMAP_BOUNDARY_POLICY)
   return failures;
 }
 
+/**
+ * SDD007's default-profile literal. It is REQUIRED by the strict-default branch, FORBIDDEN
+ * by the native-profile branch, and — inside a profile-qualified fallback sentence — the
+ * legal way for one shared skill text to name the default and its override. All three
+ * sites read this constant so they can never drift apart.
+ */
+const DEFAULT_TC_REGISTRY_LITERAL = "Section 8 is the canonical TC registry";
+
 const CHECKS = [
   {
     code: "SDD001",
@@ -634,7 +716,7 @@ const CHECKS = [
   {
     code: "SDD007",
     file: ".claude/skills/spec/SKILL.md",
-    requireAll: ["Section 8 is the canonical TC registry", "mode owns generation", "MUST NOT be overwritten during"],
+    requireAll: [DEFAULT_TC_REGISTRY_LITERAL, "mode owns generation", "MUST NOT be overwritten during"],
     forbidAny: ["Section 8 owned exclusively by", "feature-spec owns Section 8"],
     message: "spec skill must declare Section 8 as the canonical TC registry owned by tests mode and never overwritten during update.",
   },
@@ -684,29 +766,25 @@ const CHECKS = [
     code: "SDD014",
     file: ".codex/CODEX_CONTEXT.md",
     requireAll: [
-      "PERFORMANCE-SDD ROUTE",
-      "performance-review",
       ACTIVE_SDD_CONTRACT_REFERENCE,
       AI_SDD_SYNC_MARKER,
       AI_SDD_REFERENCE_ONLY_TEXT,
       AI_SDD_SUPPORTED_TOOL_TEXT,
     ],
     forbidAny: [...STALE_PERFORMANCE_SKIP_TERMS, LEGACY_CLAUDE_SDD_CONTRACT_REFERENCE],
-    message: "Codex context mirror must receive updated performance SDD route language.",
+    message: "Codex context mirror must retain the host-neutral SDD artifact contract without static workflow routing.",
   },
   {
     code: "SDD014",
     file: "AGENTS.md",
     requireAll: [
-      "PERFORMANCE-SDD ROUTE",
-      "performance-review",
       ACTIVE_SDD_CONTRACT_REFERENCE,
       AI_SDD_SYNC_MARKER,
       AI_SDD_REFERENCE_ONLY_TEXT,
       AI_SDD_SUPPORTED_TOOL_TEXT,
     ],
     forbidAny: [...STALE_PERFORMANCE_SKIP_TERMS, LEGACY_CLAUDE_SDD_CONTRACT_REFERENCE],
-    message: "AGENTS.md mirror must receive updated performance SDD route language.",
+    message: "AGENTS.md mirror must retain the host-neutral SDD artifact contract without static workflow routing.",
   },
   {
     code: "SDD015",
@@ -903,8 +981,13 @@ function isRequiredTermPresent(content, term, rootTerms) {
  * A relocatable-root term is a violation only on a BARE line. Both the resolved root and
  * the documented default count as bare hardcoding; an occurrence inside a form-(b)
  * sentence is the legal idiom and clears (plan-review F-13).
+ *
+ * A fallback term (SDD007's default-profile literal) is a violation only when UNQUALIFIED:
+ * it clears inside a profile-qualified fallback sentence naming both sides, because the
+ * same skill text is REQUIRED in one profile and FORBIDDEN in the other.
  */
-function findForbiddenTermViolation(content, term, rootTerms) {
+function findForbiddenTermViolation(content, term, rootTerms, fallbackTerms = new Set()) {
+  if (fallbackTerms.has(term)) return hasUnqualifiedOccurrence(content, term) ? term : null;
   if (!rootTerms?.has(term)) return content.includes(term) ? term : null;
   const defaultLiteral = rootTerms.get(term);
   for (const literal of new Set([term, defaultLiteral])) {
@@ -916,6 +999,7 @@ function findForbiddenTermViolation(content, term, rootTerms) {
 function evaluateCheck(check, content) {
   const failures = [];
   const rootTerms = check.rootTerms;
+  const fallbackTerms = new Set(check.fallbackTerms ?? []);
 
   if (check.requireAll) {
     const missing = check.requireAll.filter((term) => !isRequiredTermPresent(content, term, rootTerms));
@@ -930,7 +1014,7 @@ function evaluateCheck(check, content) {
 
   if (check.forbidAny) {
     const found = check.forbidAny
-      .map((term) => findForbiddenTermViolation(content, term, rootTerms))
+      .map((term) => findForbiddenTermViolation(content, term, rootTerms, fallbackTerms))
       .filter(Boolean);
     if (found.length > 0) {
       failures.push(`forbidden text found: ${[...new Set(found)].join(", ")}`);
@@ -945,22 +1029,44 @@ function evaluateCheck(check, content) {
 }
 
 /**
- * Parse the project config for token resolution.
- *
- * Read through `readFileOrNull`, so `--staged` reads the git index copy and `--root=` is
- * honoured — the loader's own disk read would ignore both. Fail-SOFT on a missing or
- * malformed file (`{}` -> every token resolves to its default), matching the runtime plane
- * of the two-plane contract documented at `project-config-loader.cjs:84-95`.
+ * Parse verifier config from the requested root (or the staged index copy).
+ * An absent optional config keeps portable defaults; an unreadable or malformed declaration
+ * fails before semantic checks so a broken path/profile cannot shrink the verified scope.
  */
 async function loadProjectConfigObject(rootDir, options = {}) {
-  const configText = await readFileOrNull(rootDir, PROJECT_CONFIG_PATH, options);
-  if (configText === null) return {};
-  try {
-    const parsed = JSON.parse(configText);
-    return parsed && typeof parsed === "object" ? parsed : {};
-  } catch {
-    return {};
+  let configText;
+  if (options.staged) {
+    // Preserve the verifier's staged-source contract: do not fall through to worktree bytes.
+    configText = await readGitIndexFileOrNull(rootDir, PROJECT_CONFIG_PATH);
+  } else {
+    try {
+      configText = await fs.readFile(path.join(rootDir, PROJECT_CONFIG_PATH), "utf8");
+    } catch (error) {
+      if (error?.code === "ENOENT") return {};
+      throw verifierConfigError(
+        `Cannot read ${path.resolve(rootDir, PROJECT_CONFIG_PATH)} for SDD verification: ${error?.message ?? String(error)}`,
+        error
+      );
+    }
   }
+  if (configText === null) return {};
+
+  let parsed;
+  try {
+    parsed = JSON.parse(configText);
+  } catch (error) {
+    throw verifierConfigError(
+      `Invalid JSON in ${path.resolve(rootDir, PROJECT_CONFIG_PATH)} for SDD verification: ${error?.message ?? String(error)}`,
+      error
+    );
+  }
+  if (parsed === null || typeof parsed !== "object" || Array.isArray(parsed)) {
+    throw verifierConfigError(
+      `Invalid ${path.resolve(rootDir, PROJECT_CONFIG_PATH)} for SDD verification: expected a JSON object.`
+    );
+  }
+  resolveProjectSpecArtifactProfile(parsed);
+  return parsed;
 }
 
 async function loadProjectResidueTerms(rootDir, options = {}) {
@@ -1010,11 +1116,25 @@ function resolveCheckRoots(check, config) {
 }
 
 async function resolveChecks(rootDir, checks, options = {}) {
-  const projectResidueTerms = await loadProjectResidueTerms(rootDir, options);
   const config = await loadProjectConfigObject(rootDir, options);
+  const projectResidueTerms = await loadProjectResidueTerms(rootDir, options);
+  const profile = resolveProjectSpecArtifactProfile(config);
 
   return checks.map((check) => {
-    const resolved = resolveCheckRoots(check, config);
+    let resolved = resolveCheckRoots(check, config);
+    if (check.code === "SDD007" && profile) {
+      resolved = {
+        ...resolved,
+        requireAll: ["specArtifacts", "intent", "contracts", "evidence"],
+        forbidAny: [
+          ...(check.forbidAny ?? []),
+          DEFAULT_TC_REGISTRY_LITERAL,
+        ],
+        fallbackTerms: [DEFAULT_TC_REGISTRY_LITERAL],
+        message:
+          "spec skill must follow the configured engineering artifact section roles instead of assuming the default Section 8 TC registry.",
+      };
+    }
     if (!check.forbidProjectResidue || projectResidueTerms.length === 0) {
       return resolved;
     }
@@ -1130,6 +1250,13 @@ function isSdd022TargetFile(relativeFile, scope = {}) {
     !SDD022_EXEMPT_SUFFIXES.some((suffix) => normalized.endsWith(suffix)) &&
     scanRoots.some((root) => normalized.startsWith(root))
   );
+}
+
+function isSdd022M1ExemptFile(relativeFile, scope = {}) {
+  const normalized = normalizeRelativeFile(relativeFile);
+  // m1Policy exempts only the M1 tech-agnostic prose rule. These files stay in the shared
+  // candidate set so SDD023 evidence and SDD024 source-identifier coverage still run.
+  return (scope.m1ExemptRoots ?? []).some((root) => normalized.startsWith(root));
 }
 
 function isEvidenceContextLine(line, state = {}) {
@@ -1260,13 +1387,52 @@ async function resolveEnforcedChangedSet(rootDir, options = {}) {
   return new Set(changed);
 }
 
-function scanProseForBannedTokens(content) {
+function createSectionRoleLookup(profile) {
+  if (!profile) return null;
+  const lookup = new Map();
+  for (const [role, aliases] of Object.entries(profile.sections)) {
+    for (const alias of aliases) lookup.set(sectionHeadingIdentity(alias), role);
+  }
+  return lookup;
+}
+
+function updateSectionRoleFromHeading(line, lineNumber, lookup, state, findings) {
+  const match = /^(#{1,6})\s+(.+?)\s*#*\s*$/.exec(line.trim());
+  if (!match) return false;
+
+  const level = match[1].length;
+  const title = match[2].replace(/\s+#+\s*$/, "").replace(/\s+/g, " ").trim();
+  if (level === 1) {
+    state.sectionRole = null;
+    state.sectionLevel = 1;
+    return true;
+  }
+
+  const role = lookup.get(sectionHeadingIdentity(title));
+  if (role) {
+    state.sectionRole = role;
+    state.sectionLevel = level;
+  } else if (level === 2) {
+    state.sectionRole = "unknown";
+    state.sectionLevel = level;
+    findings.push({ line: lineNumber, term: title, kind: "unknown-section-role" });
+  } else if (state.sectionLevel === null || level < state.sectionLevel) {
+    state.sectionRole = "unknown";
+    state.sectionLevel = level;
+  }
+  return true;
+}
+
+function scanProseForBannedTokens(content, options = {}) {
   const findings = [];
   const lines = content.split(/\r?\n/);
+  const sectionRoleLookup = createSectionRoleLookup(options.profile);
   const state = {
     inFrontmatter: lines[0]?.trim() === "---",
     fenceLang: null,
     allowRegion: false,
+    sectionRole: null,
+    sectionLevel: null,
   };
 
   for (let index = 0; index < lines.length; index += 1) {
@@ -1303,6 +1469,14 @@ function scanProseForBannedTokens(content) {
       continue;
     }
 
+    if (sectionRoleLookup && updateSectionRoleFromHeading(line, index + 1, sectionRoleLookup, state, findings)) {
+      continue;
+    }
+
+    if (sectionRoleLookup && ["contracts", "evidence"].includes(state.sectionRole)) {
+      continue;
+    }
+
     for (const term of findBannedProseTechTerms(line)) {
       findings.push({
         line: index + 1,
@@ -1321,7 +1495,7 @@ async function scanSdd022File(rootDir, relativeFile, options = {}) {
     return [];
   }
 
-  return scanProseForBannedTokens(content);
+  return scanProseForBannedTokens(content, options);
 }
 
 // SDD023: validate one `[Source: ...]` carrier body against the abstract-anchor model.
@@ -1387,13 +1561,16 @@ function findProseSourceIdentifiers(line) {
   return [...new Set(found)];
 }
 
-function scanProseForSourceIdentifiers(content) {
+function scanProseForSourceIdentifiers(content, options = {}) {
   const findings = [];
   const lines = content.split(/\r?\n/);
+  const sectionRoleLookup = createSectionRoleLookup(options.profile);
   const state = {
     inFrontmatter: lines[0]?.trim() === "---",
     fenceLang: null,
     allowRegion: false,
+    sectionRole: null,
+    sectionLevel: null,
   };
 
   for (let index = 0; index < lines.length; index += 1) {
@@ -1425,6 +1602,12 @@ function scanProseForSourceIdentifiers(content) {
     if (isEvidenceContextLine(line, state)) {
       continue;
     }
+    if (sectionRoleLookup && updateSectionRoleFromHeading(line, index + 1, sectionRoleLookup, state, [])) {
+      continue;
+    }
+    if (sectionRoleLookup && state.sectionRole === "contracts") {
+      continue;
+    }
 
     for (const term of findProseSourceIdentifiers(line)) {
       findings.push({ line: index + 1, term });
@@ -1441,7 +1624,7 @@ async function scanEvidenceModelFile(rootDir, relativeFile, options = {}) {
   }
   return {
     evidenceFindings: scanCarriersForEvidenceModel(content),
-    proseIdentifierFindings: scanProseForSourceIdentifiers(content),
+    proseIdentifierFindings: scanProseForSourceIdentifiers(content, options),
   };
 }
 
@@ -1543,6 +1726,7 @@ async function runChecks(rootDir = process.cwd(), checks = CHECKS, options = {})
     staleQaDashboardPathFindings: 0,
     unconfiguredArtifactRootFindings: 0,
     bannedProseTechTermFindings: 0,
+    unknownSectionRoleFindings: 0,
     legacyPhysicalEvidenceFindings: 0,
     malformedAbstractAnchorFindings: 0,
     proseSourceIdentifierFindings: 0,
@@ -1652,8 +1836,34 @@ async function runChecks(rootDir = process.cwd(), checks = CHECKS, options = {})
     }
   }
 
-  const sdd022Files = await resolveSdd022ScanFiles(rootDir, options, sdd022Scope);
+  const sdd022Files = (await resolveSdd022ScanFiles(rootDir, options, sdd022Scope)).sort((left, right) =>
+    left.localeCompare(right)
+  );
   const enforcedChangedSet = await resolveEnforcedChangedSet(rootDir, options);
+  const selectedSdd022Files = Array.isArray(options.sdd022Files)
+    ? [...new Set(options.sdd022Files.map(normalizeRelativeFile))].filter((file) =>
+        isSdd022TargetFile(file, sdd022Scope)
+      )
+    : sdd022Files;
+  const explicitlySelectedSdd022Files = new Set(
+    Array.isArray(options.sdd022Files) ? selectedSdd022Files : []
+  );
+  const isSdd022Enforced = (relativeFile) =>
+    enforcedChangedSet.has(relativeFile) ||
+    (Boolean(sdd022Scope.profile) && explicitlySelectedSdd022Files.has(relativeFile));
+  const artifactScope = {
+    status: Array.isArray(options.sdd022Files) && selectedSdd022Files.length === 0 ? "not-applicable" : "checked",
+    selected: selectedSdd022Files.length,
+    found: 0,
+    checked: 0,
+    unknown: 0,
+    targetDigest: "",
+  };
+  const targetDigest = createHash("sha256");
+  const semanticScanOptionsFor = (relativeFile) => ({
+    ...options,
+    profile: isSdd022M1ExemptFile(relativeFile, sdd022Scope) ? null : sdd022Scope.profile,
+  });
 
   // Anti-R6: the two roots this verifier WALKS. Skipped when the caller narrowed the scan
   // to a changed-file set (`--enforce-changed`), where an empty scope is legitimate and
@@ -1684,22 +1894,56 @@ async function runChecks(rootDir = process.cwd(), checks = CHECKS, options = {})
   }
   for (const relativeFile of sdd022Files) {
     checkedFiles.add(relativeFile);
-    const findings = await scanSdd022File(rootDir, relativeFile, options);
+    const content = await readFileOrNull(rootDir, relativeFile, options);
+    if (content === null) {
+      failures.push({
+        severity: "error",
+        code: "SDD026",
+        file: relativeFile,
+        message:
+          `Selected specification artifact could not be read from ${options.staged ? "the Git index" : "the requested root"}; ` +
+          "verification cannot claim coverage for a missing or unreadable target.",
+      });
+      continue;
+    }
+
+    artifactScope.found += 1;
+    artifactScope.checked += 1;
+    targetDigest.update(relativeFile).update("\0").update(content).update("\0");
+    // M1-exempt derived files still contribute to coverage and are checked by SDD023/024 below.
+    if (isSdd022M1ExemptFile(relativeFile, sdd022Scope)) continue;
+
+    const findings = scanProseForBannedTokens(content, semanticScanOptionsFor(relativeFile));
 
     for (const finding of findings) {
-      metrics.bannedProseTechTermFindings += 1;
-      const severity = enforcedChangedSet.has(relativeFile) ? "error" : "warn";
+      const severity = isSdd022Enforced(relativeFile) ? "error" : "warn";
       if (severity === "warn") {
         metrics.warnings += 1;
       }
+      if (finding.kind === "unknown-section-role") {
+        metrics.unknownSectionRoleFindings += 1;
+        failures.push({
+          severity,
+          code: "SDD026",
+          file: relativeFile,
+          message: `Engineering specification section has no configured role (line ${finding.line}: "${finding.term}"). Add an explicit section alias to specArtifacts.sections or rename the heading.`,
+        });
+        continue;
+      }
+      metrics.bannedProseTechTermFindings += 1;
       failures.push({
         severity,
         code: "SDD022",
         file: relativeFile,
-        message: `Feature/spec prose must remain tech-agnostic outside evidence, source, integration-test, frontmatter, and mermaid carriers. (line ${finding.line}: forbidden prose token "${finding.term}")`,
+        message: sdd022Scope.profile
+          ? `Specification intent must remain tech-agnostic outside configured contracts/evidence sections and structural carriers. (line ${finding.line}: forbidden prose token "${finding.term}")`
+          : `Feature/spec prose must remain tech-agnostic outside evidence, source, integration-test, frontmatter, and mermaid carriers. (line ${finding.line}: forbidden prose token "${finding.term}")`,
       });
     }
   }
+  artifactScope.unknown = Math.max(0, artifactScope.selected - artifactScope.found);
+  artifactScope.targetDigest = targetDigest.digest("hex");
+  metrics.specArtifactScope = artifactScope;
 
   // SDD023 (abstract-anchor evidence model) + SDD024 (M2 source identifiers in prose).
   // Same target set and warn/error ratchet as SDD022: WARN in census mode, ERROR only on
@@ -1710,9 +1954,9 @@ async function runChecks(rootDir = process.cwd(), checks = CHECKS, options = {})
     const { evidenceFindings, proseIdentifierFindings } = await scanEvidenceModelFile(
       rootDir,
       relativeFile,
-      options
+      semanticScanOptionsFor(relativeFile)
     );
-    const isChanged = enforcedChangedSet.has(relativeFile);
+    const isChanged = isSdd022Enforced(relativeFile);
 
     for (const finding of evidenceFindings) {
       if (finding.kind === "legacy-physical") {
@@ -1802,7 +2046,16 @@ async function main() {
     : [];
   const options = buildRunOptions({ enforceChanged, staged, changedFiles });
 
-  const result = await runChecks(rootDir, CHECKS, options);
+  let result;
+  try {
+    result = await runChecks(rootDir, CHECKS, options);
+  } catch (error) {
+    if (error?.code !== "ERR_SDD_PROJECT_CONFIG") throw error;
+    console.error("[codex-verify-sdd] CONFIG ERROR");
+    console.error(error.message);
+    process.exitCode = 1;
+    return;
+  }
 
   const hardFailures = result.failures.filter((failure) => failure.severity !== "warn");
   const warnFindings = result.failures.filter((failure) => failure.severity === "warn");

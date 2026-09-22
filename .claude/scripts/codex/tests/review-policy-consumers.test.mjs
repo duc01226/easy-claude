@@ -10,6 +10,9 @@ import { createRequire } from 'node:module';
 // but a Windows checkout (`core.autocrlf=true`) materializes CRLF, so any comparison that
 // normalizes only ONE side reports a checkout-format artifact as canonical drift.
 const { normalizeEol } = createRequire(import.meta.url)('../../lib/extract-sync-block.cjs');
+const fsSync = createRequire(import.meta.url)('node:fs');
+const { execFileSync, spawnSync } = createRequire(import.meta.url)('node:child_process');
+const reviewReceipt = createRequire(import.meta.url)('../../../hooks/lib/review-receipt.cjs');
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(here, '..', '..', '..', '..');
@@ -76,6 +79,59 @@ function canonicalBody(text, tag) {
     const match = normalizeEol(text)
         .match(new RegExp(`^## SYNC:${escaped}\\s*\\n([\\s\\S]*?)(?=\\n---\\s*\\n|\\n## SYNC:)`, 'm'));
     return match ? match[1].trim() : null;
+}
+
+function stripSyncBlocks(text) {
+    return text.replace(/<!-- SYNC:([^>]+) -->[\s\S]*?<!-- \/SYNC:\1 -->/g, '');
+}
+
+function gitAvailable() {
+    try {
+        return spawnSync('git', ['--version'], { encoding: 'utf8', windowsHide: true }).status === 0;
+    } catch (_) {
+        return false;
+    }
+}
+
+function listSkillMarkdownFiles(directory) {
+    let entries;
+    try {
+        entries = fsSync.readdirSync(directory, { withFileTypes: true });
+    } catch (error) {
+        // Concurrent golden-layout tests create and remove a scratch skill directory. The exact
+        // issuer inventory assertion below keeps a vanished real skill from becoming a vacuous pass.
+        if (error.code === 'ENOENT') return [];
+        throw error;
+    }
+    return entries.flatMap(entry => {
+        if (entry.name === '__golden__') return [];
+        const fullPath = path.join(directory, entry.name);
+        if (entry.isDirectory()) return listSkillMarkdownFiles(fullPath);
+        return entry.isFile() && entry.name === 'SKILL.md' ? [fullPath] : [];
+    });
+}
+
+function withReceiptFixture(fn) {
+    const workspaceTemp = path.join(root, 'tmp');
+    fsSync.mkdirSync(workspaceTemp, { recursive: true });
+    const fixtureRoot = fsSync.mkdtempSync(path.join(workspaceTemp, 'review-policy-receipts-'));
+    const repository = path.join(fixtureRoot, 'repo');
+    const storeDir = path.join(fixtureRoot, 'store');
+    fsSync.mkdirSync(repository);
+    fsSync.mkdirSync(storeDir);
+    try {
+        const git = args => execFileSync('git', args, { cwd: repository, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'], windowsHide: true });
+        git(['init', '-q']);
+        git(['config', 'user.email', 'harness-test@example.invalid']);
+        git(['config', 'user.name', 'Harness Test']);
+        fsSync.writeFileSync(path.join(repository, '.gitignore'), '/tmp/\n/temp/\n');
+        fsSync.writeFileSync(path.join(repository, 'file.txt'), 'base\n');
+        git(['add', '.gitignore', 'file.txt']);
+        git(['commit', '-q', '-m', 'fixture base']);
+        return fn({ repository, storeDir, git });
+    } finally {
+        fsSync.rmSync(fixtureRoot, { recursive: true, force: true });
+    }
 }
 
 test('TC-HARNESS-006: all canonical review consumers use exact policy body and required anchors', async () => {
@@ -438,4 +494,112 @@ test('R3-PROMPT-023: local clean-pass summaries cannot override an explicit mini
             assert.throws(() => assertMinimum(mutant), { code: 'ERR_ASSERTION' });
         }
     }
+});
+
+const receiptIssuers = [
+    {
+        kind: 'changes-review',
+        file: '.claude/skills/changes-review/SKILL.md',
+        captureAnchor: 'Before reviewing, also capture the exact full candidate',
+        reviewAnchor: 'Run the report-only review pass INLINE'
+    },
+    {
+        kind: 'why-review',
+        file: '.claude/skills/why-review/SKILL.md',
+        captureAnchor: 'Before each full-mode pass, capture its qualifying candidate',
+        reviewAnchor: 'Run the full-mode review pass INLINE'
+    },
+    {
+        kind: 'workflow-review-changes',
+        file: '.claude/skills/workflow-review-changes/SKILL.md',
+        captureAnchor: 'Also capture the exact full candidate before review',
+        reviewAnchor: 'Run the workflow INLINE'
+    }
+];
+
+test('TC-FIT-012: every review receipt issuer binds the pre-review full candidate and excludes subsets', async () => {
+    assert.equal(receiptIssuers.length, 3, 'only the three declared full-review fix loops issue review receipts');
+    const discoveredIssuers = new Set();
+    for (const file of listSkillMarkdownFiles(path.join(root, '.claude', 'skills'))) {
+        const source = stripSyncBlocks(fsSync.readFileSync(file, 'utf8'));
+        for (const match of source.matchAll(/review-receipt\.cjs issue --kind=(changes-review|why-review|workflow-review-changes)\b/g)) {
+            discoveredIssuers.add(`${path.relative(root, file).split(path.sep).join('/')}#${match[1]}`);
+        }
+    }
+    assert.deepEqual([...discoveredIssuers].sort(),
+        receiptIssuers.map(issuer => `${issuer.file}#${issuer.kind}`).sort(),
+        'every in-scope receipt issuer is in the reviewed consumer inventory');
+    for (const issuer of receiptIssuers) {
+        const source = stripSyncBlocks(await fs.readFile(path.join(root, issuer.file), 'utf8'));
+        const captureAt = source.indexOf(issuer.captureAnchor);
+        const reviewAt = source.indexOf(issuer.reviewAnchor, captureAt);
+        assert.ok(captureAt >= 0 && reviewAt > captureAt, `${issuer.file}: candidate capture precedes the qualifying review`);
+        assert.match(source.slice(captureAt, reviewAt), /snapshot --target=<worktree\|staged\|commit-descriptor>/);
+        assert.match(source.slice(captureAt, reviewAt), /complete JSON output|retain its complete JSON/i);
+        assert.match(source, /Artifact-only,/i, `${issuer.file}: artifact-only reviews cannot qualify`);
+        assert.match(source, /subset/i, `${issuer.file}: subset reviews cannot qualify`);
+        assert.match(source, /CLEAN/);
+        assert.match(source, /ERROR/);
+
+        const issueLines = source.match(new RegExp(`review-receipt\\.cjs issue --kind=${issuer.kind}[^\\r\\n]*`, 'g')) || [];
+        assert.equal(issueLines.length, 1, `${issuer.file}: exactly one terminal issuer command`);
+        assert.match(issueLines[0], /--scope=full-changeset --snapshot-json=/);
+        assert.match(issueLines[0], /exact JSON captured before/);
+        assert.doesNotMatch(source, new RegExp(`review-receipt\\.cjs issue --kind=${issuer.kind}(?![^\\r\\n]*--snapshot-json=)`),
+            `${issuer.file}: no bare or terminally recaptured receipt is allowed`);
+    }
+});
+
+test('TC-FIT-012: review and commit prompts preserve the configured semantic profile', async () => {
+    for (const relative of receiptIssuers.map(issuer => issuer.file)) {
+        const source = stripSyncBlocks(await fs.readFile(path.join(root, relative), 'utf8'));
+        assert.match(source, /configured canonical (?:owner|spec)/i, `${relative}: resolve the native canonical owner`);
+        assert.match(source, /profile-declared (?:canonical )?scenario\/case/i, `${relative}: retain native scenario identity`);
+        assert.match(source, /(?:assertion\/result|executing test)/i, `${relative}: require executable test evidence`);
+
+        const specRepresentationLines = source.split(/\r?\n/).filter(line =>
+            /\bTCs?\b/i.test(line) || /§(?:3|4|5|8)\s+(?:BR|AC|TC|invariant)|§(?:3|4|5|8)(?:\/§?(?:3|4|5|8))+/i.test(line));
+        for (const line of specRepresentationLines) {
+            assert.match(line, /strict[- ]default|default profile/i,
+                `${relative}: default §/TC representation must remain conditional: ${line}`);
+        }
+    }
+
+    const commit = stripSyncBlocks(await fs.readFile(path.join(root, '.claude/skills/commit/SKILL.md'), 'utf8'));
+    assert.match(commit, /check --target=commit-descriptor --descriptor-json=/);
+    assert.match(commit, /snapshot --target=commit-descriptor --descriptor-json=/);
+    assert.match(commit, /issue --kind=skip --scope=full-changeset --snapshot-json=/);
+    assert.match(commit, /status` is `ERROR`[\s\S]*status` is `CLEAN`/);
+    assert.match(commit, /The receipt is bound to candidate identity/);
+    assert.match(commit, /(?:never waives|does not waive) the Test-Verify Gate, spec\/test reconciliation/i);
+    assert.match(commit, /Test-Verify Gate \(Step 3\.5\)/);
+    assert.doesNotMatch(commit, /review-receipt\.cjs skip --reason=/, 'do not call the worktree-only skip wrapper');
+});
+
+test('TC-FIT-012: receipt issuance rejects a changed candidate and identical staging preserves identity', { skip: !gitAvailable() }, () => {
+    withReceiptFixture(({ repository, storeDir, git }) => {
+        const file = path.join(repository, 'file.txt');
+        fsSync.writeFileSync(file, 'reviewed candidate\n');
+        const reviewed = reviewReceipt.captureReviewTarget({ repository, cwd: repository, target: 'worktree' });
+        assert.equal(reviewed.status, 'CHANGED');
+
+        fsSync.writeFileSync(file, 'changed after review\n');
+        assert.throws(() => reviewReceipt.issueReceipt({
+            repository, storeDir, snapshot: reviewed, scope: 'full-changeset', kind: 'changes-review'
+        }), /reviewed target changed/);
+        assert.equal(fsSync.readdirSync(storeDir).length, 0, 'stale review cannot mint a receipt');
+
+        fsSync.writeFileSync(file, 'same content before staging\n');
+        const finalReviewed = reviewReceipt.captureReviewTarget({ repository, cwd: repository, target: 'worktree' });
+        assert.equal(finalReviewed.status, 'CHANGED');
+        reviewReceipt.issueReceipt({ repository, storeDir, snapshot: finalReviewed, scope: 'full-changeset', kind: 'changes-review' });
+        git(['add', 'file.txt']);
+
+        const staged = reviewReceipt.captureReviewTarget({ repository, cwd: repository, target: 'staged' });
+        assert.equal(staged.status, 'CHANGED');
+        assert.equal(staged.candidateTree, finalReviewed.candidateTree, 'staging identical content preserves tree identity');
+        assert.equal(staged.fingerprint, finalReviewed.fingerprint, 'target mode does not change candidate fingerprint');
+        assert.equal(reviewReceipt.matchReviewReceipt({ repository, storeDir, snapshot: staged }), 'changes-review',
+            'a commit candidate with the identical tree can use the reviewed worktree candidate');
+    });
 });

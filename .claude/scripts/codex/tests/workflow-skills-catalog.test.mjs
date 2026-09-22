@@ -208,27 +208,23 @@ test("TC-WSC-007 the real catalog carries no YAML escape artifacts", () => {
   );
 });
 
-// TC-WSC-008 — the builder is the source of the static Claude catalog.  Checking only the
-// in-memory builder lets workflow changes reach the live workflow registry while the Tier-1
-// Claude activation catalog keeps an older sequence.
-test("TC-WSC-008 shipped Claude workflow catalog matches the canonical builder", (t) => {
+test("TC-WSC-008 tracked context carries the route gate and the runtime builder remains complete", (t) => {
   const claudeMdPath = path.join(repoRoot, "CLAUDE.md");
   if (!fs.existsSync(claudeMdPath)) {
     t.skip("root CLAUDE.md is not part of a .claude-only adopter copy");
     return;
   }
   const claudeMd = normalizeEol(fs.readFileSync(claudeMdPath, "utf8"));
-  const from = claudeMd.indexOf(CK_SKILLS_START);
-  const to = claudeMd.indexOf(CK_SKILLS_END, from + CK_SKILLS_START.length);
-
-  assert.notEqual(from, -1, "CLAUDE.md must contain the workflow catalog start marker");
-  assert.notEqual(to, -1, "CLAUDE.md must contain the workflow catalog end marker");
-
-  const shipped = claudeMd.slice(from + CK_SKILLS_START.length, to).trim();
-  // CLAUDE.md owns routing in its static workflow gate; this marked block is generated from
-  // the workflow and skill sections only.
+  assert.equal(claudeMd.includes("<!-- CK:WORKFLOW-GATE -->"), true, "CLAUDE.md must carry routing");
+  assert.equal(claudeMd.includes(CK_SKILLS_START), false, "CLAUDE.md must omit the runtime catalog");
+  assert.equal(
+    fs.existsSync(path.join(repoRoot, ".agents", "skills", "shared", "workflow-first-gate.md")),
+    false,
+    "canonical shared internals are not copied as independently editable static skill mirrors"
+  );
   const expected = buildWorkflowSkillsCatalog({ rootDir: repoRoot, sections: ["workflows", "skills"] });
-  assert.equal(shipped, expected, "regenerate CLAUDE.md from the workflow catalog builder");
+  assert.match(expected, /### Workflows Index \(\d+\)/);
+  for (const workflowId of Object.keys(workflowsDoc.workflows)) assert.match(expected, new RegExp('`' + workflowId + '`'));
 });
 
 // TC-WSC-009 — the framework guide calls its feature sequence "full". Keep that human-facing

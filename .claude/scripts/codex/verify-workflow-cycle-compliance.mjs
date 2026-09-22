@@ -9,22 +9,16 @@ const require = createRequire(import.meta.url);
 const { resolveWorkflowManifest, resolveAllWorkflowManifests } = require("../lib/workflow-manifest.cjs");
 const { resolveProjectRoot } = require("../lib/project-root.cjs");
 
-// Prose-only semantic anchor for the advancement+barrier rule, shared (case-insensitively) by
-// every wording across static carriers (Codex context note):
+// Prose-only semantic anchor for the advancement+barrier rule in the runtime routing payload:
 // "advance only after ALL/EVERY member(s) return". Deliberately
 // NOT a substring of the rendered barrier token "[parallel ⇉ all-return barrier: …]" — so this
-// clause-presence check (W5(c)) proves the rule PROSE reached the carrier independently of the
+// clause-presence check (W5(c)) proves the rule PROSE reached the payload independently of the
 // token-parity check below. (Earlier "all-return barrier" was a token substring, making the check
-// near-vacuous for the two token-bearing mirrors; this semantic phrase closes that blind spot.)
-const ADVANCEMENT_CLAUSE_PATTERN = /advance only after (?:all|every) member/i;
+// near-vacuous for token-bearing output; this semantic phrase closes that blind spot.)
+const ADVANCEMENT_CLAUSE_PATTERN = /advance only after (?:all|every)(?: members?)? return/i;
 const ADVANCEMENT_CLAUSE_LABEL = 'advance only after ALL/EVERY member(s) return';
 
-// The bounded AGENTS.md root intentionally carries only the routing/ownership projection; the
-// complete rendered workflow barriers live in CODEX_CONTEXT.md and are loaded JIT before a
-// non-trivial workflow. Check the full static Codex carrier for barrier-token parity while the
-// advancement prose remains independently checked in AGENTS.md by the context mirror verifier.
-// Absent file ⇒ the Codex mirror is not enabled in this project (skip, do not fail).
-const CODEX_CARRIER = path.join(".codex", "CODEX_CONTEXT.md");
+const RUNTIME_ROUTE_HOOK = path.join(".claude", "hooks", "workflow-route-inject.cjs");
 
 const TARGET_WORKFLOW_IDS = [
   "workflow-big-feature",
@@ -226,8 +220,8 @@ const REVIEW_CHANGES_INLINE_SURFACES = [
   },
 ];
 
-// The static workflow catalog is a fast route-selection surface, not the complete execution
-// contract. start-workflow must always load the selected canonical entry before TaskCreate so a
+// The optional runtime workflow catalog is a fast route-selection surface, not the complete
+// execution contract. start-workflow must always load the selected canonical entry before TaskCreate so a
 // workflow's pre-actions (including conditional run/skip rules) reach the concrete task.
 const START_WORKFLOW_PREACTION_SURFACE = ".claude/skills/start-workflow/SKILL.md";
 const START_WORKFLOW_PREACTION_REQUIREMENTS = [
@@ -252,8 +246,8 @@ const START_WORKFLOW_PREACTION_REQUIREMENTS = [
     re: /preActions\.injectContext/i,
   },
   {
-    label: "static catalog route-selection boundary",
-    re: /static catalog is a route-selection aid/i,
+    label: "runtime catalog route-selection boundary",
+    re: /runtime catalog[^.\n]*route selection only/i,
   },
   {
     label: "conditional task run/skip propagation",
@@ -265,7 +259,7 @@ const START_WORKFLOW_PREACTION_REQUIREMENTS = [
   },
   {
     label: "Tier-1 non-execution boundary",
-    re: /Do NOT parse a static catalog sequence/i,
+    re: /Do NOT parse the runtime catalog sequence/i,
   },
   {
     label: "host-neutral step invocation guidance",
@@ -842,8 +836,8 @@ function getWorkflowSkillName(workflowId) {
   return WORKFLOW_SKILL_NAME_OVERRIDES.get(workflowId) ?? workflowId;
 }
 
-// Inline twin of renderBarrierToken in sync-context-workflows.mjs.
-// MUST stay byte-identical to that renderer — this is the oracle the cross-mirror parity asserts
+// Inline twin of the runtime catalog renderer's barrier token.
+// MUST stay byte-identical to that renderer — this is the oracle the runtime parity check asserts
 // against, so any future format change to the renderer without updating this fails the verifier.
 function renderExpectedBarrierToken(group) {
   const members = Array.isArray(group?.members) ? group.members : [];
@@ -870,8 +864,8 @@ function checkParallelGroupsStructure(workflowId, workflow, rawSequence, failure
   const seenGroupIds = new Set();
   for (const group of groups) {
     const groupId = group?.id ?? "(unnamed)";
-    // id is structurally load-bearing: the Codex mirror renderer dedups groups by id, so a
-    // missing or duplicate id silently drops a group's barrier token from the rendered mirror. Require
+    // id is structurally load-bearing: the runtime catalog renderer dedups groups by id, so a
+    // missing or duplicate id silently drops a group's barrier token from the rendered payload. Require
     // a non-empty, unique string id so the validator rejects what the renderer would mis-emit.
     if (typeof group?.id !== "string" || group.id.trim() === "") {
       failures.push(`parallelGroups violation (${workflowId}/${groupId}): group must have a non-empty string id`);
@@ -977,9 +971,9 @@ export function checkResolvedParallelGroupsStructure(workflowId, manifest, failu
   return failures;
 }
 
-// W5(b)+(c) — cross-mirror proof. (b) the expected barrier token is present in the rendered Codex
-// mirror; (c) the advancement clause reached the enabled static carrier. Reads the carrier once.
-// Mirror file is optional (portability).
+// W5(b)+(c) — runtime-payload proof. (b) every expected barrier token is present in the text the
+// runtime prompt hook emits; (c) the advancement clause reached that payload. Static root/mirror
+// files carry the route gate without the live catalog.
 async function checkParallelGroupsMirrorParity(workflows, rootDir, failures, resolvedByWorkflow = []) {
   const grouped = Object.entries(workflows).filter(
     ([, wf]) => Array.isArray(wf?.parallelGroups) && wf.parallelGroups.length > 0
@@ -991,37 +985,34 @@ async function checkParallelGroupsMirrorParity(workflows, rootDir, failures, res
   );
   if (grouped.length === 0 && resolvedGrouped.length === 0) return;
 
-  const codexPath = path.join(rootDir, CODEX_CARRIER);
-  const codexText = (await exists(codexPath)) ? await fs.readFile(codexPath, "utf8") : null;
-
-  const clauseCarriers = [
-    { label: `Codex context (${CODEX_CARRIER})`, text: codexText },
-  ];
-  for (const carrier of clauseCarriers) {
-    if (carrier.text === null) continue;
-    if (!ADVANCEMENT_CLAUSE_PATTERN.test(carrier.text)) {
-      failures.push(`parallelGroups carrier check: advancement clause "${ADVANCEMENT_CLAUSE_LABEL}" missing from ${carrier.label}`);
-    }
+  const hookPath = path.join(rootDir, RUNTIME_ROUTE_HOOK);
+  if (!(await exists(hookPath))) {
+    failures.push(`parallelGroups runtime check: missing route hook ${RUNTIME_ROUTE_HOOK}`);
+    return;
+  }
+  let runtimeText;
+  try {
+    const { buildInjection } = require(hookPath);
+    runtimeText = buildInjection(rootDir);
+  } catch (error) {
+    failures.push(`parallelGroups runtime check: could not build ${RUNTIME_ROUTE_HOOK} payload (${error?.message || error})`);
+    return;
   }
 
-  const tokenMirrors = [
-    { label: `Codex (${CODEX_CARRIER})`, text: codexText },
-  ];
-  // The renderer emits the resolved manifest's occurrence IDs. The resolved manifest loop below
-  // is therefore the single token oracle; checking `workflow.parallelGroups` here as well would
-  // demand raw legacy member strings that the renderer is intentionally not allowed to emit and
-  // would make compact/variant Codex contexts fail despite carrying the correct barriers.
-  for (const { workflowId, manifest } of resolvedGrouped) {
-    for (const group of manifest.parallelGroups) {
-      const expected = renderExpectedBarrierToken(group);
-      for (const mirror of tokenMirrors) {
-        if (mirror.text === null) continue;
-        if (!mirror.text.includes(expected)) {
-          failures.push(
-            `parallelGroups parity (${workflowId}/${manifest.mode}/${group?.id ?? "(unnamed)"}): expected barrier token absent from ${mirror.label} — regenerate mirrors (node .claude/skills/sync-codex/scripts/run-codex-sync.mjs). Expected: ${expected}`
-          );
-        }
-      }
+  if (!ADVANCEMENT_CLAUSE_PATTERN.test(runtimeText)) {
+    failures.push(`parallelGroups runtime check: advancement clause "${ADVANCEMENT_CLAUSE_LABEL}" missing from ${RUNTIME_ROUTE_HOOK} payload`);
+  }
+  // The runtime catalog intentionally shows human-readable route summaries rather than the
+  // resolver's internal occurrence IDs. Structural checks above own exact membership and
+  // barriers; this boundary check proves every grouped workflow still exposes parallel notation.
+  for (const [workflowId, workflow] of grouped) {
+    const row = runtimeText.split(/\r?\n/).find(line => line.startsWith(`| \`${workflowId}\` |`));
+    const renderedGroups = (row?.match(/\[[^\]]*∥[^\]]*\]/g) || []).length;
+    const expectedGroups = workflow.parallelGroups.length;
+    if (renderedGroups < expectedGroups) {
+      failures.push(
+        `parallelGroups runtime parity (${workflowId}): expected ${expectedGroups} parallel group(s), found ${renderedGroups} in ${RUNTIME_ROUTE_HOOK} payload`
+      );
     }
   }
 }

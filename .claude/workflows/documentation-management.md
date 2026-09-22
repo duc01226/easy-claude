@@ -2,17 +2,19 @@
 
 ## Quick Summary
 
-**Goal:** Keep project documentation in `./docs/` synchronized with implementation progress — plans, architecture, code standards.
+**Goal:** Keep authoritative project documentation aligned with durable changes, following the project's configured documentation roots and artifact owners.
 
 **Workflow:**
 
-1. **Detect** — Identify documentation triggers (feature shipped, bug fixed, milestone hit)
-2. **Update** — Read current state, update relevant docs, verify cross-references
-3. **Plan** — Save implementation plans in the plans root (default `plans/`; a `docsRoots.plans.path` entry in `docs/project-config.json` overrides the path) with structured phase files
+1. **Detect** — Identify which authoritative documentation, if any, a change makes stale
+2. **Route** — Use project configuration and its documentation index to resolve the owner and path
+3. **Update** — Read current state, update only affected durable docs, and verify cross-references
+4. **Plan** — Keep canonical plans in the configured plans root; put disposable reports under the workspace `tmp/reports/`
 
 **Key Rules:**
 
-- Update docs AFTER every feature, milestone, bug fix, or security patch
+- Update a durable doc when its recorded behavior, architecture, operations, security guidance, or project convention changes, or when project policy requires it
+- Do not create or update a roadmap or progress summary unless the user explicitly requests that artifact or an established project process owns it
 - Plans go in the plans root (default `plans/`; a `docsRoots.plans.path` entry in `docs/project-config.json` overrides the path) with timestamp naming — phase files follow development-rules.md
 - Always read current doc state before updating — maintain version consistency
 
@@ -20,35 +22,38 @@
 
 ### Managed Documentation Artifacts
 
-Maintain project docs in `./docs/`. Create if the project needs them:
+Resolve documentation paths from project configuration and the existing docs index. Do not assume every project uses `./docs/` or create a second documentation plane. Create durable artifacts only when an explicit request or established project convention calls for them:
 
-- **Roadmap** — project phases, milestones, progress
-- **Architecture** — system design, component interactions
-- **Code Standards** — coding conventions, quality standards
+- **Roadmap** — optional planning artifact; update only when explicitly requested or owned by an established project process
+- **Architecture** — system design and component interactions, when this project maintains such a document
+- **Code Standards** — coding conventions and quality standards, when this project maintains such a document
 
-### Automatic Updates Required
+### Documentation Update Triggers
 
-- **After Feature Implementation**: Update relevant docs (roadmap, architecture, etc.)
-- **After Major Milestones**: Review and adjust roadmap phases, update success metrics
-- **After Security Updates**: Record security improvements and version updates
-- **Weekly Reviews**: Update progress percentages and milestone statuses
+- **Behavior or contract change**: Update the canonical specification, API contract, or user-facing guidance that records the changed behavior.
+- **Architecture or operations change**: Update the architecture or runbook owner when its durable instructions or boundaries changed.
+- **Security change**: Update security or operations guidance when the supported controls or procedures changed.
+- **Dependency or standards change**: Update project references when supported versions, commands, or conventions changed.
+- **Explicit documentation request**: Update the requested artifact within its declared ownership and authority.
+
+Plan/task status is maintained in its canonical plan or task tracker. A status change alone does not require a roadmap edit, a progress percentage, or a new project document. This workflow has no recurring weekly progress-report requirement.
 
 ### Documentation Triggers
 
-The `docs-manager` agent MUST ATTENTION update documents when:
+The `docs-manager` agent checks for affected documents when:
 
-- A development phase status changes (e.g., "In Progress" → "Complete")
-- Major features are implemented or released
-- Significant bugs are resolved or security patches applied
-- Project timeline or scope adjustments are made
-- External dependencies or breaking changes occur
+- A behavior, public contract, or data rule changes
+- An architecture, operational procedure, or security control changes
+- A supported dependency, command, or project convention changes
+- A project-owned roadmap or other durable planning artifact is explicitly in scope
+- The user explicitly requests documentation
 
 ### Update Protocol
 
-1. **Before Updates**: Read current roadmap and affected doc status
-2. **During Updates**: Maintain version consistency and proper formatting
-3. **After Updates**: Verify links, dates, and cross-references are accurate
-4. **Quality Check**: Ensure updates align with actual implementation progress
+1. **Before Updates**: Resolve the authoritative owner; read the affected doc and its source of truth. Read a roadmap only when that artifact is explicitly in scope.
+2. **During Updates**: Preserve ownership, version consistency, and local formatting; do not create duplicate or progress-only artifacts.
+3. **After Updates**: Verify links, dates, and cross-references against the current source.
+4. **Quality Check**: Ensure every statement reflects implemented behavior or a clearly marked plan decision.
 
 ---
 
@@ -69,13 +74,6 @@ Shown at the default root; `docsRoots.plans.path` in `docs/project-config.json` 
 ```
 plans/
 ├── 20251101-1505-authentication-and-profile-implementation/
-    ├── research/
-    │   ├── researcher-XX-report.md
-    │   └── ...
-│   ├── reports/
-│   │   ├── investigation-report.md
-│   │   ├── researcher-report.md
-│   │   └── ...
 │   ├── plan.md                                # Overview access point
 │   ├── phase-01-setup-environment.md          # Setup environment
 │   ├── phase-02-implement-database.md         # Database models
@@ -86,6 +84,8 @@ plans/
 │   └── phase-07-write-tests.md                # Tests
 └── ...
 ```
+
+Disposable investigation, researcher, and verification reports belong under `tmp/reports/{run-id}/` in the project workspace, not inside the canonical plan directory. Keep durable decisions and essential findings in `plan.md` or the relevant phase file; do not depend on temporary report paths as long-lived context.
 
 #### File Structure
 
@@ -98,14 +98,14 @@ plans/
 
 ##### Phase Files (phase-XX-name.md)
 
-> **Development Rules** — YAGNI/KISS/DRY. Logic in LOWEST layer. Understand code first. Evidence-based actions.
+> **Development Rules** — YAGNI/KISS/DRY. Behavior with the project-identified owner. Understand code first. Evidence-based actions.
 > Phase files MUST ATTENTION follow `./.claude/docs/development-rules.md`.
 
 Each phase file contains:
 
 | Section                     | Contents                                         |
 | --------------------------- | ------------------------------------------------ |
-| **Context Links**           | Related reports, files, documentation            |
+| **Context Links**           | Durable source files and documentation; summarize essential findings in the plan rather than relying on temporary report links |
 | **Overview**                | Priority, status, brief description              |
 | **Key Insights**            | Findings from research, critical considerations  |
 | **Requirements**            | Functional + non-functional                      |
@@ -122,7 +122,8 @@ Each phase file contains:
 
 ## Closing Reminders
 
-**MANDATORY IMPORTANT MUST ATTENTION** update docs after every feature, milestone, bug fix, or security patch
+**MANDATORY IMPORTANT MUST ATTENTION** update only durable docs whose recorded behavior, architecture, operations, security guidance, or conventions changed; roadmap and recurring progress updates require an explicit request or established project process
 **MANDATORY IMPORTANT MUST ATTENTION** read current doc state before updating — never overwrite blindly
 **MANDATORY IMPORTANT MUST ATTENTION** save plans in the plans root (default `plans/`; a `docsRoots.plans.path` entry in `docs/project-config.json` overrides the path) with timestamp naming and structured phase files
+**MANDATORY IMPORTANT MUST ATTENTION** save disposable reports under workspace `tmp/reports/{run-id}/`, not inside canonical plan directories
 **MANDATORY IMPORTANT MUST ATTENTION** follow development-rules.md in all phase files (YAGNI/KISS/DRY, class responsibility, evidence-based)

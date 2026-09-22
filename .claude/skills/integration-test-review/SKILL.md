@@ -15,17 +15,38 @@ description: '[Code Quality] Use when reviewing integration tests for assertion 
 
 ## Quick Summary
 
-**Goal:** Ensure the review target (changed production code) is covered by tests that protect real business behavior with correct data assertions, infinite repeatability, and spec alignment — verifying every behavior change has test coverage (integration-first, unit fallback) so that specs ↔ tests ↔ code stay aligned (spec-driven development).
+**Goal:** Ensure changed production behavior is covered by tests that protect real business behavior with correct data assertions, repeatability, and canonical-owner alignment — integration-first, with justified unit fallback — so the selected contract, tests, and code stay aligned.
+
+## Case Contract Profile Gate (BLOCKING)
+
+Before collecting cases or judging traceability, read `docs/project-config.json`, `docs/project-reference/docs-index-reference.md`, `docs/project-reference/lessons.md`, the required local spec/integration-test references, and this skill's matching references. Resolve one profile:
+
+- **Strict TC default:** neither config nor required project references explicitly declares a different canonical case owner, identity, carrier, section role, or case-to-test relation. The Section 8 / `TC-{FEATURE}-{NNN}` rules below apply.
+- **Native profile:** config or a required reference explicitly declares a different case contract. An absent optional profile field in config does not erase an explicit owner contract in a required reference. Use its canonical owner and case identities; do not create a TC/Section 8 shadow or duplicate coverage registry.
+- **Unresolved:** invalid/incomplete config, conflicting references, or unresolved owner/identity/carrier/cardinality means `BLOCKED`/`UNKNOWN`; never infer the default or claim coverage.
+
+A root/template/file-name change alone does not select a native case model. On a native profile, use the configured source-of-truth hierarchy and apply this crosswalk:
+
+| Concern | Native-profile review rule |
+| --- | --- |
+| Canonical contract | Resolve the affected owner and business requirements/scenarios from config and required references. Generated indexes or technical projections are not a replacement owner. |
+| Identity and cardinality | Key each row by owner + logical case + declared variant. Respect configured many-to-many relations; do not force 1:1 or collapse variants. |
+| Gate 5 traceability | Follow the configured test carrier to the actual executor, then inspect the assertion. IDs/comments/links alone are not proof. |
+| Gate 6 alignment | Compare the canonical owner, implementation, and test. Use configured owner precedence; never let green code/tests ratify behavior that conflicts with unresolved canonical intent. |
+| Gate 7 coverage | Map every behavior-changing file and every case/variant in the full affected owner scope to actual executors/assertions. An aggregate executor proves only the listed cases whose paths/assertions were inspected; never invent per-variant reporter results. |
+| Reports and results | Replace `TC`, Section 8, default annotations, and sample fields below with native IDs/carriers. Separate mapped, executed, and passed; only observed runner output proves execution, and `UNKNOWN` never passes. |
+
+Keep every profile's semantic and authority gates: mutation-killing assertions, business-state checks, repeatability, required property/boundary and preservation coverage, conflict escalation, user-confirmation, and scoped fixes. The TC-shaped procedures and report examples later in this file are strict-default behavior only; matched overlays add constraints and cannot waive a shared gate.
 
 **Summary:**
-- **Testability contract:** resolve Unit/Integration/System/E2E applicability from runner/config evidence; record owner/root/data, copy-ready full + focused commands, zero-match behavior, CI/simple-Windows entry, unique run/data identity, and repeat proof; unresolved applicable fields block handoff, while non-applicable tiers require evidence-backed `N/A`.
+- **Testability contract:** resolve Unit/Integration/System/E2E applicability from runner/config evidence; record owner/root/data, copy-ready full + focused commands, zero-match behavior, CI/simple-Windows entry, identity or isolation guarantee, and repeat proof; unresolved applicable fields block handoff, while non-applicable tiers require evidence-backed `N/A`.
 
-- **Purpose:** Review target is the CHANGE (collect BOTH changed production code AND changed test files), never just the test files — Gates 1-6 and 8 judge test quality, Gate 7 maps every behavior-changing production file to a covering test (integration-first; unit only with recorded justification) + spec TC. Uncovered changed behavior = HIGH finding minimum.
-- **The 8 Gates (main review steps):** G1 Assertion Value — mutation-score, record the Mutation Probe Ledger (no ledger = FAIL); G2 Data State — assert specific DB fields with async polling; G3 Repeatability — unique IDs, additive-only, 2 consecutive green runs; G4 Domain Logic — read handler, assert ONLY fields it writes; G5 Spec Traceability — `TestSpec` annotation → TC in spec docs (1 TC → many tests is correct); G6 Three-Way Sync — feature-docs > test-spec docs > code > test, escalate conflicts; G7 Change Coverage — every behavior-changing file → covering test + non-stale §8 TC; G8 Scenario Fidelity — the setup's sequence, pacing, and data must be reachable in production; settle barriers in ARRANGE, never widened assertion timeouts.
+- **Purpose:** Review target is the CHANGE (collect BOTH changed production code AND changed test files), never just the test files — Gates 1-6 and 8 judge test quality, Gate 7 maps every behavior-changing production file to a covering test (integration-first; unit only with recorded justification) + the selected canonical case. Uncovered changed behavior = HIGH finding minimum.
+- **The 8 Gates (main review steps):** G1 Assertion Value — mutation-score when available, otherwise an evidence-backed mutation probe; G2 Owned Outcome — assert the system-owned result at the selected boundary; G3 Repeatability — verify project-configured isolation/repeat behavior; G4 Behavior Ownership — compare assertions with the actual contract owner; G5 Spec Traceability — configured test carrier → canonical case (strict default only; native cardinality is preserved); G6 Three-Way Sync — canonical owner > implementation > test, with configured derived views at their declared authority; G7 Change Coverage — every behavior-changing file → covering test + applicable canonical case; G8 Scenario Fidelity — setup sequence, pacing, and data must fit the actual production path; use an ARRANGE barrier only for genuinely asynchronous outcomes.
 - **The phase pipeline (run ALL, `TaskCreate` each):** P0 Scope-detect → P1 Collect (split prod vs test files) → P2 Gate Review (Gates 1-6 + 8 per file, Gate 7 across set) → P3 Spec Cross-Check (both directions) → P4 Initial Report → P5 Fix validated findings that block the current round + WRITE missing tests → P6 Validated-fix + full fresh re-review until the current severity bar is clear → P7 Build & run ALL tests → P8 Failure Investigation → P9 Why-Review self-validation.
-- **Read handler/service source (and feature docs) BEFORE judging any assertion.** FAIL smoke-only, existence-only (not-null), dead (always-true), copy-paste, and DI-resolution-only tests — why: assertion quality is unknowable without knowing what the handler actually writes.
-- **Don't just report gaps — fix them.** Gate 6: NEVER fix a test to match broken code, NEVER self-resolve a three-way conflict (escalate via `AskUserQuestion`). Phase 5 WRITES the missing test (runs `/spec [mode=tests]` for SPEC-GAPs); a full fresh re-review runs after every validated fix cycle until the current round's bar is clear (round 1: zero findings; round 2: zero CRITICAL/HIGH/MEDIUM, LOW deferred).
-- **MANDATORY feature-area-wide TC audit (Phase 1 task + Phase 3 addendum):** Gate 7 alone is diff-scoped — it can't see a pre-existing §8 TC that lost its covering test outside the diff. Every review non-skippably enumerates the FULL Section-8 TC list of the implicated feature doc(s), not only diff-touched TCs, into the SAME Coverage Mapping Table; zero GAP rows required, whole table, before PASS.
+- **Read the canonical owner and relevant production source BEFORE judging any assertion.** FAIL smoke-only, existence-only (not-null), dead (always-true), or copy-paste assertions when they do not prove the claimed contract. A dependency-container resolution test is valid only when wiring itself is the selected contract — why: assertion quality is unknowable without intended behavior and its owner.
+- **Don't just report gaps — fix them.** Gate 6: NEVER fix a test to match broken code, NEVER self-resolve a three-way conflict (escalate via `AskUserQuestion`). Phase 5 WRITES a missing test and uses the canonical owner's declared authoring procedure for a validated SPEC-GAP; the strict default uses `/spec [mode=tests]`. A full fresh re-review runs after every validated fix cycle until the current round's bar is clear (round 1: zero findings; round 2: zero CRITICAL/HIGH/MEDIUM, LOW deferred).
+- **MANDATORY full affected-owner case audit (Phase 1 task + Phase 3 addendum):** Gate 7 alone is diff-scoped — it can miss an existing canonical case/variant that lost coverage outside the diff. Every review enumerates the full case set in the implicated owner scope, not only diff-touched cases, into the same Coverage Mapping Table; zero `GAP` or `UNKNOWN` rows are required before PASS. The strict default enumerates Section 8 TCs.
 
 **Scope:** The FULL change set — changed production code AND changed test files — from uncommitted changes (default), user-specified files, or a user-specified diff (branch/PR). The review target is never "just the test files".
 
@@ -34,19 +55,19 @@ description: '[Code Quality] Use when reviewing integration tests for assertion 
 **Key Rules (non-negotiable):**
 
 - MUST collect BOTH changed production code AND changed test files — coverage of the change is part of the review, not an optional extra
-- MUST verify every behavior-changing production change maps to a covering test — integration test FIRST; unit test ONLY with recorded justification (Gate 7)
+- MUST verify every behavior-changing production change maps to a test at the appropriate boundary — use integration coverage for cross-component behavior and unit/component coverage for isolated logic; justify a missing or unsuitable tier from project architecture (Gate 7)
 - MUST treat an uncovered changed behavior as a HIGH finding minimum — fix by writing the missing test in Phase 5, not just reporting
-- MUST verify spec↔test↔code alignment for changed code, not only for existing tests — a changed behavior with no TC in spec docs is a spec gap finding
-- MUST read handler/service source BEFORE judging any test assertions
+- MUST verify canonical owner↔test↔code alignment for changed code, not only existing tests — a changed behavior with no applicable case in the selected contract is a spec-gap finding
+- MUST trace the relevant entry point, contract owner, and source behavior BEFORE judging test assertions; read handler/service code when those are the project's actual boundary
 - MUST flag smoke-only tests (no-exception-only checks) as FAIL
-- MUST flag DI-resolution-only tests (resolve + not-null) as FAIL — NOT integration tests
-- MUST verify tests use unique IDs per run (infinitely repeatable)
-- MUST use async polling/retry for ALL DB assertions — async delays are norm
-- MUST flag repository-created or repository-mutated test data that bypasses real use cases and can leave invalid state
+- MUST flag a dependency-resolution-only test as insufficient for a business-behavior claim; accept it when container/wiring behavior is itself the intended contract
+- MUST verify test-data isolation for the project's supported repeat/concurrency model; generated IDs are required when tests share a namespace, not for every disposable fixture
+- MUST use a bounded configured wait for genuinely asynchronous outcomes; synchronous persistence does not require polling
+- MUST flag setup that bypasses the behavior or invariant under test; supported builders/factories/fixtures may arrange unrelated preconditions
 - MUST treat an unrealistic setup as a review finding (Gate 8) — compressed pacing between actor steps, a fixed sleep standing in for a real observable, a widened assertion timeout replacing an ARRANGE barrier, or a retry wrapped around a failing assertion
-- MUST require 2 consecutive successful suite/project runs before declaring integration tests verified/idempotent
+- MUST require the repeat evidence declared by `integrationTestVerify.guidance`; absent guidance, repeat persistent/shared-state suites twice with no destructive reset of shared data
 - NEVER accept assertions that always pass regardless of handler correctness
-- **NO smoke/fake/useless tests** — every test MUST execute actual operations and verify data state
+- **NO smoke/fake/useless tests** — every test MUST cross its claimed integration boundary and assert a meaningful system-owned outcome
 
 - `integration-test-reference.md` in the reference-docs root (default `docs/project-reference`; a `docsRoots.projectReference.path` entry in `docs/project-config.json` overrides the path) — Integration test patterns, fixture setup, seeder conventions, lessons learned (MUST READ before reviewing)
 
@@ -95,18 +116,18 @@ This is a non-numbered preflight alongside the eight quality gates. Review the m
 
 | Tier | Applicability evidence | Owner / test root | Runner/framework | Full command | Focused/partial command | Zero-match behavior | Data and repeat evidence | Parallel isolation | Simple/Windows entry point |
 | ---- | ---------------------- | ----------------- | ---------------- | ------------ | ------------------------ | ------------------- | ------------------------ | ------------------ | --------------------------- |
-| Unit | `APPLICABLE` + `{file:line}` or `N/A — {evidence}` | `{owner}` / `{path}` | `{configured runner/framework}` | `{command}` | `{command or N/A + evidence}` | `{documented non-zero behavior}` | `{unique identity + data mode}` | `{worker/root isolation}` | `{entry point or N/A + evidence}` |
-| Integration/System | `APPLICABLE` + `{file:line}` or `N/A — {evidence}` | `{owner}` / `{path}` | `{configured runner/framework}` | `{command}` | `{command or N/A + evidence}` | `{documented non-zero behavior}` | `{unique identity + data mode}` | `{worker/root isolation}` | `{entry point or N/A + evidence}` |
-| E2E | `APPLICABLE` + `{file:line}` or `N/A — {evidence}` | `{owner}` / `{path}` | `{configured runner/framework}` | `{command}` | `{command or N/A + evidence}` | `{documented non-zero behavior}` | `{unique identity + data mode}` | `{worker/root isolation}` | `{entry point or N/A + evidence}` |
+| Unit | `APPLICABLE` + `{file:line}` or `N/A — {evidence}` | `{owner}` / `{path}` | `{configured runner/framework}` | `{command}` | `{command or N/A + evidence}` | `{documented non-zero behavior}` | `{identity or isolation strategy}` | `{supported concurrency/isolation}` | `{entry point or N/A + evidence}` |
+| Integration/System | `APPLICABLE` + `{file:line}` or `N/A — {evidence}` | `{owner}` / `{path}` | `{configured runner/framework}` | `{command}` | `{command or N/A + evidence}` | `{documented non-zero behavior}` | `{identity or isolation strategy}` | `{supported concurrency/isolation}` | `{entry point or N/A + evidence}` |
+| E2E | `APPLICABLE` + `{file:line}` or `N/A — {evidence}` | `{owner}` / `{path}` | `{configured runner/framework}` | `{command}` | `{command or N/A + evidence}` | `{documented non-zero behavior}` | `{identity or isolation strategy}` | `{supported concurrency/isolation}` | `{entry point or N/A + evidence}` |
 
 Review the contract as a cross-cutting concern alongside the existing gates:
 
 1. **Command validity:** resolve full and focused/partial commands from project config, reference docs, or runner scripts; verify copy-ready syntax, scope, and exit status. A focused selection that matches zero tests must fail or use the runner's documented non-green behavior; never count a zero-match run as green. Missing or unverifiable command evidence is a finding.
-2. **Data and repeatability:** verify a unique run/test identity and data suffix, supported public-path setup, realistic valid data, count-before-create idempotent reference setup, intentional keyed/additive persistence, and no destructive reset or cleanup hiding contamination.
-3. **Parallel isolation:** verify each test/worker owns mutable roots and asserted entities; only immutable reference data may be shared. Flag shared mutable state or a shared parent that cross-cutting consumers can rewrite, even when the reviewed test does not mutate it directly.
+2. **Data and repeatability:** verify the project's fixture/identity strategy, supported setup path, realistic valid state, and isolation/cleanup policy. Use distinct IDs when runs share a namespace; stable IDs are acceptable in isolated fixtures. Cleanup may remove only current-run resources the test owns; preserve shared/user data and follow the configured reset policy.
+3. **Parallel isolation:** when the configured runner supports concurrency, verify tests/workers cannot corrupt one another's mutable state; inspect shared roots and cross-cutting consumers when relevant. Record sequential-only execution when that is the project's supported mode.
 4. **Applicability:** mark a tier `APPLICABLE` only with runner/framework/configuration evidence. Otherwise record `N/A — <evidence>` and do not request fabricated tests or commands. A project E2E N/A is valid when the configured stack is absent.
 
-Missing matrix fields, invalid command behavior, non-unique/additive data evidence, or unsafe parallel sharing are cross-cutting findings and must be reflected in the report without weakening the existing no-smoke, assertion-value, spec/code/test triangulation, or two-run gates.
+Missing applicable matrix fields, invalid command behavior, unclear data isolation, or unsafe supported concurrency are cross-cutting findings and must be reflected in the report without weakening the no-smoke, assertion-value, spec/code/test triangulation, or configured repeatability gates.
 
 ---
 
@@ -143,61 +164,63 @@ Missing matrix fields, invalid command behavior, non-unique/additive data eviden
 
 **Recorded artifact — Mutation Probe Ledger (REQUIRED, non-skippable, BOTH paths).** "I checked it mentally" is not evidence. Gate 1 cannot be marked PASS without this ledger written into the review report — it is the proof the probe ran, identical in obligation whether a tool ran or the manual fallback did:
 
-| Changed core-logic line (`file:line`, abstract) | Mutation applied (`>`→`>=`, assignment dropped, boolean negated, branch removed) | Killing assertion / test (`TC-…` + `file:line`) | Verdict |
+| Changed core-logic line (`file:line`, abstract) | Mutation applied (`>`→`>=`, assignment dropped, boolean negated, branch removed) | Killing assertion / test (owner + case + variant identity when applicable; strict default: TC ID; + `file:line`) | Verdict |
 | --- | --- | --- | --- |
 | {the line} | {the mutant} | {the assertion that fails on it} | KILLED |
 | {the line} | {the mutant} | — none — | **SURVIVOR → finding** (or recorded equivalent-mutant justification) |
 
 Rules: (1) every changed core-logic line gets a row — no sampling, no "representative subset". (2) Tool path: rows come from the surviving-mutant report; manual fallback: rows come from the line-by-line thought experiment — same table, same columns. (3) A `SURVIVOR` row with no killing assertion is a HIGH finding minimum (CRITICAL on auth/money/data-integrity lines) UNLESS it carries a written equivalent-mutant justification. (4) An empty or absent ledger = Gate 1 **FAIL** (not "skipped") — the gate is unproven, so it cannot pass.
 
-### Gate 2: Data State — "Does it check the database?"
+### Gate 2: Owned Outcome — "Does it assert what the system owns?"
 
-> **Think:** Does this test prove the database changed, or just that no exception occurred?
+> **Think:** Does this test prove the behavior the system owns, or just that the call completed?
 
-**PASS:** After command, test queries DB and asserts specific entity field values.
+**PASS:** The test asserts a meaningful observable outcome at the selected contract boundary. Assert persisted fields when persistence is part of the behavior; otherwise assert the relevant API, file, emitted domain outcome, UI state, or other project-owned result.
 
 **FAIL:**
 
-- Only checks return value, never verifies DB state
-- Checks existence (not-null) without field values
-- Missing async polling on side-effect assertions
+- Only checks that a call does not throw or that an object exists, without asserting the promised outcome
+- Checks an intermediate infrastructure record instead of the system-owned result
+- Reads an eventually consistent outcome before the configured completion signal, or retries a failing final assertion rather than synchronizing setup
 
 **Exception:** Smoke-only ONLY when side effect truly unobservable. MUST include explicit justification comment.
 
-**ALWAYS use async polling/retry for data assertions.** Event handlers, bus consumers, background jobs run async — data may not be immediately available.
+Use the configured bounded polling/wait helper only when the production contract is asynchronous or eventually consistent. For synchronous behavior, assert through the project's normal deterministic read path.
 
-### Gate 3: Repeatability — "Can I run this 100 times?"
+### Gate 3: Repeatability — "Does this survive supported reruns and concurrency?"
 
 > **Think:** If this test runs N times in a shared database, does it get noisier each run? Would run #2 fail?
 
-**FAIL:** Hardcoded IDs, hardcoded business keys without unique suffix, teardown/cleanup, ordering dependency, seeders without existence check, or direct repository setup that creates state users could not create through real use cases.
+**FAIL:** Mutable shared data leaks across tests/runs, broad cleanup deletes another test's data, order dependence, or fixture setup bypasses an invariant that the test claims to exercise. Use generated IDs/business keys only when the configured store/namespace is shared; stable IDs are fine in an isolated disposable fixture.
 
-**FAIL (not parallel-safe — see `SYNC:test-data-isolation`):** Assertions hung off a shared mutable entity another test can change, OR off a parent a bulk re-sync/recompute/rebuild/cascade consumer can wipe — even when THIS test never mutates it. Each test MUST own fresh per-test data; only immutable lookup data may be shared. Verify by grepping every other test on that shared data AND every cross-cutting consumer over it.
+Project-authorized cleanup may remove resources created and owned by the current test/run. Follow the project's transaction, disposable-database, namespace, or teardown model; never delete another run's or user's data.
 
-**Verify:** Repeatability is only proven when the relevant suite/project passes 2 consecutive runs without resetting data. One green run is not enough.
+**FAIL (not safe under configured concurrency — see `SYNC:test-data-isolation`):** An assertion depends on mutable shared state another test or cross-cutting consumer can change. Verify relevant writers/consumers and isolate the smallest state owner required by the configured concurrency.
 
-### Gate 4: Domain Logic — "Does test match handler?"
+**Verify:** Read `integrationTestVerify.guidance` and report the repeat/reset/concurrency evidence it requires. When no repeat policy is declared, use two fresh runs for persistent/shared-state suites without destructive reset of shared data.
 
-> **Think:** Did I read the handler source? Do I know which exact fields it writes? Do assertions check those fields — and ONLY those fields?
+### Gate 4: Behavior Ownership — "Does the test match the actual contract?"
 
-**PASS:** Assertions match what handler ACTUALLY does (verified by reading source). Covers primary business rule. Validation paths tested.
+> **Think:** Did I trace the actual entry point and invariant owner? Do the assertions match the resulting behavior and its observable boundary?
 
-**FAIL:** Assertions on untouched fields (copy-paste), missing primary side-effect assertion, event handler tests that never trigger the event.
+**PASS:** Assertions match the contract owner and effects confirmed from relevant source. Covers the primary business rule and applicable validation/access paths.
 
-**Verify:** Grep handler class → read it → list what it does → compare with assertions.
+**FAIL:** Assertions on unrelated state, a missing primary outcome, or a downstream handler/event/message test that never reaches its trigger.
+
+**Verify:** Trace the project's real call path and state/side-effect owner; compare those behaviors with the assertions.
 
 **Also check:**
 
 - Authorization: test verifies both authorized AND unauthorized access paths?
-- Coverage: happy path + validation failure + DB state check (3 tests minimum)
+- Coverage: add scenarios for distinct, applicable risks/invariants; do not require an arbitrary count per command or endpoint
 
 ### Gate 5: Spec Traceability — "Is this tracked?"
 
-> **Think:** Can I trace TC-XXX-NNN from test annotation → spec docs → feature docs in one unbroken chain?
+> **Think:** Can I trace the selected profile's owner-qualified case identity from the configured test carrier → canonical owner → inspected assertion in one unbroken chain?
 
-**PASS:** Business test has a `TestSpec` annotation linking to a TC ID that exists in spec docs. Technical-only test has a `TechnicalSpec` annotation and does not claim §8 business coverage. The test method name need **NOT** match the TC, and **many test methods may legitimately carry the same TC** (one business TC → many tests across components/services — the join key is the test-spec annotation, not the method name; see `tc-format.md` → TC ↔ Test Code Cardinality).
+**PASS:** A business test's configured carrier links to a case in its canonical owner, and source inspection confirms the test reaches an assertion for that case. Under the strict default, the carrier is `TestSpec` and the identity is a TC. A native profile may use another carrier and declared many-to-many relation; preserve owner/scenario/variant identities and never infer per-variant test results. A technical-only test follows the selected profile's explicit non-business convention and does not claim business-case coverage.
 
-**FAIL (WARN, not BLOCK):** Missing annotation, orphaned TC ID (business `TestSpec` points to a TC absent from spec docs), technical-only test still carrying a business `TestSpec`, or spec says "Planned" but test exists. **NOT a finding:** several tests sharing one TC, a method name that differs from the TC, or a technical-only test carrying `TechnicalSpec` instead of `TestSpec`.
+**FAIL (WARN, not BLOCK):** Missing/mismatched configured carrier, orphaned case identity, a non-business test claiming business-case coverage, or the canonical owner marks the case planned/unverified while the review claims execution. **NOT a finding:** a method name differing from the case identity, or any cardinality explicitly allowed by the selected profile when each relation is backed by an inspected assertion.
 
 ### Gate 6: Three-Way Sync — "Do test, code, and docs agree?"
 
@@ -207,38 +230,41 @@ Hardest gate. Identify discrepancy, classify using source-of-truth hierarchy —
 
 #### Source of Truth Hierarchy (highest → lowest)
 
-| Priority    | Source                                                   | Why                                                                |
-| ----------- | -------------------------------------------------------- | ------------------------------------------------------------------ |
-| 1 (Highest) | Feature docs (`…/Section 8 TCs` under the business spec root — default `docs/specs`; a `specRoots.business.path` entry in `docs/project-config.json` overrides the path)  | Business intent — defines WHAT must happen                         |
-| 2           | Test-spec docs (same business spec root — default `docs/specs`; overridden by `specRoots.business.path` in `docs/project-config.json`)                           | TC scenarios derived from feature docs — defines HOW to verify     |
-| 3           | Implementation code (handler/entity/service)             | What WAS built — may reflect intentional evolution not yet in docs |
-| 4 (Lowest)  | Integration test code                                    | What IS being tested — most likely to be wrong or stale            |
+| Priority | Source | Why |
+| --- | --- | --- |
+| 1 (Highest) | Canonical business owner selected by config and required project references | Defines the accepted business behavior and case identities |
+| 2 | Any configured derivative test-spec/index view, if one exists | Supports navigation or verification only at its declared authority |
+| 3 | Implementation code (handler/entity/service) | What WAS built — may expose a defect or an intentional update missing from the owner |
+| 4 (Lowest) | Integration test code | What IS being tested — must be traced to an inspected assertion |
 
-**Rule:** Docs win over code. Code wins over tests. Feature docs win over test-spec docs.
+For the strict default, the canonical feature spec's Section 8 TCs and its configured test-spec docs fill priorities 1–2. A native profile supplies its own owner and declared projections; do not assume a second test-spec plane.
+
+**Rule:** The selected canonical owner governs intended behavior; compare implementation and tests against it. Apply only derivative-view authority declared by the profile; the strict default gives feature specs precedence over test-spec docs. Never resolve an owner conflict from implementation/test agreement alone.
 
 #### Conflict Classification
 
-| Pattern                       | Feature Doc | Impl Code | Test Code | Verdict               | Action                                        |
-| ----------------------------- | ----------- | --------- | --------- | --------------------- | --------------------------------------------- |
-| All agree                     | ✓           | ✓         | ✓         | PASS                  | None                                          |
-| Stale docs                    | —           | ✓         | ✓         | Docs lag code         | Flag docs for `/docs-update`; test is correct |
-| Wrong test                    | ✓           | ✓         | ✗         | Test wrong            | Fix test assertions to match code + docs      |
-| Code bug                      | ✓           | ✗         | ✓         | Code has bug          | Report as BUG — do NOT fix test to match code |
-| Test + code diverge from docs | ✓           | ✗         | ✗         | Code bug + wrong test | Fix test to match docs; report code bug       |
-| Three-way conflict            | ✗           | ✗         | ✗         | ESCALATE              | Cannot self-resolve — `AskUserQuestion`       |
+| Pattern | Canonical owner | Implementation | Test code | Verdict | Action |
+| --- | --- | --- | --- | --- | --- |
+| All agree | ✓ | ✓ | ✓ | PASS | None |
+| Owner missing or intent unresolved | — / ambiguous | ✓ / ? | ✓ / ? | SPEC-GAP / BLOCKED | Resolve the declared owner and intent; do not create a parallel case registry or claim coverage. |
+| Possible stale owner | ? / older contract | ✓ | ✓ | AMBIGUOUS until supersession is evidenced | Verify an authorized owner update; code/test agreement alone does not prove intent changed. |
+| Wrong test | ✓ | ✓ | ✗ | Test wrong | Fix test assertions to match the owner and code. |
+| Code bug | ✓ | ✗ | ✓ | Code has bug | Report as BUG — do NOT fix test to match code. |
+| Test + code diverge from owner | ✓ | ✗ | ✗ | Code bug + wrong test | Fix the test to match the owner; report the code bug. |
+| Owner, code, and test conflict | ✗ | ✗ | ✗ | ESCALATE | Cannot self-resolve — ask the user. |
 
 **CRITICAL rules:**
 
 - NEVER fix a test to match broken code — that hides bugs
 - NEVER assume docs are wrong without evidence they were intentionally superseded
 - NEVER self-resolve a three-way conflict — always escalate via `AskUserQuestion`
-- "Stale docs" verdict requires BOTH code AND test to agree — one source never enough
-- When escalating, include: TC ID, what each source says, evidence found
+- `SPEC-STALE` requires explicit evidence that the owner contract was intentionally superseded; code/test agreement alone is insufficient.
+- When escalating, include the owner-qualified case identity (strict default: TC ID), what each source says, and evidence found.
 
 #### Verify Each Source
 
-1. **Feature doc:** Read Section 8 — scenario title, preconditions, steps, expected results
-2. **Test-spec doc:** Find same TC — Planned/Implemented status and described scenario
+1. **Canonical owner:** Read the profile-selected case — identity/variant, preconditions, behavior, and expected result. Strict default: Section 8.
+2. **Configured derivative view:** Inspect only if the profile declares one; compare it with its stated authority. Strict default: locate the corresponding TC in any test-spec doc.
 3. **Implementation code:** Read handler/entity/service — fields written, events fired, validation rules
 4. **Test code:** Read test method — arrange, execute, assert
 
@@ -248,42 +274,43 @@ Compare each pair with `file:line` evidence for each source.
 
 ### Gate 7: Change Coverage — "Is every changed behavior tested AND specced?"
 
-> **Think:** For each behavior-changing production file in the review target, which test would FAIL if this change were broken? If NONE → coverage gap. Which spec TC describes this behavior? If NONE → spec gap.
+> **Think:** For each behavior-changing production file in the review target, which test would FAIL if this change were broken? If NONE → coverage gap. Which canonical owner case describes this behavior? If NONE → spec gap.
 
 This gate makes the skill verify the REVIEW TARGET has coverage — not merely review tests that happen to exist.
 
-> **Scope note:** protocol below diff-scoped (changed production files → TC). Does NOT by itself prove 100% feature-area coverage — a pre-existing TC that lost its covering test, or was never covered, sits outside this diff and passes silently. **Phase 3 addendum — Feature-Area-Wide TC Audit** (below) closes that gap: audits every Section-8 TC in implicated feature doc(s), not only ones this diff touches; both feed the SAME Coverage Mapping Table, SAME zero-GAP exit bar.
+> **Scope note:** the first pass is diff-scoped (changed behavior → canonical case). It does NOT by itself prove complete affected-owner coverage — an existing case/variant that lost its covering test may sit outside the diff. **Phase 3 addendum — Full Affected-Owner Case Audit** (below) closes that gap: inspect every case/variant in the implicated owner scope, not only diff-touched cases; both passes feed the SAME Coverage Mapping Table and zero-GAP/UNKNOWN exit bar. Strict default enumerates all Section 8 TCs.
 
 **Protocol:**
 
 1. **Collect changed production files** from the review target (Phase 0 scope): commands, queries, handlers, entities, services, event handlers, consumers, controllers, frontend services/stores with business logic.
 2. **Filter to behavior-changing files.** Exclude: migrations (one-time execution paths), generated code, pure renames/formatting, config-only, DI registration-only changes. Record each exclusion with reason.
 3. **Find covering tests** per changed behavior — use graph (`query tests_for <fn>`, `trace <file> --direction both`) plus grep for the handler/class name under test directories. A test COVERS a change only if it exercises the changed path and asserts the changed outcome — read the test; name match alone is NOT coverage.
-4. **Apply test-type priority:** integration test FIRST (subcutaneous CQRS through real DI, data-state assertions). Unit test is an acceptable fallback ONLY when integration coverage is infeasible (pure function/calculation logic, no observable data state, no DI path) — record the justification per fallback.
-5. **Check spec alignment for the change — existence AND correctness.** Each changed behavior must map to a TC in spec docs (feature doc Section 8 / test-spec docs). Finding a TC is NOT enough: READ the mapped TC and confirm it describes the CURRENT behavior. New behavior with no TC, or a TC that exists but still describes the OLD/superseded behavior → spec gap (spec-driven development violation). A behavior is only fully covered when a covering test exercises it AND a non-stale §8 TC documents it — so this correctness re-check applies to COVERED rows too, never just to GAP rows.
+4. **Choose the test type by boundary:** use integration/system coverage for behavior crossing real component or service boundaries; use unit/component coverage for isolated logic and local contracts. Record why a different tier would not prove the behavior when the expected tier is unavailable or unsuitable.
+5. **Check owner alignment for the change — existence AND correctness.** Each changed behavior must map to an applicable case in the selected canonical owner. Finding an ID is NOT enough: read the case and confirm it describes current intent. New behavior with no case, or a case that describes old/superseded behavior → spec gap. A behavior is fully covered only when a test exercises it and the canonical case describes current intent. Strict default uses feature-doc Section 8 / test-spec docs.
 
 **Coverage Mapping Table (MANDATORY output):**
 
-> Rows are keyed by **changed production behavior**, not by TC. A behavior is COVERED when **≥1** covering test exercises it — list ALL covering tests in the column when several apply. One `Spec TC` may legitimately appear across multiple rows and be covered by many tests (one TC → many tests, 1:N). Do NOT expect or require one test per TC, and do NOT flag a TC reused across rows as a duplicate (see `tc-format.md` → TC ↔ Test Code Cardinality).
+> Rows are keyed by **changed production behavior**, not by test count. A behavior is COVERED only when ≥1 inspected executor asserts its outcome and the mapped canonical case is current. Preserve the selected profile's relation; native cases may be many-to-many. List actual executors and key rows by owner + case + declared variant. Never force 1:1, collapse declared variants, or invent per-variant runner outcomes.
 
-| Changed File / Behavior | Spec TC | Covering Test(s) | Test Type | Verdict |
-| ----------------------- | ------- | ------------- | --------- | ------- |
-| {file:line — behavior}  | TC-X-NNN / MISSING | {test file:method}[, …one or more] / NONE | integration / unit (justified) / — | COVERED / COVERED-UNIT / GAP / SPEC-GAP |
+| Changed File / Behavior | Owner / Case / Variant (strict default: Spec TC) | Covering Test(s) / Assertion | Test Type | Verdict |
+| --- | --- | --- | --- | --- |
+| {file:line — behavior} | {owner}:{case}:{variant} / MISSING | {test file:method + assertion}[, …] / NONE | integration / unit (justified) / — | COVERED / COVERED-UNIT / GAP / SPEC-GAP / UNKNOWN |
 
 **Verdicts:**
 
-- **COVERED** — integration test exercises the changed path with data-state assertions AND the mapped §8 TC describes the CURRENT behavior. A covering test whose mapped TC is stale is NOT COVERED — record it as SPEC-GAP.
-- **COVERED-UNIT** — unit test covers it, integration infeasible, justification recorded, and the mapped §8 TC is current (same stale-TC rule applies).
+- **COVERED** — integration test exercises the changed path with data-state assertions AND the mapped canonical case describes current behavior. A stale/mismatched case is NOT covered — record `SPEC-GAP`.
+- **COVERED-UNIT** — unit test covers it, integration infeasible, justification recorded, and the mapped canonical case is current (the same stale-case rule applies).
 - **GAP (FAIL)** — no test would fail if the change broke. Severity: HIGH minimum; CRITICAL when the change touches authorization, money, or data integrity. Fix in Phase 5 by WRITING the missing test (integration-first) — reporting alone does not clear this gate
-- **SPEC-GAP (FAIL)** — behavior has no TC, OR a covering test exists but its mapped TC still describes OLD/superseded behavior (stale TC ≠ covered). Both the missing-TC and the stale-but-covered case are SPEC-GAP. Fix via `/spec [mode=tests]` UPDATE (and `/spec` when business rules changed)
+- **SPEC-GAP (FAIL)** — behavior has no applicable canonical case, OR a covering test exists but its mapped case still describes old/superseded intent. Use the canonical owner's authoring procedure; the strict default uses `/spec [mode=tests]` UPDATE.
+- **UNKNOWN** — the profile, owner, carrier, case identity, cardinality, or assertion cannot be resolved from evidence. UNKNOWN never passes and must not be downgraded to a warning to clear the gate.
 
 **FAIL:**
 
 - Changed handler/command/entity rule with zero covering test
 - Unit test substituted where an integration test is feasible, with no justification
 - Test exists but does not assert the changed outcome (stale coverage counted as coverage)
-- New/changed behavior absent from spec docs, or TC describing superseded behavior
-- A COVERED row marked COVERED without reading its mapped §8 TC — TC existence assumed instead of its CURRENT-behavior correctness verified (a stale-but-covered TC silently passes as covered)
+- New/changed behavior absent from the selected canonical owner, or a case describing superseded behavior
+- A COVERED row marked COVERED without reading its mapped canonical case and assertion — identity existence is not proof of current intent or execution
 
 **Explicit user waiver** (recorded verbatim in the report with the user's reason) is the ONLY alternative to closing a GAP.
 
@@ -318,7 +345,7 @@ Use `TaskCreate` for EACH phase before starting.
 
 **Phase 1 — Collect:** Split the change set: production files (Gate 7 coverage targets) vs test files. Categorize test files: new (full review), modified (changed methods only), new projects (infra + samples). Categorize production files: behavior-changing vs excluded (with reason).
 
-> **MANDATORY task — "Validate: 100% Section-8 TC coverage for {feature doc(s)} — not just diff-touched TCs."** Create as OWN named `TaskCreate` item in Phase 1 breakdown. Non-skippable whenever this review runs inside a workflow, current git changes are present (staged/unstaged), or by direct user request — every invocation of this skill except a scope explicitly narrowed by the user to a single named TC/test. Identify feature doc(s) implicated by the change set (or named by the user) up front — their full Section 8 TC list is the audit scope for Phase 3's addendum below, independent of which TCs the diff touches.
+> **MANDATORY task — "Validate full affected-owner case coverage."** Create as its own named `TaskCreate` item in Phase 1. Non-skippable whenever this review runs inside a workflow, current git changes are present, or the user requests review; the only exception is a user-narrowed single-case/test review. Resolve every canonical owner implicated by the change set and inspect its full affected case/variant set, independent of which cases the diff touches. The strict default enumerates all Section 8 TCs. A native profile uses its configured owner and case identities. Record owner + case + variant, actual executor, inspected assertion, and status in the same Coverage Mapping Table.
 
 **Phase 2 — Gate Review:** Per test file, apply Gates 1-6 and Gate 8. Apply Gate 7 once across the change set and produce the Coverage Mapping Table. Record per-file verdict table:
 
@@ -330,32 +357,32 @@ Use `TaskCreate` for EACH phase before starting.
 | 4. Domain Logic                   | PASS/FAIL               | {file:line} |
 | 5. Traceability                   | PASS/WARN               | {file:line} |
 | 6. Three-Way Sync                 | PASS/WARN/FAIL/ESCALATE | {file:line} |
-| 7. Change Coverage (per change set) | COVERED/COVERED-UNIT/GAP/SPEC-GAP | {coverage mapping table} |
+| 7. Change Coverage (per change set) | COVERED/COVERED-UNIT/GAP/SPEC-GAP/UNKNOWN | {coverage mapping table} |
 | 8. Scenario Fidelity              | PASS/FAIL               | {file:line} |
 
 **Phase 3 — Spec Cross-Check + Three-Way Diff:** Two directions — from tests AND from changed code.
 
-For each TC ID in code:
+For each case identity in code using the selected profile's traceability carrier (strict default: TC ID):
 
-1. Verify TC entry exists in both the feature doc Section 8 and the test-spec doc, both under the business spec root (default `docs/specs/`; a `specRoots.business.path` entry in `docs/project-config.json` overrides the path)
-2. Read what TC describes in each doc
+1. Verify the canonical owner contains that case identity and inspect any profile-declared derivative test-spec view. Strict default: find the TC in feature Section 8 and test-spec docs under the configured business root.
+2. Read what the canonical case and any derivative view describe
 3. Read what implementation code actually does
 4. Read what test asserts
 5. Classify conflict pattern (Gate 6 table) and record action
-6. Flag gaps both directions: TC in code but not in docs, or "Implemented" TC in docs but no test found
+6. Flag gaps both directions: case identity in code but absent from the canonical owner, or an implemented owner case without an actual executor/assertion
 
 For each behavior-changing production file in the review target (reverse direction — spec-driven development check):
 
-7. Verify a TC exists describing the changed behavior AND read it to confirm it describes the CURRENT behavior — run this even when a covering test was already found and the row is otherwise COVERED. If the TC still describes the OLD behavior, downgrade the row from COVERED to SPEC-GAP and flag it stale (route to `/spec [mode=tests]` UPDATE). Finding a covering test never excuses re-checking the TC's correctness.
-8. New behavior with no TC anywhere → SPEC-GAP finding (Gate 7); recommend `/spec [mode=tests]` (and `/spec` when business rules changed)
+7. Verify a canonical case exists for each changed behavior AND read it to confirm current intent — even when a covering test was already found. A stale case is `SPEC-GAP`; a test never excuses re-checking its owner's correctness.
+8. New behavior with no canonical case → `SPEC-GAP` (Gate 7); route correction through the selected owner's authoring procedure. The strict default uses `/spec [mode=tests]` and `/spec` when business rules changed.
 
-**Phase 3 addendum — Feature-Area-Wide TC Audit (MANDATORY, satisfies Phase 1 "100% Section-8 TC coverage" task).** Steps 1-8 above diff-scoped: map changed production files → TC. This addendum TC-scoped instead, covers TCs the diff never touched:
+**Phase 3 addendum — Full Affected-Owner Case Audit (MANDATORY; satisfies the Phase 1 coverage task).** Steps 1-8 above map changed production files → cases. This addendum case-scoped instead and includes existing cases the diff never touched:
 
-9. Enumerate **every** `TC-{FEATURE}-{NNN}` in Section 8 of **all** feature doc(s) implicated by the change set (or named by the user) — FULL list, not the subset steps 1-8 already visited.
-10. For each TC not already resolved by steps 1-8, find covering test(s) the same way Gate 7 does (graph query / grep the handler or class the TC describes; read test — name match alone NOT coverage) and read TC to confirm it still describes CURRENT behavior.
-11. Classify each using SAME verdicts and Coverage Mapping Table format as Gate 7 (`COVERED` / `COVERED-UNIT` / `GAP` / `SPEC-GAP`) — append rows to the SAME Coverage Mapping Table Gate 7 produces, so review emits one unified table covering both diff-touched and pre-existing TCs.
-12. A `GAP` surfaced here (pre-existing TC, zero covering test — coverage regressed or never written) carries the SAME Phase 5 "WRITE the missing test" obligation as a diff-touched Gate 7 GAP — not a lesser finding merely because the diff didn't touch it. Severity: HIGH minimum per Gate 7's rule.
-13. Zero `GAP` rows across the WHOLE unified table (diff-touched + feature-area-wide) required before review can report PASS on Gate 7 / the Phase 1 mandatory task.
+9. Enumerate every case and declared variant in each affected canonical owner; strict default: every Section 8 TC.
+10. For each case/variant not resolved by steps 1-8, find the actual covering executor and assertion (graph query/grep plus source read; name match alone is NOT coverage) and confirm the owner describes current intent.
+11. Classify it using the Gate 7 verdicts and append it to the SAME Coverage Mapping Table, keyed by owner + case + variant. Respect configured many-to-many mappings; an aggregate may cover several listed cases, while several test variants may cover one scenario.
+12. A `GAP` found here carries the same Phase 5 missing-test obligation as a diff-touched gap — not a lesser finding because the diff missed it. Severity: HIGH minimum per Gate 7.
+13. Zero `GAP` or `UNKNOWN` rows across the WHOLE unified table are required before Gate 7 / the Phase 1 task can pass. Never manufacture individual test outcomes for cases mapped to one aggregate executor.
 
 **Phase 4 — Initial Report:** Write to `tmp/reports/integration-test-review-{date}-{slug}.md`
 
@@ -363,7 +390,7 @@ For each behavior-changing production file in the review target (reverse directi
 
 1. Prioritize: CRITICAL → HIGH → MEDIUM → LOW (LOW is actionable in round 1; record/defer it from round 2 onward)
 2. Per fix: read handler source, understand domain logic, write/fix assertion
-3. **Gate 7 GAP fixes:** WRITE the missing test — integration test first (route through `/integration-test` patterns); unit test only with recorded justification. SPEC-GAP fixes: run `/spec [mode=tests]` UPDATE to add/correct the TC before or alongside writing the test
+3. **Gate 7 GAP fixes:** WRITE the missing test — integration test first (route through `/integration-test` patterns); unit test only with recorded justification. SPEC-GAP fixes: update the selected canonical owner through its declared procedure; the strict default uses `/spec [mode=tests]` UPDATE before or alongside the test.
 4. **Gate 8 fidelity fixes:** repair the SCENARIO, never the assertion — add the ARRANGE-phase settle barrier on a real observable, restore any widened assertion timeout to its original window, remove any retry wrapped around a failing assertion, and comment a deliberate impossible-state setup with why production could reach it
 5. NEVER weaken assertions to make tests pass — fix root cause (timing, data, setup) instead
 6. Re-read changed files to verify fix correctness
@@ -376,7 +403,7 @@ Do not spawn a fresh reviewer to re-review the same findings before validation/f
 1. Copy Agent call shape from `SYNC:review-protocol-injection` template verbatim
 2. Set `subagent_type: "integration-tester"`
 3. Embed full verbatim body of 9 SYNC blocks (all present inline in this skill file): `SYNC:evidence-based-reasoning`, `SYNC:bug-detection`, `SYNC:design-patterns-quality`, `SYNC:logic-and-intention-review`, `SYNC:test-spec-verification`, `SYNC:fix-layer-accountability`, `SYNC:rationalization-prevention`, `SYNC:graph-assisted-investigation`, `SYNC:understand-code-first`
-4. Task field: `"Run a full fresh integration-test review pass over {file-list} after validated fixes were applied. Review against 8 quality gates: assertion value, data state, infinite repeatability, domain logic, test-spec traceability, three-way sync, change coverage, scenario fidelity. Read handler source AND feature docs before judging assertions. Flag smoke-only, existence-only, dead assertions, and repository-created invalid test data as FAIL. Gate 3 also flags tests that are not parallel-safe: assertions hung off a shared mutable entity another test can change, or off a parent a bulk cross-cutting consumer (re-sync/recompute/rebuild/cascade) can wipe even without this test mutating it — each test must own fresh per-test data; prove by grepping other tests on that shared data and every consumer over it. Gate 7: map every behavior-changing production file in {changed-production-file-list} to a covering test (integration-first; unit fallback requires justification) AND a spec TC — uncovered behavior is a HIGH finding minimum, missing/stale TC is a SPEC-GAP finding. Gate 8 (Scenario Fidelity): read each ARRANGE block as a production trace and flag setups production could never reach — distinct actor actions chained with no settle barrier where real life separates them by seconds/minutes/hours, a fixed sleep standing in for a real observable, an assertion timeout widened instead of an ARRANGE barrier added, a retry wrapped around a failing assertion, or a setup state with no explanation of how production reaches it; the finding is on the SCENARIO, never on the assertion. Source-of-truth hierarchy: feature docs > test-spec docs > implementation code > test code. Classify every disagreement as: wrong test, code bug, stale docs, or escalate (three-way conflict)."`
+4. Task field: `"Resolve the selected case profile, then run a full fresh integration-test review pass over {file-list} after validated fixes. Review all 8 quality gates: assertion value, owned outcome, repeatability, behavior ownership, traceability, three-way sync, change coverage, scenario fidelity. Read the canonical owner and relevant production source BEFORE judging assertions. Flag smoke-only, existence-only, dead assertions, and setup that bypasses the behavior under test. Gate 3 uses the project's configured repeat/concurrency policy and isolates shared mutable state. Gate 7: map every behavior-changing file in {changed-production-file-list} and every case/variant in the full affected owner scope to the actual executor and inspected assertion, using the test tier appropriate to the project architecture; strict default uses Section 8 TCs. Preserve configured cardinality, including declared many-to-many mappings; never invent per-variant runner results. Uncovered behavior is a HIGH finding minimum; missing/stale cases are SPEC-GAP; unresolved evidence is UNKNOWN, never PASS. Gate 8: flag unreachable setup, unsupported pacing, blind sleeps, widened assertion timeouts, and retries around failing assertions. Source-of-truth follows the configured canonical owner and declared projections; classify disagreements and escalate unresolved intent."`
 5. Target Files: explicit file list (never pass inline contents)
 6. Reference Docs: include `integration-test-reference.md` from the reference-docs root (default `docs/project-reference`; a `docsRoots.projectReference.path` entry in `docs/project-config.json` overrides the path)
 7. Report path: `tmp/reports/integration-test-review-rerun{N}-{date}.md`
@@ -400,12 +427,12 @@ After sub-agents return:
 
 1. **Classify failure:** Test bug (assertion/setup wrong) vs Service bug (handler broken) vs Environment (service not running, DB timeout)
 2. **Root cause:** Read failing output, trace handler source, identify exact mismatch
-3. **Fix plan per failure:** failing test (`file:line`, TC-ID), error summary, root cause + confidence %, proposed fix
+3. **Fix plan per failure:** failing test (`file:line`, owner-qualified case identity when applicable), error summary, root cause + confidence %, proposed fix
 4. **Apply and rerun** — loop until pass or environment blockers identified
 5. **Environment blockers:** Document as `BLOCKED — requires running system`; do NOT mark as test failures
 6. Append under `## Failure Investigation`
 
-**10+ files:** Parallel sub-agents grouped by module. Each gets file list + 8 gates + handler paths + feature doc paths + the changed-production-file list for its module (Gate 7). Consolidate into single report — the orchestrator merges per-module coverage tables into ONE Coverage Mapping Table covering the whole change set.
+**10+ files:** Parallel sub-agents grouped by module. Each gets file list + 8 gates + handler paths + canonical owner paths + the changed-production-file list for its module (Gate 7). Consolidate into single report — the orchestrator merges per-module coverage tables into ONE Coverage Mapping Table covering the whole change set.
 
 ---
 
@@ -419,7 +446,7 @@ After sub-agents return:
 | **Framework testing** (assert auto-set fields)                       | Tests framework, not handler                         |
 | **Copy-paste assertions** (wrong entity fields)                      | Assertions don't match handler                       |
 | **Hardcoded ID** (`Id = "test-001"`)                                 | Fails on second run                                  |
-| **Cleanup dependency** (`finally { Delete(); }`)                     | Fragile, hides pollution                             |
+| **Broad/destructive cleanup dependency** (deletes persistent/shared/other-run data, or a pass depends on cleanup) | Can erase another test's state, hide contamination, or replace no-reset proof |
 | **Order dependency** (test B needs A first)                          | Parallel execution breaks                            |
 | **Shared mutable entity** (assertions on data another test can change) | Not parallel-safe — another test corrupts the shared state; own fresh per-test data |
 | **Cross-cutting consumer blind spot** (shared parent wiped by bulk re-sync/recompute/rebuild/cascade) | A consumer empties your data without this test touching the parent — sharing is unsafe even without direct mutation |
@@ -435,10 +462,10 @@ After sub-agents return:
 | **Test-files-only scope** (production changes ignored)               | Reviews tests that exist, misses behavior with none  |
 | **Name-match counted as coverage** (test never reads changed path)   | Stale coverage — test passes while change is broken  |
 | **Unjustified unit-test substitution**                               | Skips DI/data-state verification integration gives   |
-| **Spec-less change** (no TC for new/changed behavior)                | Breaks spec-driven development — specs drift silently |
-| **Stale-TC counted as covered** (covering test found, mapped TC never re-read)  | TC documents OLD behavior — coverage path passes a spec gap silently; must downgrade to SPEC-GAP |
+| **Unowned behavior change** (no canonical case for new/changed behavior) | Breaks spec-driven development — behavior drifts silently |
+| **Stale case counted as covered** (covering test found, owner case never re-read) | Canonical owner documents old behavior — coverage path passes a spec gap silently; downgrade to SPEC-GAP |
 | **Surviving mutant left unkilled** (Gate 1 mutation tool not run, or survivor ignored) | A changed line whose mutation no assertion catches = a fakeable, over-fitted test that protects no invariant |
-| **1:1 TC↔test demanded** (one test per TC, method-name=TC, or many-tests-per-TC flagged as duplicate) | Forces splitting/technicalizing business TCs — breaks §8's business/user-story orientation (M1/M5). One TC → many tests is correct |
+| **1:1 case↔test demanded** (or profile-declared many-to-many mapping flagged as duplicate) | Forces splitting/technicalizing business cases and erases declared variants. Follow profile cardinality and prove each mapped case through its actual executor/assertion. |
 
 ---
 
@@ -490,10 +517,10 @@ After sub-agents return:
 | -------------------------- | ---------------------------------------------------------------------- | ------------------------------------------------------------------------------ |
 | `/integration-test`        | **Producer** — generates tests this skill reviews                      | Always preceded by /integration-test                                           |
 | `/integration-test-verify` | **Successor** — runs tests after review clears                         | Call after review passes all 8 gates                                           |
-| `/spec [mode=tests]`                | **TC source** — Gate 5 checks TCs exist in feature doc Section 8       | If Gate 5 fails (orphaned test) → run /spec [mode=tests] UPDATE                         |
-| `/spec-index`              | **Spec authority** — Gate 6 compares test code vs spec bundle          | If Gate 6 finds conflict: spec is authority                                    |
-| `/spec`            | **Business doc** — Gate 6 compares tests vs feature doc business rules | If Gate 6 finds conflict: check spec vs spec-index alignment first |
-| `/docs-update`             | **Orchestrator** — includes spec [mode=sync]                              | Call when Gate 6 reveals doc staleness                                         |
+| `/spec [mode=tests]`                | **Case producer** — reads/updates the selected canonical owner; strict default uses Section 8 TCs | If Gate 5 finds an orphan or stale case → use the selected profile's `/spec [mode=tests]` update path |
+| `/spec-index`              | **Derived view** — refreshes a declared navigation/index projection; it never replaces the canonical owner | Refresh only when the selected profile declares the view and its inputs changed |
+| `/spec`            | **Canonical owner procedure** — Gate 6 compares implementation/tests with the profile-selected owner | If Gate 6 finds conflict, use its declared authority and escalation rules |
+| `/docs-update`             | **Documentation sync** — updates only the configured affected doc owners | Call for confirmed downstream documentation changes; preserve the canonical owner's authoring procedure |
 
 ## Standalone Chain
 
@@ -520,35 +547,35 @@ integration-test-review (you are here)
   │    │    → Unit test fallback ONLY when integration infeasible — record justification
   │    │    → User waiver (verbatim, with reason) is the only alternative
   │    │
-  │    └─ SPEC-GAP (changed behavior, no/stale TC in spec docs):
-  │         → /spec [mode=tests] UPDATE to add or correct the TC
-  │         → /spec [update] when business rules changed
-  │         → Then link the new/updated TC to the covering test (Gate 5)
+  │    └─ SPEC-GAP (changed behavior, no/stale canonical case):
+  │         → use the selected owner's authoring procedure (/spec [mode=tests] UPDATE for the strict default)
+  │         → use /spec [update] when business rules changed
+  │         → link the corrected owner/case identity to its inspected executor and assertion (Gate 5)
   │
   ├─ Gate 6 (Three-Way Sync) conflict resolution:
   │    │
-  │    ├─ Test code ≠ spec (feature doc says behavior A, test asserts behavior B):
-  │    │    → Determine: spec authoritative or test authoritative?
-  │    │    → If SPEC is correct: fix test → re-run /integration-test
-  │    │    → If TEST reflects correct new behavior (spec stale): /spec [update] → /spec [mode=tests] [UPDATE] → update test
+  │    ├─ Test code ≠ canonical owner (contract says behavior A, test asserts behavior B):
+  │    │    → Apply the profile's owner hierarchy; unresolved intent stays AMBIGUOUS and requires user confirmation.
+  │    │    → If the owner governs: fix the test to match it → re-run /integration-test.
+  │    │    → If a confirmed intent change makes the owner stale: update the owner via its declared procedure, then reconcile tests; strict default: /spec [update] → /spec [mode=tests] [UPDATE].
   │    │
   │    ├─ Test code ≠ implementation (test asserts X, code does Y):
-  │    │    → If CODE is correct: fix test → /spec [mode=tests] UPDATE (update TC to match code's correct behavior)
+  │    │    → If CODE is correct: fix the test; update the canonical owner only if an authorized decision confirms its contract is stale (strict default: /spec [mode=tests] UPDATE)
   │    │    → If TEST is correct (code bug): do NOT update test → fix code → re-run tests
   │    │
-  │    └─ Derived index ≠ Feature Spec (the bucket INDEX.md / ERD disagrees with the canonical §1-8):
-  │         → The Feature Spec is canonical; the index is regenerable, never authoritative
-  │         → Run /spec-index to re-derive the index from the specs
-  │         → Do NOT self-resolve — escalate to user if ambiguous
+  │    └─ Derived view ≠ canonical owner:
+  │         → Use the profile-declared owner and derived-view authority; the strict default's Feature Spec outranks its index/ERD.
+  │         → Re-derive the view only through its declared generator (strict default: /spec-index).
+  │         → Do NOT self-resolve an ambiguous owner conflict — escalate to the user.
   │
   ├─ [REQUIRED] → /integration-test-verify
   │     After all fixes, run actual tests to confirm all gates pass.
   │
-  ├─ [REQUIRED] → /spec [mode=sync]
-  │     If TCs were updated (Gate 5/6 fix), reconcile §8 TCs ↔ executing test code.
+  ├─ [REQUIRED] → selected owner/test sync procedure (strict default: /spec [mode=sync])
+  │     If canonical cases were updated (Gate 5/6 fix), reconcile the selected owner ↔ executing test code.
   │
   └─ [RECOMMENDED] → /docs-update
-        If Gate 6 revealed doc staleness, /docs-update runs full chain to update all layers.
+        Use only for confirmed affected downstream documentation; the selected canonical owner keeps its declared authoring/sync procedure.
 ```
 
 > **[IMPORTANT]** Use `TaskCreate` to break ALL work into small tasks BEFORE starting.
@@ -585,17 +612,17 @@ integration-test-review (you are here)
 
 > **MANDATORY:** Integration-test reviews spawn the `integration-tester` sub-agent, NOT `code-reviewer`.
 > Keep `subagent_type: "integration-tester"` from the canonical template below; NEVER revert to `code-reviewer`.
-> **Rationale:** `integration-tester` specializes in test-spec generation, TC traceability, CQRS test patterns, async-polling / eventual-consistency assertion correctness, and cross-service integration context — areas `code-reviewer` does not cover at depth.
+> **Rationale:** `integration-tester` specializes in integration-test generation, case-contract traceability, CQRS test patterns, async-polling / eventual-consistency assertion correctness, and cross-service integration context — areas `code-reviewer` does not cover at depth.
 
 <!-- OVERRIDE:review-protocol-injection -->
 
-> **Review Protocol Injection** — Every fresh sub-agent review prompt MUST embed 11 protocol blocks VERBATIM. The template below has ALL 11 bodies already expanded inline. Copy the template wholesale into the Agent call's `prompt` field at runtime, replacing only the `{placeholders}` in Task / Round / Reference Docs / Target Files / Output sections with context-specific values. Do NOT touch the embedded protocol sections.
+> **Review Protocol Injection** — Every fresh sub-agent review prompt MUST embed 11 protocol blocks VERBATIM, copied WHOLESALE and unmodified. They are the review-tier renderings of their canonical `SYNC:` tags, not literal copies; when a canonical protocol changes, update the matching body here in the same edit. Copy the template wholesale into the Agent call's `prompt` field at runtime, replacing only the `{placeholders}` in Task / Round / Reference Docs / Target Files / Output sections with context-specific values. Do NOT touch the embedded protocol sections.
 >
 > **Why inline expansion:** Placeholder markers would force file-read indirection at runtime. AI compliance drops significantly behind indirection (see `SYNC:shared-protocol-duplication-policy`). Therefore the template carries all 11 protocol bodies pre-embedded.
 
 ### Subagent Type Selection
 
-- `integration-tester` — ALWAYS for integration-test reviews (test files, TC traceability, CQRS/async assertion correctness)
+- `integration-tester` — ALWAYS for integration-test reviews (test files, profile-owned case traceability, CQRS/async assertion correctness)
 - `code-reviewer` — for general code-quality reviews only (NOT integration tests)
 
 ### Canonical Agent Call Template (Copy Verbatim)
@@ -614,13 +641,13 @@ Round {N}. You have ZERO memory of prior rounds. Re-read all target files from s
 ## Protocols (follow VERBATIM — these are non-negotiable)
 
 ### Spec ↔ Tests ↔ Code Triangulation
-DO THIS FIRST — before any per-protocol check below. The review target is the WHOLE PACKAGE, not the diff alone: load the behavior's spec (§3 ACs / §4 BRs / §8 TCs), its tests, and the changed code TOGETHER, and reason about their mutual consistency BEFORE judging any one in isolation.
-1. Locate all three faces: the Feature Spec section(s) governing the changed behavior, the tests that guard it, and the production code that implements it. A missing face is itself a finding (SPEC-GAP / TEST-GAP / DEAD-SPEC).
+DO THIS FIRST — before any per-protocol check below. The review target is the WHOLE PACKAGE, not the diff alone. Read `docs/project-config.json` and resolve `specArtifacts`: a valid profile selects its configured `intent/contracts/evidence` section roles, identifiers, ownership rule, and test-carrier dialects; only an absent profile selects the strict-default business-spec shape (§3 ACs / §4 BRs / §5 invariants / §8 TCs). A malformed or unsupported declaration is `BLOCKED`; never treat it as absent or fall back. Load the governing artifact, its tests, and the changed code TOGETHER, and reason about their mutual consistency BEFORE judging any one in isolation.
+1. Locate all three faces: the canonical owner section(s), the tests that guard them, and the production code that implements them. With a native profile, preserve owner path + case/scenario ID + optional variant and resolve each through its configured carrier to the actual test. A missing face is itself a finding (SPEC-GAP / TEST-GAP / DEAD-SPEC).
 2. Triangulate pairwise — every disagreement is a finding; classify which face is wrong:
-   - code vs spec: behavior the code does that no §3/§4/§8 rule describes → CODE-EXTRA or SPEC-STALE; a [HARD] §4 rule or §5 invariant with no enforcing code path → CODE-WRONG.
-   - tests vs spec: a §8 TC with no test, or a test asserting behavior no TC/rule names → TEST-GAP or SPEC-SILENT.
+   - code vs spec: behavior the code does that no configured `intent/contracts` rule (or strict-default §3/§4/§5/§8 rule) describes → CODE-EXTRA or SPEC-STALE; a hard contract/invariant with no enforcing path → CODE-WRONG.
+   - tests vs spec: a configured native case with no executing assertion, or a test asserting behavior no native rule/case names → TEST-GAP or SPEC-SILENT. Without `specArtifacts`, check strict-default §8 TCs.
    - tests vs code: a changed code path with no covering test → TEST-GAP; a test that still passes against a deliberately broken invariant → WEAK-TEST (apply the mutation thinking in Bug Detection).
-3. Hidden-rule capture: any invariant the code enforces but the spec never states (SPEC-SILENT) MUST be surfaced as a finding to add into §3/§4/§8 AND guarded with a test — the enrichment loop, never a silent pass.
+3. Hidden-rule capture: any invariant the code enforces but the spec never states (SPEC-SILENT) MUST be surfaced as a finding, added to the profile's configured `intent` or `contracts` section, and linked from its `evidence` section to a native case whose executing assertion is inspected. Without a profile, use strict-default §3/§4/§5/§8 and TC. This is the enrichment loop, never a silent pass.
 4. Only after the three faces agree — or every disagreement is logged as a finding — proceed to the per-protocol checks below; when enrichment adds spec/test content, re-review the package against the enriched spec.
 NEVER mark review PASS while any spec/test/code face disagrees without a logged finding. The diff is the entry point; the package is the unit of judgment.
 
@@ -642,15 +669,15 @@ MUST check categories 1-4 for EVERY review. Never skip.
 4. Resource Management: Connections/streams closed? Subscriptions unsubscribed on destroy? Timers cleared? Memory bounded?
 5. Concurrency (if async): Missing await? Race conditions on shared state? Stale closures? Retry storms?
 6. Stack-Specific: Check the configured language/runtime pitfalls and framework-specific failure modes discovered from local code.
-Classify every finding by consequence using `SYNC:severity-rubric` (never by effort): CRITICAL = immediate material security/safety/data-loss risk or failed binary gate → block; HIGH = material correctness, contract, privacy, or authority risk → must fix; MEDIUM = bounded consequential edge/resilience/maintainability gap → must clear the current round, or escalate with an explicit residual-risk follow-up that does not create a clean pass; LOW = non-blocking polish with no credible present impact → record/defer from round 2; `NOT VERIFIABLE` is unresolved evidence, not LOW.
+Classify every finding by consequence (never by effort): CRITICAL = immediate material security/safety/data-loss risk or failed binary gate → block; HIGH = material correctness, contract, privacy, or authority risk → must fix; MEDIUM = bounded consequential edge/resilience/maintainability gap → must clear the current round, or escalate with an explicit residual-risk follow-up that does not create a clean pass; LOW = non-blocking polish with no credible present impact → record/defer from round 2; `NOT VERIFIABLE` is unresolved evidence, not LOW.
 
 ### Design Patterns Quality
 Priority checks for every code change:
-1. DRY via OOP: Same-suffix classes (*Entity, *Dto, *Service) MUST share base class. 3+ similar patterns → extract to shared abstraction.
-2. Right Responsibility: Logic in LOWEST layer (Entity > Domain Service > Application Service > Controller). Never business logic in controllers.
-3. SOLID: Single responsibility (one reason to change). Open-closed (extend, don't modify). Liskov (subtypes substitutable). Interface segregation (small interfaces). Dependency inversion (depend on abstractions).
+1. Consistency and reuse: follow documented local patterns; extract a shared abstraction only when repetition or a demonstrated consumer need justifies its cost. Similar names alone do not require a shared base class.
+2. Responsibility: follow the architecture established by project configuration, references, accepted decisions, and existing code. Place behavior with its actual owner; do not presume an entity/service/controller hierarchy or forbid a layer without project evidence.
+3. Apply cohesion, coupling, and dependency-management principles when their assumptions fit the project's paradigm. SOLID is useful for object-oriented boundaries, not a mandatory checklist for every language or codebase.
 4. After extraction/move/rename: Grep ENTIRE scope for dangling references. Zero tolerance.
-5. YAGNI gate: Recommend extraction when 3+ similar patterns exist OR an evidenced consumer boundary/substitution need justifies it; do not create patterns for hypothetical future use.
+5. YAGNI gate: Treat repeated patterns as evidence to evaluate extraction, not a numeric threshold. Extract when a shared reason to change, real consumers, or an evidenced ownership/substitution boundary lowers total change cost; do not create patterns for hypothetical future use.
 6. Purpose-oriented naming: Name public or cross-layer abstractions by the capability, domain purpose, or contract consumers rely on—not the current provider, SDK, framework, database, or transport. `IStorage`/`Storage` → `AzureBlobStorage`; use `IAzureStorage` only when Azure-specific semantics are intentionally part of the contract.
 7. Contract-fit check: Read callers and every implementation before judging a name; narrow an over-broad abstraction (`IObjectStore`, `DocumentStore`) instead of rewarding a generic name that lies about behavior.
 8. Mechanism/generic-name smell: Treat `Manager`, `Helper`, `Utils`, `Data`, `Thing`, `Service`, `Interface`, type decorations, and unexplained abbreviations as review signals—not automatic defects; flag them only when they hide purpose, scope, or responsibility.
@@ -692,14 +719,14 @@ Example rows (external-record sync fix):
 | Record missing (404)  | Error   | Recreated                 | Fixed      |
 
 ### Fix-Layer Accountability
-NEVER fix at the crash site. Trace the full flow, fix at the owning layer. The crash site is a SYMPTOM, not the cause.
+Do not assume the crash site owns the defect. Trace the actual execution and data flow, then fix the component that owns the violated contract.
 MANDATORY before ANY fix:
-1. Trace full data flow — Map the complete path from data origin to crash site across ALL layers (storage → backend → API → frontend → UI). Identify where bad state ENTERS, not where it CRASHES.
-2. Identify the invariant owner — Which layer's contract guarantees this value is valid? Fix at the LOWEST layer that owns the invariant, not the highest layer that consumes it.
-3. One fix, maximum protection — If fix requires touching 3+ files with defensive checks, you are at the wrong layer — go lower.
-4. Verify no bypass paths — Confirm all data flows through the fix point. Check for direct construction skipping factories, clone/spread without re-validation, raw data not wrapped in domain models, mutations outside the model layer.
-BLOCKED until: Full data flow traced (origin → crash); Invariant owner identified with file:line evidence; All access sites audited (grep count); Fix layer justified (lowest layer that protects most consumers).
-Anti-patterns (REJECT): "Fix it where it crashes" (crash site ≠ cause site, trace upstream); "Add defensive checks at every consumer" (scattered defense = wrong layer); "Both fix is safer" (pick ONE authoritative layer).
+1. Trace the affected path — map the real origin, transformations, boundaries, and observed failure in the surfaces this project uses. Do not invent absent layers.
+2. Identify the contract owner — use project architecture and code evidence to find which component is responsible for the invalid state or behavior.
+3. Choose the correction point — fix the authoritative owner and retain any validation required at untrusted boundaries. A multi-file correction can be valid; justify it by the contracts each file owns rather than a file-count threshold.
+4. Check bypass paths — inspect relevant constructors, adapters, parsers, caches, persistence, or other entry points that actually exist in the affected flow.
+BLOCKED until: The affected path is traced; the owner is supported by file:line evidence; relevant consumers and bypass paths are checked; and the correction point fits the project's architecture.
+Anti-patterns (REJECT): assuming the symptom site is the owner; scattering workarounds without tracing the contract; assuming the lowest technical layer is always authoritative; removing validation from a real trust boundary to force a single correction point.
 
 ### Rationalization Prevention
 AI skips steps via these evasions. Recognize and reject:
@@ -777,14 +804,14 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 
 <!-- SYNC:evidence-based-reasoning -->
 
-> **Evidence-Based Reasoning** — Speculation is FORBIDDEN. Every claim needs proof.
+> **Evidence-Based Reasoning** — Do not present inference as fact; ground material claims in evidence appropriate to the task.
 >
-> 1. Cite `file:line`, grep results, or framework docs for EVERY claim
-> 2. Declare confidence: >80% act freely, 60-80% verify first, <60% DO NOT recommend
-> 3. Cross-service validation required for architectural changes
-> 4. "I don't have enough evidence" is valid and expected output
+> 1. Cite `file:line` for repository claims, configuration or reference paths for project rules, and URLs or artifact locations for external or observed claims.
+> 2. State confidence when a conclusion is uncertain; verify material assumptions before acting and withhold recommendations when evidence is insufficient.
+> 3. Trace the consumers, boundaries, or dependencies that exist in the affected path; do not assume services, modules, or architectural styles that the project does not use.
+> 4. "I don't have enough evidence" is valid and expected output.
 >
-> **BLOCKED until:** `- [ ]` Evidence file path (`file:line`) `- [ ]` Grep search performed `- [ ]` 3+ similar patterns found `- [ ]` Confidence level stated
+> **BLOCKED until:** material claims have traceable evidence, relevant searches are complete, and uncertainties are stated. Search comparable patterns when the task has existing implementations; record when none are available.
 >
 > **Forbidden without proof:** "obviously", "I think", "should be", "probably", "this is because"
 > **If incomplete →** output: `"Insufficient evidence. Verified: [...]. Not verified: [...]."`
@@ -873,27 +900,24 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 
 <!-- SYNC:repeatable-test-principle -->
 
-> **Infinitely Repeatable Tests** — Tests MUST run N times without failure. Like manual QC — run the suite 100 times, each run just adds more data. Verification is only PASS after the relevant suite/project passes 2 consecutive runs without database reset.
+> **Repeatable Tests** — A test suite should produce the same contract result across normal fresh runs and supported concurrency. Use the project's runner and isolation policy; a fixed no-reset database procedure does not fit every harness.
 >
-> 1. **Unique data per run:** Use the project's unique ID generator for ALL entity IDs created in tests. NEVER hardcode IDs.
-> 2. **Persistent/additive data is never deleted or reset:** Tests create data without deleting/resetting persistent, reference, seeded, additive, or shared state. Prior test runs MUST NOT interfere with the current run.
-> 3. **No schema rollback dependency:** Tests work with current schema only. Never rely on schema rollback or migration reversals.
-> 4. **Idempotent seeders:** Fixture-level seeders use create-if-missing pattern (check existence before insert). Test-level data uses unique IDs per execution.
-> 5. **No cleanup required for repeat-proof:** Repeatability must not depend on teardown or database reset between runs. If the project explicitly supports opt-in cleanup, it may remove only current-run ephemeral resources after evidence capture; it must never delete another run's data or replace no-reset proof.
-> 6. **Unique names/codes:** When entities require unique names/codes, append a unique suffix using the project's ID generator.
-> 7. **Migration code excluded:** Do not write tests for migration code. Schema/data migrations are one-time execution paths, not core application logic.
+> 1. Isolate mutable test data from other tests and runs. Use generated identities when the configured environment shares a namespace or data store; stable IDs are fine in an isolated disposable database or deterministic fixture.
+> 2. Cleanup may remove only resources created and owned by that test/run. Use transactions, ephemeral databases, namespaces, teardown, or additive fixtures according to the project's harness; never reset shared or user-owned state.
+> 3. Make shared fixture setup idempotent when the runner may repeat it. Keep schema/migration testing when it is part of the project contract; follow the project's migration harness and never use rollback assumptions that the production system does not support.
+> 4. Verify repeatability at the level required by `integrationTestVerify.guidance`. If absent, use two fresh runs when persistent/shared state or asynchronous effects make one run insufficient; stateful verification must not rely on deleting another run's data.
 
 <!-- /SYNC:repeatable-test-principle -->
 
 <!-- SYNC:test-data-isolation -->
 
-> **Parallel-Safe Test Isolation** — Tests MUST run in parallel and still pass; no test's data may be affected by any other test. `repeatable-test-principle` guards a test against its OWN prior runs; THIS guards it against OTHER concurrent tests, including indirect corruption through a shared parent + a cross-cutting consumer.
+> **Test Data Isolation** — Tests MUST remain independent across the concurrency modes the project supports. Stateful suites should not depend on test order or mutate data another test/run owns.
 >
-> 1. **Own fresh data per test:** Each test creates its own entities with unique IDs, down to the root it asserts on. NEVER assert against a shared mutable entity another test can change; only immutable reference/lookup data may be shared — why: shared mutable state is the single point another test corrupts.
-> 2. **Isolate at the highest mutated entity:** Own a private instance of the highest-level entity (aggregate root/parent) any test mutates. Sharing is safe only for data no test ever writes — why: a writable shared parent is contended ground two tests fight over.
-> 3. **Account for cross-cutting consumers:** A bulk re-sync, recompute, projection rebuild, or cascade any test triggers over a shared parent can rewrite or wipe every entity beneath it — so sharing that parent is unsafe EVEN WHEN your test never mutates it directly — why: the corruption arrives through a consumer, not the path under test.
-> 4. **Suspect contamination FIRST on contradiction:** When a test fails intermittently, or its result contradicts the traced behavior of the path under test (the path is provably innocent yet state is wrong), rule out cross-test interference BEFORE blaming the code under test — why: the innocent path takes the blame for another test's writes.
-> 5. **Prove isolation by search, not assumption:** Grep every OTHER test touching the same shared data AND every consumer that fans out over it; cite `file:line` evidence. Absence of a sharer is a finding to prove, not assume — why: isolation claimed without a search is unverified.
+> 1. **Use the isolation boundary the harness supports:** transactions, per-test databases/schemas, namespaces, fixtures, or unique data as appropriate. Unique IDs are essential when tests share a namespace; stable IDs are fine inside isolated disposable fixtures.
+> 2. **Isolate mutable state when tests can observe or alter it concurrently.** Shared mutable state is safe only when the runner/project provides an explicit isolation guarantee; immutable reference data may be shared.
+> 3. **Account for cross-cutting consumers when they are relevant:** a bulk rebuild, recompute, or cascade can rewrite descendants of a shared parent; inspect that path if another test/run's work could affect the assertion.
+> 4. **On an intermittent contradiction, test contamination as a competing cause.** Trace the path first, then inspect other writers/consumers of shared state before attributing the wrong outcome to product code.
+> 5. **Prove the relevant isolation claim with a scoped search.** Inspect other tests and consumers that can touch the shared data in question; do not demand a repository-wide search when the test owns an isolated store/transaction.
 
 <!-- /SYNC:test-data-isolation -->
 
@@ -901,11 +925,11 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 
 > **Integration Test Execution Discipline** — How the integration-test family (write · review · verify) runs, diagnoses, and clears a suite. Binds `/integration-test`, `/integration-test-review`, and `/integration-test-verify` identically.
 >
-> 1. **Verify the WHOLE system passes — not a hand-picked subset.** `/integration-test-verify` must prove the full relevant suite is green (every test in the system the change can touch), not one cherry-picked test. "All pass" is only true with actual runner output (Passed/Failed/Skipped counts + names) and only after 2 consecutive green runs without a DB reset.
-> 2. **Drive state through real use-case paths — NEVER hack seed data.** Set up every precondition exactly as a real user would: real commands, queries, production consumers/messages, or valid idempotent seeders. NEVER create or mutate domain data by direct repository writes — that fabricates states a user could never reach and hides the real workflow bug. Hacking seed data to force a green run is forbidden.
+> 1. **Verify the configured relevant suite, not a convenient sample.** Resolve test projects/suites from project config and the requested scope. A focused run is diagnostic unless the task explicitly asks for that scope; report actual runner output and do not claim broader coverage than it proves.
+> 2. **Set up valid state without bypassing the contract under test.** Exercise the production entry path when that path is being tested. For unrelated preconditions, use the project's builders, factories, fixtures, seeders, APIs, or persistence setup when they preserve invariants. Never use a shortcut that skips the behavior the assertion is meant to protect.
 > 3. **On ANY failure → `/debug-investigate` the root cause BEFORE any fix.** Do not guess, do not patch the symptom site. Trace the failure end-to-start and classify whose fault it is: test code (wrong assertion/setup), source/production code (real defect), or environment/infrastructure/data. Then route: test-code fault → `/integration-test-review` to fix the test at the root (never weaken assertions or add skips); source-code fault → fix the production defect at the owning layer and report it; environment fault → mark BLOCKED and point at the startup script. NEVER change a test to match broken code.
-> 4. **60-second runtime cap — a slow test is a RED FLAG, not a tuning knob.** Local integration tests run fast. If any single test (or a stalled suite) exceeds ~60s, STOP and treat the slowness itself as a defect signal — deadlock, missing `await`, infinite poll/retry, a real network/external call, or an unbounded query. `/debug-investigate` the cause; NEVER paper over it by raising the timeout or extending the wait.
-> 5. **Loop until the whole suite is green.** After fixing the validated root cause, restart the full 2-run verification from run 1. Done means the entire relevant suite passes repeatably — never green-once, never a subset.
+> 4. **Use project timeouts as budgets, not as fixes.** Investigate a timeout or slow test for deadlock, unbounded work, missing synchronization, or an unavailable dependency. Do not widen an assertion timeout or retry a failing assertion to hide a defect; adjust execution budgets only when evidence shows the configured budget is inappropriate for this environment.
+> 5. **Follow the configured repeat policy.** Read `integrationTestVerify.guidance` and report its required fresh runs, state-reset policy, concurrency, and scope. When no policy is declared, use two fresh green runs for suites with persistent/shared state; use the runner's normal clean/isolated setup and never reset data owned by another run. Preserve executed coverage and disclose what each run proves.
 
 <!-- /SYNC:integration-test-execution-discipline -->
 
@@ -916,15 +940,15 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 > A test earns trust by reproducing a situation the system can actually meet in production. A scenario that could never occur in real life proves nothing when it passes, and wastes hours when it fails.
 >
 > 1. **Ask the fidelity question BEFORE writing the setup:** *"Can this sequence, timing, and data actually occur in production?"* If no, the test is mis-specified — fix the SCENARIO, never the assertion.
-> 2. **Model real pacing between actor steps.** Two distinct actor actions that production separates by seconds, minutes, or hours MUST NOT be fired back-to-back in the same millisecond. Compressed pacing manufactures races the system was never designed to survive, then reports them as product defects. For every browser/UI E2E or human-QC actor operation on a UI control — click/tap, fill/type, key press, select, check/uncheck, drag/drop, upload, or hover used to exercise behavior — wait exactly **500ms at the end of the operation** after its readiness and postcondition waits. This is presentation pacing, never readiness; observe any real settle signal separately, and do not let configuration reduce this delay to zero.
-> 2a. **Default to a reusable, parameterized wait-until utility.** Before every UI-control action, call one canonical `waitUntil(condition, options)` helper with a boolean/async predicate for the page/control to be present, visible, enabled, and actionable, and for any blocking error alert to be absent when success is expected. `options` MUST bound the timeout and poll interval and carry a diagnostic condition description. Reuse the helper through Common, Domain-Shared, and Page objects; do not duplicate polling or replace it with an arbitrary sleep.
-> 2b. **Observe → act → observe.** After every UI-control action, call the same `waitUntil` for the expected positive or negative postcondition before the next action: loading until the next control shows, clicking until the result appears, opening a select/dropdown until its menu/options are visible before choosing, and choosing until the selected value/next state appears. If the page exposes an error alert, wait until it is present for an expected failure or absent for an expected success, then keep the final assertion in the test. A timeout is a test failure with diagnostics, not permission to weaken the assertion.
+> 2. **Model only real actor pacing.** Preserve delays present in the real journey; add presentation pacing only when the project contract configures it. Never add a fixed delay to make readiness or settling appear reliable.
+> 2a. **Use the runner's synchronization idiom.** Before an action, use the browser/device runner's native wait or an evidenced project helper for applicable readiness and actionability. Bound custom waits and include useful diagnostics; do not require a helper API or object model the project does not use.
+> 2b. **Observe → act → observe.** After an action, wait for the expected positive or negative postcondition before the next dependent action, using observable state and the configured runner. Keep the final business assertion in the test. A timeout is a test failure with diagnostics, not permission to weaken the assertion.
 > 3. **Wait on a real signal, never a blind sleep.** Find an observable proving the prior step finished — a persisted state change, an audit/version stamp, a queue/worker idle marker, a completion event — and poll until it settles (unchanged across a short stability window). Use a fixed delay ONLY when no observable exists, and say so in a comment. A browser action delay MUST never replace a readiness/actionability wait.
 > 4. **Barriers belong in ARRANGE, never in ASSERT.** Waiting for a precondition is fidelity. Widening an assertion's timeout, loosening a comparison, adding a retry around a failing assertion, or skipping the test is masking. NEVER do the latter to force green.
 > 5. **Distinguish harness-amplified from real.** Test topologies (shared infra, fan-out consumers, parallel suites, cold starts) can make a rare production race routine locally. Before filing a product defect, state whether the trigger exists in production and at what likelihood.
 > 6. **Keep the protected invariant intact.** Improving fidelity must NEVER reduce what the test protects. If a realistic scenario no longer exercises the rule, the rule needs a DIFFERENT realistic scenario — not a weaker assertion.
 > 7. **Deliberate impossible-state tests are allowed, but MUST be labelled.** Corruption-repair, migration, and fail-safe tests intentionally construct states production should never reach; comment WHY the state is reachable (upstream bug, partial write, legacy data), so they are never confused with unrealistic setups.
-> 8. **Visible browser evidence is part of fidelity.** When a project configures a web surface for human-QC, exercise it through the configured visible Playwright CLI path when supported, attach console/page-error/request listeners before the first interaction, and capture/read the configured screenshot, trace, or video evidence. Redact credentials, tokens, cookies, and sensitive request/response data before persistence; never treat an unread artifact as an observation.
+> 8. **Visible browser evidence is part of fidelity.** When the project contract calls for human-QC on a web surface, use its configured visible browser runner or control path when supported; attach runtime/network listeners before interaction and capture/read the configured screenshots, traces, or video. Follow the runner's native waits or an evidenced bounded project helper, and redact sensitive evidence. An unread artifact is not an observation.
 
 <!-- /SYNC:real-world-fidelity-testing -->
 
@@ -939,7 +963,7 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 > **Test-Failure Fault Adjudication** — When a test fails (or you are debugging or fixing a failure), the job is to determine *who is at fault — the source code or the test code*. Getting that verdict right matters more than turning the suite green. Binds every debug / fix / test skill identically.
 >
 > 1. **Provisional verdict before touching either side.** Classify the observed evidence as SOURCE-WRONG, TEST-WRONG, TEST-NOT-OPTIMAL, ENVIRONMENT-BLOCKED, or AMBIGUOUS; then `/debug-investigate` and trace end-to-start before editing. A green-again suite is NOT the goal.
-> 2. **Triangulate against the spec AND the source.** If a governing Feature Spec covers the behavior (under the business spec root — default `docs/specs`; a `specRoots.business.path` entry in `docs/project-config.json` overrides the path — §3 ACs / §4 BRs / §5 invariants / §8 TCs), it is the tiebreaker for *intended* behavior — compare BOTH the production source and the failing test against it. With no spec, the documented intent / acceptance criteria / caller contract is the reference. Decide from this evidence whether the SOURCE is wrong or the TEST is wrong.
+> 2. **Triangulate against the owner artifact AND the source.** Use the business root selected by `specRoots.business.path`, following the framework config loader's fallback only when the project leaves it unset. Resolve `specArtifacts`: when valid, read its configured `intent/contracts/evidence` sections and locate native cases through configured carriers; when absent, use the strict-default §3 AC / §4 BR / §5 invariant / §8 TC sections. A malformed or unsupported declaration blocks without fallback. Inspect the assertion tied to owner + case/scenario ID + optional variant. The canonical intent decides expected behavior — compare BOTH production source and failing test against it. With no spec, use documented intent / acceptance criteria / caller contract and name that limit. Decide from evidence whether SOURCE or TEST is wrong.
 > 3. **Classify who is at fault, then fix the wrong side at its root:**
 >     - **SOURCE-WRONG** — production code violates the spec's intended behavior or a clear invariant → fix the source at the owning layer; keep or strengthen the test that caught it.
 >     - **TEST-WRONG** — the test encodes a stale or incorrect assertion, setup, or expectation that contradicts intended behavior → fix the test at its root. NEVER weaken an assertion, add a skip, or relax a timeout to force green.
@@ -947,7 +971,7 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 >     - **ENVIRONMENT-BLOCKED** — infrastructure, setup, or external state — including transient resource pressure (RAM/OOM, CPU saturation, disk or temp exhaustion, handle and connection-pool limits, network flakiness, a timeout that is really slowness) — prevents a source/test verdict → preserve diagnostics (exact command, exit code, full output, resource evidence), name the environment remedy, and STOP mutating source or tests until the environment is healthy. This verdict is a FIRST-CLASS candidate weighed in step 1 alongside SOURCE-WRONG and TEST-WRONG — never a fallback reached only after the code looks fine; run `SYNC:environment-fault-hypothesis` to rule it in or out with a stated discriminator. A failure that vanishes on retry stays UNEXPLAINED until its mechanism is named — "flaky" is a symptom, not a verdict.
 >     - **AMBIGUOUS** — evidence or intended behavior does not safely select an owner → ask the user or canonical owner before editing.
 >     - NEVER change a test to match broken source, and NEVER change source to satisfy a broken test. (Migration code excluded — schema/data migrations are one-time execution paths, not core application logic.)
-> 4. **Ask the user when intended behavior is unclear.** If no spec covers the behavior, the spec is silent, or the spec is ambiguous about which side is correct, STOP and `AskUserQuestion` (or consult the canonical spec owner) before editing either side — never silently pick source or test just to make the suite pass.
+> 4. **Ask the user when intended behavior is unclear.** If no owner artifact covers the behavior, the configured sections are silent, or the owner is ambiguous about which side is correct, STOP and ask the user or canonical spec owner before editing either side — never silently pick source or test just to make the suite pass.
 >
 > Reconcile to intended behavior, never to whichever side currently passes — green can encode the very bug.
 >
@@ -959,12 +983,12 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 
 > **Spec ↔ Tests ↔ Code Triangulation** — The unit of review is the WHOLE PACKAGE (spec + tests + code), not the diff alone. Load all three faces together and reason mutual-consistency FIRST, before any isolated per-file check.
 >
-> 1. **Locate all three faces** for the changed behavior: the governing Feature Spec section(s) (§3 ACs / §4 BRs / §8 TCs), the tests that guard it, and the production code. A missing face is a finding (SPEC-GAP / TEST-GAP / DEAD-SPEC).
+> 1. **Locate all three faces** for the changed behavior. Resolve `docs/project-config.json → specArtifacts`: use its configured `sections.intent/contracts/evidence`, business owner path, and test-carrier dialects only when valid; use the strict default Feature Spec sections (§3 ACs / §4 BRs / §5 invariants / §8 TCs) only when the profile is absent. A malformed or unsupported declaration blocks and never falls back. Load the tests and production code with the owner artifact; a missing face is a finding (SPEC-GAP / TEST-GAP / DEAD-SPEC).
 > 2. **Triangulate pairwise** — classify which face is wrong on every disagreement:
->     - code vs spec → CODE-EXTRA / SPEC-STALE / CODE-WRONG (a [HARD] §4 rule or §5 invariant with no enforcing path is CODE-WRONG).
->     - tests vs spec → TEST-GAP / SPEC-SILENT.
+>     - code vs spec → CODE-EXTRA / SPEC-STALE / CODE-WRONG (a hard rule in the configured `contracts` role, or strict-default §4/§5 invariant, with no enforcing path is CODE-WRONG).
+>     - tests vs spec → TEST-GAP / SPEC-SILENT; with a native profile, check owner + case/scenario ID + optional variant against the actual executor and inspected assertion, not an ID match alone.
 >     - tests vs code → TEST-GAP / WEAK-TEST (a test that survives a deliberately broken invariant).
-> 3. **Capture hidden rules** — an invariant the code enforces but the spec never states (SPEC-SILENT) is surfaced as a finding, added into §3/§4/§8, and guarded with a test: the enrichment loop, never a silent pass.
+> 3. **Capture hidden rules** — an invariant the code enforces but the spec never states (SPEC-SILENT) is surfaced as a finding, added to the configured `intent` or `contracts` section and represented in its `evidence` section with a guarding native case/test; without a profile, use strict-default §3/§4/§8 and TC. This is the enrichment loop, never a silent pass.
 > 4. **Re-review after enrichment** — when triangulation adds spec content or a test, re-review the package against the enriched spec; converge only when a full pass surfaces no new disagreement.
 >
 > NEVER mark PASS while any face disagrees without a logged finding. The diff is the entry point; the package is the unit of judgment.
@@ -973,17 +997,17 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 
 <!-- SYNC:spec-drift-adjudication -->
 
-> **Spec drift adjudication (code-wrong vs spec-stale).** Whenever changed behavior diverges from a canonical Feature Spec (business rule, acceptance criterion, flow, state transition, or §8 TC under the business spec root — default `docs/specs`; a `specRoots.business.path` entry in `docs/project-config.json` overrides the path), you MUST NOT silently pick a side. Adjudicate per `shared/sdd-artifact-contract.md` → **Drift Gates**:
+> **Spec drift adjudication (code-wrong vs spec-stale).** Whenever behavior diverges from a canonical owner artifact under the configured business root (`specRoots.business.path`, default `docs/specs`), you MUST NOT silently pick a side. Resolve and validate `specArtifacts` from `docs/project-config.json`: when valid, use its `intent/contracts/evidence` section roles and native case carriers; only when absent, use the strict-default Feature Spec sections (§3 AC, §4 BR, §5 invariant, §8 TC). A malformed or unsupported declaration blocks; never fall back. Adjudicate per `shared/sdd-artifact-contract.md` → **Drift Gates**:
 >
-> 1. **Detect** — compare the change against the spec's documented intent. No divergence → record `Spec in sync` and move on.
+> 1. **Detect** — compare the change against the owner's documented intent/contracts and linked evidence. No divergence → record `Spec in sync` and move on.
 > 2. **Classify** the divergence:
->    - **CODE-WRONG** — the spec correctly states intended behavior and the change violates it → BLOCKING finding; fix the code/test against intended behavior (write/adjust a regression TC first).
->    - **SPEC-STALE** — the change is the new intended behavior and the spec now documents the old/wrong behavior → update the spec FIRST via `/spec [mode=update]`, then sync `/spec [mode=tests]` + `/spec [mode=sync]`.
->    - **AMBIGUOUS** — intended behavior is unclear → `AskUserQuestion` (or the canonical spec owner) before editing either side.
->    - **SPEC-SILENT** — the code correctly enforces an invariant/behavior that NO canonical spec artifact (§3 AC, §4 BR, §5 invariant, §8 TC) states → not drift but an UNWRITTEN rule discovered by review. ENRICH the spec via the **Invariant Harvest** pass (`/spec [mode=sync] direction=harvest` → `spec/references/sync.md`): prove it is always-true (≥2 enforcement points or a rejecting guard), express it as a universally-quantified property, then add the rule to §4 (or §3/§5) AND a §8 TC via `/spec [update]` + `/spec [mode=tests]` and add the guarding test. A discovered invariant left only in code (or only in tests) is INCOMPLETE — this is the highest-value capture (the rule nobody wrote down).
+>    - **CODE-WRONG** — the owner artifact correctly states intended behavior and the change violates it → BLOCKING finding; fix the code/test against intended behavior, creating or updating a regression case in the configured native carrier (strict-default TC when no profile exists).
+>    - **SPEC-STALE** — the change is the new intended behavior and the owner now documents the old/wrong behavior → update the canonical owner FIRST through the configured spec workflow, then synchronize its evidence/test carriers. Without a profile, use `/spec [mode=update]`, `/spec [mode=tests]`, then `/spec [mode=sync]`.
+>    - **AMBIGUOUS** — intended behavior is unclear → ask the user or canonical spec owner before editing either side.
+>    - **SPEC-SILENT** — code correctly enforces an invariant/behavior absent from the owner artifact → not drift but an UNWRITTEN rule. Prove it is always-true (≥2 enforcement points or a rejecting guard), express it as a universally-quantified property, add it to the configured `intent` or `contracts` section, and link it from `evidence` to a native case with an inspected assertion. Without a profile, use the invariant-harvest workflow to add the rule to strict-default §4 (or §3/§5) and a guarding §8 TC. A discovered invariant left only in code or tests is INCOMPLETE.
 > 3. **Never normalize drift just because code/tests are green** — green can encode the drift itself. Reconcile to canonical intent, never to whichever side currently passes.
 >
-> A behavior-changing review/implementation that leaves a spec divergence unadjudicated is INCOMPLETE; an unwritten-but-enforced invariant left uncaptured (no §4/§8 entry) is equally INCOMPLETE.
+> A behavior-changing review/implementation that leaves a spec divergence unadjudicated is INCOMPLETE; an unwritten-but-enforced invariant left uncaptured in the configured owner and case evidence (strict-default §4/§8) is equally INCOMPLETE.
 
 <!-- /SYNC:spec-drift-adjudication -->
 
@@ -991,6 +1015,7 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 
 > **AI Mistake Prevention** — Failure modes to avoid on every task:
 >
+> **Project applicability gate.** Before applying a stack, layer, style, tool, or architecture rule, read the project's config and relevant references, then check local implementations. Treat framework examples as examples; honor explicit N/A and do not require a technology or convention the project does not use.
 > **ROOT-CAUSE GATE — INVESTIGATE FIRST.** Before applying any project-related correction, always use the project's root-cause investigation protocol and establish the cause; the failure site may be only a symptom.
 > **FAILED-TEST GATE.** For any failed or unstable test, use the project's test-investigation protocol before editing source or tests; never change either side merely to force green.
 > **Re-read files after context changes.** Context compaction, resume, or long-running work can make memory stale; verify current files before acting.
@@ -1027,11 +1052,11 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 > **Project Reference Docs Gate (static JIT)** — Run after task-tracking bootstrap and immediately before target/source file reads, grep, edits, tests, or analysis. Project docs override generic framework assumptions; hooks may remind or accelerate this gate, but never prove that it ran.
 >
 > 1. Identify scope: file types, domain area, and operation.
-> 2. **Read `docs/project-config.json` first — the project's machine-readable map.** It is the single source of truth for THIS repo (modules/paths, framework + search keywords, test/E2E/integration run-commands, design system, architecture rules, workflow patterns); ground exact paths, run-commands, and conventions on it **before investigating, planning, or coding** — never assume framework defaults (`CLAUDE.md` + reference docs are derived from it). If it — or the docs index, `lessons.md`, `CLAUDE.md`, `AGENTS.md`, or any required reference doc — is missing or stale, auto-run `/project-init` or the narrow route (`/project-config`, `/docs-init`, `/scan-all`, `/scan --target=<key>`, `/ai-context-refresh`) first; if Codex mirrors or `AGENTS.md` are stale, use the explicit `/sync-codex` route, or the documented `/ai-context-refresh` completion handoff when that is the active source-authoring task.
-> 3. Required docs by trigger — every filename below is canonical and resolves inside the reference-docs root (default `docs/project-reference`; a `docsRoots.projectReference.path` entry in `docs/project-config.json` overrides the path): always `lessons.md`; doc lookup `docs-index-reference.md`; review `code-review-rules.md`; backend/CQRS/API `backend-patterns-reference.md`; domain/entity `domain-entities-reference.md`; frontend/UI `frontend-patterns-reference.md`; styles/design `scss-styling-guide.md` + `design-system/design-system-canonical.md`; integration tests `integration-test-reference.md`; E2E `e2e-test-reference.md`; feature docs/specs `feature-spec-reference.md` + `spec-system-reference.md` + `spec-principles.md`; behavior/public-contract/spec-test-code sync `workflow-spec-test-code-cycle-reference.md`; derived spec index/ERD/reimplementation guides `spec-system-reference.md` + source Feature Specs under the business spec root (default `docs/specs`; a `specRoots.business.path` entry in the same config overrides the path); architecture/new area `project-structure-reference.md`.
-> 4. Read every required doc, then before target work state: `Reference docs read: ... | Not applicable: ...`. After compaction, resume, delegation, or a material context change, repeat the route and restate the set; prior conversation and hook output are not proof of current loading.
+> 2. **Read the configured project-config file first, if it exists.** Resolve its path through the project-config loader (default `docs/project-config.json`). **The project config is OPTIONAL: a project with no config is a supported, first-class state, not an error.** When it is absent, run on the framework's portable defaults and derive project facts (paths, run commands, conventions, architecture, test and spec layout) from repository evidence — manifests, lockfiles, scripts, CI definitions, directory layout, root instruction files — stating the assumption whenever one is material; do not block, and do not demand a bootstrap route before ordinary work. When it IS present, the minimum valid shape has a non-empty `project.name`; omitted optional capability properties use neutral defaults or skip that capability. A section its author DECLARED but left malformed or incomplete is a configuration error: fail closed on that section and run `/project-init` or `/project-config` before relying on it, because silently substituting defaults would present wrong project facts as authoritative. Use valid config for the adopter's paths, commands, architecture, specs, tests, and workflows, then verify material hints against repository evidence; never assume generic defaults are project facts.
+> 3. **Always-on vs task-specific references:** Project initialization owns and ensures the project's `lessons.md` and docs-index inputs at their configured owner paths. Read them under the static project-context contract independently of task-specific `referenceDocs`; do not append them to that selection. For task-specific docs, when the configured `referenceDocs` property is an array, follow it exactly, including subsets and `[]`. When absent, use the runtime capability-aware resolver: its portable baseline plus only configuration- or repository-evidenced capabilities; a minimal project with no capability evidence may resolve to an empty task-specific set. The full scan-target manifest is a registry of metadata/aliases, not a default selection. Resolve configured paths using `docsRoots.projectReference.path` when present (default `docs/project-reference`; `docsRoots.projectReference.path` in `docs/project-config.json` overrides it). A custom reference doc declares `filename` and `purpose`, with optional `sections`, `templatePath`, and `scanTarget`. Built-in filenames keep their exact framework-owned target; other custom docs default to manual ownership, while `scanTarget: "generic"` opts one exact selected file into evidence-based scanning. Manual docs are not freshness-tracked or impact-routed. Never infer a target by basename; config and runtime path resolution reject lexical traversal and physical symlink escapes.
+> 4. Read selected task-specific docs just in time before target work, then state: `Reference docs read: ... | Not applicable: ...`; an explicit empty selection means no task-specific docs are selected by the catalog. Still honor separately required references named by the active skill or task. An absent project config is not a missing doc: proceed on repository evidence and, at most, OFFER `/project-init` or `/project-config` as an optional one-time recording of those facts. If an always-on input or a selected/otherwise required doc is missing or stale, or a declared config section is malformed, use `/project-init` or the narrow owner route (`/project-config`, `/docs-init`, `/scan --target=<key>`, `/ai-context-refresh`) before relying on that input. If Codex mirrors are stale, use the explicit `/sync-codex` route or its documented `/ai-context-refresh` completion handoff for the active source-authoring task. After compaction, resume, delegation, or material context change, repeat selection and reading; prior conversation and hook output are not proof of current loading.
 >
-> **Ready when:** scope evaluated, `docs/project-config.json` consulted, required docs checked/read or setup route completed, `lessons.md` confirmed, citation emitted.
+> **Ready when:** scope evaluated, the configured project-config file consulted or its absence recorded and the portable-defaults fallback applied, root always-on inputs are confirmed (completing project initialization if they are missing or stale), the declared task-specific `referenceDocs` selection is applied exactly or, when absent, the runtime capability-aware resolver output is applied (which may be empty), selected docs are read or an explicit empty selection is recorded, and the citation emitted.
 
 <!-- /SYNC:project-reference-docs-guide -->
 
@@ -1214,23 +1239,23 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 
 <!-- SYNC:test-architecture-execution-contract -->
 
-> **Test Architecture & Execution Contract** — Treat testability as a setup/architecture acceptance condition. For every potentially applicable tier — Unit, Integration/System, E2E, and Performance/Scale (warranted at `T1+`/`B2+`) — record `APPLICABLE` only with evidence of its runner/framework/configuration; otherwise record `N/A — <evidence>` and never fabricate coverage.
+> **Test Architecture & Execution Contract** — Treat testability as a setup/architecture acceptance condition. Identify the test types and execution modes required by the project contract and task risk; examples include unit, integration/system, E2E, and performance/scale. Record `APPLICABLE` only with evidence of a relevant runner/framework/configuration; otherwise record `N/A — <evidence>` and never fabricate coverage or impose a universal tier threshold.
 >
-> 0. **Given / When / Then is mandatory for every assertion-bearing test.** Every Unit, Integration/System, E2E, Performance/Scale, contract, architecture, security, accessibility, visual, property, mutation, and harness test must expose one explicit scenario: `Given` = actor/input/precondition/fixture/environment · `When` = the behavior, request, event, check, or workload trigger · `Then` = the observable business/technical outcome, invariant, error/access decision, visual state, or asserted budget. Use `And` only as a continuation. Framework-native BDD blocks, named helpers, or comments are valid representations; bare `Arrange/Act/Assert` is insufficient unless those three phases are also labeled `Given/When/Then`.
->    Record `Business Intent / Invariant Guarded` (or the technical contract being checked), keep one behavior per case, and split unrelated outcomes. `Then` asserts the outcome the test owns, not only an internal call, delivery bookkeeping, or setup side effect. Fixture/runner glue is exempt only when it contains no test assertion; every assertion-bearing test entry point is in scope. Convert legacy brownfield cases when touched; a broader migration is a named owned opportunity, while a safety-critical case without clear phases is `BLOCKED`.
+> 0. **Make the protected intent explicit in the project's test format.** Every assertion-bearing test states the behavior or technical invariant it protects and makes its relevant inputs, trigger, and owned outcome understandable. Use `Given / When / Then` when the project's spec/config selects it or when it fits the test; otherwise preserve the project's native organization. Property/fuzz tests may describe an input space or generator and the property checked; harness and mutation tests may use their native contract. Do not rewrite a test solely to adopt a framework-wide syntax.
+>    Link the case to the configured owner/case/scenario identity and its `intent` or `contracts` role when `specArtifacts` is valid; when absent, record `Business Intent / Invariant Guarded` (or the technical contract). A malformed declared profile blocks without fallback. Keep one behavior per case and split unrelated outcomes. The final assertion must prove the outcome the test owns, not only an internal call, delivery bookkeeping, or setup side effect. Fixture/runner glue is exempt only when it contains no test assertion; every assertion-bearing test entry point is in scope. Convert legacy brownfield cases when touched; a broader migration is a named owned opportunity, while a safety-critical case without clear phases is `BLOCKED`.
 >
-> 1. **Matrix before implementation:** Record applicability, owner, runner/framework, test root, fixture/data strategy, full command, focused/partial command, zero-match behavior, CI gate, a simple/Windows entry point (a `.cmd` when the project needs one), the **host-mode AND container-mode commands** where the project supports both, and the **environment reach** (which of local / CI / production-shaped this tier can target).
+> 1. **Matrix before implementation:** For each required test type, record applicability, owner, runner/framework, test root, fixture/data strategy, full command, focused/partial command, zero-match behavior, CI gate, a simple/platform-appropriate entry point when useful, each supported execution mode, and the environments the project promises to support.
 > 1a. **E2E profile handoff:** For E2E, also record the selected `surfaceIds[]`, the linked `localRun` owner, auth mode/reference, seed/data mode, browser runner/engine/headed setting, action-delay policy, evidence root/capture/redaction policy, and convergence cap. Missing fields remain explicit blockers or N/A; they are never filled from generic browser defaults.
-> 2. **Runnable scopes:** Full and focused commands must be copy-ready, fail on invalid or zero-match selections, report exact counts and exit status, and be safe to repeat. E2E uses only configured browser/service commands. Before every browser/UI E2E operation on a UI control, use the canonical bounded `waitUntil(condition, options)` helper for readiness/actionability and applicable blocking error-alert absence; after the operation, use it for the expected positive/negative postcondition or error-alert state, then wait exactly **500ms** at the end. The delay is presentation pacing, never a readiness or settle mechanism, and applies to automation as well as visible human-QC.
-> 2a. **E2E object-model gate (when E2E is applicable):** Build and reuse a three-tier test object model — **Common components** for cross-feature controls, **Domain-Shared components** for reusable domain behavior, and **Page components/objects** for page-specific composition. Each object records its tier, owner, and base abstraction.
-> 2b. **E2E abstraction and DRY gate:** Use an idiomatic abstract base class or language-equivalent protocol/trait for shared lifecycle, locator, readiness, and pacing behavior; centralize purpose-specific utilities/helpers for data, auth, and evidence; keep assertions in tests. Reuse or compose existing objects before creating new ones, keep one canonical owner for each selector/action/wait, and treat duplicated wrappers or setup as a finding; extract at 3+ similar implementations.
-> 2c. **E2E test layering:** Test a reusable Common or Domain-Shared component contract once, then let Page tests cover page-specific composition and outcomes; do not copy lower-tier component cases into every Page test.
-> 2d. **E2E wait-until gate:** The object model MUST expose or compose one reusable `waitUntil(condition, options)` utility accepting a positive or negative boolean/async predicate, bounded timeout/poll settings, and a diagnostic description. Before each action wait for a ready/actionable control and the applicable error-free precondition; after each action wait for the expected state transition, dropdown/options visibility, selected state, or expected error-alert presence/absence. Keep the final business assertion in the test and fail with the wait diagnostics on timeout.
-> 3. **Fresh valid state:** Each run/test owns a unique run identity and business-data suffix, arranges through supported public paths, and uses realistic valid data. Reference setup is count-before-create, idempotent, and restart-safe. Intentional accumulation is additive, keyed, and integrity-checked; never hide contamination with destructive reset.
+> 2. **Runnable scopes:** Full and focused commands must be copy-ready, fail on invalid or zero-match selections, report exact counts and exit status, and be safe to repeat. E2E uses configured browser/service commands and the project's documented synchronization strategy. Browser UI actions should wait for bounded, observable readiness and outcome conditions using runner-native waits or a configured helper; apply action delays only when the project contract specifies them.
+> 2a. **E2E organization gate (when E2E is applicable):** Inspect the configured/discovered local test organization and reuse it — fixtures, shared helpers, scoped locator handles, page objects, or another evidenced structure. Record actual owners and boundaries; describe tiers or base abstractions only when the project uses them. A Page Object Model is one valid pattern, never a universal requirement.
+> 2b. **E2E reuse and DRY gate:** Keep shared lifecycle, locator, readiness, auth, data, and evidence behavior at the project's existing reusable owner; keep final outcome assertions in the test. Reuse or compose existing helpers/objects before creating new ones, preserve one canonical owner for each selector/action/wait, and treat duplicated wrappers or setup as a review signal; use occurrence counts only as evidence, and extract when a shared owner reduces change cost without crossing project boundaries.
+> 2c. **E2E test layering:** Test reusable shared behavior at its actual owner where the harness supports it; feature tests cover user outcomes and local composition. Do not invent component tiers or require lower-tier contract tests when the project has no such model.
+> 2d. **E2E synchronization:** Use bounded runner-native waits or the configured project helper for observable preconditions and postconditions where the runner supports them. Include useful timeout diagnostics; keep the final business assertion in the test and avoid fixed sleeps as readiness evidence.
+> 3. **Fresh valid state (when mutable or shared state applies):** Isolate each test/run using the project's supported setup and public paths where applicable. Use unique identities for shared mutable data, realistic valid data for behavior under test, and idempotent/restart-safe setup when fixtures or seeders can persist. Intentional accumulation is additive and integrity-checked; never hide contamination with destructive reset.
 >    Run-scoped cleanup, when supported, is opt-in and idempotent: after evidence capture it may remove only ephemeral resources owned by the current run; it must never delete persistent/additive data or another run's data, reset shared state, or replace no-reset proof.
-> 4. **Isolation and fidelity:** Isolate mutable roots and parallel workers; share only immutable/reference data. Preserve real actor pacing and observable arrange barriers. Do not widen retries or weaken assertions to make a scenario pass.
-> 5. **Evidence gate:** Report command, scope, identity, seed/accumulation mode, exact result, and repeat proof. For each applicable persistent-state suite, require two consecutive no-reset full runs. Treat line coverage as diagnostic only; use meaningful property/invariant, mutation, change, and behavior coverage signals.
-> 6. **Execution modes and environment reach:** A tier claiming two run modes must have **BOTH exercised** — the bare-host command and the fully-containerized command, driven from ONE source of truth for config and topology; record which mode CI exercises, because an unexercised mode rots silently and a claimed-but-rotten mode is worse than one never claimed. The SAME suite must reach local, CI and (where warranted) a production-shaped target, **parameterized by configuration, never by forked test code** — only one fork ever stays maintained, so forking guarantees divergence. A target lacking a required capability reports `ENVIRONMENT-BLOCKED`, never a silent pass. Tests unsafe against production are excluded by an **ENFORCED** mechanism whose absence fails loudly, not by a convention someone must remember; *"runs in prod"* means a safe, declared, **NON-MUTATING** subset. Reproducibility underwrites all of it — pinned toolchain, locked dependencies, declared external prerequisites — which is the difference between a suite that passes anywhere and one that passes on its author's machine. Depth → `SYNC:engineering-foundation-gate` **F1/F2/F3**.
+> 4. **Isolation and fidelity:** When tests touch mutable/shared state, isolate their data and parallel workers; share only immutable/reference data. Use realistic input and observable arrange barriers where the behavior depends on them. Do not widen retries or weaken assertions to make a scenario pass.
+> 5. **Evidence gate:** Report command, scope, relevant identity/data mode, exact result, and repeat proof. For persistent-state suites, verify repeatability without destructive reset at the level required by the project gate. Treat line coverage as diagnostic only; use meaningful property/invariant, mutation, change, or behavior signals when supported by the project's tooling.
+> 6. **Execution modes and environment reach:** Exercise each mode and environment the project declares it supports (for example host/container or local/CI); parameterize supported targets when that fits the existing test architecture instead of maintaining needless forks. Record unexercised declared capabilities as a gap. A production-shaped target is applicable only when the project requires it; tests that can reach production need an enforced safe scope, and must report `ENVIRONMENT-BLOCKED` when it is missing. Pin dependencies and declare external prerequisites where the project's reproducibility contract requires them. Depth → `SYNC:engineering-foundation-gate` **F1/F2/F3**.
 >
 > **Ownership:** Architecture/harness defines the matrix; scaffold/workflow makes it runnable; test writers implement tier-specific cases; reviewers verify the contract; the runner reports; seed-data owners preserve uniqueness, idempotency, realism, and accumulation integrity. Missing required evidence blocks setup completion.
 
@@ -1238,13 +1263,13 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 
 <!-- SYNC:critical-thinking-mindset:reminder -->
 
-**MUST ATTENTION** apply critical + sequential thinking — every claim needs appropriate traced evidence (`file:line` for repo/code claims; source URL or artifact section for research, product, content, and docs claims); confidence >80% to act, <60% DO NOT recommend. Anti-hallucination: never present guess as fact, admit uncertainty freely, cross-reference independently, stay skeptical of own confidence.
+**MUST ATTENTION** critical + sequential thinking: every claim carries traced evidence (`file:line` for code, source URL or artifact section otherwise); confidence >80% to act, <60% do NOT recommend. Never present a guess as fact; admit uncertainty and stay skeptical of your own confidence.
 
 <!-- /SYNC:critical-thinking-mindset:reminder -->
 
 <!-- SYNC:ai-mistake-prevention:reminder -->
 
-**MUST ATTENTION** ROOT-CAUSE GATE: before any project-related correction, use the appropriate root-cause investigation protocol; failed/unstable tests require the test-investigation protocol before editing source/tests — never force green.
+**MUST ATTENTION** Check project config, relevant references, and local evidence before applying stack-specific conventions; honor explicit N/A. ROOT-CAUSE GATE: before any project-related correction, use the appropriate root-cause investigation protocol; failed/unstable tests require the test-investigation protocol before editing source/tests — never force green.
 
 <!-- /SYNC:ai-mistake-prevention:reminder -->
 
@@ -1257,10 +1282,10 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 
 <!-- SYNC:project-reference-docs-guide:reminder -->
 
-- **MANDATORY** Before investigating, planning, or coding, read `docs/project-config.json` (the project map: modules/paths, run-commands, conventions, architecture/workflow rules) + the required project-reference docs, and cite `Reference docs read: ...`.
-- **MANDATORY** Load detail just in time immediately before the first target read/grep/edit/test; hooks may provide a pointer, but a hook event or prior turn is never evidence that the current files were read.
-- **MANDATORY** Always include `lessons.md`; project config + conventions override generic framework defaults.
-- **MANDATORY** If project config, root instruction files, or any required reference doc is missing or stale, auto-run `/project-init` or the narrow lower-level route before ordinary project-specific work. On compaction, resume, delegation, or a context change, re-read the required docs and restate the route before continuing.
+- **MANDATORY** Before project-specific work, load the OPTIONAL project-config (default `docs/project-config.json`) via its loader. No config is supported — fall back to portable defaults plus repository evidence, state material assumptions, never block. When present: require non-empty `project.name`, use neutral defaults/skips for omitted optional capabilities, and fail closed on a declared malformed section.
+- **MANDATORY** Apply an explicit `referenceDocs` array exactly, including `[]`; when absent use only the capability-aware resolver output, which may be empty. Cite `Reference docs read: ...` and note the selected or empty set.
+- **MANDATORY** Load detail JUST IN TIME, immediately before the first target read/grep/edit/test — a hook event or a prior turn is NEVER evidence that the current files were read. Re-resolve selection and re-read after compaction, resume, delegation, or a context change.
+- **MANDATORY** The project-init-owned `lessons.md` and docs-index inputs are always-on at their configured owner paths, read independently of task-specific `referenceDocs`. A missing/stale root instruction file or required reference doc, or a malformed declared config section → auto-run `/project-init` (or the narrow lower-level route) before relying on that input. An absent config never gates work — offer `/project-init` or `/project-config` once. Project config and conventions override generic framework defaults.
 
 <!-- /SYNC:project-reference-docs-guide:reminder -->
 
@@ -1307,9 +1332,9 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 
 <!-- SYNC:double-round-trip-review:reminder -->
 
-- **MANDATORY IMPORTANT MUST ATTENTION** execute the review loop (aka **Self-Review Convergence Loop**): review → validate findings → fix validated blocking findings → full re-review. Round 1 ends only with zero findings and the persisted `minRounds` met; from round 2 onward, zero CRITICAL/HIGH/MEDIUM ends the loop once the persisted minimum is met and LOW findings are recorded as deferred. Any newly produced output/judgment gets ≥1 self-review; any new judgment gets ≥1 `/why-review --validate-findings` pass before it is treated as final.
-- **MANDATORY** apply the **severity floor**: round 1 exits on zero findings at any severity; **from round 2 the bar is zero CRITICAL/HIGH/MEDIUM — LOW findings are no longer required to be fixed, so a LOW-only round ENDS the loop once the persisted minimum is met.** List every deferred LOW in the report; NEVER re-tier a real CRITICAL/HIGH/MEDIUM down to LOW to reach the exit, and NEVER apply the floor to a binary gate (test-green, security must-fix).
-- **MANDATORY** enforce the **round cap of 2, extendable ONCE to round 3 — a ceiling, NEVER a target**: a clean pass ends the loop once the persisted `minRounds` is met (default 1; explicit 2 requires an independent pass). Round 2 completing with validated **CRITICAL/HIGH** still open (a failed non-test binary gate counts as CRITICAL) grants exactly ONE extra round (round 3); round 2 completing with only MEDIUM/`NOT VERIFIABLE` open, or round 3 completing with any review blocker still open → **STOP & escalate via `AskUserQuestion`**, never a silent PASS. The 2-repeated-no-progress blocker rule is an earlier exit — escalate at whichever trips first. A **failing test gate has NO round cap** — keep fixing and re-running until the tests pass, never forcing green; it never escalates for budget and never buys the extension. NEVER loop past round 3 on review blockers, and NEVER re-tier a finding to buy or dodge the extension.
+- **MANDATORY IMPORTANT MUST ATTENTION** run the review loop (aka **Self-Review Convergence Loop**): review → validate findings → fix validated blocking findings → FULL re-review. Any newly produced output/judgment gets ≥1 self-review, and any new judgment ≥1 `/why-review --validate-findings` pass, before it is treated as final.
+- **MANDATORY severity floor:** round 1 exits only on zero findings at any severity; from round 2 the bar is zero CRITICAL/HIGH/MEDIUM, so a LOW-only round ENDS the loop once the persisted `minRounds` is met — list every deferred LOW in the report. NEVER re-tier a real CRITICAL/HIGH/MEDIUM down to reach the exit, and NEVER apply the floor to a binary gate (test-green, security must-fix).
+- **MANDATORY round cap of 2, extendable ONCE to round 3 — a ceiling, NEVER a target.** A clean pass ends the loop once the persisted `minRounds` is met (default 1; explicit 2 requires an independent pass). Round 2 ending with a validated CRITICAL/HIGH still open (a failed non-test binary gate counts as CRITICAL) grants exactly ONE extra round; round 2 ending with only MEDIUM/`NOT VERIFIABLE` open, or round 3 ending with any review blocker open → **STOP and escalate via `AskUserQuestion`**, never a silent PASS. The 2-repeated-no-progress blocker rule escalates earlier if it trips first. A failing TEST gate has NO round cap and buys no extension — keep fixing and re-running until tests pass, never forcing green.
 
 <!-- /SYNC:double-round-trip-review:reminder -->
 
@@ -1325,9 +1350,9 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 
 <!-- SYNC:trade-off-interrogation-gate:reminder -->
 
-- **MANDATORY MUST ATTENTION ALWAYS ASK THE 3 TRADE-OFF QUESTIONS** — on the thing under review AND on every recommendation you make: (1) **is there any trade-off?** name what it SACRIFICES (change cost · complexity · perf · coupling · reversibility · migration · ops load · blast radius · security · testability · delivery time · UX) — "none"/"pure win" is an unfinished analysis, so state the dimensions checked; (2) **is it worth it?** gain (with a metric) vs cost, WHO pays, WHEN → emit **WORTH IT / NOT WORTH IT / UNCLEAR**; NOT WORTH IT → withdraw or replace it; (3) **is it material enough to confirm with the user?** irreversible/one-way door · cost shifted onto another team/ops/maintainer/user · one quality attribute traded for another · a tier/service/event/library boundary crossed · auth/money/data-integrity/breaking-change/High-or-Medium-risk path · verdict UNCLEAR → **STOP and confirm via `AskUserQuestion` BEFORE the verdict**.
-- **MANDATORY** A MATERIAL trade-off with no user confirmation can NEVER be PASS; NEVER bury one as a Low-severity note, NEVER decide it silently, and NEVER let delivery or convergence pressure authorize a one-way door. — why: an un-walked-back one-way door is the user's call to make, not the reviewer's.
-- **MANDATORY — non-asking contexts escalate BY HANDOFF, never by silence.** `AskUserQuestion` reaches only the main interactive agent: a sub-agent cannot ask the user, and a terminal/verdict-only mode asks nothing by design. There the duty is REDIRECTED, not waived — still name the trade-off, still decide materiality, record `confirmed? = NO — cannot ask from this context`, **state the unconfirmed MATERIAL trade-off in your RETURNED verdict/summary so the CALLER escalates it** (a note only in an on-disk report is not a handoff), and never emit an unqualified PASS. Applies ONLY where the user is genuinely unreachable (spawned sub-agent, terminal validate mode, headless run) — if you CAN ask, you MUST ask.
+- **MANDATORY MUST ATTENTION ALWAYS ASK THE 3 TRADE-OFF QUESTIONS** — on the thing under review AND on every recommendation you make: (1) **what does it SACRIFICE?** name the dimensions checked (change cost · complexity · perf · coupling · reversibility · migration · ops load · blast radius · security · testability · delivery time · UX) — "none"/"pure win" is an unfinished analysis; (2) **is it worth it?** gain (with a metric) vs cost, WHO pays, WHEN → emit **WORTH IT / NOT WORTH IT / UNCLEAR**; NOT WORTH IT → withdraw or replace it; (3) **is it MATERIAL enough to confirm with the user?** irreversible/one-way door · cost shifted onto another team/ops/maintainer/user · one quality attribute traded for another · a tier/service/event/library boundary crossed · auth/money/data-integrity/breaking-change/High-or-Medium-risk path · verdict UNCLEAR → **STOP and confirm via `AskUserQuestion` BEFORE the verdict**.
+- **MANDATORY** A MATERIAL trade-off with no user confirmation can NEVER be PASS; never bury one as a Low-severity note, never decide it silently, and never let delivery or convergence pressure authorize a one-way door — an un-walked-back one-way door is the user's call, not the reviewer's.
+- **MANDATORY — a context that cannot ask escalates BY HANDOFF, never by silence.** `AskUserQuestion` reaches only the main interactive agent, so a sub-agent or a terminal/verdict-only mode cannot ask. There the duty is REDIRECTED, not waived: still name the trade-off, still decide materiality, record `confirmed? = NO — cannot ask from this context`, and **state the unconfirmed MATERIAL trade-off in your RETURNED verdict so the CALLER escalates it** (a note only in an on-disk report is not a handoff); never emit an unqualified PASS. If you CAN ask, you MUST ask.
 
 <!-- /SYNC:trade-off-interrogation-gate:reminder -->
 
@@ -1358,7 +1383,7 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 
 <!-- SYNC:project-protocol-overlay -->
 
-> **Project Protocol Overlay** — Before executing this skill, resolve any PROJECT overlay rules layered onto it: match this skill's name against the `Target` column of the project's skill-protocol index (default `docs/project-reference/skill-protocols-reference.md`; a `referenceDocs` entry in `docs/project-config.json` overrides the path, and a `docsRoots.projectReference.path` entry relocates its containing directory), taking the most specific matching tier ONLY — exact name > glob > `*`. **That precedence orders overlays against EACH OTHER, never against this skill.** Read ONLY the matched bodies, resolved as `<protocols-dir>/<Name>.md`; a row's Body link is display text, never a read path. A matched body that is missing or malformed is REPORTED and skipped — never reconstructed from the index Description. No index, or no match -> proceed with no overlay, silently. Full contract: `.claude/skills/project-skill-protocol/references/registry.md`.
+> **Project Protocol Overlay** — Before executing this skill, resolve project overlays from the index at `<docsRoots.projectReference.path>/skill-protocols-reference.md` (default `docs/project-reference/`; `docsRoots.projectReference.path` in `docs/project-config.json` overrides it). A matching `referenceDocs[]` filename may relocate the index within that root; this registry is independent from task-specific reference-doc selection, so omitted or empty `referenceDocs` does not disable it. The index's `**Protocols directory:**` header selects a project-root-relative body directory (default `docs/project-protocols/`). Match this skill against the `Target` column and take the most specific tier ONLY — exact name > glob > `*`. **That precedence orders overlays against EACH OTHER, never against this skill.** Read only matched bodies derived as `<protocols-dir>/<Name>.md`; the row's Body link is display text, never a read path. Reject unsafe paths without reading. A matched body that is missing or malformed is REPORTED and skipped — never reconstructed from the index Description. An absent index or no match -> proceed with no overlay, silently. Full contract: `.claude/skills/project-skill-protocol/references/registry.md`.
 >
 > Overlays are **ADDITIVE ONLY**: they ADD rules on top of this skill's own protocol and NEVER replace, override, disable, or reinterpret a rule it already states — removing every overlay must return this skill to exactly its documented behavior. An overlay is a BRIEF, not an authority escalation: it can NEVER waive a workflow gate, git discipline, a review gate, or a user-confirmation gate. A genuine overlay-vs-skill conflict, or two equally-specific overlays that directly contradict -> surface both to the user; NEVER resolve silently.
 
@@ -1366,15 +1391,14 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 
 <!-- SYNC:project-protocol-overlay:reminder -->
 
-**MUST ATTENTION** resolve project protocol overlays for this skill BEFORE executing — most specific matching tier only (exact > glob > `*`, which ranks overlays against each other, NEVER against this skill), read only matched bodies at `<protocols-dir>/<Name>.md`; a missing or malformed body is reported, never reconstructed. Overlays are ADDITIVE ONLY (they never replace this skill's own rules) and are a brief, NEVER an authority escalation; an equal-specificity contradiction goes to the user.
-
+**MUST ATTENTION** resolve this skill's overlays from the index at `<docsRoots.projectReference.path>/skill-protocols-reference.md` (default `docs/project-reference/`); an empty task `referenceDocs` does NOT disable this lookup. Read ONLY matched bodies from the directory the index header names (default `docs/project-protocols/`). Specificity (exact > glob > `*`) ranks overlays against EACH OTHER, never against the skill. Missing/malformed body → report and skip; no index or no match → proceed silently. Overlays are ADDITIVE ONLY — never an authority escalation or a gate waiver; equal-tier contradiction goes to the user.
 <!-- /SYNC:project-protocol-overlay:reminder -->
 
 <!-- SYNC:test-architecture-execution-contract:reminder -->
 
-**MUST ATTENTION** Every assertion-bearing test entry point — Unit, Integration/System, E2E, Performance/Scale, contract, architecture, security, accessibility, visual, property, mutation, and harness — uses explicit `Given` → `When` → `Then` sections (framework-native BDD, named helpers, or comments; bare AAA is insufficient), names `Business Intent / Invariant Guarded` or the technical contract, and asserts an owned outcome rather than only internal calls, setup side effects, or infrastructure bookkeeping. Convert touched brownfield cases; assign an owner and next step for broad legacy migration; block safety-critical cases with an ambiguous or missing phase.
+**MUST ATTENTION** Each assertion-bearing test names the behavior or technical contract it protects and asserts an outcome it owns. Use the project's configured/native test format — Given/When/Then is one valid format, never a framework-wide requirement. When `specArtifacts` is valid, link configured owner/case/variant identity and `intent/contracts` evidence; when absent, name the guarded business intent or technical contract. A malformed declared profile BLOCKS without fallback. Broad test-format migration → assign an owner and next step, never rewrite cases outside scope.
 
-**MUST ATTENTION** Before implementation, record evidence-backed Unit/Integration/System/E2E **and Performance/Scale** (`T1+`/`B2+`) applicability (or explicit N/A), copy-ready full + focused commands, zero-match behavior, a simple/Windows entry point, **the host-mode AND container-mode commands where both are supported, plus each tier's environment reach (local / CI / production-shaped)**, unique run identity, realistic valid data, idempotent/restart-safe reference setup, intentional additive accumulation, parallel isolation, exact results, and two no-reset full runs for each applicable persistent-state suite. **Both claimed run modes must be EXERCISED** (an unexercised mode rots; a claimed-but-rotten mode is worse than one never claimed), the same suite reaches every target **parameterized by config, never by forked test code**, a missing capability reports `ENVIRONMENT-BLOCKED` rather than passing silently, and *"runs in prod"* means a safe, declared, **NON-MUTATING** subset excluded by an enforced mechanism, not by convention. For applicable browser/UI E2E, every UI-control operation also uses the canonical bounded `waitUntil(condition, options)` helper before the action for readiness/actionability and applicable error-alert absence, then after the action for the expected positive/negative state, dropdown/options, selected state, or error-alert presence/absence, followed by the mandatory post-operation **500ms** presentation delay. The object model still requires three-tier Common/Domain-Shared/Page reuse with an idiomatic abstract base, cohesive helpers/utilities, and reusable lower-tier component tests.
+**MUST ATTENTION** Before implementation record evidence-backed applicability for the test types and modes the task/project contract requires: copy-ready full and focused commands where available, zero-match behavior, a useful platform-appropriate entry point, supported execution modes and environments, state-isolation requirements, exact results, and repeat evidence where persistent state makes it relevant. Exercise claimed modes; report a missing required capability as `ENVIRONMENT-BLOCKED`. Never invent production targets or impose a test format. Browser/UI E2E uses the configured runner's waits or project helper for observable readiness and outcomes; apply action pacing only where the project contract specifies it. Reuse the project's evidenced test organization — require a POM, base class, or component taxonomy only when the project actually selects it.
 
 <!-- /SYNC:test-architecture-execution-contract:reminder -->
 
@@ -1384,8 +1408,8 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 >
 > **Detailed protocol routing — read/apply only when warranted:**
 > - `SYNC:scale-ready-foundation` — greenfield foundation is blocking; big-feature brownfield fit/adapt/defer; architecture review is advisory when auditing. Detailed carriers: `workflow-greenfield-init`, `workflow-big-feature`.
-> - `SYNC:test-architecture-execution-contract` — assertion-bearing tests use explicit `Given` → `When` → `Then`, name the guarded intent/technical contract, and assert an owned outcome. Detailed carriers: `integration-test`, `workflow-greenfield-init`, and the test-architecture review path.
-> - `SYNC:ai-agent-as-user-access` — when an AI/machine actor or future contract is evidenced, inspect identity/delegation, capability boundaries, selected API/CLI/MCP/WebMCP/event/SDK surface, safety/consent, audit/observability, and GWT contract tests. Detailed carriers: `workflow-greenfield-init`, `workflow-big-feature`, `architecture-review`.
+> - `SYNC:test-architecture-execution-contract` — assertion-bearing tests use the project's configured/native format, name the guarded intent/technical contract, and assert an owned outcome; GWT is one valid format. Detailed carriers: `integration-test`, `workflow-greenfield-init`, and the test-architecture review path.
+> - `SYNC:ai-agent-as-user-access` — when an AI/machine actor or future contract is evidenced, inspect identity/delegation, capability boundaries, selected API/CLI/MCP/WebMCP/event/SDK surface, safety/consent, audit/observability, and native-format contract tests. Detailed carriers: `workflow-greenfield-init`, `workflow-big-feature`, `architecture-review`.
 > - `SYNC:design-system-check` — when UI changes, inspect the design-system and component-contract obligations; route visual/UX depth to the owning UI review.
 >
 > **Review behavior:** Check only principles applicable to the reviewed scope; record `APPLY-NOW`, `ADAPT-IN-SLICE`, `DEFER-AS-OPPORTUNITY`, `NOT-APPLICABLE`, `BLOCKED`, or `UNVERIFIED` with `file:line`/config/CI evidence, status/severity, owner/route, and next step/revisit trigger. Do not invent findings from a generic checklist, flag unrelated pre-existing gaps as regressions, silently expand the requested scope, or mutate a parent gate merely because advice exists.
@@ -1400,16 +1424,16 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 
 <!-- SYNC:review-principle-awareness:reminder -->
 
-**IMPORTANT MUST ATTENTION** Every review first checks the change context and routes only applicable principles to their detailed protocols: scale-ready foundation, explicit Given → When → Then test intent, AI-agent-as-user access, and UI/component design when relevant. Record evidence-backed apply/adapt/defer/N/A/block/unverified status with owner and next step; do not invent unrelated findings or expand scope.
+**IMPORTANT MUST ATTENTION** Every review first checks the change context and routes only applicable principles to their detailed protocols: scale-ready foundation, test intent in the project's native format (GWT is one option), AI-agent-as-user access, and UI/component design when relevant. Record evidence-backed apply/adapt/defer/N/A/block/unverified status with owner and next step; do not invent unrelated findings or expand scope.
 
 <!-- /SYNC:review-principle-awareness:reminder -->
 
 ## Closing Reminders
 
 **IMPORTANT MUST ATTENTION** Testability contract: resolve evidence-backed Unit/Integration/System/E2E rows, copy-ready full/focused commands, zero-match failures, owner/root/data, CI/simple-Windows entry, unique run identity, and repeat proof before claiming setup, review, or test completion.
-**IMPORTANT MUST ATTENTION Goal:** Ensure the review target (changed production code) is covered by tests that protect real business behavior with correct data assertions, infinite repeatability, and spec alignment — verifying every behavior change has test coverage (integration-first, unit fallback) so that specs ↔ tests ↔ code stay aligned (spec-driven development).
+**IMPORTANT MUST ATTENTION Goal:** Ensure changed behavior is covered by tests that protect the selected contract with meaningful owned outcomes, configured repeatability, and canonical-owner alignment; choose the test tier that fits the project's architecture.
 
-**IMPORTANT MUST ATTENTION 8 Gates (judge every one):** G1 Assertion Value (mutation-score + Mutation Probe Ledger) · G2 Data State (assert DB fields, async-poll) · G3 Repeatability (unique IDs, 2 green runs) · G4 Domain Logic (read handler, assert only fields it writes) · G5 Spec Traceability (TC annotation → spec docs; 1 TC → many tests OK) · G6 Three-Way Sync (feature-docs > test-spec > code > test; escalate conflicts) · G7 Change Coverage (every behavior-changing file → covering test + non-stale §8 TC) · G8 Scenario Fidelity (setup reachable in production; settle barrier in ARRANGE, never a widened assertion timeout).
+**IMPORTANT MUST ATTENTION 8 Gates (judge every one):** G1 Assertion Value (mutation evidence when available, otherwise a manual probe) · G2 Owned Outcome (assert the project-owned result at the selected boundary) · G3 Repeatability (configured identity/isolation and rerun policy) · G4 Behavior Ownership (trace relevant source and owner) · G5 Traceability (configured carrier → owner-qualified case when a case profile applies) · G6 Three-Way Sync (canonical owner > implementation > test; escalate conflicts) · G7 Change Coverage (every behavior-changing file and affected owner case set → inspected executor + assertion) · G8 Scenario Fidelity (setup fits production; synchronize genuinely asynchronous outcomes in ARRANGE).
 
 **IMPORTANT MUST ATTENTION Phases (run ALL, `TaskCreate` each, one `in_progress`):** P0 Scope-detect → P1 Collect (split prod vs test) → P2 Gate Review → P3 Spec Cross-Check (both directions) → P4 Initial Report → P5 Fix validated findings that block the current round + WRITE missing tests → P6 Validated-fix + full fresh re-review until the current severity bar is clear → P7 Build & run ALL tests → P8 Failure Investigation → P9 Why-Review self-validation.
 
@@ -1422,8 +1446,8 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 - **Parallel-Safe Test Isolation:** Own fresh per-test data; never a shared mutable entity; account for cross-cutting consumers wiping a shared parent; suspect contamination FIRST on contradiction; prove isolation by grep.
 - **Real-World Fidelity:** the setup's sequence, pacing, and data must be reachable in production; settle barriers on a real observable belong in ARRANGE — NEVER a widened assertion timeout, a blind sleep, or a retry around a failing assertion; label deliberate impossible-state tests with why the state is reachable.
 - **Source/Test Drift Check:** Source change → reinspect affected tests for intended behavior.
-- **Spec↔Tests↔Code Triangulation:** the unit of review is the WHOLE PACKAGE (spec §3/§4/§8 + tests + code) — load all three, reason mutual-consistency first; a disagreeing or missing face is a logged finding, NEVER a silent PASS.
-- **Spec Drift Adjudication:** on behavior divergence from a canonical spec, classify CODE-WRONG / SPEC-STALE / AMBIGUOUS / SPEC-SILENT and harvest unwritten invariants into §4/§8 + a guarding test — NEVER normalize drift to whichever side is green.
+- **Spec↔Tests↔Code Triangulation:** the unit of review is the WHOLE PACKAGE (selected canonical owner + tests + code) — load all three, reason mutual-consistency first; a disagreeing or missing face is a logged finding, NEVER a silent PASS.
+- **Spec Drift Adjudication:** on behavior divergence from the canonical owner, classify CODE-WRONG / SPEC-STALE / AMBIGUOUS / SPEC-SILENT and route any unwritten invariant to the owner's declared contract plus a guarding test — NEVER normalize drift to whichever side is green.
 - **AI Mistake Prevention:** verify generated content against evidence, trace downstream references, verify all affected outputs, re-read after context loss, surface ambiguity.
 - **Nested Task Creation:** Expand child phases, link parent, one `in_progress`.
 - **Project Reference Docs Guide:** Read required project docs (ALWAYS `lessons.md`) before target work.
@@ -1434,24 +1458,24 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 - **Parallel Sub-Agent Dispatch:** Tag tasks PAR/SEQ, group PAR into disjoint-write-set waves, spawn each wave in ONE message, barrier before advancing.
 
 **IMPORTANT MUST ATTENTION** scope = the CHANGE SET (production + test files) — NEVER review only the test files; Gate 7 coverage mapping is NOT optional — why: a test-files-only scope reviews tests that exist and misses changed behavior that has none
-**IMPORTANT MUST ATTENTION** read handler/service source (and feature docs) BEFORE judging any assertion — cannot review what you have not read — why: assertion quality is unknowable without knowing what the handler actually writes
+**IMPORTANT MUST ATTENTION** read the selected canonical owner and handler/service source BEFORE judging any assertion — cannot review what you have not read — why: assertion quality is unknowable without knowing intended behavior and what the handler actually writes
 **IMPORTANT MUST ATTENTION** every finding requires `file:line` proof with confidence >80% to act, 60-80% verify first, <60% DO NOT report — NEVER speculate; "Insufficient evidence" is valid output — why: AI reports inherit confirmation bias; unproven severities propagate downstream as ground truth
 **IMPORTANT MUST ATTENTION** bootstrap `TaskCreate` for ALL 9 phases BEFORE starting; on context loss call `TaskList` first and resume, never duplicate — why: phase tracking is the only recovery anchor after compaction
 **IMPORTANT MUST ATTENTION** search 3+ existing test patterns and the project's test reference docs (`integration-test-reference.md` via grep, NEVER hardcoded paths) before judging conventions; evaluate pattern FIT (same base class, scope, DI path) before copying a nearby example — why: local conventions override generic framework defaults
-**IMPORTANT MUST ATTENTION** every behavior-changing production change needs a covering test — integration-first; unit fallback requires recorded infeasibility justification; GAP = HIGH minimum (CRITICAL on auth/money/data-integrity), fixed by WRITING the test in Phase 5, not just reporting
-**IMPORTANT MUST ATTENTION** run the Phase 1 "Validate: 100% Section-8 TC coverage" task + Phase 3 addendum EVERY review (inside a workflow, current git changes present, or by user request) — enumerate the FULL Section-8 TC list of the implicated feature doc(s), not only diff-touched TCs, into the SAME Coverage Mapping Table; zero GAP rows across the WHOLE table before PASS — why: Gate 7 alone is diff-scoped and misses a pre-existing TC whose covering test regressed outside the diff
+**IMPORTANT MUST ATTENTION** every behavior-changing production change needs a covering test at an appropriate boundary; missing coverage is a HIGH finding minimum (CRITICAL on auth/money/data-integrity), fixed by WRITING the test in Phase 5, not just reporting
+**IMPORTANT MUST ATTENTION** resolve the profile and run the Phase 1 full affected-owner case task + Phase 3 addendum EVERY review (inside a workflow, current git changes present, or by user request) — enumerate the full owner case/variant set, not only diff-touched cases, into the SAME Coverage Mapping Table; strict default means the full Section 8 TC list; require zero `GAP`/`UNKNOWN` rows before PASS — why: Gate 7 alone is diff-scoped and misses a pre-existing case whose covering test regressed outside the diff
 **IMPORTANT MUST ATTENTION** Gate 1 mutation probe is non-skippable — record the Mutation Probe Ledger (KILLED/SURVIVOR per changed core-logic line); no ledger = Gate 1 FAIL, not "skipped" — why: a surviving mutant is a fakeable test that protects no invariant
-**IMPORTANT MUST ATTENTION** spec-driven alignment runs BOTH directions — from TCs in tests AND from changed code back to spec docs; missing OR stale-but-covered TC = SPEC-GAP finding — why: a covering test whose mapped TC documents OLD behavior passes a spec gap silently
+**IMPORTANT MUST ATTENTION** contract alignment runs BOTH directions — from test carriers to canonical cases AND from changed code back to the selected owner; missing or stale-but-covered case = SPEC-GAP — why: a covering test whose owner contract documents old behavior passes a spec gap silently
 **IMPORTANT MUST ATTENTION** a test that cannot fail is decoration — if it cannot catch the protected business rule/invariant breaking, delete or fix it; flag smoke-only/existence-only/dead assertions as FAIL unless justified by explicit design comment
-**IMPORTANT MUST ATTENTION** tests MUST be infinitely repeatable — unique IDs per run, no cleanup, no rollback; ALWAYS use async polling/retry for ALL DB assertions; verification requires 2 consecutive passing runs without DB reset — why: one green run hides ordering and eventual-consistency flakiness
+**IMPORTANT MUST ATTENTION** tests MUST follow project-supported isolation/repeat policy; use unique IDs for shared namespaces, owned cleanup where configured, and bounded synchronization for asynchronous outcomes; verification follows `integrationTestVerify.guidance` — why: repeatability must reflect how this project actually runs tests
 **IMPORTANT MUST ATTENTION** Gate 3 also enforces parallel-safe isolation — FAIL any test hanging assertions off a shared mutable entity another test can change, or off a parent a bulk cross-cutting consumer (re-sync/recompute/rebuild/cascade) can wipe even without this test mutating it; require fresh per-test data and prove isolation by grepping other tests on that shared data AND every consumer over it; on a contradiction between a provably-innocent path and wrong state, suspect contamination FIRST — why: shared mutable state lets another test silently corrupt your data and the innocent path takes the blame
 **IMPORTANT MUST ATTENTION** Gate 8 — an unrealistic setup is a REVIEW FINDING, not a tolerable quirk: flag actor actions chained with no settle barrier where production separates them by seconds/minutes/hours, a fixed sleep standing in for a real observable, an assertion timeout widened instead of an ARRANGE barrier added, a retry wrapped around a failing assertion, and a setup state with no explanation of how production reaches it — fix the SCENARIO, NEVER the assertion — why: a scenario production can never meet proves nothing when green and blames the product when red
 **IMPORTANT MUST ATTENTION** Gate 6 — read ALL three sources before classifying (never two); NEVER fix a test to match broken code (report the code bug instead); NEVER self-resolve a three-way conflict (escalate via `AskUserQuestion`); "stale docs" requires BOTH impl code AND test to agree — why: a winner picked without evidence hides bugs
 **IMPORTANT MUST ATTENTION** fix ALL blocking issues (Phase 5 NOT optional); validate findings via `/why-review` before fixing; after validated fixes rerun a full fresh review until the current round's bar is clear (round 1: zero findings; round 2: zero CRITICAL/HIGH/MEDIUM, LOW deferred) — why: every fix invalidates the prior verdict
-**IMPORTANT MUST ATTENTION** integration-test reviews ALWAYS spawn the `integration-tester` sub-agent, NEVER `code-reviewer`, with all protocol bodies embedded VERBATIM — why: `code-reviewer` lacks TC-traceability and async-polling assertion depth, and file-path indirection drops compliance ~40%
+**IMPORTANT MUST ATTENTION** integration-test reviews ALWAYS spawn the `integration-tester` sub-agent, NEVER `code-reviewer`, with all protocol bodies embedded VERBATIM — why: `code-reviewer` lacks case-contract traceability and async-polling assertion depth, and file-path indirection drops compliance ~40%
 **IMPORTANT MUST ATTENTION** build and run ALL changed/reviewed tests after fixes (Phase 7 NOT optional) — unverified reviews have zero value; if tests fail, classify (test bug vs service bug vs environment) and root-cause in Phase 8, NEVER retry blindly
 **IMPORTANT MUST ATTENTION** write findings to `tmp/reports/integration-test-review-{date}-{slug}.md` incrementally — never just return text — why: long sub-agents hit cutoffs before a final batch write and lose findings
-**IMPORTANT MUST ATTENTION** every finding requires `file:line` proof with confidence >80%; scope = the CHANGE SET, never just tests; read handler source BEFORE judging assertions
+**IMPORTANT MUST ATTENTION** every finding requires `file:line` proof with confidence >80%; scope = the CHANGE SET, never just tests; read the relevant production path BEFORE judging assertions
 **IMPORTANT MUST ATTENTION** preserve the complete change-set scope, evidence-backed Gate 1–8 review, and two-round validation bar before reporting PASS.
 
 **Anti-Rationalization:**

@@ -250,19 +250,8 @@ test('TC-HOOKMIRROR-002: hooks.json materializes deterministically; the report d
 //   * GAINED: `file-convention-inject` — the only registered hook that names
 //     `apply_patch` in its own trigger set (`file-convention-inject.cjs:25`). Its
 //     per-file convention reminder now fires on Codex edits.
-//   * NOT GAINED: `path-boundary-block.cjs` and `privacy-block.cjs` contain NO
-//     `apply_patch` branch. Both read a target from `tool_input.file_path`, which an
-//     `apply_patch` event does not carry, and both shell-parse `tool_input.command`,
-//     which on that event is PATCH TEXT rather than a shell command — so each
-//     concludes "no write, no sensitive path" and returns allow before any boundary
-//     or privacy check. Measured on identical targets: Claude `Write` exits 2
-//     (blocked) while Codex `apply_patch` exits 0 (allowed), for BOTH hooks.
-// CONSEQUENCE: Codex file writes remain UNGATED by the path-boundary and privacy
-// gates. That is a recorded and accepted state, not an oversight — closing it needs
-// an `apply_patch` parser INSIDE those hooks, which a matcher in this mirror cannot
-// supply. Do not re-derive "the security gates now cover Codex" from this table:
-// the widened matcher only routes events to hooks that must still learn the tool to
-// act on it.
+// A matcher in this mirror only routes events to hooks that must still learn the
+// tool to act on it, so do not read a widened matcher as new coverage.
 // Matchers with no Claude mutation tool (`Bash`, `TodoWrite|…|update_plan`, `mcp__*`)
 // are untouched, as are matchers naming only read tools.
 const EXPECTED_RENDERED_GROUPS = [
@@ -276,15 +265,10 @@ const EXPECTED_RENDERED_GROUPS = [
     // Already carries Codex's own `update_plan`, so no file-tool widening applies.
     ['PostToolUse', 'TodoWrite|TaskCreate|TaskUpdate|update_plan', 1],
     ['PreToolUse', 'AskUserQuestion', 1],
-    // review-commit-gate (2026-09-19): review-before-commit receipt gate, a fifth Bash
-    // PreToolUse hook alongside windows-command-detector / bash-shell-guard /
-    // git-commit-block / doc-sync-gate.
-    ['PreToolUse', 'Bash', 5],
-    ['PreToolUse', 'Bash|Glob|Grep|Read|Edit|Write|NotebookEdit|apply_patch', 2],
-    ['PreToolUse', 'Bash|Edit|Write|MultiEdit|NotebookEdit|apply_patch', 1],
+    // The Bash PreToolUse chain, in settings.json order: doc-sync-gate,
+    // review-commit-gate (2026-09-19, the review-before-commit receipt gate).
+    ['PreToolUse', 'Bash', 2],
     ['PreToolUse', 'Write|Edit|MultiEdit|apply_patch', 1],
-    ['PreToolUse', 'mcp__filesystem__*', 1],
-    ['PreToolUse', 'mcp__github__*', 1],
     // SessionEnd (2026-09-17): Codex DOES support this event. Its matcher vocabulary is
     // only `other`, so Claude's clear|exit|compact is dropped and the hook mirrors
     // UNSCOPED — `null` here is the intended shape, not a lost matcher. The previous
@@ -296,15 +280,19 @@ const EXPECTED_RENDERED_GROUPS = [
     // exactly the hooks whose output a MIRRORED non-SessionStart hook consumes, because
     // dropping a producer while keeping its consumer leaves the consumer registered and
     // permanently unreachable. Everything off that allowlist is still skipped under the
-    // original static-startup-context rationale. Three rows, in settings.json order:
+    // original static-startup-context rationale. Four rows, in settings.json order:
+    //   verify-install         — startup dependency-integrity check (2026-09-22)
     //   session-init-docs      — sole writer of .scan-stale, read by init-prompt-gate
     //   file-convention-inject — compaction re-arm for per-file convention delivery
     //   prompt-ledger          — goal/prompt re-anchor after compact or resume
+    ['SessionStart', 'startup|resume|clear|compact', 1],
     ['SessionStart', 'startup', 1],
     ['SessionStart', 'compact|clear', 1],
     ['SessionStart', 'compact|resume|clear', 1],
     ['Stop', null, 1],
     ['UserPromptSubmit', null, 1],
+    ['UserPromptSubmit', null, 1],
+    // workflow-route-inject: default-on, configurable runtime workflow router.
     ['UserPromptSubmit', null, 1],
     // prompt-ledger (2026-09-16): records every prompt and re-anchors the original goal.
     ['UserPromptSubmit', null, 1]

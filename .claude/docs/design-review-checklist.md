@@ -1,6 +1,6 @@
-# UI/UX Design Review Checklist — executable review protocol for front-end work
+# UI/UX Design Review Checklist — executable review protocol for user-facing UI
 
-> **Role:** the **executable review protocol** for any artifact carrying a user-facing front-end surface. Every item has a stable ID, a verifiable check, an observable failure signal, and a default severity, so an agent can run it against screenshots, prototypes, live URLs, code, or design files and produce a consistent, evidence-backed report. Owns the REVIEW PROTOCOL (§0), the CHECK CATALOG (§A–§M), the EDGE-CASE PROBE LIST (§N), the REPORT FORMAT (§O), the QUICK TRIAGE PASS (§P), and the SCORING model (§Q). Owns NO design reasoning — that lives in `design-knowledge.md`.
+> **Role:** the **executable review protocol** for any artifact carrying a user-facing UI surface. Every item has a stable ID, a verifiable check, an observable failure signal, and a default severity, so an agent can run it against screenshots, prototypes, live URLs, code, or design files and produce a consistent, evidence-backed report. Owns the REVIEW PROTOCOL (§0), the CHECK CATALOG (§A–§M), the EDGE-CASE PROBE LIST (§N), the REPORT FORMAT (§O), the QUICK TRIAGE PASS (§P), and the SCORING model (§Q). Owns NO design reasoning — that lives in `design-knowledge.md`.
 >
 > **Consumed by:** `ui-review` · `web-design-guidelines` · `artifact-review` · `test-ui` · `changes-review` · `plan-review` · `design` · `design-spec` · `pbi-mockup` · `feature-presentation` · `plan` · `scaffold` · `plan-execute` · `feature-implement` · `fix`, plus the `ui-ux-designer`, `frontend-developer` and `fullstack-developer` agents. This list is the drift-guard's scope — a skill belongs here ONLY if it carries an inline `SYNC:design-review-checklist` block, so the list stays greppable and the sweep stays truthful. NEVER add an aspirational consumer.
 >
@@ -12,7 +12,9 @@
 >
 > **MUST ATTENTION** the project's OWN design-system, SCSS, and frontend-pattern docs plus accepted ADRs **OUTRANK this checklist** on any conflict; the brief's stated direction outranks aesthetic judgment. A deliberate, documented convention is NEVER a defect — surface a genuine conflict to the user with both sides, NEVER resolve it silently.
 >
-> **Provenance.** `[model-knowledge]` — a consolidation of established practice: Nielsen's usability heuristics (§A), named UX laws (§B), Gestalt and typographic convention (§C), and WCAG 2.2 AA (§I) `[standard: W3C WCAG 2.2]`. Severity defaults are calibration, not law; a project's own release policy outranks them.
+> **Portability and applicability.** This is a shared checklist of review prompts, not a universal product specification. Resolve the supported platforms, input modes, user states, and governing accessibility/release standards from project configuration, references, and evidence. Run matching checks only; record unsupported checks as `N/A` and unverifiable checks as `NOT VERIFIABLE`. Numeric examples and default severities are starting points, not project-wide mandates; the governing standard and release contract determine thresholds and priority.
+>
+> **Provenance.** `[model-knowledge]` — a consolidation of established practice: Nielsen's usability heuristics (§A), named UX laws (§B), Gestalt and typographic convention (§C), and WCAG 2.2 AA examples (§I) `[standard reference: W3C WCAG 2.2]`. Apply the WCAG examples only when that version/level governs the surface. Severity defaults are calibration, not law; a project's own release policy outranks them.
 
 ---
 
@@ -24,7 +26,7 @@
 
 - **Gather context BEFORE checking (§0.1).** Platform, primary user, primary task, success metric, constraints, scope, artifacts. Fewer than four known → state the gap at the top and mark affected findings **low confidence**.
 - **Evidence or nothing (§0.2).** Every finding cites a location. NEVER invent a measurement — an unmeasurable check is `NOT VERIFIABLE`, never a guessed number. Tag each finding `MEASURED` / `OBSERVED` / `HEURISTIC`.
-- **The sections, in order:** §0 protocol → §A heuristics → §B cognitive load → §C visual hierarchy → §D interaction & the eight screen states → §E information architecture → **§F web / §G mobile / §H desktop (conditional on platform)** → §I accessibility (WCAG 2.2 AA, P1 floor) → §J content → §K trust & ethics → **§L AI patterns (conditional)** → §M consistency → §N edge-case probes → §O report format → §P quick triage → §Q scoring.
+- **The sections, in order:** §0 protocol → §A heuristics → §B cognitive load → §C visual hierarchy → §D relevant interaction states → §E information architecture → **§F web / §G mobile / §H desktop (conditional on platform)** → §I accessibility (against the governing standard) → §J content → §K trust & ethics → **§L AI patterns (conditional)** → §M consistency → §N applicable edge-case probes → §O report format → §P quick triage → §Q scoring.
 - **Severity is the output, not the finding count.** P0 blocks ship · P1 fix before release · P2 next iteration · P3 backlog · P4 note. Cap at the top 10 by severity unless a full audit was requested; a clean section reports "no issues found" — NEVER pad.
 - **No time for a full pass?** Run §P (10 checks) — it catches the majority of serious defects.
 
@@ -102,7 +104,7 @@ If fewer than four of these are known, state the gap at the top of the report an
 | B3  | **Miller** — grouped items stay within ~5–9 per cluster                               | Navigation with 15 flat, ungrouped items                                     | P2      |
 | B4  | **Jakob** — conventional patterns behave conventionally                               | Logo doesn't link home; hamburger opens something unexpected                 | P2      |
 | B5  | **Tesler** — unavoidable complexity is absorbed by the system, not pushed to the user | User asked to compute, format, or reformat something the system could derive | P2      |
-| B6  | **Doherty** — interactions respond within 400ms, or show progress                     | Perceptible dead time with no feedback                                       | P1      |
+| B6  | **Doherty** — interactions meet the product/platform response expectation or show progress | Perceptible dead time with no feedback                                    | P1      |
 | B7  | **Von Restorff** — exactly one element per view is visually dominant                  | Three "primary" buttons on one screen                                        | P2      |
 | B8  | **Peak–End** — flow endings are satisfying and clearly closed                         | Successful submission ends on a blank screen with no confirmation            | P2      |
 | B9  | **Goal-gradient / Zeigarnik** — multi-step flows show progress and remaining effort   | Unbounded wizard with no step count                                          | P2      |
@@ -119,8 +121,8 @@ If fewer than four of these are known, state the gap at the top of the report an
 | C2  | Alignment is systematic; elements share edges and a consistent grid                            | Ragged left edges, off-grid components, inconsistent gutters             | P3      |
 | C3  | Spacing follows a scale (e.g. 4/8pt) and is applied consistently                               | Arbitrary values: 13px here, 17px there                                  | P3      |
 | C4  | Proximity groups related items and separates unrelated ones                                    | Label sits closer to the wrong input than its own                        | P2      |
-| C5  | Typographic scale is limited and intentional; ≤3 families, defined weights                     | Six font sizes within one card, mixed families                           | P3      |
-| C6  | Line length 45–75 characters; line height 1.4–1.6 for body text                                | Full-width 140-character paragraph lines                                 | P2      |
+| C5  | Type styles and weights are limited, intentional, and consistent with the project's design system | Unrelated type treatments compete within one surface                   | P3      |
+| C6  | Text width, size, and line spacing support comfortable reading for the audience and platform   | Long lines or tight spacing make content difficult to follow             | P2      |
 | C7  | Color is systematic and semantic — success/warning/error/info are consistent                   | Red used both for errors and for a brand accent                          | P2      |
 | C8  | White space is used deliberately; no wall-to-wall density without reason                       | Zero breathing room around dense content blocks                          | P3      |
 | C9  | Elevation/shadow/layering communicates real hierarchy, not decoration                          | Random shadow depths with no z-order logic                               | P3      |
@@ -135,13 +137,13 @@ If fewer than four of these are known, state the gap at the top of the report an
 
 | ID  | Check                                                                                                      | Failure signal                                                                   | Default |
 | --- | ---------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------- | ------- |
-| D1  | All interactive states are designed: default, hover, focus, active, disabled, loading, error, selected     | Buttons with no visible pressed or focus state                                   | P1      |
-| D2  | **All eight screen states exist**: ideal, empty, first-run, loading, partial, error, offline, maximum-data | Empty state is a blank white screen                                              | P1      |
+| D1  | Applicable interaction states are clear for the supported inputs: default, focus/hover where available, active, disabled, loading, error, selected | A supported input has no clear state feedback | P1      |
+| D2  | Relevant states are handled for the surface and its supported capabilities: ideal, empty, first-run, loading, partial, error, offline, or maximum-data as applicable | An applicable empty or error state has no useful content | P1      |
 | D3  | Empty states explain what belongs there and offer the action to fill it                                    | "No results" with no suggestion or reset                                         | P2      |
 | D4  | Loading uses skeletons or optimistic UI, not spinners on full pages                                        | 4-second full-page spinner                                                       | P2      |
 | D5  | Affordances are unambiguous — clickable looks clickable, disabled looks disabled                           | Flat text that is secretly a link; disabled state indistinguishable from enabled | P1      |
 | D6  | Feedback is immediate and proportional to the action                                                       | Save with no confirmation of any kind                                            | P1      |
-| D7  | Animation is purposeful, 150–400ms, with appropriate easing                                                | Decorative 1.2s transition blocking the task                                     | P3      |
+| D7  | Animation is purposeful, platform-appropriate, and respects the user's motion settings                     | Decorative motion delays or obscures the task                                    | P3      |
 | D8  | `prefers-reduced-motion` is respected                                                                      | Parallax and large motion play regardless of OS setting                          | P1      |
 | D9  | Destructive actions have undo (preferred) or confirmation naming the consequence                           | "Are you sure?" with no statement of what is lost                                | P1      |
 | D10 | Work in progress is preserved — autosave, draft recovery, state restoration                                | Navigating away silently discards 10 minutes of input                            | P0      |
@@ -170,9 +172,9 @@ If fewer than four of these are known, state the gap at the top of the report an
 
 | ID  | Check                                                                                                  | Failure signal                                        | Default |
 | --- | ------------------------------------------------------------------------------------------------------ | ----------------------------------------------------- | ------- |
-| F1  | Responsive across 320px → 1920px+ with no horizontal scroll or clipping                                | Layout breaks or overflows at 375px                   | P1      |
+| F1  | Usable across the project's supported viewport range with no unintended clipping or horizontal scroll | Layout breaks at a required supported size             | P1      |
 | F2  | Core content and primary action work without JavaScript or on slow networks                            | Blank page until a 2MB bundle loads                   | P2      |
-| F3  | Core Web Vitals: LCP < 2.5s, INP < 200ms, CLS < 0.1                                                    | Content shifts after load, causing misclicks          | P1      |
+| F3  | Measure applicable Core Web Vitals against the product's declared performance budget or selected current guidance | Content shifts after load, causing misclicks     | P1      |
 | F4  | Value proposition and primary action are clear in the first viewport                                   | User must scroll to learn what the product does       | P2      |
 | F5  | Semantic HTML: one h1, logical heading order, landmarks, lists, native buttons/links                   | `<div onclick>` used as a button                      | P1      |
 | F6  | Links navigate, buttons act — and each looks like what it is                                           | "Button" that changes the URL, or a link that submits | P2      |
@@ -180,7 +182,7 @@ If fewer than four of these are known, state the gap at the top of the report an
 | F8  | URLs are readable, stable, shareable, and reflect state where appropriate                              | Filtered view cannot be shared or bookmarked          | P3      |
 | F9  | Page titles, meta descriptions, alt text, and structured data are present and accurate                 | Duplicate or missing `<title>` across pages           | P3      |
 | F10 | Scanning pattern supported (F-pattern for content, Z for landing)                                      | Key information placed where no one looks             | P3      |
-| F11 | Works across current Chrome, Safari, Firefox, and Edge                                                 | Feature silently fails in Safari                      | P1      |
+| F11 | Works in the browsers and versions the project supports                                                | Feature silently fails in a supported browser        | P1      |
 | F12 | Dark mode and forced-colors mode render legibly if supported                                           | Text disappears in dark mode                          | P2      |
 
 ---
@@ -189,7 +191,7 @@ If fewer than four of these are known, state the gap at the top of the report an
 
 | ID  | Check                                                                                | Failure signal                                              | Default |
 | --- | ------------------------------------------------------------------------------------ | ----------------------------------------------------------- | ------- |
-| G1  | Touch targets ≥44×44pt (iOS) / 48×48dp (Android), with ≥8dp spacing                  | Icon-only buttons at 24px, adjacent                         | P1      |
+| G1  | Touch targets and spacing meet the target OS, accessibility standard, and project guidance           | Adjacent targets are difficult to operate                  | P1      |
 | G2  | Primary actions sit within the natural thumb arc; destructive actions do not         | Main CTA in the top-left corner                             | P2      |
 | G3  | One-handed use is possible for core tasks                                            | Reaching the send button requires two hands                 | P2      |
 | G4  | Safe areas respected — notch, dynamic island, home indicator, rounded corners        | Content hidden behind the gesture bar                       | P1      |
@@ -225,9 +227,9 @@ If fewer than four of these are known, state the gap at the top of the report an
 
 ---
 
-## I. Accessibility (WCAG 2.2 AA baseline)
+## I. Accessibility (apply the governing standard)
 
-Treat every item here as **P1 minimum**; failures affecting task completion are **P0**.
+Resolve the applicable law, project policy, and platform accessibility standard from project references and evidence; record its name, version/level, and source. The numeric criteria below describe WCAG 2.2 AA where marked and apply only when that standard governs the relevant surface. For other standards or modalities, use their corresponding criteria. Default severities are guidance; follow the project's release contract. Failures blocking task completion may be **P0**.
 
 | ID  | Check                                                                                         | Failure signal                                        |
 | --- | --------------------------------------------------------------------------------------------- | ----------------------------------------------------- |
@@ -239,12 +241,12 @@ Treat every item here as **P1 minimum**; failures affecting task completion are 
 | I6  | Form inputs have programmatically associated labels; errors are announced                     | Placeholder used as the only label                    |
 | I7  | Heading structure is logical and sequential                                                   | Skips from h1 to h4; headings used for styling        |
 | I8  | ARIA used only where native semantics fall short, and used correctly                          | `role="button"` on a `<div>` with no keyboard handler |
-| I9  | Content reflows at 200% zoom / 320px width without loss of function                           | Horizontal scrolling required to read text            |
+| I9  | Content reflows at the zoom, viewport, and text-scaling levels required by the applicable standard and platform | Required content is lost or unusable at a supported setting |
 | I10 | Motion, autoplay, and flashing respect user settings; nothing flashes >3×/sec                 | Autoplaying video with sound                          |
 | I11 | Time limits are adjustable, extendable, or absent                                             | Session expires mid-form with no warning              |
 | I12 | Screen reader pass completed on the primary flow (VoiceOver / TalkBack / NVDA)                | Not tested                                            |
 | I13 | Touch/pointer alternatives exist for complex gestures; drag has a non-drag path               | Reorder possible only by drag                         |
-| I14 | Target size ≥24×24 CSS px minimum (WCAG 2.2), 44px recommended                                | Dense inline icon controls                            |
+| I14 | Interactive targets meet the applicable standard and platform target-size guidance (WCAG 2.2 examples apply only when selected) | Dense controls are difficult to activate |
 
 ---
 
@@ -307,32 +309,31 @@ Treat every item here as **P1 minimum**; failures affecting task completion are 
 | M3  | The same task feels the same across web, mobile, and desktop where the user crosses platforms                                                                        | P2      |
 | M4  | Patterns are internally consistent: same modal type for same purpose, same table behavior everywhere                                                                 | P2      |
 | M5  | New work doesn't fork existing patterns without a documented reason                                                                                                  | P3      |
-| M6  | Every code-bearing component has a declared Common, Domain-Shared, or Page tier, a single owner, and the project base abstraction/primitive appropriate to that tier | P2      |
-| M7  | Existing components and base abstractions are reused or composed before a new component or variant is created; a non-reuse decision names the constraint             | P2      |
-| M8  | Shared component behavior is implemented once through a base component, helper, or composition; duplicated markup, selectors, styling, or lifecycle is consolidated  | P2      |
-| M9  | Component tests cover reusable Common/Domain-Shared behavior once, while Page tests cover page-specific composition and outcomes                                     | P2      |
+| M6  | UI code has clear ownership using the project's documented component/module organization, or evidenced local boundaries when none is documented                     | P2      |
+| M7  | Existing components and abstractions are reused or composed when they fit; a meaningful deviation names its constraint                                               | P2      |
+| M8  | Shared behavior has an appropriate owner; duplication is consolidated when doing so reduces real maintenance cost                                                   | P2      |
+| M9  | Tests cover reusable behavior and surface composition according to the project's test organization and capabilities                                                 | P2      |
 
 ---
 
 ## N. Edge Cases to Deliberately Probe
 
-Run each primary flow against these conditions and record behavior. **MUST ATTENTION** record an explicit result for each — an unprobed condition is `NOT VERIFIABLE`, never an implied pass.
+Select probes that match the product's supported capabilities, platform, user risks, and declared operating limits. Record results for applicable probes; mark unsupported conditions `N/A` with evidence and missing observations `NOT VERIFIABLE`.
 
 - First-time user, zero data
-- Maximum data — longest name, 10k rows, 50 attachments
+- Maximum supported data volume and field/attachment limits, as declared by the project
 - Zero results after filtering
-- Slow 3G / high latency
-- Fully offline, then reconnecting mid-action
-- Server error 500 mid-submission
+- Slow or intermittent network, where the surface depends on network access
+- Offline/reconnect behavior, where offline use is supported or promised
+- A relevant service failure, using the failure classes this system exposes
 - Expired session or revoked permission mid-task
 - Duplicate submission / double-tap on the primary action
-- Interruption: phone call, backgrounding, browser tab discard
-- Copy-paste and browser autofill into every field
-- Largest OS text size + 200% zoom
-- Keyboard-only completion, start to finish
-- Screen reader completion, start to finish
-- RTL locale and a longest-translation locale
-- Concurrent edit by two users on the same object
+- Interruption or backgrounding supported by the target platform
+- Copy/paste and autofill for fields that support them
+- Largest supported text scale and required zoom/reflow settings
+- Keyboard and assistive-technology operation for supported input modes
+- RTL and long-translation locales when supported
+- Concurrent edits when the product supports shared editing
 
 ---
 
@@ -399,15 +400,15 @@ Known gaps: [what was unavailable, and which findings are therefore lower confid
 
 When a full review isn't possible, run only these. They catch the majority of serious defects.
 
-1. Can a new user complete the primary task without help? _(A, E)_
-2. Does every action produce visible feedback within 400ms? _(A1, B6, D6)_
-3. Do the empty, loading, and error states exist and offer a way forward? _(D2, D13)_
-4. Is the primary action obvious, singular, and reachable? _(B7, C1, G2)_
-5. Does text meet 4.5:1 contrast and is focus visible? _(I1, I4)_
-6. Can the whole flow be completed by keyboard? _(I3, H1)_
-7. Do targets meet 44/48px on touch? _(G1)_
-8. Is destructive action reversible? _(A11, D9, D10)_
-9. Does it hold up at 320px and at 200% zoom? _(F1, I9)_
+1. Can the intended user complete the primary task? _(A, E)_
+2. Does each action give timely feedback against the product/platform expectation, or show progress? _(A1, B6, D6)_
+3. Do the relevant empty, loading, error, and recovery states offer a forward path? _(D2, D13)_
+4. Is the primary action obvious and reachable using supported inputs? _(B7, C1, G2)_
+5. Does text and focus meet the governing accessibility standard? _(I1, I4)_
+6. Can the flow be completed with supported input and assistive-technology modes? _(I3, H1)_
+7. Do interactive targets meet applicable platform and accessibility guidance? _(G1)_
+8. Is destructive action reversible where appropriate? _(A11, D9, D10)_
+9. Does it work at the smallest supported size and required zoom/reflow? _(F1, I9)_
 10. Are there any dark patterns? _(K1–K8)_
 
 ---
@@ -441,7 +442,7 @@ Any P0 caps the overall grade at **Fail**, regardless of score. Report the score
 
 **IMPORTANT MUST ATTENTION** gather §0.1 context FIRST (platform, user, task, metric, constraints, scope, artifacts). Fewer than four known → state the gap at the top and mark affected findings **low confidence** — why: a check judged against an unknown task is a guess wearing an ID.
 
-**IMPORTANT MUST ATTENTION** walk the sections in order: §A heuristics → §B cognitive → §C visual → §D interaction + the eight screen states → §E IA → §F/§G/§H (platform-conditional) → §I accessibility → §J content → §K ethics → §L AI (conditional) → §M consistency → §N edge-case probes → §O report → §P triage → §Q scoring — why: a section skipped in the long middle silently becomes an unreported defect class.
+**IMPORTANT MUST ATTENTION** walk the sections in order: §A heuristics → §B cognitive → §C visual → §D relevant interaction states → §E IA → §F/§G/§H (platform-conditional) → §I against the governing accessibility standard → §J content → §K ethics → §L AI (conditional) → §M consistency → §N applicable edge-case probes → §O report → §P triage → §Q scoring — why: a section skipped in the long middle silently becomes an unreported defect class.
 
 **IMPORTANT MUST ATTENTION** evidence or nothing — cite a location for every finding, and NEVER invent a measurement. Unmeasurable from the given artifact → `NOT VERIFIABLE`, and tag every finding `MEASURED` / `OBSERVED` / `HEURISTIC`.
 

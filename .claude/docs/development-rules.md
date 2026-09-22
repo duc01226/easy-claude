@@ -4,15 +4,15 @@
 
 ## Quick Summary
 
-**Goal:** Enforce code quality, responsibility hierarchy, and evidence-based development across all implementation tasks.
+**Goal:** Enforce code quality, project-appropriate responsibility, and evidence-based development across implementation tasks.
 
-**Workflow:** Understand code → Plan → Implement (follow Code Step Rule) → Review → Test → Doc check
+**Workflow:** Understand code → Plan → Implement (follow project style and architecture) → Review → Test → Doc check
 
 **Key Rules:**
 
 - **Understand code first** — READ existing code, search 3+ patterns, run graph trace before ANY modification
-- **Code Step Rule** — Code is a tree of steps: no blank line = same step (parallel), blank line = new step (must consume all previous outputs). Fix violations via extract function or chaining.
-- **Class responsibility** — Logic in LOWEST layer: Entity/Model > Service > Component/Handler
+- **Code style** — Follow the project formatter, conventions, and any path-scoped rules in config or references.
+- **Responsibility** — Place behavior with the owner selected by the project's architecture and evidence; do not assume Entity/Model > Service > Component/Handler.
 - **YAGNI / KISS / DRY** — No speculative abstractions, no over-engineering
 - **Evidence-based** — Every claim needs `file:line` proof, confidence >80% to act
 - **Zero broken builds** — Code must compile with no syntax errors
@@ -27,16 +27,14 @@
 
 ## General
 
-- **File Naming**: kebab-case with meaningful names — LLMs must understand purpose from filename alone without reading content
-- **File Size**: Keep code files under 200 lines — split into focused components, extract utilities, use composition over inheritance
+- **File Naming**: Follow the language and project naming convention; if none is documented, match nearby files.
+- **File Size**: Follow project guidance. Split when doing so improves cohesion and change cost, not to meet a universal line count.
 - Skills/tools: `/web-research` (library docs; Context7 MCP optional), `debug-investigate` (analysis), available image/video analysis tools, `gh` (GitHub)
 - **[IMPORTANT]** Follow codebase structure and code standards in `./docs` during implementation
 - **[IMPORTANT]** Always implement real code — never simulate or mock implementations
-- **[CRITICAL] Class Responsibility Rule:**
-    - Logic belongs in LOWEST layer: Entity/Model > Service > Component/Handler
-    - Backend: Entity mapping → Command.UpdateEntity() or DTO.MapToEntity(), NOT in Handler
-    - Frontend: Constants, column arrays, role lists → static properties in Model class, NOT in Component
-    - Frontend: Display logic (CSS class, status text) → instance getter in Model, NOT switch in Component
+- **[CRITICAL] Responsibility Rule:**
+    - Resolve the owner from project configuration, reference docs, accepted decisions, and existing code; do not impose an entity/service/component hierarchy.
+    - Keep mapping, constants, derivation, and display behavior with the project-owned data or contract that makes them coherent; do not require DTO, entity, model, or component placement without project evidence.
 
 ## Understand Code First (MANDATORY)
 
@@ -69,78 +67,9 @@
 
 <!-- /SYNC:shared-protocol-duplication-policy -->
 
-## Code Step Rule (Universal — All Languages)
+## Formatting and project-scoped code conventions
 
-**[CRITICAL]** Code is a tree of steps. Formatting MUST ATTENTION reveal the tree structure.
-
-### Three Rules
-
-| Rule                                      | Meaning                                                                                                  | C# Analyzer                                                         |
-| ----------------------------------------- | -------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------- |
-| **No blank line** between statements      | Same step — independent/parallel work                                                                    | `STEP002` warns if blank line exists between independent statements |
-| **Blank line** between statements         | New step — MUST ATTENTION consume all outputs from previous step                                         | `STEP001` warns if missing; `STEP003` warns if outputs not consumed |
-| **No flat mixing** of unrelated sub-tasks | If tasks A1 and A2 are independent but each has sub-steps, don't flatten all sub-steps into one sequence | Detected by STEP001/STEP002 combination                             |
-
-### Anti-Pattern: Flat Mixing
-
-```
-// BAD — a2_a is unrelated to a1, but appears after a1's sub-steps with misleading blank lines
-var a1_a = GetInput1();
-
-var a1_b = Process(a1_a);  // depends on a1_a — blank line correct
-
-// VIOLATION: a2 is independent of a1, yet a2's sub-steps are flattened alongside a1's
-var a2_a = GetInput2();
-
-var a2_b = Process(a2_a);
-
-var result = Combine(a1_b, a2_b);
-```
-
-### Fix Option 1: Extract Functions
-
-When sub-tasks have 2+ internal steps, extract each into a function. Call them on adjacent lines (same step = no blank line):
-
-```
-var a1 = GetA1();  // encapsulates a1_a → a1_b internally
-var a2 = GetA2();  // encapsulates a2_a → a2_b internally
-
-var result = Combine(a1, a2);  // new step — consumes all outputs from previous step
-```
-
-### Fix Option 2: Chaining
-
-When sub-steps exist but you want to keep it flat, use chaining — indentation reveals tree structure:
-
-```csharp
-var a1 = GetInput1().Pipe(x => Process(x));  // C# / LINQ
-var a2 = GetInput2().Pipe(x => Process(x));
-
-var result = Combine(a1, a2);
-```
-
-_(Same pattern: TypeScript/RxJS → `.pipe(map(...))`, Python → single-expression calls)_
-
-### Decision: Extract vs Chain
-
-| Condition                                         | Prefer           |
-| ------------------------------------------------- | ---------------- |
-| Sub-steps are 2+ lines each                       | Extract function |
-| Sub-steps are 1 line each                         | Chaining         |
-| Sub-steps reused elsewhere                        | Extract function |
-| Language has good chaining (C# LINQ, JS pipe, Rx) | Chain            |
-| Language lacks chaining (Python, Go)              | Extract function |
-| Readability suffers from deep chaining            | Extract function |
-
-### When to Extract Functions (Natural Signal)
-
-The step rule naturally tells you when extraction is needed:
-
-- Can't write a step without violating the rule → **extract a function**
-- A "step" has internal blank lines → its sub-steps should be a function
-- Two adjacent lines are independent but each needs multiple operations → extract each into a function, call both on the same step (no blank line between them)
-
----
+Use formatters, linters, and style rules selected by project config and reference docs; when none are configured, follow the language's established conventions and nearby code. Whitespace is visual and does not encode dependencies or parallelism by default. Put special code-style rules in project config/context groups or project-reference docs, scoped to the files and situations where they apply.
 
 ## Surgical Changes (MANDATORY — applies to every edit)
 
@@ -301,13 +230,13 @@ retitled as a stale test.
 
 **Consent & safety (BLOCKING — binds Claude and Codex equally; static rule, with hooks as optional accelerators):**
 
-- **Never commit, push, or stage (`git add`) unless the user explicitly asks.** "Implement X" / "fix the bug" is NOT permission to commit — finish the work, report what changed, and wait. Only an explicit "commit"/"push" (or an invoked commit skill / git-manager) authorizes it. Where hooks run, `git-commit-block.cjs` accelerates enforcement; every host must obey the static rule even when hooks are absent or stale.
+- **Never commit, push, or stage (`git add`) unless the user explicitly asks.** "Implement X" / "fix the bug" is NOT permission to commit — finish the work, report what changed, and wait. Only an explicit "commit"/"push" (or an invoked commit skill / git-manager) authorizes it. This is a static behavioral rule on every host; no hook enforces it.
 - **Never `git commit --amend`.** Amending rewrites history and can corrupt commits once HEAD has moved — always create a NEW commit. No bypass.
-- **Branch before committing on the default branch.** If asked to commit while on `main`/`master`, create a feature branch first. **Model-behavioral:** `git-commit-block.cjs` has no branch awareness and will not stop a commit on `main` — nothing catches this but you.
+- **Branch before committing on the default branch.** If asked to commit while on `main`/`master`, create a feature branch first. **Model-behavioral:** nothing catches a commit on `main` but you.
 - Read-only git needs no permission: `status`, `diff`, `log`, `show`, `rev-parse`, `describe`, `blame`, `check-ignore`, `ls-files`, `shortlog`, and the _listing_ forms of `branch`, `tag`, `remote`, `config` and `stash`.
-- **`fetch`, `restore`, `reset`, `checkout`, `switch`, `stash push`, `clean`, `merge`, `rebase`, `cherry-pick`, `revert`, `rm`, `mv` and config _writes_ are NOT read-only** — they move refs, the index or the working tree, and the hook blocks them (`git-commit-block.cjs:40`). Ask before running one.
-- **Publishing through the GitHub CLI — or the GitHub MCP server — is the same act as pushing.** `gh pr create|merge`, `gh release create`, `gh repo delete`, `gh api -X POST|PUT|PATCH|DELETE` and their siblings need the same explicit request a push does. `git-commit-block.cjs` gates the modeled write verbs; an unmodeled `gh` write verb is NOT gated, and the explicit-request rule still binds it. The GitHub MCP write tools (`mcp__github__merge_pull_request`, `create_*`, `update_*`, `push_files`, …) reach the same remote without a shell and are gated by `github-mcp-write-block.cjs` against the same session **push** lease — there an unmodeled verb IS gated, because only `get_*`/`list_*`/`search_*` count as reads.
-- **A lease is bookkeeping, not consent.** Where the hook runs, an irreversible operation clears only with a current session lease for that exact repository and operation — but the lease is a _scoped speedbump_, not a security boundary: its store is not tamper-proof (`.claude/hooks/lib/git-operation-lease.cjs:14`) and `issueLease` performs no issuer-authority check. Holding one never substitutes for the user's explicit request.
+- **`fetch`, `restore`, `reset`, `checkout`, `switch`, `stash push`, `clean`, `merge`, `rebase`, `cherry-pick`, `revert`, `rm`, `mv` and config _writes_ are NOT read-only** — they move refs, the index or the working tree. Ask before running one.
+- **Publishing through the GitHub CLI — or the GitHub MCP server — is the same act as pushing.** `gh pr create|merge`, `gh release create`, `gh repo delete`, `gh api -X POST|PUT|PATCH|DELETE` and their siblings need the same explicit request a push does. The explicit-request rule binds every `gh` write verb; none is gated by a hook. GitHub MCP write tools reach the same remote without a shell; they are not guarded by a hook, so every MCP write still requires the same explicit user request.
+- **Destructive-git mechanical gating was removed by explicit user decision.** The former `git-commit-block.cjs` classifier hook that denied irreversible working-tree/history operations is gone; only the literal `permissions.ask` patterns in `.claude/settings.json` remain (and `ask` still prompts even under `defaultMode: bypassPermissions`). A destructive spelling outside that literal set therefore runs without a prompt — e.g. `git switch -f`/`--discard-changes`, `git checkout -f`, `git checkout <ref> -- <path>`, `git restore <path>`, `git rm -f`, `git branch -M`, `git stash clear`, `git reflog delete|expire`, `git filter-branch`/`filter-repo`, `git update-ref -d`, `git worktree remove -f`, `git read-tree --reset`, `git submodule … -f`. Treat that list as not-read-only and ask before running any of them.
 
 **Hygiene:**
 
@@ -334,10 +263,10 @@ After completing code changes, check for stale documentation:
 
 1. Run `git diff --name-only` to list changed files
 2. Map changed files to relevant docs:
-    - Hook/skill/workflow files → `.claude/docs/` reference docs
-    - Backend service code → the business spec root's Feature Spec for the affected capability
-    - Frontend app code → `frontend-patterns-reference.md` in the project-reference docs root + the business spec root's Feature Specs
-    - `CLAUDE.md` structural changes → `.claude/docs/README.md`
+    - Framework hook/skill/workflow files → their owning `.claude/docs/` references and any declared mirrors
+    - Product code, tests, and docs → the canonical owners selected by `docs/project-config.json`, module metadata, and applicable project references (for example, the configured spec/test-case carrier or frontend/backend reference when that area is documented)
+    - Generated context or mirror files → regenerate through their declared owner command; do not hand-edit generated outputs
+    - `CLAUDE.md` structural changes → `.claude/docs/README.md` and the documented context/mirror sync route
 3. Flag stale docs in final review task or update immediately
 4. Output `No doc updates needed` if no mapping applies
 
@@ -348,8 +277,8 @@ After completing code changes, check for stale documentation:
 ## Closing Reminders
 
 **MANDATORY IMPORTANT MUST ATTENTION** understand existing code FIRST — read, grep 3+ patterns, run graph trace before ANY modification
-**MANDATORY IMPORTANT MUST ATTENTION** follow Code Step Rule — no blank line = same step (parallel), blank line = new step (consume all previous outputs). Fix via extract function or chaining.
-**MANDATORY IMPORTANT MUST ATTENTION** place logic in LOWEST layer: Entity/Model > Service > Component/Handler
+**MANDATORY IMPORTANT MUST ATTENTION** follow formatters, conventions, and path-scoped style rules selected by project config or references; never assume blank lines encode dependencies
+**MANDATORY IMPORTANT MUST ATTENTION** place logic with the owner selected by project config, references, accepted decisions, and existing code; do not assume a fixed layer hierarchy
 **MANDATORY IMPORTANT MUST ATTENTION** ensure zero broken builds — code must compile with no syntax errors
 **MANDATORY IMPORTANT MUST ATTENTION** follow YAGNI/KISS/DRY — no speculative abstractions
 **MANDATORY IMPORTANT MUST ATTENTION** apply surgical changes (context-aware) — bug fix: diff test (every line traces to the bug). Review/enhancement: implement improvements you see AND announce them explicitly. Never silently scope-creep either way.

@@ -27,8 +27,6 @@
  *     Accepts `last_synced` OR `last_updated` — see LAST_SYNC_RE for why both.
  *   - Fail-open policy on any internal error, with a visible diagnostic (a
  *     broken advisory gate must not halt all commits).
- *   - Composes after git-commit-block.cjs: that hook denies unauthorised
- *     commits first; this gate only runs once a commit is authorised.
  *
  * This hook intentionally exits 0 for doc/config staleness paths. It guides
  * the AI to repair docs automatically instead of asking the user to unblock it.

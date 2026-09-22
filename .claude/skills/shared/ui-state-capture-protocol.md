@@ -6,14 +6,14 @@ This protocol supplements `e2e-quality-protocol.md` (which owns E2E correctness)
 
 ## Quick Summary
 
-**Goal:** Make an E2E run prove the UI is *correct to look at*, not only that the happy path passed — by capturing every UI-state-changing transition automatically (the default `uiStateCapture.mode: every-action`; see Configuration), indexing the captures in a machine-readable manifest, judging each capture individually against the project's own design authority, and synthesizing the per-case records into owner-routed defect findings.
+**Goal:** Make a visual E2E/QC run provide reviewable evidence for the UI states required by the project contract. Capture the declared state × viewport matrix and add transition captures only when the project selects `uiStateCapture.mode: every-action` and has a verified capture boundary. Index and review each capture against the project's own design authority.
 
-**Workflow:** resolve capture capability and authority → instrument capture in the action layer (never the test body) → run the journey and emit captures + manifest → reload the design/UI convention docs → review ONE capture at a time and append its record → reconcile the manifest against the records → synthesize clusters, journey-level findings, and coverage gaps → route findings to their owning layer.
+**Workflow:** resolve capture mode, runner capability, and authority → use an existing shared action boundary only for opted-in transition capture → run the journey and emit required captures + manifest → reload the design/UI convention docs → review ONE capture at a time and append its record → reconcile the manifest against the records → synthesize findings and coverage gaps → route findings to their actual owner.
 
 **Key Rules:**
 
-- Capture is **instrumented at the shared action layer**, so a new test inherits it. A test that has to remember to screenshot will forget.
-- A capture fires **after** the bounded `waitUntil` postcondition and the 500ms presentation pacing — never mid-transition. A half-rendered frame produces phantom defects that cost more than the missing capture would have.
+- When transition capture is enabled, instrument it at an evidenced shared action boundary if one exists, so covered actions inherit it. Do not create an object model or helper solely to host capture.
+- Capture after the configured runner observes the expected postcondition or settled state. Do not add a fixed delay as a substitute for a readiness or settle signal.
 - Every capture has a **manifest row**. A capture with no row is unreviewable; a row with no per-case record is **incomplete review**, never a clean result.
 - The reviewer **reloads the project design/UI convention docs before judging the first image**. A sub-agent inherits nothing from the calling conversation.
 - Report **case by case first, synthesis second**. Synthesis without per-case records is a summary of memory, not of evidence.
@@ -22,11 +22,11 @@ This protocol supplements `e2e-quality-protocol.md` (which owns E2E correctness)
 
 ## Applicability and ownership
 
-Binds when an executable browser/UI E2E or human-QC surface exists **and** visual review is enabled (the default, or explicit `--visual-review=true`). For a non-visual E2E/API/CLI scope, record `N/A — no user-facing visual surface` and do not invent a capture plan. A relevant UI surface with no screenshot capability is `ENVIRONMENT-BLOCKED`, never a pass.
+Binds when an executable visual UI surface exists **and** visual review is requested or required by the project contract. For a non-visual API/CLI/library/background scope, record `N/A — no user-facing visual surface` and do not invent a capture plan. A relevant UI surface with no configured capture capability is `ENVIRONMENT-BLOCKED`, never a pass.
 
 | Consumer | Owns |
 | --- | --- |
-| `e2e-test` / `e2e-runner` | Instruments the capture helper into the base page/component objects, declares the trigger set and bounds, emits the manifest |
+| `e2e-test` / `e2e-runner` | Uses the configured/discovered shared action, helper, fixture, or object boundary when one owns the exercised actions; declares the trigger set and bounds, emits the manifest. A POM is not required. |
 | `e2e-test-verify` | Report-only: verifies the manifest exists, is complete against the journey, and that captures were read; never repairs |
 | `e2e-test-verify --fix-loop` | Runs the round, reconciles manifest vs records, feeds validated `BLOCKING` visual defects into the round's failure set, fixes the owning layer, reruns the same scope |
 | `experience-review` | Opens and judges each capture, owns the per-case records, the taxonomy verdicts, and the synthesis |
@@ -35,12 +35,12 @@ Binds when an executable browser/UI E2E or human-QC surface exists **and** visua
 
 ## Configuration
 
-Project settings live at `docs/project-config.json` → `e2eTesting.execution.evidence.uiStateCapture`. Every field is optional to the schema; an absent field takes the default below, so an unconfigured project still gets the full protocol. Set `helper` and `manifestPath` explicitly anyway: a missing `manifestPath` is a validation warning in every mode, because the matrix is always indexed, and a missing `helper` is one while `mode` is not `off` (see **Validation**).
+Project settings live at `docs/project-config.json` → `e2eTesting.execution.evidence.uiStateCapture`. Every field is optional; the default mode is `declared-only`. Set `manifestPath` for a visual-review run. Set `helper` only to a source-verified shared action boundary when transition capture is explicitly selected; never invent a path or a page-object model. `declared-only` needs no transition helper, while `every-action` without a shared boundary leaves transition capture `ENVIRONMENT-BLOCKED` (see **Validation**).
 
 | Field | Default | Meaning |
 | --- | --- | --- |
-| `mode` | `every-action` when visual review is enabled | Which captures this protocol produces — see the mode table below. |
-| `helper` | none — discovered from the repository | Project-relative path/symbol of the §1.1 capture helper. Never invented; when it cannot be found, record it as a missing capability. |
+| `mode` | `declared-only` | Which captures this protocol produces — see the mode table below. Choose `every-action` only when the project opts in and an evidenced boundary supports it. |
+| `helper` | none — discovered from the repository | Project-relative path/symbol of an existing capture hook or shared action/helper/fixture/object boundary used for opted-in transition capture. Never invented; a configured path is verified against source. |
 | `manifestPath` | `{evidenceRoot}/ui-captures/{runId}/capture-manifest.json`, where `{evidenceRoot}` is `evidence.root` or `tmp/` | Where the Part 2 manifest is written. |
 | `maxPerTest` | `60` | Integer 1–1000. The §1.3 per-test cap. |
 | `maxPerRun` | `400` | Integer 1–20000 and never below `maxPerTest`. The §1.3 per-run cap. |
@@ -55,29 +55,30 @@ Project settings live at `docs/project-config.json` → `e2eTesting.execution.ev
 | `declared-only` | The §1.4 matrix only (`source: matrix`); no transition captures | Part 4 pass 4 lists **every** state-changing action in the journey as an uncaptured transition, and the synthesis states `mode: declared-only`. Transition coverage is a recorded blind spot, never an implicit pass. |
 | `off` | The §1.4 matrix only (`source: matrix`), still indexed in the manifest; no transition captures and no §1.1 action-layer helper | The synthesis records transition coverage once as `N/A — uiStateCapture off: {reason}` instead of listing every action as a blind spot. `off` removes transition capture only: the matrix is still required and read case by case, a missing matrix capture stays `ENVIRONMENT-BLOCKED`/`UNVERIFIED` exactly as in the other modes, and the visual review gate owned by `SYNC:e2e-visual-design-contract` is never waived or weakened — that opt-out is `--visual-review=false`. |
 
-**Validation** (`project-config-schema.cjs`): an unsupported `mode`, a cap outside its range or not an integer, and `maxPerTest > maxPerRun` are errors; a missing `manifestPath` in any mode, or a missing `helper` while `mode` is not `off`, is a warning, because an unindexed capture set reads as `UNVERIFIED` and a per-test screenshot call decays invisibly.
+**Validation** (`project-config-schema.cjs`): an unsupported `mode`, a cap outside its range or not an integer, and `maxPerTest > maxPerRun` are errors; a missing `manifestPath` in any configured capture mode and a missing `helper` while `mode` is `every-action` are warnings. `declared-only` does not require transition instrumentation; `every-action` requires an evidenced shared action boundary or must report transition capture as `ENVIRONMENT-BLOCKED`.
 
 ---
 
 ## Part 1 — Capture instrumentation
 
-### 1.1 Instrument the action layer, not the test
+### 1.1 Instrument the configured action boundary, not each test
 
-Put exactly one project-owned helper — conceptually `captureUiState(actionDescriptor)` — inside the **base page/component object's action primitives** (the shared `click`, `select`, `toggle`, `navigate`, `submit` wrappers), so every existing and future test emits captures without touching a single test body.
+For `every-action`, put one project-owned hook — conceptually `captureUiState(actionDescriptor)` — at the verified shared action boundary through which the covered actions actually pass. That boundary may be a fixture, shared helper/wrapper, action primitive, page object, or another structure the project already uses. Record its owner and trigger coverage from source evidence; a configured path alone does not prove it is active.
 
-**Why the action layer:** a screenshot call written in a test is a call someone must remember, review, and copy into the next test. It decays within a sprint, and the decay is invisible — the run still passes, it just stops seeing. A capture emitted by the primitive every action already goes through cannot be forgotten, is configured in one place, and is bounded in one place.
+If no shared boundary covers the required actions, report the missing capability as `ENVIRONMENT-BLOCKED`; do not claim automatic transition coverage, create a Page Object Model to host capture, or silently require per-test screenshot calls. `declared-only` still records the transition blind spots and emits the state × viewport matrix.
 
-Order inside the primitive is fixed:
+**Why a verified shared boundary:** per-test screenshot calls depend on each test remembering to capture and can silently leave new cases uncovered. A hook at an existing boundary is centralized only when the actions really flow through it; otherwise the missing coverage must stay visible.
+
+For an opted-in transition-capture hook, record the sequence used by the project's runner. Synchronize with runner-native readiness and postcondition signals; do not introduce a fixed sleep:
 
 ```text
-waitUntil(<readiness / actionability>, options)     # precondition
+<wait using the runner's native or configured readiness mechanism>
 <perform the action>
-waitUntil(<expected positive/negative outcome>, options)   # postcondition
-wait 500ms                                          # presentation pacing
-captureUiState({...descriptor})                     # capture the settled state
+<wait for the expected observable postcondition using the project runner>
+captureUiState({...descriptor})                     # capture the observed state
 ```
 
-A capture taken before the postcondition records a transition, not a state, and every reviewer will report the resulting spinner, skeleton, or half-painted layout as a defect. The 500ms pacing is presentation only; it never substitutes for the postcondition.
+A capture taken before the expected postcondition records an intermediate transition, not the resulting state. The project's runner or configured evidence policy determines how readiness and settling are observed.
 
 ### 1.2 Trigger inventory — what counts as a UI-state-changing action
 
@@ -123,21 +124,25 @@ Transition captures do **not** replace the declared state × viewport matrix (lo
 ## Part 2 — The capture manifest
 
 The manifest is what makes case-by-case review reconcilable — without it a reviewer cannot tell a clean run from an unfinished one.
+It is a run-scoped derived projection of configured owner/case/test carriers and observed actions, never a second canonical case registry.
 
 **Paths** (under the configured evidence root, or `tmp/` when none is configured):
 
 ```text
 {evidenceRoot}/ui-captures/{runId}/capture-manifest.json
-{evidenceRoot}/ui-captures/{runId}/{TC}/{NNN}-{action}-{surface}-{viewport}.png
+{evidenceRoot}/ui-captures/{runId}/{caseKey}/{NNN}-{action}-{surface}-{viewport}.png
 ```
+
+`caseKey` is a filesystem-safe, collision-checked derivation of the configured owner path + case/scenario ID + optional variant. With no native `specArtifacts` profile, the strict-default TC ID supplies the case identity. Never create a parallel registry or mint a second identity to name captures.
 
 **One row per capture — including deduped and capped-out ones:**
 
 | Field | Meaning |
 | --- | --- |
 | `seq` | Monotonic order within the run — the review order |
-| `tc` / `test` | `TC-{MODULE}-E2E-{NNN}` and the test name |
-| `gwt_step` | Which `Given`/`When`/`Then` step this capture belongs to |
+| `owner_path` / `case_id` / `variant` | Configured canonical owner path, native case/scenario ID, and optional variant; without a native profile, `case_id` is the strict-default TC ID |
+| `test` | Actual executing test path and name resolved from the configured carrier |
+| `case_step` | The relevant `Given`/`When`/`Then` step or the case's named action/step |
 | `source` | `matrix` or `transition` |
 | `phase` | `pre`, `post`, or `failure` |
 | `action_type` / `action_label` | Trigger class from §1.2 and a human label ("click Save", "select Status = Closed") |
@@ -162,7 +167,7 @@ The manifest is what makes case-by-case review reconcilable — without it a rev
 **Before opening the first image**, read and cite the project's own UI authority; a sub-agent inherits nothing from the calling conversation, and judging a design from memory is how a house convention gets reported as a bug:
 
 - `docs/project-config.json` → `designSystem.canonicalDoc`, `tokenFiles`, `appMappings[]`
-- the resolved design-system doc, `frontend-patterns-reference.md`, `scss-styling-guide.md`
+- the resolved design-system doc, `frontend-patterns-reference.md`, `configured styling reference`
 - `.claude/docs/design-knowledge.md` (`DD-1`–`DD-8`) and `.claude/docs/design-review-checklist.md` (`CL-1`–`CL-6`, `P0`–`P4`)
 - the governing brief, spec, or accepted `/design` decision for the surface
 
@@ -175,10 +180,12 @@ Follow `SYNC:incremental-persistence`: open exactly ONE capture, inspect it, app
 Per-case record:
 
 ```text
-CASE {seq} — {tc} · {action_label} · {surface} @ {viewport} · {phase}
+CASE {seq} — owner={owner_path} · case={case_id} · variant={variant-or-none} · {action_label} · {surface} @ {viewport} · {phase}
+TEST       {actual test path and name}
 IMAGE      {path}   READ: yes
 EXPECTED   {expected_delta}
 OBSERVED   <what is actually in the image — facts, with locations>
+ASSERTION  <actual test assertion file:line that guards the stated outcome, or NOT VERIFIABLE>
 CONSOLE    <errors/warnings attributed to this transition, or none>
 FINDINGS   <taxonomy code · severity · location · what IN the image shows it>  |  none
 VERDICT    PASS | FAIL | PARTIAL | NOT-VERIFIABLE
@@ -216,7 +223,7 @@ Cite the image and the location, and say what **in the image** shows the defect.
 Per-case records answer "is this screen right". Synthesis answers "is this UI right", and it is where most of the value is. Run all four passes:
 
 1. **Reconcile.** Every manifest row has a record — including deduped and capped rows. Missing records mean the review is `UNVERIFIED`, never clean. Report `reviewed / total`.
-2. **Cluster by owner.** The same defect on N captures is **ONE finding with N locations**, attributed to the component that owns it (`Common` → `Domain-Shared` → `Page`). A header that overflows on nine screens is one shared-component fix, not nine page fixes — and reporting it nine times hides that.
+2. **Cluster by owner.** The same defect on N captures is **ONE finding with N locations**, attributed to the component or layer that owns it under the configured/discovered project architecture. A POM hierarchy is one possible owner model, never a required one. A shared defect remains one owning-layer fix, not one duplicate finding per screen.
 3. **Read the sequence.** Some defects exist only between captures: no feedback between an action and its result; layout shifting between consecutive steps; the same component rendered inconsistently across surfaces; a state the journey never reached; convention drift accumulating across a flow; a destructive action with no confirming state.
 4. **Report coverage gaps.** List the state-changing actions in the journey that produced **no** capture, plus capped/sampled-out captures — under `uiStateCapture.mode: off`, record transition coverage once as `N/A — uiStateCapture off: {reason}` instead of listing each action, and still list capped/sampled-out matrix captures. A gap is a known blind spot, recorded — not an implicit pass.
 
@@ -247,8 +254,8 @@ Persist: capture capability and authority resolution · trigger set and bounds a
 
 ## Closing Reminders
 
-**IMPORTANT MUST ATTENTION Goal:** Make the E2E run prove the UI is correct to look at — capture every UI-state-changing transition automatically (default `uiStateCapture.mode: every-action`), index it, judge each capture individually against the project's own authority, and synthesize owner-routed findings.
+**IMPORTANT MUST ATTENTION Goal:** For applicable visual E2E/QC, capture and review the project-required UI states; capture every UI-state-changing transition only when `uiStateCapture.mode: every-action` is explicitly selected and supported by an evidenced boundary.
 
-**IMPORTANT MUST ATTENTION** while `uiStateCapture.mode` is `every-action`, instrument transition capture in the shared action layer after the `waitUntil` postcondition and the 500ms pacing; in every mode, emit a manifest row for every capture including deduped and capped ones; failure captures are never deduped or capped.
+**IMPORTANT MUST ATTENTION** while `uiStateCapture.mode` is `every-action`, instrument transition capture at a verified configured/discovered shared action boundary after the runner observes the expected postcondition; if no boundary covers the actions, report transition capture as `ENVIRONMENT-BLOCKED` and never invent a page-object model. In every mode, emit a derived manifest row for each required capture including deduped and capped ones; failure captures are never deduped or capped. Preserve configured owner + case/scenario + optional variant identity; use the configured test/case identity convention.
 
 **IMPORTANT MUST ATTENTION** reload the project design/UI convention docs before judging the first image, review ONE capture at a time appending each record before the next, report case by case and only then synthesize, cluster repeated defects to their owning component, never invent a measurement, and never auto-promote a baseline.

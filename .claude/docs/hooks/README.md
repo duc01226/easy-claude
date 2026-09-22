@@ -1,23 +1,25 @@
 # Hooks Reference
 
-> 20 top-level `.cjs` hooks and 36 lib modules for context-aware AI behavior (some hooks register on multiple events; the unified notification router lives under `.claude/hooks/notifications/notify.cjs`)
+> 14 top-level `.cjs` hooks and 43 lib modules for context-aware AI behavior (some hooks register on multiple events; the unified notification router lives under `.claude/hooks/notifications/notify.cjs`)
 
 ## Overview
 
-Hooks are Node.js scripts (`.cjs`, plus one `.js`) that execute at specific Claude Code lifecycle events, enabling session initialization, safety gates, graph maintenance, and code formatting. Enforcement and lifecycle-recovery behavior is **model-driven static guidance** in `CLAUDE.md` / `SKILL.md` / agent `.md`, not runtime hooks.
+Hooks are Node.js scripts (`.cjs`, plus one `.js`) that execute at specific Claude Code lifecycle events, enabling session initialization, safety gates, graph maintenance, code formatting, and optional runtime guidance. Universal enforcement, lifecycle recovery, and the default route gate stay in tracked context; the runtime hook refreshes the live routing catalog.
 
 ```
 SessionStart hooks → UserPromptSubmit hooks → PreToolUse hooks → [Tool runs] → PostToolUse hooks
        ↓                    ↓                       ↓                                ↓
-  Verify install         Intake gate          Validate/block              Format edits
-  Init state                                  Guard boundaries            Update graph
-  Load docs / graph                           Block unsafe ops            Auto-install npm
+  Verify install         Intake + routing     Validate/block              Format edits
+  Install deps                                Guard boundaries            Update graph
+  Init state             route reminder       Block unsafe ops            Convention reminder
+  Load docs / graph
 ```
 
-> **Context injection (current architecture).** Per-edit/per-prompt context-injection
-> guidance lives **statically** in `CLAUDE.md`, agent `.md` files, and skill `SKILL.md`
-> files, so Claude and Codex read identical instructions whether hooks are available or not.
-> Runtime context hooks are optional accelerators, never the source of truth. The PreToolUse
+> **Context injection (current architecture).** Universal project rules live **statically** in
+> `CLAUDE.md`, agent `.md` files, and skill `SKILL.md` files, so Claude and Codex read identical
+> instructions whether hooks are available or not. The workflow route gate lives in those static
+> carriers, while the default-on `workflow-route-inject.cjs` hook re-delivers the live catalog at
+> decision points. Tracked team config can opt out; a local override affects runtime delivery. The PreToolUse
 > hooks are blocking/advisory **gates** and a few utility hooks; every hook below maps to a real
 > registration in `.claude/settings.json`. Plan/skill/todo enforcement and compaction-state
 > recovery remain **static model-driven guidance** (CLAUDE.md / SKILL.md), with hooks allowed to
@@ -32,10 +34,10 @@ two events is counted once per event).
 
 | Event              | Trigger                      | Hooks | Use Cases                                                                                                             |
 | ------------------ | ---------------------------- | ----- | --------------------------------------------------------------------------------------------------------------------- |
-| `SessionStart`     | Session begins/resumes       | 7     | Verify install, init state, auto-install npm, load docs, init graph, record condensation, re-anchor the prompt ledger |
+| `SessionStart`     | Session begins/resumes       | 6     | Integrity preflight + guarded startup-install request validation, init state, load docs, init graph, record condensation, and re-anchor the prompt ledger |
 | `SessionEnd`       | Session ends                 | 1     | Save pending-tasks warning, cleanup temp/swap files                                                                   |
-| `UserPromptSubmit` | Before processing user input | 3     | Warn/route when config, root instructions, docs, or graph need refresh; record each user prompt in the ledger         |
-| `PreToolUse`       | Before tool execution        | 11    | Block sensitive ops, guard path boundaries, warn on doc⇄code drift, command-syntax guard                              |
+| `UserPromptSubmit` | Before processing user input | 4     | Check project readiness and graph state, optionally inject workflow routing, and record prompts in the ledger         |
+| `PreToolUse`       | Before tool execution        | 4     | AskUserQuestion notification, commit-operation gates, and document-sync warnings |
 | `PostToolUse`      | After tool completes         | 4     | Format code, update graph, per-file convention reminder, re-deliver the prompt ledger at task checkpoints             |
 | `Notification`     | Idle/waiting events          | 1     | System notification (`.claude/hooks/notifications/notify.cjs`)                                                        |
 | `Stop`             | Response complete            | 1     | System notification (`.claude/hooks/notifications/notify.cjs`)                                                        |
@@ -51,40 +53,128 @@ two events is counted once per event).
 
 | Hook                                     | Event                          | Matcher                                                  | Purpose                                                                                                                                                                                                                          |
 | ---------------------------------------- | ------------------------------ | -------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `verify-install.cjs`                     | SessionStart                   | `startup\|resume\|clear\|compact`                        | Install integrity preflight (runs first): detect partial `.claude` copy with missing hook `lib/*.cjs` files, emit one actionable message                                                                                         |
+| `verify-install.cjs`                     | SessionStart                   | `startup\|resume\|clear\|compact`                        | Install integrity preflight (runs first), then guarded startup dependency installation on an explicit `startup` event — the runner owns the per-project lock, the post-lock recheck and the process-tree cleanup proof                                                                                                          |
 | `session-init.cjs`                       | SessionStart                   | `startup\|resume\|clear\|compact`                        | Initialize session: detect project, write env vars, validate config, cleanup temp files                                                                                                                                          |
-| `npm-auto-install.cjs`                   | SessionStart                   | `startup`                                                | Auto-install missing npm packages from root `package.json`                                                                                                                                                                       |
 | `session-init-docs.cjs`                  | SessionStart                   | `startup`                                                | Config skeleton + reference doc placeholder creation                                                                                                                                                                             |
 | `graph-session-init.cjs`                 | SessionStart                   | `startup\|resume`                                        | Check Python/tree-sitter/graph.db, then `sync` the graph with git HEAD (skips if config not populated). `resume` included so a session resumed after someone else's commits landed still reconciles                              |
 | `session-end.cjs`                        | SessionEnd                     | `clear\|exit\|compact`                                   | Revoke this session's Git leases on `clear`/`exit`, leave leases unchanged on `compact`, and clean up tmpclaude temp/swap files and stale snapshots                                                                              |
 | `.claude/hooks/notifications/notify.cjs` | Stop, PreToolUse, Notification | –, `AskUserQuestion`, `AskUserPrompt\|permission_prompt` | Unified notification router → desktop dialog + optional Telegram/Discord/Slack; fires on task-complete (Stop), question (AskUserQuestion), and input/permission prompts. Single owner — replaces the retired `notify-waiting.js` |
 
-### Context Management (PreToolUse / UserPromptSubmit)
+`verify-install.cjs` is the ONLY registered SessionStart owner of startup
+dependency installation. It runs the integrity scan first, then — on an explicit
+`startup` source only — hands the decision to `lib/startup-install.cjs`, which
+selects the manager from the project's own lockfile and manifest, takes a private
+per-project lock, rechecks completeness after acquiring it, and proves its process
+tree stopped. The hook stays non-blocking either way: it prints at most one
+diagnostic line and never a stack trace.
 
-The PreToolUse / UserPromptSubmit hooks are gates — not content injectors.
+The manager executable and its arguments are NOT configurable. The hook only ever
+runs a fixed, version-matched argv from its own support matrix, so no project
+config can turn it into an arbitrary command runner. What a project CAN set is
+`hooks.startupInstall` in `docs/project-config.json` — `enabled`,
+`packageManager` and `allowLifecycleScripts`; see the configuration reference.
+Disabling installation never disables the integrity scan.
 
-| Hook                   | Event            | Matcher | Purpose                                                                          |
-| ---------------------- | ---------------- | ------- | -------------------------------------------------------------------------------- |
-| `init-prompt-gate.cjs` | UserPromptSubmit | `*`     | Warn/route until project context, root instructions, docs, and graph are current |
+On Windows, the same owner also probes the machine-native Git capability. A
+healthy result requires a canonical Git-for-Windows root containing `git.exe`,
+`git-bash.exe`, and a working `bash.exe` under that root; WSL/System32 and
+Windows App Execution Alias `bash.exe` entries are not accepted as Git Bash.
+When the capability is missing, broken, or incomplete on an explicit `startup`,
+the hook validates the trusted Windows App Installer/WinGet binary and may start
+one detached, bounded repair worker with the fixed `Git.Git` package command:
+`install --id Git.Git --exact --source winget --silent --disable-interactivity
+--accept-source-agreements --accept-package-agreements`. Repair is skipped for
+non-startup events, disabled/invalid policy, or an unavailable/unverifiable
+WinGet/App Installer boundary; the next startup always probes again. UAC or
+machine policy failures are advisory, fail closed, and never become an
+unbounded installer path. PortableGit and generic installer fallbacks are
+intentionally deferred.
+
+The capability is published only to child/session environments: the resolved
+Git and Git Bash paths are prefixed to the child `PATH` and exposed as
+`CK_GIT_EXE`, `CK_GIT_BASH_EXE`, and `CK_GIT_BASH_PATH`. A child hook or manager
+can therefore run native Git/Git Bash, but a child process cannot mutate the
+already-running parent shell. The per-user repair resource uses the same
+canonical private OS-temp lock discipline as startup installation, so concurrent
+sessions re-probe and coordinate rather than launching duplicate repairs.
+
+### Startup safety and recovery contract
+
+The dependency runner holds one private lock per `SHA-256(realpath(projectRoot))`
+under a canonicalized OS-temp parent, outside the adopter project. The child
+record includes the canonical root, host identity, PID/process-start identity,
+descendant/process-group identity, and an unguessable owner token. Parent and
+child privacy are validated before atomic exclusive creation: POSIX requires the
+current UID, `0700` directory and `0600` record; Windows requires an ACL limited
+to the current user and trusted system principals. Symlink/reparse paths,
+unsafe redirected temp parents, nonprivate ACLs, and unverifiable states fail
+closed.
+
+The manager deadline is 120 seconds. Process-tree cleanup has a separate maximum
+of 30 seconds after timeout or normal exit when descendants remain. If every
+process is not proven stopped, the lock is retained, no retry or age-only reclaim
+occurs, one sanitized warning is emitted, and SessionStart returns. A contender
+polls every 100 ms for at most five seconds; only verified live-owner contention
+returns `install already in progress`. Stale recovery requires matching root,
+host, PID/process-start identity, and token, positive proof that the owner and
+all descendants are dead, an unchanged owner record, and atomic reacquisition.
+Operators must never delete a lock because it is old; if any proof is unavailable,
+leave it retained for a later startup.
+
+### Exact package-manager matrix required in the hook reference
+
+The following table is the executable support contract. The left side of each
+argv pair is the default script-suppressed form; the right side is effective
+only when `allowLifecycleScripts: true` and the host grants
+`CK_STARTUP_INSTALL_TRUST=1`. Lock-preserving flags remain on the opt-in path.
+
+| Manager / supported version | Lockfile evidence | Locked argv (default / opt-in) | Lockless argv (default / opt-in) | Additional documented skip boundary |
+| --- | --- | --- | --- | --- |
+| npm `10.x` / `11.x` | Exactly one of `package-lock.json` or `npm-shrinkwrap.json`; manager signals agree | `ci --ignore-scripts` / `ci` | `install --ignore-scripts` / `install` | Skip unknown versions, both npm lockfiles, another manager lockfile, or conflicts. `npm ci` replaces the existing root `node_modules` tree when it rebuilds dependencies. |
+| npm `12.x` | `package-lock.json` | `ci --ignore-scripts` / `ci` | `install --ignore-scripts` / `install` | Shrinkwrap-only is an unsupported lockfile, not lockless; skip both npm lockfiles and conflicts. `npm ci` replaces the existing root `node_modules` tree when it rebuilds dependencies. |
+| pnpm `9.15.0` | `pnpm-lock.yaml`; manager signals agree | `install --frozen-lockfile --ignore-scripts` / `install --frozen-lockfile` | `install --ignore-scripts` / `install` | Skip other pnpm 9 versions, unsupported versions/lockfiles, or conflicts. Do not pass `--pm-on-fail`. |
+| pnpm `12.x` | `pnpm-lock.yaml`; manager signals agree | `install --frozen-lockfile --ignore-scripts --pm-on-fail=error` / `install --frozen-lockfile --pm-on-fail=error` | `install --ignore-scripts --pm-on-fail=error` / `install --pm-on-fail=error` | Skip unsupported versions/lockfiles or conflicts; `--pm-on-fail=error` prevents pinned-CLI downloads. |
+| Yarn Classic `1.x` | `yarn.lock`; exact trusted external version | `install --frozen-lockfile --ignore-scripts --non-interactive` / `install --frozen-lockfile --non-interactive` | `install --ignore-scripts --non-interactive` / `install --non-interactive` | Skip unknown versions and unsafe `.yarnrc` `yarn-path` forwarding; never apply Berry flags. |
+| Yarn Berry `2.4.x` | `yarn.lock`; exact trusted external version; no unsafe `yarnPath` | `install --immutable --skip-builds` / `install --immutable` | `install --skip-builds` / `install` | Skip Berry 2.0–2.3, unsupported versions/lockfiles, conflicts, plugins, or unsafe forwarding. |
+| Yarn Berry `3.x`–`4.x` | `yarn.lock`; exact trusted external version; no unsafe `yarnPath` | `install --immutable --mode=skip-build` / `install --immutable` | `install --mode=skip-build` / `install` | Skip unsupported/new majors, versions/lockfiles, conflicts, plugins, or unsafe forwarding. |
+| Bun `1.2.x` | `bun.lock`; `bun.lockb` unsupported | `install --frozen-lockfile --ignore-scripts` / `install --frozen-lockfile` | `install --ignore-scripts` / `install` | Skip other Bun versions, `.lockb`, unsupported lockfiles, or conflicts; Bun `trustedDependencies` still applies after opt-in. |
+
+`project.packageManagers` is absent or empty for no signal, or exactly one
+string matching `^(npm|pnpm|yarn|bun)(?:@\d+\.\d+\.\d+)?$`; malformed or
+multiple entries fail closed, and an exact version pin must match the trusted
+external executable. A missing lockfile alone is not a conflict: `auto` uses
+npm only when no manager signal exists. Root-manifest installs may change the
+selected manager's native workspace graph. Yarn PnP is static-only: the hook
+never executes `.pnp.js`/`.pnp.cjs`; malformed, stale, escaping, or inconclusive
+presence evidence skips. Corepack shims, project-local shims, unsafe Windows
+launches, manager extensions (`.pnpmfile`, Yarn plugins, nonempty inherited
+`YARN_PLUGINS`), and unsafe forwarded `yarnPath` are independent skip boundaries.
+
+The project config is not an executable-command surface. `enabled: false`
+disables installation but leaves integrity verification active; an absent config
+uses portable defaults, an absent root `package.json` is a clean install no-op,
+and invalid config skips installation with one fixed diagnostic.
+
+### Prompt Intake (UserPromptSubmit)
+
+Prompt hooks may warn, synchronize state, record the prompt ledger, or emit optional advisory context. Only explicit safety gates block.
+
+| Hook                        | Event            | Matcher | Purpose                                                                                                        |
+| --------------------------- | ---------------- | ------- | -------------------------------------------------------------------------------------------------------------- |
+| `init-prompt-gate.cjs`      | UserPromptSubmit | `*`     | Warn/route until project context, root instructions, docs, and graph are current                               |
+| `workflow-route-inject.cjs` | UserPromptSubmit | `*`     | Default-on advisory route/catalog injection; tracked team config can opt out and an ignored developer-local override controls runtime delivery |
 
 ### Gates (PreToolUse)
 
 | Hook                           | Matcher                                                               | Purpose                                                                                                                                                                                                                                                                                                                                                                                                           |
 | ------------------------------ | --------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `windows-command-detector.cjs` | `Bash`                                                                | Detect/block Windows CMD syntax; auto-rewrite `\!` in `node -e` commands                                                                                                                                                                                                                                                                                                                                          |
-| `bash-shell-guard.cjs`         | `Bash`                                                                | Block PowerShell here-strings (`@' … '@`) and name the POSIX heredoc replacement — Git Bash reports only `@: command not found`                                                                                                                                                                                                                                                                                   |
-| `git-commit-block.cjs`         | `Bash`                                                                | Deny protected Git statements — and the GitHub CLI's modeled write verbs (`gh pr create\|merge`, `gh release create`, `gh api -X POST\|PUT\|PATCH\|DELETE`, …) — unless the current session has an exact, unexpired lease for the resolved repository and operation; `--amend` is unconditional deny                                                                                                              |
 | `doc-sync-gate.cjs`            | `Bash` and `Write\|Edit\|MultiEdit`                                   | Doc⇄Code sync gate — WARN-only (every path exits 0; warnings go to stderr): warns when a `git commit` stages behavioral code in an enforced area without touching its Feature Spec, and per-edit when enforced-area code drifts past `last_synced`                                                                                                                                                                |
-| `review-commit-gate.cjs`       | `Bash`                                                                | Review-before-commit gate — block an agent `git commit` whose changeset has no review fix-loop receipt (`changes-review --fix-loop` / `why-review --fix-loop` / `workflow-review-changes --fix-loop`) and no user-approved `skip` receipt; fail-open on uninspectable input or a broken git. Receipts are content-fingerprinted (`lib/review-receipt.cjs`), so any edit after the review re-arms the gate |
-| `scout-block.cjs`              | `Bash\|Glob\|Grep\|Read\|Edit\|Write\|NotebookEdit`                   | Prevent bulk reads outside approved scope                                                                                                                                                                                                                                                                                                                                                                         |
-| `privacy-block.cjs`            | `Bash\|Glob\|Grep\|Read\|Edit\|Write\|NotebookEdit`                   | Block access to sensitive files (.env, keys, credentials)                                                                                                                                                                                                                                                                                                                                                         |
-| `path-boundary-block.cjs`      | `Bash\|Edit\|Write\|MultiEdit\|NotebookEdit` and `mcp__filesystem__*` | Block file access outside project root (security-critical)                                                                                                                                                                                                                                                                                                                                                        |
-| `github-mcp-write-block.cjs`   | `mcp__github__*`                                                      | Gate GitHub MCP **write** tools (`merge_pull_request`, `create_*`, `update_*`, `push_files`, …) behind the same session **push** lease `git push` and `gh` consume; reads (`get_*`/`list_*`/`search_*`) pass. Modeled as a READ allowlist, so an unmodeled verb is treated as a write and denied — the inverse of the `gh` gate's fail-open choice, because this namespace is small and its tool names are static |
+| `review-commit-gate.cjs`       | `Bash`                                                                | Review-before-commit gate — require a matching full-changeset review or user-approved `skip` receipt for every supported commit statement, bound to the exact repository storage, base tree, and candidate tree. Supports default staged content, `-a`/`--all`, and explicit literal `-- <files>`; unsupported Git contexts or candidate-computation errors fail closed with recovery guidance. A worktree review survives staging only when those exact trees match. |
 
 > **Plan/skill/todo enforcement is now static.** The former `edit-enforcement`,
 > `skill-enforcement`, and `workflow-task-guard` gates (block edits/skills/task-completion
 > without a `TaskCreate` item) are now **model-driven rules in `CLAUDE.md`** (Task Planning
-> Rules / WORKFLOW-GATE). The former `agent-files-skill-gate` setup router is replaced by
+> Rules). The former `agent-files-skill-gate` setup router is replaced by
 > the static project-reference doc gate in `CLAUDE.md` / `SKILL.md`.
 
 ### Lessons Injection
@@ -98,27 +188,21 @@ Lessons are managed via the `/learn` skill. See `.claude/skills/learn/SKILL.md`.
 
 ### Workflow Automation
 
-| Hook                    | Event                  | Purpose                                                                          |
-| ----------------------- | ---------------------- | -------------------------------------------------------------------------------- |
-| `init-prompt-gate.cjs`  | UserPromptSubmit       | Warn/route until project context, root instructions, docs, and graph are current |
-| `session-init-docs.cjs` | SessionStart:`startup` | Config skeleton + reference doc placeholder creation                             |
+| Hook                        | Event                  | Purpose                                                                                                                        |
+| --------------------------- | ---------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| `init-prompt-gate.cjs`      | UserPromptSubmit       | Warn/route until project context, root instructions, docs, and graph are current                                               |
+| `workflow-route-inject.cjs` | UserPromptSubmit       | Inject the route gate and live catalog only when effective `portability.workflowAutoDetect` is `true`; advisory and fail-open |
+| `session-init-docs.cjs`     | SessionStart:`startup` | Config skeleton + reference doc placeholder creation                                                                           |
 
 > Plan/skill/todo enforcement and cross-compaction todo persistence are **model-driven
 > static guidance** (`CLAUDE.md` Task Planning Rules + `TaskList` re-read on resume), not
 > hooks.
 
-### Safety & Privacy
+### Commit Gates
 
 | Hook                           | Matcher                                                            | Purpose                                                                                                                           |
 | ------------------------------ | ------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------- |
-| `path-boundary-block.cjs`      | `Bash\|Edit\|Write\|MultiEdit\|NotebookEdit`, `mcp__filesystem__*` | Block file access outside project root (security-critical)                                                                        |
-| `privacy-block.cjs`            | `Bash\|Glob\|Grep\|Read\|Edit\|Write\|NotebookEdit`                | Block access to sensitive files (.env, keys, credentials)                                                                         |
-| `scout-block.cjs`              | `Bash\|Glob\|Grep\|Read\|Edit\|Write\|NotebookEdit`                | Prevent bulk reads outside approved scope                                                                                         |
-| `windows-command-detector.cjs` | `Bash`                                                             | Detect/block Windows CMD syntax; auto-rewrite `\!` in `node -e` commands                                                          |
-| `bash-shell-guard.cjs`         | `Bash`                                                             | Block PowerShell here-strings (`@' … '@`); name the POSIX heredoc form                                                            |
-| `git-commit-block.cjs`         | `Bash`                                                             | Enforce deny-wins Git **and GitHub CLI** statement classification and exact session/repository/operation leases; no marker bypass |
 | `review-commit-gate.cjs`       | `Bash`                                                             | Require a review fix-loop receipt over the exact changeset before an agent commit; a user-approved `skip` receipt clears it       |
-| `github-mcp-write-block.cjs`   | `mcp__github__*`                                                   | Gate GitHub MCP writes behind the same session push lease; the third publish path, reached without a shell                        |
 
 ### Context Management & Utility
 
@@ -127,6 +211,7 @@ Lessons are managed via the `/learn` skill. See `.claude/skills/learn/SKILL.md`.
 | `post-edit-prettier.cjs`     | PostToolUse:`Edit\|Write\|MultiEdit`                                                                                  | Auto-run the PROJECT-configured formatter on edited files (resolved from project-config `formatting`; framework default is Prettier); terminate the complete formatter process tree on timeout                                                                                                                                                                                                                                                                                                                                                                                       |
 | `graph-auto-update.cjs`      | PostToolUse:`Edit\|Write\|MultiEdit`                                                                                  | Incremental graph update after file edits (debounced)                                                                                                                                                                                                                                                                                                                                                                                                                             |
 | `graph-prompt-sync.cjs`      | UserPromptSubmit                                                                                                      | Re-sync the graph when git HEAD moved since the last prompt (pull/checkout/merge). Gated on a cheap `git rev-parse HEAD` compare, so Python spawns only when HEAD actually changed; never blocks the prompt                                                                                                                                                                                                                                                                       |
+| `workflow-route-inject.cjs` | UserPromptSubmit                                                                                                      | Default-on workflow route/catalog reminder. Tracked team config can opt out; `.claude/.ck.local.json` controls only the developer's runtime refresh. Appends an optional project-supplied `portability.workflowRouteProtocol` in its own marker block. Deduplicates by session/scope/content hash, re-arms on compaction or ~4.5 MB of transcript growth, and always fails open                                                                                                                                                                                                     |
 | `prompt-ledger.cjs`          | UserPromptSubmit; SessionStart:`compact\|resume\|clear`; PostToolUse:`TodoWrite\|TaskCreate\|TaskUpdate\|update_plan` | Session prompt ledger (accelerator, never a gate): records every user prompt under `tmp/prompt-ledger/<session>/` with secrets redacted, pins the first prompt as the original goal, and re-delivers a short digest only when that reminder is no longer present (condensation, long growth, checkpoint). On by default; `promptLedger.enabled: false` / `CK_PROMPT_LEDGER=0` disables; always exit 0, silent on any failure. See [Session Prompt Ledger](#session-prompt-ledger) |
 | `file-convention-inject.cjs` | PostToolUse:`Read\|Edit\|Write\|MultiEdit\|NotebookEdit`; SessionStart:`compact\|clear`                               | Per-file convention reminder (accelerator, never a gate): after a read/change, emits `additionalContext` with the rules, skill protocols and reference docs of the convention classes (`contextGroups[]`) the file belongs to — only classes not already present in this working context. Opt-in `conventionInjection.enabled`; always exit 0, silent on any failure. See [Per-File Convention Injection](#per-file-convention-injection)                                         |
 
@@ -167,7 +252,7 @@ Max 50 entries (FIFO trim)
 ## Session Lifecycle
 
 ```
-SESSION START (7 hooks)                         DURING SESSION
+SESSION START (6 hooks)                         DURING SESSION
   verify-install.cjs ───────────────────┐         graph-auto-update.cjs (after edits)
     └── partial-copy preflight          │         post-edit-prettier.cjs (after edits)
   session-init.cjs ─────────────────────┤         file-convention-inject.cjs (after reads/edits)
@@ -177,12 +262,9 @@ SESSION START (7 hooks)                         DURING SESSION
     ├── detectProjectType()             │       PROMPT (UserPromptSubmit)
     ├── resolvePlanPath()               │         init-prompt-gate.cjs (gate)
     └── writeEnv() (CK_* vars)          │         graph-prompt-sync.cjs (HEAD-change resync)
-  npm-auto-install.cjs                  │         prompt-ledger.cjs (record each prompt)
   session-init-docs.cjs                 │       PRETOOLUSE GATES
-  graph-session-init.cjs ───────────────┘         windows-command-detector / bash-shell-guard
-                                                  git-commit-block / scout-block / privacy-block
-                                                  path-boundary-block / doc-sync-gate (WARN)
-                                                  github-mcp-write-block (MCP push lease)
+  graph-session-init.cjs ───────────────┘         review-commit-gate
+                                                  doc-sync-gate (WARN)
                                                 SESSION END (1 hook)
                                                     session-end.cjs
                                                       ├── write pending-tasks-warning.json
@@ -199,7 +281,7 @@ SESSION START (7 hooks)                         DURING SESSION
 
 ## Lib Modules
 
-36 modules under `.claude/hooks/lib/`.
+43 direct `.cjs` modules under `.claude/hooks/lib/`.
 
 ### State Management
 
@@ -235,9 +317,10 @@ SESSION START (7 hooks)                         DURING SESSION
 | --------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `command-inspection.cjs`    | Pure bounded Bash tokenization with static/dynamic provenance and no command execution                                                                                                                                                                                                                                                                                                                                                                                                                     |
 | `git-operation-lease.cjs`   | Short-lived session/project/repository/operation bookkeeping with replay-safe issue/revoke/check lifecycle. **Scoped speedbump, not a security boundary:** the store is an ordinary directory that is not tamper-proof (`git-operation-lease.cjs:14`) and `issueLease` performs no issuer-authority check, so any process able to write the store can mint one. It raises the cost of an accidental push; it does not stop a determined one, and it is never a substitute for the user's explicit request. |
-| `path-boundary-policy.cjs`  | Pure command/path role classification used by the project-boundary security hook                                                                                                                                                                                                                                                                                                                                                                                                                           |
+| `path-boundary-policy.cjs`  | Pure command/path role classification helper; library module, not a registered hook |
 | `project-root.cjs`          | Resolve and validate the consuming project root across cwd/script/env launch shapes                                                                                                                                                                                                                                                                                                                                                                                                                        |
-| `sensitive-path-policy.cjs` | Pure sensitive-path classification shared by privacy policy consumers                                                                                                                                                                                                                                                                                                                                                                                                                                      |
+| `review-receipt.cjs`          | Snapshots, issues, verifies, skips, and clears short-lived review receipts bound to the exact repository, base tree, and candidate tree                                          |
+| `sensitive-path-policy.cjs` | Pure sensitive-path classification shared by sensitive-path consumers                                                                                                                                                                                                                                                                                                                                                                                                                                      |
 
 ### Context / Prompt Support
 
@@ -260,7 +343,17 @@ SESSION START (7 hooks)                         DURING SESSION
 | ---------------------------- | ----------------------------------------------------------------- |
 | `project-config-loader.cjs`  | Load and validate project configuration, generate project summary |
 | `project-config-schema.cjs`  | Project config JSON schema definition                             |
+| `project-reference-registry.cjs` | Resolves reference-doc aliases, owners, and scan targets; validates selected docs and contains paths within configured roots |
+| `spec-artifact-profile.cjs`      | Validates configured spec-artifact profiles and matches identifiers against declared grammars                               |
 | `test-fixture-generator.cjs` | Generate test fixture data for hook tests                         |
+
+### Startup Installation
+
+| Module                      | Purpose                                                                                                  |
+| --------------------------- | -------------------------------------------------------------------------------------------------------- |
+| `startup-install.cjs`       | Owns startup dependency installation end to end: validates the request against project and manager preconditions, then runs the selected manager under the project lock. `runStartupInstall` is the boundary the hook calls; `buildInstallRequest` is the decision half, useful on its own in tests. |
+| `startup-install-lock.cjs`  | The private per-project lock the runner holds while a manager runs — owner liveness, post-acquire recheck, and proof the whole process tree stopped before the lock is reclaimed. |
+| `windows-git.cjs`           | Probes native Git/Git Bash, validates trusted WinGet, starts the bounded `Git.Git` repair worker, and publishes child-local `PATH`/`CK_GIT_*` capability values. |
 
 ### General Utilities
 
@@ -323,29 +416,20 @@ Keeps the right conventions in the model's attention at the moment it reads or c
 | Host                   | Delivery                                                                                                                                                       | Condensation re-arm                                                                                                                                                                    | Helper-agent separation                 | Status                           |
 | ---------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------- | -------------------------------- |
 | Claude Code            | PostToolUse `additionalContext` on `Read\|Edit\|Write\|MultiEdit\|NotebookEdit`                                                                                | SessionStart `compact\|clear` + transcript marks + byte/age re-arm                                                                                                                     | `agent_id` scope + sub-agent transcript | Runtime-verified (this repo)     |
-| Codex                  | PostToolUse `additionalContext` for `apply_patch` (Add/Update targets; a moved file counts only at its Move-to destination), mirrored via `run-codex-sync.mjs` | SessionStart `compact\|clear` **is** mirrored since 2026-09-17 (see below) + byte re-arm; the blind age limit (`blindReinjectAfterMinutes`, 5 min) now applies only when neither fires | None (no helper id) ⇒ shared main scope | Doc-verified, runtime-unverified |
+| Codex                  | PostToolUse `additionalContext` for `apply_patch` (Add/Update targets; a moved file counts only at its Move-to destination), mirrored via `run-codex-sync.mjs` | SessionStart `compact\|clear` is mirrored for the allowlisted runtime producers + byte re-arm; the blind age limit (`blindReinjectAfterMinutes`, 5 min) is the fallback when neither fires | None (no helper id) ⇒ shared main scope | Doc-verified, runtime-unverified |
 | Any host without hooks | Static "Automatic Skill Activation" table in CLAUDE.md/AGENTS.md + `node .claude/hooks/lib/file-conventions.cjs --lookup <path>`                               | Model re-reads per static rules                                                                                                                                                        | n/a                                     | Always available                 |
 
-> **[SUPERSEDED 2026-09-17 — read this before the section below.]** The paragraphs that follow described a state where `sync-hooks.mjs` mirrored **no** SessionStart hook to Codex, and they closed by instructing the reader not to change that. That instruction has been **deliberately overridden** at the user's explicit direction, on evidence the original decision did not have:
->
-> - The official Codex hook reference (<https://learn.chatgpt.com/docs/hooks>, checked 2026-09-17) lists **SessionStart** as a supported event with the matcher vocabulary `startup | resume | clear | compact` — the same as Claude's. The exclusion was not a capability limit.
-> - The repo's own model of Codex was wrong in two further places, both now corrected: `sync-hooks.mjs` `supportedEvents` omitted SessionStart **and** SessionEnd (Codex supports both), and `verify-sync-divergence.mjs` recorded "Notification and SessionEnd have no Codex equivalent" as a reviewed baseline.
-> - The concrete harm was not limited to this hook. `session-init-docs.cjs` is the **sole writer** of `.scan-stale`, and `init-prompt-gate.cjs` — which **is** mirrored — is its only reader. Dropping every SessionStart hook left that consumer registered in `.codex/hooks.json`, passing its tests, and permanently unreachable on Codex.
->
-> The replacement is **narrow, not wholesale**: `sync-hooks.mjs` `codexSessionStartMirrors` names only the SessionStart hooks whose output a mirrored non-SessionStart hook consumes — `session-init-docs.cjs`, `file-convention-inject.cjs`, `prompt-ledger.cjs`. Everything else (`session-init`, `verify-install`, `npm-auto-install`, `graph-session-init`) is still skipped under the original `static-startup-context-authoritative` rationale, which remains correct for hooks that only restate what `AGENTS.md` / `.codex/CODEX_CONTEXT.md` already carry. `npm-auto-install` in particular runs a synchronous 120 s `execSync`, and mirroring it wholesale would have imported that into every Codex session start.
->
-> **Consequence for this section:** on Codex the condensation re-arm is now driven by the mirrored SessionStart `compact|clear` group, so the blind window described below is the fallback rather than the normal path. The bound analysis stays accurate for hosts that report nothing; it no longer describes Codex's expected behavior. Runtime on Codex remains unverified.
-
-**SessionStart delivers nothing (accepted divergence, with a known bound).** The SessionStart registration never emits a reminder: it only records a host-reported condensation and runs the retention sweep. Historically `sync-hooks.mjs` did not mirror SessionStart to Codex (reason code `static-startup-context-authoritative`), so on Codex those two duties fell to the PostToolUse path, and they degraded differently:
-
-- **Retention is fully covered.** `maybePrune` sweeps on the delivering path at most once per 24 h, so no host depends on SessionStart for retention. Covered by TC-PFCI-051.
-- **Condensation detection is NOT fully covered; the blind window is bounded, not closed.** The transcript branch needs `input.transcript_path` (`convention-ledger.cjs:211-216`) and matches a Claude JSONL shape by default (`BUILTIN_BOUNDARY`, `:34`; default `compactionMarkers` is empty, `file-conventions.cjs:36`). On a host that supplies neither a session-level condensation report nor a readable transcript, `lastCompactionAt` returns `-Infinity` (`:336`), so the `deliveredAt > lastCompactionAt` test (`:349`) always passes and presence is decided **only** by age. **A condensation on such a host is still invisible, and the reminder is suppressed — delayed, not repeated — until the age limit passes.** The "extra reminder, never a missed one" property therefore holds for the host report and the shorter-history rule, but **not** for the age fallback, which fails closed.
-- **What bounds it:** that blind case gets its own, much shorter limit — `blindReinjectAfterMinutes` (default 5 min), not `reinjectAfterMinutes` (default 30 min) — so an unseen condensation can suppress a reminder for about five minutes rather than thirty. The blind limit applies **only** while nothing is observable: a scope whose size is unknown but whose condensations ARE observed (host report, or a mark in its own transcript) keeps the 30-minute limit, and a measurable transcript keeps the byte rule, so hosts that do report are not made noisier. The cost of the shorter limit is a few extra reminders on hosts that report nothing; it is a bound on the blind window, not a fix for it.
-- **Further mitigation without touching the mirror:** lower `blindReinjectAfterMinutes` again for Codex-heavy work, or set `compactionMarkers` to that host's own boundary shape once known, which re-enables the transcript branch and moves the scope off the blind path entirely.
-
-~~Do not add SessionStart to the Codex mirror to "fix" this — that exclusion is an existing framework decision owned elsewhere.~~ **Reversed 2026-09-17** — see the superseding note at the head of this section. The exclusion was owned by `sync-hooks.mjs`, it rested on an incorrect model of which events Codex supports, and it has been replaced by a per-hook allowlist rather than removed. The remaining guidance still stands: revisit if Codex begins supplying a transcript path, or if the blind window is observed to cause a real missed reminder on a host that reports nothing.
-
-Coverage: TC-PFCI-040 ("blind window without transcript or condensation report") is the test for the no-transcript, no-report host shape and pins the 5-minute limit; TC-PFCI-037 ("age re-arm without transcript") covers the unknown-size-but-condensation-observed shape on the 30-minute limit; TC-PFCI-033 covers a full deliver → condense → re-deliver cycle driven by tool events alone with no SessionStart event, using a readable transcript.
+**Codex SessionStart is selectively mirrored.** Static-only producers remain
+omitted under `static-startup-context-authoritative`, because their content is
+already carried by `AGENTS.md` / `.codex/CODEX_CONTEXT.md`. The runtime producer
+allowlist mirrors `session-init-docs.cjs`, `file-convention-inject.cjs`,
+`prompt-ledger.cjs`, and `verify-install.cjs`: the first three publish state read
+by mirrored consumers, while `verify-install.cjs` probes/repairs native Git/Git
+Bash and publishes a machine capability that static context cannot represent.
+Groups without an allowlisted producer are recorded as skipped; Codex's
+SessionStart matcher vocabulary otherwise matches `startup|resume|clear|compact`.
+The sync report and divergence oracle are the source of truth for this
+allowlist; current runtime verification remains explicitly marked below.
 
 ---
 
@@ -369,13 +453,34 @@ Keeps the user's ORIGINAL request — and every later prompt of the session — 
 - **Retention:** when a session's first prompt creates a record, ledger-shaped session folders untouched for 7 days are removed (≤50 per run); a folder that is not ledger-shaped is never deleted (`CK_PROMPT_LEDGER_DIR` may point anywhere).
 - **Opt-out / diagnostics:** `promptLedger.enabled: false` or `CK_PROMPT_LEDGER=0|off|false` makes it inert (the static protocol still binds). `CK_DEBUG=1` explains each decision on stderr. Any failure ⇒ no output, exit 0.
 
-**Host matrix** — the UserPromptSubmit path is self-sufficient by design: it both records and re-anchors, so no host depends on SessionStart. `sync-hooks.mjs` never mirrors SessionStart to Codex (`disabledCodexEvents: static-startup-context-authoritative`), which is why the distance rules (growth / age) — not the condensation report — are what restores the goal there (`prompt-ledger.test.cjs::TC-SPL-016`).
+**Host matrix** — the UserPromptSubmit path is self-sufficient by design: it
+both records and re-anchors, so a host without hooks still has the static goal
+contract. Codex additionally mirrors the allowlisted SessionStart producers;
+the distance rules (growth / age) remain the fallback when no condensation or
+transcript signal is observable (`prompt-ledger.test.cjs::TC-SPL-016`).
 
 | Host                                                      | Events that fire                                                                   | Record + pin                                            | Re-anchor mechanism                                                                                                                        | Status                           |
 | --------------------------------------------------------- | ---------------------------------------------------------------------------------- | ------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ | -------------------------------- |
 | Claude Code                                               | UserPromptSubmit · SessionStart `compact\|resume\|clear` · PostToolUse checkpoints | UserPromptSubmit (plaintext)                            | Condensation report + transcript marks + growth/age + task checkpoints                                                                     | Runtime-verified (this repo)     |
-| Codex                                                     | UserPromptSubmit · PostToolUse checkpoints (SessionStart is never mirrored)        | UserPromptSubmit (plaintext)                            | Growth/age distance on the prompt path; `update_plan` checkpoint best-effort                                                               | Doc-verified, runtime-unverified |
+| Codex                                                     | UserPromptSubmit · SessionStart `compact\|resume\|clear` (allowlisted producers) · PostToolUse checkpoints | UserPromptSubmit (plaintext)                            | SessionStart condensation signal + growth/age distance; `update_plan` checkpoint best-effort                                               | Doc-verified, runtime-unverified |
 | Any host without hooks (Copilot, hooks disabled, opt-out) | none                                                                               | Model pins `Original goal:` and the `P1…Pn` list itself | `SYNC:session-goal-ledger` in every workflow skill, CLAUDE.md Task Planning Rules, and the prompt protocol mirrored into every Codex skill | Always available                 |
+
+---
+
+## Workflow Route Injection
+
+`workflow-route-inject.cjs` refreshes the canonical tracked route gate with the current workflow and skill catalog.
+
+- **Default:** enabled when no valid setting is present.
+- **Team setting:** `docs/project-config.json` → `portability.workflowAutoDetect`.
+- **Developer override:** `.claude/.ck.local.json` → `portability.workflowAutoDetect`. This file is matched by `.claude/.gitignore` `*.local.json`; a valid local boolean wins in either direction.
+- **Custom protocol:** `portability.workflowRouteProtocol` (team or developer-local, resolved through the same cascade with a valid local value replacing the team value). A string is inline markdown; an object carries inline `text` and/or a repo-relative `path` read at runtime (absolute/`..` and privacy-sensitive paths such as `.env`/credentials/keys are rejected, and a file over 20,000 bytes is truncated with a visible marker). The resolved text is appended after the catalog inside `<!-- CK:WORKFLOW-ROUTE-PROTOCOL -->`. Runtime-only — it is never stamped into tracked context, and it is part of the delivery content hash so a change re-delivers.
+- **Delivery:** advisory plaintext on `UserPromptSubmit`; malformed input, missing session identity, read/build/state failures, and output failures all produce no context and exit successfully.
+- **Dedup:** session + scope + content hash in `tmp/workflow-routing/`. A changed gate/catalog re-delivers immediately.
+- **Re-arm:** after a detected compaction, transcript shrink, or 4,500,000 bytes of transcript growth (the portable proxy for roughly 200K tokens). A host that exposes no transcript-size or compaction evidence stays deduplicated for the session; elapsed wall time alone does not prove that the context crossed the token boundary.
+- **Explicit invocation:** skills and workflows remain directly invokable while automatic routing is disabled because their source definitions are unchanged.
+
+The same hook source is projected into `.codex/hooks.json` and the OpenCode hook bridge. Neither projection copies the effective local setting into tracked output.
 
 ---
 
@@ -418,20 +523,19 @@ while `UserPromptSubmit` specifically accepts plaintext context.
 | `0`  | Success, allow operation to proceed            |
 | `2`  | Block operation (with error message on stderr) |
 
-> All hooks exit 0 (non-blocking) except blocking safety gates (`path-boundary-block`, `privacy-block`, `scout-block`, `git-commit-block`, `review-commit-gate`, `github-mcp-write-block`) which exit 2 to block. `init-prompt-gate.cjs` and `doc-sync-gate.cjs` are WARN-only — every code path exits 0.
+> All hooks exit 0 (non-blocking) except blocking safety gates (`review-commit-gate`) which exit 2 to block. `init-prompt-gate.cjs` and `doc-sync-gate.cjs` are WARN-only — every code path exits 0.
 
 ### Bash PreToolUse reliability contract
 
-The seven hooks on the Bash path use the shared `runPreToolHookSync` / `runPreToolHook` completion
-contract in `.claude/hooks/lib/hook-runner.cjs`:
+The two registered Bash hooks use the shared `runPreToolHookSync` completion contract in
+`.claude/hooks/lib/hook-runner.cjs`:
 
 - An allow decision exits `0` with empty stdout. Diagnostics and advisory warnings belong on stderr.
   `doc-sync-gate.cjs` advisory warning is written to stderr; no allow path emits stdout.
 - A block decision exits `2` with a human-readable stderr message and never writes a decision-looking
   object to stdout unless the hook is deliberately returning the documented `hookSpecificOutput` object.
-- Input, evaluation, and output-transport failures are visible. Git, privacy, and path-boundary
-  evaluation failures deny closed; the shell and scout heuristics preserve their existing fail-open
-  policy but report the failure.
+- Error diagnostics are written to stderr. The commit gates use exit 2; doc-sync uses exit 0 for
+  input and handler errors.
 - Hooks set `process.exitCode` after writing output so Node can drain stdout/stderr. They must not call
   `process.exit()` immediately after emitting a block or rewrite response.
 
@@ -461,11 +565,11 @@ Hooks are registered in `settings.json` under `hooks.{EventName}[].hooks[]`. Eac
             {
                 "hooks": [
                     {
-                        "command": "node \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/privacy-block.cjs",
+                        "command": "node \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/doc-sync-gate.cjs",
                         "type": "command"
                     }
                 ],
-                "matcher": "Bash|Glob|Grep|Read|Edit|Write|NotebookEdit"
+                "matcher": "Bash"
             }
         ]
     }
@@ -478,7 +582,6 @@ Doc paths in this file are defaults resolved against the project-reference docs 
 
 ```json
 {
-    "privacyBlock": true,
     "codeReview": {
         "enabled": true,
         "rulesPath": "docs/project-reference/code-review-rules.md"
@@ -490,14 +593,13 @@ Doc paths in this file are defaults resolved against the project-reference docs 
 
 ## Testing
 
-Primary hook test status: `test-all-hooks.cjs` passes with 232 tests on a clean configured project. Aggregate discovery status: `run-all-tests.cjs` discovers 671 tests on the current suite set. These totals are maintained by the test-runner count guards; rerun both commands below before publishing a new count. The discovered total includes the process-boundary Bash contract suite and varies only when suites are intentionally added or removed.
+The primary runner passes with 130 tests. The full aggregate runner `run-all-tests.cjs` discovers 646 tests (645 passed, 1 intentional skip), including the process-boundary Bash contract and code-graph storage portability suites; the total changes when suites are intentionally added or removed.
 
 | Test Surface          | Count | File/Location                                                     |
 | --------------------- | ----- | ----------------------------------------------------------------- |
-| Primary hook runner   | 232   | `.claude/hooks/tests/test-all-hooks.cjs`                          |
-| Aggregate runner      | 671   | `.claude/hooks/tests/run-all-tests.cjs` (all suites, discovered)  |
+| Primary hook runner   | 130   | `.claude/hooks/tests/test-all-hooks.cjs`                          |
+| Aggregate runner      | 646   | `.claude/hooks/tests/run-all-tests.cjs` (all suites, discovered)  |
 | Standalone test files | TODO  | `tests/test-*.cjs/.js` excluding runner (re-verify before citing) |
-| Scout-block tests     | TODO  | `scout-block/tests/test-*.js` (re-verify before citing)           |
 | Lib unit tests        | TODO  | `lib/__tests__/*.test.cjs` (re-verify before citing)              |
 
 Run all primary hook tests: `node .claude/hooks/tests/test-all-hooks.cjs`

@@ -1,6 +1,6 @@
 {
   "assertions": [
-    "Read project-structure-reference.md in the project-reference docs root for project tech stack and architecture",
+    "Consult the project's configured context and applicable reference docs for architecture and technology conventions; do not assume a stack",
     "Architecture: Search for existing implementations before creating new code",
     "Architecture: Place logic in the lowest appropriate layer, following the project's documented architecture",
     "Architecture: Plan before implementing non-trivial tasks"
@@ -10,7 +10,6 @@
     "injectOnSkills": ["code-review", "review", "review:codebase", "changes-review", "code-reviewer"],
     "rulesPath": "docs/project-reference/code-review-rules.md"
   },
-  "codingLevel": 3,
   "locale": {
     "responseLanguage": null,
     "thinkingLanguage": null
@@ -39,7 +38,6 @@
       "mode": "prompt"
     }
   },
-  "privacyBlock": true,
   "project": {
     "framework": "auto",
     "packageManager": "auto",

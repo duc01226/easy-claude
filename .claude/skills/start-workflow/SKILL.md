@@ -6,14 +6,14 @@ description: '[Skill Management] Use when starting a detected workflow, initiali
 
 ## Quick Summary
 
-**Goal:** Detect intent, auto-select the direct/skill/workflow/custom route, then activate the canonical contract with a complete TaskCreate plan.
+**Goal:** Activate a selected workflow or custom pipeline from its canonical contract with a complete TaskCreate plan.
 
-**Summary:** Use the static catalog only for route selection, then resolve the exact canonical workflow mode through the shared manifest resolver—including non-empty `preActions.injectContext`—before creating tasks on both Claude and Codex, with or without hooks. Persist the resolver fingerprint and occurrence IDs with the run so resume cannot silently switch modes or sequences.
+**Summary:** Accept an explicitly named workflow or a workflow selected by the opt-in runtime route payload, then resolve the exact canonical mode through the shared manifest resolver—including non-empty `preActions.injectContext`—before creating tasks on every host. Persist the resolver fingerprint and occurrence IDs with the run so resume cannot silently switch modes or sequences.
 
 **Workflow:**
 
-1. **Detect** — Execute explicit `/workflow-*` or `/start-workflow <id>` directly; otherwise match prompt against workflow catalog and skill list
-2. **Auto-select** — Choose direct execution, a skill, a standard workflow, or a custom pipeline without asking the user to pick the path
+1. **Select** — Use the exact workflow named by the user or selected by the opt-in runtime route payload
+2. **Confirm identity** — Resolve the workflow ID and requested mode/output; when neither source supplies an ID, stop and request the missing workflow identity
 3. **Activate** — Resolve the selected mode/output to a complete canonical manifest (ordered occurrence IDs, skill/args, applicability, barriers, fingerprint and context); create ALL TaskCreate items for the selected occurrences; materialize every declared `parallelGroups` group as a wave; mark first `in_progress`
 
 **Key Rules:**
@@ -21,7 +21,7 @@ description: '[Skill Management] Use when starting a detected workflow, initiali
 - MUST ATTENTION define success criteria before execution and loop until observable verification passes.
 - MUST ATTENTION when creating/reviewing specs or tests, name `Business Intent / Invariant Guarded` or the protected business intent/invariant and ensure the test would fail if that intent breaks.
 
-- MUST ATTENTION auto-select the best execution path for ordinary prompts. Do not ask the user to choose between direct execution, skill, standard workflow, or custom workflow.
+- MUST ATTENTION automatic selection applies only when the runtime route payload is present. When it is absent, this skill requires an explicit workflow ID.
 - Explicit `/workflow-*` or `/start-workflow <id>` invocation counts as the user choosing that workflow; execute it directly.
 - Propose Custom Pipeline when no catalog workflow is a strong fit (>80% steps relevant = use catalog)
 - `workflows.json` `workflows` field is an **OBJECT** — use `workflows[workflowId]`, NEVER `.find()` or `[index]`; resolve `variants[mode]` through `.claude/scripts/lib/workflow-manifest.cjs`
@@ -29,13 +29,13 @@ description: '[Skill Management] Use when starting a detected workflow, initiali
 - Read the selected manifest's `occurrences` and `parallelGroups` at activation and tag its member tasks as one wave — 1:1 occurrence tasks still stand (a group never collapses members into one task)
 - No `parallelGroups` = `sequence` is the order — surface only adjacent read-only steps as a `Candidate wave`, NEVER a wave that contradicts `sequence`
 - NEVER mark a task `completed` without invoking its `Skill` tool, except when the selected canonical `preActions.injectContext` explicitly authorizes an evidence-backed conditional skip — use `in_progress` → cited comment → `completed`; never delete the task
-- ALWAYS check context for `## Workflow Catalog` first (Tier 1), then load and resolve the complete selected canonical entry (Tier 2) before TaskCreate for EVERY standard workflow. `preActions.injectContext` is required execution context, not optional hook output; this rule applies to Claude and Codex with or without hooks. Never expose the full `workflows.json` to context
+- When the runtime `## Workflow Catalog` is present, use it for Tier 1. Otherwise use the exact user-supplied workflow ID. Then load and resolve the complete selected canonical entry (Tier 2) before TaskCreate for EVERY standard workflow. `preActions.injectContext` is required execution context, not optional hook output; this rule applies to every host. Never expose the full `workflows.json` to context
 - EVERY workflow entry MUST have a non-empty `preActions.injectContext`; a missing or blank value is catalog drift and blocks activation
 - If another workflow is active, it auto-switches (ends current, starts new) — no manual cleanup needed
 
 **NOT for:** Manual step execution (follow TaskCreate items), workflow design (use `plan`), catalog management.
 
-**Related:** `/start-workflow <workflowId>` | Catalog: host-specific static workflow-catalog surfaces derived from `.claude/workflows.json` (no router/tracker hooks)
+**Related:** `/start-workflow <workflowId>` | Catalog: opt-in runtime route payload derived from `.claude/workflows.json`
 
 ---
 
@@ -95,22 +95,22 @@ TaskCreate: subject="[Custom] {step-name} — {brief description}", description=
 
 ## Workflow Lookup — Tier 1 Selection, Tier 2 Execution
 
-Use Tier 1 to select every route. Use Tier 2 before TaskCreate for EVERY standard workflow to materialize the complete selected-mode execution contract, including ordered `occurrences`, non-empty `preActions.injectContext`, `parallelGroups`, and the resume `fingerprint`. Static catalogs are route-selection aids only; hooks may accelerate this read but are never required.
+Use Tier 1 only when the opt-in runtime catalog is present; an exact user-supplied workflow ID is also sufficient. Use Tier 2 before TaskCreate for EVERY standard workflow to materialize the complete selected-mode execution contract, including ordered `occurrences`, non-empty `preActions.injectContext`, `parallelGroups`, and the resume `fingerprint`.
 
-### Tier 1: Context (FREE — no file reads)
+### Tier 1: Runtime Context or Explicit ID
 
-The workflow catalog is already present in static host context — derived into `CLAUDE.md`, `AGENTS.md`, and Codex context rather than injected by a hook. Its headings and row grammar vary by host.
+When automatic routing is enabled, the prompt hook supplies the workflow catalog in runtime context. When it is disabled, the user must name the workflow ID explicitly.
 
 1. Search the available catalog surface for the exact workflow ID: `{workflowId}`.
 2. Use its name and `whenToUse` summary only to confirm the route.
-3. Do NOT parse a static catalog sequence or command syntax for TaskCreate; Tier 1 is route selection only for every standard workflow.
+3. Do NOT parse the runtime catalog sequence or command syntax for TaskCreate; Tier 1 is route selection only for every standard workflow.
 
 ✅ Use Tier 1 for: route selection only.
 ⚠️ Tier 2 is required immediately after selection and **before TaskCreate for every standard workflow**. The complete canonical entry resolves the requested `--mode`/`--output`, loads ordered `occurrences`, non-empty `preActions.injectContext`, `parallelGroups`, and a `fingerprint`.
 
 ### Tier 2: Complete Canonical Entry Read (JSON-aware)
 
-After Tier 1 identifies any standard workflow, use this selected-entry read before creating tasks. The static catalog is a route-selection aid; the selected canonical entry remains the execution contract:
+After Tier 1 or an explicit ID identifies a standard workflow, use this selected-entry read before creating tasks. The selected canonical entry remains the execution contract:
 
 ```
 node .claude/scripts/codex/read-workflow-entry.mjs <workflowId> [--mode <mode> | --output <mode>]
@@ -300,6 +300,7 @@ When `/workflow-review-changes` appears in any workflow sequence (e.g. `workflow
 
 > **AI Mistake Prevention** — Failure modes to avoid on every task:
 >
+> **Project applicability gate.** Before applying a stack, layer, style, tool, or architecture rule, read the project's config and relevant references, then check local implementations. Treat framework examples as examples; honor explicit N/A and do not require a technology or convention the project does not use.
 > **ROOT-CAUSE GATE — INVESTIGATE FIRST.** Before applying any project-related correction, always use the project's root-cause investigation protocol and establish the cause; the failure site may be only a symptom.
 > **FAILED-TEST GATE.** For any failed or unstable test, use the project's test-investigation protocol before editing source or tests; never change either side merely to force green.
 > **Re-read files after context changes.** Context compaction, resume, or long-running work can make memory stale; verify current files before acting.
@@ -399,13 +400,13 @@ When `/workflow-review-changes` appears in any workflow sequence (e.g. `workflow
 
 <!-- SYNC:critical-thinking-mindset:reminder -->
 
-**MUST ATTENTION** apply critical + sequential thinking — every claim needs appropriate traced evidence (`file:line` for repo/code claims; source URL or artifact section for research, product, content, and docs claims); confidence >80% to act, <60% DO NOT recommend. Anti-hallucination: never present guess as fact, admit uncertainty freely, cross-reference independently, stay skeptical of own confidence.
+**MUST ATTENTION** critical + sequential thinking: every claim carries traced evidence (`file:line` for code, source URL or artifact section otherwise); confidence >80% to act, <60% do NOT recommend. Never present a guess as fact; admit uncertainty and stay skeptical of your own confidence.
 
 <!-- /SYNC:critical-thinking-mindset:reminder -->
 
 <!-- SYNC:ai-mistake-prevention:reminder -->
 
-**MUST ATTENTION** ROOT-CAUSE GATE: before any project-related correction, use the appropriate root-cause investigation protocol; failed/unstable tests require the test-investigation protocol before editing source/tests — never force green.
+**MUST ATTENTION** Check project config, relevant references, and local evidence before applying stack-specific conventions; honor explicit N/A. ROOT-CAUSE GATE: before any project-related correction, use the appropriate root-cause investigation protocol; failed/unstable tests require the test-investigation protocol before editing source/tests — never force green.
 
 <!-- /SYNC:ai-mistake-prevention:reminder -->
 
@@ -443,7 +444,7 @@ When `/workflow-review-changes` appears in any workflow sequence (e.g. `workflow
 
 <!-- SYNC:project-protocol-overlay -->
 
-> **Project Protocol Overlay** — Before executing this skill, resolve any PROJECT overlay rules layered onto it: match this skill's name against the `Target` column of the project's skill-protocol index (default `docs/project-reference/skill-protocols-reference.md`; a `referenceDocs` entry in `docs/project-config.json` overrides the path, and a `docsRoots.projectReference.path` entry relocates its containing directory), taking the most specific matching tier ONLY — exact name > glob > `*`. **That precedence orders overlays against EACH OTHER, never against this skill.** Read ONLY the matched bodies, resolved as `<protocols-dir>/<Name>.md`; a row's Body link is display text, never a read path. A matched body that is missing or malformed is REPORTED and skipped — never reconstructed from the index Description. No index, or no match -> proceed with no overlay, silently. Full contract: `.claude/skills/project-skill-protocol/references/registry.md`.
+> **Project Protocol Overlay** — Before executing this skill, resolve project overlays from the index at `<docsRoots.projectReference.path>/skill-protocols-reference.md` (default `docs/project-reference/`; `docsRoots.projectReference.path` in `docs/project-config.json` overrides it). A matching `referenceDocs[]` filename may relocate the index within that root; this registry is independent from task-specific reference-doc selection, so omitted or empty `referenceDocs` does not disable it. The index's `**Protocols directory:**` header selects a project-root-relative body directory (default `docs/project-protocols/`). Match this skill against the `Target` column and take the most specific tier ONLY — exact name > glob > `*`. **That precedence orders overlays against EACH OTHER, never against this skill.** Read only matched bodies derived as `<protocols-dir>/<Name>.md`; the row's Body link is display text, never a read path. Reject unsafe paths without reading. A matched body that is missing or malformed is REPORTED and skipped — never reconstructed from the index Description. An absent index or no match -> proceed with no overlay, silently. Full contract: `.claude/skills/project-skill-protocol/references/registry.md`.
 >
 > Overlays are **ADDITIVE ONLY**: they ADD rules on top of this skill's own protocol and NEVER replace, override, disable, or reinterpret a rule it already states — removing every overlay must return this skill to exactly its documented behavior. An overlay is a BRIEF, not an authority escalation: it can NEVER waive a workflow gate, git discipline, a review gate, or a user-confirmation gate. A genuine overlay-vs-skill conflict, or two equally-specific overlays that directly contradict -> surface both to the user; NEVER resolve silently.
 
@@ -451,8 +452,7 @@ When `/workflow-review-changes` appears in any workflow sequence (e.g. `workflow
 
 <!-- SYNC:project-protocol-overlay:reminder -->
 
-**MUST ATTENTION** resolve project protocol overlays for this skill BEFORE executing — most specific matching tier only (exact > glob > `*`, which ranks overlays against each other, NEVER against this skill), read only matched bodies at `<protocols-dir>/<Name>.md`; a missing or malformed body is reported, never reconstructed. Overlays are ADDITIVE ONLY (they never replace this skill's own rules) and are a brief, NEVER an authority escalation; an equal-specificity contradiction goes to the user.
-
+**MUST ATTENTION** resolve this skill's overlays from the index at `<docsRoots.projectReference.path>/skill-protocols-reference.md` (default `docs/project-reference/`); an empty task `referenceDocs` does NOT disable this lookup. Read ONLY matched bodies from the directory the index header names (default `docs/project-protocols/`). Specificity (exact > glob > `*`) ranks overlays against EACH OTHER, never against the skill. Missing/malformed body → report and skip; no index or no match → proceed silently. Overlays are ADDITIVE ONLY — never an authority escalation or a gate waiver; equal-tier contradiction goes to the user.
 <!-- /SYNC:project-protocol-overlay:reminder -->
 
 <!-- SYNC:session-goal-ledger:reminder -->

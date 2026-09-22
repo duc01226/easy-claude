@@ -209,90 +209,6 @@
           "installedVersion": "v2.1.0"
         },
         {
-          "path": "hooks/privacy-block.cjs",
-          "checksum": "3b106dff3b882e7eec5dc6ae39b05e124e6e31f30fcddbd631fe8e0a42ea133e",
-          "ownership": "user",
-          "installedVersion": "v2.1.0"
-        },
-        {
-          "path": "hooks/scout-block.cjs",
-          "checksum": "d0a6cba7be9f570bd6173f9226ec8e80f92a476d02e6cbc3d30cd7027b3268ac",
-          "ownership": "user",
-          "installedVersion": "v2.1.0"
-        },
-        {
-          "path": "hooks/scout-block/broad-pattern-detector.cjs",
-          "checksum": "6144f7fcf464017f31a26566a24cb2329ca7ccd8753e6c57bdcc51f0479be4cf",
-          "ownership": "user",
-          "installedVersion": "v2.1.0"
-        },
-        {
-          "path": "hooks/scout-block/error-formatter.cjs",
-          "checksum": "4bd3779efd6d7bf80740c239051a2949132672ca30f51fe78f7077ecad34154b",
-          "ownership": "user",
-          "installedVersion": "v2.1.0"
-        },
-        {
-          "path": "hooks/scout-block/path-extractor.cjs",
-          "checksum": "a7d5751bf8a867dae191e83d131fe770aeb73b17e6ff1bcbe8412b0acf406160",
-          "ownership": "user",
-          "installedVersion": "v2.1.0"
-        },
-        {
-          "path": "hooks/scout-block/pattern-matcher.cjs",
-          "checksum": "6697942a9e43935824d7264ec85eb1da4bef3c590e66e9bede977c8f7365b39f",
-          "ownership": "user",
-          "installedVersion": "v2.1.0"
-        },
-        {
-          "path": "hooks/scout-block/tests/test-broad-pattern-detector.js",
-          "checksum": "f50f898e3fe816c87c2e2150a2fde84f572a683db874965609018c5db5b09dbf",
-          "ownership": "user",
-          "installedVersion": "v2.1.0"
-        },
-        {
-          "path": "hooks/scout-block/tests/test-build-command-allowlist.js",
-          "checksum": "cbace982a3bc0657ec152958ed064fe337ebd3fc5a668efa6164ea247636560e",
-          "ownership": "user",
-          "installedVersion": "v2.1.0"
-        },
-        {
-          "path": "hooks/scout-block/tests/test-error-formatter.js",
-          "checksum": "1ec32d805a693491ab74bc1ee4a05fb5108e5d230056ca13cc921cfbd52e9eba",
-          "ownership": "user",
-          "installedVersion": "v2.1.0"
-        },
-        {
-          "path": "hooks/scout-block/tests/test-full-flow-edge-cases.js",
-          "checksum": "f5ce82cb0feb6dc185103b66a647fc0748d4826254f035b568b2e6609a6867cc",
-          "ownership": "user",
-          "installedVersion": "v2.1.0"
-        },
-        {
-          "path": "hooks/scout-block/tests/test-monorepo-scenarios.js",
-          "checksum": "8471fd2c3a39238a7c34eaf6f66f1bf16e96fe529d145d718a3b30d908c3f98d",
-          "ownership": "user",
-          "installedVersion": "v2.1.0"
-        },
-        {
-          "path": "hooks/scout-block/tests/test-path-extractor.js",
-          "checksum": "d0fe5fd0bd7c6b573d42d6503bab2fe5a32a0bbb5e2360a56c7ea497090c75b8",
-          "ownership": "user",
-          "installedVersion": "v2.1.0"
-        },
-        {
-          "path": "hooks/scout-block/tests/test-pattern-matcher.js",
-          "checksum": "516ee667c94a4f806a161aac5b63c1b1bf082bf777aea8af47caf9639b548236",
-          "ownership": "user",
-          "installedVersion": "v2.1.0"
-        },
-        {
-          "path": "hooks/scout-block/vendor/ignore.js",
-          "checksum": "4cff82236576c96a22b4f52c43835735511b39d7f095553101128b817e079355",
-          "ownership": "user",
-          "installedVersion": "v2.1.0"
-        },
-        {
           "path": "hooks/session-end.cjs",
           "checksum": "ac412bf6b2b595efb39791ece7fe1462edf31c01d6eb3b4b5a698d8aa4678171",
           "ownership": "user",
@@ -305,68 +221,14 @@
           "installedVersion": "v2.1.0"
         },
         {
-          "path": "hooks/tests/test-ckignore.js",
-          "checksum": "8dccf1d6b3739663680baecaafe7926ae070a61a79ba129df800d4ccf3b31a25",
-          "ownership": "user",
-          "installedVersion": "v2.1.0"
-        },
-        {
           "path": "hooks/tests/test-modularization-hook.js",
           "checksum": "bb2243f5a1ae4b1518d3f5a2ad16376297b35623cae56582aa489c1044e6e70c",
           "ownership": "user",
           "installedVersion": "v2.1.0"
         },
         {
-          "path": "hooks/tests/test-privacy-block.js",
-          "checksum": "1f0e6ac8b03f5b0059ccfaab2141c23dba7ef5a341d8e0aa48f3f8901f1cc6d1",
-          "ownership": "user",
-          "installedVersion": "v2.1.0"
-        },
-        {
-          "path": "hooks/tests/test-scout-block.js",
-          "checksum": "da46367372b822dfd67c34dff0ed515e483cbd85332668974b5defe2c5f0b8ef",
-          "ownership": "user",
-          "installedVersion": "v2.1.0"
-        },
-        {
           "path": "metadata.json",
           "checksum": "a05abd2d54d353dc2f5ee7df2dfaf0eba48d7f86562530ef2389eec133aee6de",
-          "ownership": "user",
-          "installedVersion": "v2.1.0"
-        },
-        {
-          "path": "output-styles/coding-level-0-eli5.md",
-          "checksum": "db1882c4c992134b67c6d7c4a88f27af414638beb054d82a6350239b85978f25",
-          "ownership": "user",
-          "installedVersion": "v2.1.0"
-        },
-        {
-          "path": "output-styles/coding-level-1-junior.md",
-          "checksum": "0c41c9469aac2a1913eca9a40b6965a7ae5e6b006cbb6dff6c06f884b53125d9",
-          "ownership": "user",
-          "installedVersion": "v2.1.0"
-        },
-        {
-          "path": "output-styles/coding-level-2-mid.md",
-          "checksum": "71c92761fb0dff5eac9fcad89b248a2c94b2765139b1bcf1df12fbe2af09a32a",
-          "ownership": "user",
-          "installedVersion": "v2.1.0"
-        },
-        {
-          "path": "output-styles/coding-level-3-senior.md",
-          "checksum": "cfec83d2d493245382320819bb5878aa70a884d7d6b6d21cfc127294470f8e86",
-          "ownership": "user",
-          "installedVersion": "v2.1.0"
-        },
-        {
-          "path": "output-styles/coding-level-4-lead.md",
-          "checksum": "c7da8d488165c70f251de3f6b4d86e7b477d15fa79475bc84e3a30ad5326bfa5",
-          "ownership": "user",
-          "installedVersion": "v2.1.0"
-        },
-        {
-          "path": "output-styles/coding-level-5-god.md",
-          "checksum": "4df16ad59fae94759a9b71e0752233234cae28d6f5b9b412bfe189a3ae8a1a14",
           "ownership": "user",
           "installedVersion": "v2.1.0"
         },

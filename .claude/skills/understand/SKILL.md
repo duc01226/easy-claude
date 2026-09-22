@@ -21,17 +21,16 @@ disable-model-invocation: false
 **Summary:** Read this if nothing else. Explain whatever the prompt names, at **ANY scope** — one decision, one subsystem, a 60-file change set, or the whole project — and leave the reader able to judge it. Scope flexes by growing the number of **understanding groups**; the report contract never flexes. Main steps, in order:
 
 1. **RESOLVE scope** from the prompt (bare `/understand` → current tasks + working-tree changes). State it in one line; on ambiguity infer and proceed, **never ask**.
-2. **READ the style dial** (level 0–5) — a LENGTH dial, never a section gate.
-3. **LOAD the three contracts** — `report-template.md` · `diagram-catalog.md` · `review-path.md`.
-4. **SIZE the target → a scope tier S0–S4** from files · capabilities · contexts, and announce the tier.
-5. **DECOMPOSE into understanding groups** (≥2 from tier S2) — each explainable on its own, ≤8 files / ≤2000 diff-lines — and load `references/scale-protocol.md` at tier ≥ S2.
-6. **BREAK THE WORK INTO TASKS before the first deep read** — `TaskList` first, then one task per group plus the fixed spine tasks; exactly one `in_progress`; a group task completes only when its block is **on disk**.
-7. **GATHER the six inventories**, per group — diagram sources · stories + REAL test IDs · route classification · concepts · option space · demo & run evidence — **delegating to read-only investigation skills** (`/investigate`, `/debug-investigate`, `/graph-trace`) when a direct read cannot fill one.
-8. **ORDER on two axes** — narrative leverage (governs §5–§10) and contract-inward route (governs §4). Never conflate them.
-9. **OPEN the report before writing section one** — **ONE file at every tier**; at ≥2 groups the spine region sits at the top of that file and one `# G{n}` block is appended per group, in the same file.
-10. **ACCUMULATE group by group** — investigate → analyze → append that group's block → update the spine ledger → complete the task. Never hold the report in context, never batch the write.
-11. **SYNTHESIZE across groups** — the group map, the group order, cross-cutting trade-offs and blast radius, the whole-scope challenge.
-12. **SUMMARIZE in chat** — plus the report path, plus anything dropped — and append the index line. Never quiz, never block.
+2. **LOAD the three contracts** — `report-template.md` · `diagram-catalog.md` · `review-path.md`.
+3. **SIZE the target → a scope tier S0–S4** from files · capabilities · contexts, and announce the tier.
+4. **DECOMPOSE into understanding groups** (≥2 from tier S2) — each explainable on its own, ≤8 files / ≤2000 diff-lines — and load `references/scale-protocol.md` at tier ≥ S2.
+5. **BREAK THE WORK INTO TASKS before the first deep read** — `TaskList` first, then one task per group plus the fixed spine tasks; exactly one `in_progress`; a group task completes only when its block is **on disk**.
+6. **GATHER the six inventories**, per group — diagram sources · stories + REAL test IDs · route classification · concepts · option space · demo & run evidence — **delegating to read-only investigation skills** (`/investigate`, `/debug-investigate`, `/graph-trace`) when a direct read cannot fill one.
+7. **ORDER on two axes** — narrative leverage (governs §5–§10) and contract-inward route (governs §4). Never conflate them.
+8. **OPEN the report before writing section one** — **ONE file at every tier**; at ≥2 groups the spine region sits at the top of that file and one `# G{n}` block is appended per group, in the same file.
+9. **ACCUMULATE group by group** — investigate → analyze → append that group's block → update the spine ledger → complete the task. Never hold the report in context, never batch the write.
+10. **SYNTHESIZE across groups** — the group map, the group order, cross-cutting trade-offs and blast radius, the whole-scope challenge.
+11. **SUMMARIZE in chat** — plus the report path, plus anything dropped — and append the index line. Never quiz, never block.
 
 **Deliverable:** a full review guide written to `tmp/reports/understand-{YYMMDD}-{HHmm}-{slug}.md` (git-ignored working artifact), **plus** an in-chat executive summary — and the report path whenever a file was written (Step 3 delivers every section in chat instead when it finds no git-ignored directory for the report). It reads **high level first, detail later**, opening with the summary and then the four parts:
 
@@ -60,7 +59,7 @@ Section shape and authoring rules: `references/report-template.md`. Diagram cont
 - **DELEGATE THE GATHERING, NEVER THE TEACHING.** When read + grep + trace cannot fill an inventory, invoke the repo's own **read-only** investigation skills (`/investigate` to locate and explain existing behavior, `/debug-investigate` for a live defect's cause, `/graph-trace` / `/graph-blast-radius` for reach) and feed their output in as INPUT — re-verified against `file:line` before it becomes a report claim. NEVER delegate to a skill that mutates files or issues findings/verdicts, and never let a delegate author a section. — why: this skill emits no findings and mutates nothing; a delegate must not smuggle either in, and a claim that passed through another skill is still a claim you must be able to cite.
 - **ACCUMULATE ON DISK, NEVER IN CONTEXT.** Open the report before writing section one; append per section and per group; update the ledger as each block lands; synthesize the scope-wide sections **from the written blocks**, never from memory. A report held in context until the end is a report one cutoff away from nothing. — why: partial results on disk beat complete results that never got written.
 - **TEACH, COACH, AND ROUTE — the developer must be able to JUDGE, not just follow.** A description of what the code does is a FAILED run. Teaching = the reader could re-derive the design. Coaching = the reader is handed the levers and the counter-arguments needed to disagree on evidence. Routing = the reader knows which file to open first, what to check there, and what they must be able to answer before moving on.
-- **ALL SECTIONS, EVERY LEVEL.** Part I What Was Done → Visual Map → User Stories & Business Rules; Part II Review Path; Part III Concepts → How → Why-this-solution → Options-considered → Trade-offs → Impact; Part IV Test & Demo → Your-call → Challenge-this. Coding level tunes vocabulary, analogy density, and per-section LENGTH only — it NEVER deletes a section, NEVER reduces the diagram count, and NEVER drops a review stage. A level-5 report is every section, short. There is no "skip by level".
+- **ALL SECTIONS, AT EVERY SCOPE TIER.** Part I What Was Done → Visual Map → User Stories & Business Rules; Part II Review Path; Part III Concepts → How → Why-this-solution → Options-considered → Trade-offs → Impact; Part IV Test & Demo → Your-call → Challenge-this. Every report includes all sections, mandatory diagrams, and review stages regardless of scope tier.
 - **DIAGRAMS ARE MANDATORY, AND DERIVED — NEVER DRAWN FROM EXPECTATION.** §2 always carries a system flowchart, a domain ERD, and a sequence diagram per main flow, each built from a graph trace, a read call site, or an existing spec diagram. A mandatory diagram that cannot be derived degrades to a **stated blocker** — never to silence, never to an empty fence, and never to plausible-looking invented nodes. Contract: `references/diagram-catalog.md`.
 - **REAL IDs ONLY — NEVER INVENT A TEST CASE.** Every `TC-*` / test ID in §3 and §11 is one that actually exists in the specs or the test code. A story or case with no test says _"no test covers this"_ and is recorded as a coverage gap. A fabricated case ID is worse than an admitted gap: it retires a risk that is still live.
 - **ALTERNATIVES ARE MANDATORY, WITH PROS AND CONS EACH.** Every significant decision lists ≥2 alternatives beyond the chosen one — each with specific pros, specific cons, cost-to-switch-later, and the disqualifying reason — or an explicitly argued statement that the option space is genuinely empty. The chosen option MUST list real cons too. Generic pros/cons ("cleaner", "faster") are a failed section. Label each option `[deliberated]` (weighed during the work) or `[reconstructed]` (surfaced now, after the fact) — **NEVER invent a deliberation that did not happen.**
@@ -86,7 +85,7 @@ You are a **teacher, a coach, and a router**, in that order.
 
 **One-way, never interrogating.** You do the teaching and the provoking; the developer reads. The challenge questions in §13 are **rhetorical and written down** — you never call `AskUserQuestion`, never quiz, never ask for teach-back, and never wait for or gate on a reply.
 
-## Step 0 — Resolve Scope & Read the Style Dial (do this first, cheaply)
+## Step 0 — Resolve Scope and Plan the Report (do this first, cheaply)
 
 1. **Derive the scope from the prompt.** Read what the developer actually asked and pick the target:
 
@@ -102,32 +101,17 @@ You are a **teacher, a coach, and a router**, in that order.
 
    State the resolved scope in one line before continuing (e.g. `Explaining: current working changes (3 files) + active task #42`).
 
-2. **Read the style dial (a LENGTH dial, NOT a section gate).** Resolve coding level (first found wins): env `CK_CODING_LEVEL` → `.claude/.ck.json` `codingLevel` → default `3`. The level ONLY tunes how the teaching reads — vocabulary, analogy density, assumed background, and per-section length. **It never decides whether to teach, and it never deletes a section.** Every section appears at every level.
-
-   | Level  | Name      | Style (all sections always present)                                                                                                                                                       |
-   | ------ | --------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-   | 5 / -1 | God Mode  | Terse and dense. Lead with the non-obvious trade-off and blast radius; assume all mechanics; teach only genuinely unusual concepts. Options matrix terse, weakest-link + pre-mortem kept. |
-   | 4      | Tech Lead | Concise. Emphasize design trade-offs, cost-to-switch, blast radius; light on mechanics; strategic challenges.                                                                             |
-   | 3      | Senior    | Balanced. Mechanics summarized; concepts one-line refreshers; options, trade-offs, and edge cases in full.                                                                                |
-   | 2      | Mid       | Fuller mechanics walkthrough; concepts placed in their pattern family; full options table with cost-to-switch reasoning.                                                                  |
-   | 1      | Junior    | WHY before HOW; mechanics step by step; every non-obvious term defined in §5 before §6 uses it; teach why each con matters.                                                               |
-   | 0      | ELI5      | Incremental, one concept at a time, analogies, no jargon. Options stated in plain "we could also have…" language. Still reaches every section.                                            |
-
-   > **The dial cuts prose, never structure.** It never reduces the number of diagrams and never drops a stage from the review path. A diagram is the densest form available — which makes it exactly what a level-5 reader wants most — and a route with a missing stage sends the reviewer into code they are not yet equipped to judge.
-
-   Note the level you read in one line (e.g. `Style: level 3 (Senior) — balanced depth`), then teach. Do **not** offer a skip and do **not** ask the developer anything.
-
-3. **Load all three contracts.** Read them before gathering — the shape of the report determines what you must collect, so improvising it from memory guarantees a thin section:
+2. **Load all three contracts.** Read them before gathering — the shape of the report determines what you must collect, so improvising it from memory guarantees a thin section:
 
    | Reference                       | Supplies                                                                                                                                                             |
    | ------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-   | `references/report-template.md` | The section skeleton, the four parts, the options/pros-cons table format, the provenance labels, the per-level tuning matrix, and the pre-write self-check           |
+   | `references/report-template.md` | The section skeleton, the four parts, the options/pros-cons table format, the provenance labels, and the pre-write self-check |
    | `references/diagram-catalog.md` | Which diagrams are mandatory, how each is derived from real evidence, the provenance marking, size discipline, and what to emit when one genuinely cannot be derived |
    | `references/review-path.md`     | The layer taxonomy, the deterministic ordering algorithm, the context-inclusion rule, and the eight fields every review stage must carry                             |
 
    **If a contract file is missing** (a partial distribution, a vendored copy, an incomplete mirror sync), **degrade — never silently, and never by skipping the work it governs.** Say which file is absent in one line — *"`references/diagram-catalog.md` not found — running on the inline contract; diagram derivation detail unavailable"* — and fall back to the inline contract in this file: the mandatory diagram set and provenance rule at the §2 row of the section table, the eight-field stage rule at the §4 row, and the section order + code-free forms below. The report is still owed in full; only the elaboration is lost. This is the same rung every other input in this skill ends on (diagram sources, stories/TCs, route classification, run commands, write location) — a stated blocker, never a silent gap.
 
-4. **Size the target BEFORE you read it (cheap signals only — this step costs seconds).** Count, do not estimate: in-scope **files** (`git diff --name-only` + untracked, or a glob of the named area), distinct user-facing **capabilities/flows**, distinct **modules / bounded contexts** (`docs/project-config.json` → modules), and **changed lines** where a diff exists. Read the tier off the table — **first row whose trigger matches, top-down** — and announce it in one line (`Scope: S3 · Large — 63 files, 9 capabilities, 4 modules → 8 groups`).
+3. **Size the target BEFORE you read it (cheap signals only — this step costs seconds).** Count, do not estimate: in-scope **files** (`git diff --name-only` + untracked, or a glob of the named area), distinct user-facing **capabilities/flows**, distinct **modules / bounded contexts** (`docs/project-config.json` → modules), and **changed lines** where a diff exists. Read the tier off the table — **first row whose trigger matches, top-down** — and announce it in one line (`Scope: S3 · Large — 63 files, 9 capabilities, 4 modules → 8 groups`).
 
    | Tier | Trigger (first match wins) | Understanding groups | Report shape | How the work runs |
    | --- | --- | --- | --- | --- |
@@ -139,9 +123,9 @@ You are a **teacher, a coach, and a router**, in that order.
 
    > The thresholds are the framework's existing map-reduce ladder (`SYNC:systematic-review-batching`: < 10 sequential · ≥ 10 batch · > 6 categories or > 40 files hierarchical), **adopted deliberately** so `understand` and the review skills never partition the same target two different ways. What differs is only the unit and the output: this skill batches by **explainable group** and emits **teaching**, never findings. — why: a developer who runs both skills on one change should meet the same boundaries twice, not two competing maps.
 
-   **Tier is a SHAPE dial, not a depth dial — exactly as coding level is a length dial.** It changes how many groups exist, where the report lives, and how the work is dispatched. It NEVER removes a section, a mandatory diagram, or a review stage. S0 is a legitimate, common outcome; so is S4.
+   Scope tier determines how many groups exist, where the report lives, and how the work is dispatched. It NEVER removes a section, a mandatory diagram, or a review stage. S0 is a legitimate, common outcome; so is S4.
 
-5. **Decompose into understanding groups, then break the work into TASKS — before any deep read.**
+4. **Decompose into understanding groups, then break the work into TASKS — before any deep read.**
 
    - **A group is an explainable unit** — its own §1–§13 are answerable about it alone, its name has no "and" in it, and it fits ≤ 8 files **or** ≤ 2000 diff-lines. Decomposition axis, first rung yielding ≥2 cohesive groups: **module/bounded context** → **capability/story cluster** → **end-to-end flow** → **layer slice** (horizontal sweeps only) → **directory** (last resort, labelled *"structural grouping — not a conceptual boundary"*). MUST ATTENTION record which rung you landed on — the reader calibrates on it exactly as on a grep-derived route. Tier S0/S1 → exactly one group, and this collapses to the classic single-file report with zero overhead.
    - **[BLOCKING] Create the task list BEFORE gathering.** `TaskList` FIRST — an interrupted or compacted run **resumes its tasks, never duplicates them**. Then create one task per group plus the fixed tasks: *size & decompose · scope-wide gather · open report + ledger · {one per group} · cross-group synthesis · chat summary + index · contract self-check*. Exactly one `in_progress`; transition it before the work and `completed` immediately after the evidence exists. **A group task completes ONLY when that group's block is on disk** — evidence is the path plus the sections it carries, never a summary in context. At S0/S1 still create one task per report part (I·II·III·IV). — why: a run that dies mid-report must show the reader exactly where it stopped, at every size.
@@ -257,13 +241,13 @@ Two artifacts, different jobs:
 
 ## Step 4 — Teach, Coach & Route: the Report (the deliverable)
 
-Follow `references/report-template.md` for the skeleton, the options table, the provenance labels, and the self-check; `references/diagram-catalog.md` for §2; `references/review-path.md` for §4. Every section appears at every coding level; the level tunes length and vocabulary only. Cite `file:line` for every concrete claim, and state confidence where a claim rests on inference.
+Follow `references/report-template.md` for the skeleton, the options table, the provenance labels, and the self-check; `references/diagram-catalog.md` for §2; `references/review-path.md` for §4. Every section is mandatory for every scope tier. Cite `file:line` for every concrete claim, and state confidence where a claim rests on inference.
 
 The report runs **high level first, detail later** — the summary, then four parts:
 
 | § | Section | What you MUST deliver |
 | --- | --- | --- |
-| 0 | **Detailed Summary** | The read-only-this section, and the first thing in the file: the purpose in one sentence, the change in one paragraph in **behavior** terms, a **what-you-need-to-know** bullet per load-bearing item — key mechanic, business rule at stake, decisive design force, closest rejected alternative, highest-leverage trade-off, blast-radius headline, proof verdict, weakest link, and anything else load-bearing — each carrying its `file:line` or `§N` pointer, the §4 start-here line verbatim, the group table at ≥2 groups, and the one thing to double-check. **Restates conclusions the sections below already prove; introduces no claim of its own and reproduces no evidence a section below owns.** Written LAST, from the sections on disk — never from memory. It has **no maximum length**: it is as long as the number of load-bearing items makes it, and a level dial shortens each bullet, never the bullet set. |
+| 0 | **Detailed Summary** | The read-only-this section, and the first thing in the file: the purpose in one sentence, the change in one paragraph in **behavior** terms, a **what-you-need-to-know** bullet per load-bearing item — key mechanic, business rule at stake, decisive design force, closest rejected alternative, highest-leverage trade-off, blast-radius headline, proof verdict, weakest link, and anything else load-bearing — each carrying its `file:line` or `§N` pointer, the §4 start-here line verbatim, the group table at ≥2 groups, and the one thing to double-check. **Restates conclusions the sections below already prove; introduces no claim of its own and reproduces no evidence a section below owns.** Written LAST, from the sections on disk — never from memory. It has **no maximum length**: include one bullet per load-bearing item. |
 | | ***Part I — Orient*** | *The picture and the business, before any code.* |
 | 1 | **What Was Done** | The thing, where it lives, and before → after in **behavior** terms — not a file list, not the commit message. **When the target is a change** (diff · plan · fix), also: **where it sits in the system that already existed** — the capability that was already there, how it already worked, the contract it had to fit (`file:line`), what it deliberately left alone, and what the reviewer must already understand before Stage 1 makes sense. Written for a reader with **zero memory** of that system. This section owes the *full* context; §4 owes only the context needed to walk the route. |
 | 2 | **Visual Map** | The mandatory diagram set from `references/diagram-catalog.md`: a system/component `flowchart`, a domain `erDiagram`, a `sequenceDiagram` per main flow — every one, no maximum — and a **story map** wiring each §3 story to the rule it protects, the test that proves it, and the §4 stage where the reviewer meets it — plus a `stateDiagram-v2` when an in-scope entity carries a lifecycle, and a phase flowchart when the target is a plan. Every node and edge is **derived**, not expected: solid edge = traced, dashed = inferred and named beneath the diagram. A diagram you cannot derive degrades to a **stated blocker** — never silence, never an empty fence, never plausible invented nodes. |
@@ -335,7 +319,6 @@ Offer a simpler restatement or analogy for any dense point proactively, without 
 - **Skill:** `/investigate` — gather-only delegate: locate the relevant files when the target spans a large or unfamiliar codebase (feeds the group decomposition).
 - **Skill:** `/investigate` — gather-only delegate: how an existing feature actually works when one read is not enough. Its `--mode=explain` is a different, one-way narrative and owns `tmp/understand/{branch}.md` (see Step 3).
 - **Skill:** `/debug-investigate` — gather-only delegate: the root cause of a live, un-fixed defect (feeds §6 and §8's candidate causes).
-- **Skill:** `/coding-level` — sets the style dial (0–5) this skill reads (it tunes length/vocabulary only; it never deletes a section, never cuts a diagram, never drops a stage).
 - **Skill:** `/graph-blast-radius` — leverage-ordering + §10 blast-radius signal.
 - **Skill:** `/why-review` — *adversarially audits* rationale quality (the complement: this *teaches* the rationale and hands the developer the challenge questions).
 - **Skill:** `/demo-guide` — presenter-facing demo script for a whole feature; §11 here is the reviewer-facing subset for the change in scope.
@@ -357,14 +340,14 @@ Offer a simpler restatement or analogy for any dense point proactively, without 
 
 <!-- SYNC:evidence-based-reasoning -->
 
-> **Evidence-Based Reasoning** — Speculation is FORBIDDEN. Every claim needs proof.
+> **Evidence-Based Reasoning** — Do not present inference as fact; ground material claims in evidence appropriate to the task.
 >
-> 1. Cite `file:line`, grep results, or framework docs for EVERY claim
-> 2. Declare confidence: >80% act freely, 60-80% verify first, <60% DO NOT recommend
-> 3. Cross-service validation required for architectural changes
-> 4. "I don't have enough evidence" is valid and expected output
+> 1. Cite `file:line` for repository claims, configuration or reference paths for project rules, and URLs or artifact locations for external or observed claims.
+> 2. State confidence when a conclusion is uncertain; verify material assumptions before acting and withhold recommendations when evidence is insufficient.
+> 3. Trace the consumers, boundaries, or dependencies that exist in the affected path; do not assume services, modules, or architectural styles that the project does not use.
+> 4. "I don't have enough evidence" is valid and expected output.
 >
-> **BLOCKED until:** `- [ ]` Evidence file path (`file:line`) `- [ ]` Grep search performed `- [ ]` 3+ similar patterns found `- [ ]` Confidence level stated
+> **BLOCKED until:** material claims have traceable evidence, relevant searches are complete, and uncertainties are stated. Search comparable patterns when the task has existing implementations; record when none are available.
 >
 > **Forbidden without proof:** "obviously", "I think", "should be", "probably", "this is because"
 > **If incomplete →** output: `"Insufficient evidence. Verified: [...]. Not verified: [...]."`
@@ -373,17 +356,17 @@ Offer a simpler restatement or analogy for any dense point proactively, without 
 
 <!-- SYNC:understand-code-first -->
 
-> **Understand Code First** — HARD-GATE: Do NOT write, plan, or fix until you READ existing code.
+> **Understand Existing Code First** — For code changes, read and trace the target before planning or editing; do not apply a code workflow to work with no code surface.
 >
-> 1. Search 3+ similar patterns (`grep`/`glob`) — cite `file:line` evidence
-> 2. Read existing files in target area — understand structure, base classes, conventions
-> 3. Run `python .claude/scripts/code_graph trace <file> --direction both --json` when `.code-graph/graph.db` exists
-> 4. Map dependencies via `connections` or `callers_of` — know what depends on your target
-> 5. Write investigation to `tmp/analysis/` for non-trivial tasks (3+ files)
-> 6. Re-read analysis file before implementing — never work from memory alone. — why: long context drifts from the file; the file is ground truth
-> 7. NEVER invent new patterns when existing ones work — match exactly or document deviation. — why: divergent patterns fragment the codebase and slow every future reader
+> 1. Search for relevant existing implementations and cite `file:line`; aim for 3+ comparable examples when they exist, and record when the project has fewer or none.
+> 2. Read the target area and its configured project references; identify actual structure, owners, and conventions without assuming a framework, layer model, or base class.
+> 3. Run `python .claude/scripts/code_graph trace <file> --direction both --json` when `.code-graph/graph.db` exists and the task concerns code relationships.
+> 4. Map affected dependencies and callers with available repository tools; do not block on an absent graph or unsupported tool.
+> 5. Write investigation to `tmp/analysis/` for non-trivial tasks (3+ files).
+> 6. Re-read the analysis before implementing; update it when evidence changes.
+> 7. Follow a fitting local pattern, or state why no suitable pattern exists and justify a project-appropriate choice.
 >
-> **BLOCKED until:** `- [ ]` Read target files `- [ ]` Grep 3+ patterns `- [ ]` Graph trace (if graph.db exists) `- [ ]` Assumptions verified with evidence
+> **BLOCKED until:** target and relevant existing patterns are inspected, applicable dependencies are traced, and material assumptions have evidence. If an item does not apply or the repository has no comparable implementation, record that fact rather than fabricating a gate result.
 
 <!-- /SYNC:understand-code-first -->
 
@@ -443,6 +426,7 @@ Offer a simpler restatement or analogy for any dense point proactively, without 
 
 > **AI Mistake Prevention** — Failure modes to avoid on every task:
 >
+> **Project applicability gate.** Before applying a stack, layer, style, tool, or architecture rule, read the project's config and relevant references, then check local implementations. Treat framework examples as examples; honor explicit N/A and do not require a technology or convention the project does not use.
 > **ROOT-CAUSE GATE — INVESTIGATE FIRST.** Before applying any project-related correction, always use the project's root-cause investigation protocol and establish the cause; the failure site may be only a symptom.
 > **FAILED-TEST GATE.** For any failed or unstable test, use the project's test-investigation protocol before editing source or tests; never change either side merely to force green.
 > **Re-read files after context changes.** Context compaction, resume, or long-running work can make memory stale; verify current files before acting.
@@ -461,29 +445,31 @@ Offer a simpler restatement or analogy for any dense point proactively, without 
 
 <!-- SYNC:critical-thinking-mindset:reminder -->
 
-**MUST ATTENTION** apply critical + sequential thinking — every claim needs appropriate traced evidence (`file:line` for repo/code claims; source URL or artifact section for research, product, content, and docs claims); confidence >80% to act, <60% DO NOT recommend. Anti-hallucination: never present guess as fact, admit uncertainty freely, cross-reference independently, stay skeptical of own confidence.
+**MUST ATTENTION** critical + sequential thinking: every claim carries traced evidence (`file:line` for code, source URL or artifact section otherwise); confidence >80% to act, <60% do NOT recommend. Never present a guess as fact; admit uncertainty and stay skeptical of your own confidence.
 
 <!-- /SYNC:critical-thinking-mindset:reminder -->
 
 <!-- SYNC:evidence-based-reasoning:reminder -->
 
-**IMPORTANT MUST ATTENTION** cite `file:line` evidence for every claim (confidence >80% to act). NEVER speculate without proof.
+**IMPORTANT MUST ATTENTION** cite `file:line` evidence for every claim; never speculate. Confidence >80% to act, <60% = do NOT recommend; "not enough evidence" is valid output.
 
 <!-- /SYNC:evidence-based-reasoning:reminder -->
 
 <!-- SYNC:understand-code-first:reminder -->
 
-- **MANDATORY IMPORTANT MUST ATTENTION** search 3+ existing patterns and read code BEFORE any explanation. Run graph trace when graph.db exists.
+**IMPORTANT MUST ATTENTION** search 3+ existing patterns and read code/conventions BEFORE any modification or explanation. Run graph trace when graph.db exists.
+
 <!-- /SYNC:understand-code-first:reminder -->
 
 <!-- SYNC:graph-assisted-investigation:reminder -->
 
-- **MANDATORY IMPORTANT MUST ATTENTION** run at least ONE graph command on key files when graph.db exists. Pattern: grep → graph trace → grep verify.
+**IMPORTANT MUST ATTENTION** run at least ONE graph command on key files before concluding when graph.db exists. Pattern: grep → graph trace → grep verify.
+
 <!-- /SYNC:graph-assisted-investigation:reminder -->
 
 <!-- SYNC:ai-mistake-prevention:reminder -->
 
-**MUST ATTENTION** ROOT-CAUSE GATE: before any project-related correction, use the appropriate root-cause investigation protocol; failed/unstable tests require the test-investigation protocol before editing source/tests — never force green.
+**MUST ATTENTION** Check project config, relevant references, and local evidence before applying stack-specific conventions; honor explicit N/A. ROOT-CAUSE GATE: before any project-related correction, use the appropriate root-cause investigation protocol; failed/unstable tests require the test-investigation protocol before editing source/tests — never force green.
 
 <!-- /SYNC:ai-mistake-prevention:reminder -->
 
@@ -506,13 +492,15 @@ Offer a simpler restatement or analogy for any dense point proactively, without 
 <!-- /SYNC:parallel-subagent-dispatch -->
 
 <!-- SYNC:parallel-subagent-dispatch:reminder -->
+
 - **MANDATORY** After planning tasks, tag each PAR/SEQ and spawn every PAR wave as parallel sub-agents in ONE message — default parallel for workflows, batch updates, investigation, research, reviews; plan execution fans out ONLY on what the plan declares.
 - **MANDATORY** Disjoint write sets per wave · all-return barrier before the next wave · specialist routing · sub-agents NEVER fan out further unless their own agent definition authorizes it.
+
 <!-- /SYNC:parallel-subagent-dispatch:reminder -->
 
 <!-- SYNC:project-protocol-overlay -->
 
-> **Project Protocol Overlay** — Before executing this skill, resolve any PROJECT overlay rules layered onto it: match this skill's name against the `Target` column of the project's skill-protocol index (default `docs/project-reference/skill-protocols-reference.md`; a `referenceDocs` entry in `docs/project-config.json` overrides the path, and a `docsRoots.projectReference.path` entry relocates its containing directory), taking the most specific matching tier ONLY — exact name > glob > `*`. **That precedence orders overlays against EACH OTHER, never against this skill.** Read ONLY the matched bodies, resolved as `<protocols-dir>/<Name>.md`; a row's Body link is display text, never a read path. A matched body that is missing or malformed is REPORTED and skipped — never reconstructed from the index Description. No index, or no match -> proceed with no overlay, silently. Full contract: `.claude/skills/project-skill-protocol/references/registry.md`.
+> **Project Protocol Overlay** — Before executing this skill, resolve project overlays from the index at `<docsRoots.projectReference.path>/skill-protocols-reference.md` (default `docs/project-reference/`; `docsRoots.projectReference.path` in `docs/project-config.json` overrides it). A matching `referenceDocs[]` filename may relocate the index within that root; this registry is independent from task-specific reference-doc selection, so omitted or empty `referenceDocs` does not disable it. The index's `**Protocols directory:**` header selects a project-root-relative body directory (default `docs/project-protocols/`). Match this skill against the `Target` column and take the most specific tier ONLY — exact name > glob > `*`. **That precedence orders overlays against EACH OTHER, never against this skill.** Read only matched bodies derived as `<protocols-dir>/<Name>.md`; the row's Body link is display text, never a read path. Reject unsafe paths without reading. A matched body that is missing or malformed is REPORTED and skipped — never reconstructed from the index Description. An absent index or no match -> proceed with no overlay, silently. Full contract: `.claude/skills/project-skill-protocol/references/registry.md`.
 >
 > Overlays are **ADDITIVE ONLY**: they ADD rules on top of this skill's own protocol and NEVER replace, override, disable, or reinterpret a rule it already states — removing every overlay must return this skill to exactly its documented behavior. An overlay is a BRIEF, not an authority escalation: it can NEVER waive a workflow gate, git discipline, a review gate, or a user-confirmation gate. A genuine overlay-vs-skill conflict, or two equally-specific overlays that directly contradict -> surface both to the user; NEVER resolve silently.
 
@@ -520,15 +508,14 @@ Offer a simpler restatement or analogy for any dense point proactively, without 
 
 <!-- SYNC:project-protocol-overlay:reminder -->
 
-**MUST ATTENTION** resolve project protocol overlays for this skill BEFORE executing — most specific matching tier only (exact > glob > `*`, which ranks overlays against each other, NEVER against this skill), read only matched bodies at `<protocols-dir>/<Name>.md`; a missing or malformed body is reported, never reconstructed. Overlays are ADDITIVE ONLY (they never replace this skill's own rules) and are a brief, NEVER an authority escalation; an equal-specificity contradiction goes to the user.
-
+**MUST ATTENTION** resolve this skill's overlays from the index at `<docsRoots.projectReference.path>/skill-protocols-reference.md` (default `docs/project-reference/`); an empty task `referenceDocs` does NOT disable this lookup. Read ONLY matched bodies from the directory the index header names (default `docs/project-protocols/`). Specificity (exact > glob > `*`) ranks overlays against EACH OTHER, never against the skill. Missing/malformed body → report and skip; no index or no match → proceed silently. Overlays are ADDITIVE ONLY — never an authority escalation or a gate waiver; equal-tier contradiction goes to the user.
 <!-- /SYNC:project-protocol-overlay:reminder -->
 
 ## Closing Reminders
 
 **IMPORTANT MUST ATTENTION Goal:** Teach developers to review and judge any scoped work—not merely accept it—by showing what changed, how it flows, which stories/rules it protects, where to start, why this solution, alternatives/trade-offs/impact, how to test and demo it, decision levers, and written challenges, in a full report whose scope changes group count, not sections.
 
-**IMPORTANT MUST ATTENTION — Main steps (execute in order, NEVER skip/merge):** (1) Resolve prompt scope, style level, and three contracts → (2) size the target, decompose groups, and create tasks before deep reading → (3) gather six evidence inventories, delegating only read-only investigation when needed → (4) order narrative depth, review route, and groups → (5) open the one teaching report with spine/ledger before section one → (6) teach every section group by group, appending blocks and ledger evidence on disk → (7) synthesize across groups → (8) summarize in chat, include the start-here line and report path, append the index, and close without a quiz or loop.
+**IMPORTANT MUST ATTENTION — Main steps (execute in order, NEVER skip/merge):** (1) Resolve prompt scope and load the three contracts → (2) size the target, decompose groups, and create tasks before deep reading → (3) gather six evidence inventories, delegating only read-only investigation when needed → (4) order narrative depth, review route, and groups → (5) open the one teaching report with spine/ledger before section one → (6) teach every section group by group, appending blocks and ledger evidence on disk → (7) synthesize across groups → (8) summarize in chat, include the start-here line and report path, append the index, and close without a quiz or loop.
 
 **Protocols in force (concise digest of the SYNC/shared blocks this skill carries) — MUST ATTENTION each:**
 
@@ -549,7 +536,7 @@ Offer a simpler restatement or analogy for any dense point proactively, without 
 - **MUST ATTENTION** DELEGATE the GATHERING — `/investigate`, `/debug-investigate`, `/graph-trace` — when read + grep + trace cannot fill an inventory; NEVER delegate to a mutating or findings-emitting skill, never let a delegate author a section, and re-verify every delegated claim against `file:line` before it enters the report. At S3+ the delegation runs inside the group's sub-agent, not the orchestrator.
 - **MUST ATTENTION** announce anything deferred, sampled, or dropped in BOTH the spine and the chat summary — bounded coverage must never read as complete coverage.
 - **MUST ATTENTION** TEACH so the reader could re-derive the design, COACH so they could argue for a different one, and ROUTE so they could review it in the right order without asking where to start — a description of what the code does is a FAILED run.
-- **MUST ATTENTION** the report is **ALWAYS FULL**: every section, at every coding level, on every target — **no mode, no light variant, no level-based section drop, no small-diff exemption, no opt-out.** §0 Detailed Summary opens the file, written LAST from the finished sections and restating only what they prove; then Part I What → Visual Map → User Stories; Part II Review Path; Part III Concepts → How → Why-this-solution → Options-considered → Trade-offs → Impact; Part IV Test & Demo → Your-call → Challenge-this. Level tunes vocabulary/analogy/length only; it NEVER deletes a section, NEVER reduces the diagram count, NEVER drops a review stage. §0, §2, §3, §4, §5, §8, §11, §12, §13 are the ones that get silently dropped — verify them explicitly.
+- **MUST ATTENTION** the report is **ALWAYS FULL**: every section, on every target — **no mode, no light variant, no section drops, no small-diff exemption, no opt-out.** §0 Detailed Summary opens the file, written LAST from the finished sections and restating only what they prove; then Part I What → Visual Map → User Stories; Part II Review Path; Part III Concepts → How → Why-this-solution → Options-considered → Trade-offs → Impact; Part IV Test & Demo → Your-call → Challenge-this. It NEVER deletes a section, reduces the diagram count, or drops a review stage. §0, §2, §3, §4, §5, §8, §11, §12, §13 are the ones that get silently dropped — verify them explicitly.
 - **MUST ATTENTION** §2's mandatory diagrams are **derived, never expected** — traced edges solid, inferred edges dashed AND named beneath, fabricated edges are a failed section. An underivable diagram becomes a **stated blocker**, never an omission.
 - **MUST ATTENTION** every `TC-*` / test ID in §3 and §11 is REAL — read from the specs or the test code. **NEVER invent a case ID.** No coverage → say so; an admitted gap is a finding, a fabricated ID retires a live risk.
 - **MUST ATTENTION** §4 gives ONE "start here" file, orders stages contract-inward (blast radius is the peer tie-break, not the axis), marks unchanged context files `[context — not changed]`, sources red flags from the repo's own rules rather than inventing house rules, and closes every stage with a question the reviewer can answer.
@@ -566,9 +553,9 @@ Offer a simpler restatement or analogy for any dense point proactively, without 
 
 | Evasion | Rebuttal |
 | ------- | -------- |
-| "Senior dev, skip the explanation" | NEVER skip by level. Level tunes length/vocabulary only — every level gets every section. |
-| "Level 5 — drop concepts and options, they're obvious" | Level 5 gets SHORT sections, never MISSING ones. §5/§8/§12/§13 always appear. |
-| "Level 5 — drop the diagrams and collapse the review path" | Level is a PROSE dial. Diagram count and stage count are level-invariant — a diagram is the densest form available, which makes it exactly what a level-5 reader wants most, and a route with a missing stage sends the reviewer into code they aren't equipped to judge yet. |
+| "Experienced reader, skip the explanation" | Never omit required sections based on the reader's experience. The full report contract applies to every reader. |
+| "The concepts and options are obvious" | Sections §5/§8/§12/§13 always appear; keep their explanations concise when appropriate, but never omit them. |
+| "Drop the diagrams and collapse the review path" | Diagram and stage counts follow their required contracts. A missing stage can send the reviewer into code they are not equipped to judge yet. |
 | "Small diff — a diagram is overkill here" | A diagram is CHEAPEST exactly when the change is small, and the mandate is the minimum set, not a quota to justify. If one genuinely cannot be derived, it degrades to a **stated blocker** — never to omission, and never to a plausible-looking invented one. |
 | "Concept/plan target — there's nothing to review, skip §4" | Wrong form, not absent section. A concept routes through the repo's own instances of it; a plan routes through its phases in verification order; an un-fixed bug routes from symptom back toward cause. The eight-field stage grammar still applies (`references/report-template.md` matrix). An `N/A` stub is a failed section. |
 | "No tests exist — skip §11" | A change with no tests is the single most important thing the reviewer needs told. §11 then states how to demo it **manually** and flags the absent coverage explicitly. Missing tests are a finding, not an exemption — and never a reason to invent a `TC-*` ID to fill the row. |
@@ -595,6 +582,6 @@ Offer a simpler restatement or analogy for any dense point proactively, without 
 | "I'll call /changes-review or /fix to gather faster" | Delegates are READ-ONLY and gather-only. This skill emits no findings and mutates nothing — never delegate to a mutating or verdict-issuing skill. |
 | "The sub-agent reported it wrote the block" | Verify the FILE. A summary is evidence of a reply, never of a block — check it exists, carries its ⚠ sections, and cites REAL IDs. |
 | "12 groups won't fit in one file — I'll split it into a directory" | The ONE file IS the deliverable, at every tier and every group count. Size is what §0, the ledger, and the anchors are for — a directory is a deliverable nobody opens as a whole. Past 12 groups, NEST inside the file (`# Context — {name}`); never split it. |
-| "§0 would be enormous at 12 groups — I'll trim it to the top three" | §0 has NO maximum length. A 12-group report has 12 key mechanics and 12 ledger rows, not three. A level dial shortens each bullet; it never deletes one, and "too long to summarize" is the failure §0 exists to prevent. |
+| "§0 would be enormous at 12 groups — I'll trim it to the top three" | §0 has NO maximum length. A 12-group report has 12 key mechanics and 12 ledger rows, not three. Include every load-bearing item; "too long to summarize" is the failure §0 exists to prevent. |
 
 > **[IMPORTANT]** This skill exists so the human can **judge** AI's work and **review** it, not just receive it — draw the system, state the stories and the rules, hand over the route that says where to start, teach the concepts, expose the whole option space with honest pros and cons, show how to run and demo it, hand over the decision levers, and write down the challenges that provoke real thinking. Never test them, never wait on them, never block them.

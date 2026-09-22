@@ -49,7 +49,7 @@ function clearStateCache() {
 }
 
 // Current universal-guides sentinel string (kept in one place so a version bump touches one line).
-const CURRENT_SENTINEL = '<!-- CK:UNIVERSAL-GUIDES v6 -->';
+const CURRENT_SENTINEL = '<!-- CK:UNIVERSAL-GUIDES v7 -->';
 // Shared-protocol blocks in BOTH surface representations so one fixture satisfies the per-file
 // probe for CLAUDE.md (CK: markers) AND AGENTS.md (canonical `:full` phrase) — getAgentFileIssues
 // applies each file's own probe, so a complete fixture written to both must carry both forms.
@@ -78,7 +78,6 @@ const COMPLETE_AGENTS_FILE = `${CURRENT_SENTINEL}\n# Project\n\n${PROTOCOL_POINT
 // Legacy complete file: no sentinel, but every required anchor heading present + the protocol.
 const LEGACY_COMPLETE_FILE = [
     '# Project',
-    '## First Action Decision', '...',
     '## Workflow Step Advancement & Parallel Phases', '...',
     '## Task Planning Rules', '...',
     '## Code Responsibility Hierarchy', '...',
@@ -350,7 +349,7 @@ const universalGuidesTests = [
             try {
                 withEnv(tmpDir, () => {
                     const { hasUniversalGuides } = freshState(tmpDir);
-                    assertTrue(hasUniversalGuides('<!-- CK:UNIVERSAL-GUIDES v6 -->\n# x'), 'v6 (current) sentinel passes');
+                    assertTrue(hasUniversalGuides('<!-- CK:UNIVERSAL-GUIDES v7 -->\n# x'), 'v7 (current) sentinel passes');
                 });
             } finally { cleanupTempDir(tmpDir); }
         }
@@ -362,7 +361,7 @@ const universalGuidesTests = [
             try {
                 withEnv(tmpDir, () => {
                     const { hasUniversalGuides } = freshState(tmpDir);
-                    assertTrue(hasUniversalGuides('<!-- CK:UNIVERSAL-GUIDES v7 -->\n# x'), 'v7 >= v6 passes');
+                    assertTrue(hasUniversalGuides('<!-- CK:UNIVERSAL-GUIDES v8 -->\n# x'), 'v8 >= v7 passes');
                 });
             } finally { cleanupTempDir(tmpDir); }
         }
@@ -374,7 +373,7 @@ const universalGuidesTests = [
             try {
                 withEnv(tmpDir, () => {
                     const { hasUniversalGuides } = freshState(tmpDir);
-                    assertTrue(!hasUniversalGuides('<!-- CK:UNIVERSAL-GUIDES v5 -->\n# x'), 'v5 < v6 flagged (bump re-offers update to already-managed brownfield files)');
+                    assertTrue(!hasUniversalGuides('<!-- CK:UNIVERSAL-GUIDES v6 -->\n# x'), 'v6 < v7 flagged (bump re-offers update to already-managed brownfield files)');
                 });
             } finally { cleanupTempDir(tmpDir); }
         }
@@ -425,6 +424,49 @@ const universalGuidesTests = [
                 withEnv(tmpDir, () => {
                     const { isUniversalGuidesRequired } = freshState(tmpDir);
                     assertTrue(!isUniversalGuidesRequired(), 'opt-out flag disables enforcement');
+                });
+            } finally { cleanupTempDir(tmpDir); }
+        }
+    },
+    {
+        // PORTABILITY INVARIANT: the opt-out must be reachable WITHOUT a project config, or the
+        // escape hatch presupposes the very artifact the framework declares optional — a config-less
+        // adopter would be nagged on every prompt with no way out but to write the file.
+        name: '[agent-files-gate] isUniversalGuidesRequired: .ck.json opts out with NO project config',
+        fn: async () => {
+            const tmpDir = createTempDir();
+            try {
+                fs.mkdirSync(path.join(tmpDir, '.claude'), { recursive: true });
+                fs.writeFileSync(
+                    path.join(tmpDir, '.claude', '.ck.json'),
+                    JSON.stringify({ portability: { requireUniversalGuides: false } })
+                );
+                assertTrue(
+                    !fs.existsSync(path.join(tmpDir, 'docs', 'project-config.json')),
+                    'no project config present — that is the point of this case'
+                );
+                withEnv(tmpDir, () => {
+                    const { isUniversalGuidesRequired } = freshState(tmpDir);
+                    assertTrue(!isUniversalGuidesRequired(), '.ck.json opt-out disables enforcement');
+                });
+            } finally { cleanupTempDir(tmpDir); }
+        }
+    },
+    {
+        // Repo-local `.ck.json` outranks the project config, same as the other portability knobs.
+        name: '[agent-files-gate] isUniversalGuidesRequired: .ck.json outranks the project config',
+        fn: async () => {
+            const tmpDir = createTempDir();
+            try {
+                writePopulatedConfig(tmpDir, { portability: { requireUniversalGuides: true } });
+                fs.mkdirSync(path.join(tmpDir, '.claude'), { recursive: true });
+                fs.writeFileSync(
+                    path.join(tmpDir, '.claude', '.ck.json'),
+                    JSON.stringify({ portability: { requireUniversalGuides: false } })
+                );
+                withEnv(tmpDir, () => {
+                    const { isUniversalGuidesRequired } = freshState(tmpDir);
+                    assertTrue(!isUniversalGuidesRequired(), 'repo-local .ck.json wins over project config');
                 });
             } finally { cleanupTempDir(tmpDir); }
         }
@@ -708,7 +750,7 @@ const sentinelSyncTests = [
             try {
                 writePopulatedConfig(tmpDir);
                 const claudeMd = path.join(tmpDir, 'CLAUDE.md');
-                // Marker-managed (has SECTION:tldr) + 4 of 5 anchors; MISSING "First Action Decision".
+                // Marker-managed (has SECTION:tldr) but missing a route-neutral universal guide.
                 const markeredMissingGuide = [
                     '# Project',
                     '',
@@ -716,8 +758,6 @@ const sentinelSyncTests = [
                     '> **Project:** Test',
                     '<!-- /SECTION:tldr -->',
                     '',
-                    '## Workflow Step Advancement & Parallel Phases',
-                    '...',
                     '## Task Planning Rules',
                     '...',
                     '## Code Responsibility Hierarchy',
@@ -736,7 +776,7 @@ const sentinelSyncTests = [
                 withEnv(tmpDir, () => {
                     const out = fs.readFileSync(claudeMd, 'utf-8');
                     const { hasUniversalGuides, SENTINEL_RE } = freshState(tmpDir);
-                    assertTrue(/first action decision/i.test(out), 'Missing guide back-filled from template');
+                    assertTrue(/workflow step advancement/i.test(out), 'Missing guide back-filled from template');
                     assertTrue(SENTINEL_RE.test(out), 'Sentinel stamped once guides are complete');
                     assertTrue(hasUniversalGuides(out), 'Detector now reads the file as complete');
                 });
@@ -748,7 +788,7 @@ const sentinelSyncTests = [
                     stdio: 'pipe'
                 });
                 const out2 = fs.readFileSync(claudeMd, 'utf-8');
-                const headingCount = (out2.match(/^##\s+First Action Decision/gim) || []).length;
+                const headingCount = (out2.match(/^##\s+Workflow Step Advancement/gim) || []).length;
                 assertEqual(headingCount, 1, 'Back-filled guide is not duplicated on re-run');
             } finally { cleanupTempDir(tmpDir); }
         }
@@ -772,7 +812,6 @@ const sentinelSyncTests = [
                     '> **Project:** Test',
                     '<!-- /SECTION:tldr -->',
                     '',
-                    '## First Action Decision', '...',
                     '## Workflow Step Advancement & Parallel Phases', '...',
                     '## Task Planning Rules', '...',
                     '## Code Responsibility Hierarchy', '...',

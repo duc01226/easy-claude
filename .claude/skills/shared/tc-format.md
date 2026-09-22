@@ -11,9 +11,15 @@ consumers: [spec, spec [mode=tests], spec [mode=sync], integration-test, integra
 > **Single source of truth** for TC entry format. Referenced by: `spec`, `spec [mode=tests]`, `spec [mode=sync]`.
 > To update TC format: edit THIS file only, then update all consumer skills to reflect the change.
 
+## Applicability And Profile Selection
+
+This file defines the strict default business-case representation: `TC-{FEATURE}-{NNN}` entries in Section 8, with the fields and TC-to-test cardinality defined below. Before authoring or reviewing a project's cases, read its project configuration and required spec/test references, then resolve `specArtifacts`. A valid native profile selects its canonical owner, identifiers, carriers, and declared cardinality; do not also emit this format as a second registry. A native profile may use Markdown, YAML, inline case data, or another existing carrier, but this file does not define a second data schema. A declared but malformed, unsupported, or unresolvable profile is `BLOCKED`; report the validation evidence and never treat it as absent or fall back.
+
+Changing representation or cardinality does not change the semantic obligations in `sdd-artifact-contract.md`: preserve case intent, decision/requirement links, observable expected outcomes, property/invariant and boundary-countercase coverage, healthy-behavior preservation, test rationale, actual executing assertions and results, source evidence, and reconciliation. Use this strict default only when `specArtifacts` is absent; do not infer a profile from the language or test framework.
+
 ## Quick Summary
 
-**Goal:** Keep TC entries consistent, traceable, and reusable across feature docs, TDD specs, and sync mode.
+**Goal:** Keep default-profile TC entries consistent, traceable, and reusable across feature docs, TDD specs, and sync mode.
 
 **Workflow:**
 
@@ -24,11 +30,11 @@ consumers: [spec, spec [mode=tests], spec [mode=sync], integration-test, integra
 
 **Key Rules:**
 
-- MUST ATTENTION preserve `TC-{FEATURE}-{NNN}` identity and evidence fields.
+- Under the strict default TC profile, MUST ATTENTION preserve `TC-{FEATURE}-{NNN}` identity and evidence fields.
 - MUST ATTENTION state business intent/invariant so generated tests fail when protected behavior breaks.
 - MUST ATTENTION derive **properties, not just examples** — for each [HARD] business rule and each entity invariant, probe the [Invariant Categories to Probe](#invariant-categories-to-probe) and write ≥1 universally-quantified property TC ("for ALL inputs in {domain}, {invariant} holds") plus ≥1 boundary counter-case, distinct from a single-point example TC.
 - MUST ATTENTION use preservation TCs for every healthy input that must remain unchanged after a bugfix.
-- MUST ATTENTION keep cardinality **one TC → many tests**: a single business TC may be covered by many integration/unit tests across components and services (join key = the shared **test-spec annotation** carrying the TC ID, expressed in the configured test framework's syntax). NEVER split or technicalize a TC to force a 1:1 map to one test method (see [TC ↔ Test Code Cardinality](#tc--test-code-cardinality-one-to-many)).
+- Under the strict default TC profile, MUST ATTENTION keep cardinality **one TC → many tests**: a single business TC may be covered by many integration/unit tests across components and services (join key = the shared **test-spec annotation** carrying the TC ID, expressed in the configured test framework's syntax). NEVER split or technicalize a TC to force a 1:1 map to one test method (see [TC ↔ Test Code Cardinality](#tc--test-code-cardinality-one-to-many)).
 - NEVER delete deprecated TCs; keep audit trail and version history.
 
 ## Invariant Categories to Probe
@@ -161,10 +167,12 @@ boundaryCounterCase: "amounts summing past the credit limit → order rejected, 
 ## TC ↔ Test Code Cardinality (One-to-Many)
 
 > **A Section 8 TC is a business / user-story acceptance scenario — not a unit of code.** It is written tech-agnostic
-> (M1/M2/M5) and is verified by **one OR MANY** test methods. This section is the canonical cardinality contract; all
-> consumer skills (`spec [mode=tests]`, `spec`, `integration-test`, `integration-test-review`, `artifact-review`) defer to it.
+> (M1/M2/M5) and is verified by **one OR MANY** test methods. This section is the canonical cardinality contract for the default TC profile; all
+> consumer skills (`spec [mode=tests]`, `spec`, `integration-test`, `integration-test-review`, `artifact-review`) defer to it when that profile applies.
 
-**The rule (authoritative):**
+This one-to-many rule is authoritative when this default TC profile is selected. A project reference may instead declare a native many-to-many relation, such as one aggregate executor covering several owner-qualified scenarios while each scenario has multiple variant rows or tests. Preserve each owner + scenario + variant identity, and trace every claimed result to the executor and assertion that actually produced it. A shared aggregate pass does not prove an uninspected row. Do not create extra TC entries or another case registry to represent the native relation.
+
+**The strict default rule (authoritative when this profile applies):**
 
 - **One TC → many tests.** A single `TC-{FEATURE}-{NNN}` MAY be covered by many test methods — integration tests, unit tests, across multiple components / services / layers. Every covering test carries the **same test-spec annotation** — key `TestSpec`, value `TC-{FEATURE}-{NNN}` — expressed in the configured test framework's syntax. That annotation is the **join key**; the cardinality of the join is **1 TC : N tests**.
 - **Coverage = ≥1.** A TC is `Tested` when **at least one** test carrying its annotation exists and passes. A TC does NOT need a dedicated, name-matching, or single-purpose test method.
@@ -313,7 +321,7 @@ When a behavior is removed:
 - MUST ATTENTION keep this file canonical; update consumer skills only after this format changes.
 - MUST ATTENTION every TC protects a named behavior, invariant, or regression path.
 - MUST ATTENTION derive properties not just examples — probe the 6 Invariant Categories (idempotency, round-trip/inverse, commutativity, monotonicity, conservation, state-transition) for every [HARD] rule and §5 invariant; pair each universally-quantified property TC with a boundary counter-case.
-- MUST ATTENTION enforce one-to-many TC ↔ test cardinality: a business TC is covered by ≥1 test (often many, across components); the shared test-spec annotation (key `TestSpec`) is the join key. NEVER split/technicalize a TC for a 1:1 test map; NEVER flag many-tests-per-TC as a duplicate.
+- Under the strict default TC profile, MUST ATTENTION enforce one-to-many TC ↔ test cardinality: a business TC is covered by ≥1 test (often many, across components); the shared test-spec annotation (key `TestSpec`) is the join key. NEVER split/technicalize a TC for a 1:1 test map; NEVER flag many-tests-per-TC as a duplicate.
 - MUST ATTENTION preserve evidence links and deprecated TC history for traceability.
 - MUST ATTENTION emit evidence as stack-portable abstract anchors `[Source: namespace/service/id]` — never physical code coordinates or repository-root paths (taxonomy: Stack-portable evidence section above).
 - NEVER replace specific assertions with smoke checks or existence-only checks.

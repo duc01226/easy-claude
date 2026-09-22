@@ -142,17 +142,24 @@ test('sync-hooks writes only the valid explicit or discovered target', () => fix
 }));
 
 // R2-09: a rejected explicit root never grants lifecycle mutation authority.
-for (const hook of ['npm-auto-install.cjs', 'session-end.cjs']) {
+//
+// This used to loop over a second lifecycle mutator as well, built on the shared `resolveProjectRoot`
+// owner. That duplicate owner is deleted: startup dependency installation now belongs
+// to `verify-install.cjs`, which is the install-integrity owner and therefore carries its own
+// dependency-free root bootstrap — it must be able to diagnose a partial copy that is MISSING
+// `lib/project-root.cjs`, so it cannot import the resolver this file covers. Its root-boundary
+// contract (bootstrap precedence, and which roots may reach the guarded install owner at all) is
+// owned by `.claude/scripts/tests/install-bootstrap.test.cjs`. Do not re-point this case at it.
+for (const hook of ['session-end.cjs']) {
     test(`${hook}: invalid roots skip every mutation; valid roots retain work`, () => fixture(dir => {
         fs.mkdirSync(path.join(dir, '.claude'));
-        fs.writeFileSync(path.join(dir, 'package.json'), JSON.stringify({ dependencies: { 'synthetic-missing': '*' } }));
         const code = `
             const Module = require('node:module');
             const original = Module._load;
             const calls = [];
             const record = name => (...args) => { calls.push([name, ...args]); return 0; };
             Module._load = function(name, ...args) {
-                if (name === 'child_process') return { execSync: record('npm') };
+                if (name === 'child_process') return { execSync: record('shell') };
                 if (name === './lib/hook-runner.cjs') return { runHookSync: (_, handler) => handler({ reason: 'exit', session_id: 'synthetic-session', cwd: process.cwd() }) };
                 if (name === './lib/debug-log.cjs') return { debug: () => {} };
                 if (name === './lib/temp-file-cleanup.cjs') return { cleanupAll: record('cleanup') };
@@ -171,11 +178,7 @@ for (const hook of ['npm-auto-install.cjs', 'session-end.cjs']) {
             assert.equal(result.status, 0, result.stderr);
             const calls = JSON.parse(result.stdout);
             if (explicit && explicit !== dir) assert.deepEqual(calls, [], explicit);
-            else if (hook === 'npm-auto-install.cjs') {
-                assert.equal(calls.length, 1);
-                assert.equal(calls[0][0], 'npm');
-                assert.equal(calls[0][2].cwd, dir);
-            } else {
+            else {
                 assert.deepEqual(calls.map(call => call[0]), ['revoke', 'cleanup', 'delete-swap']);
                 assert.equal(calls[0][1].projectDir, dir);
                 assert.equal(calls[1][1], dir);
@@ -257,6 +260,11 @@ for (const hook of ['init-prompt-gate.cjs', 'session-init.cjs', 'session-init-do
     test(`${hook}: rejected roots preserve all files and processes`, () => fixture(dir => {
         fs.mkdirSync(path.join(dir, '.claude'));
         fs.mkdirSync(path.join(dir, 'src'));
+        fs.mkdirSync(path.join(dir, 'docs'));
+        fs.writeFileSync(
+            path.join(dir, 'docs', 'project-config.json'),
+            JSON.stringify({ project: { name: 'Root Guard Fixture' } })
+        );
         const script = path.join(root, '.claude/hooks', hook);
         const code = `
             const fs = require('node:fs'), Module = require('node:module');
@@ -289,23 +297,36 @@ for (const hook of ['init-prompt-gate.cjs', 'session-init.cjs', 'session-init-do
             const result = spawnSync(process.execPath, ['-e', code, mutant ? 'mutant' : 'control'], {
                 cwd: explicit === dir || explicit === '' ? path.join(dir, 'src') : dir,
                 env: cleanEnv({ CLAUDE_PROJECT_DIR: explicit, CLAUDE_HOOK_DEBUG: '0', CLAUDE_ENV_FILE: path.join(dir, 'session.env') }),
-                input: JSON.stringify({ prompt: 'skip init', session_id: 'root-fixture', source: 'startup' }), encoding: 'utf8', timeout: 15000,
+                input: JSON.stringify({ prompt: hook === 'init-prompt-gate.cjs' ? 'skip graph' : 'skip init', session_id: 'root-fixture', source: 'startup' }), encoding: 'utf8', timeout: 15000,
             });
             assert.equal(result.status, 0, result.stderr);
             const calls = JSON.parse(result.stdout.match(/ROOT_EFFECTS:(.*)/)?.[1] || 'null');
             if (mutant) {
                 assert.doesNotMatch(result.stderr, /CLAUDE_PROJECT_DIR/);
-                if (hook === 'init-prompt-gate.cjs') assert.match(result.stdout, /Project init skipped/);
-                else assert.ok(calls.length > 0, 'main guard deletion must reach effects');
+                if (hook === 'init-prompt-gate.cjs') {
+                    assert.match(result.stdout, /Graph build skipped/, 'deleting the root guard must reach prompt handling');
+                } else {
+                    assert.ok(calls.length > 0, 'main guard deletion must reach effects');
+                }
             } else if (explicit && explicit !== dir) {
-                assert.match(result.stderr, /CLAUDE_PROJECT_DIR/);
+                const diagnostic = hook === 'init-prompt-gate.cjs' ? result.stdout : result.stderr;
+                assert.match(diagnostic, /CLAUDE_PROJECT_DIR/);
+                if (hook === 'init-prompt-gate.cjs') {
+                    assert.doesNotMatch(result.stdout, /"decision":"block"/, 'root-resolution errors must report and allow');
+                }
                 assert.deepEqual(calls, [], explicit);
             } else {
                 assert.doesNotMatch(result.stderr, /CLAUDE_PROJECT_DIR/);
-                const expected = hook === 'session-init.cjs' ? ['cleanup', dir] : ['writeFileSync', path.join(dir, hook === 'init-prompt-gate.cjs' ? 'tmp/claude-temp/.init-dismissed' : 'docs/project-config.json')];
-                assert.ok(calls.some(call => call[0] === expected[0] && call[1] === expected[1]), JSON.stringify(calls));
+                if (hook === 'session-init.cjs') {
+                    assert.ok(calls.some(call => call[0] === 'cleanup' && call[1] === dir), JSON.stringify(calls));
+                } else if (hook === 'init-prompt-gate.cjs') {
+                    assert.ok(calls.some(call => call[0] === 'writeFileSync' && call[1] === path.join(dir, 'tmp/claude-temp/.graph-dismissed')), JSON.stringify(calls));
+                } else {
+                    const referenceRoot = path.join(dir, 'docs', 'project-reference');
+                    assert.ok(calls.some(call => call[0] === 'writeFileSync' && call[1].startsWith(referenceRoot)), JSON.stringify(calls));
+                }
             }
-            assert.deepEqual(fs.readdirSync(dir).sort(), ['.claude', 'src']);
+            assert.deepEqual(fs.readdirSync(dir).sort(), ['.claude', 'docs', 'src']);
         }
     }));
 }

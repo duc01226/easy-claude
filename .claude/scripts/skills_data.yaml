@@ -137,17 +137,6 @@
 - category: other
   deprecated_by: null
   deprecated_since: null
-  description: '[Utilities] Use when setting the coding experience level that tailors
-    explanations.'
-  has_references: false
-  has_scripts: false
-  name: coding-level
-  path: coding-level/SKILL.md
-  removal_after: null
-  status: active
-- category: other
-  deprecated_by: null
-  deprecated_since: null
   description: '[Git] Use when asked to commit, stage and commit, or save changes.
     Flag: --push also pushes to remote.'
   has_references: false
@@ -226,7 +215,8 @@
   deprecated_by: null
   deprecated_since: null
   description: '[Documentation] Use when generating a demo guide, demo script, or
-    sprint-demo walkthrough covering user stories and their test cases.'
+    sprint-demo walkthrough covering user stories, case identities, and their evidence
+    carriers.'
   has_references: true
   has_scripts: false
   name: demo-guide
@@ -340,7 +330,8 @@
     test scope with exact runner output, evidence, and report-only quality-gate results.
     Flags: --fix-loop drives a configured suite or human-QC journey to green with
     project-config setup, fault adjudication, and bounded re-verification; --visual-review={true|false}
-    (with --fix-loop; default true, false opts out of the screenshot visual gate).'
+    (with --fix-loop; follows the explicit request or applicable project contract,
+    with no framework-wide screenshot default).'
   has_references: false
   has_scripts: false
   name: e2e-test-verify
@@ -365,8 +356,8 @@
     output (UI, API, CLI, service) — run it locally, drive it end to end like a user,
     gate on runtime/console logs and captured screens, set a baseline, or adjudicate
     a regression. Flag: --rounds=N (default 3; 0 = report-only).'
-  has_references: true
-  has_scripts: true
+  has_references: false
+  has_scripts: false
   name: experience-review
   path: experience-review/SKILL.md
   removal_after: null
@@ -539,8 +530,8 @@
   deprecated_by: null
   deprecated_since: null
   description: '[Testing] Use when verifying integration tests pass after writing
-    and reviewing them. Flag: --fix-loop adjudicates, fixes and re-verifies until
-    2 consecutive green runs.'
+    and reviewing them. Flag: --fix-loop adjudicates, fixes and re-verifies under
+    the configured repeat policy.'
   has_references: false
   has_scripts: false
   name: integration-test-verify
@@ -786,12 +777,25 @@
 - category: other
   deprecated_by: null
   deprecated_since: null
-  description: '[Utilities] Use when scanning the workspace to update docs/project-config.json
-    to match current structure.'
+  description: '[Utilities] Use when scanning the workspace to update the configured
+    project-config file (default docs/project-config.json) to match current structure.'
   has_references: false
-  has_scripts: false
+  has_scripts: true
   name: project-config
   path: project-config/SKILL.md
+  removal_after: null
+  status: active
+- category: other
+  deprecated_by: null
+  deprecated_since: null
+  description: '[Utilities] Use when asking what the .claude framework does for THIS
+    project — how it is configured, which skills/agents/workflows exist, what the
+    reference docs are for, and the key technical, architecture, and structure facts
+    of the project.'
+  has_references: false
+  has_scripts: true
+  name: project-help
+  path: project-help/SKILL.md
   removal_after: null
   status: active
 - category: other
@@ -866,8 +870,8 @@
 - category: other
   deprecated_by: null
   deprecated_since: null
-  description: '[Architecture] Use when scaffolding reusable OOP/SOLID project foundations
-    before feature implementation.'
+  description: '[Architecture] Use when scaffolding project foundations and golden-path
+    examples selected by the target project architecture before feature implementation.'
   has_references: false
   has_scripts: false
   name: scaffold
@@ -877,8 +881,9 @@
 - category: other
   deprecated_by: null
   deprecated_since: null
-  description: '[Documentation] Use when (re)generating ONE project-reference doc.
-    Flag: --target={project-structure|backend-patterns|frontend-patterns|scss-styling|design-system|code-review-rules|domain-entities|feature-spec|docs-index|e2e-tests|integration-tests|seed-test-data|ui-system}.'
+  description: '[Documentation] Use when (re)generating ONE selected project-reference
+    doc. Flag: --target={project-structure|backend-patterns|frontend-patterns|scss-styling|design-system|code-review-rules|domain-entities|feature-spec|docs-index|e2e-tests|integration-tests|seed-test-data|ui-system|generic-reference-doc};
+    generic-reference-doc also requires --filename=<selected custom doc>.'
   has_references: true
   has_scripts: false
   name: scan
@@ -888,8 +893,8 @@
 - category: other
   deprecated_by: null
   deprecated_since: null
-  description: '[Documentation] Use when orchestrating all reference doc scans in
-    parallel.'
+  description: '[Documentation] Use when refreshing all selected and evidence-applicable
+    reference-doc scan targets.'
   has_references: false
   has_scripts: false
   name: scan-all
@@ -956,9 +961,9 @@
 - category: other
   deprecated_by: null
   deprecated_since: null
-  description: '[Documentation] Use when authoring, auditing, amending, or test-speccing
-    a business Feature Spec. Modes: draft|init|update|audit|amend build the tech-free
-    8-section spec; tests generates §8 TCs; sync reconciles TCs with test code.'
+  description: '[Documentation] Use when authoring, auditing, amending, test-speccing,
+    or reconciling a canonical spec. Resolve the project artifact profile first; the
+    8-section/TC format is the strict default.'
   has_references: true
   has_scripts: false
   name: spec
@@ -968,9 +973,9 @@
 - category: other
   deprecated_by: null
   deprecated_since: null
-  description: '[Code Quality] Use when validating a spec artifact''s decisions with
-    the user — a fresh Feature Spec, a canonical spec before PBI decomposition, or
-    a refined idea plus §8 test specs. Blocking clarification gate.'
+  description: '[Code Quality] Use when validating a canonical specification or separately
+    declared test-case artifact''s decisions with the user. Resolves project artifact
+    profile and blocks on unresolved intent.'
   has_references: true
   has_scripts: false
   name: spec-clarify
@@ -1047,6 +1052,18 @@
 - category: other
   deprecated_by: null
   deprecated_since: null
+  description: '[opencode] Use when running the opencode sync and verify pipeline
+    (reconcile the recommended root opencode.json, generate the .opencode hooks bridge
+    plugin, run tooling tests, verify drift).'
+  has_references: false
+  has_scripts: true
+  name: sync-opencode
+  path: sync-opencode/SKILL.md
+  removal_after: null
+  status: active
+- category: other
+  deprecated_by: null
+  deprecated_since: null
   description: '[Skill Management] Use when shared protocol checklists change and
     need propagating across skills.'
   has_references: false
@@ -1092,9 +1109,9 @@
 - category: frontend
   deprecated_by: null
   deprecated_since: null
-  description: '[Code Quality] Use when reviewing UI/frontend changes for content
-    overflow, responsive layout, flex-vs-fixed sizing, z-index discipline, SCSS/BEM
-    quality, and async loading/error/empty states.'
+  description: '[Code Quality] Use when reviewing in-scope user interfaces for content
+    fit, supported-size layout, project styling conventions, layering where applicable,
+    accessibility, and async states.'
   has_references: false
   has_scripts: false
   name: ui-review
@@ -1194,9 +1211,9 @@
 - category: other
   deprecated_by: null
   deprecated_since: null
-  description: '[Workflow] Use when authoring or maintaining the canonical Feature
-    Spec FROM existing code, keeping spec, implementation, and tests in sync. For
-    idea-to-spec use workflow-idea-to-spec.'
+  description: '[Workflow] Use when authoring or maintaining the configured canonical
+    feature/spec artifact from existing code, keeping its native contract, implementation,
+    and tests in sync. For idea-to-spec use workflow-idea-to-spec.'
   has_references: false
   has_scripts: false
   name: workflow-code-to-spec
@@ -1206,9 +1223,10 @@
 - category: other
   deprecated_by: null
   deprecated_since: null
-  description: '[Workflow] Use when writing, updating, and verifying E2E/Playwright
-    tests through a bounded green fix/retest loop. Flags: --source={changes|recording|update-ui|prompt|context|whole},
-    --visual-review={true|false} (default true; false is the explicit opt-out).'
+  description: '[Workflow] Use when writing, updating, and verifying E2E tests through
+    a bounded green fix/retest loop. Flags: --source={changes|recording|update-ui|prompt|context|whole},
+    --visual-review={true|false} (resolve from the task request and project contract;
+    no framework-wide default).'
   has_references: false
   has_scripts: false
   name: workflow-e2e
@@ -1240,8 +1258,10 @@
 - category: other
   deprecated_by: null
   deprecated_since: null
-  description: '[Workflow] Use when creating or updating 8-section tech-free business
-    feature documentation.'
+  description: '[Workflow] Use when creating or updating the configured canonical
+    feature/spec artifact, applying its native paths, sections, identifiers, and test-evidence
+    carriers; use the portable 8-section/README/TC form only when neither a native
+    profile nor local artifact contract applies.'
   has_references: false
   has_scripts: false
   name: workflow-feature-spec
@@ -1273,9 +1293,9 @@
 - category: other
   deprecated_by: null
   deprecated_since: null
-  description: '[Workflow] Use when turning a raw idea, vision, or problem into ONE
-    canonical Feature Spec. Stops at the reviewed spec; chain workflow-spec-to-pbi
-    for a backlog.'
+  description: '[Workflow] Use when turning a raw idea, vision, or problem into one
+    reviewed provisional canonical spec under the configured artifact profile. Stops
+    at the spec; chain workflow-spec-to-pbi for a backlog.'
   has_references: false
   has_scripts: false
   name: workflow-idea-to-spec
@@ -1353,8 +1373,9 @@
 - category: other
   deprecated_by: null
   deprecated_since: null
-  description: '[Workflow] Use when converting canonical tech-free Feature Specs into
-    complete, prioritized, dependency-aware PBIs and stories.'
+  description: '**Goal:** Convert canonical specs in the project''s active artifact
+    contract into a complete, prioritized, dependency-aware, sprint-ready PBI/story
+    backlog with actor-facing outcomes, full UI flows, an'
   has_references: false
   has_scripts: false
   name: workflow-spec-to-pbi

@@ -65,16 +65,23 @@ function withEnv(vars, fn) {
 function withFixture(spec, fn) {
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'psp-overlay-'));
     try {
-        const refDir = path.join(dir, 'docs', 'project-reference');
-        const bodyDir = path.join(dir, 'docs', 'project-protocols');
+        const refDir = path.join(dir, ...(spec.referenceRoot || 'docs/project-reference').split(/[\\/]/));
+        const bodyDir = path.join(dir, ...(spec.bodyRoot || 'docs/project-protocols').split(/[\\/]/));
         fs.mkdirSync(refDir, { recursive: true });
         fs.mkdirSync(bodyDir, { recursive: true });
 
         if (spec.index !== undefined && spec.index !== null) {
-            fs.writeFileSync(path.join(refDir, 'skill-protocols-reference.md'), spec.index, 'utf8');
+            const indexPath = path.join(refDir, ...(spec.indexFilename || 'skill-protocols-reference.md').split(/[\\/]/));
+            fs.mkdirSync(path.dirname(indexPath), { recursive: true });
+            fs.writeFileSync(indexPath, spec.index, 'utf8');
         }
         for (const [name, content] of Object.entries(spec.bodies || {})) {
             fs.writeFileSync(path.join(bodyDir, `${name}.md`), content, 'utf8');
+        }
+        for (const [relativePath, content] of Object.entries(spec.extraFiles || {})) {
+            const targetPath = path.join(dir, ...relativePath.split(/[\\/]/));
+            fs.mkdirSync(path.dirname(targetPath), { recursive: true });
+            fs.writeFileSync(targetPath, content, 'utf8');
         }
         return fn(dir);
     } finally {
@@ -82,11 +89,11 @@ function withFixture(spec, fn) {
     }
 }
 
-function indexWith(rows) {
+function indexWith(rows, protocolsDirectory = 'docs/project-protocols/') {
     const header = [
         '# Skill Protocol Overlays — Project Registry',
         '',
-        '**Protocols directory:** `docs/project-protocols/`',
+        `**Protocols directory:** \`${protocolsDirectory}\``,
         '',
         '## Registry',
         '',
@@ -113,6 +120,100 @@ const THREE_TIER_BODIES = {
 };
 
 const tests = [
+    {
+        // P13: task-specific referenceDocs selection cannot disable the independent overlay registry.
+        name: '[skill-protocol-overlay] TC-PSP-050 docsRoots relocates the registry and explicit referenceDocs [] keeps default lookup',
+        fn: () => {
+            const config = {
+                docsRoots: { projectReference: { path: 'portable/reference' } },
+                referenceDocs: []
+            };
+            withFixture({
+                referenceRoot: 'portable/reference',
+                index: indexWith([THREE_TIER[0]]),
+                bodies: { 'plan-ctx': THREE_TIER_BODIES['plan-ctx'] }
+            }, (dir) => {
+                const out = buildOverlayContext('/plan', dir, config);
+                assertTrue(out.includes('bounded context'), 'the registry under configured docsRoots must resolve even when referenceDocs is explicitly empty');
+            });
+        }
+    },
+    {
+        name: '[skill-protocol-overlay] TC-PSP-051 a matching referenceDocs filename relocates the registry beneath docsRoots',
+        fn: () => {
+            const config = {
+                docsRoots: { projectReference: { path: 'handbook/reference' } },
+                referenceDocs: [{ filename: 'registries/skill-protocols-reference.md', purpose: 'Skill protocol registry.' }]
+            };
+            withFixture({
+                referenceRoot: 'handbook/reference',
+                indexFilename: 'registries/skill-protocols-reference.md',
+                index: indexWith([THREE_TIER[0]]),
+                bodies: { 'plan-ctx': THREE_TIER_BODIES['plan-ctx'] }
+            }, (dir) => {
+                const out = buildOverlayContext('/plan', dir, config);
+                assertTrue(out.includes('bounded context'), 'the matching configured index file must be read');
+            });
+        }
+    },
+    {
+        name: '[skill-protocol-overlay] TC-PSP-052 the registry header selects a project-relative body directory',
+        fn: () => {
+            const bodyRoot = 'project-rules/skill-overlays';
+            withFixture({
+                bodyRoot,
+                index: indexWith([THREE_TIER[0]], `${bodyRoot}/`),
+                bodies: { 'plan-ctx': '## Rules\n\n1. CUSTOM-BODY-ROOT-RULE\n' }
+            }, (dir) => {
+                const out = buildOverlayContext('/plan', dir, {});
+                assertTrue(out.includes('CUSTOM-BODY-ROOT-RULE'), 'the body must be derived inside the configured project-relative directory');
+            });
+        }
+    },
+    {
+        name: '[skill-protocol-overlay] TC-PSP-053 an unsafe configured registry filename is rejected without reading it',
+        fn: () => {
+            const config = {
+                docsRoots: { projectReference: { path: 'docs/project-reference' } },
+                referenceDocs: [{ filename: '../outside/skill-protocols-reference.md', purpose: 'Unsafe test fixture.' }]
+            };
+            withFixture({
+                index: null,
+                extraFiles: {
+                    'outside/skill-protocols-reference.md': indexWith([THREE_TIER[0]], 'outside/bodies'),
+                    'outside/bodies/plan-ctx.md': '## Rules\n\n1. TOP-SECRET-CANARY\n'
+                }
+            }, (dir) => {
+                const out = buildOverlayContext('/plan', dir, config);
+                assertTrue(out.includes('configuration was rejected'), 'unsafe explicit config must be visible');
+                assertTrue(!out.includes('TOP-SECRET-CANARY') && !out.includes('bounded context'), 'the traversal target must not be read');
+            });
+        }
+    },
+    {
+        name: '[skill-protocol-overlay] TC-PSP-054 an unsafe protocols-directory header refuses all body reads',
+        fn: () => {
+            const unsafeIndex = indexWith([THREE_TIER[0]], '../../canary');
+            withFixture({
+                index: unsafeIndex,
+                bodies: { 'plan-ctx': '## Rules\n\n1. TOP-SECRET-CANARY\n' }
+            }, (dir) => {
+                const out = buildOverlayContext('/plan', dir, {});
+                assertTrue(out.includes('configuration was rejected'), 'unsafe body-root declaration must be visible');
+                assertTrue(!out.includes('TOP-SECRET-CANARY'), 'no body may be read under an unsafe header');
+            });
+        }
+    },
+    {
+        name: '[skill-protocol-overlay] TC-PSP-055 an unavailable required config blocks overlay reads visibly',
+        fn: () => {
+            withFixture({ index: indexWith([THREE_TIER[0]]), bodies: { 'plan-ctx': THREE_TIER_BODIES['plan-ctx'] } }, (dir) => {
+                const out = buildOverlayContext('/plan', dir, null);
+                assertTrue(out.includes('configuration was rejected'), 'a missing or invalid required config must be visible');
+                assertTrue(!out.includes('bounded context'), 'the registry must not be read without valid config');
+            });
+        }
+    },
     {
         // TC-PSP-040
         name: '[skill-protocol-overlay] TC-PSP-040 exact tier wins outright — /plan injects only plan-ctx',

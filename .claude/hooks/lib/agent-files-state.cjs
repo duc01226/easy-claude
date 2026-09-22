@@ -24,6 +24,12 @@ const fs = require('fs');
 const path = require('path');
 const { AGENT_FILES_DISMISSED_PATH, ensureProjectTmpDir } = require('./ck-paths.cjs');
 const { getConfiguredProjectConfigPath } = require('./project-config-loader.cjs');
+const {
+    loadConfigFromPath,
+    LOCAL_OVERRIDE_PATH,
+    LOCAL_CONFIG_PATH,
+    GLOBAL_CONFIG_PATH
+} = require('./ck-config-loader.cjs');
 const { resolveProjectRoot } = require('./project-root.cjs');
 
 const rootResolution = resolveProjectRoot({ cwd: process.cwd(), scriptPath: __filename, env: process.env });
@@ -38,12 +44,11 @@ const DISMISS_TTL_MS = 24 * 60 * 60 * 1000; // 1 day — matches the other init 
 // stamps the sentinel below; bumping UNIVERSAL_GUIDES_VERSION re-offers an update on
 // every previously-stamped file. The agent-files-gate.test.cjs sync test asserts the
 // generator emits a marker matching this version — keep them in lockstep.
-const UNIVERSAL_GUIDES_VERSION = 6;
+const UNIVERSAL_GUIDES_VERSION = 7;
 const SENTINEL_RE = /<!--\s*CK:UNIVERSAL-GUIDES\s+v(\d+)\s*-->/i;
 // Fallback for legacy/hand-written files with no sentinel: the static portable
 // section headings the template always ships (see claude-md-template.md).
 const REQUIRED_ANCHORS = [
-    /first action decision/i, // the workflow ask-confirm gate
     /workflow step advancement/i, // model-driven advancement + parallel-phase barrier (hook-free, portable)
     /task planning rules/i,
     /code responsibility hierarchy/i,
@@ -181,19 +186,53 @@ function hasUniversalGuides(content) {
 
 /**
  * Is the universal-guides content check enabled for this project?
- * Opt-out: portability.requireUniversalGuides === false keeps a project-only file.
- * Defaults to true (and fail-open to true on any config read error).
+ *
+ * Opt-out: `portability.requireUniversalGuides === false` keeps a project-only file.
+ * Defaults to true, and fails open to true on any read error.
+ *
+ * TWO SOURCES, ON PURPOSE. The knob used to be readable ONLY from the project config — which the
+ * framework declares OPTIONAL. That made the escape hatch presuppose the artifact it is supposed to
+ * let you avoid: an adopter who drops `.claude` into a repo with no project config got this notice
+ * on every prompt and was told to opt out by creating the very file they had chosen not to write.
+ * `.ck.json` is the framework-local settings file that always ships with the bundle and already
+ * carries the other `portability.*` knobs (`projectConfigPath`, `docsIndexPath`), so the REPO-LOCAL
+ * tiers are read first, exactly like `explicitDocsIndexPath()` in the loader. Precedence:
+ * `.ck.local.json` > `.claude/.ck.json` > project config > user-global `~/.claude/.ck.json` >
+ * default true — the global tier sits BELOW the project config so a machine-wide preference cannot
+ * override what a project declared for everyone who clones it.
  * @returns {boolean}
  */
 function isUniversalGuidesRequired() {
+    const fromCk = (candidate) => {
+        try {
+            const declared = loadConfigFromPath(candidate)?.portability?.requireUniversalGuides;
+            return typeof declared === 'boolean' ? declared : null;
+        } catch {
+            return null; // a malformed tier falls through rather than deciding
+        }
+    };
+
+    // Tier 1 — repo-local `.ck.json` (and its .local override). Available with no project config.
+    for (const candidate of [LOCAL_OVERRIDE_PATH, LOCAL_CONFIG_PATH]) {
+        const declared = fromCk(candidate);
+        if (declared !== null) return declared;
+    }
+
+    // Tier 2 — the OPTIONAL project config. Absent is the supported adopter state, not an error.
     try {
         const configPath = getConfiguredProjectConfigPath();
-        if (!fs.existsSync(configPath)) return true;
-        const config = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
-        return config?.portability?.requireUniversalGuides !== false;
+        if (fs.existsSync(configPath)) {
+            const config = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
+            return config?.portability?.requireUniversalGuides !== false;
+        }
     } catch {
-        return true; // fail-safe: default to requiring guides
+        return true; // fail-safe: an unreadable config keeps enforcement on
     }
+
+    // Tier 3 — the USER-global `.ck.json`, below the project config on purpose: a machine-wide
+    // preference must not silently override what a project declared for everyone who clones it.
+    const global = fromCk(GLOBAL_CONFIG_PATH);
+    return global !== null ? global : true;
 }
 
 /**
@@ -332,8 +371,9 @@ function buildOfferMessage(issues) {
         'Targeted routes:',
         '  /ai-context-refresh   — generate or smart-merge project AI context from project-config + template',
         '  /sync-codex           — user-invoked only; generate AGENTS.md (Codex mirror of CLAUDE.md); use the node runner if the skill is unavailable',
-        '  opt out permanently   — set portability.requireUniversalGuides=false in docs/project-config.json',
-        '                          to keep a project-only file (disables the content check, not existence)',
+        '  opt out permanently   — set portability.requireUniversalGuides=false in .claude/.ck.json',
+        '                          (works with no project config) or in the project config when you have one;',
+        '                          keeps a project-only file — disables the content check, not existence',
         ''
     ].join('\n');
 }

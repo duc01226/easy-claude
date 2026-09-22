@@ -22,7 +22,7 @@ description: '[Code Quality] Use when reviewing artifact quality before handoff.
 - **Purpose:** review ONE artifact (PBI · user story set · test spec · design spec) for completeness + quality so it ships evidence-backed and handoff-ready — no missing assumptions, no acceptance gaps. Default stance = SKEPTIC, not presence-checker: sections that exist but hold weak/untestable content are worse than missing ones — they breed false confidence.
 - **Main steps (in order):** (1) **Identify** type — dispatch on `--type={pbi|story|spec-tests|design}`, infer if omitted; (2) **Adversarial Mindset** — run ALL 6 techniques (steel-man rejected alternatives · stress-test 3 assumptions · AC-testability · pre-mortem · unseen alternatives · contrarian pass) + clear the Anti-Bias Gate before any verdict; (3) **Type checklist** — score Required + Recommended; (4) **M1-M7 gate** (BLOCKING, ALL types); (5) **Readability checklist**; (6) **Output** per-type template (verdict + Required/Recommended tallies + coverage/AC matrix); (7) **Validated-fix + full re-review loop** — validate findings → fix only current-round blocking findings → restart until the round bar is clear (Round 1: zero findings; Round 2: zero CRITICAL/HIGH/MEDIUM, LOW deferred; binary gates always block).
 - **Type dispatch + verdict:** each `--type` has its own Required/Recommended checklist and output template — verdict = PASS (all Required + ≥50% Recommended) | WARN (all Required, <50% Recommended) | FAIL (any Required fails).
-- **M1-M7 gate (ALL types, BLOCKING):** any **M1-M5 or M7** violation forces NEEDS WORK citing the mandate ID + exact section/line; exempt source identifiers inside evidence carriers (`[Source:]`, `**Evidence**`, `CoveredBy`, legacy `IntegrationTest`, frontmatter, mermaid) — flag tech leakage only in narrative/AC/scenario prose. — why: carriers are the correct home for class/path/test names; flagging them is a false finding. **M7 (business-visibility) is judged on each case's BODY via the demo test, NOT its prose** — a tech-free-sounding case about a consumer/sync/handler passes M1 and STILL fails M7. — why: M1 governs vocabulary, M7 governs subject matter; the gap between them is how business specs rot.
+- **M1-M7 gate (ALL types, BLOCKING):** any **M1-M5 or applicable M7** violation forces NEEDS WORK citing the mandate ID + exact section/line. For spec-test artifacts, resolve the project profile first: the strict TC/Section 8 profile applies only when no native case contract is declared; a native profile declared by config or required references supplies its logical IDs, section roles, evidence carriers, and case identities. Exempt source identifiers only in the selected profile's evidence carriers (the strict default uses `[Source:]`, `**Evidence**`, `CoveredBy`, legacy `IntegrationTest`, frontmatter, and Mermaid); flag leakage in narrative prose. **M7 (business-visibility) is judged on each applicable business case's BODY via the demo test, NOT its prose** — a tech-free-sounding case about a consumer/sync/handler passes M1 and STILL fails M7. — why: carriers preserve auditable code links, M1 governs vocabulary, and M7 governs subject matter.
 - **Validated-fix loop:** before fixing, invoke `/why-review --validate-findings <report-path>` on the review report FIRST (validate-before-fix discipline, at parity with `/plan-review`) — NEVER edit the artifact to resolve findings before this gate returns CLEAN. Then fix only validated blocking findings, do not confirm-in-place, restart the FULL review (fresh `general-purpose` sub-agent — artifacts are NOT code), and loop until the current exit bar is clear (round 1: zero findings; round 2: zero CRITICAL/HIGH/MEDIUM, LOW deferred).
 - **PBI releaseability is a Required check:** every generated PBI MUST be one independently releasable actor-facing outcome with a complete entry-to-result journey. For UI PBIs, the review MUST also verify the page/view inventory, navigation, component inventory, applicable states, and full-flow demo surface; a technical-only PBI or single static screen FAILS.
 
@@ -180,40 +180,41 @@ Run **NINE focused passes over the artifact — one dimension at a time**, never
 
 ### Test Spec Review (`--type=spec-tests`)
 
-> **[BLOCKING] Read** `spec-principles.md` under the reference-docs root (default `docs/project-reference`; a `docsRoots.projectReference.path` entry in `docs/project-config.json` overrides the path) — use Section 5 (Test Case Registry — TC ID format, priorities, minimum coverage) and Section 6 (Evidence Format) as review criteria in addition to the checklist below.
-> **[BLOCKING] Tech-agnostic check:** flag framework/product/language/design-pattern names in a TC's behavioral prose as findings (per `spec-principles.md` §3). Source paths, class names, and test identifiers (e.g. `{File}::{Method}`) are CORRECT in evidence fields (`**Evidence**`, `CoveredBy`, legacy `IntegrationTest`, `[Source:]`), frontmatter, and Mermaid — never flag those.
-> **[BLOCKING] Business-oriented TCs / one-to-many cardinality:** Each TC must read as a **business / user-story acceptance scenario**, not a per-class/per-method technical unit. **Flag** any TC that appears split or narrowed just to mirror code structure (e.g. one TC per handler/component when the user-observable behavior is the same) — that breaks M1/M5 and the business orientation. One business TC is expected to be covered by **many** annotation-tagged tests across components/services; that one-to-many shape is correct and is NEVER a finding. Canonical contract: `.claude/skills/shared/tc-format.md` → TC ↔ Test Code Cardinality.
+> **[BLOCKING] MUST ATTENTION resolve the case profile before applying this rubric.** Read `docs/project-config.json`, the required project-reference docs, and `.claude/skills/shared/sdd-artifact-contract.md`. If the config or required references declare a native case contract, use its canonical owner, logical IDs, section/field roles, evidence carriers, and cardinality. Use `shared/tc-format.md` and the TC/Section 8 rules below only when no native case contract is declared. Invalid, incomplete, unreadable, or contradictory profile evidence is `BLOCKED`/`UNKNOWN`; do not fall back to the TC default or claim coverage.
+> **[BLOCKING] Read** `spec-principles.md` under the configured reference-docs root for local prose/evidence rules. Under the strict default, also use `shared/tc-format.md` for TC fields, priorities, and coverage. Under a native profile, apply the same semantic checks through its declared case and evidence fields; do not require a duplicate Section 8 registry or default-only field.
+> **[BLOCKING] Tech-agnostic check:** flag framework/product/language/design-pattern names in behavioral prose as findings (per the selected profile's prose policy). Source paths, class names, and test identifiers are valid only inside declared evidence carriers; the strict default uses `**Evidence**`, `CoveredBy`, legacy `IntegrationTest`, `[Source:]`, frontmatter, and Mermaid. Never flag a declared carrier as narrative leakage.
+> **[BLOCKING] Business-oriented cases and cardinality:** Each business case must state an actor-facing acceptance outcome, not merely mirror a class/method. Flag a case split or narrowed only to match code structure when the user-observable behavior and invariant are the same. Preserve the strict default's one-TC-to-many-tests rule when selected; a native profile may declare another cardinality. In every profile, MUST ATTENTION preserve owner-qualified scenario identity and any variant identity, and MUST ATTENTION trace every claimed result to its actual executor and inspected assertion. Repeated scenario IDs with distinct declared variants are not duplicates; exact duplicate owner/scenario/variant identities are.
 
 #### Required (all must pass)
 
-| #   | Check                                                                                                                              | Presence                                                                          | Quality Depth                                                                                               |
-| --- | ---------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
-| 1   | **TC ID format** — All TCs follow `TC-{FEATURE}-{NNN}` format                                                                      | Do all TCs use the `TC-{FEATURE}-{NNN}` pattern?                                  | Are IDs unique per TC? Does the FEATURE code match the actual feature?                                      |
-| 2   | **Story coverage** — Every user story has at least one corresponding TC                                                            | Does every story ID appear in at least one TC?                                    | Does each TC actually test the story behavior, or does it just reference the story ID in a comment?         |
-| 3   | **AC coverage** — Every acceptance criterion has a test case                                                                       | Is every AC traceable to at least one TC?                                         | Does each AC have a TC that would FAIL if the AC is violated? Single-test-per-AC misses edge cases.         |
-| 4   | **Happy path** — Each story has at least one happy path TC                                                                         | Is a happy path TC present per story?                                             | Does the happy path TC verify the full end-to-end scenario, or just a happy-path stub?                      |
-| 5   | **Error path** — Each story has at least one error/failure TC                                                                      | Is an error/failure TC present per story?                                         | Does the error TC verify the exact error response (code + message), not just that an error occurred?        |
-| 6   | **No duplicate TCs** — No two TC IDs describe the same business scenario                                                            | Are all TC IDs unique with distinct **business** scenarios?                       | Flag near-duplicate TCs (same scenario, trivially different input). NOTE: this is about duplicate *TCs* — multiple *test methods* sharing one TC is the expected one-to-many shape, NEVER a duplicate. |
-| 7   | **Testable assertions** — Each TC has clear expected result (not vague "should work")                                              | Does each TC have a specific expected result?                                     | Is each assertion specific enough to catch regressions? Would it pass if the return value is wrong?         |
-| 8   | **Business intent / invariant guarded** — Each TC names the rule it protects                                                       | Does every meaningful TC include `Business Intent / Invariant Guarded`?           | Would the TC fail if that business rule/invariant breaks, or does it only mirror implementation details?    |
-| 9   | **Authorization TCs** — At least 1 TC per story verifying unauthorized access is rejected                                          | Is an authorization TC present per story?                                         | Does the authorization TC test a realistic access scenario, not just "wrong role → 403 without body check"? |
-| 10  | **TC format completeness** — Every TC has Related Behaviors anchor table and `CoveredBy:` field                                  | Does every TC include a Related Behaviors anchor table and `CoveredBy:` field? Legacy `IntegrationTest:` is migration input only. | For Tested-status TCs, is `CoveredBy:` populated with **≥1** covering test link `{TestFile}::{MethodName}`, a test-filter expression, or an approved manual-QC marker — not `Untested`? A TC may list several covering tests; never require exactly one. |
-| 11  | **Preservation Tests (bugfix context)** — When fixing a bug, at least 1 TC verifies the pre-fix behavior is no longer reproducible | If this is a bugfix: is there a TC that would have CAUGHT the bug before the fix? | Does the preservation TC assert the exact broken behavior (not just "no exception")?                        |
-| 12  | **Invariant / Property TCs (Spec-Loop rule 1)** — an Invariant/Property TC category exists, and EACH `[HARD]` §4 rule / §5 invariant has ≥1 universally-quantified property TC plus a boundary counter-case | Is there a property/invariant TC category, and does every `[HARD]`/§5 rule appear in it? | Are properties universally quantified ("for ALL inputs in range X, Y holds") with a boundary counter-case that would FAIL if the invariant breaks — not a single happy example? |
-| 13  | **§6 Interaction surface present (UI-bearing specs)** — the governing Feature Spec carries a non-empty §6 interaction surface (6.2 View Inventory + 6.3 Navigation Map + 6.4 Key UI States + 6.5 Per-Story Interaction Flow); a backend-only (no-UI) feature instead states the skip reason in §6 | For a UI-bearing feature, are §6.2–6.5 present and non-empty (views by UX role, navigation, observable states, per-story flow)? For a backend-only feature, is the skip reason stated? | Is each UI behavior cross-referenced to `US-`/`OP-`/`BR-`, and is the prose **M1-clean** — naming ZERO frameworks/routes/URLs/CSS/component classes (those belong only in the linked `design-spec`)? An empty §6 on a UI feature, or framework/route/CSS leakage in §6 prose, is a FAIL. Contract: `SYNC:ui-intent-layer` (inlined in this skill). |
+| #   | Check | Presence | Quality Depth |
+| --- | --- | --- | --- |
+| 1 | **Logical case identity** — every case follows the selected profile's identifier and owner rule; the strict default uses `TC-{FEATURE}-{NNN}`. | Does each case have a valid identity in the configured owner/carrier? | Are identities unique under the profile's full key, including owner and any declared variant? |
+| 2 | **Actor/outcome coverage** — every in-scope user story or actor-facing outcome maps to at least one canonical case. | Is each story/outcome represented in the configured case set? | Does the case exercise the behavior, or merely cite a story ID? |
+| 3 | **Requirement coverage** — each acceptance criterion or normative requirement maps to an applicable case. | Is every configured acceptance/requirement ID covered? | Would at least one mapped case fail if the criterion or requirement were violated? |
+| 4 | **Healthy path** — each applicable outcome has a realistic success case. | Is a happy path present where the behavior permits success? | Does it assert the full observable outcome rather than a stub? |
+| 5 | **Negative/failure path** — relevant errors, denied access, and invalid transitions have explicit cases. | Are negative paths represented where the contract requires them? | Do they assert the exact rejected outcome and preserve healthy behavior? |
+| 6 | **No duplicate canonical cases** — identity uniqueness follows the selected profile. | Are exact profile identities unique? | Flag cases with the same intent and identity; under a native profile, distinct declared variants of one scenario are valid and must remain distinct. |
+| 7 | **Meaningful expected outcome and assertion** — each case states a precise expected positive or negative outcome. | Is an authored expected value/state present in the configured carrier? | Would the mapped assertion fail if the protected outcome were wrong? An ID, comment, or aggregate result alone is not assertion proof. |
+| 8 | **Intent / invariant guarded** — each executable case names the business intent or technical contract it protects. | Is the guarded intent stated in the profile's case/rationale field or an equivalent carrier? | Would the assertion fail if that intent or invariant broke? |
+| 9 | **Authorization coverage** — each story or actor outcome with an authorization boundary includes a denied-access case. | Is a negative authorization case present for each applicable story/outcome? | Does it use a realistic unauthorized principal and assert the denied outcome while preserving authorized behavior? |
+| 10 | **Profile format and coverage evidence** — the required fields and links match the selected profile. | Under the default, are required TC fields and `CoveredBy:` present? Under a native profile, are its required fields and case-to-test relation used? | For every claimed tested case, can the reviewer follow its owner/case/variant identity to the actual executor and inspected assertion, or an explicitly approved manual-QC carrier? `UNKNOWN`/unresolved is never PASS. |
+| 11 | **Preservation cases (bugfix context)** — pre-existing healthy behavior remains protected. | Is the relevant preservation case present when a bug fix could regress existing behavior? | Would its assertion detect recurrence, not merely prove that no exception occurred? |
+| 12 | **Invariant/property and boundary coverage** — each universal hard rule has a universally quantified property plus a boundary counter-case. | Does every applicable hard rule/invariant in the configured contract sections (default: `[HARD]` §4 and §5) map to both cases? | Would the property and boundary assertion fail if the invariant broke? A single example is insufficient. |
+| 13 | **UI interaction intent (UI-bearing specs)** — required views, navigation, observable states, and user flows are present in the selected profile. | Under the default, are §6.2–§6.5 present or is the backend-only skip reason stated? Under a native profile, are its declared interaction fields covered? | Is UI intent linked to configured logical IDs and M1-clean, with visual fidelity left to its linked design artifact? An absent applicable interaction contract is a finding. |
 
-> **[BLOCKING] Spec-Loop property coverage (`--type=spec-tests`):** The reviewer MUST verify the Invariant/Property TC category exists and that every `[HARD]` §4 rule / §5 invariant maps to ≥1 universally-quantified property TC plus a boundary counter-case (example-only coverage is a finding). A missing property category — or any `[HARD]`/§5 rule with only example TCs and no property TC — is a **blocking artifact finding** (Required check #12 FAIL → NEEDS WORK).
+> **[BLOCKING] Spec-Loop property coverage (`--type=spec-tests`):** Verify every universal hard rule/invariant in the selected contract sections maps to a universally quantified property case **and** a boundary counter-case. For the strict default, these are `[HARD]` §4/§5 invariants and property TCs. For a native profile, resolve the configured contract section and case carrier. Example-only coverage is a blocking finding; a missing/unresolvable property case is `NEEDS WORK` or `BLOCKED`, never a pass.
 
 #### Recommended (≥50% should pass)
 
 | #   | Check                                                                                                                                                       | Presence                                                                 | Quality Depth                                                                                                               |
 | --- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------- |
-| 1   | **Edge cases** — Boundary values, empty inputs, max limits tested                                                                                           | Are edge case TCs listed?                                                | Are these the RIGHT edge cases? Do they cover the 3 most likely production failure modes for this feature?                  |
-| 2   | **Integration points** — Cross-service scenarios covered                                                                                                    | Are cross-service TCs present where applicable?                          | Do integration TCs verify actual data flow across services, or just that a downstream call was made?                        |
-| 3   | **Performance TCs** — Response time or throughput expectations where relevant; production-like data volume TCs if >1000 records expected                    | Are performance TCs present where data volume or SLA expectations exist? | Do performance TCs use production-like data volumes, not toy datasets that trivially pass?                                  |
-| 4   | **Security TCs** — Auth, authorization, input validation tested                                                                                             | Are security TCs present for auth, authz, and input validation?          | Do security TCs attempt realistic attack vectors (SQLi, over-posting, privilege escalation) not just "invalid token → 401"? |
-| 5   | **Seed data TCs** — If feature needs reference data, TCs verify data exists and seeder runs correctly                                                       | If reference data is needed, does a seed data TC exist (or N/A)?         | If present, does the TC assert the exact seeded data shape, not just that the seeder ran without error?                     |
-| 6   | **Data migration TCs** — If schema changes exist, TCs verify data transforms correctly, rollback works, no data loss                                        | If schema changes exist, does a migration TC exist (or N/A)?             | If present, does the TC verify rollback behavior and zero data loss, not just forward migration success?                    |
+| 1   | **Edge cases** — Boundary values, empty inputs, max limits tested                                                                                           | Are edge cases listed in the selected carrier?                           | Are these the RIGHT edge cases? Do they cover the 3 most likely production failure modes for this feature?                  |
+| 2   | **Integration points** — Cross-service scenarios covered                                                                                                    | Are cross-service cases present where applicable?                        | Do integration cases verify actual data flow across services, or just that a downstream call was made?                     |
+| 3   | **Performance cases** — Response time or throughput expectations where relevant; production-like data volume cases if >1000 records expected                 | Are performance cases present where data volume or SLA expectations exist?| Do they use production-like data volumes, not toy datasets that trivially pass?                                            |
+| 4   | **Security cases** — Auth, authorization, input validation tested                                                                                           | Are security cases present for auth, authz, and input validation?        | Do they attempt realistic attack vectors (SQLi, over-posting, privilege escalation) not just "invalid token → 401"?       |
+| 5   | **Seed data cases** — If feature needs reference data, cases verify data exists and seeding produces the intended state                                      | If reference data is needed, is a case present (or N/A)?                 | If present, does the case assert the exact seeded data shape, not just that the seeder ran without error?                   |
+| 6   | **Data migration cases** — If schema changes exist, cases verify transforms, rollback behavior, and absence of data loss                                    | If schema changes exist, is a migration case present (or N/A)?           | If present, does it verify rollback behavior and zero data loss, not just forward migration success?                        |
 | 7   | **Test data requirements specified** — the data setup needed to run each test is documented                                                                 | Are test data requirements stated per test?                              | Is test data specific enough to create fixtures without guessing? Vague data requirements ("a valid user") will cause test setup divergence across environments. |
 | 8   | **GIVEN/WHEN/THEN format used** — tests follow the structured BDD format                                                                                    | Are all tests written in GIVEN/WHEN/THEN?                                | Are the THEN clauses assertions on observable outcomes, or on internal state? Tests asserting on internal state are brittle and break on refactoring.            |
 
@@ -221,11 +222,11 @@ Run **NINE focused passes over the artifact — one dimension at a time**, never
 
 > **Contract:** See `.claude/skills/shared/sdd-artifact-contract.md` → "AI-SDD Mandates (M1-M7)". This review enforces M6: any artifact (PBI, story, design spec, test spec) that violates **M1-M5 or M7** MUST receive a NEEDS WORK verdict that names the violated mandate ID and cites the exact section + line. Passing an **M1-M5/M7** violation makes this review itself defective. (M6 binds THIS review, not the artifact — which is why the artifact-facing set reads M1-M5 **and M7**, never "M1-M6".)
 >
-> Carriers are EXEMPT from M1/M2 — source identifiers are CORRECT inside `[Source: ...]`, `**Evidence**`, `**CoveredBy**`, legacy `**IntegrationTest**` fields, YAML frontmatter, and ` ```mermaid ``` ` blocks. Only flag leakage in narrative prose (descriptions, AC/scenario text, rule statements). Banned prose token list: `spec-principles.md` §3.2, under the reference-docs root (default `docs/project-reference`; `docsRoots.projectReference.path` in `docs/project-config.json` overrides).
+> Carriers are EXEMPT from M1/M2 — source identifiers belong in the selected profile's declared evidence carriers. The strict default uses `[Source: ...]`, `**Evidence**`, `**CoveredBy**`, legacy `**IntegrationTest**`, YAML frontmatter, and Mermaid. Only flag leakage in narrative prose (descriptions, AC/scenario text, rule statements). Banned prose token list: `spec-principles.md` §3.2 under the configured reference-docs root.
 
 - [ ] **M1 — Tech-agnostic prose.** FAIL if narrative prose, headings, summaries, or AC/scenario text name a framework/product, a language-native type, or a product/design-pattern class name (banned-token list in `spec-principles.md` §3.2). Cite the section + leaked token.
 - [ ] **M2 — No source code in prose.** FAIL if prose expresses behavior as a class/method/file-path/namespace used as a noun (e.g. "call the create-async method") instead of the business operation (e.g. "create the record"). Source identifiers belong only in evidence carriers. Cite the section + line.
-- [ ] **M3 — Abstract-IDs-first traceability.** FAIL if a requirement/rule/AC/test-case lacks a logical ID (`FR-/BR-/OP-/TC-`), OR has a logical ID but no `[Source: namespace/service/id]` abstract-anchor evidence, OR the `[Source:]` evidence uses physical code coordinates or repository-root paths instead of a stack-portable abstract anchor, OR the anchor is treated as the primary citation. `[Source: namespace/service/id]` abstract-anchor evidence is REQUIRED and KEPT — SECONDARY to the logical ID, never the spine and never removed; physical coordinates live only in the provenance sidecar.
+- [ ] **M3 — Profile-owned traceability.** FAIL if a requirement, rule, acceptance criterion, or canonical case lacks the selected profile's logical identity or required source/evidence link. Under the strict default, require `FR-/BR-/OP-/TC-` IDs and a secondary `[Source: namespace/service/id]` abstract anchor; physical coordinates belong only in the provenance sidecar. Under a native profile, use its declared identifiers and evidence carriers without imposing a second abstract-anchor or TC registry. If the profile does not resolve the required identity/evidence form, report `BLOCKED`/`UNKNOWN`; never infer a pass.
 - [ ] **M4 — Unambiguous, observable criteria.** FAIL if AC/expected-result prose uses vague language ("handle appropriately", "process normally", "as needed"), OR two engineers could implement it differently while both claiming conformance, OR no observable completion state / named error condition exists. (Reinforces the AC-testability technique above.)
 - [ ] **M5 — Rebuild-from-artifact.** FAIL if a competent team with ZERO codebase knowledge could not re-implement the described behavior on a different stack from the artifact alone (it relies on reading source to be understood). Cite the section + the missing detail.
 - [ ] **M7 — Business-visibility (business-tree artifacts only).** Apply **the demo test to each case's BODY**: *"what would a stakeholder SEE change?"* — **no answer → FAIL as TECHNICAL-ONLY.** Every `Given` must be a state a user could arrange, every `When` an action a user could take, every `Then` an outcome a user could see. FAIL a case whose `When` is an invocation (a handler runs, a consumer receives, a job fires, a model is inspected, data syncs) or whose `Then` asserts a schema/type/nullability/column/call-count rather than a business outcome. **Judge the BODY, never the title or ID** — a business-sounding title routinely fronts an invocation-shaped `When`. Cite the case ID + the offending `When`/`Then` clause.
@@ -341,12 +342,12 @@ Pick the template matching `--type`. All templates lead with a **Status/Verdict*
 ## Test Spec Review Result
 
 **Status:** PASS | WARN | FAIL
-**TCs reviewed:** {count}
+**Canonical cases reviewed:** {count} (strict default: TCs)
 **Coverage:** {X}% of stories, {Y}% of acceptance criteria
 
 ### Coverage Matrix
 
-| Story/AC | TC IDs | Happy | Error | Edge |
+| Story/AC | Case IDs (default: TC IDs) | Happy | Error | Edge |
 | -------- | ------ | ----- | ----- | ---- |
 
 ### Required ({X}/{Y})
@@ -359,7 +360,7 @@ Pick the template matching `--type`. All templates lead with a **Status/Verdict*
 
 ### Missing Coverage
 
-- {Stories/AC without TCs}
+- {Stories/AC without mapped canonical cases}
 
 ### Verdict
 
@@ -436,11 +437,11 @@ After sub-agent returns:
 > **Project Reference Docs Gate (static JIT)** — Run after task-tracking bootstrap and immediately before target/source file reads, grep, edits, tests, or analysis. Project docs override generic framework assumptions; hooks may remind or accelerate this gate, but never prove that it ran.
 >
 > 1. Identify scope: file types, domain area, and operation.
-> 2. **Read `docs/project-config.json` first — the project's machine-readable map.** It is the single source of truth for THIS repo (modules/paths, framework + search keywords, test/E2E/integration run-commands, design system, architecture rules, workflow patterns); ground exact paths, run-commands, and conventions on it **before investigating, planning, or coding** — never assume framework defaults (`CLAUDE.md` + reference docs are derived from it). If it — or the docs index, `lessons.md`, `CLAUDE.md`, `AGENTS.md`, or any required reference doc — is missing or stale, auto-run `/project-init` or the narrow route (`/project-config`, `/docs-init`, `/scan-all`, `/scan --target=<key>`, `/ai-context-refresh`) first; if Codex mirrors or `AGENTS.md` are stale, use the explicit `/sync-codex` route, or the documented `/ai-context-refresh` completion handoff when that is the active source-authoring task.
-> 3. Required docs by trigger — every filename below is canonical and resolves inside the reference-docs root (default `docs/project-reference`; a `docsRoots.projectReference.path` entry in `docs/project-config.json` overrides the path): always `lessons.md`; doc lookup `docs-index-reference.md`; review `code-review-rules.md`; backend/CQRS/API `backend-patterns-reference.md`; domain/entity `domain-entities-reference.md`; frontend/UI `frontend-patterns-reference.md`; styles/design `scss-styling-guide.md` + `design-system/design-system-canonical.md`; integration tests `integration-test-reference.md`; E2E `e2e-test-reference.md`; feature docs/specs `feature-spec-reference.md` + `spec-system-reference.md` + `spec-principles.md`; behavior/public-contract/spec-test-code sync `workflow-spec-test-code-cycle-reference.md`; derived spec index/ERD/reimplementation guides `spec-system-reference.md` + source Feature Specs under the business spec root (default `docs/specs`; a `specRoots.business.path` entry in the same config overrides the path); architecture/new area `project-structure-reference.md`.
-> 4. Read every required doc, then before target work state: `Reference docs read: ... | Not applicable: ...`. After compaction, resume, delegation, or a material context change, repeat the route and restate the set; prior conversation and hook output are not proof of current loading.
+> 2. **Read the configured project-config file first, if it exists.** Resolve its path through the project-config loader (default `docs/project-config.json`). **The project config is OPTIONAL: a project with no config is a supported, first-class state, not an error.** When it is absent, run on the framework's portable defaults and derive project facts (paths, run commands, conventions, architecture, test and spec layout) from repository evidence — manifests, lockfiles, scripts, CI definitions, directory layout, root instruction files — stating the assumption whenever one is material; do not block, and do not demand a bootstrap route before ordinary work. When it IS present, the minimum valid shape has a non-empty `project.name`; omitted optional capability properties use neutral defaults or skip that capability. A section its author DECLARED but left malformed or incomplete is a configuration error: fail closed on that section and run `/project-init` or `/project-config` before relying on it, because silently substituting defaults would present wrong project facts as authoritative. Use valid config for the adopter's paths, commands, architecture, specs, tests, and workflows, then verify material hints against repository evidence; never assume generic defaults are project facts.
+> 3. **Always-on vs task-specific references:** Project initialization owns and ensures the project's `lessons.md` and docs-index inputs at their configured owner paths. Read them under the static project-context contract independently of task-specific `referenceDocs`; do not append them to that selection. For task-specific docs, when the configured `referenceDocs` property is an array, follow it exactly, including subsets and `[]`. When absent, use the runtime capability-aware resolver: its portable baseline plus only configuration- or repository-evidenced capabilities; a minimal project with no capability evidence may resolve to an empty task-specific set. The full scan-target manifest is a registry of metadata/aliases, not a default selection. Resolve configured paths using `docsRoots.projectReference.path` when present (default `docs/project-reference`; `docsRoots.projectReference.path` in `docs/project-config.json` overrides it). A custom reference doc declares `filename` and `purpose`, with optional `sections`, `templatePath`, and `scanTarget`. Built-in filenames keep their exact framework-owned target; other custom docs default to manual ownership, while `scanTarget: "generic"` opts one exact selected file into evidence-based scanning. Manual docs are not freshness-tracked or impact-routed. Never infer a target by basename; config and runtime path resolution reject lexical traversal and physical symlink escapes.
+> 4. Read selected task-specific docs just in time before target work, then state: `Reference docs read: ... | Not applicable: ...`; an explicit empty selection means no task-specific docs are selected by the catalog. Still honor separately required references named by the active skill or task. An absent project config is not a missing doc: proceed on repository evidence and, at most, OFFER `/project-init` or `/project-config` as an optional one-time recording of those facts. If an always-on input or a selected/otherwise required doc is missing or stale, or a declared config section is malformed, use `/project-init` or the narrow owner route (`/project-config`, `/docs-init`, `/scan --target=<key>`, `/ai-context-refresh`) before relying on that input. If Codex mirrors are stale, use the explicit `/sync-codex` route or its documented `/ai-context-refresh` completion handoff for the active source-authoring task. After compaction, resume, delegation, or material context change, repeat selection and reading; prior conversation and hook output are not proof of current loading.
 >
-> **Ready when:** scope evaluated, `docs/project-config.json` consulted, required docs checked/read or setup route completed, `lessons.md` confirmed, citation emitted.
+> **Ready when:** scope evaluated, the configured project-config file consulted or its absence recorded and the portable-defaults fallback applied, root always-on inputs are confirmed (completing project initialization if they are missing or stale), the declared task-specific `referenceDocs` selection is applied exactly or, when absent, the runtime capability-aware resolver output is applied (which may be empty), selected docs are read or an explicit empty selection is recorded, and the citation emitted.
 
 <!-- /SYNC:project-reference-docs-guide -->
 
@@ -467,14 +468,14 @@ After sub-agent returns:
 
 <!-- SYNC:evidence-based-reasoning -->
 
-> **Evidence-Based Reasoning** — Speculation is FORBIDDEN. Every claim needs proof.
+> **Evidence-Based Reasoning** — Do not present inference as fact; ground material claims in evidence appropriate to the task.
 >
-> 1. Cite `file:line`, grep results, or framework docs for EVERY claim
-> 2. Declare confidence: >80% act freely, 60-80% verify first, <60% DO NOT recommend
-> 3. Cross-service validation required for architectural changes
-> 4. "I don't have enough evidence" is valid and expected output
+> 1. Cite `file:line` for repository claims, configuration or reference paths for project rules, and URLs or artifact locations for external or observed claims.
+> 2. State confidence when a conclusion is uncertain; verify material assumptions before acting and withhold recommendations when evidence is insufficient.
+> 3. Trace the consumers, boundaries, or dependencies that exist in the affected path; do not assume services, modules, or architectural styles that the project does not use.
+> 4. "I don't have enough evidence" is valid and expected output.
 >
-> **BLOCKED until:** `- [ ]` Evidence file path (`file:line`) `- [ ]` Grep search performed `- [ ]` 3+ similar patterns found `- [ ]` Confidence level stated
+> **BLOCKED until:** material claims have traceable evidence, relevant searches are complete, and uncertainties are stated. Search comparable patterns when the task has existing implementations; record when none are available.
 >
 > **Forbidden without proof:** "obviously", "I think", "should be", "probably", "this is because"
 > **If incomplete →** output: `"Insufficient evidence. Verified: [...]. Not verified: [...]."`
@@ -483,17 +484,17 @@ After sub-agent returns:
 
 <!-- SYNC:understand-code-first -->
 
-> **Understand Code First** — HARD-GATE: Do NOT write, plan, or fix until you READ existing code.
+> **Understand Existing Code First** — For code changes, read and trace the target before planning or editing; do not apply a code workflow to work with no code surface.
 >
-> 1. Search 3+ similar patterns (`grep`/`glob`) — cite `file:line` evidence
-> 2. Read existing files in target area — understand structure, base classes, conventions
-> 3. Run `python .claude/scripts/code_graph trace <file> --direction both --json` when `.code-graph/graph.db` exists
-> 4. Map dependencies via `connections` or `callers_of` — know what depends on your target
-> 5. Write investigation to `tmp/analysis/` for non-trivial tasks (3+ files)
-> 6. Re-read analysis file before implementing — never work from memory alone. — why: long context drifts from the file; the file is ground truth
-> 7. NEVER invent new patterns when existing ones work — match exactly or document deviation. — why: divergent patterns fragment the codebase and slow every future reader
+> 1. Search for relevant existing implementations and cite `file:line`; aim for 3+ comparable examples when they exist, and record when the project has fewer or none.
+> 2. Read the target area and its configured project references; identify actual structure, owners, and conventions without assuming a framework, layer model, or base class.
+> 3. Run `python .claude/scripts/code_graph trace <file> --direction both --json` when `.code-graph/graph.db` exists and the task concerns code relationships.
+> 4. Map affected dependencies and callers with available repository tools; do not block on an absent graph or unsupported tool.
+> 5. Write investigation to `tmp/analysis/` for non-trivial tasks (3+ files).
+> 6. Re-read the analysis before implementing; update it when evidence changes.
+> 7. Follow a fitting local pattern, or state why no suitable pattern exists and justify a project-appropriate choice.
 >
-> **BLOCKED until:** `- [ ]` Read target files `- [ ]` Grep 3+ patterns `- [ ]` Graph trace (if graph.db exists) `- [ ]` Assumptions verified with evidence
+> **BLOCKED until:** target and relevant existing patterns are inspected, applicable dependencies are traced, and material assumptions have evidence. If an item does not apply or the repository has no comparable implementation, record that fact rather than fabricating a gate result.
 
 <!-- /SYNC:understand-code-first -->
 
@@ -605,7 +606,7 @@ After sub-agent returns:
 
 <!-- SYNC:review-protocol-injection -->
 
-> **Review Protocol Injection** — Every fresh sub-agent review prompt MUST embed 11 protocol blocks VERBATIM. The template below has ALL 11 bodies already expanded inline. Copy the template wholesale into the Agent call's `prompt` field at runtime, replacing only the `{placeholders}` in Task / Round / Reference Docs / Target Files / Output sections with context-specific values. Do NOT touch the embedded protocol sections.
+> **Review Protocol Injection** — Every fresh sub-agent review prompt MUST embed 11 protocol blocks VERBATIM, copied WHOLESALE and unmodified. They are the review-tier renderings of their canonical `SYNC:` tags, not literal copies; when a canonical protocol changes, update the matching body here in the same edit. Copy the template wholesale into the Agent call's `prompt` field at runtime, replacing only the `{placeholders}` in Task / Round / Reference Docs / Target Files / Output sections with context-specific values. Do NOT touch the embedded protocol sections.
 >
 > **Why inline expansion:** Placeholder markers would force file-read indirection at runtime. AI compliance drops significantly behind indirection (see `SYNC:shared-protocol-duplication-policy`). Therefore the template carries all 11 protocol bodies pre-embedded.
 
@@ -630,13 +631,13 @@ Round {N}. You have ZERO memory of prior rounds. Re-read all target files from s
 ## Protocols (follow VERBATIM — these are non-negotiable)
 
 ### Spec ↔ Tests ↔ Code Triangulation
-DO THIS FIRST — before any per-protocol check below. The review target is the WHOLE PACKAGE, not the diff alone: load the behavior's spec (§3 ACs / §4 BRs / §8 TCs), its tests, and the changed code TOGETHER, and reason about their mutual consistency BEFORE judging any one in isolation.
-1. Locate all three faces: the Feature Spec section(s) governing the changed behavior, the tests that guard it, and the production code that implements it. A missing face is itself a finding (SPEC-GAP / TEST-GAP / DEAD-SPEC).
+DO THIS FIRST — before any per-protocol check below. The review target is the WHOLE PACKAGE, not the diff alone. Read `docs/project-config.json` and resolve `specArtifacts`: a valid profile selects its configured `intent/contracts/evidence` section roles, identifiers, ownership rule, and test-carrier dialects; only an absent profile selects the strict-default business-spec shape (§3 ACs / §4 BRs / §5 invariants / §8 TCs). A malformed or unsupported declaration is `BLOCKED`; never treat it as absent or fall back. Load the governing artifact, its tests, and the changed code TOGETHER, and reason about their mutual consistency BEFORE judging any one in isolation.
+1. Locate all three faces: the canonical owner section(s), the tests that guard them, and the production code that implements them. With a native profile, preserve owner path + case/scenario ID + optional variant and resolve each through its configured carrier to the actual test. A missing face is itself a finding (SPEC-GAP / TEST-GAP / DEAD-SPEC).
 2. Triangulate pairwise — every disagreement is a finding; classify which face is wrong:
-   - code vs spec: behavior the code does that no §3/§4/§8 rule describes → CODE-EXTRA or SPEC-STALE; a [HARD] §4 rule or §5 invariant with no enforcing code path → CODE-WRONG.
-   - tests vs spec: a §8 TC with no test, or a test asserting behavior no TC/rule names → TEST-GAP or SPEC-SILENT.
+   - code vs spec: behavior the code does that no configured `intent/contracts` rule (or strict-default §3/§4/§5/§8 rule) describes → CODE-EXTRA or SPEC-STALE; a hard contract/invariant with no enforcing path → CODE-WRONG.
+   - tests vs spec: a configured native case with no executing assertion, or a test asserting behavior no native rule/case names → TEST-GAP or SPEC-SILENT. Without `specArtifacts`, check strict-default §8 TCs.
    - tests vs code: a changed code path with no covering test → TEST-GAP; a test that still passes against a deliberately broken invariant → WEAK-TEST (apply the mutation thinking in Bug Detection).
-3. Hidden-rule capture: any invariant the code enforces but the spec never states (SPEC-SILENT) MUST be surfaced as a finding to add into §3/§4/§8 AND guarded with a test — the enrichment loop, never a silent pass.
+3. Hidden-rule capture: any invariant the code enforces but the spec never states (SPEC-SILENT) MUST be surfaced as a finding, added to the profile's configured `intent` or `contracts` section, and linked from its `evidence` section to a native case whose executing assertion is inspected. Without a profile, use strict-default §3/§4/§5/§8 and TC. This is the enrichment loop, never a silent pass.
 4. Only after the three faces agree — or every disagreement is logged as a finding — proceed to the per-protocol checks below; when enrichment adds spec/test content, re-review the package against the enriched spec.
 NEVER mark review PASS while any spec/test/code face disagrees without a logged finding. The diff is the entry point; the package is the unit of judgment.
 
@@ -658,15 +659,15 @@ MUST check categories 1-4 for EVERY review. Never skip.
 4. Resource Management: Connections/streams closed? Subscriptions unsubscribed on destroy? Timers cleared? Memory bounded?
 5. Concurrency (if async): Missing await? Race conditions on shared state? Stale closures? Retry storms?
 6. Stack-Specific: Check the configured language/runtime pitfalls and framework-specific failure modes discovered from local code.
-Classify every finding by consequence using `SYNC:severity-rubric` (never by effort): CRITICAL = immediate material security/safety/data-loss risk or failed binary gate → block; HIGH = material correctness, contract, privacy, or authority risk → must fix; MEDIUM = bounded consequential edge/resilience/maintainability gap → must clear the current round, or escalate with an explicit residual-risk follow-up that does not create a clean pass; LOW = non-blocking polish with no credible present impact → record/defer from round 2; `NOT VERIFIABLE` is unresolved evidence, not LOW.
+Classify every finding by consequence (never by effort): CRITICAL = immediate material security/safety/data-loss risk or failed binary gate → block; HIGH = material correctness, contract, privacy, or authority risk → must fix; MEDIUM = bounded consequential edge/resilience/maintainability gap → must clear the current round, or escalate with an explicit residual-risk follow-up that does not create a clean pass; LOW = non-blocking polish with no credible present impact → record/defer from round 2; `NOT VERIFIABLE` is unresolved evidence, not LOW.
 
 ### Design Patterns Quality
 Priority checks for every code change:
-1. DRY via OOP: Same-suffix classes (*Entity, *Dto, *Service) MUST share base class. 3+ similar patterns → extract to shared abstraction.
-2. Right Responsibility: Logic in LOWEST layer (Entity > Domain Service > Application Service > Controller). Never business logic in controllers.
-3. SOLID: Single responsibility (one reason to change). Open-closed (extend, don't modify). Liskov (subtypes substitutable). Interface segregation (small interfaces). Dependency inversion (depend on abstractions).
+1. Consistency and reuse: follow documented local patterns; extract a shared abstraction only when repetition or a demonstrated consumer need justifies its cost. Similar names alone do not require a shared base class.
+2. Responsibility: follow the architecture established by project configuration, references, accepted decisions, and existing code. Place behavior with its actual owner; do not presume an entity/service/controller hierarchy or forbid a layer without project evidence.
+3. Apply cohesion, coupling, and dependency-management principles when their assumptions fit the project's paradigm. SOLID is useful for object-oriented boundaries, not a mandatory checklist for every language or codebase.
 4. After extraction/move/rename: Grep ENTIRE scope for dangling references. Zero tolerance.
-5. YAGNI gate: Recommend extraction when 3+ similar patterns exist OR an evidenced consumer boundary/substitution need justifies it; do not create patterns for hypothetical future use.
+5. YAGNI gate: Treat repeated patterns as evidence to evaluate extraction, not a numeric threshold. Extract when a shared reason to change, real consumers, or an evidenced ownership/substitution boundary lowers total change cost; do not create patterns for hypothetical future use.
 6. Purpose-oriented naming: Name public or cross-layer abstractions by the capability, domain purpose, or contract consumers rely on—not the current provider, SDK, framework, database, or transport. `IStorage`/`Storage` → `AzureBlobStorage`; use `IAzureStorage` only when Azure-specific semantics are intentionally part of the contract.
 7. Contract-fit check: Read callers and every implementation before judging a name; narrow an over-broad abstraction (`IObjectStore`, `DocumentStore`) instead of rewarding a generic name that lies about behavior.
 8. Mechanism/generic-name smell: Treat `Manager`, `Helper`, `Utils`, `Data`, `Thing`, `Service`, `Interface`, type decorations, and unexplained abbreviations as review signals—not automatic defects; flag them only when they hide purpose, scope, or responsibility.
@@ -708,14 +709,14 @@ Example rows (external-record sync fix):
 | Record missing (404)  | Error   | Recreated                 | Fixed      |
 
 ### Fix-Layer Accountability
-NEVER fix at the crash site. Trace the full flow, fix at the owning layer. The crash site is a SYMPTOM, not the cause.
+Do not assume the crash site owns the defect. Trace the actual execution and data flow, then fix the component that owns the violated contract.
 MANDATORY before ANY fix:
-1. Trace full data flow — Map the complete path from data origin to crash site across ALL layers (storage → backend → API → frontend → UI). Identify where bad state ENTERS, not where it CRASHES.
-2. Identify the invariant owner — Which layer's contract guarantees this value is valid? Fix at the LOWEST layer that owns the invariant, not the highest layer that consumes it.
-3. One fix, maximum protection — If fix requires touching 3+ files with defensive checks, you are at the wrong layer — go lower.
-4. Verify no bypass paths — Confirm all data flows through the fix point. Check for direct construction skipping factories, clone/spread without re-validation, raw data not wrapped in domain models, mutations outside the model layer.
-BLOCKED until: Full data flow traced (origin → crash); Invariant owner identified with file:line evidence; All access sites audited (grep count); Fix layer justified (lowest layer that protects most consumers).
-Anti-patterns (REJECT): "Fix it where it crashes" (crash site ≠ cause site, trace upstream); "Add defensive checks at every consumer" (scattered defense = wrong layer); "Both fix is safer" (pick ONE authoritative layer).
+1. Trace the affected path — map the real origin, transformations, boundaries, and observed failure in the surfaces this project uses. Do not invent absent layers.
+2. Identify the contract owner — use project architecture and code evidence to find which component is responsible for the invalid state or behavior.
+3. Choose the correction point — fix the authoritative owner and retain any validation required at untrusted boundaries. A multi-file correction can be valid; justify it by the contracts each file owns rather than a file-count threshold.
+4. Check bypass paths — inspect relevant constructors, adapters, parsers, caches, persistence, or other entry points that actually exist in the affected flow.
+BLOCKED until: The affected path is traced; the owner is supported by file:line evidence; relevant consumers and bypass paths are checked; and the correction point fits the project's architecture.
+Anti-patterns (REJECT): assuming the symptom site is the owner; scattering workarounds without tracing the contract; assuming the lowest technical layer is always authoritative; removing validation from a real trust boundary to force a single correction point.
 
 ### Rationalization Prevention
 AI skips steps via these evasions. Recognize and reject:
@@ -788,6 +789,7 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 
 > **AI Mistake Prevention** — Failure modes to avoid on every task:
 >
+> **Project applicability gate.** Before applying a stack, layer, style, tool, or architecture rule, read the project's config and relevant references, then check local implementations. Treat framework examples as examples; honor explicit N/A and do not require a technology or convention the project does not use.
 > **ROOT-CAUSE GATE — INVESTIGATE FIRST.** Before applying any project-related correction, always use the project's root-cause investigation protocol and establish the cause; the failure site may be only a symptom.
 > **FAILED-TEST GATE.** For any failed or unstable test, use the project's test-investigation protocol before editing source or tests; never change either side merely to force green.
 > **Re-read files after context changes.** Context compaction, resume, or long-running work can make memory stale; verify current files before acting.
@@ -808,13 +810,17 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 
 > **[BLOCKING] Capture a tech-agnostic UI/UX intent layer in every UI-bearing spec — a reader must be able to visualize how the feature works without naming any technology.** When the feature has a user interface, the spec MUST ATTENTION carry an interaction-surface section so the application — not just its API — can be rebuilt on any stack:
 >
+> **Native-first resolution.** A native contract may be declared by config or local references. Before authoring, resolve the configured profile's intent/evidence section roles, logical IDs, and carrier from `docs/project-config.json` (`specArtifacts`) and the required local references, and map every item below onto them. An unresolved owner, role, ID, carrier, or companion link stays `UNKNOWN`/`BLOCKED` — never guessed.
+>
 > 1. **View Inventory** — list each view/screen by its UX ROLE and purpose (e.g. "list of items", "item editor", "confirmation step") and what information it presents. Describe by role, never by an implementation name.
 > 2. **Navigation Map** — how a user moves between views: entry points, transitions, and exits. Trace how this surface connects to neighboring features already in the system.
-> 3. **Key observable UI States** — the distinct states a user can observe per view (empty, loading, populated, error, success, permission-denied, etc.) — described as what the user perceives, not how it is rendered.
-> 4. **Per-story interaction flow** — for each user story, the step-by-step click/action path from intent to outcome, cross-referenced to the logical IDs the spec already owns (`US-`/`OP-`/`BR-`).
-> 5. **Couple to the companion design artifact** — keep deep visual fidelity (layout, tokens, pixel detail) OUT of the spec; it lives in the linked `design-spec`/mockup. Record that companion's path in the spec frontmatter so the spec stays the navigable hub.
+> 3. **Key observable states** — the distinct states a user can observe per view (empty, loading, populated, error, success, permission-denied, etc.) — described as what the user perceives, not how it is rendered.
+> 4. **Per-story action flows** — for each user story, the step-by-step click/action path from intent to outcome, cross-referenced to the logical IDs the configured profile owns.
+> 5. **Couple to the companion design artifact** — keep deep visual fidelity (layout, tokens, pixel detail) OUT of the spec; it lives in the linked companion design artifact. Record that artifact's path in the spec frontmatter so the spec stays the navigable hub.
 >
-> **M1-clean (NON-NEGOTIABLE):** the prose names ZERO frameworks, routes/URLs, CSS, or component-class names — only roles, information, states, and flows. Technology detail belongs in the companion design artifact, never here.
+> **M1-clean (NON-NEGOTIABLE):** the prose names ZERO frameworks, routes/URLs, CSS, or component-class names — only roles, information, states, and action flows. Technology detail belongs in the companion design artifact, never here.
+>
+> **Strict portable fallback — only when neither config nor local references declares a native artifact contract:** cross-reference each action flow to the default logical IDs `US-`/`OP-`/`BR-`, and record the companion artifact in the default `design_spec:`/`mockup:` frontmatter keys.
 >
 > **Skip ONLY** when the feature is backend-only (no UI) — state that reason explicitly in the section.
 
@@ -902,9 +908,11 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 
 <!-- SYNC:ui-ux-design-principles -->
 
-> **UI/UX Design Principles (Rev 1.0 — 40 clauses, web + mobile)** — the working rule set for ANY task that designs, plans, implements, or reviews a user interface. Applies to BOTH platforms unless a clause names one (§8 is mobile/touch). Cite clauses by ID: `UI-3.1`, `UI-8.2`.
+> **UI/UX Design Principles (Rev 1.0 — 40 clauses, web + mobile examples)** — a reference catalog, not a universal platform contract. Apply it only to an applicable user-facing interface. Resolve the target platform, input modes, accessibility standard, and relevant design conventions from the brief, project config/reference docs, accepted decisions, and existing UI. For web, use WCAG 2.2 AA as the baseline and meet any stricter applicable legal or project requirement; for non-web surfaces, use the documented platform accessibility standard. Record the selected standard and source.
 >
-> **Precedence:** project design-system / SCSS / frontend-pattern docs OUTRANK these clauses; these clauses outrank generic taste. A genuine conflict is SURFACED to the user with both sides — NEVER resolved silently. — why: the project's own recorded decision is the authority; these clauses are the default when it is silent.
+> Numeric values and patterns below are examples or heuristics for matching surfaces, not required thresholds. Use a value as a fail-condition only when an applicable law, platform standard, project contract, or accepted design decision establishes it. For desktop, game, embedded, command-line, or other interfaces, use their documented platform conventions and accessibility requirements; do not report a mismatch with a web/mobile example as a defect. Skip clauses whose underlying capability is absent and record N/A when needed. Cite applicable clauses by ID (for example `UI-3.1` or `UI-8.2`).
+>
+> **Precedence:** accepted product/design decisions → project config and design-system / styling / frontend / platform references → applicable clauses below → general heuristics. A genuine conflict between authoritative project sources is SURFACED with both sides — NEVER resolved silently. An absent project convention is not permission to invent one.
 >
 > **1.0 Visual Hierarchy & Layout**
 >
@@ -916,73 +924,73 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 >
 > **2.0 Typography**
 >
-> - `UI-2.1` Max 2 families, 3 weights each. More variety reads as inconsistency, not range.
-> - `UI-2.2` Body text 16px web, 17px mobile. NEVER below 14px for anything a user must read.
-> - `UI-2.3` Line length 45–75 characters. Constrain the measure, not the container.
-> - `UI-2.4` Leading scales inversely with size: 1.5 body, 1.1–1.2 display.
-> - `UI-2.5` Fixed type scale — 6 named steps shared with engineering. NEVER one-off sizes.
+> - `UI-2.1` Keep type families and weights purposeful; follow the project's type system when present. Two families and three weights are one possible web starting point, not a limit.
+> - `UI-2.2` Meet the readable-text sizes required by the applicable platform and project. Common web/mobile values such as 16px are examples; do not use them as universal minimums.
+> - `UI-2.3` Keep text measures readable for the content and target surface. A 45–75 character line is an editorial heuristic, not a pass threshold.
+> - `UI-2.4` Choose line spacing that supports the font, size, script, and reading context; ratios such as 1.5 for body text are starting points.
+> - `UI-2.5` Use the project's type scale where defined. Otherwise keep sizes purposeful and consistent without requiring a fixed number of named steps.
 >
 > **3.0 Colour & Contrast**
 >
-> - `UI-3.1` Contrast 4.5:1 text, 3:1 UI edges. Measure it — NEVER judge by eye on a bright screen.
+> - `UI-3.1` Meet the contrast ratios required by the selected accessibility standard; for web, use WCAG 2.2 AA unless a stricter applicable legal or project requirement applies. Measure where possible. Ratios such as 4.5:1 for text and 3:1 for interface parts are standard-specific examples, not universal values.
 > - `UI-3.2` One accent, one job. An accent that is everywhere points at nothing.
 > - `UI-3.3` Colour NEVER carries meaning alone — pair it with an icon, label or position.
 > - `UI-3.4` Dark mode is NOT inverted light mode. Lift surfaces to signal elevation; soften pure-white text.
 >
 > **4.0 Spacing & Grid**
 >
-> - `UI-4.1` One spacing unit, multiplied — 4px or 8px base; every gap a multiple of it.
+> - `UI-4.1` Follow the project's spacing tokens or grid when defined. A 4px or 8px base is one common option, not a framework requirement.
 > - `UI-4.2` Space belongs to the container, not the child. Use `gap`; reserve margins for exceptions.
-> - `UI-4.3` Tighter inside, looser between — inner padding always smaller than the gap to the next group.
+> - `UI-4.3` Use spacing to make grouping and hierarchy clear; the right relationship depends on the content and layout.
 > - `UI-4.4` Breakpoints follow content, not devices. Break where the layout stops working.
 >
 > **5.0 Interaction & Feedback**
 >
-> - `UI-5.1` Every action gets a response under 100ms, even when the result takes longer.
-> - `UI-5.2` Specify all 5 states — default, hover, focus, active, disabled — plus loading where it applies.
+> - `UI-5.1` Give immediate, perceivable feedback; use a timing target only when the product contract or applicable platform guidance defines one.
+> - `UI-5.2` Specify the interaction states supported by the target platform and input modes (for example default, focus, active, disabled, or loading); hover is not universal.
 > - `UI-5.3` Prefer undo over confirmation. Confirm ONLY what cannot be reversed.
-> - `UI-5.4` Motion clarifies cause and effect: 150–250ms, ease-out, honours reduced-motion.
-> - `UI-5.5` Keep the visible focus ring. Restyle it if it clashes; NEVER remove it.
+> - `UI-5.4` Use motion when it clarifies cause and effect; follow project/platform timing and easing, and honor reduced-motion preferences when supported. Durations around 150–250ms are examples, not a rule.
+> - `UI-5.5` Preserve a perceivable focus indicator wherever the interface supports focus navigation; follow the platform and applicable accessibility standard.
 >
 > **6.0 Navigation & IA**
 >
 > - `UI-6.1` Every screen answers: where am I, what's here, where next.
-> - `UI-6.2` Max 5 top-level destinations. Depth beats a crowded first level.
+> - `UI-6.2` Keep primary navigation understandable for the product's information architecture; do not impose a fixed destination count.
 > - `UI-6.3` Label by the user's word, not the internal one. Team vocabulary is not a taxonomy.
-> - `UI-6.4` Every state deserves a URL or a back path. Deep links and hardware back must land somewhere sensible.
+> - `UI-6.4` Preserve expected return, history, or deep-link behavior where the platform and product provide those concepts.
 >
 > **7.0 Forms & Input**
 >
 > - `UI-7.1` Ask for less. Every field needs a reason it exists today.
 > - `UI-7.2` Labels stay visible. Placeholders are hints, NEVER labels.
-> - `UI-7.3` Validate on blur, not on keystroke. Errors sit next to the field and say how to fix it.
-> - `UI-7.4` Match keyboard to data type — correct input type, autocomplete and autocapitalise on every field.
+> - `UI-7.3` Validate at a point that supports timely, useful correction without disrupting entry; follow the project's interaction contract. Explain errors and associate them with the affected input where supported.
+> - `UI-7.4` Match the input control and available input aids to the data and target platform; use autocomplete or capitalization hints only where supported and appropriate.
 > - `UI-7.5` NEVER lose entered data. Preserve input across errors, navigation and refresh.
 >
 > **8.0 Mobile & Touch** _(mobile/touch surfaces)_
 >
-> - `UI-8.1` Hit target ≥44×44pt, 8px apart. The target may exceed the visible icon.
-> - `UI-8.2` Primary actions in the bottom third — that is where the thumb lives.
-> - `UI-8.3` Gestures are shortcuts, NEVER the only route. Anything swipeable is also tappable.
+> - `UI-8.1` Meet the target-size and spacing requirements of the applicable platform/accessibility standard. The interactive target may exceed the visible icon.
+> - `UI-8.2` Place primary actions where they are reachable for the target device, orientation, handedness, and input mode.
+> - `UI-8.3` Provide an alternative to gesture-only actions when required by the target platform or accessibility contract.
 > - `UI-8.4` Respect safe areas and the keyboard. Notch, home indicator and on-screen keyboard all steal space.
 >
 > **9.0 Speed & Perceived Speed**
 >
-> - `UI-9.1` Show structure before data — skeletons for known layouts, spinners only for unknown waits.
-> - `UI-9.2` Assume success optimistically. Update UI first, reconcile after, roll back visibly on failure.
+> - `UI-9.1` Give feedback appropriate to the work and what is known; skeletons and spinners are options, not required patterns.
+> - `UI-9.2` Use optimistic updates only when the operation can be safely reconciled; otherwise show clear pending, success, and failure states.
 > - `UI-9.3` Reserve space for anything that loads. Images, ads and fonts must NEVER shift the layout.
-> - `UI-9.4` Design for the slow connection. Offline, timeout and retry are states, NOT edge cases.
+> - `UI-9.4` For network-dependent surfaces, define useful timeout, retry, and offline behavior according to the product's availability needs.
 >
 > **Apply by role** — the clauses are one set; what you DO with them depends on the task:
 >
 > | Role                                | Obligation                                                                                                                                                              |
 > | ----------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-> | DESIGN / PLAN a surface             | Clauses shape the artifact: empty/loading/error specified first (`UI-1.5`), all 5 states enumerated (`UI-5.2`), type scale + spacing unit declared (`UI-2.5`, `UI-4.1`) |
-> | IMPLEMENT a component               | Pre-completion gate: states · tokens · contrast · focus ring · touch target · reserved space (`UI-5.2`, `UI-2.5`/`UI-4.1`, `UI-3.1`, `UI-5.5`, `UI-8.1`, `UI-9.3`)      |
-> | REVIEW UI code or a design artifact | Each clause is a fail-condition; every finding cites `UI-<clause>` + `file:line` + severity. NEVER a tick-box sweep — one focused pass per section                      |
-> | SCAN / document a UI system         | Record where the PROJECT deliberately deviates, so the overriding doc becomes the recorded authority                                                                    |
+> | DESIGN / PLAN a surface             | Select applicable clauses for the target platform; document required states, tokens, input, and constraints from the project contract. |
+> | IMPLEMENT a component               | Verify the configured behavior and accessibility requirements; use project tokens and abstractions only when defined. |
+> | REVIEW UI code or a design artifact | Treat only applicable, authoritative clauses as fail-conditions; cite `UI-<clause>` + `file:line` + severity. NEVER turn inapplicable defaults into findings. |
+> | SCAN / document a UI system         | Record the project's actual platform conventions and deliberate deviations; do not fill gaps with this catalog's examples. |
 >
-> **Component architecture contract (code-bearing UI work):** Classify every component as **Common**, **Domain-Shared**, or **Page** and record its base abstraction and owner. Reuse or compose the project component system before creating a component or variant, and record the constraint when reuse does not fit. Use an idiomatic base component/abstract class or language-equivalent protocol/trait for shared behavior; keep repeated markup, selectors, styling, and lifecycle in one reusable owner. A component test covers reusable lower-tier behavior once; Page tests cover only page-specific composition and outcomes. — why: a declared tier model and one source of behavior prevent component drift while keeping future changes cheap.
+> **Component architecture (code-bearing UI work):** Follow documented tiers and base abstractions when the project has them. Otherwise identify actual reuse boundaries from the code; do not require a three-tier taxonomy, base class, or lower-tier test model. Reuse shared behavior when a demonstrated consumer and suitable project abstraction justify it; test according to the project's test organization.
 >
 > **Skip ONLY** when the change has no user-facing surface (backend-only, tooling, docs) — state that explicitly so the skip is auditable, not an omission.
 
@@ -1023,35 +1031,35 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 >
 > **`CL-3` Severity, then a cap (§0.3).** `P0` blocks task completion / loses data / excludes a protected group (ship blocker) · `P1` significant friction or a legal accessibility floor (fix before release) · `P2` measurable inefficiency (next iteration) · `P3` polish (backlog) · `P4` note. Cap the report at the top 10 by severity unless a full audit was requested. A clean section reports "no issues found" — NEVER pad. Every `P0`/`P1` carries a concrete fix.
 >
-> **`CL-4` Section sweep, in order.** §A core usability heuristics · §B cognitive load & decision design · §C visual design & hierarchy · §D interaction + **the eight screen states** (ideal, empty, first-run, loading, partial, error, offline, maximum-data) · §E information architecture · **§F web / §G mobile / §H desktop — conditional on platform** · §I accessibility (WCAG 2.2 AA; every item `P1` minimum, `P0` when it blocks the task) · §J content & UX writing · §K trust, ethics & privacy (dark patterns are `P0`) · **§L AI & agentic patterns — conditional on the product having AI features** · §M cross-cutting consistency · §N edge-case probes. One focused pass per section — why: a section skipped in the long middle silently becomes an unreported defect class.
+> **`CL-4` Section sweep, in order.** §A core usability heuristics · §B cognitive load & decision design · §C visual design & hierarchy · §D interaction and relevant product states · §E information architecture · **§F web / §G mobile / §H desktop — conditional on platform** · §I accessibility: use WCAG 2.2 AA as the web baseline and meet any stricter applicable legal or project requirement; for other platforms, use the documented platform standard. Record the selected standard and its source; severity follows the governing release contract · §J content & UX writing · §K trust, ethics & privacy · **§L AI & agentic patterns — conditional on the product having AI features** · §M cross-cutting consistency · §N edge-case probes. Make one focused pass per applicable section and record N/A with evidence for sections the surface does not support.
 >
-> **`CL-5` Quick Triage Pass (§P)** when a full sweep is not possible — these 10 catch the majority of serious defects: (1) can a new user complete the primary task unaided · (2) does every action give visible feedback within 400ms · (3) do empty/loading/error states exist AND offer a forward path · (4) is the primary action obvious, singular, reachable · (5) text ≥4.5:1 contrast and focus visible · (6) whole flow completable by keyboard · (7) touch targets ≥44/48px · (8) destructive actions reversible · (9) holds at 320px and 200% zoom · (10) any dark patterns.
+> **`CL-5` Quick Triage Pass (§P)** when a full sweep is not possible — use these prompts for applicable surfaces: (1) can a new user complete the primary task unaided · (2) is feedback timely against the project/platform expectation · (3) do relevant empty/loading/error states offer a forward path · (4) is the primary action obvious and reachable for supported inputs · (5) do contrast and focus meet the selected accessibility standard (WCAG 2.2 AA baseline for web) · (6) can users operate the surface with its supported input modes · (7) do interactive targets meet the platform's size/spacing guidance · (8) are destructive actions recoverable where appropriate · (9) does the surface work at its smallest supported size and required zoom/reflow · (10) are there deceptive or coercive patterns.
 >
 > **`CL-6` Report shape (§O).** Context (+ known gaps) → Verdict (Ship / Ship with fixes / Do not ship) → What works (2–4 specific strengths, cited) → Findings grouped `P0`→`P3`, each with Location · Evidence + tag · Impact · Principle (checklist ID) · Fix → Open questions → Coverage table. Any `P0` caps the grade at Fail regardless of score; report a score only ALONGSIDE findings, never instead of them.
 >
-> **Component architecture pass (§M6–§M9) when source code is in scope.** Verify the component tier (Common/Domain-Shared/Page), base abstraction and owner, reuse/composition decision, and absence of duplicated component markup, selectors, styling, lifecycle, or lower-tier test cases. Report the applicable checklist ID with `file:line` evidence; do not infer code architecture from a screenshot alone.
+> **Component architecture pass (§M6–§M9) when source code is in scope.** Verify the ownership model documented or demonstrated by the project, reuse/composition decisions, and whether shared behavior is duplicated without a reason. Do not require tiers, a base abstraction, or a particular test hierarchy unless the project uses one. Report applicable checklist IDs with `file:line` evidence; do not infer source architecture from a screenshot alone.
 >
 > **Precedence and no-double-counting.** The project's design-system / SCSS / frontend-pattern docs and accepted ADRs OUTRANK this checklist; the brief's stated direction outranks aesthetic judgment. A deliberate, documented convention is NEVER a defect — check intent before flagging, and surface a genuine conflict to the user with both sides, NEVER resolve it silently. This checklist is the review PROCEDURE, not a third set of taste rules: `UI-1.1`–`UI-9.4` ask "does it meet the usability floor?", `DD-1`–`DD-8` ask "is this THIS product's interface?", and these checks ask "did the review actually look, with evidence, and rank it?". Where a check restates a `UI-*` or `DD-*` clause, report the defect ONCE under whichever ID the consuming skill already uses.
 >
-> **For a PLAN or a PLAN REVIEW.** When the plan contains front-end work, the checklist binds the plan's ACCEPTANCE CRITERIA, not a built page: name the platform, the applicable conditional sections (§F/§G/§H, §L), the eight screen states each UI phase must deliver (§D2), and the §I accessibility floor — so the work is specified against the checklist before it is written. A UI phase whose acceptance criteria omit the states and the a11y floor is INCOMPLETE — say so.
+> **For a PLAN or a PLAN REVIEW.** When the plan contains UI work, bind applicable acceptance criteria to the target platform/surface, relevant user states, and the selected accessibility standard. Use WCAG 2.2 AA as the web baseline and meet any stricter applicable legal or project requirement; for other platforms, identify the documented platform standard. Identify conditional sections (§F/§G/§H, §L) that apply. Do not require every catalogued state; record the standard and its source, and keep unsupported checks N/A.
 
 <!-- /SYNC:design-review-checklist -->
 
 <!-- SYNC:understand-code-first:reminder -->
 
-**IMPORTANT MUST ATTENTION** search 3+ existing patterns and read code BEFORE any modification. Run graph trace when graph.db exists.
+**IMPORTANT MUST ATTENTION** search 3+ existing patterns and read code/conventions BEFORE any modification or explanation. Run graph trace when graph.db exists.
 
 <!-- /SYNC:understand-code-first:reminder -->
 
 <!-- SYNC:critical-thinking-mindset:reminder -->
 
-**MUST ATTENTION** apply critical + sequential thinking — every claim needs appropriate traced evidence (`file:line` for repo/code claims; source URL or artifact section for research, product, content, and docs claims); confidence >80% to act, <60% DO NOT recommend. Anti-hallucination: never present guess as fact, admit uncertainty freely, cross-reference independently, stay skeptical of own confidence.
+**MUST ATTENTION** critical + sequential thinking: every claim carries traced evidence (`file:line` for code, source URL or artifact section otherwise); confidence >80% to act, <60% do NOT recommend. Never present a guess as fact; admit uncertainty and stay skeptical of your own confidence.
 
 <!-- /SYNC:critical-thinking-mindset:reminder -->
 
 <!-- SYNC:ai-mistake-prevention:reminder -->
 
-**MUST ATTENTION** ROOT-CAUSE GATE: before any project-related correction, use the appropriate root-cause investigation protocol; failed/unstable tests require the test-investigation protocol before editing source/tests — never force green.
+**MUST ATTENTION** Check project config, relevant references, and local evidence before applying stack-specific conventions; honor explicit N/A. ROOT-CAUSE GATE: before any project-related correction, use the appropriate root-cause investigation protocol; failed/unstable tests require the test-investigation protocol before editing source/tests — never force green.
 
 <!-- /SYNC:ai-mistake-prevention:reminder -->
 
@@ -1064,10 +1072,10 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 
 <!-- SYNC:project-reference-docs-guide:reminder -->
 
-- **MANDATORY** Before investigating, planning, or coding, read `docs/project-config.json` (the project map: modules/paths, run-commands, conventions, architecture/workflow rules) + the required project-reference docs, and cite `Reference docs read: ...`.
-- **MANDATORY** Load detail just in time immediately before the first target read/grep/edit/test; hooks may provide a pointer, but a hook event or prior turn is never evidence that the current files were read.
-- **MANDATORY** Always include `lessons.md`; project config + conventions override generic framework defaults.
-- **MANDATORY** If project config, root instruction files, or any required reference doc is missing or stale, auto-run `/project-init` or the narrow lower-level route before ordinary project-specific work. On compaction, resume, delegation, or a context change, re-read the required docs and restate the route before continuing.
+- **MANDATORY** Before project-specific work, load the OPTIONAL project-config (default `docs/project-config.json`) via its loader. No config is supported — fall back to portable defaults plus repository evidence, state material assumptions, never block. When present: require non-empty `project.name`, use neutral defaults/skips for omitted optional capabilities, and fail closed on a declared malformed section.
+- **MANDATORY** Apply an explicit `referenceDocs` array exactly, including `[]`; when absent use only the capability-aware resolver output, which may be empty. Cite `Reference docs read: ...` and note the selected or empty set.
+- **MANDATORY** Load detail JUST IN TIME, immediately before the first target read/grep/edit/test — a hook event or a prior turn is NEVER evidence that the current files were read. Re-resolve selection and re-read after compaction, resume, delegation, or a context change.
+- **MANDATORY** The project-init-owned `lessons.md` and docs-index inputs are always-on at their configured owner paths, read independently of task-specific `referenceDocs`. A missing/stale root instruction file or required reference doc, or a malformed declared config section → auto-run `/project-init` (or the narrow lower-level route) before relying on that input. An absent config never gates work — offer `/project-init` or `/project-config` once. Project config and conventions override generic framework defaults.
 
 <!-- /SYNC:project-reference-docs-guide:reminder -->
 
@@ -1089,7 +1097,7 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 
 <!-- SYNC:ui-intent-layer:reminder -->
 
-- **MANDATORY** For UI-bearing specs, author/maintain the tech-agnostic interaction-surface layer (View Inventory + Navigation Map + observable UI States + per-story `US-/OP-/BR-`-traced flow); keep deep visual fidelity in the linked `design-spec`/mockup recorded in frontmatter; name ZERO frameworks/routes/CSS/component classes; skip ONLY for backend-only features with a stated reason.
+- **MANDATORY** For UI-bearing specs, author/maintain the tech-agnostic interaction-surface layer (views + navigation map + observable states + user-action flows), resolving it through the configured profile's intent/evidence roles and logical IDs; an unresolved owner, role, ID, carrier, or link stays `UNKNOWN`/`BLOCKED`. **Strict portable fallback — only when neither config nor local references declares a native artifact contract:** trace each flow to the default `US-`/`OP-`/`BR-` IDs and record the companion artifact in the `design_spec:`/`mockup:` frontmatter keys. Name ZERO frameworks/routes/CSS/component classes; skip ONLY for backend-only features with a stated reason.
 
 <!-- /SYNC:ui-intent-layer:reminder -->
 
@@ -1106,9 +1114,9 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 
 <!-- SYNC:double-round-trip-review:reminder -->
 
-- **MANDATORY IMPORTANT MUST ATTENTION** execute the review loop (aka **Self-Review Convergence Loop**): review → validate findings → fix validated blocking findings → full re-review. Round 1 ends only with zero findings and the persisted `minRounds` met; from round 2 onward, zero CRITICAL/HIGH/MEDIUM ends the loop once the persisted minimum is met and LOW findings are recorded as deferred. Any newly produced output/judgment gets ≥1 self-review; any new judgment gets ≥1 `/why-review --validate-findings` pass before it is treated as final.
-- **MANDATORY** apply the **severity floor**: round 1 exits on zero findings at any severity; **from round 2 the bar is zero CRITICAL/HIGH/MEDIUM — LOW findings are no longer required to be fixed, so a LOW-only round ENDS the loop once the persisted minimum is met.** List every deferred LOW in the report; NEVER re-tier a real CRITICAL/HIGH/MEDIUM down to LOW to reach the exit, and NEVER apply the floor to a binary gate (test-green, security must-fix).
-- **MANDATORY** enforce the **round cap of 2, extendable ONCE to round 3 — a ceiling, NEVER a target**: a clean pass ends the loop once the persisted `minRounds` is met (default 1; explicit 2 requires an independent pass). Round 2 completing with validated **CRITICAL/HIGH** still open (a failed non-test binary gate counts as CRITICAL) grants exactly ONE extra round (round 3); round 2 completing with only MEDIUM/`NOT VERIFIABLE` open, or round 3 completing with any review blocker still open → **STOP & escalate via `AskUserQuestion`**, never a silent PASS. The 2-repeated-no-progress blocker rule is an earlier exit — escalate at whichever trips first. A **failing test gate has NO round cap** — keep fixing and re-running until the tests pass, never forcing green; it never escalates for budget and never buys the extension. NEVER loop past round 3 on review blockers, and NEVER re-tier a finding to buy or dodge the extension.
+- **MANDATORY IMPORTANT MUST ATTENTION** run the review loop (aka **Self-Review Convergence Loop**): review → validate findings → fix validated blocking findings → FULL re-review. Any newly produced output/judgment gets ≥1 self-review, and any new judgment ≥1 `/why-review --validate-findings` pass, before it is treated as final.
+- **MANDATORY severity floor:** round 1 exits only on zero findings at any severity; from round 2 the bar is zero CRITICAL/HIGH/MEDIUM, so a LOW-only round ENDS the loop once the persisted `minRounds` is met — list every deferred LOW in the report. NEVER re-tier a real CRITICAL/HIGH/MEDIUM down to reach the exit, and NEVER apply the floor to a binary gate (test-green, security must-fix).
+- **MANDATORY round cap of 2, extendable ONCE to round 3 — a ceiling, NEVER a target.** A clean pass ends the loop once the persisted `minRounds` is met (default 1; explicit 2 requires an independent pass). Round 2 ending with a validated CRITICAL/HIGH still open (a failed non-test binary gate counts as CRITICAL) grants exactly ONE extra round; round 2 ending with only MEDIUM/`NOT VERIFIABLE` open, or round 3 ending with any review blocker open → **STOP and escalate via `AskUserQuestion`**, never a silent PASS. The 2-repeated-no-progress blocker rule escalates earlier if it trips first. A failing TEST gate has NO round cap and buys no extension — keep fixing and re-running until tests pass, never forcing green.
 
 <!-- /SYNC:double-round-trip-review:reminder -->
 
@@ -1124,9 +1132,9 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 
 <!-- SYNC:trade-off-interrogation-gate:reminder -->
 
-- **MANDATORY MUST ATTENTION ALWAYS ASK THE 3 TRADE-OFF QUESTIONS** — on the thing under review AND on every recommendation you make: (1) **is there any trade-off?** name what it SACRIFICES (change cost · complexity · perf · coupling · reversibility · migration · ops load · blast radius · security · testability · delivery time · UX) — "none"/"pure win" is an unfinished analysis, so state the dimensions checked; (2) **is it worth it?** gain (with a metric) vs cost, WHO pays, WHEN → emit **WORTH IT / NOT WORTH IT / UNCLEAR**; NOT WORTH IT → withdraw or replace it; (3) **is it material enough to confirm with the user?** irreversible/one-way door · cost shifted onto another team/ops/maintainer/user · one quality attribute traded for another · a tier/service/event/library boundary crossed · auth/money/data-integrity/breaking-change/High-or-Medium-risk path · verdict UNCLEAR → **STOP and confirm via `AskUserQuestion` BEFORE the verdict**.
-- **MANDATORY** A MATERIAL trade-off with no user confirmation can NEVER be PASS; NEVER bury one as a Low-severity note, NEVER decide it silently, and NEVER let delivery or convergence pressure authorize a one-way door. — why: an un-walked-back one-way door is the user's call to make, not the reviewer's.
-- **MANDATORY — non-asking contexts escalate BY HANDOFF, never by silence.** `AskUserQuestion` reaches only the main interactive agent: a sub-agent cannot ask the user, and a terminal/verdict-only mode asks nothing by design. There the duty is REDIRECTED, not waived — still name the trade-off, still decide materiality, record `confirmed? = NO — cannot ask from this context`, **state the unconfirmed MATERIAL trade-off in your RETURNED verdict/summary so the CALLER escalates it** (a note only in an on-disk report is not a handoff), and never emit an unqualified PASS. Applies ONLY where the user is genuinely unreachable (spawned sub-agent, terminal validate mode, headless run) — if you CAN ask, you MUST ask.
+- **MANDATORY MUST ATTENTION ALWAYS ASK THE 3 TRADE-OFF QUESTIONS** — on the thing under review AND on every recommendation you make: (1) **what does it SACRIFICE?** name the dimensions checked (change cost · complexity · perf · coupling · reversibility · migration · ops load · blast radius · security · testability · delivery time · UX) — "none"/"pure win" is an unfinished analysis; (2) **is it worth it?** gain (with a metric) vs cost, WHO pays, WHEN → emit **WORTH IT / NOT WORTH IT / UNCLEAR**; NOT WORTH IT → withdraw or replace it; (3) **is it MATERIAL enough to confirm with the user?** irreversible/one-way door · cost shifted onto another team/ops/maintainer/user · one quality attribute traded for another · a tier/service/event/library boundary crossed · auth/money/data-integrity/breaking-change/High-or-Medium-risk path · verdict UNCLEAR → **STOP and confirm via `AskUserQuestion` BEFORE the verdict**.
+- **MANDATORY** A MATERIAL trade-off with no user confirmation can NEVER be PASS; never bury one as a Low-severity note, never decide it silently, and never let delivery or convergence pressure authorize a one-way door — an un-walked-back one-way door is the user's call, not the reviewer's.
+- **MANDATORY — a context that cannot ask escalates BY HANDOFF, never by silence.** `AskUserQuestion` reaches only the main interactive agent, so a sub-agent or a terminal/verdict-only mode cannot ask. There the duty is REDIRECTED, not waived: still name the trade-off, still decide materiality, record `confirmed? = NO — cannot ask from this context`, and **state the unconfirmed MATERIAL trade-off in your RETURNED verdict so the CALLER escalates it** (a note only in an on-disk report is not a handoff); never emit an unqualified PASS. If you CAN ask, you MUST ask.
 
 <!-- /SYNC:trade-off-interrogation-gate:reminder -->
 
@@ -1157,7 +1165,7 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 
 <!-- SYNC:project-protocol-overlay -->
 
-> **Project Protocol Overlay** — Before executing this skill, resolve any PROJECT overlay rules layered onto it: match this skill's name against the `Target` column of the project's skill-protocol index (default `docs/project-reference/skill-protocols-reference.md`; a `referenceDocs` entry in `docs/project-config.json` overrides the path, and a `docsRoots.projectReference.path` entry relocates its containing directory), taking the most specific matching tier ONLY — exact name > glob > `*`. **That precedence orders overlays against EACH OTHER, never against this skill.** Read ONLY the matched bodies, resolved as `<protocols-dir>/<Name>.md`; a row's Body link is display text, never a read path. A matched body that is missing or malformed is REPORTED and skipped — never reconstructed from the index Description. No index, or no match -> proceed with no overlay, silently. Full contract: `.claude/skills/project-skill-protocol/references/registry.md`.
+> **Project Protocol Overlay** — Before executing this skill, resolve project overlays from the index at `<docsRoots.projectReference.path>/skill-protocols-reference.md` (default `docs/project-reference/`; `docsRoots.projectReference.path` in `docs/project-config.json` overrides it). A matching `referenceDocs[]` filename may relocate the index within that root; this registry is independent from task-specific reference-doc selection, so omitted or empty `referenceDocs` does not disable it. The index's `**Protocols directory:**` header selects a project-root-relative body directory (default `docs/project-protocols/`). Match this skill against the `Target` column and take the most specific tier ONLY — exact name > glob > `*`. **That precedence orders overlays against EACH OTHER, never against this skill.** Read only matched bodies derived as `<protocols-dir>/<Name>.md`; the row's Body link is display text, never a read path. Reject unsafe paths without reading. A matched body that is missing or malformed is REPORTED and skipped — never reconstructed from the index Description. An absent index or no match -> proceed with no overlay, silently. Full contract: `.claude/skills/project-skill-protocol/references/registry.md`.
 >
 > Overlays are **ADDITIVE ONLY**: they ADD rules on top of this skill's own protocol and NEVER replace, override, disable, or reinterpret a rule it already states — removing every overlay must return this skill to exactly its documented behavior. An overlay is a BRIEF, not an authority escalation: it can NEVER waive a workflow gate, git discipline, a review gate, or a user-confirmation gate. A genuine overlay-vs-skill conflict, or two equally-specific overlays that directly contradict -> surface both to the user; NEVER resolve silently.
 
@@ -1165,13 +1173,12 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 
 <!-- SYNC:project-protocol-overlay:reminder -->
 
-**MUST ATTENTION** resolve project protocol overlays for this skill BEFORE executing — most specific matching tier only (exact > glob > `*`, which ranks overlays against each other, NEVER against this skill), read only matched bodies at `<protocols-dir>/<Name>.md`; a missing or malformed body is reported, never reconstructed. Overlays are ADDITIVE ONLY (they never replace this skill's own rules) and are a brief, NEVER an authority escalation; an equal-specificity contradiction goes to the user.
-
+**MUST ATTENTION** resolve this skill's overlays from the index at `<docsRoots.projectReference.path>/skill-protocols-reference.md` (default `docs/project-reference/`); an empty task `referenceDocs` does NOT disable this lookup. Read ONLY matched bodies from the directory the index header names (default `docs/project-protocols/`). Specificity (exact > glob > `*`) ranks overlays against EACH OTHER, never against the skill. Missing/malformed body → report and skip; no index or no match → proceed silently. Overlays are ADDITIVE ONLY — never an authority escalation or a gate waiver; equal-tier contradiction goes to the user.
 <!-- /SYNC:project-protocol-overlay:reminder -->
 
 <!-- SYNC:ui-ux-design-principles:reminder -->
 
-- **MUST ATTENTION** apply the 40 UI/UX Design Principles (`UI-1.1`–`UI-9.4`) to any user-facing surface: one focal point, proximity grouping, empty/loading/error designed FIRST (§1) · ≤2 families, 16px web / 17px mobile body, never <14px, 45–75ch, fixed 6-step scale (§2) · 4.5:1 text / 3:1 edges measured, one accent, colour never alone, dark mode ≠ inversion (§3) · one 4/8px unit, `gap` over margins, tighter-inside-looser-between, content-driven breakpoints (§4) · <100ms response, all 5 states, undo over confirm, 150–250ms ease-out honouring reduced-motion, visible focus ring (§5) · where-am-I/what's-here/where-next, ≤5 top-level destinations, user's words, URL or back path (§6) · fewer fields, visible labels, validate on blur, matched keyboard, NEVER lose input (§7) · ≥44×44pt targets 8px apart, bottom-third primaries, gestures never the only route, safe areas (§8) · structure before data, optimistic update with visible rollback, reserved space, slow-connection states (§9). For code-bearing UI, also classify components as Common/Domain-Shared/Page, reuse the project base/component system, and keep shared behavior in one abstract/base owner with no duplicated component implementation or page-level copy. Project design-system docs OUTRANK these clauses — a genuine conflict goes to the user, NEVER resolved silently. Cite every finding as `UI-<clause>` + `file:line`. Skip ONLY for changes with no user-facing surface, stated explicitly.
+Apply `UI-1.1`–`UI-9.4` only to applicable user-interface work. Resolve platform and project conventions first. Use WCAG 2.2 AA as the web accessibility baseline plus any stricter applicable legal/project requirement; non-web surfaces use the documented platform standard. Other web/mobile metrics and component tiers are defaults/examples only for matching surfaces. Skip N/A clauses and non-UI work explicitly. Project config, references, and accepted decisions govern; cite applicable findings by `UI-<clause>` + `file:line`.
 
 <!-- /SYNC:ui-ux-design-principles:reminder -->
 
@@ -1183,7 +1190,7 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 
 <!-- SYNC:design-review-checklist:reminder -->
 
-- **MUST ATTENTION** when the change/plan/artifact has a user-facing front-end surface, READ `.claude/docs/design-review-checklist.md` and run it: `CL-1` establish context first (platform · user · task · metric · constraints · scope · artifacts — fewer than four → state the gap, findings are low confidence) · `CL-2` evidence or nothing, cite a location per finding, NEVER invent a measurement (unmeasurable → `NOT VERIFIABLE`), tag `MEASURED`/`OBSERVED`/`HEURISTIC` · `CL-3` rank `P0`–`P4`, cap at top 10 by severity, NEVER pad, concrete fix on every `P0`/`P1` · `CL-4` sweep §A–§N in order, one focused pass each, with §F/§G/§H and §L applied only when the platform/product matches and §I (WCAG 2.2 AA) as a `P1` floor · `CL-5` short on time → run the 10-check §P triage · `CL-6` report in the §O shape · for source code, run the §M6–§M9 component architecture pass (Common/Domain-Shared/Page tier, base/owner, reuse, and duplication). Project design-system docs and ADRs OUTRANK the checklist; report a defect ONCE across `UI-*`/`DD-*`/`CL-*`. For a plan, the checklist binds the UI phases' acceptance criteria (platform, conditional sections, the eight screen states, the a11y floor). Skip ONLY when the change has NO user-facing front-end surface, stated explicitly.
+- **MUST ATTENTION** when the change/plan/artifact has an applicable user-facing UI surface, READ `.claude/docs/design-review-checklist.md` and run it: `CL-1` establish context first (platform · user · task · metric · constraints · scope · artifacts — state missing context and its confidence impact) · `CL-2` evidence or nothing, cite a location per finding, NEVER invent a measurement (unmeasurable → `NOT VERIFIABLE`), tag `MEASURED`/`OBSERVED`/`HEURISTIC` · `CL-3` rank `P0`–`P4`, cap at top 10 by severity, NEVER pad, concrete fix on every `P0`/`P1` · `CL-4` sweep §A–§N, applying only relevant platform/product sections and the WCAG 2.2 AA web baseline plus any stricter applicable legal/project requirement, or the documented standard for other platforms · `CL-5` short on time → use the §P prompts · `CL-6` report in the §O shape · for source code, assess component ownership, base abstractions, reuse, and duplication using the project's documented taxonomy or observed boundaries. Project design-system docs and ADRs OUTRANK the checklist; report a defect ONCE across `UI-*`/`DD-*`/`CL-*`. For a plan, bind only applicable sections and states to acceptance criteria. Skip when the work has no user-facing UI surface, and state why.
 
 <!-- /SYNC:design-review-checklist:reminder -->
 
@@ -1193,8 +1200,8 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 >
 > **Detailed protocol routing — read/apply only when warranted:**
 > - `SYNC:scale-ready-foundation` — greenfield foundation is blocking; big-feature brownfield fit/adapt/defer; architecture review is advisory when auditing. Detailed carriers: `workflow-greenfield-init`, `workflow-big-feature`.
-> - `SYNC:test-architecture-execution-contract` — assertion-bearing tests use explicit `Given` → `When` → `Then`, name the guarded intent/technical contract, and assert an owned outcome. Detailed carriers: `integration-test`, `workflow-greenfield-init`, and the test-architecture review path.
-> - `SYNC:ai-agent-as-user-access` — when an AI/machine actor or future contract is evidenced, inspect identity/delegation, capability boundaries, selected API/CLI/MCP/WebMCP/event/SDK surface, safety/consent, audit/observability, and GWT contract tests. Detailed carriers: `workflow-greenfield-init`, `workflow-big-feature`, `architecture-review`.
+> - `SYNC:test-architecture-execution-contract` — assertion-bearing tests use the project's configured/native format, name the guarded intent/technical contract, and assert an owned outcome; GWT is one valid format. Detailed carriers: `integration-test`, `workflow-greenfield-init`, and the test-architecture review path.
+> - `SYNC:ai-agent-as-user-access` — when an AI/machine actor or future contract is evidenced, inspect identity/delegation, capability boundaries, selected API/CLI/MCP/WebMCP/event/SDK surface, safety/consent, audit/observability, and native-format contract tests. Detailed carriers: `workflow-greenfield-init`, `workflow-big-feature`, `architecture-review`.
 > - `SYNC:design-system-check` — when UI changes, inspect the design-system and component-contract obligations; route visual/UX depth to the owning UI review.
 >
 > **Review behavior:** Check only principles applicable to the reviewed scope; record `APPLY-NOW`, `ADAPT-IN-SLICE`, `DEFER-AS-OPPORTUNITY`, `NOT-APPLICABLE`, `BLOCKED`, or `UNVERIFIED` with `file:line`/config/CI evidence, status/severity, owner/route, and next step/revisit trigger. Do not invent findings from a generic checklist, flag unrelated pre-existing gaps as regressions, silently expand the requested scope, or mutate a parent gate merely because advice exists.
@@ -1209,7 +1216,7 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 
 <!-- SYNC:review-principle-awareness:reminder -->
 
-**IMPORTANT MUST ATTENTION** Every review first checks the change context and routes only applicable principles to their detailed protocols: scale-ready foundation, explicit Given → When → Then test intent, AI-agent-as-user access, and UI/component design when relevant. Record evidence-backed apply/adapt/defer/N/A/block/unverified status with owner and next step; do not invent unrelated findings or expand scope.
+**IMPORTANT MUST ATTENTION** Every review first checks the change context and routes only applicable principles to their detailed protocols: scale-ready foundation, test intent in the project's native format (GWT is one option), AI-agent-as-user access, and UI/component design when relevant. Record evidence-backed apply/adapt/defer/N/A/block/unverified status with owner and next step; do not invent unrelated findings or expand scope.
 
 <!-- /SYNC:review-principle-awareness:reminder -->
 
@@ -1237,10 +1244,11 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 **IMPORTANT MUST ATTENTION** be a SKEPTIC, not a presence-checker — run ALL 6 adversarial techniques (steel-man rejected alternatives, stress-test 3 assumptions, AC-testability, pre-mortem, unseen alternatives, contrarian pass) and clear the Anti-Bias Gate BEFORE any verdict — why: sections that exist but hold weak/untestable content create false confidence worse than missing ones.
 **IMPORTANT MUST ATTENTION** enforce the BLOCKING M1-M7 gate on ALL types — any **M1-M5 or M7** violation forces NEEDS WORK citing the mandate ID + exact section/line; NEVER pass an M1-M5/M7 violation — why: passing it makes this review itself defective.
 **IMPORTANT MUST ATTENTION** M7 (business-visibility) is judged on each case's BODY via the demo test — *"what would a stakeholder SEE change?"*; no answer → NEEDS WORK as TECHNICAL-ONLY. A `When` that is an invocation (handler runs, consumer receives, job fires, data syncs, model inspected) or a `Then` asserting schema/type/nullability/call-count FAILS M7 **even in flawless tech-free prose** — why: M1 governs vocabulary, M7 governs subject matter, and passing a case because its prose is clean is exactly how technical cases accumulate in business specs one bugfix at a time.
-**IMPORTANT MUST ATTENTION** exempt source identifiers inside evidence carriers (`[Source:]`, `**Evidence**`, `CoveredBy`, legacy `IntegrationTest`, frontmatter, mermaid) — flag tech leakage only in narrative/AC/scenario prose — why: carriers are CORRECT places for class/path/test names; flagging them is a false finding.
+**IMPORTANT MUST ATTENTION** exempt source identifiers only inside the selected profile's declared evidence carriers; the strict default uses `[Source:]`, `**Evidence**`, `CoveredBy`, legacy `IntegrationTest`, frontmatter, and Mermaid — flag leakage in narrative/AC/scenario prose — why: carriers preserve auditable code links without making prose implementation-dependent.
 **IMPORTANT MUST ATTENTION** dispatch on `--type={pbi|story|spec-tests|design}` (infer if omitted) — apply that type's Required/Recommended checklist; verdict = PASS (all Required + ≥50% Recommended) | WARN (all Required, <50% Recommended) | FAIL (any Required fails).
 **IMPORTANT MUST ATTENTION** for `--type=design` ONLY: run the 9-dimension UI/UX Design Principles pass — all 40 clauses (`UI-1.1`-`UI-9.4`), one dimension at a time; every finding cites `UI-<clause>` + `file:line` + `SYNC:severity-rubric` severity and folds into the existing Required/Recommended verdict; `pbi`/`story`/`spec-tests` are unaffected, and project design-system docs OUTRANK the clauses.
-**IMPORTANT MUST ATTENTION** for `--type=spec-tests`: every `[HARD]` §4 rule / §5 invariant maps to ≥1 universally-quantified property TC + boundary counter-case — a missing property category is a blocking finding; one business TC covered by MANY tests is the correct one-to-many shape, NEVER a duplicate.
+**IMPORTANT MUST ATTENTION** for `--type=spec-tests`, resolve the case profile before applying identity, evidence, section, or cardinality rules; an unresolved or conflicting profile blocks the verdict — why: a native case contract must not be rejected for differing syntax or silently copied into a duplicate registry.
+**IMPORTANT MUST ATTENTION** property coverage: every universal hard rule/invariant in the selected contract section maps to a universally quantified property case and a boundary counter-case; strict default uses `[HARD]` §4/§5 property TCs, while a native profile uses its declared section and case carrier — why: example-only coverage cannot protect an invariant across its input domain.
 **IMPORTANT MUST ATTENTION** run the findings-validation gate BEFORE fixing — invoke `/why-review --validate-findings <report-path>` first; NEVER edit the artifact to resolve findings before this gate returns CLEAN — why: validate-before-fix at parity with `/plan-review` prevents fixing phantom findings.
 **IMPORTANT MUST ATTENTION** fix only validated blocking findings, then restart the FULL review with a fresh `general-purpose` sub-agent (artifacts are NOT code) and loop until the current exit bar is clear (round 1: zero findings; round 2: zero CRITICAL/HIGH/MEDIUM, LOW deferred) — NEVER spawn a confirmation sub-agent after a bar-clearing round — why: every fix invalidates the prior verdict, but a bar-clearing pass needs no re-confirmation.
 **IMPORTANT MUST ATTENTION** cite `file:line`/section+line evidence for every finding (confidence >80% to act, <60% DO NOT recommend); every NEEDS WORK item must be actionable — why: speculation produces non-fixable findings.
@@ -1269,7 +1277,7 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 | "M1-M5/M7 violation is minor, let it pass" | Passing an M1-M5/M7 violation makes THIS review defective. NEEDS WORK + cite mandate ID + section/line. |
 | "No tech words in it — M7 passes" | M1 ≠ M7. Apply the demo test to the BODY: what would a stakeholder SEE change? No answer → FAIL, however clean the prose. |
 | "This sync/consumer case is business-critical, so it stays" | If it's business-critical it's demoable — rewrite it demoably. A case that CANNOT be rewritten demoably is exactly what M7 moves out. |
-| "Source name in prose, flag it" | Check the carrier first — `[Source:]`/`**Evidence**`/`CoveredBy`/legacy `IntegrationTest`/frontmatter/mermaid are EXEMPT. |
+| "Source name in prose, flag it" | Check the selected profile's declared carrier first — the strict default uses `[Source:]`/`**Evidence**`/`CoveredBy`/legacy `IntegrationTest`/frontmatter/Mermaid. |
 | "Fix the finding, then I'm done" | Validate findings (`/why-review`) BEFORE fixing, then restart the FULL review until the current exit bar is clear (round 1: zero findings; round 2: zero CRITICAL/HIGH/MEDIUM, LOW deferred). |
 | "Skip evidence for review judgments" | Cite section+line for every finding; confidence >80% to act, <60% DO NOT recommend. |
 

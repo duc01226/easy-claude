@@ -4,11 +4,26 @@
 
 > **Portability rule:** Host-owned instruction files keep their native skill-invocation prefix. Content written into shared generated project docs MUST instead use bare skill names without a host-specific prefix, unless it explicitly documents every supported host syntax.
 
-**Valid keys:** `project-structure` · `backend-patterns` · `frontend-patterns` · `scss-styling` · `design-system` · `code-review-rules` · `domain-entities` · `feature-spec` · `docs-index` · `e2e-tests` · `integration-tests` · `seed-test-data` · `ui-system`
+**Registered keys:** `project-structure` · `backend-patterns` · `frontend-patterns` · `scss-styling` · `design-system` · `code-review-rules` · `domain-entities` · `feature-spec` · `docs-index` · `e2e-tests` · `integration-tests` · `seed-test-data` · `ui-system`. `generic-reference-doc` is a reserved dynamic target described below. These targets form an optional capability catalog, not a list of scans every project should run.
+
+## Selection and Applicability
+
+- `docs/project-config.json` (or its configured path) is OPTIONAL. With no config, scan on the portable defaults and repository evidence — do not refuse to scan. When present it must be schema-valid with a non-empty `project.name`; omitted capability properties use neutral defaults or skip that capability, while a DECLARED invalid section blocks scanning of that capability (its author made it authoritative, so a silent default would mis-scan).
+- Resolve `referenceDocs` through `.claude/hooks/lib/session-init-helpers.cjs`. When absent, a minimal project with no evidenced capabilities resolves to no task-specific docs and only evidence-supported capabilities add docs. An explicit array, including `[]`, is the exact task-specific selection.
+- The always-on `lessons.md` and docs-index inputs are ensured by project initialization outside this task-specific selection. Do not add them to the selection or use them as evidence that a code capability exists.
+- For each selected task-specific document, match its filename exactly to one built-in `doc` below. Custom `referenceDocs` entries can declare `filename`, `purpose`, optional `sections`, `templatePath`, and `scanTarget`. A custom doc defaults to manual ownership; only `scanTarget: "generic"` opts it into the evidence-based dynamic scanner. Built-in docs keep their framework-owned target.
+- Each target's `applies when` and `skip when` lines define its portable evidence gate. Explicit selection requests the check but does not replace capability evidence. A missing capability is `SKIPPED` with the config/source evidence checked; it is never filled by generic example code.
+- Configured paths and framework names are search hints that must be verified in repository sources. Do not infer architecture, test lanes, domain concepts, or design-system ownership from dependencies, empty folders, filenames, or target names alone.
+
+## Dynamic Target: generic-reference-doc
+
+Use `$scan --target=generic-reference-doc --filename="<relative-path>"` only when that exact filename is selected in `referenceDocs` with `scanTarget: "generic"`. A custom entry without `scanTarget`, with `scanTarget: "manual"`, or outside the resolved selection is not scannable. Custom paths use project-relative POSIX segments beneath `<ref>/`; reject traversal, absolute paths, backslashes, and physical symlink escapes.
+
+The selected entry's `purpose` defines the question the reference should answer; its optional `sections` define the requested headings. If no sections are configured, derive a small neutral outline from the purpose and evidence rather than importing another target's template. Inspect only sources that answer that purpose, record unknowns explicitly, and describe observed practices and trade-offs without requiring a particular language, framework, architecture, testing model, or styling system. Write only the configured output file, using the shared no-op stamp guard and normal scan evidence rules. Generic docs are conservatively impact-routed after non-disposable repository changes because the config does not declare a narrower source scope; choose `manual` when the project owner wants curated updates without automatic scan/freshness claims.
 
 **Path roots used throughout this manifest.** Every `**doc:**` output path, `$prompt-enhance` argument, glob and probe below is written against one of these two roots — resolve the root FIRST, then compose:
 
-- `<ref>/` = the project-reference docs root — default `docs/project-reference/`; a `docsRoots.projectReference.path` entry in `docs/project-config.json` overrides the path. Resolve: `node -e "console.log(require('./.claude/hooks/lib/project-config-loader.cjs').getDocsRoot('projectReference'))"`. The reference-doc FILENAMES are a canonical floor and never change — only this containing directory is configurable.
+- `<ref>/` = the project-reference docs root — default `docs/project-reference/`; a `docsRoots.projectReference.path` entry in `docs/project-config.json` overrides the path. Resolve: `node -e "console.log(require('./.claude/hooks/lib/project-config-loader.cjs').getDocsRoot('projectReference'))"`. Built-in targets own only their declared output filenames; project-config may also declare custom filenames, but does not map them to a built-in scan.
 - `<specs>/` = the business/feature spec root — default `docs/specs/`; a `specRoots.business.path` entry in `docs/project-config.json` overrides the path. Resolve: `node -e "console.log(require('./.claude/hooks/lib/project-config-loader.cjs').getSpecDocsPath())"`.
 
 **Confidence vocab note:** most targets use sub-agent confidence tiers `>80% document / 60-80% "observed (unverified)" / <60% omit`. `code-review-rules` instead classifies rules HIGH / MEDIUM / LOW. `domain-entities` uses %-based thresholds. Honor the per-entry vocab.
@@ -18,122 +33,84 @@
 ## Target: project-structure
 
 - **doc:** `<ref>/project-structure-reference.md`
-- **description:** `[Documentation] Use when scanning service architecture, ports, directory layout, tech stack, and module registry.`
-- **sub-agents:** 3 — Agent 1: Backend Services · Agent 2: Frontend Apps · Agent 3: Infrastructure & Tech Stack
+- **applies when:** project-owned source, build/runtime configuration, operational manifests, or maintained architecture docs provide evidence about the system's structure or operation.
+- **skip when:** the repository contains only required project identity/config and no source, operational manifests, or project-owned architecture evidence.
+- **description:** `[Documentation] Use when mapping evidenced project structure, stack, modules, operations, and deployment.`
+- **sub-agents:** up to 3 conditional branches — Agent 1: Source, modules & entry points · Agent 2: Application surfaces & integrations · Agent 3: Runtime, delivery & operations. Dispatch only branches supported by repository evidence.
 
-### Phase 0 detection — **[BLOCKING]**, run in parallel (two-axis: architecture type AND orchestration)
+### Phase 0 detection — complete before writing; unsupported classifications remain `UNKNOWN`
 
-Step 1 — Read the doc: detect mode Init (placeholder) or Sync (populated); in Sync mode note which sections have content + check for stale ports/paths.
+Step 1 — Read the target doc, configured project map, and repository-owned manifests. Detect Init (missing/placeholder) or Sync (populated); in Sync mode update only stale or newly evidenced sections.
 
-Step 2 — Detect **architecture type**:
+Step 2 — Build an evidence inventory. Configured paths and module names are search hints; verify them against files, entry points, imports, build/run scripts, or authoritative project docs before documenting them.
 
-| Signal | Architecture | Sub-Agent Focus |
+| Evidence | Possible finding | Rule |
 | --- | --- | --- |
-| Multiple service directories (one folder per service), each with own deploy/`Dockerfile` unit | Microservices | Enumerate ALL services; map each to port + deploy unit |
-| Single source root with one application entry point | Monolith | Single service deep-scan; module/feature breakdown |
-| Single git repo, multiple deployable apps | Monorepo (non-microservices) | App boundaries; shared library mapping |
-| Nx workspace / multiple `project.json` | Nx monorepo | Library graph; app/lib/buildable distinction |
-| Multiple repos detected (git submodules) | Polyrepo | Per-repo breakdown; cross-repo contracts |
+| Language/build manifests, workspace files, source entry points | Languages, buildable/runnable units, modules, and their verified dependencies | Use the manifest and code structure that actually exist; unfamiliar stacks are not a reason to stop. |
+| Application entry points, package boundaries, imports, API/CLI/job handlers | Application surfaces and module boundaries | Name an architecture style only when independent deploy/ownership evidence supports it; directory names alone are insufficient. |
+| Database/schema/migration, message, or external-adapter definitions and their callers | Data stores and integrations | Document only verified connections and ownership; a declared dependency alone does not prove runtime use. |
+| Container, local orchestration, service-manager, or deployment manifests | Runtime/deployment units, startup, and configured ports | Do not infer direct-run behavior, service boundaries, or default ports from missing files. |
+| CI/workflow/pipeline and infrastructure-as-code files | Build, verification, deployment, and environment flow | Inspect the actual jobs and referenced scripts; supported providers and file layouts are open-ended. |
+| Environment/configuration files or secret-manager references | Setting keys and secret-reference mechanisms | Record names and locations only; never include values. |
 
-Step 3 — Detect **orchestration approach**:
+Step 3 — Describe architecture and execution boundaries only to the confidence supported by that inventory. `Monorepo`, `monolith`, `modular monolith`, and `microservices` are possible descriptions, not required categories. Use `UNKNOWN` when repository evidence cannot settle the boundary; continue with confirmed facts.
 
-| Signal | Orchestration | What to Document |
-| --- | --- | --- |
-| configured orchestrator directory | configured local orchestration tool | project name, dashboard URL, resource names |
-| `docker-compose*.yml` | Docker Compose | Service definitions, port mappings, volume mounts |
-| `k8s/` or `charts/` | Kubernetes / Helm | Deployment targets, ingress config |
-| No orchestration files | Direct run | Launch commands per service |
+Step 4 — Detect runtime orchestration from actual manifests and commands, when present. Examples include container compose files, cluster manifests, process supervisors, serverless deployment configs, and local service scripts; this list is not exhaustive. No orchestration file is not evidence that the application runs directly.
 
-Step 3.5 — Detect **delivery / deployment stack** (provider-agnostic — list only signals present; NEVER assume a provider):
+Step 5 — Detect delivery and deployment configuration from repository evidence. Common CI and infrastructure filenames are search examples, not an allowlist; inspect discovered files and their referenced definitions. If no pipeline or IaC is found, report that limited observation without inventing a provider or delivery process.
 
-| Signal (file/dir present) | Category | What to Document |
-| --- | --- | --- |
-| `.github/workflows/*.yml` | CI/CD — GitHub Actions | Workflows, triggers, jobs, deploy steps, environments |
-| `.gitlab-ci.yml` | CI/CD — GitLab CI | Stages, jobs, `environment:` blocks |
-| `azure-pipelines.yml` / `.azure/` | CI/CD — Azure Pipelines | Stages, deployment jobs, environments |
-| `Jenkinsfile` | CI/CD — Jenkins | Pipeline stages, agents, deploy stages |
-| `.circleci/config.yml` | CI/CD — CircleCI | Workflows, jobs, contexts |
-| `bitbucket-pipelines.yml` | CI/CD — Bitbucket | Pipelines, deployments |
-| `*.tf` / `*.tf.json` | IaC — Terraform | Providers, resources, backends, workspaces/envs |
-| `Pulumi.yaml` | IaC — Pulumi | Stacks, resources |
-| `*.template.json` / `cdk.json` | IaC — CloudFormation/CDK | Stacks, resources |
-| `*.bicep` | IaC — Bicep | Modules, resources |
-| `ansible/` / `playbook*.yml` | IaC — Ansible | Playbooks, roles, inventories |
-| `charts/` / `Chart.yaml` | IaC — Helm | Charts, values-per-env |
-| `kustomization.yaml` | IaC — Kustomize | Bases, overlays-per-env |
-| `appsettings*.json` / `.env*` / `*.config` | Env/app-settings | Setting KEYS per environment (NOT values) |
-| K8s `ConfigMap`/`Secret`, `.env.example`, vault/secret-manager refs | Secret management | Mechanism + reference NAMES only (NEVER values) |
+Step 6 — Read optional project-config sections only when valid and present (for example, module roots or runtime/deployment hints). Corroborate each material hint with repository evidence; omitted sections are normal and do not block a scan.
 
-**Evidence gate:** `<60%` confidence on delivery stack → document "delivery stack: undetermined (no CI/IaC config found)"; DO NOT fabricate a pipeline.
-
-Step 4 — Load module list from `docs/project-config.json` `modules[]` **and the `infrastructure` block (`containerization` / `orchestration` / `cicd.*` / `iac.*`) if present** — use as expected catalog + detection hints (config hints are corroborated against file evidence, never trusted blindly).
-
-**Evidence gate:** Confidence <60% on architecture type → report uncertainty, DO NOT proceed with architecture-specific scan assumptions.
+**Evidence gate:** An architecture, runtime, or delivery label must be backed by source/configuration or authoritative project documentation. Record uncertainty and continue with verified sections; do not let an unknown label suppress unrelated evidence.
 
 ### Sub-agent Think scopes
 
-**Agent 1: Backend Services**
-- **Think (Completeness dimension):** How many services exist? Is there a service in the codebase with no Dockerfile (worker? library? shared?)? Which services expose HTTP APIs vs are background workers?
-- **Think (Port accuracy dimension):** Where are ports defined — `launchSettings.json`, `appsettings*.json`, `docker-compose.yml`, `Program.cs`? Some services may have port in multiple places that must agree.
-- **Think (Pattern dimension):** Is there a consistent folder structure per service (e.g., `Service/`, `Domain/`, `Application/`, `Infrastructure/`)? What deviates from the pattern?
-- Scan targets: glob `**/*.csproj` + `**/Dockerfile` (reconcile against `project-config.json` modules); read `launchSettings.json` + `appsettings*.json` per service for ports; grep `[ApiController]`, `MapControllers`, `app.MapGet` to classify API vs worker vs library; find entry points (`Program.cs`, `Startup.cs`); flag services in config with no Dockerfile (or vice versa).
+**Agent 1: Source, modules & entry points** (run when source/build structure exists)
+- **Think:** Which source roots, packages, executables, libraries, jobs, and entry points are real? How do imports, build definitions, and callers establish ownership or dependencies?
+- Scan targets: configured source/module roots after verifying them; workspace/build manifests; entry points and their callers; actual package boundaries and shared dependencies. Use examples only as search cues, adapt to the languages and build tools found, and cite `file:line` or manifest location.
 
-**Agent 2: Frontend Apps**
-- **Think (App inventory dimension):** How many frontend apps exist? Which are active (have dev-start commands) vs legacy vs deprecated?
-- **Think (Port/config dimension):** Where is the dev server port defined — framework serve config, dev-server config, or proxy config? Read the actual config — do not infer.
-- **Think (Dependency dimension):** Which apps consume which shared libraries? Is there a design system library? A domain library? What's the dependency graph direction?
-- Scan targets: glob configured frontend build and dev-server config files (exclude dependency folders); read serve/dev configs for ports; find entry points from the configured framework; framework versions from package metadata (exact, not ranges); map app-to-library deps from workspace graph or imports.
+**Agent 2: Application surfaces & integrations** (run when application or integration surfaces exist)
+- **Think:** Which user/application surfaces and external boundaries are supported by source evidence? Which behavior is hosted in a web, mobile, desktop, API, command-line, worker, or other surface, if any?
+- Scan targets: evidenced app entry points, routes/handlers, clients, adapters, event/message contracts, and integration call sites. Do not infer a frontend/backend split, microservice, or runtime integration from a dependency alone.
 
-**Agent 3: Infrastructure & Tech Stack**
-- **Think (Infrastructure dimension):** What external services must be running for the app to function? Which are optional? How is each external service authenticated — env var / secret name / secret-manager reference? (record the **mechanism and reference names**, NEVER credential values)
-- **Think (CI/CD dimension):** What pipeline system is used? What are the build/test/deploy stages? What environments exist?
-- **Think (Delivery dimension):** What is the full path from commit → deployed environment? What environments exist and how does a change promote between them? How is a bad deploy rolled back? Where do environment/app settings live and how are secrets supplied?
-- **Think (Version accuracy dimension):** Framework/library versions must come from actual config files — not assumed from project type.
-- Scan targets: read `docker-compose*.yml` (infra services, port mappings, **auth mechanism / secret names — NOT credential values**); find CI/CD configs (`.github/workflows/*.yml`, `azure-pipelines.yml`, `Jenkinsfile`); parse package managers for key deps + versions; identify DBs per service from connection strings; find message-broker config from appsettings.
-- **Delivery scan targets (write to Deployment & Delivery / Environment Configuration sections):** CI/CD pipeline files (stages, triggers, deploy jobs, gated environments); IaC files (resources, backends, per-env values/overlays/workspaces); environment list + promotion order; rollback mechanism (blue-green, canary, `rollout undo`, previous-image redeploy); environment/app-settings surfaces (`appsettings.{env}.json`, `.env.{env}`, config maps) — record setting **KEYS grouped by environment**; secret-management **mechanism + reference names ONLY**.
-- **[BLOCKING] Secret safety:** record secret variable/reference **names, file locations, and the mechanism** (env var, vault, sealed secret, CI secret store). **NEVER** copy a secret value, token, connection string with credentials, or private key into the report or doc.
+**Agent 3: Runtime, delivery & operations** (run when runtime/deployment/configuration evidence exists)
+- **Think:** What starts the system, what dependencies must be available, and how are builds or deployments promoted? Which commands, ports, environment keys, and secret references are actually defined?
+- Scan targets: repository-owned runtime/deploy manifests, local scripts, CI workflows and referenced scripts, IaC, application settings, and project-defined readiness/rollback behavior. Record only source-backed facts, including secret-reference names and mechanisms, never secret values.
 
 ### Target Sections
 
-| Section | Content |
+Include only sections supported by evidence; omit inapplicable sections rather than leaving framework-shaped placeholders.
+
+| Section | Include when evidence supports it |
 | --- | --- |
-| **Architecture Overview** | Architecture type, orchestration approach, deployment model |
-| **Service Architecture** | Table: Service Name, Type (API/Worker/App), Port, Dockerfile path |
-| **Infrastructure Ports** | Table: Service (DB/MQ/Cache), Port, Auth mechanism (env var / secret name / "default local-dev only" — NEVER credential VALUES) |
-| **Deployment & Delivery** | CI/CD provider + pipeline stages (table: Stage, Trigger, Target env, `file:line`); IaC tool + key resources; environments + promotion flow; rollback strategy |
-| **Environment Configuration** | Table: Setting group / config file, Environment, Purpose, `file:line` — setting KEYS only; Secret-management mechanism + reference NAMES (NO values) |
-| **Frontend Apps** | Table: App name, Framework, Dev port, Build command |
-| **Tech Stack** | Table: Category (Backend/Frontend/Infra), Technology, Version |
-| **Module Codes** | Table: Module code abbreviation, Full name, Service path |
-| **Key Directories** | Top 2-3 levels of configured source roots with one-line purpose per top-level dir |
+| **Repository scope & architecture** | Verified repository/workspace boundary, runnable or buildable units, and module ownership. State an architecture label only when its meaning is supported. |
+| **Applications & entry points** | Actual user-facing surfaces, APIs, CLIs, jobs, libraries, or other executable entry points. |
+| **Runtime & integrations** | Configured runtime units, data stores, external systems, ports, and their verified relationships. Omit ports that are not explicitly configured. |
+| **Build, delivery & operations** | Commands, CI stages, IaC, environments, promotion, or rollback only when repository/project docs define them. |
+| **Environment & secret configuration** | Setting keys, source locations, and secret-reference mechanisms only; never values. |
+| **Languages & toolchain** | Technologies and versions from actual manifests; preserve ranges as ranges and never infer a pinned version. |
+| **Source organization** | Short purpose notes for relevant verified roots when useful; no full directory tree or unsupported layer taxonomy. |
 
 ### Content Rules / exceptions
-Standard — follows shared `output-quality-principles` (no full trees/counts/TOCs). "Key Directories" limited to top 2-3 levels with one-line purpose (consistent with no-full-trees rule).
+Follow shared `output-quality-principles` (no full trees/counts/TOCs). Cite every command, boundary, runtime setting, version, and architecture claim to the source that establishes it. Do not claim missing, deprecated, active, or production status from path names alone. If source evidence is incomplete, state the verified scope and what remains unknown.
 
 ### Special slivers
-- **Ports-from-config-files rule:** ALL port numbers MUST be read from actual config files — NEVER infer from memory. Reinforced in Agent 1/2/3 Think + scan, Phase 4 Grep verify (ports match config), Round 2 fresh-eyes (ports match `launchSettings.json`/`docker-compose.yml`), closing reminder (cite `file:line` for every port + path).
-- **[BLOCKING] Phase 0** architecture-type + mode detection (parallel); sub-agent focus depends on detected type.
-- **Two-axis Phase 0** — architecture type (step 2) AND orchestration approach (step 3) are separate classification tables.
-- **Evidence-gate fallback** — <60% on architecture type → report uncertainty, DO NOT proceed (stricter than design-system's "Agent 1 only").
-- Phase 4 verify: Glob-verify ALL Dockerfile paths in service table (not just 3); Grep-verify port numbers vs config. Glob-verify ALL CI/CD, IaC, and env-config file paths cited in Deployment & Delivery / Environment Configuration; Grep-scan the generated sections (case-insensitive) to assert **no secret-looking values** leaked — only KEYS/names. The backstop must cover the formats the scan actually reads, not just shell/dotenv: (a) `key=value` secrets (`password=`, `token=`, `pwd=`, `secret=`); (b) JSON/YAML colon-form secret keys — a `"password"|"pwd"|"secret"|"apikey"|"api_key"|"token"|"connectionstring"` key (case-insensitive) followed by a non-placeholder value (not `${...}`, `<...>`, `***`, empty); (c) known token/key shapes (`sk-`, `AKIA[0-9A-Z]{16}`, `ghp_`, `xox[baprs]-`); (d) `-----BEGIN` PEM headers and long base64/hex blobs. Keep it a bounded backstop — the primary control is the keys-only instruction in the Agent 3 Secret-safety obligation.
-- Version accuracy: framework/library versions MUST come from actual config (`package.json`/`.csproj` exact versions, not ranges/inference).
-- **Delivery detection is a third Phase-0 axis** (architecture + orchestration + delivery) — provider-agnostic; list only detected signals.
-- **[BLOCKING] No-secret-values rule** — deployment/env scanning records names + locations + mechanism only; secret VALUES never enter the report or committed doc. Reinforced in Agent 3 Think, Phase 4 verify, Round 2 fresh-eyes, closing reminder.
-- **Config-hint corroboration** — `infrastructure.*` from project-config is a hint; confirm against actual files before documenting (config can be stale).
+- Only scan/dispatch branches whose evidence gate passes; `UNKNOWN` is a valid result for unresolved architecture, runtime, or delivery details and does not block other verified findings.
+- If documenting ports, read them from the owning configuration and verify every cited value; never use framework defaults from memory.
+- Resolve configured roots and module lists only through the valid project config. Corroborate hints with source; omitted optional sections do not imply absence of a capability.
+- **Secret safety is mandatory:** record secret-reference names, file locations, and mechanisms only. Never copy secret values, tokens, credential-bearing connection strings, or private keys into reports or docs. Before write, inspect the generated text for accidental secret-shaped values, including assignment and JSON/YAML forms, common token prefixes, PEM headers, and long encoded blobs. Redact any finding; do not repeat the value.
+- Verify every cited path, command, version, runtime boundary, and setting against the evidence before writing. Actual versions come from manifests; if only a range is declared, document the range.
 
 ### Anti-Rationalization rows
 
 | Evasion | Rebuttal |
 | --- | --- |
-| "Architecture type obvious from directory names" | Verify from actual project files — names are not evidence |
-| "Port numbers are standard (5000, 8080, etc.)" | Read config files — NEVER infer ports from framework conventions |
-| "Checked 3 Dockerfile paths, that's enough" | Glob-verify ALL paths — partial verification hides missing services |
-| "Framework versions obvious from project type" | Read `package.json`/`.csproj` for exact versions — never assume |
-| "Skip Round 2 even when Round 1 found issues" | Clean Round 1 ends the scan. When issues exist, fresh-eyes mandatory after fixing — port numbers and paths are the most hallucination-prone data. |
-| "project-config.json not needed if repo looks clear" | Config file provides expected service catalog — use it to detect missing services |
-| "CI provider obvious from the `.github` folder" | Read the workflow files — document actual jobs/stages/environments, not folder-name inference |
-| "No deploy docs, so skip deployment" | Env/app-settings, IaC, and CI configs ARE the deployment source of truth — scan them, don't skip |
-| "Copy the env/app-settings values for completeness" | NEVER copy secret values — record KEYS, locations, and mechanism only; the doc is committed |
+| "Directory names prove the architecture" | Trace manifests, entry points, imports, and ownership; label uncertainty when they do not settle it. |
+| "A standard port or command is implied by the framework" | Read the owning config or script and cite the exact source; omit unsupported defaults. |
+| "This project must have a frontend, backend, or service table" | Include only evidenced application surfaces and runtime units; the target is stack-neutral. |
+| "No familiar CI filename means no delivery workflow" | Search repository-owned pipeline/build definitions and their references; do not treat examples as an allowlist. |
+| "The project config is optional because the repository looks clear" | The config file and required `project.name` are part of the scan contract; optional capability sections may be absent. |
+| "Copy environment values for completeness" | Record setting keys and secret-reference names/mechanisms only; never publish values. |
 
 ### prompt-enhance
 `$prompt-enhance <ref>/project-structure-reference.md`
@@ -143,81 +120,65 @@ Standard — follows shared `output-quality-principles` (no full trees/counts/TO
 ## Target: backend-patterns
 
 - **doc:** `<ref>/backend-patterns-reference.md`
-- **description:** `[Documentation] Use when scanning backend code to refresh repository, CQRS, validation, entity, event, and migration guidance.`
-- **sub-agents:** 4 — Agent 1: Repository & Entity Patterns · Agent 2: CQRS & Validation Patterns · Agent 3: Events, Messaging & Infrastructure · Agent 4: Anti-Pattern Detection (**runs AFTER Agents 1-3 complete — NEVER merged with discovery**)
+- **applies when:** server-side API, service, persistence, messaging, or migration code/config exists; record only patterns present in this project.
+- **skip when:** no server-side application or service code is evidenced, even if a backend framework appears only in a dependency list or roadmap.
+- **description:** `[Documentation] Use when recording evidenced server-side code organization, data access, validation, messaging, and persistence patterns.`
+- **sub-agents:** up to 4 conditional branches — data access/persistence; request, business-logic, and validation flow; async/integration boundaries; evidence-based quality review (**only for branches present in the project; quality review follows discovery**).
 
-### Phase 0 detection — BLOCKING, run in parallel
+### Phase 0 detection — capability and mode gate
 
-Step 1 — Read the doc: detect Init (placeholder — headings only) or Sync (populated); in Sync mode list documented sections → skip re-scanning unless staleness suspected.
+Step 1 — Read the selected output and its configured template/sections. Detect Init (placeholder) or Sync (populated); in Sync mode preserve local sections and recheck evidence for staleness rather than assuming existing content is current.
 
-Step 2 — Detect backend framework:
+Step 2 — Identify server-side languages, frameworks, services, persistence, and test organization from valid project config and actual source/manifests. Treat config as a search hint, verify it against source, and support frameworks not listed in examples below. Never stop solely because a stack is unfamiliar.
 
-| Signal | Framework | Next Step |
-| --- | --- | --- |
-| configured backend manifest + CQRS dispatcher marker | configured backend CQRS | Scan for command/query handlers, validation-result wrappers, entity events |
-| `package.json` + express/fastify/nestjs | Node.js | Scan for DI decorators, class-validator, TypeORM |
-| `pom.xml` / `build.gradle` | Java/Kotlin | Scan for Spring annotations, JPA patterns |
-| `requirements.txt` / `pyproject.toml` | Python | Scan for Pydantic, SQLAlchemy, FastAPI patterns |
+Use repository manifests, entry points, route/controller handlers, storage clients, queries, migrations, job/event registrations, and configured module paths as evidence. Record only capabilities actually found; examples such as repositories, CQRS, ORM, event handlers, and background jobs are search lenses, not required architecture.
 
-Step 3 — Load service paths from `docs/project-config.json` contextGroups/modules if available.
-Step 4 — Run graph command on primary service entry point.
+Step 3 — Resolve configured service/module paths when declared, then verify the paths exist. If a supported code graph is available, use it for relevant call chains; otherwise trace callers and dependencies directly from source.
 
-**Evidence gate:** Confidence <60% on framework → report uncertainty, DO NOT proceed with framework-specific scan.
+**Evidence gate:** If framework identity remains uncertain, report `UNKNOWN` and continue only with generic, source-evidenced observations. Do not invent framework-specific conventions or block an otherwise useful generic scan.
 
-Phase 1 — from detected framework derive: repository interface naming, handler base class, validation mechanism, event mechanism, migration tool. NEVER assume — derive from file evidence.
+Phase 1 — derive only observed conventions: request flow, business-rule ownership, data access and transaction boundaries, validation/error behavior, async messaging/jobs, migrations, configuration, and authorization. Mark absent capabilities `NOT APPLICABLE`; do not recommend or require a pattern merely because it is common.
 
 ### Sub-agent Think scopes
 
-**Agent 1: Repository & Entity Patterns**
-- **Think:** What is the complete chain from domain entity → persistence → retrieval? Where does business logic live — in the entity, the service, or the handler? What makes a "repository" in this repository (naming, base class, interface)?
-- Scan targets: repository interfaces (naming, base classes, service-specific vs generic); entity/model base classes (inheritance, property conventions, factory methods); domain-logic placement (entity vs service vs handler); DTO classes (mapping ownership: DTO-owned vs handler-mapped vs AutoMapper); repository extension methods (static query expressions, reusable filters). For each: record `file:line`, 5-15 line snippet, note GOOD vs BAD if anti-pattern present.
+**Agent 1: Data Access & Persistence** (only when present)
+- **Think:** How does this project read/write data, enforce ownership, and define transaction boundaries? Which layer owns queries, mapping, and persistence concerns?
+- Scan targets: actual repositories, query/command modules, ORM or query-builder use, data mappers, entities/models/records, transaction and unit-of-work boundaries, migrations, and schema definitions. Do not assume a repository, ORM, base class, or layer hierarchy.
 
-**Agent 2: CQRS & Validation Patterns**
-- **Think:** How does a request travel from controller to handler? What validates it? What wraps the result? Where does authorization live?
-- Scan targets: command handlers (file structure, naming, base class, result types); query handlers (pagination, projection, caching); validation (mechanism, location handler-vs-pipeline-vs-entity, error format); result wrappers (`Result<T>`/`ApiResponse`/validation-result types); controller/endpoint patterns (routes, auth attributes, binding); authorization (attribute/decorator placement, policy vs role, permission-check location).
+**Agent 2: Request, Business Logic & Validation Flow** (only when present)
+- **Think:** How does an input travel through the application? Where are business rules, validation, errors, authorization, and response mapping owned?
+- Scan targets: actual routes/controllers/handlers/actions, request validation and error formats, business-rule placement, result/response types, authorization boundaries, and observed command/query separation when used. Treat CQRS, pipelines, decorators, and particular validation libraries as optional implementation choices.
 
-**Agent 3: Events, Messaging & Infrastructure**
-- **Think:** How do side effects happen — synchronous or async? How do services communicate? What triggers background work?
-- Scan targets: domain events (trigger mechanism, handler discovery, side-effect placement rules); integration events / message bus (publisher + consumer conventions, message-contract naming); background jobs (scheduler, recurring vs one-time, failure handling); middleware/pipeline (order, cross-cutting concerns); DI registration (lifetime conventions, module registration); migration patterns (file naming, up/down, data migration). For message bus: capture FULL contract naming pattern (ownership prefix matters).
+**Agent 3: Async & Integration Boundaries** (only when present)
+- **Think:** Which operations cross process, service, queue, or time boundaries? How are failures, retries, ordering, idempotency, and ownership handled?
+- Scan targets: verified event/message producers and consumers, scheduled/background work, external service calls, middleware or cross-cutting pipelines, dependency registration, and migration behavior. Preserve producer/consumer and contract evidence; do not infer an event-driven or microservice architecture from a queue dependency alone.
 
-**Agent 4: Anti-Pattern Detection** (run AFTER Agents 1-3)
-- **Think:** Where has the team violated the conventions found by Agents 1-3? Look for the 8 most common backend anti-patterns: wrong repo type, wrong logic layer, exception-based validation, cross-service DB access, handler-owned DTO mapping, uncleaned async scopes, unnamed bus contracts, hardcoded config.
-- Checklist: generic repository where service-specific required; business logic in handlers/components belonging in entities/models; validation via exceptions instead of validation-result type; direct DB access across service boundaries; DTO mapping in handlers instead of DTO-owned; bus-message naming without ownership prefix; hard-coded config that should be injected. For each violation: record `file:line`, classify with the canonical consequence rubric (`CRITICAL`/`HIGH`/`MEDIUM`/`LOW`; use `NOT VERIFIABLE` when evidence is incomplete), and suggest a fix.
+**Agent 4: Evidence-Based Quality Review** (only after applicable discovery)
+- **Think:** Does the observed implementation violate a documented local rule, declared architecture boundary, correctness/security invariant, or an evidenced consumer contract?
+- Review only those risks. Do not classify a pattern as an anti-pattern because it differs from a preferred architecture. Cite each finding; when the project has a severity rubric, apply it; otherwise describe impact and confidence without inventing severity labels.
 
 ### Target Sections
 
-| Section | Content |
-| --- | --- |
-| **Repository Pattern** | Interface naming, base classes, service-specific repos, extension methods with examples |
-| **CQRS Patterns** | Command structure, query structure, handler patterns, file organization |
-| **Validation Patterns** | Mechanism, common rules, error response format, DO/DON'T examples |
-| **Entity Patterns** | Base classes, property conventions, factory methods, domain logic placement |
-| **DTO Mapping** | Mapping ownership (who maps: DTO vs handler vs service), examples |
-| **Event Handlers** | Domain vs integration events, handler discovery, side-effect placement |
-| **Message Bus** | Cross-service patterns, consumer conventions, message contract naming |
-| **DI & Configuration** | Service lifetime conventions, module registration, config injection |
-| **Migrations** | Strategy, file naming, data migration patterns |
-| **Background Jobs** | Scheduler, recurring vs one-time, failure handling |
-| **Authorization** | Auth mechanism, permission checks, policy vs role |
-| **Anti-Patterns** | Confirmed violations with `file:line`, severity, fix guidance |
+Use the output sections declared by the selected reference-doc profile/template. If none are declared, organize the reference around the capabilities found: request flow; business-rule and data ownership; persistence/transactions; validation/errors/security; async/external boundaries; configuration/deployment; and verified risks. Omit areas with no evidence, and never create required headings for absent patterns.
 
 ### Content Rules / exceptions
-- Code snippets 5-15 lines from actual project files with `file:line`.
-- DO/DON'T pairs where anti-patterns confirmed (BAD: `file:line` / GOOD: `file:line`).
-- Tables for convention summaries (naming, file locations, base classes).
-- Anti-Patterns section lists violations found by Agent 4. Standard `output-quality-principles` applies.
+- Cite actual source and config paths for every convention. Include short code excerpts only when they clarify a pattern and the local output contract allows them.
+- Compare observed patterns to project documentation, explicit invariants, and actual consumers. Do not grade architecture by assuming CQRS, repositories, ORM, OOP, DDD, microservices, or a specific layering model is always best.
+- Describe strengths, trade-offs, and verified gaps in terms of the project's scale, boundaries, and change needs. Apply local severity/format conventions when they exist; otherwise report evidence and impact directly.
+- Keep output sections aligned with the selected local template and the shared `output-quality-principles`.
 
 ### Special slivers
-- **4 sub-agents** — Agent 4 (Anti-Pattern) is a SEPARATE concern, runs AFTER discovery, NEVER merged.
-- Phase 4 verify step 5: Anti-Patterns section populated with actual `file:line` violations (not hypothetical).
-- Graph command on 2-3 key pattern files to validate call-chain accuracy.
+- **Conditional branches:** delegate only applicable, independent scans; run the evidence-based quality review after its applicable discoveries.
+- Record an anti-pattern only when it violates an evidenced local rule, consumer contract, or correctness/security invariant.
+- When a supported project graph is available, use it for relevant call chains; otherwise verify callers and dependencies directly from source.
 
 ### Anti-Rationalization rows
 
 | Evasion | Rebuttal |
 | --- | --- |
-| "Framework already known, skip Phase 0 detection" | Phase 0 is BLOCKING — derive grep terms from evidence, not assumption |
-| "Only 3 agents needed, skip anti-pattern agent" | Anti-pattern detection is separate concern — NEVER merge with discovery |
+| "The stack is unfamiliar, stop the scan" | Record unknown framework details and continue with generic facts that source evidence supports |
+| "A familiar pattern is always the right architecture" | Document the choice the project actually makes; evaluate alternatives only against local constraints and evidence |
+| "Search only the patterns named in this guide" | Derive search terms from manifests, entry points, dependencies, config, and source |
 | "Doc has content, skip re-read" | Show section list extracted from doc as proof of re-read |
 | "Examples look right" | Glob-verify ALL file paths + Grep-verify ALL class names — looking right ≠ verified |
 | "Round 2 review not needed for small scan" | Main agent rationalizes own mistakes. Fresh sub-agent is non-negotiable. |
@@ -230,21 +191,15 @@ Phase 1 — from detected framework derive: repository interface naming, handler
 ## Target: frontend-patterns
 
 - **doc:** `<ref>/frontend-patterns-reference.md`
-- **description:** `[Documentation] Use when scanning frontend component, state, form, API, routing, and styling patterns.`
+- **applies when:** user-interface code exists in application routes, views, components, templates, or equivalent project sources.
+- **skip when:** the repository has no UI source; do not treat a UI dependency, design mockup, or empty app folder as implementation evidence.
+- **description:** `[Documentation] Use when recording evidenced UI composition, state, forms, API use, routing, and styling.`
 - **sub-agents:** 3 — Agent 1: Component & Form Patterns · Agent 2: State Management & API Services · Agent 3: Routing, Directives & Directory Structure
 
-### Phase 0 detection — BLOCKING (framework + mode)
+### Phase 0 detection — capability, platform, and mode
 
-Detect frontend framework:
-
-| Signal | Framework | Key Patterns to Search |
-| --- | --- | --- |
-| configured frontend workspace manifests | configured frontend workspace | base component class, state store, teardown, styling conventions |
-| configured frontend framework manifest | configured frontend framework | component markers, lifecycle hooks, forms, API client usage |
-| `package.json` with `react`/`next` | React | hooks, context, `useState`, `useEffect`, `fetch` wrappers |
-| `package.json` with `vue`/`nuxt` | Vue | Composition API, `ref`, `reactive`, Pinia stores |
-| `package.json` with `svelte`/`sveltekit` | Svelte | `$:` reactivity, stores, `onMount`/`onDestroy` |
-| Multiple frameworks | Multi-framework | Document each separately — DO NOT merge |
+- Identify UI languages, frameworks, rendering/runtime platform, app paths, and test/config conventions from the valid project config and actual source/manifests. Config is a search hint; verify paths and versions. Framework examples in this file are not an allowlist, and an unfamiliar stack is not a reason to stop.
+- Detect actual UI surfaces and classify applicable branches: composition/components/templates; state and data flow; forms/input; routing/navigation; styling; accessibility/platform behavior. Do not scan branches without evidence.
 
 Detect scan mode:
 
@@ -253,70 +208,51 @@ Detect scan mode:
 | Init | Target doc doesn't exist or placeholder only | Full scan, create all sections |
 | Sync | Target doc has real content | Diff scan — check new base classes, changed patterns |
 
-Also: reads target doc to detect Init/Sync; in Sync mode extract section list → skip well-documented sections. Load app paths from `docs/project-config.json` `contextGroups`/`modules[]` if available.
+Read the selected output and configured template/sections. Init mode populates only the selected local contract; Sync mode preserves its existing section roles and rechecks each relevant pattern for staleness. Resolve optional application/module paths from valid config when declared, then verify them; otherwise discover scope from source and repo structure. A declared invalid section blocks under the shared config contract.
 
-**Evidence gate:** Confidence <60% on **framework** → report uncertainty, **ask user** before proceeding.
+**Evidence gate:** If framework identity is incomplete, record `UNKNOWN` and continue with source-evidenced, framework-neutral structure guidance. Prescribe framework-specific patterns only after verifying their use. Ask only when material evidence conflicts or an unresolved owner choice changes the output and repository evidence cannot settle it.
 
 ### Sub-agent Think scopes
 
-**Agent 1: Component & Form Patterns**
-- **Think (Base Class dimension):** What base classes exist? What does each provide — lifecycle, subscriptions, form helpers, DI? Which base class is used for simple components vs complex state vs forms?
-- **Think (Form dimension):** Is form state reactive or template-driven? Where does validation live — in the form, in validators, in the model? What's the error display pattern?
-- **Think (Cleanup dimension):** How are subscriptions cleaned up? Is there a shared mechanism (e.g., `untilDestroyed()`) or is each component responsible?
-- Scan targets: component base classes (`extends.*Component`, `React.Component`, `defineComponent`); form handling (reactive forms, builders, validation, error display); lifecycle conventions (init, destroy, cleanup); template/JSX conventions (structural patterns, conditional rendering, BEM classes); component communication (inputs/outputs, props/events, signals, `@Input`/`@Output`).
+**Agent 1: UI Composition & Input Patterns** (only when present)
+- **Think:** How are views, components, and templates composed? How are inputs and forms validated, errors shown, lifecycle/resources owned, and user actions exposed?
+- Scan targets: actual component/view/template abstractions; forms and validation; lifecycle and cleanup only where stateful resources exist; component communication and reuse boundaries. Treat base classes, JSX, directives, signals, and specific framework APIs as optional examples; discover the idioms this project uses.
 - **UI/UX clause capture (DOCUMENT the project's rule — never enforce it):** record the project's ACTUAL convention for the clause-governed dimensions this agent owns — how the five interaction states (default, hover, focus, active, disabled) are expressed, plus loading where it applies (`UI-5.2`); label vs placeholder convention (`UI-7.2`); validation timing (on blur / on keystroke / on submit) and where the error message renders relative to its field (`UI-7.3`); whether entered input survives an error, navigation, or refresh, and the mechanism that preserves it (`UI-7.5`); the touch-target sizing convention against the ≥44×44pt / 8px-apart default (`UI-8.1`). Per dimension record: **project rule + `file:line`** → then **PROJECT AUTHORITY — overrides `UI-<clause>`** (the project's recorded convention is the authority) or **GAP — no project convention; the clause default applies**.
 
-**Agent 2: State Management & API Services**
-- **Think (State dimension):** What is the data flow — unidirectional? How does a component trigger a data load? How does it receive updates? What prevents race conditions?
-- **Think (API dimension):** Is there a service base class? What does it provide — base URL, auth headers, error mapping? Who calls the HTTP layer — directly in components or via service abstraction?
-- **Think (Subscription dimension):** What patterns prevent memory leaks? Is cleanup enforced by a linter/base class or left to developer discipline?
-- Scan targets: state management (`Store`, `useReducer`, `createStore`, `defineStore`, signals); API service base classes (`extends.*Service`, `HttpClient`, `fetch` wrappers); data fetching (interceptors, error handling, loading states, caching); subscription/cleanup (`untilDestroyed`, `takeUntil`, `unsubscribe`, dispose callbacks); shared/common service patterns + DI registration.
+**Agent 2: UI State & Data Flow** (only when present)
+- **Think:** How does UI state change, how is data loaded or updated, and how are pending/error states and resource lifetimes handled?
+- Scan targets: actual state/store mechanisms; API or server-action boundaries; data fetching, caching, race handling, and user-visible state feedback; subscriptions/listeners and cleanup when applicable; shared service/client registration. Do not assume hooks, a store library, client-side fetching, or an API-service layer.
 - **UI/UX clause capture (DOCUMENT the project's rule — never enforce it):** record the project's ACTUAL convention for the state-feedback dimensions this agent owns — the loading, empty, and error state conventions and which layer owns each (`UI-1.5`); whether waits render structure-first skeletons for known layouts or spinners for unknown waits (`UI-9.1`); the optimistic-update pattern if one exists — update-first, reconcile-after, and how a failure rolls back visibly (`UI-9.2`). Per dimension record: **project rule + `file:line`** → then **PROJECT AUTHORITY — overrides `UI-<clause>`** (the project's recorded convention is the authority) or **GAP — no project convention; the clause default applies**.
 
-**Agent 3: Routing, Directives & Directory Structure**
-- **Think (Routing dimension):** How are routes protected? What's the lazy-loading boundary? How are navigation events handled? Is there a routing hierarchy?
-- **Think (Reuse dimension):** What custom directives/pipes exist? Are they in a shared library? What naming conventions distinguish feature-specific from cross-cutting reusables?
-- **Think (Organization dimension):** What's the pattern for where things live — feature modules, domain libraries, shared libs? How do apps consume shared code?
-- Scan targets: routing config (route definitions, guards, resolvers, lazy loading, `canActivate`); custom directives/pipes/hooks + registration; module/library organization (shared modules, feature modules, Nx library structure); directory-structure conventions (where components, services, models, specs live); build config + environment patterns (proxy configs, env-specific settings).
+**Agent 3: Navigation & UI Organization** (only when present)
+- **Think:** How are navigation, access boundaries, reusable UI behavior, and UI modules organized in this project?
+- Scan targets: actual route/navigation declarations and guards; reusable UI extensions where the framework supports them; app/module/package boundaries; UI file organization and build/runtime configuration. Do not assume client-side routing, directives/pipes, lazy loading, a particular workspace tool, or a fixed directory layout.
 
 ### Target Sections
 
-| Section | Content |
-| --- | --- |
-| **Component Base Classes** | Hierarchy with what each base provides; when to use which |
-| **State Management** | Store pattern, reactivity approach, data flow conventions |
-| **Forms** | Form creation pattern, validation approach, error display |
-| **API Services** | Service base class, HTTP call pattern, error handling |
-| **Routing** | Route definition pattern, guards, lazy loading, navigation conventions |
-| **Directives & Pipes** | Custom reusable behaviors, naming conventions, registration |
-| **Directory Structure** | Where things live: components, services, models, shared code |
-| **Subscription Cleanup** | How subscriptions/listeners are managed and cleaned up |
-| **Styling Conventions** | Component styling approach (scoped, BEM, utility classes) |
-| **UI/UX Clause Coverage** | Table: Clause (`UI-1.5`, `UI-5.2`, `UI-7.2`, `UI-7.3`, `UI-7.5`, `UI-8.1`, `UI-9.1`, `UI-9.2`), Project rule, `file:line`, Verdict (**PROJECT AUTHORITY — overrides the clause** / **GAP — clause default applies**) — a deviation RECORD, never a grade |
+Use headings and required sections from the selected project-reference profile/template. If none are declared, describe only evidenced UI capabilities, such as composition, state/data flow, forms, navigation, styling, accessibility behavior, and build/runtime boundaries. Omit absent capabilities. Capture the shared UI/UX clause guidance only where it applies to the project's surface; record project conventions and gaps with evidence rather than treating this scanner as a review gate.
 
 ### Content Rules / exceptions
-Standard. No declarations-only rule, no source whitelist, no directory-tree allowance — follows shared `output-quality-principles`. Per-agent: write incrementally after each pattern category, cite `file:line`, confidence tiers >80%/60-80%/<60%.
+Use shared `output-quality-principles`. Write findings incrementally, cite `file:line` for code conventions, and separate verified behavior from inference. Describe accessibility or platform standards from the project's documented owner or the applicable shared baseline; do not infer a standard from framework names.
 
-- **UI/UX clause coverage is a RECORD, not a review.** The 40 UI/UX Design Principles (`UI-1.1`–`UI-9.4`; canonical text in `.claude/skills/shared/sync-inline-versions.md` → `SYNC:ui-ux-design-principles`) are the DEFAULT only where this project is silent. A recorded project convention OUTRANKS the clause, so the generated doc states the project's rule, names the clause it overrides (`UI-<clause>`), and says the deviation is the project's authority. A clause-governed dimension with NO project convention is recorded as a **GAP** so the clause default applies. Never flag a deviation as a defect and never "fix" one — enforcement belongs to `ui-review`; this scan only makes the project's authority explicit and citable.
+- **UI/UX clause coverage is a RECORD, not a review.** Apply the shared `SYNC:ui-ux-design-principles` only to relevant surfaces. Record the project rule and `file:line`, or a **GAP** when no project convention is evidenced. A recorded convention may specialize the shared default; surface any conflict with a stricter legal, security, or platform requirement instead of silently treating either rule as waived. Review enforcement belongs to the applicable review skill.
 
 ### Special slivers
-- BLOCKING gate is Phase 0 framework + mode detection.
-- Round 2 fresh-eyes questions are framework-pattern specific: every example exists at claimed `file:line` (Glob+Grep); base-class names match actual definitions (Grep); store method names are real not hallucinated (Grep); cleanup patterns documented with actual implementation evidence.
-- Phase 4 extra verify: "Verify base class hierarchy from at least 3 concrete examples."
-- 3 sub-agents (vs scss's 2).
-- **UI/UX clause coverage sliver** — Agent 1 captures the interaction-state, form, and touch-target clauses (`UI-5.2`, `UI-7.2`, `UI-7.3`, `UI-7.5`, `UI-8.1`); Agent 2 captures the state-feedback clauses (`UI-1.5`, `UI-9.1`, `UI-9.2`); both write project rule + `file:line` + PROJECT AUTHORITY / GAP verdict into the **UI/UX Clause Coverage** section. Scans DOCUMENT the deviation; `ui-review` is the pass that enforces the clauses.
+- Applicability and mode detection precede framework-specific searches; unknown framework details do not block generic observations.
+- Fresh-eyes verification checks that every cited path and named API exists, and that the evidence supports the documented convention. Verify base-class/store/lifecycle examples only when those constructs exist; do not require a fixed minimum number.
+- Delegate the three analysis scopes only when each has distinct, applicable work.
+- **UI/UX clause coverage** — record only clauses applicable to the observed platform and surface; preserve local and stricter requirements with evidence. Scans document conventions and gaps; the applicable review skill evaluates quality.
 
 ### Anti-Rationalization rows
 
 | Evasion | Rebuttal |
 | --- | --- |
-| "Framework obvious, skip Phase 0 detection" | Phase 0 is BLOCKING — grep patterns and agent scope depend on detected framework |
-| "Base class names look right" | Grep-verify ALL base class names — AI hallucinates class hierarchies |
-| "Store method names are standard" | Every store method name must be grep-verified against actual source |
-| "Skip Round 2 even when Round 1 found issues" | Clean Round 1 ends the scan. When issues exist, fresh-eyes mandatory after fixing — main agent rationalizes own fabricated examples. |
-| "Cleanup pattern documented, 1 example enough" | Cleanup is the most project-specific pattern — verify with 3+ grep hits |
-| "Project already follows the UI clauses, so skip the coverage section" | Every clause-governed dimension gets a row — a matching convention is still recorded with `file:line`, and a missing one is recorded as a GAP |
-| "This form validates on keystroke — flag it as a violation" | The scan DOCUMENTS, it never grades. Record the project's rule as the authority that overrides `UI-7.3`; enforcement is `ui-review`'s job |
+| "The framework is unfamiliar, stop Phase 0" | Record what is unknown and continue with verified framework-neutral UI structure |
+| "A component/store/lifecycle convention is obvious" | Cite the actual definitions and uses; omit constructs the project does not have |
+| "One visible example proves the convention" | Check representative callers and variants; state the evidence scope and gaps |
+| "Skip fresh-eyes after issues were found" | Resolve findings and verify the final paths/claims independently before writing |
+| "Every UI surface uses the same interaction standard" | Select standards by platform and local requirements; mark inapplicable checks with evidence |
+| "This local form behavior is automatically a defect" | Document the local behavior; evaluate it in the appropriate UI review against applicable requirements |
 
 ### prompt-enhance
 `$prompt-enhance <ref>/frontend-patterns-reference.md`
@@ -326,35 +262,21 @@ Standard. No declarations-only rule, no source whitelist, no directory-tree allo
 ## Target: scss-styling
 
 - **doc:** `<ref>/scss-styling-guide.md`
-- **description:** `[Documentation] Use when scanning SCSS architecture, BEM conventions, mixins, variables, theming, and responsive patterns.`
-- **sub-agents:** 2 — Agent 1: SCSS Architecture & Variables · Agent 2: BEM Patterns & Theming
+- **applies when:** maintained `.scss`/`.sass` source or Sass-specific configuration and source files exist.
+- **skip when:** styling is implemented only with plain CSS, utility classes, CSS-in-JS, or another non-Sass system; use an applicable UI target instead.
+- **description:** `[Documentation] Use when recording evidenced Sass structure, variables, composition, theming, and responsive conventions.`
+- **sub-agents:** up to 2 conditional branches — Sass architecture/declarations and naming/theming; dispatch only distinct branches supported by source evidence.
 
-### Phase 0 detection — BLOCKING (styling approach + BEM + mode)
+### Phase 0 detection — Sass applicability, optional naming patterns, and mode
 
-Detect styling approach:
+- Confirm maintained Sass source (`.scss`/`.sass`) or a real Sass build path before scanning. A config or dependency without Sass source is not sufficient; if only other styling systems exist, report this target `SKIPPED` and route to the applicable UI target.
+- In a hybrid styling system, scope this target to the verified Sass subsystem and preserve its boundaries from other style sources. Do not adapt this Sass scanner to Less, plain CSS, utility CSS, or CSS-in-JS.
+- Detect BEM, modules, theming, tokens, and other naming/organization patterns only if present. BEM is one possible convention, not a requirement; record the actual alternative when useful.
+- Read the selected doc/template and preserve local sections in Sync mode. Resolve configured style/token roots when declared; otherwise discover maintained Sass sources and exclude generated/dependency output.
 
-| Signal | Approach | Agent Emphasis |
-| --- | --- | --- |
-| `*.scss` files present | SCSS/Sass | Both agents (variables + BEM) |
-| `*.less` files present | Less | Adapt variable patterns to Less syntax |
-| `*.module.css`/`*.module.scss` | CSS Modules | Focus on naming conventions, composition |
-| `tailwind.config.*` present | Tailwind CSS | Config-first: extract theme overrides, custom utilities |
-| `styled-components`/`emotion` in deps | CSS-in-JS | Component-level style colocation, theme provider |
-| Multiple approaches | Hybrid | Document each separately with clear boundary |
+**Source scope:** use configured/evidenced Sass, theme, and token roots. Exclude generated output and dependencies. Include component-local styles when they are maintained owners or the local config selects them.
 
-Detect BEM usage:
-
-| Signal | BEM Adoption | Notes |
-| --- | --- | --- |
-| `block__element--modifier` patterns in templates | Active BEM | Document separator style and nesting rules |
-| Mixed BEM and utility classes | Partial BEM | Document which layer uses which approach |
-| Only utility classes (Tailwind, Bootstrap) | No BEM | Document utility class conventions instead |
-
-Also: reads doc to detect Init/Sync; in Sync mode extract section list → skip well-documented sections. Load styling config from `docs/project-config.json` `designSystem.tokenFiles` if available.
-
-**Source-scope whitelist for token discovery:** configured style, theme, and token source roots; EXCLUDE generated output, dependency folders, coverage, and component-local styles unless configured.
-
-**Evidence gate:** Confidence <60% on **primary approach** → report uncertainty, **proceed with Agent 1 (structure) only**.
+**Evidence gate:** If Sass applicability cannot be verified, report the checked config and source paths and skip this target. If a secondary pattern is uncertain, document only verified Sass facts and mark that pattern `UNKNOWN`.
 
 ### Sub-agent Think scopes
 
@@ -362,46 +284,33 @@ Also: reads doc to detect Init/Sync; in Sync mode extract section list → skip 
 - **Think (Import chain dimension):** What's the entry point? Where do global styles load? Is there a predictable import order (reset → tokens → utilities → components)? What breaks if the order changes?
 - **Think (Variable declaration dimension):** Which variables are authoritative declarations vs usages? Are CSS custom properties mirroring SCSS variables (dual-declaration pattern)? What's the naming convention (BEM-inspired, semantic, functional)?
 - **Think (Breakpoint dimension):** Where are breakpoints defined? Is there a responsive mixin or just raw media queries scattered across files? Mobile-first or desktop-first?
-- Scan targets: glob `**/*.scss` (or detected ext) within whitelist; global stylesheet entry points + their `@import`/`@use`/`@forward` chains; SCSS variable declarations (`^\s*\$[a-zA-Z][a-zA-Z0-9_-]*\s*:`) — dedupe, group by category; CSS custom property declarations (`--[a-zA-Z][a-zA-Z0-9_-]*\s*:`) in `:root`/theme blocks; mixin definitions (`@mixin\s+[a-zA-Z]`) — signature + one usage; function definitions (`@function\s+[a-zA-Z]`); breakpoint definitions (values from media queries + breakpoint variables).
-- **Quality gate:** if a variable category has <3 unique declarations OR >200, log "scope too narrow/broad — manual refinement required."
+- Scan targets: maintained `.scss` and `.sass` source within configured/evidenced roots; actual entry points and Sass import/use/forward chains; variable, mixin, function, theme, and breakpoint declarations in the syntax present; CSS custom-property declarations owned by those style sources. Separate declarations from usages and verify each cited value against source.
+- If a declaration inventory appears unexpectedly small or broad, verify the configured/source scope and exclusions; do not use fixed item-count thresholds as a validity rule.
 - **UI/UX clause capture (DOCUMENT the project's rule — never enforce it):** from actual declarations (never inference), record the project's ACTUAL convention for the clause-governed dimensions this agent owns — the spacing base unit and which multiples of it actually appear, against the one-unit 4px-or-8px default (`UI-4.1`); whether spacing is carried by container `gap` or by child margins (`UI-4.2`); the breakpoint definitions and whether they are content-driven or device-named (`UI-4.4`); the type sizes in use versus a fixed named scale — body size against the 16px web / 17px mobile default and the never-below-14px floor (`UI-2.2`), and whether a fixed 6-step named scale exists or one-off sizes appear (`UI-2.5`); any line-length/measure constraint against the 45–75-character default (`UI-2.3`). Per dimension record: **project rule + `file:line`** → then **PROJECT AUTHORITY — overrides `UI-<clause>`** (the project's recorded convention is the authority) or **GAP — no project convention; the clause default applies**.
 
 **Agent 2: BEM Patterns & Theming**
 - **Think (BEM convention dimension):** What's the exact separator style (double-underscore `__`, double-dash `--`, or variants)? What's the maximum nesting depth before patterns break? Are modifiers on blocks, elements, or both?
 - **Think (Theming dimension):** How many themes exist? Is theming via CSS custom property overrides, SCSS theme maps, or class-based switching? How does a developer add a new theme?
 - **Think (Component scoping dimension):** Are styles co-located with components (scoped) or global? What naming convention prevents cross-component contamination?
-- Scan targets: BEM class patterns in templates/HTML (`__` and `--`) — find 5+ concrete examples; BEM naming in SCSS (`&__element`, `&--modifier`); theming patterns (CSS custom property overrides, theme class switching, dark mode); component-scoped vs global; z-index management (variables, scale, stacking context); animation/transition conventions (duration/easing variables); color palette — grep declarations only (hex/hsl/rgb in variable declarations).
+- Scan targets: evidenced class/naming conventions such as BEM when present; theme ownership and switching; component-scoped vs global styles; z-index, motion, and color declarations when maintained as project conventions. Cite enough representative examples to establish each claimed rule; if no pattern exists, report that instead of inventing one.
 - **UI/UX clause capture (DOCUMENT the project's rule — never enforce it):** record the project's ACTUAL focus-ring treatment — the `:focus` / `:focus-visible` styling, any rule that removes the default outline, and the replacement indicator if one exists (`UI-5.5`). Record: **project rule + `file:line`** → then **PROJECT AUTHORITY — overrides `UI-5.5`** (the project's recorded convention is the authority) or **GAP — no project convention; the clause default applies**. An outline removed with no replacement is recorded as a deviation from `UI-5.5` for `ui-review` to adjudicate — the scan states it, never grades it.
 
 ### Target Sections
 
-| Section | Content |
-| --- | --- |
-| **BEM Methodology** | Separator style, nesting rules, block/element/modifier examples from actual components |
-| **SCSS Architecture** | File organization, import chain, global vs component style boundary |
-| **Mixins & Functions** | Table: name, signature, purpose, `file:line` — declarations only |
-| **Variables & Tokens** | Table: category (color/spacing/type/breakpoint), variable name, purpose, `file:line` |
-| **Theming** | Theme approach, CSS custom property blocks, how to add/modify a theme |
-| **Responsive Patterns** | Breakpoint definitions, responsive mixin usage, mobile-first vs desktop-first |
-| **Color Palette** | Color variables/tokens grouped by semantic role (not raw hex list) |
-| **Z-Index Scale** | Z-index variable definitions and layer naming conventions |
-| **Anti-Patterns** | What NOT to do — global overrides, specificity hacks, hardcoded values |
-| **UI/UX Clause Coverage** | Table: Clause (`UI-2.2`, `UI-2.3`, `UI-2.5`, `UI-4.1`, `UI-4.2`, `UI-4.4`, `UI-5.5`), Project rule, `file:line`, Verdict (**PROJECT AUTHORITY — overrides the clause** / **GAP — clause default applies**) — a deviation RECORD, never a grade |
+Use the selected project's declared sections. If no template/profile defines them, document only evidenced Sass capabilities such as entry points/imports, declarations/tokens, themes, responsive rules, and component/global style boundaries. Include naming or UI/UX clause coverage only when those patterns apply. Do not require BEM, a token taxonomy, a breakpoint scheme, or a particular source layout.
 
 ### Content Rules / exceptions
 - **Declarations only — NOT usages** when cataloguing variables and mixins (reinforced in Round 2, Phase 4 verify, closing reminder, anti-rationalization).
-- **Source-scope whitelist** for token discovery (styles/themes/tokens dirs; excludes node_modules/dist/.nx/coverage/component-local).
+- Resolve maintained Sass/token roots from configuration or source evidence; exclude generated/dependency output and preserve component-local Sass when it is an actual style owner.
 - Every variable value, mixin signature, breakpoint MUST come from actual declarations; focus on project conventions NOT generic CSS tutorials.
-- Agent-1 quality gate on variable-category cardinality (<3 or >200 → flag).
 - Color palette grouped by semantic role, NOT raw hex list; colors grepped from declarations only.
 - **UI/UX clause coverage is a RECORD, not a review.** The 40 UI/UX Design Principles (`UI-1.1`–`UI-9.4`; canonical text in `.claude/skills/shared/sync-inline-versions.md` → `SYNC:ui-ux-design-principles`) are the DEFAULT only where this project is silent. A recorded project convention OUTRANKS the clause, so the generated guide states the project's rule, names the clause it overrides (`UI-<clause>`), and says the deviation is the project's authority; a clause-governed dimension with no project convention is recorded as a **GAP** so the clause default applies. Clause values obey this target's declarations-only rule — declarations, NOT usages. Never flag a deviation as a defect — enforcement belongs to `ui-review`; this scan only records.
 - **Clause overlap with `design-system` is intentional, not duplication:** where the design-system doc records the TOKEN declaration for a shared clause (`UI-2.5` type scale, `UI-4.1` spacing unit), this guide records how stylesheets actually CONSUME it — which multiples appear, `gap` vs margin, sizes that sit off the scale. Neither entry replaces the other.
 
 ### Special slivers
-- BLOCKING gate is Phase 0 styling-approach + BEM + mode detection.
-- Evidence-gate fallback is unique: <60% confidence → **proceed with Agent 1 only** (not "ask user").
-- Source-scope whitelist (styles/themes/tokens) bounds Agent 1's glob.
-- Authoring branch: BEM-adoption table drives whether to document BEM rules vs utility-class conventions.
+- Confirm Sass applicability before scanning; BEM and other naming conventions are optional evidence branches.
+- Resolve the source scope from valid config and repository evidence; if no maintained Sass source remains, report `SKIPPED`.
+- Authoring should describe a verified alternative where BEM is absent; never prescribe a utility framework from a dependency alone.
 - Round 2 fresh-eyes is declaration-focused: variable names exist as actual declarations (Grep — declarations not usages); mixin names match `@mixin` definitions; color values from declarations not fabricated hex; breakpoint values from actual config not assumed common values.
 - 2 sub-agents (vs frontend-patterns' 3).
 - **UI/UX clause coverage sliver** — Agent 1 captures the spacing, breakpoint, and type clauses (`UI-2.2`, `UI-2.3`, `UI-2.5`, `UI-4.1`, `UI-4.2`, `UI-4.4`); Agent 2 captures the focus-ring clause (`UI-5.5`); both write project rule + `file:line` + PROJECT AUTHORITY / GAP verdict into the **UI/UX Clause Coverage** section. Scans DOCUMENT the deviation; `ui-review` is the pass that enforces the clauses.
@@ -410,7 +319,7 @@ Also: reads doc to detect Init/Sync; in Sync mode extract section list → skip 
 
 | Evasion | Rebuttal |
 | --- | --- |
-| "Styling approach obvious, skip Phase 0 detection" | Phase 0 is BLOCKING — SCSS vs Tailwind vs CSS-in-JS require completely different agent patterns |
+| "This project styles UI, so the Sass target applies" | Confirm maintained `.scss`/`.sass` sources; scan only Sass and route other styling systems to their applicable owner |
 | "Variable names look standard (`$primary-color`)" | Grep-verify every variable name against actual declarations — AI hallucinates variable names |
 | "Breakpoints are probably 768px/1024px" | Read breakpoint declarations — NEVER assume common values |
 | "Color values look right" | ALL color values must come from grep of actual declarations |
@@ -428,33 +337,26 @@ Also: reads doc to detect Init/Sync; in Sync mode extract section list → skip 
 ## Target: design-system
 
 - **doc:** `<ref>/design-system/README.md`
-- **description:** `[Documentation] Use when scanning design tokens, component inventory, and app-to-doc design system mappings.`
-- **sub-agents:** 3 — Agent 1: Design System Structure · Agent 2: Component Inventory · Agent 3: Token & Component Source Discovery (**token discovery is a SEPARATE agent — NEVER merge with component inventory**)
+- **applies when:** maintained design tokens, a shared component system, design-system documentation, or an equivalent visual-language source is evidenced.
+- **skip when:** UI code exists but the project has no maintained design-system owner or token/component source.
+- **description:** `[Documentation] Use when mapping an evidenced design system, tokens, shared components, and owner docs.`
+- **sub-agents:** up to 3 conditional branches — system ownership/docs; shared UI component inventory; visual tokens/assets. Run only branches supported by project sources; keep token-source verification distinct from component usage inventory when both exist.
 
-### Phase 0 detection — BLOCKING
+### Phase 0 detection — capability, owner, and mode
 
-Step 1 (mode-detect) — read the doc; detect Init (placeholder) / Sync (populated); in Sync mode extract section list → skip well-documented sections.
+Step 1 — read the selected reference doc and its configured template/sections; preserve project-owned structure in Sync mode.
 
-Step 2 — Detect design system **type**:
+Step 2 — resolve any declared design-system owner, token sources, and component/doc roots from valid project config, then verify each path. If optional properties are absent, discover actual maintained sources from repository evidence. Examples include token files, design tools/export pipelines, component docs, and visual standards; they are not an allowlist or required architecture.
 
-| Signal | Type | Agent Emphasis |
-| --- | --- | --- |
-| Token files (`design-tokens.json`, `tokens.scss`, Style Dictionary config) | Token-first | Prioritize Agent 3 (token discovery) |
-| Storybook config (`.storybook/`, `*.stories.ts`) | Component-library | Prioritize Agent 2 (component inventory) |
-| Figma token exports or `figma-tokens.json` | Figma-driven | Prioritize Agent 3 (token import chain) |
-| Only component directories, no token files | Ad-hoc/CSS-only | Prioritize Agent 1 (structure) |
-| Mix of above | Hybrid | Run all 3 agents with equal weight |
+Step 3 — classify only evidenced branches: documentation/ownership, shared components, visual tokens/assets, or a combination. Unknown formats do not block evidence-backed documentation.
 
-Step 3 — resolve config-driven paths from `docs/project-config.json`: `designSystem.canonicalDoc` (single source of truth for new code), `designSystem.tokenFiles` (drop-in token files). Read these NAMES from config; content varies per project; never hardcode.
-Step 4 — check for app-specific design docs in the same directory.
-
-**Evidence gate:** Confidence <60% on design system type → report uncertainty, **proceed with Agent 1 (structure) only**.
+**Evidence gate:** If the owner or format is uncertain, record `UNKNOWN` and continue with verified facts. Do not invent a canonical design-system document, token source, tooling, or adoption process.
 
 ### Sub-agent Think scopes
 
 **Agent 1: Design System Structure**
 - **Think (VERBATIM):** "How is the design system organized? What's the canonical doc? What's the token chain? Which apps have design docs and which don't?"
-- Scan targets: glob `<ref>/design-system/**`; find design token files (CSS custom properties, SCSS variables, JSON tokens); discover Storybook stories (`*.stories.{ts,tsx,mdx}`); component-library entry points (index/barrel exports); map app-to-design-doc relationships; **verify canonical doc** at `{docsPath}/{canonicalDoc}` has expected sections (flag missing); **verify token files** at `{docsPath}/{tokenFiles[i]}` exist + contain declarations (flag empty/missing).
+- Scan targets: configured/evidenced design docs and owners; actual token-source and generation/import paths; reusable visual components and their exports/docs; product/app relationships only when present. Treat Storybook and CSS/SCSS/JSON token syntax as examples, not required formats. Verify declared canonical docs/token sources if configured, but never infer paths or fill missing product sources from the scanner.
 
 **Agent 2: Component Inventory**
 - **Think (VERBATIM):** "What dimensions define a complete component inventory? Consider: Discoverability (can I find it?), Categorization (what type?), Variant coverage (size/color/state?), Accessibility (ARIA/keyboard?), Documentation completeness (JSDoc/README/Storybook?), Icon/asset library coverage."
@@ -463,52 +365,35 @@ Step 4 — check for app-specific design docs in the same directory.
 
 **Agent 3: Token & Component Source Discovery**
 - **Think (VERBATIM):** "What design tokens actually exist in source code (not just what's documented)? Which are declarations (authoritative) vs usages (derived)?"
-- **Source scope (whitelist, not full repo):** configured style, theme, token, palette, design, style-guide, and variable source roots; exclude generated output, dependency folders, coverage, and component-local styles unless configured.
-- **Discovery rules (declarations only, NOT usages):** CSS custom properties `--[a-zA-Z][a-zA-Z0-9_-]*\s*:` (LHS only, dedupe); SCSS variable declarations `^\s*\$[a-zA-Z][a-zA-Z0-9_-]*\s*:` (anchor start-of-line); color values used ≥3× across whitelist (hex/rgb/hsl); spacing scale `(padding|margin|gap)\s*:\s*[\d.]+(px|rem|em)` (extract values, dedupe); typography `(font-family|font-size|font-weight)\s*:` (extract RHS, dedupe); breakpoints `@media[^{]*\((min|max)-width:\s*[\d.]+(px|em|rem)\)` (extract widths, dedupe).
-- **Categorise:** Colors / Typography / Spacing / Breakpoints / Z-Index / Elevation / Component-prefixes / Other. Persist incrementally — append to report after each category.
-- **Quality gate:** if a category has <3 unique entries OR >200, log "scope too narrow/broad — manual refinement required."
+- **Source scope:** use valid configured token/design roots when present; otherwise identify actual maintained sources from code, build config, and owner docs. Exclude generated/dependency output unless it is the authoritative source.
+- **Discovery:** identify definitions/authoritative inputs separately from generated outputs and usages. Derive search terms/parsers from the actual formats found; CSS custom properties, Sass variables, JSON, design-tool exports, and Storybook are examples only. Group by categories present in this design system; do not impose colors/spacing/type/breakpoints on a system that does not declare them.
+- Review coverage against the configured or repository-evidenced source scope. If the inventory looks incomplete, verify scope/exclusions instead of applying fixed minimum/maximum counts.
 - **UI/UX clause capture (DOCUMENT the project's rule — never enforce it):** from the SAME declarations (never inference), record the project's ACTUAL values for the token-governed clauses — type scale step names + sizes against a fixed 6-step named scale (`UI-2.5`); the spacing base unit against the 4px-or-8px default (`UI-4.1`); accent-token count and where each accent is used, against one-accent-one-job (`UI-3.2`); the measured contrast ratio of each documented foreground/background token pair against 4.5:1 for text and 3:1 for UI edges (`UI-3.1` — COMPUTE it from the declared values; when no ratio can be computed record "unmeasured", NEVER an eyeballed or guessed number); the dark-mode surface-elevation strategy — lifted surfaces vs inverted light mode, and any softening of pure-white text (`UI-3.4`); motion duration + easing tokens against the 150–250ms ease-out default, plus any reduced-motion handling (`UI-5.4`). Per dimension record: **project rule + `file:line`** → then **PROJECT AUTHORITY — overrides `UI-<clause>`** (the project's recorded convention is the authority) or **GAP — no project convention; the clause default applies**.
 
 ### Target Sections
 
-| Section | Content |
-| --- | --- |
-| **Design System Overview** | High-level description — type, tools, organization |
-| **App Documentation Map** | Table: App name, Design doc path, Token source, Component library |
-| **Design Tokens** | Token categories, file locations, naming convention — values from declarations |
-| **Component Inventory** | Table: Component name, Category, Variants, Path, Has docs? |
-| **Gap Analysis** | Missing docs, zero-adoption tokens, undocumented components |
-| **Icon & Asset Library** | Icon set source, asset directory paths, usage patterns |
-| **Storybook** | Setup (if exists), story organization, how to add new stories |
-| **Usage Guidelines** | How to consume tokens and components in application code |
-| **UI/UX Clause Coverage** | Table: Clause (`UI-2.5`, `UI-3.1`, `UI-3.2`, `UI-3.4`, `UI-4.1`, `UI-5.4`), Project rule (token names + values), `file:line`, Verdict (**PROJECT AUTHORITY — overrides the clause** / **GAP — clause default applies**) — a deviation RECORD, never a grade |
+Use the selected project's declared sections. If none are declared, document evidenced ownership, source-of-truth paths, token/component/asset branches that exist, consumption guidance, relationships, and verified gaps. Do not require Storybook, token inventories, app maps, or a particular design-system architecture.
 
 ### Content Rules / exceptions
-- **Token whitelist + declarations-only** (Agent 3): whitelisted source scope (NOT full repo); declarations only, NOT usages; color values only when used ≥3×.
-- **Quality gate** on entry counts (<3 too narrow / >200 too broad → manual refinement).
-- **Gap Analysis section is mandatory** — document what's missing, not just what exists.
+- Scan only valid configured or evidence-backed source roots; distinguish authoritative definitions from generated derivatives and usages.
+- Record gaps only against declared capabilities/requirements or an explicitly scoped inventory; do not create speculative missing-work lists.
 - No directory-tree exception declared (unlike feature-spec); shared no-trees rule stands.
 - **UI/UX clause coverage is a RECORD, not a review.** The 40 UI/UX Design Principles (`UI-1.1`–`UI-9.4`; canonical text in `.claude/skills/shared/sync-inline-versions.md` → `SYNC:ui-ux-design-principles`) are the DEFAULT only where this project is silent. A recorded project convention OUTRANKS the clause, so the generated doc states the project's rule, names the clause it overrides (`UI-<clause>`), and says the deviation is the project's authority; a clause-governed dimension with no token or convention behind it is recorded as a **GAP** so the clause default applies. Clause values obey this target's declarations-only rule, and `UI-3.1` contrast is COMPUTED or recorded "unmeasured" — never estimated. Never flag a deviation as a defect — enforcement belongs to `ui-review`; this scan only records.
 
 ### Special slivers
-- **AUTHORING branch (init mode only)** — when init mode detected (canonical doc missing or placeholder):
-  1. **Author `{docsPath}/{canonicalDoc}`** from Agent 3 findings: prepend regen marker `<!-- Generated by scan --target=design-system on YYYY-MM-DD; refine sections manually -->`; sections: Foundations, Tokens, Components, Patterns, Accessibility, Adoption Strategy.
-  2. **Author each `{docsPath}/{tokenFiles[i]}`** from grouped declarations — **FIRST: REMOVE the `PLACEHOLDER_MARKER_SCSS` sentinel** before writing real tokens; `.scss`: SCSS variable block per category + CSS custom property mirrors in `:root {}`; categories: Colors, Typography, Spacing, Breakpoints, Z-Index, Elevation/Shadow.
-  3. **Preserve manual content in sync mode** — DO NOT overwrite a populated doc/token file.
-- **Token whitelist scope** (Agent 3) — whitelist + declarations-only is the distinguishing sliver.
-- **Evidence-gate fallback** — <60% on type → Agent 1 (structure) only.
-- Sub-agent count = 3 (token discovery SEPARATE from component inventory — never merge).
-- Phase 4 verify is config-driven: verify `{docsPath}/{canonicalDoc}` + every `{docsPath}/{tokenFiles[i]}`; Glob-verify ALL component inventory paths (not 3); Grep-verify token names match declarations; Gap Analysis present.
-- **UI/UX clause coverage sliver** — Agent 3 captures the token-governed clauses (`UI-2.5`, `UI-3.1`, `UI-3.2`, `UI-3.4`, `UI-4.1`, `UI-5.4`) from declarations and writes project rule + `file:line` + PROJECT AUTHORITY / GAP verdict into the **UI/UX Clause Coverage** section. In the init-mode AUTHORING branch, the authored canonical doc ALSO carries that coverage subsection under its Foundations section, so the project's recorded values become the authority that outranks the clause defaults from day one. Scans DOCUMENT the deviation; `ui-review` is the pass that enforces the clauses.
+- This scan updates only its selected project-reference output. It never authors or edits product token files, component source, design-tool artifacts, or other canonical design-system sources. Missing sources are reported to their owner.
+- Delegate only distinct, evidenced branches; token definition and component inventory remain separately evidenced where both apply.
+- Verify every emitted path and token/component claim against the actual owner source. Do not report a token gap merely because another common category or scale is absent.
+- UI/UX clause coverage is conditional on the observed surface and design source. Record applicable evidence and gaps; preserve stricter local, legal, security, and platform requirements.
 
 ### Anti-Rationalization rows
 
 | Evasion | Rebuttal |
 | --- | --- |
-| "Design system type obvious, skip Phase 0 detection" | Phase 0 is BLOCKING — agent emphasis depends on detected type |
-| "Only 2 agents needed, skip token discovery agent" | Token discovery is separate from component inventory — NEVER merge |
+| "The design-system format is unfamiliar, stop the scan" | Record the unknown format and continue with verified ownership and artifacts |
+| "A component inventory or token list is always required" | Run only evidence-backed branches; follow the project's configured owner/template |
 | "Token values look correct" | Grep-verify ALL token values against declarations — "looks correct" ≠ verified |
-| "Gap Analysis not needed" | Gap Analysis is a required section — documents what's missing for future work |
+| "List expected components/tokens as gaps" | Report gaps only against declared requirements or an explicitly scoped inventory |
 | "Skip Round 2 even when Round 1 found issues" | Clean Round 1 (zero issues) does end the scan. But when issues exist, fresh-eyes is mandatory after fixing — main agent rationalizes own mistakes. |
 | "Verified 3 paths, that's enough" | Glob-verify ALL paths in inventory — spot-check is insufficient |
 | "Contrast looks fine on screen" | `UI-3.1` is MEASURED, never eyeballed — compute the ratio for each documented token pair (4.5:1 text, 3:1 UI edges) or record "unmeasured"; NEVER estimate one |
@@ -522,74 +407,58 @@ Step 4 — check for app-specific design docs in the same directory.
 ## Target: code-review-rules
 
 - **doc:** `<ref>/code-review-rules.md`
-- **description:** `[Documentation] Use when scanning code conventions, anti-patterns, architecture rules, and review checklists.`
-- **sub-agents:** 3 — Agent 1: Backend Rules · Agent 2: Frontend Rules · Agent 3: Architecture Rules (**conditionally routed by detected project scope — not all-always**)
+- **applies when:** project source and at least one real quality signal exist (tests, lint/format/type checks, CI, architecture rules, or code-review docs).
+- **skip when:** no code or project-owned quality signal exists from which local review guidance can be evidenced.
+- **description:** `[Documentation] Use when recording project-specific code-review checks and evidence-backed quality rules.`
+- **sub-agents:** up to 3 conditional branches — server/data code, UI/client code, and cross-cutting architecture/quality controls. Route only branches evidenced by the project; no language or app type is assumed.
 
-### Phase 0 detection — BLOCKING (project scope drives agent routing)
+### Phase 0 detection — source scope, quality signals, and mode
 
-Mode-detect (standard): read the doc → Init (placeholder) / Sync (populated); in Sync mode extract section list → skip well-documented sections.
+Read the selected doc/template and valid project config. In Sync mode preserve its local sections, then compare their rules to current source, tests, CI, configuration, and quality tooling.
 
-Project-scope detection table:
+- Discover languages/modules and quality signals from all actual project manifests, source roots, tests, CI, linters/formatters/type checks, scanners, standards docs, git hooks, and project-owned review rules. Tool names here are search examples only.
+- Route conditional analysis to server/data, UI/client, infrastructure, or other project areas only when those sources exist. Cross-cutting quality tooling and architecture are included when evidenced.
 
-| Signal | Scope | Agent Routing |
-| --- | --- | --- |
-| `.csproj` files present | Full-stack or Backend-only | Run Agent 1 (Backend) |
-| configured frontend manifests | Frontend present | Run Agent 2 (Frontend) |
-| Both above | Full-stack | Run Agents 1+2+3 |
-| `docker-compose.yml` / K8s manifests | Infrastructure present | Run Agent 3 (Architecture) |
-| Linter configs (`.eslintrc`, `stylecop.json`) | Code quality infra found | Prioritize Agent 1/2 |
-
-Step 3 — discover code-quality infrastructure: linter configs (`.eslintrc`, `.editorconfig`, `stylecop.json`, `.prettierrc`, `ruff.toml`); CI quality gates, code-analysis configs (SonarQube, CodeClimate); existing standards docs (CONTRIBUTING.md, CODING_STANDARDS.md); git hooks (pre-commit, husky).
-
-**Evidence gate:** Confidence <60% on scope → report uncertainty, ask user before proceeding.
+**Evidence gate:** If a quality signal or area is uncertain, include only verified rules, record `UNKNOWN` where relevant, and ask only when the unresolved scope changes required output and repository evidence cannot settle it.
 
 ### Sub-agent Think scopes
 
-**Agent 1: Backend Rules**
-- **Think (VERBATIM):** "What does a GOOD backend file look like in this repository? What naming, error handling, and DI choices separate good code from code that got merged but should not have? Where are the active anti-patterns?"
-- Scan targets: naming conventions (class suffixes, method prefixes, interface naming + examples); base classes (when used vs not — detect violations); error handling (try-catch, Result types, error middleware); dependency injection (registration conventions, lifetime choices); anti-patterns (direct DB access from controllers, business logic in wrong layer); logging (structured logging, log levels, correlation IDs).
+**Agent 1: Server & Data Rules** (when present)
+- **Think:** Which rules govern server-side behavior, persistence, error handling, configuration, and data ownership in this project?
+- Scan targets: actual request/handler patterns; validation and errors; data access, transactions, and schema changes; dependency/configuration practices; logging and security controls. Do not assume a language, DI container, framework, or layer model.
 
-**Agent 2: Frontend Rules**
-- **Think (VERBATIM):** "What makes frontend code reviewable vs unmaintainable here? Where is state management discipline enforced? What cleanup patterns are used?"
-- Scan targets: component conventions (naming, file organization, template patterns + examples); state management (store vs component vs service, with rule evidence); styling (BEM, CSS modules, utility classes — derive from detected approach); subscription/memory management (cleanup, unsubscribe, dispose); accessibility (ARIA, semantic HTML, keyboard nav — if found); performance (lazy loading, change detection, memoization).
+**Agent 2: UI & Client Rules** (when present)
+- **Think:** Which local conventions make this project's user-facing code reliable, accessible, and maintainable?
+- Scan targets: observed view/component boundaries, state/data flow, input behavior, styling, accessibility, performance, and cleanup where relevant. Derive patterns from the actual platform and documented standards.
 
-**Agent 3: Architecture Rules**
-- **Think (VERBATIM):** "What dependency directions are enforced here? Where do services communicate directly vs via messages? What's shared vs duplicated, and is that intentional?"
-- Scan targets: layer boundaries (what imports what, dependency direction); cross-service communication (direct calls vs messages — find violations); shared code (shared vs duplicated, rationale); testing conventions (naming, organization, mock patterns); security (auth checks, input validation, output encoding — derive from existing); configuration (env vars, config files, secrets management).
+**Agent 3: Cross-Cutting Quality & Architecture** (when present)
+- **Think:** What boundaries and quality checks does the project actually enforce, and which failures do they prevent?
+- Scan targets: dependency boundaries, module/service communication when present, shared-code ownership, testing conventions, security controls, build/release checks, and configuration/secret handling. Distinguish executable sensors and CI gates from prose guidance.
 
 ### Target Sections
 
 | Section | Content |
 | --- | --- |
-| **Critical Rules** | Top 5-10 rules that cause most bugs if violated |
-| **Backend Rules** | Naming, patterns, error handling, DI with DO/DON'T examples |
-| **Frontend Rules** | Component, state, styling, cleanup with DO/DON'T examples |
-| **Architecture Rules** | Layer boundaries, cross-service rules, shared code conventions |
-| **Anti-Patterns** | Common mistakes found in codebase with real `file:line`, fixes |
-| **Decision Trees** | For common decisions: which base class, where to put logic |
-| **Checklists** | PR review checklists for backend, frontend, cross-cutting |
+Use the selected project's declared sections. If none are declared, group verified review rules by actual source area and quality gate, distinguish required checks from recommendations, and include observed defects only when found. Do not require backend/UI/architecture sections or a fixed number of rules for projects that do not have those surfaces.
 
 ### Content Rules / exceptions
-- Every rule has a "DO" code example from the actual project.
-- Every rule has a "DON'T" counterexample (real `file:line` or clearly marked realistic).
-- Use `file:line` references for all code examples.
-- Prioritize rules by impact (bugs prevented, not style preferences). Standard `output-quality-principles` applies.
+- Ground every rule in project-owned source, configuration, CI, a test/sensor, an ADR, or an authoritative project document. Cite the actual path and relevant lines.
+- Add examples only when they clarify a non-obvious rule. Label inferred examples; never present hypothetical anti-patterns as observed violations.
+- Prioritize checks by impact and the project’s declared quality goals. Standard `output-quality-principles` applies.
 
 ### Special slivers
-- Phase 0 project-scope detection is **BLOCKING** — agent routing depends on detected scope.
-- 3 sub-agents (no Agent 4 / cross-service sync agent — unlike domain-entities).
-- Conditional agent routing: agents launched per detected scope (Backend-only / Frontend present / Full-stack / Infrastructure present), not all-always.
-- **Phase 3 confidence-classification (target-unique vocab):** HIGH (3+ examples, consistent) → rule with DO/DON'T pair; MEDIUM (1-2) → "observed pattern (verify)"; LOW (<1) → omit.
-- Round 2 fresh-eyes: every decision-tree node has real code examples; anti-patterns documented with real `file:line` violations (not hypothetical); every rule specific to this repository (not generic).
-- No whitelist scope; no authoring branch beyond conditional agent routing.
+- Confirm the selected project source areas and quality signals before routing; unknown languages can still contribute verified rules.
+- Delegate only independent branches that have evidence and a meaningful scope.
+- Fresh-eyes verification confirms every rule's owner and verifies all cited code/config/check paths. Observations with limited evidence stay qualified, not generalized into a mandatory convention.
+- Keep observed violations separate from standards and quality gates; this target documents guidance and does not rewrite tests/configuration.
 
 ### Anti-Rationalization rows
 
 | Evasion | Rebuttal |
 | --- | --- |
-| "Scope obvious, skip Phase 0 detection" | Phase 0 is BLOCKING — agent routing depends on detected scope |
-| "Rules are standard, don't need examples" | Every rule MUST have `file:line` evidence from this repository |
-| "Anti-patterns are hypothetical" | Anti-Patterns section requires REAL `file:line` violations only |
+| "The repository is an unfamiliar language, skip it" | Discover its manifests and source roots; record only what evidence supports |
+| "This style rule is universal, so local evidence is unnecessary" | Distinguish a portable best-practice baseline from the project's enforced convention |
+| "A likely anti-pattern belongs in the violations list" | Report observed violations only with concrete source evidence |
 | "Round 2 review not needed" | Main agent rationalizes own decisions. Fresh sub-agent is non-negotiable. |
 | "Doc has content, skip re-read" | Show section list extracted from doc as proof of re-read |
 
@@ -601,90 +470,74 @@ Step 3 — discover code-quality infrastructure: linter configs (`.eslintrc`, `.
 ## Target: domain-entities
 
 - **doc:** `<ref>/domain-entities-reference.md`
-- **description:** `[Documentation] Use when scanning domain entities, data models, DTOs, aggregate boundaries, sync patterns, and ER diagrams.`
-- **sub-agents:** 4 (3-4) — Agent 1: Domain Entities & Aggregates · Agent 2: DTOs, ViewModels & Application Layer Models · Agent 3: Database Schemas & Persistence · Agent 4: Cross-Service Entity Sync (**microservices only — skipped for monolith/modular-monolith**). Phase 2 header reads "Launch 3-4 general-purpose sub-agents."
+- **applies when:** business behavior, rules/invariants, or authoritative domain contracts and their model/data representations are evidenced in source or project-owned specifications.
+- **skip when:** code contains only generic transport/data structures or no business-domain contract can be established.
+- **description:** `[Documentation] Use when recording evidenced business-domain concepts, data ownership, relationships, and boundaries.`
+- **sub-agents:** up to 4 conditional branches — business concepts and invariants; transfer/application representations; persistence/schema; cross-boundary ownership and flows. Dispatch only branches supported by evidence; none requires DDD, aggregates, or a service architecture.
 
-### Phase 0 detection — BLOCKING, dual-axis (framework AND architecture)
+### Phase 0 detection — business contract, representation, and ownership
 
-Mode-detect: read the doc → Init/Sync; in Sync mode extract entity catalog sections → skip up-to-date services.
+Read the selected doc/template and valid project config. Establish a business-domain contract from behavior, invariants, canonical specifications, or model/schema evidence connected to real use. Separate business concepts from generic transport, persistence, and framework types; do not classify every class, table, or payload as a domain entity.
 
-Framework detection table:
+Discover representations and persistence formats from actual source, schemas, migrations, serialization contracts, and authoritative domain documentation. Verify configured paths before using them. Identify ownership boundaries only where code/config/contracts establish distinct owners or data flows; do not infer service boundaries from directory names or deployment count.
 
-| Indicator | Framework | Entity Patterns to Search |
-| --- | --- | --- |
-| configured backend manifest | configured backend runtime | entity, aggregate-root, value-object, identity/base markers |
-| `package.json` + ORM | Node.js | Mongoose `Schema`, TypeORM `@Entity`, Prisma `model`, Sequelize `define` |
-| `pom.xml` / `build.gradle` | Java/Kotlin | JPA `@Entity`, Spring Data, Hibernate, `@Table` |
-| `requirements.txt` / `pyproject.toml` | Python | Django `models.Model`, SQLAlchemy, Pydantic `BaseModel` |
-| `*.proto` | Protobuf | `message` definitions (cross-service contracts) |
-
-Architecture-type table (drives Agent 4 gate):
-
-| Signal | Architecture | Sub-Agents |
-| --- | --- | --- |
-| Multiple service directories with separate domain layers | Microservices | Run all 4 agents including Agent 4 (cross-service) |
-| Single domain layer | Monolith | Run Agents 1-3, skip Agent 4 |
-| Single deployment, bounded contexts | Modular monolith | Run Agents 1-3, analyze module boundaries |
-
-Step 4 — Load service paths from `docs/project-config.json` `modules[]` if available.
-
-**Evidence gate:** Confidence <60% on framework detection → report uncertainty, DO NOT proceed with framework-specific scan.
+DDD terms such as entity, value object, aggregate, aggregate root, repository, and bounded context are valid only where source or authoritative project documentation uses and supports them. Otherwise use the project's own terms and describe observable identity, rules, relationships, and ownership. Unknown framework or architecture details do not block verified findings.
 
 ### Sub-agent Think scopes
 
-**Agent 1: Domain Entities & Aggregates**
-- **Think (VERBATIM):** "What is the entity hierarchy in this repository? Which classes are aggregate roots vs leaf entities vs value objects? What are the key business properties (IDs, status, foreign keys)? Where is domain logic placed?"
-- Scan targets: grep entity base-class inheritance (framework-specific from Phase 0); aggregate root classes; value objects; enum types used as entity properties; per entity note key properties (ID, FKs, status/state, timestamps); record `file:line`.
+**Agent 1: Business Concepts & Invariants** (run when business rules or model evidence exists)
+- **Think:** Which business concepts, identities, states, and invariants are established by specifications or executable behavior? Where are they defined and enforced?
+- Scan targets: business-focused specifications and source rules; model/schema declarations only when connected to behavior; state transitions, validation, permissions, and constraints. Do not require an entity base class, hierarchy, aggregate, or particular language construct.
 
-**Agent 2: DTOs, ViewModels & Application Layer Models**
-- **Think (VERBATIM):** "How does data flow from entities to consumers? Who owns the mapping — the DTO, the handler, or a mapper service? Where is the mapping defined?"
-- Scan targets: grep DTO classes (`*Dto`, `*DTO`, `*ViewModel`, `*Response`, `*Request`); command/query objects carrying entity data; DTO-to-Entity mapping patterns (who owns mapping, method names); which DTOs map to which entities.
+**Agent 2: Transfer & Application Representations** (run when separate representations or transformations exist)
+- **Think:** How is domain information represented as it crosses an application, API, persistence, event, or UI boundary? Which component owns each evidenced transformation?
+- Scan targets: actual request/response, command/query, message, view, serialization, and mapping definitions; follow callers and consumers to establish direction and owner. Use suffixes only as search hints; do not assume a mapping layer.
 
-**Agent 3: Database Schemas & Persistence**
-- **Think (VERBATIM):** "How are entities persisted? What indexes exist? What databases are used per service? Where is schema evolution handled?"
-- Scan targets: collection/table definitions; migration files creating/altering entity storage; index definitions; configured database technology per service; seed data files.
+**Agent 3: Storage & Persistence** (run only when domain data is persisted)
+- **Think:** Which storage structures and constraints support evidenced domain behavior? How do schema evolution and data ownership work in this repository?
+- Scan targets: actual table, collection, document, file, or other persistent schema; migration/evolution definitions; indexes and constraints; verified read/write call sites. Do not assume a relational database or per-service store.
 
-**Agent 4: Cross-Service Entity Sync** (microservices only — skip otherwise)
-- **Think (VERBATIM):** "Which entities cross service boundaries? Who owns them? How are they synced — via events, via direct API calls, or via shared database (the last being an anti-pattern)?"
-- Scan targets: integration event classes (`*IntegrationEvent`, `*Event`, `*Message`); message-bus consumers syncing entity data across services; shared contracts/DTOs between services; map which entity originates in which service + which services consume it; event handler classes creating/updating projected entities.
+**Agent 4: Ownership & Cross-Boundary Flows** (run only when an independent module/process, external contract, or cross-owner data flow is evidenced)
+- **Think:** Which component owns the authoritative business data, and what happens when information crosses an evidenced boundary? How are updates, failures, and consistency handled?
+- Scan targets: callers/providers, API or message contracts, event/message producers and consumers, replicated/read-model data, and storage readers/writers. This applies to independently owned modules, processes, or external systems whether deployment is distributed or in one application. Describe shared storage as observed; identify risk only when conflicting ownership or unsafe coupling is evidenced.
 
 ### Target Sections
 
-| Section | Content |
+Include only sections supported by evidence and useful to explain the project's business model. A domain contract need not use classes, entities, a database, DDD, or services.
+
+| Section | Include when evidence supports it |
 | --- | --- |
-| **Entity Catalog** | Table per service/module: entity name, key properties (IDs, FKs, status), base class, `file:line` |
-| **Entity Relationships** | Mermaid ER diagram per service — key relationships only |
-| **Cross-Service Entity Map** | Table: entity, owner service, consumer services, sync event, direction |
-| **DTO Mapping** | Table: DTO class → Entity class, mapping approach, `file:line` |
-| **Aggregate Boundaries** | Which entities form aggregates, aggregate root identification |
-| **Naming Conventions** | Detected naming patterns (suffixes, prefixes, namespace conventions) |
-| **Coverage Report** | Services scanned / entities found / services with NO entities (gaps) |
+| **Business Concepts & Rules** | Concepts, identity/state, invariants, and authoritative source locations. Use the project's terms; distinguish behavior from data shape. |
+| **Representations & Transformations** | Separate API/UI/application/persistence/event representations and verified mapping ownership. |
+| **Persistence & Relationships** | Persisted structures, constraints, and relationships only where relevant to domain behavior; use a diagram only if it clarifies real relationships. |
+| **Ownership & Boundary Flows** | Verified authority, readers/writers, and synchronization across actual module/process/external boundaries. |
+| **Observed Conventions** | Repeated naming or modeling patterns that are backed by multiple examples and affect future changes. |
+| **Evidence Limits** | Material unknown owners, undocumented behavior, or unverified relationships that cannot be settled from available evidence. |
 
 ### Content Rules / exceptions
-- **Entity Catalog Format** — fixed markdown table per service: `### {ServiceName} Entities` with columns `Entity | Key Properties | Base Class | Relationships | File`; example row `Order | Id, CustomerId, UserId, Status | EntityBase | 1:N OrderLines | path/Order.cs:L15`.
-- **Detail-level cap (deviation):** Summary + key properties only — IDs, FKs, status/state, important business fields. Do NOT list every property.
-- **Mermaid ER Diagram Guidelines:** one diagram per service/bounded context (keep readable); one cross-service diagram showing entity sync flows; show only key relationships, not every FK.
+- Every claim needs a source citation (`file:line` or canonical document section). Follow data from definition to the code that uses or enforces it before describing ownership or behavior.
+- Do not force an entity catalog, service/module table, ER diagram, DTO map, aggregate boundary, or coverage count. Add a concise table/diagram only when the repository has the corresponding construct and the view improves navigation.
+- Document only key properties that explain an invariant or relationship; omit exhaustive property lists and incidental storage fields.
+- Name an aggregate/bounded context/value object only when project evidence establishes that concept. Never label shared storage, a single application, or a generic data model as an anti-pattern by category alone.
 
 ### Special slivers
-- **4 sub-agents** — Agent 4 runs only for Microservices; skipped (Agents 1-3 only) for Monolith / Modular monolith.
-- Phase 0 framework detection is **BLOCKING** — entity patterns depend on detected framework (closing reminder requires BOTH framework AND architecture).
-- Architecture-type **BLOCKING gate** governs Agent 4: must confirm monolith from Phase 0 evidence before skipping Agent 4; directory names alone are NOT evidence.
-- **Coverage Report is a MANDATORY required section** — list services with NO entities found (gaps).
-- Loads service paths from `docs/project-config.json` `modules[]`.
-- Sub-agent confidence thresholds %-based: >80% document; 60-80% note "observed (unverified)"; <60% omit.
-- Round 2 fresh-eyes: every entity has real `file:line` (Glob verify); class names match actual definitions (Grep verify); coverage gap report; cross-service sync entries accurate (right owner, right consumer).
-- Verify step: Glob-verify ALL entity paths — "5 is insufficient." No whitelist scope.
+- Skip the target when no business-domain contract can be established; generic transport, framework, and storage shapes alone are insufficient. Conversely, the absence of DDD vocabulary does not prove that business rules are absent.
+- Run only branches for evidenced representations: storage, mapping, and cross-boundary analysis are optional and independently gated.
+- Do not block on an unknown stack or architecture, and do not require proof that the application is monolithic before omitting cross-boundary analysis. Run that analysis whenever actual cross-owner flows exist.
+- Resolve configured roots when present, verify them against repository evidence, and omit absent optional configuration without error.
+- Sub-agent confidence thresholds are percentage-based: >80% document; 60–80% label as observed/unverified; <60% omit or state the uncertainty.
+- Fresh-eyes verification checks every cited definition, relationship, mapping, and owner against source; verify cited paths and consumer/provider direction rather than counting entities or services.
 
 ### Anti-Rationalization rows
 
 | Evasion | Rebuttal |
 | --- | --- |
-| "Framework obvious, skip Phase 0 detection" | Phase 0 is BLOCKING — entity patterns depend on detected framework |
-| "Architecture type obvious from directory names" | Verify from actual service structure — names are not evidence |
-| "Verified 5 paths, that's enough" | Glob-verify ALL entity paths — 5 is insufficient |
-| "Cross-service agent not needed (monolith)" | Confirm monolith from Phase 0 evidence before skipping Agent 4 |
-| "Coverage report not needed" | Coverage report is a required section — list services with no entities found |
-| "Skip Round 2 even when Round 1 found issues" | Clean Round 1 ends the scan. When issues exist, fresh-eyes mandatory after fixing — main agent rationalizes own entity discoveries. |
+| "Every persisted class or table is a domain entity" | Trace it to business behavior or a canonical contract; generic transport and framework shapes are not enough. |
+| "DDD vocabulary is absent, so there is no domain model" | Inspect business specifications, rules, state transitions, and actual use; report only concepts they establish. |
+| "This is one deployable app, so there are no cross-boundary flows" | Check module ownership, external contracts, and data flows independently of deployment topology. |
+| "The docs need an aggregate, service, or ER diagram section" | Use the project's actual concepts and include a diagram only when evidence and reader needs justify it. |
+| "The framework or ownership is unfamiliar, so stop" | Record unknown dimensions and continue with verified rules, structures, and callers. |
+| "Skip fresh-eyes verification after findings" | Recheck cited definitions and owner/consumer direction against source before reporting. |
 
 ### prompt-enhance
 `$prompt-enhance <ref>/domain-entities-reference.md`
@@ -694,76 +547,57 @@ Step 4 — Load service paths from `docs/project-config.json` `modules[]` if ava
 ## Target: feature-spec
 
 - **doc:** `<ref>/feature-spec-reference.md`
-- **description:** `[Documentation] Use when scanning feature documentation structure, app-to-service mapping, templates, and conventions.`
-- **sub-agents:** 2 — Agent 1: Documentation Structure (+ M1/M2 compliance scan) · Agent 2: App-to-Service Mapping
+- **applies when:** canonical feature/spec artifacts, an explicit spec root/profile, or a governed requirements corpus exists.
+- **skip when:** there is no project-owned requirement/spec corpus or configured owner from which to derive its authoring contract.
+- **description:** `[Documentation] Use when recording the local owner format, evidence rules, and lifecycle for existing feature/spec artifacts.`
+- **sub-agents:** 2 — Agent 1: Native Artifact Structure & Lifecycle · Agent 2: Traceability, Evidence & Consumers
 
-### Phase 0 detection — **[BLOCKING]** (mode-detection BLOCKING: INIT vs SYNC paths differ significantly)
+### Phase 0 detection — **[BLOCKING]** (config/profile validation and INIT vs SYNC)
 
-Determine **mode** first via shell probe:
-```bash
-test -f <ref>/feature-spec-reference.md && echo "SYNC mode" || echo "INIT mode"
-```
+1. Confirm the feature/spec output is selected and this target applies. Resolve the configured business-spec root through the project-config loader; inspect `specRoots.business` and `specArtifacts` only when declared.
+2. Validate the config before reading artifacts. A valid `specArtifacts` profile supplies native section roles, identifiers, ownership, and evidence carriers. If it is absent, use the portable strict-default spec contract. If it is declared but malformed or unsupported, stop and route to `project-config`; do not silently fall back.
+3. Verify the resolved root against repository evidence. If the configured/default root is empty but a separate spec corpus exists, report the mismatch and route config correction before scanning the wrong empty path.
+4. Determine mode by reading `<ref>/feature-spec-reference.md`: **INIT** if missing or a placeholder; **SYNC** if it has content; **FORCE** only when the user explicitly requests rebuild/reset. INIT describes the real owner contract; SYNC updates changed facts only.
+5. Identify the actual artifact organization (for example, folder-scoped, flat, source-embedded, or external-link based) from files and the validated config. Do not assume app/service buckets, section numbering, ID prefixes, or a particular spec template.
 
-| Mode | Condition | Behavior |
-| --- | --- | --- |
-| **INIT** | `feature-spec-reference.md` does not exist | Create from scratch; scan entire `<specs>/` |
-| **SYNC** | `feature-spec-reference.md` exists | Read existing file first; update changed sections only |
-| **FORCE** | User explicitly says "rebuild" or "reset" | Treat as INIT even if file exists |
-
-Detect documentation **structure** type:
-
-| Signal | Type | Scan Approach |
-| --- | --- | --- |
-| `<specs>/{App}/` directories | App-bucketed feature docs | Scan per-app, map to services |
-| `docs/features/{Feature}.md` flat structure | Feature-per-file | Scan each file, derive categories |
-| `wiki/` or external doc system links | Wiki-based | Scan wiki references, note external |
-| README.md embedded in service dirs | Source-embedded | Scan configured source-root markdown files |
-
-Path branching: INIT → Phase 1 → Phase 2 (full scan) → Phase 3 (full write) → Phase 4 (verify). SYNC → Phase 0 read existing → Phase 1 → Phase 2 (diff scan, new/changed only) → Phase 3 (targeted update) → Phase 4 (verify).
+Path branching: INIT derives the guide from verified native artifacts/config; SYNC reuses its existing sections and updates only changed claims; FORCE rebuilds only when explicitly requested. Every mode ends with owner/ID/carrier checks that use the active native profile or strict fallback.
 
 ### Sub-agent Think scopes
 
-**Agent 1: Documentation Structure**
-- **Think (Coverage dimension):** Which apps/modules have feature documentation? Which are missing? What's the distribution — evenly documented or concentrated?
-- **Think (Accuracy dimension):** What section headings actually appear across feature docs? What's the frequency? Which sections are standard (≥80% coverage) vs optional (20-80%) vs rare (<20%)?
-- **Think (Completeness dimension):** Are there documentation naming patterns? Section numbering? Required fields (evidence fields, TC IDs)?
-- Scan targets: glob `docs/**/*.md`; find documentation templates (template files, skeleton docs); recurring H2/H3 headings across docs; count docs per app/module for coverage distribution; doc naming patterns.
-- **M1/M2 Compliance Scan (per feature doc):** See `.claude/skills/shared/sdd-artifact-contract.md` → "AI-SDD Mandates (M1-M7)" for BLOCKING criteria. Scan §1-14 prose lines (excluding evidence carriers `**Evidence**` / `IntegrationTest` / `[Source:]`, YAML frontmatter, and ` ```mermaid ``` ` blocks) and report:
-  - **M1 prose leaks:** banned tech-term occurrences (framework/product/language/persistence/messaging/auth names + project-internal framework type names — banned-token list in `spec-principles.md` §3.2) in narrative, headings, tables.
-  - **M2 prose leaks:** code-identifier occurrences (class/method names, file paths, namespaces) in narrative prose.
-  - Report each leak by **file, line, and section**.
+**Agent 1: Native Artifact Structure & Lifecycle**
+- **Think (Owner dimension):** Which artifacts are canonical owners, where are they rooted, and how do their native sections/headings, frontmatter, and lifecycle work?
+- **Think (Quality dimension):** Which completeness, evidence, review, change, and validation rules are explicit in config or consistently enforced by source tooling? Separate normative rules from conventions merely observed.
+- Scan targets: resolved spec roots and representative artifacts across their actual folders; project templates and authoring guides; configured profile roles/identifiers/carriers; validators and lifecycle tools. Use configured roots and patterns; do not impose fixed filenames, section counts, `TC-` IDs, or app/service mappings.
+- Apply M1/M2 or other spec-quality checks only where the configured `specRoots` policy and active SDD contract govern that artifact. For a valid `specArtifacts` profile, use its native sections and carriers; when absent, use the portable strict-default contract. Report each issue with the actual artifact, line, and native section/ID.
 
-**Agent 2: App-to-Service Mapping**
-- **Think (Relationships dimension):** Which frontend apps map to which backend services? Where is this documented vs inferred? Which apps have no service mapping?
-- **Think (Conventions dimension):** What naming, numbering, and tagging conventions appear consistently? Are TC IDs present? What format?
-- Scan targets: map frontend apps to backend services (from config, imports, or API calls); API reference docs + their relationship to services; troubleshooting docs + coverage; cross-references between docs (links, mentions); doc generation tools/scripts.
+**Agent 2: Traceability, Evidence & Consumers**
+- **Think (Relationship dimension):** How do canonical intent, contracts, native scenario/case records, tests, implementation, and derived views link in this project?
+- **Think (Coverage dimension):** Which intended capabilities have no linked executable evidence, and which implementation/test behavior lacks a canonical owner?
+- Scan targets: configured carrier roots and accepted case identifiers; real owner-to-test links; import/API/event relationships only when present; cross-references between artifacts; doc generation and validation tools. Verify the assertion tied to each claimed owner + native case/scenario ID + optional variant; never infer coverage from an ID grep alone.
 
 ### Target Sections
 
 | Section | Content |
 | --- | --- |
-| **App-to-Service Mapping** | Table: App name, Backend services, Doc directory, Doc count |
-| **Directory Structure** | Tree showing docs/ organization with purpose annotations |
-| **Template Paths** | Table: Template name, Path, Purpose, Used by N docs |
-| **Section Structure** | Standard sections across feature docs (with frequency table) |
-| **Documentation Conventions** | Naming, numbering, required fields, evidence rules |
-| **Coverage Gaps** | Apps/services without documentation, incomplete docs |
-| **M1/M2 Compliance Leaks** | Per-leak table: File, Line, Section, Mandate (M1/M2), Offending token/identifier |
+| **Artifact Owners & Roots** | Canonical artifact kinds, resolved roots, ownership precedence, and derived outputs found in config/source |
+| **Native Authoring Contract** | Configured section roles, frontmatter, identifiers, evidence carriers, and lifecycle; strict-default details only when no native profile exists |
+| **Artifact Organization** | Actual naming and grouping patterns with verified paths; omit absent organization types |
+| **Traceability & Verification** | Owner-to-native-case-to-assertion links, validation tools/commands, and evidence boundaries |
+| **Coverage Gaps** | Missing or stale links proven against the active owner contract; mark unknowns instead of assuming a missing artifact |
+| **Applicable Spec Quality Findings** | Profile/policy-governed issues only, with native artifact, line, and section/identifier evidence |
 
-### Content Rules / exceptions — DEVIATES from shared no-trees rule
-- Use tables for all structured data (mappings, templates, conventions).
-- **Include actual directory tree output (top 3 levels) — this target INTENTIONALLY includes trees** (inversion of the shared no-trees rule; reinforced in the Output note: the primary output MUST include the actual directory tree as the source of truth for doc locations — deliberately different from spec output documents which suppress trees).
-- Section heading patterns with frequency percentages.
-- **Coverage Gaps section is mandatory** — list undocumented areas explicitly.
-- **NO `output-quality-principles` SYNC block** is present in this target (consistent with the deliberate tree inclusion); its `:reminder` is also absent. The host's output-rule reminder is therefore overridden for this target.
+### Content Rules
+- Use concise tables for native profile fields and verified owner-to-test relationships when they improve readability.
+- Describe the actual root and naming pattern; link to representative files instead of emitting a directory tree or stale inventory count.
+- Coverage gaps must be tied to configured owners/carriers and real artifacts. Label unresolved mappings `UNKNOWN`; do not call an absent artifact a defect until the root and carrier were verified.
+- Preserve the project's native section/identifier contract. A valid `specArtifacts` profile takes precedence; absent profile uses the portable strict-default contract; malformed profile blocks the scan.
 
 ### Special slivers
-- **[BLOCKING] Tech-agnostic output gate:** registry/overview/summary prose + headings stay tech-agnostic per `<ref>/spec-principles.md` §3 (+ §3.2 banned-token list) — no framework/product/language/design-pattern names; source paths and class names appear ONLY in evidence fields (`**Evidence**`, `[Source:]`), frontmatter, and Mermaid.
-- **[BLOCKING] Phase 0 mode-detection** (INIT vs SYNC paths differ significantly).
-- **Tech-agnostic M1/M2 compliance scan** (Agent 1) → produces dedicated **M1/M2 Compliance Leaks** target section.
-- **Directory-trees ALLOWED here** — explicit per-target inversion of the shared no-trees rule (top 3 levels).
-- **Phase 4 verifies 3 specific template paths:** `<specs>/{Bucket}/README.{FeatureName}.md` (feature doc template); `.claude/skills/spec/SKILL.md` (feature doc generation skill); `.claude/skills/shared/tc-format.md` (canonical TC format).
-- Sub-agent count = 2 (structure agent + mapping agent).
+- **[BLOCKING] Profile resolution:** read `specArtifacts`, `specRoots`, and the project config schema. For a valid native profile, use configured roles/carriers/IDs; when absent, use the portable strict-default spec contract; when malformed, stop and report the config error.
+- **[BLOCKING] Phase 0 mode-detection** (INIT vs SYNC); avoid scanning an empty assumed root when configured or discovered roots conflict.
+- Apply tech-agnostic/business-visibility criteria only to sections governed by the project’s declared spec policy and the active SDD contract; do not apply them indiscriminately to technical or derived artifacts.
+- Verify only template, skill, validator, and test-carrier paths actually declared or found in this project. Do not assume a `README.{Feature}.md` format, a particular spec skill, a section number, or `TC-` IDs when a native profile exists.
+- Sub-agent count = 2 (artifact structure/lifecycle + traceability/evidence).
 
 ### Anti-Rationalization rows
 
@@ -771,8 +605,8 @@ Path branching: INIT → Phase 1 → Phase 2 (full scan) → Phase 3 (full write
 | --- | --- |
 | "Mode obvious, skip Phase 0 detection" | Phase 0 mode detection is BLOCKING — INIT vs SYNC paths differ significantly |
 | "Coverage Gaps not needed" | Coverage Gaps is a required section — omitting it hides maintenance debt |
-| "Template paths probably exist" | Verify all 3 template paths exist before writing — "probably" ≠ verified |
-| "App-service mapping looks right" | Verify mappings match actual directory structure via glob |
+| "A framework template is probably the project's template" | Verify configured/native owner artifacts and generators before documenting a path |
+| "An ID grep proves test coverage" | Trace the owner + native ID + optional variant to the executing assertion |
 | "Skip Round 2 even when Round 1 found issues" | Clean Round 1 ends the scan. When issues exist, fresh-eyes mandatory after fixing — main agent rationalizes own section extractions. |
 
 ### prompt-enhance
@@ -783,108 +617,73 @@ Path branching: INIT → Phase 1 → Phase 2 (full scan) → Phase 3 (full write
 ## Target: docs-index
 
 - **doc:** `<ref>/docs-index-reference.md`
-- **description:** `[Documentation] Use when scanning documentation structure, counts, relationships, categories, and lookup tables.`
+- **applies when:** the project has a documentation corpus and its project-init owner routes the docs index for refresh.
+- **skip when:** no project-owned documentation corpus exists or the always-on docs-index owner confirms it is current.
+- **description:** `[Documentation] Use when mapping an evidenced documentation corpus, its authority, relationships, and navigation.`
 - **sub-agents:** 1 — a single fresh-eyes / zero-memory verification sub-agent spawned in **Phase 5**. This target is NOT structured as parallel "Agent 1/2/3": the MAIN agent performs the scanning (Phases 2-4), and only the Phase 5 verifier is a sub-agent.
 
 ### Phase 0 detection
 - **Mode-detect (inline `init`/`sync` labels, lowercase):** read the doc → init (placeholder only) / sync (real content). In sync: note which sections exist + current file counts to diff.
-- **Documentation organization type table:**
-
-| Signal | Type | Scan Approach |
-| --- | --- | --- |
-| Structured `docs/{category}/` directories | Structured hierarchy | Scan per-category with phase table below |
-| Single flat `docs/` with all files | Flat structure | Single glob, categorize by filename prefix |
-| `wiki/` or external doc system | Wiki-based | Scan wiki directory, note external docs |
-| Mix of docs + inline README.md files | Hybrid | Scan both `docs/` and source-embedded READMEs |
-
-- Load service paths from `docs/project-config.json` if available.
-- **Evidence gate:** Confidence <60% on organization type → ask user, DO NOT guess structure.
+- Resolve the project-config path and validate the declared config before reading optional `docsRoots`, `specRoots`, `referenceDocs`, or documentation-owner settings. Omitted optional properties do not imply a fixed directory; discover candidate doc roots from repository evidence. A declared malformed property blocks this target.
+- Identify documentation sources from the configured roots, existing docs index/template, root instruction files, repository-owned documentation tooling, and verified in-repository links. Include external wiki/catalog sources only when project config or an owner doc declares them.
+- Classify the observed organization (for example, topic folders, a flat collection, or source-adjacent READMEs) from files that actually exist. These are discovery examples, not a required layout.
+- **Evidence gate:** If authority or organization is ambiguous, document verified locations and links, mark the unresolved owner `UNKNOWN`, and ask only when an unresolved owner decision changes the index and repository evidence cannot settle it.
 
 ### Think scopes (NO parallel Agent 1/2/3 — Phases 2-4 carry their own Think prompts, performed by the MAIN agent)
 
-**Phase 2: Scan Documentation Tree** — write findings incrementally after each category, NEVER batch.
-- **Think (Coverage dimension):** Which directories exist under `docs/`? Which have content vs are empty/stub?
-- **Think (Accuracy dimension):** For each count in the existing doc, does the actual glob match? What's the delta?
-- **Think (Completeness dimension):** Are there markdown files outside documented directories (configured source roots, `.claude/`, project root)? Are those included in any category?
-- **Think (Discovery dimension):** Which files don't fit any existing category? Where do they go?
-- Scan targets: **Root-Level Docs** — glob `*.md` in project root (README.md, CLAUDE.md, CHANGELOG.md, etc.), each with one-line purpose; file count verified via glob — NEVER estimate. **docs/ Directory** — scan each subdirectory with verified glob counts via this table:
-
-  | Category | Glob Pattern | What to Extract |
-  | --- | --- | --- |
-  | project-reference/ | `<ref>/**/*.md` | File count (verified), list with purposes |
-  | operations | `docs/getting-started.md`, `docs/deployment.md`, etc. | File count, list |
-  | design-system/ | `docs/design-system/**/*.md` or `<ref>/design-system/**/*.md` | File count, app mapping |
-  | specs/ feature specs | `<specs>/*/README.*.md` | Feature Spec count per bucket |
-  | specs/ catalogs | `<specs>/*/INDEX.md` | Bucket index presence |
-  | architecture-decisions/ | `docs/architecture-decisions/**/*.md` | ADR count |
-  | templates/ | `**/*.md` under the templates root — default `docs/templates/`; a `docsRoots.templates.path` entry in `docs/project-config.json` overrides the path | Template count and types |
-  | release-notes/ | `docs/release-notes/**/*.md` | File count |
-
-  Plus **Uncategorized files discovery rule:** after scanning all categories, run a broad glob `docs/**/*.md` and diff against the union of all category globs. Files in the diff are uncategorized — create a separate "Uncategorized / Other" section. NEVER silently omit files. **.claude/docs/** — glob `.claude/docs/**/*.md` (count + categorize); glob `.claude/skills/**/*.md` (count skills).
+**Phase 2: Scan Documentation Sources** — write findings incrementally after each verified source group, NEVER batch.
+- **Think (Coverage):** Which configured or repository-evidenced documentation roots exist, and which contain content, stubs, or generated files?
+- **Think (Accuracy):** For each count the current index promises, does a fresh glob of its actual scope match? What is the delta?
+- **Think (Completeness):** Are there in-scope documentation files outside the current index's categories or links? Include only source surfaces the project declares or uses as documentation.
+- **Think (Discovery):** Which in-scope files are not assigned to an evidenced category or authority, and how should the index surface them without inventing ownership?
+- Resolve configured roots (including custom `referenceDocs.filename` and `templatePath` values) from the valid project config. Use repository evidence for other actual doc sources. Exclude dependencies, build output, vendored material, generated artifacts, and unrelated source comments unless the project explicitly treats them as documentation.
+- Group documents by the project's existing categories, authority model, or configured section roles. Preserve project-owned headings and generated metadata. Do not impose `docs/`, `docs/specs/`, `.claude/docs/`, `.claude/skills/`, fixed folder names, or a category whitelist on projects that do not use them.
+- Verify counts with globs over the exact documented scope; NEVER estimate or copy counts. Compare the discovered in-scope set with the union of category/link sets and report uncategorized files rather than silently omitting them.
 
 **Phase 3: Build Doc Relationship Map**
-- **Think:** Which docs serve as entry points (README → guide chains)? Which are referenced from multiple places? Which are isolated?
-- Trace key relationships by grepping markdown links: entry points (README → getting-started → deployment); CLAUDE.md → reference doc pointers; which docs link to which.
+- **Think:** Which project documents serve as entry points, which are authoritative for a topic, which are referenced from multiple places, and which have no incoming links?
+- Trace actual links and declarations among discovered docs and project instruction/config files. Describe only verified relationships; do not assume a `README` → guide chain or a particular host's files.
 
 **Phase 4: Build Lookup Table** (no Think prompt)
-- For each `<specs>/{Bucket}/`: extract bucket name + key business-capability keywords from each `README.{Feature}.md`; map keywords → bucket path. For each `<ref>/*.md`: extract domain covered; map keywords → file path.
+- Map verified topics, terms, artifact types, and project roles to their authoritative doc paths. Use configured native identifiers and filenames when present; do not assume buckets, `README.{Feature}.md`, a spec root, or a specific reference-doc filename.
 
-**Phase 5: Fresh-Eyes Verification** (the lone sub-agent, zero memory) — 6 checks:
-1. Sample 5 file paths from each category — do they exist? (Glob check)
-2. Does the total count for each category match a fresh glob of that pattern?
-3. Are there any files in `docs/**/*.md` that appear in no category? (Run the diff)
-4. Does the lookup table have entries for all documented categories?
-5. Are there duplicate entries in the lookup table (same path, different keyword)?
-6. Are uncategorized files documented in a separate section?
+**Phase 5: Fresh-Eyes Verification** (one zero-memory verifier) — validate the complete set rather than a fixed sample:
+1. Every documented path exists; every listed count matches a fresh glob of the documented scope.
+2. Every in-scope file is represented by its configured/current category or clearly reported as uncategorized.
+3. Lookup entries resolve to the correct existing authority and do not conflict or duplicate the same path under inconsistent topics.
+4. Required sections, labels, paths, or formats from the project config, current template, and repository-owned checks remain satisfied; report the evidence for each local constraint.
+5. No claims, authorities, relationships, or generated paths were inferred without evidence.
 
 ### Target Sections
 
 | Section | Content |
 | --- | --- |
-| **Documentation System** | `{total}` markdown files across `{N}` categories. Last scanned: `{date}`. |
-| **Documentation Graph** | ASCII tree with counts — counts from verified globs only |
-| **Key Doc Relationships** | ASCII relationship diagram — entry points and cross-references |
-| **Doc Lookup Guide** | keyword → path table |
-| **Resolved default paths (tooling index)** | MANDATORY `###` subsection closing the Doc Lookup Guide — ONE physical line listing EVERY on-disk project-reference doc as a full repo-relative path, introduced on that SAME line by the config key that relocates the root. See the emission rule below. |
-| **Uncategorized Files** | Files found by broad glob not in any category — with paths |
+The index follows the sections, authority labels, path format, and metadata declared by project config or its owner template. When neither provides a format, use a concise inventory of documented areas, authoritative sources, verified relationships, and topic-to-path lookup. Include counts only when useful to the project index or required by a local check, and derive each from a fresh glob.
 
-Doc header also carries `<!-- Last scanned: {YYYY-MM-DD} -->`, title `# Documentation Index Reference`, and the banner `> Auto-generated by scan --target=docs-index. Do not edit manually.` Shared generated docs MUST use bare skill names without a host-specific invocation prefix so the same guidance remains valid across AI hosts.
+Before writing, inspect repository-owned tests, sensors, and validators that consume the index. Preserve their verified local labels, path enumeration, counts, or line formats in this project; do not carry those local constraints into another project without equivalent evidence. Resolve configured roots for every emitted path, and keep cross-host instructions free of host-specific invocation prefixes.
 
-### Emission rule — "Resolved default paths (tooling index)" (MANDATORY, regenerate it every run)
-
-Elsewhere the generated doc names reference docs by BARE FILENAME under a root described once, which keeps the doc relocatable. Two guards need the opposite, and both read this one subsection:
-
-- the aggregate `[count-drift]` doc-index check requires EVERY on-disk project-reference doc path to appear VERBATIM in this file;
-- `verify-configurable-root-literals.mjs` clears a root literal only when the SAME PHYSICAL LINE also names `docs/project-config.json` (predicate 1, `:170`). An introducing line above a table or list does NOT cover the rows beneath it, and the fence mask (`:171`) helps only inside a fenced block — a markdown table is never fenced.
-
-So emit ONE physical line, never a table and never a wrapped list, in this shape:
-
-> With no `docsRoots.projectReference.path` entry in `docs/project-config.json`, the {N} project-reference docs above resolve to: `{root}/{file1}`, `{root}/{file2}`, … `{root}/{fileN}`.
-
-`{root}` is the resolved project-reference docs root and `{file*}` the glob-verified filenames — the same verified set the Doc Lookup Guide used, never a hand-kept copy. When the root IS relocated in config, say so on that same line and list the resolved paths. Mirror the existing `docs-index-reference.md` → "Resolved default paths (tooling index)" in the project-reference docs root (default `docs/project-reference/`; `docsRoots.projectReference.path` in `docs/project-config.json` overrides), which is the green reference implementation. Dropping this subsection turns both guards red on the next scan.
-
-### Content Rules / exceptions — INVERTS the shared no-counts rule
-- ALL file counts MUST be verified via glob, not copied from existing content; **evidence gate required for EVERY count claim — never estimate.**
-- The OUTPUT doc deliberately DOES contain counts (`{total}`, `{N}`, per-category counts in the Documentation Graph) — counts are the product here, but every count must be glob-verified, never estimated/copied. (The shared output-quality "no counts" rule applies only to the skill's own prose, per the reminder.)
-- Discover everything dynamically; never hardcode project-specific values.
+### Content Rules / exceptions
+- Any emitted count MUST be verified via a glob over its stated scope; never estimate or copy it from stale content.
+- Discover documents dynamically within configured and repository-evidenced sources. Preserve local template, profile, and check contracts, but never hardcode a different project's roots, categories, application names, or spec format into the reusable scan procedure.
+- Distinguish project-authored, framework-owned, generated, and external documentation when the evidence supports those owners. Never imply that an external or generated source was scanned when it was not.
 
 ### Special slivers
-- **Uncategorized discovery diff (unique coverage gate):** broad glob `docs/**/*.md` diffed against union of category globs; remainder MUST get a dedicated "Uncategorized / Other" section — NEVER silently omit.
-- **Counts/categories whitelist:** the fixed docs/ category set (project-reference, operations, design-system, specs feature-specs, specs catalogs, architecture-decisions, templates, release-notes) PLUS root-level `*.md` PLUS `.claude/docs/**` and `.claude/skills/**`.
-- **Phase 5 fresh-eyes is mandatory before writing final doc** — 6 specific checks; "Proceed to Phase 6 only after fresh-eyes verification passes."
-- **Lookup-table completeness gate:** map keywords for EVERY documented category; no duplicate (same path, different keyword) entries.
-- No BLOCKING framework-detection gate (that's e2e-tests'); the only conditional branching here is mode init/sync + organization-type routing.
+- **Coverage is scope-specific:** discover and diff only project-declared or repository-evidenced documentation sources; report out-of-category files instead of inventing their owner.
+- **No fixed root/category whitelist:** candidate directories and labels are evidence, not framework defaults.
+- **Fresh-eyes is required when writing or materially updating the index.** Verify paths, counts, coverage, lookup correctness, and each evidenced local tooling contract before finalizing.
+- **Repository-owned check compatibility:** when tests, sensors, validators, or project-owned templates require an exact count row, named section, or path list, discover the source of that requirement and preserve it in this project. Do not make a guessed or framework-wide copy of the constraint.
+- No technology-framework detection gate is needed. The target's branches depend on configured document ownership and observed repository structure.
 
 ### Anti-Rationalization rows
 
 | Evasion | Rebuttal |
 | --- | --- |
 | "Count looks right from existing doc, skip glob" | EVERY count requires fresh glob verification — no exceptions |
-| "Only need to check 3 paths" | Phase 5 has 6 specific checks — sample across all categories |
-| "All files fit into existing categories" | Run the uncategorized discovery diff — NEVER assume full coverage |
+| "Only a few paths need verification" | Validate the complete listed set and count-bearing scopes — a sample can hide a stale link |
+| "All files fit into existing categories" | Diff the evidence-backed documentation scope against its categories and report uncategorized files |
 | "Skip Round 2 even when Round 1 found issues" | Clean Round 1 ends the scan. When issues exist, fresh-eyes mandatory after fixing — main agent's counts carry confirmation bias. |
-| "Lookup table doesn't need all keywords" | Map keywords for EVERY documented category, not just top-level |
-| "The bare-filename lookup table already names every doc — skip the tooling index" | Two guards read full paths co-located with `docs/project-config.json` on ONE line. Emit the "Resolved default paths (tooling index)" line every run or the next scan turns them red. |
+| "The existing index has enough examples; skip a fresh completeness check" | Re-enumerate the configured/evidenced document scope and validate each project-owned check |
+| "This folder/category pattern is standard" | Retain only roots and categories confirmed in this repository's config or files |
 
 ### prompt-enhance
 `$prompt-enhance <ref>/docs-index-reference.md`
@@ -894,89 +693,84 @@ So emit ONE physical line, never a table and never a wrapped list, in this shape
 ## Target: e2e-tests
 
 - **doc:** `<ref>/e2e-test-reference.md`
-- **description:** `[Documentation] Use when scanning E2E test architecture, page objects, step definitions, configuration, and framework patterns.`
-- **sub-agents:** 3 (parallel, framework-gated) + 1 fresh-eyes verifier — Agent 1: E2E Framework & Architecture · Agent 2: Page Object Model & Components · Agent 3: BDD & Test Patterns (**runs ONLY if BDD detected**) · plus Phase 3 Round 2 fresh sub-agent (zero memory).
+- **applies when:** browser or end-to-end user-flow tests have evidenced test artifacts, runner/fixture setup, CI invocation, or a valid project capability declaration corroborated by source/configuration.
+- **skip when:** no active browser/user-flow test capability is evidenced; record which config and repository surfaces were checked. A browser dependency or configured path alone is not proof of a harness.
+- **description:** `[Documentation] Use when scanning E2E test architecture, configured or discovered test organization, shared helpers, step definitions, configuration, and framework patterns.`
+- **sub-agents:** up to 3 conditional branches + a fresh-eyes verifier — Agent 1: Test Harness & Execution · Agent 2: Test Organization & Interactions · Agent 3: BDD & Test Patterns (only if BDD evidence exists). Dispatch only branches supported by the observed harness.
 
-### Phase 0 detection — **BLOCKING framework gate** (BDD vs non-BDD determines which agents run)
+### Phase 0 detection — establish actual test capability and its limits before writing
 
-Framework + artifact-type routing table:
+Read the target doc and valid project config. If an optional `e2eTesting` section exists, treat its paths, framework, runner, and execution details as search hints; verify each against actual files/scripts. Omission is normal and must not block the scan. A configured object/page path does not establish that a page-object model is implemented.
 
-| Signal | Framework | Artifact Type | Agent Routing |
-| --- | --- | --- | --- |
-| configured BDD feature files + step binding markers | configured BDD framework | BDD + Page Objects | Run Agent 1+2+3 (BDD) |
-| `playwright.config.*` | Playwright | Non-BDD | Run Agent 1+2 (skip Agent 3) |
-| `cypress.config.*` | Cypress | Non-BDD | Run Agent 1+2 (skip Agent 3) |
-| `*.feature` files + Python | Behave (BDD) | BDD | Run Agent 1+2+3 (BDD) |
-| `*.feature` files + Java | Cucumber (BDD) | BDD | Run Agent 1+2+3 (BDD) |
-| `wdio.conf.*` | WebdriverIO | Non-BDD | Run Agent 1+2 (skip Agent 3) |
+Identify cases, browser fixtures, runner config, lifecycle hooks, package/build scripts, and CI invocations from repository evidence. The examples below are search cues, not an allowlist:
 
-Mode-detect table (explicit):
+| Evidence | Finding | Branch |
+| --- | --- | --- |
+| Runner config or test script plus browser-driving cases (for example Playwright, Cypress, Selenium, WebdriverIO, Puppeteer, or another tool) | Verified runner and test organization | Run evidenced harness and organization branches. |
+| Feature files plus step-binding/configuration evidence | BDD-style test capability, with framework named only when verified | Run Agent 3 as well as evidenced harness/organization branches. |
+| Test cases/helpers without an identifiable runner | Runner `UNKNOWN`; artifacts remain evidence | Continue generic organization/assertion analysis; do not invent commands or framework patterns. |
+
+Mode-detect:
 
 | Mode | Condition | Action |
 | --- | --- | --- |
-| Init | Target doc doesn't exist or is placeholder | Full scan, create all sections |
-| Sync | Target doc exists with content | Diff scan — check for new frameworks, count changes |
+| Init | Target doc is missing or a placeholder | Write evidenced applicable sections; state material unknowns. |
+| Sync | Target doc has real content | Update only stale or newly evidenced sections; retain valid local conventions. |
 
-Also: in Sync mode extract section list → skip well-documented sections. Read `docs/project-config.json` `e2eTesting` section if it exists — use as path hints. If `e2eTesting.execution` exists, preserve its verified values and resolve `surfaceIds[]` through `experienceVerification.surfaces[].localRun`; never duplicate lifecycle commands into the E2E section.
+When an optional execution profile exists (for example, `e2eTesting.execution`), verify its values and preserve the configured owner for startup, dependency, readiness, teardown, and evidence commands. If it links to a separate local-run or experience-verification section, cross-reference that owner instead of duplicating commands. Missing optional configuration is not an error and must not be scaffolded solely to complete this reference doc.
 
-**Evidence gate:** Confidence <60% on framework → report uncertainty, ask user before proceeding.
+**Evidence gate:** If runner details cannot be identified, cite the files/config checked and mark only that dimension `UNKNOWN`. Continue generic analysis of evidenced cases/helpers. Do not infer a POM, BDD model, execution mode, command, or test partition from a dependency or empty path setting. Ask only when a material owner decision cannot be resolved from evidence.
 
-### Sub-agent Think scopes (Phase 2 contract: write incrementally per file, cite `file:line`, NEVER document a count — use grep-expression statistics. Report → `tmp/reports/scan-e2e-tests-{YYMMDD}-{HHMM}-report.md`.)
+### Sub-agent Think scopes (write incrementally per file, cite `file:line`, and keep reports free of volatile counts. Report → `tmp/reports/scan-e2e-tests-{YYMMDD}-{HHMM}-report.md`.)
 
-**Agent 1: E2E Framework & Architecture**
-- **Think:** What makes this test infrastructure reusable vs brittle? How is the test project structured? What base classes exist and what do they provide? What lifecycle hooks are available?
-- Scan targets: E2E project structure (test dirs, page object dirs); base classes for tests + page objects; DI/startup config for test projects; WebDriver/browser management (driver creation, lifecycle, options); settings/config classes (URLs, credentials, timeouts). **Security flag:** if test credentials are found hardcoded in source files, flag as CRITICAL security issue in report.
+**Agent 1: Test Harness & Execution** (run when a runner or execution setup is evidenced)
+- **Think:** How do tests start, configure, isolate, and stop the browser/system under test? Which setup is shared, and what commands actually run it?
+- Scan targets: verified test projects/directories, runner and browser lifecycle config, fixtures/hooks/startup, URL and timeout settings, environment and CI commands. **Secret safety:** never copy credential values; if a real credential or token is hardcoded in source, report a CRITICAL finding without repeating it.
 
-**Agent 2: Page Object Model & Components**
-- **Think:** How do page objects encapsulate UI interaction? What patterns make them maintainable? What wait/retry strategies prevent flakiness?
-- Scan targets: page object classes + hierarchy; UI component wrappers (reusable element abstractions); selector patterns (CSS, data-testid, XPath, BEM) — note which used most; navigation helpers (page transitions, URL routing); wait/retry patterns (explicit waits, polling, retry logic); assertion helpers + validation patterns.
+**Agent 2: Test Organization & Interactions** (run when reusable test code or cases are evidenced)
+- **Think:** Where does this project actually own shared browser behavior, waiting, data setup, and assertions? Which test-owned outcomes are protected?
+- Scan targets: existing fixtures, helper functions, action wrappers, scoped locators, object/page models when present, selectors, navigation, waits/retries, assertion helpers, and test-data setup. Do not prescribe a POM, base class, or hierarchy when the repository does not use one.
 
-**Agent 3: BDD & Test Patterns** (run ONLY if BDD detected in Phase 0)
-- **Think:** How do feature files, step definitions, and context sharing work together? What patterns enable reuse across scenarios? How is test state managed?
-- Scan targets: feature files (`.feature`) — categorize by area; step definition classes — count patterns; context/state sharing (ScenarioContext, World, IBddStepsContext); hooks (Before/After scenario, BeforeAll/AfterAll); test data patterns (fixtures, factories, unique generators); test account/credential management; environment config (per-env settings, CI headless mode).
+**Agent 3: BDD & Test Patterns** (run only when feature files and binding/configuration evidence establish BDD)
+- **Think:** How do scenarios, bindings, hooks, and shared state work together? Which conventions affect reuse and test isolation?
+- Scan targets: feature/spec files, step or binding definitions, scenario context, lifecycle hooks, data setup, and environment configuration as they actually exist. Do not infer a BDD runner from `.feature` files alone.
 
 ### Target Sections
 
-Required Sections (all frameworks):
+Write only sections supported by evidence; do not require a particular runner, directory partition, lifecycle mode, or organizational pattern.
 
 | Section | Content |
 | --- | --- |
-| **Architecture Overview** | Layer diagram, project dependencies |
-| **Base Classes** | Test/page object hierarchies with code examples |
-| **Page Object Pattern** | How to create page objects, component wrappers |
-| **Wait & Assertion Patterns** | Resilient waits, retry, assertion helpers |
-| **Configuration** | Settings files, environment variants, CI setup, linked `e2eTesting.execution` and `experienceVerification.localRun` ownership |
-| **Running Tests** | Commands for all, filtered, headed, CI modes |
-| **Best Practices** | Project-specific conventions |
+| **Harness & Execution** | Verified runner, startup/lifecycle, browsers/devices, CI or local execution commands, and configured ownership where present. |
+| **Test Organization & Reuse** | Actual case layout and shared fixtures/helpers/object models; omit absent patterns. |
+| **Interactions, Waits & Assertions** | Observed selectors, navigation/waits/retries, and assertions on outcomes owned by the application. |
+| **Configuration & Test Data** | Verified environment/profile, account, fixture, and data-safety conventions; never include secret values. |
+| **Project Conventions** | Repeated, evidence-backed conventions useful to new tests. |
 
-Conditional Sections (framework-specific — only add if corresponding code evidence found):
-- **BDD Pattern** (if SpecFlow/Cucumber/Behave) — feature file conventions, step definitions, context sharing, tags
-- **Test Account System** (if credential management found) — account types, numbered variants
-- **Environment Variants** (if multi-env found) — abstract/concrete page pattern, env-specific configs
+Conditional sections may cover a page/object model, BDD/scenario conventions, authentication/account fixtures, environment variants, or test-data lifecycle, but only when those capabilities are present and relevant.
 
 ### Content Rules / exceptions
-- **NEVER document a count — use grep-expression statistics instead** (applies to BOTH report and output doc; `project-config.json` `stats` use grep expressions, NOT hardcoded counts).
-- **Conditional-section rule:** only add a conditional section if corresponding code evidence found.
-- Every code example from actual project files with `file:line`.
+- Do not write volatile file/test counts. If an existing valid config stores statistics, preserve its supported expression format rather than a hardcoded count.
+- Every code example and command must come from an actual source/script and cite its location. List only modes the repository defines (for example, headed or CI only when configured).
+- If real hardcoded test credentials are found, report severity and locations without reproducing values; distinguish secrets from obvious placeholders or synthetic fixture data.
 
 ### Special slivers
-- **BLOCKING Phase 0 framework gate:** BDD vs non-BDD detection determines which agents run; Agent 3 gated on BDD detection; non-BDD must be confirmed from Phase 0 evidence before skipping Agent 3.
-- **BDD authoring branch:** Agent 3 + BDD Pattern section + Test Account System + Environment Variants are all evidence-gated branches.
-- **CRITICAL security flag:** hardcoded test credentials in source → flag CRITICAL in report; verified again in Round 2.
-- **Grep-expression statistics (no hardcoded counts):** feature/step counts expressed as grep expressions, never numbers; verified in Round 2 and Phase 5.
-- **Phase 4 `project-config.json` update (target-unique step):** update/create `e2eTesting` section (framework, language, bddFramework, guideDoc, runCommands, entryPoints, `stats` with `featureFilesGrepExpr` / `stepDefinitionFilesGrepExpr`, dependencies, architecture) and, only when evidence exists, `execution` (`surfaceIds[]`, auth/data/browser/evidence/convergence facts). Keep startup/dependency/readiness/teardown/log commands in the linked `experienceVerification.surfaces[].localRun`; record auth/data/browser/evidence values as references and project facts, not secrets or guessed defaults. Stats use grep expressions NOT counts. Missing capability is recorded as `ENVIRONMENT-BLOCKED` for execution or evidence-backed `NOT-APPLICABLE` when no surface exists.
-- **Multi-round verification with escalation cap:** R1 (main) → R2 (fresh sub-agent, zero memory) → R3 only if R2 finds issues; max 3 rounds → escalate to user.
-- **Phase 5 Write & Verify extras:** verify dependency versions against `.csproj` / `package.json` / `requirements.txt`; verify no hardcoded file counts in output doc.
+- Agent 3 and BDD-specific content run only when BDD is evidenced; absence of BDD does not block the E2E harness and organization scan.
+- Treat optional `e2eTesting`, execution-profile, and experience-verification sections as optional. Do not create them just to write this reference doc; when an explicitly requested config update is in scope, use the supported schema and only source-backed values.
+- Keep lifecycle commands at their verified project owner; cross-reference an existing local-run/experience-verification owner instead of duplicating it. Never invent run commands, partitions, authentication, or browser defaults.
+- Verify every command, fixture/helper path, dependency version, and runner claim against its source. A fresh-eyes check revalidates citations and does not require additional rounds when the first pass is clean.
+- **Secret safety:** never place credential/token values in the report or document. Flag a verified real credential in source without quoting it.
 
 ### Anti-Rationalization rows
 
 | Evasion | Rebuttal |
 | --- | --- |
-| "Framework obvious, skip Phase 0 detection" | Phase 0 is BLOCKING — BDD vs non-BDD detection determines which agents run |
-| "BDD agent not needed (probably non-BDD)" | Confirm non-BDD from Phase 0 evidence before skipping Agent 3 |
-| "Skip Round 2 even when Round 1 found issues" | Clean Round 1 ends the scan. When issues exist, fresh-eyes mandatory after fixing — main agent rationalizes fabricated examples. |
-| "File counts in project-config.json are fine" | NEVER hardcode counts — use grep expressions to avoid instant staleness |
-| "Conditional sections not needed" | Only add conditional sections if corresponding code evidence found in scan |
+| "The familiar browser framework is obvious from dependencies" | Trace actual runner configuration, cases, scripts, and CI invocation; a dependency alone is not proof. |
+| "`.feature` files prove this BDD framework" | Verify bindings/configuration before naming a BDD runner or writing its conventions. |
+| "The configured page-object path means a POM is required" | Document a POM only when code uses one; describe the project's observed reuse pattern. |
+| "All web tests have headed, CI, and filtered commands" | Record only commands/modes defined by source or valid config. |
+| "Create the missing optional E2E config to finish the guide" | Omitted capability config is normal; document verified repository facts without scaffolding optional sections. |
+| "A realistic test secret belongs in a code example" | Do not reproduce real credentials; report a redacted security finding. |
 
 ### prompt-enhance
 `$prompt-enhance <ref>/e2e-test-reference.md`
@@ -986,105 +780,75 @@ Conditional Sections (framework-specific — only add if corresponding code evid
 ## Target: integration-tests
 
 - **doc:** `<ref>/integration-test-reference.md`
-- **description:** `[Documentation] Use when scanning integration test base classes, fixtures, helpers, configuration, and service setup.`
-- **sub-agents:** 2 — Agent 1: Test Infrastructure (base classes, fixtures, factories, config, DI overrides, seed data) · Agent 2: Test Patterns & Conventions (assertion patterns, test data uniqueness/cleanup, categorization, coverage distribution)
+- **applies when:** test code/config demonstrates tests that exercise a real interaction boundary, such as persistence, a module/process contract, a network/API adapter, a queue, or an external system.
+- **skip when:** no boundary-level test capability is evidenced; a unit-test project, dependency, or test directory alone is insufficient.
+- **description:** `[Documentation] Use when recording evidenced boundary-test setup, isolation, helpers, and assertions.`
+- **sub-agents:** up to 2 conditional branches — Agent 1: Test Harness & Boundary Setup · Agent 2: Test Behavior, Isolation & Assertions. Dispatch only branches supported by the observed test capability.
 
-### Phase 0 detection — **[BLOCKING]**, multi-dimensional (framework + infrastructure approach + mode + config-prereq load)
+### Phase 0 detection — identify the test runner, exercised boundary, and setup from evidence
 
-Step 2 — Detect test framework:
+Read the target doc and valid project config. An optional `integrationTestVerify` or equivalent capability section is a source of search hints, not a requirement. Verify declared commands, paths, and policies against scripts, tests, and CI. Omission is normal; a declared malformed section is handled by project-config validation.
 
-| Signal | Framework | Key Patterns to Search |
-| --- | --- | --- |
-| configured test project marker | configured test framework | configured test attributes, fixtures, or lifecycle hooks |
-| configured test project marker | configured test framework | configured test, setup, teardown, and suite lifecycle markers |
-| `package.json` with jest | Jest | `describe`, `it`, `beforeAll`, `afterAll`, `jest.mock` |
-| `package.json` with vitest | Vitest | `describe`, `test`, `vi.mock`, `beforeEach` |
-| `package.json` with playwright | Playwright | `test.describe`, `page`, `expect`, `fixtures` |
-| `pytest.ini`/`conftest.py` | Python pytest | `@pytest.fixture`, `conftest`, `@pytest.mark` |
-| `pom.xml` with JUnit | Java JUnit | `@Test`, `@BeforeAll`, `@SpringBootTest` |
+Detect the runner from actual manifests, commands, test files, and configuration. The examples below are search cues only; use repository-specific syntax for any other stack.
 
-Step 3 — Detect infrastructure approach:
+| Evidence | Inspect |
+| --- | --- |
+| Test manifest, runner config, command, or workflow | Actual setup/teardown markers and supported commands; if unknown, record runner `UNKNOWN` and continue with syntax visible in test sources. |
+| Tests calling across a real persistence, process/module, API/network, message, or external-adapter boundary | Invoked boundary, owner, setup/teardown, and the outcome the test observes. A browser flow belongs here only when it tests such an integration contract; otherwise use the E2E target. |
+| Containers, local service scripts, in-memory substitutes, database fixtures, migration setup, or other infrastructure configuration | Which dependencies are started or substituted, lifecycle and isolation behavior, and limits of the substitute. |
+| Test data setup, fixture loaders, cleanup, and unique data patterns | Which owner creates data, what behavior is exercised, and how repeatability/collisions are handled. Direct storage setup is not automatically a defect; explain when it prepares state versus when it replaces the boundary under test. |
+| Optional config for test verification | Only fields present in the valid project schema, verified against repository-owned commands and test behavior. Do not require fields that the project omits. |
 
-| Signal | Approach | Agent Focus |
-| --- | --- | --- |
-| `Testcontainers` in deps | Docker-based real infra | Container lifecycle, startup time |
-| `WebApplicationFactory` | In-process server | DI override patterns, test server setup |
-| `appsettings.test.json` | Config-based test infra | Connection string overrides, env vars |
-| In-memory DB patterns | Fake infra | DB reset strategies, seeding |
-| await-until-condition / polling helpers | Eventual consistency | Async assertion patterns |
+Classify Init (missing/placeholder doc) or Sync (existing content). In Sync mode update only stale or newly evidenced material; do not count framework/base-class changes.
 
-Step 4 — Detect scan mode:
-
-| Mode | Condition | Action |
-| --- | --- | --- |
-| Init | Target doc doesn't exist or placeholder | Full scan, create all sections |
-| Sync | Target doc has real content | Diff scan — check for new base classes, helper changes |
-
-Mode-detect: read the doc first → Init/Sync; in Sync mode extract section list → skip well-documented sections.
-
-Step 5 — **config-driven prerequisites load (TARGET-SPECIFIC):** load test project paths + run prerequisites from `docs/project-config.json` → `integrationTestVerify` if available:
-- `referenceDocs[]` — read these project-specific setup docs before documenting how verification should run
-- `runScript` / `startupScript` — inspect to capture Docker/system startup behavior + supported arguments
-- `systemCheckCommand` — document what readiness check must pass before direct test commands
-- `quickRunCommand`, `testProjectPattern`, `testProjects[]` — source of truth for runner commands + project discovery
-- `integrationRules[]` — document repeatability/data-integrity gates, including 2 consecutive verification runs without DB reset
-
-**Evidence gate:** Confidence <60% on framework detection → report uncertainty, ask user before proceeding.
+**Evidence gate:** If the runner, boundary, or infrastructure cannot be identified, mark only that dimension `UNKNOWN`, cite what was checked, and continue with verified facts. Do not invent a framework, run command, base class, database, or integration lane. Ask only when a material ownership choice cannot be resolved from repository evidence.
 
 ### Sub-agent Think scopes
 
-**Agent 1: Test Infrastructure**
-- **Think (Base Class dimension):** "What does the base class provide — DI container, test server, database connection, fixture lifecycle? Is there a hierarchy (base → service-specific → test)? What must a new test author know to write their first test?"
-- **Think (Isolation dimension):** "How is test isolation achieved — unique IDs per run, database reset, transaction rollback, separate tenant? Can tests run in parallel? What breaks parallelism?"
-- **Think (Infrastructure dimension):** "What must be running for tests to pass? How is the infrastructure provisioned — Docker, in-memory, seeded fixtures? What's the startup cost?"
-- **Security flag:** if test credentials are found hardcoded in source files (not env vars or secret stores), flag as CRITICAL security issue in report.
-- Scan targets: test base classes (`extends.*Test`, `TestBase`, `IntegrationTest`, `IClassFixture`, and the project's own integration-test base class — discover via grep); fixtures + factories (`WebApplicationFactory`, `TestFixture`, `conftest`, module bootstrappers); test config (`appsettings.test.json`, `.env.test`, test container setup, port bindings); DI/service registration overrides (mock registrations, test doubles); test data builders, seed data patterns, unique name generators.
+**Agent 1: Test Harness & Boundary Setup** (run when shared setup or infrastructure evidence exists)
+- **Think:** How is the boundary made available, configured, isolated, and cleaned up? What does the harness replace, and what does it exercise for real?
+- Scan targets: actual runner/test bootstrap, fixtures/factories, infrastructure startup, migration/seed setup, environment configuration, test doubles/overrides, and lifecycle/parallelism constraints. Search base classes only if source uses them. **Secret safety:** never copy credential values; report a real hardcoded credential as CRITICAL without reproducing it.
 
-**Agent 2: Test Patterns & Conventions**
-- **Think (Assertion dimension):** "What assertion patterns are used? Is there a waiting/polling mechanism for async operations? Are assertions on specific field values or just \"does not throw\"?"
-- **Think (Data dimension):** "How is test data created — builders, factories, seed methods? How is uniqueness ensured across runs? Is there a cleanup strategy?" — Flag direct repository create/update setup as a risk unless it is a valid, idempotent fixture seeder for service-owned reference data. Flag verification guidance as incomplete if it does not require 2 consecutive successful runs without DB reset.
-- **Think (Coverage dimension):** "Which services have tests? Which are missing? What's the test-to-feature ratio?"
-- Scan targets: assertion helpers (await-until-condition / polling helpers, custom assertion extensions, fluent `Should*`-style matchers); common test patterns (Arrange-Act-Assert, Given-When-Then, test data flow); test categorization (traits, categories, tags); data uniqueness patterns (`Ulid.NewUlid()`, `Guid.NewGuid()`, timestamp suffixes); infrastructure interaction (database state verification, queue drain, cache clear); map which services have test projects (coverage distribution) — use grep expressions, not counts.
+**Agent 2: Test Behavior, Isolation & Assertions** (run when boundary-level cases are evidenced)
+- **Think:** Which contract crosses the boundary, what outcome does the system own, and how do the tests prove it repeatably without relying on shared delivery bookkeeping?
+- Scan targets: test input/state setup, boundary invocation, business/system-owned outcome assertions, polling/wait helpers, data uniqueness/cleanup, categories, and concurrency controls. Direct storage setup is appropriate when it prepares state; distinguish that from a test that bypasses the boundary it claims to cover.
 
 ### Target Sections
 
+Include only sections that explain the tested boundary and are supported by evidence; do not require base classes, containers, databases, service modules, or a CI lane.
+
 | Section | Content |
 | --- | --- |
-| **Test Architecture** | Overall test strategy, framework, infrastructure approach, isolation mechanism |
-| **Test Base Classes** | Hierarchy with what each base provides; when to use which |
-| **Fixtures & Factories** | Test fixture setup, DI overrides, module bootstrappers |
-| **Test Helpers** | Assertion helpers, data builders, wait patterns with examples |
-| **Configuration** | Test config files, connection strings, environment variables |
-| **Service-Specific Setup** | Per-service test differences, custom overrides, module registration |
-| **Test Data Patterns** | How data is created, unique naming, cleanup strategies |
-| **New Test Quickstart** | Minimal steps to add a new test for a new service |
-| **Running Tests** | Commands for all, filtered, parallel, CI integration |
+| **Boundary & Test Intent** | What components interact, which real boundary is exercised, and what contract/behavior is asserted. |
+| **Harness & Infrastructure** | Actual runner, setup/teardown, fixtures, services, substitutions, and configuration. |
+| **Isolation & Test Data** | Data owner, setup/cleanup, repeatability, parallel-safety, and lifecycle as verified in this project. |
+| **Assertions & Helpers** | Helpers, waits, and assertions that establish a meaningful outcome owned by the system under test. |
+| **Commands & Local Guidance** | Only commands and prerequisites found in scripts, config, or CI; mark missing dimensions unknown instead of inventing them. |
 
 ### Content Rules / exceptions
-Standard `output-quality-principles` (no counts/trees/TOCs, 1 example per pattern, lead with answer). Plus target-specific Phase-4 write rules: (1) `<!-- Last scanned: YYYY-MM-DD -->` at top; (2) surgical update only; (3) Verify (Glob + Grep) ALL code example paths exist AND class names match; (4) Verify no hardcoded file counts — use grep expressions; (5) Verify security flag present if credentials found; (6) Report sections created vs updated, framework detected, coverage gaps. Round 2 fresh-eyes: every example exists at claimed `file:line`; base class names match actual definitions; hardcoded credentials flagged; coverage stats as grep expressions not counts.
+Follow shared `output-quality-principles`; sync surgically. Verify every example, class name, command, and path against source. Avoid volatile file/test counts. Report what was scanned and the evidence-backed limits; do not claim coverage gaps from a directory count.
 
 ### Special slivers
-- **BLOCKING:** Phase 0 detection is `[BLOCKING]` — must run before any other step.
-- **Dual-dimension detect requirement:** MUST detect framework AND infrastructure type FIRST — patterns differ significantly.
-- **Evidence gate:** Confidence <60% on framework → stop and ask user.
-- **Hardcoded-credentials security gate:** test creds hardcoded in source (not env/secret store) → flag CRITICAL in report; verify flag present in Phase 4.
-- **2-consecutive-runs repeatability gate (TARGET-UNIQUE):** verification guidance is INCOMPLETE unless it requires 2 consecutive successful runs without DB reset.
-- **Direct-repository-setup risk branch:** flag direct repository create/update setup as a risk unless it is a valid, idempotent fixture seeder for service-owned reference data.
-- **Smoke-only prohibition:** never document smoke-only assertions as acceptable unless infrastructure is truly unobservable.
-- **No hardcoded counts:** coverage/test-file counts MUST be grep expressions, never hardcoded.
-- **Config-prereq Step 5:** loads `integrationTestVerify` from `project-config.json` (target-specific).
+- Identify the runner and exercised boundary before writing; unknown dimensions do not block confirmed findings or require questions when evidence can resolve them.
+- Optional `integrationTestVerify` or equivalent configuration may be absent. When present, read only supported declared fields and corroborate commands/policies against source; do not create or require this section to complete the reference doc.
+- Describe repeatability, cleanup, transaction/reset behavior, and concurrency from actual test setup. Recommend reliable isolation and stable outcomes, but do not mandate a fixed number of runs or a reset policy that the repository does not use.
+- Direct repository/database setup is not automatically a defect. Explain whether it creates fixture state or bypasses the interaction boundary the test claims to verify.
+- Distinguish smoke/readiness tests from deeper integration assertions; describe each by its intent without presenting a health check as proof of untested behavior.
+- **Secret safety:** never copy real credentials or tokens into the report/doc. Flag a verified hardcoded real credential as CRITICAL without repeating the value; distinguish it from placeholders and synthetic test data.
+- Fresh-eyes verification checks cited setup, test behavior, boundary ownership, and final system-owned outcomes; no fixed coverage counts are required.
 
 ### Anti-Rationalization rows
 
 | Evasion | Rebuttal |
 | --- | --- |
-| "Framework obvious, skip Phase 0 detection" | Phase 0 is BLOCKING — infrastructure approach determines which patterns to scan |
-| "Smoke-only test assertions are fine" | NEVER document smoke-only as acceptable unless infrastructure is truly unobservable |
-| "Direct repository setup is just test data" | Flag it unless it creates valid owned fixture data; tests should exercise real use cases, not impossible states. |
-| "Base class looks right from memory" | Grep-verify every base class name — AI hallucinates class hierarchies |
-| "Coverage stats obvious from directory scan" | NEVER hardcode counts — use grep expressions that stay accurate as tests are added |
+| "This framework implies a particular integration runner" | Trace the repository's test files and commands; framework examples are search cues only. |
+| "A database write in setup means the test is invalid" | Determine whether setup prepares data or replaces the boundary under test; report the actual behavior. |
+| "A base class must exist" | Document a base class only if source defines and uses one. |
+| "All integration tests need two runs without reset" | Describe the project's actual isolation and repeatability policy; do not add an arbitrary fixed-run requirement. |
+| "A smoke test proves the full integration contract" | State exactly which readiness or behavior it verifies and which boundary behavior remains untested. |
+| "Credential values make the example clearer" | Never reproduce real secrets; redact the value and report the security finding. |
 | "Skip Round 2 even when Round 1 found issues" | Clean Round 1 ends the scan. When issues exist, fresh-eyes mandatory after fixing — main agent rationalizes own fabricated examples. |
-| "Credential security flag not needed" | Hardcoded test creds are a CRITICAL security issue — ALWAYS flag if found |
+| "Credential security flag not needed" | A verified real credential in source is a CRITICAL finding; report it without reproducing the value. |
 
 ### prompt-enhance
 `$prompt-enhance <ref>/integration-test-reference.md`
@@ -1096,67 +860,64 @@ Standard `output-quality-principles` (no counts/trees/TOCs, 1 example per patter
 This target scans seeder and dev-data patterns into the seed-test-data reference doc.
 
 - **doc:** `<ref>/seed-test-data-reference.md`
-- **description:** `[Documentation] Use when scanning seeder patterns and populating/syncing the seed-test-data-reference.md project-reference doc from real code evidence.`
-- **sub-agents:** 1 — the MAIN agent performs the evidence scan (Steps below); a Phase-3 fresh-eyes / zero-memory verifier sub-agent re-checks examples. NOT structured as parallel Agent 1/2/3.
+- **applies when:** an owned project/test data seeder, reusable fixture loader, or repeatable sample-data setup is evidenced in source/config.
+- **skip when:** there is no seed/data-loading owner; ordinary inline test setup alone does not establish a seeder capability.
+- **description:** `[Documentation] Use when recording evidenced seed and reusable sample-data setup.`
+- **sub-agents:** the main agent performs the evidence scan; a fresh-eyes verifier re-checks cited examples. Do not dispatch optional test/data branches without a corresponding capability.
 
-### Phase 0 detection — mode (init/sync)
+### Phase 0 detection — owner, purpose, safety, and mode
 
-Read both, then classify mode:
+Read the target doc, required project config, and any optional seed/data capability section that exists, then classify mode:
 - `<ref>/seed-test-data-reference.md`
-- `docs/project-config.json` (`Data Seeders` context group)
+- project-config's declared data/seed paths and settings, if present
 
 | Mode | Condition | Behavior |
 | --- | --- | --- |
-| **Init** | placeholder / sparse content | fill all sections from scan results |
-| **Sync** | existing real content | update only stale/incorrect sections |
+| **Init** | missing or placeholder doc | write only evidence-backed applicable sections; note material unknowns |
+| **Sync** | existing real content | update only stale or newly evidenced sections |
 
-### Think scopes (NO parallel Agent 1/2/3 — the MAIN agent scans)
+### Evidence scan
 
-**Collect seeder evidence** — run evidence-first scans and adapt search terms to the configured stack:
-```bash
-# Seeder base class/interface + registration pattern (adapt terms from findings):
-rg -n "DataSeeder|SeedData|CanSeedTestingData|SeedingMinimumDummyItemsCount" src
-# DI-scoped execution pattern (scoped-async helpers / unit-of-work):
-rg -n "Scoped|CreateScope|ServiceScope|UnitOfWork|Uow" src
-# Seeder interface + DI registration (replace with actual names found above):
-rg -n "ApplicationDataSeeder|AddTransient.*DataSeeder" src
-# Cross-service wait / idempotency (count/condition-poll helpers):
-rg -n "WaitUntil|PollUntil|CountAsync|AwaitCondition" src
-# Concrete seeder examples (common seeder method-name patterns):
-rg -n "SeedInitialData|SeedDemoData|SeedTestData|SeedAdmin" src
-```
-Graph check (when `.code-graph/graph.db` exists): `python .claude/scripts/code_graph trace <seeder-file> --direction both --json`.
+Start from verified source/config roots and locate possible seed owners, invocations, setup/teardown, sample-data assets, and repository-defined data-loading commands. Search terms such as `seed`, `fixture`, `sample data`, `bootstrap`, `loader`, `factory`, or `setup` are leads only; adapt them to the languages/frameworks found and follow callers to establish real use.
 
-**Minimum evidence to capture:** (1) seeder base class/interface; (2) environment gate method/key; (3) idempotency predicate + count loop pattern; (4) DI scope pattern (the project's scoped-execution / unit-of-work helper vs anti-patterns); (5) seeder registration pattern in DI; (6) cross-service wait pattern (if used).
+Distinguish persistent project/demo data, test fixtures, migrations, and one-shot administrative loaders. Record only patterns present in source: environment/tenant/permission guards, transaction or scope management, idempotency, cleanup, registration, cross-process synchronization, and data ownership. A script may have no base class or DI registration; those structures are never prerequisites.
+
+Use a repository graph only when its database and supported trace command are available and verified; source definitions and callers remain the evidence authority. Do not execute seeders or mutate project data as part of this documentation scan.
+
+Capture at minimum the evidenced entry point and purpose, who owns the data, where/when the loader runs, and how safety and repeatability/cleanup are handled when applicable. If a relevant safeguard cannot be established, state the evidence gap instead of inventing one.
 
 ### Target Sections
 
 | Section | Content |
 | --- | --- |
-| **Seeder Base Class / Interface** | Base type new seeders extend; required members |
-| **Environment Gate** | Method/key that gates seeding to the right environment |
-| **Idempotency Pattern** | Predicate + count loop that makes re-runs safe |
-| **DI Scope Pattern** | Project's scoped-execution / unit-of-work helper (vs the anti-pattern) |
-| **Registration** | How seeders are registered in DI |
-| **Cross-Service Wait** | Count/condition-poll helper for eventual consistency (if used) |
-| **Anti-Patterns** | Verified-in-source seeding anti-patterns only |
+| **Seeder/Fixture Capability** | Actual owner, entry point, intent (project/demo/test), and verified invocation path. |
+| **Safety & Scope** | Environment, data scope, authorization, and tenant boundaries only when present; identify destructive behavior and guardrails. |
+| **Repeatability & Cleanup** | Idempotency or cleanup behavior where relevant; state explicitly when a loader is one-shot or no protection is established. |
+| **Data Ownership & Persistence** | Data/schema owner and transaction/scope rules where evidenced. |
+| **Registration & Cross-Boundary Effects** | Runtime registration, asynchronous convergence, or downstream effects only when present. |
+| **Verified Risks** | Anti-patterns or safety gaps directly established by source; omit speculation. |
 
 ### Content Rules / exceptions
-Standard `output-quality-principles`. Surgical sync only — keep existing section structure, replace generic claims with real evidence, every rule/example needs `file:line` proof, include anti-pattern warnings ONLY when verified in source, prefer short snippets with source-path notes.
+Follow shared `output-quality-principles`. Surgical sync only; every rule/example needs `file:line` proof. Preserve valid local section structure, include risk warnings only when verified, and prefer short snippets with source-path notes. Never include secret values or production records.
 
 ### Special slivers
-- **DI-scope safety gate:** verify the project's scoped-async execution primitive (discover via codebase grep — do NOT assume) against real source usage before documenting it.
-- **One graph trace** when graph DB available (seeder entry file).
+- A base class, interface, dependency-injection container, scoped execution helper, count loop, environment key, or cross-service wait is optional. Document it only when source shows it.
+- Treat the optional project-config seed/data capability as optional: do not create it merely to fill this reference doc. When a separate config update is requested, use only supported schema fields and evidence-backed values.
+- Verify each invocation, guard, registration, owner, cleanup mechanism, and cited code example against its actual definition and call path. Graph analysis is optional, not a substitute for source checks.
+- **Safety:** never copy secret values, tokens, connection strings with credentials, or production personal data into reports/docs. Record variable/reference names and mechanisms only.
 - Report → `tmp/reports/seed-test-data-scan-{YYMMDD}-{HHMM}-report.md` (mode, evidence summary `file:line`, sections updated, open gaps).
 
 ### Anti-Rationalization rows
 
 | Evasion | Rebuttal |
 | --- | --- |
-| "Seeder pattern obvious, skip the grep evidence" | Every rule needs `file:line` proof — discover base class/DI scope from actual source, never assume |
-| "Document the anti-pattern I expect to find" | Include anti-pattern warnings ONLY when verified in source |
-| "Full rewrite is cleaner" | Sync mode is surgical — preserve structure, update stale sections only |
-| "Skip Round 2 even when Round 1 found issues" | Clean Round 1 ends the scan; when issues exist, fresh-eyes is mandatory after fixing |
+| "Every project seeder must use a base class/DI scope/count loop" | Trace the actual entry point and lifecycle; record only structures this project uses and flag a gap only when the data risk requires it. |
+| "A familiar seed filename proves the loader is active" | Follow its invocation/registration path and verify its current purpose before documenting. |
+| "The missing optional seed config makes this target invalid" | Optional capability config may be absent; document only source-backed behavior without scaffolding it. |
+| "There is no safety issue because it is only test data" | Verify target environment, data scope, secret handling, and cleanup; distinguish placeholders from real sensitive data. |
+| "Document the anti-pattern I expect to find" | Include risks only when verified in source. |
+| "A full rewrite is cleaner" | Sync mode is surgical; preserve valid local sections and update stale claims only. |
+| "Skip fresh-eyes verification after findings" | Recheck every cited entry point and safeguard after updating the doc. |
 
 ### prompt-enhance
 `$prompt-enhance <ref>/seed-test-data-reference.md`
@@ -1165,73 +926,55 @@ Standard `output-quality-principles`. Surgical sync only — keep existing secti
 
 ## Target: ui-system
 
-This is an **orchestrator meta-target**, not a single-doc scanner: it runs the 3 UI child scans and summarizes (it writes no doc of its own).
+This is an **orchestrator meta-target**, not a single-doc scanner: it checks selected UI child targets for applicability, runs only eligible ones, and summarizes (it writes no doc of its own).
 
 - **kind:** orchestrator
-- **doc:** _(none of its own)_ — its children write `<ref>/design-system/README.md`, `<ref>/scss-styling-guide.md`, `<ref>/frontend-patterns-reference.md`.
-- **description:** `[Documentation] Use to orchestrate all UI system scans in parallel: design system + SCSS styling + frontend patterns.`
-- **children:** `design-system`, `scss-styling`, `frontend-patterns` (each is a standard `--target=` scan that self-enhances its own doc).
+- **doc:** _(none of its own)_ — selected children write their own configured target docs.
+- **applies when:** an explicit request covers a project UI system and one or more child capabilities are evidenced and selected.
+- **skip when:** no UI child target applies; report the evidence and launch no child scan.
+- **description:** `[Documentation] Use to coordinate only selected, evidenced UI-reference scans; it does not imply a design system or Sass usage.`
+- **children:** `design-system`, `scss-styling`, `frontend-patterns` (each is an optional standard target that self-checks applicability and owns its output doc).
 
 ### Orchestration Procedure (replaces the shared 4-phase engine)
 
 **Phase 0 — Pre-Flight [BLOCKING]:**
-1. Detect frontend code presence:
+1. Require valid project config and resolve `referenceDocs` through the runtime helper. When it is an explicit array, honor it exactly; when absent, use only resolver-selected capability docs. This invocation cannot add a child doc to an explicit selection.
+2. Check each child independently using its `applies when` / `skip when` evidence and exact output filename. Frontend patterns require UI source; design-system requires an actual maintained token/component/documentation owner; Sass requires Sass source. A dependency or directory name alone is insufficient.
+3. Run only children whose output is selected and whose evidence gate passes. If all children are absent, unselected, or fresh, report `SKIPPED` / `UNCHANGED` without asking a routine force-refresh question. Honor force only when the user explicitly requests a rebuild and the target supports it.
+4. Pass optional `designSystem` config to that child only when the section is valid, and verify its paths against source.
+5. If evidence conflicts materially, report the specific conflict and ask only for a missing owner decision that repository evidence cannot establish.
 
-| Signal | Action |
-| --- | --- |
-| configured frontend manifests or frontend source dirs (e.g. `web/`, `frontend/`, `apps/`) | Proceed |
-| No frontend code detected | **STOP** — report "Backend-only project; `ui-system` skipped" |
+**Phase 1 — Plan:** Create work and verification items only for eligible children plus one summary item. Do not dispatch skipped targets.
 
-2. Assess each child doc freshness (read last-scanned date): `design-system/README.md`, `scss-styling-guide.md`, `frontend-patterns-reference.md` — stale if >30 days old OR placeholder.
-3. Decide which children to run:
+**Phase 2 — Launch (parallel):** run eligible children simultaneously only when their output paths are distinct; each child remains self-contained:
+- `$scan --target=design-system`
+- `$scan --target=scss-styling`
+- `$scan --target=frontend-patterns`
 
-| Condition | Decision |
-| --- | --- |
-| All 3 fresh (≤30 days, real content) | Ask user: "All UI docs are recent. Force refresh?" |
-| 1–2 stale/missing | Run only the stale/missing scans |
-| All 3 stale/missing | Run all 3 in parallel |
-| User explicitly invoked `--target=ui-system` | Run all 3 regardless of freshness |
+**Phase 3 — Verify outputs:** inspect each child result and its owned output. Accept `UPDATED` only when evidence checks pass; accept `UNCHANGED` when the child reports no write; preserve `SKIPPED` and `BLOCKED` with reasons. Never rerun a target only because a no-op stamp did not move.
 
-4. Read `docs/project-config.json` `designSystem` section if present — pass config-driven paths to the design-system child.
-5. **Evidence gate:** confidence <60% on frontend code existence → ask user before proceeding.
-
-**Phase 1 — Plan:** task tracking one task per child scan to run + one verification task per child + one summary task. Do NOT launch without tasks created.
-
-**Phase 2 — Launch (parallel):** run the applicable children simultaneously, each FULLY self-contained (do NOT pass context between them):
-- `$scan --target=design-system` → `<ref>/design-system/README.md` (pass detected `designSystem` config if available)
-- `$scan --target=scss-styling` → `<ref>/scss-styling-guide.md`
-- `$scan --target=frontend-patterns` → `<ref>/frontend-patterns-reference.md`
-
-**Phase 3 — Verify outputs (proceed only after ALL run children verified):** for each child doc — (1) file exists with content beyond placeholder headings (Glob + Read first 20 lines); (2) the child either wrote the doc with `<!-- Last scanned: -->` at today OR reported `unchanged (no write)` and recorded a ledger entry — **an untouched stamp on an unchanged doc is SUCCESS, never a failure**, so NEVER re-run a child merely because the date did not move (that would force exactly the no-op rewrite Phase 4 step 1 of `scan` forbids); (3) if placeholder-only/missing, flag FAILED and re-run that child once. If re-run still placeholder → escalate: "scan --target={child} produced no output. Please run it manually and check for errors."
-
-**Phase 4 — Summarize** (from verified doc content only — NEVER fabricate):
-```
-UI System Scan Complete ({date}):
-Design System    → design-system/README.md   Tokens:{…} Components:{…} Gaps:{…}
-SCSS Styling     → scss-styling-guide.md      Approach:{…} BEM:{…} Gaps:{…}
-Frontend Patterns→ frontend-patterns-reference.md  Framework:{…} State:{…} Gaps:{…}
-```
+**Phase 4 — Summarize** from verified results only: list each selected child, output path, status, evidence, and remaining gap. Do not report skipped or unselected children as scanned.
 
 ### Content Rules / exceptions
 - Does NOT modify application code — only populates `<ref>/`.
 - Summary fields come from verified child-doc content, never memory/estimate.
 
 ### Special slivers
-- **Pre-flight is BLOCKING** — never launch scans on a backend-only project (wastes 3 child invocations).
-- **Explicit-invocation override:** `--target=ui-system` run by the user forces all 3 children regardless of freshness.
-- **Auto-trigger:** this meta-target replaces the 3 separate UI scan entries in any `project-config` scan table — one `--target=ui-system` covers design-system + scss-styling + frontend-patterns.
+- **Applicability is per child** — a UI project may use no Sass and no maintained design system; never infer those scans from frontend presence.
+- **No selection bypass** — explicit invocation does not add output docs to an explicit `referenceDocs` array.
+- **No forced breadth** — `--target=ui-system` never implies that every child applies or must be refreshed.
 - **UI/UX clause coverage is child-owned** — each child writes its OWN **UI/UX Clause Coverage** section (`design-system` the token clauses `UI-2.5`/`UI-3.1`/`UI-3.2`/`UI-3.4`/`UI-4.1`/`UI-5.4`; `scss-styling` the spacing, breakpoint, type, and focus-ring clauses; `frontend-patterns` the interaction-state, state-feedback, form, and touch-target clauses). The orchestrator neither merges nor grades them: scans RECORD where the project deliberately deviates so the project's own doc becomes the recorded authority, while `ui-review` is the pass that enforces the clauses.
 
 ### Anti-Rationalization rows
 
 | Evasion | Rebuttal |
 | --- | --- |
-| "Frontend code obvious, skip pre-flight" | Phase 0 is BLOCKING — backend-only project wastes 3 child invocations |
+| "Frontend exists, so every UI child applies" | Each child has a separate capability and output-selection gate |
 | "All docs are probably still fresh" | Check last-scanned date via actual file read — never assume freshness |
 | "Children ran, so output must be there" | Verify each child doc content — placeholder ≠ populated |
 | "Summary from memory is fine" | Summary must come from verified child docs — never fabricate findings |
-| "Only re-run needed children" | Explicit `--target=ui-system` runs all 3 — override the freshness check |
+| "Explicit orchestrator invocation means force every child" | Invocation requests an assessment; it does not override config selection or evidence |
 | "Roll the children's clause coverage into one compliance verdict" | Children RECORD project conventions; the orchestrator summarizes verified doc content only. A compliance verdict is `ui-review`'s output, never a scan's |
 
 ### prompt-enhance
-Each child self-enhances its own doc as its final step. After all children complete, **confirm** each child doc was prompt-enhanced; backfill any skipped via `$prompt-enhance <doc>`. Backfill list: `<ref>/design-system/README.md` · `<ref>/scss-styling-guide.md` · `<ref>/frontend-patterns-reference.md`.
+Each changed child follows its own enhancement rule. Do not enhance unchanged or skipped outputs.

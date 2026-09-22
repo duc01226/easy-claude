@@ -38,10 +38,10 @@
 All three live under the reference-docs root (default `docs/project-reference`; a `docsRoots.projectReference.path` entry in `docs/project-config.json` overrides the path):
 
 - Component patterns: `frontend-patterns-reference.md`
-- Styling/BEM guide: `scss-styling-guide.md`
+- Styling reference: `configured styling reference`
 - Design system tokens: `design-system/README.md`
 
-> **SCSS/BEM rules (canonical):** BEM classes on ALL template elements (`block__element--modifier`). No magic numbers — use variables / design tokens. Max 3 nesting levels.
+> **Styling rules:** Read the configured styling and design-system references first. Follow the project's selected naming method, tokens, variables, and nesting limits; use BEM or SCSS only when the project adopts them.
 
 **Where the project already has a design system, ADOPT it and record the adoption** rather than re-deciding an axis it already settled. A house style IS an intentional identity; re-deciding it per page is exactly the incoherence this lane exists to prevent. Re-decide an axis only with a stated reason, and surface a genuine conflict to the user with both sides — never resolve it silently.
 

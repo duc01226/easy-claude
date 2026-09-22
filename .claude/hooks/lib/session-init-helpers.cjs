@@ -12,6 +12,14 @@
 
 const fs = require('fs');
 const path = require('path');
+const referenceRegistry = require('./project-reference-registry.cjs');
+const {
+    SCAN_SKILL_MAP,
+    REFERENCE_DOC_ALIASES,
+    resolveReferenceDocAlias,
+    resolveReferenceDocTarget,
+    resolveContainedPath
+} = referenceRegistry;
 const { validateConfig } = require('./project-config-schema.cjs');
 const {
     loadProjectConfig,
@@ -63,102 +71,159 @@ function referenceDocPath(filename) {
     return path.posix.join(referenceDocsRelDir(), filename);
 }
 
+/** Resolve a selected reference document under the active project's configured root. */
+function getReferenceDocPath(docOrFilename) {
+    const filename = typeof docOrFilename === 'string' ? docOrFilename : docOrFilename?.filename;
+    return resolveContainedPath(REFERENCE_DOCS_DIR, filename, { projectRoot: PROJECT_DIR });
+}
+
+/** Resolve a configured template only when it remains physically inside the project. */
+function getProjectTemplatePath(relativePath) {
+    return resolveContainedPath(PROJECT_DIR, relativePath, { projectRoot: PROJECT_DIR });
+}
+
+/** Return a metadata value only when it contains a usable name. */
+function usableProjectName(value) {
+    if (typeof value !== 'string') return null;
+    const name = value.trim();
+    return name ? name : null;
+}
+
+/** Read a project name from a JSON package manifest without trusting malformed files. */
+function readJsonPackageName(projectDir, filename) {
+    try {
+        const parsed = JSON.parse(fs.readFileSync(path.join(projectDir, filename), 'utf-8'));
+        const name = usableProjectName(parsed?.name);
+        if (name) return name;
+        const repository = typeof parsed?.repository === 'string' ? parsed.repository : parsed?.repository?.url;
+        return repositoryNameFromUrl(repository);
+    } catch {
+        return null;
+    }
+}
+
+/** Extract only the final repository component; credentials and host details are discarded. */
+function repositoryNameFromUrl(value) {
+    const url = usableProjectName(value);
+    if (!url) return null;
+    const clean = url
+        .replace(/^git\+/i, '')
+        .replace(/[?#].*$/, '')
+        .replace(/[\\/]+$/, '');
+    const segments = clean.split(/[\\/:]/).filter(Boolean);
+    const last = segments[segments.length - 1]?.replace(/\.git$/i, '');
+    return usableProjectName(last);
+}
+
+/** Read a `name` value from one named TOML section. */
+function readTomlSectionName(contents, acceptedSections) {
+    let section = '';
+    for (const line of contents.split(/\r?\n/)) {
+        const sectionMatch = line.match(/^\s*\[([^\]]+)\]\s*(?:#.*)?$/);
+        if (sectionMatch) {
+            section = sectionMatch[1].trim();
+            continue;
+        }
+        if (!acceptedSections.includes(section)) continue;
+        const nameMatch = line.match(/^\s*name\s*=\s*["']([^"']+)["']/);
+        if (nameMatch) return usableProjectName(nameMatch[1]);
+    }
+    return null;
+}
+
+/** Resolve `.git/config` for normal repositories and linked worktrees. */
+function gitConfigPath(projectDir) {
+    const dotGitPath = path.join(projectDir, '.git');
+    try {
+        if (fs.statSync(dotGitPath).isDirectory()) return path.join(dotGitPath, 'config');
+        const pointer = fs.readFileSync(dotGitPath, 'utf-8').match(/^\s*gitdir:\s*(.+?)\s*$/im);
+        if (pointer) return path.join(path.resolve(projectDir, pointer[1]), 'config');
+    } catch {
+        /* a repository without readable Git metadata still has its root-folder fallback */
+    }
+    return null;
+}
+
+/** Read the origin URL from Git metadata without invoking Git or exposing its credentials. */
+function readGitOriginName(projectDir) {
+    const configPath = gitConfigPath(projectDir);
+    if (!configPath) return null;
+    try {
+        let inOrigin = false;
+        for (const line of fs.readFileSync(configPath, 'utf-8').split(/\r?\n/)) {
+            const section = line.match(/^\s*\[([^\]]+)\]\s*$/);
+            if (section) {
+                inOrigin = /^remote\s+"origin"$/i.test(section[1].trim());
+                continue;
+            }
+            if (!inOrigin) continue;
+            const url = line.match(/^\s*url\s*=\s*(.*?)\s*$/i);
+            if (url) return repositoryNameFromUrl(url[1].replace(/^"|"$/g, ''));
+        }
+    } catch {
+        /* repository metadata is a best-effort identity source */
+    }
+    return null;
+}
+
 /**
- * Build the skeleton template for project-config.json.
+ * Derive an initial project identity from repository evidence. Package metadata wins,
+ * followed by Git's origin repository name, then the project-root folder name.
+ * This is identity-only: it deliberately does not infer stack or capability settings.
+ */
+function deriveProjectName(projectDir = PROJECT_DIR) {
+    const jsonNames = ['package.json', 'composer.json'];
+    for (const filename of jsonNames) {
+        const name = readJsonPackageName(projectDir, filename);
+        if (name) return name;
+    }
+
+    for (const [filename, sections] of [
+        ['pyproject.toml', ['project', 'tool.poetry']],
+        ['Cargo.toml', ['package']]
+    ]) {
+        try {
+            const name = readTomlSectionName(fs.readFileSync(path.join(projectDir, filename), 'utf-8'), sections);
+            if (name) return name;
+        } catch {
+            /* continue through other package metadata */
+        }
+    }
+
+    try {
+        const pubspec = fs.readFileSync(path.join(projectDir, 'pubspec.yaml'), 'utf-8');
+        const match = pubspec.match(/^\s*name\s*:\s*["']?([^\s#"']+)["']?\s*(?:#.*)?$/m);
+        if (match && usableProjectName(match[1])) return match[1].trim();
+    } catch {
+        /* not a Dart project */
+    }
+
+    try {
+        const goMod = fs.readFileSync(path.join(projectDir, 'go.mod'), 'utf-8');
+        const match = goMod.match(/^\s*module\s+([^\s]+)\s*$/m);
+        if (match) {
+            const name = repositoryNameFromUrl(match[1]);
+            if (name) return name;
+        }
+    } catch {
+        /* not a Go module */
+    }
+
+    return readGitOriginName(projectDir) || path.basename(path.resolve(projectDir)) || path.resolve(projectDir);
+}
+
+/**
+ * Build the minimum valid project-config document for project initialization.
+ * Optional settings stay absent until project-init has evidence for them; this avoids
+ * presenting invented stacks, architectures, test runners, or UI capabilities as facts.
  *
- * Evaluated PER CALL, never frozen at module load: the reference-doc directory is
- * derived from `portability.docsIndexPath`, so a module-level constant would bake
- * whichever project loaded this module first into every later write. The five doc
- * paths below and `docsRoots.projectReference.path` are composed from
- * `REFERENCE_DOCS_DIR` instead of restating the default reference-doc literal, so
- * `/project-init` cannot re-break a relocated project by re-writing defaults over it.
- *
- * SEEDS, NEVER OVERWRITES: the only writer (`session-init-docs.cjs:99`) emits this
- * object solely when the config file does not exist, so an existing project's
- * `docsRoots` / `framework.*Doc` / `designSystem.docsPath` values are left alone.
- *
- * @returns {object} a fresh skeleton config object
+ * @returns {object} a fresh, schema-valid minimal project config
  */
 function buildSkeleton() {
     return {
-        _description: 'Project-specific configuration consumed by .claude hooks at runtime. Update when adding services/apps.',
+        _description: 'Project-specific configuration consumed by .claude hooks. Add optional sections only when repository evidence supports them.',
         schemaVersion: 2,
-        project: {
-            name: '',
-            description: '',
-            languages: [],
-            packageManagers: []
-        },
-        framework: {
-            name: '',
-            backendPatternsDoc: referenceDocPath('backend-patterns-reference.md'),
-            frontendPatternsDoc: referenceDocPath('frontend-patterns-reference.md'),
-            codeReviewDoc: referenceDocPath('code-review-rules.md'),
-            integrationTestDoc: referenceDocPath('integration-test-reference.md'),
-            searchPatternKeywords: []
-        },
-        // Relocatable documentation roots, seeded at their defaults so a fresh config
-        // SHOWS the keys rather than leaving them invisible. `projectReference` tracks
-        // the derived reference-doc dir; the other five carry the documented default
-        // owned by `PORTABILITY_TOKENS` (project-config-loader.cjs:117).
-        docsRoots: {
-            projectReference: { path: referenceDocsRelDir() },
-            adr: { path: PORTABILITY_TOKENS.ADR_ROOT.default },
-            templates: { path: PORTABILITY_TOKENS.TEMPLATES_ROOT.default },
-            plans: { path: PORTABILITY_TOKENS.PLANS_ROOT.default },
-            teamArtifacts: { path: PORTABILITY_TOKENS.TEAM_ARTIFACTS_ROOT.default },
-            productRoadmap: { path: PORTABILITY_TOKENS.PRODUCT_ROADMAP_DOC.default }
-        },
-        modules: [],
-        contextGroups: [],
-        designSystem: {
-            docsPath: referenceDocPath('design-system'),
-            appMappings: []
-        },
-        styling: {
-            fileExtensions: [],
-            guideDoc: '',
-            appMap: {},
-            patterns: []
-        },
-        componentSystem: {
-            selectorPrefixes: ['app-'],
-            layerClassification: {}
-        },
-        testing: { frameworks: [], filePatterns: {}, commands: {} },
-        experienceVerification: {
-            enabled: false,
-            evidenceRoot: 'tmp/experience',
-            baselineRoot: 'tests/experience-baselines',
-            acceptancePolicy: 'manual-acceptance-required',
-            reviewOn: ['new-surface', 'changed-surface', 'bugfix', 'baseline-mismatch'],
-            surfaces: [],
-            notApplicableReason: 'Configure observable surfaces when the project has them; otherwise retain an evidence-backed NOT-APPLICABLE record.'
-        },
-        databases: {},
-        messaging: {},
-        api: {},
-        infrastructure: {},
-        referenceDocs: [],
-        workflowPatterns: {
-            architectureStyle: '',
-            codeHierarchy: '',
-            cssMethodology: '',
-            stateManagement: '',
-            crossModuleValidation: '',
-            featureDocTemplate: '',
-            reviewRulesDoc: ''
-        },
-        integrationTestVerify: {
-            guidance: '',
-            referenceDocs: [],
-            quickRunCommand: '',
-            testProjectPattern: '',
-            testProjects: [],
-            systemCheckCommand: '',
-            runScript: '',
-            startupScript: ''
-        }
+        project: { name: deriveProjectName() }
     };
 }
 
@@ -211,32 +276,14 @@ function checkConfigStatus() {
 // SCAN_SKILL_MAP — from init-reference-docs.cjs
 // =============================================================================
 
-const SCAN_SKILL_MAP = {
-    'project-structure-reference.md': 'scan --target=project-structure',
-    'backend-patterns-reference.md': 'scan --target=backend-patterns',
-    'seed-test-data-reference.md': 'scan --target=seed-test-data',
-    'frontend-patterns-reference.md': 'scan --target=frontend-patterns',
-    'integration-test-reference.md': 'scan --target=integration-tests',
-    'feature-spec-reference.md': 'scan --target=feature-spec',
-    'code-review-rules.md': 'scan --target=code-review-rules',
-    'scss-styling-guide.md': 'scan --target=scss-styling',
-    'design-system/README.md': 'scan --target=design-system',
-    'design-system/design-system-canonical.md': 'scan --target=design-system',
-    'design-system/design-tokens.scss': 'scan --target=design-system',
-    'design-system/design-tokens.css': 'scan --target=design-system',
-    'e2e-test-reference.md': 'scan --target=e2e-tests',
-    'domain-entities-reference.md': 'scan --target=domain-entities',
-    'docs-index-reference.md': 'scan --target=docs-index'
-    // lessons.md excluded — managed by /learn skill
-    // custom-prompts-reference.md excluded — managed by /custom-prompt skill
-    // skill-protocols-reference.md excluded — managed by /project-skill-protocol skill
-};
+// Built-in scan ownership lives in project-reference-registry.cjs so schema, hooks,
+// skills, and impact routing use one exact-filename catalog.
 
 // =============================================================================
 // DEFAULT_REFERENCE_DOCS — from init-reference-docs.cjs
 // =============================================================================
 
-const DEFAULT_REFERENCE_DOCS = [
+const REFERENCE_DOC_CATALOG = [
     {
         filename: 'project-structure-reference.md',
         purpose: 'Project structure, service architecture, directory tree, tech stack, and module registry.',
@@ -347,6 +394,26 @@ const DEFAULT_REFERENCE_DOCS = [
     }
 ];
 
+// Task-specific reference docs are opt-in by configuration or repository evidence.
+// A minimal project has no universal stack-specific reference floor; shared guidance
+// lives under `.claude/docs`, and the two project-routing inputs below are separate owners.
+const PORTABLE_BASELINE_REFERENCE_DOCS = Object.freeze([]);
+const DEFAULT_REFERENCE_DOCS = PORTABLE_BASELINE_REFERENCE_DOCS;
+
+// Always-on routing inputs are not members of the task-specific `referenceDocs` selection.
+const ALWAYS_ON_PROJECT_CONTEXT_DOCS = Object.freeze(
+    REFERENCE_DOC_CATALOG.filter(doc => ['lessons.md', 'docs-index-reference.md'].includes(doc.filename))
+);
+
+/** Return always-on owner docs, resolving docs-index to the configured index file path. */
+function getAlwaysOnReferenceDocs() {
+    const configuredIndexName = path.basename(DOCS_INDEX_PATH) || 'docs-index-reference.md';
+    return ALWAYS_ON_PROJECT_CONTEXT_DOCS.map(doc => ({
+        ...doc,
+        filename: doc.filename === 'docs-index-reference.md' ? configuredIndexName : doc.filename
+    }));
+}
+
 // Placeholder marker — present in all generated placeholder docs
 const PLACEHOLDER_MARKER = "<!-- Fill in your project's details below. -->";
 
@@ -410,7 +477,7 @@ function checkProjectConfig() {
 }
 
 // =============================================================================
-// REFERENCE DOC NORMALIZATION — canonical floor, alias migration, merge
+// REFERENCE DOC SELECTION — portable defaults, alias migration, deduplication
 // =============================================================================
 
 /**
@@ -422,105 +489,201 @@ function checkProjectConfig() {
  * normalization, and the project-config/project-init repair skills — migrates
  * automatically. Without this map, legacy projects silently re-diverge.
  */
-const REFERENCE_DOC_ALIASES = {
-    'feature-docs-reference.md': 'feature-spec-reference.md'
-};
-
 /**
  * Resolve a (possibly legacy) reference-doc filename to its canonical filename.
  * @param {string} filename
  * @returns {string}
  */
-function resolveReferenceDocAlias(filename) {
-    return Object.prototype.hasOwnProperty.call(REFERENCE_DOC_ALIASES, filename)
-        ? REFERENCE_DOC_ALIASES[filename]
-        : filename;
-}
-
 /**
- * Merge a project's configured reference docs with the canonical DEFAULT_REFERENCE_DOCS
- * using canonical-floor union semantics. This is the root-cause fix for silent doc
- * drift: previously a non-empty config.referenceDocs FULLY overrode the canonical set,
- * so a partial or legacy-named config permanently suppressed framework docs.
+ * Resolve a project's explicit reference-doc selection, using only the empty portable
+ * baseline when called without a selection. Capability-aware defaults are added by
+ * `resolveDefaultReferenceDocs`, which has access to the complete project config.
  *
  * Semantics:
- *   - Every canonical doc is ALWAYS present, in canonical order — config can never
- *     suppress the framework set.
- *   - Legacy filenames are resolved to canonical (REFERENCE_DOC_ALIASES) and collapsed,
- *     so a legacy entry never produces a duplicate doc. A canonical-named entry wins
- *     over a legacy alias targeting the same canonical doc.
+ *   - Missing or non-array selection uses DEFAULT_REFERENCE_DOCS (empty for a minimal project).
+ *   - An explicit array is authoritative, including []; selected docs keep their
+ *     configured order and unselected canonical docs are never injected.
+ *   - Legacy filenames are resolved to canonical (REFERENCE_DOC_ALIASES); aliases and
+ *     duplicates collapse at the first selected position. A canonical-named entry wins
+ *     over an alias targeting the same canonical doc.
  *   - A config entry matching a canonical doc may override `purpose` (non-empty) and
  *     `sections` (non-empty). The canonical `templatePath` is authoritative for
  *     template-backed docs; config may only SUPPLY a templatePath where canonical has
  *     none — it can never repoint a framework template at a wrong/legacy source.
- *   - Genuine project-specific docs (filenames not in the canonical set, after alias
- *     resolution) are preserved and appended after the canonical block, in config order.
+ *   - Project-specific docs and their metadata/templates are preserved in config order.
  *
- * @param {Array<{filename: string, purpose?: string, sections?: string[], templatePath?: string}>} [configDocs]
- * @returns {Array<{filename: string, purpose: string, sections?: string[], templatePath?: string}>}
+ * @param {Array<{filename: string, purpose?: string, sections?: string[], templatePath?: string, scanTarget?: string}>} [configDocs]
+ * @returns {Array<{filename: string, purpose: string, sections?: string[], templatePath?: string, scanTarget?: string}>}
  */
 function mergeReferenceDocs(configDocs) {
-    const canonicalNames = new Set(DEFAULT_REFERENCE_DOCS.map(d => d.filename));
-    const overrides = new Map(); // canonicalName -> config entry
-    const extras = [];           // project-specific docs not in canonical set
-    const seenExtra = new Set();
+    const canonicalNames = new Set(REFERENCE_DOC_CATALOG.map(d => d.filename));
+    if (!Array.isArray(configDocs)) return DEFAULT_REFERENCE_DOCS.map(doc => ({ ...doc }));
 
-    if (Array.isArray(configDocs)) {
-        for (const doc of configDocs) {
-            if (!doc || typeof doc.filename !== 'string' || doc.filename.trim() === '') continue;
-            // Normalize the filename ONCE at entry. A human-edited legacy config can carry
-            // trailing whitespace (e.g. "feature-docs-reference.md "); without trimming, the
-            // raw value misses BOTH the alias map and the canonical set and is pushed to
-            // `extras` as a bogus project doc — silently re-importing the exact drift the
-            // alias map exists to kill (and human-edited legacy configs are its whole target
-            // population). Trim only — NEVER case-fold: filesystems are case-sensitive.
-            const filename = doc.filename.trim();
-            const resolved = resolveReferenceDocAlias(filename);
-            if (canonicalNames.has(resolved)) {
-                const isLegacyAlias = filename !== resolved;
-                // Prefer a canonical-named entry over a legacy alias for the same doc.
-                if (!overrides.has(resolved) || !isLegacyAlias) overrides.set(resolved, doc);
-            } else if (!seenExtra.has(resolved)) {
-                seenExtra.add(resolved);
-                extras.push({ ...doc, filename: resolved });
+    const selected = new Map(); // resolved filename -> selected config entry
+    const selectionOrder = [];
+
+    for (const doc of configDocs) {
+        if (!doc || typeof doc.filename !== 'string' || doc.filename.trim() === '') continue;
+        // Trim only — NEVER case-fold: filesystems are case-sensitive.
+        const filename = doc.filename.trim();
+        const resolved = resolveReferenceDocAlias(filename);
+        const isLegacyAlias = filename !== resolved;
+        const existing = selected.get(resolved);
+
+        if (canonicalNames.has(resolved)) {
+            // Preserve the first selected position. A canonical entry beats an alias;
+            // among multiple canonical entries, the last canonical value remains authoritative.
+            if (!existing) selectionOrder.push(resolved);
+            if (!existing || !isLegacyAlias) {
+                selected.set(resolved, { doc, canonical: true });
             }
+        } else if (!existing) {
+            selectionOrder.push(resolved);
+            selected.set(resolved, {
+                doc: { ...doc, filename: resolved },
+                canonical: false
+            });
         }
     }
 
-    const merged = DEFAULT_REFERENCE_DOCS.map(canon => {
-        const ov = overrides.get(canon.filename);
-        const out = { ...canon };
-        if (ov) {
-            if (typeof ov.purpose === 'string' && ov.purpose.trim() !== '') out.purpose = ov.purpose;
-            if (Array.isArray(ov.sections) && ov.sections.length > 0) out.sections = ov.sections;
-            // Canonical templatePath is authoritative; config may only fill a gap.
-            if (!out.templatePath && typeof ov.templatePath === 'string' && ov.templatePath.trim() !== '') {
-                out.templatePath = ov.templatePath.trim();
-            }
+    return selectionOrder.map(filename => {
+        const entry = selected.get(filename);
+        if (!entry.canonical) return entry.doc;
+
+        const canonical = REFERENCE_DOC_CATALOG.find(doc => doc.filename === filename);
+        const out = { ...canonical };
+        const override = entry.doc;
+        if (typeof override.purpose === 'string' && override.purpose.trim() !== '') out.purpose = override.purpose;
+        if (Array.isArray(override.sections) && override.sections.length > 0) out.sections = override.sections;
+        // Canonical templatePath is authoritative; config may only fill a gap.
+        if (!out.templatePath && typeof override.templatePath === 'string' && override.templatePath.trim() !== '') {
+            out.templatePath = override.templatePath.trim();
         }
         return out;
     });
+}
 
-    return merged.concat(extras);
+/** A known reference doc selected only when the matching project capability is evidenced. */
+const CAPABILITY_REFERENCE_DOCS = Object.freeze({
+    projectStructure: ['project-structure-reference.md'],
+    backend: ['backend-patterns-reference.md'],
+    frontend: ['frontend-patterns-reference.md'],
+    integrationTests: ['integration-test-reference.md'],
+    featureSpecs: [
+        'feature-spec-reference.md',
+        'spec-system-reference.md',
+        'spec-principles.md',
+        'workflow-spec-test-code-cycle-reference.md'
+    ],
+    scss: ['scss-styling-guide.md'],
+    designSystem: ['design-system/README.md'],
+    e2e: ['e2e-test-reference.md'],
+    domainModel: ['domain-entities-reference.md'],
+    codeReview: ['code-review-rules.md']
+});
+
+function hasConfiguredValue(value) {
+    if (typeof value === 'string') return value.trim() !== '';
+    if (Array.isArray(value)) return value.length > 0;
+    if (!value || typeof value !== 'object') return false;
+    return Object.entries(value).some(([key, item]) => !key.startsWith('_') && hasConfiguredValue(item));
+}
+
+function hasFrameworkDoc(config, key) {
+    return typeof config?.framework?.[key] === 'string' && config.framework[key].trim() !== '';
+}
+
+function moduleHasDomainSemantics(module) {
+    const descriptors = [module?.kind, ...(Array.isArray(module?.tags) ? module.tags : [])]
+        .filter(value => typeof value === 'string')
+        .join(' ')
+        .toLowerCase();
+    return /\bdomain\b/.test(descriptors);
 }
 
 /**
- * Produce the canonical-shaped referenceDocs array for a project AND a report of what
- * changed, so config-writing skills (project-config Phase 2q, project-init repair) can
- * rewrite config + migrate files deterministically instead of re-importing on-disk drift.
+ * Derive optional reference docs only from concrete config declarations. The framework
+ * never treats a generic `framework.name`, a database file, or an arbitrary source folder
+ * as proof that every backend/UI/test pattern applies. Scans and project-init may add a
+ * selected reference after they establish a capability; otherwise task skills inspect the
+ * project just in time and absent capabilities remain absent.
+ *
+ * @param {object} [config] - project-config.json, loaded from the configured path if omitted
+ * @returns {Array<{filename: string, purpose: string, sections?: string[], templatePath?: string, scanTarget?: string}>}
+ */
+function resolveDefaultReferenceDocs(config = loadProjectConfig()) {
+    const projectConfig = config && typeof config === 'object' && !Array.isArray(config) ? config : {};
+    const selected = new Set(PORTABLE_BASELINE_REFERENCE_DOCS.map(doc => doc.filename));
+    const modules = Array.isArray(projectConfig.modules) ? projectConfig.modules : [];
+    const styling = projectConfig.styling || {};
+    const includeCapability = name => {
+        for (const filename of CAPABILITY_REFERENCE_DOCS[name] || []) selected.add(filename);
+    };
+
+    if (hasConfiguredValue(projectConfig.modules)) includeCapability('projectStructure');
+    if (
+        hasFrameworkDoc(projectConfig, 'backendPatternsDoc') ||
+        hasConfiguredValue(projectConfig.backendServices) ||
+        hasConfiguredValue(projectConfig.api) ||
+        hasConfiguredValue(projectConfig.databases) ||
+        hasConfiguredValue(projectConfig.messaging)
+    ) includeCapability('backend');
+    if (
+        hasFrameworkDoc(projectConfig, 'frontendPatternsDoc') ||
+        hasConfiguredValue(projectConfig.frontendApps) ||
+        hasConfiguredValue(projectConfig.designSystem) ||
+        modules.some(module => /\b(frontend|ui|client)\b/i.test(`${module?.kind || ''} ${(module?.tags || []).join(' ')}`))
+    ) includeCapability('frontend');
+    if (
+        hasFrameworkDoc(projectConfig, 'integrationTestDoc') ||
+        hasConfiguredValue(projectConfig.integrationTestVerify) ||
+        (Array.isArray(projectConfig.testing?.integrationRules) && projectConfig.testing.integrationRules.length > 0)
+    ) includeCapability('integrationTests');
+    if (hasFrameworkDoc(projectConfig, 'e2eTestDoc') || hasConfiguredValue(projectConfig.e2eTesting)) {
+        includeCapability('e2e');
+    }
+    if (
+        hasConfiguredValue(projectConfig.scss) ||
+        (Array.isArray(styling.fileExtensions) && styling.fileExtensions.some(ext => /\.(scss|sass)$/i.test(ext))) ||
+        (typeof styling.technology === 'string' && /\b(scss|sass)\b/i.test(styling.technology)) ||
+        (Array.isArray(styling.patterns) && styling.patterns.some(pattern => hasConfiguredValue(pattern?.scssExamples)))
+    ) includeCapability('scss');
+    if (hasConfiguredValue(projectConfig.designSystem)) includeCapability('designSystem');
+    if (modules.some(moduleHasDomainSemantics)) includeCapability('domainModel');
+    if (
+        hasConfiguredValue(projectConfig.specRoots?.business) ||
+        hasConfiguredValue(projectConfig.specArtifacts) ||
+        (typeof projectConfig.workflowPatterns?.featureDocTemplate === 'string' && projectConfig.workflowPatterns.featureDocTemplate.trim() !== '')
+    ) {
+        for (const filename of CAPABILITY_REFERENCE_DOCS.featureSpecs) selected.add(filename);
+    }
+    if (hasFrameworkDoc(projectConfig, 'codeReviewDoc')) includeCapability('codeReview');
+
+    return mergeReferenceDocs([...selected].map(filename => ({ filename })));
+}
+
+/**
+ * Normalize the configured reference-doc selection and report the repairs needed for
+ * config-writing callers. An absent selection resolves from the supplied project-config
+ * evidence (which may yield an empty list); explicit arrays remain authoritative and never
+ * report unselected defaults as additions.
  *
  * @param {Array} [configDocs] - current config.referenceDocs
+ * @param {object} [projectConfig] - full config used only when referenceDocs is absent
  * @returns {{
  *   normalized: Array,                                  // what config.referenceDocs SHOULD be
  *   renames: Array<{from: string, to: string}>,         // legacy→canonical file migrations to apply
- *   added: string[],                                    // canonical filenames absent from config
+ *   added: string[],                                    // default filenames to add when selection is absent
  *   removedLegacy: string[],                            // legacy filenames to drop from config
- *   changed: boolean                                    // true if config differs from canonical shape
+ *   changed: boolean                                    // true if config differs from normalized selection
  * }}
  */
-function normalizeReferenceDocs(configDocs) {
-    const before = Array.isArray(configDocs) ? configDocs : [];
-    const normalized = mergeReferenceDocs(before);
+function normalizeReferenceDocs(configDocs, projectConfig) {
+    const hasExplicitSelection = Array.isArray(configDocs);
+    const before = hasExplicitSelection ? configDocs : [];
+    const normalized = hasExplicitSelection
+        ? mergeReferenceDocs(configDocs)
+        : resolveDefaultReferenceDocs(projectConfig === undefined ? loadProjectConfig() : projectConfig);
 
     // Trim once (never case-fold), mirroring mergeReferenceDocs, so a trailing-space legacy
     // entry is detected as a rename here too instead of surviving silently in config.
@@ -531,7 +694,7 @@ function normalizeReferenceDocs(configDocs) {
 
     const renames = [];
     const removedLegacy = [];
-    const seenLegacy = new Set(); // dedup parity with mergeReferenceDocs' seenExtra: a duplicate
+    const seenLegacy = new Set(); // a duplicate
                                   // legacy entry must not emit duplicate rename/removal instructions.
     for (const name of beforeNames) {
         const resolved = resolveReferenceDocAlias(name);
@@ -543,9 +706,7 @@ function normalizeReferenceDocs(configDocs) {
     }
 
     const satisfied = new Set(beforeNames.map(resolveReferenceDocAlias));
-    const added = DEFAULT_REFERENCE_DOCS
-        .map(d => d.filename)
-        .filter(name => !satisfied.has(name));
+    const added = hasExplicitSelection ? [] : normalized.map(d => d.filename).filter(name => !satisfied.has(name));
 
     const afterNames = normalized.map(d => d.filename);
     const changed = renames.length > 0 || added.length > 0 ||
@@ -556,13 +717,28 @@ function normalizeReferenceDocs(configDocs) {
 }
 
 /**
- * Load reference doc definitions, merged with the canonical floor.
- * Drift, partial configs, and legacy filenames can no longer suppress canonical docs.
- * @returns {Array<{filename: string, purpose: string, sections?: string[], templatePath?: string}>}
+ * Load configured reference doc definitions. An explicit array is exact; an absent
+ * property receives only capability docs supported by config evidence.
+ * @returns {Array<{filename: string, purpose: string, sections?: string[], templatePath?: string, scanTarget?: string}>}
  */
-function getReferenceDocs() {
-    const config = loadProjectConfig();
-    return mergeReferenceDocs(config && config.referenceDocs);
+function getReferenceDocs(config = loadProjectConfig()) {
+    const projectConfig = config && typeof config === 'object' && !Array.isArray(config) ? config : {};
+    return Array.isArray(projectConfig.referenceDocs)
+        ? mergeReferenceDocs(projectConfig.referenceDocs)
+        : resolveDefaultReferenceDocs(projectConfig);
+}
+
+/** Resolve built-in, generic, or manual scan ownership for a selected reference doc. */
+function getReferenceDocScanTarget(docOrFilename) {
+    const filename = typeof docOrFilename === 'string' ? docOrFilename : docOrFilename?.filename;
+    if (filename === path.basename(DOCS_INDEX_PATH)) {
+        return { kind: 'built-in', command: 'scan --target=docs-index' };
+    }
+    return resolveReferenceDocTarget(docOrFilename);
+}
+
+function getReferenceDocScanSkill(docOrFilename) {
+    return getReferenceDocScanTarget(docOrFilename).command;
 }
 
 /**
@@ -579,9 +755,7 @@ function generatePlaceholderContent(doc) {
     // Optional template passthrough for docs that need rich defaults.
     if (typeof doc.templatePath === 'string' && doc.templatePath.trim() !== '') {
         const rawTemplatePath = doc.templatePath.trim();
-        const templatePath = path.isAbsolute(rawTemplatePath)
-            ? rawTemplatePath
-            : path.join(PROJECT_DIR, rawTemplatePath);
+        const templatePath = getProjectTemplatePath(rawTemplatePath);
         try {
             if (fs.existsSync(templatePath) && fs.statSync(templatePath).isFile()) {
                 const templateContent = fs.readFileSync(templatePath, 'utf-8');
@@ -892,7 +1066,12 @@ function resolveVerifiedDate(entry, filePath) {
  */
 function recordDocVerified(filename, today = new Date().toISOString().slice(0, 10)) {
     if (rootResolution.error) return false;
-    const filePath = path.join(REFERENCE_DOCS_DIR, filename);
+    let filePath;
+    try {
+        filePath = getReferenceDocPath(filename);
+    } catch {
+        return false;
+    }
     try {
         const hash = contentHash(fs.readFileSync(filePath, 'utf-8'));
         const ledger = readScanVerifiedLedger();
@@ -922,8 +1101,24 @@ function getStaleReferenceDocs(staleDays) {
     const thresholdMs = staleDays * 24 * 60 * 60 * 1000;
     const ledger = readScanVerifiedLedger();
 
-    for (const [filename, scanSkill] of Object.entries(SCAN_SKILL_MAP)) {
-        const filePath = path.join(REFERENCE_DOCS_DIR, filename);
+    // Staleness follows the same ownership split as materialization: project routing
+    // docs are always tracked, while task-specific docs are tracked only when selected
+    // or when an absent selection resolves to an evidenced capability.
+    const trackedDocs = new Map();
+    for (const doc of [...getAlwaysOnReferenceDocs(), ...getReferenceDocs()]) {
+        const { kind, command } = getReferenceDocScanTarget(doc);
+        if ((kind === 'built-in' || kind === 'generic') && command && !trackedDocs.has(doc.filename)) {
+            trackedDocs.set(doc.filename, command);
+        }
+    }
+
+    for (const [filename, scanSkill] of trackedDocs) {
+        let filePath;
+        try {
+            filePath = getReferenceDocPath(filename);
+        } catch {
+            continue;
+        }
         const stampDate = parseLastScannedDate(filePath);
         if (!stampDate) continue; // Skip docs without timestamps — never block incorrectly
         const verifiedDate = resolveVerifiedDate(ledger[filename], filePath);
@@ -985,12 +1180,21 @@ module.exports = {
     // From init-reference-docs.cjs
     SCAN_SKILL_MAP,
     DEFAULT_REFERENCE_DOCS,
+    PORTABLE_BASELINE_REFERENCE_DOCS,
+    REFERENCE_DOC_CATALOG,
+    ALWAYS_ON_PROJECT_CONTEXT_DOCS,
+    CAPABILITY_REFERENCE_DOCS,
+    getAlwaysOnReferenceDocs,
+    resolveDefaultReferenceDocs,
+    getReferenceDocScanTarget,
+    getReferenceDocScanSkill,
     PLACEHOLDER_MARKER,
     PLACEHOLDER_MARKER_SCSS,
     isPlaceholderFile,
     checkProjectConfig,
     getReferenceDocs,
-    // Reference doc normalization (canonical floor + alias migration)
+    deriveProjectName,
+    // Reference doc normalization (capability-aware selection + alias migration)
     REFERENCE_DOC_ALIASES,
     resolveReferenceDocAlias,
     mergeReferenceDocs,
@@ -1017,13 +1221,14 @@ module.exports = {
     PROJECT_DIR,
     CONFIG_PATH,
     DOCS_DIR,
-    REFERENCE_DOCS_DIR
+    REFERENCE_DOCS_DIR,
+    getReferenceDocPath,
+    getProjectTemplatePath
 };
 
-// `SKELETON` stays a supported read: every existing consumer destructures it
-// (`session-init-docs.cjs:28`, `scripts/tests/experience-config.test.cjs:10`). As a
-// GETTER it is built at access time, so it carries the per-project derivation instead
-// of a value frozen at module load.
+// `SKELETON` stays a supported read: `.claude/hooks/session-init-docs.cjs:28`
+// destructures it, while `.claude/hooks/tests/test-all-hooks.cjs:381` reads the getter
+// directly. Building it at access time carries per-project derivation instead of freezing it.
 Object.defineProperty(module.exports, 'SKELETON', {
     enumerable: true,
     get: buildSkeleton

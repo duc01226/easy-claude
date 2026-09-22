@@ -1,70 +1,108 @@
 ---
 name: project-config
-description: '[Utilities] Use when scanning the workspace to update docs/project-config.json to match current structure.'
+description: '[Utilities] Use when scanning the workspace to update the configured project-config file (default docs/project-config.json) to match current structure.'
 disable-model-invocation: false
 ---
 
 ## Quick Summary
 
-**Goal:** Scan workspace, update `docs/project-config.json` with accurate values.
+**Goal:** Keep the configured project-config file (default `docs/project-config.json`) valid and accurate while adding only optional project details supported by evidence.
+
+**Summary:**
+
+- The config file is required; the minimum valid content is `{"project":{"name":"<derived name>"}}`.
+- Missing or invalid config blocks ordinary project-specific work until `/project-config` or `/project-init` repairs it.
+- Read the schema and required project references, then select only the capability areas supported by the task or repository evidence.
+- Omitted properties use documented defaults or evidence-backed skips. A declared but incomplete or unsupported section must be repaired or removed explicitly; never treat it as absent.
+- Merge and validate selected changes; report omitted capabilities and follow-up work without inventing architecture or test cases.
 
 **IMPORTANT MUST ATTENTION** follow Plan → Review → Execute workflow. **IMPORTANT MUST ATTENTION** use exact schema field names (`--describe`). **IMPORTANT MUST ATTENTION** validate after each phase. **NEVER** use `classPattern`/`keyExtractor` — correct fields: `contentPattern`/`keyGroup`.
 
-**Workflow:** Recon → classify scale → `/plan` → `/plan-review` → Execute phases (scan → merge → validate → fix) → Follow-up scans → `/prompt-enhance`
+**Workflow:** Recon → identify supported capabilities → `/plan` → `/plan-review` → Execute selected phases (scan → merge → validate → fix) → applicable follow-up scans → self-review
 
 **Key Rules:**
 
 - MUST ATTENTION run `node .claude/hooks/lib/project-config-schema.cjs --describe` — use field names verbatim
-- MUST ATTENTION execute every required config section for every project size; small projects do not skip, defer, or require user approval to combine work
-- MUST ATTENTION one TaskCreate per config section or explicit section group — NEVER scan everything in one pass
+- MUST ATTENTION ensure the configured project-config file exists and validates; `project.name` is the only required project property
+- MUST ATTENTION route missing/invalid config through `/project-config` or `/project-init` before ordinary project-specific work
+- MUST ATTENTION add optional properties only for a selected capability or direct repository evidence; omit absent capabilities instead of creating empty sections
+- MUST ATTENTION one TaskCreate per selected config section or explicit section group — NEVER scan everything in one pass
 - MUST ATTENTION validate schema after each merge — `validateConfig(config)` returns PASSED or errors
 - MUST ATTENTION review-and-fix after each phase — read back, spot-check paths, self-review
-- MUST ATTENTION do not ask the user to choose scan granularity, combination, section ordering, or optional confirmation; auto-select the evidence-backed route and continue
+- MUST ATTENTION choose scan granularity and section grouping from repository size and evidence; ask only when product scope or an unresolved project decision is actually required
 - Path regexes MUST ATTENTION use `[\\/]` for cross-OS separator matching
 - Schema enforced by `.claude/hooks/lib/project-config-schema.cjs`
+- MUST ATTENTION when the user asks for help, options, or "what can I configure", run **Help Mode** below and STOP — never start a scan
+
+---
+
+## Help Mode (`--help`)
+
+**Trigger:** `$ARGUMENTS` contains `--help`, `-h`, `help`, `options`, `what can I change`, `what does X do`, or any other request for the option surface rather than a config update.
+
+**Help Mode is read-only and terminal.** Run the generator, present its output, answer the question, and STOP. Do NOT create tasks, do NOT scan the repository, and do NOT edit the config file. If the user then asks for a change, re-enter this skill in its normal workflow.
+
+```bash
+node .claude/skills/project-config/scripts/project-config-help.cjs            # orientation + most-consumed options
+node .claude/skills/project-config/scripts/project-config-help.cjs --sections # every option, one line each
+node .claude/skills/project-config/scripts/project-config-help.cjs --section=<name>
+node .claude/skills/project-config/scripts/project-config-help.cjs --consumers        # who reads what, ranked
+node .claude/skills/project-config/scripts/project-config-help.cjs --consumers=<key>  # name the skills/agents/hooks
+node .claude/skills/project-config/scripts/project-config-help.cjs --docs     # reference docs: purpose + regenerating owner
+node .claude/skills/project-config/scripts/project-config-help.cjs --roots    # relocatable roots, defaults, current values
+node .claude/skills/project-config/scripts/project-config-help.cjs --skills   # skills that read project-config
+node .claude/skills/project-config/scripts/project-config-help.cjs --current  # declared vs defaulted in THIS project
+node .claude/skills/project-config/scripts/project-config-help.cjs --search=<term>
+```
+
+**Mode selection:**
+
+| The user asks | Run |
+|---|---|
+| "what options are there", "help" | (no flag), then `--sections` if they want the full list |
+| "what does `<section>` do / control" | `--section=<section>` |
+| "how many skills use X", "what breaks if I change X" | `--consumers=<key>` |
+| "which reference docs exist / what is each for" | `--docs` |
+| "where do specs / plans / ADRs / templates live" | `--roots` |
+| "what is configured for this project" | `--current` |
+| anything by keyword | `--search=<term>` |
+
+**Presentation rules:**
+
+- Show the script output **verbatim and complete** — it is generated from `SCHEMA`, `PORTABILITY_TOKENS`, the reference-doc registry, and a live scan of `.claude/skills`, `.claude/agents`, `.claude/workflows`, and `.claude/hooks`. Do not summarise it away, and never retype a list from memory.
+- THEN add the interpretation the script cannot: which change the user actually wants, what it will move, and the one command that applies it.
+- Consumer counts are **name-reference counts**, not a call graph. A section with no named consumer may still be read indirectly through `project-config-loader.cjs`; say so rather than calling it unused.
+- `--current` reports declared vs defaulted only. For a verdict on validity, run `node .claude/hooks/lib/project-config-schema.cjs --validate <configured path>`.
+- For framework-wide help beyond the config file (skills, workflows, hooks, project architecture), route to `/project-help`. For init-time routing decisions, route to `/project-init --help`.
 
 ---
 
 ## ⛔ Plan → Review → Execute Workflow
 
-### Step 1: Detect — Classify Project Scale
+### Step 1: Establish Identity and Capability Evidence
 
-**MUST ATTENTION classify scale FIRST** — drives task granularity for all subsequent phases.
+Read the configured project-config path and schema. If the file is absent, create the minimum schema-valid document with a non-empty `project.name`, derived from repository/package metadata or, when no metadata names the project, the repository-root directory. Do not infer language, architecture, framework, testing, UI, database, or product capabilities from the name.
 
-```bash
-find . -path "*/node_modules" -prune -o -name "*.csproj" -print 2>/dev/null | wc -l
-find . -path "*/node_modules" -prune -o -name "package.json" -print 2>/dev/null | wc -l
-find . -path "*/node_modules" -prune -o -type f -name "{configured-source-file-glob}" -print 2>/dev/null | wc -l
-find . -maxdepth 3 -type d -name "{candidate-source-dir-name}" 2>/dev/null
-```
-
-| Scale         | Signal              | Task Approach |
-| ------------- | ------------------- | --- |
-| Small (<5)    | Few modules         | Execute every section; use compact phase groups only for reporting, not for skipping or asking |
-| Medium (5–20) | Moderate count      | Execute every section with one task per section where practical |
-| Large (20+)   | Many service groups | Execute every section; split 2a/2b and other broad scans per service group when needed |
-
-Project size controls task grouping and split depth only. It does NOT permit skipping required sections, stopping for user approval, or asking whether to combine work. For small projects, auto-select the compact full-pass plan and keep validating after each merge/review phase.
+Inventory only enough of the repository to answer the task and identify real manifests, source roots, tests, documentation, and configured tooling. Record repository size only when it helps group the selected work. Scale affects task grouping; it never creates a requirement to populate optional sections.
 
 ### Step 2: Create Plan (`/plan`)
 
 Create `{plans-root}/{date}-project-config-scan.md` in the plans root — default `plans/`; a `docsRoots.plans.path` entry in `docs/project-config.json` overrides the path:
 
-1. Record scale classification from Step 1
-2. Group config sections into phases (≤5 tasks each) while preserving full section coverage
-3. Include review-and-fix cycle after each phase
-4. Include every Phase 2 section (2a–2s) as either its own task or a named task inside a compact group with explicit evidence for each section
+1. Record the required project identity and the source that supports its name
+2. List only config areas selected by the request or supported by repository evidence; include the evidence and the fields to derive
+3. Record absent capability areas as evidence-backed skips, not empty sections to populate
+4. Group selected config areas into reviewable phases (≤5 tasks each when practical)
+5. Include a review-and-fix cycle after each phase
 
 **Phase template:**
 
 ```
-Phase A: Setup & Metadata — validate config, read schema, scan project metadata
-Phase B: Module Discovery — backend projects, frontend apps/libs, framework keywords
-Phase C: Context & UI — context groups, design system, styling, component system
-Phase D: Testing & Infra — testing, E2E, databases, messaging, API, infrastructure
-Phase E: Graph Connectors — API endpoints, implicit connections, referenceDocs
-Phase F: Final Review — consolidate, validate, hook tests, create /scan-* tasks
-Phase G: Self-Review — re-invoke /project-config to verify all config matches source code
+Phase A: Required Identity — configured path, project name, schema, and existing values
+Phase B: Selected Capabilities — one or more evidence-backed config areas, or record why none apply
+Phase C: Merge & Validate — preserve existing user-authored values, validate declared sections, review the diff
+Phase D: Follow-Up — queue only reference scans or config work for selected/evidenced capabilities
+Phase E: Self-Review — confirm the required identity, declared capability evidence, and omissions
 ```
 
 ### Step 3: Review Plan (`/plan-review`)
@@ -73,7 +111,7 @@ Run `/plan-review` on the generated scan plan; resolve blocking findings before 
 
 ### Step 4: Execute
 
-Per phase: TaskCreate → scan → merge → validate → spot-check → fix → next phase.
+Per selected phase: TaskCreate → inspect evidence → merge → validate → spot-check → fix → next phase. Record a capability as skipped when evidence shows it does not apply; do not create placeholder sections to make a phase appear complete.
 
 ### Review-and-Fix Cycle (MANDATORY per phase)
 
@@ -87,29 +125,29 @@ Per phase: TaskCreate → scan → merge → validate → spot-check → fix →
 
 ## Intermediate Workspace
 
-Medium/large projects: `mkdir -p tmp/project-config` — write phase reports before merging. Delete after consolidation.
+Medium/large projects: create `tmp/project-config` with `node -e "require('fs').mkdirSync('tmp/project-config',{recursive:true})"` when phase reports are useful. Delete the temporary reports after consolidation.
 
 ---
 
-## ⛔ Local-Only Changes — `docs/project-config.local.json`
+## ⛔ Local-Only Workflow Routing — `.claude/.ck.local.json`
 
-`docs/project-config.json` is **team-shared and committed**. Writing a personal preference into it
-pushes that preference onto every teammate on the next pull. The git-ignored sibling
-`docs/project-config.local.json` exists for exactly that case.
+The configured project-config file (default `docs/project-config.json`) is **team-shared and committed**. Two routing settings have a portable developer-local override: `portability.workflowAutoDetect` (the on/off switch) and `portability.workflowRouteProtocol` (optional custom protocol text the runtime route hook appends). Their local values belong in `.claude/.ck.local.json`, inside the copied framework bundle and ignored by `.claude/.gitignore`.
 
 **MUST ATTENTION — route by who the change is for, and ask when it is ambiguous.**
 
 | The user says | Write to |
 | --- | --- |
-| "turn X off **for me / on my machine / locally / just here / don't commit it**" | `docs/project-config.local.json` — **never** the team file |
-| "turn X off **for this project / for the team / for everyone**" | `docs/project-config.json` (the normal scan/merge path) |
-| A scan/merge run (Phases 0–7 below) | `docs/project-config.json` — scans describe the repository, which is a team fact |
-| Neither is stated **and** the setting is a behavioural preference rather than a description of the repo (for example `portability.workflowAutoDetect`) | STOP and ask which scope they mean — guessing writes an unwanted file either way |
+| "turn workflow routing off/on **for me / on my machine / locally / just here / don't commit it**" | `.claude/.ck.local.json` — **never** the team file |
+| "add/change the route protocol **for me / on my machine / locally / just here / don't commit it**" | `.claude/.ck.local.json` — **never** the team file |
+| "turn workflow routing off/on **for this project / for the team / for everyone**" | The configured project-config file (the normal scan/merge path) |
+| "add/change the route protocol **for this project / for the team / for everyone**" | The configured project-config file (the normal scan/merge path) |
+| A scan/merge run (Phases 0–7 below) | The configured project-config file — scans describe the repository, which is a team fact |
+| A local request for any other project-config field | Explain that no generic local overlay exists; keep repository facts in the team config |
 
 **Writing the local override:**
 
-1. Confirm it is ignored before writing — `git check-ignore -v docs/project-config.local.json`.
-   It is covered by the repo-root `.gitignore` rule `*.local.json`. If that command reports
+1. Confirm it is ignored before writing — `git check-ignore -v .claude/.ck.local.json`.
+   It is covered by the portable `.claude/.gitignore` rule `*.local.json`. If that command reports
    nothing, the file would be committed: STOP, tell the user, and add the ignore rule first.
    Never create an un-ignored `*.local.json`; that is the one outcome this whole path exists
    to prevent.
@@ -121,40 +159,66 @@ pushes that preference onto every teammate on the next pull. The git-ignored sib
    file, or set the key back).
 
 ```jsonc
-// docs/project-config.local.json — git-ignored, this machine only, sparse overlay
+// .claude/.ck.local.json — git-ignored, this machine only, sparse override
 {
   "portability": { "workflowAutoDetect": false }
 }
 ```
 
-**Resolution contract** (`.claude/scripts/lib/workflow-routing-config.cjs` implements it for
-`workflowAutoDetect`): framework default → team `docs/project-config.json` → local
-`docs/project-config.local.json`, **later layer wins**. A layer that is absent, unparseable, or
-simply silent on a key expresses no opinion and falls through to the layer below — so a missing
-file never flips a setting, and the override works in BOTH directions (a developer can set `true`
-locally to opt back in when the team set `false`). The local path is derived from the team config
-path, so it follows a `.ck.json` `projectConfigPath` relocation automatically.
+**Resolution contract** (`.claude/scripts/lib/workflow-routing-config.cjs` implements it for both
+`workflowAutoDetect` and `workflowRouteProtocol`): framework default (`true` / none) → the configured
+team project-config file → local `.claude/.ck.local.json`, **later valid layer wins**. A layer that is
+absent, unparseable, or simply silent on a key expresses no opinion and falls through to the layer
+below — so a missing file never flips a setting, and the override works in BOTH directions (a
+developer can set `true`/a protocol locally to opt back in when the team set `false`/its own text).
+The team path follows `.ck.json` `portability.projectConfigPath`; the local path remains
+`.claude/.ck.local.json` so the portable framework carries its ignore rule to every consuming project.
 
-**⛔ SCOPE — why the tracked files do NOT change.** `CLAUDE.md`, `AGENTS.md` and
-`.codex/CODEX_CONTEXT.md` are git-tracked. If a local preference rewrote them, it would appear as
-modified tracked files and could be committed onto the team — defeating the whole point. So the
-switch resolves at two scopes:
+### Custom route protocol (`portability.workflowRouteProtocol`)
 
-| Scope | Who resolves it | Layers applied |
-| --- | --- | --- |
-| `team` | every generator writing a **tracked** file (`generate-claude-md.cjs`, `sync-context-workflows.mjs`) | default + team config **only** |
-| `effective` (default) | the **runtime** `UserPromptSubmit` carrier, which writes nothing | default + team + local override |
+Use this when the project wants the runtime route reminder to carry ADDITIONAL rules or a custom
+protocol on top of the canonical route gate. The value is either:
 
-So a developer who disables routing locally gets it off **at runtime**, while the shared files keep
-the team's content and the repository stays clean. Because those files still contain the gate, the
-runtime carrier additionally states that it **overrides** them — so the model does not route from a
-gate nothing contradicted.
+- a **string** — inline markdown appended verbatim; or
+- an **object** `{ "text": "...", "path": "..." }` — inline `text` and/or a **repo-relative** `path`
+  to a markdown file read at runtime. Both may be supplied; `text` renders first, then the file body.
+  Absolute paths and `..` segments are rejected (fail-closed in the schema; at runtime an unreadable
+  or escaping path simply expresses no opinion and the cascade falls through).
 
-**Do NOT tell the user to run `/ai-context-refresh` to "apply" a local override** — it is already
-in effect at runtime, and regenerating would only rewrite tracked files. The generator prints a
-notice explaining this. `--apply-local-routing` is the explicit escape hatch for a developer who
-genuinely wants the local value baked into their working copy; it produces tracked-file changes
-they must not commit, so only use it when they ask for exactly that.
+```jsonc
+// team (docs/project-config.json) — committed, applies to everyone
+{ "portability": { "workflowRouteProtocol": { "path": "docs/project-protocols/route.md" } } }
+
+// developer (git-ignored .claude/.ck.local.json) — local REPLACES the team value
+{ "portability": { "workflowRouteProtocol": "Always prefer a targeted run over the full suite." } }
+```
+
+**Semantics.**
+
+- The text is **additive** to the canonical gate and catalog, injected in its own marker block
+  (`<!-- CK:WORKFLOW-ROUTE-PROTOCOL -->`) by `workflow-route-inject.cjs` at `UserPromptSubmit`. It is
+  advisory context, never a blocking decision and never an authority escalation.
+- Team and local layers do **not** concatenate: a valid local value **replaces** the team value, the
+  same "later valid layer wins" rule the on/off switch uses. To extend the team protocol locally, copy
+  its text into the local value (or point the local `path` at the shared file and add your lines).
+- It is **runtime-only**. It is never stamped into tracked `CLAUDE.md` / `AGENTS.md` /
+  `.codex/CODEX_CONTEXT.md` (those remain team-owned), so `/ai-context-refresh` and `$sync-codex` are
+  never required to apply it.
+- A protocol edit changes the delivery content hash, so the next `UserPromptSubmit` re-delivers it.
+- **Safety and bounds.** A `path` naming a privacy-sensitive file (`.env`, credentials, secrets,
+  `*.pem`/`*.key`) is refused — the validator errors and the runtime treats it as no opinion — because
+  the hook would otherwise read that file into model context on every prompt. A file larger than the
+  cap (20,000 bytes) is truncated with a visible marker; it is never injected unbounded.
+
+**⛔ SCOPE — tracked defaults and runtime overrides.** `CLAUDE.md`, `AGENTS.md`, and
+`.codex/CODEX_CONTEXT.md` carry the canonical default route gate. `workflow-route-inject.cjs`
+resolves the effective default + team + local cascade at `UserPromptSubmit`, refreshes advisory
+context when enabled (gate + catalog + optional `workflowRouteProtocol`), and otherwise stays
+silent.
+
+**Do NOT tell the user to run `/ai-context-refresh` or `$sync-codex` to apply an override.** The
+next prompt resolves it at runtime. There is no option that bakes local routing or the custom
+protocol into tracked files.
 
 ---
 
@@ -162,7 +226,17 @@ they must not commit, so only use it when they ask for exactly that.
 
 **NEVER** rename/remove/restructure top-level sections. **NEVER** change field types. **NEVER** populate deprecated v1 sections for new projects. **NEVER** remove v1 data from existing projects.
 
-**MAY** add entries to maps/arrays, update values, add optional schema fields, populate v2 sections.
+The config file is required. Its minimum valid document is:
+
+```json
+{
+  "project": { "name": "<derived project name>" }
+}
+```
+
+Only `project` and its non-empty `name` are required. Every other property is optional; add it only when the capability is requested or repository evidence supports it. Omit an absent capability instead of emitting empty arrays/objects. A declared section must satisfy its schema and be supported by evidence; a malformed or unsupported declaration is a validation error, not a signal to fall back silently.
+
+**MAY** add evidence-backed entries to maps/arrays, update values, and declare optional schema sections when their capabilities apply.
 
 ### Schema Structure (v2)
 
@@ -177,7 +251,7 @@ docs/project-config.json
 ├── componentSystem — { type, selectorPrefixes[], filePattern, layerClassification{} }
 ├── framework — { name, backendPatternsDoc, frontendPatternsDoc, codeReviewDoc, integrationTestDoc, searchPatternKeywords[] }
 ├── testing — { frameworks[], filePatterns{}, commands{}, coverageTool, guideDoc, integrationRules[] }
-├── e2eTesting — { framework, language, configFile, testsPath, pageObjectsPath, fixturesPath, execution{ surfaceIds[], auth{}, data{}, browser{}, evidence{}, convergence{} }, ... }
+├── e2eTesting — { framework, language, configFile, testsPath, pageObjectsPath? (only when a POM exists), fixturesPath, execution{ surfaceIds[], auth{}, data{}, browser{}, evidence{}, convergence{} }, ... }
 ├── experienceVerification — { enabled, evidenceRoot, baselineRoot, acceptancePolicy, reviewOn[], surfaces[] }
 ├── databases{}, messaging{ broker, patterns[], consumerConvention }, api{ style, docsFormat, docsPath, authPattern }
 ├── infrastructure — { containerization, orchestration, cicd{ tool, configPath } }
@@ -187,8 +261,10 @@ docs/project-config.json
 ├── integrationTestVerify — { guidance, referenceDocs[], quickRunCommand, testProjectPattern, testProjects[], systemCheckCommand, runScript, startupScript }
 ├── workflowPatterns — { architectureStyle, codeHierarchy, cssMethodology, stateManagement, crossModuleValidation, featureDocTemplate, reviewRulesDoc }
 ├── specRoots — { business{ path, authorship, m1Policy }, technical{ path, authorship, m1Policy } }  (drives /spec + /tech-spec)
+├── specArtifacts? — { version, kind, sections{ intent[], contracts[], evidence[] }, identifiers{ requirement{}, acceptance{}, scenario{} }, ownership, carriers[] } (native engineering-contract profile; omission preserves strict defaults)
 ├── docsRoots — { projectReference{ path }, adr{ path }, templates{ path }, plans{ path }, teamArtifacts{ path }, productRoadmap{ path } }  (relocatable doc roots; omit a sub-object to keep its default)
 ├── techSpecScan — { sourceRoot, fileExtensions[], annotationPattern }  (enables /tech-spec) | else _techSpecScanNote (deliberate-omission carrier)
+├── hooks — { startupInstall{ enabled, packageManager, allowLifecycleScripts }, windowsGit{ enabled, autoRepair } }  (optional; hook behavior — omitted properties keep portable defaults)
 └── DEPRECATED: backendServices, frontendApps, scss, componentFinder, sharedNamespace
 ```
 
@@ -209,9 +285,9 @@ docs/project-config.json
 
 ---
 
-## Deriving the Spec-System Config From Source (`specRoots` + `docsRoots` + `techSpecScan`)
+## Deriving the Spec-System Config From Source (`specRoots` + `specArtifacts` + `docsRoots` + `techSpecScan`)
 
-> These two sections drive `/spec` (hand-authored business specs) and `/tech-spec` (derived technical specs). They are **optional in the schema but effectively required for any project that wants `/tech-spec`** — the generator exits non-zero when `techSpecScan` is absent. Derive each value from THIS project's own source; never copy another project's literals. `--describe` (Phase 0b) now emits a `#` derivation note per field — read it.
+> The file is required, but all of these sections are optional. Add them only when the project has that documentation or tooling capability and the task requires its configuration. Derive each declared value from this project's own source; never copy another project's literals. A missing optional section means the documented default or an evidence-backed skip. A malformed declared section must fail validation visibly. `--describe` (Phase 0b) emits a `#` derivation note per field — read it.
 
 **`specRoots`** — declare each tree's location AND semantics:
 
@@ -222,15 +298,27 @@ docs/project-config.json
 | `technical.path` | The generated technical-view dir (where `/tech-spec` writes). | e.g. `docs/tech-specs` |
 | `technical.authorship` / `technical.m1Policy` | Technical tree is projected from code — naming code IS the point. | `derived` / `exempt` |
 
+**`specArtifacts`** — optional, versioned data contract for a project's established native requirement, case, and evidence structure. Omit it when the project uses the framework's strict business-spec and TestSpec defaults; never add a profile just to avoid adapting the corpus. Derive it from multiple canonical owner artifacts and their executing tests, not one convenient file.
+
+| Field | Derive from | Rule |
+| --- | --- | --- |
+| `version`, `kind` | The supported normalized contract. | Use `1` and `engineering-contract`; read `--describe` for current schema details. |
+| `sections.intent[]`, `sections.contracts[]`, `sections.evidence[]` | Exact headings in canonical owner artifacts. | Use literal aliases only; classify each stable heading once. Subheadings inherit their nearest configured parent. Missing or unmapped enforced content is UNKNOWN, never exempt. |
+| `identifiers.requirement`, `identifiers.acceptance`, `identifiers.scenario` | Existing IDs in canonical specs and tests. | Each entry has a literal `prefix` and supported closed `grammar` (`decimal-lower-suffix` or `hyphen-tokens`); do not add regexes or custom parsers. |
+| `ownership` | The source's stable owner and case relationship. | Current v1 supports `spec-path-and-case-id`; preserve owner path, case/scenario ID, and optional variant without creating another registry. |
+| `carriers[]` | Real, executing test/spec carriers and their field names. | Use only supported `js-title-v1`, `js-keyed-cases-v1`, or `yaml-cases-v1` dialects; derive roots, extensions, call names, bindings, field mappings, and local YAML `acceptedStatuses` from source. Preserve many-to-many scenario/test cardinality when evidence shows it. |
+
+The profile configures discovery and identity; it does not prove a test passes. Trace each row to its actual executor and inspected assertion. Validate every declared profile with `node .claude/hooks/lib/project-config-schema.cjs --validate <configured-project-config-path>`; obtain that path from `getConfiguredProjectConfigPath()` in `.claude/hooks/lib/project-config-loader.cjs`. Malformed profiles must fail visibly. The profile resolver is the canonical normalizer, not a second case registry.
+
 **`docsRoots`** — the six relocatable documentation roots, sibling to `specRoots` and sharing its exact shape and its exact rules. A project that keeps the framework layout declares NOTHING; every accessor then returns its documented default, byte-identically to a repo with no `docsRoots` at all. Declare a sub-object ONLY when that tree has actually moved, and derive its value from what is on disk — never copy another project's literals.
 
 | Key (all six live under `docsRoots` in `docs/project-config.json`) | Source of truth (derive from) | Framework default | How to derive |
 | --- | --- | --- | --- |
-| `docsRoots.projectReference.path` in `docs/project-config.json` | The generated reference-doc tree `/scan` writes and every skill reads. | `docs/project-reference` | Locate the dir holding `docs-index-reference.md` / `lessons.md`; the `referenceDocs[]` FILENAMES are a canonical floor and never change — only this containing dir is configurable. |
-| `docsRoots.adr.path` in `docs/project-config.json` | The Architecture Decision Record tree. | `docs/adr` | Find the dir of `NNNN-*.md` ADRs (or the one an existing ADR index points at). |
+| `docsRoots.projectReference.path` in `docs/project-config.json` | The generated reference-doc tree `/scan` writes and skills read. | `docs/project-reference` | Locate the configured reference root. The reference-doc catalog is metadata; selected filenames and task-specific references remain configurable. Always-on context inputs are resolved separately. |
+| `docsRoots.adr.path` in `docs/project-config.json` | The Architecture Decision Record tree. | `docs/adr` | Find the dir of ADRs (or the one an existing ADR index points at). |
 | `docsRoots.templates.path` in `docs/project-config.json` | The document-template tree. | `docs/templates` | Find the dir the project's doc/spec templates live in. |
-| `docsRoots.plans.path` in `docs/project-config.json` | The implementation-plan tree `/plan` writes. | `plans/` | Find the dir of `{date}-{slug}/plan.md` plan folders. `.ck.json` `paths.plans` is a legacy fallback — this key WINS when both are set. |
-| `docsRoots.teamArtifacts.path` in `docs/project-config.json` | The idea / PBI / story tree. | `team-artifacts` | Find the dir holding `ideas/`, `pbis/`, `stories/`. |
+| `docsRoots.plans.path` in `docs/project-config.json` | The implementation-plan tree `/plan` writes. | `plans/` | Find the dir of plan folders. `.ck.json` `paths.plans` is a legacy fallback — this key WINS when both are set. |
+| `docsRoots.teamArtifacts.path` in `docs/project-config.json` | The idea / PBI / story tree. | `team-artifacts` | Find the dir holding the project's team artifacts. |
 | `docsRoots.productRoadmap.path` in `docs/project-config.json` | The roadmap document. | `docs/product-roadmap.md` | A FILE path, not a dir — the single roadmap doc `/product-roadmap` maintains. |
 
 Rules that bind every one of the six — identical to `specRoots`, and enforced by the schema, not by convention:
@@ -241,7 +329,7 @@ Rules that bind every one of the six — identical to `specRoots`, and enforced 
 4. **Validate on the fail-CLOSED plane before finishing.** The runtime accessors are fail-SOFT by design: a malformed, unreadable or absent config yields the documented DEFAULT and never throws, so a typo'd key is invisible at runtime. The ONLY surface that catches it is the validator — run it after every edit to this block:
 
    ```bash
-   node .claude/hooks/lib/project-config-schema.cjs --validate docs/project-config.json
+   node .claude/hooks/lib/project-config-schema.cjs --validate <configured-project-config-path>
    ```
 
 5. **Never invent a relocation.** If the tree sits at the default, OMIT the sub-object. A declared key restating the default is noise that later drifts from the code it was supposed to track.
@@ -271,95 +359,130 @@ Rules that bind every one of the six — identical to `specRoots`, and enforced 
 ## Phase 0: Setup
 
 ```bash
-# 0a. Validate current config
-node -e "const{validateConfig,formatResult}=require('./.claude/hooks/lib/project-config-schema.cjs');const c=JSON.parse(require('fs').readFileSync('docs/project-config.json','utf-8'));console.log(formatResult(validateConfig(c)))"
+# 0a. Resolve and inspect the configured project-config file. If absent, record that
+#     this required file must be bootstrapped with project.name before normal work.
+node -e "const fs=require('fs');const p=require('./.claude/hooks/lib/project-config-loader.cjs').getConfiguredProjectConfigPath();console.log(JSON.stringify({path:p,exists:fs.existsSync(p)},null,2))"
 
-# 0b. Read exact schema shapes (MANDATORY)
+# 0b. Read exact schema shapes; use field names and requirements verbatim
 node .claude/hooks/lib/project-config-schema.cjs --describe
 
-# 0c. Check CLAUDE.md
-test -f CLAUDE.md && echo "EXISTS" || echo "MISSING"
+# 0c. Validate an existing config before merging; missing config is repaired below
+node -e "const fs=require('fs');const p=require('./.claude/hooks/lib/project-config-loader.cjs').getConfiguredProjectConfigPath();if(!fs.existsSync(p)){console.error('MISSING required project config: '+p);process.exitCode=1}else{const{validateConfig,formatResult}=require('./.claude/hooks/lib/project-config-schema.cjs');console.log(formatResult(validateConfig(JSON.parse(fs.readFileSync(p,'utf-8')))))}"
 
-# 0d. Create workspace
-mkdir -p tmp/project-config
+# 0d. Check CLAUDE.md without assuming a shell-specific `test` command
+node -e "const fs=require('fs');console.log(JSON.stringify({path:'CLAUDE.md',exists:fs.existsSync('CLAUDE.md')}))"
+
+# 0e. Optional: run this only when the scan benefits from temporary phase reports
+node -e "require('fs').mkdirSync('tmp/project-config',{recursive:true})"
 ```
 
 ## Phase 1: Read Current Config
 
-Read `docs/project-config.json`. Note populated vs skeleton sections.
+Read the configured file. Distinguish a missing/invalid required config from a valid minimal config: absence of optional sections does not make a valid config a skeleton. If the config is absent, bootstrap the required project identity first; if it is invalid, repair the reported errors before scanning. Preserve existing evidence-backed values.
 
 ---
 
-## Phase 2: Section-by-Section Scans
+## Phase 2: Evidence-Selected Config Areas
 
-**Each subsection = one TaskCreate or an explicit named child inside a compact group.** Per task: investigate → report → merge → validate. Small projects still cover every subsection; compact grouping is an execution convenience, not permission to skip or ask.
+Select only the config areas that the task requests or repository evidence supports. Each selected area becomes one TaskCreate or a named child inside a compact group. Per task: investigate → record evidence → merge → validate. Record why an absent capability is skipped. Never scan or populate every schema section just because the schema supports it.
 
 ### 2a. Modules — Backend
 
-```bash
-find . -path "*/node_modules" -prune -o -name "*.csproj" -print | head -50
-find . -name "pom.xml" -o -name "build.gradle" | head -50
-find . -path "*/node_modules" -prune -o -name "package.json" -print | head -50
-find . -name "go.mod" | head -50
-```
-
-Build `modules[]` entries: `{ name, kind, pathRegex, description, tags[], meta{} }`
-
-- `kind`: `"backend-service"`, `"library"`, `"framework"`
+Declare backend modules only when distinct services, packages, or libraries exist and their boundaries help route project work. Use manifests and source ownership as evidence; a repository may be a single application or library and need no `modules` property.
 
 ### 2b. Modules — Frontend
 
-```bash
-find . -name "nx.json" -o -name "{frontend-framework-config}" -o -name "lerna.json" -o -name "turbo.json" 2>/dev/null | head -5
-find . -maxdepth 5 -type d \( -name apps -o -name libs -o -name packages \) 2>/dev/null | head -30
-```
-
-Build entries: `kind: "frontend-app"` or `kind: "library"`.
+Declare frontend modules only when manifests and source show a frontend app or reusable UI package. Do not require a frontend section for a backend, CLI, service, or library project.
 
 ### 2c. Project Metadata
 
-Detect languages (`.cs`→csharp, `.ts`→typescript, `.py`→python, `.java`→java, `.go`→go), package managers, monorepo tool.
-Build `project { name, description, languages[], packageManagers[], monorepoTool }`.
+`project.name` is required and must be non-empty. Derive it from package/repository metadata; if no metadata names it, use the repository-root directory name. Add `description`, `languages[]`, and `monorepoTool` only when files or commands directly confirm them. `project.packageManagers` is a startup-install signal: omit it or use `[]` for no signal, or use exactly one string matching `^(npm|pnpm|yarn|bun)(?:@\d+\.\d+\.\d+)?$`. Malformed values or multiple entries fail closed; an exact `manager@major.minor.patch` entry must match the trusted external executable. Do not list every tool installed on the machine, and do not use this field as a precedence override. Do not infer a stack from the project name or directory labels.
+
+### 2u. Hook Behavior — `hooks.startupInstall`
+
+`hooks{ startupInstall{ enabled, packageManager, allowLifecycleScripts } }` is optional, and so is every property inside it. **Omit the whole section unless the project needs a non-default**: an omitted property keeps the portable default (`enabled: true`, `packageManager: "auto"`, `allowLifecycleScripts: false`), applied identically whether the property, the section, or the whole config file is absent — declaring the defaults records nothing and only adds a surface that can drift. Never invent a `packageManager` value: a non-`auto` value is one manager signal and never an override, so it must name the manager the root lockfile and manifest already agree on, or every startup install fails closed instead of installing. Declare `allowLifecycleScripts: true` only when the project documents that its root install needs dependency lifecycle scripts — and record WHY alongside it, because on its own the key does nothing: it is a repository request that takes effect only on a host that also sets `CK_STARTUP_INSTALL_TRUST=1`, so a reader who finds it with no rationale cannot tell whether the grant was ever intended. **PRESERVE an existing `hooks` section verbatim on regeneration** — it is maintainer-authored policy, is not derivable from repository evidence, and is never dropped, emptied, or normalized back to defaults by a scan.
+
+Accepted startup-install example (there are no executable, argument, or path
+fields):
+
+```json
+{
+  "hooks": {
+    "startupInstall": {
+      "enabled": true,
+      "packageManager": "auto",
+      "allowLifecycleScripts": false
+    }
+  }
+}
+```
+
+The section is still a repository request, not host authorization. Suppression
+is removed only when the host also grants `CK_STARTUP_INSTALL_TRUST=1`; the same
+grant controls whether ambient registry credentials may cross into the manager
+child. `enabled: false` disables installation only: the integrity-first
+`verify-install.cjs` SessionStart hook remains active. A missing project config
+uses these portable defaults, an absent root `package.json` is a clean install
+no-op, and invalid config skips installation with one diagnostic.
+
+### 2v. Windows native Git/Git Bash capability
+
+The optional `hooks.windowsGit{ enabled, autoRepair }` section is consumed by
+the same `verify-install.cjs` SessionStart owner. Omitted values default to
+`enabled: true` and `autoRepair: true`; `enabled: false` disables integration
+and repair, while `autoRepair: false` retains a read-only probe. The hook accepts
+only a canonical Git-for-Windows root containing working `git.exe`,
+`git-bash.exe`, and `bash.exe`; WSL/System32 or a Windows App Execution Alias
+is not native Git Bash. On explicit `startup` only, a missing/broken/incomplete
+capability may launch the fixed, detached WinGet `Git.Git` repair worker after
+the trusted App Installer boundary is validated. Other SessionStart sources
+probe only, and unavailable WinGet/UAC/policy/ACL/process boundaries fail closed
+without changing the host; the next startup re-probes.
+
+The capability is published to children through `PATH`, `CK_GIT_EXE`,
+`CK_GIT_BASH_EXE`, and `CK_GIT_BASH_PATH`. It cannot mutate the current parent
+PowerShell/cmd environment. The repair worker has a private per-user OS-temp
+resource lock and is bounded; PortableGit and generic installer fallbacks are
+deferred. Keep this policy separate from `startupInstall`: it controls machine
+capability repair, not package-manager selection or lifecycle trust.
 
 ### 2d. Framework Patterns
 
-Grep `abstract class`, `interface I`, most-imported symbols.
-Build `framework { name, searchPatternKeywords[] }` from commonly used base classes.
+Declare `framework` only when the repository uses an identifiable framework or stable shared patterns worth routing to. Derive its name and search keywords from manifests, configuration, and repeated source usage; omit it for an unknown or absent framework.
 
 ### 2e. Context Groups
 
-Build `contextGroups[]` with `pathRegexes[]`, `fileExtensions[]`, `patternsDoc`, `rules[]`.
-Rules MUST ATTENTION be specific: "Use the service-specific repository (e.g. `OrderRepository`), not the generic repository base" not "follow best practices".
-Each group is also a **convention class** (see 2r): include matchers (`pathRegexes` / `pathGlobs` / `fileNameRegexes` — at least one non-empty), optional excludes, `priority` band, and deliverable items (`rules[]`, `skills[]`, `referenceDocs[]`, `guideDoc`, `patternsDoc`).
+Declare `contextGroups[]` only for stable path-scoped conventions that materially improve work on those files. Every declared group needs a real matcher and evidence-backed rules/references; do not add an empty catch-all just to fill the section. Keep rules concise and checkable, and follow project-specific patterns instead of importing examples from another stack.
 
 ### 2f–2h. Design System, Styling, Component System
 
-- `designSystem { docsPath, modernUiNote, appMappings[] }`
-- `styling { technology, fileExtensions, guideDoc, appMap{}, patterns[] }`
-- `componentSystem { type, selectorPrefixes[], filePattern, layerClassification{} }`
+These are separate optional capabilities. Add `designSystem` only when the project owns maintained design tokens/components or a normative design guide; add `styling` only when there is a real styling technology and stable patterns; add `componentSystem` only when an established component convention helps route work. Omit unused sections and do not create placeholder docs or mappings.
 
 ### 2i–2j. Testing & E2E
 
-- `testing { frameworks[], filePatterns{}, commands{}, coverageTool, guideDoc, integrationRules[] }`
-- `e2eTesting { framework, language, configFile, testsPath, pageObjectsPath, fixturesPath, runCommands{}, tcCodeFormat, entryPoints[], execution{ surfaceIds[], auth{}, data{}, browser{}, evidence{}, convergence{} } }`
+- `testing { frameworks[], filePatterns{}, commands{}, coverageTool, guideDoc, integrationRules[] }` is optional; configure only test lanes, tools, and commands found in manifests/scripts/configuration.
+- `e2eTesting { framework, language, configFile, testsPath, pageObjectsPath?, fixturesPath, runCommands{}, tcCodeFormat?, entryPoints[], execution{ surfaceIds[], auth{}, data{}, browser{}, evidence{}, convergence{} } }` is optional; declare it only when an E2E/browser capability exists or is requested.
+- Set `pageObjectsPath` only when source shows a real POM; it is a search hint, never proof that the project uses one. `tcCodeFormat` records an evidence-backed project convention only; when `specArtifacts` is declared, its identifier and carrier mappings govern native case identity.
 - `e2eTesting.execution` is optional and E2E-specific. Link `surfaceIds[]` to `experienceVerification.surfaces[].id`; keep dependency/start/readiness/log/teardown commands in that surface's `localRun` object so there is one lifecycle owner. `auth` and `localRun.credentialsRef` store references only (`credentialsRef`/`storageStateRef`), never secret values; registration/seed commands must use environment, fixture, or secret-manager references for credentials. `data` records a verified seed/reference strategy; `browser` records the project runner/engine, visibility, optional human-QC action delay, and the shared wait-until policy; `evidence` records a project-relative root, capture kinds, and non-empty redaction reference when sensitive captures are enabled; `convergence` bounds the verify/fix loop. `--describe` is authoritative for exact nested field names and semantics.
-- `integrationTestVerify { guidance, referenceDocs[], runScript, startupScript, quickRunCommand, systemCheckCommand, testProjectPattern, testProjects[] }`
-- `integrationTestVerify.referenceDocs[]` MUST contain project-specific docs that explain setup prerequisites before a verifier runs `systemCheckCommand` or test commands.
+- `integrationTestVerify { guidance, referenceDocs[], runScript, startupScript, quickRunCommand, systemCheckCommand, testProjectPattern, testProjects[] }` is optional and applies only where a project has a managed integration-test verifier.
+- If an execution profile is explicitly declared but lacks a field needed for the requested verification, preserve the known facts and report the exact blocker; do not invent the runner, startup, auth, seed, or evidence behavior.
 
 ### 2j. Experience verification
 
-- `experienceVerification` is optional and project-neutral. Configure only user-facing or externally observable surfaces that the project can actually exercise and inspect: web, mobile, desktop, terminal, API, library, background service, generated output, or another evidence-backed kind.
+- `experienceVerification` is optional and project-neutral. Configure it when an observable surface is in scope and there is evidence for what can be exercised and inspected: web, mobile, desktop, terminal, API, library, background service, generated output, or another kind.
 - Each `surfaces[]` row records the project runner/tool, entry points, optional full/focused commands, impact triggers, evidence root, baseline root, and relevant states. Configuration is a routing contract, not proof that the environment can run it.
 - Keep `acceptancePolicy` at `manual-acceptance-required` unless the project documents a named owner process. First-run evidence is candidate evidence; never promote a generated screenshot or current output automatically.
-- If no applicable surface exists, use `enabled:false`, `surfaces:[]`, and an evidence-backed reason. If a relevant surface cannot run or be inspected, `/experience-review` records `ENVIRONMENT-BLOCKED`; it is not N/A or PASS.
+- If no applicable surface exists, omit the section or use its schema-supported disabled form only when a deliberate declaration is useful. If a relevant surface cannot run or be inspected, `/experience-review` records `ENVIRONMENT-BLOCKED`; it is not N/A or PASS.
 
 #### E2E execution discovery order
 
-When `e2eTesting.execution` is absent or partial, preserve every verified fact and discover missing facts in this order: (1) `docs/project-config.json` and the linked `experienceVerification.surfaces[].localRun`; (2) the E2E reference and existing runner config; (3) package/task scripts, compose/Make targets, CI workflows, fixtures/seed scripts, and auth setup docs; (4) a bounded repository scan for the configured framework's entry points. Record each discovered value with `file:line` evidence. A missing startup, readiness, auth, seed, browser, or evidence capability is `ENVIRONMENT-BLOCKED` for execution, not a guessed command or a silent pass. This profile does not turn the framework repository's own E2E N/A state into an adopter default.
+When `e2eTesting.execution` is absent or partial, preserve every verified fact and discover missing facts in this order: (1) the configured project-config file and the linked `experienceVerification.surfaces[].localRun`; (2) the E2E reference and existing runner config; (3) package/task scripts, compose/Make targets, CI workflows, fixtures/seed scripts, and auth setup docs; (4) a bounded repository scan for the configured framework's entry points. Record each discovered value with `file:line` evidence. A missing startup, readiness, auth, seed, browser, or evidence capability is `ENVIRONMENT-BLOCKED` for execution, not a guessed command or a silent pass. This profile does not turn the framework repository's own E2E N/A state into an adopter default.
 
-For web human-QC, use the project's configured visible Playwright CLI path when the evidence supports it. Resolve or document one reusable bounded `waitUntil(condition, options)` policy: before every UI-control operation wait for readiness/actionability and applicable error-alert absence; after it wait for the expected positive/negative outcome, dropdown/options, selected state, or error-alert presence/absence; then require exactly **500ms** for actor pacing/presentation. The delay never replaces readiness or a real settle signal. Capture and read the configured screenshots, console/request logs, traces, or video, redact sensitive data, and keep accepted baselines human-owned.
+For web human-QC, use the project's configured visible browser path when the evidence supports it. Use the configured runner's native waits or an evidenced project helper for readiness/actionability and expected outcomes. Apply post-action pacing only when `e2eTesting.execution.browser.actionDelayMs` documents a project need; it never replaces readiness or a real settle signal. Capture and read configured screenshots, console/request logs, traces, or video, redact sensitive data, and keep accepted baselines human-owned.
 
 ### 2k–2n. Databases, Messaging, API, Infrastructure
+
+These top-level sections are optional. Configure a database, messaging, API, or infrastructure capability only when repository files, active task scope, or project-owned documentation confirm it. Do not add empty sections or guess a provider from a dependency name alone.
 
 - `databases {}` (freeform)
 - `messaging { broker, patterns[], consumerConvention }`
@@ -368,7 +491,7 @@ For web human-QC, use the project's configured visible Playwright CLI path when 
 
 ### 2o. Graph Connectors — API Endpoints
 
-Only if project has BOTH frontend AND backend.
+Only when the repository has both frontend and backend capabilities and the task benefits from a configured connection map.
 
 | Frontend  | Signal          | Backend   | Signal                             |
 | --------- | --------------- | --------- | ---------------------------------- |
@@ -380,6 +503,8 @@ Only if project has BOTH frontend AND backend.
 Route prefix: derive from configured backend framework and existing route declarations.
 
 ### 2p. Graph Connectors — Implicit Connections
+
+Declare `graphConnectors.implicitConnections` only when the selected task or repository evidence contains traceable producer/consumer or other source-to-target relationships. A project without such relationships does not need graph-connector configuration.
 
 #### ⛔ How implicitConnections Works (MUST ATTENTION UNDERSTAND)
 
@@ -421,9 +546,9 @@ Algorithm: scan source files → extract keys via `contentPattern` regex capture
 
 **IMPORTANT MUST ATTENTION** record detected rules in the plan/report before writing; do not pause for user approval. **IMPORTANT MUST ATTENTION** scope `paths` to relevant dirs (not repo root).
 
-### 2s. Documentation Roots — `docsRoots` (DETECT, then declare only what MOVED)
+### 2s. Documentation Roots — `docsRoots` (declare only evidenced relocations)
 
-Run FIRST of the doc-root trio (**2s → 2q → 2r**): 2q normalizes `referenceDocs[]` INSIDE the reference-doc root, and 2r's detection only keeps docs that exist on disk — both read the wrong tree if a relocated root is still undeclared.
+Inspect a docs root when the task uses it or repository evidence shows that it moved. Defaults apply when a root property is omitted; do not create directories or config objects just to populate the full root catalog. Resolve `projectReference` before scanning reference docs when it is relocated.
 
 **Detect** — probe each of the 6 roots against what the repo actually has. The accessor returns the DEFAULT whenever nothing is declared, so a mismatch between the probe and the tree on disk is exactly the relocation you must record:
 
@@ -431,35 +556,63 @@ Run FIRST of the doc-root trio (**2s → 2q → 2r**): 2q normalizes `referenceD
 node -e "const l=require('./.claude/hooks/lib/project-config-loader.cjs');const fs=require('fs');const keys=['projectReference','adr','templates','plans','teamArtifacts','productRoadmap'];console.log(JSON.stringify(keys.map(k=>{const p=l.getDocsRoot(k);return{key:k,resolved:p,exists:fs.existsSync(p)}}),null,2))"
 ```
 
-- `exists:true` for every key ⇒ the project uses the framework layout. **Declare NOTHING.**
-- `exists:false` for a key ⇒ glob the repo for that tree's signature (`docs-index-reference.md`/`lessons.md` for `projectReference`; `NNNN-*.md` for `adr`; `{date}-{slug}/plan.md` for `plans`; `ideas/`+`pbis/`+`stories/` for `teamArtifacts`; the roadmap FILE for `productRoadmap`). Found elsewhere ⇒ declare that sub-object with its repo-relative `path`. Not present at all ⇒ still declare nothing; the tree simply does not exist yet.
+- If a root used by this task exists outside its resolved default, locate its owner directory/file and declare only that moved sub-object with a repo-relative `path`.
+- If the optional root is not used or does not exist, omit it. Do not create placeholder `adr`, plans, team-artifact, or roadmap roots merely to satisfy the schema catalog.
 
 **Declare** — write only the moved sub-objects, each with its required `path` (a declared-but-pathless sub-object is an ERROR, not a default; see the `docsRoots` derivation section above for all six keys, their defaults, and their rules).
 
-**Validate — MANDATORY, and the only surface that can catch a typo.** Runtime resolution is fail-SOFT (a bad config silently yields defaults); validation is fail-CLOSED:
+**Validate — MANDATORY, and the only surface that can catch a typo.** Runtime resolution is fail-SOFT (a bad optional config silently yields defaults); validation is fail-CLOSED. Pass the configured project-config path, including any `.claude/.ck.json` relocation:
 
 ```bash
-node .claude/hooks/lib/project-config-schema.cjs --validate docs/project-config.json
+node .claude/hooks/lib/project-config-schema.cjs --validate <configured-project-config-path>
 ```
 
 Errors (missing `path`, absolute or `..`-escaping path) MUST be fixed before continuing. A "does not exist on disk" **warning** is acceptable only when `/project-init` is seeding a tree that is about to be created.
 
-### 2q. Reference Docs — Canonical Floor (MUST normalize, NEVER raw-import)
+### 2q. Reference Docs — Optional Task-Specific Selection
 
-⛔ Reference docs are the FRAMEWORK's canonical set, not whatever files happen to sit in the project-reference docs root — default `docs/project-reference/`; a `docsRoots.projectReference.path` entry in `docs/project-config.json` overrides the path. Do **NOT** build `referenceDocs[]` by listing on-disk files — that silently re-imports drift (legacy filenames like `feature-docs-reference.md`, missing canonical docs, wrong order). Normalize against the canonical floor instead:
+`referenceDocs` is optional. If absent, let the resolver choose its portable baseline (which may be empty) plus references supported by configured or repository-evidenced capabilities. If present, the array is the authoritative task-specific selection, including an explicit empty array; preserve its selected subset and order. Never append a fixed catalog to an explicit selection or write the entire catalog into a project config. The catalog is metadata for valid scan targets and aliases, not a mandatory project-doc floor.
+
+Each entry requires `filename` and `purpose`; `sections` and `templatePath` are optional. `filename` is a project-reference-root-relative POSIX path (nested folders are allowed); `templatePath` is project-root-relative. Reject absolute paths, backslashes, empty/dot/traversal segments, and unsafe physical symlink resolutions. Do not use a template outside the project or write a reference outside its configured root.
+
+The optional `workflowPatterns.featureDocTemplate` destination is also project-root-relative. Schema validation rejects unsafe lexical paths, and SessionStart checks physical containment before copying the framework template.
+
+`scanTarget` is optional. Built-in filenames use their framework-owned scan target and must omit this property. A custom filename defaults to `manual`, so it can be curated without automatic scan or freshness claims. `scanTarget: "generic"` opts that selected custom doc into `/scan --target=generic-reference-doc --filename="<filename>"`, using its configured purpose and optional sections. Generic docs receive conservative repository-wide source-impact routing; choose `manual` when only its project owner should update it. Any other explicit target is invalid; projects cannot register executable scanner names through config.
+
+Project-init separately ensures the always-on `lessons.md` and `docs-index-reference.md` inputs at the configured project-reference root. They do not become implicit additions to a task-specific `referenceDocs` selection.
+
+Use the normalizer only to inspect how the current setting resolves. Do not write its portable defaults back into an absent property, and do not change an explicit list into the full registry:
 
 ```bash
-node -e "const h=require('./.claude/hooks/lib/session-init-helpers.cjs');const{loadProjectConfig}=require('./.claude/hooks/lib/project-config-loader.cjs');console.log(JSON.stringify(h.normalizeReferenceDocs((loadProjectConfig()||{}).referenceDocs),null,2))"
+node -e "const h=require('./.claude/hooks/lib/session-init-helpers.cjs');const{loadProjectConfig}=require('./.claude/hooks/lib/project-config-loader.cjs');const c=loadProjectConfig()||{};console.log(JSON.stringify({declared:Object.prototype.hasOwnProperty.call(c,'referenceDocs'),resolved:h.normalizeReferenceDocs(c.referenceDocs,c)},null,2))"
 ```
 
-- Set `config.referenceDocs` = the returned **`normalized`** array (canonical docs + genuine project-specific extras, canonical order, legacy names resolved, canonical `templatePath`s preserved). Add project-specific reference docs only as EXTRA entries; **never** delete or rename a canonical entry.
-- For each **`renames[]`** `{from,to}`, inside the reference-doc root `<ref>` — default `docs/project-reference/`; a `docsRoots.projectReference.path` entry in `docs/project-config.json` overrides the path: if `<ref>/<from>` exists — `git mv` it to `<to>` when `<to>` is absent; if `<to>` already exists, `<from>` is a stale duplicate → confirm `<to>` holds the canonical content, then `git rm <from>`. Migrate every downstream textual reference (`docs-index-reference.md`, `project-structure-reference.md`) `<from>` → `<to>`.
-- **`added[]`** are canonical docs missing on disk — the SessionStart hook (or the matching `/scan --target=<key>`) creates them. Do not hand-fabricate content; per-doc purpose/sections come from `DEFAULT_REFERENCE_DOCS`.
-- Re-run the probe after merging; `changed:false` with empty `renames`/`added`/`removedLegacy` is the only PASS state.
+- Leave `referenceDocs` absent when the resolver's portable baseline plus capability-aware defaults are the desired behavior.
+- For an explicit selection, configure only the docs the project wants the framework to select. Normalize aliases/deduplication only within that selection, preserving intentional `[]`; never infer a broader selection from files on disk alone.
+- Keep `lessons.md` and `docs-index-reference.md` under the configured project-reference root through the independent project-init/bootstrap path, regardless of the task-specific selection.
+- Generate a selected project reference only when its scan target applies and its source evidence exists. Do not create unselected docs, fabricate content, or rename/delete files merely to match the framework catalog.
+
+### 2t. Native Spec Artifact Profile — Derive Only from Stable Source
+
+Run only when a spec/test-artifact capability already exists or is selected. Skip with evidence when the project has no such capability; do not create a spec profile or case corpus as part of generic setup. When selected, inspect the configured business root and applicable docs before convention detection.
+
+1. Resolve `specRoots.business.path` (default `docs/specs`; a `specRoots.business.path` entry in `docs/project-config.json` overrides it) when configured or needed. Inspect representative canonical owner artifacts plus executing tests/case files; exclude derived technical projections. Trace native IDs and assertions to their executors before declaring a profile.
+2. If no native profile is declared, strict business-spec and Section-8 TestSpec behavior applies by default, including TC IDs. Preserve this default; do not infer or add a native profile from one example.
+3. For an established native format, declare only the supported v1 fields: `version: 1`, `kind: "engineering-contract"`, literal `sections` aliases for `intent`, `contracts`, and `evidence`; `identifiers` for `requirement`, `acceptance`, and `scenario` with a literal prefix + named grammar; `ownership: "spec-path-and-case-id"`; and one or more supported `carriers`.
+4. Supported carriers are closed: `js-title-v1` maps literal suite/case call names; `js-keyed-cases-v1` maps a named binding and its `variant`, `scenario`, `requirements`, `rationale`, and `input` fields; `yaml-cases-v1` maps `scenario`, `status`, `requirements`, `acceptance`, `lists`, `variant`, `input`, and `expected`. For YAML, `acceptedStatuses` declares the local value(s) eligible for extraction; omitted values preserve the `approved` compatibility default. Derive roots, extensions, binding, call names, field names, and lifecycle values from source. Never add custom regexes, callbacks, parser plug-ins, or a second case registry.
+5. Preserve real many-to-many coverage: one executor may assert several scenarios, and one scenario may have multiple variants/tests. Keep each owner + case/scenario ID + optional variant distinct, then inspect the assertion path for each claimed row. An aggregate result or ID grep alone is not evidence.
+6. Validate with the exact schema description and fail-closed validator, using the configured config path:
+
+   ```bash
+   node .claude/hooks/lib/project-config-schema.cjs --describe
+   node .claude/hooks/lib/project-config-schema.cjs --validate <configured-project-config-path>
+   ```
+
+   Unknown versions, grammars, aliases, fields, or overlapping incompatible carriers are errors; correct the profile at its source rather than silently dropping it or falling back to TC defaults. An invalid declared profile blocks spec-related setup until corrected.
 
 ### 2r. Convention Classes — Detect & Merge (NEVER clobber)
 
-Per-file convention classes tell the AI which rules, skill protocols and reference docs apply when it reads or edits a file (hook `file-convention-inject.cjs`; hookless fallback = CLAUDE.md "Automatic Skill Activation" table + `node .claude/hooks/lib/file-conventions.cjs --lookup <path>`). Run AFTER 2e/2i/2s/2q so detection sees the final `testing`, `e2eTesting`, `integrationTestVerify`, `specRoots`, `modules` and `framework` values. (`docsRoots` is deliberately NOT a detection input: no context group is keyed off a `docsRoots` value, so there is nothing for `convention-merge.cjs` to derive from it. 2s still runs first because detection drops docs that are not on disk, and a relocated-but-undeclared reference root makes every one of them look absent.):
+Per-file convention classes tell the AI which rules, skill protocols and reference docs apply when it reads or edits a file (hook `file-convention-inject.cjs`; hookless fallback = CLAUDE.md "Automatic Skill Activation" table + `node .claude/hooks/lib/file-conventions.cjs --lookup <path>`). Run this optional detector only when useful context groups or opt-in convention injection are selected. If run, do so after the selected config areas so it sees their final evidence-backed values. (`docsRoots` is deliberately NOT a detection input: no context group is keyed off a `docsRoots` value.)
 
 ```bash
 node .claude/hooks/lib/convention-merge.cjs --detect --merge            # dry run: added / refreshed / kept
@@ -476,33 +629,23 @@ node .claude/hooks/lib/file-conventions.cjs --lookup <sample-path>      # verify
 
 ## Phase 3: Consolidate & Write
 
-Merge section-by-section. Overwrite only with concrete scan findings. Large projects: merge incrementally.
+Merge only selected properties. Preserve existing user-authored values; replace a value only with stronger source evidence. Do not add empty objects or arrays for skipped capabilities.
 
 ## Phase 4: Verify (MANDATORY)
 
-1. Schema validation — MUST ATTENTION pass with zero errors
-2. Spot-check 2–3 service paths — verify each path exists (`file:line` evidence)
-3. Run hook tests: `node .claude/hooks/tests/test-all-hooks.cjs`
+1. Schema validation — MUST ATTENTION pass with zero errors for the configured file, including every declared optional section.
+2. Spot-check each newly declared path or matcher against the repository; do not require service paths when the project has no services.
+3. Run focused config/hook checks for the changed behavior and the project's normal verification for any generated output.
 
 ## Phase 5: Follow-Up Tasks
 
-| Reference Doc                                                                 | Scan Skill                        |
-| ----------------------------------------------------------------------------- | --------------------------------- |
-| `project-structure-reference.md`                                              | `/scan --target=project-structure` (FIRST) |
-| `backend-patterns-reference.md`                                               | `/scan --target=backend-patterns`          |
-| `seed-test-data-reference.md`                                                 | `/scan --target=seed-test-data`   |
-| `design-system/` + `scss-styling-guide.md` + `frontend-patterns-reference.md` | `/scan --target=ui-system`        |
-| `integration-test-reference.md`                                               | `/scan --target=integration-tests`         |
-| `feature-spec-reference.md`                                                   | `/scan --target=feature-spec`              |
-| `code-review-rules.md`                                                        | `/scan --target=code-review-rules`         |
-| `e2e-test-reference.md`                                                       | `/scan --target=e2e-tests`                 |
-| `domain-entities-reference.md`                                                | `/scan --target=domain-entities`           |
+Queue only the scan targets selected by `referenceDocs` or supported by repository evidence. Use the scan catalog's trigger for each selected target; omit absent frontend, backend, styling, design-system, domain, test, seed-data, E2E, and spec capabilities. A selected target with no source evidence is a visible blocker or skip, not a fabricated reference.
 
-Then: `/ai-context-refresh` (LAST). Optionally: `/graph-build`.
+Then update root AI context when this config change affects it. Run `/graph-build` only when graph tooling is configured/available and the selected task needs a graph; otherwise record an evidence-backed skip.
 
-## Phase 6: Enhance Generated Docs (MANDATORY)
+## Phase 6: Enhance Selected Guidance (CONDITIONAL)
 
-Run `/prompt-enhance` on all generated/updated docs and `CLAUDE.md`. One task per file, parallel OK.
+Run `/prompt-enhance` only on selected generated/updated project guidance when its instruction quality needs review; do not process unrelated or unselected reference docs.
 
 ## Phase 7: Self-Review Verification (MANDATORY)
 
@@ -510,8 +653,7 @@ Re-invoke skill: `/project-config Self review and verify everything again, ensur
 
 ## Output
 
-Report: sections updated vs unchanged, new modules discovered, path mismatches, follow-up tasks created.
-Include the project scale, the selected full-coverage task grouping, and confirmation that no required section was skipped because the project was small.
+Report: required config path and project identity; optional sections updated; evidence and source paths for declared values; capability areas skipped with reasons; reference selection semantics used; profile-aware spec behavior when relevant; validation results; and applicable follow-up tasks.
 
 ---
 
@@ -521,6 +663,7 @@ Include the project scale, the selected full-coverage task grouping, and confirm
 
 > **AI Mistake Prevention** — Failure modes to avoid on every task:
 >
+> **Project applicability gate.** Before applying a stack, layer, style, tool, or architecture rule, read the project's config and relevant references, then check local implementations. Treat framework examples as examples; honor explicit N/A and do not require a technology or convention the project does not use.
 > **ROOT-CAUSE GATE — INVESTIGATE FIRST.** Before applying any project-related correction, always use the project's root-cause investigation protocol and establish the cause; the failure site may be only a symptom.
 > **FAILED-TEST GATE.** For any failed or unstable test, use the project's test-investigation protocol before editing source or tests; never change either side merely to force green.
 > **Re-read files after context changes.** Context compaction, resume, or long-running work can make memory stale; verify current files before acting.
@@ -546,19 +689,19 @@ Include the project scale, the selected full-coverage task grouping, and confirm
 
 <!-- SYNC:critical-thinking-mindset:reminder -->
 
-**MUST ATTENTION** apply critical + sequential thinking — every claim needs appropriate traced evidence (`file:line` for repo/code claims; source URL or artifact section for research, product, content, and docs claims); confidence >80% to act, <60% DO NOT recommend. Anti-hallucination: never present guess as fact, admit uncertainty freely, cross-reference independently, stay skeptical of own confidence.
+**MUST ATTENTION** critical + sequential thinking: every claim carries traced evidence (`file:line` for code, source URL or artifact section otherwise); confidence >80% to act, <60% do NOT recommend. Never present a guess as fact; admit uncertainty and stay skeptical of your own confidence.
 
 <!-- /SYNC:critical-thinking-mindset:reminder -->
 
 <!-- SYNC:ai-mistake-prevention:reminder -->
 
-**MUST ATTENTION** ROOT-CAUSE GATE: before any project-related correction, use the appropriate root-cause investigation protocol; failed/unstable tests require the test-investigation protocol before editing source/tests — never force green.
+**MUST ATTENTION** Check project config, relevant references, and local evidence before applying stack-specific conventions; honor explicit N/A. ROOT-CAUSE GATE: before any project-related correction, use the appropriate root-cause investigation protocol; failed/unstable tests require the test-investigation protocol before editing source/tests — never force green.
 
 <!-- /SYNC:ai-mistake-prevention:reminder -->
 
 <!-- SYNC:project-protocol-overlay -->
 
-> **Project Protocol Overlay** — Before executing this skill, resolve any PROJECT overlay rules layered onto it: match this skill's name against the `Target` column of the project's skill-protocol index (default `docs/project-reference/skill-protocols-reference.md`; a `referenceDocs` entry in `docs/project-config.json` overrides the path, and a `docsRoots.projectReference.path` entry relocates its containing directory), taking the most specific matching tier ONLY — exact name > glob > `*`. **That precedence orders overlays against EACH OTHER, never against this skill.** Read ONLY the matched bodies, resolved as `<protocols-dir>/<Name>.md`; a row's Body link is display text, never a read path. A matched body that is missing or malformed is REPORTED and skipped — never reconstructed from the index Description. No index, or no match -> proceed with no overlay, silently. Full contract: `.claude/skills/project-skill-protocol/references/registry.md`.
+> **Project Protocol Overlay** — Before executing this skill, resolve project overlays from the index at `<docsRoots.projectReference.path>/skill-protocols-reference.md` (default `docs/project-reference/`; `docsRoots.projectReference.path` in `docs/project-config.json` overrides it). A matching `referenceDocs[]` filename may relocate the index within that root; this registry is independent from task-specific reference-doc selection, so omitted or empty `referenceDocs` does not disable it. The index's `**Protocols directory:**` header selects a project-root-relative body directory (default `docs/project-protocols/`). Match this skill against the `Target` column and take the most specific tier ONLY — exact name > glob > `*`. **That precedence orders overlays against EACH OTHER, never against this skill.** Read only matched bodies derived as `<protocols-dir>/<Name>.md`; the row's Body link is display text, never a read path. Reject unsafe paths without reading. A matched body that is missing or malformed is REPORTED and skipped — never reconstructed from the index Description. An absent index or no match -> proceed with no overlay, silently. Full contract: `.claude/skills/project-skill-protocol/references/registry.md`.
 >
 > Overlays are **ADDITIVE ONLY**: they ADD rules on top of this skill's own protocol and NEVER replace, override, disable, or reinterpret a rule it already states — removing every overlay must return this skill to exactly its documented behavior. An overlay is a BRIEF, not an authority escalation: it can NEVER waive a workflow gate, git discipline, a review gate, or a user-confirmation gate. A genuine overlay-vs-skill conflict, or two equally-specific overlays that directly contradict -> surface both to the user; NEVER resolve silently.
 
@@ -566,38 +709,40 @@ Include the project scale, the selected full-coverage task grouping, and confirm
 
 <!-- SYNC:project-protocol-overlay:reminder -->
 
-**MUST ATTENTION** resolve project protocol overlays for this skill BEFORE executing — most specific matching tier only (exact > glob > `*`, which ranks overlays against each other, NEVER against this skill), read only matched bodies at `<protocols-dir>/<Name>.md`; a missing or malformed body is reported, never reconstructed. Overlays are ADDITIVE ONLY (they never replace this skill's own rules) and are a brief, NEVER an authority escalation; an equal-specificity contradiction goes to the user.
-
+**MUST ATTENTION** resolve this skill's overlays from the index at `<docsRoots.projectReference.path>/skill-protocols-reference.md` (default `docs/project-reference/`); an empty task `referenceDocs` does NOT disable this lookup. Read ONLY matched bodies from the directory the index header names (default `docs/project-protocols/`). Specificity (exact > glob > `*`) ranks overlays against EACH OTHER, never against the skill. Missing/malformed body → report and skip; no index or no match → proceed silently. Overlays are ADDITIVE ONLY — never an authority escalation or a gate waiver; equal-tier contradiction goes to the user.
 <!-- /SYNC:project-protocol-overlay:reminder -->
 
 ## Closing Reminders
 
-**IMPORTANT MUST ATTENTION Goal:** Scan workspace, update `docs/project-config.json` with accurate, schema-valid values via Plan → Review → Execute.
+**IMPORTANT MUST ATTENTION Goal:** Keep the required project config schema-valid, with only evidence-backed optional capabilities via Plan → Review → Execute.
 
 **Protocols in force (concise digest of the SYNC/shared blocks this skill carries):**
 
 - **Critical Thinking:** apply critical + sequential thinking; trace every claim, confidence >80% to act.
 - **AI Mistake Prevention:** verify generated content against evidence, trace downstream references, verify all affected outputs, re-read after context loss, surface ambiguity.
 
-**IMPORTANT MUST ATTENTION** classify project scale FIRST (Step 1) — drives all task granularity decisions.
+**IMPORTANT MUST ATTENTION** read the configured project-config file, docs index, `lessons.md`, task-required references, and exact schema before scanning; bootstrap missing config with a derived project name.
+**IMPORTANT MUST ATTENTION** select scans from requested or evidenced capabilities; scale controls grouping only and never forces optional sections.
 **IMPORTANT MUST ATTENTION** plan first — recon → `/plan` → `/plan-review` → execute. NEVER jump to scanning.
-**IMPORTANT MUST ATTENTION** execute all required sections for all project sizes; small projects get compact full-coverage grouping, never a permission question or skipped sections.
+**IMPORTANT MUST ATTENTION** config file and non-empty `project.name` are required; optional properties are omitted when unsupported or unevidenced.
 **IMPORTANT MUST ATTENTION** break into phases with review cycles — scan → merge → validate → spot-check → fix per phase.
 **IMPORTANT MUST ATTENTION** use exact schema field names — run `--describe`, copy verbatim. NEVER guess.
 **IMPORTANT MUST ATTENTION** validate after EACH phase — schema errors compound across phases.
 **NEVER** use `classPattern`/`keyExtractor` — correct fields: `contentPattern` (regex) + `keyGroup` (number).
-**IMPORTANT MUST ATTENTION** one TaskCreate per config section — NEVER monolithic scan.
-**IMPORTANT MUST ATTENTION** Phase 7 self-review is MANDATORY — catches what every earlier phase missed.
+**IMPORTANT MUST ATTENTION** one TaskCreate per selected config section or explicit section group — NEVER scan everything in one pass.
+**IMPORTANT MUST ATTENTION** keep absent `referenceDocs` distinct from explicit selection; an explicit array including `[]` stays exact, while lessons/index are initialized independently.
+**IMPORTANT MUST ATTENTION** preserve valid `specArtifacts`; absence uses strict TC/Section-8 defaults, while an invalid declaration blocks spec setup.
 
 **Anti-Rationalization:**
 
-| Evasion                             | Rebuttal                                                                       |
-| ----------------------------------- | ------------------------------------------------------------------------------ |
-| "File looks simple, skip planning"  | Planning catches scale mistakes and regressions. Apply anyway.                 |
-| "Already know the schema"           | Run `--describe` anyway — field names differ from memory. No proof = no check. |
-| "Phase N looks fine, skip validate" | Schema errors compound across phases. Validate every phase, no exceptions.     |
-| "Self-review is redundant"          | Phase 7 catches what every earlier phase missed. Never skip.                   |
-| "Small project, skip task tracking" | Task tracking prevents drift on all project sizes. Always `TaskCreate` first.  |
-| "Small project, ask before combining" | Do not ask. Auto-select compact full-coverage grouping and execute all sections with validation. |
+| Evasion | Rebuttal |
+| --- | --- |
+| "File looks simple, skip planning" | Plan the selected identity/capability changes and their evidence before editing. |
+| "Already know the schema" | Run `--describe`; field names and nested requirements are schema-owned. |
+| "Phase N looks fine, skip validate" | Validate every merge so declared optional sections cannot fail later. |
+| "Optional section is absent, fill it with a guess" | Omit it until repository evidence or scope supports the capability. |
+| "Reference docs are partial, restore the whole registry" | Preserve explicit selection; the registry is metadata, not a required floor. |
+| "No spec profile, invent a native format" | Absence means strict TC/Section-8 defaults; only configure a stable evidenced native profile. |
+| "Small project, skip task tracking" | Track the selected work regardless of project size. |
 
 **[TASK-PLANNING]** Before acting, analyze task scope and systematically break it into small todo tasks and sub-tasks using TaskCreate.

@@ -7,93 +7,88 @@ disable-model-invocation: false
 
 ## Quick Summary
 
-**Goal:** Initialize project reference documentation by verifying the `session-init-docs.cjs` hook has created placeholder files, then running scan skills to populate them.
+**Goal:** Initialize or reconcile project reference documentation from a valid required project config, the repository's actual capabilities, and the configured document selection.
 
 **Workflow:**
 
-1. **Verify** -- Check that `session-init-docs.cjs` hook has created placeholder docs in `docs/`
-2. **List** -- Show which reference docs exist and which are still placeholders
-3. **Populate** -- Ask user which scan skills to run (or run all)
+1. **Validate** -- Confirm the configured project-config file exists and is schema-valid.
+2. **Resolve** -- Separate project-init-owned always-on inputs from task-specific reference docs; resolve the effective selection.
+3. **Select** -- Resolve selected built-in targets, explicitly generic custom targets, and manual custom docs; check capability evidence where a built-in target defines one.
+4. **Populate** -- Run only applicable selected scans, then verify each changed or unchanged result.
 
 **Key Rules:**
 
-- Let the hook create placeholders automatically -- do not create docs manually
-- Each reference doc has a corresponding `/scan-*` skill that populates it
-- Scan skills do deep codebase scanning; expect 5-15 min per skill
+- `docs/project-config.json` (or its configured path) is OPTIONAL. When it is absent, initialize on the framework's portable defaults and derive project facts from repository evidence (manifests, lockfiles, scripts, CI definitions, directory layout) — an adopter with no config is a supported, first-class state, never a blocker. When it is present, the minimum valid config is a non-empty `project.name`; omitted capability properties use neutral defaults or cause that capability to be skipped, and a DECLARED but invalid section fails closed for that section rather than being silently replaced by a default.
+- A declared but malformed or incomplete config section fails visibly. Repair it through `project-init` / `project-config` before scanning; do not infer replacement values.
+- Let the configured docs owner create placeholders; do not hand-create generated scan output.
+- The built-in target list is an option catalog, not a required document floor. Scan only a selected, applicable target.
+- `lessons.md` and `docs-index-reference.md` are project-init-owned always-on inputs; they are ensured independently from the task-specific `referenceDocs` selection.
 
 **Be skeptical. Apply critical thinking, sequential thinking. Every claim needs traced proof, confidence percentages (Idea should be more than 80%).**
 
-## Step 1: Verify Reference Doc Stubs
+## Step 1: Validate Project Config
 
-Check that `session-init-docs.cjs` has created the project reference docs declared for the project:
+Read the configured project-config path through `.claude/hooks/lib/project-config-loader.cjs` (default `docs/project-config.json`) and confirm its status is `valid`. The minimum valid shape is:
 
-1. Read `docs/project-config.json` and use `referenceDocs[*].filename` as the source of truth.
-2. If `referenceDocs` is empty or missing, use `DEFAULT_REFERENCE_DOCS` from `.claude/hooks/lib/session-init-helpers.cjs`.
-3. Do not manually add missing reference-doc files by hand. Add or correct the project config/template entry first, then rerun the session-init/docs-init path.
-
-Common mappings when configured. Every filename below is relative to the project-reference docs root — default `docs/project-reference/`; a `docsRoots.projectReference.path` entry in `docs/project-config.json` overrides the path. The FILENAMES are the canonical floor (they mirror `DEFAULT_REFERENCE_DOCS`) and never change; only their containing directory is configurable:
-
-```
-project-structure-reference.md               -> /scan --target=project-structure
-backend-patterns-reference.md                -> /scan --target=backend-patterns
-seed-test-data-reference.md                  -> /scan --target=seed-test-data
-frontend-patterns-reference.md               -> /scan --target=frontend-patterns
-integration-test-reference.md                -> /scan --target=integration-tests
-feature-spec-reference.md                    -> /scan --target=feature-spec
-spec-system-reference.md                     -> static template (no scan skill)
-spec-principles.md                           -> static template (no scan skill)
-workflow-spec-test-code-cycle-reference.md   -> static template (no scan skill)
-code-review-rules.md                         -> /scan --target=code-review-rules
-scss-styling-guide.md                        -> /scan --target=scss-styling
-design-system/README.md                      -> /scan --target=design-system
-e2e-test-reference.md                        -> /scan --target=e2e-tests
-domain-entities-reference.md                 -> /scan --target=domain-entities
-docs-index-reference.md                      -> /scan --target=docs-index
-lessons.md                                   -> /learn (managed separately)
+```json
+{ "project": { "name": "Project name" } }
 ```
 
-If configured files are missing, the hook should create them on next prompt/session start. Verify by listing that same reference-doc root against the configured filenames; resolve it with `node -e "console.log(require('./.claude/hooks/lib/project-config-loader.cjs').getDocsRoot('projectReference'))"`.
+If the file is missing, run project initialization to create the minimum config first. If it is invalid, report the schema errors and repair through the config workflow. Do not continue with guessed stack, spec, test, UI, or architecture facts.
+
+## Step 2: Resolve Always-On and Task-Specific Docs
+
+Project initialization owns the always-on `lessons.md` and docs-index inputs. Confirm they exist at their configured owner paths; repair them through `project-init` if absent or stale. They are not added to the task-specific selection.
+
+For task-specific docs, use the resolved `referenceDocs` selection from `.claude/hooks/lib/session-init-helpers.cjs`:
+
+- If the property is absent, the resolver supplies the portable baseline plus only capability-supported docs.
+- If it is an array, that selection is exact, including `[]`; never append the full registry or infer extra docs.
+- `docsRoots.projectReference.path` relocates the reference-doc directory; otherwise it defaults to `docs/project-reference/` (a `docsRoots.projectReference.path` entry in `docs/project-config.json` relocates it).
+- A custom doc is declared in `referenceDocs` with required `filename` and `purpose`, and optional `sections`, `templatePath`, and `scanTarget`. The filename is relative to the configured reference-doc root; `templatePath` is project-relative. Both paths use safe POSIX-relative segments and runtime containment checks.
+- Built-in filenames use only the exact framework-owned target in `scan/references/targets.md`. A custom doc defaults to manual ownership; `scanTarget: "generic"` opts it into `/scan --target=generic-reference-doc --filename="<filename>"`. Never infer a built-in scanner from a basename.
+
+Compare only selected task-specific docs plus the two always-on inputs against the resolved reference-doc root. Do not treat the target manifest or helper registry as a required-document floor.
 
 ## Step 2: Detect Placeholder vs Populated
 
-Read the first 512 bytes of each file. If it contains `<!-- Fill in your project's details below. -->`, it is still a placeholder and needs scanning.
+Read the first 512 bytes of each selected file. If it contains the placeholder sentinel, it needs its applicable scan or template owner. A missing optional capability doc is not a failure when it is unselected or unsupported by config/repository evidence.
 
-## Step 3: Offer Scan Options
+## Step 3: Select Applicable Scans
 
-Use `AskUserQuestion` to present:
+Read the target manifest and resolve each selected task-specific doc by exact filename and configured `scanTarget`. Before launching a built-in target, verify its applicability using project config and repository evidence. A target entry is not proof that the project uses that stack or capability. Generic scans use the selected doc's `purpose` and optional `sections`; manual docs are initialized if absent but are not auto-scanned or freshness-tracked.
 
-1. **"Run /ai-context-refresh + all configured scan skills" (Recommended for first-time init)** -- Generates root AI context from config, then runs scan skills for configured docs
-2. **"Run configured scan skills only"** -- Runs scan skills without CLAUDE.md generation
-3. **"Select specific skills"** -- Let user choose which ones to run
-4. **"Skip -- docs are already populated"** -- Exit if all docs have content
+- Run clearly applicable selected scans without a routine user-choice gate.
+- Record `SKIPPED` with the checked config/repository evidence when a selected target's capability is absent.
+- Report custom manual docs as owner-managed; do not route them to a nearby built-in target.
+- Ask only when real evidence conflicts or the owner/format cannot be determined safely. If no selected scan applies, report that result and stop without fabricating a document.
 
-For each selected scan target, invoke it via the Skill tool (e.g., `/scan --target=backend-patterns`).
+For each applicable target, invoke its registered built-in command or the exact generic command (for example, `/scan --target=backend-patterns` or `/scan --target=generic-reference-doc --filename="guides/architecture.md"`).
 
 ## Step 4: M1-M5/M7 Compliance Gate (BLOCKING)
 
-See `.claude/skills/shared/sdd-artifact-contract.md` → "AI-SDD Mandates (M1-M7)" for BLOCKING criteria. After the scan skills generate/populate the reference docs, gate the generated output:
+Apply the shared SDD quality contract only when the selected scan produces or updates a project spec artifact or spec-specific reference. Resolve `specArtifacts` and `specRoots` from the valid project config first:
 
-- **M1/M2 — tech-agnostic prose:** Spec/feature-facing docs (and any populated `spec-principles.md` extension) keep narrative and headings free of framework/product/language/design-pattern names and source identifiers; those appear only in evidence carriers (`[Source: namespace/service/id]`, `**Evidence**`), frontmatter, and Mermaid. Authority: `spec-principles.md` §3, in the project-reference docs root — default `docs/project-reference/`; a `docsRoots.projectReference.path` entry in `docs/project-config.json` overrides the path.
-- **M3 — logical-IDs-first:** Where docs carry requirements/rules/TCs, the logical IDs (`FR-`/`BR-`/`OP-`/`TC-`) are the primary spine and `[Source: namespace/service/id]` (a stack-portable abstract anchor — never physical code coordinates or repository-root paths; physical coords live only in the provenance sidecar) is the secondary carrier.
-- **M4/M5 — implementability:** Generated content is testable, observable, one-interpretation, and sufficient to rebuild the described behavior on any stack.
-- **M7 — business-visibility:** Where generated docs carry business-tree cases or TCs, apply the demo test to each case's BODY: *"what would a stakeholder SEE change?"* — no answer → FAIL as TECHNICAL-ONLY. Every `Given` = a state a user could arrange; every `When` = an action a user could take; every `Then` = an outcome a user could see. FAIL a `When` that is an invocation (a handler runs, a consumer receives, a job fires, data syncs) or a `Then` asserting schema/type/nullability/call-count, and FAIL any TC count derived from an architecture inventory. Judge the BODY, never the title or ID.
+- A valid native `specArtifacts` profile owns its section roles, identifiers, and evidence carriers. Preserve its native format and trace intent to executable assertions.
+- If `specArtifacts` is absent, use the portable strict-default spec contract. Do not apply its section names or ID prefixes to a declared native profile.
+- A declared malformed profile is a configuration error; stop and repair it rather than guessing a fallback.
+- Apply tech-agnostic/business-visibility rules only to artifact locations governed by the local spec policy, not every project-reference document. Keep claims testable, observable, and evidence-backed under the project's actual contract.
 
-> **M1 vs M7 — distinct gates.** M1 governs **vocabulary**; M7 governs **subject matter**. A technical case in impeccably tech-free prose satisfies M1 while violating M7 — that gap is the most common way business specs rot. Ask what a user could SEE, not which words were used.
-
-**Verification step (run after generation):** Run the exact SDD compliance verifier documented by the project and resolve any failures before declaring init complete. Do not invent a verifier command; if the verifier or project config is not yet initialized, record that and re-run once available.
+Run the exact verifier declared by the project/framework contract and resolve failures before reporting completion. Do not invent a verifier command; report when none is configured or applicable.
 
 ## Configuration
 
-Reference doc definitions are in `docs/project-config.json` under `referenceDocs`. The hook reads this config to determine which files to create. Static local-extension docs use `.claude/templates/reference-docs/` templates. See `.claude/hooks/session-init-docs.cjs` for the full implementation.
+Reference-doc definitions are in the configured project-config file under `referenceDocs`; `.claude/hooks/lib/session-init-helpers.cjs` resolves the portable default selection and templates. The project config schema, not this skill, defines accepted properties.
 
 ---
 
-> **[IMPORTANT]** Use `TaskCreate` to break ALL work into small tasks BEFORE starting — including tasks for each file read. This prevents context loss from long files. For simple tasks, AI MUST ATTENTION ask user whether to skip.
+> **[IMPORTANT]** Track multi-target initialization as small tasks with a final consistency review. Do not interrupt an otherwise clear initialization to ask which applicable configured scans to run.
 
 <!-- SYNC:ai-mistake-prevention -->
 
 > **AI Mistake Prevention** — Failure modes to avoid on every task:
 >
+> **Project applicability gate.** Before applying a stack, layer, style, tool, or architecture rule, read the project's config and relevant references, then check local implementations. Treat framework examples as examples; honor explicit N/A and do not require a technology or convention the project does not use.
 > **ROOT-CAUSE GATE — INVESTIGATE FIRST.** Before applying any project-related correction, always use the project's root-cause investigation protocol and establish the cause; the failure site may be only a symptom.
 > **FAILED-TEST GATE.** For any failed or unstable test, use the project's test-investigation protocol before editing source or tests; never change either side merely to force green.
 > **Re-read files after context changes.** Context compaction, resume, or long-running work can make memory stale; verify current files before acting.
@@ -119,19 +114,19 @@ Reference doc definitions are in `docs/project-config.json` under `referenceDocs
 
 <!-- SYNC:critical-thinking-mindset:reminder -->
 
-**MUST ATTENTION** apply critical + sequential thinking — every claim needs appropriate traced evidence (`file:line` for repo/code claims; source URL or artifact section for research, product, content, and docs claims); confidence >80% to act, <60% DO NOT recommend. Anti-hallucination: never present guess as fact, admit uncertainty freely, cross-reference independently, stay skeptical of own confidence.
+**MUST ATTENTION** critical + sequential thinking: every claim carries traced evidence (`file:line` for code, source URL or artifact section otherwise); confidence >80% to act, <60% do NOT recommend. Never present a guess as fact; admit uncertainty and stay skeptical of your own confidence.
 
 <!-- /SYNC:critical-thinking-mindset:reminder -->
 
 <!-- SYNC:ai-mistake-prevention:reminder -->
 
-**MUST ATTENTION** ROOT-CAUSE GATE: before any project-related correction, use the appropriate root-cause investigation protocol; failed/unstable tests require the test-investigation protocol before editing source/tests — never force green.
+**MUST ATTENTION** Check project config, relevant references, and local evidence before applying stack-specific conventions; honor explicit N/A. ROOT-CAUSE GATE: before any project-related correction, use the appropriate root-cause investigation protocol; failed/unstable tests require the test-investigation protocol before editing source/tests — never force green.
 
 <!-- /SYNC:ai-mistake-prevention:reminder -->
 
 <!-- SYNC:project-protocol-overlay -->
 
-> **Project Protocol Overlay** — Before executing this skill, resolve any PROJECT overlay rules layered onto it: match this skill's name against the `Target` column of the project's skill-protocol index (default `docs/project-reference/skill-protocols-reference.md`; a `referenceDocs` entry in `docs/project-config.json` overrides the path, and a `docsRoots.projectReference.path` entry relocates its containing directory), taking the most specific matching tier ONLY — exact name > glob > `*`. **That precedence orders overlays against EACH OTHER, never against this skill.** Read ONLY the matched bodies, resolved as `<protocols-dir>/<Name>.md`; a row's Body link is display text, never a read path. A matched body that is missing or malformed is REPORTED and skipped — never reconstructed from the index Description. No index, or no match -> proceed with no overlay, silently. Full contract: `.claude/skills/project-skill-protocol/references/registry.md`.
+> **Project Protocol Overlay** — Before executing this skill, resolve project overlays from the index at `<docsRoots.projectReference.path>/skill-protocols-reference.md` (default `docs/project-reference/`; `docsRoots.projectReference.path` in `docs/project-config.json` overrides it). A matching `referenceDocs[]` filename may relocate the index within that root; this registry is independent from task-specific reference-doc selection, so omitted or empty `referenceDocs` does not disable it. The index's `**Protocols directory:**` header selects a project-root-relative body directory (default `docs/project-protocols/`). Match this skill against the `Target` column and take the most specific tier ONLY — exact name > glob > `*`. **That precedence orders overlays against EACH OTHER, never against this skill.** Read only matched bodies derived as `<protocols-dir>/<Name>.md`; the row's Body link is display text, never a read path. Reject unsafe paths without reading. A matched body that is missing or malformed is REPORTED and skipped — never reconstructed from the index Description. An absent index or no match -> proceed with no overlay, silently. Full contract: `.claude/skills/project-skill-protocol/references/registry.md`.
 >
 > Overlays are **ADDITIVE ONLY**: they ADD rules on top of this skill's own protocol and NEVER replace, override, disable, or reinterpret a rule it already states — removing every overlay must return this skill to exactly its documented behavior. An overlay is a BRIEF, not an authority escalation: it can NEVER waive a workflow gate, git discipline, a review gate, or a user-confirmation gate. A genuine overlay-vs-skill conflict, or two equally-specific overlays that directly contradict -> surface both to the user; NEVER resolve silently.
 
@@ -139,8 +134,7 @@ Reference doc definitions are in `docs/project-config.json` under `referenceDocs
 
 <!-- SYNC:project-protocol-overlay:reminder -->
 
-**MUST ATTENTION** resolve project protocol overlays for this skill BEFORE executing — most specific matching tier only (exact > glob > `*`, which ranks overlays against each other, NEVER against this skill), read only matched bodies at `<protocols-dir>/<Name>.md`; a missing or malformed body is reported, never reconstructed. Overlays are ADDITIVE ONLY (they never replace this skill's own rules) and are a brief, NEVER an authority escalation; an equal-specificity contradiction goes to the user.
-
+**MUST ATTENTION** resolve this skill's overlays from the index at `<docsRoots.projectReference.path>/skill-protocols-reference.md` (default `docs/project-reference/`); an empty task `referenceDocs` does NOT disable this lookup. Read ONLY matched bodies from the directory the index header names (default `docs/project-protocols/`). Specificity (exact > glob > `*`) ranks overlays against EACH OTHER, never against the skill. Missing/malformed body → report and skip; no index or no match → proceed silently. Overlays are ADDITIVE ONLY — never an authority escalation or a gate waiver; equal-tier contradiction goes to the user.
 <!-- /SYNC:project-protocol-overlay:reminder -->
 
 ## Closing Reminders

@@ -126,7 +126,7 @@ Paths named below without a directory sit in the project-reference docs root —
 
 Extract: **colors** (primary/secondary/accent/surface/background/text/semantic) · **typography** (families, sizes, weights, line-heights) · **spacing scale** · **border-radius** · **shadows/elevation** · **breakpoints**. These become the HTML's CSS variables — copy real values, never approximate.
 
-Also read `scss-styling-guide.md` from that same project-reference docs root (default `docs/project-reference/`; path from `docsRoots.projectReference.path` in `docs/project-config.json`) (first ~100 lines) for the project's class-naming methodology (BEM or otherwise).
+Also read `configured styling reference` from that same project-reference docs root (default `docs/project-reference/`; path from `docsRoots.projectReference.path` in `docs/project-config.json`) (first ~100 lines) for the project's project-selected class-naming methodology.
 
 ### R4.3 [BLOCKING] Inventory the real existing UI
 
@@ -347,8 +347,7 @@ Record: `Release audience: PASS | FAIL`.
 Open the saved file in the default browser as the final action, then report its path.
 
 ```bash
-# Windows (PowerShell) — preferred; contains no slash-prefixed flags, so a
-# path-boundary hook that rejects `cmd /c start` will still allow this form
+# Windows (PowerShell) — preferred
 pwsh -NoProfile -Command "Start-Process 'docs/release-notes/{PERIOD}.html'"
 
 # macOS

@@ -28,13 +28,18 @@
 const fs = require('fs');
 const path = require('path');
 
-const DEFAULT_INDEX_REL = path.join('docs', 'project-reference', 'skill-protocols-reference.md');
+const DEFAULT_REFERENCE_ROOT_REL = path.join('docs', 'project-reference');
+const DEFAULT_INDEX_FILENAME = 'skill-protocols-reference.md';
+const DEFAULT_INDEX_REL = path.join(DEFAULT_REFERENCE_ROOT_REL, DEFAULT_INDEX_FILENAME);
 const DEFAULT_BODIES_REL = path.join('docs', 'project-protocols');
 const SENTINEL = '_(none yet)_';
 const REGISTRY_COLUMNS = 6;
 
 /** Total injected body bytes. Past this the injection degrades to PATHS, never a truncated rule. */
 const MAX_INJECTION_BYTES = 8000;
+const CONFIGURATION_NOTICE =
+    'NOTE: project protocol overlay configuration was rejected; no registry or body file was read. ' +
+    'Check docs/project-config.json and the registry header path.';
 
 /**
  * Header for the injected block.
@@ -90,19 +95,125 @@ function parseBodyLink(cell) {
     return m ? m[1].trim() : null;
 }
 
+/** Return a normalized project-relative path, or null for absolute/traversing/ambiguous input. */
+function normalizeProjectRelative(value) {
+    if (typeof value !== 'string' || !value.trim() || value.includes('\0')) return null;
+    const slashPath = value.trim().replace(/\\/g, '/');
+    if (slashPath.startsWith('/') || /^[a-z]:/i.test(slashPath)) return null;
+    const withoutTrailingSlash = slashPath.replace(/\/+$/, '');
+    const parts = withoutTrailingSlash.split('/');
+    if (parts.length === 0 || parts.some((part) => !part || part === '.' || part === '..')) return null;
+    return parts.join(path.sep);
+}
+
+function isInside(parent, candidate) {
+    const relative = path.relative(parent, candidate);
+    return relative === '' || (relative !== '..' && !relative.startsWith(`..${path.sep}`) && !path.isAbsolute(relative));
+}
+
+/**
+ * Lexical and symlink containment for paths that may be read by the overlay accelerator.
+ * Missing paths are allowed through so the normal missing-registry/body behavior can report
+ * them; an existing path whose real target escapes the project or its declared root is refused.
+ */
+function isSafelyContainedOnDisk(projectDir, boundaryAbs, targetAbs) {
+    const projectAbs = path.resolve(projectDir);
+    if (!isInside(projectAbs, boundaryAbs) || !isInside(boundaryAbs, targetAbs)) return false;
+    try {
+        const projectReal = fs.realpathSync.native(projectAbs);
+        let boundaryReal;
+        try {
+            boundaryReal = fs.realpathSync.native(boundaryAbs);
+        } catch (error) {
+            return error && error.code === 'ENOENT';
+        }
+        if (!isInside(projectReal, boundaryReal)) return false;
+        let targetReal;
+        try {
+            targetReal = fs.realpathSync.native(targetAbs);
+        } catch (error) {
+            return error && error.code === 'ENOENT';
+        }
+        return isInside(projectReal, targetReal) && isInside(boundaryReal, targetReal);
+    } catch {
+        return false;
+    }
+}
+
+/** Resolve the independent overlay registry beneath the configured project-reference root. */
+function resolveRegistryPath(projectDir, config) {
+    if (config === null) return { path: null, invalid: true };
+    const cfg = config && typeof config === 'object' ? config : {};
+
+    const declaredRoot = cfg.docsRoots?.projectReference?.path;
+    const referenceRootRel = declaredRoot === undefined
+        ? normalizeProjectRelative(DEFAULT_REFERENCE_ROOT_REL)
+        : normalizeProjectRelative(declaredRoot);
+    if (!referenceRootRel) return { path: null, invalid: true };
+
+    let filenameRel = DEFAULT_INDEX_FILENAME;
+    if (cfg.referenceDocs !== undefined) {
+        if (!Array.isArray(cfg.referenceDocs)) return { path: null, invalid: true };
+        if (cfg.referenceDocs.some((entry) => !entry || typeof entry !== 'object' || typeof entry.filename !== 'string')) {
+            return { path: null, invalid: true };
+        }
+        const candidates = cfg.referenceDocs.filter((entry) => {
+            return entry.filename.trim().replace(/\\/g, '/').split('/').filter(Boolean).pop() === DEFAULT_INDEX_FILENAME;
+        });
+        if (candidates.length > 1) return { path: null, invalid: true };
+        if (candidates.length === 1) {
+            filenameRel = normalizeProjectRelative(candidates[0].filename);
+            if (!filenameRel) return { path: null, invalid: true };
+        }
+    }
+
+    const referenceRootAbs = path.resolve(projectDir, referenceRootRel);
+    const indexAbs = path.resolve(referenceRootAbs, filenameRel);
+    if (!isInside(referenceRootAbs, indexAbs) || !isSafelyContainedOnDisk(projectDir, referenceRootAbs, indexAbs)) {
+        return { path: null, invalid: true };
+    }
+    return { path: indexAbs, invalid: false };
+}
+
+/** The body root is project-relative and comes from the index header, never from a row link. */
+function resolveProtocolsDirectory(text) {
+    const lines = text.split(/\r?\n/).filter((line) => /^\s*\*\*Protocols directory:\*\*/i.test(line));
+    if (lines.length === 0) return { path: DEFAULT_BODIES_REL, invalid: false };
+    if (lines.length !== 1) return { path: null, invalid: true };
+    const match = lines[0].match(/^\s*\*\*Protocols directory:\*\*\s*`([^`]+)`\s*$/i);
+    const relative = match && normalizeProjectRelative(match[1]);
+    return relative ? { path: relative, invalid: false } : { path: null, invalid: true };
+}
+
+function loadRegistry(projectDir, config) {
+    const location = resolveRegistryPath(projectDir, config);
+    if (location.invalid) return { rows: [], notice: CONFIGURATION_NOTICE };
+
+    let text;
+    try {
+        text = fs.readFileSync(location.path, 'utf8');
+    } catch {
+        return { rows: [], notice: '' };
+    }
+
+    const protocolsDirectory = resolveProtocolsDirectory(text);
+    if (protocolsDirectory.invalid || !isSafelyContainedOnDisk(
+        projectDir,
+        path.resolve(projectDir),
+        path.resolve(projectDir, protocolsDirectory.path || '.')
+    )) {
+        return { rows: [], notice: CONFIGURATION_NOTICE };
+    }
+
+    return { rows: parseRegistryRows(text, protocolsDirectory.path), notice: '' };
+}
+
 /**
  * Read and parse the overlay index.
  * Absent / unreadable / sentinel-only / malformed -> `[]`. NEVER throws.
  * @returns {Array<{name:string,target:string,scope:string,bodyPath:string|null}>}
  */
-function readRegistry(projectDir) {
-    let text;
-    try {
-        text = fs.readFileSync(path.join(projectDir, DEFAULT_INDEX_REL), 'utf8');
-    } catch {
-        return [];
-    }
-
+function parseRegistryRows(text, bodyRootRel) {
     const rows = [];
     let inTable = false;
     let sawSeparator = false;
@@ -140,10 +251,20 @@ function readRegistry(projectDir) {
         const [target, scope, name, , , body] = cells;
         if (target === SENTINEL || name === SENTINEL) continue;
 
-        rows.push({ name, target, scope: (scope || '').toLowerCase(), bodyPath: parseBodyLink(body) });
+        rows.push({
+            name,
+            target,
+            scope: (scope || '').toLowerCase(),
+            bodyPath: parseBodyLink(body),
+            bodyRootRel
+        });
     }
 
     return rows;
+}
+
+function readRegistry(projectDir, config = {}) {
+    return loadRegistry(projectDir, config).rows;
 }
 
 // ---------------------------------------------------------------------------
@@ -261,13 +382,16 @@ const BODY_NAME_RE = /^[a-z0-9][a-z0-9-]*$/;
 function resolveBodyAbsPath(projectDir, row) {
     if (typeof row.name !== 'string' || !BODY_NAME_RE.test(row.name)) return null;
 
-    const bodiesRoot = path.resolve(projectDir, DEFAULT_BODIES_REL);
+    const bodyRootRel = normalizeProjectRelative(row.bodyRootRel || DEFAULT_BODIES_REL);
+    if (!bodyRootRel) return null;
+    const projectAbs = path.resolve(projectDir);
+    const bodiesRoot = path.resolve(projectAbs, bodyRootRel);
     const abs = path.resolve(bodiesRoot, `${row.name}.md`);
 
-    // Belt-and-braces containment: even with the slug guard above, never return a path
-    // that escapes the bodies directory.
-    const prefix = bodiesRoot + path.sep;
-    if (abs !== bodiesRoot && !abs.startsWith(prefix)) return null;
+    // Belt-and-braces containment: never follow a lexical traversal or a symlink outside the
+    // project/configured body root, even though the slug and header path were already checked.
+    if (!isInside(projectAbs, bodiesRoot) || !isInside(bodiesRoot, abs)) return null;
+    if (!isSafelyContainedOnDisk(projectDir, bodiesRoot, abs)) return null;
 
     return abs;
 }
@@ -351,7 +475,7 @@ function buildInjection(skillName, matches, projectDir) {
         for (const m of malformed) {
             parts.push(
                 `NOTE: registry row \`${m.name}\` was REJECTED as malformed — an overlay name must be a ` +
-                    'bare slug and its body must resolve inside `docs/project-protocols/`. No file was ' +
+                    'bare slug and its body must resolve inside the configured protocols directory. No file was ' +
                     'read for this row. Fix it with /project-skill-protocol.'
             );
         }
@@ -364,11 +488,13 @@ function buildInjection(skillName, matches, projectDir) {
  * Convenience composition used by the hook: prompt -> injectable text ('' when nothing applies).
  * Never throws — the caller also wraps it, but an accelerator must fail open at every layer.
  */
-function buildOverlayContext(prompt, projectDir) {
+function buildOverlayContext(prompt, projectDir, config) {
     try {
         const skillName = parseSkillName(prompt);
         if (!skillName) return '';
-        const rows = readRegistry(projectDir);
+        const loaded = loadRegistry(projectDir, config);
+        if (loaded.notice) return loaded.notice;
+        const rows = loaded.rows;
         if (rows.length === 0) return '';
         const matches = resolveOverlays(skillName, rows);
         if (matches.length === 0) return '';

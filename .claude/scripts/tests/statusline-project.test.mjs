@@ -43,6 +43,24 @@ test('ccstatusline.json: wired statusline-project.cjs path exists on disk', () =
     assert.ok(fs.existsSync(path.join(repoRoot, rel)), `wired script must exist at repo-relative path: ${rel}`);
 });
 
+// ── settings.json: the status line command must pin an exact ccstatusline version ──
+// The command re-runs on every assistant message, so `@latest` would auto-execute any
+// newly published release on every machine, unreviewed and unlockfiled, as the developer's
+// own user and with session data on stdin. An exact version runs an unchanging cached copy.
+const settingsPath = path.join(thisDir, '..', '..', 'settings.json');
+
+test('settings.json: statusLine pins an exact ccstatusline version (never @latest)', () => {
+    const settings = JSON.parse(fs.readFileSync(settingsPath, 'utf8'));
+    const command = settings.statusLine?.command;
+    assert.equal(typeof command, 'string', 'statusLine.command must be a string');
+    assert.doesNotMatch(command, /ccstatusline@latest/, 'statusLine.command must not float on @latest');
+    assert.match(
+        command,
+        /ccstatusline@\d+\.\d+\.\d+(?![\w.-])/,
+        'statusLine.command must pin ccstatusline to an exact x.y.z version'
+    );
+});
+
 test('basenameOf: windows path → last segment', () => {
     assert.equal(basenameOf('D:\\GitSources\\easy-claude'), 'easy-claude');
 });

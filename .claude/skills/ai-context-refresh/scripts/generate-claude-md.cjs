@@ -39,109 +39,17 @@ try {
 const CLAUDE_MD_PATH = path.join(PROJECT_DIR, 'CLAUDE.md');
 const BACKUP_PATH = path.join(PROJECT_DIR, '.claude-md.backup');
 const TEMPLATE_PATH = path.join(__dirname, '..', 'references', 'claude-md-template.md');
-// Canonical hook-independent Workflow-First Gate (primacy anchor). Stamped at the top of every
-// generated/updated CLAUDE.md so the routing rule survives in Codex mirrors when hooks are absent.
 const WORKFLOW_GATE_PATH = path.join(__dirname, '..', '..', 'shared', 'workflow-first-gate.md');
-// Workflow auto-detect switch — `portability.workflowAutoDetect`, default true. When it
-// resolves false the intent router is not stamped at all: neither the gate nor the
-// workflow/skills catalog reaches CLAUDE.md, and the First Action Decision body states
-// direct execution instead (see applyRoutingBody).
-//
-// SCOPE — this generator writes CLAUDE.md, which is GIT-TRACKED, so it resolves the TEAM
-// layer only and deliberately IGNORES the developer's git-ignored
-// `<project-config>.local.json`. Honouring a local preference here would strip the router out
-// of a shared file and show up as a modified tracked file that could be committed onto the
-// whole team — the exact outcome the local override exists to prevent. A developer's local
-// setting takes effect at RUNTIME instead (the UserPromptSubmit carrier), and
-// `--apply-local-routing` is the explicit opt-in for anyone who really does want the local
-// value baked into their working copy.
-//
-// The shared resolver is the canonical implementation. A compact copied skill that ships
-// without `.claude/scripts/lib` falls back to an equivalent inline resolver — same layer
-// order, same scope rule, same fail-open contract — so the switch still works in a partial
-// install.
-let resolveWorkflowAutoDetect;
-try {
-    ({ resolveWorkflowAutoDetect } = require('../../../scripts/lib/workflow-routing-config.cjs'));
-} catch {
-    const readLayer = (file) => {
-        try {
-            const value = JSON.parse(fs.readFileSync(file, 'utf8'))?.portability?.workflowAutoDetect;
-            return typeof value === 'boolean' ? value : undefined;
-        } catch {
-            return undefined;
-        }
-    };
-    resolveWorkflowAutoDetect = ({ configPath, scope }) => {
-        const localPath = configPath.replace(/\.json$/, '.local.json');
-        // An absent or broken layer expresses no opinion and falls through to the one below.
-        const team = readLayer(configPath);
-        const teamEnabled = team !== undefined ? team : true;
-        const local = scope === 'team' ? undefined : readLayer(localPath);
-        const enabled = local !== undefined ? local : teamEnabled;
-        const source = local !== undefined ? 'local-override'
-            : (team !== undefined ? 'project-config' : 'default');
-        return {
-            enabled, source, scope: scope || 'effective', configPath, localPath, teamEnabled,
-            overriddenLocally: local !== undefined && local !== teamEnabled
-        };
-    };
-}
-// `--apply-local-routing` opts INTO the developer layer for this tracked write. It is opt-in
-// because the result is a modified tracked file the developer must not commit.
-const APPLY_LOCAL_ROUTING = process.argv.slice(2).includes('--apply-local-routing');
-let workflowAutoDetectCache = null;
-function workflowAutoDetectEnabled() {
-    if (workflowAutoDetectCache === null) {
-        const resolved = resolveWorkflowAutoDetect({
-            rootDir: PROJECT_DIR,
-            configPath: CONFIG_PATH,
-            scope: APPLY_LOCAL_ROUTING ? 'effective' : 'team'
-        });
-        workflowAutoDetectCache = resolved.enabled;
-        const rel = p => path.relative(PROJECT_DIR, p);
-        // Name the deciding layer. A silently smaller CLAUDE.md is not evidence a developer can act on.
-        if (!resolved.enabled) {
-            console.log(
-                `[ROUTING] workflow auto-detect DISABLED by ${resolved.source} ` +
-                    `(${rel(resolved.source === 'local-override' ? resolved.localPath : resolved.configPath)}) ` +
-                    '— the workflow gate and skills catalog will NOT be stamped.'
-            );
-            if (resolved.source === 'local-override') {
-                console.log(
-                    '[ROUTING] This wrote a LOCAL preference into a git-tracked file. Do NOT commit ' +
-                        `${rel(CLAUDE_MD_PATH)} — revert it before committing, or drop --apply-local-routing.`
-                );
-            }
-        } else if (!APPLY_LOCAL_ROUTING) {
-            // Tell the developer their local override was deliberately not applied here, and where
-            // it DOES apply — otherwise "I disabled it but the gate is still in CLAUDE.md" reads
-            // as a bug rather than as the design protecting the shared file.
-            const effective = resolveWorkflowAutoDetect({
-                rootDir: PROJECT_DIR, configPath: CONFIG_PATH, scope: 'effective'
-            });
-            if (!effective.enabled) {
-                console.log(
-                    `[ROUTING] ${rel(effective.localPath)} disables workflow auto-detect for you, but ` +
-                        `${rel(CLAUDE_MD_PATH)} is git-tracked and keeps the TEAM value so your preference ` +
-                        'never reaches the repository. Your local setting still applies at runtime. ' +
-                        'Pass --apply-local-routing to bake it into this working copy anyway (do not commit the result).'
-                );
-            }
-        }
-    }
-    return workflowAutoDetectCache;
-}
 const GATE_BLOCK_RE = /<!-- CK:WORKFLOW-GATE -->[\s\S]*?<!-- \/CK:WORKFLOW-GATE -->/g;
 // The catalog pointer replaces its owned block. Include legacy prettier fences in
 // the match so updating an older full catalog cannot orphan formatting markers.
 const SKILLS_BLOCK_RE = /(?:<!-- prettier-ignore-start -->\s*)?<!-- CK:WORKFLOW-SKILLS -->[\s\S]*?<!-- \/CK:WORKFLOW-SKILLS -->(?:\s*<!-- prettier-ignore-end -->)?/g;
-// Full always-on protocol blocks (critical-thinking + ai-mistake-prevention) baked at the top
-// and, for a complete framework checkout, again at EOF so both primacy and recency survive
-// long-context reads. Build-source is the
+// Full always-on protocol blocks (critical-thinking + ai-mistake-prevention) baked ONCE at the
+// top, for primacy only. The EOF recency copy was removed by owner decision (2026-09-22): it cost
+// ~3,224 tokens of every session's context. Build-source is the
 // canonical markdown (sync-inline-versions.md `:full`), read via the shared parser — the
 // generator never couples to hooks/lib. Marker-wrapped so the bake is idempotently strip-and-restamped
-// here, deduped from the AGENTS.md CLAUDE-mirror by sync-context-workflows.mjs, and located by the
+// here, projected once into AGENTS.md by sync-context-workflows.mjs, and located by the
 // Phase 04 freshness verifiers.
 const SYNC_INLINE_PATH = path.join(__dirname, '..', '..', 'shared', 'sync-inline-versions.md');
 const CK_CRIT_OPEN = '<!-- CK:CRITICAL-THINKING -->';
@@ -158,53 +66,18 @@ function prettierIgnoredBlock(body) {
     return `${PRETTIER_IGNORE_START}\n\n${body}\n\n${PRETTIER_IGNORE_END}`;
 }
 
-/** Load the one canonical routing policy. Missing detail must not silently weaken it. */
 function loadWorkflowGate() {
-    try {
-        const raw = fs.readFileSync(WORKFLOW_GATE_PATH, 'utf-8');
-        const m = raw.match(/<!-- CK:WORKFLOW-GATE -->[\s\S]*?<!-- \/CK:WORKFLOW-GATE -->/);
-        if (m) return m[0];
-    } catch (err) {
-        throw new Error(`Required workflow detail unavailable: ${WORKFLOW_GATE_PATH}: ${err.message}`);
-    }
-    throw new Error(`Required workflow detail malformed: ${WORKFLOW_GATE_PATH}`);
-}
-
-/**
- * Render the route catalog from the consuming bundle when the canonical
- * builder is present.  A compact/partial copied skill intentionally falls back
- * to a pointer so bootstrap can still produce a bounded root without inventing
- * a stale inventory.  The complete framework checkout therefore keeps Claude's
- * static catalog byte-equivalent to the Codex builder, while portable partial
- * installs remain safe and self-describing.
- */
-function loadWorkflowSkillsCatalog() {
-    const builderPath = path.join(PROJECT_DIR, '.claude', 'scripts', 'lib', 'workflow-skills-catalog.cjs');
-    const workflowsPath = path.join(PROJECT_DIR, '.claude', 'workflows.json');
-    if (fs.existsSync(builderPath) && fs.existsSync(workflowsPath)) {
-        try {
-            const { buildWorkflowSkillsCatalog, CK_SKILLS_START, CK_SKILLS_END } = require(builderPath);
-            const body = buildWorkflowSkillsCatalog({ rootDir: PROJECT_DIR, sections: ['workflows', 'skills'] });
-            return `${PRETTIER_IGNORE_START}\n\n${CK_SKILLS_START}\n${body}\n${CK_SKILLS_END}\n\n${PRETTIER_IGNORE_END}`;
-        } catch (error) {
-            // A malformed/incomplete copied registry must not stamp a false
-            // catalog. The pointer still directs the model to the required
-            // canonical files and the builder/verifier reports the detail loss.
-            process.stderr.write(`[ai-context-refresh] workflow catalog unavailable: ${error.message}\n`);
-        }
-    }
-    return '<!-- CK:WORKFLOW-SKILLS -->\n' +
-        'Before selecting a workflow, read `.claude/workflows.json` for its intent and canonical sequence; ' +
-        'before executing a skill, read its `.claude/skills/<name>/SKILL.md` and applicable project overlay. ' +
-        'If required detail is unavailable, stop and report the exact missing path; never invent a skill, sequence or successful completion.\n' +
-        '<!-- /CK:WORKFLOW-SKILLS -->';
+    const raw = fs.readFileSync(WORKFLOW_GATE_PATH, 'utf-8');
+    const match = raw.match(/<!-- CK:WORKFLOW-GATE -->[\s\S]*?<!-- \/CK:WORKFLOW-GATE -->/);
+    if (!match) throw new Error(`Required workflow detail malformed: ${WORKFLOW_GATE_PATH}`);
+    return match[0];
 }
 
 /**
  * Build the marker-wrapped full-protocol blocks (critical-thinking + ai-mistake-prevention)
  * from the canonical source via the shared SYNC parser. Returns ONE string carrying both
  * marker-wrapped blocks, or '' when the source/blocks are
- * unavailable so CLAUDE.md generation never fails on a partial install (gate + catalog still stamp).
+ * unavailable so CLAUDE.md generation never fails on a partial install.
  *
  * Approach C: the generator reads canonical `:full` markdown — it does NOT import hooks/lib.
  * Codex mirrors use the legacy-named `.claude/scripts/lib/hookless-prompt-protocol.cjs`, which composes
@@ -216,17 +89,7 @@ function loadFullProtocolBlocks() {
         const { extractSyncBody } = require('../../../scripts/lib/extract-sync-block.cjs');
         const md = fs.readFileSync(SYNC_INLINE_PATH, 'utf-8');
         const crit = extractSyncBody(md, 'critical-thinking-mindset:full');
-        // Routing is owned by CK:WORKFLOW-GATE. A complete framework checkout projects the
-        // canonical AI-mistake block byte-for-byte so Claude/Codex carriers retain the same
-        // reminders. A compact copied skill omits the legacy invocation sentence because its
-        // bounded bootstrap already carries the authoritative gate and must not reintroduce a
-        // competing host-specific Skill-tool instruction.
-        const rawAimp = extractSyncBody(md, 'ai-mistake-prevention:full');
-        const completeFramework = fs.existsSync(path.join(PROJECT_DIR, '.claude', 'scripts', 'lib', 'workflow-skills-catalog.cjs')) &&
-            fs.existsSync(path.join(PROJECT_DIR, '.claude', 'workflows.json'));
-        const aimp = completeFramework
-            ? rawAimp
-            : rawAimp?.split('\n').filter(line => !line.includes('[MANDATORY FIRST ACTION]')).join('\n');
+        const aimp = extractSyncBody(md, 'ai-mistake-prevention:full');
         if (!crit || !aimp) {
             // Fail LOUD, not silent: a missing/partial canonical source must not let the
             // generator ship a protocol-less file as "complete" (the sentinel is gated on
@@ -256,7 +119,7 @@ const SECTION_CLOSE = /^<!-- \/SECTION:(\S+) -->$/;
 // The agent-files bootstrap gate reads this to tell a complete file from a project-only
 // one. MUST match agent-files-state.cjs UNIVERSAL_GUIDES_VERSION / SENTINEL_RE — the
 // agent-files-gate.test.cjs sync test enforces the lockstep.
-const UNIVERSAL_GUIDES_VERSION = 6;
+const UNIVERSAL_GUIDES_VERSION = 7;
 const SENTINEL = `<!-- CK:UNIVERSAL-GUIDES v${UNIVERSAL_GUIDES_VERSION} -->`;
 const SENTINEL_RE = /<!--\s*CK:UNIVERSAL-GUIDES\s+v(\d+)\s*-->/i;
 // Static portable-guide headings the universal section always ships. MUST match
@@ -265,7 +128,6 @@ const SENTINEL_RE = /<!--\s*CK:UNIVERSAL-GUIDES\s+v(\d+)\s*-->/i;
 // stamped when these guides are actually in the file, else the bootstrap gate would
 // read a false "complete" on a project-only file that never received the guides.
 const REQUIRED_ANCHORS = [
-    /first action decision/i,
     /workflow step advancement/i,
     /task planning rules/i,
     /code responsibility hierarchy/i,
@@ -307,14 +169,11 @@ function ensureSentinel(content) {
 }
 
 /**
- * Stamp the top-of-file header: sentinel first, then the Workflow-First Gate immediately after it.
- * Idempotent — strips any existing gate block (wherever it sits) and re-inserts it right below the
- * sentinel so the routing rule is always the first thing the model reads. The gate is bound to the
- * same content-presence contract as the sentinel (only stamped when the universal guides are
- * present), so project-only files are never force-injected.
+ * Stamp the top-of-file routing gate and static quality protocol from canonical sources.
  */
-function stampHeader(content, { workflowAutoDetect = workflowAutoDetectEnabled() } = {}) {
-    let text = applyRoutingBody(ensureSentinel(migrateLegacyRouting(content)), workflowAutoDetect);
+function stampHeader(content, config = loadConfig()) {
+    let text = ensureSentinel(removeManagedRoutingSection(migrateLegacyRouting(content)));
+    const hadManagedFooter = text.trimEnd().endsWith(CK_AIMP_CLOSE);
     // Strip every managed block (gate, skills catalog, AND both protocol blocks — top + bottom
     // copies via global regexes). Unmarked custom whitespace remains user-owned.
     text = text
@@ -325,18 +184,12 @@ function stampHeader(content, { workflowAutoDetect = workflowAutoDetectEnabled()
         // CRLF-aware: a `\r\n\r\n\r\n` run has no consecutive `\n`, so an LF-only
         // pattern here silently leaves the blank gap each stripped block left behind.
         .replace(/^(?:\r?\n)+/, '');
+    // The former full-framework footer was generated after trimming EOF whitespace, so removing
+    // that footer may safely collapse only the separator it owned. Compact adopters never had the
+    // footer; their trailing spaces/newlines are user-owned and must remain byte-for-byte.
+    if (hadManagedFooter) text = text.replace(/\s+$/, '');
     if (!hasGuides(text)) return text;
-    // Order: gate (#1 primacy) → workflow/skills catalog → full protocol (still within the first
-    // screenful). The route-gate must stay the first stamped block; protocol never precedes it.
-    const header = [];
-    if (workflowAutoDetect) {
-        // Routing off means the router is ABSENT, not replaced by a weaker copy: the model must
-        // not find a catalog here and infer a route from it. Both blocks were stripped above, so
-        // simply not re-adding them is what removes them when the switch flips.
-        header.push(loadWorkflowGate());
-        const skills = loadWorkflowSkillsCatalog();
-        if (skills) header.push(skills);
-    }
+    const header = config?.portability?.workflowAutoDetect === false ? [] : [loadWorkflowGate()];
     const protocol = loadFullProtocolBlocks();
     // Old marker presence cannot justify completeness after those blocks were stripped.
     if (!protocol) text = text.replace(SENTINEL_RE, '');
@@ -355,25 +208,24 @@ function stampHeader(content, { workflowAutoDetect = workflowAutoDetectEnabled()
 }
 
 /**
- * Normalize EOF and repeat the full inline protocol for the complete framework checkout.
- * Compact copied skills intentionally keep one bounded copy: their content-guard fixtures do
- * not include the consuming-bundle catalog builder, so duplicating the protocol would make a
- * partial bootstrap exceed its host reference budget. The full portable bundle has both copies,
- * which preserves recency without weakening compact-copy portability.
+ * Normalize EOF only.
+ *
+ * This function used to ALSO re-stamp the full inline protocol at EOF, so a complete framework
+ * checkout carried the critical-thinking + ai-mistake-prevention blocks at BOTH ends of
+ * CLAUDE.md — primacy plus recency — to survive attention decay in a long file. That second copy
+ * was removed by owner decision (2026-09-22): the `:full` pair is 12,252 chars (~3,224 tokens) and
+ * it was repeated verbatim in every session's context.
+ *
+ * Only the top copy stamped by `stampHeader` remains, so the recency anchor is intentionally
+ * GONE. Do not re-add it here without also updating TC-CTXP-032 P4 in
+ * `.claude/hooks/tests/suites/protocol-text-parity.test.cjs`, which now asserts exactly ONE
+ * occurrence of each block.
  */
 function stampFooter(content) {
-    const normalized = content.endsWith('\n') ? content : `${content}\n`;
-    const builderPath = path.join(PROJECT_DIR, '.claude', 'scripts', 'lib', 'workflow-skills-catalog.cjs');
-    const workflowsPath = path.join(PROJECT_DIR, '.claude', 'workflows.json');
-    if (!fs.existsSync(builderPath) || !fs.existsSync(workflowsPath)) return normalized;
-    const protocol = loadFullProtocolBlocks();
-    if (!protocol) return normalized;
-    return `${normalized.replace(/\s+$/, '')}\n\n${protocol}\n`;
+    return content.endsWith('\n') ? content : `${content}\n`;
 }
 
-// The three managed bodies the `## First Action Decision` section may carry. The section is
-// UNMARKED prose, so ownership is proven by an exact match against one of these — never by the
-// heading alone (a project may have rewritten the body, and that text is theirs).
+// Known generated routing paragraphs. Project-authored prose under the same heading is preserved.
 const ROUTING_BODY_TEMPLATE =
     'Apply the single CK:WORKFLOW-GATE above. A skill named as a noun is not an invocation; ' +
     'explicit execution requests win. Mixed research/modification intent follows the modification route. ' +
@@ -387,30 +239,14 @@ const ROUTING_BODY_DISABLED =
     'workflow or skill only when the user names one explicitly. This changes route SELECTION only: every ' +
     'quality gate, task-planning rule, evidence obligation and confirmation gate in this file still binds, ' +
     'and routing grants no operation authority.';
-// Two bodies mean "routing on" — the template's and the one migrateLegacyRouting produces.
-// Both are correct in that state, so neither is rewritten into the other: normalizing them
-// would churn every project's file for no behavioural gain.
-const ROUTING_BODIES_ENABLED = [ROUTING_BODY_TEMPLATE, ROUTING_BODY_MIGRATED];
-const MANAGED_ROUTING_BODIES = [...ROUTING_BODIES_ENABLED, ROUTING_BODY_DISABLED];
+const MANAGED_ROUTING_BODIES = [ROUTING_BODY_TEMPLATE, ROUTING_BODY_MIGRATED, ROUTING_BODY_DISABLED];
 const FIRST_ACTION_HEADING_RE = /^##[ \t]+First Action Decision.*$/m;
 
 /**
- * Keep the `## First Action Decision` body consistent with the routing switch, in BOTH
- * directions, so toggling `portability.workflowAutoDetect` is fully reversible.
- *
- * Without this the section would dangle: with routing off it would still tell the model to
- * "Apply the single CK:WORKFLOW-GATE above" while no such block exists — an instruction
- * pointing at absent content, which is worse than either state. The heading itself must
- * survive either way; it is a REQUIRED_ANCHOR the completeness sentinel depends on.
- *
- * Same ownership discipline as migrateLegacyRouting: rewrite ONLY a body that exactly matches
- * known generated prose. A project that rewrote this section keeps its text and gets a warning,
- * because silently overwriting an author's routing instructions is the larger failure.
- * @param {string} content
- * @param {boolean} enabled
- * @returns {string}
+ * Remove only the known generated routing paragraph. If no project-authored content remains,
+ * remove the now-empty heading and its optional separator too.
  */
-function applyRoutingBody(content, enabled) {
+function removeManagedRoutingSection(content) {
     const heading = content.match(FIRST_ACTION_HEADING_RE);
     if (!heading) return content;
     const bodyStart = content.indexOf(heading[0]) + heading[0].length;
@@ -418,38 +254,14 @@ function applyRoutingBody(content, enabled) {
     const nextHeading = rest.search(/^##[ \t]+/m);
     const bodyRaw = nextHeading === -1 ? rest : rest.slice(0, nextHeading);
 
-    // Operate on the managed PARAGRAPH, not the whole section. Projects append their own
-    // routing notes under this heading (this repo does), so whole-section matching would
-    // classify every real file as project-authored and silently never fire — leaving an
-    // "Apply the single CK:WORKFLOW-GATE above" instruction pointing at a block that is no
-    // longer stamped. Surrounding paragraphs are the project's and stay byte-for-byte.
     const paragraphs = bodyRaw.split(/(\r?\n[ \t]*\r?\n)/);
     const managedAt = paragraphs.findIndex(part => MANAGED_ROUTING_BODIES.includes(part.trim()));
-    if (managedAt === -1) {
-        // Warn ONLY when routing is off. The hazard this warning exists for is a project-authored
-        // body still pointing at a gate that is no longer stamped — which can only happen when
-        // `enabled` is false. With routing ON the gate IS stamped, so the same sentence would tell
-        // the reader to "align" a section against a block that is present: a false positive fired
-        // on every run of the DEFAULT configuration, whose stated remedy is untrue there.
-        if (!enabled) {
-            console.error(
-                '[WARN] "First Action Decision" carries no framework-managed routing paragraph, so the switch ' +
-                    '(portability.workflowAutoDetect: false) left it alone. That section may still refer to a ' +
-                    'routing gate this file no longer stamps — align it by hand.'
-            );
-        }
-        return content;
-    }
-    // Compare STATE, not exact text: either enabled body already satisfies "routing on".
-    const current = paragraphs[managedAt].trim();
-    if (enabled ? ROUTING_BODIES_ENABLED.includes(current) : current === ROUTING_BODY_DISABLED) return content;
-
-    paragraphs[managedAt] = paragraphs[managedAt].replace(
-        current,
-        enabled ? ROUTING_BODY_TEMPLATE : ROUTING_BODY_DISABLED
-    );
+    if (managedAt === -1) return content;
+    paragraphs.splice(managedAt, 1);
+    const remaining = paragraphs.join('').replace(/^\s*---\s*$/m, '').trim();
     const tail = content.slice(bodyStart + bodyRaw.length);
-    return `${content.slice(0, bodyStart)}${paragraphs.join('')}${tail}`;
+    if (!remaining) return `${content.slice(0, heading.index)}${tail.replace(/^(?:\r?\n)+/, '')}`;
+    return `${content.slice(0, bodyStart)}\n\n${remaining}\n\n${tail.replace(/^(?:\r?\n)+/, '')}`;
 }
 
 // Exact known generated prose only. Unknown edits to this unmarked area remain
@@ -1009,12 +821,8 @@ module.exports = {
     SECTION_OPEN,
     SECTION_CLOSE,
     CURATED_CALLOUT,
-    // Exported for the routing-switch tests: stampHeader takes an explicit
-    // `workflowAutoDetect` override so both states are provable in one process,
-    // without a throwaway fixture repo just to flip a config value.
     stampHeader,
-    applyRoutingBody,
-    workflowAutoDetectEnabled,
+    removeManagedRoutingSection,
     ROUTING_BODY_TEMPLATE,
     ROUTING_BODY_MIGRATED,
     ROUTING_BODY_DISABLED,

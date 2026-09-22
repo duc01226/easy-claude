@@ -1,7 +1,6 @@
 #!/usr/bin/env node
 
 import fs from "node:fs/promises";
-import fsSync from "node:fs";
 import { createHash } from "node:crypto";
 import path from "node:path";
 import { createRequire } from "node:module";
@@ -21,44 +20,6 @@ const rootResolution = resolveMutationProjectRoot({
   env: process.env,
 });
 const rootDir = rootResolution.rootDir;
-
-function loadWorkflowManifestResolver() {
-  const scriptDir = path.dirname(fileURLToPath(import.meta.url));
-  const candidates = [
-    path.join(rootDir, ".claude", "scripts", "lib", "workflow-manifest.cjs"),
-    path.join(scriptDir, "..", "lib", "workflow-manifest.cjs"),
-  ];
-  for (const candidate of candidates) {
-    try {
-      return require(candidate);
-    } catch {}
-  }
-  return null;
-}
-
-const workflowManifestResolver = loadWorkflowManifestResolver();
-
-// Workflow auto-detect switch (`portability.workflowAutoDetect`, default true). Resolved once per
-// run and memoized, because every emitted section asks the same question. Fails OPEN when the
-// resolver is absent from a stripped portable tree — the same contract the resolver itself keeps.
-//
-// SCOPE 'team' is mandatory here: every output of this sync (.codex/CODEX_CONTEXT.md, AGENTS.md)
-// is GIT-TRACKED. Resolving the developer layer would bake one person's local preference into
-// files the whole team pulls. Their local setting takes effect at runtime instead.
-let workflowAutoDetectMemo = null;
-function workflowAutoDetectEnabled() {
-  if (workflowAutoDetectMemo === null) {
-    try {
-      const { isWorkflowAutoDetectEnabled, SCOPE_TEAM } = require(
-        path.join(rootDir, ".claude", "scripts", "lib", "workflow-routing-config.cjs")
-      );
-      workflowAutoDetectMemo = isWorkflowAutoDetectEnabled({ rootDir, scope: SCOPE_TEAM });
-    } catch {
-      workflowAutoDetectMemo = true;
-    }
-  }
-  return workflowAutoDetectMemo;
-}
 
 function loadHooklessPromptProtocol() {
   const scriptDir = path.dirname(fileURLToPath(import.meta.url));
@@ -96,18 +57,6 @@ const CK_CRIT_END = "<!-- /CK:CRITICAL-THINKING -->";
 const CK_AIMP_START = "<!-- CK:AI-MISTAKE-PREVENTION -->";
 const CK_AIMP_END = "<!-- /CK:AI-MISTAKE-PREVENTION -->";
 
-// Resolve the shared catalog builder at RUNTIME from the consuming repo root — never a
-// file-relative `../lib` require, which would escape the portable Codex tree (only
-// .claude/scripts/codex/*.mjs travel). Guarded below: if the builder is absent
-// (stripped portable consumer), the skills block is simply omitted.
-function loadCatalogBuilder() {
-  try {
-    return require(path.join(rootDir, ".claude", "scripts", "lib", "workflow-skills-catalog.cjs"));
-  } catch {
-    return null;
-  }
-}
-const workflowsPath = path.join(rootDir, ".claude", "workflows.json");
 const ckConfigPath = path.join(rootDir, ".claude", ".ck.json");
 const claudeInstructionsPath = path.join(rootDir, "CLAUDE.md");
 const contextPath = path.join(rootDir, ".codex", "CODEX_CONTEXT.md");
@@ -258,15 +207,13 @@ function buildAgentsContextMirrorBlock(contextMd) {
     "## Codex Context Mirror (Auto-Synced)",
     "",
     "This compact pointer is auto-generated from `.codex/CODEX_CONTEXT.md` by `node .claude/scripts/codex/sync-context-workflows.mjs`.",
-    "Read `.codex/CODEX_CONTEXT.md` before any non-trivial workflow or skill; it carries the full static catalog and protocol detail.",
+    "Read `.codex/CODEX_CONTEXT.md` before non-trivial project work; it carries shared quality and project-reference protocol detail.",
     `Context fingerprint (SHA-256): ${sha256}`,
     "Do not edit this pointer manually; update canonical Claude sources and re-sync.",
     "",
     buildProjectReferenceGateSection(),
     "",
-    workflowAutoDetectEnabled()
-      ? "[WORKFLOW-EXECUTION-PROTOCOL] Claude and Codex may run hooks, but the static protocol is authoritative: auto-select the route, resolve the canonical workflow manifest, and stop when required context is missing or stale. The full protocol and workflow catalog are in `.codex/CODEX_CONTEXT.md`."
-      : "[WORKFLOW-EXECUTION-PROTOCOL] Workflow auto-detect is OFF for this project (`portability.workflowAutoDetect: false`): do not infer a route — execute the request directly, and resolve a canonical workflow/skill definition only when the user names one explicitly. The static protocol in `.codex/CODEX_CONTEXT.md` remains authoritative for everything else, and stopping when required context is missing or stale still applies.",
+    "Workflow routing is carried by the tracked context and may be refreshed by the runtime hook when enabled.",
     "",
     "If the referenced context is missing or its fingerprint is stale, stop and run `$sync-codex` (or the standalone sync runner) before proceeding.",
     AGENTS_CONTEXT_MIRROR_END,
@@ -311,10 +258,11 @@ function buildCompactClaudeProjection(claudeMd) {
     ["<!-- CK:WORKFLOW-GATE -->", "<!-- /CK:WORKFLOW-GATE -->"],
     ["<!-- CK:PROJECT-PROTOCOLS -->", "<!-- /CK:PROJECT-PROTOCOLS -->"],
     // The anti-hallucination protocol and the System Lessons are this repo's own defence against
-    // the failure mode it most often hits. They are stamped twice in CLAUDE.md under its
-    // primacy-recency rule, but this projection is a WHITELIST: a block absent from these lists
-    // never reaches AGENTS.md at all. Omitting them gave Claude two copies and Codex none.
-    // `extractManagedBlock` matches the FIRST fence pair, so exactly one copy is projected.
+    // the failure mode it most often hits. This projection is a WHITELIST: a block absent from
+    // these lists never reaches AGENTS.md at all. Omitting them once gave Claude two copies and
+    // Codex none. CLAUDE.md now stamps each block ONCE (the EOF recency copy was removed
+    // 2026-09-22), and `extractManagedBlock` matches the FIRST fence pair either way, so exactly
+    // one copy is projected.
     [CK_CRIT_START, CK_CRIT_END],
     [CK_AIMP_START, CK_AIMP_END],
   ]) {
@@ -330,9 +278,9 @@ function buildCompactClaudeProjection(claudeMd) {
     "",
     "This root is a bounded operational projection. The canonical Claude instructions remain in `CLAUDE.md`; the complete Codex static context remains in `.codex/CODEX_CONTEXT.md`.",
     "",
-    "Claude and Codex must resolve the same `.claude/workflows.json` mode, occurrence IDs, applicability and barriers. Host syntax (`/skill` vs `$skill`) is the only intentional dialect difference.",
+    "When the user explicitly invokes a skill or workflow, Claude and Codex resolve the same canonical definition. Host syntax is the only intentional dialect difference.",
     "",
-    "Before a standard workflow: read the static catalog, resolve the complete selected manifest, capture the owned baseline, create one task per occurrence, and preserve the manifest fingerprint for resume.",
+    "For an explicitly invoked workflow, resolve the complete manifest, capture the owned baseline, create one task per occurrence, and preserve the manifest fingerprint for resume.",
     "",
     "PERFORMANCE-SDD ROUTE: For performance-related work, run `$performance-review` with SLA/benchmark evidence and retain functional no-regression checks; behavior, public-contract, SLA, and spec-boundary changes still require the normal spec/test/docs synchronization.",
     "",
@@ -348,7 +296,7 @@ function buildAgentsClaudeMirrorBlock(claudeMd) {
     AGENTS_ROOT_PROJECTION_START,
     "## Claude Instructions Mirror (Compact Auto-Synced Projection)",
     "",
-    "This bounded projection is generated from `CLAUDE.md` by `node .claude/scripts/codex/sync-context-workflows.mjs`; it keeps critical routing, ownership, evidence and task rules in the Codex root.",
+    "This bounded projection is generated from `CLAUDE.md` by `node .claude/scripts/codex/sync-context-workflows.mjs`; it keeps ownership, evidence and task rules in the Codex root.",
     "For full canonical detail, read `CLAUDE.md` and `.codex/CODEX_CONTEXT.md` directly. Do not edit generated mirrors.",
     "",
     projection,
@@ -523,268 +471,6 @@ async function readClaudeInstructions() {
   }
 }
 
-function safeLine(value) {
-  if (typeof value !== "string") return "";
-  return value.replace(/\r?\n/g, " ").trim();
-}
-
-// Condense a workflow's whenToUse into a short, scannable trigger hint for the
-// Quick Keyword Lookup table. Caps to the first few distinctive clauses so the
-// decision index stays "enough to choose, not a wall of text".
-function extractKeywords(whenToUse, { maxClauses = 3, wordsPerClause = 6, maxLen = 130 } = {}) {
-  if (!whenToUse || typeof whenToUse !== "string") return "";
-  const clauses = whenToUse
-    .split(/[,;]/)
-    .map((c) => c.trim().toLowerCase())
-    .map((c) => c.replace(/^(?:user (?:wants to|reports|has)|wants to|po(?:\/| or )ba wants to|generate|create|after)\s+/i, ""))
-    .map((c) => c.split(/\s+/).slice(0, wordsPerClause).join(" "))
-    .filter((c) => c.length > 2);
-  const picked = [];
-  const seen = new Set();
-  for (const clause of clauses) {
-    if (seen.has(clause)) continue;
-    seen.add(clause);
-    picked.push(clause);
-    if (picked.length >= maxClauses) break;
-  }
-  let out = picked.join(", ");
-  if (out.length > maxLen) out = `${out.slice(0, maxLen).replace(/[\s,]+\S*$/, "")}…`;
-  // Keep table cells single-line and pipe-safe.
-  return out.replace(/\|/g, "\\|");
-}
-
-function toWorkflowEntries(workflows) {
-  if (!workflows) return [];
-  if (Array.isArray(workflows)) {
-    return workflows.map((w, idx) => {
-      const id = w?.id || w?.workflowId || w?.slug || w?.name || `workflow-${idx + 1}`;
-      return [id, w];
-    });
-  }
-  return Object.entries(workflows);
-}
-
-function buildWorkflowSection(workflowEntries, projectRoot = rootDir, { workflowAutoDetect = true } = {}) {
-  const sorted = [...workflowEntries].sort((a, b) => a[0].localeCompare(b[0]));
-  const lines = [];
-
-  lines.push("## Workflow Protocol (Hook-Independent)");
-  lines.push("");
-
-  // Routing off: emit the instruction and STOP before the catalog. Leaving the Quick Keyword
-  // Lookup in place while telling the model not to auto-route would be self-defeating — a
-  // "match prompt → workflow" table IS the auto-detect affordance, whatever the prose says.
-  if (!workflowAutoDetect) {
-    lines.push(
-      "Workflow auto-detect is OFF for this project (`portability.workflowAutoDetect: false` in the project config), " +
-        "so this context deliberately carries no workflow catalog and no keyword lookup table. Do not match a request " +
-        "against workflows or skills, and do not infer a route — execute the request directly."
-    );
-    lines.push("");
-    lines.push(
-      "When the user explicitly names one (`$skill`, `$workflow-*`, `$start-workflow <id>`), read its canonical " +
-        "definition — `.claude/workflows.json` for a workflow, `.claude/skills/<name>/SKILL.md` for a skill — and " +
-        "follow it exactly, including its tasking, quality gates and parallel-phase barriers. If that definition is " +
-        "unavailable, stop and report the exact missing path; never invent a sequence."
-    );
-    lines.push("");
-    lines.push(
-      "Turning routing off changes route SELECTION only. Task planning, evidence obligations, required reviews, " +
-        "git discipline and user-confirmation gates are unaffected."
-    );
-    lines.push("");
-    return lines.join("\n");
-  }
-
-  lines.push("Use this protocol for workflow execution on Claude or Codex (hooks are optional accelerators):");
-  lines.push("1. Detect: execute explicit `$skill`, `$workflow-*`, or `$start-workflow <id>` prompts directly; otherwise match request against workflow catalog and skill list.");
-  lines.push("2. Analyze: choose the best path: direct execution, skill, standard workflow, or custom step combination.");
-  lines.push("3. Auto-select: pick the best path yourself without asking the user to choose between direct/skill/workflow/custom options.");
-  lines.push("4. Activate: execute direct work, invoke the selected skill, start the selected workflow sequence, or run the custom sequence.");
-  lines.push("5. Tasking: create tasks for each workflow/custom/skill step when the selected path has multiple steps.");
-  lines.push("6. Execute: run steps in order, validate outputs, and report completion.");
-  lines.push("");
-  lines.push(`Workflow source: \`.claude/workflows.json\` (${sorted.length} workflows).`);
-  lines.push("");
-  lines.push("## Workflow Catalog");
-  lines.push("");
-
-  // Quick Keyword Lookup — decision-first index so the AI can pick a workflow
-  // without reading every full detail block below.
-  const lookupRows = sorted
-    .map(([workflowId, workflow]) => {
-      const hint = extractKeywords(safeLine(resolvePortabilityTokens(workflow?.whenToUse)));
-      if (!hint) return null;
-      const name = (safeLine(workflow?.name) || workflowId).replace(/\|/g, "\\|");
-      return `| ${hint} | \`${workflowId}\` | ${name} |`;
-    })
-    .filter(Boolean);
-
-  if (lookupRows.length > 0) {
-    lines.push("### Quick Keyword Lookup (match prompt -> workflow)");
-    lines.push("");
-    lines.push("| If prompt mentions... | Workflow ID | Workflow Name |");
-    lines.push("| --- | --- | --- |");
-    lines.push(...lookupRows);
-    lines.push("");
-    lines.push("### Workflow Details (full sequence + protocol)");
-    lines.push("");
-  }
-
-  for (const [workflowId, workflow] of sorted) {
-    const name = safeLine(workflow?.name) || workflowId;
-    const description = safeLine(resolvePortabilityTokens(workflow?.description));
-    const whenToUse = safeLine(resolvePortabilityTokens(workflow?.whenToUse));
-    const protocol = resolvePortabilityTokens(workflow?.preActions?.injectContext);
-
-    if (typeof protocol !== "string" || protocol.trim().length === 0) {
-      throw new Error(
-        `Workflow ${workflowId} is missing required non-empty preActions.injectContext`
-      );
-    }
-
-    const manifests = resolveWorkflowModes(projectRoot, workflowId, workflow);
-    const sequenceText = manifests
-      .map((manifest) => {
-        const rendered = renderResolvedSequence(manifest);
-        const modePrefix = manifests.length > 1 ? `${safeLine(manifest.mode)}: ` : "";
-        return `${modePrefix}${rendered || "_none_"}`;
-      })
-      .join("; ");
-
-    lines.push(`### ${workflowId} — ${name}`);
-    if (description) lines.push(`- Description: ${description}`);
-    if (whenToUse) lines.push(`- When To Use: ${whenToUse}`);
-    lines.push(`- Sequence: ${sequenceText.includes("_none_") && manifests.length === 1 ? sequenceText : `\`${sequenceText}\``}`);
-    for (const manifest of manifests) {
-      if (manifests.length > 1) lines.push(`- ${safeLine(manifest.mode)} occurrence IDs: \`${manifest.occurrences.map((record) => record.id).join(", ")}\``);
-      if (manifest.parallelGroups.length > 0) {
-        lines.push(`- ${manifests.length > 1 ? `${safeLine(manifest.mode)} ` : ""}Parallel phase = all-return barrier: spawn ALL members together (one message); advance only after EVERY member returns (a skipped conditional member, marked \`*\`, counts as returned). A sub-agent completion advances the step identically to an inline call.`);
-      }
-    }
-    lines.push("");
-    lines.push("Protocol:");
-    lines.push("```text");
-    lines.push(protocol.trim());
-    lines.push("```");
-    lines.push("");
-  }
-
-  // Composable step-skills index. Only the skills section is emitted here — the Quick
-  // Keyword Lookup + Workflow Details above already cover workflows/steps/routing, so a
-  // second workflow index would duplicate. Emitted with CK markers so the CLAUDE.md
-  // mirror copy can strip it in main() (avoids AGENTS.md double-bake).
-  const catalog = loadCatalogBuilder();
-  if (catalog) {
-    lines.push(CK_SKILLS_START);
-    lines.push(catalog.buildWorkflowSkillsCatalog({ rootDir, sections: ["skills"] }));
-    lines.push(CK_SKILLS_END);
-    lines.push("");
-  }
-
-  return lines.join("\n");
-}
-
-// Resolve every declared mode through the same canonical manifest used by activation and the
-// Claude catalog builder.  A missing resolver is a hard error for variant-bearing entries: a
-// Codex mirror must never silently fall back to the default sequence while Claude sees variants.
-function resolveWorkflowModes(projectRoot, workflowId, workflow) {
-  if (!workflowManifestResolver) {
-    if (workflow?.variants) throw new Error(`Canonical workflow manifest resolver is missing for ${workflowId}`);
-    return [{
-      mode: "default",
-      occurrences: (Array.isArray(workflow?.sequence) ? workflow.sequence : []).map((step, index) => ({ id: `legacy-${index + 1}`, skill: String(step).split(/\s+/, 1)[0], args: String(step).split(/\s+/).slice(1).join(" ") })),
-      parallelGroups: Array.isArray(workflow?.parallelGroups) ? workflow.parallelGroups : [],
-    }];
-  }
-  const document = JSON.parse(fsSync.readFileSync(path.join(projectRoot, ".claude", "workflows.json"), "utf8"));
-  const declared = [];
-  if (Array.isArray(workflow?.sequence)) declared.push(...workflow.sequence);
-  for (const variant of Object.values(workflow?.variants || {})) {
-    if (Array.isArray(variant?.sequence)) declared.push(...variant.sequence);
-  }
-  const availableSkills = new Set(
-    declared
-      .map((step) => typeof step === "string" ? step.trim().split(/\s+/, 1)[0] : step?.skill)
-      .filter(Boolean)
-  );
-  return workflowManifestResolver
-    .resolveAllWorkflowManifests(document, workflowId, { rootDir: projectRoot, availableSkills });
-}
-
-function renderResolvedSequence(manifest) {
-  const groups = Array.isArray(manifest.parallelGroups) ? manifest.parallelGroups : [];
-  if (groups.length === 0) {
-    return manifest.occurrences.map(renderOccurrence).join(" -> ");
-  }
-  const memberToGroup = new Map();
-  for (const group of groups) for (const member of group.members) memberToGroup.set(member, group);
-  const emitted = new Set();
-  const parts = [];
-  for (const occurrence of manifest.occurrences) {
-    const group = memberToGroup.get(occurrence.id);
-    if (!group) {
-      parts.push(renderOccurrence(occurrence));
-      continue;
-    }
-    if (emitted.has(group.id)) continue;
-    emitted.add(group.id);
-    parts.push(renderBarrierToken(group));
-  }
-  return parts.join(" -> ");
-}
-
-function renderOccurrence(occurrence) {
-  const skill = safeLine(occurrence?.skill);
-  const args = safeLine(occurrence?.args);
-  return args ? `${skill} ${args}` : skill;
-}
-
-// TWIN: keep byte-identical with the inline twin renderExpectedBarrierToken in
-// .claude/scripts/codex/verify-workflow-cycle-compliance.mjs — the rendered `[parallel ⇉ all-return barrier: ...]`
-// token MUST match what that verifier asserts against the Codex mirror (cross-mirror parity is the portability proof).
-// Renders `sequence` by consuming the first occurrence of every declared parallelGroup member into one
-// barrier token at the group's first-encountered member. Later occurrences of the same step render normally;
-// group membership identifies one occurrence, not every equal string in the workflow. Non-grouped steps render
-// via renderStep unchanged, so workflows without parallelGroups are byte-identical to the old flat join.
-function renderBarrierToken(group) {
-  const members = Array.isArray(group?.members) ? group.members : [];
-  const conditional = new Set(Array.isArray(group?.conditionalMembers) ? group.conditionalMembers : []);
-  const rendered = members.map((m) => (conditional.has(m) ? `${m}*` : m)).join(", ");
-  return `[parallel ⇉ all-return barrier: ${rendered}]`;
-}
-
-function renderSequenceWithBarriers(sequence, parallelGroups, separator, renderStep) {
-  const steps = Array.isArray(sequence) ? sequence : [];
-  const groups = Array.isArray(parallelGroups) ? parallelGroups : [];
-  if (groups.length === 0) {
-    return steps.map(renderStep).join(separator);
-  }
-  const memberToGroup = new Map();
-  const pendingGroupedMembers = new Set();
-  for (const group of groups) {
-    const members = Array.isArray(group?.members) ? group.members : [];
-    for (const member of members) {
-      memberToGroup.set(member, group);
-      pendingGroupedMembers.add(member);
-    }
-  }
-  const emittedGroupIds = new Set();
-  const parts = [];
-  for (const step of steps) {
-    const group = memberToGroup.get(step);
-    if (!group || !pendingGroupedMembers.has(step)) {
-      parts.push(renderStep(step));
-      continue;
-    }
-    pendingGroupedMembers.delete(step);
-    if (emittedGroupIds.has(group.id)) continue;
-    emittedGroupIds.add(group.id);
-    parts.push(renderBarrierToken(group));
-  }
-  return parts.join(separator);
-}
-
 function normalizePromptProtocolText(text) {
   if (!text || typeof text !== "string") return null;
   const normalized = text.trim();
@@ -792,7 +478,7 @@ function normalizePromptProtocolText(text) {
 }
 
 // Shared canonical SYNC-block parser. Resolved at RUNTIME from the consuming repo root and
-// guarded exactly like loadCatalogBuilder above — NEVER a file-relative `../lib` require,
+// guarded with a consuming-root lookup — NEVER a file-relative `../lib` require,
 // which would escape the portable Codex tree (only .claude/scripts/codex/*.mjs travel). When
 // .claude/scripts/lib/extract-sync-block.cjs is absent in a stripped portable consumer, the
 // CRLF-safe local TWIN below is used so the CONTEXT bake never silently vanishes. This is the
@@ -894,6 +580,40 @@ async function buildPromptProtocolMirrorSection(headingSuffix = "Auto-Synced") {
   });
 }
 
+async function readWorkflowGateSource() {
+  const scriptDir = path.dirname(fileURLToPath(import.meta.url));
+  const candidates = [
+    path.join(rootDir, ".claude", "skills", "shared", "workflow-first-gate.md"),
+    path.join(scriptDir, "..", "..", "skills", "shared", "workflow-first-gate.md"),
+  ];
+  for (const candidate of candidates) {
+    try {
+      const raw = await fs.readFile(candidate, "utf8");
+      const gate = raw.match(/<!-- CK:WORKFLOW-GATE -->[\s\S]*?<!-- \/CK:WORKFLOW-GATE -->/)?.[0];
+      if (gate) return gate;
+    } catch {}
+  }
+  throw new Error(`Required workflow detail unavailable: ${candidates.join(", ")}`);
+}
+
+async function isTrackedWorkflowRoutingEnabled() {
+  const ckConfig = await loadCkConfig();
+  const configured = ckConfig?.portability?.projectConfigPath;
+  const relativeConfigPath =
+    typeof configured === "string" && configured.trim()
+      ? configured.trim()
+      : path.join("docs", "project-config.json");
+  const projectConfigPath = path.isAbsolute(relativeConfigPath)
+    ? relativeConfigPath
+    : path.join(rootDir, relativeConfigPath);
+  try {
+    const projectConfig = JSON.parse(await fs.readFile(projectConfigPath, "utf8"));
+    return projectConfig?.portability?.workflowAutoDetect !== false;
+  } catch {
+    return true;
+  }
+}
+
 // Renders the Codex context mirror (CODEX_CONTEXT.md) and the AGENTS.md mirror into
 // `outRootDir`. INPUTS/baselines are always read from the real repo (rootDir-anchored
 // module constants); only the two OUTPUT writes are redirectable. main() passes
@@ -904,21 +624,10 @@ export async function runContextSync({ outRootDir = rootDir } = {}) {
   const outContextPath = path.join(outRootDir, ".codex", "CODEX_CONTEXT.md");
   const outAgentsPath = path.join(outRootDir, "AGENTS.md");
   const claudeInstructionsRaw = await readClaudeInstructions();
-  const workflowsRaw = await fs.readFile(workflowsPath, "utf8");
-  const workflowsDoc = JSON.parse(workflowsRaw);
-  const workflowEntries = toWorkflowEntries(workflowsDoc.workflows);
   const skillNames = await fs
     .readdir(path.join(rootDir, ".claude", "skills"), { withFileTypes: true })
     .then((entries) => entries.filter((entry) => entry.isDirectory()).map((entry) => entry.name));
   const skillReferenceMap = buildSkillReferenceMap(skillNames);
-  const generatedSection = prependCodexCompatibilityNote(
-    rewriteClaudeToolTermsForCodex(
-      rewriteSkillMentionsForCodex(
-        buildWorkflowSection(workflowEntries, rootDir, { workflowAutoDetect: workflowAutoDetectEnabled() }),
-        skillReferenceMap
-      )
-    )
-  );
   const topPromptProtocolSection = prependCodexCompatibilityNote(
     rewriteClaudeToolTermsForCodex(
       rewriteSkillMentionsForCodex(
@@ -931,7 +640,12 @@ export async function runContextSync({ outRootDir = rootDir } = {}) {
   await fs.mkdir(path.dirname(outContextPath), { recursive: true });
   let contextMd = await readExistingContext();
   const promptProtocolTopBlock = `${PROMPT_PROTOCOLS_START}\n${topPromptProtocolSection}\n${PROMPT_PROTOCOLS_END}`;
-  const replacementBlock = `${START_MARKER}\n${generatedSection}\n${END_MARKER}`;
+  const trackedRoutingEnabled = await isTrackedWorkflowRoutingEnabled();
+  const codexWorkflowGate = trackedRoutingEnabled
+    ? rewriteClaudeToolTermsForCodex(
+        rewriteSkillMentionsForCodex(await readWorkflowGateSource(), skillReferenceMap)
+      )
+    : null;
 
   // Keep one mirrored prompt protocol block at top; strip legacy bottom block if present.
   contextMd = stripManagedBlock(contextMd, PROMPT_PROTOCOLS_START, PROMPT_PROTOCOLS_END);
@@ -939,18 +653,13 @@ export async function runContextSync({ outRootDir = rootDir } = {}) {
   // Strip the unmanaged legacy static-parity duplicate before re-stamping; the managed Prompt
   // Protocol Mirror + Project Reference Gate below are the single home for that content.
   contextMd = stripLegacyHooklessParityBlock(contextMd);
-  contextMd = `${promptProtocolTopBlock}\n\n${contextMd.trimStart()}`;
+  contextMd = stripManagedBlock(contextMd, "<!-- CK:WORKFLOW-GATE -->", "<!-- /CK:WORKFLOW-GATE -->");
+  contextMd = [promptProtocolTopBlock, codexWorkflowGate, contextMd.trimStart()]
+    .filter(Boolean)
+    .join("\n\n");
   contextMd = upsertProjectReferenceGateSection(contextMd);
 
-  if (contextMd.includes(START_MARKER) && contextMd.includes(END_MARKER)) {
-    const pattern = new RegExp(
-      `${START_MARKER}[\\s\\S]*?${END_MARKER}`,
-      "m"
-    );
-    contextMd = contextMd.replace(pattern, replacementBlock);
-  } else {
-    contextMd = `${contextMd.trim()}\n\n${replacementBlock}\n`;
-  }
+  contextMd = stripManagedBlock(contextMd, START_MARKER, END_MARKER);
 
   // Keep the full context Codex-safe, including previously static sections.
   contextMd = rewriteClaudeToolTermsForCodex(
@@ -963,9 +672,11 @@ export async function runContextSync({ outRootDir = rootDir } = {}) {
   //   (1) the workflow-skills catalog is dropped entirely — the Codex context block (above)
   //       already carries it, and its opening marker would otherwise dangle in the preface;
   //   (2) the two FULL protocol blocks (critical-thinking + ai-mistake-prevention) keep their
-  //       FIRST copy and drop the surplus. CLAUDE.md stamps each at top AND bottom under its own
-  //       primacy-recency rule; the projection extracts the first fence pair of each, so leaving
-  //       both copies in would duplicate them in the Codex root.
+  //       FIRST copy and drop any surplus. CLAUDE.md has stamped each block ONCE since the EOF
+  //       recency copy was removed (2026-09-22), so this strip is now a SAFETY NET rather than a
+  //       live de-duplication: it keeps the projection correct if a second copy is ever
+  //       reintroduced upstream. Keep it — its cost is one pass, and P4 in
+  //       protocol-text-parity.test.cjs guards the single-copy end state separately.
   //
   // The earlier rationale here claimed the CONTEXT mirror "canonical-bakes them too, so without a
   // GLOBAL strip they would appear three times". That stopped being true when
@@ -1005,7 +716,7 @@ export async function runContextSync({ outRootDir = rootDir } = {}) {
   await fs.writeFile(outContextPath, contextMd, "utf8");
   await upsertContextIntoAgents(contextMd, claudeInstructionsMd, outAgentsPath);
   console.log(
-    `[codex-context-sync] synced ${workflowEntries.length} workflow(s) into ${path.relative(rootDir, outContextPath)} and mirrored CLAUDE.md + context into ${path.relative(rootDir, outAgentsPath)}`
+    `[codex-context-sync] ${trackedRoutingEnabled ? "synchronized" : "disabled"} workflow routing in ${path.relative(rootDir, outContextPath)} and mirrored CLAUDE.md + context into ${path.relative(rootDir, outAgentsPath)}`
   );
 }
 
@@ -1019,14 +730,8 @@ if (invokedAsScript) {
 // copy of the number. The two drifted once already: this limit was raised to 49152 here while
 // `verify-skill-protocol-compliance.mjs` kept 32768, so a projection this generator considered valid
 // failed its own pipeline gate.
-// `buildWorkflowSection` and `workflowAutoDetectEnabled` are exported so the routing-switch tests
-// can render BOTH states in one process. The alternative — mutating the repo's real
-// project-config.json and running a full sync per state — would leave the working tree dirty if a
-// single assertion threw.
 export {
   contextPath,
   agentsPath,
   AGENTS_ROOT_LIMIT_BYTES,
-  buildWorkflowSection,
-  workflowAutoDetectEnabled,
 };

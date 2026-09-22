@@ -4,6 +4,7 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import { createRequire } from 'node:module';
 import { buildSkillReferenceMap, prependCodexCompatibilityNote, rewriteClaudeToolTermsForCodex, rewriteSkillMentionsForCodex } from './compat-rewrite.mjs';
+import { parseFrontmatter, parseFrontmatterBoolean, stripQuotes } from '../lib/agent-frontmatter.mjs';
 import { fileURLToPath } from 'node:url';
 
 const require = createRequire(import.meta.url);
@@ -61,41 +62,12 @@ const useSkills = !args.has('--no-skills');
 const copySkills = args.has('--copy-skills');
 const normalizeSourceSkills = args.has('--normalize-source-skills');
 const MIRROR_EXCLUDED_DIRS = new Set(['.git', '.hg', '.svn', '.venv', 'node_modules', '__pycache__']);
+const RUNTIME_ONLY_SKILL_FILES = new Set([path.normalize(path.join('shared', 'workflow-first-gate.md'))]);
 const TEXT_FILE_EXTENSIONS = new Set(['.cjs', '.css', '.html', '.js', '.json', '.lock', '.md', '.mjs', '.py', '.sh', '.toml', '.ts', '.tsx', '.yaml', '.yml']);
 const CODEX_PROTOCOLS_START = '<!-- CODEX:SYNC-PROMPT-PROTOCOLS:START -->';
 const CODEX_PROTOCOLS_END = '<!-- CODEX:SYNC-PROMPT-PROTOCOLS:END -->';
 const CODEX_PROJECT_REFERENCE_START = '<!-- CODEX:PROJECT-REFERENCE-LOADING:START -->';
 const CODEX_PROJECT_REFERENCE_END = '<!-- CODEX:PROJECT-REFERENCE-LOADING:END -->';
-
-function stripQuotes(value) {
-    if (!value) return value;
-    const trimmed = value.trim();
-    if (trimmed.startsWith('"') && trimmed.endsWith('"')) {
-        // Double-quoted YAML escapes with a backslash. De-wrapping alone leaked `\"` and `\/`
-        // into the Codex mirror while the CLAUDE.md/AGENTS.md path decoded them, so the SAME
-        // description rendered differently per surface — the exact defect class the single-quoted
-        // branch below was fixed for, on the other branch.
-        return trimmed
-            .slice(1, -1)
-            .replace(/\\(["\\/])/g, '$1')
-            .trim();
-    }
-    if (trimmed.startsWith("'") && trimmed.endsWith("'")) {
-        // Decode YAML single-quoted escaping and collapse repeated double-escaping
-        // introduced by legacy non-idempotent normalization. Cost of the repeat-until-stable
-        // collapse: a description carrying two GENUINE consecutive apostrophes (`don''''t` in
-        // YAML) over-collapses to one. Accepted — legacy double-escaping is real and observed,
-        // consecutive literal apostrophes in a one-line description are not.
-        let unescaped = trimmed.slice(1, -1).trim();
-        let previous = '';
-        while (unescaped !== previous) {
-            previous = unescaped;
-            unescaped = unescaped.replace(/''/g, "'");
-        }
-        return unescaped;
-    }
-    return trimmed;
-}
 
 function escapeTomlString(value) {
     return value.replaceAll('\\', '\\\\').replaceAll('"', '\\"');
@@ -235,6 +207,14 @@ function upsertCodexNotificationConfig(configText) {
         lines.splice(firstTableIndex + 1, 0, '');
     }
 
+    // Framework default: a 500K auto-compact budget, matching
+    // env.CLAUDE_CODE_AUTO_COMPACT_WINDOW in .claude/settings.json and the pinned model's
+    // limit.context in .opencode/opencode.recommended.json, so all three surfaces of the
+    // portable bundle compact at the same point in every adopting project.
+    let topLevelEnd = lines.findIndex(isTomlTableHeader);
+    if (topLevelEnd === -1) topLevelEnd = lines.length;
+    upsertTomlKey(lines, 'model_auto_compact_token_limit', '500000', 0, topLevelEnd);
+
     let tuiRange = findTomlTableRange(lines, 'tui');
     if (!tuiRange) {
         if (lines.length > 0 && lines.at(-1)?.trim()) {
@@ -266,50 +246,6 @@ function upsertCodexNotificationConfig(configText) {
     return `${lines.join('\n').trimEnd()}\n`;
 }
 
-function parseFrontmatterBoolean(value) {
-    if (typeof value !== 'string') return null;
-    const normalized = stripQuotes(value).toLowerCase();
-    if (normalized === 'true') return true;
-    if (normalized === 'false') return false;
-    return null;
-}
-
-function parseFrontmatter(markdown) {
-    const match = markdown.match(/^---\r?\n([\s\S]*?)\r?\n---\r?\n?([\s\S]*)$/);
-    if (!match) {
-        return { frontmatter: {}, body: markdown.trim() };
-    }
-
-    const frontmatterText = match[1];
-    const body = match[2].trim();
-    const frontmatter = {};
-    let currentKey = null;
-
-    for (const line of frontmatterText.split(/\r?\n/)) {
-        const keyMatch = line.match(/^([A-Za-z0-9_-]+):\s*(.*)$/);
-        if (keyMatch) {
-            currentKey = keyMatch[1];
-            const rawValue = keyMatch[2].trim();
-
-            if (rawValue === '>-' || rawValue === '|' || rawValue === '|-' || rawValue === '>') {
-                frontmatter[currentKey] = '';
-            } else {
-                frontmatter[currentKey] = stripQuotes(rawValue);
-            }
-            continue;
-        }
-
-        const continuation = line.match(/^\s+(.*)$/);
-        if (continuation && currentKey) {
-            const nextPart = stripQuotes(continuation[1]);
-            if (!nextPart) continue;
-            frontmatter[currentKey] = `${frontmatter[currentKey] ?? ''} ${nextPart}`.trim();
-        }
-    }
-
-    return { frontmatter, body };
-}
-
 function deriveSkillDescription(body, skillName) {
     const headingMatch = body.match(/^#\s+(.+)$/m);
     if (headingMatch?.[1]) {
@@ -336,7 +272,7 @@ function buildCodexProjectReferenceBlock() {
         '**Situation-based docs:**',
         '- Project structure/architecture/tech-stack/deployment/setup (any layer — backend, frontend, or infra): `project-structure-reference.md`',
         '- Backend/CQRS/API/domain/entity changes: `backend-patterns-reference.md`, `domain-entities-reference.md`',
-        '- Frontend/UI/styling/design-system: `frontend-patterns-reference.md`, `scss-styling-guide.md`, `design-system/README.md`',
+        '- Frontend/UI/styling/design-system: `frontend-patterns-reference.md`, `configured styling reference`, `design-system/README.md`',
         '- Spec authoring, `docs/specs/` pathing, or TC format: `feature-spec-reference.md`, `spec-system-reference.md`, `spec-principles.md`',
         '- Behavior/public-contract changes or spec-test-code sync: `workflow-spec-test-code-cycle-reference.md` plus the spec docs above',
         '- Derived spec indexes/ERDs/reimplementation guides: `spec-system-reference.md` and source Feature Specs under `docs/specs/`',
@@ -736,7 +672,10 @@ export async function materializeSkillMirror(targetDir, skillReferenceMap) {
     await fs.cp(claudeSkillsDir, targetDir, {
         recursive: true,
         force: true,
-        filter: sourcePath => !sourcePath.split(path.sep).some(segment => MIRROR_EXCLUDED_DIRS.has(segment))
+        filter: sourcePath => {
+            if (sourcePath.split(path.sep).some(segment => MIRROR_EXCLUDED_DIRS.has(segment))) return false;
+            return !RUNTIME_ONLY_SKILL_FILES.has(path.normalize(path.relative(claudeSkillsDir, sourcePath)));
+        }
     });
     await normalizeTextLineEndingsUnderDir(targetDir);
     await canonicalizeSkillManifestNames(targetDir);

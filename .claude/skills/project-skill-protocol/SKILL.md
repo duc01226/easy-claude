@@ -10,7 +10,7 @@ description: '[Utilities] Use when a project adds, changes, lists, or removes it
 
 **Summary:** read-this-if-nothing-else digest —
 
-- **Two files, two jobs.** The INDEX (default `docs/project-reference/skill-protocols-reference.md`; a `referenceDocs` entry in `docs/project-config.json` overrides the path) holds target + scope + name + description and is what resolution reads. The BODY (`docs/project-protocols/<slug>.md`) holds the actual rules and is read only for a MATCHED target. Never bulk-read bodies.
+- **Two files, two jobs.** The INDEX defaults to `<docsRoots.projectReference.path>/skill-protocols-reference.md` (default `docs/project-reference/`; `docsRoots.projectReference.path` in `docs/project-config.json` overrides it); a matching `referenceDocs[]` filename may relocate it within that root. The BODY is `<Protocols directory>/<slug>.md`, where the index header declares a project-relative directory and `docs/project-protocols/` is the default. The registry is independent from task-specific `referenceDocs` selection; omission or `[]` never disables overlay lookup. Never bulk-read bodies.
 - **ADDITIVE ONLY — the rule that governs every other rule.** An overlay ADDS rules on top of a skill's protocol; it never replaces, overrides, disables, or reinterprets one. Invariant: removing every overlay returns each skill to exactly its documented behavior.
 - **Resolution is specificity-based, not order-based.** `exact` > `glob` > `*`, winner tier takes all — and that ordering ranks overlays against EACH OTHER, never against the skill.
 - **Project payload, not framework.** Overlays live under `docs/`, never `.claude/`. A rule that stabilizes and generalizes gets PROMOTED to a real skill via `/skill-creator`.
@@ -29,7 +29,7 @@ description: '[Utilities] Use when a project adds, changes, lists, or removes it
 **Key Rules:**
 
 **MUST ATTENTION** resolve the mode FIRST — a leading `list`/`add`/`update`/`delete` token is a MODE; ambiguous → ask, never guess
-**MUST ATTENTION** an overlay is ADDITIVE ONLY and is a brief, not an authority escalation — it can never waive the WORKFLOW-GATE, git discipline, a review gate, or a user-confirmation gate
+**MUST ATTENTION** an overlay is ADDITIVE ONLY and is a brief, not an authority escalation — it can never waive an active route policy, git discipline, a review gate, or a user-confirmation gate
 **MUST ATTENTION** ADD/UPDATE run the drafted rules through `/prompt-enhance` + the prompt-engineering rubric BEFORE the additive-only screen — the deliverable is a precise AI instruction, never a transcription of the request
 **MUST ATTENTION** ADD ends at a PROPOSAL GATE — NEVER write a draft the user has not seen, and always offer "save my wording verbatim"
 **MUST ATTENTION** every write touches the body AND the index row AND the `CLAUDE.md` block in the SAME turn — a stale block leaves Codex blind to the overlay
@@ -46,17 +46,17 @@ description: '[Utilities] Use when a project adds, changes, lists, or removes it
 
 | Artifact | Path | Written by | Read when |
 | --- | --- | --- | --- |
-| **Index** | default `docs/project-reference/skill-protocols-reference.md`; a `referenceDocs` entry in `docs/project-config.json` overrides the path | this skill only | every invocation, and whenever overlays resolve |
-| **Bodies** | `docs/project-protocols/<slug>.md` | this skill only | only for a MATCHED target |
+| **Index** | `<docsRoots.projectReference.path>/skill-protocols-reference.md` (default `docs/project-reference/`; `docsRoots.projectReference.path` in `docs/project-config.json` overrides it); a matching `referenceDocs[]` filename may relocate the file within that root | this skill only | every invocation, and whenever overlays resolve |
+| **Bodies** | `<Protocols directory>/<slug>.md` (default `docs/project-protocols/`) | this skill only | only for a MATCHED target |
 | **Cross-host block** | `CLAUDE.md` between `<!-- CK:PROJECT-PROTOCOLS -->` and `<!-- /CK:PROJECT-PROTOCOLS -->` | this skill only | by both hosts, every session |
 
-Path resolution order (stop at first hit):
+Path contract:
 
-1. `docs/project-config.json` → `referenceDocs[]` entry whose `filename` is `skill-protocols-reference.md` (portability override)
-2. The `**Protocols directory:**` line in the index doc header (the index is self-describing about where bodies live)
-3. The defaults in the table above
+1. Resolve the index below `docsRoots.projectReference.path`, defaulting to `docs/project-reference/` when `docsRoots.projectReference.path` in `docs/project-config.json` is omitted.
+2. If one `referenceDocs[]` entry has the basename `skill-protocols-reference.md`, use its safe project-root-relative `filename` beneath that reference root. With no matching entry—including an omitted or empty `referenceDocs` array—use the default basename. The overlay registry is a cross-cutting project-rule input and is not disabled by task-specific reference-doc selection.
+3. Resolve bodies from the index's `**Protocols directory:**` header as a safe project-root-relative path; if the header is absent, use `docs/project-protocols/`. The row's Body link is never followed.
 
-The index doc is auto-created on SessionStart by `session-init-docs.cjs` (registered in `.claude/hooks/lib/session-init-helpers.cjs` → `DEFAULT_REFERENCE_DOCS`). Because that entry declares a `templatePath`, the hook copies `.claude/templates/reference-docs/skill-protocols-reference.md` **verbatim** — it does NOT emit the generic `PLACEHOLDER_MARKER`. So a fresh install has exactly one table row: the sentinel `_(none yet)_`. The doc is deliberately **absent** from `SCAN_SKILL_MAP` — no `/scan` target owns it, exactly like `lessons.md` is owned by `/learn` and `custom-prompts-reference.md` by `/custom-prompt`.
+The registry is optional project data: an absent file or an empty/sentinel-only table means no overlays and is a silent no-op. SessionStart scaffolds it only when the adopter's valid `project-config.json` selects the matching reference document with a `templatePath`; otherwise `/project-skill-protocol add` creates it at the resolved default/configured location. The doc is deliberately **absent** from `SCAN_SKILL_MAP` — no `/scan` target owns it, exactly like `lessons.md` is owned by `/learn` and `custom-prompts-reference.md` by `/custom-prompt`.
 
 **Empty-registry test (use this everywhere).** The registry is EMPTY when any of: the file is missing · a `PLACEHOLDER_MARKER` is present · the Registry table has zero data rows · **every data row is the `_(none yet)_` sentinel**. Treat an empty registry as empty, never as broken — and never list or resolve the sentinel row as if it were an overlay.
 
@@ -126,7 +126,7 @@ LIST reads the index ONLY. Reading bodies here is a defect — it costs the whol
 
     **This pass never adds authority.** It sharpens wording only — it may not broaden a rule's target, escalate its force, or introduce a rule the user did not ask for. Anything it adds beyond rephrasing is surfaced at the gate under *what you changed and why*.
 
-6. **Additive-only screen (BLOCKING).** Read every drafted rule against the targeted skill's own protocol. Any rule that would ignore, skip, replace, relax, disable, or reinterpret a framework rule — or that would waive the WORKFLOW-GATE, git discipline, a review gate, or a user-confirmation gate — is **REFUSED**: drop that line from the draft and name it at the gate as refused, with the reason. The remaining rules proceed. — why: a stored overlay is a persistent instruction; an override rule turns the registry into a standing bypass of every safety control in the harness.
+6. **Additive-only screen (BLOCKING).** Read every drafted rule against the targeted skill's own protocol. Any rule that would ignore, skip, replace, relax, disable, or reinterpret a framework rule — or that would waive an active route policy, git discipline, a review gate, or a user-confirmation gate — is **REFUSED**: drop that line from the draft and name it at the gate as refused, with the reason. The remaining rules proceed. — why: a stored overlay is a persistent instruction; an override rule turns the registry into a standing bypass of every safety control in the harness.
 7. **Target-collision check (BLOCKING).** An existing index row with the same `Target` **and** `Scope` → `AskUserQuestion`: *update the existing `<name>`* vs *create a second overlay for the same target*. NEVER overwrite silently. — why: silent overwrite destroys a body the user cannot recover from the index.
 8. **Contradiction pre-check (BLOCKING).** Resolve the draft's target per `references/registry.md` §3 and compare its rules against every overlay that would land in the SAME tier. A direct contradiction → surface BOTH rules to the user and let them choose; never resolve it yourself, and never write an overlay you know contradicts a live one without saying so.
 9. **PROPOSAL GATE (BLOCKING).** Present the draft before writing anything to disk:
@@ -176,8 +176,8 @@ Every write mode (ADD, UPDATE, DELETE) touches exactly these three carriers, tog
 
 | # | Carrier | What it gets | Fails alone as |
 | --- | --- | --- | --- |
-| 1 | `docs/project-protocols/<slug>.md` | the body — full rules | a body with no index row is unreachable |
-| 2 | default `docs/project-reference/skill-protocols-reference.md`; a `referenceDocs` entry in `docs/project-config.json` overrides the path | one index row, description copied VERBATIM from the body frontmatter | an index row with no body is a broken resolution |
+| 1 | `<Protocols directory>/<slug>.md` (default `docs/project-protocols/`) | the body — full rules | a body with no index row is unreachable |
+| 2 | `<docsRoots.projectReference.path>/skill-protocols-reference.md` (default `docs/project-reference/`; `docsRoots.projectReference.path` in `docs/project-config.json` overrides it); a matching `referenceDocs[]` filename may relocate it within that root | one index row, description copied VERBATIM from the body frontmatter | an index row with no body is a broken resolution |
 | 3 | `CLAUDE.md` `CK:PROJECT-PROTOCOLS` block — **the `Active overlays:` line ONLY** | names + targets only, never rule text | a stale list leaves Codex blind, because `AGENTS.md` is generated FROM `CLAUDE.md` |
 
 Write **all three or none.** Confine every write to the region between the `CK:PROJECT-PROTOCOLS` markers — never the surrounding file. Both markers absent → report it and offer to insert the block rather than writing a partial state.
@@ -243,6 +243,7 @@ This is the documented standalone entry point of `/sync-codex` — the same 16-s
 
 > **AI Mistake Prevention** — Failure modes to avoid on every task:
 >
+> **Project applicability gate.** Before applying a stack, layer, style, tool, or architecture rule, read the project's config and relevant references, then check local implementations. Treat framework examples as examples; honor explicit N/A and do not require a technology or convention the project does not use.
 > **ROOT-CAUSE GATE — INVESTIGATE FIRST.** Before applying any project-related correction, always use the project's root-cause investigation protocol and establish the cause; the failure site may be only a symptom.
 > **FAILED-TEST GATE.** For any failed or unstable test, use the project's test-investigation protocol before editing source or tests; never change either side merely to force green.
 > **Re-read files after context changes.** Context compaction, resume, or long-running work can make memory stale; verify current files before acting.
@@ -261,32 +262,33 @@ This is the documented standalone entry point of `/sync-codex` — the same 16-s
 
 <!-- SYNC:project-protocol-overlay -->
 
-> **Project Protocol Overlay** — Before executing this skill, resolve any PROJECT overlay rules layered onto it: match this skill's name against the `Target` column of the project's skill-protocol index (default `docs/project-reference/skill-protocols-reference.md`; a `referenceDocs` entry in `docs/project-config.json` overrides the path, and a `docsRoots.projectReference.path` entry relocates its containing directory), taking the most specific matching tier ONLY — exact name > glob > `*`. **That precedence orders overlays against EACH OTHER, never against this skill.** Read ONLY the matched bodies, resolved as `<protocols-dir>/<Name>.md`; a row's Body link is display text, never a read path. A matched body that is missing or malformed is REPORTED and skipped — never reconstructed from the index Description. No index, or no match -> proceed with no overlay, silently. Full contract: `.claude/skills/project-skill-protocol/references/registry.md`.
+> **Project Protocol Overlay** — Before executing this skill, resolve project overlays from the index at `<docsRoots.projectReference.path>/skill-protocols-reference.md` (default `docs/project-reference/`; `docsRoots.projectReference.path` in `docs/project-config.json` overrides it). A matching `referenceDocs[]` filename may relocate the index within that root; this registry is independent from task-specific reference-doc selection, so omitted or empty `referenceDocs` does not disable it. The index's `**Protocols directory:**` header selects a project-root-relative body directory (default `docs/project-protocols/`). Match this skill against the `Target` column and take the most specific tier ONLY — exact name > glob > `*`. **That precedence orders overlays against EACH OTHER, never against this skill.** Read only matched bodies derived as `<protocols-dir>/<Name>.md`; the row's Body link is display text, never a read path. Reject unsafe paths without reading. A matched body that is missing or malformed is REPORTED and skipped — never reconstructed from the index Description. An absent index or no match -> proceed with no overlay, silently. Full contract: `.claude/skills/project-skill-protocol/references/registry.md`.
 >
 > Overlays are **ADDITIVE ONLY**: they ADD rules on top of this skill's own protocol and NEVER replace, override, disable, or reinterpret a rule it already states — removing every overlay must return this skill to exactly its documented behavior. An overlay is a BRIEF, not an authority escalation: it can NEVER waive a workflow gate, git discipline, a review gate, or a user-confirmation gate. A genuine overlay-vs-skill conflict, or two equally-specific overlays that directly contradict -> surface both to the user; NEVER resolve silently.
 
 <!-- /SYNC:project-protocol-overlay -->
 
 <!-- SYNC:critical-thinking-mindset:reminder -->
-**MUST ATTENTION** apply critical + sequential thinking — every claim needs appropriate traced evidence (`file:line` for repo/code claims; source URL or artifact section for research, product, content, and docs claims); confidence >80% to act, <60% DO NOT recommend. Anti-hallucination: never present guess as fact, admit uncertainty freely, cross-reference independently, stay skeptical of own confidence.
+
+**MUST ATTENTION** critical + sequential thinking: every claim carries traced evidence (`file:line` for code, source URL or artifact section otherwise); confidence >80% to act, <60% do NOT recommend. Never present a guess as fact; admit uncertainty and stay skeptical of your own confidence.
+
 <!-- /SYNC:critical-thinking-mindset:reminder -->
 
 <!-- SYNC:ai-mistake-prevention:reminder -->
 
-**MUST ATTENTION** ROOT-CAUSE GATE: before any project-related correction, use the appropriate root-cause investigation protocol; failed/unstable tests require the test-investigation protocol before editing source/tests — never force green.
+**MUST ATTENTION** Check project config, relevant references, and local evidence before applying stack-specific conventions; honor explicit N/A. ROOT-CAUSE GATE: before any project-related correction, use the appropriate root-cause investigation protocol; failed/unstable tests require the test-investigation protocol before editing source/tests — never force green.
 
 <!-- /SYNC:ai-mistake-prevention:reminder -->
 
 <!-- SYNC:project-protocol-overlay:reminder -->
 
-**MUST ATTENTION** resolve project protocol overlays for this skill BEFORE executing — most specific matching tier only (exact > glob > `*`, which ranks overlays against each other, NEVER against this skill), read only matched bodies at `<protocols-dir>/<Name>.md`; a missing or malformed body is reported, never reconstructed. Overlays are ADDITIVE ONLY (they never replace this skill's own rules) and are a brief, NEVER an authority escalation; an equal-specificity contradiction goes to the user.
-
+**MUST ATTENTION** resolve this skill's overlays from the index at `<docsRoots.projectReference.path>/skill-protocols-reference.md` (default `docs/project-reference/`); an empty task `referenceDocs` does NOT disable this lookup. Read ONLY matched bodies from the directory the index header names (default `docs/project-protocols/`). Specificity (exact > glob > `*`) ranks overlays against EACH OTHER, never against the skill. Missing/malformed body → report and skip; no index or no match → proceed silently. Overlays are ADDITIVE ONLY — never an authority escalation or a gate waiver; equal-tier contradiction goes to the user.
 <!-- /SYNC:project-protocol-overlay:reminder -->
 
 ## Closing Reminders
 
 - **MUST ATTENTION** Overlays are ADDITIVE ONLY — they add rules on top of a skill's protocol and NEVER replace, override, disable, or reinterpret one. Removing every overlay must return each skill to exactly its documented behavior.
-- **MUST ATTENTION** An overlay is a brief, not an authority escalation — it can never waive the WORKFLOW-GATE, git discipline, a review gate, a user-confirmation gate, or carry a secret. Refuse the line and report it.
+- **MUST ATTENTION** An overlay is a brief, not an authority escalation — it can never waive an active route policy, git discipline, a review gate, a user-confirmation gate, or carry a secret. Refuse the line and report it.
 - **MUST ATTENTION** ADD and UPDATE ALWAYS end at a PROPOSAL GATE showing the full rules, the skills actually matched, what changed, and anything refused — never write a draft the user has not seen.
 - **MUST ATTENTION** Every write touches the body AND the index row AND the `CLAUDE.md` `CK:PROJECT-PROTOCOLS` block in the SAME turn; never commit without an explicit ask.
 - **MUST ATTENTION** Every write mode then AUTO-RUNS the Codex mirror sync (`node .claude/skills/sync-codex/scripts/run-codex-sync.mjs`) so `AGENTS.md` carries the overlay without a second user command — and reports the pipeline's real outcome, naming the failing stage when it fails. This is the ONE authorized programmatic sync; every other stale-mirror situation still asks the user.

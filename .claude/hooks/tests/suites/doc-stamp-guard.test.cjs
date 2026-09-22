@@ -23,7 +23,7 @@
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
-const { execFileSync } = require('child_process');
+const { execFileSync, spawnSync } = require('child_process');
 const { assertEqual, assertTrue } = require('../lib/assertions.cjs');
 
 const REPO = path.resolve(__dirname, '..', '..', '..', '..');
@@ -202,7 +202,7 @@ const tests = [
             })
     },
     {
-        name: '[doc-stamp-guard] G6 the freshness ledger is trusted only while its hash matches',
+        name: '[doc-stamp-guard] G6 the freshness ledger trusts matching hashes and records CLI verification',
         fn: () =>
             withTempDir(dir => {
                 // The ledger is what keeps the 60-day gate honest once no-op scans stop
@@ -224,6 +224,55 @@ const tests = [
                     contentHash(fs.readFileSync(docPath, 'utf-8')) !== recordedHash,
                     'A real content change MUST invalidate the ledger entry, or a stale doc would be ' +
                         'reported fresh forever and the 60-day rescan net would be disabled.'
+                );
+
+                // Exercise the actual direct-CLI path in an isolated project. The CLI loads
+                // session-init-helpers, which imports this module's contentHash; a partial
+                // CommonJS export would turn the valid file into a misleading "unreadable" result.
+                const fixtureDocName = 'docs-index-reference.md';
+                const fixtureDocContent = '# Disposable docs index fixture\n';
+                fs.mkdirSync(path.join(dir, '.claude'), { recursive: true });
+                const fixtureDocPath = path.join(dir, 'docs', 'project-reference', fixtureDocName);
+                fs.mkdirSync(path.dirname(fixtureDocPath), { recursive: true });
+                fs.writeFileSync(fixtureDocPath, fixtureDocContent, 'utf-8');
+
+                const cliResult = spawnSync(
+                    process.execPath,
+                    [GUARD_PATH, '--record-verified', fixtureDocName],
+                    {
+                        cwd: dir,
+                        env: { ...process.env, CLAUDE_PROJECT_DIR: dir },
+                        encoding: 'utf8',
+                        windowsHide: true
+                    }
+                );
+                assertEqual(
+                    cliResult.error?.message ?? null,
+                    null,
+                    `The isolated verification CLI could not start: ${cliResult.error?.message || ''}`
+                );
+                assertEqual(
+                    cliResult.status,
+                    0,
+                    `The isolated verification CLI must succeed for a readable doc. ` +
+                        `stdout=${cliResult.stdout || ''} stderr=${cliResult.stderr || ''}`
+                );
+                assertTrue(
+                    cliResult.stdout.includes(`Recorded no-change verification for ${fixtureDocName}`),
+                    'The CLI must report that it recorded the no-change verification.'
+                );
+
+                const ledgerPath = path.join(dir, 'tmp', 'claude-temp', '.scan-verified');
+                const ledger = JSON.parse(fs.readFileSync(ledgerPath, 'utf-8'));
+                assertEqual(
+                    ledger.docs?.[fixtureDocName]?.contentHash,
+                    contentHash(fixtureDocContent),
+                    'The fixture ledger must contain the readable doc’s actual normalized content hash.'
+                );
+                assertEqual(
+                    fs.readFileSync(fixtureDocPath, 'utf-8'),
+                    fixtureDocContent,
+                    'Recording a no-change verification must leave the reference document untouched.'
                 );
             })
     },

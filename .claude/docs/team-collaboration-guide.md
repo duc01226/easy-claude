@@ -27,7 +27,7 @@ Claude Code uses a **three-pillar architecture** to assist every role:
 
 | Pillar                        | What It Does                                                          | Count                                                      |
 | ----------------------------- | --------------------------------------------------------------------- | ---------------------------------------------------------- |
-| **Hooks** (Enforcement)       | Enforce quality gates, block unsafe actions, manage session lifecycle | <!-- COUNT:hooks -->21<!-- /COUNT --> top-level hook files |
+| **Hooks** (Enforcement)       | Enforce quality gates, block unsafe actions, manage session lifecycle | <!-- COUNT:hooks -->14<!-- /COUNT --> top-level hook files |
 | **Skills** (Intelligence)     | Prompt-engineered protocols loaded on demand via `/skill-name`        | <!-- COUNT:skills -->124<!-- /COUNT --> skills             |
 | **Workflows** (Orchestration) | Multi-step sequences of skills with progress tracking                 | <!-- COUNT:workflows -->19<!-- /COUNT --> workflows        |
 
@@ -148,10 +148,10 @@ Project knowledge — backend/frontend patterns, design tokens, code-review rule
     /design-spec {pbi-or-requirements}
     ```
 
-    Generates component inventory, states, token mappings, accessibility checklist
+    Generates a component inventory, interaction states, configured token mappings when available, and an accessibility checklist
 
 2. **Review against design system**
-   Spec auto-maps to tokens in `design-system/` under the project-reference docs root
+   Map to configured tokens when the project has a design system; otherwise record approved design values and open decisions without inventing a token system
 
 **Workflow trigger:** Say "design spec for" → runs **/design-spec** then **/design --lane=product** (or **/design --lane=marketing**)
 
@@ -279,10 +279,10 @@ Dev:                             /code-review ──→ Implementation
 
 **Design spec checklist:**
 
-- All states: default, hover, active, disabled, error, loading
-- Design tokens mapped (no hardcoded values)
-- BEM classes defined
-- Accessibility requirements (WCAG 2.2)
+- Applicable interaction and async states identified for the target platform
+- Configured tokens and shared components mapped when present; otherwise state feature-specific design choices without inventing project-wide systems
+- Project styling and class-naming conventions documented; use BEM only when selected
+- Accessibility requirements identified (WCAG for web, platform-equivalent guidance where applicable)
 
 ---
 
@@ -380,7 +380,7 @@ Then Tom creates stories:
 /design-spec {pbi-file}
 ```
 
-Claude generates component spec with all states (default, hover, dragging, uploading, success, error), design token mappings, BEM classes, and accessibility requirements (focus ring, aria-labels, aria-live for progress).
+Claude generates a component spec with the states relevant to the interaction and platform, configured design-token mappings when available, the project's styling convention (BEM only when selected), and accessibility requirements such as visible focus, accessible names, and status announcements where supported.
 
 ---
 

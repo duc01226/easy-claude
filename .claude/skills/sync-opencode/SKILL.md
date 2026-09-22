@@ -25,7 +25,7 @@ disable-model-invocation: true
 
 - opencode has **no shell-command hook system** — hooks are JavaScript plugin callbacks. This skill compiles `.claude/settings.json` into a bridge plugin whose runtime drives the original Claude hooks from opencode's plugin events.
 - **Recommended opencode config is part of the framework.** `.opencode/opencode.recommended.json` is the single source of truth for the framework's opencode defaults; the `config` stage deep-merges it into the project-root `opencode.json` (recommended keys win, project-only keys survive).
-- Scope is **hooks + recommended config only**. opencode already auto-discovers skills from `.claude/skills` and `.agents/skills`, so there is **no skill mirroring** here (unlike `$sync-codex`).
+- Scope is **hooks + recommended config + the sub-agent mirror**. opencode already auto-discovers skills from `.claude/skills` and `.agents/skills`, so there is **no skill mirroring** here (unlike `$sync-codex`). Sub-agents are NOT auto-discovered, so `.claude/agents/*.md` IS mirrored into `.opencode/agent/*.md` by the `agents` stage — that is what lets the workflow protocols dispatch the same specialists (`architect`, `code-reviewer`, `security-auditor`, …) on opencode.
 - Keep `.claude` canonical: edit `.claude/settings.json` / `.claude/hooks/**` and re-run this pipeline; never hand-edit the generated `.opencode/plugins/easy-claude-hooks.js`.
 - To change a default opencode setting, edit `.opencode/opencode.recommended.json`, then re-run this pipeline to propagate it into the root config of every project the `.opencode/` folder is copied into.
 - The legacy hand-written `.opencode/plugins/notification.js` is superseded by the generated bridge; the runner backs it up under `tmp/opencode-legacy/` and removes it so notifications are not sent twice.
@@ -33,7 +33,7 @@ disable-model-invocation: true
 **Workflow:**
 
 1. **Config** — `node .claude/scripts/opencode/sync-config.mjs` deep-merges `.opencode/opencode.recommended.json` into the project-root `opencode.json`.
-2. **Sync** — `node .claude/skills/sync-opencode/scripts/run-opencode-sync.mjs` regenerates the bridge plugin and the sync report.
+2. **Sync** — `node .claude/skills/sync-opencode/scripts/run-opencode-sync.mjs` regenerates the bridge plugin, the `.opencode/agent/*.md` mirror, and the sync report.
 3. **Test** — the runner executes the opencode tooling tests (config + writer + generated-plugin runtime).
 4. **Verify** — the runner re-merges/re-renders in memory with the REAL writers and byte-compares against the tracked files.
 5. **Inspect** — on failure, re-run the failing stage with `--only=<stage> --verbose`.
@@ -44,10 +44,10 @@ disable-model-invocation: true
 - NEVER hand-edit `.opencode/plugins/easy-claude-hooks.js`; regenerate it from `.claude/settings.json`
 - **NEVER hand-edit a project-root `opencode.json` as the way to change framework defaults** — edit `.opencode/opencode.recommended.json` and re-run the pipeline
 - `.opencode/opencode.recommended.json` MUST NOT be named `.opencode/opencode.json`; opencode auto-loads that path as project config
-- The generated plugin and `.opencode/plugins/**` are the only opencode hook surface; no skill mirror is produced
+- The generated plugin and `.opencode/plugins/**` are the only opencode hook surface; no skill mirror is produced (skills are auto-discovered, sub-agents are mirrored into `.opencode/agent/**`)
 - Only `node "$CLAUDE_PROJECT_DIR"/...` hook commands are compiled; other command shapes are reported as `unsupported-command-shape`
 - Claude events opencode cannot reproduce are reported as `skipped-events` in the sync report — never silently dropped
-- Idempotent — re-running the sync produces byte-identical plugin and config output
+- Idempotent — re-running the sync produces byte-identical plugin, config, and agent output
 
 ## Why a bridge plugin (not a config mirror)
 
@@ -77,6 +77,34 @@ reconciles them into whatever project the `.opencode/` folder is copied into.
 > **To change a default recommended opencode setting in the future, edit `.opencode/opencode.recommended.json`** and re-run `$sync-opencode`. Every project that receives the `.opencode/` folder then gets the updated default the next time the pipeline runs. The recommended file is deliberately NOT named `.opencode/opencode.json` because opencode auto-loads that path as project config — keeping the `.recommended.json` name makes it a template, not an active config.
 
 **Merge semantics:** the writer deep-merges the recommended defaults into the existing root `opencode.json`. Recommended keys win at every leaf; object keys that exist only in the project survive untouched; arrays in the recommended file replace the project's array. A project with no root config receives the recommended defaults verbatim. A malformed existing root config is reported, never clobbered.
+
+### Compaction budget — 500K tokens
+
+The framework targets the SAME 500K auto-compact budget on all three surfaces:
+Claude Code (`env.CLAUDE_CODE_AUTO_COMPACT_WINDOW` in `.claude/settings.json`), Codex
+(`model_auto_compact_token_limit` in `.codex/config.toml`) and opencode (the pinned
+model's `limit.context` here).
+
+opencode has no absolute compaction threshold — it compacts relative to the model's
+declared window, so the window IS the knob. From `session/overflow.ts` (v1.18.31):
+
+```text
+usable = limit.input ? max(0, limit.input - (compaction.reserved ?? min(20_000, maxOutput)))
+                     : max(0, limit.context - maxOutput)
+maxOutput = min(limit.output, 32_000)          // OUTPUT_TOKEN_MAX
+compaction happens once total tokens >= usable
+```
+
+So `limit.context: 500000` + `limit.output: 384000` compacts at **468,000** tokens.
+
+Two traps this encodes, both verified against the released source:
+
+- **`compaction.reserved` is inert here.** It is only read on the `limit.input` branch,
+  and models.dev declares no `input` for this model. Raising it does nothing.
+- **Do NOT express the budget as `limit.input`.** It is undocumented, and `limit.context`
+  is what the rest of opencode reads as the window — the TUI context percentage, ACP usage
+  reporting, and the `limits` handed to the AI SDK. Capping `input` while leaving `context`
+  at 1M shows ~48% in the TUI at the moment it compacts.
 
 **Copying the framework into a new project:** copy `.claude/` and `.opencode/` (including `.opencode/opencode.recommended.json`), then run `$sync-opencode` — it generates/updates that project's root `opencode.json`, bridge plugin, and reports.
 
@@ -113,7 +141,7 @@ reconciles them into whatever project the `.opencode/` folder is copied into.
 ## Known limitations
 
 - **MCP argument visibility.** opencode registers MCP tools as `<server>_<tool>`, and Claude matchers like `mcp__github__*` are matched against that convention. However, opencode does **not** expose MCP tool arguments to `tool.execute.before`, so an MCP `PreToolUse` hook that inspects `tool_input` cannot see them on this host.
-- **`apply_patch` has no `file_path`.** The bridge reports it as `Edit`/`Write`/`MultiEdit` and passes `patchText` through as `patch`; hooks that require `file_path` (path-boundary, doc-sync-gate) allow/ignore it exactly as they do on other hosts.
+- **`apply_patch` has no `file_path`.** The bridge reports it as `Edit`/`Write`/`MultiEdit` and passes `patchText` through as `patch`; hooks that require `file_path` (doc-sync-gate) allow/ignore it exactly as they do on other hosts.
 - **Session resume.** `SessionStart` runs on `session.created` and `session.compacted`; when opencode resumes a session without either event, the bridge runs `source: "startup"` once on the first `chat.message`.
 - **Claude-only stdout fields** other than `updatedInput`, `additionalContext`, and `permissionDecision` are ignored by the bridge.
 
@@ -152,15 +180,17 @@ node .claude/skills/sync-opencode/scripts/run-opencode-sync.mjs --skip=hooks
 
 ## Stages
 
-5 stages, sequential — the complete opencode surface pipeline, owned entirely by this runner:
+7 stages, sequential — the complete opencode surface pipeline, owned entirely by this runner:
 
 | # | Stage | Script | Effect |
 | --- | --- | --- | --- |
 | 1 | config | `.claude/scripts/opencode/sync-config.mjs` | Deep-merge `.opencode/opencode.recommended.json` into the project-root `opencode.json` |
 | 2 | hooks | `.claude/scripts/opencode/sync-hooks.mjs` | Generate `.opencode/plugins/easy-claude-hooks.js` + `tmp/opencode-hooks.sync.report.json`; back up/remove legacy `notification.js` |
-| 3 | tests | Runner discovers `.claude/scripts/opencode/tests/*.test.{mjs,cjs}` | Run opencode tooling tests; missing or empty discovery fails |
-| 4 | verify-config | `.claude/scripts/opencode/sync-config.mjs --check` | Re-merge with the REAL writer and byte-compare with the project-root `opencode.json` |
-| 5 | verify-hooks | `.claude/scripts/opencode/sync-hooks.mjs --check` | Re-render with the REAL writer and byte-compare with the tracked plugin |
+| 3 | agents | `.claude/scripts/opencode/sync-agents.mjs` | Mirror `.claude/agents/*.md` into `.opencode/agent/*.md` (`mode: subagent` + the canonical body verbatim) |
+| 4 | tests | Runner discovers `.claude/scripts/opencode/tests/*.test.{mjs,cjs}` | Run opencode tooling tests; missing or empty discovery fails |
+| 5 | verify-config | `.claude/scripts/opencode/sync-config.mjs --check` | Re-merge with the REAL writer and byte-compare with the project-root `opencode.json` |
+| 6 | verify-hooks | `.claude/scripts/opencode/sync-hooks.mjs --check` | Re-render with the REAL writer and byte-compare with the tracked plugin |
+| 7 | verify-agents | `.claude/scripts/opencode/sync-agents.mjs --check` | Re-render every agent with the REAL writer and byte-compare with the tracked `.opencode/agent/*.md` |
 
 ## Closing Reminders
 
@@ -194,6 +224,7 @@ node .claude/skills/sync-opencode/scripts/run-opencode-sync.mjs --skip=hooks
 
 > **AI Mistake Prevention** — Failure modes to avoid on every task:
 >
+> **Project applicability gate.** Before applying a stack, layer, style, tool, or architecture rule, read the project's config and relevant references, then check local implementations. Treat framework examples as examples; honor explicit N/A and do not require a technology or convention the project does not use.
 > **ROOT-CAUSE GATE — INVESTIGATE FIRST.** Before applying any project-related correction, always use the project's root-cause investigation protocol and establish the cause; the failure site may be only a symptom.
 > **FAILED-TEST GATE.** For any failed or unstable test, use the project's test-investigation protocol before editing source or tests; never change either side merely to force green.
 > **Re-read files after context changes.** Context compaction, resume, or long-running work can make memory stale; verify current files before acting.
@@ -212,7 +243,7 @@ node .claude/skills/sync-opencode/scripts/run-opencode-sync.mjs --skip=hooks
 
 <!-- SYNC:project-protocol-overlay -->
 
-> **Project Protocol Overlay** — Before executing this skill, resolve any PROJECT overlay rules layered onto it: match this skill's name against the `Target` column of the project's skill-protocol index (default `docs/project-reference/skill-protocols-reference.md`; a `referenceDocs` entry in `docs/project-config.json` overrides the path, and a `docsRoots.projectReference.path` entry relocates its containing directory), taking the most specific matching tier ONLY — exact name > glob > `*`. **That precedence orders overlays against EACH OTHER, never against this skill.** Read ONLY the matched bodies, resolved as `<protocols-dir>/<Name>.md`; a row's Body link is display text, never a read path. A matched body that is missing or malformed is REPORTED and skipped — never reconstructed from the index Description. No index, or no match -> proceed with no overlay, silently. Full contract: `.claude/skills/project-skill-protocol/references/registry.md`.
+> **Project Protocol Overlay** — Before executing this skill, resolve project overlays from the index at `<docsRoots.projectReference.path>/skill-protocols-reference.md` (default `docs/project-reference/`; `docsRoots.projectReference.path` in `docs/project-config.json` overrides it). A matching `referenceDocs[]` filename may relocate the index within that root; this registry is independent from task-specific reference-doc selection, so omitted or empty `referenceDocs` does not disable it. The index's `**Protocols directory:**` header selects a project-root-relative body directory (default `docs/project-protocols/`). Match this skill against the `Target` column and take the most specific tier ONLY — exact name > glob > `*`. **That precedence orders overlays against EACH OTHER, never against this skill.** Read only matched bodies derived as `<protocols-dir>/<Name>.md`; the row's Body link is display text, never a read path. Reject unsafe paths without reading. A matched body that is missing or malformed is REPORTED and skipped — never reconstructed from the index Description. An absent index or no match -> proceed with no overlay, silently. Full contract: `.claude/skills/project-skill-protocol/references/registry.md`.
 >
 > Overlays are **ADDITIVE ONLY**: they ADD rules on top of this skill's own protocol and NEVER replace, override, disable, or reinterpret a rule it already states — removing every overlay must return this skill to exactly its documented behavior. An overlay is a BRIEF, not an authority escalation: it can NEVER waive a workflow gate, git discipline, a review gate, or a user-confirmation gate. A genuine overlay-vs-skill conflict, or two equally-specific overlays that directly contradict -> surface both to the user; NEVER resolve silently.
 
@@ -220,8 +251,7 @@ node .claude/skills/sync-opencode/scripts/run-opencode-sync.mjs --skip=hooks
 
 <!-- SYNC:project-protocol-overlay:reminder -->
 
-**MUST ATTENTION** resolve project protocol overlays for this skill BEFORE executing — most specific matching tier only (exact > glob > `*`, which ranks overlays against each other, NEVER against this skill), read only matched bodies at `<protocols-dir>/<Name>.md`; a missing or malformed body is reported, never reconstructed. Overlays are ADDITIVE ONLY (they never replace this skill's own rules) and are a brief, NEVER an authority escalation; an equal-specificity contradiction goes to the user.
-
+**MUST ATTENTION** resolve this skill's overlays from the index at `<docsRoots.projectReference.path>/skill-protocols-reference.md` (default `docs/project-reference/`); an empty task `referenceDocs` does NOT disable this lookup. Read ONLY matched bodies from the directory the index header names (default `docs/project-protocols/`). Specificity (exact > glob > `*`) ranks overlays against EACH OTHER, never against the skill. Missing/malformed body → report and skip; no index or no match → proceed silently. Overlays are ADDITIVE ONLY — never an authority escalation or a gate waiver; equal-tier contradiction goes to the user.
 <!-- /SYNC:project-protocol-overlay:reminder -->
 
 <!-- SYNC:critical-thinking-mindset -->
@@ -233,11 +263,11 @@ node .claude/skills/sync-opencode/scripts/run-opencode-sync.mjs --skip=hooks
 
 <!-- SYNC:critical-thinking-mindset:reminder -->
 
-**MUST ATTENTION** apply critical + sequential thinking — every claim needs appropriate traced evidence (`file:line` for repo/code claims; source URL or artifact section for research, product, content, and docs claims); confidence >80% to act, <60% DO NOT recommend. Anti-hallucination: never present guess as fact, admit uncertainty freely, cross-reference independently, stay skeptical of own confidence.
+**MUST ATTENTION** critical + sequential thinking: every claim carries traced evidence (`file:line` for code, source URL or artifact section otherwise); confidence >80% to act, <60% do NOT recommend. Never present a guess as fact; admit uncertainty and stay skeptical of your own confidence.
 
 <!-- /SYNC:critical-thinking-mindset:reminder -->
 <!-- SYNC:ai-mistake-prevention:reminder -->
 
-**MUST ATTENTION** ROOT-CAUSE GATE: before any project-related correction, use the appropriate root-cause investigation protocol; failed/unstable tests require the test-investigation protocol before editing source/tests — never force green.
+**MUST ATTENTION** Check project config, relevant references, and local evidence before applying stack-specific conventions; honor explicit N/A. ROOT-CAUSE GATE: before any project-related correction, use the appropriate root-cause investigation protocol; failed/unstable tests require the test-investigation protocol before editing source/tests — never force green.
 
 <!-- /SYNC:ai-mistake-prevention:reminder -->

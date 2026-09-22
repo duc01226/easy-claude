@@ -13,12 +13,11 @@ Usage:
 
 import sys
 import re
-import io
 from pathlib import Path
+from win_compat import ensure_utf8_stdout
 
 # Fix Windows console encoding for Unicode characters
-if sys.platform == 'win32':
-    sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', errors='replace')
+ensure_utf8_stdout(errors='replace')
 
 
 # Output type markers for LLM presentation guidance
@@ -60,7 +59,6 @@ TASK_MAPPINGS = {
     "skill": ["skill", "agent", "automate", "workflow"],
     "investigate": ["find", "search", "locate", "explore", "scan", "where", "trace", "investigate"],
     "config": ["config", "configure", "settings", "ck.json", ".ck.json", "setup", "locale", "language", "paths"],
-    "coding-level": ["coding", "level", "eli5", "junior", "senior", "lead", "god", "beginner", "expert", "teach", "learn", "explain"],
 }
 
 # Category workflows and tips
@@ -163,19 +161,6 @@ CATEGORY_GUIDES = {
             ("Trace flow", "`/investigate` \"trace how it works\""),
         ],
         "tip": "Be specific about what you're looking for",
-    },
-    "coding-level": {
-        "title": "Coding Level (Adaptive Communication)",
-        "workflow": [
-            ("Disabled", "`codingLevel: -1` (default, no injection)"),
-            ("ELI5", "`codingLevel: 0` (analogies, baby steps)"),
-            ("Junior", "`codingLevel: 1` (WHY before HOW)"),
-            ("Mid-Level", "`codingLevel: 2` (patterns, trade-offs)"),
-            ("Senior", "`codingLevel: 3` (production code, ops)"),
-            ("Tech Lead", "`codingLevel: 4` (risk matrix, strategy)"),
-            ("God Mode", "`codingLevel: 5` (code first, no fluff)"),
-        ],
-        "tip": "Set in .ck.json. Guidelines auto-inject on session start",
     },
     "config": {
         "title": "ClaudeKit Configuration (.ck.json)",
@@ -505,7 +490,7 @@ def show_config_guide() -> None:
     print()
     print("**Resolution Order:** `DEFAULT → global → project → personal`")
     print("- Each layer deep-merges over the previous — set only the values you override")
-    print("- Use `.ck.local.json` for personal prefs (e.g. your own codingLevel) without affecting teammates")
+    print("- Use .ck.local.json for personal preferences without affecting teammates")
     print("- **AI config-update default target:** `.ck.local.json` unless the user says \"update project config\" / \"share with team\"")
     print()
     print("**Purpose:** Customize plan naming, paths, locale, and hook behavior.")
@@ -575,8 +560,7 @@ def show_config_guide() -> None:
     print('  "assertions": [],          // Optional stack-neutral reminders; project rules belong in project docs')
     print('  "referenceDocs": {')
     print('    "staleDays": 60           // Warn/block when reference docs exceed this age (1-365)')
-    print('  },')
-    print('  "codingLevel": -1  // Adaptive communication (-1 to 5)')
+    print('  }')
     print('}')
     print("```")
     print()
@@ -607,15 +591,6 @@ def show_config_guide() -> None:
     print()
     print("Validation interviews the user with critical questions to confirm")
     print("assumptions, risks, and architectural decisions before implementation.")
-    print()
-    print("**Coding Level (Adaptive Communication):**")
-    print("- `-1` = Disabled (default) - no injection, saves tokens")
-    print("- `0` = ELI5 - analogies, baby steps, check-ins")
-    print("- `1` = Junior - WHY before HOW, pitfalls, takeaways")
-    print("- `2` = Mid-Level - patterns, trade-offs, scalability")
-    print("- `3` = Senior - trade-offs table, production code, ops")
-    print("- `4` = Tech Lead - executive summary, risk matrix, business impact")
-    print("- `5` = God Mode - code first, minimal prose, no hand-holding")
     print()
     print("SessionStart exports supported settings; commands read project-specific conventions from the project config and reference docs.")
     print()
@@ -724,115 +699,6 @@ def show_config_guide() -> None:
     print("*Tip: Config is optional - all fields have sensible defaults.*")
 
 
-def show_coding_level_guide() -> None:
-    """Display comprehensive codingLevel configuration guide."""
-    emit_output_type("comprehensive-docs")
-
-    print("# Coding Level (Adaptive Communication)")
-    print()
-    print("Adjusts Claude's communication style based on user's experience level.")
-    print("Guidelines auto-inject on SessionStart. Commands respect them.")
-    print()
-    print("---")
-    print()
-    print("## Levels")
-    print()
-    print("| Level | Name | Description |")
-    print("|-------|------|-------------|")
-    print("| **-1** | **Disabled** | Default - no injection, saves tokens |")
-    print("| 0 | ELI5 | Zero experience - analogies, baby steps, check-ins |")
-    print("| 1 | Junior | 0-2 years - WHY before HOW, pitfalls, takeaways |")
-    print("| 2 | Mid-Level | 3-5 years - patterns, trade-offs, scalability |")
-    print("| 3 | Senior | 5-8 years - trade-offs table, production code, ops |")
-    print("| 4 | Tech Lead | 8-15 years - executive summary, risk matrix, strategy |")
-    print("| 5 | God Mode | 15+ years - code first, minimal prose, no fluff |")
-    print()
-    print("---")
-    print()
-    print("## Configuration")
-    print()
-    print("**Set in `.ck.json`:**")
-    print("```json")
-    print('{')
-    print('  "codingLevel": 0')
-    print('}')
-    print("```")
-    print()
-    print("**Location (cascading):**")
-    print("- Global: `~/.claude/.ck.json` - personal preference")
-    print("- Local: `./.claude/.ck.json` - project override")
-    print()
-    print("---")
-    print()
-    print("## How It Works")
-    print()
-    print("1. SessionStart hook reads `codingLevel` from `.ck.json`")
-    print("2. If 0-5, injects guidelines from `.claude/output-styles/coding-level-*.md`")
-    print("3. Commands like `/brainstorm` follow the injected guidelines")
-    print()
-    print("**Token Efficiency:**")
-    print("- `-1` (default): Zero injection, zero overhead")
-    print("- `0-5`: Only selected level's guidelines injected (not all)")
-    print()
-    print("---")
-    print()
-    print("## Level Details")
-    print()
-    print("### Level 0 (ELI5)")
-    print("**MANDATORY IMPORTANT MUST ATTENTION** use real-world analogies (labeled boxes, recipes)")
-    print("**MANDATORY IMPORTANT MUST ATTENTION** define every technical term")
-    print("**MANDATORY IMPORTANT MUST ATTENTION** use \"we\" language")
-    print("**MANDATORY IMPORTANT MUST ATTENTION** end with check-in: \"Does this make sense?\"")
-    print("**MANDATORY IMPORTANT MUST ATTENTION** comment every line of code")
-    print("- Structure: Big Picture → Analogy → Baby Steps → Try It → Check-In")
-    print()
-    print("### Level 1 (Junior)")
-    print("- Explain WHY before HOW")
-    print("- Define technical terms on first use")
-    print("- Include common pitfalls section")
-    print("- Add Key Takeaways and Learn More links")
-    print("- Structure: Context → Approach → Implementation → Pitfalls → Takeaways")
-    print()
-    print("### Level 2 (Mid-Level)")
-    print("- Discuss design patterns and when to use them")
-    print("- Highlight trade-offs explicitly")
-    print("- Consider scalability implications")
-    print("- Reference patterns by name")
-    print("- Structure: Approach → Design → Implementation → Edge Cases")
-    print()
-    print("### Level 3 (Senior)")
-    print("- Lead with trade-offs table")
-    print("- Show production-ready code")
-    print("- Discuss operational concerns (monitoring, logging)")
-    print("- Flag security implications")
-    print("- **NEVER** explain basic concepts")
-    print("- Structure: Trade-offs → Implementation → Ops → Security")
-    print()
-    print("### Level 4 (Tech Lead)")
-    print("- Executive summary first (3-4 sentences)")
-    print("- Risk assessment matrix (Likelihood × Impact)")
-    print("- Strategic options comparison")
-    print("- Business impact analysis")
-    print("- Identify decisions needing stakeholder alignment")
-    print("- Structure: Summary → Risks → Options → Approach → Business Impact")
-    print()
-    print("### Level 5 (God Mode)")
-    print("- Answer exactly what was asked, nothing more")
-    print("- Code first, minimal prose")
-    print("- No explanations unless asked")
-    print("- **NEVER** use filler phrases")
-    print("- Trust their judgment completely")
-    print()
-    print("---")
-    print()
-    print("## Customization")
-    print()
-    print("Guidelines live in `.claude/output-styles/coding-level-*.md`")
-    print("Edit these files directly to customize behavior per level.")
-    print()
-    print("*Tip: Use `-1` (disabled) unless you're teaching or want guided explanations.*")
-
-
 def main():
     # Find .claude/skills directory
     script_path = Path(__file__).resolve()
@@ -858,11 +724,6 @@ def main():
     # Special case: config documentation (not a command category)
     if input_str.lower() in ["config", "configuration", ".ck.json", "ck.json"]:
         show_config_guide()
-        return
-
-    # Special case: coding level documentation
-    if input_str.lower() in ["coding-level", "codinglevel", "coding level", "level", "eli5", "god mode"]:
-        show_coding_level_guide()
         return
 
     # Detect intent and route

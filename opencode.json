@@ -1,22 +1,22 @@
 {
   "$schema": "https://opencode.ai/config.json",
-  "model": "opencode-go/deepseek-v4.1-flash",
-  "compaction": {
-    "auto": true
-  },
   "provider": {
     "opencode-go": {
       "models": {
         "deepseek-v4.1-flash": {
+          "options": {
+            "reasoningEffort": "high"
+          },
           "limit": {
             "context": 500000,
             "output": 384000
-          },
-          "options": {
-            "reasoningEffort": "high"
           }
         }
       }
     }
+  },
+  "model": "opencode-go/deepseek-v4.1-flash",
+  "compaction": {
+    "auto": true
   }
 }

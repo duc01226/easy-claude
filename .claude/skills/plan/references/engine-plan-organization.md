@@ -14,15 +14,8 @@ Use `Plan dir:` from `## Naming` section injected by hooks. This is the full com
 ##### File Organization
 
 ```
-{plan-dir}/                                    # From `Plan dir:` in ## Naming
-├── research/
-│   ├── researcher-XX-report.md
-│   └── ...
-├── reports/
-│   ├── investigate-report.md
-│   ├── researcher-report.md
-│   └── ...
-├── plan.md                                    # Overview access point
+{plan-dir}/                                    # From `Plan dir:` in `## Naming`
+├── plan.md                                    # Canonical overview
 ├── phase-01-setup-environment.md              # Setup environment
 ├── phase-02-implement-database.md             # Database models
 ├── phase-03-implement-api-endpoints.md        # API endpoints
@@ -32,11 +25,13 @@ Use `Plan dir:` from `## Naming` section injected by hooks. This is the full com
 └── phase-07-write-tests.md                    # Tests
 ```
 
+Plan directories contain canonical plan and phase files only; follow the report output rules below for disposable research, investigation, and verification output.
+
 ##### Active Plan State Tracking
 
 Check the `## Plan Context` section injected by hooks:
 
-- **"Plan: {path}"** = Active plan - use for reports
+- **"Plan: {path}"** = Active plan - use for canonical plan and phase files; it does not change report location
 - **"Suggested: {path}"** = Branch-matched, hint only - do NOT auto-use
 - **"Plan: none"** = No active plan
 
@@ -55,9 +50,10 @@ node .claude/scripts/set-active-plan.cjs {plan-dir}
 
 **Report Output Rules:**
 
-1. Use `Report:` and `Plan dir:` from `## Naming` section
-2. Active plans use plan-specific reports path
-3. Suggested plans use default reports path to prevent old plan pollution
+1. Use `Plan dir:` from `## Naming` for canonical `plan.md` and phase files.
+2. Store all disposable reports under project-root `tmp/reports/{run-id}/`, whether the plan is active, suggested, or absent.
+3. If `Report:` is injected by the host, use it only when it resolves under `tmp/reports/`; otherwise derive a run-scoped path there.
+4. Do not store or copy disposable reports inside a plan directory. Summarize durable findings in the plan instead.
 
 #### Plan File Structure
 
@@ -123,7 +119,7 @@ Each phase file should contain:
 
 ###### Context Links
 
-- Links to related reports, files, documentation
+- Links to durable source files and documentation; summarize essential research in the plan instead of depending on temporary report links
 
 ###### Phase Overview
 
@@ -373,19 +369,13 @@ Tree root below is the plans root: default `plans`, overridden by a `docsRoots.p
 ```
 <plans root>/
 └── {date}-plan-name/
-    ├── research/
-    │   ├── researcher-XX-report.md
-    │   └── ...
-    ├── reports/
-    │   ├── XX-report.md
-    │   └── ...
-    ├── investigate/
-    │   ├── investigate-XX-report.md
-    │   └── ...
     ├── plan.md
-    ├── phase-XX-phase-name-here.md
+    ├── phase-01-phase-name.md
+    ├── phase-02-phase-name.md
     └── ...
 ```
+
+This diagram contains canonical plan files only. Follow the report output rules above for disposable research, investigation, and verification output; keep material findings needed later in the canonical plan.
 
 ## Active Plan State
 
@@ -395,7 +385,7 @@ Prevents version proliferation by tracking current working plan via session stat
 
 Check the `## Plan Context` section injected by hooks:
 
-- **"Plan: {path}"** = Active plan, explicitly set via `set-active-plan.cjs` - use for reports
+- **"Plan: {path}"** = Active plan, explicitly set via `set-active-plan.cjs`; use it for canonical plan work only
 - **"Suggested: {path}"** = Branch-matched, hint only - do NOT auto-use
 - **"Plan: none"** = No active plan
 
@@ -405,16 +395,6 @@ Check the `## Plan Context` section injected by hooks:
 2. **If "Suggested:" shows a path**: Inform user, ask if they want to activate or create new
 3. **If "Plan: none"**: Create new plan using naming from `## Naming` section
 4. **Update on create**: Run `node .claude/scripts/set-active-plan.cjs {plan-dir}`
-
-### Report Output Location
-
-All agents writing reports MUST ATTENTION:
-
-1. Check `## Naming` section injected by hooks for the computed naming pattern
-2. Active plans use plan-specific reports path
-3. Suggested plans use default reports path (not plan folder)
-
-**Important:** Suggested plans do NOT get plan-specific reports - this prevents pollution of old plan folders.
 
 ## Quality Standards
 

@@ -2,25 +2,33 @@
 /**
  * init-prompt-gate.cjs - UserPromptSubmit project-context router
  *
- * Detects missing/stale portable project context and injects the next setup
- * route while allowing the prompt through. The model should run /project-init,
- * /scan-all, or /graph-build before ordinary project-specific work.
+ * Handles the advisory reference-doc, graph and agent-file setup gates, and
+ * reports on the state of the project config.
  *
- * Allowlist: Prompts containing init commands (/project-config, /scan, /scan-*, skip init)
- * are always allowed through so the user can fix the init state.
+ * PORTABILITY CONTRACT: the project config is OPTIONAL. A project that has none
+ * is a supported, first-class state — the framework runs on the loader's neutral
+ * defaults plus repository evidence, so an absent config emits a once-a-day
+ * notice and the prompt proceeds. A config that EXISTS but does not validate is
+ * a different thing: its author declared those sections authoritative, so
+ * falling back silently would hand the model wrong project facts. That case,
+ * and an indeterminate read, stay fail-closed with a narrow allowlist for the
+ * explicit project-config repair commands.
  *
- * Dismiss: User can type "skip init" to create a 1-day init dismiss flag,
- * or "skip scan" to create a 7-day reference-doc scan dismiss flag.
+ * Optional setup gates may route to their setup skills or accept a dismissal.
  *
  * Exit Codes:
- *   0 - Prompt allowed. Missing context is surfaced as guidance, not a stop.
+ *   0 - Prompt allowed, or blocked through the UserPromptSubmit JSON decision.
  */
 'use strict';
 
 const fs = require('fs');
 const path = require('path');
 const { resolveProjectRoot } = require('./lib/project-root.cjs');
-const { isConfigPopulated: _isConfigPopulated, getConfiguredProjectConfigPath } = require('./lib/project-config-loader.cjs');
+const {
+    isConfigPopulated: _isConfigPopulated,
+    getProjectConfigStatus,
+    getConfiguredProjectConfigPath
+} = require('./lib/project-config-loader.cjs');
 const { hasProjectContent } = require('./lib/session-init-helpers.cjs');
 const {
     getAgentFileIssues,
@@ -44,7 +52,8 @@ const {
 const rootResolution = resolveProjectRoot({ cwd: process.cwd(), scriptPath: __filename, env: process.env });
 const PROJECT_DIR = rootResolution.rootDir;
 // Honor the configured portability.projectConfigPath (fail-open to docs/project-config.json).
-// Must match where session-init creates the config, else a custom-path project blocks every prompt.
+// Must match where session-init creates the config, else a custom-path project is told its
+// config is absent while it sits validated at the configured path.
 const CONFIG_PATH = getConfiguredProjectConfigPath();
 const DISMISS_TTL_MS = 24 * 60 * 60 * 1000; // 1 day
 const SCAN_DISMISS_TTL_DAYS = 7;
@@ -72,8 +81,8 @@ function emitPromptContext(message) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// PROMPT ALLOWLIST — patterns that bypass the gate (case-insensitive)
-// These are the commands that FIX the init state, so they must pass through.
+// OPTIONAL SETUP ALLOWLIST — applies only after the required project config
+// validates. Missing/invalid config uses CONFIG_REPAIR_PATTERNS below.
 // ═══════════════════════════════════════════════════════════════════════════
 
 const ALLOWLIST_PATTERNS = [
@@ -90,23 +99,76 @@ const ALLOWLIST_PATTERNS = [
     /skip\s*graph/i // User wants to dismiss the graph gate
 ];
 
+// An invalid (present but non-validating) config may only be repaired through an
+// explicit top-level project-init/project-config skill invocation. Mentioning one
+// inside an unrelated prompt must not bypass that gate. Both Claude
+// slash commands and Codex skill invocations are accepted.
+const CONFIG_REPAIR_PATTERNS = [
+    /^\s*(?:\/|\$)project-init\b/i,
+    /^\s*(?:\/|\$)init-project\b/i,
+    /^\s*(?:\/|\$)project-config\b/i
+];
+
 // ═══════════════════════════════════════════════════════════════════════════
 // HELPERS
 // ═══════════════════════════════════════════════════════════════════════════
 
 /**
- * Check if project-config.json exists and is populated with real values.
- * Delegates to shared isConfigPopulated() from project-config-loader.cjs.
+ * Check if the required project config exists and is schema-valid.
+ * Delegates to the shared config validator from project-config-loader.cjs.
  * @returns {boolean}
  */
 function isConfigPopulated() {
-    if (!fs.existsSync(CONFIG_PATH)) return false;
-    try {
-        const config = JSON.parse(fs.readFileSync(CONFIG_PATH, 'utf-8'));
-        return _isConfigPopulated(config);
-    } catch {
-        return false;
-    }
+    return _isConfigPopulated();
+}
+
+/** @param {string} prompt */
+function isConfigRepairPrompt(prompt) {
+    return CONFIG_REPAIR_PATTERNS.some(pattern => pattern.test(prompt || ''));
+}
+
+/**
+ * The configured config path, relative to the project root, for display.
+ * @returns {string}
+ */
+function configDisplayPath() {
+    return path.relative(PROJECT_DIR, CONFIG_PATH).replace(/\\/g, '/') || path.basename(CONFIG_PATH);
+}
+
+/**
+ * An ABSENT project config is a supported adopter state, never a block. Emit a
+ * once-a-day notice telling the model to fall back to repository evidence, and
+ * let the prompt through. Suppressed by the shared dismiss flag so a config-less
+ * project is not lectured on every prompt.
+ * @returns {void}
+ */
+function noticeMissingConfig() {
+    if (isDismissed()) return;
+    emitPromptContext(
+        `No project config at \`${configDisplayPath()}\` — a supported state, not an error. ` +
+        'The framework is running on its portable defaults: resolve project facts (paths, run ' +
+        'commands, conventions, architecture) from repository evidence — manifests, lockfiles, ' +
+        'scripts, directory layout — and state the assumption when one is material. Optional: ' +
+        'run /project-init or /project-config to record those facts once instead of re-deriving ' +
+        'them each session. This notice repeats at most once a day.'
+    );
+    writeDismissFlag();
+}
+
+/**
+ * Emit a host-supported UserPromptSubmit block for a config that EXISTS but does
+ * not validate, or whose state could not be determined. Both Claude Code and
+ * Codex support this event's JSON `decision: block` output.
+ * @param {{state: string, errors?: string[]}} status
+ */
+function blockRequiredConfig(status) {
+    const displayPath = configDisplayPath();
+    // `missing` never reaches here: main() routes an absent config to noticeMissingConfig().
+    const issue = status.state === 'unavailable'
+        ? `Unable to verify the project config at \`${displayPath}\`: ${(status.errors || []).slice(0, 3).join('; ')}`
+        : `Project config at \`${displayPath}\` is invalid: ${(status.errors || []).slice(0, 3).join('; ')}`;
+    const reason = `${issue} The config is optional \u2014 but this one EXISTS and its author declared those sections authoritative, so falling back to defaults would hand you wrong project facts. Run /project-init to repair it, /project-config to rewrite it, or delete it to run on portable defaults. The minimum is a non-empty project.name; capability sections may be omitted, but any declared section must satisfy its schema.`;
+    process.stdout.write(JSON.stringify({ decision: 'block', reason }));
 }
 
 /**
@@ -239,7 +301,7 @@ function checkScanStaleFlag() {
 // ═══════════════════════════════════════════════════════════════════════════
 
 /**
- * Check staleness gate when config is populated.
+ * Check staleness gate after the required config validates.
  * @param {string} userPrompt - The user's prompt text
  * @returns {void} Emits guidance when stale docs exist; returns otherwise
  */
@@ -283,11 +345,11 @@ function handleStalenessGate(userPrompt) {
 // ═══════════════════════════════════════════════════════════════════════════
 
 /**
- * Check the agent-files gate after config is populated.
+ * Check the agent-files gate after the required config validates.
  *
- * Runs only in the config-populated branch by design: /ai-context-refresh reads
- * docs/project-config.json to generate CLAUDE.md, so offering it before config
- * is populated would produce a meaningless file. Empty/uninitialized projects
+ * Runs only in the schema-valid-config branch by design: /ai-context-refresh reads
+ * the project config to generate CLAUDE.md, so offering it before config
+ * validates would produce a meaningless file. Empty/uninitialized projects
  * are already short-circuited by the hasProjectContent() guard in main().
  *
  * Missing CLAUDE.md → /ai-context-refresh (AI-runnable).
@@ -366,7 +428,7 @@ function isGraphDismissRequest(prompt) {
  * @returns {void} Emits guidance when graph is missing; returns otherwise
  */
 function handleGraphGate(userPrompt) {
-    // Only block on graph when project config is properly initialized
+    // Only guide graph setup after the required project config validates.
     if (!isConfigPopulated()) return;
 
     // Graph already built → pass through
@@ -431,12 +493,15 @@ function handleGraphGate(userPrompt) {
  * SKILL.md) deliver the same rules on both hosts without any hook. Deleting this function, its
  * single call site, and lib/skill-protocol-overlay.cjs removes the whole plane cleanly.
  *
- * Emits nothing and NEVER throws: no leading `/name`, no registry, no match, or any error at all
- * resolves to a silent no-op, so a broken accelerator can never trap a developer's prompt.
+ * Emits nothing and NEVER throws: no leading `/name`, no registry, or no match resolves to a
+ * silent no-op. An invalid required config/path emits a fixed diagnostic without reading files,
+ * so the accelerator remains fail-soft while explicit bad declarations stay visible.
  */
 function handleProtocolOverlayGate(userPrompt) {
     try {
-        const text = buildOverlayContext(userPrompt, PROJECT_DIR);
+        const configStatus = getProjectConfigStatus();
+        const projectConfig = configStatus.valid ? configStatus.config : null;
+        const text = buildOverlayContext(userPrompt, PROJECT_DIR, projectConfig);
         if (text) emitPromptContext(text);
     } catch {
         // Accelerator only — never block.
@@ -448,9 +513,15 @@ function handleProtocolOverlayGate(userPrompt) {
 // ═══════════════════════════════════════════════════════════════════════════
 
 function main() {
+    // An unresolvable project root is a host/environment problem, not a project one.
+    // Every other hook skips in that state (see session-init); blocking every prompt
+    // here would brick a session over a relative CLAUDE_PROJECT_DIR. Report and allow.
     if (rootResolution.error) {
-        console.error(`[init-prompt-gate] Skipped: ${rootResolution.error}`);
-        return;
+        emitPromptContext(
+            `[init-prompt-gate] Skipped: project root resolution failed (${rootResolution.error}). ` +
+            'Project config and setup gates were not evaluated this turn.'
+        );
+        process.exit(0);
     }
     try {
         const stdin = fs.readFileSync(0, 'utf-8').trim();
@@ -468,57 +539,43 @@ function main() {
 
         if (!userPrompt.trim()) process.exit(0);
 
-        // Guard: empty project (no content directories) → skip gate entirely
+        // Project config is OPTIONAL. Absent → notice and continue on portable
+        // defaults. Present-but-invalid, or unreadable → fail closed, because the
+        // author declared those sections authoritative and a silent fallback would
+        // hand the model wrong project facts.
+        let configStatus;
+        try {
+            configStatus = getProjectConfigStatus({ refresh: true });
+        } catch (error) {
+            blockRequiredConfig({ state: 'unavailable', errors: [error.message] });
+            process.exit(0);
+        }
+        if (!configStatus.valid) {
+            if (isConfigRepairPrompt(userPrompt)) process.exit(0);
+            if (configStatus.state !== 'missing') {
+                blockRequiredConfig(configStatus);
+                process.exit(0);
+            }
+            noticeMissingConfig();
+        }
+
+        // The remaining setup gates apply to content-bearing projects only.
         if (!hasProjectContent()) process.exit(0);
 
         // Plane 3 accelerator: a user-typed /skill-name gets its project protocol overlays
-        // injected. Deliberately placed BEFORE the isConfigPopulated() branch — both branches
-        // exit(0), and overlay delivery has nothing to do with setup state.
+        // injected only after required project configuration has been verified.
         handleProtocolOverlayGate(userPrompt);
 
-        // Fast path: config already populated → check agent-files, staleness, graph gates.
+        // Schema-valid config → check agent-files, staleness and optional graph gates.
         // Agent-files first: CLAUDE.md/AGENTS.md are the most foundational artifacts and
         // /ai-context-refresh depends on the (now-populated) config.
-        if (isConfigPopulated()) {
-            handleAgentFilesGate(userPrompt);
-            handleStalenessGate(userPrompt);
-            handleGraphGate(userPrompt);
-            process.exit(0);
-        }
-
-        // Config NOT populated — inject setup guidance and allow the model to auto-route
-
-        // 1. Dismiss flag still valid → allow
-        if (isDismissed()) process.exit(0);
-
-        // 2. Dismiss request → write flag, allow
-        if (isDismissRequest(userPrompt)) {
-            writeDismissFlag();
-            emitPromptContext('Project init skipped. Gate dismissed for 24 hours.');
-            process.exit(0);
-        }
-
-        // 3. Allowlisted init command → allow (so user can fix the state)
-        if (isAllowlistedPrompt(userPrompt)) process.exit(0);
-
-        // 4. WARN — config unpopulated, no escape hatch matched
-        emitPromptContext(
-            [
-                '',
-                '[project-context] Project configuration not initialized.',
-                '',
-                '`docs/project-config.json` is missing or still contains default skeleton values.',
-                'Project-aware context depends on this file.',
-                '',
-                'Auto-route before ordinary project-specific work:',
-                '  /project-init       — Initialize/re-evaluate config, docs, CLAUDE.md, AGENTS.md',
-                '  /project-config     — Populate config only when that is the only missing artifact',
-                ''
-            ].join('\n')
-        );
+        handleAgentFilesGate(userPrompt);
+        handleStalenessGate(userPrompt);
+        handleGraphGate(userPrompt);
         process.exit(0);
     } catch {
-        // Fail-open on unexpected errors — never trap the user
+        // Optional setup guidance remains fail-open. Required-config verification
+        // has its own fail-closed error boundary above.
         process.exit(0);
     }
 }
@@ -527,6 +584,10 @@ function main() {
 module.exports = {
     emitPromptContext,
     isConfigPopulated,
+    isConfigRepairPrompt,
+    blockRequiredConfig,
+    noticeMissingConfig,
+    configDisplayPath,
     isDismissed,
     writeDismissFlag,
     isAllowlistedPrompt,

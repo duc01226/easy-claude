@@ -18,7 +18,7 @@ const path = require('node:path');
 const os = require('node:os');
 const crypto = require('node:crypto');
 const MAX_LIFETIME_MS = 15 * 60 * 1000;
-// `discard` covers every irreversible working-tree/history operation git-commit-block.cjs gates
+// `discard` covers every irreversible working-tree/history operation the removed git-commit-block.cjs hook gated
 // (`reset --hard`, `clean -f`, `checkout -- <path>`, `branch -D`, `stash drop`, a force push…).
 // It exists so an explicitly-requested destructive command has SOME path to consent: without a
 // mintable term the gate would be unclearable, and an unclearable gate is one the user turns off

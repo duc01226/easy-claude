@@ -14,7 +14,8 @@ const {
     countOccurrences,
     checkCompactAgentsProjection,
     checkProtocolBodySignatureCounts,
-    AGENTS_ROOT_LIMIT_BYTES
+    AGENTS_ROOT_LIMIT_BYTES,
+    DEBUGGER_TRACE_REQUIRED_SOURCE_PATHS
 } = await import(pathToFileURL(verifierPath).href);
 
 const joinLines = (...lines) => lines.join('\n');
@@ -22,6 +23,13 @@ const joinLines = (...lines) => lines.join('\n');
 const FENCED_CLAUDE = joinLines('<!-- CK:CRITICAL-THINKING -->', '<!-- CK:AI-MISTAKE-PREVENTION -->');
 const BOTH_BODIES = joinLines('[CRITICAL-THINKING-MINDSET]', '## Common AI Mistake Prevention (System Lessons)');
 const FENCELESS_CLAUDE = '# Portable project\n';
+
+// A lower-case filename works on Windows but makes a portable export fail on Linux, where the
+// canonical skill manifest is `SKILL.md`. Keep the verifier's explicit trace list case-exact.
+test('TC-DEBUGTRACE-000: debugger trace source targets use canonical SKILL.md casing', () => {
+    assert.ok(DEBUGGER_TRACE_REQUIRED_SOURCE_PATHS.includes('.claude/skills/why-review/SKILL.md'));
+    assert.ok(!DEBUGGER_TRACE_REQUIRED_SOURCE_PATHS.includes('.claude/skills/why-review/skill.md'));
+});
 
 // The gate measures a projection it does not build, so its budget must equal the GENERATOR's. Those
 // two constants cannot be collapsed into one import — the verifier is loaded from a `data:` URL and

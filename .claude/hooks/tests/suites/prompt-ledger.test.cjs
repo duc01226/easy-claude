@@ -706,6 +706,34 @@ const tests = [
             // The store stamps its own marker as it writes, so a live session is prunable later.
             assert.equal(fs.existsSync(path.join(fx.store, 'new-session', '_owner.json')), true, 'the store marks what it writes');
         })
+    },
+    {
+        name: 'TC-SPL-050 the ledger store is project-root relative and independent of project-config relocation',
+        fn: async () => withFixture(async fx => {
+            // The default store root is derived from the PROJECT DIR, never a hardcoded repo path,
+            // so a relocated project root gets its own ledger.
+            assert.equal(store.storeRoot({}, fx.project), path.join(fx.project, 'tmp', 'prompt-ledger'));
+
+            // A relocated project-config path must NOT move the ledger: the hook reads only
+            // `.claude/.ck.json` settings, so it stays correct in a relocated-config project.
+            fs.writeFileSync(
+                path.join(fx.project, '.claude', '.ck.json'),
+                JSON.stringify({ portability: { projectConfigPath: 'config/project-config.json' } })
+            );
+
+            // With no store override, the record lands under the project-root tmp store.
+            const out = await hook.run(prompt(fx, 'first prompt'), {
+                env: {},
+                projectDir: fx.project,
+                now: NOW,
+                write: (text, done) => done(true)
+            });
+            assert.ok(out, 'the prompt is recorded');
+            assert.ok(
+                fs.existsSync(path.join(fx.project, 'tmp', 'prompt-ledger', 'session-1')),
+                'the ledger is written under the project-root tmp store'
+            );
+        })
     }
 ];
 

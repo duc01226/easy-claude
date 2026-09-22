@@ -216,7 +216,9 @@ test("seeded semantic mutants: existing invariant tests kill fallback, duplicate
     const result = spawnSync(process.execPath, ["--test", `--test-name-pattern=${pattern}`, testPath], { encoding: "utf8", env: childEnv });
     assert.equal(result.status, 1, `${name} must fail the unchanged invariant test\n${result.stdout}\n${result.stderr}`);
     assert.match(result.stdout, diagnostic);
-    assert.match(result.stdout, /# fail 1/);
+    // Node 22 renders TAP totals as `# fail`; Node 24 uses `ℹ fail`.
+    // Preserve the mutation oracle while accepting both supported reporters.
+    assert.match(result.stdout, /(?:#|ℹ) fail 1/);
     t.diagnostic(`${name}: KILLED by unchanged ${pattern} test (exit ${result.status})`);
   }
 });
@@ -272,7 +274,7 @@ test("production workflows declare required and opt-in near-end E2E handoffs", (
   }
 });
 
-test("E2E visual review contracts default on and review generated screenshots", () => {
+test("E2E visual review is gated by the project contract and reviews generated screenshots", () => {
   const skillFiles = [
     ".claude/skills/e2e-test/SKILL.md",
     ".claude/skills/workflow-e2e/SKILL.md",
@@ -280,9 +282,12 @@ test("E2E visual review contracts default on and review generated screenshots", 
   ];
   for (const relativePath of skillFiles) {
     const source = fs.readFileSync(path.join(root, relativePath), "utf8");
-    assert.match(source, /visual (?:screenshot )?review is enabled by default|default true/i, relativePath);
-    assert.match(source, /--visual-review=false.*(?:opt-out|opts out)/is, relativePath);
-    assert.match(source, /open\/read.*(?:every|each).*image|every generated screenshot/is, relativePath);
+    // No framework-wide default: the gate resolves from the request and the project contract.
+    assert.match(source, /no framework-wide screenshot default|requested or required by the project contract/i, relativePath);
+    // An explicit false can never waive a project-required gate.
+    assert.match(source, /false value cannot waive a project-required/i, relativePath);
+    // Each required capture is read case by case before synthesis.
+    assert.match(source, /case[- ]by[- ]case|read each case|read and record every/i, relativePath);
     assert.match(source, /experience-review/, relativePath);
   }
 });

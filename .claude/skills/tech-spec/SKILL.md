@@ -20,33 +20,35 @@ triggers: 'tech spec, technical spec, regenerate tech specs, technical spec view
 
 **[IMPORTANT] TaskCreate** — Break ALL work into small tasks BEFORE starting (one task per emitted artifact).
 
-**Goal:** Project code and test annotations into a regenerable, single-writer technical view (per-component use-case inventory, TC↔test map, and cross-service topology) without creating a second source of truth; code and tests remain canonical.
+**Goal:** For annotation-compatible projects, project code and configured test annotations into a regenerable technical view without creating a second source of truth; route native-case reconciliation to its canonical owner and never report unsupported generation as empty success.
 
 **Summary:**
 
-- **Purpose:** a DERIVED-view **generator** ONLY — greps handlers/consumers/jobs/producers and test annotations to emit `{TechRoot}/{Service}/{Component}.md`; it **NEVER authors business content**. Code + tests stay the source of truth.
-- **Main steps (run in order):** **Step 0** Scope Gate — `AskUserQuestion` (service/component + mode), BLOCKING before any read; no source to derive from → STOP. **Step 1** Derive facts — grep the use-case inventory, the `TestSpec`/`TechnicalSpec` joins, the topology. **Step 2** Instantiate templates — `references/author.md`'s fixed sections in pinned order. **Step 3** Stamp & Write — DERIVED banner + regenerate date, write each artifact immediately (never accumulate in context). **Step 4** Verify — no retired artifacts, banner present, no business artifact types, no canonical claims, no secrets.
-- **Modes:** `generate` (default — regenerate the derived view) · `audit` (report which views are stale vs code/tests) · `sync` (report canonical §8 TC ↔ executing test-code drift — `references/sync.md`).
+- **Purpose:** a DERIVED-view annotation generator ONLY — it reads code plus the configured `TestSpec` / `TechnicalSpec` contract and never authors business content. It has no native-case carrier adapter.
+- **Profile gate:** resolve `specArtifacts` and `specRoots` first. A valid native profile routes `sync` through `/spec [mode=sync]`; `generate` is `UNSUPPORTED` until a compatible generator exists. If no native profile applies, keep the strict §8/TC default. Missing or invalid required contracts remain `NOT CONFIGURED` / blocked; never fall back or claim empty success.
+- **Main steps (run in order):** **Step 0** Resolve config/profile/root and scope/mode; ask only for ambiguous scope or mode. Native generation → report `UNSUPPORTED` and stop before the generator; absent `techSpecScan` → `NOT CONFIGURED`. **Step 1** Derive supported annotation facts — use-case inventory, annotation joins, topology. **Step 2** Instantiate the fixed templates. **Step 3** Stamp & write each artifact immediately. **Step 4** Verify no retired artifacts, banners, business content, canonical claims, or secrets.
+- **Modes:** `generate` only when the annotation generator contract applies · `audit` reports freshness only for a configured derived view · `sync` routes native profiles to `/spec [mode=sync]`, or reports canonical §8 TC ↔ test-code drift under the strict default (`references/sync.md`).
 - Hard prohibition is the load-bearing rule: never emit the retired A-E engineering tree, `M##` dirs, `00-module-registry.md`, `01-domain-erd.md`, or `06-reimplementation-guide.md` under the technical root — why: an A-E bundle becomes a second source of truth competing with the Feature Spec, and a generator able to recreate it resurrects the retired tree on its next run (this has occurred once already, via rebase).
 - Every generated file carries the `> DERIVED — regenerate with the tech-spec skill; do NOT hand-edit` banner + a regenerate date, anchors each fact back to its source, and makes **no canonical claim**.
 - **This skill is M1-EXEMPT** (`specRoots.technical.m1Policy: "exempt"`) — its prose MAY name technology. That exemption is the whole reason this tree exists; it is NOT a licence to carry business content (see **Hard Prohibitions**).
 
 > **[SCOPE]** This skill generates a **DERIVED** technical view over code + tests under `specRoots.technical.path`. It MUST NOT emit a per-module A-E engineering bundle (`A-domain-model`, `B-business-rules`, `C-api-contracts`, `D-events`, `E-user-journeys`), `M##` directories, `00-module-registry.md`, `01-domain-erd.md`, or `06-reimplementation-guide.md` — those are not part of the spec model. It MUST NOT author business content: the Feature Spec under `specRoots.business.path` owns §1–§8, and this skill neither writes nor amends it. Authority: [`docs/project-reference/spec-system-reference.md`](../../../docs/project-reference/spec-system-reference.md) — project-reference docs root default `docs/project-reference`; a `docsRoots.projectReference.path` entry in `docs/project-config.json` overrides the path — and [`.claude/skills/shared/sdd-artifact-contract.md`](../shared/sdd-artifact-contract.md).
 
-**Inputs:** the code tree (command/query handlers, event consumers, background jobs, producers, sagas, outbox) and the test tree (`TestSpec` and `TechnicalSpec` annotations when present). **Code is the technical source of truth** — this skill reads it to **project** a view, never to populate a parallel *canonical* layer.
+**Inputs:** supported annotation mode reads the code tree (command/query handlers, event consumers, background jobs, producers, sagas, outbox) and configured test annotations (`TestSpec` / `TechnicalSpec`). **Code is the technical source of truth** — this skill projects a view and never populates a parallel canonical layer. A native profile is not an input to this annotation generator.
 
 **Modes:**
 
 | Mode       | Trigger                                    | Input                                          | Output                                                                       |
 | ---------- | ------------------------------------------ | ---------------------------------------------- | ---------------------------------------------------------------------------- |
-| `generate` | default — refresh the derived view          | code + test annotations                         | `{TechRoot}/{Service}/{Component}.md`, all DERIVED (`references/author.md`)   |
-| `audit`    | explicit request — staleness check          | code/test mtimes or git vs derived-view age     | Stale-list report (which views lag their source). Never mutates             |
-| `sync`     | "sync tests" / "reconcile tests" / harvest  | canonical §8 TCs + test code                    | §8/test drift report + route-only `CoveredBy:`/orphan reconciliation (`references/sync.md`) |
+| `generate` | default — only when the annotation generator contract applies | code + configured test annotations | `{TechRoot}/{Service}/{Component}.md`, all DERIVED (`references/author.md`); native profiles are unsupported |
+| `audit`    | explicit request — staleness check          | code/test mtimes or git vs an existing derived view | Stale-list report when configured; otherwise `NOT CONFIGURED`. Never mutates |
+| `sync`     | "sync tests" / "reconcile tests" / harvest  | native profile, or §8 TCs under strict default | Native: `/spec [mode=sync]` report. Default: §8/test drift and route-only `CoveredBy:` / orphan report (`references/sync.md`) |
 
 **Tooling:**
 
 These are the ONLY invocations. `.claude/` is portable and self-running — never route this tooling
 through a host `package.json` script, which does not exist in a project that copied only the bundle.
+Before an interactive generation, resolve the profile and require the supported annotation contract. An absent `techSpecScan` is `NOT CONFIGURED`; do not invoke `--optional` and present its successful skip as coverage.
 
 - `node .claude/skills/tech-spec/scripts/generate-tech-specs.mjs` — regenerate the derived technical
   views from code/test annotations.
@@ -57,15 +59,21 @@ through a host `package.json` script, which does not exist in a project that cop
 
 **Mode resolution (do this before any work):**
 
-1. Parse the mode from the invocation: explicit `[mode=<x>]` arg wins; else infer ("regenerate tech specs", "technical spec for {Component}" → `generate`; "stale", "audit" → `audit`; "sync tests", "reconcile tests", "reverse sync", "harvest" → `sync`).
-2. If ambiguous, present the detected mode via `AskUserQuestion` before proceeding — NEVER auto-start a mutating mode.
-3. **Read the matching `references/` body** — it is the single source of truth for that mode's procedure, gates, and output contract. Do not run a mode from memory.
+1. Read `docs/project-config.json`; resolve `specArtifacts`, `specRoots.technical.path`, and `techSpecScan` before selecting a procedure. A malformed declared profile blocks; it never falls back to TC.
+2. Parse the mode from the invocation: explicit `[mode=<x>]` wins; otherwise infer from the request.
+3. A native profile routes `sync` to `/spec [mode=sync]`; its `generate` view is `UNSUPPORTED` and must stop before the annotation generator. Without a native profile, strict §8/TC sync remains the default; generation still requires the configured annotation contract.
+4. If scope/mode remains ambiguous, ask via `AskUserQuestion` before mutation.
+5. **Read the matching `references/` body** — it owns that mode's procedure and output contract. Do not run a mode from memory.
 
 **Workflow:** `/investigate` (locate the component) → `/tech-spec` (project the view) → `/changes-review` → `/watzup`
 
 **Key Rules:**
 
-- **MUST ATTENTION** resolve `specRoots.technical.path` and the mode before reading; never hardcode project roots or component names.
+- **MUST ATTENTION** resolve `specArtifacts`, `techSpecScan`, `specRoots.technical.path`, and mode before generation; never hardcode roots or component names.
+- **MUST ATTENTION** route native-profile reconciliation through `/spec [mode=sync]`; keep strict §8/TC behavior only when no native profile applies.
+- **MUST ATTENTION** require `/spec [mode=sync]` to return its configured native reconciliation report; **NEVER** treat a missing report as a successful sync.
+- **MUST ATTENTION** map each selected owner/case/variant through the actual executor, assertion, and run evidence; **NEVER** infer coverage from title or identity alone.
+- **MUST ATTENTION** report native generation as `UNSUPPORTED` and absent annotation configuration as `NOT CONFIGURED` before invoking the generator; never emit or accept an empty success.
 - **NEVER** author business content or emit retired A-E artifacts; code/tests remain the source of truth.
 - **MUST ATTENTION** derive facts mechanically, anchor them to sources, write each artifact immediately, and verify regeneration is idempotent.
 - **NEVER** let the harvest detector gate generation; it reports candidates while C1/C2/C6/C7 remain hard errors.
@@ -134,15 +142,15 @@ Harvest **detection** is a structural signal — *an invariant enforced at ≥2 
 
 ## Step 0 — Scope Gate (MANDATORY FIRST)
 
-Before reading anything, use `AskUserQuestion`. Confirm:
+Before deriving facts or invoking a generator, read the project config and resolve the profile and technical root. Use `AskUserQuestion` only if scope or mode remains ambiguous. A native-profile generation request returns `UNSUPPORTED` here; do not continue to the annotation generator.
 
 | Dimension       | Question                                                                                          | Auto-Default          |
 | --------------- | ------------------------------------------------------------------------------------------------- | --------------------- |
 | **Scope** ★     | Which `{Service}` / `{Component}` — one component, one service, or the whole technical root?      | — must confirm        |
-| **Mode** ★      | `generate` (regenerate the view) OR `audit` (staleness report) OR `sync` (reconcile §8 ↔ tests)?  | `generate`            |
+| **Mode** ★      | `generate` (supported annotation view only) OR `audit` OR `sync` (native `/spec` report, or strict-default §8 ↔ tests)? | `generate` |
 | **Sections**    | Full view, or a subset (use-case inventory / TC↔test map / topology)?                             | Full view             |
 
-> **[BLOCKING]** Resolve `specRoots.technical.path` from `docs/project-config.json` FIRST. If it is absent, STOP — the technical root is not configured and this skill has no destination. NEVER hardcode a root.
+> **[BLOCKING]** Resolve `specArtifacts`, `techSpecScan`, and `specRoots.technical.path` from `docs/project-config.json` FIRST. If the technical root is absent, STOP. A native profile does not authorize annotation generation; absent/unsupported generator configuration is `NOT CONFIGURED` / `UNSUPPORTED`, never an empty successful view.
 > **[BLOCKING]** If the target `{Service}`/`{Component}` has **no** derivable source (no handlers, consumers, jobs, or annotated tests), STOP — there is nothing to derive from. **NEVER fabricate a component to document.**
 
 ---
@@ -152,7 +160,7 @@ Before reading anything, use `AskUserQuestion`. Confirm:
 Read `references/author.md` and execute its derivation greps. Extract ONLY mechanically-derivable facts:
 
 1. **Use Case Inventory** — write ops (N), read ops (M), event-driven (K), background jobs (J), and actor roles, per `references/author.md`.
-2. **TC↔test map** — the join over existing test annotations (`TestSpec` for business TC coverage, `TechnicalSpec` for technical-only coverage when present), generated from the annotations that already exist in code. **NEVER hand-move this data.**
+2. **TC↔test map (strict default only)** — join existing configured `TestSpec` annotations for business TC coverage and `TechnicalSpec` for technical-only coverage. Do not apply this map when a native profile is selected; native reconciliation belongs to `/spec [mode=sync]`. **NEVER hand-move annotation data.**
 3. **Cross-service topology** — producers, consumers, sagas, shared contracts, data ownership (the `SYNC:cross-service-check` scan below is the procedure).
 4. **Anchors** — every fact carries an abstract `[Source: {namespace}/{service}/{id}]` anchor.
 
@@ -214,14 +222,15 @@ If a user explicitly asks for an A-E bundle, explain it is retired and offer the
 | Skill                | Relationship                                                                                                    | When to Call                                                  |
 | -------------------- | --------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------- |
 | `/spec`              | **Business owner** — authors the canonical tech-free 8-section Feature Spec. `/tech-spec` never writes it        | When a harvested candidate needs a rule authored (`mode=update`) |
-| `/spec [mode=tests]` | **Owner of §8 TCs** that this skill's TC↔test map joins against                                                 | When a coverage gap needs a canonical TC                      |
+| `/spec [mode=tests]` | **Owner of strict-default §8 TCs** joined by the annotation view                                                   | When the no-native-profile default needs a canonical TC       |
+| `/spec [mode=sync]`  | **Owner of native-profile reconciliation** — consumes the configured owner/case/variant and evidence contract     | When a native profile applies                                 |
 | `/spec-index`        | **Sibling derived-aid generator** over the business tree — same contract shape, different source                | For business-tree navigation aids                             |
 | `/integration-test`  | **Consumer** — generates the tests whose annotations this skill joins                                           | When `sync` flags a TC with no covering integration test      |
 | `/docs-update`       | **Orchestrator** — may call `/tech-spec` to refresh the derived view after code changes                         | After code changes need a full doc sync                       |
 
 ## What Is `/tech-spec`?
 
-A **derived-view generator** over code + tests. The canonical technical knowledge is **the code itself**, and a technical-only behavior's guard is **its test**; this skill assembles a regenerable projection (use-case inventory, TC↔test map, topology) so a component's technical surface can be read without a second hand-maintained layer. It does **not** reverse-engineer code into a parallel *canonical* bundle — that role was retired with the A-E tree, and this skill exists precisely because a projection cannot rival its own source.
+A **derived-view generator** over code + configured annotations, not a native-case adapter. For supported annotation projects it assembles a regenerable projection without creating a second source of truth. Native profile reconciliation belongs to `/spec [mode=sync]`; native technical-view generation stays explicitly unsupported until a compatible generator contract is declared. When no native profile applies, this skill retains the strict §8/TC default.
 
 ---
 
@@ -248,6 +257,7 @@ A **derived-view generator** over code + tests. The canonical technical knowledg
 
 > **AI Mistake Prevention** — Failure modes to avoid on every task:
 >
+> **Project applicability gate.** Before applying a stack, layer, style, tool, or architecture rule, read the project's config and relevant references, then check local implementations. Treat framework examples as examples; honor explicit N/A and do not require a technology or convention the project does not use.
 > **ROOT-CAUSE GATE — INVESTIGATE FIRST.** Before applying any project-related correction, always use the project's root-cause investigation protocol and establish the cause; the failure site may be only a symptom.
 > **FAILED-TEST GATE.** For any failed or unstable test, use the project's test-investigation protocol before editing source or tests; never change either side merely to force green.
 > **Re-read files after context changes.** Context compaction, resume, or long-running work can make memory stale; verify current files before acting.
@@ -279,13 +289,13 @@ A **derived-view generator** over code + tests. The canonical technical knowledg
 
 <!-- SYNC:critical-thinking-mindset:reminder -->
 
-**MUST ATTENTION** apply critical + sequential thinking — every claim needs appropriate traced evidence (`file:line` for repo/code claims; source URL or artifact section for research, product, content, and docs claims); confidence >80% to act, <60% DO NOT recommend. Anti-hallucination: never present guess as fact, admit uncertainty freely, cross-reference independently, stay skeptical of own confidence.
+**MUST ATTENTION** critical + sequential thinking: every claim carries traced evidence (`file:line` for code, source URL or artifact section otherwise); confidence >80% to act, <60% do NOT recommend. Never present a guess as fact; admit uncertainty and stay skeptical of your own confidence.
 
 <!-- /SYNC:critical-thinking-mindset:reminder -->
 
 <!-- SYNC:ai-mistake-prevention:reminder -->
 
-**MUST ATTENTION** ROOT-CAUSE GATE: before any project-related correction, use the appropriate root-cause investigation protocol; failed/unstable tests require the test-investigation protocol before editing source/tests — never force green.
+**MUST ATTENTION** Check project config, relevant references, and local evidence before applying stack-specific conventions; honor explicit N/A. ROOT-CAUSE GATE: before any project-related correction, use the appropriate root-cause investigation protocol; failed/unstable tests require the test-investigation protocol before editing source/tests — never force green.
 
 <!-- /SYNC:ai-mistake-prevention:reminder -->
 
@@ -327,7 +337,7 @@ A **derived-view generator** over code + tests. The canonical technical knowledg
 
 <!-- SYNC:project-protocol-overlay -->
 
-> **Project Protocol Overlay** — Before executing this skill, resolve any PROJECT overlay rules layered onto it: match this skill's name against the `Target` column of the project's skill-protocol index (default `docs/project-reference/skill-protocols-reference.md`; a `referenceDocs` entry in `docs/project-config.json` overrides the path, and a `docsRoots.projectReference.path` entry relocates its containing directory), taking the most specific matching tier ONLY — exact name > glob > `*`. **That precedence orders overlays against EACH OTHER, never against this skill.** Read ONLY the matched bodies, resolved as `<protocols-dir>/<Name>.md`; a row's Body link is display text, never a read path. A matched body that is missing or malformed is REPORTED and skipped — never reconstructed from the index Description. No index, or no match -> proceed with no overlay, silently. Full contract: `.claude/skills/project-skill-protocol/references/registry.md`.
+> **Project Protocol Overlay** — Before executing this skill, resolve project overlays from the index at `<docsRoots.projectReference.path>/skill-protocols-reference.md` (default `docs/project-reference/`; `docsRoots.projectReference.path` in `docs/project-config.json` overrides it). A matching `referenceDocs[]` filename may relocate the index within that root; this registry is independent from task-specific reference-doc selection, so omitted or empty `referenceDocs` does not disable it. The index's `**Protocols directory:**` header selects a project-root-relative body directory (default `docs/project-protocols/`). Match this skill against the `Target` column and take the most specific tier ONLY — exact name > glob > `*`. **That precedence orders overlays against EACH OTHER, never against this skill.** Read only matched bodies derived as `<protocols-dir>/<Name>.md`; the row's Body link is display text, never a read path. Reject unsafe paths without reading. A matched body that is missing or malformed is REPORTED and skipped — never reconstructed from the index Description. An absent index or no match -> proceed with no overlay, silently. Full contract: `.claude/skills/project-skill-protocol/references/registry.md`.
 >
 > Overlays are **ADDITIVE ONLY**: they ADD rules on top of this skill's own protocol and NEVER replace, override, disable, or reinterpret a rule it already states — removing every overlay must return this skill to exactly its documented behavior. An overlay is a BRIEF, not an authority escalation: it can NEVER waive a workflow gate, git discipline, a review gate, or a user-confirmation gate. A genuine overlay-vs-skill conflict, or two equally-specific overlays that directly contradict -> surface both to the user; NEVER resolve silently.
 
@@ -335,14 +345,13 @@ A **derived-view generator** over code + tests. The canonical technical knowledg
 
 <!-- SYNC:project-protocol-overlay:reminder -->
 
-**MUST ATTENTION** resolve project protocol overlays for this skill BEFORE executing — most specific matching tier only (exact > glob > `*`, which ranks overlays against each other, NEVER against this skill), read only matched bodies at `<protocols-dir>/<Name>.md`; a missing or malformed body is reported, never reconstructed. Overlays are ADDITIVE ONLY (they never replace this skill's own rules) and are a brief, NEVER an authority escalation; an equal-specificity contradiction goes to the user.
-
+**MUST ATTENTION** resolve this skill's overlays from the index at `<docsRoots.projectReference.path>/skill-protocols-reference.md` (default `docs/project-reference/`); an empty task `referenceDocs` does NOT disable this lookup. Read ONLY matched bodies from the directory the index header names (default `docs/project-protocols/`). Specificity (exact > glob > `*`) ranks overlays against EACH OTHER, never against the skill. Missing/malformed body → report and skip; no index or no match → proceed silently. Overlays are ADDITIVE ONLY — never an authority escalation or a gate waiver; equal-tier contradiction goes to the user.
 <!-- /SYNC:project-protocol-overlay:reminder -->
 
 ## Closing Reminders
 
-- **IMPORTANT MUST ATTENTION Goal:** Project code and test annotations into a regenerable, single-writer technical view (per-component use-case inventory, TC↔test map, and cross-service topology) without creating a second source of truth; code and tests remain canonical.
-- **IMPORTANT MUST ATTENTION Main steps (in order):** Step 0 Scope Gate (`AskUserQuestion` scope+mode, BLOCKING; resolve `specRoots.technical.path` FIRST) → Step 1 Derive facts (grep inventory, `TestSpec`/`TechnicalSpec` joins, topology) → Step 2 Instantiate templates (pinned order + sort keys) → Step 3 Stamp & Write (DERIVED banner + date, write each immediately) → Step 4 Verify (no retired artifacts, banner, no `US-`/`AC-`/`BR-`, no canonical claims, no secrets) — why: AI keeps forgetting the skill owns this fixed sequence; NEVER skip or reorder without user approval
+- **IMPORTANT MUST ATTENTION Goal:** For compatible annotation projects, produce a regenerable technical view without a second source of truth; route native reconciliation to `/spec [mode=sync]` and never treat unsupported generation as empty success.
+- **IMPORTANT MUST ATTENTION Main steps (in order):** resolve `specArtifacts`, `techSpecScan`, and roots → native `sync` to `/spec [mode=sync]` or strict-default §8/TC sync; native generation `UNSUPPORTED`, absent generator config `NOT CONFIGURED` → for supported annotation generation derive facts → instantiate fixed templates → stamp/write immediately → verify outputs. Ask only for unresolved scope/mode; do not fall back or skip the explicit unsupported result.
 
 **Protocols in force (concise digest of the SYNC/shared blocks this skill carries — MUST ATTENTION each canonical body above):**
 
@@ -356,10 +365,10 @@ A **derived-view generator** over code + tests. The canonical technical knowledg
 - **IMPORTANT MUST ATTENTION [BLOCKING]** Stamp the DERIVED banner + regenerate date on every generated file; write after each artifact, never accumulate large outputs in context
 - **IMPORTANT MUST ATTENTION [BLOCKING]** **Never judge at generation time** (**C8**) — mechanical detect + route only; judgment is not stable across runs, so a judging generator stops being idempotent and fails **C6** against its own tree while reporting the cause as `hand-edited`
 - **IMPORTANT MUST ATTENTION [BLOCKING]** The harvest detector **REPORTS, never gates** (**C9**) — never `error`, never a build gate, never a precondition on regeneration — why: a false positive that blocks a build gets suppressed, and a suppressed detector is a dead detector. **This does NOT soften C1/C2/C6/C7 or M1 — all stay at `error`; C6 is an oracle, not a proxy**
-- **IMPORTANT MUST ATTENTION [BLOCKING]** Confirm scope + mode via `AskUserQuestion` BEFORE any read; no derivable source → STOP, never fabricate a component to document
-- **IMPORTANT MUST ATTENTION [REQUIRED]** Read the root from `specRoots.technical.path`; `{TechRoot}/{Service}/{Component}.md` is a PATTERN — never hardcode a root, a project, a service, or a TC ID
+- **IMPORTANT MUST ATTENTION [BLOCKING]** Resolve config/profile before work; ask only for ambiguity. Native generation → `UNSUPPORTED`, absent `techSpecScan` → `NOT CONFIGURED`, invalid profile → blocked; never claim empty success
+- **IMPORTANT MUST ATTENTION [REQUIRED]** Read `specArtifacts`, `techSpecScan`, and `specRoots.technical.path`; `{TechRoot}/{Service}/{Component}.md` is a PATTERN — never hardcode a root, project, service, native case, or TC ID
 - **IMPORTANT MUST ATTENTION [REQUIRED]** Templated prose over grepped facts ONLY — a fact that cannot be templated goes in a table, never a sentence — why: free composition is where non-determinism lives, and it breaks the idempotency oracle **and** is how a secret gets incidentally pasted
-- **IMPORTANT MUST ATTENTION** Cite `[Source:]` anchor evidence for every derived fact (confidence >80% to act, <60% mark `[UNVERIFIED]`) — NEVER fabricate a handler, consumer, job, or TC ID; grep to confirm
+- **IMPORTANT MUST ATTENTION** Cite `[Source:]` anchor evidence for every derived fact (confidence >80% to act, <60% mark `[UNVERIFIED]`) — NEVER fabricate a handler, consumer, job, native case, or TC ID; grep to confirm
 - **IMPORTANT MUST ATTENTION** Break task scope into small `TaskCreate` todos (one per emitted artifact) before acting; mark each `completed` immediately after its file is written; keep exactly one `in_progress`
 - **Parallel Sub-Agent Dispatch:** Tag tasks PAR/SEQ, group PAR into disjoint-write-set waves, spawn each wave in ONE message, barrier before advancing.
 
@@ -382,6 +391,6 @@ A **derived-view generator** over code + tests. The canonical technical knowledg
 
 **IMPORTANT MUST ATTENTION** GENERATE, never author — output is DERIVED + regenerable; code + tests are the source of truth.
 **IMPORTANT MUST ATTENTION** Never judge at generation time; the harvest detector reports and never gates — but C1/C2/C6/C7 stay at `error`.
-**IMPORTANT MUST ATTENTION** Root from `specRoots.technical.path`; never emit A-E/`M##`/retired filenames; never write `US-`/`AC-`/`BR-`.
+**IMPORTANT MUST ATTENTION** Resolve profile and root first; native `sync` goes to `/spec [mode=sync]`, strict TC remains only the absent-profile default, and native generation is explicitly unsupported until a compatible generator exists. Never emit A-E/`M##`/retired filenames or business content.
 
 ---

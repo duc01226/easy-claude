@@ -16,7 +16,7 @@ Use after running `scripts/git-developer-performance.cjs`.
 10. Discount generated, migration-designer, docs/spec, i18n-sorting, lockfile, and repeated follow-up churn before estimating.
 11. For rechecks or velocity mismatch, write an external analysis file first and synthesize each contributor's direct work as one "giant commit."
 12. Split the giant commit into atomic 1/2/3/5/8/13 SP clusters; displayed theme totals over 13 SP must be explicit sums, not one unsplit story.
-13. Separate product/domain delivery, infrastructure/tooling, docs/generated churn, and merge/admin integration before producing team velocity totals.
+13. Separate product/domain delivery, platform/tooling work, docs/generated churn, and merge/admin integration before producing team velocity totals.
 14. Synthesize value; do not stop at commit counts, file counts, or churn.
 15. Estimate both no-AI (`man_days_traditional`) and AI-assisted (`man_days_ai`) ranges.
 16. Run a velocity sanity check against active days and selected period; re-audit implausible SP/man-day ranges.

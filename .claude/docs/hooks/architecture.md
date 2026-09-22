@@ -1,6 +1,6 @@
 # Hook Architecture
 
-Hooks are small CommonJS entry points that run at Claude Code lifecycle events. They initialize session context, enforce safety gates, format edits, and keep the code graph current. Enforcement and compaction-state recovery are static model-driven guidance, not hooks.
+Hooks are small CommonJS entry points that run at Claude Code lifecycle events. They initialize session context, enforce safety gates, format edits, keep the code graph current, and can emit optional runtime guidance. Universal enforcement and compaction-state recovery remain static model-driven guidance.
 
 ## Runtime Contract
 
@@ -9,7 +9,7 @@ Hooks are small CommonJS entry points that run at Claude Code lifecycle events. 
 - Hook processes receive one JSON payload on stdin. Prefer `lib/stdin-parser.cjs` or an existing hook helper over ad hoc parsing.
 - Text written to stdout is injected into model context. Keep it concise, action-oriented, and deduped when possible.
 - Diagnostics and block reasons go to stderr.
-- Exit `0` to allow the operation. Exit `2` only for intentional blocking gates such as path, privacy, broad-search, init, or commit guards.
+- Exit `0` to allow the operation. Exit `2` only for the active blocking gate: `review-commit-gate.cjs` for supported commit operations.
 
 ## Lifecycle
 
@@ -21,7 +21,7 @@ SessionStart -> UserPromptSubmit -> PreToolUse -> Tool -> PostToolUse
  PreCompact hook — compaction-state recovery is static model-driven guidance.)
 ```
 
-The framework registers hook events across `SessionStart`, `UserPromptSubmit`, `PreToolUse`, `PostToolUse`, `SessionEnd`, `Notification`, and `Stop`; there is no `SubagentStart` hook (sub-agent guidance is static in `.claude/agents/*.md`). Session hooks initialize project context and load routing/graph guidance. Prompt hooks enforce intake gates; workflow routing and the workflow catalog are model-driven from static `CLAUDE.md` context, not injected by a prompt hook. PreToolUse hooks enforce safety gates and block unsafe actions. PostToolUse hooks format outputs, update the code graph, and (opt-in) remind the model of the conventions of the file it just read or changed. Plan/skill/todo enforcement and compaction-state recovery are model-driven static guidance in `CLAUDE.md` / `SKILL.md`, not hooks.
+The framework registers hook events across `SessionStart`, `UserPromptSubmit`, `PreToolUse`, `PostToolUse`, `SessionEnd`, `Notification`, and `Stop`; there is no `SubagentStart` hook (sub-agent guidance is static in `.claude/agents/*.md`). Session hooks initialize project context and graph guidance. Prompt hooks enforce intake gates and can inject the default-on workflow route/catalog reminder; tracked team config can opt out and a developer-local override controls runtime delivery. PreToolUse currently includes an AskUserQuestion notification, two Bash handlers (the review-commit blocker and the warning-only doc-sync gate), and a warning-only doc-sync matcher for Write|Edit|MultiEdit. PostToolUse hooks format outputs, update the code graph, and (opt-in) remind the model of the conventions of the file it just read or changed. Plan/skill/todo enforcement and compaction-state recovery are model-driven static guidance in `CLAUDE.md` / `SKILL.md`, not hooks.
 
 ## Layer Boundaries
 
@@ -33,7 +33,7 @@ The framework registers hook events across `SessionStart`, `UserPromptSubmit`, `
 
 ## Context Injection
 
-Per-edit/per-prompt context guidance lives statically in `CLAUDE.md`, `.claude/agents/*.md`, and skill `SKILL.md` files so Claude and Codex read identical instructions. Runtime context hooks are optional accelerators, not an authority boundary. Any hook that emits context (e.g. `session-init.cjs` / `graph-session-init.cjs` status guidance) should inject only the guidance needed for the current event, prefer a read-on-demand pointer over whole files for large references, and use stable dedup markers from `.claude/hooks/lib/dedup-constants.cjs` when a hook can fire repeatedly in one session.
+Universal project guidance lives statically in `CLAUDE.md`, `.claude/agents/*.md`, and skill `SKILL.md` files so Claude and Codex read identical instructions. The workflow route gate is static; `workflow-route-inject.cjs` is its default-on runtime accelerator for the live catalog, with tracked team opt-out and a developer-local runtime override. Any hook that emits context should inject only the guidance needed for the current event, prefer a read-on-demand pointer over whole files for large references, and use stable dedup state when it can fire repeatedly in one session.
 
 `file-convention-inject.cjs` is the per-file instance of this rule: the convention classes in `docs/project-config.json` `contextGroups[]` are rendered statically (CLAUDE.md/AGENTS.md "Automatic Skill Activation" table with `[[convention:name@hash8]]` tags, plus `node .claude/hooks/lib/file-conventions.cjs --lookup <path>`), and the hook only re-delivers a class that is missing from the current working context (new session or helper agent, condensation, changed class content or membership patterns, or long conversation growth). Deleting the hook loses timing, never content. Details: [README.md § Per-File Convention Injection](./README.md#per-file-convention-injection).
 

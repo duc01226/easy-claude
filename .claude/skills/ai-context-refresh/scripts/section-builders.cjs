@@ -162,14 +162,34 @@ function buildTldr(config) {
 }
 
 function buildGoldenRules(config) {
-    const groups = config.contextGroups || [];
-    const allRules = groups.flatMap(g => g.rules || []);
-    if (allRules.length === 0) return null;
+    const groups = (config.contextGroups || []).filter(group =>
+        group && Array.isArray(group.rules) && group.rules.some(rule => typeof rule === 'string' && rule.trim())
+    );
+    if (groups.length === 0) return null;
 
-    // Deduplicate and number
-    const unique = [...new Set(allRules)];
-    const lines = unique.map((r, i) => `${i + 1}. ${r}`);
-    return `**Golden Rules (memorize these):**\n\n${lines.join('\n')}`;
+    const literal = value => `\`${String(value).replace(/`/g, '\\`')}\``;
+    const renderMatchers = (label, values) => values.length
+        ? `${label}: ${values.map(literal).join(', ')}`
+        : null;
+    const renderedGroups = groups.map(group => {
+        const includes = [
+            ...(group.pathRegexes || []).map(value => `path regex ${literal(value)}`),
+            ...(group.pathGlobs || []).map(value => `path glob ${literal(value)}`),
+            ...(group.fileNameRegexes || []).map(value => `filename regex ${literal(value)}`)
+        ];
+        const scope = [
+            includes.length ? `include any of: ${includes.join(', ')}` : 'no valid include matcher configured',
+            renderMatchers('extensions', group.fileExtensions || []),
+            renderMatchers('exclude path regexes', group.excludePathRegexes || []),
+            renderMatchers('exclude path globs', group.excludePathGlobs || [])
+        ].filter(Boolean).join('; ');
+        const rules = [...new Set(group.rules.map(rule => rule.trim()).filter(Boolean))]
+            .map((rule, index) => `  ${index + 1}. ${rule}`)
+            .join('\n');
+        return `- **${group.name || 'unnamed'}** — ${scope}\n${rules}`;
+    });
+
+    return `**Path-scoped project rules:**\n\nApply a group's rules only when the file matches at least one include matcher, matches one configured extension when an extension filter is present, and matches none of that group's exclusions.\n\n${renderedGroups.join('\n\n')}`;
 }
 
 function buildDecisionQuickRef(config) {
@@ -177,21 +197,37 @@ function buildDecisionQuickRef(config) {
     if (modules.length === 0) return null;
 
     const rows = [];
-    // Framework identity alone does not establish an application architecture.
+    // Configuration must name a convention; a database/broker technology alone does not
+    // establish an application's data-access or messaging architecture.
     if (config.framework?.backendPatternsDoc) {
         rows.push(`| Backend conventions | Read \`${config.framework.backendPatternsDoc}\` |`);
     }
-    if (config.databases?.primary) {
-        rows.push(`| Data access | Service-specific repository |`);
+    if (config.framework?.frontendPatternsDoc) {
+        rows.push(`| Frontend conventions | Read \`${config.framework.frontendPatternsDoc}\` |`);
     }
-    if (config.messaging?.broker) {
-        rows.push(`| Cross-service sync | Entity Event Consumer (${config.messaging.broker}) |`);
+
+    const workflowPatterns = config.workflowPatterns || {};
+    for (const [field, label] of [
+        ['architectureStyle', 'Architecture style'],
+        ['codeHierarchy', 'Code hierarchy'],
+        ['crossModuleValidation', 'Cross-module validation'],
+        ['cssMethodology', 'Styling methodology'],
+        ['stateManagement', 'State management']
+    ]) {
+        const value = workflowPatterns[field];
+        if (typeof value === 'string' && value.trim()) {
+            rows.push(`| ${label} | ${tableCell(value.trim())} |`);
+        }
+    }
+
+    if (typeof config.messaging?.consumerConvention === 'string' && config.messaging.consumerConvention.trim()) {
+        rows.push(`| Message consumer convention | ${tableCell(config.messaging.consumerConvention.trim())} |`);
     }
 
     // Add module-specific patterns
     for (const mod of modules) {
         if (mod.meta?.repository) {
-            rows.push(`| ${mod.name} repository | \`${mod.meta.repository}\` |`);
+            rows.push(`| ${tableCell(mod.name)} repository | \`${tableCell(mod.meta.repository)}\` |`);
         }
     }
 
@@ -305,7 +341,7 @@ function buildE2eTesting(config) {
     const stack = [arch.webDriverType, arch.bddFramework, arch.pattern]
         .map(k => PRETTY[k]).filter(Boolean).join(' + ');
     const docLink = doc
-        ? `Full guide: [${path.basename(doc)}](${doc}) for E2E test patterns, page objects, and configuration.`
+        ? `Full guide: [${path.basename(doc)}](${doc}) for E2E test patterns, test organization, and execution configuration.`
         : '';
 
     // Keep generated root context useful without copying commands, credentials,
@@ -336,7 +372,13 @@ function buildE2eTesting(config) {
     if (execution.browser) {
         const runner = execution.browser.runner ? ` runner \`${String(execution.browser.runner).replace(/[|\r\n]/g, ' ')}\`` : '';
         const headed = execution.browser.headed === true ? 'headed/visible' : execution.browser.headed === false ? 'headless' : 'configured visibility';
-        executionLines.push(`- **E2E browser:**${runner}; ${headed}. Use the shared bounded waitUntil(condition, options) helper before and after every UI-control operation for readiness/actionability, expected positive/negative outcomes, and applicable error-alert states; apply exactly 500ms of post-operation presentation pacing only at the end for automation and human-QC. This is never a readiness or settle signal.`);
+        const configuredDelay = Number.isSafeInteger(execution.browser.actionDelayMs) && execution.browser.actionDelayMs >= 0
+            ? execution.browser.actionDelayMs
+            : null;
+        const pacing = configuredDelay === null
+            ? 'Apply action delays only when the project contract documents them.'
+            : `Apply the configured ${configuredDelay}ms post-action delay only for the project-defined pacing need.`;
+        executionLines.push(`- **E2E browser:**${runner}; ${headed}. Use runner-native waits or an evidenced project helper for observable readiness and postconditions; waits must not weaken the final assertion. ${pacing} A delay is never a readiness or settle signal.`);
     }
     if (execution.evidence) {
         const capture = Array.isArray(execution.evidence.capture) ? execution.evidence.capture.join(', ') : 'configured capture set';

@@ -71,6 +71,8 @@ When no active `plan.md` exists yet, an explicit roadmap selection, an embedded 
 | Product roadmap | What outcome is validated next, which risks are retired, what is not included, what requires human approval, and what evidence proves the milestone | Framework, database schema, class/module layout, implementation order, sprint dates |
 | Scope brief | Which one milestone is selected, actors, user outcome, in-scope behavior, non-goals, terms, source-of-truth state, and success evidence | Technical design or file-level tasks |
 | Embedded decomposition block | Which independently releasable slices, dependencies, non-goals, risks/evidence, and deferred owners belong to a large idea | Creating a second roadmap artifact or changing product intent downstream |
+| Product outcome slice | Which independently releasable actor-facing outcome is delivered and how completion is observed | A list of implementation phases, modules, files, or test tasks |
+| Technical delivery task | Which ordered work item implements or verifies one or more outcomes, with its owner, dependency, and proof | A product outcome or evidence that a user-facing outcome is independently releasable |
 | Framework/library technical brief | Which reusable protocol outcome, affected carriers, operational risks, and proof gates are in scope | Adopter product milestones or product business decisions |
 | Scenario analysis | Which realistic situations can corrupt data, mislead users, violate access/state rules, or make a demo appear reliable when it is not | Choosing a framework or implementing mitigations |
 | Implementation plan | How the approved scope will be built: files, dependencies, phases, tests, commands, and rollback/observability evidence | Inventing unresolved product intent |
@@ -90,6 +92,8 @@ isLargeIdea = multipleIndependentOutcomes
 - When `isLargeIdea=true`, keep the milestone mindset inside `large_idea_decomposition`; do not create `{roadmap-file}` unless the user explicitly requests a roadmap deliverable.
 - When all four signals are false, omit the decomposition block, roadmap path, milestone ID, and scope-brief requirement unless the user supplies an existing roadmap as read-only context.
 - `independentlySliceable` is a property of an outcome slice, not a fifth trigger by itself.
+- Evaluate `multipleIndependentOutcomes` at the product-outcome level. Technical delivery stages alone do not become outcomes or satisfy this signal because they are numbered, independently testable, ordered, or separately owned. If a plan has technical stages such as S1–S9 to deliver one actor-facing outcome, keep those stages in the implementation task graph and define the product outcome once. Map tasks to outcome slices when needed; one task may support multiple outcomes, and one outcome may require multiple tasks.
+- `releaseScopeDecomposition` concerns independently releasable product outcomes and their release boundaries, not a technical phase list. A technical stage becomes an outcome slice only when it independently delivers an observable actor-facing outcome with its own release condition.
 - When a user explicitly requests a product roadmap, route to the standalone writer and apply `Required roadmap content`.
 - An existing user-supplied roadmap may be read as context; reading it never authorizes creating or updating a repository roadmap.
 - A framework/library protocol change uses the `FRAMEWORK-LIBRARY` branch below, not a product roadmap or the small-change exemption.
@@ -132,7 +136,7 @@ large_idea_decomposition:
 
 Requiredness rules:
 
-- `outcome_slices` is a non-empty ordered list; every slice is independently releasable and has one stable ID.
+- `outcome_slices` is a non-empty ordered list of independently releasable actor-facing outcomes, each with one stable ID and observable release condition. Do not use it as the implementation task list.
 - `dependencies_order` is ordered and explicit. Use `[]` only with `none_identified: true` and a note explaining the check.
 - `non_goals` names what is deferred and who owns the boundary. Use `[]` only with an explicit `none_identified` statement.
 - `risks_evidence` names the evidence owner and status for each material risk. Use `[]` only with an explicit `none_identified` statement.
@@ -215,7 +219,9 @@ For a `FRAMEWORK-LIBRARY` change, the stable path MUST contain:
 
 ## Scenario minimum
 
-`scenario-analysis.md` MUST list realistic triggers and expected outcomes for the selected scope or EXEMPT change. At minimum, consider duplicate submission/replay/refresh, invalid input, concurrent edits, deletion/orphans, state transition boundaries, authorization/ownership/isolation, partial failure/recovery, and evidence/secret leakage when applicable. Each high-impact scenario maps to an invariant, a prevention/detection expectation, and a planned evidence or TC ID.
+`scenario-analysis.md` MUST list realistic triggers and expected outcomes for the selected scope or EXEMPT change. At minimum, consider duplicate submission/replay/refresh, invalid input, concurrent edits, deletion/orphans, state transition boundaries, authorization/ownership/isolation, partial failure/recovery, and evidence/secret leakage when applicable. Each high-impact scenario maps to an invariant, a prevention/detection expectation, and planned evidence or a canonical scenario/case ID from the configured profile (TC by default).
+
+Case identity and test cardinality follow `shared/sdd-artifact-contract.md`: Section 8 TC with one-to-many test mapping is the strict default; a declared native profile may use owner-qualified scenario IDs and its existing YAML/inline carrier to declare a many-to-many mapping. One executor may cover several scenarios, and one scenario may have variant rows, but aggregate evidence proves only rows whose assertions execute in the mapped test.
 
 ## Plan Gate
 

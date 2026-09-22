@@ -17,16 +17,13 @@
  * DELIBERATELY NOT WIRED — these mutate real repository files and would make
  * the battery destructive if a run crashed mid-test, so they stay manual:
  *   - `test-init-reference-docs.cjs`  → backs up and rewrites `docs/project-config.json`
- *   - `test-ckignore.js`              → backs up and rewrites `.claude/.ckignore`
- * `test-ckignore.js` and `test-modularization-hook.js` are additionally RED:
- * both target files deleted in an earlier refactor (`scout-block/scout-block.sh`
- * and `hooks/modularization-hook.js`), so they assert against implementations
- * that no longer exist. They are left in place, unwired and reported, rather
- * than deleted here — both are registered in `.claude/metadata.json`, so
- * removing them is an install-manifest change for the owner to make.
+ * `test-modularization-hook.js` is additionally RED: its target file was deleted
+ * in an earlier refactor (`hooks/modularization-hook.js`), so it asserts against
+ * an implementation that no longer exists. It is left in place, unwired and
+ * reported, rather than deleted here — it is registered in `.claude/metadata.json`,
+ * so removing it is an install-manifest change for the owner to make.
  *
  * `test-doc-sync-gate.cjs` has its own wrapper (`doc-sync-gate.test.cjs`) and
- * `test-privacy-block.js` is already spawned by `privacy-operands.test.cjs`;
  * neither is repeated here.
  */
 
@@ -41,24 +38,20 @@ const REPO_ROOT = path.resolve(__dirname, '..', '..', '..', '..');
 // paths relative to cwd, so running it from anywhere else exercises a
 // different code path than the documented one.
 const SCRIPTS = [
-    ['test-git-commit-block.cjs', 'git authority policy, lease scoping, GitHub CLI publish gate, classifier mutants'],
+    ['test-git-statement.cjs', 'Git/gh statement classifier, lease scoping, GitHub CLI publish gate, classifier mutants'],
     ['test-lib-modules.cjs', 'core lib module contracts'],
     ['test-lib-modules-extended.cjs', 'extended lib module contracts and project-root detection'],
     ['test-shared-utilities.cjs', 'shared hook utilities and swap-directory ownership'],
-    ['test-swap-engine.cjs', 'external-memory swap engine and session-end cleanup'],
-    ['test-scout-block.js', 'scout-block ckignore pattern matching'],
-    ['test-path-boundary-block.js', 'path-boundary hook end-to-end decisions']
+    ['test-swap-engine.cjs', 'external-memory swap engine and session-end cleanup']
 ];
 
 // Every sibling suite that spawns a child bounds it; this one did not, so a
 // single hung script stalled the whole battery indefinitely with no diagnostic
 // — the worst failure mode for a gate, because it produces no verdict at all.
 //
-// The bound is MEASURED, not guessed. All seven scripts are spawned together, so
-// each competes with six peers. On this Windows checkout:
-//   test-git-commit-block.cjs   88.2s solo -> 125.5s under 7-way contention (+43%)
-//   test-path-boundary-block.js 48.5s solo ->  57.9s
-//   test-scout-block.js         23.4s solo ->  23.5s
+// The bound is MEASURED, not guessed. All five scripts are spawned together, so
+// each competes with four peers. On this Windows checkout:
+//   test-git-statement.cjs   88.2s solo -> 125.5s under 5-way contention (+43%)
 // The slowest script legitimately needs over two minutes here, so a 120s bound
 // killed working work. 300s clears the measured worst case ~2.4x — enough headroom
 // for a slower machine — while still converting an unbounded hang into a NAMED

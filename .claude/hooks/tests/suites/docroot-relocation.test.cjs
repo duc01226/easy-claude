@@ -377,35 +377,27 @@ const tests = [
 
     // ── SC-10 ───────────────────────────────────────────────────────────────
     {
-        name: '[docroot-relocation] TC-DOCROOT-158 buildSkeleton under the fixture .ck.json derives the relocated doc paths',
+        name: '[docroot-relocation] TC-DOCROOT-158 buildSkeleton stays minimal under relocated project roots',
         fn: () => {
-            const out = inFixture(RELOCATED, `
+            const skeleton = inFixture(RELOCATED, `
                 const H = require(REPO + '/.claude/hooks/lib/session-init-helpers.cjs');
-                const s = H.buildSkeleton();
-                return { framework: s.framework, design: s.designSystem.docsPath, docsRoots: s.docsRoots };
+                return H.buildSkeleton();
             `);
-            const expectedDocs = {
-                backendPatternsDoc: 'documentation/reference/backend-patterns-reference.md',
-                frontendPatternsDoc: 'documentation/reference/frontend-patterns-reference.md',
-                codeReviewDoc: 'documentation/reference/code-review-rules.md',
-                integrationTestDoc: 'documentation/reference/integration-test-reference.md'
-            };
-            for (const [key, value] of Object.entries(expectedDocs)) {
-                assertEqual(out.framework[key], value, `framework.${key} must derive from the relocated reference dir`);
-            }
-            assertEqual(out.design, 'documentation/reference/design-system', 'designSystem.docsPath must derive too');
             assertEqual(
-                out.docsRoots.projectReference.path,
-                'documentation/reference',
-                'the seeded docsRoots.projectReference must TRACK the relocated dir, not re-write the default'
+                schema.validateConfig(skeleton).valid,
+                true,
+                'a relocated project can still bootstrap the minimum schema-valid config'
             );
-            // The other five are seeded at their documented defaults on purpose: the skeleton is
-            // only ever written when no config exists, so it may not invent a relocation.
-            assertEqual(out.docsRoots.adr.path, loader.PORTABILITY_TOKENS.ADR_ROOT.default);
-            assertEqual(out.docsRoots.teamArtifacts.path, loader.PORTABILITY_TOKENS.TEAM_ARTIFACTS_ROOT.default);
-            for (const value of Object.values(expectedDocs)) {
-                assertNotContains(value, 'docs/project-reference', 'no default reference literal may be re-written over a relocation');
-            }
+            assertEqual(skeleton.project.name, path.basename(RELOCATED), 'the project-root folder is the evidence-backed identity fallback');
+            assertDeepEqual(
+                Object.keys(skeleton).sort(),
+                ['_description', 'project', 'schemaVersion'],
+                'bootstrap emits only required identity plus schema metadata'
+            );
+            assertEqual(skeleton.framework, undefined, 'a relocated docs root does not prove a backend or frontend stack');
+            assertEqual(skeleton.designSystem, undefined, 'a relocated docs root does not prove a design-system capability');
+            assertEqual(skeleton.docsRoots, undefined, 'the skeleton does not invent or copy optional relocated roots');
+            assertEqual(skeleton.referenceDocs, undefined, 'task-specific reference selection remains absent');
         }
     },
 
@@ -467,11 +459,53 @@ const tests = [
                 'with no project-config root the live .ck.json consumer must keep working'
             );
             assertEqual(planResolver.resolvePlansDir({}, {}), 'plans', 'with neither source the documented default is unchanged');
-            assertEqual(
-                planResolver.getReportsPath(null, null, { reportsDir: 'reports' }, ck.paths),
-                'ck-legacy-plans/reports/',
-                'getReportsPath composes from whichever tier resolvePlansDir chose'
-            );
+
+            // getReportsPath intentionally loads the ambient project config through
+            // resolvePlansDir(). The relocated integration fixture has docsRoots.plans.path,
+            // so calling it in this process tests Orient One's live config instead of the
+            // fixture's .ck.json fallback. Use a fresh minimal project with no plans root to
+            // prove the legacy tier end-to-end without ambient config leakage.
+            const tmpRoot = path.join(REPO, 'tmp');
+            fs.mkdirSync(tmpRoot, { recursive: true });
+            const isolatedRoot = fs.mkdtempSync(path.join(tmpRoot, `docroot-160-${process.pid}-`));
+            try {
+                fs.mkdirSync(path.join(isolatedRoot, '.claude'), { recursive: true });
+                fs.mkdirSync(path.join(isolatedRoot, 'docs'), { recursive: true });
+                fs.writeFileSync(
+                    path.join(isolatedRoot, 'docs', 'project-config.json'),
+                    JSON.stringify({ schemaVersion: 2, project: { name: 'Docroot Fallback Fixture' } }),
+                    'utf8'
+                );
+                fs.writeFileSync(
+                    path.join(isolatedRoot, '.claude', '.ck.json'),
+                    JSON.stringify({ paths: { plans: ck.paths.plans } }),
+                    'utf8'
+                );
+
+                const fallback = inFixture(isolatedRoot, `
+                    const resolver = require(REPO + '/.claude/hooks/lib/ck-plan-resolver.cjs');
+                    const config = JSON.parse(require('fs').readFileSync(require('path').join(FIXTURE, 'docs', 'project-config.json'), 'utf8'));
+                    const legacy = JSON.parse(require('fs').readFileSync(require('path').join(FIXTURE, '.claude', '.ck.json'), 'utf8'));
+                    return {
+                        configHasNoPlansRoot: !config.docsRoots?.plans?.path,
+                        plans: resolver.resolvePlansDir(legacy.paths),
+                        reports: resolver.getReportsPath(null, null, { reportsDir: 'reports' }, legacy.paths)
+                    };
+                `);
+                assertTrue(fallback.configHasNoPlansRoot, 'The isolated required config must omit docsRoots.plans.path');
+                assertEqual(fallback.plans, 'ck-legacy-plans', 'With no configured content root the live resolver uses .ck.json paths.plans');
+                assertEqual(
+                    fallback.reports,
+                    'ck-legacy-plans/reports/',
+                    'getReportsPath composes from the isolated .ck.json fallback rather than the live project config'
+                );
+            } finally {
+                const relative = path.relative(path.resolve(tmpRoot), path.resolve(isolatedRoot));
+                if (!relative || path.isAbsolute(relative) || relative === '..' || relative.startsWith(`..${path.sep}`)) {
+                    throw new Error(`Refusing to remove docroot fixture outside repository tmp: ${isolatedRoot}`);
+                }
+                fs.rmSync(isolatedRoot, { recursive: true, force: true });
+            }
         }
     },
 

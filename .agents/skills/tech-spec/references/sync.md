@@ -1,4 +1,10 @@
-> The `tech-spec` skill (`../SKILL.md`) loads this body for `[mode=sync]`. It is a DERIVED technical reconciliation report over canonical Section 8 business TCs and test code. The host SKILL.md owns the generic gates and the standalone next-steps tail — this body carries only the sync-mode detection/report procedure. For TC authoring/generation, see `$spec [mode=tests]`; for business §8 writes, route to `$spec [mode=sync]`. This skill never authors or amends §8.
+> The `tech-spec` skill (`../SKILL.md`) loads this body only for the strict-default TC profile. A configured native artifact profile reconciles through `$spec [mode=sync]` and does not enter the §8/TC procedure below. This body owns the default annotation-mode sync report; it never authors or amends the business source.
+
+### Profile dispatch — resolve before TC scanning
+
+Read `docs/project-config.json` and resolve `specArtifacts` before scanning any case IDs. If a valid native profile is declared, route through `$spec [mode=sync]`, consume its native reconciliation report, and stop this procedure. Preserve owner-qualified case/scenario/variant identity and configured requirement/acceptance/evidence fields; map each to its actual executor, assertion, and observed runner result. Keep missing or ambiguous owner, case, assertion, or run evidence `UNKNOWN` / `UNVERIFIED`. Never scan for or add duplicate TC/§8 records as a compatibility layer. A malformed declared profile blocks; it never falls back to TC.
+
+If no native profile applies, run the strict §8/TC procedure below unchanged. A missing required default annotation contract is `NOT CONFIGURED`, not empty coverage or successful sync.
 
 # Mode: Report §8 TCs ↔ Test Code Drift
 
@@ -38,8 +44,9 @@ Matching a TC id against the corpus answers *"does something carry this string?"
 
 <!-- SYNC:tc-test-join-evidence -->
 
-> 1. **The resolved artifact is a TEST** — test project/suite membership, a test-framework annotation, or an executing assertion. Say which you checked. A corpus search matches production source too; implementations routinely cite in a comment the TC they satisfy.
-> 2. **The resolved test's SUBJECT matches this TC's `Given/When/Then`.** TC IDs are not guaranteed unique — the same ID may be bound by an unrelated test or one in a different module. An ID match is a string match; only the body match is evidence.
+> 1. **The resolved artifact is an executing TEST** — prove suite/project membership, the configured test-carrier row, or an executing assertion, and say which you checked. A corpus search can match production source; a comment citing a case is not execution evidence.
+> 2. With a valid `specArtifacts` profile, join by the configured ownership tuple: canonical owner path + native case/scenario ID + optional variant. Trace each tuple to its actual executor and inspect the assertion at `file:line`; preserve configured one-to-many or many-to-many cardinality. A result for several scenarios proves each only when the executor reaches an assertion for every row.
+> 3. With no `specArtifacts` profile, use the strict-default TC identity; a malformed declared profile blocks without fallback. In either profile, the resolved test must match the scenario's native preconditions/actions and owned outcome (Given/When/Then when selected); an ID match is a string match, not proof.
 
 <!-- /SYNC:tc-test-join-evidence -->
 

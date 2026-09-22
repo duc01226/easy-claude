@@ -21,8 +21,36 @@ except ImportError:
     # Fallback if shared utility not available
     if sys.platform == 'win32':
         import io
-        if hasattr(sys.stdout, 'buffer'):
-            sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
+        stdout = sys.stdout
+        reconfigured = False
+        reconfigure = getattr(stdout, 'reconfigure', None)
+        if callable(reconfigure):
+            try:
+                reconfigure(encoding='utf-8')
+            except (AttributeError, io.UnsupportedOperation, ValueError):
+                pass
+            else:
+                reconfigured = True
+
+        if not reconfigured:
+            buffer = getattr(stdout, 'buffer', None)
+            detach = getattr(stdout, 'detach', None)
+            if buffer is not None and callable(detach):
+                previous_errors = getattr(stdout, 'errors', None) or 'strict'
+                line_buffering = bool(getattr(stdout, 'line_buffering', False))
+                write_through = bool(getattr(stdout, 'write_through', False))
+                try:
+                    detached_buffer = detach()
+                except (AttributeError, OSError, ValueError):
+                    pass
+                else:
+                    sys.stdout = io.TextIOWrapper(
+                        detached_buffer,
+                        encoding='utf-8',
+                        errors=previous_errors,
+                        line_buffering=line_buffering,
+                        write_through=write_through,
+                    )
 
 from core import CSV_CONFIG, AVAILABLE_STACKS, MAX_RESULTS, search, search_stack
 

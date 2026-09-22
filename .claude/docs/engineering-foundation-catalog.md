@@ -141,44 +141,38 @@ toolchain plus a lockfile plus an honest README satisfies `R0`/`R1` completely.
 
 ---
 
-### F2 · Dual execution modes — host and container are both first-class
+### F2 · Supported execution modes — reproducible paths without a two-mode mandate
 
-**Outcome.** The system can be run **on the developer's host machine** and **fully containerized**,
-from the same source of truth, and **the test suites are runnable in both** — from the host against a
-containerized system, and from entirely inside containers. Neither mode is a second-class citizen
-that silently rots.
+**Outcome.** The project has a documented, repeatable way to build, run, and test the capabilities it
+actually supports. When it supports or requires multiple execution modes (for example, host and
+container, local and managed service, simulator and device), those modes share configuration and
+topology where possible and do not silently rot.
 
-**Why both, and why this is a real dimension rather than a preference:** host mode gives fast
-iteration, debugger attachment, and a short edit-run loop. Container mode gives parity with CI and
-production, and is the only mode a new contributor can trust on day one. Projects that support only
-host mode ship "works on my machine". Projects that support only container mode make debugging and
-inner-loop development slow enough that people work around the containers — and the workaround is
-undocumented, which recreates the same problem. Supporting one mode well and letting the other rot is
-the failure; a mode that exists but is broken is worse than one that was never claimed.
+**Why this is a real dimension:** contributors need a reliable inner loop and the team needs a
+repeatable path for CI, release, and incident reproduction. Host/container parity can provide that
+for many services, but some project types have a single useful mode or depend on environments that
+cannot be containerized (for example, a device toolchain or a managed/serverless runtime). Requiring
+two modes everywhere adds setup and maintenance without improving those projects.
 
 **Proof:**
 
-- Both modes are **documented and named**, with the command for each.
-- Both modes are **exercised**, not merely declared — ideally one of them by CI on every change, so
-  the unexercised mode cannot rot unnoticed. If only one mode is exercised, say which, and treat the
-  other as `PARTIAL-WITH-PATH`.
-- **One source of truth for configuration and service topology** across modes: the modes differ in
-  where things run, not in what the system is. Divergent per-mode config is the rot vector.
-- **Test execution is possible in both directions**: host-run tests can target a containerized
-  system, and the suite can also run wholly inside a container. Where a tier genuinely cannot (a
-  test needing host GPU, a real device, a browser the image lacks), record `N/A — <evidence>` rather
-  than pretending.
-- **Cross-platform honesty**: if contributors are on different operating systems, the documented path
-  works on each, or the unsupported ones are named.
+- Name the execution modes the project uses or promises to contributors/operators and give the
+  command or documented path for each.
+- Exercise every claimed or required mode. If two modes are intentionally supported, use one source
+  of truth for shared configuration/topology and test each mode to the extent its contract differs.
+- If only one mode fits the runtime, platform, team, or delivery model, document why; verify that
+  path and classify the second-mode comparison `N/A-by-profile` rather than inventing a mode.
+- State which path CI/release exercises and explain any environment reach that is unavailable.
+- **Cross-platform honesty:** if contributors use different operating systems/devices, document the
+  supported path or name the tested boundary.
 
-**Warranted at:** `T1+`, or any profile with more than one contributor, or any project whose
-production target is containerized. `B2+` warrants it regardless of scale — a critical system needs a
-reproducible way to reproduce incidents.
+**Warranted at:** a reproducible build/run/test path is warranted whenever contributors or operators
+must repeat those actions. A second mode is warranted only when the project uses/requires it or when
+measured CI, deployment, debugging, or environment-parity needs justify maintaining it.
 
-**Anti-over-engineering guard:** a single-author `T0`/`B0` local utility with no deployment target does
-not need a container mode; demanding one is `OVER-ENGINEERED`. Equally, a fully-containerized team
-service does not need a hand-maintained bare-host path if nobody uses it — an *honestly dropped* mode
-with a stated reason is `N/A-by-profile`, not a gap. The defect is the **claimed-but-rotten** mode.
+**Anti-over-engineering guard:** do not require containers, Compose, bare-host execution, device
+simulation, or a second test direction solely to satisfy this dimension. The defect is a claimed or
+required path that is broken or irreproducible, not a mode the project does not need.
 
 **Depth owner:** `scaffold`, `production-readiness-review`.
 
@@ -438,19 +432,24 @@ feedback control design), `security-review` (dependency/supply-chain and secret 
 | Dimension                              | T0/B0/R0 | T1/B1/R1 | T2/B2/R2 | T3/B3/R3 |
 | -------------------------------------- | :------: | :------: | :------: | :------: |
 | F1 Reproducible environment            |    ✓     |    ✓     |    ✓     |    ✓     |
-| F2 Dual execution modes                |    ·     |    ✓     |    ✓     |    ✓     |
+| F2 Supported execution modes           |    ◐     |    ◐     |    ◐     |    ◐     |
 | F3 Environment-portable tests          |    ◐     |    ✓     |    ✓     |    ✓     |
 | F4 Test-strength proof                 |    ◐     |    ✓     |    ✓     |    ✓     |
 | F5 Performance & scale-under-data      |    ◐     |    ✓     |    ✓     |    ✓     |
 | F6 Build & change scalability          |    ·     |    ◐     |    ✓     |    ✓     |
 | F7 Mechanical quality harness          |    ◐     |    ✓     |    ✓     |    ✓     |
 
-`◐` at `T0/B0/R0` means: the reduced form named in that dimension's *Anti-over-engineering guard*
-(e.g. F4 = the seeding drill on top invariants only; F5 = one documented volume check; F7 = format +
-lint + types + tests). Read the guard, not just the tick.
+`◐` means the applicable scope depends on project evidence, as described in that dimension's
+*Anti-over-engineering guard*. For F2, a second execution mode is warranted only when the project
+supports or requires it; a single reproducible mode may make the comparison `N/A-by-profile` at any
+scale. For other dimensions, reduced checks may be appropriate at `T0/B0/R0` (for example F4 = proof
+for top invariants; F5 = one documented volume check; F7 = the relevant formatter/lint/type/test
+checks). Read the guard and runtime profile, not just the tick.
 
-**The matrix reads on the HIGHEST applicable axis.** A `T0` system handling regulated data is `B2` and
-takes the `B2` column. Repo shape drives F6; scale and criticality drive the rest.
+**The matrix reads on the highest applicable axis as a starting point.** A `T0` system handling
+regulated data is `B2` and takes the `B2` column. Repo shape drives F6; scale and criticality drive
+the other baseline tiers. Runtime, deployment, and platform evidence may change applicability; record
+the reason rather than forcing a tool or mode from the matrix.
 
 ---
 
@@ -469,8 +468,9 @@ cheaper:
    fail-on-new mode. The existing baseline is tolerated; regression stops today.
 4. **Prove the tests (F4).** Run the seeding drill against the top invariants. This usually finds the
    most alarming result of the whole audit, and it needs no tooling or budget.
-5. **Make it runnable anywhere (F2/F3).** Add or repair the missing execution mode; parameterize the
-   suite by target environment.
+5. **Repair an applicable execution/environment path (F1/F2/F3).** Verify the project's supported
+   modes and target reach; add another mode only when its runtime, team, CI, or deployment contract
+   warrants it. Parameterize the suite by target when that fits the existing harness.
 6. **Measure before optimizing (F5).** Seed a realistic volume, get one honest number and one budget.
    A single asserted budget beats an unread dashboard.
 7. **Draw the boundaries (F6).** Declare the style, then enforce the dependency direction

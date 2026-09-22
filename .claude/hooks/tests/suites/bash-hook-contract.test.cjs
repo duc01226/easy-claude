@@ -77,96 +77,7 @@ function assertCleanAllow(result, label) {
   assert.equal(result.timedOut, false, `${label}: timed out`);
 }
 
-function assertVisibleBlock(result, label) {
-  assert.equal(result.code, 2, `${label}: expected exit 2, got ${result.code}`);
-  assert.equal(result.stdout, '', `${label}: block leaked stdout`);
-  assert.ok(result.stderr.trim().length > 0, `${label}: block had no stderr diagnostic`);
-  assert.equal(result.timedOut, false, `${label}: timed out`);
-}
-
 const tests = [
-  {
-    name: 'R08 Node-looking quoted data and unsupported option roles are never rewritten',
-    fn: async () => {
-      const commands = [
-        String.raw`echo 'node -e "console.log(\!true)"'`,
-        String.raw`printf '%s' 'node -e "console.log(\!true)"'`,
-        String.raw`cat <<'EOF'
-node -e "console.log(\!true)"
-EOF`,
-        String.raw`node --require -e "console.log(\!true)"`,
-        String.raw`node script.js -e "console.log(\!true)"`,
-        String.raw`node -e "console.log(\!true, $VALUE)"`,
-        String.raw`node -e "console.log(\!true)"suffix`,
-        String.raw`node -e 'console.log(\!true)'`,
-        String.raw`echo $(node -e "console.log(\!true)")`,
-        String.raw`$(pwd)/node -e "console.log(\!true)"`,
-        String.raw`node -e "console.log(\!true)" &&`,
-        String.raw`node -e`,
-        String.raw`node -e "console.log(true)"`,
-        String.raw`echo -e "console.log(\!true)"`,
-        String.raw`node -p "console.log(\!true)"`
-      ];
-      for (const command of commands) {
-        assertCleanAllow(await runHook('windows-command-detector.cjs', createPreToolUseInput('Bash', { command })), command);
-      }
-      const command = String.raw`  echo 'node -e "console.log(\!data)"'; node --experimental-vm-modules -e "if(\!a && \!b) {}" && echo '\!tail'`;
-      const input = { command, timeout: 123, description: 'preserve all fields', cwd: ROOT };
-      const result = await runHook('windows-command-detector.cjs', createPreToolUseInput('Bash', input));
-      assert.equal(result.code, 0);
-      assert.equal(result.stderr, '');
-      assert.equal(result.timedOut, false);
-      assert.deepEqual(JSON.parse(result.stdout), { hookSpecificOutput: {
-        hookEventName: 'PreToolUse', updatedInput: {
-          ...input, command: command.replace('if(\\!a && \\!b)', 'if(!a && !b)')
-        }
-      } });
-      const executablePath = String.raw`"/tools/node.exe" --no-warnings -e "console.log(\!true)"`;
-      const pathResult = await runHook('windows-command-detector.cjs', createPreToolUseInput('Bash', { command: executablePath }));
-      assert.equal(pathResult.code, 0);
-      assert.equal(pathResult.stderr, '');
-      assert.equal(JSON.parse(pathResult.stdout).hookSpecificOutput.updatedInput.command, executablePath.replace('\\!true', '!true'));
-    }
-  },
-  {
-    // Regression: the detector returned only the FIRST eligible eval argument and rewrote
-    // just that span, leaving every later `node -e` in a compound command still carrying the
-    // invalid unicode escape. Each statement is modeled independently, so each eligible
-    // argument must be repaired — and nothing else may move.
-    name: 'R08b compound Node eval repair covers every eligible argument, not just the first',
-    fn: async () => {
-      const command = String.raw`echo 'node -e "console.log(\!data)"'; node -e "console.log(\!true)" && node --no-warnings -e "console.log(\!false)"; echo '\!tail'`;
-      const input = { command, timeout: 321, description: 'every field preserved', cwd: ROOT };
-      const result = await runHook('windows-command-detector.cjs', createPreToolUseInput('Bash', input));
-      assert.equal(result.code, 0);
-      assert.equal(result.stderr, '');
-      assert.equal(result.timedOut, false);
-      assert.deepEqual(JSON.parse(result.stdout), { hookSpecificOutput: {
-        hookEventName: 'PreToolUse', updatedInput: {
-          ...input,
-          command: command
-            .replace('console.log(\\!true)', 'console.log(!true)')
-            .replace('console.log(\\!false)', 'console.log(!false)')
-        }
-      } });
-      const fixed = JSON.parse(result.stdout).hookSpecificOutput.updatedInput.command;
-      assert.ok(fixed.includes(String.raw`'node -e "console.log(\!data)"'`), 'quoted Node-looking data stays escaped');
-      assert.ok(fixed.includes(String.raw`echo '\!tail'`), 'non-Node tail stays escaped');
-    }
-  },
-  {
-    name: 'R37 valid Windows block diagnoses category without reflecting command secrets',
-    fn: async () => {
-      const secret = 'SYNTHETIC_WINDOWS_BLOCK_SECRET';
-      const command = `  type ${secret}.txt`;
-      const result = await runHook('windows-command-detector.cjs', createPreToolUseInput('Bash', { command }));
-      assertVisibleBlock(result, 'valid secret-bearing block');
-      assert.match(result.stderr, /Windows CMD Syntax Detected/);
-      assert.match(result.stderr, /type \(view file\)/);
-      assert.equal(result.stderr.includes(secret), false);
-      assert.equal(result.stderr.includes(command.trim()), false);
-    }
-  },
   {
     name: 'R2 timeout terminates active work after draining and input diagnostics never reflect payloads',
     fn: async () => {
@@ -206,7 +117,7 @@ EOF`,
 
       const secret = 'R2SECRET'; // Short enough to catch JSON parser excerpt reflection.
       for (const raw of [secret, JSON.stringify({ ...BENIGN, hook_event_name: secret })]) {
-        const result = await runHook('windows-command-detector.cjs', undefined, { raw });
+        const result = await runHook('doc-sync-gate.cjs', undefined, { raw });
         assert.equal(result.code, 0);
         assert.equal(result.stdout, '');
         assert.ok(result.stderr.length > 0, 'Input errors must remain visible');
@@ -242,63 +153,20 @@ EOF`,
     }
   },
   {
-    name: 'D4 each blocking hook emits exit 2 and a visible stderr message',
+    name: 'D4 doc-sync-gate advisory stays non-blocking on benign Bash input',
     fn: async () => {
-      const cases = [
-        ['windows-command-detector.cjs', createPreToolUseInput('Bash', { command: 'type file.txt' })],
-        ['bash-shell-guard.cjs', createPreToolUseInput('Bash', { command: "$text = @'\nhello\n'@" })],
-        // Both hooks now gate on IRREVERSIBILITY, so the sample has to be irreversible: `git commit`
-        // and `cat` are allowed by design (recoverable / read-only). `reset --hard` destroys the
-        // working tree and `rm` outside the root deletes a file the project does not own.
-        ['git-commit-block.cjs', { ...BENIGN, tool_input: { command: 'git reset --hard' } }],
-        ['scout-block.cjs', createPreToolUseInput('Bash', { command: 'ls node_modules' })],
-        ['privacy-block.cjs', createPreToolUseInput('Bash', { command: 'cat .env' })],
-        ['privacy-block.cjs', createPreToolUseInput('Bash', { command: 'echo $(cat .env)' })],
-        ['path-boundary-block.cjs', createPreToolUseInput('Bash', { command: 'rm ../outside.txt' })]
-      ];
-      for (const [file, input] of cases) assertVisibleBlock(await runHook(file, input), file);
       assertCleanAllow(await runHook('doc-sync-gate.cjs', BENIGN), 'doc-sync-gate advisory');
     }
   },
   {
-    name: 'D4 malformed delivery is visible and security hooks deny closed',
+    name: 'D4 malformed delivery is visible and follows each hook input policy',
     fn: async () => {
-      for (const file of ['windows-command-detector.cjs', 'bash-shell-guard.cjs', 'doc-sync-gate.cjs', 'scout-block.cjs']) {
+      for (const file of ['doc-sync-gate.cjs']) {
         const result = await runHook(file, undefined, { raw: '{not-json' });
         assert.equal(result.code, 0, `${file}: advisory parse failure should preserve allow`);
         assert.ok(result.stderr.includes(file.replace('.cjs', '')), `${file}: missing parse breadcrumb`);
         assert.equal(result.stdout, '', `${file}: parse failure leaked stdout`);
       }
-      for (const file of ['git-commit-block.cjs', 'privacy-block.cjs', 'path-boundary-block.cjs']) {
-        const result = await runHook(file, undefined, { raw: '{not-json' });
-        assertVisibleBlock(result, `${file} malformed JSON`);
-      }
-      for (const file of ['git-commit-block.cjs', 'privacy-block.cjs', 'path-boundary-block.cjs']) {
-        const result = await runHook(file, { ...BENIGN, tool_input: { command: 42 } });
-        assertVisibleBlock(result, `${file} invalid Bash command`);
-      }
-    }
-  },
-  {
-    name: 'D4 rewrite uses the documented PreToolUse envelope and preserves tool input fields',
-    fn: async () => {
-      const escapedBang = String.raw`node -e "console.log(\!true)" && echo unrelated-tail`;
-      const input = createPreToolUseInput('Bash', {
-        command: escapedBang,
-        timeout: 12000,
-        cwd: ROOT
-      });
-      const result = await runHook('windows-command-detector.cjs', input);
-      assert.equal(result.code, 0, result.stderr);
-      const output = JSON.parse(result.stdout);
-      assert.deepEqual(output.hookSpecificOutput?.updatedInput, {
-        command: 'node -e "console.log(!true)" && echo unrelated-tail',
-        timeout: 12000,
-        cwd: ROOT
-      });
-      assert.equal(output.hookSpecificOutput.hookEventName, 'PreToolUse');
-      assert.equal(Object.hasOwn(output.hookSpecificOutput, 'permissionDecision'), false,
-        'Syntax correction must not auto-approve the command or its unrelated compound tail');
     }
   },
   {
@@ -339,8 +207,20 @@ EOF`,
       const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'bash-hook-debug-'));
       const logPath = path.join(dir, 'debug', 'bash-hooks.log');
       try {
-        assert.equal(HOOKS.length, 8, 'Settings must expose all eight Bash PreToolUse hooks');
+        // Derived structurally from settings.json, never as a magic number: a hard-coded
+        // count goes stale the moment a hook is added or removed and then asserts nothing
+        // about the real registry. What must hold is that EVERY registered Bash entry
+        // resolves to a hook file that exists on disk, with no duplicates.
+        const bashEntries = SETTINGS.hooks.PreToolUse
+          .filter(group => String(group.matcher || '').split('|').includes('Bash'))
+          .flatMap(group => group.hooks || []);
+        assert.ok(HOOKS.length > 0, 'Settings must register at least one Bash PreToolUse hook');
+        assert.equal(HOOKS.length, bashEntries.length,
+          'Every registered Bash PreToolUse entry must resolve to a .claude/hooks/*.cjs file');
         assert.equal(new Set(HOOKS).size, HOOKS.length, 'Bash hook registration must not duplicate a hook');
+        for (const file of HOOKS) {
+          assert.ok(fs.existsSync(getHookPath(file)), `${file}: registered Bash hook file is missing`);
+        }
         for (const file of HOOKS) {
           const result = await runHook(file, BENIGN, {
             env: { CLAUDE_HOOK_DEBUG: '1', CLAUDE_HOOK_DEBUG_LOG: logPath }
@@ -361,17 +241,7 @@ EOF`,
           assert.equal(Object.hasOwn(record, 'path'), false);
         }
 
-        const blocked = await runHook('privacy-block.cjs', createPreToolUseInput('Bash', { command: 'cat .env' }), {
-          env: { CLAUDE_HOOK_DEBUG: '1', CLAUDE_HOOK_DEBUG_LOG: logPath }
-        });
-        assertVisibleBlock(blocked, 'debug block run');
-        const blockRecord = fs.readFileSync(logPath, 'utf8').trim().split('\n').map(line => JSON.parse(line)).at(-1);
-        assert.equal(blockRecord.decision, 'block');
-        assert.equal(blockRecord.code, 2);
-        assert.equal(Object.hasOwn(blockRecord, 'command'), false);
-        assert.equal(Object.hasOwn(blockRecord, 'path'), false);
-
-        const malformed = await runHook('windows-command-detector.cjs', undefined, {
+        const malformed = await runHook('doc-sync-gate.cjs', undefined, {
           env: { CLAUDE_HOOK_DEBUG: '1', CLAUDE_HOOK_DEBUG_LOG: logPath }
         });
         assert.equal(malformed.code, 0);
@@ -394,12 +264,12 @@ EOF`,
         assert.deepEqual(new Set(concurrentRecords.map(record => record.hook)), new Set(HOOK_NAMES));
 
         fs.writeFileSync(logPath, 'x'.repeat(1024 * 1024));
-        const rotated = await runHook('windows-command-detector.cjs', BENIGN, {
+        const rotated = await runHook('doc-sync-gate.cjs', BENIGN, {
           env: { CLAUDE_HOOK_DEBUG: '1', CLAUDE_HOOK_DEBUG_LOG: logPath }
         });
         assertCleanAllow(rotated, 'rotation run');
         assert.ok(fs.existsSync(`${logPath}.1`), 'debug log did not rotate');
-        assert.equal(JSON.parse(fs.readFileSync(logPath, 'utf8').trim()).hook, 'windows-command-detector');
+        assert.equal(JSON.parse(fs.readFileSync(logPath, 'utf8').trim()).hook, 'doc-sync-gate');
       } finally {
         fs.rmSync(dir, { recursive: true, force: true });
       }
@@ -410,7 +280,7 @@ EOF`,
     fn: async () => {
       const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'bash-hook-debug-sink-'));
       try {
-        const result = await runHook('windows-command-detector.cjs', BENIGN, {
+        const result = await runHook('doc-sync-gate.cjs', BENIGN, {
           env: { CLAUDE_HOOK_DEBUG: '1', CLAUDE_HOOK_DEBUG_LOG: dir }
         });
         assert.equal(result.code, 0, result.stderr);
@@ -424,13 +294,13 @@ EOF`,
   {
     name: 'D3 a lost debug-log race is silent; a sink that cannot work still reports',
     fn: async () => {
-      // Seven Bash hooks fire on one tool call and append to one file, so a lost
-      // race is the normal case. Reporting it put a line on stderr during an ALLOW,
+      // Every registered Bash hook fires on one tool call and appends to one file, so a
+      // lost race is the normal case. Reporting it put a line on stderr during an ALLOW,
       // which the D1/D3 contract assertions above read as a hook fault — the race
       // surfaced as an intermittent failure of the gate, not of the logging.
       //
       // The race is INJECTED at the fs calls the library makes, not stressed: a
-      // 7-way concurrent run reproduces the interleaving only sometimes, and a test
+      // concurrent run reproduces the interleaving only sometimes, and a test
       // that usually cannot fail protects nothing. The four cases below are the
       // whole contract — lost race silent, unwinnable rotation loud AND bounded,
       // transient append retried, real append failure loud.

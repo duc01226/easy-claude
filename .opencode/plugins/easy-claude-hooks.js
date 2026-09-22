@@ -15,6 +15,9 @@
 import { spawn } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
+import { createRequire } from "node:module";
+
+const require = createRequire(import.meta.url);
 
 // Compiled from .claude/settings.json by the sync writer. Shape:
 // { PreToolUse: [{ matcher?: string, hooks: [{ type: "command", command: "relative/hook.cjs" }] }], ... }
@@ -82,18 +85,6 @@ const HOOKS = {
       "hooks": [
         {
           "type": "command",
-          "command": ".claude/hooks/windows-command-detector.cjs"
-        },
-        {
-          "type": "command",
-          "command": ".claude/hooks/bash-shell-guard.cjs"
-        },
-        {
-          "type": "command",
-          "command": ".claude/hooks/git-commit-block.cjs"
-        },
-        {
-          "type": "command",
           "command": ".claude/hooks/doc-sync-gate.cjs"
         },
         {
@@ -107,50 +98,10 @@ const HOOKS = {
       "hooks": [
         {
           "type": "command",
-          "command": ".claude/hooks/scout-block.cjs"
-        },
-        {
-          "type": "command",
-          "command": ".claude/hooks/privacy-block.cjs"
-        }
-      ],
-      "matcher": "Bash|Glob|Grep|Read|Edit|Write|NotebookEdit"
-    },
-    {
-      "hooks": [
-        {
-          "type": "command",
-          "command": ".claude/hooks/path-boundary-block.cjs"
-        }
-      ],
-      "matcher": "Bash|Edit|Write|MultiEdit|NotebookEdit"
-    },
-    {
-      "hooks": [
-        {
-          "type": "command",
           "command": ".claude/hooks/doc-sync-gate.cjs"
         }
       ],
       "matcher": "Write|Edit|MultiEdit"
-    },
-    {
-      "hooks": [
-        {
-          "type": "command",
-          "command": ".claude/hooks/path-boundary-block.cjs"
-        }
-      ],
-      "matcher": "mcp__filesystem__*"
-    },
-    {
-      "hooks": [
-        {
-          "type": "command",
-          "command": ".claude/hooks/github-mcp-write-block.cjs"
-        }
-      ],
-      "matcher": "mcp__github__*"
     }
   ],
   "SessionEnd": [
@@ -182,15 +133,6 @@ const HOOKS = {
         }
       ],
       "matcher": "startup|resume|clear|compact"
-    },
-    {
-      "hooks": [
-        {
-          "type": "command",
-          "command": ".claude/hooks/npm-auto-install.cjs"
-        }
-      ],
-      "matcher": "startup"
     },
     {
       "hooks": [
@@ -260,6 +202,14 @@ const HOOKS = {
       "hooks": [
         {
           "type": "command",
+          "command": ".claude/hooks/workflow-route-inject.cjs"
+        }
+      ]
+    },
+    {
+      "hooks": [
+        {
+          "type": "command",
           "command": ".claude/hooks/prompt-ledger.cjs"
         }
       ]
@@ -294,6 +244,24 @@ function findRoot(start) {
     const parent = path.dirname(current);
     if (parent === current) return current;
     current = parent;
+  }
+}
+
+// Host bridge boundary: resolve only the validated native capability and apply
+// it to this hook child. The canonical verifier owns the startup-only detached
+// repair decision; this launcher never installs software and never mutates the
+// opencode host process environment.
+function childEnvironment(root) {
+  const env = { ...process.env, CLAUDE_PROJECT_DIR: root };
+  const helperPath = path.join(root, ".claude", "hooks", "lib", "windows-git.cjs");
+  try {
+    if (!fs.existsSync(helperPath)) return env;
+    const windowsGit = require(helperPath);
+    const result = windowsGit.resolveWindowsGit();
+    if (!result || result.outcome !== windowsGit.OUTCOMES.READY) return env;
+    return windowsGit.withGitEnvironment(env, result.capability);
+  } catch {
+    return env;
   }
 }
 
@@ -379,7 +347,7 @@ function runHook(root, hookPath, payload) {
     try {
       child = spawn(NODE_BIN, [hookPath], {
         cwd: root,
-        env: { ...process.env, CLAUDE_PROJECT_DIR: root },
+        env: childEnvironment(root),
         stdio: ["pipe", "pipe", "pipe"],
         windowsHide: true,
       });

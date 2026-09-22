@@ -4,15 +4,10 @@
 <!-- CK:CODEX-ROOT-PROJECTION -->
 ## Claude Instructions Mirror (Compact Auto-Synced Projection)
 
-This bounded projection is generated from `CLAUDE.md` by `node .claude/scripts/codex/sync-context-workflows.mjs`; it keeps critical routing, ownership, evidence and task rules in the Codex root.
+This bounded projection is generated from `CLAUDE.md` by `node .claude/scripts/codex/sync-context-workflows.mjs`; it keeps ownership, evidence and task rules in the Codex root.
 For full canonical detail, read `CLAUDE.md` and `.codex/CODEX_CONTEXT.md` directly. Do not edit generated mirrors.
 
-<!-- CK:UNIVERSAL-GUIDES v6 -->
-
-<!-- prettier-ignore-start -->
-
-
-<!-- prettier-ignore-end -->
+<!-- CK:UNIVERSAL-GUIDES v7 -->
 
 <!-- prettier-ignore-start -->
 
@@ -39,22 +34,22 @@ For full canonical detail, read `CLAUDE.md` and `.codex/CODEX_CONTEXT.md` direct
 
 <!-- CK:WORKFLOW-GATE -->
 
-> **[WORKFLOW-GATE] — routing is your FIRST action, before any tool call.** This gate is hook-independent and is the single intent router.
+> **[WORKFLOW-GATE] — routing is your FIRST action, before any tool call.** This gate is the single intent router.
 >
 > Honor an explicit request to execute a skill/workflow first. Otherwise auto-select by complexity and risk; never ask the user to choose the execution path.
 >
-> | Intent                                                                                                          | Route                                                                                                                                                                                            |
-> | --------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-> | Clear, low-risk task or one-off question                                                                        | direct                                                                                                                                                                                           |
-> | Simple coordinated steps                                                                                        | custom-simple: only the necessary skills/steps                                                                                                                                                   |
-> | Non-trivial bug/regression/stale output                                                                         | `workflow-bugfix`                                                                                                                                                                                |
-> | Non-trivial feature/enhancement                                                                                 | `workflow-feature`; large/ambiguous/research-heavy scope uses `workflow-big-feature`                                                                                                             |
-> | Product vision, greenfield or release-scoped idea                                                               | owning idea/feature workflow; apply shared `isLargeIdea` and embed decomposition in its artifacts                                                                                                |
-> | Explicit roadmap/update/milestone-selection request                                                             | `product-roadmap`; only this explicit intent may write the product-roadmap artifact (default `docs/product-roadmap.md`; `docsRoots.productRoadmap.path` in `docs/project-config.json` overrides) |
-> | Milestone/large-idea scope needing adversarial failure, replay, state, ownership, recovery or evidence analysis | conditional `scenario` before `$plan`; no roadmap artifact                                                                                                                                       |
-> | Other matching skill/workflow Use clause                                                                        | that skill/workflow, verified from its canonical definition                                                                                                                                      |
+> | Intent | Route |
+> | --- | --- |
+> | Clear, low-risk task or one-off question | direct |
+> | Simple coordinated steps | custom-simple: only the necessary skills/steps |
+> | Non-trivial bug/regression/stale output | `workflow-bugfix` |
+> | Non-trivial feature/enhancement | `workflow-feature`; large/ambiguous/research-heavy scope uses `workflow-big-feature` |
+> | Product vision, greenfield or release-scoped idea | owning idea/feature workflow; apply shared `isLargeIdea` and embed decomposition in its artifacts |
+> | Explicit roadmap/update/milestone-selection request | `product-roadmap`; only this explicit intent may write the product-roadmap artifact (default `docs/product-roadmap.md`; `docsRoots.productRoadmap.path` in `docs/project-config.json` overrides) |
+> | Milestone/large-idea scope needing adversarial failure, replay, state, ownership, recovery or evidence analysis | conditional `scenario` before planning; no roadmap artifact |
+> | Other matching skill/workflow Use clause | that skill/workflow, verified from its canonical definition |
 >
-> Declare `Route: {workflow-id | skill | custom-simple | direct} — because {reason}`, then ACTIVATE before edits, agents or commands. Workflow: execute `$start-workflow <id>` and use its canonical sequence for tasks 1:1; never improvise that list. Skill: read and execute its SKILL.md through the host's supported mechanism. Custom/direct: create a small task list and execute it. Missing required tools/details: stop and report; never fabricate invocation.
+> Declare `Route: {workflow-id | skill | custom-simple | direct} — because {reason}`, then ACTIVATE before edits, agents or commands. Workflow: invoke `start-workflow` with the workflow id using the host's supported skill syntax and use its canonical sequence for tasks 1:1; never improvise that list. Skill: read and execute its SKILL.md through the host's supported mechanism. Custom/direct: create a small task list and execute it. Missing required tools/details: stop and report; never fabricate invocation.
 >
 > Ordinary large-idea routes do not create a roadmap by default. New foundations in `workflow-greenfield-init`/`workflow-big-feature` require an `architecture-review-full` reviewed scaffold, golden-path examples and project references BEFORE feature fan-out. Routing preserves operation authority, user data and all required quality gates.
 
@@ -88,6 +83,7 @@ For full canonical detail, read `CLAUDE.md` and `.codex/CODEX_CONTEXT.md` direct
 
 ## Common AI Mistake Prevention (System Lessons)
 
+- **Resolve project applicability before using framework examples.** Read the project config and relevant references, then inspect local evidence; honor explicit N/A and never impose a language, framework, architecture layer, styling method, tool, or runtime surface the project does not use.
 - **ROOT-CAUSE GATE — INVESTIGATE FIRST.** Before applying any project-related correction, always use the project's root-cause investigation protocol and establish the cause; the failure site may be only a symptom.
 - **FAILED-TEST GATE.** For any failed or unstable test, use the project's test-investigation protocol before editing source or tests; never change either side merely to force green.
 - **Re-read files after context compaction.** Edit requires prior Read in same context; compaction wipes read state. Re-read before editing.
@@ -112,7 +108,6 @@ For full canonical detail, read `CLAUDE.md` and `.codex/CODEX_CONTEXT.md` direct
 - **Holistic analysis — resist the nearest-attention trap.** Do not dive into the first plausible cause. List every precondition (configuration, environment, inputs, dependencies, versions, permissions, and state). Verify each against evidence, not intuition. Ask "what would falsify this?" — if nothing, it is not a hypothesis. The most expensive failure is going deeper into an assumed area while the real issue sits in an unexamined condition.
 - **Minimal changes — apply the relevance test.** Every change must trace to the reported problem; avoid unrelated cleanup. For review or enhancement work, announce improvements beyond the main request rather than silently expanding scope. Ask: "Would this change exist if I were not addressing this request?" — if not, remove it or disclose it.
 - **Surface ambiguity before coding — don't pick silently.** Multiple valid interpretations → present each with effort: "[Request] could mean (1) [N h], (2) [N h]. Which matters?" List scope/format/volume/constraints assumptions first. If simpler path exists, say so. Never silently pick.
-- **[MANDATORY FIRST ACTION] ALWAYS activate a suitable skill or workflow BEFORE responding.** Match task against workflow catalog + skill list; invoke via skill invocation or `$start-workflow <workflowId>`. NEVER answer or write code before checking. Skip = protocol violation.
 - **Why-Review adversarial mindset — apply when reviewing any plan, decision, or design.** Default SKEPTIC not VALIDATOR: steel-man a rejected alternative, invert each stated reason ("what does it sacrifice?"), stress-test top 2-3 assumptions, run pre-mortem ("ships, fails in 3 months — what breaks?"), surface 1-2 alternatives author missed. Section presence ≠ quality; quality = causal reasoning + concrete mitigations + evidence, not "it's better" or "monitor closely".
 - **Front-load report-write in sub-agent prompts for large reviews.** Many-file sub-agents hit budget before final write — findings lost. Design prompts so: (1) report-write is first explicit deliverable, (2) append per-file/section (not batched), (3) scope bounded so reads don't exhaust budget. Truncated mid-sentence with no report file → spawn narrower scope, don't retry same prompt.
 - **After context compaction, re-verify all prior phase outcomes before continuing.** Summaries describe intent, not environment state (git index, filesystem, processes). On resume, FIRST audit: git status, re-read modified files, verify filesystem. Every "completed" claim is an untested hypothesis until evidence confirms.
@@ -120,6 +115,7 @@ For full canonical detail, read `CLAUDE.md` and `.codex/CODEX_CONTEXT.md` direct
 - **Assert the outcome your system OWNS, never the intermediate state your INFRASTRUCTURE owns.** When testing anything asynchronous (queue/broker delivery, retries, background jobs, caches, replication), assert the final business/entity state. NEVER assert the delivery bookkeeping — consume/send status, attempt counts, last-error, row existence or counts in a broker, scheduler, or outbox/inbox table. That bookkeeping lives in shared infrastructure that ANY co-running process (a peer worker, a second replica, a leftover local container) can write, usually under a deterministic shared key, so the assertion silently tests the developer's environment instead of the system: green when run alone, flaky the instant anything else shares that broker + database. Gate question for every assertion: "would this hold no matter WHICH process did the work?" — if no, assert the converged data state instead. Corollary: process-local fault injection and in-process telemetry cannot gate work any process may perform — use them as stress amplifiers (arm → bounded window → disarm → assert convergence), never as preconditions.
 - **Store disposable generated output in the project workspace.** If an output can be regenerated and is not source code, a canonical source-of-truth, or an intentionally versioned projection, write it under the project-root `tmp/` or `temp/` directory (prefer `tmp/`), scoped to the run. This includes temporary state, integration/E2E results, reports, logs, screenshots, traces, videos, coverage, dumps, and candidate evidence. Never put these outputs in source, docs, the plans root (default `plans/`; a `docsRoots.plans.path` entry in `docs/project-config.json` overrides the path), the team-artifacts root (default `team-artifacts/`; `docsRoots.teamArtifacts.path` in the same config overrides the path), or mirror directories; the project-root `.gitignore` must ignore `/tmp/` and `/temp/` by default. Committed fixtures, accepted baselines, canonical specs/docs, and explicitly versioned generated mirrors remain at their declared owner paths.
 - **Judge the environment before judging the code — a competing hypothesis, not a fallback.** A bug, failed test, error, or odd output is NOT proof of a code defect. Before deep tracing and before any verdict, sweep environment preconditions (toolchain/dependency/lockfile state, stale build or cache artifacts, env vars and config profile, service dependencies up-migrated-seeded, ports/network/clock, OS-path/locale, permissions and locks, leftover processes/containers/test data) AND transient resource pressure (RAM/OOM, CPU saturation under parallel workers, disk/temp exhaustion, handle and connection-pool limits, network flakiness, a timeout that is really slowness). Tell-tale shape: non-deterministic, timing-dependent, passes alone but fails in parallel, fails only on one machine or only on CI, or an error naming resources rather than business rules. Cite the discriminator you ran (clean environment? did code on the failing path change since it last passed? one machine or all? concurrency 1 or a clean rebuild?) — a verdict without one is a guess, for code as much as for the environment. Fix an environment cause in the environment or setup; NEVER edit product code or weaken/skip a test to absorb it, and a failure that vanishes on retry stays unexplained until its mechanism is named. — why: forcing green against an environment fault hides the real defect and permanently rots the test.
+- **Cross-platform execution is a required contract.** Before authoring or changing a tool, script, process launcher, path assertion, or filesystem test, name the supported Windows, macOS, and Linux behaviors. Use platform-neutral Node APIs and literal argv vectors; never infer shell, temporary-path, executable-extension, ACL, or symlink semantics from the current host. Canonicalize existing paths before identity, hashing, or equality checks; test native Windows and POSIX seams when behavior differs; keep CI platform matrices authoritative. Preserve fail-closed security boundaries — repair the fixture or platform branch, never weaken the guard just to make one OS green.
 - **Keep domain concepts out of generic/shared/infrastructure layers.** Reusable layer (shared library, framework, infra module) must reference NO consumer-specific domain concept — tenant/customer/product IDs, business entities, feature rules. Leak compiles + runs → passes review silently while coupling the "reusable" layer to one consumer. Keep shared type domain-free; push domain fields/logic down into the consumer via subclass/composition. — why: a layer coupled to one consumer's domain is no longer reusable.
 
 <!-- /CK:AI-MISTAKE-PREVENTION -->
@@ -146,21 +142,34 @@ Workflow progression is **model-driven** — your responsibility, not a tool/hoo
 
 <!-- SECTION:golden-rules -->
 
-**Golden Rules (memorize these):**
+**Path-scoped project rules:**
 
-1. Hooks use CommonJS (require/module.exports)
-2. Hook files read stdin JSON and write to stdout/stderr
-3. Shared utilities go in .claude/hooks/lib/
-4. Test hooks via node .claude/hooks/tests/test-all-hooks.cjs
-5. Each skill is a directory with SKILL.md as entry point
-6. Skills may have scripts/, references/, and tests/ subdirectories
-7. Follow naming conventions in .claude/docs/skill-naming-conventions.md
-8. Agent definitions are markdown files in .claude/agents/
-9. Follow patterns in .claude/docs/agents/agent-patterns.md
+Apply a group's rules only when the file matches at least one include matcher, matches one configured extension when an extension filter is present, and matches none of that group's exclusions.
+
+- **hooks-context** — include any of: path regex `[\\/]\.claude[\\/]hooks[\\/].*\.cjs# Codex Project Instructions
+
+; extensions: `.cjs`
+  1. Hooks use CommonJS (require/module.exports)
+  2. Hook files read stdin JSON and write to stdout/stderr
+  3. Shared utilities go in .claude/hooks/lib/
+  4. Test hooks via node .claude/hooks/tests/test-all-hooks.cjs
+
+- **skills-context** — include any of: path regex `[\\/]\.claude[\\/]skills[\\/].*SKILL\.md# Codex Project Instructions
+
+; extensions: `.md`
+  1. Each skill is a directory with SKILL.md as entry point
+  2. Skills may have scripts/, references/, and tests/ subdirectories
+  3. Follow naming conventions in .claude/docs/skill-naming-conventions.md
+
+- **agents-context** — include any of: path regex `[\\/]\.claude[\\/]agents[\\/].*\.md# Codex Project Instructions
+
+; extensions: `.md`
+  1. Agent definitions are markdown files in .claude/agents/
+  2. Follow patterns in .claude/docs/agents/agent-patterns.md
 
 <!-- /SECTION:golden-rules -->
 
-**Architecture Hierarchy** — Place logic in LOWEST layer: `Entity/Model > Service > Component/Handler`
+**Architecture Rule** — Place behavior in the lowest owner defined by the project's architecture. If its config, references, or code show a different structure—or no layered structure—follow that evidence instead of assuming entity/model/service/component layers.
 
 **First Principles (Code Quality in AI Era):**
 
@@ -176,9 +185,10 @@ Workflow progression is **model-driven** — your responsibility, not a tool/hoo
 
 **Decision Quick-Ref:**
 
-| Task                | Pattern                                                     |
-| ------------------- | ----------------------------------------------------------- |
+| Task | Pattern |
+|---|---|
 | Backend conventions | Read `docs/project-reference/backend-patterns-reference.md` |
+| Frontend conventions | Read `docs/project-reference/frontend-patterns-reference.md` |
 
 <!-- /SECTION:decision-quick-ref -->
 
@@ -237,19 +247,7 @@ Store disposable generated output in the project workspace. Treat it as disposab
 
 ## Code Responsibility Hierarchy
 
-Place logic in the lowest appropriate layer to enable reuse and prevent duplication.
-
-```
-Entity/Model (Lowest)  >  Service  >  Component/Handler (Highest)
-```
-
-| Layer            | Contains                                                                |
-| ---------------- | ----------------------------------------------------------------------- |
-| **Entity/Model** | Business logic, display helpers, static factory methods, default values |
-| **Service**      | API calls, command factories, data transformation                       |
-| **Component**    | UI event handling only — delegates all logic to lower layers            |
-
-**Anti-pattern:** logic in a component/handler that belongs in the entity → leads to duplicated code.
+Place logic with the owner selected by the project's documented architecture. Resolve it from project config, reference docs, accepted decisions, and existing code; do not assume entity/model/service/component layers or assign mappings, constants, or display rules to a fixed type. Trace origin → failing consumer and bypass paths before fixing. Protect all consumers at one authoritative owner; never scatter symptom patches. Keep generic framework surfaces project-neutral. Apply YAGNI/KISS/DRY, justify abstractions and operational tradeoffs, and ship only code you can explain.
 
 ---
 
@@ -295,7 +293,7 @@ node .claude/hooks/tests/run-all-tests.cjs    # all suites
 
 <!-- SECTION:e2e-testing -->
 
-Full guide: [e2e-test-reference.md](docs/project-reference/e2e-test-reference.md) for E2E test patterns, page objects, and configuration.
+Full guide: [e2e-test-reference.md](docs/project-reference/e2e-test-reference.md) for E2E test patterns, test organization, and execution configuration.
 
 <!-- /SECTION:e2e-testing -->
 
@@ -396,14 +394,14 @@ python .claude/scripts/code_graph search <keyword> --kind Function --json       
 
 When editing files matching these path patterns, pre-read the listed context first: (no hook: `node .claude/hooks/lib/file-conventions.cjs --lookup <path>`)
 
-| Path Pattern                                                                                                                                 | Skill / Auto-Context | Pre-Read Files                                                                                                                                                                             |
-| -------------------------------------------------------------------------------------------------------------------------------------------- | -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `docs/specs/**/*.md`                                                                                                                         | `spec`               | `docs/project-reference/feature-spec-reference.md`, `docs/project-reference/spec-system-reference.md`, `docs/project-reference/spec-principles.md`, `[[convention:feature-spec@e0967a10]]` |
-| `**/*.test.cjs`                                                                                                                              | `integration-test`   | `docs/project-reference/integration-test-reference.md`, `[[convention:integration-test@f3af9787]]`                                                                                         |
-| `/\.claude/hooks/.*\.cjs$**` ext `.cjs`                                                                                                      | _(auto-context)_     | `.claude/docs/hooks/README.md`, `[[convention:hooks-context@6ef66337]]`                                                                                                                    |
-| `/\.claude/skills/.*SKILL\.md$**` ext `.md`                                                                                                  | _(auto-context)_     | `.claude/docs/skills/README.md`, `[[convention:skills-context@f15fc150]]`                                                                                                                  |
-| `/\.claude/agents/.*\.md$**` ext `.md`                                                                                                       | _(auto-context)_     | `.claude/docs/agents/README.md`, `[[convention:agents-context@705ea67c]]`                                                                                                                  |
-| `**/*` ext `.js`, `.cjs`, `.mjs`, `.jsx`, `.py` · not `**/node_modules/**`, `**/dist/**`, `**/build/**`, `**/vendor/**`, `tmp/**`, `temp/**` | _(auto-context)_     | `docs/project-reference/code-review-rules.md`, `[[convention:general-code@487c3358]]`                                                                                                      |
+| Path Pattern | Skill / Auto-Context | Pre-Read Files |
+|---|---|---|
+| `docs/specs/**/*.md` | `spec` | `docs/project-reference/feature-spec-reference.md`, `docs/project-reference/spec-system-reference.md`, `docs/project-reference/spec-principles.md`, `[[convention:feature-spec@e0967a10]]` |
+| `**/*.test.cjs` | `integration-test` | `docs/project-reference/integration-test-reference.md`, `[[convention:integration-test@f3af9787]]` |
+| `/\.claude/hooks/.*\.cjs$**` ext `.cjs` | _(auto-context)_ | `.claude/docs/hooks/README.md`, `[[convention:hooks-context@6ef66337]]` |
+| `/\.claude/skills/.*SKILL\.md$**` ext `.md` | _(auto-context)_ | `.claude/docs/skills/README.md`, `[[convention:skills-context@f15fc150]]` |
+| `/\.claude/agents/.*\.md$**` ext `.md` | _(auto-context)_ | `.claude/docs/agents/README.md`, `[[convention:agents-context@705ea67c]]` |
+| `**/*` ext `.js`, `.cjs`, `.mjs`, `.jsx`, `.py` · not `**/node_modules/**`, `**/dist/**`, `**/build/**`, `**/vendor/**`, `tmp/**`, `temp/**` | _(auto-context)_ | `docs/project-reference/code-review-rules.md`, `[[convention:general-code@487c3358]]` |
 
 <!-- /SECTION:skill-activation -->
 
@@ -428,9 +426,9 @@ When editing files matching these path patterns, pre-read the listed context fir
 
 This root is a bounded operational projection. The canonical Claude instructions remain in `CLAUDE.md`; the complete Codex static context remains in `.codex/CODEX_CONTEXT.md`.
 
-Claude and Codex must resolve the same `.claude/workflows.json` mode, occurrence IDs, applicability and barriers. Host syntax (`/skill` vs `$skill`) is the only intentional dialect difference.
+When the user explicitly invokes a skill or workflow, Claude and Codex resolve the same canonical definition. Host syntax is the only intentional dialect difference.
 
-Before a standard workflow: read the static catalog, resolve the complete selected manifest, capture the owned baseline, create one task per occurrence, and preserve the manifest fingerprint for resume.
+For an explicitly invoked workflow, resolve the complete manifest, capture the owned baseline, create one task per occurrence, and preserve the manifest fingerprint for resume.
 
 PERFORMANCE-SDD ROUTE: For performance-related work, run `$performance-review` with SLA/benchmark evidence and retain functional no-regression checks; behavior, public-contract, SLA, and spec-boundary changes still require the normal spec/test/docs synchronization.
 
@@ -442,8 +440,8 @@ Apply the shared AI-SDD contract from `shared/sdd-artifact-contract.md` and `SYN
 ## Codex Context Mirror (Auto-Synced)
 
 This compact pointer is auto-generated from `.codex/CODEX_CONTEXT.md` by `node .claude/scripts/codex/sync-context-workflows.mjs`.
-Read `.codex/CODEX_CONTEXT.md` before any non-trivial workflow or skill; it carries the full static catalog and protocol detail.
-Context fingerprint (SHA-256): d43884883b1e5a5c65f81a5e1f12435b9dfb9955477042d7ced29c708e7b46a7
+Read `.codex/CODEX_CONTEXT.md` before non-trivial project work; it carries shared quality and project-reference protocol detail.
+Context fingerprint (SHA-256): e4b68b51ac938f25e5c60ff6cea2e8abbf6849c669214afb1f8d2e3a200e9528
 Do not edit this pointer manually; update canonical Claude sources and re-sync.
 
 ## Codex Project Reference Gate (Hook-Independent)
@@ -458,7 +456,7 @@ Codex uses static project-reference loading instead of runtime-injected project 
 - For situation-specific work, open the referenced project doc directly; do not rely on prior conversation text as proof that the doc is loaded.
 - Load context just in time: classify the target and operation, open only the matching reference docs immediately before the first target read/grep/edit/test, and after compaction, resume, delegation, or a context change re-read them and restate `Reference docs read: ... | Not applicable: ...`.
 
-[WORKFLOW-EXECUTION-PROTOCOL] Claude and Codex may run hooks, but the static protocol is authoritative: auto-select the route, resolve the canonical workflow manifest, and stop when required context is missing or stale. The full protocol and workflow catalog are in `.codex/CODEX_CONTEXT.md`.
+Workflow routing is carried by the tracked context and may be refreshed by the runtime hook when enabled.
 
 If the referenced context is missing or its fingerprint is stale, stop and run `$sync-codex` (or the standalone sync runner) before proceeding.
 <!-- CODEX-CONTEXT-MIRROR:END -->

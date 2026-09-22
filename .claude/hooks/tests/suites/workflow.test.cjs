@@ -63,12 +63,12 @@ const deadModuleVerificationTests = [
         }
     },
     {
-        name: '[dead-module-removal] workflows.json has no checkpoints settings block',
+        name: '[routing-opt-in] workflows.json has no competing global detection settings',
         fn: async () => {
             const fs = require('fs');
             const configPath = path.resolve(__dirname, '..', '..', '..', 'workflows.json');
             const data = JSON.parse(fs.readFileSync(configPath, 'utf8'));
-            assertTrue(!data.settings.checkpoints, 'settings.checkpoints should not exist');
+            assertTrue(data.settings === undefined, 'portability.workflowAutoDetect must be the single routing switch');
         }
     },
     {

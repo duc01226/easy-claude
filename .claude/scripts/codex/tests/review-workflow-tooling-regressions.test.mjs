@@ -196,11 +196,8 @@ test('TC-WFADV-022: whole-target why-review starts in parallel with changes-revi
     assert.match(skillText, /fresh `code-reviewer` sub-agent[^\n]*FULL mode/);
     assert.match(skillText, /Advance only after BOTH return/);
     assert.match(skillText, /step 14[^\n]*settled[^\n]*whole target/i);
-    assert.match(
-        codexContextText,
-        /plan-execute -> why-review -> experience-review -> scan --target=domain-entities -> docs-update/,
-        'generated guidance must preserve the conditional post-fix why-review occurrence and optional experience evidence'
-    );
+    assert.doesNotMatch(codexContextText, /plan-execute -> why-review -> experience-review/,
+        'tracked Codex context must not carry the runtime workflow catalog');
     assert.match(loopSkillText, /full 19-step sequence/);
     assert.doesNotMatch(loopSkillText, /full (?:20|21)-step sequence/);
     assert.match(loopSkillText, /fix cycle, steps 11[–-]14/);

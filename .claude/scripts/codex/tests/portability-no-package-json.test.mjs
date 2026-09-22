@@ -22,7 +22,7 @@ import { AGENTS_ROOT_LIMIT_BYTES } from '../sync-context-workflows.mjs';
 // This file holds TWO related portability-contract groups — the filename names the headline guarantee,
 // not the only one, so do NOT split or rename it:
 //   • No-package-json group (PORT-001/002/006/007/009/015): pure bare-`.claude` behavior — the pipeline
-//     imports only `node:` built-ins, npm-auto-install no-ops, the runner self-locates + fails fast,
+//     imports only `node:` built-ins, startup installation no-ops, the runner self-locates + fails fast,
 //     and the export payload ships NO root package.json. None of these read a package.json.
 //   • npm-delegation group (PORT-003/004/005/008/010): the inverse guarantee — WHEN THIS REPO'S root
 //     package.json exists, its npm entrypoints (`sync:all`/`verify:all`/`codex:verify:all`) only
@@ -97,14 +97,24 @@ async function pipelineFiles() {
         files.add(`.claude/${m[1]}/${m[2]}/${m[3]}`);
     }
 
-    // These directories are expanded dynamically by the runner. Include every test carrier in the
-    // portability closure so a newly added suite cannot import an adopter-local dependency while
+    // These directories are expanded dynamically by the runner. Include every executable module,
+    // including nested support files, so a helper cannot import an adopter-local dependency while
     // the runner and export checks continue to inspect only the current hand-written roster.
-    for (const relativeDir of ['.claude/scripts/codex/tests', '.claude/scripts/tests']) {
+    async function addJavaScriptTree(relativeDir) {
         const absoluteDir = path.join(repoRoot, ...relativeDir.split('/'));
         for (const entry of await fs.readdir(absoluteDir, { withFileTypes: true }).catch(() => [])) {
-            if (entry.isFile() && /\.test\.(?:mjs|cjs)$/.test(entry.name)) files.add(`${relativeDir}/${entry.name}`);
+            const child = `${relativeDir}/${entry.name}`;
+            if (entry.isDirectory()) await addJavaScriptTree(child);
+            else if (entry.isFile() && /\.(?:mjs|cjs|js)$/.test(entry.name)) files.add(child);
         }
+    }
+    for (const relativeDir of [
+        '.claude/scripts/codex/tests',
+        '.claude/scripts/tests',
+        '.claude/scripts/lib',
+        '.claude/hooks',
+    ]) {
+        await addJavaScriptTree(relativeDir);
     }
 
     pipelineFilesCache = [...files];
@@ -118,21 +128,114 @@ const BUILTINS = new Set(builtinModules);
 // Returns bare (node_modules) module specifiers imported/required at the top level of `source`.
 // Ignores Node built-ins (prefixed or not), relative (`.`/`..`) and absolute specifiers. Line comments
 // are stripped so a specifier named inside a `//` comment (e.g. remediation prose) is never flagged.
-function bareSpecifiers(source) {
+function bareSpecifiers(source, relativeFile = '') {
     const found = new Set();
-    for (const raw of source.split(/\r?\n/)) {
-        const line = raw.replace(/\/\/.*$/, '');
+    // Fixture programs live in template literals. Mask their bodies before the line scanner so
+    // an adopter-side `import 'yaml'` remains test data while every executed wrapper is still
+    // inspected. Escaped backticks remain inside the literal; interpolation expressions are
+    // intentionally masked too because they belong to the fixture string, not the wrapper module.
+    let state = 'code';
+    let escaped = false;
+    const templateExpressionDepth = [];
+    const syntaxSpecifiers = [];
+    let scanSource = '';
+    for (let index = 0; index < source.length; index += 1) {
+        const char = source[index];
+        const next = source[index + 1];
+        if (state === 'code' && !/[\w$]/.test(source[index - 1] ?? '')) {
+            const tail = source.slice(index);
+            const call = tail.match(/^(?:require|import)\s*\(\s*['"]([^'"]+)['"]\s*\)/);
+            const staticFrom = tail.match(/^(?:import|export)\b(?:(?!;)[\s\S]){0,500}?\bfrom\s*['"]([^'"]+)['"]/);
+            const sideEffect = tail.match(/^import\s+['"]([^'"]+)['"]/);
+            const match = call ?? staticFrom ?? sideEffect;
+            if (match) {
+                syntaxSpecifiers.push({
+                    specifier: match[1],
+                    lineIndex: source.slice(0, index).split(/\r?\n/).length - 1,
+                });
+            }
+        }
+        if (state === 'template') {
+            scanSource += char === '\n' || char === '\r' ? char : ' ';
+            if (escaped) { escaped = false; continue; }
+            if (char === '\\') { escaped = true; continue; }
+            if (char === '$' && next === '{') {
+                scanSource += ' ';
+                index += 1;
+                templateExpressionDepth.push(1);
+                state = 'code';
+                continue;
+            }
+            if (char === '`') state = 'code';
+            continue;
+        }
+        if (state === 'line-comment') {
+            scanSource += char === '\n' || char === '\r' ? char : ' ';
+            if (char === '\n') state = 'code';
+            continue;
+        }
+        if (state === 'block-comment') {
+            scanSource += char === '\n' || char === '\r' ? char : ' ';
+            if (char === '*' && next === '/') { scanSource += ' '; index += 1; state = 'code'; }
+            continue;
+        }
+        if (state === 'single' || state === 'double') {
+            scanSource += char;
+            if (escaped) { escaped = false; continue; }
+            if (char === '\\') { escaped = true; continue; }
+            if ((state === 'single' && char === "'") || (state === 'double' && char === '"')) state = 'code';
+            continue;
+        }
+        if (char === '/' && next === '/') { scanSource += '  '; index += 1; state = 'line-comment'; continue; }
+        if (char === '/' && next === '*') { scanSource += '  '; index += 1; state = 'block-comment'; continue; }
+        if (templateExpressionDepth.length > 0 && char === '{') {
+            templateExpressionDepth[templateExpressionDepth.length - 1] += 1;
+            scanSource += char;
+            continue;
+        }
+        if (templateExpressionDepth.length > 0 && char === '}') {
+            const last = templateExpressionDepth.length - 1;
+            templateExpressionDepth[last] -= 1;
+            if (templateExpressionDepth[last] === 0) {
+                templateExpressionDepth.pop();
+                state = 'template';
+                scanSource += ' ';
+                continue;
+            }
+        }
+        if (char === "'") { state = 'single'; scanSource += char; continue; }
+        if (char === '"') { state = 'double'; scanSource += char; continue; }
+        if (char === '`') { state = 'template'; scanSource += ' '; continue; }
+        scanSource += char;
+    }
+    const sourceLines = source.split(/\r?\n/);
+    const optionalAdopterLine = [
+        'const document = req',
+        'uire("yaml").parseDocument(yamlSource); // portability:optional-adopter-dependency',
+    ].join('');
+    const isAllowedOptionalLoad = (specifier, lineIndex) =>
+        relativeFile === '.claude/scripts/codex/tests/spec-carrier-reader-yaml-normalization.test.mjs'
+        && specifier === 'yaml'
+        && sourceLines[lineIndex]?.trim() === optionalAdopterLine;
+    const addIfBare = (specifier, lineIndex) => {
+        if (specifier.startsWith('node:') || specifier.startsWith('.') || specifier.startsWith('/') || /^[a-zA-Z]:[\\/]/.test(specifier)) return;
+        if (BUILTINS.has(specifier) || BUILTINS.has(specifier.split('/')[0])) return;
+        if (isAllowedOptionalLoad(specifier, lineIndex)) return;
+        found.add(specifier);
+    };
+    const maskedLines = scanSource.split(/\r?\n/);
+    for (const [lineIndex, line] of maskedLines.entries()) {
         const specs = [];
         const staticImport = line.match(/^\s*import\b[^'"]*['"]([^'"]+)['"]/);
         if (staticImport) specs.push(staticImport[1]);
         for (const m of line.matchAll(/\brequire\(\s*['"]([^'"]+)['"]\s*\)/g)) specs.push(m[1]);
         for (const m of line.matchAll(/\bimport\(\s*['"]([^'"]+)['"]\s*\)/g)) specs.push(m[1]);
-        for (const s of specs) {
-            if (s.startsWith('node:') || s.startsWith('.') || s.startsWith('/') || /^[a-zA-Z]:[\\/]/.test(s)) continue;
-            if (BUILTINS.has(s) || BUILTINS.has(s.split('/')[0])) continue; // legacy unprefixed built-in
-            found.add(s);
-        }
+        for (const specifier of specs) addIfBare(specifier, lineIndex);
     }
+    // Executable imports may span lines, occur in template interpolation, or re-export bindings.
+    // They are collected only while the state machine is in executable code, keeping fixture strings
+    // and template bodies out of the result without hiding `${...}` expressions.
+    for (const { specifier, lineIndex } of syntaxSpecifiers) addIfBare(specifier, lineIndex);
     return [...found];
 }
 
@@ -150,23 +253,47 @@ async function assertPortableDependencies(read = readRel) {
         }
     }
     for (const rel of scanList) {
-        const bare = bareSpecifiers(await read(rel));
+        const bare = bareSpecifiers(await read(rel), rel);
         if (bare.length) offenders.push(`${rel}: ${bare.join(', ')}`);
     }
     assert.deepEqual(offenders, [], `pipeline scripts must not depend on node_modules:\n${offenders.join('\n')}`);
 }
 
-// ── PORT-002 — npm-auto-install is a safe no-op without package.json ─────────────────────────────
-test('PORT-002 npm-auto-install hook no-ops cleanly when no package.json is present', async () => {
+// ── PORT-002 — startup installation is a safe no-op without package.json ─────────────────────────
+// This guarantee previously had a second startup owner. The owner is now
+// `startup-install.cjs`, reached from the single registered SessionStart hook, which decides whether
+// a package manager may run. `configStatus: { exists: false }` is the load-bearing part of the setup,
+// not boilerplate — `docs/project-config.json` is exactly what a fresh `.claude` copy does not have
+// yet, so this is the absent-config path. A regression that made that path default to "install"
+// would fail here rather than shelling out in someone's Python or .NET repo.
+test('PORT-002 the startup-install owner no-ops cleanly when no package.json is present', async () => {
     const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'port-noinstall-'));
     createdDirs.push(dir);
-    const hook = path.join(repoRoot, '.claude', 'hooks', 'npm-auto-install.cjs');
-    const { code, stderr } = await run(process.execPath, [hook], {
+    const owner = path.join(repoRoot, '.claude', 'hooks', 'lib', 'startup-install.cjs');
+    const program = `
+        const owner = require(${JSON.stringify(owner)});
+        const result = owner.buildInstallRequest({
+            projectRoot: process.cwd(),
+            source: 'startup',
+            configStatus: { exists: false }
+        });
+        process.stdout.write(JSON.stringify({
+            outcome: result.outcome,
+            manager: result.manager ?? null,
+            request: result.request ?? null,
+            diagnostic: owner.formatDiagnostic(result)
+        }));
+    `;
+    const { code, stdout, stderr } = await run(process.execPath, ['-e', program], {
         cwd: dir,
         env: { ...process.env, CLAUDE_PROJECT_DIR: dir },
     });
-    assert.equal(code, 0, 'hook must exit 0 with no package.json');
-    assert.doesNotMatch(stderr, /Running npm (ci|install)/, 'hook must NOT attempt an install when package.json is absent');
+    assert.equal(code, 0, `owner must load and decide with no package.json present:\n${stderr}`);
+    const result = JSON.parse(stdout);
+    assert.equal(result.outcome, 'noop-no-manifest', 'a project with no root manifest is a clean no-op');
+    assert.equal(result.manager, null, 'no manager may be selected without a root manifest');
+    assert.equal(result.request, null, 'no install request may be built without a root manifest');
+    assert.equal(result.diagnostic, null, 'a bare copy must stay silent — a no-op is not worth a warning');
 });
 
 // ── PORT-003/004 — every entrypoint is an in-bundle path; NO host npm script may own one ─────────
@@ -297,7 +424,8 @@ test('PORT-006 runner executes a read-only verifier standalone from a non-repo c
 // ── PORT-007 — export-claude ships a self-contained pipeline payload, no package.json ─────────────
 // The canonical "copy .claude into a new project" tool. A bare export must contain the runner AND every
 // script it spawns — and crucially NOT a package.json (the new project supplies its own, or none).
-test('PORT-007 export-claude payload contains the full pipeline and no package.json', async () => {
+// Its nested ignore file must also protect the developer-local routing override in the new repo.
+test('PORT-007 export-claude payload contains the full pipeline and no package.json', { skip: !isFrameworkRepo(repoRoot) }, async () => {
     const target = await fs.mkdtemp(path.join(os.tmpdir(), 'port-export-'));
     createdDirs.push(target);
     const exporter = path.join(repoRoot, '.claude', 'scripts', 'export-claude.mjs');
@@ -309,6 +437,25 @@ test('PORT-007 export-claude payload contains the full pipeline and no package.j
         assert.ok(await exists(path.join(target, ...rel.split('/'))), `exported payload missing pipeline script: ${rel}`);
     }
     assert.ok(!(await exists(path.join(target, 'package.json'))), 'export must copy only .claude — no root package.json');
+
+    const defaultTarget = await fs.mkdtemp(path.join(os.tmpdir(), 'port-export-default-'));
+    createdDirs.push(defaultTarget);
+    const defaultExport = await run(process.execPath, [exporter, defaultTarget], { cwd: repoRoot });
+    assert.equal(defaultExport.code, 0, `default export-claude must succeed: ${defaultExport.stderr || defaultExport.stdout}`);
+
+    const portableIgnore = path.join(defaultTarget, '.claude', '.gitignore');
+    assert.ok(await exists(portableIgnore), 'exported payload must include the nested portable .gitignore');
+    assert.match(await fs.readFile(portableIgnore, 'utf8'), /^\/\.ck\.local\.json\s*$/m,
+        'portable .gitignore must explicitly protect the developer-local routing override');
+
+    const initialized = await run('git', ['init', '--quiet'], { cwd: defaultTarget });
+    assert.equal(initialized.code, 0, `fresh target Git initialization must succeed: ${initialized.stderr}`);
+    await fs.writeFile(path.join(defaultTarget, '.claude', '.ck.local.json'),
+        '{"portability":{"workflowAutoDetect":true}}\n', 'utf8');
+    const ignored = await run('git', ['check-ignore', '-v', '--', '.claude/.ck.local.json'], { cwd: defaultTarget });
+    assert.equal(ignored.code, 0, 'copied .ck.local.json must be ignored in a fresh target repository');
+    assert.match(ignored.stdout.replaceAll('\\', '/'), /\.claude\/\.gitignore:\d+:\/\.ck\.local\.json/,
+        'the copied nested .gitignore must own the ignore decision');
 });
 
 // ── PORT-015 — the copied runner owns CLAUDE.md preflight before mirror sync ─────────
@@ -316,7 +463,7 @@ test('PORT-007 export-claude payload contains the full pipeline and no package.j
 // no package.json, let the in-bundle runner resolve that project from its own path, and verify the
 // preflight's three safe states. The test deliberately selects only `claude-md`, so a failure names
 // the source-root handoff rather than a later mirror prerequisite.
-test('PORT-015 copied runner initializes missing CLAUDE.md and protects markerless roots', async () => {
+test('PORT-015 copied runner initializes missing CLAUDE.md and protects markerless roots', { skip: !isFrameworkRepo(repoRoot) }, async () => {
     // Given a copied .claude bundle and a consuming project with no root package.json
     const target = await fs.mkdtemp(path.join(os.tmpdir(), 'port-preflight-'));
     createdDirs.push(target);
@@ -376,6 +523,72 @@ test('PORT-001 sync/verify pipeline scripts import only node: built-ins and rela
     await assertPortableDependencies();
 });
 
+test('PORT-001 scans real imports in fixture-heavy executed modules', async () => {
+    const victim = '.claude/scripts/codex/tests/spec-carrier-reader-yaml.test.mjs';
+    await assert.rejects(assertPortableDependencies(async rel => {
+        const source = await readRel(rel);
+        return rel === victim
+            ? `import 'synthetic-wrapper-dependency'; // portability:optional-adopter-dependency\n${source}`
+            : source;
+    }), /synthetic-wrapper-dependency/);
+});
+
+test('PORT-001 scans nested support modules in the executable test closure', async () => {
+    const victim = '.claude/scripts/codex/tests/support/spec-carrier-test-support.mjs';
+    assert.ok((await pipelineFiles()).includes(victim), 'nested support helper must be in the portability closure');
+    await assert.rejects(assertPortableDependencies(async rel => {
+        const source = await readRel(rel);
+        return rel === victim ? `import 'synthetic-transitive-dependency';\n${source}` : source;
+    }), /synthetic-transitive-dependency/);
+});
+
+test('PORT-001 detects multiline imports and re-exports', async () => {
+    const victim = '.claude/scripts/codex/tests/support/spec-carrier-test-support.mjs';
+    const multilineDependency = ['synthetic', 'multiline-dependency'].join('-');
+    const reexportDependency = ['synthetic', 'reexport-dependency'].join('-');
+    await assert.rejects(assertPortableDependencies(async rel => {
+        const source = await readRel(rel);
+        if (rel !== victim) return source;
+        const importFixture = ['im', 'port {\n  synthetic\n} fr', `om '${multilineDependency}';`].join('');
+        const reexportFixture = ['ex', 'port { synthetic } fr', `om '${reexportDependency}';`].join('');
+        return [importFixture, reexportFixture, source].join('\n');
+    }), error => {
+        assert.match(error.message, new RegExp(multilineDependency));
+        assert.match(error.message, new RegExp(reexportDependency));
+        return true;
+    });
+});
+
+test('PORT-001 scans executable template interpolation, multiline calls, and split side-effect imports', async () => {
+    const victim = '.claude/scripts/codex/tests/support/spec-carrier-test-support.mjs';
+    const interpolationDependency = ['synthetic', 'interpolation-dependency'].join('-');
+    const requireDependency = ['synthetic', 'multiline-require'].join('-');
+    const sideEffectDependency = ['synthetic', 'side-effect'].join('-');
+    await assert.rejects(assertPortableDependencies(async rel => {
+        const source = await readRel(rel);
+        if (rel !== victim) return source;
+        const interpolation = ['const value = `prefix ${await im', `port('${interpolationDependency}')}`, '`;'].join('');
+        const multilineRequire = ['const helper = req', `uire(\n  '${requireDependency}'\n);`].join('');
+        const sideEffectImport = ['im', `port\n  '${sideEffectDependency}';`].join('');
+        return [interpolation, multilineRequire, sideEffectImport, source].join('\n');
+    }), error => {
+        assert.match(error.message, new RegExp(interpolationDependency));
+        assert.match(error.message, new RegExp(requireDependency));
+        assert.match(error.message, new RegExp(sideEffectDependency));
+        return true;
+    });
+});
+
+test('PORT-001 scans the hook runner closure and rejects allowlisted packages outside the exact optional load', async () => {
+    const victim = '.claude/hooks/tests/run-all-tests.cjs';
+    assert.ok((await pipelineFiles()).includes(victim), 'hook runner must be in the portability closure');
+    await assert.rejects(assertPortableDependencies(async rel => {
+        const source = await readRel(rel);
+        const disallowed = ['req', "uire('yaml'); // portability:optional-adopter-dependency"].join('');
+        return rel === victim ? `${disallowed}\n${source}` : source;
+    }), /yaml/);
+});
+
 test('PORT-014 executed CJS suites cannot escape the dependency closure', async () => {
     const candidates = (await fs.readdir(path.join(repoRoot, '.claude/scripts/tests')))
         .filter(name => name.endsWith('.test.cjs'));
@@ -393,7 +606,7 @@ test('PORT-014 executed CJS suites cannot escape the dependency closure', async 
 // This is the user-facing portability contract: export the framework into one project, generate
 // its Codex surfaces, copy those directories to a second project, and run from a nested cwd. No
 // module may retain an absolute path to this checkout or require the source repository's package.
-test('PORT-013 relocated .claude and .codex bundles resolve from the consuming project root', async () => {
+test('PORT-013 relocated .claude and .codex bundles resolve from the consuming project root', { skip: !isFrameworkRepo(repoRoot) }, async () => {
     const exported = await fs.mkdtemp(path.join(os.tmpdir(), 'port-relocated-export-'));
     const relocated = await fs.mkdtemp(path.join(os.tmpdir(), 'port-relocated-copy-'));
     createdDirs.push(exported, relocated);
@@ -428,7 +641,7 @@ test('PORT-013 relocated .claude and .codex bundles resolve from the consuming p
     assert.equal(second.code, 0, `relocated bundle must sync from a nested cwd: ${second.stderr || second.stdout}`);
     const context = await fs.readFile(path.join(relocated, '.codex', 'CODEX_CONTEXT.md'), 'utf8');
     const agents = await fs.readFile(path.join(relocated, 'AGENTS.md'), 'utf8');
-    assert.match(context, /Workflow Protocol \(Hook-Independent\)/);
+    assert.doesNotMatch(context, /Workflow Protocol \(Hook-Independent\)|Workflow Catalog/);
     assert.match(agents, /\.codex\/CODEX_CONTEXT\.md/);
     assert.ok(Buffer.byteLength(agents, 'utf8') <= AGENTS_ROOT_LIMIT_BYTES, 'relocated root projection must remain bounded');
 

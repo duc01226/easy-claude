@@ -1,13 +1,19 @@
 # Team-wide Codex defaults for this repository.
 # Applied when the project is trusted by Codex.
-model = "gpt-5.6-luna"
-model_reasoning_effort = "max"
+# model = "gpt-5.6-luna"
+# model_reasoning_effort = "max"
 # Fast serving tier by default. Codex reads this globally from ~/.codex/config.toml;
 # kept here so a trusted checkout of this repo requests the same tier.
-service_tier = "fast"
+# service_tier = "fast"
 
 # Shared completion notifications. Codex passes a JSON payload to this command.
 notify = ["node", ".codex/scripts/codex/codex-notify.mjs"]
+
+# Auto-compaction budget — 500K tokens, matching the Claude Code
+# CLAUDE_CODE_AUTO_COMPACT_WINDOW and the opencode model limit.context so all three
+# surfaces of the portable framework compact at the same point.
+# Scope defaults to "total" (full active context).
+model_auto_compact_token_limit = 500000
 
 # Let Codex consume existing Claude project instructions while we migrate.
 project_doc_fallback_filenames = ["CLAUDE.md"]
@@ -22,8 +28,8 @@ status_line = ["model-with-reasoning", "current-dir", "project-root", "context-u
 
 [agents]
 # Keep delegation predictable and aligned with current team workflow.
-max_threads = 10
-max_depth = 2
+# max_threads = 20
+max_depth = 3
 
 [features]
 # Fast mode (stable in codex-cli 0.147.0, on by default) — pinned explicitly.

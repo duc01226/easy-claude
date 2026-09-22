@@ -1,7 +1,7 @@
 ---
 name: workflow-idea-to-spec
 version: 2.0.0
-description: '[Workflow] Use when turning a raw idea, vision, or problem into ONE canonical Feature Spec. Stops at the reviewed spec; chain workflow-spec-to-pbi for a backlog.'
+description: '[Workflow] Use when turning a raw idea, vision, or problem into one reviewed provisional canonical spec under the configured artifact profile. Stops at the spec; chain workflow-spec-to-pbi for a backlog.'
 disable-model-invocation: false
 ---
 
@@ -9,19 +9,19 @@ disable-model-invocation: false
 
 ## Quick Summary
 
-**Goal:** Convert a raw idea/vision/problem into one reviewed, docs-synced, provisional, tech-free 8-section Feature Spec with §8 planned TCs and conditional large-idea decomposition; stop there, never create a PBI backlog or implicit roadmap. Chain `workflow-spec-to-pbi`/`workflow-idea-to-pbi` as appropriate; use `workflow-code-to-spec` only after implementation exists.
+**Goal:** Convert a raw idea/vision/problem into one reviewed, docs-synced provisional canonical spec with test/evidence coverage in the configured artifact contract and conditional large-idea decomposition; use the portable tech-free 8-section/§8 TC form only when neither a native profile nor local artifact contract applies. Stop there, never create a PBI backlog or implicit roadmap. Chain `workflow-spec-to-pbi`/`workflow-idea-to-pbi` as appropriate; use `workflow-code-to-spec` only after implementation exists.
 
 **Summary:**
 
-- **Main steps (run in order):** (1) brainstorm the raw idea and classify the four `isLargeIdea` signals; (2) conditionally carry the complete five-field `large_idea_decomposition` block; (3) run spec discovery, conditional scenario analysis, domain analysis, and rationale review; (4) capture the idea; (5) author the provisional Feature Spec and §8 test specs; (6) run artifact review, UI design-spec, clarification, rationale review, docs sync, presentation, and workflow end gates.
-- Large ideas embed stable slice IDs, dependency order, non-goals, risk/evidence owners, and deferred-work owners in the Feature Spec and downstream presentation/mock-up inputs. Ordinary ideas omit the block and roadmap fields; no default workflow step creates the product-roadmap artifact (default `docs/product-roadmap.md`; `docsRoots.productRoadmap.path` in `docs/project-config.json` overrides).
-- The workflow stops at the reviewed, docs-synced Feature Spec; it never decomposes into PBIs/stories or invents unresolved product meaning. Explicit `--mode=roadmap` remains a separate, user-requested route.
+- **Main steps (run in order):** (1) brainstorm the raw idea and classify the four `isLargeIdea` signals; (2) conditionally carry the complete five-field `large_idea_decomposition` block; (3) run spec discovery, conditional scenario analysis, domain analysis, and rationale review; (4) capture the idea; (5) author the provisional canonical spec and its configured test/evidence cases; (6) run artifact review, UI design-spec, clarification, rationale review, docs sync, presentation, and workflow end gates.
+- Large ideas embed stable slice IDs, dependency order, non-goals, risk/evidence owners, and deferred-work owners in the canonical spec's profile/local-reference-declared role that permits slice plans, and carry the block into downstream presentation/mock-up inputs. Stop and resolve the mapping only if neither the native profile nor local artifact reference declares a role that permits slice plans; never invent a section. Ordinary ideas omit the block and roadmap fields; no default workflow step creates the product-roadmap artifact (default `docs/product-roadmap.md`; `docsRoots.productRoadmap.path` in `docs/project-config.json` overrides).
+- The workflow stops at the reviewed, docs-synced canonical spec; it never decomposes into PBIs/stories or invents unresolved product meaning. Explicit `--mode=roadmap` remains a separate, user-requested route.
 
 **Workflow:**
 
 1. **Frame** — brainstorm the idea, classify large-idea signals, capture any required decomposition block, analyze domain, and validate the problem framing (why-review).
-2. **Author** — capture the idea, then author the canonical provisional Feature Spec (`spec [mode=draft]`) + §8 test specs (`spec [mode=tests]`).
-3. **Review & Sync** — review the test specs and the Feature Spec, validate rationale (why-review), sync docs.
+2. **Author** — capture the idea, then author the canonical provisional spec (`spec [mode=draft]`) + configured test/evidence cases (`spec [mode=tests]`).
+3. **Review & Sync** — review native test/evidence cases and the canonical spec, validate rationale (why-review), sync docs.
 
 **Key Rules:**
 
@@ -29,14 +29,20 @@ disable-model-invocation: false
 - MUST ATTENTION keep task tracking updated as each step starts/completes.
 - MUST ATTENTION define success criteria before execution and loop until observable verification passes.
 - MUST ATTENTION when creating/reviewing specs or tests, name `Business Intent / Invariant Guarded` or the protected business intent/invariant and ensure the test would fail if that intent breaks.
-- MUST ATTENTION author the spec via `spec [mode=draft]` — idea-sourced, no code yet → §8 `Evidence: TBD`, `Status: Planned`, frontmatter `provisional: true`.
-- MUST ATTENTION apply the shared `isLargeIdea = multipleIndependentOutcomes || ambiguousOrResearchHeavy || releaseScopeDecomposition || oversizedPbiThatMustSplit` rule before authoring. A true signal requires the complete `large_idea_decomposition` block (`outcome_slices`, `dependencies_order`, `non_goals`, `risks_evidence`, `deferred_work_owner`) in the Feature Spec; all-false ideas omit it. An explicitly supplied roadmap is read-only context, not a writer trigger.
+- MUST ATTENTION author the spec via `spec [mode=draft]`; record its provisional state and planned test/evidence coverage using the native profile. The portable §8 `Evidence: TBD`, `Status: Planned`, and `provisional: true` form applies only when neither a native profile nor local artifact contract defines those fields.
+- MUST ATTENTION apply the shared `isLargeIdea = multipleIndependentOutcomes || ambiguousOrResearchHeavy || releaseScopeDecomposition || oversizedPbiThatMustSplit` rule before authoring. A true signal requires the complete `large_idea_decomposition` block (`outcome_slices`, `dependencies_order`, `non_goals`, `risks_evidence`, `deferred_work_owner`) in the canonical spec's profile/local-reference-declared role that permits slice plans; all-false ideas omit it. Stop for mapping only if neither the native profile nor local artifact reference declares a role that permits slice plans; never invent a section. An explicitly supplied roadmap is read-only context, not a writer trigger.
 - NEVER decompose into PBIs/stories/backlog here — that is `workflow-spec-to-pbi`'s job. NEVER skip the Feature Spec authoring core.
+
+## Canonical Artifact Profile
+
+Before discovery or authoring, read `docs/project-config.json` fields `specRoots.business.path`, `workflowPatterns.featureDocTemplate`, `docsRoots.projectReference.path`, and `specArtifacts` when declared, plus the configured template, local `spec-system-reference.md`, and `spec-principles.md`. Resolve the business root and template from the configured paths; resolve section roles, identifiers, ownership, and evidence/test carriers from the declared `specArtifacts` profile and local artifact contract. Apply tech-agnostic prose only to roles designated for intent; use declared contract roles for permitted technical detail. The portable `{SPEC_ROOT}/{Bucket}/README.{Feature}.md`, tech-free eight-section shape (including the mandatory inline §5 Mermaid ERD and §6.2–§6.5 interaction intent for UI-bearing features), and `TC-{FEATURE}-{NNN}` case format apply only when no native profile or project-specific template/reference defines another contract. Default cases carry `Business Intent / Invariant Guarded`, user-visible GIVEN/WHEN/THEN, Evidence, CoveredBy, and status; before code lands, the fallback provisional values are `Evidence: TBD`, `Status: Planned`, and `provisional: true`. Never invent a section, ID, provisional field, or second test registry to fit the fallback. A malformed/conflicting profile or unmapped required intent/test evidence is BLOCKED/UNKNOWN, not a silent fallback or a PASS.
+
+Keep the authored-spec, test-spec, test-spec review, artifact review, clarification, rationale, documentation-sync, and presentation gates in their declared order. Map each to the native spec roles and test/evidence carriers. For UI ideas, couple `design-spec` to the profile's declared interaction-intent owner when one exists; if none exists, preserve the separate UI design spec and surface the missing/unclear coupling instead of fabricating a numbered section.
 
 ## When to Use
 
 - PO/BA has a raw product vision, problem statement, or "we need to build X" starting point and wants a canonical Feature Spec
-- Team wants to capture intended behavior as a tech-free spec BEFORE any code exists (spec-first / TDD-first)
+- Team wants to capture intended behavior before code exists: keep intent tech-agnostic in the profile-designated role and record only permitted contracts in their declared roles (spec-first / TDD-first)
 - A single idea or capability needs a reviewed, AI-implementable Feature Spec as the source of truth for later implementation
 
 ## When NOT to Use
@@ -51,7 +57,7 @@ disable-model-invocation: false
 
 ### 1. Embedded Decomposition → Capability to Spec
 
-Run `/brainstorm` to converge the capability and evaluate the four large-idea signals. When any signal is true, record the complete decomposition block in the owning Feature Spec: stable slice IDs, dependency edges, non-goals, risk/evidence owners, and deferred-work owners. Run `/scenario` after spec discovery when the decomposition or supplied scope needs replay, state, ownership, persistence, recovery, or evidence analysis. Do not invoke the standalone product-roadmap writer unless the user explicitly requests a roadmap deliverable.
+Run `/brainstorm` to converge the capability and evaluate the four large-idea signals. When any signal is true, record the complete decomposition block in the canonical spec's profile/local-reference-declared role that permits slice plans: stable slice IDs, dependency edges, non-goals, risk/evidence owners, and deferred-work owners. Stop for mapping only if neither the native profile nor local artifact reference declares a role that permits slice plans. Run `/scenario` after spec discovery when the decomposition or supplied scope needs replay, state, ownership, persistence, recovery, or evidence analysis. Do not invoke the standalone product-roadmap writer unless the user explicitly requests a roadmap deliverable.
 
 ### 1a. Brainstorm → Converge on the Capability to Spec
 
@@ -60,14 +66,14 @@ The `/brainstorm` step frames the idea using the Double Diamond process:
 - **Problem framing:** POV statement, 5 Whys / Fishbone, JTBD job stories, HMW questions
 - **Opportunity framing:** Opportunity Solution Tree (enhancement) OR Lean Canvas (new product)
 - **Ideation:** SCAMPER, Crazy 8s, Impact Mapping
-- **Convergence:** pick the single feature/capability to author as a Feature Spec
+- **Convergence:** pick the single feature/capability to author as a canonical project spec
 
 Output: the converged capability (or a short list if multiple distinct capabilities emerge).
-AI presents the framing and confirms scope: **"Which capability should we author as a Feature Spec?"** If multiple distinct capabilities are in scope, confirm with the user and author one Feature Spec per capability (sub-agent per capability for 4+ — see Scale awareness).
+AI presents the framing and confirms scope: **"Which capability should we author as a canonical spec?"** If multiple distinct capabilities are in scope, confirm with the user and author one canonical spec per capability (sub-agent per capability for 4+ — see Scale awareness).
 
 ### 1b. Spec-Discovery (Landscape Investigation — After scope brainstorm, Before domain-analysis)
 
-`/spec-discovery` investigates the surrounding system BEFORE authoring: it Globs the business spec root (default `docs/specs/**`; a `specRoots.business.path` entry in `docs/project-config.json` overrides the path) to classify every related / overlapping / affected Feature Spec, investigates related code (graph-expanded when `.code-graph/graph.db` exists), and surfaces gaps, missing test cases / user stories, and the **invariant landscape** the idea must respect. It ends in a **BLOCKING scope-decision gate** — author a NEW spec, EXTEND an existing one, or SPLIT into N — so no duplicate / overlapping spec is authored. Greenfield (no specs + no code) short-circuits with a recorded reason.
+`/spec-discovery` investigates the surrounding system BEFORE authoring: it globs the configured business spec root, using the framework config loader's fallback only when no root is configured, to classify every related / overlapping / affected canonical spec; investigates related code (graph-expanded when `.code-graph/graph.db` exists); and surfaces gaps, missing test cases / user stories, and the **invariant landscape** the idea must respect. It ends in a **BLOCKING scope-decision gate** — author a NEW spec, EXTEND an existing one, or SPLIT into N — so no duplicate / overlapping spec is authored. Greenfield (no specs + no code) short-circuits with a recorded reason.
 
 ### 2. Why-Review Gate (After domain-analysis, Before spec authoring)
 
@@ -92,27 +98,27 @@ These steps run in sequence. **Spec-driven order: idea → draft Feature Spec �
 | Step                                 | Purpose                                                                                                                  | Output                                          |
 | ------------------------------------ | ------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------- |
 | `/idea`                              | Capture the converged idea as a structured artifact                                                                      | `ideas/{date}-po-idea-{slug}.md` under the team-artifacts root (default `team-artifacts/`; `docsRoots.teamArtifacts.path` in `docs/project-config.json` overrides) |
-| `/spec [mode=draft]`                 | Author the canonical tech-free 8-section Feature Spec §1-7 FROM the idea text (no code grep; `provisional: true` marker) | `{Bucket}/README.{Feature}.md` under the business spec root (default `docs/specs/`; `specRoots.business.path` in `docs/project-config.json` overrides) |
-| `/spec [mode=tests]`                 | Author §8 TC-{FEATURE}-{NNN} behavioral test cases (`Evidence: TBD`, `Status: Planned` — before any code)                | Feature Spec §8 Test Specifications             |
-| `/artifact-review --type=spec-tests` | Test-spec quality check                                                                                                  | Reviewed §8 TCs                                 |
-| `/artifact-review`                   | Feature Spec quality check                                                                                               | Reviewed Feature Spec                           |
+| `/spec [mode=draft]`                 | Author the canonical provisional spec from the idea text using the native section and provisional-state contract (no code grep) | Configured canonical spec path under the business root |
+| `/spec [mode=tests]`                 | Author planned behavioral/test-evidence cases in the profile's configured format before code exists; default Section 8 `TC-{FEATURE}-{NNN}` cases carry business intent, user-visible GIVEN/WHEN/THEN, Evidence, CoveredBy, and planned status | Configured test/evidence carrier |
+| `/artifact-review --type=spec-tests` | Test-spec quality check                                                                                                  | Reviewed configured cases/evidence              |
+| `/artifact-review`                   | Canonical spec quality check                                                                                             | Reviewed canonical spec                         |
 | `/design-spec`                       | UI ideas only — author tech-agnostic UI specs (NO mockup/backlog; spec-only contract preserved); gated by `SYNC:existing-ui-research`. Skip for backend-only ideas | UI design specs                                 |
 | `/spec-clarify`                     | Brainstorm open questions, audit non-obvious decisions, confirm with user (BLOCKING)                                     | Clarified spec + Decisions Log                  |
 | `/why-review`                        | Validate the authored spec's rationale and completeness                                                                  | Why-Review checklist                            |
-| `/docs-update`                       | Sync the Feature Spec (§8) and derived bucket indexes                                                                    | Docs-update report                              |
+| `/docs-update`                       | Sync the canonical spec's configured test/evidence representation and any declared derived indexes                      | Docs-update report                              |
 
-**Provisional output:** because no code exists yet, the spec is provisional — §8 TCs carry `Evidence: TBD` and `Status: Planned`, and frontmatter carries `provisional: true`. The first `workflow-code-to-spec` / `spec [mode=update]` run against real code upgrades `TBD` → real `[Source:]` anchors and clears the provisional flag.
+**Provisional output:** because no code exists yet, mark the spec and planned test evidence using the provisional-state convention defined by the native profile or local artifact contract. The first `workflow-code-to-spec` / `spec [mode=update]` run against real code must reconcile the planned cases with observed implementation/test evidence and clear provisional markers only when the acceptance rule defined by the native profile or local artifact contract is met. Use `Evidence: TBD`, `Status: Planned`, `provisional: true`, and `[Source:]` for the portable fallback only when neither a native profile nor local artifact contract defines alternatives.
 
-> **Spec-hub coupling (§6 interaction surface ↔ UI artifacts):** the `/design-spec` produced here is NOT a standalone artifact — it is the deep companion of the governing Feature Spec's **§6 interaction surface** (View Inventory / Navigation Map / Key UI States / per-story click-path). `design-spec` seeds from §6 and records its own path in the spec's `design_spec:` frontmatter so the spec stays the navigable hub: a reader goes spec → §6 thin intent → `design-spec` deep companion, and the two never drift. Keep deep visual fidelity (layout, tokens, pixel detail) in the `design-spec`, never in §6. See the `SYNC:ui-intent-layer` block below for the full rule — do not restate it here. Backend-only ideas (no UI) → skip `/design-spec` and state that reason.
+> **Spec-hub coupling (native interaction intent ↔ UI artifacts):** when the native profile or local artifact contract defines an interaction/UX intent section or frontmatter link, the `/design-spec` produced here is its deep companion; seed it from that native owner and record the link there so the artifacts do not drift. Use §6, its View Inventory / Navigation Map / Key UI States / per-story click-path, only for the portable fallback when neither a native profile nor local artifact contract defines interaction roles. If neither the native profile nor local artifact contract defines an interaction section/link, keep the separate UI design spec and identify its canonical relationship without inventing a section. Keep deep visual fidelity (layout, tokens, pixel detail) in the `design-spec`. See the `SYNC:ui-intent-layer` block below for the full rule — do not restate it here. Backend-only ideas (no UI) → skip `/design-spec` and state that reason.
 
 ### 4. Handoff
 
 At `/workflow-end`, AI presents:
 
-- Session summary: M Feature Specs authored (provisional), §8 TC counts, open questions (confidence < 80%)
-- Feature Specs authored: `{Bucket}/README.{Feature}.md` paths under the business spec root (default `docs/specs/`; `specRoots.business.path` in `docs/project-config.json` overrides)
-- Provisional note: these specs carry `Evidence: TBD` + `provisional: true` until code lands — reconcile via `workflow-code-to-spec` / `spec [mode=update]` once implemented
-- Recommended next workflow: `/start-workflow workflow-spec-to-pbi` (decompose the Feature Spec(s) into a grooming-ready PBI backlog) OR `/start-workflow workflow-feature` (implement directly from the spec)
+- Session summary: M canonical specs authored (provisional), native-contract-defined case/evidence coverage, open questions (confidence < 80%)
+- Canonical specs authored: configured spec paths under the business spec root (default format path only when neither a native profile nor local artifact contract applies)
+- Provisional note: these specs carry the native provisional/test-evidence state until code lands — reconcile via `workflow-code-to-spec` / `spec [mode=update]` once implemented
+- Recommended next workflow: `/start-workflow workflow-spec-to-pbi` (decompose the canonical spec(s) into a grooming-ready PBI backlog) OR `/start-workflow workflow-feature` (implement directly from the spec)
 
 ## Conditional Skip Rules
 
@@ -138,6 +144,7 @@ Activate the `workflow-idea-to-spec` workflow. Run `/start-workflow workflow-ide
 
 > **AI Mistake Prevention** — Failure modes to avoid on every task:
 >
+> **Project applicability gate.** Before applying a stack, layer, style, tool, or architecture rule, read the project's config and relevant references, then check local implementations. Treat framework examples as examples; honor explicit N/A and do not require a technology or convention the project does not use.
 > **ROOT-CAUSE GATE — INVESTIGATE FIRST.** Before applying any project-related correction, always use the project's root-cause investigation protocol and establish the cause; the failure site may be only a symptom.
 > **FAILED-TEST GATE.** For any failed or unstable test, use the project's test-investigation protocol before editing source or tests; never change either side merely to force green.
 > **Re-read files after context changes.** Context compaction, resume, or long-running work can make memory stale; verify current files before acting.
@@ -240,13 +247,17 @@ Activate the `workflow-idea-to-spec` workflow. Run `/start-workflow workflow-ide
 
 > **[BLOCKING] Capture a tech-agnostic UI/UX intent layer in every UI-bearing spec — a reader must be able to visualize how the feature works without naming any technology.** When the feature has a user interface, the spec MUST ATTENTION carry an interaction-surface section so the application — not just its API — can be rebuilt on any stack:
 >
+> **Native-first resolution.** A native contract may be declared by config or local references. Before authoring, resolve the configured profile's intent/evidence section roles, logical IDs, and carrier from `docs/project-config.json` (`specArtifacts`) and the required local references, and map every item below onto them. An unresolved owner, role, ID, carrier, or companion link stays `UNKNOWN`/`BLOCKED` — never guessed.
+>
 > 1. **View Inventory** — list each view/screen by its UX ROLE and purpose (e.g. "list of items", "item editor", "confirmation step") and what information it presents. Describe by role, never by an implementation name.
 > 2. **Navigation Map** — how a user moves between views: entry points, transitions, and exits. Trace how this surface connects to neighboring features already in the system.
-> 3. **Key observable UI States** — the distinct states a user can observe per view (empty, loading, populated, error, success, permission-denied, etc.) — described as what the user perceives, not how it is rendered.
-> 4. **Per-story interaction flow** — for each user story, the step-by-step click/action path from intent to outcome, cross-referenced to the logical IDs the spec already owns (`US-`/`OP-`/`BR-`).
-> 5. **Couple to the companion design artifact** — keep deep visual fidelity (layout, tokens, pixel detail) OUT of the spec; it lives in the linked `design-spec`/mockup. Record that companion's path in the spec frontmatter so the spec stays the navigable hub.
+> 3. **Key observable states** — the distinct states a user can observe per view (empty, loading, populated, error, success, permission-denied, etc.) — described as what the user perceives, not how it is rendered.
+> 4. **Per-story action flows** — for each user story, the step-by-step click/action path from intent to outcome, cross-referenced to the logical IDs the configured profile owns.
+> 5. **Couple to the companion design artifact** — keep deep visual fidelity (layout, tokens, pixel detail) OUT of the spec; it lives in the linked companion design artifact. Record that artifact's path in the spec frontmatter so the spec stays the navigable hub.
 >
-> **M1-clean (NON-NEGOTIABLE):** the prose names ZERO frameworks, routes/URLs, CSS, or component-class names — only roles, information, states, and flows. Technology detail belongs in the companion design artifact, never here.
+> **M1-clean (NON-NEGOTIABLE):** the prose names ZERO frameworks, routes/URLs, CSS, or component-class names — only roles, information, states, and action flows. Technology detail belongs in the companion design artifact, never here.
+>
+> **Strict portable fallback — only when neither config nor local references declares a native artifact contract:** cross-reference each action flow to the default logical IDs `US-`/`OP-`/`BR-`, and record the companion artifact in the default `design_spec:`/`mockup:` frontmatter keys.
 >
 > **Skip ONLY** when the feature is backend-only (no UI) — state that reason explicitly in the section.
 
@@ -294,13 +305,13 @@ Activate the `workflow-idea-to-spec` workflow. Run `/start-workflow workflow-ide
 
 <!-- SYNC:critical-thinking-mindset:reminder -->
 
-**MUST ATTENTION** apply critical + sequential thinking — every claim needs appropriate traced evidence (`file:line` for repo/code claims; source URL or artifact section for research, product, content, and docs claims); confidence >80% to act, <60% DO NOT recommend. Anti-hallucination: never present guess as fact, admit uncertainty freely, cross-reference independently, stay skeptical of own confidence.
+**MUST ATTENTION** critical + sequential thinking: every claim carries traced evidence (`file:line` for code, source URL or artifact section otherwise); confidence >80% to act, <60% do NOT recommend. Never present a guess as fact; admit uncertainty and stay skeptical of your own confidence.
 
 <!-- /SYNC:critical-thinking-mindset:reminder -->
 
 <!-- SYNC:ai-mistake-prevention:reminder -->
 
-**MUST ATTENTION** ROOT-CAUSE GATE: before any project-related correction, use the appropriate root-cause investigation protocol; failed/unstable tests require the test-investigation protocol before editing source/tests — never force green.
+**MUST ATTENTION** Check project config, relevant references, and local evidence before applying stack-specific conventions; honor explicit N/A. ROOT-CAUSE GATE: before any project-related correction, use the appropriate root-cause investigation protocol; failed/unstable tests require the test-investigation protocol before editing source/tests — never force green.
 
 <!-- /SYNC:ai-mistake-prevention:reminder -->
 
@@ -313,7 +324,7 @@ Activate the `workflow-idea-to-spec` workflow. Run `/start-workflow workflow-ide
 
 <!-- SYNC:ui-intent-layer:reminder -->
 
-- **MANDATORY** For UI-bearing specs, author/maintain the tech-agnostic interaction-surface layer (View Inventory + Navigation Map + observable UI States + per-story `US-/OP-/BR-`-traced flow); keep deep visual fidelity in the linked `design-spec`/mockup recorded in frontmatter; name ZERO frameworks/routes/CSS/component classes; skip ONLY for backend-only features with a stated reason.
+- **MANDATORY** For UI-bearing specs, author/maintain the tech-agnostic interaction-surface layer (views + navigation map + observable states + user-action flows), resolving it through the configured profile's intent/evidence roles and logical IDs; an unresolved owner, role, ID, carrier, or link stays `UNKNOWN`/`BLOCKED`. **Strict portable fallback — only when neither config nor local references declares a native artifact contract:** trace each flow to the default `US-`/`OP-`/`BR-` IDs and record the companion artifact in the `design_spec:`/`mockup:` frontmatter keys. Name ZERO frameworks/routes/CSS/component classes; skip ONLY for backend-only features with a stated reason.
 
 <!-- /SYNC:ui-intent-layer:reminder -->
 
@@ -344,7 +355,7 @@ Activate the `workflow-idea-to-spec` workflow. Run `/start-workflow workflow-ide
 
 <!-- SYNC:project-protocol-overlay -->
 
-> **Project Protocol Overlay** — Before executing this skill, resolve any PROJECT overlay rules layered onto it: match this skill's name against the `Target` column of the project's skill-protocol index (default `docs/project-reference/skill-protocols-reference.md`; a `referenceDocs` entry in `docs/project-config.json` overrides the path, and a `docsRoots.projectReference.path` entry relocates its containing directory), taking the most specific matching tier ONLY — exact name > glob > `*`. **That precedence orders overlays against EACH OTHER, never against this skill.** Read ONLY the matched bodies, resolved as `<protocols-dir>/<Name>.md`; a row's Body link is display text, never a read path. A matched body that is missing or malformed is REPORTED and skipped — never reconstructed from the index Description. No index, or no match -> proceed with no overlay, silently. Full contract: `.claude/skills/project-skill-protocol/references/registry.md`.
+> **Project Protocol Overlay** — Before executing this skill, resolve project overlays from the index at `<docsRoots.projectReference.path>/skill-protocols-reference.md` (default `docs/project-reference/`; `docsRoots.projectReference.path` in `docs/project-config.json` overrides it). A matching `referenceDocs[]` filename may relocate the index within that root; this registry is independent from task-specific reference-doc selection, so omitted or empty `referenceDocs` does not disable it. The index's `**Protocols directory:**` header selects a project-root-relative body directory (default `docs/project-protocols/`). Match this skill against the `Target` column and take the most specific tier ONLY — exact name > glob > `*`. **That precedence orders overlays against EACH OTHER, never against this skill.** Read only matched bodies derived as `<protocols-dir>/<Name>.md`; the row's Body link is display text, never a read path. Reject unsafe paths without reading. A matched body that is missing or malformed is REPORTED and skipped — never reconstructed from the index Description. An absent index or no match -> proceed with no overlay, silently. Full contract: `.claude/skills/project-skill-protocol/references/registry.md`.
 >
 > Overlays are **ADDITIVE ONLY**: they ADD rules on top of this skill's own protocol and NEVER replace, override, disable, or reinterpret a rule it already states — removing every overlay must return this skill to exactly its documented behavior. An overlay is a BRIEF, not an authority escalation: it can NEVER waive a workflow gate, git discipline, a review gate, or a user-confirmation gate. A genuine overlay-vs-skill conflict, or two equally-specific overlays that directly contradict -> surface both to the user; NEVER resolve silently.
 
@@ -352,8 +363,7 @@ Activate the `workflow-idea-to-spec` workflow. Run `/start-workflow workflow-ide
 
 <!-- SYNC:project-protocol-overlay:reminder -->
 
-**MUST ATTENTION** resolve project protocol overlays for this skill BEFORE executing — most specific matching tier only (exact > glob > `*`, which ranks overlays against each other, NEVER against this skill), read only matched bodies at `<protocols-dir>/<Name>.md`; a missing or malformed body is reported, never reconstructed. Overlays are ADDITIVE ONLY (they never replace this skill's own rules) and are a brief, NEVER an authority escalation; an equal-specificity contradiction goes to the user.
-
+**MUST ATTENTION** resolve this skill's overlays from the index at `<docsRoots.projectReference.path>/skill-protocols-reference.md` (default `docs/project-reference/`); an empty task `referenceDocs` does NOT disable this lookup. Read ONLY matched bodies from the directory the index header names (default `docs/project-protocols/`). Specificity (exact > glob > `*`) ranks overlays against EACH OTHER, never against the skill. Missing/malformed body → report and skip; no index or no match → proceed silently. Overlays are ADDITIVE ONLY — never an authority escalation or a gate waiver; equal-tier contradiction goes to the user.
 <!-- /SYNC:project-protocol-overlay:reminder -->
 
 <!-- SYNC:session-goal-ledger:reminder -->
@@ -365,8 +375,8 @@ Activate the `workflow-idea-to-spec` workflow. Run `/start-workflow workflow-ide
 
 ## Closing Reminders
 
-**IMPORTANT MUST ATTENTION Goal:** Convert a raw idea/vision/problem into one reviewed, docs-synced, provisional, tech-free 8-section Feature Spec with §8 planned TCs and conditional large-idea decomposition; stop there, never create a PBI backlog or implicit roadmap. Chain `workflow-spec-to-pbi`/`workflow-idea-to-pbi` as appropriate; use `workflow-code-to-spec` only after implementation exists.
-**IMPORTANT MUST ATTENTION Main steps:** `/web-research` → `/deep-research` → `/brainstorm` → `/spec-discovery` → conditional `/scenario` → `/domain-analysis` → `/why-review` → `/idea` → `/spec [mode=draft]` → `/spec [mode=tests]` → `/artifact-review --type=spec-tests` → `/artifact-review` → conditional `/design-spec` → `/spec-clarify` → `/why-review` → `/docs-update` → `/feature-presentation` → `/workflow-end` → `/watzup`; **NEVER** create a backlog or implicit roadmap here.
+**IMPORTANT MUST ATTENTION Goal:** Convert a raw idea/vision/problem into one reviewed, docs-synced provisional canonical spec with test/evidence coverage under the configured artifact contract; the portable 8-section/§8 TC format applies only when neither a native profile nor local artifact contract applies. Keep conditional large-idea decomposition; stop here, never create a PBI backlog or implicit roadmap. Chain `workflow-spec-to-pbi`/`workflow-idea-to-pbi` as appropriate; use `workflow-code-to-spec` only after implementation exists.
+**IMPORTANT MUST ATTENTION Main steps:** `/web-research` → `/deep-research` → `/brainstorm` → `/spec-discovery` → conditional `/scenario` → `/domain-analysis` → `/why-review` → `/idea` → `/spec [mode=draft]` → `/spec [mode=tests]` → `/artifact-review --type=spec-tests` → `/artifact-review` → conditional `/design-spec` → `/spec-clarify` → `/why-review` → `/docs-update` → `/feature-presentation` → `/workflow-end` → `/watzup`; **NEVER** create a backlog or implicit roadmap here. **MUST ATTENTION** resolve the slice-planning owner from the native profile or local reference; stop only when neither identifies one.
 
 **IMPORTANT MUST ATTENTION — Protocols in force (concise digest of the SYNC/shared blocks this skill carries; each is a signpost to its canonical body above):**
 
@@ -379,12 +389,12 @@ Activate the `workflow-idea-to-spec` workflow. Run `/start-workflow workflow-ide
 - **MANDATORY IMPORTANT MUST ATTENTION** break work into small todo tasks using `TaskCreate` BEFORE starting — one task per workflow step (per capability when multiple capabilities are in scope)
 - **MANDATORY IMPORTANT MUST ATTENTION** brainstorm converges on the capability to spec BEFORE the `/idea` step
 - **MANDATORY IMPORTANT MUST ATTENTION** run the default `/brainstorm` mode for ordinary idea-to-spec framing; `--mode=scope` is reserved for an explicitly supplied roadmap scope brief and must never be used as an implicit roadmap writer
-- **MANDATORY IMPORTANT MUST ATTENTION** SPEC-DRIVEN ORDER — author the Feature Spec (`/spec [mode=draft]` → `/spec [mode=tests]`) and review it; this workflow STOPS at the reviewed spec
-- **MANDATORY IMPORTANT MUST ATTENTION** PROVISIONAL OUTPUT — §8 carries `Evidence: TBD` / `Status: Planned` and frontmatter `provisional: true`; reconcile against code later via `workflow-code-to-spec`
+- **MANDATORY IMPORTANT MUST ATTENTION** SPEC-DRIVEN ORDER — author the canonical spec (`/spec [mode=draft]` → `/spec [mode=tests]`) and review it; this workflow STOPS at the reviewed spec
+- **MANDATORY IMPORTANT MUST ATTENTION** PROVISIONAL OUTPUT — use the planned-evidence/provisional-state convention defined by the active native profile or local artifact contract and reconcile against real code/test evidence via `workflow-code-to-spec`; the §8/TC/TBD fields are default-only
 - **MANDATORY IMPORTANT MUST ATTENTION** NEVER decompose into PBIs/stories/backlog here — chain `workflow-spec-to-pbi` for a backlog
 - **MANDATORY IMPORTANT MUST ATTENTION** why-review runs after domain-analysis — FAIL revisits framing, WARN requires user acknowledgment
 - **MANDATORY IMPORTANT MUST ATTENTION** validate decisions with user via `AskUserQuestion` — never auto-select scope
-- **MANDATORY IMPORTANT MUST ATTENTION** add a final review todo task to verify the authored Feature Spec(s)
+- **MANDATORY IMPORTANT MUST ATTENTION** add a final review todo task to verify the authored canonical spec(s) and native test/evidence carriers
 - **Parallel Sub-Agent Dispatch:** Tag tasks PAR/SEQ, group PAR into disjoint-write-set waves, spawn each wave in ONE message, barrier before advancing.
 
 **[TASK-PLANNING]** Before acting, analyze task scope and systematically break it into small todo tasks and sub-tasks using TaskCreate.

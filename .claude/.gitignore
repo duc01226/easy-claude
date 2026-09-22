@@ -44,6 +44,7 @@ coverage/
 # Local Settings (developer-specific overrides)
 # -----------------------------------------------------------------------------
 *.local.json
+/.ck.local.json
 
 # -----------------------------------------------------------------------------
 # Package Manager Lock Files

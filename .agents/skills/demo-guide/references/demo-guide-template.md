@@ -38,6 +38,12 @@ The structure the `demo-guide` skill writes. Fill from real project evidence; ke
   (happy path first, then variants, edge cases, and legacy/back-compat last).
 - **Honesty about proof.** Every case sits on exactly one rung of the proof ladder below, and carries the
   `file:line` proof chain a challenger can walk. Never imply a green run that didn't happen.
+- **Preserve canonical identity.** Follow the case profile resolved by the `demo-guide` skill. Keep each
+  owner/scenario/variant ID exactly as its canonical source defines it; test names, executor references, and
+  guide-local labels are separate fields. Map every claimed result to its actual carrier and inspected
+  assertion or approved manual-QC outcome under the declared cardinality. Use strict `TC-*`/Section 8 and
+  one-TC-to-many-tests only when neither config nor required project references defines a native model.
+  Never invent IDs or add a second case registry.
 - **No secret values, anywhere.** This guide is shared. Name the setting, the file, and the account **role**;
   render credentials, tokens, keys, connection strings, and customer identifiers as `<redacted:…>`.
 
@@ -45,10 +51,10 @@ The structure the `demo-guide` skill writes. Fill from real project evidence; ke
 
 | Rung                | Means                                                                | Licence                                                            |
 | ------------------- | -------------------------------------------------------------------- | ------------------------------------------------------------------ |
-| `✅ ran`            | The test was **executed this session**                               | The ONLY rung that may claim green. Record the command + pass/fail. |
+| `✅ ran`            | The configured test/executor or explicitly approved manual-QC carrier was **executed this session** | The ONLY rung that may claim pass. Record the command/procedure and inspected result. |
 | `⚠️ trace-verified` | Code read end-to-end, `file:line` chain complete, not executed       | Demo it live; say it was not run.                                   |
-| `📄 spec-only`      | Asserted by a spec/TC; the code path was not traced                  | Weakest rung — say so explicitly.                                   |
-| `❌ no coverage`    | No test exists for this case                                         | A reported gap. NEVER filled with a plausible ID.                   |
+| `📄 spec-only`      | Asserted by a canonical spec case under the configured profile; code path was not traced | Weakest rung — say so explicitly.                                   |
+| `❌ no coverage`    | Verified that no permitted test/executor or explicitly approved manual-QC carrier is mapped to this case | A reported gap. NEVER filled with a plausible ID.                   |
 
 **Proof chain per case:** where the value is **written** → where it is **read** → where the presenter **sees**
 it, `file:line` each. A chain with a missing link caps the case at `📄 spec-only`. A case that fits no rung is
@@ -86,10 +92,14 @@ a **stated blocker**, never a quiet promotion.
 
 ### Acceptance criteria
 
-| # | Criterion (Given / When / Then) | Demo case · test ID |
-| - | ------------------------------- | ------------------- |
-| AC-1 | **Given** {precondition} **When** {action} **Then** {observable outcome} | {A1} · `{REAL-TC-ID}` |
-| AC-2 | … | {A2} · `{REAL-TC-ID}` — or `❌ no coverage` |
+Preserve each source AC's canonical ID, wording, and structure. Add a guide-local display number only when
+the source has no stable AC ID. For derived criteria, use Given/When/Then only where every clause is
+supported by evidence.
+
+| Source AC ID / display # | Criterion (source wording and structure) | Canonical scenario · carrier reference(s) |
+| ------------------------ | ---------------------------------------- | ---------------------------------------- |
+| {source AC ID} | {copied wording; or evidence-backed derived criterion} | {owner}/{scenario}[/{variant}] · {actual carrier ref(s)} |
+| {source AC ID} | … | {canonical identity} · {carrier ref(s)} — or `❌ no coverage` |
 
 ### Authorization requirements
 
@@ -168,7 +178,7 @@ _{`no UI demo path — technical only` — only when a front-end is present but 
 front-end demonstration; under the no-front-end rung, use the project's primary surface as the main
 channel and do not write this note}_
 
-### {A1} — {short case title} · `{REAL-TC-ID(s)}` · 🖥️ {main-channel label}
+### {guide-local label} — {short case title} · canonical: `{owner}/{scenario}[/{variant}]` · carriers: `{actual test/executor/manual-QC ref(s)}` · 🖥️ {main-channel label}
 - **Setup / preconditions:** {exact state to stage first, via real user paths; accounts by role, secrets `<redacted:…>`}
 - **Demo steps:**
     1. {actor} {action} on {screen/endpoint} with {input}
@@ -183,7 +193,7 @@ channel and do not write this note}_
 - **Proof chain:** written `{file:line}` → read `{file:line}` → seen `{screen + file:line}`
 - **Deeper confirmation (optional, non-UI):** {the DB/log/API check that also confirms this case — a runtime
   action, never a numbered demo step and never on the proof chain above. Omit the line when there is none.}
-- **Proof:** {✅ ran `id` — `{command}` → {pass/fail} | ⚠️ trace-verified | 📄 spec-only | ❌ no coverage}
+- **Proof:** {✅ ran — `{actual carrier ref}` · `{command/procedure}` · `{inspected result}` | ⚠️ trace-verified | 📄 spec-only | ❌ no coverage}
 
 ### {A2} — ...
 
@@ -201,13 +211,13 @@ channel and do not write this note}_
 backfill status, and — for display-only stories — the canonical representation. This is the "data behind the
 demo" the team should walk away understanding.}
 
-## Main test-case quick reference
+## Main case quick reference
 
 Main-channel cases only (🖥️) — technical cases are listed inside the appendix, never here.
 
-| Story | Test case | What it proves | Proof rung |
-| ----- | --------- | -------------- | ---------- |
-| {A}   | {REAL TC-ID} | {one line}  | ✅ ran / ⚠️ trace-verified / 📄 spec-only / ❌ no coverage |
+| Story | Canonical identity | Actual carrier reference(s) | What it proves | Proof rung |
+| ----- | ------------------ | --------------------------- | -------------- | ---------- |
+| {A}   | {owner}/{scenario}[/{variant}] | {test/executor/manual-QC ref(s)} | {one line} | ✅ ran / ⚠️ trace-verified / 📄 spec-only / ❌ no coverage |
 
 ## Appendix — Technical demo (non-UI)
 
@@ -215,7 +225,7 @@ _Supporting evidence, not the demo. Every case here needs a surface a normal use
 CLI, script, manual job trigger, DB query, logs, config). Same four parts and same proof rung as a UI case —
 demoted in order and prominence only. Omit the whole section when every case is UI-demoable._
 
-### {T1} — {short case title} · `{REAL-TC-ID(s)}` · 🔧 technical
+### {guide-local label} — {short case title} · canonical: `{owner}/{scenario}[/{variant}]` · carriers: `{actual test/executor/manual-QC ref(s)}` · 🔧 technical
 - **Why non-UI:** {the surface it requires, and the story it supports}
 - **Setup / preconditions:** {…, accounts by role, secrets `<redacted:…>`}
 - **Demo steps:** {numbered — the tool/surface, the command shape (no secret values), what to observe}
@@ -227,7 +237,7 @@ demoted in order and prominence only. Omit the whole section when every case is 
 
 ## Test-execution transparency
 
-- **Proven this session:** {suites/cases actually executed + the command + pass/fail counts}.
+- **Proven this session:** {tests/executors or approved manual-QC procedures actually executed + command/procedure + inspected results}.
 - **Not executed:** {cases at ⚠️/📄 + why (runner blocker, environment)} — demo these live instead of via a green run.
 - **No coverage:** {cases at ❌} — reported gaps, not staged as proven.
 - **Blockers:** {cases that fit no rung, or preconditions that could not be staged} — stated, never omitted.
@@ -246,8 +256,12 @@ _Generated: {DATE} · Scope source: {source} · Evidence: {spec/test/migration p
   criterion enters the tracker as a commitment nobody agreed to.
 - **ALL of them, not a sample.** Every in-scope user story and every acceptance criterion appears; a story
   the guide demos but the PBI omits is a drift the tracker will never catch.
-- **Trace each AC to its demo case and REAL test ID.** `AC-3 ↔ B2 · TC-118`. No test → `❌ no coverage`,
-  never a plausible ID.
+- **Trace each AC without changing its identity.** Preserve its source AC ID and wording, then link it to
+  the guide-local case label, canonical owner/scenario/variant identity, and actual carrier reference(s):
+  `AC-{source ID} ↔ {demo label} · {owner}/{scenario}[/{variant}] → {carrier ref}`. Under the strict
+  default, the canonical identity is the real `TC-*` ID and its carrier is the actual covering test(s).
+  Verified that no permitted carrier is mapped → `❌ no coverage`; an unknown mapping is a blocker, not a
+  coverage verdict. NEVER invent an ID or treat a test name as the canonical case.
 - **Authorization is read from code, not assumed.** Cite the guard, policy, attribute, or scoping filter at
   `file:line`, or state there is none. A guessed permission ships as a requirement.
 - **Estimation follows `SYNC:estimation-framework` and nothing else** — the same protocol `$plan`, `$refine`,
@@ -284,8 +298,9 @@ notes. If still ambiguous, present the top 2-4 as ask the user directly options 
 
 ## Translation notes (`--lang`)
 
-Translate prose only. Keep verbatim: code identifiers, file paths, `file:line`, `TC-*` / test IDs, numeric
-values (hours, offsets, dates), and command snippets. Put the translated copy alongside the English one
+Translate prose only. Keep verbatim: code identifiers, file paths, `file:line`, configured canonical IDs and
+test/executor/manual-QC references (including `TC-*` under the strict default), numeric values (hours,
+offsets, dates), and command snippets. Put the translated copy alongside the English one
 (e.g. `{name}.{lang}.md`) so the team can cross-reference.
 
 ## HTML runbook (`--html`)

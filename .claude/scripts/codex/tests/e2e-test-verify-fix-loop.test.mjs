@@ -29,8 +29,9 @@ function defaultText(text) {
 // Every convergence gate the retired skill enforced must survive inside the delimited mode.
 const MODE_GATES = [
   /--visual-review=true\|false/,
-  /The default is `true`; an invalid or ambiguous value is a blocker/,
-  /Only an explicit `--visual-review=false` opts out/,
+  /explicit value, the project contract, and the task request/,
+  /There is no framework-wide screenshot default/,
+  /A user-supplied false value cannot waive a project-required visual gate/,
   /`e2eTesting\.execution`/,
   /`surfaceIds\[\]` → `experienceVerification\.surfaces\[\]` → `localRun`/,
   /Goal Contract whose required criterion/,
@@ -47,12 +48,12 @@ const MODE_GATES = [
   /Round Integrity Check/,
   /`\/experience-review --rounds=0`/,
   /open the configured browser visibly when human-QC is requested/,
-  /wait exactly \*\*500ms\*\*/,
+  /apply action delays only when the project contract configures them/i,
   /a non-shrinking failure or visual-blocker count across two rounds/,
   /`CONVERGED`, `N\/A`, `ENVIRONMENT-BLOCKED`, `NOT-CONVERGED`, or `ACCEPTANCE-PENDING`/,
   /Run the default pass \(Steps 0–4\) INLINE, WITHOUT `--fix-loop`/,
   /NEVER self-invoke with the flag/,
-  /Report-only callers \(`\/changes-review` Phase 3\.9 and the `\/workflow-review-changes` step-1 E2E route\) invoke the default pass and NEVER pass `--fix-loop`/,
+  /report-only callers \(`\/changes-review` Phase 3\.9 and the `\/workflow-review-changes` step-1 E2E route\) invoke the default pass and NEVER pass `--fix-loop`/,
   /<!-- SYNC:e2e-visual-design-contract -->|resolved `uiStateCapture\.mode`/,
 ];
 
@@ -64,7 +65,7 @@ test("TC-E2EFL-001: e2e-test-verify advertises --fix-loop and --visual-review in
   const text = read(SKILL);
   const frontmatter = text.split("\n---\n")[0];
   assert.match(frontmatter, /^version: 1\.1\.0$/m);
-  assert.match(frontmatter, /^description: '[^'\n]*--fix-loop[^'\n]*--visual-review=\{true\|false\}[^'\n]*'$/m);
+  assert.match(frontmatter, /^description: '[^'\n]*--fix-loop[^'\n]*--visual-review=\{true\|false\}[^'\n]*project contract[^'\n]*'$/m);
   // Summary bullet · mode detection · mode section · closing reminders.
   assert.equal(text.split("<!-- FIX-LOOP-MODE:START -->").length - 1, 4, "four mode openers");
   assert.equal(text.split("<!-- FIX-LOOP-MODE:END -->").length - 1, 4, "four mode closers");
@@ -75,14 +76,14 @@ test("TC-E2EFL-001: e2e-test-verify advertises --fix-loop and --visual-review in
   assert.match(summary, /OPTIONAL `--fix-loop` MODE \(opt-in; absent flag = everything above unchanged\)/);
   const closing = text.slice(text.indexOf("## Closing Reminders"));
   assert.match(closing, /IMPORTANT MUST ATTENTION `--fix-loop` \(OPTIONAL mode — only when the flag is passed\)/);
-  assert.match(closing, /--visual-review=false` as the explicit opt-out/);
+  assert.match(closing, /no framework-wide screenshot default/);
 });
 
 test("TC-E2EFL-002: --fix-loop carries every retired convergence gate and no gate can be dropped silently", () => {
   const mode = modeText(read(SKILL));
   assertModeGates(mode);
   for (const [from, to] of [
-    ["Only an explicit `--visual-review=false` opts out", "Visual review may be skipped"],
+    ["A user-supplied false value cannot waive a project-required visual gate", "A user-supplied false value skips any visual gate"],
     ["Round Integrity Check", "round summary"],
     ["WITHOUT `--fix-loop`", "with `--fix-loop`"],
     ["invoke `/debug-investigate` inline", "patch the failing line"],

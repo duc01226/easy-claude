@@ -8,9 +8,9 @@
 
 ---
 
-## The Sections — ALL mandatory at EVERY coding level
+## The Sections — ALL mandatory
 
-Coding level tunes **vocabulary, analogy density, and per-section length**. It NEVER deletes a section. A level-5 report is every section, short; a level-1 report is every section, long. A report missing any **⚠ drop-risk** section below is INCOMPLETE — those are the ones that turn a description into teaching.
+A report missing any **⚠ drop-risk** section below is INCOMPLETE — those are the ones that turn a description into teaching.
 
 | §   | Section              | Answers                                              | Fails when                                                    |
 | --- | -------------------- | ---------------------------------------------------- | ------------------------------------------------------------- |

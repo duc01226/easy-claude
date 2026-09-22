@@ -52,6 +52,10 @@ const codexSessionStartMirrors = new Map([
     ".claude/hooks/prompt-ledger.cjs",
     "re-anchors the session goal and prompt list after compact/resume; a static carrier cannot hold per-session prompts",
   ],
+  [
+    ".claude/hooks/verify-install.cjs",
+    "probes and repairs machine-native Git/Git Bash capability and publishes a child/session environment signal that static Codex context cannot represent",
+  ],
 ]);
 
 /** Why this SessionStart hook must mirror despite the event-level skip, or null. */
@@ -74,7 +78,7 @@ function sessionStartMirrorReason(rawCommand) {
 // reach a hook; the hook acts only on tools its own code parses. Exactly one
 // registered hook names `apply_patch` — file-convention-inject
 // (`.claude/hooks/file-convention-inject.cjs:25`). Every other hook sitting on a
-// widened matcher (path-boundary-block, privacy-block, scout-block, doc-sync-gate,
+// widened matcher (doc-sync-gate,
 // post-edit-prettier, graph-auto-update) has no `apply_patch` branch and allows or
 // ignores the event. So widening is SAFE — no hook fires on work it cannot parse —
 // and is NOT a security gain. Never read a widened matcher as proof a gate covers
@@ -153,6 +157,8 @@ const nodeHookLauncher = [
   "}",
   "process.chdir(root);",
   "process.env.CLAUDE_PROJECT_DIR = root;",
+  "const gitHelperPath = path.join(root, '.claude', 'hooks', 'lib', 'windows-git.cjs');",
+  "try { if (fs.existsSync(gitHelperPath)) { const git = require(gitHelperPath); const result = git.resolveWindowsGit(); if (result && result.outcome === git.OUTCOMES.READY) Object.assign(process.env, git.withGitEnvironment(process.env, result.capability)); } } catch {}",
   "require(path.join(root, hookPath));",
 ].join(" ");
 

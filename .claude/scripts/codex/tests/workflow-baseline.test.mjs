@@ -346,8 +346,10 @@ test("seeded expiry mutant is killed by the exact-boundary counter-case", (t) =>
   const control = runCounterCase();
   assert.equal(control.error, undefined);
   assert.equal(control.status, 0, `${control.stdout}\n${control.stderr}`);
-  assert.match(control.stdout, /# pass 1\b/);
-  assert.match(control.stdout, /# fail 0\b/);
+  // Node 22 renders TAP totals as `# pass`; Node 24 uses `ℹ pass`.
+  // The process outcome is the invariant, not a reporter-specific glyph.
+  assert.match(control.stdout, /(?:#|ℹ) pass 1\b/);
+  assert.match(control.stdout, /(?:#|ℹ) fail 0\b/);
 
   fs.writeFileSync(mutantModule, source.replace(before,
     "at < createdAt || at > expiresAt || at - createdAt > MAX_AGE_MS"), "utf8");
@@ -356,7 +358,7 @@ test("seeded expiry mutant is killed by the exact-boundary counter-case", (t) =>
   assert.equal(child.status, 1, `${child.stdout}\n${child.stderr}`);
   assert.match(child.stdout, /ERR_ASSERTION/);
   assert.match(child.stdout, /true !== false/);
-  assert.match(child.stdout, /# fail 1\b/);
+  assert.match(child.stdout, /(?:#|ℹ) fail 1\b/);
   assert.doesNotMatch(`${child.stdout}\n${child.stderr}`, /MODULE_NOT_FOUND/);
   t.diagnostic("expiry mutant KILLED by unchanged exact-boundary assertion; unmodified control passes");
 });

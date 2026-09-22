@@ -470,12 +470,13 @@ module.exports = {
             fn: () => {
                 const scaffold = readSkill('scaffold');
                 assertTrue(
-                    scaffold.includes('Every scaffolded project MUST ATTENTION include these 5 foundations'),
-                    'scaffold quick-reference must state 5 production-readiness foundations',
+                    scaffold.includes('Project Foundation Selection (MANDATORY assessment'),
+                    'scaffold must keep the mandatory foundation-selection assessment',
                 );
                 assertTrue(
+                    scaffold.includes('### 1. Code Quality Tooling') &&
                     scaffold.includes('### 5. Integration Points'),
-                    'scaffold quick-reference must include integration points as foundation 5',
+                    'scaffold must enumerate foundations 1..5, ending at Integration Points',
                 );
                 assertEqual(
                     /\b(?:all\s+)?4 foundations\b/i.test(scaffold),

@@ -196,7 +196,7 @@ test("sync-hooks launches project-root Node hooks from Git and bare .claude root
               },
               {
                 type: "command",
-                command: 'node "${CLAUDE_PROJECT_DIR}"/.claude/hooks/privacy-block.cjs',
+                command: 'node "${CLAUDE_PROJECT_DIR}"/.claude/hooks/sample-block.cjs',
               },
               {
                 type: "command",
@@ -217,7 +217,7 @@ test("sync-hooks launches project-root Node hooks from Git and bare .claude root
         "console.log(JSON.stringify({ cwd: process.cwd(), root: process.env.CLAUDE_PROJECT_DIR }));\n",
         "utf8"
       ),
-      fs.writeFile(path.join(hookDir, "privacy-block.cjs"), "process.exit(2);\n", "utf8"),
+      fs.writeFile(path.join(hookDir, "sample-block.cjs"), "process.exit(2);\n", "utf8"),
       fs.writeFile(path.join(hookDir, "path-boundary-block.cjs"), "console.log(process.env.CLAUDE_PROJECT_DIR);\n", "utf8"),
       fs.writeFile(path.join(hookDir, "fourth-variant.cjs"), "console.log(process.cwd());\n", "utf8"),
     ]);
@@ -233,7 +233,7 @@ test("sync-hooks launches project-root Node hooks from Git and bare .claude root
     const hooksConfig = JSON.parse(rawHooks);
     const commands = hooksConfig.hooks.PreToolUse[0].hooks.map((hook) => hook.command);
     assert.equal(commands.length, 4);
-    for (const [index, name] of ["scout-block", "privacy-block", "path-boundary-block", "fourth-variant"].entries()) {
+    for (const [index, name] of ["scout-block", "sample-block", "path-boundary-block", "fourth-variant"].entries()) {
       assert.match(commands[index], /^node -e ".*fs\.existsSync\(path\.join\(candidate, '\.claude'\)\)/);
       assert.doesNotMatch(commands[index], /git rev-parse/);
       assert.match(commands[index], new RegExp(`-- \\\"\\.claude/hooks/${name}\\.cjs\\\"$`));
@@ -244,14 +244,14 @@ test("sync-hooks launches project-root Node hooks from Git and bare .claude root
     );
 
     async function assertLauncherBehavior() {
-      const [scout, privacy, boundary, fourth] = await Promise.all(
+      const [scout, sample, boundary, fourth] = await Promise.all(
         commands.map((command) => runCommand(command, nestedDir))
       );
       assert.equal(scout.code, 0, scout.stderr);
       const observedRoot = JSON.parse(scout.stdout);
       assert.equal(normalizePathForComparison(observedRoot.cwd), normalizePathForComparison(observedRoot.root));
       assert.notEqual(normalizePathForComparison(observedRoot.cwd), normalizePathForComparison(nestedDir));
-      assert.equal(privacy.code, 2, privacy.stderr);
+      assert.equal(sample.code, 2, sample.stderr);
       assert.equal(boundary.code, 0, boundary.stderr);
       assert.equal(normalizePathForComparison(boundary.stdout.trim()), normalizePathForComparison(observedRoot.root));
       assert.equal(fourth.code, 0, fourth.stderr);
@@ -280,10 +280,6 @@ test("sync-hooks omits Claude SessionStart hooks and writes a skip report under 
               {
                 type: "command",
                 command: 'node "$CLAUDE_PROJECT_DIR"/.claude/hooks/session-init.cjs',
-              },
-              {
-                type: "command",
-                command: 'node "$CLAUDE_PROJECT_DIR"/.claude/hooks/npm-auto-install.cjs',
               },
               {
                 type: "command",
@@ -323,6 +319,54 @@ test("sync-hooks omits Claude SessionStart hooks and writes a skip report under 
           event.reason === "static-startup-context-authoritative"
       )
     );
+  } finally {
+    await fs.rm(tempRoot, { recursive: true, force: true });
+  }
+});
+
+test("sync-hooks mirrors the Git capability producer while static-only SessionStart hooks remain omitted", async () => {
+  const tempRoot = await fs.mkdtemp(path.join(os.tmpdir(), "codex-sync-hooks-git-capability-"));
+  try {
+    await fs.mkdir(path.join(tempRoot, ".claude"), { recursive: true });
+    const settings = {
+      hooks: {
+        SessionStart: [
+          {
+            matcher: "startup|resume|clear|compact",
+            hooks: [
+              {
+                type: "command",
+                command: 'node "$CLAUDE_PROJECT_DIR"/.claude/hooks/session-init.cjs',
+              },
+              {
+                type: "command",
+                command: 'node "$CLAUDE_PROJECT_DIR"/.claude/hooks/verify-install.cjs',
+              },
+              {
+                type: "command",
+                command: 'node "$CLAUDE_PROJECT_DIR"/.claude/hooks/graph-session-init.cjs',
+              },
+            ],
+          },
+        ],
+      },
+    };
+    await fs.writeFile(path.join(tempRoot, ".claude", "settings.json"), `${JSON.stringify(settings, null, 2)}\n`, "utf8");
+
+    await runSync(tempRoot);
+
+    const hooksConfig = JSON.parse(await fs.readFile(path.join(tempRoot, ".codex", "hooks.json"), "utf8"));
+    const commands = hooksConfig.hooks.SessionStart.flatMap((group) => group.hooks.map((hook) => hook.command));
+    assert.equal(commands.length, 1, "only the runtime-capability producer is mirrored");
+    assert.match(commands[0], /verify-install\.cjs/);
+    assert.match(commands[0], /windows-git\.cjs/);
+    assert.match(commands[0], /withGitEnvironment/);
+    assert.doesNotMatch(commands[0], /session-init\.cjs|graph-session-init\.cjs/);
+
+    const report = JSON.parse(await fs.readFile(path.join(tempRoot, "tmp", "hooks.sync.report.json"), "utf8"));
+    const mirror = report.session_start_mirrors.find((entry) => entry.hook === ".claude/hooks/verify-install.cjs");
+    assert.ok(mirror, "the Git capability producer must carry an explicit mirror reason");
+    assert.equal(report.skipped_events.some((event) => event.event === "SessionStart"), false);
   } finally {
     await fs.rm(tempRoot, { recursive: true, force: true });
   }

@@ -1,125 +1,85 @@
 ---
 name: scan-all
 version: 1.0.0
-description: '[Documentation] Use when orchestrating all reference doc scans in parallel.'
+description: '[Documentation] Use when refreshing all selected and evidence-applicable reference-doc scan targets.'
 ---
 
 ## Quick Summary
 
-**Goal:** Run all 12 scan-\* skills in parallel and clear the staleness gate.
+**Goal:** Discover and refresh selected, evidence-applicable built-in targets and explicitly generic custom reference docs without assuming every project has every capability.
 
 **Workflow:**
 
-1. **Check Prerequisites** — Verify project has content (not empty)
-2. **Launch Parallel Scans** — All 12 skills simultaneously
-3. **Collect Results** — Read scan output from reference docs
-4. **Clear Staleness Flag** — Re-evaluate all docs via `refreshScanStaleFlag()`, which removes `.claude/.scan-stale` once every doc is fresh (see Post-Scan Cleanup)
-5. **Build Knowledge Graph** — Run `/graph-build` to update structural graph
-6. **Enhance Docs** — Run `/prompt-enhance` on all 12 scanned docs
-7. **Summarize** — Report what was refreshed
+1. **Validate** — Require a schema-valid project-config file with a non-empty `project.name`.
+2. **Resolve** — Read always-on inputs separately and resolve the effective task-specific `referenceDocs` selection.
+3. **Filter** — Resolve exact built-in targets, selected generic custom docs, and manually owned docs; verify capability evidence for each scan.
+4. **Scan** — Run eligible targets in parallel only when their output write sets are disjoint.
+5. **Verify** — Check every result and skip; clear stale status only after all required owners are current.
+6. **Summarize** — Report refreshed, unchanged, skipped, blocked, and manual docs with evidence.
 
 **Key Rules:**
 
-- All 12 scans run in PARALLEL for speed
-- Does NOT modify code — only populates the project-reference docs root (default `docs/project-reference/`; a `docsRoots.projectReference.path` entry in `docs/project-config.json` overrides the path)
-- Clears `.claude/.scan-stale` flag after completion
-- `/prompt-enhance` ensures AI attention anchoring on all generated docs
+- The registered targets are an option catalog, not a required scan list.
+- `referenceDocs` absent resolves to no task-specific docs for a minimal project, adding only refs supported by config/repository evidence. An explicit array, including `[]`, is exact.
+- `lessons.md` and the docs index are project-init-owned always-on context inputs; they are outside task-specific selection.
+- Each built-in scanner writes only its manifest `doc`. A custom doc defaults to manual ownership; only `scanTarget: "generic"` opts it into an evidence-based generic scan. Never infer a built-in target from a basename.
+- The generic scanner writes only the exact selected filename and uses its configured `purpose` and optional `sections`. Generic docs receive conservative non-disposable repository-wide impact routing; manual docs are not auto-scanned, freshness-tracked, or impact-routed.
+- Optional capabilities that are not evidenced are skipped with the checked config/source evidence.
+- Scans update reference documentation only. Graph work or any broader setup is conditional on project capability and a separate owner.
 
 ## When to Use
 
 - Staleness gate blocks prompts ("BLOCKED: Reference docs are stale")
-- First time using easy-claude on an existing project (project onboarding)
+- First time initializing reference documentation for a content-bearing project
 - Periodic refresh when codebase has changed significantly
 - User runs `/scan-all` manually
 
 ## When to Skip
 
-- Empty/greenfield project (no code to scan)
-- All reference docs are already fresh (no staleness warning)
+- Empty/greenfield project without evidenced capabilities; project-init handles its always-on context and no capability scans run.
+- No selected applicable docs are stale and project-init-owned always-on inputs are current.
 
 ## Execution
 
-Each scan reads real code evidence and (re)populates ONE reference doc under the project-reference docs root — default `docs/project-reference/`; a `docsRoots.projectReference.path` entry in `docs/project-config.json` overrides the path. Those docs are injected into AI context downstream, so scanning is what keeps that guidance true to the current codebase — the **Purpose** column says what each scan documents and therefore why it matters. Launch all 12 code-derived scans in parallel:
+### 1. Validate and resolve config
 
-| #   | Invocation                         | Target Doc                       | Purpose — what the scan documents |
-| --- | ---------------------------------- | -------------------------------- | --------------------------------- |
-| 1   | `/scan --target=project-structure` | `project-structure-reference.md` | Service architecture, ports, directory layout, tech stack, deployment & module registry (spans backend, frontend, infra) |
-| 2   | `/scan --target=backend-patterns`  | `backend-patterns-reference.md`  | Repository, CQRS, validation, entity, event & migration patterns |
-| 3   | `/scan --target=seed-test-data`    | `seed-test-data-reference.md`    | Seeder patterns & conventions, from real code evidence |
-| 4   | `/scan --target=frontend-patterns` | `frontend-patterns-reference.md` | Component, state, form, API, routing & styling patterns |
-| 5   | `/scan --target=integration-tests` | `integration-test-reference.md`  | Integration-test base classes, fixtures, helpers & service setup |
-| 6   | `/scan --target=feature-spec`      | `feature-spec-reference.md`      | Feature-doc structure, app→service mapping, spec templates & conventions |
-| 7   | `/scan --target=code-review-rules` | `code-review-rules.md`           | Code conventions, anti-patterns, architecture rules & review checklists |
-| 8   | `/scan --target=scss-styling`      | `scss-styling-guide.md`          | SCSS architecture, BEM conventions, mixins, variables, theming & responsive patterns |
-| 9   | `/scan --target=design-system`     | `design-system/README.md`        | Design tokens, component inventory & app→doc design-system mappings |
-| 10  | `/scan --target=e2e-tests`         | `e2e-test-reference.md`          | E2E architecture, page objects, step definitions, config & framework patterns |
-| 11  | `/scan --target=domain-entities`   | `domain-entities-reference.md`   | Domain entities, DTOs, aggregate boundaries, sync patterns & ER diagrams |
-| 12  | `/scan --target=docs-index`        | `docs-index-reference.md`        | Documentation structure, categories, relationships & lookup tables |
+Resolve the configured project-config file through `.claude/hooks/lib/project-config-loader.cjs` (default `docs/project-config.json`). Require a valid schema and non-empty `project.name`; repair a missing or invalid file through project initialization before scanning. Optional capability sections may be omitted. A declared incomplete or unsupported section blocks the run.
 
-> **Coverage & count.** These 12 are the *code-derived* docs. The child `scan` skill exposes a 13th key, `ui-system` — a meta-target that only fan-runs #4, #8, #9 together — intentionally excluded here to avoid double-scanning. Curated/static docs (`lessons.md`, `spec-principles.md`, `spec-system-reference.md`, `workflow-spec-test-code-cycle-reference.md`) are hand-authored, not scanned, so they are absent by design. Purpose text mirrors each target's `description` in `.claude/skills/scan/references/targets.md` — update it THERE first if a target's scope changes, then reflect it here.
+Use `.claude/hooks/lib/session-init-helpers.cjs` to resolve the effective `referenceDocs` selection; do not copy the full registry into this skill:
 
-## Post-Scan Cleanup
+- When `referenceDocs` is absent, the resolver supplies only the portable baseline and capability references supported by config/repository evidence. A minimal project with no evidenced capability resolves to no task-specific references.
+- When `referenceDocs` is an explicit array, including `[]`, the array is the exact task-specific selection.
+- The always-on `lessons.md` and docs-index inputs are owned by project initialization and remain outside this selection. Confirm those inputs through their owner; do not append them to task-specific work.
 
-After all scans complete, clear the staleness flag:
+### 2. Map selected docs to targets
+
+Read `.claude/skills/scan/references/targets.md`. Resolve each selected filename exactly. Built-in filenames use only their framework-owned manifest target; a custom filename with `scanTarget: "generic"` uses `/scan --target=generic-reference-doc --filename="<filename>"`; a custom filename with no target or `scanTarget: "manual"` remains under curated project ownership. Resolve the containing root from `docsRoots.projectReference.path` (default `docs/project-reference/`; `docsRoots.projectReference.path` in `docs/project-config.json` overrides it).
+
+- Custom `referenceDocs` entries require `filename` and `purpose`, with optional `sections`, `templatePath`, and `scanTarget`. Config validation rejects unknown targets and unsafe paths; runtime path resolution also rejects physical symlink escapes.
+- Registered targets are optional capabilities. Apply each entry's `applies when` and `skip when` evidence before launching it. Config can select a scan or guide source search, but source examples and patterns must still be verified.
+- If a selected built-in target's capability is absent, report `SKIPPED` with the config/source paths checked. Do not create a placeholder or claim the doc is refreshed. Generic scans use only their configured purpose and selected output; manual docs are not scan candidates.
+- Do not launch `ui-system` alongside its child targets. `scan-all` selects individual docs from the effective list; an explicitly routed UI orchestration can fan out only to applicable children.
+- Deduplicate identical targets. Targets with different owned output docs may run in parallel; shared output owners run once.
+
+### 3. Run and verify
+
+For each eligible built-in or generic target, invoke its exact scan command and accept only its evidence-backed result. Generic targets include their configured filename. A scan can finish as `UPDATED`, `UNCHANGED`, `SKIPPED`, or `BLOCKED`; preserve the target report and surface every non-complete status.
+
+Check the exact selected outputs and the always-on owner inputs. Clear `.claude/.scan-stale` only after the selected automatically scannable docs are current and project-init-owned inputs are confirmed; skipped or stale docs keep the result open. Manual docs do not enter the automated freshness gate. Use the owner helper only after this check:
 
 ```bash
 node -e "require('./.claude/hooks/lib/session-init-helpers.cjs').refreshScanStaleFlag()"
 ```
 
-This re-evaluates all docs and removes the `.scan-stale` gate if all are now fresh.
+Each changed scan output follows its target's enhancement rule. Verify that enhancement in the scan result; do not run a second hardcoded enhancement list or rewrite unchanged/skipped docs.
 
-## Post-Scan: Build Knowledge Graph (MANDATORY)
+## Optional Graph Refresh
 
-After all scans complete, **MUST ATTENTION create a follow-up task:**
-
-**TaskCreate: "Run /graph-build to build/update code knowledge graph"**
-
-The knowledge graph uses `project-config.json` (populated by scans) for API connector patterns and implicit connection rules. Building the graph after scans ensures:
-
-- Frontend↔backend API_ENDPOINT edges use accurate service paths
-- MESSAGE_BUS implicit edges use correct consumer patterns
-- Graph trace shows full system flow (frontend → backend → cross-service consumers)
-
-```bash
-python .claude/scripts/code_graph build --json
-```
-
-## Post-Scan: Enhance Generated Docs (MANDATORY)
-
-Each scan-\* sub-skill now self-enhances its own doc as its final step. After graph build, **MUST ATTENTION confirm `/prompt-enhance` ran on every scanned doc and backfill any that were skipped.** Reference docs are injected into AI context — attention anchoring (top/bottom summaries, inline READ summaries, token density) directly improves AI output quality.
-
-**TaskCreate one task per doc, parallel OK:**
-
-Every target below is a filename inside the project-reference docs root — default `docs/project-reference/`; a `docsRoots.projectReference.path` entry in `docs/project-config.json` overrides the path. The filenames themselves are fixed.
-
-| #   | Target File                      |
-| --- | -------------------------------- |
-| 1   | `project-structure-reference.md` |
-| 2   | `backend-patterns-reference.md`  |
-| 3   | `seed-test-data-reference.md`    |
-| 4   | `frontend-patterns-reference.md` |
-| 5   | `integration-test-reference.md`  |
-| 6   | `feature-spec-reference.md`      |
-| 7   | `code-review-rules.md`           |
-| 8   | `scss-styling-guide.md`          |
-| 9   | `design-system/README.md`        |
-| 10  | `e2e-test-reference.md`          |
-| 11  | `domain-entities-reference.md`   |
-| 12  | `docs-index-reference.md`        |
-
-Run via: `/prompt-enhance {project-reference-root}/{filename}`, resolving the root from `docsRoots.projectReference.path` in `docs/project-config.json` (default `docs/project-reference/`).
+A graph is not a universal scan prerequisite. If the project config and repository show a supported code graph is part of this project, run its owning graph workflow when the graph is stale or the setup explicitly requests refresh. Otherwise report graph work as not applicable; never block documentation scans on an absent graph.
 
 ## Summary Output
 
-After all scans complete, report:
-
-"Scan All Complete:
-
-- {X}/12 scans succeeded
-- Reference docs refreshed in the project-reference docs root (default `docs/project-reference/`; path from `docsRoots.projectReference.path` in `docs/project-config.json`)
-- Staleness gate cleared
-- Prompt-enhanced {Y}/12 docs
-- Knowledge graph rebuilt via /graph-build"
+Report each selected target with its status, output path, and evidence-backed reason. List always-on inputs checked, manual docs left to their owner, and any blocked stale gate. Do not claim all docs are refreshed when optional targets were skipped or unselected.
 
 ---
 
@@ -150,6 +110,7 @@ After all scans complete, report:
 
 > **AI Mistake Prevention** — Failure modes to avoid on every task:
 >
+> **Project applicability gate.** Before applying a stack, layer, style, tool, or architecture rule, read the project's config and relevant references, then check local implementations. Treat framework examples as examples; honor explicit N/A and do not require a technology or convention the project does not use.
 > **ROOT-CAUSE GATE — INVESTIGATE FIRST.** Before applying any project-related correction, always use the project's root-cause investigation protocol and establish the cause; the failure site may be only a symptom.
 > **FAILED-TEST GATE.** For any failed or unstable test, use the project's test-investigation protocol before editing source or tests; never change either side merely to force green.
 > **Re-read files after context changes.** Context compaction, resume, or long-running work can make memory stale; verify current files before acting.
@@ -174,19 +135,19 @@ After all scans complete, report:
 
 <!-- SYNC:critical-thinking-mindset:reminder -->
 
-**MUST ATTENTION** apply critical + sequential thinking — every claim needs appropriate traced evidence (`file:line` for repo/code claims; source URL or artifact section for research, product, content, and docs claims); confidence >80% to act, <60% DO NOT recommend. Anti-hallucination: never present guess as fact, admit uncertainty freely, cross-reference independently, stay skeptical of own confidence.
+**MUST ATTENTION** critical + sequential thinking: every claim carries traced evidence (`file:line` for code, source URL or artifact section otherwise); confidence >80% to act, <60% do NOT recommend. Never present a guess as fact; admit uncertainty and stay skeptical of your own confidence.
 
 <!-- /SYNC:critical-thinking-mindset:reminder -->
 
 <!-- SYNC:ai-mistake-prevention:reminder -->
 
-**MUST ATTENTION** ROOT-CAUSE GATE: before any project-related correction, use the appropriate root-cause investigation protocol; failed/unstable tests require the test-investigation protocol before editing source/tests — never force green.
+**MUST ATTENTION** Check project config, relevant references, and local evidence before applying stack-specific conventions; honor explicit N/A. ROOT-CAUSE GATE: before any project-related correction, use the appropriate root-cause investigation protocol; failed/unstable tests require the test-investigation protocol before editing source/tests — never force green.
 
 <!-- /SYNC:ai-mistake-prevention:reminder -->
 
 <!-- SYNC:project-protocol-overlay -->
 
-> **Project Protocol Overlay** — Before executing this skill, resolve any PROJECT overlay rules layered onto it: match this skill's name against the `Target` column of the project's skill-protocol index (default `docs/project-reference/skill-protocols-reference.md`; a `referenceDocs` entry in `docs/project-config.json` overrides the path, and a `docsRoots.projectReference.path` entry relocates its containing directory), taking the most specific matching tier ONLY — exact name > glob > `*`. **That precedence orders overlays against EACH OTHER, never against this skill.** Read ONLY the matched bodies, resolved as `<protocols-dir>/<Name>.md`; a row's Body link is display text, never a read path. A matched body that is missing or malformed is REPORTED and skipped — never reconstructed from the index Description. No index, or no match -> proceed with no overlay, silently. Full contract: `.claude/skills/project-skill-protocol/references/registry.md`.
+> **Project Protocol Overlay** — Before executing this skill, resolve project overlays from the index at `<docsRoots.projectReference.path>/skill-protocols-reference.md` (default `docs/project-reference/`; `docsRoots.projectReference.path` in `docs/project-config.json` overrides it). A matching `referenceDocs[]` filename may relocate the index within that root; this registry is independent from task-specific reference-doc selection, so omitted or empty `referenceDocs` does not disable it. The index's `**Protocols directory:**` header selects a project-root-relative body directory (default `docs/project-protocols/`). Match this skill against the `Target` column and take the most specific tier ONLY — exact name > glob > `*`. **That precedence orders overlays against EACH OTHER, never against this skill.** Read only matched bodies derived as `<protocols-dir>/<Name>.md`; the row's Body link is display text, never a read path. Reject unsafe paths without reading. A matched body that is missing or malformed is REPORTED and skipped — never reconstructed from the index Description. An absent index or no match -> proceed with no overlay, silently. Full contract: `.claude/skills/project-skill-protocol/references/registry.md`.
 >
 > Overlays are **ADDITIVE ONLY**: they ADD rules on top of this skill's own protocol and NEVER replace, override, disable, or reinterpret a rule it already states — removing every overlay must return this skill to exactly its documented behavior. An overlay is a BRIEF, not an authority escalation: it can NEVER waive a workflow gate, git discipline, a review gate, or a user-confirmation gate. A genuine overlay-vs-skill conflict, or two equally-specific overlays that directly contradict -> surface both to the user; NEVER resolve silently.
 
@@ -194,8 +155,7 @@ After all scans complete, report:
 
 <!-- SYNC:project-protocol-overlay:reminder -->
 
-**MUST ATTENTION** resolve project protocol overlays for this skill BEFORE executing — most specific matching tier only (exact > glob > `*`, which ranks overlays against each other, NEVER against this skill), read only matched bodies at `<protocols-dir>/<Name>.md`; a missing or malformed body is reported, never reconstructed. Overlays are ADDITIVE ONLY (they never replace this skill's own rules) and are a brief, NEVER an authority escalation; an equal-specificity contradiction goes to the user.
-
+**MUST ATTENTION** resolve this skill's overlays from the index at `<docsRoots.projectReference.path>/skill-protocols-reference.md` (default `docs/project-reference/`); an empty task `referenceDocs` does NOT disable this lookup. Read ONLY matched bodies from the directory the index header names (default `docs/project-protocols/`). Specificity (exact > glob > `*`) ranks overlays against EACH OTHER, never against the skill. Missing/malformed body → report and skip; no index or no match → proceed silently. Overlays are ADDITIVE ONLY — never an authority escalation or a gate waiver; equal-tier contradiction goes to the user.
 <!-- /SYNC:project-protocol-overlay:reminder -->
 
 ## Closing Reminders

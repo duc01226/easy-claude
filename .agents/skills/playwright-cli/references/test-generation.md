@@ -16,16 +16,15 @@ Plan / generate / heal lean on the same mechanic: run `npx playwright test --deb
 Every action you perform with `playwright-cli` generates corresponding Playwright TypeScript code. This code appears in the output and can be copied directly into your test files.
 
 Generated actions are raw interaction material, not complete synchronization.
-Before writing the test, wrap every UI-control action in the project's one
-canonical, parameterized `waitUntil(condition, options)` utility: wait before
-the action for the control to be present, visible, enabled, and actionable and
-for an applicable blocking error alert to be absent; wait after the action for
-the expected positive or negative outcome. Include dropdown/menu visibility
-before selection, selected state after selection, and error-alert presence for
-expected failures or absence for expected successes. The predicate may be
-boolean/async; options must bound timeout/polling and describe the condition
-for diagnostics. Apply the exact 500ms presentation delay only after these
-waits; it is never a readiness or postcondition wait.
+Before writing the test, use Playwright locator actions for built-in
+actionability checks and web-first assertions for expected positive or negative
+outcomes. Assert dropdown/menu visibility before selection and the selected
+state after selection; assert expected error-alert presence for failures or
+absence for successes. Use a bounded event or condition wait only when the
+required signal is not covered by a locator action or retrying assertion. Do
+not add fixed sleeps as readiness or success checks. For visible human-QC,
+apply `e2eTesting.execution.browser.actionDelayMs` only when the project config
+documents a presentation need and the state is stable.
 
 ```bash
 # Start a session
@@ -385,8 +384,8 @@ Rules:
 - Prefix each numbered step with a `// N. <step text>` comment before its actions.
 - Use the describe group name verbatim from the spec (no `1.` ordinal).
 - Import from `./fixtures` if the project has one; otherwise `@playwright/test`.
-- Reuse or compose the project's Common → Domain-Shared → Page object model and its abstract/base wait utility; do not duplicate polling in each test. Keep the final business assertions in the test.
-- The generated test must retain the bounded `waitUntil` precondition/postcondition around every UI-control action, including select/dropdown transitions and applicable error-alert present/absent checks, followed by the exact 500ms pacing delay.
+- Follow the project's declared test organization. Reuse configured helpers or objects when required by local convention or demonstrated reuse; do not infer a Page Object Model or abstract base from a path alone. Keep bounded wait behavior and final business assertions in the test.
+- The generated test must retain Playwright's native actionability checks and retrying assertions for each meaningful outcome, including select/dropdown transitions and applicable error-alert presence/absence. Add explicit bounded waits only for required signals not covered by Playwright's actions/assertions; apply presentation pacing only when configured by the project.
 - **Important**: close the CLI session and stop the background test before moving to the next scenario.
 
 ### 2.3 Generate multiple scenarios

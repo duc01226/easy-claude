@@ -25,6 +25,7 @@ const {
 } = require('./ck-config-loader.cjs');
 const { resolveProjectRoot } = require('./project-root.cjs');
 const { normalizeRootPath, escapesRepoRoot, isPathWithinRoot, joinRoot, sanitizePath } = require('./ck-path-utils.cjs');
+const { validateConfig } = require('./project-config-schema.cjs');
 
 // Resolve from the nearest portable bundle, not the caller's current directory.
 // This keeps Claude hooks and Codex entrypoints equivalent when invoked from a
@@ -152,19 +153,67 @@ function getConfiguredDocsIndexPath() {
 const CONFIG_PATH = getConfiguredProjectConfigPath();
 
 let _cache = null;
+let _configStatus = null;
 
 /**
- * Load project-config.json. Returns empty object on failure.
- * Result is cached for the process lifetime.
+ * Read and validate the required project config without collapsing missing or
+ * invalid states into a normal empty config.
+ *
+ * @param {{refresh?: boolean}} [options]
+ * @returns {{state: 'valid'|'missing'|'invalid', exists: boolean, valid: boolean, config: object, errors: string[], warnings: string[]}}
+ */
+function getProjectConfigStatus({ refresh = false } = {}) {
+    if (_configStatus && !refresh) return _configStatus;
+
+    if (!fs.existsSync(CONFIG_PATH)) {
+        _cache = {};
+        _configStatus = {
+            state: 'missing',
+            exists: false,
+            valid: false,
+            config: _cache,
+            errors: [`Required project config is missing: ${path.relative(PROJECT_DIR, CONFIG_PATH).replace(/\\/g, '/')}`],
+            warnings: []
+        };
+        return _configStatus;
+    }
+
+    try {
+        const parsed = JSON.parse(fs.readFileSync(CONFIG_PATH, 'utf-8'));
+        const candidate = parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : {};
+        const validation = validateConfig(parsed);
+        _cache = candidate;
+        _configStatus = {
+            state: validation.valid ? 'valid' : 'invalid',
+            exists: true,
+            valid: validation.valid,
+            config: _cache,
+            errors: validation.errors,
+            warnings: validation.warnings
+        };
+    } catch (error) {
+        _cache = {};
+        _configStatus = {
+            state: 'invalid',
+            exists: true,
+            valid: false,
+            config: _cache,
+            errors: [`Unable to read project config: ${error.message}`],
+            warnings: []
+        };
+    }
+    return _configStatus;
+}
+
+/**
+ * Load the project config. Omitted optional sections remain absent so callers
+ * can use their documented defaults or skip unsupported capabilities. Call
+ * getProjectConfigStatus() when the distinction between missing and invalid is
+ * needed. Result is cached for the process lifetime.
  */
 function loadProjectConfig() {
     if (_cache) return _cache;
-    try {
-        _cache = JSON.parse(fs.readFileSync(CONFIG_PATH, 'utf-8'));
-    } catch {
-        _cache = {};
-    }
-    return _cache;
+    return getProjectConfigStatus().config;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -175,16 +224,11 @@ function loadProjectConfig() {
 // framework always used, so the unset path is byte-identical to the fixed-root
 // behaviour these accessors replaced.
 //
-// TWO-PLANE CONTRACT (read this before assuming a bad config is caught):
-// Validation plane = fail-CLOSED — `node project-config-schema.cjs --validate
-// docs/project-config.json` errors on a declared-but-invalid key. Runtime plane =
-// fail-SOFT — `loadProjectConfig` catches every read/parse error and caches `{}`
-// (`:66-74`), so a malformed config is INDISTINGUISHABLE from an absent one and
-// every accessor here returns its documented default. See ADR-0003.
-//
-// Fail-soft is deliberate, not an oversight: an accessor that threw on a bad
-// config would run inside hooks and block every tool call in the session — a
-// worse failure than a wrong path. No accessor below throws.
+// Config consumers use documented defaults for omitted optional properties,
+// while getProjectConfigStatus() keeps missing, malformed and schema-invalid
+// files distinguishable. The UserPromptSubmit setup gate requires a valid file
+// before normal work; accessors stay fail-soft so hooks can report that state
+// without crashing before the gate runs.
 //
 // This reverses the earlier fixed-root design at the user's explicit request: a
 // project that relocates its specs had no way to tell the framework, and the one
@@ -328,6 +372,23 @@ function resolvePortabilityTokens(text, config) {
             ? resolvePortabilityToken(token, cfg)
             : match
     );
+}
+
+/**
+ * Runtime accessor for the optional native artifact contract.
+ *
+ * Hooks stay fail-soft when a config is absent, unreadable or malformed; the
+ * project-config schema CLI is the fail-closed validation plane for declarations.
+ * @param {object} [config] parsed project config; loaded when omitted
+ * @returns {object|null} immutable normalized profile, or null for default behavior
+ */
+function getSpecArtifactProfile(config) {
+    const source = config === undefined ? loadProjectConfig() : config;
+    try {
+        return require('./spec-artifact-profile.cjs').resolveSpecArtifactProfile(source);
+    } catch {
+        return null;
+    }
 }
 
 /**
@@ -554,30 +615,15 @@ function isMultilingualProject(config) {
 }
 
 /**
- * Check if a parsed project config has been populated with real values.
- * "Populated" = has a non-empty project.name AND at least one substantive section
- * (modules, services, contextGroups, framework with real name, testing, e2eTesting, styling, etc.)
- * This is generic — works for any project type (backend, frontend, full-stack, static site).
+ * Check whether the required project config exists and is schema-valid.
+ * Optional sections do not determine readiness; omitted sections use their
+ * documented defaults or capability-based skips.
  * @param {object} [config] - Parsed project-config.json. If omitted, loads from disk.
  * @returns {boolean}
  */
 function isConfigPopulated(config) {
-    if (config === undefined) config = loadProjectConfig();
-    if (!config || typeof config !== 'object') return false;
-    const hasName = config.project?.name?.trim().length > 0;
-    if (!hasName) return false;
-
-    // Check any substantive section is populated (not just modules/services)
-    const hasModules = Array.isArray(config.modules) && config.modules.length > 0;
-    const hasServices = !!(config.backendServices?.serviceMap && Object.keys(config.backendServices.serviceMap).some(k => k !== 'ExampleService'));
-    const hasContextGroups = Array.isArray(config.contextGroups) && config.contextGroups.length > 0;
-    const hasFramework = !!(config.framework?.name?.trim().length > 0 && config.framework.name !== 'ExampleFramework');
-    const hasTesting = !!(config.testing?.frameworks?.length > 0 || config.e2eTesting?.framework?.trim().length > 0);
-    const hasStyling = !!(config.styling?.technology?.trim().length > 0 || (config.scss?.appMap && Object.keys(config.scss.appMap).length > 0));
-    const hasFrontendApps = !!(config.frontendApps?.appMap && Object.keys(config.frontendApps.appMap).length > 0);
-    const hasLocalization = !!(config.localization && (Array.isArray(config.localization.supportedLocales) || Array.isArray(config.localization.translationFilePatterns)));
-
-    return hasModules || hasServices || hasContextGroups || hasFramework || hasTesting || hasStyling || hasFrontendApps || hasLocalization;
+    if (config === undefined) return getProjectConfigStatus().valid;
+    return !!validateConfig(config).valid;
 }
 
 /** Directory name of the knowledge workspace inside the resolved docs tree. */
@@ -633,7 +679,7 @@ function isKnowledgePath(filePath, config) {
 /**
  * Generate a compact project structure summary from project-config.json.
  * 100% data-driven — no hardcoded project knowledge. Returns empty string
- * if config is not populated.
+ * if the config does not pass schema validation.
  * @param {object} [config] - Parsed config. If omitted, loads from disk.
  * @returns {string} Multi-line summary (~30-60 lines depending on config richness)
  */
@@ -773,6 +819,7 @@ module.exports = {
     CONFIG_PATH,
     getConfiguredProjectConfigPath,
     getConfiguredDocsIndexPath,
+    getProjectConfigStatus,
     loadProjectConfig,
     buildRegexMap,
     buildPatternList,
@@ -790,6 +837,7 @@ module.exports = {
     PORTABILITY_TOKENS,
     resolvePortabilityToken,
     resolvePortabilityTokens,
+    getSpecArtifactProfile,
     getSpecDocsPath,
     getTechnicalSpecDocsPath,
     getDocsRoot

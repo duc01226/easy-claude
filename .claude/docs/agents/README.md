@@ -44,7 +44,7 @@ Main Claude Session
 | Agent                 | Purpose                                       | Tools     |
 | --------------------- | --------------------------------------------- | --------- |
 | `fullstack-developer` | Execute implementation phases                 | All tools |
-| `backend-developer`   | .NET backend features, CQRS patterns          | All tools |
+| `backend-developer`   | Backend features using the project's configured stack and architecture | All tools |
 | `integration-tester`  | Generate integration tests from changes       | All tools |
 | `code-simplifier`     | Simplify code for clarity and maintainability | All tools |
 
@@ -56,7 +56,7 @@ Main Claude Session
 | `spec-compliance-reviewer` | Verify implementation matches spec (before code review) | All tools (no frontmatter restriction) |
 | `tester`                   | Validate code through testing                           | All tools                              |
 | `debugger`                 | Investigate issues and analyze system behavior          | All tools                              |
-| `e2e-runner`               | E2E testing docs, Playwright patterns (Sonnet)          | All tools                              |
+| `e2e-runner`               | E2E testing with the project's configured runner and patterns (Sonnet) | All tools                              |
 
 ### Operations & Management
 
@@ -77,7 +77,7 @@ Main Claude Session
 | ----------------------- | ------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------- |
 | `journal-writer`        | Document technical difficulties                                                       | All tools                                                                               |
 | `database-admin`        | Database systems management                                                           | All tools                                                                               |
-| `frontend-developer`    | Angular frontend specialist (stores, BEM)                                             | All tools                                                                               |
+| `frontend-developer`    | Project-configured frontend/UI implementation (components, state, styling)            | All tools                                                                               |
 | `security-auditor`      | Read-only security analysis, OWASP compliance                                         | All tools                                                                               |
 | `performance-optimizer` | Performance analysis (N+1, bundle, indexes)                                           | All tools                                                                               |
 | `framework-maintainer`  | Maintain the portable .claude AI-harness (skills, agents, hooks, SYNC, Codex mirrors) | Read, Write, Edit, MultiEdit, Grep, Glob, Bash, TaskCreate, TaskUpdate, AskUserQuestion |
@@ -153,7 +153,7 @@ Task({
 | Evaluate architecture options | `planner`              | Creates structured plans with trade-off analysis  |
 | Design system architecture    | `architect`            | ADR creation, cross-service analysis              |
 | Greenfield project inception  | `solution-architect`   | Tech stack, DDD, project structure                |
-| Plan E2E test structure       | `e2e-runner`           | Playwright patterns, BEM selectors                |
+| Plan E2E test structure       | `e2e-runner`           | Configured test organization and stable accessible locators |
 | Implement from plan           | `fullstack-developer`  | Executes implementation phases                    |
 | Debug failing tests           | `debugger`             | Systematic issue investigation                    |
 | Run and analyze tests         | `tester`               | Test execution and coverage analysis              |
@@ -163,7 +163,7 @@ Task({
 | Update documentation          | `docs-manager`         | Technical docs maintenance                        |
 | Create test plan              | `tester`               | Test coverage, case generation                    |
 | Synthesize knowledge          | `knowledge-worker`     | Web research, structured reports, course material |
-| Design specification          | `ui-ux-designer`       | Design tokens, wireframes                         |
+| Design specification          | `ui-ux-designer`       | Platform-aware visual language, layouts, and accessibility |
 | Edit the .claude framework    | `framework-maintainer` | Skills, agents, hooks, SYNC blocks, Codex mirrors |
 
 ### When NOT to Use Agents
@@ -198,7 +198,7 @@ Task({
 - **MUST ATTENTION READ:** .claude/docs/development-rules.md before implementation
 - Reports → [reports_path]
 - YAGNI / KISS / DRY
-- Class Responsibility: Logic in LOWEST layer
+- Class Responsibility: place behavior with the data or invariant owner established by project architecture and evidence
 
 ## Naming
 - Report: [reports_path][agent_type]-[naming_pattern].md

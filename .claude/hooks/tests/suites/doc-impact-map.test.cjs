@@ -10,8 +10,9 @@
 //       — the classic "tooling-only, fast-exit" hole (fastExit itself: D8/D9)
 //   D2  config-derived module paths route to project-structure + `modules`
 //   D3  a heuristic-only hit never suppresses the conventions fallback
+//   D3b a generic hit stays additive to a distinct selected owner (F1)
 //   D4  nothing-matched files land in `unrouted`, and unrouted blocks fastExit
-//   D5  every routed doc that maps to a scan target resolves to SCAN_SKILL_MAP
+//   D5  every routed doc with a scan target resolves through built-in or generic ownership
 //   D6  claims mode ignores command-form backticks and reports real dead paths
 //   D7  the CLI is fail-open: it exits 0 and emits JSON even on junk input
 //   D8  fastExit is true ONLY when the change set is genuinely empty
@@ -20,6 +21,16 @@
 //   D11 short-form citations are ambiguous, not dead — F1's signal stays readable
 //   D12 a malformed config regex warns loudly instead of silently narrowing routing
 //   D13 a renamed file is collected under its NEW path, never the dead old one
+//   F1  a specific configured rule still suppresses the conventions fallback
+//   F2  task-specific built-in outputs obey the EXACT selected set; always-on
+//       docs and direct context-group routes stay separate; an omitted
+//       `referenceDocs` still resolves to capability-backed defaults
+//   F4  the always-on docs index resolves through its configured path/basename
+//
+// PORTABILITY: routing tests build synthetic configs from MINIMAL_CONFIG and never read this
+// repo's docs/project-config.json, so the suite passes unchanged in any adopting project
+// structure. The always-on index name comes from the configured resolver, and CLI/custom-index
+// cases run in isolated temporary roots.
 //
 // All tests here are TECHNICAL-ONLY: this repo has no canonical Feature Spec
 // registry (no docs/specs/, no docs/specs-technical/), so no business TC governs
@@ -36,18 +47,28 @@ const REPO = path.resolve(__dirname, '..', '..', '..', '..');
 const SCRIPT = path.join(REPO, '.claude', 'scripts', 'doc-impact-map.cjs');
 const mapper = require(SCRIPT);
 
-const CONFIG = (() => {
+// The always-on docs-index FILENAME is configurable (`.claude/.ck.json` `portability.docsIndexPath`
+// or a relocated reference root). Resolve it through the same owner the mapper uses, so these
+// assertions hold in ANY adopting project — not only one that keeps the default basename.
+const projectLoader = require(path.join(REPO, '.claude', 'hooks', 'lib', 'project-config-loader.cjs'));
+const CONFIGURED_INDEX_NAME = (() => {
     try {
-        return JSON.parse(fs.readFileSync(path.join(REPO, 'docs', 'project-config.json'), 'utf8'));
+        return path.basename(projectLoader.getConfiguredDocsIndexPath()) || 'docs-index-reference.md';
     } catch {
-        return {};
+        return 'docs-index-reference.md';
     }
 })();
 
-function mapFiles(files) {
+// Portable minimal valid config: only the REQUIRED project identity. Every omitted property
+// resolves to a neutral framework default, so this is what a minimal adopting project carries.
+// Tests below build their own synthetic configs from it instead of reading this repo's
+// docs/project-config.json — the suite must pass unchanged in any project structure.
+const MINIMAL_CONFIG = { schemaVersion: 2, project: { name: 'Doc Impact Map Fixture' } };
+
+function mapWith(files, config) {
     return mapper.mapChanges(
         files.map(f => (typeof f === 'string' ? { status: 'M', file: f } : f)),
-        CONFIG
+        config
     );
 }
 
@@ -125,14 +146,14 @@ const tests = [
     {
         name: '[doc-impact-map] D1 harness edits route to the glob-derived inventory docs',
         fn: () => {
-            const result = mapFiles(['.claude/skills/example-skill/SKILL.md']);
+            const result = mapWith(['.claude/skills/example-skill/SKILL.md'], MINIMAL_CONFIG);
             const docs = docNames(result);
             assertTrue(
                 docs.some(d => d.endsWith('CLAUDE.md')),
                 `A .claude/** edit must route to CLAUDE.md (inventory counts). Got: ${docs.join(', ')}`
             );
             assertTrue(
-                docs.some(d => d.endsWith('docs-index-reference.md')),
+                docs.some(d => d.endsWith(CONFIGURED_INDEX_NAME)),
                 `A .claude/** edit must route to the docs index. Got: ${docs.join(', ')}`
             );
             // The third assertion here used to be `assertTrue(!result.fastExit, ...)`.
@@ -148,7 +169,7 @@ const tests = [
     {
         name: '[doc-impact-map] D1b generated mirrors route like their source',
         fn: () => {
-            const result = mapFiles(['.agents/skills/example-skill/SKILL.md']);
+            const result = mapWith(['.agents/skills/example-skill/SKILL.md'], MINIMAL_CONFIG);
             assertTrue(
                 docNames(result).some(d => d.endsWith('CLAUDE.md')),
                 'Generated mirror edits carry the same inventory impact as the source.'
@@ -158,14 +179,15 @@ const tests = [
     {
         name: '[doc-impact-map] D2 configured module paths route to project-structure + modules',
         fn: () => {
-            const mod = (CONFIG.modules || [])[0];
-            assertTrue(!!mod, 'project-config.json must declare at least one module for this project.');
-            // Derive a concrete path from the module regex rather than hardcoding one.
-            const sample = mod.pathRegex
-                .replace(/\[\\\\\/\]/g, '/')
-                .replace(/\\\./g, '.')
-                .replace(/^\//, '') + 'sample-file.cjs';
-            const result = mapFiles([sample]);
+            // A synthetic config proves the routing is driven by CONFIG, not by this repo's
+            // layout: the same assertion must hold in any project that declares a module.
+            const config = {
+                ...MINIMAL_CONFIG,
+                modules: [{ name: 'web', pathRegex: '^apps/web/' }],
+                referenceDocs: [{ filename: 'project-structure-reference.md', purpose: 'repository map' }]
+            };
+            const sample = 'apps/web/sample-file.cjs';
+            const result = mapWith([sample], config);
             assertTrue(
                 docNames(result).some(d => d.endsWith('project-structure-reference.md')),
                 `Module path ${sample} must route to project-structure-reference.md. Got: ${docNames(result).join(', ')}`
@@ -179,7 +201,17 @@ const tests = [
     {
         name: '[doc-impact-map] D3 a heuristic hit does not suppress the conventions fallback',
         fn: () => {
-            const result = mapFiles(['src/Billing/Entities/Invoice.cs']);
+            // Isolated: both owners selected and NO generic doc, so the only candidates are the
+            // heuristic entity route and the conventions fallback. Running this against the live
+            // config let its selected generic styling guide mask the fallback and make the test
+            // name untrue.
+            const result = mapWith(['src/Billing/Entities/Invoice.cs'], {
+                project: { name: 'D3 Heuristic Fixture' },
+                referenceDocs: [
+                    { filename: 'domain-entities-reference.md', purpose: 'domain model' },
+                    { filename: 'code-review-rules.md', purpose: 'review rules' }
+                ]
+            });
             const docs = docNames(result);
             assertTrue(
                 docs.some(d => d.endsWith('domain-entities-reference.md')),
@@ -194,9 +226,39 @@ const tests = [
         }
     },
     {
+        name: '[doc-impact-map] D3b a generic hit stays additive to a distinct selected owner',
+        fn: () => {
+            // A repo-wide generic route says the doc MAY be stale; it is not an ownership
+            // declaration for the path. Where no more-specific configured rule owns the source,
+            // BOTH the generic doc and the distinct selected conventions owner must route.
+            const result = mapWith(['src/app.ts'], {
+                project: { name: 'D3b Coexistence Fixture' },
+                referenceDocs: [
+                    { filename: 'code-review-rules.md', purpose: 'review rules' },
+                    { filename: 'guides/arch.md', purpose: 'architecture evidence', scanTarget: 'generic' }
+                ]
+            });
+            const docs = docNames(result);
+            assertTrue(
+                docs.some(d => d.endsWith('code-review-rules.md')),
+                `A generic hit must not suppress a distinct selected owner. Got: ${docs.join(', ')}`
+            );
+            assertTrue(
+                docs.some(d => d.endsWith('/guides/arch.md')),
+                `The selected generic doc must remain additive. Got: ${docs.join(', ')}`
+            );
+        }
+    },
+    {
         name: '[doc-impact-map] D4 unmatched files are reported unrouted and block fastExit',
         fn: () => {
-            const result = mapFiles(['some/unknown/place/binary.bin']);
+            // The live config legitimately routes every non-disposable path through its selected
+            // generic styling guide, so an input is only genuinely "unmatched" under a config that
+            // selects no task-specific doc. Give D4 that exact empty selection.
+            const result = mapWith(['some/unknown/place/binary.bin'], {
+                project: { name: 'D4 Unrouted Fixture' },
+                referenceDocs: []
+            });
             assertEqual(result.docs.length, 0, 'An unmatched file must not invent a doc impact');
             assertTrue(
                 result.unrouted.includes('some/unknown/place/binary.bin'),
@@ -207,23 +269,68 @@ const tests = [
     {
         name: '[doc-impact-map] D4b CLI marks fastExit only when nothing at all is impacted',
         fn: () => {
-            const out = spawnSync('node', [SCRIPT, '--json', 'some/unknown/place/binary.bin'], {
-                cwd: REPO,
-                encoding: 'utf8'
-            });
-            const result = JSON.parse(out.stdout);
-            assertEqual(result.fastExit, false, 'An unrouted file leaves freshness UNKNOWN — never a fast exit');
+            // Run the CLI in an ISOLATED consumer root whose explicit `referenceDocs: []` is the
+            // exact empty selection. Launching against the repo root (`cwd: REPO`) would let the
+            // live generic styling selection make `fastExit: false` for an unrelated reason.
+            const dir = fs.mkdtempSync(path.join(os.tmpdir(), `doc-impact-map-empty-${process.pid}-`));
+            try {
+                fs.mkdirSync(path.join(dir, 'docs'), { recursive: true });
+                fs.writeFileSync(
+                    path.join(dir, 'docs', 'project-config.json'),
+                    JSON.stringify({
+                        schemaVersion: 2,
+                        project: { name: 'D4b Unrouted CLI Fixture' },
+                        // A `modules` declaration would select project-structure-reference.md when
+                        // `referenceDocs` is ABSENT — so it proves the explicit `[]` was really read.
+                        modules: [{ name: 'src', pathRegex: '^src/' }],
+                        referenceDocs: []
+                    }),
+                    'utf8'
+                );
+
+                const out = runMapper(dir, ['--json', 'some/unknown/place/binary.bin']);
+                assertEqual(out.status, 0, `Mapper must never block the caller. stderr: ${out.stderr}`);
+                const result = JSON.parse(out.stdout);
+                assertEqual(result.changedFileCount, 1, 'The CLI must report the one explicit file');
+                assertTrue(
+                    result.unrouted.includes('some/unknown/place/binary.bin'),
+                    `Empty selection must leave the .bin unrouted. Got: ${JSON.stringify(result.unrouted)}`
+                );
+                assertEqual(result.docs.length, 0, 'No task-specific doc may route under an exact empty selection');
+                assertEqual(result.fastExit, false, 'An unrouted file leaves freshness UNKNOWN — never a fast exit');
+
+                // Prove the intended config was loaded: `package.json` would route to
+                // project-structure-reference.md if the empty selection had been ignored.
+                const loaded = JSON.parse(runMapper(dir, ['--json', 'package.json']).stdout);
+                assertTrue(
+                    !loaded.docs.some(d => d.doc.endsWith('project-structure-reference.md')),
+                    `The empty selection must be the loaded config. Got: ${JSON.stringify(loaded.docs.map(d => d.doc))}`
+                );
+            } finally {
+                fs.rmSync(dir, { recursive: true, force: true });
+            }
         }
     },
     {
-        name: '[doc-impact-map] D5 routed reference docs resolve to a real scan target',
+        name: '[doc-impact-map] D5 routed reference docs resolve to built-in or generic ownership',
         fn: () => {
-            const result = mapFiles(['src/app/styles/theme.scss', '.claude/hooks/example.cjs']);
+            const config = {
+                ...MINIMAL_CONFIG,
+                referenceDocs: [
+                    { filename: 'project-structure-reference.md', purpose: 'repository map' },
+                    { filename: 'integration-test-reference.md', purpose: 'integration tests' },
+                    { filename: 'design-system/README.md', purpose: 'design system' },
+                    { filename: 'code-review-rules.md', purpose: 'review rules' },
+                    { filename: 'domain-entities-reference.md', purpose: 'domain model' },
+                    { filename: 'e2e-test-reference.md', purpose: 'e2e tests' }
+                ]
+            };
+            const result = mapWith(['src/app/styles/theme.scss', '.claude/hooks/example.cjs'], config);
             const targets = Object.values(mapper.SCAN_SKILL_MAP);
             for (const doc of result.docs) {
                 if (!doc.scanTarget) continue;
                 assertTrue(
-                    targets.includes(doc.scanTarget),
+                    targets.includes(doc.scanTarget) || /^scan --target=generic-reference-doc --filename="[^"]+"$/.test(doc.scanTarget),
                     `${doc.doc} routed to unknown scan target "${doc.scanTarget}"`
                 );
             }
@@ -543,6 +650,362 @@ const tests = [
                 if (fs.existsSync(fixture)) fs.unlinkSync(fixture);
             }
         }
+    },
+    {
+        name: '[doc-impact-map] D15 typed non-repository path roles are line-scoped and unknown roles stay strict',
+        fn: () => {
+            const fixture = path.join(REPO, '.claude', 'hooks', 'tests', 'fixtures', 'doc-impact-map-path-roles.tmp.md');
+            const rel = '.claude/hooks/tests/fixtures/doc-impact-map-path-roles.tmp.md';
+            const generated = '<!' + '-- path-role: generated-output --' + '>';
+            const proposed = '<!' + '-- path-role: proposed --' + '>';
+            const local = '<!' + '-- path-role: user-local --' + '>';
+            const unknown = '<!' + '-- path-role: maybe-external --' + '>';
+            fs.writeFileSync(
+                fixture,
+                [
+                    `Generated: \`test-results/playwright-results.json\` ${generated}`,
+                    `Proposed: \`tests/helpers/not-yet-d15.ts\` ${proposed}`,
+                    `Developer-local: \`apps/web/.env.local\` ${local}`,
+                    `Unknown role: \`docs/project-reference/no-such-doc-d15a.md\` ${unknown}`,
+                    'Unmarked dead path: `docs/project-reference/no-such-doc-d15b.md`',
+                    ''
+                ].join('\n'),
+                'utf8'
+            );
+            try {
+                const result = mapper.checkClaims(rel);
+                assertTrue(!result.missing.includes('test-results/playwright-results.json'), 'generated output must not be required in a fresh checkout');
+                assertTrue(!result.missing.includes('tests/helpers/not-yet-d15.ts'), 'proposed destinations must remain valid guidance');
+                assertTrue(!result.missing.includes('apps/web/.env.local'), 'per-developer files must not be required in the repository');
+                assertTrue(result.missing.includes('docs/project-reference/no-such-doc-d15a.md'), 'unknown role values must not opt out');
+                assertTrue(result.missing.includes('docs/project-reference/no-such-doc-d15b.md'), 'unmarked dead paths must still fail');
+            } finally {
+                if (fs.existsSync(fixture)) fs.unlinkSync(fixture);
+            }
+        }
+    },
+    {
+        name: '[doc-impact-map] D16 exported and no-exports workspace package paths resolve only when targets exist',
+        fn: () => {
+            const fixture = path.join(REPO, '.claude', 'hooks', 'tests', 'fixtures', 'doc-impact-map-package-export.tmp.md');
+            const rel = '.claude/hooks/tests/fixtures/doc-impact-map-package-export.tmp.md';
+            fs.writeFileSync(
+                fixture,
+                [
+                    'Public export: `@orient/survey-runner/styles.css`.',
+                    'Missing export: `@orient/survey-runner/no-such-d15.css`.',
+                    'Existing path in package without exports: `@orient/web/app/page.tsx`.',
+                    'Missing path in package without exports: `@orient/web/no-such-d16.ts`.',
+                    ''
+                ].join('\n'),
+                'utf8'
+            );
+            try {
+                const result = mapper.checkClaims(rel);
+                assertTrue(!result.missing.includes('@orient/survey-runner/styles.css'), 'an exported workspace subpath with an existing target is valid');
+                assertTrue(result.missing.includes('@orient/survey-runner/no-such-d15.css'), 'a missing package export must remain visible');
+                assertTrue(!result.missing.includes('@orient/web/app/page.tsx'), 'an existing in-package path remains valid when the package has no exports map');
+                assertTrue(result.missing.includes('@orient/web/no-such-d16.ts'), 'a missing in-package path remains visible when the package has no exports map');
+            } finally {
+                if (fs.existsSync(fixture)) fs.unlinkSync(fixture);
+            }
+        }
+    },
+    {
+        name: '[doc-impact-map] D17 ASCII and Unicode path elisions are ignored while full paths still resolve',
+        fn: () => {
+            const fixture = path.join(REPO, '.claude', 'hooks', 'tests', 'fixtures', 'doc-impact-map-ellipsis.tmp.md');
+            const rel = '.claude/hooks/tests/fixtures/doc-impact-map-ellipsis.tmp.md';
+            fs.writeFileSync(
+                fixture,
+                [
+                    'ASCII elision: `packages/.../idempotency.test.ts`.',
+                    'Unicode elision: `packages/…/idempotency.test.ts`.',
+                    'Full citation: `packages/platform/src/jobs/__tests__/idempotency.integration.test.ts`.',
+                    ''
+                ].join('\n'),
+                'utf8'
+            );
+            try {
+                const result = mapper.checkClaims(rel);
+                assertEqual(result.missing.length, 0, `Elided examples should be ignored and the full path should resolve: ${JSON.stringify(result)}`);
+                assertTrue(result.checked >= 1, 'the checker must still examine at least the full path');
+            } finally {
+                if (fs.existsSync(fixture)) fs.unlinkSync(fixture);
+            }
+        }
+    },
+    {
+        name: '[doc-impact-map] selected generic refs receive impact routing; manual refs do not',
+        fn: () => {
+            const genericConfig = {
+                project: { name: 'Generic Reference Fixture' },
+                referenceDocs: [{
+                    filename: 'guides/architecture.md',
+                    purpose: 'Repository architecture evidence',
+                    scanTarget: 'generic'
+                }]
+            };
+            const generic = mapper.mapChanges([{ status: 'M', file: 'src/app.ts' }], genericConfig);
+            const genericDoc = generic.docs.find(entry => entry.doc.endsWith('/guides/architecture.md'));
+            assertTrue(genericDoc, `A selected generic doc must receive conservative source-impact routing: ${JSON.stringify(generic.docs)}`);
+            assertEqual(
+                genericDoc.scanTarget,
+                'scan --target=generic-reference-doc --filename="guides/architecture.md"',
+                'Impact output points at the exact configured generic scan target'
+            );
+
+            const manual = mapper.mapChanges([{ status: 'M', file: 'src/app.ts' }], {
+                project: { name: 'Manual Reference Fixture' },
+                referenceDocs: [{ filename: 'guides/operations.md', purpose: 'Curated operator reference' }]
+            });
+            assertTrue(
+                !manual.docs.some(entry => entry.doc.endsWith('/guides/operations.md')),
+                'A manually owned reference never receives an automatic freshness claim'
+            );
+
+            const disposable = mapper.mapChanges([{ status: 'M', file: 'tmp/run/report.json' }], genericConfig);
+            assertTrue(
+                !disposable.docs.some(entry => entry.doc.endsWith('/guides/architecture.md')),
+                'Run-local disposable output does not stale a generic project reference'
+            );
+        }
+    },
+    {
+        name: '[doc-impact-map] generic reference routing honors a relocated root and exact selection',
+        fn: () => {
+            const config = {
+                project: { name: 'Relocated Generic Reference Fixture' },
+                docsRoots: { projectReference: { path: 'knowledge/references' } },
+                referenceDocs: [{
+                    filename: 'guides/architecture.md',
+                    purpose: 'Repository architecture evidence',
+                    scanTarget: 'generic'
+                }]
+            };
+            const out = inFakeProject(config, `
+                const mapper = require(REPO + '/.claude/scripts/doc-impact-map.cjs');
+                return mapper.mapChanges([{ status: 'M', file: 'src/app.ts' }], ${JSON.stringify(config)});
+            `);
+            const doc = out.docs.find(entry => entry.doc === 'knowledge/references/guides/architecture.md');
+            assertTrue(doc, `The generic output must use the configured root exactly: ${JSON.stringify(out.docs)}`);
+            assertEqual(
+                doc.scanTarget,
+                'scan --target=generic-reference-doc --filename="guides/architecture.md"',
+                'The relocated output retains the exact selected generic scan invocation'
+            );
+        }
+    },
+    // --- F2: task-specific built-in outputs obey the exact selected set --------------
+    {
+        name: '[doc-impact-map] F1 a specific configured rule still suppresses the conventions fallback',
+        fn: () => {
+            // The additive-generic change must not over-relax: a genuinely specific configured
+            // rule that OWNS the path still suppresses the generic conventions fallback.
+            const config = {
+                project: { name: 'Specific Suppression Fixture' },
+                modules: [{ name: 'web', pathRegex: '^apps/web/' }],
+                referenceDocs: [
+                    { filename: 'project-structure-reference.md', purpose: 'repository map' },
+                    { filename: 'code-review-rules.md', purpose: 'review rules' }
+                ]
+            };
+            const docs = docNames(mapWith(['apps/web/foo.ts'], config));
+            assertTrue(
+                docs.some(d => d.endsWith('project-structure-reference.md')),
+                `The specific configured owner must route. Got: ${docs.join(', ')}`
+            );
+            assertTrue(
+                !docs.some(d => d.endsWith('code-review-rules.md')),
+                `A specific configured owner still suppresses the fallback. Got: ${docs.join(', ')}`
+            );
+        }
+    },
+    {
+        name: '[doc-impact-map] F2 an omitted referenceDocs resolves to capability-backed defaults',
+        fn: () => {
+            // The config FILE is required, but individual properties are optional. With
+            // `referenceDocs` omitted, the canonical resolver selects capability-backed docs from
+            // config evidence — so a project that never writes a custom override still gets its
+            // framework default routing.
+            const config = {
+                project: { name: 'Capability Default Fixture' },
+                modules: [{ name: 'web', pathRegex: '^apps/web/' }]
+            };
+            const docs = docNames(mapWith(['apps/web/foo.ts'], config));
+            assertTrue(
+                docs.some(d => d.endsWith('project-structure-reference.md')),
+                `An omitted referenceDocs must still select the capability-backed doc. Got: ${docs.join(', ')}`
+            );
+            assertTrue(
+                !docs.some(d => d.endsWith('code-review-rules.md')),
+                `Only capability-backed docs are selected when referenceDocs is omitted. Got: ${docs.join(', ')}`
+            );
+        }
+    },
+    {
+        name: '[doc-impact-map] F2 exact empty selection emits no task-specific built-in docs or scan commands',
+        fn: () => {
+            // An explicit `referenceDocs: []` is the exact task-specific selection. Every static
+            // built-in rule must therefore emit NOTHING for these representative route classes —
+            // otherwise the map hands /docs-update a scan the exact-selection gate must block.
+            const empty = { project: { name: 'Empty Selection Fixture' }, referenceDocs: [] };
+            const cases = [
+                ['src/app.ts', 'plain source'],
+                ['package.json', 'dependency manifest'],
+                ['apps/web/app/theme.css', 'stylesheet'],
+                ['src/example.test.ts', 'test surface'],
+                ['src/Billing/Entities/Invoice.cs', 'heuristic entity path']
+            ];
+            for (const [file, label] of cases) {
+                const result = mapWith([file], empty);
+                assertEqual(
+                    result.docs.length,
+                    0,
+                    `${label}: exact empty selection must emit no task-specific doc. Got: ${JSON.stringify(docNames(result))}`
+                );
+            }
+        }
+    },
+    {
+        name: '[doc-impact-map] F2 empty selection preserves always-on docs and drops only task-specific built-ins',
+        fn: () => {
+            const empty = { ...MINIMAL_CONFIG, referenceDocs: [] };
+            const result = mapWith(['.claude/skills/x/SKILL.md'], empty);
+            const docs = docNames(result);
+            assertTrue(docs.some(d => d.endsWith('CLAUDE.md')), `Root instructions stay always-on. Got: ${docs.join(', ')}`);
+            assertTrue(
+                result.docs.some(d => d.scanTarget === 'scan --target=docs-index'),
+                `The docs index stays always-on and keeps its command. Got: ${JSON.stringify(result.docs.map(d => [d.doc, d.scanTarget]))}`
+            );
+            assertTrue(
+                docs.some(d => d.endsWith(CONFIGURED_INDEX_NAME)),
+                `The always-on index keeps its configured filename. Got: ${docs.join(', ')}`
+            );
+            assertTrue(
+                !docs.some(d => d.endsWith('project-structure-reference.md')),
+                `An unselected task-specific built-in must not route. Got: ${docs.join(', ')}`
+            );
+        }
+    },
+    {
+        name: '[doc-impact-map] F2 a selected subset emits only its own task-specific docs',
+        fn: () => {
+            const subset = {
+                project: { name: 'Subset Fixture' },
+                referenceDocs: [{ filename: 'code-review-rules.md', purpose: 'review rules' }]
+            };
+            const docs = docNames(mapWith(['src/app.ts', 'package.json'], subset));
+            assertTrue(
+                docs.some(d => d.endsWith('code-review-rules.md')),
+                `The selected owner must route. Got: ${docs.join(', ')}`
+            );
+            for (const rel of docs) {
+                assertTrue(
+                    !rel.endsWith('/design-system/README.md') && !rel.endsWith('scss-styling-guide.md') && !rel.endsWith('project-structure-reference.md'),
+                    `A subset selection must not fabricate an unselected built-in. Got: ${rel}`
+                );
+            }
+        }
+    },
+    {
+        name: '[doc-impact-map] F2 a generic-only selection leaks no unrelated built-in doc',
+        fn: () => {
+            const genericOnly = {
+                project: { name: 'Generic Only Fixture' },
+                referenceDocs: [{ filename: 'guides/arch.md', purpose: 'architecture evidence', scanTarget: 'generic' }]
+            };
+            const docs = docNames(mapWith(['src/Billing/Entities/Invoice.cs'], genericOnly));
+            assertTrue(docs.some(d => d.endsWith('/guides/arch.md')), `The selected generic doc must route. Got: ${docs.join(', ')}`);
+            assertTrue(!docs.some(d => d.endsWith('domain-entities-reference.md')), `An unselected heuristic built-in must not leak. Got: ${docs.join(', ')}`);
+            assertTrue(!docs.some(d => d.endsWith('code-review-rules.md')), `An unselected conventions owner must not be fabricated. Got: ${docs.join(', ')}`);
+        }
+    },
+    {
+        name: '[doc-impact-map] F2 a direct context-group route keeps reader impact but gains no unselected scan command',
+        fn: () => {
+            const config = {
+                project: { name: 'Context Group Fixture' },
+                referenceDocs: [],
+                contextGroups: [{ name: 'legacy', pathRegexes: ['^/src/'], guideDoc: 'docs/project-reference/code-review-rules.md' }]
+            };
+            const result = mapWith(['src/app.ts'], config);
+            const doc = result.docs.find(d => d.doc.endsWith('code-review-rules.md'));
+            assertTrue(
+                doc,
+                `A directly configured context-group doc remains a reader-impact route. Got: ${JSON.stringify(docNames(result))}`
+            );
+            assertEqual(
+                doc.scanTarget,
+                null,
+                'An unselected built-in filename must not inherit a scan command from its basename'
+            );
+        }
+    },
+    {
+        name: '[doc-impact-map] F2 an unselected built-in styling guide is not routed beside a selected generic one',
+        fn: () => {
+            // Reproduces the concrete consumer mismatch without reading this repo's config: a
+            // project that replaced the legacy SCSS guide with a custom generic styling doc must
+            // NOT keep routing the now-unselected built-in.
+            const config = {
+                ...MINIMAL_CONFIG,
+                referenceDocs: [
+                    { filename: 'design-system/README.md', purpose: 'design system' },
+                    { filename: 'guides/styling.md', purpose: 'styling evidence', scanTarget: 'generic' }
+                ]
+            };
+            const docs = docNames(mapWith(['apps/web/app/styles/theme.scss'], config));
+            assertTrue(!docs.some(d => d.endsWith('scss-styling-guide.md')), `The unselected legacy SCSS guide must not route. Got: ${docs.join(', ')}`);
+            assertTrue(docs.some(d => d.endsWith('/guides/styling.md')), `The selected generic styling doc must still route. Got: ${docs.join(', ')}`);
+            assertTrue(docs.some(d => d.endsWith('design-system/README.md')), `The selected design-system doc must still route. Got: ${docs.join(', ')}`);
+        }
+    },
+    // --- F4: the always-on docs index resolves through its configured path -----------
+    {
+        name: '[doc-impact-map] F4 the always-on docs index routes to its CONFIGURED path, never the default alias',
+        fn: () => {
+            const dir = fs.mkdtempSync(path.join(os.tmpdir(), `doc-impact-map-index-${process.pid}-`));
+            try {
+                fs.mkdirSync(path.join(dir, '.claude'), { recursive: true });
+                fs.mkdirSync(path.join(dir, 'docs'), { recursive: true });
+                fs.mkdirSync(path.join(dir, 'knowledge', 'reference'), { recursive: true });
+                fs.writeFileSync(
+                    path.join(dir, '.claude', '.ck.json'),
+                    JSON.stringify({ portability: { enabled: true, docsIndexPath: 'knowledge/reference/project-context-index.md' } }),
+                    'utf8'
+                );
+                fs.writeFileSync(
+                    path.join(dir, 'docs', 'project-config.json'),
+                    JSON.stringify({ schemaVersion: 2, project: { name: 'Custom Index Fixture' } }),
+                    'utf8'
+                );
+                const configuredRel = 'knowledge/reference/project-context-index.md';
+                fs.writeFileSync(path.join(dir, configuredRel), '# configured index\n', 'utf8');
+
+                const harness = runMapper(dir, ['--json', '.claude/skills/x/SKILL.md']);
+                assertEqual(harness.status, 0, `mapper must not block: ${harness.stderr}`);
+                const harnessOut = JSON.parse(harness.stdout);
+                const index = harnessOut.docs.find(d => d.doc === configuredRel);
+                assertTrue(index, `The harness route must name the configured index. Got: ${JSON.stringify(harnessOut.docs.map(d => d.doc))}`);
+                assertEqual(index.exists, true, 'The configured index exists and must be reported present');
+                assertEqual(index.scanTarget, 'scan --target=docs-index', 'The always-on index keeps its docs-index scan target');
+                assertTrue(
+                    !harnessOut.docs.some(d => d.doc.endsWith('docs-index-reference.md')),
+                    `No default-basename sibling may be emitted. Got: ${JSON.stringify(harnessOut.docs.map(d => d.doc))}`
+                );
+                assertTrue(harnessOut.docs.some(d => d.doc.endsWith('CLAUDE.md')), 'Root instructions remain a separate always-on output');
+
+                const tree = runMapper(dir, ['--json', 'docs/guide.md']);
+                const treeOut = JSON.parse(tree.stdout);
+                assertTrue(
+                    treeOut.docs.some(d => d.doc === configuredRel),
+                    `The docs-tree route must also name the configured index. Got: ${JSON.stringify(treeOut.docs.map(d => d.doc))}`
+                );
+            } finally {
+                fs.rmSync(dir, { recursive: true, force: true });
+            }
+        }
     }
 ];
 
@@ -636,24 +1099,27 @@ const docrootTests = [
     {
         name: '[doc-impact-map] TC-DOCROOT-081 default config classifies docs/specs exactly as before (SC-11)',
         fn: () => {
-            const cfg = { enforcedAreas: [{ name: 'Cap' }] };
+            const out = inFakeProject(
+                { schemaVersion: 2, project: { name: 'Docroot Default Fixture' } },
+                `
+                const cls = require(REPO + '/.claude/hooks/lib/doc-sync-classify.cjs');
+                const cfg = { enforcedAreas: [{ name: 'Cap' }] };
+                return {
+                    dir: cls.featureSpecDirForArea({ name: 'Cap' }),
+                    hit: !!cls.areaForFeatureDoc('docs/specs/Cap/README.X.md', cfg),
+                    otherAreaMiss: cls.areaForFeatureDoc('docs/specs/Other/README.X.md', cfg) === null,
+                    siblingMiss: cls.areaForFeatureDoc('docs/specs/CapLegacy/README.X.md', cfg) === null
+                };
+                `
+            );
             assertEqual(
-                classify.featureSpecDirForArea({ name: 'Cap' }, 'docs/specs/'),
+                out.dir,
                 'docs/specs/Cap/',
                 'The default trailing-slash root must be unchanged.'
             );
-            assertTrue(
-                !!classify.areaForFeatureDoc('docs/specs/Cap/README.X.md', cfg),
-                'A default-rooted feature spec must still classify (this repo declares specRoots.business = docs/specs).'
-            );
-            assertTrue(
-                classify.areaForFeatureDoc('docs/specs/Other/README.X.md', cfg) === null,
-                'A doc outside every enforced bucket must still miss.'
-            );
-            assertTrue(
-                classify.areaForFeatureDoc('docs/specs/CapLegacy/README.X.md', cfg) === null,
-                'Segment boundary: bucket `Cap` must NOT swallow the sibling `CapLegacy` — the fail-open case.'
-            );
+            assertTrue(out.hit, 'A default-rooted feature spec must still classify under a valid minimal project config.');
+            assertTrue(out.otherAreaMiss, 'A doc outside every enforced bucket must still miss.');
+            assertTrue(out.siblingMiss, 'Segment boundary: bucket `Cap` must NOT swallow the sibling `CapLegacy` — the fail-open case.');
         }
     },
     {
@@ -684,13 +1150,13 @@ const docrootTests = [
             const cfg = { specRoots: { business: { path: 'docs/spec' } } };
             const result = mapper.mapChanges([{ status: 'M', file: 'docs/specifications/x.md' }], cfg);
             assertTrue(
-                docNames(result).some(d => d.endsWith('docs-index-reference.md')),
+                docNames(result).some(d => d.endsWith(CONFIGURED_INDEX_NAME)),
                 `Root \`docs/spec\` must NOT exclude \`docs/specifications/\` from the docs-tree rule. ` +
                     `Got: ${docNames(result).join(', ')}`
             );
             const inside = mapper.mapChanges([{ status: 'M', file: 'docs/spec/x.md' }], cfg);
             assertTrue(
-                !docNames(inside).some(d => d.endsWith('docs-index-reference.md')),
+                !docNames(inside).some(d => d.endsWith(CONFIGURED_INDEX_NAME)),
                 'A doc genuinely INSIDE the configured spec root must still be excluded (the /spec chain owns it).'
             );
         }
@@ -710,18 +1176,18 @@ const docrootTests = [
             };
             const overMatch = mapper.mapChanges([{ status: 'M', file: 'docs/specs-technical-notes/x.md' }], cfg);
             assertTrue(
-                docNames(overMatch).some(d => d.endsWith('docs-index-reference.md')),
+                docNames(overMatch).some(d => d.endsWith(CONFIGURED_INDEX_NAME)),
                 `\`docs/specs-technical-notes/\` shares a prefix with BOTH configured roots but is inside ` +
                     `neither, so it must route. Got: ${docNames(overMatch).join(', ')}`
             );
             const business = mapper.mapChanges([{ status: 'M', file: 'docs/specs/x.md' }], cfg);
             assertTrue(
-                !docNames(business).some(d => d.endsWith('docs-index-reference.md')),
+                !docNames(business).some(d => d.endsWith(CONFIGURED_INDEX_NAME)),
                 'A real business-spec path must still be excluded.'
             );
             const technical = mapper.mapChanges([{ status: 'M', file: 'docs/specs-technical/x.md' }], cfg);
             assertTrue(
-                !docNames(technical).some(d => d.endsWith('docs-index-reference.md')),
+                !docNames(technical).some(d => d.endsWith(CONFIGURED_INDEX_NAME)),
                 'A real technical-spec path must still be excluded — via its OWN root, not a prefix accident.'
             );
         }
@@ -733,7 +1199,7 @@ const docrootTests = [
                 specRoots: { business: { path: 'docs\\specs' } }
             });
             assertTrue(
-                !docNames(backslashed).some(d => d.endsWith('docs-index-reference.md')),
+                !docNames(backslashed).some(d => d.endsWith(CONFIGURED_INDEX_NAME)),
                 `A backslashed configured root (\`docs\\\\specs\`) must still match \`docs/specs/x.md\`. ` +
                     `Got: ${docNames(backslashed).join(', ')}`
             );
@@ -741,14 +1207,14 @@ const docrootTests = [
                 specRoots: { business: { path: 'docs/specs/' } }
             });
             assertTrue(
-                !docNames(trailing).some(d => d.endsWith('docs-index-reference.md')),
+                !docNames(trailing).some(d => d.endsWith(CONFIGURED_INDEX_NAME)),
                 'A trailing-slash configured root must still match.'
             );
             const cased = mapper.mapChanges([{ status: 'M', file: 'docs/specs/x.md' }], {
                 specRoots: { business: { path: 'Docs/Specs' } }
             });
             assertTrue(
-                !docNames(cased).some(d => d.endsWith('docs-index-reference.md')),
+                !docNames(cased).some(d => d.endsWith(CONFIGURED_INDEX_NAME)),
                 'A case-variant configured root must still match.'
             );
         }

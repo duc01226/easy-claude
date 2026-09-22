@@ -401,6 +401,10 @@ function isPresent(record, hash, ctx, settings) {
     }
     const blind = !Number.isFinite(ctx.lastCompactionAt);
     const minutes = blind ? settings.blindReinjectAfterMinutes : settings.reinjectAfterMinutes;
+    // Some advisory injections deliberately disable age-only re-arming. When a host cannot
+    // expose context size, elapsed wall time is not evidence that the context crossed a token
+    // boundary. Keep the delivery present until content, session, or compaction evidence changes.
+    if (minutes === null) return true;
     // A record stamped in the future (clock moved backwards, or a store carried over from
     // another machine) is treated as absent, exactly as the byte path treats negative growth:
     // an unmeasurable distance costs one extra reminder, never a missed one.

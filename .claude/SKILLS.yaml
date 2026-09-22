@@ -1,7 +1,7 @@
 metadata:
   title: Skills Catalog
   description: Auto-generated catalog of all available skills in ClaudeKit Engineer
-  last_updated: '2026-09-18'
+  last_updated: '2026-09-22'
   total_skills: 124
   total_by_status:
     active: 124
@@ -154,17 +154,6 @@ skills:
       deprecated_by: null
       deprecated_since: null
       removal_after: null
-    - name: coding-level
-      path: coding-level/SKILL.md
-      description: '[Utilities] Use when setting the coding experience level that
-        tailors explanations.'
-      category: other
-      has_scripts: false
-      has_references: false
-      status: active
-      deprecated_by: null
-      deprecated_since: null
-      removal_after: null
     - name: commit
       path: commit/SKILL.md
       description: '[Git] Use when asked to commit, stage and commit, or save changes.
@@ -223,7 +212,8 @@ skills:
     - name: demo-guide
       path: demo-guide/SKILL.md
       description: '[Documentation] Use when generating a demo guide, demo script,
-        or sprint-demo walkthrough covering user stories and their test cases.'
+        or sprint-demo walkthrough covering user stories, case identities, and their
+        evidence carriers.'
       category: other
       has_scripts: false
       has_references: true
@@ -315,8 +305,8 @@ skills:
         test scope with exact runner output, evidence, and report-only quality-gate
         results. Flags: --fix-loop drives a configured suite or human-QC journey to
         green with project-config setup, fault adjudication, and bounded re-verification;
-        --visual-review={true|false} (with --fix-loop; default true, false opts out
-        of the screenshot visual gate).'
+        --visual-review={true|false} (with --fix-loop; follows the explicit request
+        or applicable project contract, with no framework-wide screenshot default).'
       category: other
       has_scripts: false
       has_references: false
@@ -342,8 +332,8 @@ skills:
         a user, gate on runtime/console logs and captured screens, set a baseline,
         or adjudicate a regression. Flag: --rounds=N (default 3; 0 = report-only).'
       category: other
-      has_scripts: true
-      has_references: true
+      has_scripts: false
+      has_references: false
       status: active
       deprecated_by: null
       deprecated_since: null
@@ -393,8 +383,8 @@ skills:
       removal_after: null
     - name: git-developer-performance
       path: git-developer-performance/SKILL.md
-      description: '[Git] Use when generating developer KPI, contribution, story-point,
-        man-day, or code-quality reports from git history.'
+      description: '[Git] Use when generating developer KPI, contribution, story point,
+        man-day, or code-quality reports from git commit history.'
       category: other
       has_scripts: true
       has_references: true
@@ -515,8 +505,8 @@ skills:
     - name: integration-test-verify
       path: integration-test-verify/SKILL.md
       description: '[Testing] Use when verifying integration tests pass after writing
-        and reviewing them. Flag: --fix-loop adjudicates, fixes and re-verifies until
-        2 consecutive green runs.'
+        and reviewing them. Flag: --fix-loop adjudicates, fixes and re-verifies under
+        the configured repeat policy.'
       category: other
       has_scripts: false
       has_references: false
@@ -708,10 +698,23 @@ skills:
       removal_after: null
     - name: project-config
       path: project-config/SKILL.md
-      description: '[Utilities] Use when scanning the workspace to update docs/project-config.json
-        to match current structure.'
+      description: '[Utilities] Use when scanning the workspace to update the configured
+        project-config file (default docs/project-config.json) to match current structure.'
       category: other
-      has_scripts: false
+      has_scripts: true
+      has_references: false
+      status: active
+      deprecated_by: null
+      deprecated_since: null
+      removal_after: null
+    - name: project-help
+      path: project-help/SKILL.md
+      description: '[Utilities] Use when asking what the .claude framework does for
+        THIS project — how it is configured, which skills/agents/workflows exist,
+        what the reference docs are for, and the key technical, architecture, and
+        structure facts of the project.'
+      category: other
+      has_scripts: true
       has_references: false
       status: active
       deprecated_by: null
@@ -788,8 +791,8 @@ skills:
       removal_after: null
     - name: scaffold
       path: scaffold/SKILL.md
-      description: '[Architecture] Use when scaffolding reusable OOP/SOLID project
-        foundations before feature implementation.'
+      description: '[Architecture] Use when scaffolding project foundations and golden-path
+        examples selected by the target project architecture before feature implementation.'
       category: other
       has_scripts: false
       has_references: false
@@ -799,8 +802,9 @@ skills:
       removal_after: null
     - name: scan
       path: scan/SKILL.md
-      description: '[Documentation] Use when (re)generating ONE project-reference
-        doc. Flag: --target={project-structure|backend-patterns|frontend-patterns|scss-styling|design-system|code-review-rules|domain-entities|feature-spec|docs-index|e2e-tests|integration-tests|seed-test-data|ui-system}.'
+      description: '[Documentation] Use when (re)generating ONE selected project-reference
+        doc. Flag: --target={project-structure|backend-patterns|frontend-patterns|scss-styling|design-system|code-review-rules|domain-entities|feature-spec|docs-index|e2e-tests|integration-tests|seed-test-data|ui-system|generic-reference-doc};
+        generic-reference-doc also requires --filename=<selected custom doc>.'
       category: other
       has_scripts: false
       has_references: true
@@ -810,8 +814,8 @@ skills:
       removal_after: null
     - name: scan-all
       path: scan-all/SKILL.md
-      description: '[Documentation] Use when orchestrating all reference doc scans
-        in parallel.'
+      description: '[Documentation] Use when refreshing all selected and evidence-applicable
+        reference-doc scan targets.'
       category: other
       has_scripts: false
       has_references: false
@@ -868,9 +872,9 @@ skills:
       removal_after: null
     - name: spec
       path: spec/SKILL.md
-      description: '[Documentation] Use when authoring, auditing, amending, or test-speccing
-        a business Feature Spec. Modes: draft|init|update|audit|amend build the tech-free
-        8-section spec; tests generates §8 TCs; sync reconciles TCs with test code.'
+      description: '[Documentation] Use when authoring, auditing, amending, test-speccing,
+        or reconciling a canonical spec. Resolve the project artifact profile first;
+        the 8-section/TC format is the strict default.'
       category: other
       has_scripts: false
       has_references: true
@@ -880,9 +884,9 @@ skills:
       removal_after: null
     - name: spec-clarify
       path: spec-clarify/SKILL.md
-      description: '[Code Quality] Use when validating a spec artifact''s decisions
-        with the user — a fresh Feature Spec, a canonical spec before PBI decomposition,
-        or a refined idea plus §8 test specs. Blocking clarification gate.'
+      description: '[Code Quality] Use when validating a canonical specification or
+        separately declared test-case artifact''s decisions with the user. Resolves
+        project artifact profile and blocks on unresolved intent.'
       category: other
       has_scripts: false
       has_references: true
@@ -1084,9 +1088,9 @@ skills:
       removal_after: null
     - name: workflow-code-to-spec
       path: workflow-code-to-spec/SKILL.md
-      description: '[Workflow] Use when authoring or maintaining the canonical Feature
-        Spec FROM existing code, keeping spec, implementation, and tests in sync.
-        For idea-to-spec use workflow-idea-to-spec.'
+      description: '[Workflow] Use when authoring or maintaining the configured canonical
+        feature/spec artifact from existing code, keeping its native contract, implementation,
+        and tests in sync. For idea-to-spec use workflow-idea-to-spec.'
       category: other
       has_scripts: false
       has_references: false
@@ -1096,9 +1100,10 @@ skills:
       removal_after: null
     - name: workflow-e2e
       path: workflow-e2e/SKILL.md
-      description: '[Workflow] Use when writing, updating, and verifying E2E/Playwright
-        tests through a bounded green fix/retest loop. Flags: --source={changes|recording|update-ui|prompt|context|whole},
-        --visual-review={true|false} (default true; false is the explicit opt-out).'
+      description: '[Workflow] Use when writing, updating, and verifying E2E tests
+        through a bounded green fix/retest loop. Flags: --source={changes|recording|update-ui|prompt|context|whole},
+        --visual-review={true|false} (resolve from the task request and project contract;
+        no framework-wide default).'
       category: other
       has_scripts: false
       has_references: false
@@ -1131,8 +1136,10 @@ skills:
       removal_after: null
     - name: workflow-feature-spec
       path: workflow-feature-spec/SKILL.md
-      description: '[Workflow] Use when creating or updating 8-section tech-free business
-        feature documentation.'
+      description: '[Workflow] Use when creating or updating the configured canonical
+        feature/spec artifact, applying its native paths, sections, identifiers, and
+        test-evidence carriers; use the portable 8-section/README/TC form only when
+        neither a native profile nor local artifact contract applies.'
       category: other
       has_scripts: false
       has_references: false
@@ -1165,8 +1172,8 @@ skills:
     - name: workflow-idea-to-spec
       path: workflow-idea-to-spec/SKILL.md
       description: '[Workflow] Use when turning a raw idea, vision, or problem into
-        ONE canonical Feature Spec. Stops at the reviewed spec; chain workflow-spec-to-pbi
-        for a backlog.'
+        one reviewed provisional canonical spec under the configured artifact profile.
+        Stops at the spec; chain workflow-spec-to-pbi for a backlog.'
       category: other
       has_scripts: false
       has_references: false
@@ -1234,8 +1241,9 @@ skills:
       removal_after: null
     - name: workflow-spec-to-pbi
       path: workflow-spec-to-pbi/SKILL.md
-      description: '[Workflow] Use when converting canonical tech-free Feature Specs
-        into complete, prioritized, dependency-aware PBIs and stories.'
+      description: '[Workflow] Use when converting canonical feature/spec artifacts
+        in the project configured format into complete, prioritized, dependency-aware
+        PBIs and stories.'
       category: other
       has_scripts: false
       has_references: false
@@ -1403,9 +1411,9 @@ skills:
       removal_after: null
     - name: ui-review
       path: ui-review/SKILL.md
-      description: '[Code Quality] Use when reviewing UI/frontend changes for content
-        overflow, responsive layout, flex-vs-fixed sizing, z-index discipline, SCSS/BEM
-        quality, and async loading/error/empty states.'
+      description: '[Code Quality] Use when reviewing in-scope user interfaces for
+        content fit, supported-size layout, project styling conventions, layering
+        where applicable, accessibility, and async states.'
       category: frontend
       has_scripts: false
       has_references: false

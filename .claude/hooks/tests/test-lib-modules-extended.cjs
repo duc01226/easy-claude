@@ -88,6 +88,7 @@ logSection('Valid Config');
 
 const VALID_CONFIG = {
     _description: 'Test config',
+    project: { name: 'TestProject' },
     backendServices: {
         patterns: [{ name: 'Svc', pathRegex: 'src[\\\\/]svc', description: 'desc' }],
         serviceMap: { svc1: 'Services[\\\\/]svc1' },
@@ -173,12 +174,17 @@ logSection('Missing Required Sections');
     const emptyConfig = {};
     const result = validateConfig(emptyConfig);
     logResult('empty config fails', !result.valid);
-    // backendServices, frontendApps, sharedNamespace are now deprecated (optional)
+    // backendServices, frontendApps, sharedNamespace are deprecated and framework is
+    // now an optional capability section too: only the project identity is required.
     logResult('does NOT report missing backendServices (deprecated)', !result.errors.some(e => e.includes('backendServices')));
     logResult('does NOT report missing frontendApps (deprecated)', !result.errors.some(e => e.includes('frontendApps')));
     logResult(
-        'reports missing framework',
-        result.errors.some(e => e.includes('framework'))
+        'reports missing project identity',
+        result.errors.some(e => e.includes('project'))
+    );
+    logResult(
+        'does NOT report missing framework (optional capability)',
+        !result.errors.some(e => e.includes('framework'))
     );
     logResult('does NOT report missing sharedNamespace (deprecated)', !result.errors.some(e => e.includes('sharedNamespace')));
 }
@@ -347,10 +353,12 @@ logSection('getRequiredSections');
 {
     const sections = getRequiredSections();
     logResult('returns array', Array.isArray(sections));
-    // backendServices, frontendApps, sharedNamespace are now deprecated (optional)
+    // backendServices, frontendApps, sharedNamespace are deprecated and framework is
+    // optional now: only the project identity is a required section.
     logResult('excludes backendServices (deprecated)', !sections.includes('backendServices'));
     logResult('excludes frontendApps (deprecated)', !sections.includes('frontendApps'));
-    logResult('includes framework', sections.includes('framework'));
+    logResult('includes project identity', sections.includes('project'));
+    logResult('excludes framework (optional capability)', !sections.includes('framework'));
     logResult('excludes sharedNamespace (deprecated)', !sections.includes('sharedNamespace'));
 }
 
@@ -484,7 +492,12 @@ logSection('V2 Loader Helpers');
                 loadConfig: () => ({ portability: { projectConfigPath: 'fixture-project-config.json' } }),
                 DEFAULT_PORTABILITY: { projectConfigPath: 'fixture-project-config.json' }
             };
-            if (id === 'fs') return { ...fs, readFileSync(file, ...args) {
+            if (id === 'fs') return { ...fs,
+                existsSync(file, ...args) {
+                    return path.basename(String(file)) === 'fixture-project-config.json'
+                        ? true : fs.existsSync(file, ...args);
+                },
+                readFileSync(file, ...args) {
                 return path.basename(String(file)) === 'fixture-project-config.json'
                     ? JSON.stringify(helperConfig) : fs.readFileSync(file, ...args);
             } };
@@ -639,10 +652,12 @@ logSection('describeSchema');
     // conventionInjection section (+21 lines after trimming their notes to one line
     // each), then to 520 for the optional `docsRoots` block — 6 sub-objects x (name +
     // derivation note + required `path` + its note) plus the block's own 3-line header
-    // = +29 lines, measured 462 -> 491. This remains a runaway-bloat guard, not a
-    // suppression of schema output.
+    // = +29 lines, measured 462 -> 491, then to 530 for the optional
+    // `portability.workflowRouteProtocol` union field (field line + its one-line note
+    // + the two nested `text`/`path` shapes) — measured 518 -> 522. This remains a
+    // runaway-bloat guard, not a suppression of schema output.
     const lineCount = output.split('\n').length;
-    logResult('output under 520 lines', lineCount < 520, `${lineCount} lines`);
+    logResult('output under 530 lines', lineCount < 530, `${lineCount} lines`);
 }
 
 // ════════════════════════════════════════════════════════════════════════════
@@ -798,7 +813,14 @@ console.log(`\n${COLORS.blue}▸ Configurable docs/spec roots (TC-DOCROOT-*)${CO
         const parsed = JSON.parse(fs.readFileSync(abs, 'utf-8'));
         const r = validateConfig(parsed);
         logResult(`${tc}: ${rel} still validates`, r.valid, r.errors.join('; '));
-        logResult(`${tc}: ${rel} declares no docsRoots`, parsed.docsRoots === undefined);
+        if (parsed.docsRoots === undefined) {
+            logResult(`${tc}: ${rel} declares no docsRoots (absence stays valid)`, true);
+        } else {
+            // This repo's own config now DECLARES docsRoots; the hooks fixture below is
+            // the backward-compat control for absence. A declared block must be complete.
+            logResult(`${tc}: ${rel} declares a complete docsRoots block`,
+                Object.values(parsed.docsRoots).every(v => v && typeof v.path === 'string' && v.path.trim().length > 0));
+        }
     }
 
     // TC-DOCROOT-015 — the two planes, side by side, on ONE escaping config.
@@ -1121,18 +1143,26 @@ logSection('CK Config Schema — ck-config-schema.cjs');
     // Valid full config
     {
         const r = validateCkConfig({
-            codingLevel: 3,
             locale: { thinkingLanguage: 'en', responseLanguage: 'vi' },
             assertions: ['Use TypeScript strict mode'],
             plan: { namingFormat: '{date}-{slug}' },
             paths: { docs: 'docs', plans: 'plans' },
+            referenceDocs: { staleDays: 60 },
             trust: { enabled: true },
             project: { type: 'monorepo' },
             codeReview: { maxFiles: 50 },
-            subagent: { model: 'sonnet' },
-            privacyBlock: true
-        });
+            subagent: { model: 'sonnet' }
+    });
         logResult('ck: valid full config passes', r.valid && r.errors.length === 0);
+    }
+
+    // The consumed portability opt-out is declared in the CK schema.
+    {
+        const r = validateCkConfig({ portability: { requireUniversalGuides: false } });
+        logResult(
+            'ck: portability.requireUniversalGuides is a declared boolean',
+            r.valid && !r.warnings.some(w => w.includes('portability.requireUniversalGuides') && w.includes('unknown'))
+        );
     }
 
     // Removed workflow config → warning (not error)
@@ -1143,20 +1173,20 @@ logSection('CK Config Schema — ck-config-schema.cjs');
 
     // Out-of-range number (too high)
     {
-        const r = validateCkConfig({ codingLevel: 10 });
-        logResult('ck: codingLevel too high rejected', !r.valid && r.errors.some(e => e.includes('exceeds maximum')));
+        const r = validateCkConfig({ referenceDocs: { staleDays: 366 } });
+        logResult('ck: numeric field too high rejected', !r.valid && r.errors.some(e => e.includes('exceeds maximum')));
     }
 
     // Out-of-range number (too low)
     {
-        const r = validateCkConfig({ codingLevel: -5 });
-        logResult('ck: codingLevel too low rejected', !r.valid && r.errors.some(e => e.includes('below minimum')));
+        const r = validateCkConfig({ referenceDocs: { staleDays: 0 } });
+        logResult('ck: numeric field too low rejected', !r.valid && r.errors.some(e => e.includes('below minimum')));
     }
 
     // Wrong type for number field
     {
-        const r = validateCkConfig({ codingLevel: 'high' });
-        logResult('ck: wrong type for number rejected', !r.valid && r.errors.some(e => e.includes('expected number')));
+        const r = validateCkConfig({ referenceDocs: { staleDays: 'high' } });
+        logResult('ck: wrong type for numeric field rejected', !r.valid && r.errors.some(e => e.includes('expected number')));
     }
 
     // Unknown top-level key → warning (not error)
@@ -1181,7 +1211,7 @@ logSection('CK Config Schema — ck-config-schema.cjs');
 
     // Boolean field wrong type
     {
-        const r = validateCkConfig({ privacyBlock: 'yes' });
+        const r = validateCkConfig({ promptLedger: { enabled: 'yes' } });
         logResult('ck: wrong type for boolean rejected', !r.valid && r.errors.some(e => e.includes('expected boolean')));
     }
 
@@ -1209,12 +1239,12 @@ logSection('CK Config Schema — ck-config-schema.cjs');
         logResult('ck: freeform object accepts nested data', r.valid);
     }
 
-    // Boundary values for codingLevel
+    // Boundary values for referenceDocs.staleDays
     {
-        const rMin = validateCkConfig({ codingLevel: -1 });
-        const rMax = validateCkConfig({ codingLevel: 5 });
-        logResult('ck: codingLevel -1 accepted', rMin.valid);
-        logResult('ck: codingLevel 5 accepted', rMax.valid);
+        const rMin = validateCkConfig({ referenceDocs: { staleDays: 1 } });
+        const rMax = validateCkConfig({ referenceDocs: { staleDays: 365 } });
+        logResult('ck: referenceDocs.staleDays minimum accepted', rMin.valid);
+        logResult('ck: referenceDocs.staleDays maximum accepted', rMax.valid);
     }
 
     // formatCkValidationResult output
@@ -1228,11 +1258,11 @@ logSection('CK Config Schema — ck-config-schema.cjs');
 
         const failed = formatCkValidationResult({
             valid: false,
-            errors: ['codingLevel: expected number'],
+            errors: ['referenceDocs.staleDays: expected number'],
             warnings: ['typo: unknown top-level key']
         });
         logResult('ck: format shows FAILED', failed.includes('FAILED'));
-        logResult('ck: format includes errors', failed.includes('codingLevel'));
+        logResult('ck: format includes errors', failed.includes('referenceDocs.staleDays'));
         logResult('ck: format includes warnings', failed.includes('typo'));
     }
 

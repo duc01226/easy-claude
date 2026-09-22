@@ -79,13 +79,126 @@ function relativeRequires(src, fromDir) {
   return missing;
 }
 
-function main() {
+// SessionStart supplies a JSON envelope. Keep this parser built-in-only so a
+// partial copy can still diagnose itself. Unknown, empty, or malformed input
+// fails closed for startup installation: only an explicit startup event may
+// launch the guarded package-manager path.
+function sessionSource() {
+  let raw;
   try {
-    const { resolveProjectRoot } = require('./lib/project-root.cjs');
-    projectDir = resolveProjectRoot({ cwd: process.cwd(), scriptPath: __filename, env: process.env }).rootDir;
+    raw = fs.readFileSync(0, 'utf8');
   } catch {
+    return null;
+  }
+  if (!raw.trim() || raw.length > 1024 * 1024) return null;
+  try {
+    const payload = JSON.parse(raw);
+    return payload && typeof payload.source === 'string' ? payload.source : null;
+  } catch {
+    return null;
+  }
+}
+
+function loadConfigStatus() {
+  try {
+    return {
+      available: true,
+      status: require('./lib/project-config-loader.cjs').getProjectConfigStatus()
+    };
+  } catch {
+    return { available: false, status: null };
+  }
+}
+
+// The verifier owns the integrity boundary. This helper is loaded only after
+// that scan has cleared, and every failure remains advisory. The capability
+// probe is read-only for all SessionStart sources; only the helper itself may
+// start a detached repair worker for an explicit `startup` source.
+function runWindowsGitCapability(source, configState) {
+  let windowsGit;
+  try {
+    windowsGit = require('./lib/windows-git.cjs');
+  } catch {
+    return { capability: null };
+  }
+
+  let result;
+  try {
+    result = windowsGit.ensureWindowsGit({
+      source,
+      configStatus: configState.available ? configState.status : { state: 'invalid' }
+    });
+  } catch {
+    return { capability: null };
+  }
+
+  if (result && result.outcome === windowsGit.OUTCOMES.READY && result.capability) {
+    const envFile = process.env.CLAUDE_ENV_FILE;
+    if (envFile) {
+      try {
+        windowsGit.defaultPublishEnvironment({ envFile, capability: result.capability });
+      } catch {
+        // Environment publication is advisory; child hooks still receive the
+        // capability through their host-specific launchers.
+      }
+    }
+  }
+
+  if (configState.available) {
+    const diagnostic = windowsGit.formatDiagnostic(result);
+    if (diagnostic) process.stderr.write(`${diagnostic}\n`);
+  }
+  return { capability: result && result.capability ? result.capability : null };
+}
+
+async function runGuardedStartupInstall(source, configState, gitCapability) {
+  if (source !== 'startup') return;
+
+  let startupInstall;
+  try {
+    startupInstall = require('./lib/startup-install.cjs');
+  } catch {
+    return; // A partial bundle was already diagnosed; never emit a raw stack.
+  }
+
+  if (!configState.available) {
+    // A missing transitive policy helper must not silently become the enabled
+    // portable default. Integrity remains non-blocking, but installation fails
+    // closed because the adopter's explicit disablement cannot be established.
+    const diagnostic = startupInstall.formatDiagnostic({
+      outcome: startupInstall.OUTCOMES.SKIP_CONFIG_UNAVAILABLE
+    });
+    if (diagnostic) process.stderr.write(`${diagnostic}\n`);
+    return;
+  }
+
+  try {
+    // Build and execute only after the integrity scan and explicit startup
+    // source gate. The runner owns the private per-project lock and all
+    // process-tree cleanup proof; this hook remains the non-blocking boundary.
+    const result = await startupInstall.runStartupInstall({
+      projectRoot: projectDir,
+      source,
+      configStatus: configState.status,
+      gitCapability
+    });
+    const diagnostic = startupInstall.formatDiagnostic(result);
+    if (diagnostic) process.stderr.write(`${diagnostic}\n`);
+  } catch {
+    // Startup installation is advisory; a verifier failure must never block a
+    // session or leak a manager/module stack trace.
+  }
+}
+
+async function main() {
+  try {
+    // Keep root discovery dependency-free. This hook is the integrity owner, so
+    // loading project-root (or any transitive helper) before the scan would make
+    // the partial-copy diagnostic depend on the very files it is checking.
     projectDir = bootstrapRoot();
-    bootstrapWarning = '   Root helper unavailable — restore .claude/hooks/lib and its dependencies.\n';
+  } catch {
+    projectDir = path.resolve(process.cwd());
+    bootstrapWarning = '   Built-in root discovery unavailable — restore the .claude bundle.\n';
   }
   hooksDir = path.join(projectDir, '.claude', 'hooks');
   const settingsRaw = readSafe(path.join(projectDir, '.claude', 'settings.json'));
@@ -103,7 +216,13 @@ function main() {
     if (src) for (const dep of relativeRequires(src, path.dirname(entry))) missing.add(dep);
   }
 
-  if (missing.size === 0 && !bootstrapWarning) return;
+  if (missing.size === 0 && !bootstrapWarning) {
+    const source = sessionSource();
+    const configState = loadConfigStatus();
+    const git = runWindowsGitCapability(source, configState);
+    await runGuardedStartupInstall(source, configState, git.capability);
+    return;
+  }
 
   const list = [...missing].sort();
   const shown = list.slice(0, 12);
@@ -116,14 +235,14 @@ function main() {
       (list.length ? `   Missing:\n` : '') +
       shown.map((f) => `     - .claude/hooks/${f}`).join('\n') +
       (extra > 0 ? `\n     ...and ${extra} more` : '') +
-      `\n   Repair: re-export from the source repo with\n` +
-      `     node .claude/scripts/export-claude.mjs "${projectDir}" --force\n` +
+      `\n   Repair: from the consuming project root, re-export from the source repo with\n` +
+      `     node .claude/scripts/export-claude.mjs "<project-root>" --force\n` +
       `   (Other SessionStart hooks may still log raw module errors until repaired.)\n\n`
   );
 }
 
 try {
-  main();
+  Promise.resolve(main()).catch(() => {});
 } catch {
   // Verifier must never break a session.
 }

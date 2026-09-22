@@ -324,8 +324,9 @@ function main(argv) {
             process.stderr.write('--record-verified requires a reference doc filename\n');
             return 1;
         }
-        // Lazy require: session-init-helpers consumes THIS module, so requiring it
-        // at load time would create a cycle.
+        // Lazy require: session-init-helpers consumes this module's contentHash.
+        // The CLI entry below runs only after exports are assigned so the cycle sees
+        // the complete API.
         const { recordDocVerified } = require('./session-init-helpers.cjs');
         const recorded = recordDocVerified(filename);
         process.stdout.write(
@@ -354,10 +355,6 @@ function main(argv) {
     return 1;
 }
 
-if (require.main === module) {
-    process.exit(main(process.argv));
-}
-
 module.exports = {
     VOLATILE_PATTERNS,
     normalizeDocContent,
@@ -367,3 +364,9 @@ module.exports = {
     writeDocIfChanged,
     findStampOnlyStagedDocs,
 };
+
+// Publish the API before direct CLI startup. `--record-verified` loads
+// session-init-helpers.cjs, which imports contentHash back from this module.
+if (require.main === module) {
+    process.exit(main(process.argv));
+}

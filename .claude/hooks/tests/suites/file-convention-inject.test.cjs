@@ -350,6 +350,8 @@ const tests = [
             const mirrorRow = table.split('\n').find(line => line.includes(tagOf(mirrors)));
             assert.ok(mirrorRow && mirrorRow.includes('`.agents/**`') && mirrorRow.includes('`spec`'), table);
             assert.ok(golden.includes('Never hand-edit'));
+            assert.ok(golden.includes('- **generated-mirrors** — include any of: path glob `.agents/**`'), golden);
+            assert.ok(golden.includes('Apply a group\'s rules only when the file matches at least one include matcher'), golden);
             // And the guide-document class lists the guide as a reference document
             const guideRow = table.split('\n').find(line => line.includes(tagOf(guide)));
             assert.ok(guideRow && guideRow.includes('`.claude/docs/hooks/README.md`'), table);
@@ -2128,6 +2130,58 @@ const tests = [
             const scanState = JSON.parse(fs.readFileSync(path.join(fx.store, 'state-names', 'main', '_scan.json'), 'utf8'));
             assert.deepEqual(Object.keys(scanState).sort(), ['lastBoundaryAt', 'offset'], 'scan state intact');
             assert.equal(await deliver(fx, enabled([scanClass]), scanInput, { now: NOW + 1 }), '', 'and the class is remembered');
+        })
+    },
+
+    // TC-PFCI-080: the hook must load its config through the CONFIGURED project-config path, so a
+    // project that relocates `portability.projectConfigPath` still gets its convention reminders.
+    // The in-process `deliver()` helper injects `deps.config`, which bypasses this loader entirely —
+    // only the spawned child exercises the real `defaultConfig()` path.
+    {
+        name: 'TC-PFCI-080 the spawned hook loads config from a configured portability.projectConfigPath',
+        fn: () => withFixture(async fx => {
+            // Given the config lives at a NON-default path declared in .ck.json
+            fx.write('.claude/.ck.json', JSON.stringify({ portability: { projectConfigPath: 'config/project-config.json' } }));
+            fx.write('config/project-config.json', JSON.stringify(enabled([hooksGroup()])));
+            fx.write('.claude/hooks/a.cjs', '// x\n');
+            // And nothing exists at the default path the loader must NOT silently fall back to
+            assert.equal(fs.existsSync(fx.abs('docs/project-config.json')), false, 'no default config present');
+
+            // When the hook runs as a child (real defaultConfig path)
+            const result = await spawnHook(fx, post(fx, 'Edit', '.claude/hooks/a.cjs', { session_id: 'custom-config-path' }));
+
+            // Then it exits clean and delivers the configured group's rules
+            assert.equal(result.code, 0, result.stderr);
+            const ctx = contextOf(result.stdout);
+            assert.ok(ctx.includes('Hooks use CommonJS'), `the configured group rules are delivered. Got: ${result.stdout}`);
+        })
+    },
+    {
+        // PORTABILITY INVARIANT: the project config is OPTIONAL, so read-only detection must work
+        // without one (it inspects the repository, not the config), while a merge/write must stop
+        // rather than fabricate a project config as a side effect of an inspection command.
+        name: 'TC-PFCI-081 the merge CLI runs detection with NO project config and refuses to write one',
+        fn: () => withFixture(async fx => {
+            // Given a repository with detectable content and no project config at all
+            fx.write('.claude/hooks/a.cjs', '// x\n');
+            const configFile = fx.abs('docs/project-config.json');
+            assert.equal(fs.existsSync(configFile), false, 'no project config present — that is the point');
+
+            // When detection runs read-only
+            const detect = await spawnNode([MERGE_CLI, '--detect', '--config', configFile], { cwd: fx.project, env: { CLAUDE_PROJECT_DIR: fx.project } });
+
+            // Then it succeeds, reports the absence, and still yields a detection result
+            assert.equal(detect.code, 0, detect.stderr);
+            const payload = JSON.parse(detect.stdout);
+            assert.equal(payload.configMissing, true);
+            assert.ok(Array.isArray(payload.detected), 'detection ran against portable defaults');
+
+            // And a merge/write stops with actionable guidance instead of an ENOENT or a new file
+            const write = await spawnNode([MERGE_CLI, '--detect', '--merge', '--write', '--config', configFile], { cwd: fx.project, env: { CLAUDE_PROJECT_DIR: fx.project } });
+            assert.equal(write.code, 1);
+            assert.ok(/no project config at/.test(write.stderr), `names the missing config. Got: ${write.stderr}`);
+            assert.ok(/project-config/.test(write.stderr), `names the protocol that creates it. Got: ${write.stderr}`);
+            assert.equal(fs.existsSync(configFile), false, 'no config fabricated by an inspection command');
         })
     }
 ];

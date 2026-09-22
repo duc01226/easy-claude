@@ -3,11 +3,11 @@
  * Session Init Docs — Merged SessionStart Hook
  *
  * Combines the logic of two former hooks:
- *   - project-config-init.cjs  (config skeleton creation + schema validation)
+ *   - project-config-init.cjs  (config status and schema validation)
  *   - init-reference-docs.cjs  (placeholder reference doc creation)
  *
- * Phase 1: Ensure the configured project config exists (create skeleton if missing),
- *          validate schema without runtime prompt injection.
+ * Phase 1: Verify the required configured project file is present and schema-valid.
+ *          Only project-init may bootstrap it; this hook never writes a skeleton.
  * Phase 2: Create placeholder reference docs for any missing files.
  *
  * Generic skills rely on this hook as the project-specific extension point:
@@ -29,6 +29,10 @@ const {
     checkConfigStatus,
     SCAN_SKILL_MAP,
     getReferenceDocs,
+    getAlwaysOnReferenceDocs,
+    getReferenceDocScanSkill,
+    getReferenceDocPath,
+    getProjectTemplatePath,
     generatePlaceholderContent,
     initDesignSystemAppDocs,
     isPlaceholderFile,
@@ -43,10 +47,10 @@ const {
 const { loadConfig } = require('./lib/ck-config-loader.cjs');
 const { SCAN_STALE_PATH, ensureProjectTmpDir } = require('./lib/ck-paths.cjs');
 const {
-    getConfiguredProjectConfigPath,
     getConfiguredDocsIndexPath,
     getDocsRoot,
-    loadProjectConfig
+    loadProjectConfig,
+    getProjectConfigStatus
 } = require('./lib/project-config-loader.cjs');
 const { resolveProjectRoot } = require('./lib/project-root.cjs');
 
@@ -68,9 +72,6 @@ function defaultFeatureDocTemplateDest() {
 
 const rootResolution = resolveProjectRoot({ cwd: process.cwd(), scriptPath: __filename, env: process.env });
 const PROJECT_DIR = rootResolution.rootDir;
-const CONFIG_PATH = getConfiguredProjectConfigPath();
-const CONFIG_DIR = path.dirname(CONFIG_PATH);
-const CONFIG_DISPLAY_PATH = path.relative(PROJECT_DIR, CONFIG_PATH).replace(/\\/g, '/') || path.basename(CONFIG_PATH);
 const DOCS_INDEX_PATH = getConfiguredDocsIndexPath();
 const REF_DOCS_DIR = path.dirname(DOCS_INDEX_PATH);
 
@@ -91,41 +92,21 @@ function main() {
         const stdin = fs.readFileSync(0, 'utf-8').trim();
         if (!stdin) process.exit(0);
 
-        // Guard: skip all file creation in empty/uninitialized projects
-        // (no content directories besides .claude, .git, etc.)
+        // No usable config -> write NOTHING. The config is optional (a project
+        // without one is supported and runs on portable defaults), but "optional"
+        // licenses reading defaults, never materializing reference docs and
+        // templates into someone's repo on their behalf. An invalid config is a
+        // setup error and is equally not permission to write. Either way the
+        // prompt gate has already told the session what to do (a one-a-day notice
+        // when absent, a block when present-but-invalid); this SessionStart hook
+        // stays silent and performs no writes.
+        const configStatus = getProjectConfigStatus({ refresh: true });
+        if (!configStatus.valid) process.exit(0);
+
+        // Guard: skip reference/template materialization in empty projects.
         if (!hasProjectContent()) process.exit(0);
-
-        // Ensure configured project config directory exists
-        if (!fs.existsSync(CONFIG_DIR)) {
-            fs.mkdirSync(CONFIG_DIR, { recursive: true });
-        }
-
-        // =====================================================================
-        // Phase 1: Config init (from project-config-init.cjs)
-        // =====================================================================
-
-        // Create skeleton silently if missing
-        if (!fs.existsSync(CONFIG_PATH)) {
-            fs.writeFileSync(CONFIG_PATH, JSON.stringify(SKELETON, null, 2) + '\n', 'utf-8');
-        }
-
-        // Check config status (works for both just-created and pre-existing)
-        const status = checkConfigStatus();
-
-        // Schema validation errors — always warn
-        if (status.hasSchemaErrors && status.schemaErrors[0] !== 'Invalid JSON') {
-            const output = ['', '## ⚠️ Project Config Schema Validation Failed', '', `\`${CONFIG_DISPLAY_PATH}\` has schema errors that may break hooks:`, ''];
-            for (const err of status.schemaErrors) {
-                output.push(`- **ERROR:** ${err}`);
-            }
-            output.push('', 'Run `/project-config` to fix the config structure.', '');
-            writeSessionStartNotice(output.join('\n'));
-        } else if (status.hasSchemaErrors) {
-            writeSessionStartNotice(`\n## ⚠️ \`${CONFIG_DISPLAY_PATH}\` contains invalid JSON. Run \`/project-config\` to fix.\n`);
-        }
-
-        // Init enforcement is handled by init-prompt-gate.cjs (UserPromptSubmit exit 2).
-        // No advisory text needed here — the gate blocks prompts until config is populated.
+        // No advisory text needed here — the prompt gate already emits the
+        // missing-config notice and the invalid-config block.
 
         // =====================================================================
         // Phase 2: Reference docs init (from init-reference-docs.cjs)
@@ -139,24 +120,51 @@ function main() {
             process.exit(0);
         }
 
+        const alwaysOnDocs = getAlwaysOnReferenceDocs();
         const referenceDocs = getReferenceDocs();
+        // These project-routing inputs have their own owner path and are not part of
+        // the task-specific `referenceDocs` selection (which may explicitly be empty).
+        const docsToEnsureByPath = new Map();
+        for (const doc of [...alwaysOnDocs, ...referenceDocs]) {
+            if (!doc.filename) continue;
+            let filePath;
+            try {
+                filePath = getReferenceDocPath(doc);
+            } catch (error) {
+                console.error(`[session-init-docs] Skipped reference-doc initialization: ${error.message}`);
+                process.exit(0);
+            }
+            if (!docsToEnsureByPath.has(filePath)) docsToEnsureByPath.set(filePath, doc);
+        }
+        const docsToEnsure = [...docsToEnsureByPath.values()];
         const created = [];
 
-        // Ensure configured reference docs directory exists
+        // Every selected output was containment-checked above before creating the root.
         if (!fs.existsSync(REF_DOCS_DIR)) {
             fs.mkdirSync(REF_DOCS_DIR, { recursive: true });
         }
 
-        for (const doc of referenceDocs) {
-            if (!doc.filename) continue;
-            const filePath = path.join(REF_DOCS_DIR, doc.filename);
+        for (const doc of docsToEnsure) {
+            let filePath;
+            try {
+                filePath = getReferenceDocPath(doc);
+            } catch (error) {
+                console.error(`[session-init-docs] Skipped reference-doc initialization: ${error.message}`);
+                process.exit(0);
+            }
             if (!fs.existsSync(filePath)) {
                 // Ensure parent directory exists for subdirectory paths (e.g. design-system/README.md)
                 const parentDir = path.dirname(filePath);
                 if (!fs.existsSync(parentDir)) {
                     fs.mkdirSync(parentDir, { recursive: true });
                 }
-                const content = generatePlaceholderContent(doc);
+                let content;
+                try {
+                    content = generatePlaceholderContent(doc);
+                } catch (error) {
+                    console.error(`[session-init-docs] Skipped ${doc.filename}: ${error.message}`);
+                    process.exit(0);
+                }
                 fs.writeFileSync(filePath, content, 'utf-8');
                 const relativeFilePath = path.relative(PROJECT_DIR, filePath).replace(/\\/g, '/');
                 created.push(`- \`${relativeFilePath}\` — ${doc.purpose || 'Reference document'}`);
@@ -175,8 +183,8 @@ function main() {
             const templateDestRel = (typeof wp.featureDocTemplate === 'string' && wp.featureDocTemplate.trim() !== '')
                 ? wp.featureDocTemplate.trim()
                 : defaultFeatureDocTemplateDest();
-            const templateDest = path.join(PROJECT_DIR, templateDestRel);
-            const templateSource = path.join(PROJECT_DIR, FEATURE_DOC_TEMPLATE_SOURCE);
+            const templateDest = getProjectTemplatePath(templateDestRel);
+            const templateSource = getProjectTemplatePath(FEATURE_DOC_TEMPLATE_SOURCE);
             if (!fs.existsSync(templateDest) && fs.existsSync(templateSource) && fs.statSync(templateSource).isFile()) {
                 const destParent = path.dirname(templateDest);
                 if (!fs.existsSync(destParent)) fs.mkdirSync(destParent, { recursive: true });
@@ -184,25 +192,26 @@ function main() {
                 const relDest = path.relative(PROJECT_DIR, templateDest).replace(/\\/g, '/');
                 created.push(`- \`${relDest}\` — Feature Spec template (generated from .claude source)`);
             }
-        } catch {
-            /* non-blocking: template bootstrap is best-effort */
+        } catch (error) {
+            console.error(`[session-init-docs] Skipped feature template bootstrap: ${error.message}`);
         }
 
         // File creation is silent — no output to avoid context noise.
 
         // Reference doc enforcement is advisory only (not blocking).
-        // Project config enforcement is handled by init-prompt-gate.cjs (exit 2).
+        // Project config enforcement is handled by init-prompt-gate.cjs using a
+        // host-supported UserPromptSubmit JSON block when verification fails.
         // Placeholder docs stay silent here; static docs and prompt gates own guidance.
-        const placeholderDocs = referenceDocs
-            .filter(doc => SCAN_SKILL_MAP[doc.filename])
-            .filter(doc => isPlaceholderFile(path.join(REF_DOCS_DIR, doc.filename)));
+        const placeholderDocs = docsToEnsure
+            .filter(doc => getReferenceDocScanSkill(doc))
+            .filter(doc => isPlaceholderFile(getReferenceDocPath(doc)));
 
         if (placeholderDocs.length > 0) {
-            const skillList = placeholderDocs.map(d => `/${SCAN_SKILL_MAP[d.filename]}`).join(', ');
+            const skillList = placeholderDocs.map(d => `/${getReferenceDocScanSkill(d)}`).join(', ');
             writeSessionStartNotice(`${placeholderDocs.length} reference doc(s) are placeholders. Run: ${skillList}`);
         }
 
-        // If all files exist and config is populated, output nothing (silent pass-through)
+        // If all files exist and config is schema-valid, output nothing (silent pass-through)
 
         // =====================================================================
         // Phase 3: Staleness check (reference doc freshness enforcement)

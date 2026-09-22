@@ -10,6 +10,7 @@ Claude Code uses multiple configuration files to customize behavior, permissions
 .claude/
 ├── settings.json        # Main settings (hooks, permissions, plugins)
 ├── .ck.json             # Claude Kit configuration (levels, assertions)
+├── .ck.local.json       # Optional developer-local CK overrides (gitignored)
 ├── workflows.json       # Workflow automation definitions
 └── .mcp.json            # MCP server integrations
 CLAUDE.md                # Project instructions at repo root (read by Claude)
@@ -64,8 +65,6 @@ CLAUDE.md                # Project instructions at repo root (read by Claude)
 
 ```json
 {
-    "codingLevel": 4,
-    "privacyBlock": true,
     "plan": {
         "namingFormat": "{date}-{issue}-{slug}",
         "dateFormat": "YYMMDD-HHmm",
@@ -84,17 +83,15 @@ CLAUDE.md                # Project instructions at repo root (read by Claude)
 
 | Field               | Type     | Description                                  |
 | ------------------- | -------- | -------------------------------------------- |
-| `codingLevel`       | 0-5      | Output verbosity and style                   |
-| `privacyBlock`      | boolean  | Enable privacy blocking hook                 |
 | `plan.namingFormat` | string   | Plan directory naming pattern                |
 | `plan.validation`   | object   | Plan validation settings                     |
-| `assertions`        | string[] | Optional stack-neutral reminders; project conventions belong in `docs/project-config.json` and its reference docs |
+| `assertions`        | string[] | Legacy compatibility field. The standard SessionStart path does not add it to prompt context; active project rules belong in `docs/project-config.json` and its reference docs |
 | `locale`            | object   | Language settings for thinking/responses     |
 | `trust`             | object   | Trust passphrase configuration               |
 
-In this repository, the SessionStart hook loads `.ck.json` settings but does not inject the `assertions` array into prompt text.
+In this repository, the SessionStart hook loads `.ck.json` settings but does not inject the `assertions` array into prompt text. Keep this field only for compatibility with external consumers; use `contextGroups` and project reference docs for active project conventions.
 
-**See:** [output-styles.md](./output-styles.md) for coding levels 0-5.
+**See:** [output-styles.md](./output-styles.md) for custom output styles.
 
 ### Experience verification
 
@@ -181,18 +178,143 @@ The optional `.claude/.ck.json` `promptLedger` object tunes the prompt-ledger ho
 
 Records live in `tmp/prompt-ledger/<session>/` (override `CK_PROMPT_LEDGER_DIR`) and are pruned after 7 days. Out-of-range values are clamped, not rejected. Details: [../hooks/README.md § Session Prompt Ledger](../hooks/README.md#session-prompt-ledger).
 
+### Default-on workflow routing
+
+Automatic route selection is enabled by default. The tracked team preference lives in `docs/project-config.json` and can disable it:
+
+```json
+{ "portability": { "workflowAutoDetect": false } }
+```
+
+One developer can override that preference in `.claude/.ck.local.json`, which is ignored by `.claude/.gitignore` and travels with the portable `.claude` layout without entering version control:
+
+```json
+{ "portability": { "workflowAutoDetect": false } }
+```
+
+The local boolean wins over the team boolean for runtime prompt refreshes. Missing files, malformed JSON, and non-boolean values express no preference; when neither layer supplies a valid boolean, the effective value is `true`.
+
+When the tracked value is enabled, generated `CLAUDE.md`, `AGENTS.md`, and `.codex/CODEX_CONTEXT.md` carry the canonical route gate. When the effective runtime value is enabled, `workflow-route-inject.cjs` refreshes that gate with the current workflow/skill catalog at `UserPromptSubmit`. It emits advisory plaintext, never blocks a prompt, suppresses duplicate delivery within a session, and re-arms after content changes, compaction, or about 4.5 MB of transcript growth (the framework proxy for roughly 200K tokens). Explicit skill or workflow invocation remains available while automatic routing is off.
+
+### Custom workflow-route protocol
+
+The same hook can carry project-supplied additional route rules via `portability.workflowRouteProtocol`. The team value lives in `docs/project-config.json`; a developer can override it in the git-ignored `.claude/.ck.local.json` (a valid local value replaces the team value). The value is either an inline string or an object `{ "text"?, "path"? }` where `path` is a repo-relative markdown file read at runtime (absolute paths and `..` segments are rejected):
+
+```json
+{ "portability": { "workflowRouteProtocol": { "path": "docs/project-protocols/route.md" } } }
+```
+
+`workflow-route-inject.cjs` appends the resolved text in its own marker block (`<!-- CK:WORKFLOW-ROUTE-PROTOCOL -->`), advisory only and never blocking. A `path` naming a privacy-sensitive file (`.env`, credentials, secrets, `*.pem`/`*.key`) is refused — the validator rejects it and the runtime treats it as no opinion — and a file over 20,000 bytes is truncated with a visible marker. It is runtime-only and is never stamped into tracked `CLAUDE.md`/`AGENTS.md`/Codex context.
+
+### Startup dependency installation
+
+`docs/project-config.json` `hooks.startupInstall` tunes the startup dependency install. Its single
+consumer is the registered SessionStart integrity hook `.claude/hooks/verify-install.cjs`, which runs
+the install-integrity scan first and then delegates policy to `.claude/hooks/lib/startup-install.cjs`.
+The install is attempted only on an explicit `startup` session source and only when the project root
+manifest declares dependencies that are not installed; no root manifest, no declared dependencies, or
+dependencies already present are clean no-ops. A partial `.claude` bundle reports the repair path
+and attempts no install at all.
+
+```json
+{
+    "hooks": {
+        "startupInstall": {
+            "enabled": true,
+            "packageManager": "auto",
+            "allowLifecycleScripts": false
+        }
+    }
+}
+```
+
+| `hooks.startupInstall` field | Type    | Default  | Allowed                              | Meaning                                                                                                      |
+| ---------------------------- | ------- | -------- | ------------------------------------ | ------------------------------------------------------------------------------------------------------------ |
+| `enabled`                    | boolean | `true`   | boolean                              | `false` disables installation only (outcome `skip-disabled`)                                                 |
+| `packageManager`             | string  | `"auto"` | `auto`, `npm`, `pnpm`, `yarn`, `bun` | One manager **signal**, never a precedence override                                                          |
+| `allowLifecycleScripts`      | boolean | `false`  | boolean                              | A repository **request** only — effective solely with the `CK_STARTUP_INSTALL_TRUST=1` host grant (below)     |
+
+**The section and every property in it are optional.** An omitted property keeps the portable default,
+and the defaults are identical whether the property, the whole `hooks` section, or the entire
+`docs/project-config.json` file is absent: `enabled: true`, `packageManager: "auto"`,
+`allowLifecycleScripts: false`. A project that declares nothing behaves exactly as it did before the
+section existed, so declare it only to record a needed non-default.
+
+**A declared `packageManager` is a signal, not an override.** A non-`auto` value joins the other
+available signals — the root manifest's Corepack `packageManager` field, `project.packageManagers`,
+every recognized root lockfile, and a detected Yarn PnP install — and all of them must resolve to one
+manager (and to at most one pinned version) or the install fails closed with `skip-manager-conflict`
+and runs nothing. Declaring `"npm"` in a project carrying `pnpm-lock.yaml` therefore installs nothing;
+it does not switch the project to npm. With no signal at all the historical `npm` fallback applies.
+
+**Disabling installation never disables integrity verification.** `enabled: false` short-circuits the
+install only; `verify-install.cjs` still scans the `.claude` bundle for missing hook files and
+transitive requires, and still reports a partial copy.
+
+**The manager executable and its arguments are not configurable — by design.** No config key can
+supply a command, a flag, or a path. The hook only ever runs a fixed, version-matched argv taken from
+its own support matrix, so no project config can turn the startup hook into an arbitrary command
+runner, under a fixed 120-second deadline for the manager process. That closed argv is what makes
+this section safe to expose at all. `allowLifecycleScripts: true` only removes the suppression
+argument that matrix row already defines (`--ignore-scripts`, `--skip-builds`, or
+`--mode=skip-build`); it grants nothing else, manager-native policy such as Bun's
+`trustedDependencies` still governs dependency scripts, and a project-loaded manager extension
+(a `pnpmfile`, `YARN_PLUGINS`, a `.yarnrc` `yarn-path`) skips the install regardless of the opt-in.
+
+**`allowLifecycleScripts: true` needs a second, host-side signal to do anything.** A repository can
+only REQUEST unsuppressed scripts; the environment variable `CK_STARTUP_INSTALL_TRUST=1` is the grant,
+and the effective value is `allowLifecycleScripts === true && CK_STARTUP_INSTALL_TRUST === '1'`. This
+is deliberate: a checked-in config travels with a clone, so it must not be able to authorize running a
+dependency's install scripts on a machine whose owner never agreed to that. Without the grant the
+install still proceeds with suppression intact — so the failure mode of setting only the config key is
+SILENT (you get `--ignore-scripts` anyway, and the diagnostic vocabulary has no code for "request not
+granted"). Grant it per machine in `.claude/settings.local.json`, which is git-ignored:
+
+```json
+{
+    "env": {
+        "CK_STARTUP_INSTALL_TRUST": "1"
+    }
+}
+```
+
+The same grant has a **second effect that is easy to miss**: without it the runner sanitizes the
+manager's child environment — known registry-credential variables are stripped and npm's user and
+global config paths are pointed at a credential-free device path, so an ambient `.npmrc` cannot be
+read. Granting trust stops that sanitization, which is what lets a private-registry install
+authenticate, and equally what exposes those credentials to whatever lifecycle scripts now run. Grant
+it when a project genuinely needs built native dependencies or a private registry at session start;
+leave it ungranted otherwise.
+
+**Supported breadth.** Managers `npm`, `pnpm`, `yarn`, `bun` across the matrix rows `npm@10-11`,
+`npm@12`, `pnpm@9.15.0`, `pnpm@12`, `yarn@1`, `yarn@2.4`, `yarn@3-4`, `bun@1.2`; recognized root
+lockfiles `package-lock.json` and `npm-shrinkwrap.json` (npm), `pnpm-lock.yaml` (pnpm), `yarn.lock`
+(yarn), `bun.lock` and `bun.lockb` (bun); platforms `win32`, `linux`, `darwin`. A manager version
+outside the matrix, an ambiguous lockfile pair, a lockfile that is recognized but unsupported on the
+installed version (npm 12 with only `npm-shrinkwrap.json`, Bun 1.2 with only the legacy `bun.lockb`),
+an unsupported platform, or a Corepack shim all skip instead of guessing — a pinned dependency graph is
+never reinterpreted as lockless.
+
+**Config states.** An absent config file uses the defaults above. An invalid config file skips
+installation with `skip-config-invalid`, and a config loader that cannot be loaded at all skips with
+`skip-config-unavailable` — it fails closed rather than falling through to the enabled default, because
+an adopter's explicit disablement cannot be established. Diagnostics are one-line, fixed-vocabulary
+strings on stderr; they never echo a path, a config value, or manager output, and most skips are silent
+no-ops.
+
+Validate with `node .claude/hooks/lib/project-config-schema.cjs --validate docs/project-config.json`
+(`--describe` prints the authoritative field list). Hook-side details:
+[../hooks/README.md](../hooks/README.md).
+
 ---
 
 ### workflows.json
 
-**Purpose:** Automatic workflow detection and execution configuration.
+**Purpose:** Canonical workflow definitions and execution metadata. Use `portability.workflowAutoDetect` above to opt out of automatic routing.
 
 ```json
 {
-    "settings": {
-        "enabled": true,
-        "showDetection": true
-    },
+    "version": "2.4.0",
     "workflows": {
         "feature": {
             "sequence": ["plan", "feature-implement", "test", "code-review", "docs-update"],
@@ -202,7 +324,7 @@ Records live in `tmp/prompt-ledger/<session>/` (override `CK_PROMPT_LEDGER_DIR`)
 }
 ```
 
-**Schema:** Each workflow entry supports `description`, `name`, `parallelGroups`, `preActions`, `sequence`, `stepMeta`, `whenToUse`. There are NO `priority` or `triggers` properties — detection is semantic: the model matches the prompt against each workflow's `whenToUse` description and auto-selects the best fit (works in any prompt language).
+**Schema:** Each workflow entry supports `description`, `name`, `parallelGroups`, `preActions`, `sequence`, `stepMeta`, `whenToUse`. There are NO `priority` or `triggers` properties. When runtime routing is enabled, the model semantically matches the prompt against `whenToUse`; otherwise the catalog remains available only through explicitly invoked workflow skills.
 
 **Live catalog (19 workflows):** `workflow-big-feature`, `workflow-bugfix`, `workflow-e2e`, `workflow-feature`, `workflow-feature-spec`, `workflow-greenfield-init`, `workflow-idea-to-pbi`, `workflow-idea-to-spec`, `workflow-refactor`, `workflow-research`, `workflow-review-changes`, `workflow-architecture-audit`, `workflow-code-to-spec`, `workflow-spec-to-pbi`, `workflow-spec-sync`, `workflow-visualize`, `workflow-seed-test-data`, `workflow-write-integration-test`, `workflow-integration-test-green`.
 
@@ -251,10 +373,25 @@ Records live in `tmp/prompt-ledger/<session>/` (override `CK_PROMPT_LEDGER_DIR`)
 | Source of truth (edit this to change defaults) | `.opencode/opencode.recommended.json` |
 | Generated target (created/updated by the sync) | `<project-root>/opencode.json` |
 | Writer / verifier | `.claude/scripts/opencode/sync-config.mjs` (`--check` verifies) |
+| Sub-agent mirror source of truth | `.claude/agents/*.md` |
+| Sub-agent mirror target (generated) | `.opencode/agent/<name>.md` — one per canonical agent, `mode: subagent` + the canonical body verbatim |
+| Sub-agent mirror writer / verifier | `.claude/scripts/opencode/sync-agents.mjs` (`--check` verifies) |
 
 **To update a default recommended opencode setting:** edit `.opencode/opencode.recommended.json` and run `$sync-opencode` (or `node .claude/skills/sync-opencode/scripts/run-opencode-sync.mjs`). The `config` stage deep-merges the recommended defaults into the project-root `opencode.json` — recommended keys win at every leaf, project-only keys survive untouched, and a project with no root config receives the recommended defaults verbatim. A malformed existing root config is reported, never clobbered.
 
-**Adopting the framework in a new project:** copy the whole `.opencode/` folder (including `opencode.recommended.json`) plus `.claude/`, then run `$sync-opencode` to generate/update the project's root `opencode.json` and hooks bridge.
+**Adopting the framework in a new project:** copy the whole `.opencode/` folder (including `opencode.recommended.json`) plus `.claude/`, then run `$sync-opencode` to generate/update the project's root `opencode.json`, the hooks bridge, and the `.opencode/agent/*.md` sub-agent mirror.
+
+**Compaction budget (all three surfaces = 500K tokens):**
+
+This is a DEFAULT OF THE PORTABLE BUNDLE, not a setting of this repository: copy `.claude/` (plus `.codex/` and `.opencode/`) into any project and that project compacts at 500K too. Each surface delivers it differently:
+
+| Surface | Key | How an adopting project receives it |
+| --- | --- | --- |
+| Claude Code | `env.CLAUDE_CODE_AUTO_COMPACT_WINDOW = "500000"` in `.claude/settings.json` | The file is copied verbatim with the bundle — nothing generates or rewrites it |
+| Codex | `model_auto_compact_token_limit = 500000` in `.codex/config.toml` | Upserted by `.claude/scripts/codex/migrate-claude-to-codex.mjs` on every `$sync-codex`, alongside `notify` and the `[tui]` keys; an existing project config keeps its other keys |
+| opencode | the pinned model's `limit.context = 500000` in `.opencode/opencode.recommended.json` | Deep-merged into the project-root `opencode.json` by `$sync-opencode`; a project with no root config receives it verbatim |
+
+opencode has no absolute compaction threshold — it compacts relative to the model's declared window, so `limit.context` is the knob (it actually compacts at `limit.context - min(limit.output, 32000)` = 468,000). `compaction.reserved` is inert for this model: opencode reads it only for models that declare `limit.input`. See the `sync-opencode` skill ("Compaction budget") for the exact formula before changing any of these.
 
 > `.opencode/opencode.recommended.json` MUST NOT be renamed to `.opencode/opencode.json`: opencode auto-loads that path as project config, so it would stop being a template.
 
@@ -269,8 +406,7 @@ Records live in `tmp/prompt-ledger/<session>/` (override `CK_PROMPT_LEDGER_DIR`)
 ```json
 // .ck.json
 {
-  "privacyBlock": false,     // Disable privacy blocking
-  "codingLevel": 3           // Change output verbosity
+  "promptLedger": { "enabled": false }      // Disable prompt-ledger recording
 }
 
 // settings.json
@@ -281,19 +417,12 @@ Records live in `tmp/prompt-ledger/<session>/` (override `CK_PROMPT_LEDGER_DIR`)
 }
 ```
 
-### Add Optional Assertion Reminders
+### Store Active Project Rules
 
-```json
-// .ck.json
-{
-    "assertions": [
-        "Read relevant project references before applying architecture-specific conventions",
-        "Prefer an existing implementation when it fits the requirement"
-    ]
-}
-```
-
-Keep tracked `.claude` defaults stack-neutral. Define durable project-specific rules in `docs/project-config.json` and the referenced project documentation.
+Keep tracked `.claude` defaults project-neutral. Put path-specific conventions in
+`docs/project-config.json` `contextGroups` and authoritative detail in the
+referenced project docs. `.ck.json.assertions` is retained for compatibility,
+but its values are not injected into the standard prompt context.
 
 ### Customize Plan Naming
 
@@ -497,7 +626,7 @@ Configuration is loaded in order with later files overriding earlier:
 ## Related Documentation
 
 - [settings-reference.md](./settings-reference.md) - Complete settings.json reference
-- [output-styles.md](./output-styles.md) - Coding levels 0-5 explained
+- [output-styles.md](./output-styles.md) - Custom output styles
 - [../hooks/README.md](../hooks/README.md) - Hook system overview
 - [../hooks/extending-hooks.md](../hooks/extending-hooks.md) - Creating custom hooks
 

@@ -5,47 +5,44 @@ const path = require('node:path');
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const vm = require('node:vm');
+const { createRequire } = require('node:module');
 const { SCHEMA, validateConfig } = require('../../hooks/lib/project-config-schema.cjs');
-const { getConfiguredProjectConfigPath } = require('../../hooks/lib/project-config-loader.cjs');
-const { SKELETON } = require('../../hooks/lib/session-init-helpers.cjs');
+const {
+    getConfiguredProjectConfigPath,
+    getDocsRoot
+} = require('../../hooks/lib/project-config-loader.cjs');
 
 const repoRoot = path.resolve(__dirname, '..', '..', '..');
-function loadRealConfig() {
-    try {
-        return JSON.parse(fs.readFileSync(getConfiguredProjectConfigPath(), 'utf8'));
-    } catch (error) {
-        // `.claude` is deliberately exportable before project-init creates a config file. Keep
-        // malformed or unreadable present files fail-closed; only an absent optional file uses the
-        // runtime-owned defaults that this suite already validates below.
-        if (error?.code === 'ENOENT') return SKELETON;
-        throw error;
-    }
+const SCHEMA_REQUIRE = createRequire(path.resolve(__dirname, '../../hooks/lib/project-config-schema.cjs'));
+function readProjectConfig(configPath = getConfiguredProjectConfigPath()) {
+    return JSON.parse(fs.readFileSync(configPath, 'utf8'));
 }
-const realConfig = loadRealConfig();
+const MINIMAL_CONFIG = Object.freeze({ project: Object.freeze({ name: 'Experience Config Test' }) });
+const realConfig = readProjectConfig();
 
-test('TC-EXP-CONFIG-001: the optional experienceVerification contract is declared and real config validates', () => {
-    assert.equal(SCHEMA.experienceVerification.type, 'object');
-    assert.equal(validateConfig(realConfig).valid, true);
-    assert.equal(validateConfig(SKELETON).valid, true);
+test('TC-EXP-CONFIG-000: missing required project config is not replaced with a framework skeleton', () => {
+    const absentPath = path.join(repoRoot, 'tmp', `experience-config-missing-${process.pid}-${Date.now()}-${Math.random().toString(16).slice(2)}.json`);
+    assert.throws(() => readProjectConfig(absentPath), error => error?.code === 'ENOENT');
 });
 
-test('TC-EXP-CONFIG-001a: optional experience verification defaults to a project-root temp directory', () => {
-    // Given: raw project configuration may omit the optional block and the runtime skeleton owns defaults.
-    // When: inspect the configured raw value when present and the generated skeleton.
-    // Then: disposable evidence remains rooted at the project temp directory without a missing-property throw.
-    // The raw project config may omit this optional block; runtime defaults live in the skeleton.
-    // A configured root is the project's own name — only its disposable project-root location is the invariant.
-    if (realConfig.experienceVerification) {
-        assert.match(realConfig.experienceVerification.evidenceRoot, /^(tmp|temp)\/[^/.][^\\]*$/);
-    }
-    assert.equal(SKELETON.experienceVerification.evidenceRoot, 'tmp/experience');
+test('TC-EXP-CONFIG-001: the optional experienceVerification contract is declared and minimal and real configs validate', () => {
+    assert.equal(SCHEMA.experienceVerification.type, 'object');
+    assert.equal(SCHEMA.experienceVerification.required, false);
+    assert.equal(validateConfig(realConfig).valid, true);
+    assert.equal(validateConfig(MINIMAL_CONFIG).valid, true);
+});
+
+test('TC-EXP-CONFIG-001a: minimal config may omit experienceVerification when the capability is absent', () => {
+    assert.equal(Object.hasOwn(MINIMAL_CONFIG, 'experienceVerification'), false);
+    assert.equal(validateConfig(MINIMAL_CONFIG).valid, true);
     const description = require('../../hooks/lib/project-config-schema.cjs').describeSchema();
+    assert.match(description, /Optional evidence contract for user-facing or externally observable surfaces/);
     assert.match(description, /project-root tmp\/ or temp\//);
 });
 
 test('TC-EXP-CONFIG-002: a configured surface carries project facts without a framework-specific enum', () => {
     const config = {
-        ...realConfig,
+        ...MINIMAL_CONFIG,
         experienceVerification: {
             enabled: true,
             evidenceRoot: 'tmp/experience',
@@ -66,7 +63,7 @@ test('TC-EXP-CONFIG-002: a configured surface carries project facts without a fr
 });
 
 test('TC-EXP-CONFIG-003: incomplete configured experience block is rejected', () => {
-    const config = { ...realConfig, experienceVerification: { enabled: true, surfaces: [] } };
+    const config = { ...MINIMAL_CONFIG, experienceVerification: { enabled: true, surfaces: [] } };
     const result = validateConfig(config);
     assert.equal(result.valid, false);
     assert.ok(result.errors.some(error => error.includes('experienceVerification.evidenceRoot')));
@@ -76,7 +73,7 @@ test('TC-EXP-CONFIG-003: incomplete configured experience block is rejected', ()
 
 test('TC-EXP-CONFIG-004: an empty disabled contract requires an honest reason', () => {
     const config = {
-        ...realConfig,
+        ...MINIMAL_CONFIG,
         experienceVerification: {
             enabled: false,
             evidenceRoot: 'tmp/experience',
@@ -92,7 +89,7 @@ test('TC-EXP-CONFIG-004: an empty disabled contract requires an honest reason', 
 
 test('TC-EXP-CONFIG-005: enabled experience verification requires a configured surface', () => {
     const config = {
-        ...realConfig,
+        ...MINIMAL_CONFIG,
         experienceVerification: {
             enabled: true,
             evidenceRoot: 'tmp/experience',
@@ -110,8 +107,14 @@ test('TC-EXP-CONFIG-005: enabled experience verification requires a configured s
 test('TC-EXP-CONFIG-006: malformed object-array entries produce path-specific errors instead of throwing', () => {
     for (const item of [null, [], 'surface', 17, false]) {
         const config = {
-            ...realConfig,
-            experienceVerification: { ...realConfig.experienceVerification, surfaces: [item] }
+            ...MINIMAL_CONFIG,
+            experienceVerification: {
+                enabled: true,
+                evidenceRoot: 'tmp/experience',
+                baselineRoot: 'tests/baselines',
+                acceptancePolicy: 'manual-acceptance-required',
+                surfaces: [item]
+            }
         };
         const result = validateConfig(config);
         assert.equal(result.valid, false);
@@ -119,7 +122,7 @@ test('TC-EXP-CONFIG-006: malformed object-array entries produce path-specific er
     }
     // The shared predicate also owns existing object-array clients.
     for (const field of ['modules', 'contextGroups', 'referenceDocs']) {
-        const result = validateConfig({ ...realConfig, [field]: [null] });
+        const result = validateConfig({ ...MINIMAL_CONFIG, [field]: [null] });
         assert.equal(result.valid, false);
         assert.ok(result.errors.includes(`${field}[0]: expected object item`));
     }
@@ -128,7 +131,7 @@ test('TC-EXP-CONFIG-006: malformed object-array entries produce path-specific er
 
 function surfaceConfig(enabled = true) {
     return {
-        ...realConfig,
+        ...MINIMAL_CONFIG,
         experienceVerification: {
             enabled,
             evidenceRoot: 'tmp/experience',
@@ -186,7 +189,15 @@ function readSchemaSource() {
 
 function loadSchemaSource(source) {
     const module = { exports: {} };
-    vm.runInNewContext(source, { module, exports: module.exports, require: { main: null } }, { filename: 'project-config-schema.cjs', timeout: 5000 });
+    // The sandbox must supply a REAL `require`: the schema now requires a sibling registry at load
+    // (project-config-schema.cjs:15-18). Bind it to the schema's own directory so its relative ids
+    // resolve exactly as in production, and pin `.main = null` so the `require.main === module` CLI
+    // guard at the file's tail stays inert inside the sandbox (a non-null main would run the CLI).
+    const schemaRequire = Object.assign(
+        id => SCHEMA_REQUIRE(id),
+        { main: null, resolve: SCHEMA_REQUIRE.resolve }
+    );
+    vm.runInNewContext(source, { module, exports: module.exports, require: schemaRequire }, { filename: 'project-config-schema.cjs', timeout: 5000 });
     return module.exports.validateConfig;
 }
 
@@ -286,15 +297,17 @@ test('TC-EXP-CONFIG-013: actual freeform weakening of the bring-up recipe is kil
 
 function e2eConfig(execution, surface = {}) {
     return {
-        ...SKELETON,
+        ...MINIMAL_CONFIG,
         e2eTesting: {
             framework: 'playwright',
             language: 'typescript',
             execution
         },
         experienceVerification: {
-            ...SKELETON.experienceVerification,
             enabled: true,
+            evidenceRoot: 'tmp/experience',
+            baselineRoot: 'tests/baselines',
+            acceptancePolicy: 'manual-acceptance-required',
             surfaces: [{
                 id: 'web',
                 kind: 'web',
@@ -323,7 +336,7 @@ const validE2eExecution = {
         runner: 'playwright-cli',
         engine: 'chromium',
         headed: true,
-        actionDelayMs: 500
+        actionDelayMs: 250
     },
     evidence: {
         root: 'tmp/e2e',
@@ -340,18 +353,16 @@ const validE2eExecution = {
 test('TC-E2E-CONFIG-014: a complete optional E2E execution profile validates and is discoverable', () => {
     const result = validateConfig(e2eConfig(validE2eExecution));
     assert.equal(result.valid, true, result.errors.join('; '));
-    // Scoped to the E2E profile under test. `docsRoots` warnings are EXCLUDED because the
-    // `...SKELETON` base seeds the 6 relocatable roots at their defaults, and the schema
-    // warns by design for a root declared before it is created
-    // (`project-config-schema.cjs:1173-1180`) — a fresh project has no `team-artifacts/`
-    // or `docs/product-roadmap.md` yet. Asserting global emptiness here would make an
-    // unrelated, intentionally-warning feature fail an E2E-profile test.
-    assert.deepEqual(result.warnings.filter(w => !w.startsWith('docsRoots.')), []);
+    assert.deepEqual(result.warnings, [], 'the E2E fixture is self-contained and declares no unrelated optional roots');
     assert.equal(SCHEMA.e2eTesting.properties.execution.type, 'object');
     assert.equal(SCHEMA.e2eTesting.properties.execution.properties.browser.properties.runner.type, 'string');
     const description = require('../../hooks/lib/project-config-schema.cjs').describeSchema();
     for (const field of ['surfaceIds', 'auth', 'data', 'browser', 'evidence', 'convergence', 'actionDelayMs', 'redaction', 'consecutiveGreen']) {
         assert.ok(description.includes(field), `--describe output must include ${field}`);
+    }
+    for (const actionDelayMs of [0, 125, 1800]) {
+        const pacingResult = validateConfig(e2eConfig({ browser: { actionDelayMs } }));
+        assert.equal(pacingResult.valid, true, `${actionDelayMs}ms is a supported project pacing value: ${pacingResult.errors.join('; ')}`);
     }
 });
 
@@ -387,7 +398,7 @@ test('TC-E2E-CONFIG-017: unsafe paths, unsupported modes, invalid pacing, and un
         surfaceIds: ['web'],
         auth: { mode: 'unknown' },
         data: { mode: 'reset-all', workingDir: '../shared' },
-        browser: { actionDelayMs: 250 },
+        browser: { actionDelayMs: -1 },
         evidence: { root: '../outside', capture: ['dom-dump'] },
         convergence: { maxAttempts: 0, consecutiveGreen: 4, settleTimeoutSeconds: 601 }
     });
@@ -397,7 +408,7 @@ test('TC-E2E-CONFIG-017: unsafe paths, unsupported modes, invalid pacing, and un
         'auth.mode: unsupported mode',
         'data.mode: unsupported mode',
         'data.workingDir: must be a project-relative path',
-        'browser.actionDelayMs: expected exactly 500',
+        'browser.actionDelayMs: expected a non-negative safe integer in milliseconds',
         'evidence.root: must be a project-relative path',
         'evidence.capture[0]: unsupported capture',
         'convergence.maxAttempts: expected an integer from 1 through 10',
@@ -494,7 +505,7 @@ test('TC-E2E-CONFIG-021: uiStateCapture rejects unknown modes, unbounded caps, a
         [{ maxPerTest: 1001, maxPerRun: 20000 }, 'uiStateCapture.maxPerTest: expected an integer from 1 through 1000'],
         [{ maxPerRun: 20001 }, 'uiStateCapture.maxPerRun: expected an integer from 1 through 20000'],
         [{ maxPerTest: 100, maxPerRun: 50 }, 'uiStateCapture.maxPerTest: cannot exceed uiStateCapture.maxPerRun'],
-        // A blank mode is a typo, not an implicit every-action default.
+        // A blank mode is a typo; omission follows the documented declared-only default.
         [{ mode: '' }, 'uiStateCapture.mode: unsupported mode ""'],
         [{ mode: '  ' }, 'uiStateCapture.mode: unsupported mode "  "'],
         // The manifest indexes screenshots; it must stay inside the project so evidence cannot
@@ -514,13 +525,17 @@ test('TC-E2E-CONFIG-021: uiStateCapture rejects unknown modes, unbounded caps, a
     assert.deepEqual(uiStateCaptureErrors(validateConfig(uiStateCaptureConfig({ maxPerTest: 1, maxPerRun: 1 }))), []);
 });
 
-test('TC-E2E-CONFIG-022: a missing manifest is warned in every mode; a missing helper while mode is not off', () => {
-    for (const mode of ['every-action', 'declared-only', undefined]) {
+test('TC-E2E-CONFIG-022: a missing manifest is warned in every mode; a capture boundary is required only for every-action mode', () => {
+    for (const mode of ['declared-only', undefined, 'off']) {
         const result = validateConfig(uiStateCaptureConfig({ mode, helper: undefined, manifestPath: ' ' }));
         assert.equal(result.valid, true, result.errors.join('; '));
         assert.ok(result.warnings.some(warning => warning.includes('uiStateCapture.manifestPath')), `${mode}: ${result.warnings.join('; ')}`);
-        assert.ok(result.warnings.some(warning => warning.includes('uiStateCapture.helper')), `${mode}: ${result.warnings.join('; ')}`);
+        assert.equal(result.warnings.some(warning => warning.includes('uiStateCapture.helper')), false, `${mode}: ${result.warnings.join('; ')}`);
     }
+
+    const everyAction = validateConfig(uiStateCaptureConfig({ mode: 'every-action', helper: undefined, manifestPath: 'tmp/e2e/capture-manifest.json' }));
+    assert.equal(everyAction.valid, true, everyAction.errors.join('; '));
+    assert.ok(everyAction.warnings.some(warning => warning.includes('uiStateCapture.helper')), everyAction.warnings.join('; '));
 
     // `off` drops the action-layer helper but still captures and indexes the declared matrix,
     // so an unindexed matrix would read as UNVERIFIED and weaken the visual gate.
@@ -581,7 +596,7 @@ const TRANSITION_CAPTURE_PHRASES = [
     /\bstate-changing\s+actions?\s+(in\s+the\s+journey\s+)?that\s+produced\s+(\*\*)?no(\*\*)?\s+capture/i,
     /\buncaptured\s+(state-changing\s+actions?|transitions?)\b/i
 ];
-const MODE_TABLE_ROW = /^\s*\| `(every-action|declared-only|off)` \|/;
+const MODE_TABLE_ROW = /^[ \t]*\|[ \t]*`(every-action|declared-only|off)`[ \t]*\|/;
 const MODE_DISMISSED = /\b(regardless of|irrespective of|whatever)\b[^.|\n]{0,20}`?uiStateCapture\.mode/i;
 
 function unqualifiedCaptureImperatives(text) {
@@ -598,9 +613,8 @@ const OFF_DROPS_MATRIX = [
     /No captures from this protocol/
 ];
 
-// Carriers are discovered rather than listed: every framework document that speaks about
-// state-changing actions consumes the capture contract. The named floor keeps a broken walk
-// from silently scanning nothing.
+// Audit both phrase-discovered carriers and the declared floors. A floor remains a
+// consumer even when its wording becomes conditional and no longer matches the discovery phrase.
 const CAPTURE_CARRIER_FLOOR = [
     '.claude/skills/shared/ui-state-capture-protocol.md',
     '.claude/skills/shared/e2e-quality-protocol.md',
@@ -608,8 +622,7 @@ const CAPTURE_CARRIER_FLOOR = [
     '.claude/skills/e2e-test-verify/SKILL.md',
     '.claude/skills/workflow-e2e/SKILL.md',
     '.claude/skills/experience-review/SKILL.md',
-    '.claude/agents/e2e-runner.md',
-    'docs/project-reference/e2e-test-reference.md'
+    '.claude/agents/e2e-runner.md'
 ];
 
 // A manual walk: `readdirSync({ recursive: true })` needs Node 18.17, below the declared engines floor.
@@ -632,19 +645,23 @@ function markdownFiles(dir) {
     });
 }
 
-function captureCarriers() {
-    return ['.claude/skills', '.claude/agents', 'docs/project-reference'].flatMap(markdownFiles)
+function captureCarriers(config = realConfig) {
+    const projectReferenceRoot = getDocsRoot('projectReference', config);
+    const discovered = ['.claude/skills', '.claude/agents', projectReferenceRoot].flatMap(markdownFiles)
         .filter(carrier => /state-changing (action|transition|trigger)/.test(fs.readFileSync(path.join(repoRoot, carrier), 'utf8')))
-        .sort();
+    const floors = CAPTURE_CARRIER_FLOOR.filter(carrier => fs.existsSync(path.join(repoRoot, carrier)));
+    return [...new Set([...discovered, ...floors])].sort();
 }
 
 test('TC-E2E-CONFIG-024: every capture-every-action imperative is qualified by uiStateCapture.mode', () => {
     const carriers = captureCarriers();
-    for (const floor of CAPTURE_CARRIER_FLOOR) {
-        // Project-owned carriers are asserted only where the project actually ships them; the
-        // `.claude/**` floors are unconditional because they travel inside the bundle. Existence —
-        // not a repo guard — decides, so the floor stays fully enforced in this repo.
-        if (!floor.startsWith('.claude/') && !fs.existsSync(path.join(repoRoot, floor))) continue;
+    const projectReferenceFloor = path.posix.join(getDocsRoot('projectReference', realConfig), 'e2e-test-reference.md');
+    for (const floor of [...CAPTURE_CARRIER_FLOOR, projectReferenceFloor]) {
+        const exists = fs.existsSync(path.join(repoRoot, floor));
+        // `.claude/**` floors travel inside the copied bundle and must always exist. Project-owned
+        // docs are optional in an adopting project, so audit them only when they are present.
+        if (floor.startsWith('.claude/')) assert.ok(exists, `required carrier floor is missing: ${floor}`);
+        else if (!exists) continue;
         assert.ok(carriers.includes(floor), `carrier discovery must reach ${floor}`);
     }
     for (const carrier of carriers) {
@@ -656,7 +673,7 @@ test('TC-E2E-CONFIG-024: every capture-every-action imperative is qualified by u
     const verify = fs.readFileSync(path.join(repoRoot, '.claude/skills/e2e-test-verify/SKILL.md'), 'utf8');
     assert.match(verify, /Under `declared-only`[^.]*blind spot — never a FAIL/);
     assert.match(verify, /Under `off`, verify the matrix rows, manifest, and reads exactly as under `declared-only`, and record transition coverage once as `N\/A — uiStateCapture off: \{reason\}`/);
-    assert.match(verify, /a missing matrix capture still fails it/);
+    assert.match(verify, /a missing (?:required )?matrix capture still fails it/);
 
     // Mutants: an unqualified imperative in any wording, a real carrier with its qualifier
     // deleted, and the pre-decision `off` wording must all be caught.
@@ -685,6 +702,11 @@ test('TC-E2E-CONFIG-024: every capture-every-action imperative is qualified by u
         '| Evidence | Capture every state-changing action |'
     ].join('\n');
     assert.deepEqual(unqualifiedCaptureImperatives(table), ['| Evidence | Capture every state-changing action |']);
+    assert.deepEqual(
+        unqualifiedCaptureImperatives('| `declared-only`       | State × viewport matrix only; no transition captures. Record every state-changing action as an uncaptured-transition blind spot.'),
+        [],
+        'a padded Markdown mode row keeps its own transition qualification'
+    );
     const e2eTest = fs.readFileSync(path.join(repoRoot, '.claude/skills/e2e-test/SKILL.md'), 'utf8');
     assert.ok(unqualifiedCaptureImperatives(e2eTest.replaceAll('uiStateCapture.mode', 'capture setting')).length > 0,
         'deleting the mode qualifier from a real carrier must be caught');
@@ -710,4 +732,36 @@ test('TC-E2E-CONFIG-024: every capture-every-action imperative is qualified by u
     }
     // The decided `off` meaning itself must never read as a matrix drop.
     assert.equal(OFF_DROPS_MATRIX.some(pattern => pattern.test('`off` records transition coverage once as `N/A — uiStateCapture off: {reason}`')), false);
+});
+
+test('TC-E2E-CONFIG-025: carrier discovery follows a relocated project-reference root', () => {
+    // Given: a valid adopter config points its project references to a non-default root.
+    const tempRoot = path.join(repoRoot, 'tmp');
+    fs.mkdirSync(tempRoot, { recursive: true });
+    const fixtureRoot = fs.mkdtempSync(path.join(tempRoot, 'experience-reference-root-'));
+    try {
+        const relativeRoot = path.relative(repoRoot, fixtureRoot).split(path.sep).join('/');
+        const fixtureDoc = path.join(fixtureRoot, 'e2e-test-reference.md');
+        fs.writeFileSync(fixtureDoc, '# Relocated E2E reference\n\nCapture every state-changing action after its postcondition.\n', 'utf8');
+        const config = {
+            ...realConfig,
+            docsRoots: {
+                ...(realConfig.docsRoots || {}),
+                projectReference: { path: relativeRoot }
+            }
+        };
+        const carrier = path.posix.join(relativeRoot, 'e2e-test-reference.md');
+
+        // When: the suite resolves the configured root and searches its carrier inventory.
+        const carriers = captureCarriers(config);
+
+        // Then: it reaches the relocated doc and the existing imperative detector still flags it.
+        assert.equal(getDocsRoot('projectReference', config), relativeRoot);
+        assert.ok(carriers.includes(carrier), 'the configured project-reference tree must be scanned');
+        assert.equal(unqualifiedCaptureImperatives(fs.readFileSync(path.join(repoRoot, carrier), 'utf8')).length, 1);
+        assert.equal(carriers.includes('docs/project-reference/e2e-test-reference.md'), false,
+            'a configured relocation must not silently fall back to the default root');
+    } finally {
+        fs.rmSync(fixtureRoot, { recursive: true, force: true });
+    }
 });

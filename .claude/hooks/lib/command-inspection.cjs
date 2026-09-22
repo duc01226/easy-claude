@@ -262,6 +262,9 @@ function readWord(source, start, diagnostics, boundOpaque = true) {
     } else {
       i++;
       while (i < source.length && !/[\s;|&<>\\'"$`(){}]/.test(source[i])) i++;
+      // Keep unquoted caret UNKNOWN at the lexical layer: embedded command text
+      // may use cmd.exe's escape rules. The Git diff adapter can recover it only
+      // after recognizing a supported parent-revision operand position.
       if (/[*?\[\]{}^\x00]|%[A-Za-z_][A-Za-z0-9_]*%/.test(source.slice(from, i)) || c === '~' && !hasWordSyntax || c === ')') unknown(from, i, 'UNSUPPORTED_WORD');
       part('unquoted', from, i, source.slice(from, i));
     }

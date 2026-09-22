@@ -25,7 +25,7 @@ framework's own runtime:
 | `surfaceIds`  | Links E2E execution to `experienceVerification.surfaces[]`; that surface's `localRun` owns dependencies, startup, readiness, teardown, runtime logs, and reference-only `credentialsRef`.                                                                                                                                                                                                                    |
 | `auth`        | Declares `fixture`, `storage-state`, `registration`, `manual`, or `none` plus non-secret references. Never copy credentials, cookies, tokens, headers, or storage contents into a prompt, command, test, or report.                                                                                                                                                                                          |
 | `data`        | Declares the verified seed command/working directory, `reference-only`/`idempotent`/`additive` mode, and cleanup policy. Use the project recipe; do not mutate a datastore as a UI shortcut.                                                                                                                                                                                                                 |
-| `browser`     | Declares the configured runner/engine, headed visibility, action delay, and wait-until policy. For web human QC, use the visible Playwright CLI path when configured; a bounded `waitUntil` condition surrounds each UI-control operation for readiness/actionability, expected positive/negative outcomes, and applicable error-alert states, followed by exactly 500ms of post-action presentation pacing. |
+| `browser`     | Selects the project-configured runner/engine and supported interaction mode. Use its native readiness/outcome waits or a documented helper with bounded timeouts and useful diagnostics. Action pacing is optional and applies only when configured; no fixed delay is required. |
 | `evidence`    | Declares the project-relative evidence root, capture kinds, and a non-empty redaction policy whenever sensitive captures are enabled. Attach console/page errors/failed requests before interaction when applicable; read screenshots/traces/video before judging them.                                                                                                                                      |
 | `convergence` | Bounds attempts, consecutive green runs, and settle timeout. Keep the same scope; classify failures before edits, fix at the owning layer, review each fix, and rerun fresh.                                                                                                                                                                                                                                 |
 
@@ -42,12 +42,7 @@ bounded repository scan. Record the source file/line for each fact. Record
 `N/A` only when no applicable E2E surface exists; an applicable but unrunnable
 or uninspectable prerequisite is `ENVIRONMENT-BLOCKED`.
 
-The canonical execution surface is `.claude/skills/workflow-e2e/`, which
-conditionally uses `.claude/skills/e2e-test/` for authoring and always hands
-verification to `.claude/skills/e2e-test-verify/` (`--fix-loop` mode); `.claude/skills/playwright-cli/`
-provides the configured browser path. `experience-review` remains the
-report-only observable acceptance gate; it does not silently accept baselines
-or replace the project runner.
+The canonical execution surface is `.claude/skills/workflow-e2e/`, which routes authoring and verification according to the selected project runner and profile. `.claude/skills/playwright-cli/` applies only when the project selects Playwright; other runners use their configured commands and reference docs. Use `/experience-review` only when requested or required for the applicable surface. It reports observable findings and never silently accepts baselines or replaces the configured test runner.
 
 ## Workflow
 
@@ -78,96 +73,26 @@ The project-owned test layer is the custom CJS hook harness (`docs/project-confi
 
 ## Wait & Assertion Patterns
 
-**N/A.** No project browser wait/retry or E2E assertion helper exists. The skill-local `page.wait_for_function(...)` at `.claude/skills/excalidraw-diagram/references/render_excalidraw.py:144` is not evidence of an application testing standard.
+**N/A.** No project browser wait/retry or E2E assertion helper exists. Skill-local browser utilities are not evidence of an application testing standard.
 
-Portable adopter contract: when an E2E suite is introduced, define or reuse
-one parameterized `waitUntil(condition, options)` helper. The condition must
-support positive and negative boolean/async predicates; options must bound the
-timeout and poll interval and identify the condition for timeout diagnostics.
-Before each UI-control action, wait for the control to be present, visible,
-enabled, actionable, and free of a blocking error alert when success is
-expected. After each action, wait for the expected positive or negative state:
-loading until the next control appears, click results, dropdown/options before
-selection, selected state after selection, and error-alert presence for an
-expected failure or absence for an expected success. Keep final assertions in
-the test. Only after these waits apply the exact 500ms presentation delay; it
-never replaces readiness, postconditions, or real settle signals.
+Portable adopter guidance: prefer the selected runner's native wait APIs. Compose a shared bounded helper only when project references or demonstrated reuse justify it. Wait for observable readiness before acting and for the expected result afterward; keep final assertions in the test and use the project's timeout and diagnostic conventions. A fixed sleep does not establish readiness or a postcondition. Action pacing is optional and applies only when the project configures it.
 
-### Default visual screenshot review
+### Visual review and evidence
 
-Visual screenshot review is enabled by default for applicable E2E execution,
-equivalent to `--visual-review=true`; `--visual-review=false` is the explicit
-opt-out. When an E2E run generates screenshots, each fresh round captures the
-declared state × viewport matrix, preserves the candidate artifacts,
-opens/reads every image, and invokes `/experience-review --rounds=0` as the
-report-only visual adjudicator. Validated blocking UI-floor findings (for
-example clipping, overlap, unreadable content, unreachable controls, broken
-required states, accessibility-floor violations, or broken responsive layouts)
-enter the E2E failure set; fix them at the owning UI layer, review the fix, and
-rerun the same E2E scope and screenshot matrix. Convergence requires zero E2E
-failures and zero blocking visual findings across the configured fresh runs.
-Missing capture or image inspection for an applicable visual surface is
-`ENVIRONMENT-BLOCKED`, not a pass. The explicit false opt-out suppresses this
-screenshot review only; it does not skip E2E execution or other evidence gates.
-Advisory identity, polish, or non-contract spacing preferences are recorded but
-do not create an unbounded loop.
+This repository sets `experienceVerification.enabled` to `false` because it has no user-facing application surface. There is no framework-wide screenshot-review default. Apply visual review only when the task requests it or the project's contract requires it for an applicable surface. Resolve capture mode, evidence paths, and redaction from project config/reference docs; if required evidence cannot be captured or inspected, report the gap instead of treating it as a pass.
 
-### UI state transition capture (auto-capture every state change)
+### UI state transition capture (project-configured)
 
-Full contract: `.claude/skills/shared/ui-state-capture-protocol.md`. When an
-adopter project introduces an E2E stack, the visual gate covers two capture
-sources; under the default `uiStateCapture.mode: every-action` they are additive
-(`declared-only` keeps the matrix and records transitions as blind spots; `off`
-keeps the matrix and records transition coverage as `N/A` — see the configuration
-below):
+Full contract: `.claude/skills/shared/ui-state-capture-protocol.md`. The framework default is `uiStateCapture.mode: declared-only`; transition capture is opt-in. Add automatic transition capture only when the project selects `every-action` and has an evidenced, reusable action/capture boundary. Follow the project's existing runner and helper style; do not create a base class, page-object hierarchy, or shared abstraction solely to host capture.
 
-1. the **declared state x viewport matrix** — guarantees the required states
-   (loading, empty, error, permission, post-submit, full-page) are seen even
-   when the journey never reaches them naturally; and
-2. **transition captures** — one capture after every UI-state-changing action,
-   so every state the journey _does_ reach is seen.
+When enabled, capture after the runner observes the action's configured postcondition. Follow the project's manifest, masking, cap, and failure-capture rules. `declared-only` keeps only the declared capture matrix; `off` disables transition capture and does not waive any separate visual gate required by the project.
 
-Wire transition capture as a single project-owned `captureUiState(descriptor)`
-helper inside the shared base page/component action primitives (`click`,
-`select`, `toggle`, `navigate`, `submit`), fired after the `waitUntil`
-postcondition and the 500ms presentation pacing. Instrumenting the action layer
-rather than the test body is the whole point: a per-test `screenshot()` call is
-one somebody must remember and copy forward, it decays within a sprint, and the
-decay is invisible because the suite still passes — it just stops seeing.
-Capturing before the postcondition records a transition instead of a state, and
-every reviewer then reports the resulting spinner as a defect that is not real.
-
-Triggers: navigation; activation (button, link, row, submit); select/dropdown
-open **and** option chosen; toggle, switch, checkbox, radio; tab, wizard step,
-accordion, tree expand/collapse; modal, drawer, popover, tooltip on open **and**
-close; filter, search, sort, pagination; drag/reorder, resize, inline edit enter
-and commit; theme, locale, density, read/edit mode, role switch, viewport
-change; async boundary resolution; toast, banner, inline validation; login,
-logout, session expiry. Not triggers: assertions, pure reads, no-op hovers,
-per-keystroke typing (capture on commit/blur), polling ticks.
-
-Bounding keeps the set reviewable: dedupe by post-action fingerprint (still emit
-the manifest row), cap per test and per run with an escalation naming the
-untaken captures instead of silent truncation, sample loops (first/middle/last),
-mask clocks and GUIDs and avatars, and capture full-page wherever the surface
-scrolls. **Failure captures are never deduped or capped.**
-
-Every capture gets one row in
-`{evidenceRoot}/ui-captures/{runId}/capture-manifest.json` — `seq`, `tc`,
-`gwt_step`, `source` (`matrix|transition`), `phase` (`pre|post|failure`),
-`action_type`, `action_label`, `target`, `route`, `viewport`, `full_page`,
-`expected_delta`, `path`, `masked`, `deduped_from`, `console_since_last`,
-`read`. The manifest is what makes the review reconcilable: without it nobody
-can tell a clean run from an unfinished one, `expected_delta` is the only oracle
-for "this action changed nothing", and `console_since_last` attributes a runtime
-error to the exact transition that caused it.
-
-Configure it under `e2eTesting.execution.evidence.uiStateCapture`:
+Configure it under `e2eTesting.execution.evidence.uiStateCapture` when the profile supports it:
 
 ```jsonc
 "uiStateCapture": {
-  "mode": "every-action",          // every-action | declared-only | off
-  "helper": "<path/symbol of the capture helper in the base action primitives>",
+  "mode": "declared-only",       // every-action | declared-only | off
+  "helper": "<path/symbol, required only for every-action>",
   "manifestPath": "tmp/e2e-evidence/ui-captures/{runId}/capture-manifest.json",
   "maxPerTest": 60,
   "maxPerRun": 400,
@@ -176,66 +101,15 @@ Configure it under `e2eTesting.execution.evidence.uiStateCapture`:
 }
 ```
 
-`mode: "off"` is an explicit opt-out of transition capture only, never a silent
-default: the declared matrix is still captured, indexed, and reviewed. An applicable UI
-surface with no capture capability is `ENVIRONMENT-BLOCKED`.
-
 ### Case-by-case review and synthesis
 
-The capture set exists so an agent can find UI defects a passing assertion never
-looks at. `/experience-review` adjudicates it in three passes:
-
-- **Pass 0 — reload the authority.** Before opening the first image, read the
-  project's design-system doc, `frontend-patterns-reference.md`,
-  `scss-styling-guide.md`, `.claude/docs/design-knowledge.md`, and
-  `.claude/docs/design-review-checklist.md`, and cite which resolved. Judging
-  from memory is how a deliberate house convention gets reported as a bug, and a
-  sub-agent inherits none of this from the calling conversation.
-- **Pass 1 — one capture at a time.** Open ONE image, record
-  `CASE / IMAGE / EXPECTED / OBSERVED / CONSOLE / FINDINGS / VERDICT`, then open
-  the next. Taxonomy: `UIX-BROKEN`, `UIX-UNSTYLED`, `UIX-OVERFLOW`,
-  `UIX-OVERLAP`, `UIX-LAYOUT`, `UIX-STATE`, `UIX-A11Y`, `UIX-CONVENTION` (cite
-  the authority clause it breaks), `UIX-FLOW`, `UIX-POLISH` (advisory). An
-  explicit `none` is required for a clean capture.
-- **Pass 2 — synthesize.** Reconcile records against the manifest and report
-  `reviewed/total`; cluster a repeated defect into ONE finding owned by its
-  `Common`/`Domain-Shared`/`Page` component so it is fixed once at the owning
-  layer; report sequence-level findings (no feedback between an action and its
-  result, layout shift between steps, a component rendered inconsistently across
-  surfaces, convention drift through a flow); and list uncaptured, deduped, or
-  capped transitions as recorded coverage gaps.
-
-A manifest row with no per-case record is `UNVERIFIED`, never clean. Blocking
-findings are fixed at the owning layer and force a fresh same-scope rerun;
-advisory findings are recorded and never loop.
+When visual review is requested or required, reconcile the declared capture inventory with the evidence actually reviewed. Inspect one capture at a time, record expected and observed state plus runtime evidence, and identify gaps explicitly. Assign findings to the component or contract owner evidenced by the project; do not invent a shared component taxonomy. Fix blocking findings at the owning boundary and rerun the same required scope. Advisory findings are recorded without creating an unbounded loop.
 
 ### Visual design protocol handoff
 
-When visual review is enabled (the default, or explicit `--visual-review=true`),
-or when an E2E/QC task handles screenshots, human-QC of a user-facing UI, or visual expectations, resolve the design
-authority before generating or judging evidence. Read `docs/project-config.json`
-and resolve `designSystem.canonicalDoc`, `tokenFiles`, and `appMappings[]`; then
-read the applicable design-system, frontend-patterns, SCSS, design-knowledge,
-and design-review-checklist references. A missing configured UI surface is
-`N/A`; a relevant surface with missing runner, design authority, or inspection
-capability is `ENVIRONMENT-BLOCKED`. Never invent tokens, breakpoints,
-typography, CSS/BEM conventions, components, or runner commands.
+Before judging applicable visual evidence, read `docs/project-config.json` and resolve the design-system references that actually exist (`designSystem.canonicalDoc`, `tokenFiles`, and `appMappings[]`). Use project design decisions and accepted direction first, then the relevant shared UI guidance. If the project has no design-system artifact, rely on verified existing conventions and state that limitation; never invent tokens, breakpoints, typography, CSS methodology, or component boundaries.
 
-Use project design decisions and accepted design direction first, then the
-shared `UI-1.1`–`UI-9.4`, `DD-1`–`DD-8`, and `CL-1`–`CL-6` protocols. Before
-generation or a UI fix, inventory related screens, flows, and components;
-classify components as `Common`, `Domain-Shared`, or `Page`; record the base
-abstraction and owner; reuse/compose before creating; and keep one owner for
-shared markup, selectors, styling, lifecycle, and lower-tier test contracts.
-Runtime screenshot observations belong to `/experience-review`; source-only
-token, SCSS/BEM, z-index, component-ownership, reuse, and static design findings
-belong to `/ui-review`. Capture and read every declared state × viewport;
-`UI-*`/accessibility/layout-floor and `P0`–`P2` checklist findings block the
-round, while `DD-*` identity/polish remains advisory unless the governing
-contract makes it objectively required. Browser helpers such as
-`/playwright-cli` may collect runtime evidence under this contract, but they do
-not replace `/experience-review` or `/ui-review`.
-Do not promote a baseline without an explicit human acceptance record.
+Record component ownership using the project's declared taxonomy or observed code boundaries. Apply BEM, SCSS, Page Objects, or any other methodology only when project config, references, or code show that the project uses it. Route running-surface observations to `/experience-review` and source-only implementation findings to `/ui-review`. Never promote a baseline without the project's explicit acceptance record.
 
 ## Configuration
 
@@ -260,23 +134,20 @@ rg -l --hidden "Given\(|When\(|Then\(|@given|@when|@then|\[Binding\]" . -g "*.cs
 ## Best Practices
 
 - Keep `e2eTesting.framework` set to `none` until a runnable project suite exists.
-- Add a conditional BDD/account/environment section only after its framework and source artifacts are verified.
-- When E2E is introduced, record real config paths, linked surfaces/localRun ownership, dependency versions, commands, selectors, waits, evidence/redaction, and non-secret credential references with `file:line` evidence.
-- Generate or reuse test cases from the governing spec/current context as Given/When/Then records with a named protected invariant; do not generate a duplicate suite when a suitable case already exists.
-- When E2E is introduced, use a reusable object model with an idiomatic abstract base (or language-equivalent protocol/trait), cohesive helpers/utilities, and Common, Domain-Shared, and Page component tiers; reuse or compose existing objects before creating new ones.
-- Keep one canonical owner for each selector/action/wait and test reusable lower-tier component behavior once; Page tests cover page-specific composition and outcomes, not copied lower-tier cases.
-- Model each interactive journey as observe → act → observe with the shared bounded `waitUntil` helper before and after every control action. Include applicable error-alert present/absent conditions and dropdown/menu visibility; a wait timeout fails with diagnostics and must not be hidden by a weaker assertion or ad-hoc sleep.
-- For every browser/UI-control operation, apply the exact 500ms delay only after the `waitUntil` postcondition and keep any real settle signal separate; never use this delay as readiness or a postcondition.
-- When E2E is introduced with a UI surface, wire the `captureUiState` helper into the shared action primitives so every UI-state-changing action auto-captures after its postcondition and pacing (per `uiStateCapture.mode`, default `every-action`), index every capture in `capture-manifest.json`, and never hand-place screenshots in test bodies — an instrumented action layer cannot be forgotten, a per-test call can.
-- Review the capture set case by case before synthesizing, after reloading the project's design/UI convention docs; cluster a repeated defect to its owning component and fix it once there; record uncaptured transitions as coverage gaps rather than implicit passes.
+- Add BDD, account, environment, or surface sections only after their framework and source artifacts are verified.
+- When E2E is introduced, record verified config paths, linked surfaces/lifecycle ownership, dependency versions, commands, selector strategy, waits, evidence/redaction, and non-secret credential references with `file:line` evidence.
+- Use the project's native test format. State the protected intent and observable expected outcome; use Given/When/Then when selected by the project or when it fits the local style.
+- Choose test organization from project config and examples. Page Objects, Screenplay, fixtures, helper modules, and test-local composition are options, not universal requirements.
+- Give each shared selector/action/wait one owner when reuse exists. Prefer runner-native readiness/outcome waits; do not use fixed sleeps as readiness evidence. Add pacing only when configured.
+- Capture transition evidence only when the project opts into a supported mode. Review required evidence against the project's design authority and report missing coverage explicitly.
 - Treat hardcoded real E2E credentials as a **CRITICAL** security finding; none was verified in the current project surface.
 
 ## Closing Reminders
 
-**IMPORTANT MUST ATTENTION Goal:** Record the verified absence of a project E2E stack without turning skill-local browser tooling into application test conventions.
+**IMPORTANT MUST ATTENTION Goal:** Record the verified absence of this repository's E2E stack without turning skill-local browser tooling into application test conventions.
 
-**IMPORTANT MUST ATTENTION** Read config/profile → search verified project evidence → record `file:line` proof → classify N/A versus `ENVIRONMENT-BLOCKED` → rerun the E2E scan before documenting new conventions.
+**IMPORTANT MUST ATTENTION** Read the project config/profile, search verified project evidence, record `file:line` proof, distinguish `N/A` from `ENVIRONMENT-BLOCKED`, and rerun the E2E scan before documenting new local conventions.
 
 - **MUST** distinguish project-owned tests from skill-local browser utilities.
-- **MUST** rerun the framework gate before generating Page Objects or browser tests.
-- **NEVER** replace the verified **N/A** state with generic Playwright, Cypress, Selenium, or BDD boilerplate.
+- **MUST** follow the selected runner and project references when an applicable E2E surface exists.
+- **NEVER** replace this repository's verified **N/A** state with boilerplate for any browser runner or test format.

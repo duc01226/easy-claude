@@ -1,4 +1,31 @@
-> The `spec` skill (`../SKILL.md`) loads this body for `[mode=draft|init|update|audit|amend]` — the Feature Spec authoring + §8-shell modes. The shared M1-M7 contract, roadmap alignment gate, SYNC blocks, and prompt-enhance scaffolding live ONCE in the host SKILL.md; this body carries only the authoring procedure.
+> The `spec` skill (`../SKILL.md`) loads this body for `[mode=draft|init|update|audit|amend]`. The host SKILL.md selects the profile and routes to shared semantic gates; this body carries the authoring procedure.
+
+## Native Profile Procedure
+
+Apply this branch when `spec` profile resolution selects a native contract from project config or the required project-reference docs. In that case, do not execute the strict-default procedure below: its eight-section template, TC IDs, Section 8, evidence syntax, numbering, size thresholds, and carrier names are conditional defaults, not additional native requirements.
+
+1. **Resolve the owner and structure.** Read the configured business root and the project docs that name the canonical artifact, section roles, logical identifiers, ownership/lifecycle rules, evidence carriers, and case carriers. Follow any explicit local authority/supersession rules before judging declarations to conflict. Verify the target is hand-authored; a derived technical root stays with its generator. If a conflict remains, the owner is ambiguous, or an expected carrier is unsupported/unreadable, stop with `UNKNOWN`/`BLOCKED`; do not fall back to the default template.
+2. **Read local examples before writing.** Inspect three or more relevant canonical siblings or case-carrier examples when available; if fewer exist, search related siblings and report the limited sample. Preserve accepted section order, identifier spelling, frontmatter, delivery slices and dependency order, lineage, and owner/scenario/variant identity. A configured root or filename does not authorize a new format.
+3. **Draft or initialize through the native owner.** Keep the intent-role content distinct from normative contract details and evidence, following the owner references' rules for each role. Use the profile's requirement/acceptance/scenario identifiers and declared evidence/case fields; do not move contract detail into intent or create a second prose registry. Create a native carrier file only when its configured/local contract permits it. For an idea without implementation, use only the profile's declared draft/provisional mechanism; do not manufacture a default `Evidence: TBD` field unless the native owner defines it.
+4. **Update narrowly.** Trace the changed behavior to its canonical owner; revise only the impacted native sections and cases, preserve stable identifiers and unrelated content, and reconcile lineage/status under the local lifecycle. Do not create a second numbered spec when the local tier rules require amending an owner.
+5. **Amend bugs at the correct scope.** Investigate root cause and distinguish intended behavior from accidental behavior. Preserve the existing healthy contract. Add or change native scenario data only where the active profile owns that behavior; a technical-only fix does not automatically require a business case, and a missing native case is not automatically `N/A`.
+6. **Keep the test contract complete.** Each scenario/case has a concrete expected outcome, owner-qualified identity, and requirement/invariant link. Across the relevant requirements and invariants, retain positive coverage, negative/boundary coverage where applicable, property domains for hard invariants, and preservation coverage for healthy behavior at risk in a bugfix. Apply the mandates that govern this artifact tree, authorship model, and operation; M6 remains a review/gate obligation, not a case-content requirement. Representation choice does not waive applicable semantic obligations.
+7. **Prove traceability without overclaiming.** For every changed row, record the native carrier location and source evidence. For executable coverage, also record the executor, inspected assertion, and selected-runner result. Use manual-QC proof only when the profile explicitly authorizes it; record its approved procedure, observable expected outcome, and observed evidence without labeling it runner-executed. An ID/name match or source mapping alone is `mapped/unverified`, not executed coverage. An aggregate runner result proves only rows whose assertions were inspected and whose result was observed. If no selected execution result was observed, leave the row unverified; unresolved mappings or required unexecuted cases stay `UNKNOWN`/`BLOCKED`, never `PASS`.
+8. **Keep reports disposable.** Put the trace table and extraction notes in the run's `tmp/` report. Never create a new tracked index, case registry, or generated view to make the mapping easier; request owner clarification if no declared carrier can express the contract.
+
+### Native mode-specific behavior
+
+| Mode | Native behavior |
+| --- | --- |
+| `draft` | Draft intent in the native owner format; mark provisional only as that profile specifies. Unknown product decisions remain explicit questions, not invented cases. |
+| `init` | Create the owner using the configured local template/section roles and existing identifier rules; do not import the default eight-section/TC template. |
+| `update` | Patch only impacted native intent/contract/case carriers; preserve identifiers, lineage, variants, and unrelated case data. |
+| `audit` | Read-only report against native owners and carriers; unresolved selection or unsupported data is reported as `UNKNOWN`, not clean. |
+| `amend` | Apply the local lifecycle and native case ownership after root-cause and behavior-scope adjudication; preserve healthy behavior and do not manufacture a TC. |
+
+## Strict Default Feature-Spec Procedure
+
+The rest of this file describes the strict default eight-section/TC representation. Run it only when the host resolved that profile. Its safeguards remain semantic requirements for a native profile only where the configured native contract expresses the corresponding obligation.
 
 ## Source Resolution (code vs idea) — resolve BEFORE Project Pattern Discovery
 

@@ -1,11 +1,8 @@
 "use strict";
 
 /**
- * Shared builder for the concise Workflow & Skills catalog baked into every AI
- * session-start context (CLAUDE.md, Codex CODEX_CONTEXT.md/AGENTS.md). Hook-independent
- * tools (Codex) learn the available workflows and composable step-skills ONLY from
- * this statically-baked block — without it they cannot compose a custom workflow
- * because they don't know what skills exist.
+ * Shared builder for the concise Workflow & Skills catalog delivered by the default-on
+ * UserPromptSubmit routing hook. Static CLAUDE/AGENTS/Codex context carries the gate only.
  *
  * Single source of truth: .claude/workflows.json (+ each step-skill's SKILL.md
  * `description:` frontmatter). Emits a markdown BODY (no wrapping) — callers wrap:
@@ -13,9 +10,7 @@
  *     $-dialect rewrite itself).
  *   - Claude generator keeps the native `/` token style.
  *
- * Consumers (keep in lockstep):
- *   - .claude/scripts/codex/sync-context-workflows.mjs       (via createRequire)
- *   - .claude/skills/ai-context-refresh/scripts/generate-claude-md.cjs
+ * Consumer: .claude/hooks/workflow-route-inject.cjs
  */
 
 const fs = require("fs");
@@ -341,7 +336,7 @@ function buildWorkflowSkillsCatalog(opts = {}) {
   const cache = new Map();
   const blocks = ["## Workflow & Skills Catalog", ""];
   blocks.push(
-    "Session-start reference derived from `.claude/workflows.json` — use it to pick a route on any prompt: run a standard workflow, compose a custom workflow from the step-skills, invoke a single skill, or execute directly."
+    "Runtime reference derived from `.claude/workflows.json` — use it to pick a route for the current prompt: run a standard workflow, compose a custom workflow from the step-skills, invoke a single skill, or execute directly."
   );
   blocks.push("");
 

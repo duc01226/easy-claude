@@ -57,7 +57,7 @@ async function makeFixture(claudeText) {
 
 test('TC-HARNESS-008a: normal sync emits a bounded UTF-8 root projection with a full-context pointer', async () => {
   const claude = [
-    '<!-- CK:UNIVERSAL-GUIDES v6 -->',
+    '<!-- CK:UNIVERSAL-GUIDES v7 -->',
     '# Claude Source Instructions',
     '',
     'Static contract for Claude and Codex. Unicode sentinel: 🚦.',
@@ -88,8 +88,8 @@ test('TC-HARNESS-008a: normal sync emits a bounded UTF-8 root projection with a 
     assert.match(agents, /Context fingerprint \(SHA-256\): [a-f0-9]{64}/);
     assert.match(agents, /user-owned sentinel/);
     assert.match(agents, /Unicode sentinel: 🚦/);
-    assert.match(context, /Workflow Protocol \(Hook-Independent\)/);
-    assert.match(context, /Use \$test for local test execution\./);
+    assert.doesNotMatch(context, /Workflow Protocol \(Hook-Independent\)|Workflow Catalog/);
+    assert.doesNotMatch(context, /Use \$test for local test execution\./);
   } finally {
     await fs.rm(tempRoot, { recursive: true, force: true });
   }

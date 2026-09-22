@@ -48,6 +48,21 @@ function run(cmd, args, opts = {}) {
     });
 }
 
+// `run-all-tests.cjs` intentionally uses the host-native bullet: `*` on Windows
+// and `•` on POSIX. Its `--list` output is a human-facing inventory, so this
+// pipeline oracle must parse both supported renderings rather than mistaking a
+// POSIX list for an empty selector result.
+function listedSuiteNames(stdout) {
+    // eslint-disable-next-line no-control-regex -- intentional: --list output is colourised
+    const plain = stdout.replace(/\x1b\[[0-9;]*m/g, '');
+    return plain
+        .split('\n')
+        .map(line => line.trim())
+        .filter(line => /^[*•]\s+/.test(line))
+        .map(line => line.replace(/^[*•]\s*/, ''))
+        .sort();
+}
+
 test('STAGE-003 scripts stage executes both CJS and MJS and propagates either failure', async () => {
     const tmp = await fs.mkdtemp(path.join(os.tmpdir(), 'stage-formats-'));
     createdDirs.push(tmp);
@@ -134,22 +149,15 @@ test('STAGE-002 --filter=parity selects exactly protocol-text-parity and sync-ca
     const { code, stdout } = await run(process.execPath, [hooksRunnerAbs, '--list', '--filter=parity']);
     assert.equal(code, 0, '--list must exit 0');
 
-    // Strip ANSI SGR sequences. The escape is written textually as an escape sequence, NOT as a
-    // raw ESC byte: a literal control character here renders this line in editors, diffs and file
-    // readers as a pattern WITHOUT the escape - a DIFFERENT regex than the one that executes - so
-    // a maintainer would "correct" a line that was already right, or retype it and silently
-    // disarm the guard. Keep the escape textual so the source reads exactly as it runs.
-    // eslint-disable-next-line no-control-regex -- intentional: --list output is colourised
-    const plain = stdout.replace(/\x1b\[[0-9;]*m/g, '');
-    const selected = plain
-        .split('\n')
-        .map(l => l.trim())
-        .filter(l => l.startsWith('*'))
-        .map(l => l.replace(/^\*\s*/, ''))
-        .sort();
+    const selected = listedSuiteNames(stdout);
 
     assert.deepEqual(selected, ['protocol-text-parity', 'sync-carrier-parity'],
         `the hooks-parity stage must cover BOTH parity suites.\n  selected: ${selected.join(', ') || '(none)'}`);
+});
+
+test('STAGE-002 parses the supported Windows and POSIX list bullets', () => {
+    const fixture = '  * protocol-text-parity\n  • sync-carrier-parity\n';
+    assert.deepEqual(listedSuiteNames(fixture), ['protocol-text-parity', 'sync-carrier-parity']);
 });
 
 // ── STAGE-005 — process-heavy scripts tests must not compete for child-process capacity ─────────

@@ -1,32 +1,24 @@
 {
-  "alwaysThinkingEnabled": true,
   "attribution": {
     "commit": "Generated with [Claude Code](https://claude.com/claude-code)",
     "pr": "Generated with [Claude Code](https://claude.com/claude-code)"
   },
-  "autoMemoryEnabled": false,
   "cleanupPeriodDays": 30,
   "disabledMcpjsonServers": ["chrome-devtools"],
-  "effortLevel": "medium",
   "enableAllProjectMcpServers": false,
   "enabledMcpjsonServers": ["context7", "github", "mongodb", "postgres"],
   "enabledPlugins": {
     "code-review@claude-plugins-official": false,
     "code-simplifier@claude-plugins-official": false,
-    "commit-commands@claude-plugins-official": true,
     "csharp-lsp@claude-plugins-official": false,
     "frontend-design@claude-plugins-official": false,
     "github@claude-plugins-official": true,
     "playwright@claude-plugins-official": false,
-    "superpowers@claude-plugins-official": true,
     "typescript-lsp@claude-plugins-official": false
   },
   "env": {
     "CLAUDE_CODE_AUTO_COMPACT_WINDOW": "500000",
-    "CLAUDE_CODE_DISABLE_1M_CONTEXT": "0",
-    "CLAUDE_CODE_DISABLE_AUTO_MEMORY": "1",
     "CLAUDE_CODE_ENABLE_TODO_TOOLS": "1",
-    "CLAUDE_CODE_STOP_HOOK_BLOCK_CAP": "1000",
     "MCP_TIMEOUT": "30000"
   },
   "hooks": {
@@ -92,18 +84,6 @@
       {
         "hooks": [
           {
-            "command": "node \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/windows-command-detector.cjs",
-            "type": "command"
-          },
-          {
-            "command": "node \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/bash-shell-guard.cjs",
-            "type": "command"
-          },
-          {
-            "command": "node \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/git-commit-block.cjs",
-            "type": "command"
-          },
-          {
             "command": "node \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/doc-sync-gate.cjs",
             "type": "command"
           },
@@ -117,51 +97,11 @@
       {
         "hooks": [
           {
-            "command": "node \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/scout-block.cjs",
-            "type": "command"
-          },
-          {
-            "command": "node \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/privacy-block.cjs",
-            "type": "command"
-          }
-        ],
-        "matcher": "Bash|Glob|Grep|Read|Edit|Write|NotebookEdit"
-      },
-      {
-        "hooks": [
-          {
-            "command": "node \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/path-boundary-block.cjs",
-            "type": "command"
-          }
-        ],
-        "matcher": "Bash|Edit|Write|MultiEdit|NotebookEdit"
-      },
-      {
-        "hooks": [
-          {
             "command": "node \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/doc-sync-gate.cjs",
             "type": "command"
           }
         ],
         "matcher": "Write|Edit|MultiEdit"
-      },
-      {
-        "hooks": [
-          {
-            "command": "node \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/path-boundary-block.cjs",
-            "type": "command"
-          }
-        ],
-        "matcher": "mcp__filesystem__*"
-      },
-      {
-        "hooks": [
-          {
-            "command": "node \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/github-mcp-write-block.cjs",
-            "type": "command"
-          }
-        ],
-        "matcher": "mcp__github__*"
       }
     ],
     "SessionEnd": [
@@ -193,15 +133,6 @@
           }
         ],
         "matcher": "startup|resume|clear|compact"
-      },
-      {
-        "hooks": [
-          {
-            "command": "node \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/npm-auto-install.cjs",
-            "type": "command"
-          }
-        ],
-        "matcher": "startup"
       },
       {
         "hooks": [
@@ -270,6 +201,14 @@
       {
         "hooks": [
           {
+            "command": "node \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/workflow-route-inject.cjs",
+            "type": "command"
+          }
+        ]
+      },
+      {
+        "hooks": [
+          {
             "command": "node \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/prompt-ledger.cjs",
             "type": "command"
           }
@@ -279,10 +218,16 @@
   },
   "includeCoAuthoredBy": false,
   "permissions": {
-    "allow": ["Edit(.claude/**)", "Bash(tmp/**)", "Edit(tmp/**)", "Read(tmp/**)"],
-    "ask": ["Bash(git push:*)", "Bash(npm publish:*)", "Bash(docker push:*)"],
-    "defaultMode": "bypassPermissions",
-    "deny": [
+    "allow": [
+      "Edit(.claude/**)",
+      "Bash(tmp/**)",
+      "Edit(tmp/**)",
+      "Read(tmp/**)"
+    ],
+    "ask": [
+      "Bash(git push:*)",
+      "Bash(npm publish:*)",
+      "Bash(docker push:*)",
       "Bash(rm -rf /*)",
       "Bash(rm -rf ~/*)",
       "Bash(rm -rf .)",
@@ -332,11 +277,13 @@
       "Read(~/.ssh/**)",
       "Read(~/.aws/**)",
       "Read(~/.config/gcloud/**)"
-    ]
+    ],
+    "defaultMode": "bypassPermissions",
+    "deny": []
   },
   "skillListingBudgetFraction": 0.05,
   "statusLine": {
-    "command": "npx -y ccstatusline@latest --config .claude/ccstatusline.json",
+    "command": "npx -y ccstatusline@2.2.30 --config .claude/ccstatusline.json",
     "padding": 0,
     "type": "command"
   },

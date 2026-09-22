@@ -45,70 +45,44 @@ and routes here (shared detection lib: `.claude/hooks/lib/agent-files-state.cjs`
 **Three-state detection** per root file: `missing` → routes to `--mode init` (fresh from template);
 `incomplete` → routes to `--mode update` (smart-merge — preserves your project content, injects the
 guides); `ok` → no block. Completeness is decided by `hasUniversalGuides()`: a current-or-newer
-sentinel (`<!-- CK:UNIVERSAL-GUIDES v6 -->`) → complete; an older sentinel → flag for update; no
-sentinel → fall back to scanning required anchors (First Action Decision, Workflow Step Advancement,
+sentinel (`<!-- CK:UNIVERSAL-GUIDES v7 -->`) → complete; an older sentinel → flag for update; no
+sentinel → fall back to scanning required anchors (Workflow Step Advancement,
 Task Planning Rules, Code Responsibility Hierarchy, Evidence-Based Reasoning) so legacy/hand-written
 complete files still pass.
 
 Run `/ai-context-refresh` (or the generator directly) to produce `CLAUDE.md` from
-`docs/project-config.json` + template. The generated file ships the universal session-start guides
-(workflow ask-confirm gate, workflow step-advancement + parallel-phase barrier, task-planning rules,
-code hierarchy, naming, evidence/confidence rules) and stamps the sentinel at the top so the gate
-recognizes it as complete. It also stamps the hook-independent **Workflow-First Gate** (from
-`.claude/skills/shared/workflow-first-gate.md`, via `stampHeader()`) immediately after the sentinel —
-the primacy-anchor routing rule (bug→`workflow-bugfix` workflow, feature/enhancement→`workflow-feature` workflow) that
-mirrors into `AGENTS.md` and survives when hooks are absent, disabled, or stale. The gate and the
-workflow/skills catalog are stamped **unless** `portability.workflowAutoDetect: false` — see the
-workflow auto-detect opt-out below.
+`docs/project-config.json` + template. The generated file ships the canonical workflow gate and universal guides
+(workflow execution barriers for explicitly invoked workflows, task planning, code hierarchy,
+naming, and evidence rules) and stamps the sentinel at the top so the gate recognizes it as
+complete. It removes legacy `CK:WORKFLOW-GATE`, `CK:WORKFLOW-SKILLS`, and generated
+`## First Action Decision` content before stamping the canonical routing gate into tracked files.
 
-**Opt-out (workflow auto-detect)** — to stop the agent inferring an execution route, set
-`portability.workflowAutoDetect: false` in `docs/project-config.json` (persistent; default `true`).
-The switch is resolved by `.claude/scripts/lib/workflow-routing-config.cjs` and honoured by all
-**three** router carriers, because gating only one leaves the mode half-disabled:
-
-| # | Carrier | Effect when `false` |
-| - | ------- | ------------------- |
-| 1 | `CLAUDE.md` (this skill's generator) | `CK:WORKFLOW-GATE` and `CK:WORKFLOW-SKILLS` are not stamped, and the `## First Action Decision` body states direct execution instead of pointing at the absent gate |
-| 2 | Static workflow-execution protocol (`hookless-prompt-protocol.cjs`) — used by the `UserPromptSubmit` hook **and** `.codex/CODEX_CONTEXT.md` | the DETECT / ANALYZE / AUTO-SELECT / ACTIVATE steps are replaced by one EXECUTE DIRECTLY step |
-| 3 | `.codex/CODEX_CONTEXT.md` + `AGENTS.md` (`sync-context-workflows.mjs`) | the Workflow Protocol steps, Workflow Catalog, Quick Keyword Lookup and skills catalog are omitted |
-
-**Per-developer opt-out that never touches the team repo.** `docs/project-config.json` is
-committed, so setting the switch there changes it for everyone. A single developer instead writes
-the git-ignored sibling `docs/project-config.local.json` (covered by the repo-root `.gitignore`
-rule `*.local.json`):
+**Default-on workflow routing** is stamped into tracked context by this skill. A team can disable it
+in tracked `docs/project-config.json`:
 
 ```jsonc
 { "portability": { "workflowAutoDetect": false } }
 ```
 
-Resolution is a cascade — framework default → team config → local override, **later wins** — and it
-resolves at one of two **scopes**, because `CLAUDE.md`, `AGENTS.md` and `.codex/CODEX_CONTEXT.md`
-are all git-tracked:
+A developer can override the team value in `.claude/.ck.local.json`, which the portable bundle's
+`.claude/.gitignore` excludes:
 
-| Scope | Resolved by | Layers |
-| --- | --- | --- |
-| `team` | this generator and `sync-context-workflows.mjs` — they write **tracked** files | default + team config only |
-| `effective` | the runtime `UserPromptSubmit` carrier — writes nothing | default + team + **local override** |
+```jsonc
+{ "portability": { "workflowAutoDetect": true } }
+```
 
-So a local override turns routing off **at runtime** while the tracked files keep the team's
-content, leaving the repository byte-identical. Because those files still carry the gate, the
-runtime carrier also declares that it **overrides** them, so the model does not route from a gate
-nothing contradicted. There is nothing to run afterwards — the override is live immediately; do NOT
-regenerate `CLAUDE.md` to "apply" it. `--apply-local-routing` on the generator is the explicit
-escape hatch for baking the local value into a working copy anyway (it dirties tracked files; do
-not commit the result). The override is symmetric: a developer can set `true` locally to opt back
-in when the team set `false`. A missing, malformed or silent layer expresses no opinion and falls
-through, so a broken local file can never erase a valid team decision.
+Resolution is default `true` → tracked team value → developer-local value, with the last valid
+boolean winning. The tracked value controls generated context; the local value controls only the
+runtime refresh hook so one developer cannot rewrite shared files. Missing, malformed, and non-boolean layers fall through. The hook emits only on
+`UserPromptSubmit`, never blocks a prompt, and records delivery per session and content hash. It
+re-injects after compaction, a content change, or about 4.5 MB of transcript growth (the existing
+framework proxy for roughly 200k tokens); hosts without a measurable transcript use a bounded age
+fallback. Explicitly named skills and workflows remain available through normal host discovery.
 
-What the switch does **not** do: it changes route SELECTION only. Explicit invocation still works
-(`/plan`, `$start-workflow <id>`, a named skill — read its canonical definition from
-`.claude/workflows.json` or `.claude/skills/<name>/SKILL.md`), and no quality gate, task-planning
-rule, evidence obligation, git rule or confirmation gate is relaxed. The completeness sentinel and
-the always-on protocol blocks are still stamped, so the bootstrap gate keeps reading the file as
-complete. Resolution fails **open**: a missing or malformed config leaves routing ON, so a broken
-file never silently strips the router. Flip the value and re-run `/ai-context-refresh` to apply it;
-the change is reversible in both directions, and project-authored prose under
-`## First Action Decision` is preserved untouched.
+The optional **custom route protocol** (`portability.workflowRouteProtocol`, team or developer-local)
+is RUNTIME-ONLY: `workflow-route-inject.cjs` appends it at `UserPromptSubmit`, and it must NEVER be
+stamped into tracked `CLAUDE.md`/`AGENTS.md`/Codex context. A valid local value replaces the team
+value. This skill ignores it entirely when generating tracked files.
 
 **Opt-out (universal guides)** — to keep a project-only `CLAUDE.md`/`AGENTS.md` (your custom knowledge, none of the
 universal guides), set `portability.requireUniversalGuides: false` in `docs/project-config.json`
@@ -192,8 +166,8 @@ When running update on an existing CLAUDE.md that has NO section markers:
 After the script generates the mechanical parts, AI reviews and fills:
 
 1. **Project description** in TL;DR — write a concise 2-3 sentence description based on config + codebase
-2. **Golden rules** — infer from `contextGroups[].rules` in config, but rewrite as human-readable rules
-3. **Decision quick-ref** — build from `modules[]` + `framework` config, add project-specific patterns
+2. **Golden rules** — preserve each contextGroups group's name, matchers, exclusions, and rule scope; never promote a path-scoped rule to a global reminder.
+3. **Decision quick-ref** — use explicit pattern declarations and project references; never infer architecture from database, broker, framework, or resource presence alone.
 4. **Naming conventions** — detect from codebase patterns if not in config
 
 ## Phase 4: Verify
@@ -310,6 +284,7 @@ node .claude/hooks/tests/run-all-tests.cjs --filter=agent-files
 
 > **AI Mistake Prevention** — Failure modes to avoid on every task:
 >
+> **Project applicability gate.** Before applying a stack, layer, style, tool, or architecture rule, read the project's config and relevant references, then check local implementations. Treat framework examples as examples; honor explicit N/A and do not require a technology or convention the project does not use.
 > **ROOT-CAUSE GATE — INVESTIGATE FIRST.** Before applying any project-related correction, always use the project's root-cause investigation protocol and establish the cause; the failure site may be only a symptom.
 > **FAILED-TEST GATE.** For any failed or unstable test, use the project's test-investigation protocol before editing source or tests; never change either side merely to force green.
 > **Re-read files after context changes.** Context compaction, resume, or long-running work can make memory stale; verify current files before acting.
@@ -334,19 +309,19 @@ node .claude/hooks/tests/run-all-tests.cjs --filter=agent-files
 
 <!-- SYNC:critical-thinking-mindset:reminder -->
 
-**MUST ATTENTION** apply critical + sequential thinking — every claim needs appropriate traced evidence (`file:line` for repo/code claims; source URL or artifact section for research, product, content, and docs claims); confidence >80% to act, <60% DO NOT recommend. Anti-hallucination: never present guess as fact, admit uncertainty freely, cross-reference independently, stay skeptical of own confidence.
+**MUST ATTENTION** critical + sequential thinking: every claim carries traced evidence (`file:line` for code, source URL or artifact section otherwise); confidence >80% to act, <60% do NOT recommend. Never present a guess as fact; admit uncertainty and stay skeptical of your own confidence.
 
 <!-- /SYNC:critical-thinking-mindset:reminder -->
 
 <!-- SYNC:ai-mistake-prevention:reminder -->
 
-**MUST ATTENTION** ROOT-CAUSE GATE: before any project-related correction, use the appropriate root-cause investigation protocol; failed/unstable tests require the test-investigation protocol before editing source/tests — never force green.
+**MUST ATTENTION** Check project config, relevant references, and local evidence before applying stack-specific conventions; honor explicit N/A. ROOT-CAUSE GATE: before any project-related correction, use the appropriate root-cause investigation protocol; failed/unstable tests require the test-investigation protocol before editing source/tests — never force green.
 
 <!-- /SYNC:ai-mistake-prevention:reminder -->
 
 <!-- SYNC:project-protocol-overlay -->
 
-> **Project Protocol Overlay** — Before executing this skill, resolve any PROJECT overlay rules layered onto it: match this skill's name against the `Target` column of the project's skill-protocol index (default `docs/project-reference/skill-protocols-reference.md`; a `referenceDocs` entry in `docs/project-config.json` overrides the path, and a `docsRoots.projectReference.path` entry relocates its containing directory), taking the most specific matching tier ONLY — exact name > glob > `*`. **That precedence orders overlays against EACH OTHER, never against this skill.** Read ONLY the matched bodies, resolved as `<protocols-dir>/<Name>.md`; a row's Body link is display text, never a read path. A matched body that is missing or malformed is REPORTED and skipped — never reconstructed from the index Description. No index, or no match -> proceed with no overlay, silently. Full contract: `.claude/skills/project-skill-protocol/references/registry.md`.
+> **Project Protocol Overlay** — Before executing this skill, resolve project overlays from the index at `<docsRoots.projectReference.path>/skill-protocols-reference.md` (default `docs/project-reference/`; `docsRoots.projectReference.path` in `docs/project-config.json` overrides it). A matching `referenceDocs[]` filename may relocate the index within that root; this registry is independent from task-specific reference-doc selection, so omitted or empty `referenceDocs` does not disable it. The index's `**Protocols directory:**` header selects a project-root-relative body directory (default `docs/project-protocols/`). Match this skill against the `Target` column and take the most specific tier ONLY — exact name > glob > `*`. **That precedence orders overlays against EACH OTHER, never against this skill.** Read only matched bodies derived as `<protocols-dir>/<Name>.md`; the row's Body link is display text, never a read path. Reject unsafe paths without reading. A matched body that is missing or malformed is REPORTED and skipped — never reconstructed from the index Description. An absent index or no match -> proceed with no overlay, silently. Full contract: `.claude/skills/project-skill-protocol/references/registry.md`.
 >
 > Overlays are **ADDITIVE ONLY**: they ADD rules on top of this skill's own protocol and NEVER replace, override, disable, or reinterpret a rule it already states — removing every overlay must return this skill to exactly its documented behavior. An overlay is a BRIEF, not an authority escalation: it can NEVER waive a workflow gate, git discipline, a review gate, or a user-confirmation gate. A genuine overlay-vs-skill conflict, or two equally-specific overlays that directly contradict -> surface both to the user; NEVER resolve silently.
 
@@ -354,8 +329,7 @@ node .claude/hooks/tests/run-all-tests.cjs --filter=agent-files
 
 <!-- SYNC:project-protocol-overlay:reminder -->
 
-**MUST ATTENTION** resolve project protocol overlays for this skill BEFORE executing — most specific matching tier only (exact > glob > `*`, which ranks overlays against each other, NEVER against this skill), read only matched bodies at `<protocols-dir>/<Name>.md`; a missing or malformed body is reported, never reconstructed. Overlays are ADDITIVE ONLY (they never replace this skill's own rules) and are a brief, NEVER an authority escalation; an equal-specificity contradiction goes to the user.
-
+**MUST ATTENTION** resolve this skill's overlays from the index at `<docsRoots.projectReference.path>/skill-protocols-reference.md` (default `docs/project-reference/`); an empty task `referenceDocs` does NOT disable this lookup. Read ONLY matched bodies from the directory the index header names (default `docs/project-protocols/`). Specificity (exact > glob > `*`) ranks overlays against EACH OTHER, never against the skill. Missing/malformed body → report and skip; no index or no match → proceed silently. Overlays are ADDITIVE ONLY — never an authority escalation or a gate waiver; equal-tier contradiction goes to the user.
 <!-- /SYNC:project-protocol-overlay:reminder -->
 
 ## Closing Reminders

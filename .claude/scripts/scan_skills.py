@@ -4,18 +4,13 @@ Scan .claude/skills directory and extract skill metadata.
 """
 
 import re
-import sys
-import io
 from pathlib import Path
 from typing import Dict, List
 import yaml
+from win_compat import ensure_utf8_stderr, ensure_utf8_stdout
 
-# Windows UTF-8 compatibility
-if sys.platform == 'win32':
-    if hasattr(sys.stdout, 'buffer'):
-        sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
-    if hasattr(sys.stderr, 'buffer'):
-        sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8')
+ensure_utf8_stdout()
+ensure_utf8_stderr()
 
 def extract_frontmatter(content: str) -> Dict:
     """Extract YAML frontmatter from markdown content."""
@@ -106,8 +101,12 @@ def scan_skills(base_path: Path) -> List[Dict]:
                 'path': skill_file.relative_to(base_path).as_posix(),
                 'description': description,
                 'category': category,
-                'has_scripts': (skill_dir / 'scripts').exists(),
-                'has_references': (skill_dir / 'references').exists(),
+                # Empty directories are absent from Git and export payloads. Report a capability
+                # only when at least one file can actually travel with the copied framework.
+                'has_scripts': any(path.is_file() for path in (skill_dir / 'scripts').rglob('*'))
+                if (skill_dir / 'scripts').is_dir() else False,
+                'has_references': any(path.is_file() for path in (skill_dir / 'references').rglob('*'))
+                if (skill_dir / 'references').is_dir() else False,
                 'status': status,
                 'deprecated_by': frontmatter.get('deprecated_by'),
                 'deprecated_since': normalize_date(frontmatter.get('deprecated_since')),

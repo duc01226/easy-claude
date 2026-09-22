@@ -5,7 +5,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node -e \"const fs = require('node:fs'); const path = require('node:path'); const hookPath = process.argv[1]; let root = process.cwd(); for (let candidate = root; ; candidate = path.dirname(candidate)) { if (fs.existsSync(path.join(candidate, '.claude'))) { root = candidate; break; } if (path.dirname(candidate) === candidate) break; } process.chdir(root); process.env.CLAUDE_PROJECT_DIR = root; require(path.join(root, hookPath));\" -- \".claude/hooks/post-edit-prettier.cjs\""
+            "command": "node -e \"const fs = require('node:fs'); const path = require('node:path'); const hookPath = process.argv[1]; let root = process.cwd(); for (let candidate = root; ; candidate = path.dirname(candidate)) { if (fs.existsSync(path.join(candidate, '.claude'))) { root = candidate; break; } if (path.dirname(candidate) === candidate) break; } process.chdir(root); process.env.CLAUDE_PROJECT_DIR = root; const gitHelperPath = path.join(root, '.claude', 'hooks', 'lib', 'windows-git.cjs'); try { if (fs.existsSync(gitHelperPath)) { const git = require(gitHelperPath); const result = git.resolveWindowsGit(); if (result && result.outcome === git.OUTCOMES.READY) Object.assign(process.env, git.withGitEnvironment(process.env, result.capability)); } } catch {} require(path.join(root, hookPath));\" -- \".claude/hooks/post-edit-prettier.cjs\""
           }
         ],
         "matcher": "Edit|Write|MultiEdit|apply_patch"
@@ -14,7 +14,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node -e \"const fs = require('node:fs'); const path = require('node:path'); const hookPath = process.argv[1]; let root = process.cwd(); for (let candidate = root; ; candidate = path.dirname(candidate)) { if (fs.existsSync(path.join(candidate, '.claude'))) { root = candidate; break; } if (path.dirname(candidate) === candidate) break; } process.chdir(root); process.env.CLAUDE_PROJECT_DIR = root; require(path.join(root, hookPath));\" -- \".claude/hooks/graph-auto-update.cjs\""
+            "command": "node -e \"const fs = require('node:fs'); const path = require('node:path'); const hookPath = process.argv[1]; let root = process.cwd(); for (let candidate = root; ; candidate = path.dirname(candidate)) { if (fs.existsSync(path.join(candidate, '.claude'))) { root = candidate; break; } if (path.dirname(candidate) === candidate) break; } process.chdir(root); process.env.CLAUDE_PROJECT_DIR = root; const gitHelperPath = path.join(root, '.claude', 'hooks', 'lib', 'windows-git.cjs'); try { if (fs.existsSync(gitHelperPath)) { const git = require(gitHelperPath); const result = git.resolveWindowsGit(); if (result && result.outcome === git.OUTCOMES.READY) Object.assign(process.env, git.withGitEnvironment(process.env, result.capability)); } } catch {} require(path.join(root, hookPath));\" -- \".claude/hooks/graph-auto-update.cjs\""
           }
         ],
         "matcher": "Edit|Write|MultiEdit|apply_patch"
@@ -23,7 +23,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node -e \"const fs = require('node:fs'); const path = require('node:path'); const hookPath = process.argv[1]; let root = process.cwd(); for (let candidate = root; ; candidate = path.dirname(candidate)) { if (fs.existsSync(path.join(candidate, '.claude'))) { root = candidate; break; } if (path.dirname(candidate) === candidate) break; } process.chdir(root); process.env.CLAUDE_PROJECT_DIR = root; require(path.join(root, hookPath));\" -- \".claude/hooks/file-convention-inject.cjs\""
+            "command": "node -e \"const fs = require('node:fs'); const path = require('node:path'); const hookPath = process.argv[1]; let root = process.cwd(); for (let candidate = root; ; candidate = path.dirname(candidate)) { if (fs.existsSync(path.join(candidate, '.claude'))) { root = candidate; break; } if (path.dirname(candidate) === candidate) break; } process.chdir(root); process.env.CLAUDE_PROJECT_DIR = root; const gitHelperPath = path.join(root, '.claude', 'hooks', 'lib', 'windows-git.cjs'); try { if (fs.existsSync(gitHelperPath)) { const git = require(gitHelperPath); const result = git.resolveWindowsGit(); if (result && result.outcome === git.OUTCOMES.READY) Object.assign(process.env, git.withGitEnvironment(process.env, result.capability)); } } catch {} require(path.join(root, hookPath));\" -- \".claude/hooks/file-convention-inject.cjs\""
           }
         ],
         "matcher": "Read|Edit|Write|MultiEdit|NotebookEdit|apply_patch"
@@ -32,7 +32,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node -e \"const fs = require('node:fs'); const path = require('node:path'); const hookPath = process.argv[1]; let root = process.cwd(); for (let candidate = root; ; candidate = path.dirname(candidate)) { if (fs.existsSync(path.join(candidate, '.claude'))) { root = candidate; break; } if (path.dirname(candidate) === candidate) break; } process.chdir(root); process.env.CLAUDE_PROJECT_DIR = root; require(path.join(root, hookPath));\" -- \".claude/hooks/prompt-ledger.cjs\""
+            "command": "node -e \"const fs = require('node:fs'); const path = require('node:path'); const hookPath = process.argv[1]; let root = process.cwd(); for (let candidate = root; ; candidate = path.dirname(candidate)) { if (fs.existsSync(path.join(candidate, '.claude'))) { root = candidate; break; } if (path.dirname(candidate) === candidate) break; } process.chdir(root); process.env.CLAUDE_PROJECT_DIR = root; const gitHelperPath = path.join(root, '.claude', 'hooks', 'lib', 'windows-git.cjs'); try { if (fs.existsSync(gitHelperPath)) { const git = require(gitHelperPath); const result = git.resolveWindowsGit(); if (result && result.outcome === git.OUTCOMES.READY) Object.assign(process.env, git.withGitEnvironment(process.env, result.capability)); } } catch {} require(path.join(root, hookPath));\" -- \".claude/hooks/prompt-ledger.cjs\""
           }
         ],
         "matcher": "TodoWrite|TaskCreate|TaskUpdate|update_plan"
@@ -43,7 +43,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node -e \"const fs = require('node:fs'); const path = require('node:path'); const hookPath = process.argv[1]; let root = process.cwd(); for (let candidate = root; ; candidate = path.dirname(candidate)) { if (fs.existsSync(path.join(candidate, '.claude'))) { root = candidate; break; } if (path.dirname(candidate) === candidate) break; } process.chdir(root); process.env.CLAUDE_PROJECT_DIR = root; require(path.join(root, hookPath));\" -- \".claude/hooks/notifications/notify.cjs\""
+            "command": "node -e \"const fs = require('node:fs'); const path = require('node:path'); const hookPath = process.argv[1]; let root = process.cwd(); for (let candidate = root; ; candidate = path.dirname(candidate)) { if (fs.existsSync(path.join(candidate, '.claude'))) { root = candidate; break; } if (path.dirname(candidate) === candidate) break; } process.chdir(root); process.env.CLAUDE_PROJECT_DIR = root; const gitHelperPath = path.join(root, '.claude', 'hooks', 'lib', 'windows-git.cjs'); try { if (fs.existsSync(gitHelperPath)) { const git = require(gitHelperPath); const result = git.resolveWindowsGit(); if (result && result.outcome === git.OUTCOMES.READY) Object.assign(process.env, git.withGitEnvironment(process.env, result.capability)); } } catch {} require(path.join(root, hookPath));\" -- \".claude/hooks/notifications/notify.cjs\""
           }
         ],
         "matcher": "AskUserQuestion"
@@ -52,23 +52,11 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node -e \"const fs = require('node:fs'); const path = require('node:path'); const hookPath = process.argv[1]; let root = process.cwd(); for (let candidate = root; ; candidate = path.dirname(candidate)) { if (fs.existsSync(path.join(candidate, '.claude'))) { root = candidate; break; } if (path.dirname(candidate) === candidate) break; } process.chdir(root); process.env.CLAUDE_PROJECT_DIR = root; require(path.join(root, hookPath));\" -- \".claude/hooks/windows-command-detector.cjs\""
+            "command": "node -e \"const fs = require('node:fs'); const path = require('node:path'); const hookPath = process.argv[1]; let root = process.cwd(); for (let candidate = root; ; candidate = path.dirname(candidate)) { if (fs.existsSync(path.join(candidate, '.claude'))) { root = candidate; break; } if (path.dirname(candidate) === candidate) break; } process.chdir(root); process.env.CLAUDE_PROJECT_DIR = root; const gitHelperPath = path.join(root, '.claude', 'hooks', 'lib', 'windows-git.cjs'); try { if (fs.existsSync(gitHelperPath)) { const git = require(gitHelperPath); const result = git.resolveWindowsGit(); if (result && result.outcome === git.OUTCOMES.READY) Object.assign(process.env, git.withGitEnvironment(process.env, result.capability)); } } catch {} require(path.join(root, hookPath));\" -- \".claude/hooks/doc-sync-gate.cjs\""
           },
           {
             "type": "command",
-            "command": "node -e \"const fs = require('node:fs'); const path = require('node:path'); const hookPath = process.argv[1]; let root = process.cwd(); for (let candidate = root; ; candidate = path.dirname(candidate)) { if (fs.existsSync(path.join(candidate, '.claude'))) { root = candidate; break; } if (path.dirname(candidate) === candidate) break; } process.chdir(root); process.env.CLAUDE_PROJECT_DIR = root; require(path.join(root, hookPath));\" -- \".claude/hooks/bash-shell-guard.cjs\""
-          },
-          {
-            "type": "command",
-            "command": "node -e \"const fs = require('node:fs'); const path = require('node:path'); const hookPath = process.argv[1]; let root = process.cwd(); for (let candidate = root; ; candidate = path.dirname(candidate)) { if (fs.existsSync(path.join(candidate, '.claude'))) { root = candidate; break; } if (path.dirname(candidate) === candidate) break; } process.chdir(root); process.env.CLAUDE_PROJECT_DIR = root; require(path.join(root, hookPath));\" -- \".claude/hooks/git-commit-block.cjs\""
-          },
-          {
-            "type": "command",
-            "command": "node -e \"const fs = require('node:fs'); const path = require('node:path'); const hookPath = process.argv[1]; let root = process.cwd(); for (let candidate = root; ; candidate = path.dirname(candidate)) { if (fs.existsSync(path.join(candidate, '.claude'))) { root = candidate; break; } if (path.dirname(candidate) === candidate) break; } process.chdir(root); process.env.CLAUDE_PROJECT_DIR = root; require(path.join(root, hookPath));\" -- \".claude/hooks/doc-sync-gate.cjs\""
-          },
-          {
-            "type": "command",
-            "command": "node -e \"const fs = require('node:fs'); const path = require('node:path'); const hookPath = process.argv[1]; let root = process.cwd(); for (let candidate = root; ; candidate = path.dirname(candidate)) { if (fs.existsSync(path.join(candidate, '.claude'))) { root = candidate; break; } if (path.dirname(candidate) === candidate) break; } process.chdir(root); process.env.CLAUDE_PROJECT_DIR = root; require(path.join(root, hookPath));\" -- \".claude/hooks/review-commit-gate.cjs\""
+            "command": "node -e \"const fs = require('node:fs'); const path = require('node:path'); const hookPath = process.argv[1]; let root = process.cwd(); for (let candidate = root; ; candidate = path.dirname(candidate)) { if (fs.existsSync(path.join(candidate, '.claude'))) { root = candidate; break; } if (path.dirname(candidate) === candidate) break; } process.chdir(root); process.env.CLAUDE_PROJECT_DIR = root; const gitHelperPath = path.join(root, '.claude', 'hooks', 'lib', 'windows-git.cjs'); try { if (fs.existsSync(gitHelperPath)) { const git = require(gitHelperPath); const result = git.resolveWindowsGit(); if (result && result.outcome === git.OUTCOMES.READY) Object.assign(process.env, git.withGitEnvironment(process.env, result.capability)); } } catch {} require(path.join(root, hookPath));\" -- \".claude/hooks/review-commit-gate.cjs\""
           }
         ],
         "matcher": "Bash"
@@ -77,50 +65,10 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node -e \"const fs = require('node:fs'); const path = require('node:path'); const hookPath = process.argv[1]; let root = process.cwd(); for (let candidate = root; ; candidate = path.dirname(candidate)) { if (fs.existsSync(path.join(candidate, '.claude'))) { root = candidate; break; } if (path.dirname(candidate) === candidate) break; } process.chdir(root); process.env.CLAUDE_PROJECT_DIR = root; require(path.join(root, hookPath));\" -- \".claude/hooks/scout-block.cjs\""
-          },
-          {
-            "type": "command",
-            "command": "node -e \"const fs = require('node:fs'); const path = require('node:path'); const hookPath = process.argv[1]; let root = process.cwd(); for (let candidate = root; ; candidate = path.dirname(candidate)) { if (fs.existsSync(path.join(candidate, '.claude'))) { root = candidate; break; } if (path.dirname(candidate) === candidate) break; } process.chdir(root); process.env.CLAUDE_PROJECT_DIR = root; require(path.join(root, hookPath));\" -- \".claude/hooks/privacy-block.cjs\""
-          }
-        ],
-        "matcher": "Bash|Glob|Grep|Read|Edit|Write|NotebookEdit|apply_patch"
-      },
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "node -e \"const fs = require('node:fs'); const path = require('node:path'); const hookPath = process.argv[1]; let root = process.cwd(); for (let candidate = root; ; candidate = path.dirname(candidate)) { if (fs.existsSync(path.join(candidate, '.claude'))) { root = candidate; break; } if (path.dirname(candidate) === candidate) break; } process.chdir(root); process.env.CLAUDE_PROJECT_DIR = root; require(path.join(root, hookPath));\" -- \".claude/hooks/path-boundary-block.cjs\""
-          }
-        ],
-        "matcher": "Bash|Edit|Write|MultiEdit|NotebookEdit|apply_patch"
-      },
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "node -e \"const fs = require('node:fs'); const path = require('node:path'); const hookPath = process.argv[1]; let root = process.cwd(); for (let candidate = root; ; candidate = path.dirname(candidate)) { if (fs.existsSync(path.join(candidate, '.claude'))) { root = candidate; break; } if (path.dirname(candidate) === candidate) break; } process.chdir(root); process.env.CLAUDE_PROJECT_DIR = root; require(path.join(root, hookPath));\" -- \".claude/hooks/doc-sync-gate.cjs\""
+            "command": "node -e \"const fs = require('node:fs'); const path = require('node:path'); const hookPath = process.argv[1]; let root = process.cwd(); for (let candidate = root; ; candidate = path.dirname(candidate)) { if (fs.existsSync(path.join(candidate, '.claude'))) { root = candidate; break; } if (path.dirname(candidate) === candidate) break; } process.chdir(root); process.env.CLAUDE_PROJECT_DIR = root; const gitHelperPath = path.join(root, '.claude', 'hooks', 'lib', 'windows-git.cjs'); try { if (fs.existsSync(gitHelperPath)) { const git = require(gitHelperPath); const result = git.resolveWindowsGit(); if (result && result.outcome === git.OUTCOMES.READY) Object.assign(process.env, git.withGitEnvironment(process.env, result.capability)); } } catch {} require(path.join(root, hookPath));\" -- \".claude/hooks/doc-sync-gate.cjs\""
           }
         ],
         "matcher": "Write|Edit|MultiEdit|apply_patch"
-      },
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "node -e \"const fs = require('node:fs'); const path = require('node:path'); const hookPath = process.argv[1]; let root = process.cwd(); for (let candidate = root; ; candidate = path.dirname(candidate)) { if (fs.existsSync(path.join(candidate, '.claude'))) { root = candidate; break; } if (path.dirname(candidate) === candidate) break; } process.chdir(root); process.env.CLAUDE_PROJECT_DIR = root; require(path.join(root, hookPath));\" -- \".claude/hooks/path-boundary-block.cjs\""
-          }
-        ],
-        "matcher": "mcp__filesystem__*"
-      },
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "node -e \"const fs = require('node:fs'); const path = require('node:path'); const hookPath = process.argv[1]; let root = process.cwd(); for (let candidate = root; ; candidate = path.dirname(candidate)) { if (fs.existsSync(path.join(candidate, '.claude'))) { root = candidate; break; } if (path.dirname(candidate) === candidate) break; } process.chdir(root); process.env.CLAUDE_PROJECT_DIR = root; require(path.join(root, hookPath));\" -- \".claude/hooks/github-mcp-write-block.cjs\""
-          }
-        ],
-        "matcher": "mcp__github__*"
       }
     ],
     "SessionEnd": [
@@ -128,7 +76,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node -e \"const fs = require('node:fs'); const path = require('node:path'); const hookPath = process.argv[1]; let root = process.cwd(); for (let candidate = root; ; candidate = path.dirname(candidate)) { if (fs.existsSync(path.join(candidate, '.claude'))) { root = candidate; break; } if (path.dirname(candidate) === candidate) break; } process.chdir(root); process.env.CLAUDE_PROJECT_DIR = root; require(path.join(root, hookPath));\" -- \".claude/hooks/session-end.cjs\""
+            "command": "node -e \"const fs = require('node:fs'); const path = require('node:path'); const hookPath = process.argv[1]; let root = process.cwd(); for (let candidate = root; ; candidate = path.dirname(candidate)) { if (fs.existsSync(path.join(candidate, '.claude'))) { root = candidate; break; } if (path.dirname(candidate) === candidate) break; } process.chdir(root); process.env.CLAUDE_PROJECT_DIR = root; const gitHelperPath = path.join(root, '.claude', 'hooks', 'lib', 'windows-git.cjs'); try { if (fs.existsSync(gitHelperPath)) { const git = require(gitHelperPath); const result = git.resolveWindowsGit(); if (result && result.outcome === git.OUTCOMES.READY) Object.assign(process.env, git.withGitEnvironment(process.env, result.capability)); } } catch {} require(path.join(root, hookPath));\" -- \".claude/hooks/session-end.cjs\""
           }
         ]
       }
@@ -138,7 +86,16 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node -e \"const fs = require('node:fs'); const path = require('node:path'); const hookPath = process.argv[1]; let root = process.cwd(); for (let candidate = root; ; candidate = path.dirname(candidate)) { if (fs.existsSync(path.join(candidate, '.claude'))) { root = candidate; break; } if (path.dirname(candidate) === candidate) break; } process.chdir(root); process.env.CLAUDE_PROJECT_DIR = root; require(path.join(root, hookPath));\" -- \".claude/hooks/session-init-docs.cjs\""
+            "command": "node -e \"const fs = require('node:fs'); const path = require('node:path'); const hookPath = process.argv[1]; let root = process.cwd(); for (let candidate = root; ; candidate = path.dirname(candidate)) { if (fs.existsSync(path.join(candidate, '.claude'))) { root = candidate; break; } if (path.dirname(candidate) === candidate) break; } process.chdir(root); process.env.CLAUDE_PROJECT_DIR = root; const gitHelperPath = path.join(root, '.claude', 'hooks', 'lib', 'windows-git.cjs'); try { if (fs.existsSync(gitHelperPath)) { const git = require(gitHelperPath); const result = git.resolveWindowsGit(); if (result && result.outcome === git.OUTCOMES.READY) Object.assign(process.env, git.withGitEnvironment(process.env, result.capability)); } } catch {} require(path.join(root, hookPath));\" -- \".claude/hooks/verify-install.cjs\""
+          }
+        ],
+        "matcher": "startup|resume|clear|compact"
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node -e \"const fs = require('node:fs'); const path = require('node:path'); const hookPath = process.argv[1]; let root = process.cwd(); for (let candidate = root; ; candidate = path.dirname(candidate)) { if (fs.existsSync(path.join(candidate, '.claude'))) { root = candidate; break; } if (path.dirname(candidate) === candidate) break; } process.chdir(root); process.env.CLAUDE_PROJECT_DIR = root; const gitHelperPath = path.join(root, '.claude', 'hooks', 'lib', 'windows-git.cjs'); try { if (fs.existsSync(gitHelperPath)) { const git = require(gitHelperPath); const result = git.resolveWindowsGit(); if (result && result.outcome === git.OUTCOMES.READY) Object.assign(process.env, git.withGitEnvironment(process.env, result.capability)); } } catch {} require(path.join(root, hookPath));\" -- \".claude/hooks/session-init-docs.cjs\""
           }
         ],
         "matcher": "startup"
@@ -147,7 +104,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node -e \"const fs = require('node:fs'); const path = require('node:path'); const hookPath = process.argv[1]; let root = process.cwd(); for (let candidate = root; ; candidate = path.dirname(candidate)) { if (fs.existsSync(path.join(candidate, '.claude'))) { root = candidate; break; } if (path.dirname(candidate) === candidate) break; } process.chdir(root); process.env.CLAUDE_PROJECT_DIR = root; require(path.join(root, hookPath));\" -- \".claude/hooks/file-convention-inject.cjs\""
+            "command": "node -e \"const fs = require('node:fs'); const path = require('node:path'); const hookPath = process.argv[1]; let root = process.cwd(); for (let candidate = root; ; candidate = path.dirname(candidate)) { if (fs.existsSync(path.join(candidate, '.claude'))) { root = candidate; break; } if (path.dirname(candidate) === candidate) break; } process.chdir(root); process.env.CLAUDE_PROJECT_DIR = root; const gitHelperPath = path.join(root, '.claude', 'hooks', 'lib', 'windows-git.cjs'); try { if (fs.existsSync(gitHelperPath)) { const git = require(gitHelperPath); const result = git.resolveWindowsGit(); if (result && result.outcome === git.OUTCOMES.READY) Object.assign(process.env, git.withGitEnvironment(process.env, result.capability)); } } catch {} require(path.join(root, hookPath));\" -- \".claude/hooks/file-convention-inject.cjs\""
           }
         ],
         "matcher": "compact|clear"
@@ -156,7 +113,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node -e \"const fs = require('node:fs'); const path = require('node:path'); const hookPath = process.argv[1]; let root = process.cwd(); for (let candidate = root; ; candidate = path.dirname(candidate)) { if (fs.existsSync(path.join(candidate, '.claude'))) { root = candidate; break; } if (path.dirname(candidate) === candidate) break; } process.chdir(root); process.env.CLAUDE_PROJECT_DIR = root; require(path.join(root, hookPath));\" -- \".claude/hooks/prompt-ledger.cjs\""
+            "command": "node -e \"const fs = require('node:fs'); const path = require('node:path'); const hookPath = process.argv[1]; let root = process.cwd(); for (let candidate = root; ; candidate = path.dirname(candidate)) { if (fs.existsSync(path.join(candidate, '.claude'))) { root = candidate; break; } if (path.dirname(candidate) === candidate) break; } process.chdir(root); process.env.CLAUDE_PROJECT_DIR = root; const gitHelperPath = path.join(root, '.claude', 'hooks', 'lib', 'windows-git.cjs'); try { if (fs.existsSync(gitHelperPath)) { const git = require(gitHelperPath); const result = git.resolveWindowsGit(); if (result && result.outcome === git.OUTCOMES.READY) Object.assign(process.env, git.withGitEnvironment(process.env, result.capability)); } } catch {} require(path.join(root, hookPath));\" -- \".claude/hooks/prompt-ledger.cjs\""
           }
         ],
         "matcher": "compact|resume|clear"
@@ -167,7 +124,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node -e \"const fs = require('node:fs'); const path = require('node:path'); const hookPath = process.argv[1]; let root = process.cwd(); for (let candidate = root; ; candidate = path.dirname(candidate)) { if (fs.existsSync(path.join(candidate, '.claude'))) { root = candidate; break; } if (path.dirname(candidate) === candidate) break; } process.chdir(root); process.env.CLAUDE_PROJECT_DIR = root; require(path.join(root, hookPath));\" -- \".claude/hooks/notifications/notify.cjs\""
+            "command": "node -e \"const fs = require('node:fs'); const path = require('node:path'); const hookPath = process.argv[1]; let root = process.cwd(); for (let candidate = root; ; candidate = path.dirname(candidate)) { if (fs.existsSync(path.join(candidate, '.claude'))) { root = candidate; break; } if (path.dirname(candidate) === candidate) break; } process.chdir(root); process.env.CLAUDE_PROJECT_DIR = root; const gitHelperPath = path.join(root, '.claude', 'hooks', 'lib', 'windows-git.cjs'); try { if (fs.existsSync(gitHelperPath)) { const git = require(gitHelperPath); const result = git.resolveWindowsGit(); if (result && result.outcome === git.OUTCOMES.READY) Object.assign(process.env, git.withGitEnvironment(process.env, result.capability)); } } catch {} require(path.join(root, hookPath));\" -- \".claude/hooks/notifications/notify.cjs\""
           }
         ]
       }
@@ -177,7 +134,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node -e \"const fs = require('node:fs'); const path = require('node:path'); const hookPath = process.argv[1]; let root = process.cwd(); for (let candidate = root; ; candidate = path.dirname(candidate)) { if (fs.existsSync(path.join(candidate, '.claude'))) { root = candidate; break; } if (path.dirname(candidate) === candidate) break; } process.chdir(root); process.env.CLAUDE_PROJECT_DIR = root; require(path.join(root, hookPath));\" -- \".claude/hooks/init-prompt-gate.cjs\""
+            "command": "node -e \"const fs = require('node:fs'); const path = require('node:path'); const hookPath = process.argv[1]; let root = process.cwd(); for (let candidate = root; ; candidate = path.dirname(candidate)) { if (fs.existsSync(path.join(candidate, '.claude'))) { root = candidate; break; } if (path.dirname(candidate) === candidate) break; } process.chdir(root); process.env.CLAUDE_PROJECT_DIR = root; const gitHelperPath = path.join(root, '.claude', 'hooks', 'lib', 'windows-git.cjs'); try { if (fs.existsSync(gitHelperPath)) { const git = require(gitHelperPath); const result = git.resolveWindowsGit(); if (result && result.outcome === git.OUTCOMES.READY) Object.assign(process.env, git.withGitEnvironment(process.env, result.capability)); } } catch {} require(path.join(root, hookPath));\" -- \".claude/hooks/init-prompt-gate.cjs\""
           }
         ]
       },
@@ -185,7 +142,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node -e \"const fs = require('node:fs'); const path = require('node:path'); const hookPath = process.argv[1]; let root = process.cwd(); for (let candidate = root; ; candidate = path.dirname(candidate)) { if (fs.existsSync(path.join(candidate, '.claude'))) { root = candidate; break; } if (path.dirname(candidate) === candidate) break; } process.chdir(root); process.env.CLAUDE_PROJECT_DIR = root; require(path.join(root, hookPath));\" -- \".claude/hooks/graph-prompt-sync.cjs\""
+            "command": "node -e \"const fs = require('node:fs'); const path = require('node:path'); const hookPath = process.argv[1]; let root = process.cwd(); for (let candidate = root; ; candidate = path.dirname(candidate)) { if (fs.existsSync(path.join(candidate, '.claude'))) { root = candidate; break; } if (path.dirname(candidate) === candidate) break; } process.chdir(root); process.env.CLAUDE_PROJECT_DIR = root; const gitHelperPath = path.join(root, '.claude', 'hooks', 'lib', 'windows-git.cjs'); try { if (fs.existsSync(gitHelperPath)) { const git = require(gitHelperPath); const result = git.resolveWindowsGit(); if (result && result.outcome === git.OUTCOMES.READY) Object.assign(process.env, git.withGitEnvironment(process.env, result.capability)); } } catch {} require(path.join(root, hookPath));\" -- \".claude/hooks/graph-prompt-sync.cjs\""
           }
         ]
       },
@@ -193,7 +150,15 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node -e \"const fs = require('node:fs'); const path = require('node:path'); const hookPath = process.argv[1]; let root = process.cwd(); for (let candidate = root; ; candidate = path.dirname(candidate)) { if (fs.existsSync(path.join(candidate, '.claude'))) { root = candidate; break; } if (path.dirname(candidate) === candidate) break; } process.chdir(root); process.env.CLAUDE_PROJECT_DIR = root; require(path.join(root, hookPath));\" -- \".claude/hooks/prompt-ledger.cjs\""
+            "command": "node -e \"const fs = require('node:fs'); const path = require('node:path'); const hookPath = process.argv[1]; let root = process.cwd(); for (let candidate = root; ; candidate = path.dirname(candidate)) { if (fs.existsSync(path.join(candidate, '.claude'))) { root = candidate; break; } if (path.dirname(candidate) === candidate) break; } process.chdir(root); process.env.CLAUDE_PROJECT_DIR = root; const gitHelperPath = path.join(root, '.claude', 'hooks', 'lib', 'windows-git.cjs'); try { if (fs.existsSync(gitHelperPath)) { const git = require(gitHelperPath); const result = git.resolveWindowsGit(); if (result && result.outcome === git.OUTCOMES.READY) Object.assign(process.env, git.withGitEnvironment(process.env, result.capability)); } } catch {} require(path.join(root, hookPath));\" -- \".claude/hooks/workflow-route-inject.cjs\""
+          }
+        ]
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node -e \"const fs = require('node:fs'); const path = require('node:path'); const hookPath = process.argv[1]; let root = process.cwd(); for (let candidate = root; ; candidate = path.dirname(candidate)) { if (fs.existsSync(path.join(candidate, '.claude'))) { root = candidate; break; } if (path.dirname(candidate) === candidate) break; } process.chdir(root); process.env.CLAUDE_PROJECT_DIR = root; const gitHelperPath = path.join(root, '.claude', 'hooks', 'lib', 'windows-git.cjs'); try { if (fs.existsSync(gitHelperPath)) { const git = require(gitHelperPath); const result = git.resolveWindowsGit(); if (result && result.outcome === git.OUTCOMES.READY) Object.assign(process.env, git.withGitEnvironment(process.env, result.capability)); } } catch {} require(path.join(root, hookPath));\" -- \".claude/hooks/prompt-ledger.cjs\""
           }
         ]
       }

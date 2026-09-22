@@ -1,7 +1,7 @@
 ---
 name: ui-review
 version: 2.0.0
-description: '[Code Quality] Use when reviewing UI/frontend changes for content overflow, responsive layout, flex-vs-fixed sizing, z-index discipline, SCSS/BEM quality, and async loading/error/empty states.'
+description: '[Code Quality] Use when reviewing in-scope user interfaces for content fit, supported-size layout, project styling conventions, layering where applicable, accessibility, and async states.'
 execution-mode: subagent
 context-budget: high
 ---
@@ -17,33 +17,33 @@ context-budget: high
 
 ## Quick Summary
 
-**Goal:** Validate UI/frontend changes for the six visual-quality dimensions that break in production but slip past correctness review — long-content overflow & truncation, responsive multi-screen layout (flex-wrap / row-to-column so it stays usable on small devices), flex-grow vs fixed sizing, z-index scale discipline, SCSS/CSS/BEM styling quality, and async UI states & feedback (loading indicator, user-visible error surface, empty state, in-flight disable) — so frontend/UI changes survive real content, responsive layouts, layering, styling conventions, and the loading/error/empty branches before handoff.
+**Goal:** Validate in-scope user interfaces for content fit, adaptation to supported view sizes and input methods, layout sizing, platform-appropriate layering and styling, accessibility, and async feedback. Apply CSS-specific checks only to CSS-based surfaces and the project's own conventions; skip when the project or change has no UI.
 
-**Summary:** Review only the resolved frontend scope, apply project UI rules plus six UI categories and nine design-principles passes, then report evidence-backed PASS/WARN/BLOCKED findings through validated full-review loops.
+**Summary:** Review only the resolved user-interface scope, apply project rules plus six UI categories and nine design-principles passes, then report evidence-backed PASS/WARN/BLOCKED findings through validated full-review loops.
 
-**Default scope:** All uncommitted frontend changes (staged + unstaged) matching the frontend path and file-extension patterns declared by the project configuration/docs index. Override: specify files, directories, components, or full frontend codebase.
+**Default scope:** All uncommitted UI changes (staged + unstaged) matching the project's configured UI/frontend paths and file-extension patterns. Override: specify files, directories, surfaces, or the full UI codebase.
 
-> **CONDITIONAL — SKIP when no frontend files in scope.** In workflow context this skill is SKIPPED when the diff has no files matching the project frontend path/extension patterns. If invoked standalone with no frontend changes → announce `"No frontend changes detected — ui-review skipped"` and report clean.
+> **CONDITIONAL — SKIP when no user-facing UI files are in scope.** In workflow context this skill is SKIPPED when the diff has no files matching the project's configured UI/frontend path and extension patterns. If invoked standalone with no UI changes → announce `"No UI changes detected — ui-review skipped"` and report clean.
 
 > **ROUTING BOUNDARY (read before starting):**
 >
-> - **`ui-review` (this skill)** — the project UI review gate. Purpose: find issues, assign severity, give project-specific fix guidance citing real reuse targets (sourced from the project reference docs). It complements `architecture-review`. In `workflow-review-changes` it runs in TWO places by design (keep both): (a) INTERNALLY as `changes-review`'s UI dimension (step 1), AND (b) as a DEDICATED conditional parallel-batch member (step 9, `ui-ux-designer` sub-agent). Both fire only when frontend files are in scope.
-> - **`web-design-guidelines`** — a generic, standalone accessibility / UX checklist. Cross-read it for a11y depth (WCAG, focus order, ARIA, contrast); do NOT duplicate its content here.
+> - **`ui-review` (this skill)** — the project UI review gate. Purpose: find issues, assign severity, give project-specific fix guidance citing real reuse targets (sourced from project references). It complements `architecture-review`. In `workflow-review-changes` it runs in TWO places by design (keep both): (a) INTERNALLY as `changes-review`'s UI dimension (step 1), AND (b) as a DEDICATED conditional parallel-batch member (step 9, `ui-ux-designer` sub-agent). Both fire only when UI files are in scope.
+> - **`web-design-guidelines`** — a web accessibility / UX checklist. Use it for web surfaces; for native UI, use the target platform's documented accessibility guidance instead.
 > - **`ui-ux-designer`** — specialized UI/UX, accessibility, responsive layout, and design-token review/authoring sub-agent when the local agent catalog provides it.
 
 > **MANDATORY MUST ATTENTION** Plan tasks to READ UI rules BEFORE reviewing:
 >
-> 1. Project styling rules doc — BEM convention, mixins, variables, responsive patterns **(READ FIRST — primary styling rules source; resolve via project config/docs index)**
-> 2. Project design-system/token doc — design tokens, especially the **Z-Index & Layering** section
-> 3. Project frontend architecture/patterns doc — base component classes, state/store, API service, lifecycle teardown rules shared with `architecture-review`
+> 1. Configured styling reference when styling is in scope — selected styling method, tokens, layout, and selector rules; BEM applies only if selected
+> 2. Configured design-system reference when present — tokens and layering rules that apply to this surface
+> 3. Frontend architecture/patterns reference when it documents relevant project conventions — use base components, state, request, and cleanup abstractions only when present and applicable
 > 4. Project code-review rules doc — anti-patterns and conventions
 >
-> Not found → search: "scss styling", "design tokens", "frontend patterns". Rules come from docs — NOT general knowledge.
+> Resolve paths through project configuration and the docs index, and read accepted ADRs when relevant. If a reference is missing or N/A, inspect comparable source and target-platform guidance; do not invent project-wide rules or abstractions.
 
 **Workflow:**
 
-1. **Phase 0: Load UI Rules** — Resolve and read the four project UI/styling rule docs above
-2. **Phase 1: Determine Scope** — Changed frontend files (default) or user-specified scope
+1. **Phase 0: Load UI Rules** — Resolve applicable project UI references and accepted ADRs; record N/A where a styling or design-system category does not apply
+2. **Phase 1: Determine Scope** — Changed UI files (default) or user-specified scope
 3. **Phase 2: Blast Radius** — Run graph trace if graph.db exists
 4. **Phase 3: UI Category Review** — Check each file against all 6 applicable categories
 5. **Phase 4: Finalize** — Generate compliance report with PASS/BLOCKED/WARN verdicts
@@ -77,8 +77,8 @@ When evaluating styling, a layout, a token, or a component, ask:
 - Name the real enemies in findings: **magic values, duplicated styling
   knowledge, fixed sizing that fights the viewport, cross-system token
   mixing, z-index escalation wars**.
-- A simpler layout that survives 320px and a 200-char value beats a
-  pixel-perfect fixed layout that breaks on either.
+- A layout that remains usable across the project's supported sizes and long
+  values beats a fixed layout that breaks at an evidenced boundary.
 
 Apply this lens **before** invoking any specific rule, pattern, or checklist
 below — if a downstream rule would raise change cost, this principle wins.
@@ -89,25 +89,25 @@ below — if a downstream rule would raise change cost, this principle wins.
 
 Skeptical. Every claim needs traced proof, confidence >80%.
 
-- NEVER flag a styling violation without reading the actual SCSS/template + tracing the rendered element
+- NEVER flag a styling violation without reading the target's actual style or UI source and tracing the rendered surface where possible
 - Every finding MUST include `file:line` evidence
 - Before flagging a pattern violation: grep 3+ existing examples — codebase convention wins
 - Question: "Is this actually a violation, or an established exception (icon dimensions, fixed brand assets, genuinely fixed UI)?"
 
 ## Phase 0: Load UI Rules (MANDATORY FIRST) (MUST ATTENTION)
 
-> **MUST ATTENTION:** Read project UI docs BEFORE reviewing. Rules come from docs, not general knowledge.
+> **MUST ATTENTION:** Resolve the target UI and read applicable project docs BEFORE reviewing. Rules come from project and platform evidence, not general knowledge.
 
-- read the project styling rules doc — extract BEM convention, mixin names, variable names, responsive breakpoint mixins, nesting limits
-- read the project design-system/token doc — extract design tokens and the **Z-Index & Layering** section
-- read the project frontend architecture/patterns doc — extract base component classes, store/effect patterns, API service base, lifecycle teardown pattern
+- read the configured styling rules doc when styling is in scope — extract its chosen method, tokens, layout rules, and selector conventions; BEM applies only when selected
+- read the configured design-system/token doc when present — extract the declared visual tokens and stacking/layer rules that apply to this surface
+- read the frontend architecture/patterns doc when it records project conventions — use base components, state, request, and lifecycle abstractions only when they are present and relevant
 - read the project code-review rules doc — extract frontend anti-patterns and review rules directly
 
 > **CROSS-SYSTEM WARNING (carry through every category):** Do NOT mix token systems with incompatible root-size, namespace, or layer assumptions in one file. When flagging a fix, recommend whichever token system the file already imports/uses; never introduce another system unless the project docs explicitly require migration.
 
 ## Phase 1: Determine Scope
 
-**Default (no override):** Review all uncommitted frontend changes.
+**Default (no override):** Review all uncommitted UI changes.
 
 ```bash
 git status          # List changed files
@@ -116,8 +116,8 @@ git diff --cached   # Staged only
 ```
 
 - Collect file list to review
-- Filter to files matching the project frontend path/extension patterns resolved from project config/docs
-- If ZERO frontend files match → announce `"No frontend changes detected — ui-review skipped"` and report clean (honor the CONDITIONAL skip)
+- Filter to files matching the project's configured UI/frontend path and extension patterns
+- If ZERO UI files match → announce `"No UI changes detected — ui-review skipped"` and report clean (honor the CONDITIONAL skip)
 
 ## Phase 2: Blast Radius (if graph.db exists)
 
@@ -169,144 +169,141 @@ For EACH file in scope, evaluate against ALL applicable categories. Skip categor
 
 ---
 
-### Category 2: Responsive Multi-Screen via Flex — Severity: WARN (BLOCKED only when content is broken on a small screen — clipped, cut off, or unreachable)
+### Category 2: Layout Adaptation Across Supported Sizes — Severity: WARN (BLOCKED only when content is broken or unreachable at a supported size)
 
-**Think:** Is this usable at 320 / 768 / 1024 / 1440? Does the layout flex, wrap, and **reflow from row to column** on small screens? If it genuinely cannot reflow, does it at least stay *usable* via a fixed `min-width`/`min-height` + `overflow: auto` scroll — or does content get clipped, cut off, or pushed out of reach?
+**Think:** Is the surface usable at the view sizes, orientations, and display settings supported or promised by the project? Does the target platform's layout model adapt as needed? If content cannot reflow, does the platform provide a usable way to inspect it without clipping or hiding controls?
 
-**Small-screen usability — the minimum bar (canonical):**
+**Supported-size usability — the minimum bar:**
 
-- **Preferred:** reflow — `flex-wrap: wrap`, a `flex-direction: row → column` switch at the breakpoint, or a responsive grid that collapses to a single column.
-- **Acceptable fallback:** when a layout genuinely can't reflow (dense tables, canvases, diagrams, wide data grids), a fixed `min-width`/`min-height` with `overflow: auto` is fine — **scrolling is OK, not a defect.** Do NOT flag a component BLOCKED merely because it scrolls.
-- **Hard minimum (BLOCKED if violated):** on a small screen the UI is *usable* and nothing is **broken** — no clipped, cut-off, or unreachable content/controls (e.g. a submit button pushed off-screen with no scroll path, text overlapping, a fixed row that overflows AND hides content instead of scrolling).
-- **Escalation:** if making a surface small-screen-usable would need a refactor too large for the current change, STOP and **confirm scope with the user** before proceeding — note it as a finding, do not silently rewrite the layout.
+- **Preferred where supported:** use the platform's responsive layout mechanism (for example, CSS reflow, native size classes, or resizable-window constraints) when it improves access to content.
+- **Acceptable fallback:** scrolling or another platform-native overflow treatment is fine when reflow is not appropriate, provided all content and controls remain reachable.
+- **Hard minimum (BLOCKED if violated):** meet the view sizes and display settings the product supports; do not leave content clipped, controls unreachable, or essential information hidden without an access path.
+- **Escalation:** if adding a supported layout mode needs a refactor too large for the current change, surface the scope and evidence before proceeding.
 
 **Detection signals:**
 
-- Raw `@media (max-width: NNNpx)` / `(min-width: NNNpx)` in component SCSS that bypasses the breakpoint mixins
-- A multi-child flex `row` with **NO `flex-wrap`**, **NO `flex-direction: column`** override, AND **no `overflow: auto`** escape → content is trapped and clips on a phone (BLOCKED); the same row WITH a scroll escape is at most WARN (prefer reflow)
-- Multi-column CSS grid with fixed column counts / fixed track widths and no single-column collapse and no scroll container at small breakpoints
-- Non-flex fixed layouts (absolute positioning, fixed px widths on containers) that cannot reflow AND cannot scroll → content lost off-screen
-- Content clipped, overlapping, or a control pushed out of reach below ~360px with no scroll path (BLOCKED). Horizontal scroll *by itself*, with all content still reachable, is the acceptable fallback — not a finding.
+- For CSS projects, raw viewport breakpoints that bypass the configured breakpoint system
+- A layout in the project's chosen system that becomes clipped, overlaps, or hides controls at a supported size
+- A fixed grid or canvas without a usable pan, reflow, resize, or scroll path where the project promises smaller views
+- A control outside the reachable area or blocked by platform chrome, keyboard, or an overlay with no recovery path
 
 **Project fix guidance:**
 
-- Preferred: the project documented responsive-flex mixins/utilities; add `flex-wrap: wrap` and/or the documented `row → column` breakpoint switch so the layout stacks vertically on small screens
-- Fallback (when reflow isn't feasible): give the container a sensible `min-width`/`min-height` and `overflow: auto` so everything stays reachable by scroll
-- Breakpoints from the project breakpoint tokens — NEVER inline pixel breakpoints
-- Large layout refactor required → surface it as a finding and confirm with the user; don't bundle a big responsive rewrite into an unrelated change
+- Prefer the project's documented responsive layout APIs, classes, or size categories; use CSS flex/grid only when that is the target's styling system
+- Choose overflow, reflow, resizing, or scrolling based on the platform and content
+- Use configured breakpoints when present; do not invent a project-wide breakpoint scale
+- Large layout refactor required → surface it as a finding and keep it distinct from an unrelated change
 
-**Anti-patterns:** raw `@media` pixel breakpoints that bypass the project's breakpoint mixins; a `flex-direction: row` with no wrap, no column fallback, AND no scroll escape so content clips; and non-flex fixed grids that neither reflow nor scroll. Cite the styling rules doc for documented offenders; grep the changeset for the same patterns.
+**Anti-patterns:** layout rules that bypass a configured sizing system, or fixed layouts that clip or hide required content at a supported size. Cite the applicable project/platform rule and inspect the rendered outcome before flagging.
 
 ---
 
-### Category 3: Flex-Grow vs Fixed Width/Height (prefer min/max) — Severity: WARN
+### Category 3: Content-Responsive vs Fixed Sizing — Severity: WARN
 
-**Think:** Must this size be fixed, or can it grow/shrink with content + viewport?
+**Think:** Does this surface need a fixed size by design, or should it adapt to content, user scaling, and the target platform's available space?
 
 **Detection signals:**
 
-- Fixed `width:` / `height:` in px (≥ ~3 digits) on containers / cards / forms / dialogs
+- For CSS-based surfaces, fixed CSS dimensions on content containers that conflict with supported sizes, user scaling, or the documented design
+- For native or desktop surfaces, fixed frame constraints that make a supported size or form factor unusable
 
 **Project fix guidance:**
 
-- Prefer `flex: 1` / `flex-grow` + `max-width` / `min-width` caps, and `min-width: 0` on truncating flex children
-- The project flex-container mixin/utility documented in the styling rules doc
-- Reserve fixed px for icons / borders / genuinely fixed UI
+- Use the project's layout and sizing primitives. In CSS-based layouts, flex/grid and min/max constraints may be appropriate when they match the surrounding code.
+- Keep a fixed dimension only when the design or platform requires it and evidence shows it remains usable across supported settings.
 
-**Anti-patterns:** large fixed `width:` / `height:` in px on containers / cards / forms / dialogs (e.g. `width: 964px`, `height: 772px`) that should flex with content + viewport. Cite the styling rules doc for documented offenders.
-
----
-
-### Category 4: Z-Index Scale Discipline — Severity: BLOCKED (HARD GATE)
-
-**Think:** Which layer does this surface belong to (base / raised / dropdown / sticky / modal / toast)?
-
-**Detection signals:**
-
-- Raw numeric `z-index` (literal value instead of a token)
-- **ANY `z-index` with `!important` → BLOCKED** (an escalation war that the next dev will only beat with a bigger literal)
-
-**Project fix guidance — use tokens:**
-
-- The project documented z-index layer tokens
-- Existing legacy/framework token systems only when the current file already uses that system
-- The semantic layer variables declared canonical by the project design-system doc
-
-Cross-reference the project design-system **Z-Index & Layering** map. The chosen token MUST match the surface's semantic layer.
-
-**GOOD vs BAD:** a `z-index` set from a semantic token / layer scale is correct; a raw literal (e.g. `z-index: 99999`, `z-index: 10000`) or `z-index: N !important` is the anti-pattern. Cite the design-system and styling docs for the project's token scale and documented offenders.
+**Anti-patterns:** fixed sizing that demonstrably clips required content, blocks user scaling, or prevents the surface from fitting a supported form factor. Fixed dimensions are valid when the platform or design requires them and the supported use remains accessible. Cite the relevant project/platform authority and evidence.
 
 ---
 
-### Category 5: SCSS/CSS Best Practices & BEM — Severity: WARN (BLOCKED on `!important`, chained BEM modifiers)
+### Category 4: Stacking and Overlay Order — Severity: BLOCKED when project rules or visible behavior require it
 
-**Think:** Does this stylesheet read cleanly, follow BEM, and use tokens — or does it hardcode, over-nest, and chain modifiers?
-
-> **SCSS/BEM rules (canonical):** BEM classes on ALL template elements (`block__element--modifier`). No magic numbers — use variables / design tokens. Max 3 nesting levels.
+**Think:** How does this platform order overlapping content, and which item must appear above another? Apply this category only when the target uses a stacking or overlay model.
 
 **Detection signals:**
 
-- Nesting > 3 levels
-- Hardcoded hex colors (should use CSS vars / design tokens)
-- `px` where `rem` is expected
-- Chained BEM modifiers (`.block__element.--modifier`) — `.--mod` MUST be a separate class, NEVER chained → BLOCKED
-- Template elements missing BEM classes
-- `!important` → BLOCKED
+- A numeric stacking value where project rules require a named layer or token
+- A forced override that defeats documented ownership or demonstrably hides required content
+
+**Project fix guidance:**
+
+- Use project-declared layer tokens or stacking categories when present
+- Otherwise follow the target platform's established overlay/order model and nearby examples; do not invent a repository-wide scale
+
+Cross-reference the project's layering map when one is configured. Any chosen layer must match the actual surface role.
+
+**GOOD vs BAD:** a layer token is correct when the project defines one; otherwise use the platform's documented order. Flag a raw value or override only when it violates local rules or causes evidenced overlap. Cite the authority for the target.
+
+---
+
+### Category 5: Styling Convention and Visual Implementation — Severity: WARN
+
+**Think:** Does this implementation follow the project's configured styling approach and visual ownership, or does it introduce unsupported values, selectors, or layering rules?
+
+> **Styling rules:** Follow the method and limits documented for this project and target. BEM, design tokens, stylesheet nesting limits, and CSS override rules apply only when the project's references/configuration establish them.
+
+**Detection signals:**
+
+- Violation of the configured selector, token, typography, nesting, or styling-system rules
+- A class or utility name that conflicts with the project's chosen methodology
+- A hard-coded value where the project requires a declared token or scale
+- CSS `!important` or stacking overrides only where the project forbids them or evidence shows they break intended ownership
+- BEM modifier or element structure only when project configuration/reference docs select BEM
 
 Apply fixes per the resolved project styling rules doc.
 
 **Frontend architecture checks (OWNED JOINTLY WITH `architecture-review` Category 8 — reference, do not drift):**
 
-> These checks are lifted from `architecture-review` Category 8 so the two skills stay synchronized. They are **owned jointly**; when one changes, update both. They apply to the `.ts` files in scope:
+> These checks are lifted from `architecture-review` Category 8 so the two skills stay synchronized. They are **owned jointly**; when one changes, update both. Apply them to source files in scope that implement the listed frontend concerns:
 
-- Components MUST extend the project-documented base component/form/store component classes (BLOCKED)
-- State MUST use the project-documented store/effect pattern — NEVER ad hoc local state when the project provides a canonical store pattern (BLOCKED)
-- API services MUST extend the project-documented API service base — NEVER raw HTTP clients when the project provides a service abstraction (BLOCKED)
-- All subscriptions MUST use the project's auto-teardown operator — NEVER manual unsubscribe (BLOCKED)
-- All template elements MUST have BEM classes (WARN)
-- Logic in lowest layer: Model > Service > Component (WARN)
+- Use a project-documented component or form base when one exists, applies to the target, and the code bypasses it (BLOCKED)
+- Follow the project's state/effect pattern when documented; otherwise use the platform's idiomatic state model
+- Use a documented API wrapper when one exists for the target; otherwise use the normal request API for the stack
+- Manage subscriptions and listeners using the framework lifecycle and any documented cleanup pattern
+- Apply BEM only when the project selects it; otherwise follow its configured styling convention
+- Place logic according to declared or observed project ownership; do not impose a Model > Service > Component hierarchy
 
 **Component system and reuse checks (code-bearing UI scope):**
 
-- Every component MUST be classified as **Common**, **Domain-Shared**, or **Page**, with one owner and the project-documented base component/primitive recorded (WARN; BLOCKED when a documented base is bypassed).
-- Reuse or compose the closest existing component/base before creating a new component or variant; a non-reuse decision MUST name the constraint (WARN).
-- Shared markup, selectors, styling, lifecycle, and component-level test behavior MUST have one canonical owner; duplicated implementations or copied lower-tier cases are findings, and 3+ similar implementations require extraction (WARN).
-- Common and Domain-Shared behavior is tested once; Page tests cover page-specific composition and outcomes rather than repeating lower-tier component cases (WARN).
+- Use the project's component taxonomy and owners when they are documented or evident in code. Do not create Common/Domain-Shared/Page tiers or a base abstraction solely to satisfy this review.
+- Reuse or compose an existing component when its API, platform, scope, and lifecycle fit; explain a non-reuse decision only when a relevant shared component exists.
+- Keep genuinely shared behavior under a clear owner. Consider extraction when evidence shows reuse will reduce change cost; do not require an abstraction from a fixed duplication count.
+- Test reusable component contracts and page/screen composition according to the project's test organization.
 
-**GOOD vs BAD:** a Page component composes a documented Common button and Domain-Shared editor through the project base abstractions, with one component contract test and a page-specific outcome test; copied button/editor markup, selectors, lifecycle, or assertions in every page is the anti-pattern. Cite the frontend-patterns, design-system, and test references for the project's real reuse targets.
+**GOOD vs BAD:** when a project declares shared component tiers, a screen composes the appropriate documented components and tests each contract at its owner. In projects without tiers, follow the existing component structure and extract only where an evidenced reusable owner improves the code. Cite the real project references or source patterns.
 
 ---
 
-### Category 6: Async UI States & Feedback — Loading / Error / Empty / Disabled — Severity: BLOCKED (HARD GATE when an async fetch or mutation renders NO loading indicator OR NO user-visible error surface)
+### Category 6: Async UI States & Feedback — Loading / Error / Empty / Disabled — Severity: BLOCKED when a material user-visible operation lacks required feedback or recovery
 
-> **This is the fundamental UI-resilience gate.** A screen whose happy path renders perfectly but shows a frozen blank while loading, fails silently on error, or shows nothing when empty is a broken user experience. Every async or interactive surface MUST answer three questions for the user: *what do I see while it's working, when it fails, and when there's nothing?*
+> **This is the UI-resilience gate.** Check whether delay, failure, or an empty result affects the user's task. Do not require irrelevant states, but a material interaction must not leave the user with a frozen surface, silent failure, or unexplained result.
 
-**Think:** For EACH async operation the file performs (data fetch, form submit, mutation, navigation-triggered load, subscription), trace what the user actually sees in the in-flight, failure, and zero-result branches — not just the success branch. If any of those three branches renders a blank/frozen screen or nothing at all, that is the finding.
+**Think:** For each user-visible async operation (data load, form submit, mutation, navigation-triggered work), trace what the user sees while waiting, on failure, and when there are no results. Flag branches that leave the user with no useful feedback or recovery path.
 
-**The essential states every async/interactive surface MUST handle** (canonical vocabulary — shared verbatim with `design-spec` "Component States Checklist": Default / Loading / Disabled / Error / Empty / Success):
+**Select the states each async/interactive surface needs** from its user impact, the project's conventions, and the target platform (common vocabulary: Default / Loading / Disabled / Error / Empty / Success):
 
-- **Loading** — every in-flight async request MUST render a loading indicator (spinner / skeleton / progress bar), NEVER a frozen or blank screen. Lists/tables → skeleton rows; buttons → in-button spinner + disabled.
-- **Error** — every operation that can fail (network, validation, server error) MUST surface a human-readable error to the user WITH a recovery/retry path where sensible. NEVER a silent failure, a swallowed `catch`, or a raw stack trace / raw error object rendered to the user.
-- **Empty** — every collection / list / table view MUST render a meaningful empty state (message + optional CTA) when it has zero items, NOT a blank area.
-- **Disabled / in-flight guard** — submit/action controls MUST disable (or show busy) while their request is in-flight, to prevent double-submission.
-- **Success** — a completed mutation SHOULD give confirmation feedback (toast / inline / visibly updated data).
+- **Loading** — show progress or a busy affordance when delay or impact would otherwise leave the user uncertain; do not leave an important surface blank or frozen.
+- **Error** — user-initiated failures need a human-readable message and recovery path where sensible. Background failures follow the project's notification and error-handling conventions.
+- **Empty** — a collection with no results should explain the empty state and offer a next step when useful.
+- **Disabled / in-flight guard** — prevent harmful duplicate actions using the control behavior supported by the target platform.
+- **Success** — provide confirmation appropriate to the action, or make the resulting state clear.
 
 **Detection signals:**
 
-- An async call (fetch / HTTP / `subscribe` / awaited mutation) whose template binds NO loading flag (`isLoading` / `pending` / `loading$` / skeleton) → **BLOCKED**
-- A `.catch` / `try-catch` / error callback that logs or swallows the error but renders NO user-visible error surface → **BLOCKED**
+- A user-visible wait with meaningful delay or impact but no progress/busy feedback → **BLOCKED**
+- A user-initiated operation that fails silently or offers no recovery path where one is sensible → **BLOCKED**
 - A raw error shown to the user (stack trace, raw JSON, unmapped exception) → WARN
-- A list/table rendered from a collection with NO empty-state branch (`@empty`, `*ngIf="!items.length"`, `items.length === 0 ? …`) → WARN (BLOCKED when the collection is the screen's primary content)
+- A list or collection surface with no meaningful empty state → WARN (BLOCKED when the collection is the screen's primary content)
 - A submit handler that does NOT disable its trigger while in-flight (double-submit risk) → WARN (BLOCKED for payment / create / irreversible actions)
 
-> **Check for centralized handling BEFORE flagging BLOCKED (avoid false positives):** many apps satisfy loading/error at the app level — a route-level progress bar, an HTTP interceptor that shows a global spinner/toast, an error boundary, or a base component that renders loading/error for all its children. If such a mechanism demonstrably covers this surface, the local component is compliant — grep for the shared mechanism (per this skill's "grep 3+ counterexamples / established exception" rule) and downgrade or drop the finding. Flag BLOCKED only when NO layer — local or global — gives the user a loading indicator / error surface.
+> **Check for centralized handling BEFORE flagging BLOCKED (avoid false positives):** the app or platform may provide a shared progress/status owner, request handler, error boundary, or reusable UI component. If evidence shows it covers this surface, the local control may not need another indicator — verify its behavior and downgrade or drop the finding. Flag BLOCKED only when no applicable layer gives the user the required feedback.
 
-**Project fix guidance** (cite real reuse targets from the resolved frontend/patterns + design-system docs):
+**Project fix guidance** (cite real reuse targets from applicable frontend, platform, and design-system docs):
 
-- Prefer the project's documented loading component / skeleton / spinner and the documented error-banner / empty-state components or patterns — NEVER hand-roll one-off state UI when a canonical one exists.
-- Bind loading / error / empty off the store / view-model / API-service state per the project's documented state pattern — state belongs in the lowest layer (Model > Service > Component), not improvised in the template.
+- Reuse documented loading/progress, error, and empty-state components or patterns when present; otherwise follow the target platform's idiom without inventing a project-wide abstraction.
+- Bind loading / error / empty behavior to the data flow and state owner established by the project; do not impose a fixed model/service/component layer order.
 
-**GOOD vs BAD:** a fetch bound to `isLoading` → skeleton, `error` → inline retry banner, and empty → placeholder is correct; a fetch that renders ONLY the populated happy path (blank while loading, nothing on error, blank when empty) is the anti-pattern. Cite the frontend-patterns and design-system docs for the project's reuse targets.
+**GOOD vs BAD:** an important delayed operation gives progress feedback, communicates a failure with a usable next step, and explains an empty result; a surface that shows nothing until success is the anti-pattern. Cite the project's applicable references or observed implementation.
 
 > **Note vs Category 5's Bug-Detection "Error Handling":** the shared Bug Detection protocol checks that `catch` scope is correct and exceptions are not swallowed at the *code* level; Category 6 checks that the failure/loading/empty branch produces a *user-visible* state at the *UI* level. Both must pass — a correctly-caught error that renders nothing still fails Category 6.
 
@@ -325,18 +322,18 @@ The 40 clauses of `SYNC:ui-ux-design-principles` (full body inlined below in thi
 | #   | Dimension                 | Clauses            | `Think:`                                                                                                                                                                                                                                                    |
 | --- | ------------------------- | ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | 1   | Visual Hierarchy & Layout | `UI-1.1`-`UI-1.5` | Which element does a first-time user's eye land on, and is it the one this screen exists for? Which groups are held together by whitespace, and which by a border added because the whitespace was wrong? Are the empty, loading and error states designed at all — or only the full state? |
-| 2   | Typography                | `UI-2.1`-`UI-2.5` | Trace every family/size/weight declaration in scope back to the project type scale — which are one-off literals? At the widest breakpoint, how many characters per line does body text actually reach, and does any text a user must read fall below 14px? |
+| 2   | Typography                | `UI-2.1`-`UI-2.5` | Follow the configured type scale where one exists; inspect hierarchy, legibility, and supported user text scaling for this platform. Which values depart from the project's evidence, and are the actual reading conditions usable? |
 | 3   | Colour & Contrast         | `UI-3.1`-`UI-3.4` | For each foreground/background pair that actually renders, what is the COMPUTED ratio (measured — never judged by eye)? What does a user who cannot perceive the accent hue see instead? In dark mode, is elevation signalled by lifted surfaces or by an inversion? |
-| 4   | Spacing & Grid            | `UI-4.1`-`UI-4.4` | Is every gap a multiple of the project base unit, or are there arbitrary values? Does spacing come from the container (`gap`) or from margins scattered across children? Is inner padding smaller than the gap to the next group? Do breakpoints break where the layout fails, or where a device is named? |
-| 5   | Interaction & Feedback    | `UI-5.1`-`UI-5.5` | For each interactive element: what changes visually within 100ms of the press? Which of the five states (default/hover/focus/active/disabled) is unstyled? Is the focus ring still visible after restyling? Could undo replace this confirmation? Does motion honour reduced-motion? |
-| 6   | Navigation & IA           | `UI-6.1`-`UI-6.4` | Landing on this screen cold: where am I, what's here, where next? How many top-level destinations exist? Are labels the user's words or the team's internal vocabulary? Does this state have a URL or back path, and where does hardware back land? |
+| 4   | Spacing & Grid            | `UI-4.1`-`UI-4.4` | Follow the configured spacing/layout system where present; check whether grouping, alignment, and sizing serve the current information. For responsive platforms, do layout changes respond to content and supported sizes? |
+| 5   | Interaction & Feedback    | `UI-5.1`-`UI-5.5` | For each interactive element, what feedback does the user receive within the project's/platform's expected response window? Are applicable states and focus/input cues clear? Could an undo path improve a confirmation? Does motion respect user preferences? |
+| 6   | Navigation & IA           | `UI-6.1`-`UI-6.4` | Landing on this surface cold: where am I, what's here, where next? How many top-level destinations exist? Are labels the user's words or the team's internal vocabulary? Where does navigation return, using a URL or platform back path when supported? |
 | 7   | Forms & Input             | `UI-7.1`-`UI-7.5` | Field by field: what breaks if this field is removed today? Is its label still visible once filled? When does validation fire, and does the message say how to fix it? Does the keyboard/autocomplete match the data type? What happens to typed data on validation error, navigation away, and refresh? |
 | 8   | Mobile & Touch            | `UI-8.1`-`UI-8.4` | At a touch viewport: measure each tappable element's HIT BOX (not the icon) and the gap to its neighbours; where do primary actions sit relative to the thumb; is anything reachable ONLY by gesture; what do notch, home indicator and the on-screen keyboard cover? _(Mobile/touch surfaces only — when the scope has none, say so explicitly.)_ |
 | 9   | Speed & Perceived Speed   | `UI-9.1`-`UI-9.4` | For everything that loads: what occupies its space before data arrives, and does the layout shift when it lands? Is the optimistic path rolled back VISIBLY on failure? On a slow or offline connection, what does the user see — a designed state or a hang? |
 
 **No double-counting.** Several clauses overlap Categories 1-6 (`UI-1.5`/`UI-5.2`/`UI-9.1` overlap Category 6's async-state gate; `UI-2.3` overlaps Category 1's content handling; `UI-4.1` overlaps Category 5's magic-number rule; `UI-4.4` overlaps Category 2's responsive bar). Where they meet, emit **ONE** finding carrying BOTH citations (e.g. `Category 6` + `UI-5.2`) at the HIGHER of the two severities — never two findings for one defect, and never a downgrade because "the other category already covers it".
 
-**Skip rule.** This pass runs whenever any frontend file is in scope. Skip an individual dimension ONLY when the scope contains no surface it can apply to (`UI-8.*` with no touch surface, `UI-7.*` with no input) — name the skipped dimensions and the reason, so a skip is auditable rather than an omission.
+**Skip rule.** This pass runs whenever a user-facing UI file is in scope. Skip an individual dimension ONLY when the scope contains no surface it can apply to (`UI-8.*` with no touch surface, `UI-7.*` with no input) — name the skipped dimensions and the reason, so a skip is auditable rather than an omission.
 
 ---
 
@@ -351,13 +348,13 @@ Phase 3B asked **"is this usable, accessible, and consistent?"** — a floor wit
 | 1 | Identity & rationale | `DD-1`, `DD-2` | If I swapped this product for a different one in the same shape, which of these choices would have to change? The ones that would not are where the design defaulted. Read the token/variable names alone — could a reader guess what product this is, or do they read `--gray-700`/`--surface-2`? |
 | 2 | Free-axis tell audit | `DD-4` | Which axes did the brief, the project design system, or an accepted ADR actually PIN — and which were free? On each FREE axis, does the code land on a T1–T5 cluster (cream+serif+`#D97757` · acid-on-black · broadsheet · the SaaS-card kit: identical cards, one radius for every hierarchy level, the same `rgba(0,0,0,.1)` shadow, gradient washes as decoration · template chrome: ALL-CAPS eyebrows, `A · B · C` middle-dot meta, spaced-em-dash labels, `#0B0B0B` for black, mono data labels, trailing `→`)? |
 | 3 | Type, structure & motion | `DD-5`, `DD-6`, `DD-7` | How many families and how distinct? Does body text exceed ~80ch? Is a single word in a headline accented, are labels ALL CAPS, does an eyebrow just restate its heading? Do numbered markers sit on content that is genuinely a sequence? What does each border tell the reader that whitespace would not? Is there ONE orchestrated motion moment, or a fade-and-slide-up on every section plus a hover transition on every card? |
-| 4 | Restraint & CSS honesty | `DD-8` | Where is the boldness spent — once, or scattered? Which decoration would the page not miss? Find the CSS lies: negative margins undoing a parent's padding, `calc()` values that exist only as workarounds, absolute positioning to escape layout flow, and type-vs-element selectors (`.section` vs `.cta`) cancelling each other's padding/margin. |
+| 4 | Restraint & implementation integrity | `DD-8` | Where is the boldness spent — once, or scattered? Which decoration would the surface not miss? Find layout or styling workarounds that defeat ownership or expected flow; for CSS surfaces, examples include negative margins undoing parent spacing, unnecessary calculations, absolute positioning to escape layout flow, or conflicting selectors. |
 
 **Every finding:** `DD-<clause>` + `file:line` + a severity from the Phase 4 rubric already in force. This pass introduces NO new severity scale.
 
-**Severity ceiling (MUST ATTENTION).** A `DD-4` tell match is a **hypothesis about a missed decision, never a defect** — it caps at **WARN**, and the finding is INVALID unless it names (a) the axis, (b) the evidence that the brief/project left that axis free, and (c) what the subject matter suggested instead. `DD-5`/`DD-6`/`DD-7` findings that are also `UI-*` violations (a sub-14px label, an unmeasured contrast pair, motion ignoring reduced-motion) take the `UI-*` severity. Only `DD-8`'s CSS-honesty findings reach **BLOCKED** on their own, and only where the hack actually breaks layout or maintainability.
+**Severity ceiling (MUST ATTENTION).** A `DD-4` tell match is a **hypothesis about a missed decision, never a defect** — it caps at **WARN**, and the finding is INVALID unless it names (a) the axis, (b) the evidence that the brief/project left that axis free, and (c) what the subject matter suggested instead. `DD-5`/`DD-6`/`DD-7` findings that are also `UI-*` violations (legibility outside the applicable platform standard, unmeasured contrast, motion ignoring user preferences) take the `UI-*` severity. Only `DD-8` implementation-integrity findings reach **BLOCKED** on their own, and only where evidence shows the workaround breaks the target or its maintainability.
 
-**Precedence (MUST ATTENTION), strictest in this skill:** the **brief's stated visual direction WINS OUTRIGHT** — a design that was asked for one of the T1–T5 looks and delivered it is a PASS, not a finding. Then the project design-system / SCSS / frontend-pattern docs loaded in Phase 0 — **an established house style is an intentional identity, and a repo-wide convention is NEVER a `DD-4` finding.** NEVER open a finding that amounts to "this looks like other software" without the three-part evidence above. — why: an unevidenced distinctiveness finding is pure taste asserted as a defect, and it pushes a codebase toward a *different* uniform at review cost.
+**Precedence (MUST ATTENTION), strictest in this skill:** the **brief's stated visual direction WINS OUTRIGHT** — a design that was asked for one of the T1–T5 looks and delivered it is a PASS, not a finding. Then the project's design-system and applicable styling/frontend references loaded in Phase 0 — **an established house style is an intentional identity, and a repo-wide convention is NEVER a `DD-4` finding.** NEVER open a finding that amounts to "this looks like other software" without the three-part evidence above. — why: an unevidenced distinctiveness finding is pure taste asserted as a defect, and it pushes a codebase toward a *different* uniform at review cost.
 
 **No double-counting.** Where a `DD-*` clause meets a Category 1–6 check or a `UI-*` clause, emit **ONE** finding carrying BOTH citations at the HIGHER severity — never two findings for one defect.
 
@@ -405,16 +402,16 @@ Update report with final sections:
 ### {Category}: {description}
 
 - **File:** {path}:{line}
-- **Rule:** {rule from project UI doc}
+- **Rule:** {rule from project or platform reference}
 - **Evidence:** {what was found}
-- **Fix:** {reuse target to use — directive / mixin / token}
+- **Fix:** {project-owned component, platform mechanism, configured style rule, or other applicable reuse target}
 
 ## WARN Findings (Review)
 
 ### {Category}: {description}
 
 - **File:** {path}:{line}
-- **Rule:** {rule from project UI doc}
+- **Rule:** {rule from project or platform reference}
 - **Evidence:** {what was found}
 - **Recommendation:** {suggested action}
 
@@ -425,17 +422,17 @@ Update report with final sections:
 ## UI Health Summary
 
 - Long-content Overflow & Truncation: {PASS/WARN/BLOCKED}
-- Responsive Multi-Screen (flex-wrap / row→column, usable on small devices): {PASS/WARN/BLOCKED}
-- Flex-Grow vs Fixed Sizing: {PASS/WARN/BLOCKED}
-- Z-Index Scale Discipline: {PASS/WARN/BLOCKED}
-- SCSS/CSS Best Practices & BEM: {PASS/WARN/BLOCKED}
+- Layout adaptation at supported sizes: {PASS/WARN/BLOCKED/N/A}
+- Content-responsive sizing: {PASS/WARN/BLOCKED/N/A}
+- Platform layering rules where applicable: {PASS/WARN/BLOCKED/N/A}
+- Project styling convention: {PASS/WARN/BLOCKED/N/A}
 - Async UI States & Feedback (loading / error / empty / disabled): {PASS/WARN/BLOCKED}
-- Frontend Architecture (joint w/ architecture-review): {PASS/WARN/BLOCKED/N/A}
+- UI Architecture (joint w/ architecture-review): {PASS/WARN/BLOCKED/N/A}
 ```
 
 ---
 
-## Systematic Review Protocol (10+ changed frontend files)
+## Systematic Review Protocol (10+ changed UI files)
 
 1. **Categorize** — Group files by app / shared-library / component concern
 2. **Parallel Sub-Agents** — Launch one UI/UX-specialized sub-agent per group with the UI-category checklist
@@ -512,11 +509,11 @@ Update report with final sections:
 
 Before reporting ANY work done:
 
-1. **Grep every removed name.** Extraction/rename/delete → grep confirms 0 dangling refs across ALL file types (SCSS `@use`, template class refs, TS imports)
+1. **Grep every removed name.** Extraction/rename/delete → grep confirms 0 dangling references across all relevant file types (styles, UI bindings, and source imports)
 2. **Ask WHY before changing.** Existing values intentional until proven otherwise — a fixed `width` may be a genuinely fixed UI element; no "fix" without traced rationale
 3. **Verify ALL outputs.** One compiled stylesheet ≠ all consumers — a shared-component style change affects every consuming app
 4. **Evaluate pattern fit.** Copying a nearby mixin/token? Verify the file imports/uses the SAME token system and does not mix incompatible project token systems
-5. **New artifact = wired artifact.** Created a class/mixin? Prove it is imported, referenced in the template, and reachable
+5. **New artifact = wired artifact.** Prove every created view, style, component, or helper is referenced and reachable through the target platform's entry point
 
 > **[IMPORTANT]** Use `TaskCreate` to break ALL work into small tasks BEFORE starting. Simple tasks: ask user whether to skip.
 
@@ -554,7 +551,7 @@ Before reporting ANY work done:
 
 <!-- OVERRIDE:review-protocol-injection -->
 
-> **Review Protocol Injection** — Every fresh sub-agent review prompt MUST embed 11 protocol blocks VERBATIM. The template below has ALL 11 bodies already expanded inline. Copy the template wholesale into the Agent call's `prompt` field at runtime, replacing only the `{placeholders}` in Task / Round / Reference Docs / Target Files / Output sections with context-specific values. Do NOT touch the embedded protocol sections.
+> **Review Protocol Injection** — Every fresh sub-agent review prompt MUST embed 11 protocol blocks VERBATIM, copied WHOLESALE and unmodified. They are the review-tier renderings of their canonical `SYNC:` tags, not literal copies; when a canonical protocol changes, update the matching body here in the same edit. Copy the template wholesale into the Agent call's `prompt` field at runtime, replacing only the `{placeholders}` in Task / Round / Reference Docs / Target Files / Output sections with context-specific values. Do NOT touch the embedded protocol sections.
 >
 > **Why inline expansion:** Placeholder markers would force file-read indirection at runtime. AI compliance drops significantly behind indirection (see `SYNC:shared-protocol-duplication-policy`). Therefore the template carries all 11 protocol bodies pre-embedded.
 
@@ -571,7 +568,7 @@ Agent({
   subagent_type: "ui-ux-designer",
   prompt: `
 ## Task
-{review-specific task — e.g., "Review all uncommitted frontend changes for UI quality: long-content overflow, responsive layout (flex-wrap / row→column, usable on small devices), flex-vs-fixed sizing, z-index discipline, SCSS/BEM, and async UI states & feedback (loading indicator, user-visible error surface, empty state, in-flight disable)" | "Review SCSS/template files under {path}"}
+{review-specific task — e.g., "Review in-scope UI changes for content fit at supported sizes, configured styling, applicable accessibility and layering rules, and async states" | "Review the project's configured UI files under {path}"}
 
 ## Round
 Round {N}. You have ZERO memory of prior rounds. Re-read all target files from scratch via your own tool calls. Do NOT trust anything from the main agent beyond this prompt.
@@ -579,13 +576,13 @@ Round {N}. You have ZERO memory of prior rounds. Re-read all target files from s
 ## Protocols (follow VERBATIM — these are non-negotiable)
 
 ### Spec ↔ Tests ↔ Code Triangulation
-DO THIS FIRST — before any per-protocol check below. The review target is the WHOLE PACKAGE, not the diff alone: load the behavior's spec (§3 ACs / §4 BRs / §8 TCs), its tests, and the changed code TOGETHER, and reason about their mutual consistency BEFORE judging any one in isolation.
-1. Locate all three faces: the Feature Spec section(s) governing the changed behavior, the tests that guard it, and the production code that implements it. A missing face is itself a finding (SPEC-GAP / TEST-GAP / DEAD-SPEC).
+DO THIS FIRST — before any per-protocol check below. The review target is the WHOLE PACKAGE, not the diff alone. Read `docs/project-config.json` and resolve `specArtifacts`: a valid profile selects its configured `intent/contracts/evidence` section roles, identifiers, ownership rule, and test-carrier dialects; only an absent profile selects the strict-default business-spec shape (§3 ACs / §4 BRs / §5 invariants / §8 TCs). A malformed or unsupported declaration is `BLOCKED`; never treat it as absent or fall back. Load the governing artifact, its tests, and the changed code TOGETHER, and reason about their mutual consistency BEFORE judging any one in isolation.
+1. Locate all three faces: the canonical owner section(s), the tests that guard them, and the production code that implements them. With a native profile, preserve owner path + case/scenario ID + optional variant and resolve each through its configured carrier to the actual test. A missing face is itself a finding (SPEC-GAP / TEST-GAP / DEAD-SPEC).
 2. Triangulate pairwise — every disagreement is a finding; classify which face is wrong:
-   - code vs spec: behavior the code does that no §3/§4/§8 rule describes → CODE-EXTRA or SPEC-STALE; a [HARD] §4 rule or §5 invariant with no enforcing code path → CODE-WRONG.
-   - tests vs spec: a §8 TC with no test, or a test asserting behavior no TC/rule names → TEST-GAP or SPEC-SILENT.
+   - code vs spec: behavior the code does that no configured `intent/contracts` rule (or strict-default §3/§4/§5/§8 rule) describes → CODE-EXTRA or SPEC-STALE; a hard contract/invariant with no enforcing path → CODE-WRONG.
+   - tests vs spec: a configured native case with no executing assertion, or a test asserting behavior no native rule/case names → TEST-GAP or SPEC-SILENT. Without `specArtifacts`, check strict-default §8 TCs.
    - tests vs code: a changed code path with no covering test → TEST-GAP; a test that still passes against a deliberately broken invariant → WEAK-TEST (apply the mutation thinking in Bug Detection).
-3. Hidden-rule capture: any invariant the code enforces but the spec never states (SPEC-SILENT) MUST be surfaced as a finding to add into §3/§4/§8 AND guarded with a test — the enrichment loop, never a silent pass.
+3. Hidden-rule capture: any invariant the code enforces but the spec never states (SPEC-SILENT) MUST be surfaced as a finding, added to the profile's configured `intent` or `contracts` section, and linked from its `evidence` section to a native case whose executing assertion is inspected. Without a profile, use strict-default §3/§4/§5/§8 and TC. This is the enrichment loop, never a silent pass.
 4. Only after the three faces agree — or every disagreement is logged as a finding — proceed to the per-protocol checks below; when enrichment adds spec/test content, re-review the package against the enriched spec.
 NEVER mark review PASS while any spec/test/code face disagrees without a logged finding. The diff is the entry point; the package is the unit of judgment.
 
@@ -607,15 +604,15 @@ MUST check categories 1-4 for EVERY review. Never skip.
 4. Resource Management: Connections/streams closed? Subscriptions unsubscribed on destroy? Timers cleared? Memory bounded?
 5. Concurrency (if async): Missing await? Race conditions on shared state? Stale closures? Retry storms?
 6. Stack-Specific: Check the configured language/runtime pitfalls and framework-specific failure modes discovered from local code.
-Classify every finding by consequence using `SYNC:severity-rubric` (never by effort): CRITICAL = immediate material security/safety/data-loss risk or failed binary gate → block; HIGH = material correctness, contract, privacy, or authority risk → must fix; MEDIUM = bounded consequential edge/resilience/maintainability gap → must clear the current round, or escalate with an explicit residual-risk follow-up that does not create a clean pass; LOW = non-blocking polish with no credible present impact → record/defer from round 2; `NOT VERIFIABLE` is unresolved evidence, not LOW.
+Classify every finding by consequence (never by effort): CRITICAL = immediate material security/safety/data-loss risk or failed binary gate → block; HIGH = material correctness, contract, privacy, or authority risk → must fix; MEDIUM = bounded consequential edge/resilience/maintainability gap → must clear the current round, or escalate with an explicit residual-risk follow-up that does not create a clean pass; LOW = non-blocking polish with no credible present impact → record/defer from round 2; `NOT VERIFIABLE` is unresolved evidence, not LOW.
 
 ### Design Patterns Quality
 Priority checks for every code change:
-1. DRY via OOP: Same-suffix classes (*Entity, *Dto, *Service) MUST share base class. 3+ similar patterns → extract to shared abstraction.
-2. Right Responsibility: Logic in LOWEST layer (Entity > Domain Service > Application Service > Controller). Never business logic in controllers.
-3. SOLID: Single responsibility (one reason to change). Open-closed (extend, don't modify). Liskov (subtypes substitutable). Interface segregation (small interfaces). Dependency inversion (depend on abstractions).
+1. Consistency and reuse: follow documented local patterns; extract a shared abstraction only when repetition or a demonstrated consumer need justifies its cost. Similar names alone do not require a shared base class.
+2. Responsibility: follow the architecture established by project configuration, references, accepted decisions, and existing code. Place behavior with its actual owner; do not presume an entity/service/controller hierarchy or forbid a layer without project evidence.
+3. Apply cohesion, coupling, and dependency-management principles when their assumptions fit the project's paradigm. SOLID is useful for object-oriented boundaries, not a mandatory checklist for every language or codebase.
 4. After extraction/move/rename: Grep ENTIRE scope for dangling references. Zero tolerance.
-5. YAGNI gate: Recommend extraction when 3+ similar patterns exist OR an evidenced consumer boundary/substitution need justifies it; do not create patterns for hypothetical future use.
+5. YAGNI gate: Treat repeated patterns as evidence to evaluate extraction, not a numeric threshold. Extract when a shared reason to change, real consumers, or an evidenced ownership/substitution boundary lowers total change cost; do not create patterns for hypothetical future use.
 6. Purpose-oriented naming: Name public or cross-layer abstractions by the capability, domain purpose, or contract consumers rely on—not the current provider, SDK, framework, database, or transport. `IStorage`/`Storage` → `AzureBlobStorage`; use `IAzureStorage` only when Azure-specific semantics are intentionally part of the contract.
 7. Contract-fit check: Read callers and every implementation before judging a name; narrow an over-broad abstraction (`IObjectStore`, `DocumentStore`) instead of rewarding a generic name that lies about behavior.
 8. Mechanism/generic-name smell: Treat `Manager`, `Helper`, `Utils`, `Data`, `Thing`, `Service`, `Interface`, type decorations, and unexplained abbreviations as review signals—not automatic defects; flag them only when they hide purpose, scope, or responsibility.
@@ -657,14 +654,14 @@ Example rows (external-record sync fix):
 | Record missing (404)  | Error   | Recreated                 | Fixed      |
 
 ### Fix-Layer Accountability
-NEVER fix at the crash site. Trace the full flow, fix at the owning layer. The crash site is a SYMPTOM, not the cause.
+Do not assume the crash site owns the defect. Trace the actual execution and data flow, then fix the component that owns the violated contract.
 MANDATORY before ANY fix:
-1. Trace full data flow — Map the complete path from data origin to crash site across ALL layers (storage → backend → API → frontend → UI). Identify where bad state ENTERS, not where it CRASHES.
-2. Identify the invariant owner — Which layer's contract guarantees this value is valid? Fix at the LOWEST layer that owns the invariant, not the highest layer that consumes it.
-3. One fix, maximum protection — If fix requires touching 3+ files with defensive checks, you are at the wrong layer — go lower.
-4. Verify no bypass paths — Confirm all data flows through the fix point. Check for direct construction skipping factories, clone/spread without re-validation, raw data not wrapped in domain models, mutations outside the model layer.
-BLOCKED until: Full data flow traced (origin → crash); Invariant owner identified with file:line evidence; All access sites audited (grep count); Fix layer justified (lowest layer that protects most consumers).
-Anti-patterns (REJECT): "Fix it where it crashes" (crash site ≠ cause site, trace upstream); "Add defensive checks at every consumer" (scattered defense = wrong layer); "Both fix is safer" (pick ONE authoritative layer).
+1. Trace the affected path — map the real origin, transformations, boundaries, and observed failure in the surfaces this project uses. Do not invent absent layers.
+2. Identify the contract owner — use project architecture and code evidence to find which component is responsible for the invalid state or behavior.
+3. Choose the correction point — fix the authoritative owner and retain any validation required at untrusted boundaries. A multi-file correction can be valid; justify it by the contracts each file owns rather than a file-count threshold.
+4. Check bypass paths — inspect relevant constructors, adapters, parsers, caches, persistence, or other entry points that actually exist in the affected flow.
+BLOCKED until: The affected path is traced; the owner is supported by file:line evidence; relevant consumers and bypass paths are checked; and the correction point fits the project's architecture.
+Anti-patterns (REJECT): assuming the symptom site is the owner; scattering workarounds without tracing the contract; assuming the lowest technical layer is always authoritative; removing validation from a real trust boundary to force a single correction point.
 
 ### Rationalization Prevention
 AI skips steps via these evasions. Recognize and reject:
@@ -705,7 +702,7 @@ BLOCKED until: Read target files; Grep 3+ patterns; Graph trace (if graph.db exi
 - {resolved project code-review rules doc}
 
 ## Target Files
-{explicit file list OR "run git diff and filter by the project frontend path/extension patterns"}
+{explicit file list OR "run git diff and filter by the project's configured UI/frontend path and extension patterns"}
 
 ## Output
 Write a structured report to tmp/reports/ui-review-round{N}-{date}.md with sections:
@@ -734,7 +731,7 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 
 <!-- /OVERRIDE:review-protocol-injection -->
 
-> **Critical Purpose:** UI quality — no content overflow without escape, no broken responsive layouts (rows that never wrap or stack on small devices), no fixed sizing fighting the viewport, no z-index escalation wars, no styling/BEM drift, and no async surface that leaves the user staring at a frozen blank while loading, a silent failure on error, or a blank area when empty.
+> **Critical Purpose:** UI quality — content remains available, supported sizes and inputs remain usable, platform layout/layering conventions are respected, project styling stays consistent, and async work provides meaningful feedback.
 
 > **External Memory:** Complex/lengthy work → write findings to `tmp/reports/`. Prevents context loss, serves as deliverable.
 
@@ -748,7 +745,7 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 
 <!-- /OVERRIDE-NOTE:fresh-context-review -->
 
-> **Complexity Prevention (UI-scoped)** — measure code by cost of change: one UI change should map to one code change. The full backend-OOP treatise (anemic models, primitive obsession, value objects, repo leakage) does not apply to UI review and is intentionally not carried here. UI-relevant essence: (1) **use the component system** — classify Common/Domain-Shared/Page, extend or compose the documented base, and record the owner; (2) **extract repeated component lifecycle** — 3+ forms/list views reimplementing loading/dirty/submit/pagination → base component / hook / composable / mixin; (3) **keep derivations, formatting, and validation off the template** — move them onto the model / store / view-model / API service, not inline in the component; (4) **keep one lower-tier test contract** — Page tests cover composition, not copied Common/Domain-Shared cases. For deeper OOP/DRY structural review of any backend the UI calls, defer to `/changes-review` / `/architecture-review`.
+> **Complexity Prevention (UI-scoped)** — measure code by cost of change and follow the platform's component model. Use configured component tiers and base abstractions when present; otherwise follow the observed structure without inventing one. Keep shared behavior with a clear owner when reuse is evidenced; place derivations, formatting, and validation according to the project's architecture. For deeper backend structure, defer to `/changes-review` or `/architecture-review`.
 
 <!-- SYNC:graph-assisted-investigation -->
 
@@ -790,11 +787,11 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 > **Project Reference Docs Gate (static JIT)** — Run after task-tracking bootstrap and immediately before target/source file reads, grep, edits, tests, or analysis. Project docs override generic framework assumptions; hooks may remind or accelerate this gate, but never prove that it ran.
 >
 > 1. Identify scope: file types, domain area, and operation.
-> 2. **Read `docs/project-config.json` first — the project's machine-readable map.** It is the single source of truth for THIS repo (modules/paths, framework + search keywords, test/E2E/integration run-commands, design system, architecture rules, workflow patterns); ground exact paths, run-commands, and conventions on it **before investigating, planning, or coding** — never assume framework defaults (`CLAUDE.md` + reference docs are derived from it). If it — or the docs index, `lessons.md`, `CLAUDE.md`, `AGENTS.md`, or any required reference doc — is missing or stale, auto-run `/project-init` or the narrow route (`/project-config`, `/docs-init`, `/scan-all`, `/scan --target=<key>`, `/ai-context-refresh`) first; if Codex mirrors or `AGENTS.md` are stale, use the explicit `/sync-codex` route, or the documented `/ai-context-refresh` completion handoff when that is the active source-authoring task.
-> 3. Required docs by trigger — every filename below is canonical and resolves inside the reference-docs root (default `docs/project-reference`; a `docsRoots.projectReference.path` entry in `docs/project-config.json` overrides the path): always `lessons.md`; doc lookup `docs-index-reference.md`; review `code-review-rules.md`; backend/CQRS/API `backend-patterns-reference.md`; domain/entity `domain-entities-reference.md`; frontend/UI `frontend-patterns-reference.md`; styles/design `scss-styling-guide.md` + `design-system/design-system-canonical.md`; integration tests `integration-test-reference.md`; E2E `e2e-test-reference.md`; feature docs/specs `feature-spec-reference.md` + `spec-system-reference.md` + `spec-principles.md`; behavior/public-contract/spec-test-code sync `workflow-spec-test-code-cycle-reference.md`; derived spec index/ERD/reimplementation guides `spec-system-reference.md` + source Feature Specs under the business spec root (default `docs/specs`; a `specRoots.business.path` entry in the same config overrides the path); architecture/new area `project-structure-reference.md`.
-> 4. Read every required doc, then before target work state: `Reference docs read: ... | Not applicable: ...`. After compaction, resume, delegation, or a material context change, repeat the route and restate the set; prior conversation and hook output are not proof of current loading.
+> 2. **Read the configured project-config file first, if it exists.** Resolve its path through the project-config loader (default `docs/project-config.json`). **The project config is OPTIONAL: a project with no config is a supported, first-class state, not an error.** When it is absent, run on the framework's portable defaults and derive project facts (paths, run commands, conventions, architecture, test and spec layout) from repository evidence — manifests, lockfiles, scripts, CI definitions, directory layout, root instruction files — stating the assumption whenever one is material; do not block, and do not demand a bootstrap route before ordinary work. When it IS present, the minimum valid shape has a non-empty `project.name`; omitted optional capability properties use neutral defaults or skip that capability. A section its author DECLARED but left malformed or incomplete is a configuration error: fail closed on that section and run `/project-init` or `/project-config` before relying on it, because silently substituting defaults would present wrong project facts as authoritative. Use valid config for the adopter's paths, commands, architecture, specs, tests, and workflows, then verify material hints against repository evidence; never assume generic defaults are project facts.
+> 3. **Always-on vs task-specific references:** Project initialization owns and ensures the project's `lessons.md` and docs-index inputs at their configured owner paths. Read them under the static project-context contract independently of task-specific `referenceDocs`; do not append them to that selection. For task-specific docs, when the configured `referenceDocs` property is an array, follow it exactly, including subsets and `[]`. When absent, use the runtime capability-aware resolver: its portable baseline plus only configuration- or repository-evidenced capabilities; a minimal project with no capability evidence may resolve to an empty task-specific set. The full scan-target manifest is a registry of metadata/aliases, not a default selection. Resolve configured paths using `docsRoots.projectReference.path` when present (default `docs/project-reference`; `docsRoots.projectReference.path` in `docs/project-config.json` overrides it). A custom reference doc declares `filename` and `purpose`, with optional `sections`, `templatePath`, and `scanTarget`. Built-in filenames keep their exact framework-owned target; other custom docs default to manual ownership, while `scanTarget: "generic"` opts one exact selected file into evidence-based scanning. Manual docs are not freshness-tracked or impact-routed. Never infer a target by basename; config and runtime path resolution reject lexical traversal and physical symlink escapes.
+> 4. Read selected task-specific docs just in time before target work, then state: `Reference docs read: ... | Not applicable: ...`; an explicit empty selection means no task-specific docs are selected by the catalog. Still honor separately required references named by the active skill or task. An absent project config is not a missing doc: proceed on repository evidence and, at most, OFFER `/project-init` or `/project-config` as an optional one-time recording of those facts. If an always-on input or a selected/otherwise required doc is missing or stale, or a declared config section is malformed, use `/project-init` or the narrow owner route (`/project-config`, `/docs-init`, `/scan --target=<key>`, `/ai-context-refresh`) before relying on that input. If Codex mirrors are stale, use the explicit `/sync-codex` route or its documented `/ai-context-refresh` completion handoff for the active source-authoring task. After compaction, resume, delegation, or material context change, repeat selection and reading; prior conversation and hook output are not proof of current loading.
 >
-> **Ready when:** scope evaluated, `docs/project-config.json` consulted, required docs checked/read or setup route completed, `lessons.md` confirmed, citation emitted.
+> **Ready when:** scope evaluated, the configured project-config file consulted or its absence recorded and the portable-defaults fallback applied, root always-on inputs are confirmed (completing project initialization if they are missing or stale), the declared task-specific `referenceDocs` selection is applied exactly or, when absent, the runtime capability-aware resolver output is applied (which may be empty), selected docs are read or an explicit empty selection is recorded, and the citation emitted.
 
 <!-- /SYNC:project-reference-docs-guide -->
 
@@ -885,14 +882,14 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 
 <!-- SYNC:evidence-based-reasoning -->
 
-> **Evidence-Based Reasoning** — Speculation is FORBIDDEN. Every claim needs proof.
+> **Evidence-Based Reasoning** — Do not present inference as fact; ground material claims in evidence appropriate to the task.
 >
-> 1. Cite `file:line`, grep results, or framework docs for EVERY claim
-> 2. Declare confidence: >80% act freely, 60-80% verify first, <60% DO NOT recommend
-> 3. Cross-service validation required for architectural changes
-> 4. "I don't have enough evidence" is valid and expected output
+> 1. Cite `file:line` for repository claims, configuration or reference paths for project rules, and URLs or artifact locations for external or observed claims.
+> 2. State confidence when a conclusion is uncertain; verify material assumptions before acting and withhold recommendations when evidence is insufficient.
+> 3. Trace the consumers, boundaries, or dependencies that exist in the affected path; do not assume services, modules, or architectural styles that the project does not use.
+> 4. "I don't have enough evidence" is valid and expected output.
 >
-> **BLOCKED until:** `- [ ]` Evidence file path (`file:line`) `- [ ]` Grep search performed `- [ ]` 3+ similar patterns found `- [ ]` Confidence level stated
+> **BLOCKED until:** material claims have traceable evidence, relevant searches are complete, and uncertainties are stated. Search comparable patterns when the task has existing implementations; record when none are available.
 >
 > **Forbidden without proof:** "obviously", "I think", "should be", "probably", "this is because"
 > **If incomplete →** output: `"Insufficient evidence. Verified: [...]. Not verified: [...]."`
@@ -901,27 +898,21 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 
 <!-- SYNC:design-patterns-quality -->
 
-> **Design Patterns Quality** — Priority checks for every code change:
+> **Design Quality** — Be opinionated about changeability, and choose techniques by their preconditions. For brownfield work, project config, references, accepted decisions, and current code define the local architecture; do not silently replace a settled pattern. For a new non-trivial system, treat the options below as hypotheses; use the domain, change, and deployment boundaries to select a fit, not a universal target architecture.
 >
-> 1. **DRY via OOP:** Identify classes/modules with the same purpose, naming pattern, or lifecycle. Apply your knowledge of the project's language/framework to determine the idiomatic abstraction (base class, mixin, trait, protocol, decorator). 3+ similar patterns → extract to shared abstraction.
-> 2. **Right Responsibility:** Logic in LOWEST layer (Entity > Domain Service > Application Service > Controller). Never business logic in controllers.
-> 3. **SOLID:** Single responsibility (one reason to change). Open-closed (extend, don't modify). Liskov (subtypes substitutable). Interface segregation (small interfaces). Dependency inversion (depend on abstractions).
-> 4. **After extraction/move/rename:** Grep ENTIRE scope for dangling references. Zero tolerance.
-> 5. **YAGNI gate:** Recommend extraction when 3+ similar patterns exist OR an evidenced consumer boundary/substitution need justifies it; do not create patterns for hypothetical future use.
-> 6. **Purpose-oriented naming protocol:** Name public or cross-layer abstractions by the capability, domain purpose, or contract consumers rely on—not the current provider, SDK, framework, database, or transport. `IStorage`/`Storage` → `AzureBlobStorage`; use `IAzureStorage` only when Azure-specific semantics are intentionally part of the contract. — why: provider-coupled names make an implementation replacement look like a contract change.
-> 7. **Contract-fit check:** Read callers and every implementation before judging a name; narrow an over-broad abstraction (`IObjectStore`, `DocumentStore`) instead of rewarding a generic name that lies about behavior. — why: a name cannot be validated from the declaration alone.
-> 8. **Mechanism/generic-name smell:** Treat `Manager`, `Helper`, `Utils`, `Data`, `Thing`, `Service`, `Interface`, type decorations, and unexplained abbreviations as review signals—not automatic defects; flag them only when they hide purpose, scope, or responsibility. — why: blanket word bans replace judgment with another naming convention.
-> 9. **Concrete implementation names:** Provider, strategy, transport, or test-double names are valid on concrete types when they distinguish real behavior (`AzureBlobStorage`, `InMemoryStorage`, `RetryingStorage`); keep those details out of the caller-facing contract unless the contract promises them. — why: implementation names should explain the selected behavior while callers depend on stable semantics.
-> 10. **Language convention:** Preserve local interface syntax and naming style; `.NET` `I` prefixes and Google TypeScript's unmarked interfaces are both valid local conventions. — why: purpose-oriented naming is universal, marker syntax is ecosystem-specific.
+> 1. **DRY the knowledge, not merely the text.** Keep one owner for a business rule or policy that must change together. Similar-looking code with different reasons to change may stay separate; extract shared functions, modules, types, or components when a real consumer and lower change cost justify them.
+> 2. **Give modules explicit responsibilities and dependency direction.** A modular monolith can fit a new application with one release boundary and no evidenced need for independent deployment, scaling, compliance, availability, or runtime; choose another topology when measured ownership or operating boundaries require it. Use Clean/Hexagonal/Ports-and-Adapters ideas to keep policy independent of volatile infrastructure when that boundary buys testability or change isolation. Add layers only when each owns a real contract; split deployment/services only for a demonstrated scaling, ownership, availability, compliance, or release need.
+> 3. **Model the domain to its actual complexity.** Use DDD language, aggregates, value objects, and explicit invariants where domain rules and lifecycle matter. Keep straightforward CRUD workflows simple; do not add tactical DDD ceremony without domain complexity.
+> 4. **Use events for real decoupling.** Domain/integration events and messaging fit asynchronous reactions or independently owned modules/services. Define idempotency, ordering, retry/recovery, and an outbox/CDC strategy when delivery crosses a durable boundary. Use a direct call inside one consistency boundary when asynchronous delivery adds no value.
+> 5. **Use Repository and Unit of Work at meaningful persistence boundaries.** They fit when they protect aggregate/query contracts, isolate a changing persistence technology, or coordinate a real transaction. Do not wrap every ORM call in a generic repository or add a Unit of Work that duplicates the platform's transaction behavior.
+> 6. **Apply OOP/SOLID where the language and model use objects.** Prefer cohesive responsibilities, dependency inversion at volatile boundaries, and composition before inheritance; avoid interface-per-class and abstractions with no second implementation or test seam. In functional or data-oriented code, preserve the same cohesion, explicit dependencies, and small contracts without forcing classes.
+> 7. **Build UI from cohesive components.** Keep state at the narrowest useful owner; use a store for state genuinely shared across components/routes or for coordinated async data. Add caching only with a freshness/invalidation policy and evidence of a repeated or expensive read. Use the framework's reactive model for composable asynchronous changes and dispose subscriptions/resources by its lifecycle. Apply BEM when the project uses SCSS/BEM; otherwise follow the selected CSS modules, utility, or naming method.
+> 8. **Place behavior with its invariant/data owner.** Trace callers and dependencies; use the owner selected by the project's architecture. Do not assume Entity > Service > Controller, or any other fixed layer order.
+> 9. **After extraction/move/rename:** grep the full affected scope for dangling references. Preserve project naming/style and verify caller contracts before changing an abstraction.
 >
-> **Anti-patterns to flag:** God Object, Copy-Paste inheritance, Circular Dependency, Leaky Abstraction.
+> **Selection gate:** read project config, references, accepted decisions, and comparable implementations. Name the problem/precondition a chosen pattern solves, the simpler alternative, and the trade-off. Configuration may select a stack-specific pattern; it does not make an unjustified abstraction free.
 >
-> **Serial Attention for Design Quality** — Scan one quality dimension at a time (serial passes), not all concerns at once. — why: split attention misses violations that single-focus passes catch.
->
-> 1. **Identify applicable dimensions** — Based on the code's language, domain, and patterns, determine which quality dimensions apply: DRY, SOLID principles (SRP/OCP/LSP/ISP/DIP), OOP idioms, cohesion/coupling, GRASP, Law of Demeter, CQRS invariants, etc. Your list is NOT fixed — derive from what the code actually does.
-> 2. **One focused pass per dimension** — Dedicate single-focus attention to EACH dimension in sequence. Do NOT mix concerns across passes.
-> 3. **Threshold: 3+ similar patterns = MANDATORY extraction** — Not optional suggestion. Flag as mandatory structural fix requiring action.
-> 4. **2+ violations of same kind = structural finding** — Report as "pattern problem" needing architectural resolution, not a list of individual instances.
+> **Review dimensions:** use focused passes over applicable concerns, then group repeated, evidenced violations when they share one cause. A repeated smell is not automatically a defect; name the damaged quality attribute and project-specific consequence.
 
 <!-- /SYNC:design-patterns-quality -->
 
@@ -1013,17 +1004,17 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 
 <!-- SYNC:understand-code-first -->
 
-> **Understand Code First** — HARD-GATE: Do NOT write, plan, or fix until you READ existing code.
+> **Understand Existing Code First** — For code changes, read and trace the target before planning or editing; do not apply a code workflow to work with no code surface.
 >
-> 1. Search 3+ similar patterns (`grep`/`glob`) — cite `file:line` evidence
-> 2. Read existing files in target area — understand structure, base classes, conventions
-> 3. Run `python .claude/scripts/code_graph trace <file> --direction both --json` when `.code-graph/graph.db` exists
-> 4. Map dependencies via `connections` or `callers_of` — know what depends on your target
-> 5. Write investigation to `tmp/analysis/` for non-trivial tasks (3+ files)
-> 6. Re-read analysis file before implementing — never work from memory alone. — why: long context drifts from the file; the file is ground truth
-> 7. NEVER invent new patterns when existing ones work — match exactly or document deviation. — why: divergent patterns fragment the codebase and slow every future reader
+> 1. Search for relevant existing implementations and cite `file:line`; aim for 3+ comparable examples when they exist, and record when the project has fewer or none.
+> 2. Read the target area and its configured project references; identify actual structure, owners, and conventions without assuming a framework, layer model, or base class.
+> 3. Run `python .claude/scripts/code_graph trace <file> --direction both --json` when `.code-graph/graph.db` exists and the task concerns code relationships.
+> 4. Map affected dependencies and callers with available repository tools; do not block on an absent graph or unsupported tool.
+> 5. Write investigation to `tmp/analysis/` for non-trivial tasks (3+ files).
+> 6. Re-read the analysis before implementing; update it when evidence changes.
+> 7. Follow a fitting local pattern, or state why no suitable pattern exists and justify a project-appropriate choice.
 >
-> **BLOCKED until:** `- [ ]` Read target files `- [ ]` Grep 3+ patterns `- [ ]` Graph trace (if graph.db exists) `- [ ]` Assumptions verified with evidence
+> **BLOCKED until:** target and relevant existing patterns are inspected, applicable dependencies are traced, and material assumptions have evidence. If an item does not apply or the repository has no comparable implementation, record that fact rather than fabricating a gate result.
 
 <!-- /SYNC:understand-code-first -->
 
@@ -1031,6 +1022,7 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 
 > **AI Mistake Prevention** — Failure modes to avoid on every task:
 >
+> **Project applicability gate.** Before applying a stack, layer, style, tool, or architecture rule, read the project's config and relevant references, then check local implementations. Treat framework examples as examples; honor explicit N/A and do not require a technology or convention the project does not use.
 > **ROOT-CAUSE GATE — INVESTIGATE FIRST.** Before applying any project-related correction, always use the project's root-cause investigation protocol and establish the cause; the failure site may be only a symptom.
 > **FAILED-TEST GATE.** For any failed or unstable test, use the project's test-investigation protocol before editing source or tests; never change either side merely to force green.
 > **Re-read files after context changes.** Context compaction, resume, or long-running work can make memory stale; verify current files before acting.
@@ -1213,9 +1205,11 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 
 <!-- SYNC:ui-ux-design-principles -->
 
-> **UI/UX Design Principles (Rev 1.0 — 40 clauses, web + mobile)** — the working rule set for ANY task that designs, plans, implements, or reviews a user interface. Applies to BOTH platforms unless a clause names one (§8 is mobile/touch). Cite clauses by ID: `UI-3.1`, `UI-8.2`.
+> **UI/UX Design Principles (Rev 1.0 — 40 clauses, web + mobile examples)** — a reference catalog, not a universal platform contract. Apply it only to an applicable user-facing interface. Resolve the target platform, input modes, accessibility standard, and relevant design conventions from the brief, project config/reference docs, accepted decisions, and existing UI. For web, use WCAG 2.2 AA as the baseline and meet any stricter applicable legal or project requirement; for non-web surfaces, use the documented platform accessibility standard. Record the selected standard and source.
 >
-> **Precedence:** project design-system / SCSS / frontend-pattern docs OUTRANK these clauses; these clauses outrank generic taste. A genuine conflict is SURFACED to the user with both sides — NEVER resolved silently. — why: the project's own recorded decision is the authority; these clauses are the default when it is silent.
+> Numeric values and patterns below are examples or heuristics for matching surfaces, not required thresholds. Use a value as a fail-condition only when an applicable law, platform standard, project contract, or accepted design decision establishes it. For desktop, game, embedded, command-line, or other interfaces, use their documented platform conventions and accessibility requirements; do not report a mismatch with a web/mobile example as a defect. Skip clauses whose underlying capability is absent and record N/A when needed. Cite applicable clauses by ID (for example `UI-3.1` or `UI-8.2`).
+>
+> **Precedence:** accepted product/design decisions → project config and design-system / styling / frontend / platform references → applicable clauses below → general heuristics. A genuine conflict between authoritative project sources is SURFACED with both sides — NEVER resolved silently. An absent project convention is not permission to invent one.
 >
 > **1.0 Visual Hierarchy & Layout**
 >
@@ -1227,73 +1221,73 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 >
 > **2.0 Typography**
 >
-> - `UI-2.1` Max 2 families, 3 weights each. More variety reads as inconsistency, not range.
-> - `UI-2.2` Body text 16px web, 17px mobile. NEVER below 14px for anything a user must read.
-> - `UI-2.3` Line length 45–75 characters. Constrain the measure, not the container.
-> - `UI-2.4` Leading scales inversely with size: 1.5 body, 1.1–1.2 display.
-> - `UI-2.5` Fixed type scale — 6 named steps shared with engineering. NEVER one-off sizes.
+> - `UI-2.1` Keep type families and weights purposeful; follow the project's type system when present. Two families and three weights are one possible web starting point, not a limit.
+> - `UI-2.2` Meet the readable-text sizes required by the applicable platform and project. Common web/mobile values such as 16px are examples; do not use them as universal minimums.
+> - `UI-2.3` Keep text measures readable for the content and target surface. A 45–75 character line is an editorial heuristic, not a pass threshold.
+> - `UI-2.4` Choose line spacing that supports the font, size, script, and reading context; ratios such as 1.5 for body text are starting points.
+> - `UI-2.5` Use the project's type scale where defined. Otherwise keep sizes purposeful and consistent without requiring a fixed number of named steps.
 >
 > **3.0 Colour & Contrast**
 >
-> - `UI-3.1` Contrast 4.5:1 text, 3:1 UI edges. Measure it — NEVER judge by eye on a bright screen.
+> - `UI-3.1` Meet the contrast ratios required by the selected accessibility standard; for web, use WCAG 2.2 AA unless a stricter applicable legal or project requirement applies. Measure where possible. Ratios such as 4.5:1 for text and 3:1 for interface parts are standard-specific examples, not universal values.
 > - `UI-3.2` One accent, one job. An accent that is everywhere points at nothing.
 > - `UI-3.3` Colour NEVER carries meaning alone — pair it with an icon, label or position.
 > - `UI-3.4` Dark mode is NOT inverted light mode. Lift surfaces to signal elevation; soften pure-white text.
 >
 > **4.0 Spacing & Grid**
 >
-> - `UI-4.1` One spacing unit, multiplied — 4px or 8px base; every gap a multiple of it.
+> - `UI-4.1` Follow the project's spacing tokens or grid when defined. A 4px or 8px base is one common option, not a framework requirement.
 > - `UI-4.2` Space belongs to the container, not the child. Use `gap`; reserve margins for exceptions.
-> - `UI-4.3` Tighter inside, looser between — inner padding always smaller than the gap to the next group.
+> - `UI-4.3` Use spacing to make grouping and hierarchy clear; the right relationship depends on the content and layout.
 > - `UI-4.4` Breakpoints follow content, not devices. Break where the layout stops working.
 >
 > **5.0 Interaction & Feedback**
 >
-> - `UI-5.1` Every action gets a response under 100ms, even when the result takes longer.
-> - `UI-5.2` Specify all 5 states — default, hover, focus, active, disabled — plus loading where it applies.
+> - `UI-5.1` Give immediate, perceivable feedback; use a timing target only when the product contract or applicable platform guidance defines one.
+> - `UI-5.2` Specify the interaction states supported by the target platform and input modes (for example default, focus, active, disabled, or loading); hover is not universal.
 > - `UI-5.3` Prefer undo over confirmation. Confirm ONLY what cannot be reversed.
-> - `UI-5.4` Motion clarifies cause and effect: 150–250ms, ease-out, honours reduced-motion.
-> - `UI-5.5` Keep the visible focus ring. Restyle it if it clashes; NEVER remove it.
+> - `UI-5.4` Use motion when it clarifies cause and effect; follow project/platform timing and easing, and honor reduced-motion preferences when supported. Durations around 150–250ms are examples, not a rule.
+> - `UI-5.5` Preserve a perceivable focus indicator wherever the interface supports focus navigation; follow the platform and applicable accessibility standard.
 >
 > **6.0 Navigation & IA**
 >
 > - `UI-6.1` Every screen answers: where am I, what's here, where next.
-> - `UI-6.2` Max 5 top-level destinations. Depth beats a crowded first level.
+> - `UI-6.2` Keep primary navigation understandable for the product's information architecture; do not impose a fixed destination count.
 > - `UI-6.3` Label by the user's word, not the internal one. Team vocabulary is not a taxonomy.
-> - `UI-6.4` Every state deserves a URL or a back path. Deep links and hardware back must land somewhere sensible.
+> - `UI-6.4` Preserve expected return, history, or deep-link behavior where the platform and product provide those concepts.
 >
 > **7.0 Forms & Input**
 >
 > - `UI-7.1` Ask for less. Every field needs a reason it exists today.
 > - `UI-7.2` Labels stay visible. Placeholders are hints, NEVER labels.
-> - `UI-7.3` Validate on blur, not on keystroke. Errors sit next to the field and say how to fix it.
-> - `UI-7.4` Match keyboard to data type — correct input type, autocomplete and autocapitalise on every field.
+> - `UI-7.3` Validate at a point that supports timely, useful correction without disrupting entry; follow the project's interaction contract. Explain errors and associate them with the affected input where supported.
+> - `UI-7.4` Match the input control and available input aids to the data and target platform; use autocomplete or capitalization hints only where supported and appropriate.
 > - `UI-7.5` NEVER lose entered data. Preserve input across errors, navigation and refresh.
 >
 > **8.0 Mobile & Touch** _(mobile/touch surfaces)_
 >
-> - `UI-8.1` Hit target ≥44×44pt, 8px apart. The target may exceed the visible icon.
-> - `UI-8.2` Primary actions in the bottom third — that is where the thumb lives.
-> - `UI-8.3` Gestures are shortcuts, NEVER the only route. Anything swipeable is also tappable.
+> - `UI-8.1` Meet the target-size and spacing requirements of the applicable platform/accessibility standard. The interactive target may exceed the visible icon.
+> - `UI-8.2` Place primary actions where they are reachable for the target device, orientation, handedness, and input mode.
+> - `UI-8.3` Provide an alternative to gesture-only actions when required by the target platform or accessibility contract.
 > - `UI-8.4` Respect safe areas and the keyboard. Notch, home indicator and on-screen keyboard all steal space.
 >
 > **9.0 Speed & Perceived Speed**
 >
-> - `UI-9.1` Show structure before data — skeletons for known layouts, spinners only for unknown waits.
-> - `UI-9.2` Assume success optimistically. Update UI first, reconcile after, roll back visibly on failure.
+> - `UI-9.1` Give feedback appropriate to the work and what is known; skeletons and spinners are options, not required patterns.
+> - `UI-9.2` Use optimistic updates only when the operation can be safely reconciled; otherwise show clear pending, success, and failure states.
 > - `UI-9.3` Reserve space for anything that loads. Images, ads and fonts must NEVER shift the layout.
-> - `UI-9.4` Design for the slow connection. Offline, timeout and retry are states, NOT edge cases.
+> - `UI-9.4` For network-dependent surfaces, define useful timeout, retry, and offline behavior according to the product's availability needs.
 >
 > **Apply by role** — the clauses are one set; what you DO with them depends on the task:
 >
 > | Role                                | Obligation                                                                                                                                                              |
 > | ----------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-> | DESIGN / PLAN a surface             | Clauses shape the artifact: empty/loading/error specified first (`UI-1.5`), all 5 states enumerated (`UI-5.2`), type scale + spacing unit declared (`UI-2.5`, `UI-4.1`) |
-> | IMPLEMENT a component               | Pre-completion gate: states · tokens · contrast · focus ring · touch target · reserved space (`UI-5.2`, `UI-2.5`/`UI-4.1`, `UI-3.1`, `UI-5.5`, `UI-8.1`, `UI-9.3`)      |
-> | REVIEW UI code or a design artifact | Each clause is a fail-condition; every finding cites `UI-<clause>` + `file:line` + severity. NEVER a tick-box sweep — one focused pass per section                      |
-> | SCAN / document a UI system         | Record where the PROJECT deliberately deviates, so the overriding doc becomes the recorded authority                                                                    |
+> | DESIGN / PLAN a surface             | Select applicable clauses for the target platform; document required states, tokens, input, and constraints from the project contract. |
+> | IMPLEMENT a component               | Verify the configured behavior and accessibility requirements; use project tokens and abstractions only when defined. |
+> | REVIEW UI code or a design artifact | Treat only applicable, authoritative clauses as fail-conditions; cite `UI-<clause>` + `file:line` + severity. NEVER turn inapplicable defaults into findings. |
+> | SCAN / document a UI system         | Record the project's actual platform conventions and deliberate deviations; do not fill gaps with this catalog's examples. |
 >
-> **Component architecture contract (code-bearing UI work):** Classify every component as **Common**, **Domain-Shared**, or **Page** and record its base abstraction and owner. Reuse or compose the project component system before creating a component or variant, and record the constraint when reuse does not fit. Use an idiomatic base component/abstract class or language-equivalent protocol/trait for shared behavior; keep repeated markup, selectors, styling, and lifecycle in one reusable owner. A component test covers reusable lower-tier behavior once; Page tests cover only page-specific composition and outcomes. — why: a declared tier model and one source of behavior prevent component drift while keeping future changes cheap.
+> **Component architecture (code-bearing UI work):** Follow documented tiers and base abstractions when the project has them. Otherwise identify actual reuse boundaries from the code; do not require a three-tier taxonomy, base class, or lower-tier test model. Reuse shared behavior when a demonstrated consumer and suitable project abstraction justify it; test according to the project's test organization.
 >
 > **Skip ONLY** when the change has no user-facing surface (backend-only, tooling, docs) — state that explicitly so the skip is auditable, not an omission.
 
@@ -1351,23 +1345,23 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 >
 > **`CL-3` Severity, then a cap (§0.3).** `P0` blocks task completion / loses data / excludes a protected group (ship blocker) · `P1` significant friction or a legal accessibility floor (fix before release) · `P2` measurable inefficiency (next iteration) · `P3` polish (backlog) · `P4` note. Cap the report at the top 10 by severity unless a full audit was requested. A clean section reports "no issues found" — NEVER pad. Every `P0`/`P1` carries a concrete fix.
 >
-> **`CL-4` Section sweep, in order.** §A core usability heuristics · §B cognitive load & decision design · §C visual design & hierarchy · §D interaction + **the eight screen states** (ideal, empty, first-run, loading, partial, error, offline, maximum-data) · §E information architecture · **§F web / §G mobile / §H desktop — conditional on platform** · §I accessibility (WCAG 2.2 AA; every item `P1` minimum, `P0` when it blocks the task) · §J content & UX writing · §K trust, ethics & privacy (dark patterns are `P0`) · **§L AI & agentic patterns — conditional on the product having AI features** · §M cross-cutting consistency · §N edge-case probes. One focused pass per section — why: a section skipped in the long middle silently becomes an unreported defect class.
+> **`CL-4` Section sweep, in order.** §A core usability heuristics · §B cognitive load & decision design · §C visual design & hierarchy · §D interaction and relevant product states · §E information architecture · **§F web / §G mobile / §H desktop — conditional on platform** · §I accessibility: use WCAG 2.2 AA as the web baseline and meet any stricter applicable legal or project requirement; for other platforms, use the documented platform standard. Record the selected standard and its source; severity follows the governing release contract · §J content & UX writing · §K trust, ethics & privacy · **§L AI & agentic patterns — conditional on the product having AI features** · §M cross-cutting consistency · §N edge-case probes. Make one focused pass per applicable section and record N/A with evidence for sections the surface does not support.
 >
-> **`CL-5` Quick Triage Pass (§P)** when a full sweep is not possible — these 10 catch the majority of serious defects: (1) can a new user complete the primary task unaided · (2) does every action give visible feedback within 400ms · (3) do empty/loading/error states exist AND offer a forward path · (4) is the primary action obvious, singular, reachable · (5) text ≥4.5:1 contrast and focus visible · (6) whole flow completable by keyboard · (7) touch targets ≥44/48px · (8) destructive actions reversible · (9) holds at 320px and 200% zoom · (10) any dark patterns.
+> **`CL-5` Quick Triage Pass (§P)** when a full sweep is not possible — use these prompts for applicable surfaces: (1) can a new user complete the primary task unaided · (2) is feedback timely against the project/platform expectation · (3) do relevant empty/loading/error states offer a forward path · (4) is the primary action obvious and reachable for supported inputs · (5) do contrast and focus meet the selected accessibility standard (WCAG 2.2 AA baseline for web) · (6) can users operate the surface with its supported input modes · (7) do interactive targets meet the platform's size/spacing guidance · (8) are destructive actions recoverable where appropriate · (9) does the surface work at its smallest supported size and required zoom/reflow · (10) are there deceptive or coercive patterns.
 >
 > **`CL-6` Report shape (§O).** Context (+ known gaps) → Verdict (Ship / Ship with fixes / Do not ship) → What works (2–4 specific strengths, cited) → Findings grouped `P0`→`P3`, each with Location · Evidence + tag · Impact · Principle (checklist ID) · Fix → Open questions → Coverage table. Any `P0` caps the grade at Fail regardless of score; report a score only ALONGSIDE findings, never instead of them.
 >
-> **Component architecture pass (§M6–§M9) when source code is in scope.** Verify the component tier (Common/Domain-Shared/Page), base abstraction and owner, reuse/composition decision, and absence of duplicated component markup, selectors, styling, lifecycle, or lower-tier test cases. Report the applicable checklist ID with `file:line` evidence; do not infer code architecture from a screenshot alone.
+> **Component architecture pass (§M6–§M9) when source code is in scope.** Verify the ownership model documented or demonstrated by the project, reuse/composition decisions, and whether shared behavior is duplicated without a reason. Do not require tiers, a base abstraction, or a particular test hierarchy unless the project uses one. Report applicable checklist IDs with `file:line` evidence; do not infer source architecture from a screenshot alone.
 >
 > **Precedence and no-double-counting.** The project's design-system / SCSS / frontend-pattern docs and accepted ADRs OUTRANK this checklist; the brief's stated direction outranks aesthetic judgment. A deliberate, documented convention is NEVER a defect — check intent before flagging, and surface a genuine conflict to the user with both sides, NEVER resolve it silently. This checklist is the review PROCEDURE, not a third set of taste rules: `UI-1.1`–`UI-9.4` ask "does it meet the usability floor?", `DD-1`–`DD-8` ask "is this THIS product's interface?", and these checks ask "did the review actually look, with evidence, and rank it?". Where a check restates a `UI-*` or `DD-*` clause, report the defect ONCE under whichever ID the consuming skill already uses.
 >
-> **For a PLAN or a PLAN REVIEW.** When the plan contains front-end work, the checklist binds the plan's ACCEPTANCE CRITERIA, not a built page: name the platform, the applicable conditional sections (§F/§G/§H, §L), the eight screen states each UI phase must deliver (§D2), and the §I accessibility floor — so the work is specified against the checklist before it is written. A UI phase whose acceptance criteria omit the states and the a11y floor is INCOMPLETE — say so.
+> **For a PLAN or a PLAN REVIEW.** When the plan contains UI work, bind applicable acceptance criteria to the target platform/surface, relevant user states, and the selected accessibility standard. Use WCAG 2.2 AA as the web baseline and meet any stricter applicable legal or project requirement; for other platforms, identify the documented platform standard. Identify conditional sections (§F/§G/§H, §L) that apply. Do not require every catalogued state; record the standard and its source, and keep unsupported checks N/A.
 
 <!-- /SYNC:design-review-checklist -->
 
 <!-- SYNC:evidence-based-reasoning:reminder -->
 
-**IMPORTANT MUST ATTENTION** cite `file:line` evidence for every claim. Confidence >80% to act, <60% = do NOT recommend.
+**IMPORTANT MUST ATTENTION** cite `file:line` evidence for every claim; never speculate. Confidence >80% to act, <60% = do NOT recommend; "not enough evidence" is valid output.
 
 <!-- /SYNC:evidence-based-reasoning:reminder -->
 
@@ -1379,7 +1373,7 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 
 <!-- SYNC:graph-assisted-investigation:reminder -->
 
-**IMPORTANT MUST ATTENTION** run at least ONE graph command on key files when graph.db exists. Pattern: grep → trace → verify.
+**IMPORTANT MUST ATTENTION** run at least ONE graph command on key files before concluding when graph.db exists. Pattern: grep → graph trace → grep verify.
 
 <!-- /SYNC:graph-assisted-investigation:reminder -->
 
@@ -1391,7 +1385,7 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 
 <!-- SYNC:understand-code-first:reminder -->
 
-**IMPORTANT MUST ATTENTION** search 3+ existing patterns and read code BEFORE any modification. Run graph trace when graph.db exists.
+**IMPORTANT MUST ATTENTION** search 3+ existing patterns and read code/conventions BEFORE any modification or explanation. Run graph trace when graph.db exists.
 
 <!-- /SYNC:understand-code-first:reminder -->
 
@@ -1403,7 +1397,7 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 
 <!-- SYNC:critical-thinking-mindset:reminder -->
 
-**MUST ATTENTION** apply critical + sequential thinking — every claim needs appropriate traced evidence (`file:line` for repo/code claims; source URL or artifact section for research, product, content, and docs claims); confidence >80% to act, <60% DO NOT recommend. Anti-hallucination: never present guess as fact, admit uncertainty freely, cross-reference independently, stay skeptical of own confidence.
+**MUST ATTENTION** critical + sequential thinking: every claim carries traced evidence (`file:line` for code, source URL or artifact section otherwise); confidence >80% to act, <60% do NOT recommend. Never present a guess as fact; admit uncertainty and stay skeptical of your own confidence.
 
 <!-- /SYNC:critical-thinking-mindset:reminder -->
 
@@ -1415,7 +1409,7 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 
 <!-- SYNC:ai-mistake-prevention:reminder -->
 
-**MUST ATTENTION** ROOT-CAUSE GATE: before any project-related correction, use the appropriate root-cause investigation protocol; failed/unstable tests require the test-investigation protocol before editing source/tests — never force green.
+**MUST ATTENTION** Check project config, relevant references, and local evidence before applying stack-specific conventions; honor explicit N/A. ROOT-CAUSE GATE: before any project-related correction, use the appropriate root-cause investigation protocol; failed/unstable tests require the test-investigation protocol before editing source/tests — never force green.
 
 <!-- /SYNC:ai-mistake-prevention:reminder -->
 
@@ -1428,10 +1422,10 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 
 <!-- SYNC:project-reference-docs-guide:reminder -->
 
-- **MANDATORY** Before investigating, planning, or coding, read `docs/project-config.json` (the project map: modules/paths, run-commands, conventions, architecture/workflow rules) + the required project-reference docs, and cite `Reference docs read: ...`.
-- **MANDATORY** Load detail just in time immediately before the first target read/grep/edit/test; hooks may provide a pointer, but a hook event or prior turn is never evidence that the current files were read.
-- **MANDATORY** Always include `lessons.md`; project config + conventions override generic framework defaults.
-- **MANDATORY** If project config, root instruction files, or any required reference doc is missing or stale, auto-run `/project-init` or the narrow lower-level route before ordinary project-specific work. On compaction, resume, delegation, or a context change, re-read the required docs and restate the route before continuing.
+- **MANDATORY** Before project-specific work, load the OPTIONAL project-config (default `docs/project-config.json`) via its loader. No config is supported — fall back to portable defaults plus repository evidence, state material assumptions, never block. When present: require non-empty `project.name`, use neutral defaults/skips for omitted optional capabilities, and fail closed on a declared malformed section.
+- **MANDATORY** Apply an explicit `referenceDocs` array exactly, including `[]`; when absent use only the capability-aware resolver output, which may be empty. Cite `Reference docs read: ...` and note the selected or empty set.
+- **MANDATORY** Load detail JUST IN TIME, immediately before the first target read/grep/edit/test — a hook event or a prior turn is NEVER evidence that the current files were read. Re-resolve selection and re-read after compaction, resume, delegation, or a context change.
+- **MANDATORY** The project-init-owned `lessons.md` and docs-index inputs are always-on at their configured owner paths, read independently of task-specific `referenceDocs`. A missing/stale root instruction file or required reference doc, or a malformed declared config section → auto-run `/project-init` (or the narrow lower-level route) before relying on that input. An absent config never gates work — offer `/project-init` or `/project-config` once. Project config and conventions override generic framework defaults.
 
 <!-- /SYNC:project-reference-docs-guide:reminder -->
 
@@ -1478,9 +1472,9 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 
 <!-- SYNC:double-round-trip-review:reminder -->
 
-- **MANDATORY IMPORTANT MUST ATTENTION** execute the review loop (aka **Self-Review Convergence Loop**): review → validate findings → fix validated blocking findings → full re-review. Round 1 ends only with zero findings and the persisted `minRounds` met; from round 2 onward, zero CRITICAL/HIGH/MEDIUM ends the loop once the persisted minimum is met and LOW findings are recorded as deferred. Any newly produced output/judgment gets ≥1 self-review; any new judgment gets ≥1 `/why-review --validate-findings` pass before it is treated as final.
-- **MANDATORY** apply the **severity floor**: round 1 exits on zero findings at any severity; **from round 2 the bar is zero CRITICAL/HIGH/MEDIUM — LOW findings are no longer required to be fixed, so a LOW-only round ENDS the loop once the persisted minimum is met.** List every deferred LOW in the report; NEVER re-tier a real CRITICAL/HIGH/MEDIUM down to LOW to reach the exit, and NEVER apply the floor to a binary gate (test-green, security must-fix).
-- **MANDATORY** enforce the **round cap of 2, extendable ONCE to round 3 — a ceiling, NEVER a target**: a clean pass ends the loop once the persisted `minRounds` is met (default 1; explicit 2 requires an independent pass). Round 2 completing with validated **CRITICAL/HIGH** still open (a failed non-test binary gate counts as CRITICAL) grants exactly ONE extra round (round 3); round 2 completing with only MEDIUM/`NOT VERIFIABLE` open, or round 3 completing with any review blocker still open → **STOP & escalate via `AskUserQuestion`**, never a silent PASS. The 2-repeated-no-progress blocker rule is an earlier exit — escalate at whichever trips first. A **failing test gate has NO round cap** — keep fixing and re-running until the tests pass, never forcing green; it never escalates for budget and never buys the extension. NEVER loop past round 3 on review blockers, and NEVER re-tier a finding to buy or dodge the extension.
+- **MANDATORY IMPORTANT MUST ATTENTION** run the review loop (aka **Self-Review Convergence Loop**): review → validate findings → fix validated blocking findings → FULL re-review. Any newly produced output/judgment gets ≥1 self-review, and any new judgment ≥1 `/why-review --validate-findings` pass, before it is treated as final.
+- **MANDATORY severity floor:** round 1 exits only on zero findings at any severity; from round 2 the bar is zero CRITICAL/HIGH/MEDIUM, so a LOW-only round ENDS the loop once the persisted `minRounds` is met — list every deferred LOW in the report. NEVER re-tier a real CRITICAL/HIGH/MEDIUM down to reach the exit, and NEVER apply the floor to a binary gate (test-green, security must-fix).
+- **MANDATORY round cap of 2, extendable ONCE to round 3 — a ceiling, NEVER a target.** A clean pass ends the loop once the persisted `minRounds` is met (default 1; explicit 2 requires an independent pass). Round 2 ending with a validated CRITICAL/HIGH still open (a failed non-test binary gate counts as CRITICAL) grants exactly ONE extra round; round 2 ending with only MEDIUM/`NOT VERIFIABLE` open, or round 3 ending with any review blocker open → **STOP and escalate via `AskUserQuestion`**, never a silent PASS. The 2-repeated-no-progress blocker rule escalates earlier if it trips first. A failing TEST gate has NO round cap and buys no extension — keep fixing and re-running until tests pass, never forcing green.
 
 <!-- /SYNC:double-round-trip-review:reminder -->
 
@@ -1496,9 +1490,9 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 
 <!-- SYNC:trade-off-interrogation-gate:reminder -->
 
-- **MANDATORY MUST ATTENTION ALWAYS ASK THE 3 TRADE-OFF QUESTIONS** — on the thing under review AND on every recommendation you make: (1) **is there any trade-off?** name what it SACRIFICES (change cost · complexity · perf · coupling · reversibility · migration · ops load · blast radius · security · testability · delivery time · UX) — "none"/"pure win" is an unfinished analysis, so state the dimensions checked; (2) **is it worth it?** gain (with a metric) vs cost, WHO pays, WHEN → emit **WORTH IT / NOT WORTH IT / UNCLEAR**; NOT WORTH IT → withdraw or replace it; (3) **is it material enough to confirm with the user?** irreversible/one-way door · cost shifted onto another team/ops/maintainer/user · one quality attribute traded for another · a tier/service/event/library boundary crossed · auth/money/data-integrity/breaking-change/High-or-Medium-risk path · verdict UNCLEAR → **STOP and confirm via `AskUserQuestion` BEFORE the verdict**.
-- **MANDATORY** A MATERIAL trade-off with no user confirmation can NEVER be PASS; NEVER bury one as a Low-severity note, NEVER decide it silently, and NEVER let delivery or convergence pressure authorize a one-way door. — why: an un-walked-back one-way door is the user's call to make, not the reviewer's.
-- **MANDATORY — non-asking contexts escalate BY HANDOFF, never by silence.** `AskUserQuestion` reaches only the main interactive agent: a sub-agent cannot ask the user, and a terminal/verdict-only mode asks nothing by design. There the duty is REDIRECTED, not waived — still name the trade-off, still decide materiality, record `confirmed? = NO — cannot ask from this context`, **state the unconfirmed MATERIAL trade-off in your RETURNED verdict/summary so the CALLER escalates it** (a note only in an on-disk report is not a handoff), and never emit an unqualified PASS. Applies ONLY where the user is genuinely unreachable (spawned sub-agent, terminal validate mode, headless run) — if you CAN ask, you MUST ask.
+- **MANDATORY MUST ATTENTION ALWAYS ASK THE 3 TRADE-OFF QUESTIONS** — on the thing under review AND on every recommendation you make: (1) **what does it SACRIFICE?** name the dimensions checked (change cost · complexity · perf · coupling · reversibility · migration · ops load · blast radius · security · testability · delivery time · UX) — "none"/"pure win" is an unfinished analysis; (2) **is it worth it?** gain (with a metric) vs cost, WHO pays, WHEN → emit **WORTH IT / NOT WORTH IT / UNCLEAR**; NOT WORTH IT → withdraw or replace it; (3) **is it MATERIAL enough to confirm with the user?** irreversible/one-way door · cost shifted onto another team/ops/maintainer/user · one quality attribute traded for another · a tier/service/event/library boundary crossed · auth/money/data-integrity/breaking-change/High-or-Medium-risk path · verdict UNCLEAR → **STOP and confirm via `AskUserQuestion` BEFORE the verdict**.
+- **MANDATORY** A MATERIAL trade-off with no user confirmation can NEVER be PASS; never bury one as a Low-severity note, never decide it silently, and never let delivery or convergence pressure authorize a one-way door — an un-walked-back one-way door is the user's call, not the reviewer's.
+- **MANDATORY — a context that cannot ask escalates BY HANDOFF, never by silence.** `AskUserQuestion` reaches only the main interactive agent, so a sub-agent or a terminal/verdict-only mode cannot ask. There the duty is REDIRECTED, not waived: still name the trade-off, still decide materiality, record `confirmed? = NO — cannot ask from this context`, and **state the unconfirmed MATERIAL trade-off in your RETURNED verdict so the CALLER escalates it** (a note only in an on-disk report is not a handoff); never emit an unqualified PASS. If you CAN ask, you MUST ask.
 
 <!-- /SYNC:trade-off-interrogation-gate:reminder -->
 
@@ -1529,7 +1523,7 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 
 <!-- SYNC:project-protocol-overlay -->
 
-> **Project Protocol Overlay** — Before executing this skill, resolve any PROJECT overlay rules layered onto it: match this skill's name against the `Target` column of the project's skill-protocol index (default `docs/project-reference/skill-protocols-reference.md`; a `referenceDocs` entry in `docs/project-config.json` overrides the path, and a `docsRoots.projectReference.path` entry relocates its containing directory), taking the most specific matching tier ONLY — exact name > glob > `*`. **That precedence orders overlays against EACH OTHER, never against this skill.** Read ONLY the matched bodies, resolved as `<protocols-dir>/<Name>.md`; a row's Body link is display text, never a read path. A matched body that is missing or malformed is REPORTED and skipped — never reconstructed from the index Description. No index, or no match -> proceed with no overlay, silently. Full contract: `.claude/skills/project-skill-protocol/references/registry.md`.
+> **Project Protocol Overlay** — Before executing this skill, resolve project overlays from the index at `<docsRoots.projectReference.path>/skill-protocols-reference.md` (default `docs/project-reference/`; `docsRoots.projectReference.path` in `docs/project-config.json` overrides it). A matching `referenceDocs[]` filename may relocate the index within that root; this registry is independent from task-specific reference-doc selection, so omitted or empty `referenceDocs` does not disable it. The index's `**Protocols directory:**` header selects a project-root-relative body directory (default `docs/project-protocols/`). Match this skill against the `Target` column and take the most specific tier ONLY — exact name > glob > `*`. **That precedence orders overlays against EACH OTHER, never against this skill.** Read only matched bodies derived as `<protocols-dir>/<Name>.md`; the row's Body link is display text, never a read path. Reject unsafe paths without reading. A matched body that is missing or malformed is REPORTED and skipped — never reconstructed from the index Description. An absent index or no match -> proceed with no overlay, silently. Full contract: `.claude/skills/project-skill-protocol/references/registry.md`.
 >
 > Overlays are **ADDITIVE ONLY**: they ADD rules on top of this skill's own protocol and NEVER replace, override, disable, or reinterpret a rule it already states — removing every overlay must return this skill to exactly its documented behavior. An overlay is a BRIEF, not an authority escalation: it can NEVER waive a workflow gate, git discipline, a review gate, or a user-confirmation gate. A genuine overlay-vs-skill conflict, or two equally-specific overlays that directly contradict -> surface both to the user; NEVER resolve silently.
 
@@ -1537,13 +1531,12 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 
 <!-- SYNC:project-protocol-overlay:reminder -->
 
-**MUST ATTENTION** resolve project protocol overlays for this skill BEFORE executing — most specific matching tier only (exact > glob > `*`, which ranks overlays against each other, NEVER against this skill), read only matched bodies at `<protocols-dir>/<Name>.md`; a missing or malformed body is reported, never reconstructed. Overlays are ADDITIVE ONLY (they never replace this skill's own rules) and are a brief, NEVER an authority escalation; an equal-specificity contradiction goes to the user.
-
+**MUST ATTENTION** resolve this skill's overlays from the index at `<docsRoots.projectReference.path>/skill-protocols-reference.md` (default `docs/project-reference/`); an empty task `referenceDocs` does NOT disable this lookup. Read ONLY matched bodies from the directory the index header names (default `docs/project-protocols/`). Specificity (exact > glob > `*`) ranks overlays against EACH OTHER, never against the skill. Missing/malformed body → report and skip; no index or no match → proceed silently. Overlays are ADDITIVE ONLY — never an authority escalation or a gate waiver; equal-tier contradiction goes to the user.
 <!-- /SYNC:project-protocol-overlay:reminder -->
 
 <!-- SYNC:ui-ux-design-principles:reminder -->
 
-- **MUST ATTENTION** apply the 40 UI/UX Design Principles (`UI-1.1`–`UI-9.4`) to any user-facing surface: one focal point, proximity grouping, empty/loading/error designed FIRST (§1) · ≤2 families, 16px web / 17px mobile body, never <14px, 45–75ch, fixed 6-step scale (§2) · 4.5:1 text / 3:1 edges measured, one accent, colour never alone, dark mode ≠ inversion (§3) · one 4/8px unit, `gap` over margins, tighter-inside-looser-between, content-driven breakpoints (§4) · <100ms response, all 5 states, undo over confirm, 150–250ms ease-out honouring reduced-motion, visible focus ring (§5) · where-am-I/what's-here/where-next, ≤5 top-level destinations, user's words, URL or back path (§6) · fewer fields, visible labels, validate on blur, matched keyboard, NEVER lose input (§7) · ≥44×44pt targets 8px apart, bottom-third primaries, gestures never the only route, safe areas (§8) · structure before data, optimistic update with visible rollback, reserved space, slow-connection states (§9). For code-bearing UI, also classify components as Common/Domain-Shared/Page, reuse the project base/component system, and keep shared behavior in one abstract/base owner with no duplicated component implementation or page-level copy. Project design-system docs OUTRANK these clauses — a genuine conflict goes to the user, NEVER resolved silently. Cite every finding as `UI-<clause>` + `file:line`. Skip ONLY for changes with no user-facing surface, stated explicitly.
+Apply `UI-1.1`–`UI-9.4` only to applicable user-interface work. Resolve platform and project conventions first. Use WCAG 2.2 AA as the web accessibility baseline plus any stricter applicable legal/project requirement; non-web surfaces use the documented platform standard. Other web/mobile metrics and component tiers are defaults/examples only for matching surfaces. Skip N/A clauses and non-UI work explicitly. Project config, references, and accepted decisions govern; cite applicable findings by `UI-<clause>` + `file:line`.
 
 <!-- /SYNC:ui-ux-design-principles:reminder -->
 
@@ -1561,7 +1554,7 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 
 <!-- SYNC:design-review-checklist:reminder -->
 
-- **MUST ATTENTION** when the change/plan/artifact has a user-facing front-end surface, READ `.claude/docs/design-review-checklist.md` and run it: `CL-1` establish context first (platform · user · task · metric · constraints · scope · artifacts — fewer than four → state the gap, findings are low confidence) · `CL-2` evidence or nothing, cite a location per finding, NEVER invent a measurement (unmeasurable → `NOT VERIFIABLE`), tag `MEASURED`/`OBSERVED`/`HEURISTIC` · `CL-3` rank `P0`–`P4`, cap at top 10 by severity, NEVER pad, concrete fix on every `P0`/`P1` · `CL-4` sweep §A–§N in order, one focused pass each, with §F/§G/§H and §L applied only when the platform/product matches and §I (WCAG 2.2 AA) as a `P1` floor · `CL-5` short on time → run the 10-check §P triage · `CL-6` report in the §O shape · for source code, run the §M6–§M9 component architecture pass (Common/Domain-Shared/Page tier, base/owner, reuse, and duplication). Project design-system docs and ADRs OUTRANK the checklist; report a defect ONCE across `UI-*`/`DD-*`/`CL-*`. For a plan, the checklist binds the UI phases' acceptance criteria (platform, conditional sections, the eight screen states, the a11y floor). Skip ONLY when the change has NO user-facing front-end surface, stated explicitly.
+- **MUST ATTENTION** when the change/plan/artifact has an applicable user-facing UI surface, READ `.claude/docs/design-review-checklist.md` and run it: `CL-1` establish context first (platform · user · task · metric · constraints · scope · artifacts — state missing context and its confidence impact) · `CL-2` evidence or nothing, cite a location per finding, NEVER invent a measurement (unmeasurable → `NOT VERIFIABLE`), tag `MEASURED`/`OBSERVED`/`HEURISTIC` · `CL-3` rank `P0`–`P4`, cap at top 10 by severity, NEVER pad, concrete fix on every `P0`/`P1` · `CL-4` sweep §A–§N, applying only relevant platform/product sections and the WCAG 2.2 AA web baseline plus any stricter applicable legal/project requirement, or the documented standard for other platforms · `CL-5` short on time → use the §P prompts · `CL-6` report in the §O shape · for source code, assess component ownership, base abstractions, reuse, and duplication using the project's documented taxonomy or observed boundaries. Project design-system docs and ADRs OUTRANK the checklist; report a defect ONCE across `UI-*`/`DD-*`/`CL-*`. For a plan, bind only applicable sections and states to acceptance criteria. Skip when the work has no user-facing UI surface, and state why.
 
 <!-- /SYNC:design-review-checklist:reminder -->
 
@@ -1571,8 +1564,8 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 >
 > **Detailed protocol routing — read/apply only when warranted:**
 > - `SYNC:scale-ready-foundation` — greenfield foundation is blocking; big-feature brownfield fit/adapt/defer; architecture review is advisory when auditing. Detailed carriers: `workflow-greenfield-init`, `workflow-big-feature`.
-> - `SYNC:test-architecture-execution-contract` — assertion-bearing tests use explicit `Given` → `When` → `Then`, name the guarded intent/technical contract, and assert an owned outcome. Detailed carriers: `integration-test`, `workflow-greenfield-init`, and the test-architecture review path.
-> - `SYNC:ai-agent-as-user-access` — when an AI/machine actor or future contract is evidenced, inspect identity/delegation, capability boundaries, selected API/CLI/MCP/WebMCP/event/SDK surface, safety/consent, audit/observability, and GWT contract tests. Detailed carriers: `workflow-greenfield-init`, `workflow-big-feature`, `architecture-review`.
+> - `SYNC:test-architecture-execution-contract` — assertion-bearing tests use the project's configured/native format, name the guarded intent/technical contract, and assert an owned outcome; GWT is one valid format. Detailed carriers: `integration-test`, `workflow-greenfield-init`, and the test-architecture review path.
+> - `SYNC:ai-agent-as-user-access` — when an AI/machine actor or future contract is evidenced, inspect identity/delegation, capability boundaries, selected API/CLI/MCP/WebMCP/event/SDK surface, safety/consent, audit/observability, and native-format contract tests. Detailed carriers: `workflow-greenfield-init`, `workflow-big-feature`, `architecture-review`.
 > - `SYNC:design-system-check` — when UI changes, inspect the design-system and component-contract obligations; route visual/UX depth to the owning UI review.
 >
 > **Review behavior:** Check only principles applicable to the reviewed scope; record `APPLY-NOW`, `ADAPT-IN-SLICE`, `DEFER-AS-OPPORTUNITY`, `NOT-APPLICABLE`, `BLOCKED`, or `UNVERIFIED` with `file:line`/config/CI evidence, status/severity, owner/route, and next step/revisit trigger. Do not invent findings from a generic checklist, flag unrelated pre-existing gaps as regressions, silently expand the requested scope, or mutate a parent gate merely because advice exists.
@@ -1587,13 +1580,13 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 
 <!-- SYNC:review-principle-awareness:reminder -->
 
-**IMPORTANT MUST ATTENTION** Every review first checks the change context and routes only applicable principles to their detailed protocols: scale-ready foundation, explicit Given → When → Then test intent, AI-agent-as-user access, and UI/component design when relevant. Record evidence-backed apply/adapt/defer/N/A/block/unverified status with owner and next step; do not invent unrelated findings or expand scope.
+**IMPORTANT MUST ATTENTION** Every review first checks the change context and routes only applicable principles to their detailed protocols: scale-ready foundation, test intent in the project's native format (GWT is one option), AI-agent-as-user access, and UI/component design when relevant. Record evidence-backed apply/adapt/defer/N/A/block/unverified status with owner and next step; do not invent unrelated findings or expand scope.
 
 <!-- /SYNC:review-principle-awareness:reminder -->
 
 ## Closing Reminders
 
-**IMPORTANT MUST ATTENTION Goal:** Validate UI/frontend changes for the six visual-quality dimensions that break in production but slip past correctness review — long-content overflow & truncation, responsive multi-screen layout (flex-wrap / row-to-column so it stays usable on small devices), flex-grow vs fixed sizing, z-index scale discipline, SCSS/CSS/BEM styling quality, and async UI states & feedback (loading indicator, user-visible error surface, empty state, in-flight disable) — so frontend/UI changes survive real content, responsive layouts, layering, styling conventions, and the loading/error/empty branches before handoff.
+**IMPORTANT MUST ATTENTION Goal:** Validate in-scope user interfaces for content fit, supported-size behavior, platform-appropriate layout/layering and styling, accessibility, and async feedback; use the project's own UI patterns and skip absent surfaces.
 
 **IMPORTANT MUST ATTENTION Workflow:** Phase 0 load project UI rules → Phase 1 determine and filter scope (skip with evidence when no frontend files) → Phase 2 graph blast radius → Phase 3 review Categories 1–6 → Phase 3B run all nine UI/UX design-principles passes → Phase 4 write the compliance verdict → Phase 5 validate findings with `/why-review` → Phase 6 fix only validated findings that block the current round and restart the full UI review (Round 1: all severities; Round 2: CRITICAL/HIGH/MEDIUM; LOW-only deferred; binary gates always block); batch large scopes and use the UI/UX specialist only as the protocol requires.
 
@@ -1622,24 +1615,24 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 **MUST ATTENTION** SKIP this skill when no files match the project frontend path/extension patterns
 **MUST ATTENTION** every violation requires `file:line` proof — NEVER speculate
 **MUST ATTENTION** grep 3+ counterexamples before flagging any pattern violation
-**MUST ATTENTION** `z-index` with `!important` and chained BEM modifiers are HARD-GATE BLOCKED
+**MUST ATTENTION** treat BEM, CSS override, and stacking rules as blockers only when the project documents them or source evidence shows a user-visible defect
 **MUST ATTENTION** NEVER mix incompatible project token systems in one file — recommend whichever system the file already imports/uses
 **MUST ATTENTION** after validated UI fixes, rerun the full UI review; when that protocol uses a fresh reviewer, use the UI/UX-specialized sub-agent from the local sub-agent selection guide
 **MUST ATTENTION** run at least ONE graph command on key files when graph.db exists
 **MUST ATTENTION** NEVER fix code — review and report only
 **MUST ATTENTION** apply `Think:` reasoning prompt before checking each category — derive violations, don't recite checklists
-**MUST ATTENTION** run the Phase 3B UI/UX Design Principles pass — all 40 clauses (`UI-1.1`-`UI-9.4`) as NINE focused passes, one dimension at a time; every finding cites `UI-<clause>` + `file:line` + BLOCKED/WARN severity, and project design-system docs OUTRANK the clauses (genuine conflict → `AskUserQuestion`, NEVER resolved silently)
+**MUST ATTENTION** run the Phase 3B UI/UX Design Principles pass for in-scope user interfaces — review the nine principle groups and apply clauses supported by the target platform, project conventions, and interaction modes; record inapplicable clauses with evidence. Findings cite `UI-<clause>` + `file:line` + BLOCKED/WARN severity, and project design-system docs remain authoritative when present (surface genuine conflicts; NEVER resolve them silently).
 **MUST ATTENTION** use `AskUserQuestion` to present next steps after completing review
 
 **Anti-Rationalization:**
 
 | Evasion                                   | Rebuttal                                                                                |
 | ----------------------------------------- | --------------------------------------------------------------------------------------- |
-| "Too simple for a UI review"              | Simple templates still overflow on a 200-char value. Apply all 6 categories.            |
-| "Already read the docs"                   | Show the extracted rule (mixin name, token name) — no recall = no read.                 |
+| "Too simple for a UI review"              | Simple surfaces can still fail at supported content sizes. Apply the relevant categories. |
+| "Already read the docs"                   | Show the extracted project/platform rule — no recall = no read.                          |
 | "Just flag obvious z-index literals"      | Gray areas matter most. Trace the surface's semantic layer before recommending a token. |
-| "Fixed width is fine, it looks right"     | Looks right at 1440px ≠ usable at 320px. Apply the flex/min-max decision rule.          |
-| "web-design-guidelines already covers UI" | That is a11y/UX, not the project styling gate. Different scope — do both.               |
+| "Fixed width is fine, it looks right"     | Check the sizes and user scaling the project supports; verify the target platform can show the whole interaction. |
+| "web-design-guidelines already covers UI" | Use it for web accessibility/UX; also check applicable project UI conventions without duplicating findings. |
 
 ---
 

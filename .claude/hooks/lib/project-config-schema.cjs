@@ -12,6 +12,11 @@
  */
 'use strict';
 
+const {
+    normalizeProjectRelativePath,
+    validateReferenceDocDefinition
+} = require('./project-reference-registry.cjs');
+
 // ═══════════════════════════════════════════════════════════════════════════
 // SCHEMA DEFINITION
 // ═══════════════════════════════════════════════════════════════════════════
@@ -27,9 +32,10 @@ const SCHEMA = {
     schemaVersion: { type: 'number', required: false },
     project: {
         type: 'object',
-        required: false,
+        required: true,
+        describe: 'Required project identity. Only name is mandatory; stack, architecture, testing, UI, and other capability sections may be omitted until the adopter needs them.',
         properties: {
-            name: { type: 'string', required: true },
+            name: { type: 'string', required: true, describe: 'Non-empty human-readable project name.' },
             description: { type: 'string', required: false },
             languages: { type: 'array', required: false },
             packageManagers: { type: 'array', required: false },
@@ -78,7 +84,8 @@ const SCHEMA = {
     },
     designSystem: {
         type: 'object',
-        required: true,
+        required: false,
+        describe: 'Optional design-system capability. Omit for projects with no maintained design system; UI work then follows platform accessibility and the project UI references.',
         properties: {
             docsPath: { type: 'string', required: true },
             modernUiNote: { type: 'string', required: false },
@@ -96,6 +103,14 @@ const SCHEMA = {
             canonicalDoc: { type: 'string', required: false },
             tokenFiles: { type: 'array', required: false }
         }
+    },
+    // Omitted profiles retain the existing business-spec / section-8 / TestSpec defaults.
+    // The bounded, closed profile contract is owned by spec-artifact-profile.cjs.
+    specArtifacts: {
+        type: 'object',
+        required: false,
+        freeform: true,
+        describe: 'Optional versioned native engineering-contract profile. Omit to retain business intent and legacy TC/TestSpec behavior; declared values are strictly validated.'
     },
     // Spec-system roots. Optional at the top level so existing project configs stay
     // valid, but every declared sub-object requires its `path` — a partially-declared
@@ -346,7 +361,8 @@ const SCHEMA = {
     },
     framework: {
         type: 'object',
-        required: true,
+        required: false,
+        describe: 'Optional stack and pattern metadata. Omit when the project has no single application framework or when this information is not yet known; configured consumers use neutral defaults.',
         properties: {
             name: { type: 'string', required: true },
             backendPatternsDoc: { type: 'string', required: false },
@@ -428,12 +444,12 @@ const SCHEMA = {
                     browser: {
                         type: 'object',
                         required: false,
-                        describe: 'Browser runner and human-QC presentation settings. Readiness/actionability always precede pacing; every browser/UI-control operation uses exactly 500ms of post-operation presentation pacing in both automation and human-QC.',
+                        describe: 'Optional browser runner, visibility, and action-pacing settings. Use runner-native readiness waits. Configure post-action pacing only when the project has a documented need; it never substitutes for a settle signal.',
                         properties: {
                             runner: { type: 'string', required: false, describe: 'Project-configured browser runner hint, such as playwright-cli; do not infer a dependency from this field alone.' },
                             engine: { type: 'string', required: false, describe: 'Project-configured browser engine or target, such as chromium.' },
                             headed: { type: 'boolean', required: false, describe: 'Whether the browser is visible to the user during human-QC execution.' },
-                            actionDelayMs: { type: 'number', required: false, describe: 'Deterministic post-operation presentation delay; when configured, it must be exactly 500ms for every browser/UI-control operation and is never a readiness or settle substitute.' }
+                            actionDelayMs: { type: 'number', required: false, describe: 'Optional non-negative post-action delay in milliseconds for a documented project presentation/pacing need. Omit or set 0 when no delay is needed; never use it as a readiness or settle substitute.' }
                         }
                     },
                     evidence: {
@@ -447,10 +463,10 @@ const SCHEMA = {
                             uiStateCapture: {
                                 type: 'object',
                                 required: false,
-                                describe: 'Auto-capture of every UI-state-changing action, emitted from the shared page/component action layer after each waitUntil postcondition and the 500ms pacing. Additive to the declared state x viewport matrix, never a replacement. Contract: .claude/skills/shared/ui-state-capture-protocol.md',
+                                describe: 'Optional visual UI-state capture. Transition capture is opt-in and requires an evidenced shared action boundary; declared state/viewport captures use the configured runner. Contract: .claude/skills/shared/ui-state-capture-protocol.md',
                                 properties: {
-                                    mode: { type: 'string', required: false, describe: 'One of every-action, declared-only, or off. Default every-action when visual review is enabled; off is an explicit opt-out, never a silent default.' },
-                                    helper: { type: 'string', required: false, describe: 'Project-relative path/symbol of the capture helper wired into the base action primitives; discovered from the repository, never invented.' },
+                                    mode: { type: 'string', required: false, describe: 'One of every-action, declared-only, or off. Default declared-only; every-action must be selected only when a verified shared action boundary can emit transition captures.' },
+                                    helper: { type: 'string', required: false, describe: 'Project-relative path/symbol of a capture integration at an evidenced shared action boundary (for example a fixture, helper, wrapper, action primitive, or page object); discover it from source.' },
                                     manifestPath: { type: 'string', required: false, describe: 'Project-relative capture-manifest.json path under the disposable evidence root; one row per capture including deduped and capped rows.' },
                                     maxPerTest: { type: 'number', required: false, describe: 'Positive bounded per-test capture cap; reaching it records an escalation naming the untaken captures, never a silent truncation.' },
                                     maxPerRun: { type: 'number', required: false, describe: 'Positive bounded per-run capture cap; reaching it records an escalation naming the untaken captures, never a silent truncation.' },
@@ -572,7 +588,8 @@ const SCHEMA = {
             filename: { type: 'string', required: true },
             purpose: { type: 'string', required: true },
             sections: { type: 'array', required: false },
-            templatePath: { type: 'string', required: false }
+            templatePath: { type: 'string', required: false },
+            scanTarget: { type: 'string', required: false, describe: 'Optional custom-doc owner: generic for an evidence-based scan, manual for curated project ownership. Built-in docs keep their framework-owned target.' }
         }
     },
     graphConnectors: {
@@ -721,16 +738,30 @@ const SCHEMA = {
             // false = keep a project-only CLAUDE.md/AGENTS.md; the agent-files bootstrap
             // gate then checks only existence, not universal-guides completeness. Default true.
             requireUniversalGuides: { type: 'boolean', required: false },
-            // false = this project does not want the agent inferring an execution route.
-            // Resolved by .claude/scripts/lib/workflow-routing-config.cjs and honoured by all
-            // THREE router carriers: the CK:WORKFLOW-GATE + CK:WORKFLOW-SKILLS blocks in
-            // CLAUDE.md, the DETECT/ANALYZE/AUTO-SELECT/ACTIVATE steps of the static
-            // workflow-execution protocol, and the Codex workflow protocol + catalog in
-            // .codex/CODEX_CONTEXT.md. Gating only one leaves the mode half-disabled.
-            // Explicit invocation (/plan, $start-workflow <id>, a named skill) still works, and
-            // no quality gate, task-planning or git rule is relaxed. Default true; the resolver
-            // fails OPEN, so only a literal false disables routing.
+            // false opts the team out of the tracked workflow route gate. Default true.
+            // A developer may override runtime refresh in git-ignored `.claude/.ck.local.json`.
             workflowAutoDetect: { type: 'boolean', required: false },
+            // Optional custom protocol appended to the runtime workflow-route reminder on
+            // UserPromptSubmit. A string is inline markdown; an object carries inline `text`
+            // and/or a repo-relative `path` to a markdown file read at runtime. The value here
+            // is team-shared; a developer may override it in git-ignored `.claude/.ck.local.json`
+            // (local replaces team). Runtime-only: it is never stamped into tracked
+            // CLAUDE.md/AGENTS.md/Codex context, which stay team-owned.
+            workflowRouteProtocol: {
+                type: 'union',
+                required: false,
+                describe: 'Optional custom workflow-route protocol appended to the runtime route reminder. Inline string, or an object { text?, path? } where `path` is a repo-relative markdown file read at runtime. Team value lives here; a developer overrides it in git-ignored .claude/.ck.local.json (local replaces team). Never stamped into tracked context.',
+                oneOf: [
+                    { type: 'string' },
+                    {
+                        type: 'object',
+                        properties: {
+                            text: { type: 'string', required: false },
+                            path: { type: 'string', required: false }
+                        }
+                    }
+                ]
+            },
             // The root package.json `name` that marks this repo as carrying the framework's own
             // npm surface. Read by .claude/scripts/codex/tests/framework-repo.helper.mjs to decide
             // whether the framework-repo self-checks apply here; defaults to the upstream
@@ -753,6 +784,65 @@ const SCHEMA = {
             conventionFields: { type: 'array', required: false, itemType: 'string' },
             removableFields: { type: 'array', required: false, itemType: 'string' },
             fieldFixes: { type: 'map', required: false }
+        }
+    },
+    // Optional hook behavior settings. Every property is optional and every
+    // omitted property keeps the framework's portable default, so a project that
+    // declares nothing behaves exactly as it did before this section existed.
+    hooks: {
+        type: 'object',
+        required: false,
+        describe: 'Optional hook behavior settings. Omitted properties keep the framework defaults.',
+        properties: {
+            // Consumed by .claude/hooks/lib/startup-install.cjs through the single
+            // registered SessionStart owner (.claude/hooks/verify-install.cjs).
+            // The manager EXECUTABLE and its ARGUMENTS are deliberately not
+            // configurable: the hook only ever runs a fixed, version-matched argv
+            // from its own support matrix, so a project config can never turn the
+            // startup hook into an arbitrary command runner.
+            startupInstall: {
+                type: 'object',
+                required: false,
+                describe: 'Startup dependency installation. Defaults: enabled true, packageManager "auto", allowLifecycleScripts false. Disabling installation never disables .claude integrity verification.',
+                properties: {
+                    enabled: {
+                        type: 'boolean',
+                        required: false,
+                        describe: 'Default true (also when this config file is absent). false disables installation only.'
+                    },
+                    packageManager: {
+                        type: 'string',
+                        required: false,
+                        enumValues: ['auto', 'npm', 'pnpm', 'yarn', 'bun'],
+                        describe: 'Default "auto". A non-auto value is one manager SIGNAL, never an override: it must agree with every other available signal or the install fails closed.'
+                    },
+                    allowLifecycleScripts: {
+                        type: 'boolean',
+                        required: false,
+                        describe: 'Default false. Only explicit true removes the hook\'s own script-suppression argument; manager-native policy (e.g. Bun trustedDependencies) still applies.'
+                    }
+                }
+            },
+            // Windows capability policy. The resolver still probes native Git
+            // read-only when repair is disabled; these flags only govern the
+            // optional background WinGet repair worker.
+            windowsGit: {
+                type: 'object',
+                required: false,
+                describe: 'Windows native Git/Git Bash capability. Defaults: enabled true, autoRepair true. Invalid project config disables repair only; integrity verification remains active.',
+                properties: {
+                    enabled: {
+                        type: 'boolean',
+                        required: false,
+                        describe: 'Default true. false disables Git capability integration and background repair.'
+                    },
+                    autoRepair: {
+                        type: 'boolean',
+                        required: false,
+                        describe: 'Default true. false keeps the read-only probe but never starts the WinGet repair worker.'
+                    }
+                }
+            }
         }
     }
 };
@@ -795,6 +885,26 @@ function validateField(value, fieldSchema, path, errors, warnings) {
         warnings.push(`${path}: DEPRECATED — this field will be removed in a future version`);
     }
 
+    // Union field: the value is valid when it satisfies ANY alternative. Warnings from the
+    // matching alternative are kept; non-matching alternatives contribute their errors only
+    // when no alternative matches. Used by `portability.workflowRouteProtocol`
+    // (inline string | { text?, path? }).
+    if (Array.isArray(fieldSchema.oneOf)) {
+        const failedTypes = [];
+        for (const alternative of fieldSchema.oneOf) {
+            const altErrors = [];
+            const altWarnings = [];
+            validateField(value, alternative, path, altErrors, altWarnings);
+            if (altErrors.length === 0) {
+                warnings.push(...altWarnings);
+                return;
+            }
+            failedTypes.push(alternative.type || 'value');
+        }
+        errors.push(`${path}: expected one of ${failedTypes.join(' | ')}`);
+        return;
+    }
+
     switch (fieldSchema.type) {
         case 'string':
             if (typeof value !== 'string') {
@@ -804,6 +914,9 @@ function validateField(value, fieldSchema, path, errors, warnings) {
             if (fieldSchema.isRegex) {
                 const regexErr = validateRegex(value, path);
                 if (regexErr) errors.push(regexErr);
+            }
+            if (Array.isArray(fieldSchema.enumValues) && !fieldSchema.enumValues.includes(value)) {
+                errors.push(`${path}: expected one of ${fieldSchema.enumValues.join('|')}, got "${value}"`);
             }
             break;
 
@@ -1018,8 +1131,8 @@ function validateE2eExecutionSemantics(config, errors, warnings) {
     const browser = execution.browser;
     if (browser && typeof browser === 'object' && !Array.isArray(browser)) {
         if (typeof browser.actionDelayMs === 'number' &&
-            (!Number.isFinite(browser.actionDelayMs) || !Number.isInteger(browser.actionDelayMs) || browser.actionDelayMs !== 500)) {
-            errors.push('e2eTesting.execution.browser.actionDelayMs: expected exactly 500');
+            (!Number.isSafeInteger(browser.actionDelayMs) || browser.actionDelayMs < 0)) {
+            errors.push('e2eTesting.execution.browser.actionDelayMs: expected a non-negative safe integer in milliseconds');
         }
     }
 
@@ -1060,8 +1173,8 @@ function validateE2eExecutionSemantics(config, errors, warnings) {
             if (!isNonEmptyString(uiStateCapture.manifestPath)) {
                 warnings.push('e2eTesting.execution.evidence.uiStateCapture.manifestPath: configure the capture-manifest.json path; an unindexed capture set cannot be reconciled case by case and reads as UNVERIFIED');
             }
-            if (uiStateCapture.mode !== 'off' && !isNonEmptyString(uiStateCapture.helper)) {
-                warnings.push('e2eTesting.execution.evidence.uiStateCapture.helper: name the capture helper wired into the shared action primitives; a per-test screenshot call decays invisibly while the suite still passes');
+            if (uiStateCapture.mode === 'every-action' && !isNonEmptyString(uiStateCapture.helper)) {
+                warnings.push('e2eTesting.execution.evidence.uiStateCapture.helper: name the source-verified capture boundary used for every-action transition capture');
             }
         }
     }
@@ -1241,6 +1354,96 @@ function validateDocsRootsSemantics(config, errors, warnings) {
 }
 
 /**
+ * Validate the optional native spec profile using its closed owner schema.
+ * Lazy loading keeps VM-based schema mutation tests and hook startup fail-soft.
+ */
+function validateSpecArtifactProfileSemantics(config, errors) {
+    if (!Object.prototype.hasOwnProperty.call(config, 'specArtifacts')) return;
+    const profile = config.specArtifacts;
+    if (profile === null) {
+        errors.push('specArtifacts: expected a non-null object');
+        return;
+    }
+    if (typeof profile !== 'object' || Array.isArray(profile)) return;
+    try {
+        if (typeof require !== 'function') {
+            errors.push('specArtifacts: profile validator unavailable in this runtime');
+            return;
+        }
+        require('./spec-artifact-profile.cjs').resolveSpecArtifactProfile(config);
+    } catch (error) {
+        errors.push(typeof error?.message === 'string' ? error.message : 'specArtifacts: invalid profile');
+    }
+}
+
+/** Validate reference-doc ownership metadata and portable output/template paths. */
+function validateReferenceDocsSemantics(config, errors, warnings) {
+    if (!Array.isArray(config.referenceDocs)) return;
+
+    const allowed = new Set(Object.keys(SCHEMA.referenceDocs.itemSchema));
+    config.referenceDocs.forEach((doc, index) => {
+        if (!doc || typeof doc !== 'object' || Array.isArray(doc)) return;
+        for (const key of Object.keys(doc)) {
+            if (!allowed.has(key)) warnings.push(`referenceDocs[${index}].${key}: unknown property (not in schema)`);
+        }
+        try {
+            validateReferenceDocDefinition(doc, index);
+        } catch (error) {
+            errors.push(error && typeof error.message === 'string'
+                ? error.message
+                : `referenceDocs[${index}]: invalid reference-doc definition`);
+        }
+    });
+}
+
+/** The optional feature-spec template destination is also a project-relative write path. */
+function validateFeatureDocTemplateSemantics(config, errors) {
+    const destination = config.workflowPatterns?.featureDocTemplate;
+    // Existing adopters may use a blank optional value to request the framework
+    // default. Keep that runtime contract; only validate a non-empty declaration.
+    if (destination === undefined || destination === null || (typeof destination === 'string' && !destination.trim())) return;
+    try {
+        normalizeProjectRelativePath(destination, 'workflowPatterns.featureDocTemplate');
+    } catch (error) {
+        errors.push(error && typeof error.message === 'string'
+            ? error.message
+            : 'workflowPatterns.featureDocTemplate: invalid project-relative path');
+    }
+}
+
+/**
+ * The optional custom route protocol's file reference must stay inside the repository.
+ * Runtime resolution is fail-soft (an escaping or unreadable path is treated as "no opinion"),
+ * so this fail-closed plane is the only surface that catches a traversal typo or a stale path.
+ * A repo-relative path that does not exist yet is a WARNING, not an error (same convention as
+ * docsRoots): the protocol may be authored just after the config that points at it.
+ */
+function validatePortabilitySemantics(config, errors, warnings) {
+    const protocol = config?.portability?.workflowRouteProtocol;
+    if (!protocol || typeof protocol !== 'object' || Array.isArray(protocol)) return;
+    const refPath = protocol.path;
+    if (typeof refPath !== 'string' || !refPath.trim()) return;
+    if (isAbsoluteProjectPath(refPath)) {
+        errors.push('portability.workflowRouteProtocol.path: must be a repo-relative path without parent traversal (absolute paths and ".." segments are rejected)');
+        return;
+    }
+    try {
+        const { isPrivacySensitive } = require('./sensitive-path-policy.cjs');
+        if (isPrivacySensitive(refPath)) {
+            errors.push('portability.workflowRouteProtocol.path: points at a privacy-sensitive file (.env / credentials / secret / key) that the runtime refuses to inject into model context; declare a non-sensitive protocol document');
+            return;
+        }
+    } catch {
+        /* validator module unavailable in this runtime (VM sandbox); the runtime guard still applies */
+    }
+    const deps = semanticDeps();
+    if (!deps) return;
+    if (!deps.fs.existsSync(deps.path.resolve(deps.repoRoot, refPath))) {
+        warnings.push(`portability.workflowRouteProtocol.path: "${refPath}" does not exist on disk`);
+    }
+}
+
+/**
  * Validate a config object against the schema.
  * @param {object} config - The parsed project-config.json
  * @returns {{ valid: boolean, errors: string[], warnings: string[] }}
@@ -1262,11 +1465,19 @@ function validateConfig(config) {
         validateField(config[key], fieldSchema, key, errors, warnings);
     }
 
+    if (config.project && typeof config.project.name === 'string' && config.project.name.trim() === '') {
+        errors.push('project.name: expected a non-empty project identity');
+    }
+
     validateExperienceVerificationSemantics(config, errors, warnings);
     validateE2eExecutionSemantics(config, errors, warnings);
     validateContextGroupSemantics(config, errors, warnings);
+    validateReferenceDocsSemantics(config, errors, warnings);
+    validateFeatureDocTemplateSemantics(config, errors);
     validateConventionInjectionSemantics(config, errors);
+    validateSpecArtifactProfileSemantics(config, errors);
     validateDocsRootsSemantics(config, errors, warnings);
+    validatePortabilitySemantics(config, errors, warnings);
 
     // Check for unknown top-level keys
     const knownKeys = new Set(Object.keys(SCHEMA));
@@ -1377,7 +1588,11 @@ function describeField(name, schema, depth, lines) {
     const req = schema.required ? 'required' : 'optional';
 
     if (schema.type === 'string' || schema.type === 'number' || schema.type === 'boolean') {
-        const extra = schema.isRegex ? ', regex' : '';
+        const extra = schema.isRegex
+            ? ', regex'
+            : Array.isArray(schema.enumValues)
+                ? `, one of ${schema.enumValues.join('|')}`
+                : '';
         lines.push(`${indent}${name} (${schema.type}, ${req}${extra})${depr}`);
         emitDescribe(schema, depth + 1, lines);
     } else if (schema.type === 'array') {
@@ -1404,6 +1619,16 @@ function describeField(name, schema, depth, lines) {
             const json = JSON.stringify(example, null, 2);
             for (const line of json.split('\n')) {
                 lines.push(`${indent}  ${line}`);
+            }
+        }
+    } else if (Array.isArray(schema.oneOf)) {
+        const shapes = schema.oneOf.map((alt) => alt.type || 'value').join(' | ');
+        lines.push(`${indent}${name} (${shapes}, ${req})${depr}`);
+        emitDescribe(schema, depth + 1, lines);
+        const objectAlt = schema.oneOf.find((alt) => alt.type === 'object' && alt.properties);
+        if (objectAlt) {
+            for (const [prop, propSchema] of Object.entries(objectAlt.properties)) {
+                describeField(prop, propSchema, depth + 1, lines);
             }
         }
     }

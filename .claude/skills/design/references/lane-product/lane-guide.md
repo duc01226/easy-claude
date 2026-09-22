@@ -32,7 +32,7 @@
 Both live under the reference-docs root (default `docs/project-reference`; a `docsRoots.projectReference.path` entry in `docs/project-config.json` overrides the path):
 
 - Component patterns: `frontend-patterns-reference.md`
-- Styling/BEM guide: `scss-styling-guide.md`
+- Styling reference: `configured styling reference`
 
 **Scope:**
 

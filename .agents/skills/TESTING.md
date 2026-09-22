@@ -2,6 +2,8 @@
 
 Test prompts to verify skills activate correctly. Each section contains prompts that should trigger the corresponding skill.
 
+> Prompts are adaptable examples; their domain names and technologies do not define a project's architecture. Read `docs/project-config.json` and the relevant project-reference docs to decide which checks apply. When a convention is absent or marked N/A, expected behavior is to follow relevant code evidence or state N/A rather than invent a pattern.
+
 ## Testing Instructions
 
 1. **Direct Invocation**: Test with `/skill-name` to verify the skill loads
@@ -60,8 +62,8 @@ Inference test prompts:
 Expected behavior:
 
 - Creates analysis notes file
-- Checks architecture compliance
-- Identifies SOLID violations
+- Checks conventions documented for the affected paths and relevant code
+- Evaluates applicable quality principles and reports only evidence-backed findings
 - Proposes improvements with examples
 
 ---
@@ -87,124 +89,15 @@ Inference test prompts:
 Expected behavior:
 
 - Creates implementation plan
-- Identifies affected services/components
-- Follows CQRS patterns
-- Waits for approval before implementing
-
----
-
-### database-optimization
-
-Direct invocation:
-
-```
-/database-optimization
-```
-
-Inference test prompts:
-
-```
-"This query is taking 30 seconds to execute"
-"I think there's an N+1 problem in GetOrderList"
-"Add an index to improve search performance"
-"Optimize the order list query with filtering"
-"The dashboard is slow because of too many database calls"
-```
-
-Expected behavior:
-
-- Identifies performance issues
-- Suggests appropriate indexes
-- Recommends eager loading
-- Uses parallel queries where possible
-
----
-
-## Backend Skills
-
-### backend-cqrs-command
-
-Direct invocation:
-
-```
-/backend-cqrs-command
-```
-
-Test prompts:
-
-```
-"Create a SaveReturnCommand"
-"Add a DeleteOrderCommand with soft delete"
-"Implement bulk update for order status"
-```
-
-Expected: Command + Result + Handler in ONE file
-
----
-
-### backend-cqrs-query
-
-Direct invocation:
-
-```
-/backend-cqrs-query
-```
-
-Test prompts:
-
-```
-"Create GetOrderListQuery with search and pagination"
-"Add a query to get order by reference"
-"Implement a dashboard statistics query"
-```
-
-Expected: Uses GetQueryBuilder, parallel queries, full-text search
-
----
-
-### backend-entity-development
-
-Direct invocation:
-
-```
-/backend-entity-development
-```
-
-Test prompts:
-
-```
-"Create an entity for ReturnRequest"
-"Add static expressions to Order entity"
-"Implement computed properties for FullName"
-```
-
-Expected: Static expressions, computed properties with empty setter
-
----
-
-### backend-entity-event-handler
-
-Direct invocation:
-
-```
-/backend-entity-event-handler
-```
-
-Test prompts:
-
-```
-"Send notification when return is approved"
-"Sync order data to external system on create"
-"Update search index when order is modified"
-```
-
-Expected: Side effects in event handler, not command handler
+- Identifies affected modules and files from project config and source; does not assume service or component layers
+- Follows the configured and reference-documented architecture; when absent or N/A, uses consistent existing code and states the gap
+- Follows the workflow's planning and approval gates before implementing
 
 ---
 
 ## Frontend Skills
 
-_(framework-specific frontend skill removed — frontend patterns handled by `frontend-patterns-reference.md` in the project-reference docs root (default `docs/project-reference/`; path from `docsRoots.projectReference.path` in `docs/project-config.json`) + auto-injected by frontend context)_
+_(Add direct-invocation cases only for frontend skills installed in the current framework copy. Use configured UI, state, and styling references when those surfaces exist; otherwise test that the skill records them as N/A.)_
 
 ---
 
@@ -225,9 +118,15 @@ Test prompts:
 "Optimize the order search feature"
 "Review API response times"
 "Review this service design for performance at architecture altitude"
+"Investigate a slow database query or possible N+1 on an affected data-access path, if this project uses one"
+"Decide whether a changed query warrants an index using schema/query-plan evidence, or state N/A when no database path applies"
 ```
 
-Expected: Profiling, caching strategies, query optimization, architecture-altitude layer review
+Expected behavior:
+
+- Selects performance dimensions from the changed path, configured technologies, and available evidence; records absent layers as N/A with a reason
+- Applies paging/index analysis only to a configured, code-evidenced database path, using the project's documented conventions and query/schema evidence
+- Grounds all recommendations in the project's architecture and references; treats caching, query, runtime, and layer examples as applicable only when present
 
 ---
 
@@ -247,7 +146,10 @@ Test prompts:
 "Audit authorization patterns in controllers"
 ```
 
-Expected: OWASP considerations, authorization checks
+Expected behavior:
+
+- Reviews security surfaces and controls present in the project's configured architecture
+- Uses documented security requirements and source evidence; records absent surfaces as N/A rather than inventing them
 
 ---
 
@@ -258,6 +160,6 @@ For each skill test:
 - [ ] Direct invocation works (`/skill-name`)
 - [ ] Inference activates for relevant prompts
 - [ ] Correct workflow phases are followed
-- [ ] Project patterns are applied
+- [ ] Only configured or code-evidenced project patterns are applied; absent/N/A conventions are not invented
 - [ ] Anti-patterns are avoided
 - [ ] Output matches expected format

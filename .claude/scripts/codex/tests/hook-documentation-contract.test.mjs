@@ -103,7 +103,7 @@ test('DOC-HOOK-002 backend rejection example drains and returns with exit 2', ()
 test('DOC-HOOK-003 disabled experience example validates with a machine-readable reason', () => {
     const source = example(read('.claude/docs/configuration/experience-verification.md'), '## Honest non-applicability');
     // The guide supplies a block to merge, not the unrelated required project fields.
-    const config = { framework: { name: 'fixture' }, designSystem: { docsPath: 'docs/design', appMappings: [] }, ...JSON.parse(source) };
+    const config = { project: { name: 'fixture' }, framework: { name: 'fixture' }, designSystem: { docsPath: 'docs/design', appMappings: [] }, ...JSON.parse(source) };
     assert.equal(config.experienceVerification.enabled, false);
     assert.deepEqual(config.experienceVerification.surfaces, []);
     const valid = validateConfig(config);

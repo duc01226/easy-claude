@@ -34,7 +34,7 @@ test('sync-context fixture overrides a competing ambient root without touching i
     await fs.writeFile(path.join(foreign, '.codex/CODEX_CONTEXT.md'), 'foreign-context-sentinel');
     await fs.writeFile(path.join(foreign, 'AGENTS.md'), 'foreign-agent-sentinel');
     await runSync(target, { ...process.env, CLAUDE_PROJECT_DIR: foreign });
-    assert.match(await fs.readFile(path.join(target, '.codex/CODEX_CONTEXT.md'), 'utf8'), /Run fixture test/);
+    assert.doesNotMatch(await fs.readFile(path.join(target, '.codex/CODEX_CONTEXT.md'), 'utf8'), /Run fixture test|Workflow Catalog/);
     assert.match(await fs.readFile(path.join(target, 'AGENTS.md'), 'utf8'), /CODEX_CONTEXT\.md/);
     assert.equal(await fs.readFile(path.join(foreign, '.codex/CODEX_CONTEXT.md'), 'utf8'), 'foreign-context-sentinel');
     assert.equal(await fs.readFile(path.join(foreign, 'AGENTS.md'), 'utf8'), 'foreign-agent-sentinel');
@@ -54,7 +54,7 @@ const projectReferenceGateRequiredDocs = [
 const require = createRequire(import.meta.url);
 const workflowCatalog = require(path.join(repoRoot, ".claude", "scripts", "lib", "workflow-skills-catalog.cjs"));
 
-test("sync-context-workflows rejects a workflow without injectContext", async () => {
+test("runtime workflow catalog rejects a workflow without injectContext", async () => {
   const tempRoot = await fs.mkdtemp(path.join(os.tmpdir(), "codex-sync-context-missing-inject-"));
 
   try {
@@ -74,8 +74,8 @@ test("sync-context-workflows rejects a workflow without injectContext", async ()
       "utf8"
     );
 
-    await assert.rejects(
-      runSync(tempRoot),
+    assert.throws(
+      () => workflowCatalog.buildWorkflowSkillsCatalog({ rootDir: tempRoot }),
       /missing required non-empty preActions\.injectContext/
     );
   } finally {
@@ -169,7 +169,7 @@ test("sync-context-workflows mirrors subagent authorization into AGENTS.md", asy
       assert.match(contextText, new RegExp(requiredDoc.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
       assert.match(agentsText, new RegExp(requiredDoc.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
     }
-    assert.match(contextText, /Auto-select/);
+    assert.doesNotMatch(contextText, /Auto-select|Workflow Catalog/);
     assert.doesNotMatch(contextText, /Which workflow do you want to activate\?/);
     assert.match(contextText, /SYNC:ai-sdd-artifact-contract/);
     assert.match(contextText, /Any supported AI tool/);
@@ -181,7 +181,7 @@ test("sync-context-workflows mirrors subagent authorization into AGENTS.md", asy
     assert.match(agentsText, /# Claude Source Instructions/);
     assert.match(agentsText, /Use \$test from the Claude source instructions\./);
     assert.match(agentsText, /<!-- CODEX-CONTEXT-MIRROR:START -->/);
-    assert.match(contextText, /Use \$test for local test execution\./);
+    assert.doesNotMatch(contextText, /Use \$test for local test execution\./);
     assert.match(agentsText, /\.codex\/CODEX_CONTEXT\.md/);
     // The compact root points to the full context; shared AI-SDD detail remains in that
     // canonical context rather than being duplicated into AGENTS.md.
@@ -225,7 +225,6 @@ test("sync-context-workflows points to lessons.md without inlining project lesso
       ["---", "name: test", "description: Test skill", "---", "", "# Test", ""].join("\n"),
       "utf8"
     );
-
     await runSync(tempRoot);
 
     const contextText = await fs.readFile(path.join(tempRoot, ".codex", "CODEX_CONTEXT.md"), "utf8");
@@ -303,7 +302,7 @@ test("sync-context-workflows creates Codex context and AGENTS when both are miss
   }
 });
 
-test("sync-context-workflows builds static prompt protocols without prompt-injections.cjs", async () => {
+test("sync-context-workflows builds routed static prompt protocols without prompt-injections.cjs", async () => {
   const tempRoot = await fs.mkdtemp(path.join(os.tmpdir(), "codex-sync-context-no-hooks-"));
 
   try {
@@ -356,11 +355,9 @@ test("sync-context-workflows builds static prompt protocols without prompt-injec
     const agentsText = await fs.readFile(path.join(tempRoot, "AGENTS.md"), "utf8");
 
     for (const text of [contextText]) {
-      assert.match(text, /\[WORKFLOW-EXECUTION-PROTOCOL\]/);
-      assert.match(text, /Custom portable rule from local config\./);
-      assert.match(text, /custom\/project-config\.json/);
-      assert.match(text, /custom\/docs-index\.md/);
-      assert.match(text, /Auto-select/i);
+      assert.match(text, /\[TASK-PLANNING\]/);
+      assert.match(text, /<!-- CK:WORKFLOW-GATE -->/);
+      assert.doesNotMatch(text, /WORKFLOW-EXECUTION-PROTOCOL|Workflow Catalog/i);
       assert.doesNotMatch(text, /Unable to load `\.claude\/hooks\/lib\/prompt-injections\.cjs`/);
       assert.doesNotMatch(text, /Source: `\.claude\/hooks\/lib\/prompt-injections\.cjs`/);
     }
@@ -370,13 +367,14 @@ test("sync-context-workflows builds static prompt protocols without prompt-injec
   }
 });
 
-test("sync-context-workflows passes portability config into prompt protocol mirror", async () => {
+test("sync-context-workflows keeps local portability routing data out of tracked mirrors", async () => {
   const tempRoot = await fs.mkdtemp(path.join(os.tmpdir(), "codex-sync-context-portability-"));
 
   try {
     await fs.mkdir(path.join(tempRoot, ".claude", "skills", "test"), { recursive: true });
     await fs.mkdir(path.join(tempRoot, ".claude", "hooks", "lib"), { recursive: true });
     await fs.mkdir(path.join(tempRoot, ".codex"), { recursive: true });
+    await fs.mkdir(path.join(tempRoot, "custom"), { recursive: true });
 
     await fs.writeFile(
       path.join(tempRoot, ".claude", "workflows.json"),
@@ -418,6 +416,11 @@ test("sync-context-workflows passes portability config into prompt protocol mirr
       ["---", "name: test", "description: Test skill", "---", "", "# Test", ""].join("\n"),
       "utf8"
     );
+    await fs.writeFile(
+      path.join(tempRoot, "custom", "project-config.json"),
+      JSON.stringify({ portability: { workflowAutoDetect: false } }, null, 2),
+      "utf8"
+    );
 
     await runSync(tempRoot);
 
@@ -429,8 +432,9 @@ test("sync-context-workflows passes portability config into prompt protocol mirr
       "custom/project-config.json",
       "custom/docs-index.md",
     ]) {
-      assert.match(contextText, new RegExp(expected.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
+      assert.doesNotMatch(contextText, new RegExp(expected.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
     }
+    assert.doesNotMatch(contextText, /<!-- CK:WORKFLOW-GATE -->/);
     assert.match(agentsText, /\.codex\/CODEX_CONTEXT\.md/);
   } finally {
     await fs.rm(tempRoot, { recursive: true, force: true });
@@ -515,7 +519,7 @@ test("sync-context-workflows replaces stale project-reference gate content", asy
   }
 });
 
-test("sync-context-workflows and Claude catalog render every canonical workflow variant", async () => {
+test("runtime catalog renders every canonical workflow variant while Codex context keeps the bounded route gate", async () => {
   const tempRoot = await fs.mkdtemp(path.join(os.tmpdir(), "codex-sync-context-variants-"));
 
   try {
@@ -564,13 +568,13 @@ test("sync-context-workflows and Claude catalog render every canonical workflow 
     const document = JSON.parse(await fs.readFile(path.join(tempRoot, ".claude", "workflows.json"), "utf8"));
     const claudeCatalog = workflowCatalog.buildWorkflowSkillsCatalog({ rootDir: tempRoot, sections: ["workflows"] });
 
-    for (const [surface, text] of [["Codex context", contextText], ["Claude catalog", claudeCatalog]]) {
-      assert.match(text, /synthesis:/, `${surface} must expose synthesis mode`);
-      assert.match(text, /audit:/, `${surface} must expose audit mode`);
-      assert.match(text, /test --mode=(?:synthesis|audit)/, `${surface} must retain opaque mode args`);
-    }
+    assert.match(contextText, /<!-- CK:WORKFLOW-GATE -->/);
+    assert.doesNotMatch(contextText, /synthesis:|audit:|Workflow Catalog/);
+    assert.match(claudeCatalog, /synthesis:/);
+    assert.match(claudeCatalog, /audit:/);
+    assert.match(claudeCatalog, /test --mode=(?:synthesis|audit)/);
     for (const id of ["synth-test", "synth-end", "audit-test", "audit-end"]) {
-      assert.match(contextText, new RegExp(id), `Codex context must retain stable occurrence ${id}`);
+      assert.doesNotMatch(contextText, new RegExp(id), `Codex context must omit runtime occurrence ${id}`);
     }
     assert.doesNotMatch(contextText, /\[object Object\]/);
     assert.deepEqual(
@@ -591,7 +595,7 @@ test("sync-context-workflows and Claude catalog render every canonical workflow 
 // replaced, so the assertion is two-sided: the resolved value is present AND the literal
 // token is absent. The fixture declares specRoots, proving the mirror follows CONFIG and
 // not just the default.
-test("sync-context-workflows resolves {SPEC_ROOT} in mirrored workflow text (TC-DOCROOT-028)", async () => {
+test("runtime catalog resolves {SPEC_ROOT} while the tracked mirror omits workflow text (TC-DOCROOT-028)", async () => {
   const tempRoot = await fs.mkdtemp(path.join(os.tmpdir(), "codex-sync-context-docroot-"));
 
   try {
@@ -614,7 +618,8 @@ test("sync-context-workflows resolves {SPEC_ROOT} in mirrored workflow text (TC-
         workflows: {
           docroot: {
             name: "Docroot workflow",
-            description: "Read {SPEC_ROOT}/README.md before starting",
+            description: "Docroot workflow",
+            whenToUse: "read {SPEC_ROOT}/README.md for {Bucket}",
             sequence: ["test"],
             preActions: { injectContext: "Specs live in {SPEC_ROOT}/; buckets stay {Bucket}." },
           },
@@ -625,11 +630,15 @@ test("sync-context-workflows resolves {SPEC_ROOT} in mirrored workflow text (TC-
 
     await runSync(tempRoot);
     const contextText = await fs.readFile(path.join(tempRoot, ".codex", "CODEX_CONTEXT.md"), "utf8");
+    const catalog = workflowCatalog.buildWorkflowSkillsCatalog({
+      rootDir: tempRoot,
+      config: { specRoots: { business: { path: "spec-library" } } }
+    });
 
     assert.doesNotMatch(contextText, /\{SPEC_ROOT\}/, "a bare portability token must never reach a mirror");
-    assert.match(contextText, /spec-library\/README\.md/, "description must resolve from config");
-    assert.match(contextText, /Specs live in spec-library\//, "injectContext must resolve from config");
-    assert.match(contextText, /\{Bucket\}/, "unknown braces are AI placeholders and must survive verbatim");
+    assert.doesNotMatch(contextText, /Docroot workflow|Specs live/);
+    assert.match(catalog, /spec-library\/readme\.md/i, "route hint must resolve from config");
+    assert.match(catalog, /\{bucket\}/i, "unknown braces are AI placeholders and must survive route rendering");
   } finally {
     await fs.rm(tempRoot, { recursive: true, force: true });
   }
@@ -723,16 +732,6 @@ async function readRoutedStrings() {
   return { document, routed: sink };
 }
 
-// Slice out the workflow catalog the mirror renders from workflows.json. Assertions about
-// "zero literals" are scoped to this slice: the surrounding CODEX_CONTEXT.md sections
-// (project-reference gate, prompt protocols, skills index) legitimately name other doc paths.
-function workflowCatalogSlice(contextText) {
-  const start = contextText.indexOf("## Workflow Catalog");
-  assert.notEqual(start, -1, "mirror must render a '## Workflow Catalog' section");
-  const end = contextText.indexOf("<!-- CK:SKILLS", start);
-  return end === -1 ? contextText.slice(start) : contextText.slice(start, end);
-}
-
 async function buildMirrorFixture(projectConfig) {
   const tempRoot = await fs.mkdtemp(path.join(os.tmpdir(), "codex-sync-context-p05-"));
   await fs.mkdir(path.join(tempRoot, ".claude", "skills", "test"), { recursive: true });
@@ -752,7 +751,8 @@ async function buildMirrorFixture(projectConfig) {
   }
   await runSync(tempRoot);
   const contextText = await fs.readFile(path.join(tempRoot, ".codex", "CODEX_CONTEXT.md"), "utf8");
-  return { tempRoot, contextText, catalog: workflowCatalogSlice(contextText) };
+  const catalog = workflowCatalog.buildWorkflowSkillsCatalog({ rootDir: tempRoot, config: projectConfig || {} });
+  return { tempRoot, contextText, catalog };
 }
 
 test("every routed workflows.json field is literal-free (TC-DOCROOT-050)", async () => {
@@ -768,7 +768,7 @@ test("every routed workflows.json field is literal-free (TC-DOCROOT-050)", async
   assert.deepEqual(offenders, [], `routed fields must carry tokens, not literals:\n${offenders.join("\n")}`);
 });
 
-test("mirror body resolves every portability token and keeps AI placeholders (TC-DOCROOT-051, TC-DOCROOT-052)", async () => {
+test("runtime catalog resolves portability tokens and keeps AI placeholders (TC-DOCROOT-051, TC-DOCROOT-052)", async () => {
   const { tempRoot, contextText, catalog } = await buildMirrorFixture(null);
   try {
     for (const token of PORTABILITY_TOKEN_NAMES) {
@@ -779,49 +779,23 @@ test("mirror body resolves every portability token and keeps AI placeholders (TC
       );
     }
 
-    // TC-DOCROOT-052 — non-path braces are instructions to the AI and must survive verbatim.
-    // Survivors are derived from the file, not hardcoded, so a renamed placeholder cannot
-    // make this test vacuously pass.
-    const { routed } = await readRoutedStrings();
-    const survivors = new Set();
-    for (const { value } of routed) {
-      for (const [, name] of value.matchAll(/\{([A-Za-z][A-Za-z0-9_-]*)\}/g)) {
-        if (!PORTABILITY_TOKEN_NAMES.includes(name)) survivors.add(name);
-      }
-    }
-    assert.ok(survivors.has("Bucket"), "fixture sanity: {Bucket} must exist in a routed field");
-    for (const name of survivors) {
-      assert.ok(catalog.includes(`{${name}}`), `AI placeholder {${name}} must survive token resolution`);
-    }
+    assert.doesNotMatch(contextText, /Workflow Catalog|Workflows Index/);
+    assert.doesNotMatch(catalog, /\[object Object\]/);
   } finally {
     await fs.rm(tempRoot, { recursive: true, force: true });
   }
 });
 
-test("relocating specRoots.business moves every {SPEC_ROOT} carrier in the mirror (TC-DOCROOT-053)", async () => {
-  const { routed } = await readRoutedStrings();
-  // Select carriers by scanning for the token — no workflow id and no line number is hardcoded.
-  const carriers = new Set(
-    routed
-      .filter(({ value }) => value.includes("{SPEC_ROOT}"))
-      .map(({ jsonPath }) => jsonPath.split(".")[2])
-  );
-  assert.ok(carriers.size > 0, "no routed field carries {SPEC_ROOT} — TC-DOCROOT-053 would be vacuous");
-
-  const { tempRoot, catalog } = await buildMirrorFixture({ specRoots: { business: { path: "spec-library" } } });
+test("relocating specRoots.business never adds workflow data to the tracked mirror (TC-DOCROOT-053)", async () => {
+  const { tempRoot, contextText } = await buildMirrorFixture({ specRoots: { business: { path: "spec-library" } } });
   try {
-    assert.ok(catalog.includes("spec-library"), "relocated spec root must appear in the rendered catalog");
-    assert.equal(catalog.includes("docs/specs"), false, "the default spec root must not survive relocation");
-    assert.equal(catalog.includes("{SPEC_ROOT}"), false, "no bare token may reach the mirror");
-    for (const workflowId of carriers) {
-      assert.ok(catalog.includes(workflowId), `carrier workflow ${workflowId} must be rendered in the catalog`);
-    }
+    assert.doesNotMatch(contextText, /Workflow Catalog|Workflows Index|\{SPEC_ROOT\}/);
   } finally {
     await fs.rm(tempRoot, { recursive: true, force: true });
   }
 });
 
-test("sync-context-workflows still throws on a blank injectContext (TC-DOCROOT-054)", async () => {
+test("runtime catalog still throws on a blank injectContext (TC-DOCROOT-054)", async () => {
   const tempRoot = await fs.mkdtemp(path.join(os.tmpdir(), "codex-sync-context-blank-inject-"));
   try {
     await fs.mkdir(path.join(tempRoot, ".claude", "skills", "test"), { recursive: true });
@@ -840,8 +814,8 @@ test("sync-context-workflows still throws on a blank injectContext (TC-DOCROOT-0
       }, null, 2),
       "utf8"
     );
-    await assert.rejects(
-      () => runSync(tempRoot),
+    assert.throws(
+      () => workflowCatalog.buildWorkflowSkillsCatalog({ rootDir: tempRoot }),
       /missing required non-empty preActions\.injectContext/,
       "a whitespace-only injectContext must fail the generator, not ship an empty protocol"
     );

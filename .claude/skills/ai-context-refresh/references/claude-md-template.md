@@ -1,14 +1,10 @@
-<!-- CK:UNIVERSAL-GUIDES v6 -->
+<!-- CK:UNIVERSAL-GUIDES v7 -->
 
 # {project-name} - Code Instructions
 
 <!-- SECTION:tldr -->
 > **Project:** {project-name} — {project-description}
 <!-- /SECTION:tldr -->
-
-## First Action Decision
-
-Apply the single CK:WORKFLOW-GATE above. A skill named as a noun is not an invocation; explicit execution requests win. Mixed research/modification intent follows the modification route. Route choice grants no operation authority.
 
 ## Project Reference Loading
 
@@ -18,7 +14,7 @@ Read `docs/project-config.json` first, then `docs/project-reference/docs-index-r
 | --- | --- |
 | Structure, architecture, stack, deployment, setup | `project-structure-reference.md` |
 | Backend/CQRS/API/domain/entity | `backend-patterns-reference.md`, `domain-entities-reference.md` |
-| Frontend/UI/style/design | `frontend-patterns-reference.md`, `scss-styling-guide.md`, `design-system/README.md` and its applicable canonical design-system doc |
+| Frontend/UI/style/design | Applicable frontend patterns, styling, and design-system docs selected by project config |
 | Integration / E2E tests | `integration-test-reference.md` / `e2e-test-reference.md` |
 | Specs, TC authoring, derived indexes | `feature-spec-reference.md`, `spec-system-reference.md`, `spec-principles.md`; source Feature Specs under the business spec root (default `docs/specs/`; a `specRoots.business.path` entry in `docs/project-config.json` overrides the path) for derived artifacts |
 | Behavior/public contract or spec-test-code sync | Spec docs above plus `workflow-spec-test-code-cycle-reference.md` |
@@ -51,7 +47,7 @@ Before writing, read target code and `.claude/docs/development-rules.md`; grep 3
 
 ## Code Responsibility Hierarchy
 
-Place logic at the lowest invariant owner: Entity/Model > Service > Component/Handler. Mapping/constants/display rules belong to their model/DTO owner; services handle APIs/transformations; UI/handlers delegate. Trace origin → failing consumer and bypass paths before fixing. Protect all consumers at one authoritative layer; never scatter symptom patches. Keep generic framework surfaces project-neutral. Apply YAGNI/KISS/DRY, justify abstractions and operational tradeoffs, and ship only code you can explain.
+Place logic with the owner selected by the project's documented architecture. Resolve it from project config, reference docs, accepted decisions, and existing code; do not assume entity/model/service/component layers or assign mappings, constants, or display rules to a fixed type. Trace origin → failing consumer and bypass paths before fixing. Protect all consumers at one authoritative owner; never scatter symptom patches. Keep generic framework surfaces project-neutral. Apply YAGNI/KISS/DRY, justify abstractions and operational tradeoffs, and ship only code you can explain.
 
 ## Evidence-Based Reasoning & Investigation
 

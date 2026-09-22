@@ -704,11 +704,11 @@ test("runChecks passes positive SDD fixture", async () => {
       ],
       [
         ".codex/CODEX_CONTEXT.md",
-        "PERFORMANCE-SDD ROUTE performance-review shared/sdd-artifact-contract.md SYNC:ai-sdd-artifact-contract reference-only until accepted Any supported AI tool",
+        "shared/sdd-artifact-contract.md SYNC:ai-sdd-artifact-contract reference-only until accepted Any supported AI tool",
       ],
       [
         "AGENTS.md",
-        "PERFORMANCE-SDD ROUTE performance-review shared/sdd-artifact-contract.md SYNC:ai-sdd-artifact-contract reference-only until accepted Any supported AI tool",
+        "shared/sdd-artifact-contract.md SYNC:ai-sdd-artifact-contract reference-only until accepted Any supported AI tool",
       ],
       [
         ".claude/hooks/session-init-docs.cjs",
@@ -960,6 +960,47 @@ async function writeProjectConfig(rootDir, config) {
   await writeRepoFile(rootDir, "docs/project-config.json", `${JSON.stringify(config, null, 2)}\n`);
 }
 
+function engineeringArtifactProfile() {
+  return {
+    version: 1,
+    kind: "engineering-contract",
+    sections: {
+      intent: ["Purpose"],
+      contracts: ["Interfaces and Data Contracts"],
+      evidence: ["Evidence"],
+    },
+    identifiers: {
+      requirement: { prefix: "REQ-", grammar: "decimal-lower-suffix" },
+      acceptance: { prefix: "AC-", grammar: "decimal-lower-suffix" },
+      scenario: { prefix: "SCN-", grammar: "hyphen-tokens" },
+    },
+    ownership: "spec-path-and-case-id",
+    carriers: [
+      {
+        dialect: "js-title-v1",
+        roots: ["tests"],
+        extensions: [".ts"],
+        suiteCalls: ["describe"],
+        caseCalls: ["it"],
+      },
+    ],
+  };
+}
+
+function engineeringProjectConfig(overrides = {}) {
+  return {
+    specRoots: {
+      business: { path: "specs", authorship: "hand", m1Policy: "strict" },
+      technical: { path: "specs/tech-spec", authorship: "derived", m1Policy: "exempt" },
+    },
+    ...overrides,
+    specArtifacts: engineeringArtifactProfile(),
+  };
+}
+
+const sdd007Check = () =>
+  CHECKS.find((check) => check.code === "SDD007" && check.file === ".claude/skills/spec/SKILL.md");
+
 test("TC-DOCROOT-090: SDD probes the configured teamArtifacts root, not the default literal", async () => {
   await withTempRoot("codex-verify-sdd-teamartifacts-", async (tempRoot) => {
     await writeProjectConfig(tempRoot, { docsRoots: { teamArtifacts: { path: "artifacts" } } });
@@ -1056,6 +1097,14 @@ test("TC-DOCROOT-092b: the zero-match guard stays out of the changed-file scan s
       sdd022Files: [],
     });
     assert.deepEqual(result.failures.filter((failure) => failure.code === "SDD025"), []);
+    assert.deepEqual(result.sddMetrics.specArtifactScope, {
+      status: "not-applicable",
+      selected: 0,
+      found: 0,
+      checked: 0,
+      unknown: 0,
+      targetDigest: "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    });
   });
 });
 
@@ -1087,11 +1136,314 @@ test("TC-DOCROOT-093: an empty config yields the pre-change check set and verdic
     );
   });
 
-  // A malformed config resolves to defaults rather than throwing — runtime plane is fail-SOFT.
+  // The hook runtime plane remains fail-soft; the semantic verifier must fail closed so a
+  // malformed project root/profile cannot turn off its configured checks.
   await withTempRoot("codex-verify-sdd-malformed-config-", async (tempRoot) => {
     await writeRepoFile(tempRoot, "docs/project-config.json", "{ not json");
-    const [resolved] = await resolveChecks(tempRoot, [sdd004Check()]);
-    assert.ok(resolved.forbidAny.includes("team-artifacts/pbis"));
+    await assert.rejects(
+      resolveChecks(tempRoot, [sdd004Check()]),
+      (error) =>
+        error.code === "ERR_SDD_PROJECT_CONFIG" &&
+        error.message.includes(path.join(tempRoot, "docs", "project-config.json")) &&
+        error.message.includes("Invalid JSON")
+    );
+  });
+});
+
+test("TC-FIT-SEM-001: case-insensitive section roles allow technical contracts while intent stays strict", async () => {
+  await withTempRoot("codex-verify-sdd-profile-roles-", async (tempRoot) => {
+    await writeProjectConfig(tempRoot, engineeringProjectConfig());
+    const relativeFile = "specs/payments/transfer-contract.md";
+    await writeRepoFile(
+      tempRoot,
+      relativeFile,
+      [
+        "---",
+        "id: transfer-contract",
+        "status: draft",
+        "type: specification",
+        "---",
+        "# Transfer contract",
+        "## pUrPoSe",
+        "A user completes a transfer. Invalid requests are rejected and the balance invariant remains true.",
+        "## interfaces and DATA contracts",
+        "The API uses CQRS and exposes the AccountRepository contract.",
+        "## eViDeNcE",
+        "Transfer behavior: [Source: operation/payments/transfer]",
+        "",
+      ].join("\n")
+    );
+
+    const result = await runChecks(tempRoot, [], {
+      enforceChanged: true,
+      changedFiles: [relativeFile],
+      sdd022Files: [relativeFile],
+    });
+
+    assert.deepEqual(result.failures.filter((failure) => ["SDD022", "SDD023", "SDD024", "SDD026"].includes(failure.code)), []);
+    assert.deepEqual(
+      {
+        status: result.sddMetrics.specArtifactScope.status,
+        selected: result.sddMetrics.specArtifactScope.selected,
+        found: result.sddMetrics.specArtifactScope.found,
+        checked: result.sddMetrics.specArtifactScope.checked,
+        unknown: result.sddMetrics.specArtifactScope.unknown,
+      },
+      { status: "checked", selected: 1, found: 1, checked: 1, unknown: 0 }
+    );
+    assert.match(result.sddMetrics.specArtifactScope.targetDigest, /^[a-f0-9]{64}$/);
+  });
+});
+
+test("TC-FIT-SEM-002: engineering intent rejects technical terms and source identifiers", async () => {
+  await withTempRoot("codex-verify-sdd-profile-intent-", async (tempRoot) => {
+    await writeProjectConfig(tempRoot, engineeringProjectConfig());
+    const relativeFile = "specs/payments/transfer-intent.md";
+    await writeRepoFile(
+      tempRoot,
+      relativeFile,
+      [
+        "# Transfer intent",
+        "## Purpose",
+        "A user completes a transfer through CQRS and AccountRepository. Invalid requests are rejected.",
+        "## Interfaces and Data Contracts",
+        "The service contract remains explicit.",
+        "## Evidence",
+        "Transfer behavior: [Source: operation/payments/transfer]",
+        "",
+      ].join("\n")
+    );
+
+    const result = await runChecks(tempRoot, [], {
+      enforceChanged: true,
+      changedFiles: [relativeFile],
+      sdd022Files: [relativeFile],
+    });
+    assert.ok(result.failures.some((failure) => failure.code === "SDD022" && failure.severity === "error"));
+    assert.ok(result.failures.some((failure) => failure.code === "SDD024" && failure.severity === "error"));
+  });
+});
+
+test("TC-FIT-SEM-003: unknown profile headings and missing selected artifacts fail with counted coverage", async () => {
+  await withTempRoot("codex-verify-sdd-profile-unknown-", async (tempRoot) => {
+    await writeProjectConfig(tempRoot, engineeringProjectConfig());
+    const relativeFile = "specs/payments/unknown-heading.md";
+    await writeRepoFile(
+      tempRoot,
+      relativeFile,
+      [
+        "# Transfer contract",
+        "## Purpose",
+        "A user completes a transfer and invalid requests are rejected.",
+        "## Interfaces and Data Contracts",
+        "The request contract is explicit.",
+        "## Unmapped Implementation Notes",
+        "This heading has no declared artifact role.",
+        "## Evidence",
+        "Transfer behavior: [Source: operation/payments/transfer]",
+        "",
+      ].join("\n")
+    );
+    const unknownHeading = await runChecks(tempRoot, [], {
+      enforceChanged: true,
+      changedFiles: [relativeFile],
+      sdd022Files: [relativeFile],
+    });
+    assert.ok(unknownHeading.failures.some((failure) => failure.code === "SDD026" && /Unmapped Implementation Notes/.test(failure.message)));
+    assert.equal(unknownHeading.sddMetrics.unknownSectionRoleFindings, 1);
+
+    const missingFile = "specs/payments/missing-selected.md";
+    const missingSelection = await runChecks(tempRoot, [], {
+      enforceChanged: true,
+      changedFiles: [missingFile],
+      sdd022Files: [missingFile],
+    });
+    assert.ok(missingSelection.failures.some((failure) => failure.code === "SDD026" && /could not be read/.test(failure.message)));
+    assert.deepEqual(
+      {
+        selected: missingSelection.sddMetrics.specArtifactScope.selected,
+        found: missingSelection.sddMetrics.specArtifactScope.found,
+        checked: missingSelection.sddMetrics.specArtifactScope.checked,
+        unknown: missingSelection.sddMetrics.specArtifactScope.unknown,
+      },
+      { selected: 1, found: 0, checked: 0, unknown: 1 }
+    );
+  });
+});
+
+test("TC-FIT-SEM-004: technical artifacts skip M1 but remain covered by M2", async () => {
+  await withTempRoot("codex-verify-sdd-profile-roots-", async (tempRoot) => {
+    await writeProjectConfig(tempRoot, engineeringProjectConfig());
+    const businessFile = "specs/payments/transfer.md";
+    const technicalFile = "specs/tech-spec/generated.md";
+    await writeRepoFile(
+      tempRoot,
+      businessFile,
+      [
+        "# Transfer",
+        "## Purpose",
+        "A user completes a transfer and invalid requests are rejected.",
+        "## Interfaces and Data Contracts",
+        "The request contract is explicit.",
+        "## Evidence",
+        "Transfer behavior: [Source: operation/payments/transfer]",
+        "",
+      ].join("\n")
+    );
+    await writeRepoFile(tempRoot, technicalFile, "# Derived view\nThe generated artifact uses CQRS and AccountRepository.\n");
+
+    const result = await runChecks(tempRoot, [], {
+      enforceChanged: true,
+      changedFiles: [businessFile, technicalFile],
+      sdd022Files: [businessFile, technicalFile],
+    });
+    assert.deepEqual(result.failures.filter((failure) => failure.code === "SDD022"), []);
+    assert.deepEqual(
+      result.failures.filter((failure) => failure.code === "SDD024").map(({ file, severity, message }) => ({ file, severity, message })),
+      [
+        {
+          file: technicalFile,
+          severity: "error",
+          message: 'Prose must not name source identifiers; use business operation names (identifiers live only in evidence carriers). (line 2: source identifier "AccountRepository")',
+        },
+      ]
+    );
+    assert.deepEqual(result.sddMetrics.specArtifactScope, {
+      status: "checked",
+      selected: 2,
+      found: 2,
+      checked: 2,
+      unknown: 0,
+      targetDigest: result.sddMetrics.specArtifactScope.targetDigest,
+    });
+    assert.equal(result.sddMetrics.proseSourceIdentifierFindings, 1);
+    assert.match(result.sddMetrics.specArtifactScope.targetDigest, /^[a-f0-9]{64}$/);
+  });
+
+  await withTempRoot("codex-verify-sdd-unrelated-root-", async (tempRoot) => {
+    await writeProjectConfig(tempRoot, engineeringProjectConfig());
+    const unrelated = "docs/specs/foreign.md";
+    await writeRepoFile(tempRoot, unrelated, "# Foreign\n## Purpose\nCQRS in unrelated root.\n");
+    const result = await runChecks(tempRoot, [], {
+      enforceChanged: true,
+      changedFiles: [unrelated],
+      sdd022Files: [unrelated],
+    });
+    assert.deepEqual(result.failures.filter((failure) => ["SDD022", "SDD024", "SDD026"].includes(failure.code)), []);
+    assert.equal(result.sddMetrics.specArtifactScope.status, "not-applicable");
+    assert.deepEqual(
+      {
+        selected: result.sddMetrics.specArtifactScope.selected,
+        found: result.sddMetrics.specArtifactScope.found,
+        checked: result.sddMetrics.specArtifactScope.checked,
+        unknown: result.sddMetrics.specArtifactScope.unknown,
+      },
+      { selected: 0, found: 0, checked: 0, unknown: 0 }
+    );
+  });
+});
+
+test("TC-FIT-SEM-008: verifier rejects section aliases with case-insensitive collisions before scanning", async () => {
+  await withTempRoot("codex-verify-sdd-profile-alias-collision-", async (tempRoot) => {
+    const config = engineeringProjectConfig();
+    config.specArtifacts.sections.contracts.push("purpose");
+    await writeProjectConfig(tempRoot, config);
+
+    const relativeFile = "specs/payments/ambiguous-intent.md";
+    await writeRepoFile(
+      tempRoot,
+      relativeFile,
+      ["# Transfer", "## Purpose", "A user completes a transfer through CQRS.", ""].join("\n")
+    );
+
+    await assert.rejects(
+      runChecks(tempRoot, [], {
+        enforceChanged: true,
+        changedFiles: [relativeFile],
+        sdd022Files: [relativeFile],
+      }),
+      (error) =>
+        error.code === "ERR_SDD_PROJECT_CONFIG" &&
+        /specArtifacts\.sections\.contracts/.test(error.message)
+    );
+  });
+});
+
+test("TC-FIT-SEM-005: SDD007 follows a configured engineering profile instead of requiring Section 8 TCs", async () => {
+  await withTempRoot("codex-verify-sdd-profile-sdd007-", async (tempRoot) => {
+    await writeProjectConfig(tempRoot, engineeringProjectConfig());
+    const [resolved] = await resolveChecks(tempRoot, [sdd007Check()]);
+    assert.deepEqual(resolved.requireAll, ["specArtifacts", "intent", "contracts", "evidence"]);
+    assert.ok(resolved.forbidAny.includes("Section 8 is the canonical TC registry"));
+    assert.ok(resolved.fallbackTerms.includes("Section 8 is the canonical TC registry"));
+    assert.match(resolved.message, /configured engineering artifact section roles/);
+
+    // The SAME literal is REQUIRED by the strict-default branch and FORBIDDEN by this one, and a
+    // single skill text serves every adopter — so only an UNQUALIFIED claim may fail. A profile-
+    // qualified fallback sentence naming both sides is the legal shared-prose idiom and must clear.
+    const required = "specArtifacts intent contracts evidence";
+    const qualified = `${required}\nUnder the strict default, Section 8 is the canonical TC registry; under a native profile, update only the declared owner/carriers.\n`;
+    assert.deepEqual(evaluateCheck(resolved, qualified), []);
+
+    const bare = `${required}\nSection 8 is the canonical TC registry.\n`;
+    assert.ok(
+      evaluateCheck(resolved, bare).some((failure) => /forbidden text found/.test(failure))
+    );
+  });
+});
+
+test("TC-FIT-SEM-006: strict verifier config acquisition distinguishes absence from invalid or unreadable config", async () => {
+  await withTempRoot("codex-verify-sdd-config-missing-", async (tempRoot) => {
+    const result = await runChecks(tempRoot, []);
+    assert.deepEqual(result.failures, []);
+    assert.equal(resolveSdd022Scope({}).scanRoots[0], "docs/specs/");
+  });
+
+  for (const [label, content, reason] of [
+    ["array", "[]", /expected a JSON object/],
+    ["null", "null", /expected a JSON object/],
+  ]) {
+    await withTempRoot(`codex-verify-sdd-config-${label}-`, async (tempRoot) => {
+      await writeRepoFile(tempRoot, "docs/project-config.json", content);
+      await assert.rejects(runChecks(tempRoot, []), (error) => error.code === "ERR_SDD_PROJECT_CONFIG" && reason.test(error.message));
+    });
+  }
+
+  await withTempRoot("codex-verify-sdd-config-unreadable-", async (tempRoot) => {
+    await fs.mkdir(path.join(tempRoot, "docs", "project-config.json"), { recursive: true });
+    await assert.rejects(
+      runChecks(tempRoot, []),
+      (error) =>
+        error.code === "ERR_SDD_PROJECT_CONFIG" &&
+        error.message.includes(path.join(tempRoot, "docs", "project-config.json")) &&
+        /Cannot read/.test(error.message)
+    );
+  });
+});
+
+test("TC-FIT-SEM-007: verifier config uses the requested root and staged index version", async () => {
+  await withTempRoot("codex-verify-sdd-config-root-invalid-", async (invalidRoot) => {
+    await writeRepoFile(invalidRoot, "docs/project-config.json", "{ invalid");
+    await withTempRoot("codex-verify-sdd-config-root-selected-", async (selectedRoot) => {
+      await writeProjectConfig(selectedRoot, {
+        docsRoots: { teamArtifacts: { path: "selected-artifacts" } },
+      });
+      const [resolved] = await resolveChecks(selectedRoot, [sdd004Check()]);
+      assert.ok(resolved.forbidAny.includes("selected-artifacts/pbis"));
+      assert.ok(!resolved.forbidAny.includes("team-artifacts/pbis"));
+    });
+  });
+
+  await withTempRoot("codex-verify-sdd-config-staged-", async (tempRoot) => {
+    await fs.mkdir(path.join(tempRoot, "docs"), { recursive: true });
+    await execFileAsync("git", ["init"], { cwd: tempRoot });
+    await writeProjectConfig(tempRoot, { docsRoots: { teamArtifacts: { path: "staged-artifacts" } } });
+    await execFileAsync("git", ["add", "docs/project-config.json"], { cwd: tempRoot });
+    await writeProjectConfig(tempRoot, { docsRoots: { teamArtifacts: { path: "worktree-artifacts" } } });
+
+    const [resolved] = await resolveChecks(tempRoot, [sdd004Check()], { staged: true });
+    assert.ok(resolved.forbidAny.includes("staged-artifacts/pbis"));
+    assert.ok(!resolved.forbidAny.includes("worktree-artifacts/pbis"));
   });
 });
 

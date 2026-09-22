@@ -1,178 +1,85 @@
 'use strict';
 
 /**
- * Workflow auto-detect routing switch — the ONE resolver for
- * `portability.workflowAutoDetect`.
+ * Runtime workflow-routing preference resolver.
  *
- * WHAT IT CONTROLS. The framework's intent router is carried by three independent
- * surfaces. A project that turns the switch off must lose all three, or the mode is
- * only half-disabled (the runtime hook would keep re-injecting "match the request
- * against the workflow catalog" on every prompt while CLAUDE.md stays silent):
+ * Automatic route selection is enabled by default. Later valid booleans win:
+ *   1. framework default: true
+ *   2. tracked team config: <projectConfigPath> -> portability.workflowAutoDetect
+ *   3. ignored developer config: .claude/.ck.local.json -> the same key
  *
- *   1. `CK:WORKFLOW-GATE` + `CK:WORKFLOW-SKILLS` in CLAUDE.md, stamped by
- *      `.claude/skills/ai-context-refresh/scripts/generate-claude-md.cjs`, and mirrored
- *      into AGENTS.md by the Codex sync.
- *   2. The DETECT/ANALYZE/AUTO-SELECT/ACTIVATE half of the static workflow-execution
- *      protocol built by `hookless-prompt-protocol.cjs` — shared by the UserPromptSubmit
- *      hook and by `.codex/CODEX_CONTEXT.md`.
- *   3. The Workflow Protocol + Workflow Catalog sections of `.codex/CODEX_CONTEXT.md`,
- *      built by `.claude/scripts/codex/sync-context-workflows.mjs`.
+ * Missing, unreadable, malformed, and non-boolean values express no opinion. The local file
+ * stays inside the portable `.claude` bundle and is ignored by `.claude/.gitignore`.
+ * Static context generators carry the default gate; this resolver controls runtime refresh injection.
  *
- * ── RESOLUTION CASCADE (later layer wins) ────────────────────────────────────────────
- *
- *   1. FRAMEWORK DEFAULT — `true`. Absence is never a decision: a config that does not
- *      mention the key, a config that does not exist, and a config that fails to parse
- *      all mean "auto-detect", so routing is only ever disabled ON PURPOSE.
- *   2. TEAM      — `docs/project-config.json` → `portability.workflowAutoDetect`.
- *      Committed. This is the whole team's default for the repository.
- *   3. DEVELOPER — `docs/project-config.local.json` → the same key. Git-ignored by the
- *      repo-root `.gitignore` rule `*.local.json`, so one developer can switch routing
- *      off (or back on) on their own machine WITHOUT touching the shared file. Nothing
- *      about this layer reaches the team repository.
- *
- * The developer layer is a full override, not a one-way "off" switch: a developer whose
- * team disabled routing can set `true` locally to opt back in. Each layer is read
- * independently, so a broken local file cannot erase a valid team decision — it is
- * skipped, and the team value still applies.
- *
- * ── SCOPE: WHY THE DEVELOPER LAYER IS NOT ALWAYS APPLIED ─────────────────────────────
- *
- * `CLAUDE.md`, `AGENTS.md` and `.codex/CODEX_CONTEXT.md` are GIT-TRACKED. If a developer's
- * local preference caused a generator to strip the router out of them, that preference would
- * surface as modified tracked files and could be committed onto the whole team — the precise
- * outcome a local override exists to avoid. So the switch resolves at one of two scopes:
- *
- *   `'team'`      — framework default + team config ONLY. Used by every generator that writes
- *                   a TRACKED file. Those files always describe the team's decision, so a local
- *                   override can never dirty the repository.
- *   `'effective'` — the full cascade including the developer layer (the DEFAULT). Used at
- *                   RUNTIME, where nothing is written: the UserPromptSubmit hook composes the
- *                   prompt protocol fresh each turn.
- *
- * A developer who disables routing locally therefore gets it off at runtime while the tracked
- * files keep the team's content. Because those files still carry the gate, the runtime carrier
- * must also say that it OVERRIDES them — see `staticRouterOverride` in
- * `hookless-prompt-protocol.cjs`. Without that, the model would read a gate in CLAUDE.md that
- * nothing contradicted.
- *
- * WHAT IT DOES NOT CONTROL. Turning routing off never relaxes a quality gate. The
- * task-planning, parallel-wave, evidence, git-discipline and portability-boundary rules
- * are orthogonal to route SELECTION and stay in every carrier. Explicit user invocation
- * (`/plan`, `$start-workflow <id>`, a named skill) also keeps working — the switch only
- * stops the agent from inferring a route on its own.
- *
- * FAIL-OPEN BY DESIGN. Every read is independently guarded and a failure falls through to
- * the layer below, ending at `true`. Silently stripping the router because a JSON file was
- * missing or malformed would change routing behaviour invisibly, which is exactly the
- * failure this module exists to make explicit.
- *
- * HOOK-INDEPENDENT. This module reads `.claude/.ck.json` directly rather than requiring
- * `hooks/lib/project-config-loader.cjs`, so it keeps working in a stripped portable Codex
- * tree where the hook libraries do not travel.
+ * The same two-layer cascade resolves the OPTIONAL custom route protocol
+ * (`portability.workflowRouteProtocol`): framework default (none) -> team -> local, later
+ * valid layer replaces the earlier one. A value is a string (inline markdown) or an object
+ * carrying inline `text` and/or a repo-relative `path` to a markdown file read at runtime.
+ * It is advisory text appended to the runtime route reminder — never a blocking decision, and
+ * never stamped into tracked CLAUDE.md/AGENTS.md, which stay team-only.
  */
 
 const fs = require('fs');
 const path = require('path');
 
 const DEFAULT_PROJECT_CONFIG_PATH = path.join('docs', 'project-config.json');
-
-/** Provenance labels for `resolveWorkflowAutoDetect().source`. */
+const LOCAL_OVERRIDE_PATH = path.join('.claude', '.ck.local.json');
+// A protocol file is injected into model context on every prompt, so its size is bounded like
+// the convention-injection payload. Oversized files are truncated with a visible marker rather
+// than silently dropped, so a mis-sized protocol is debuggable.
+const MAX_PROTOCOL_FILE_BYTES = 20000;
+// Fallback used only when the canonical privacy predicate cannot be loaded (a stripped portable
+// tree carries `.claude/scripts/**` without `.claude/hooks/lib/**`).
+const SENSITIVE_PROTOCOL_PATTERN = /(?:^|\/)\.env(?:$|\.)|credentials|secrets?\.ya?ml$|\.(?:pem|key)$|(?:^|\/)id_(?:rsa|ed25519)(?:$|[./])/i;
 const SOURCE_DEFAULT = 'default';
 const SOURCE_PROJECT_CONFIG = 'project-config';
 const SOURCE_LOCAL_OVERRIDE = 'local-override';
-
-/** Resolution scopes — see the SCOPE section of the module doc. */
+// Tracked generators consume the team scope; runtime hooks consume the effective scope.
 const SCOPE_TEAM = 'team';
 const SCOPE_EFFECTIVE = 'effective';
 
-/** Read the `.ck.json` override for the project-config location, if the file is usable. */
-function readConfiguredProjectConfigPath(rootDir) {
+function readJson(filePath) {
     try {
-        const ck = JSON.parse(fs.readFileSync(path.join(rootDir, '.claude', '.ck.json'), 'utf8'));
-        const configured = ck?.portability?.projectConfigPath;
-        if (typeof configured === 'string' && configured.trim() !== '') return configured.trim();
+        return JSON.parse(fs.readFileSync(filePath, 'utf8'));
     } catch {
-        // No .ck.json, or an unusable one — the framework default still resolves.
+        return null;
     }
-    return null;
 }
 
-/**
- * Absolute path of the TEAM project config for `rootDir`, honouring the `.ck.json` override.
- * @param {string} rootDir repository root
- * @returns {string}
- */
+function readConfiguredProjectConfigPath(rootDir) {
+    const ck = readJson(path.join(rootDir, '.claude', '.ck.json'));
+    const configured = ck?.portability?.projectConfigPath;
+    return typeof configured === 'string' && configured.trim() ? configured.trim() : null;
+}
+
 function resolveProjectConfigPath(rootDir) {
     const configured = readConfiguredProjectConfigPath(rootDir) || DEFAULT_PROJECT_CONFIG_PATH;
     return path.isAbsolute(configured) ? configured : path.join(rootDir, configured);
 }
 
-/**
- * The git-ignored developer override that sits BESIDE the team config, whatever the team
- * config is called or wherever `.ck.json` relocated it: `<name>.json` → `<name>.local.json`.
- * Deriving it keeps the pair together under a relocated `projectConfigPath` instead of
- * pinning the override to a path the project may not use.
- * @param {string} projectConfigPath absolute path of the team config
- * @returns {string}
- */
-function resolveLocalOverridePath(projectConfigPath) {
-    const dir = path.dirname(projectConfigPath);
-    const base = path.basename(projectConfigPath);
-    const stem = base.endsWith('.json') ? base.slice(0, -'.json'.length) : base;
-    return path.join(dir, `${stem}.local.json`);
+function resolveLocalOverridePath(rootDir) {
+    return path.join(rootDir, LOCAL_OVERRIDE_PATH);
 }
 
-/**
- * Read one layer. Returns `undefined` when the layer expresses no opinion — the file is
- * absent, unreadable, malformed, or simply does not declare the key — so the caller falls
- * through to the layer below instead of treating a non-answer as `false`.
- * @param {string} filePath
- * @returns {boolean|undefined}
- */
 function readLayer(filePath) {
-    let parsed;
-    try {
-        parsed = JSON.parse(fs.readFileSync(filePath, 'utf8'));
-    } catch {
-        return undefined;
-    }
-    const value = parsed?.portability?.workflowAutoDetect;
-    // Only a real boolean counts. A string "false" is a config mistake, not an off switch;
-    // treating it as one would disable routing for someone who never successfully asked.
+    const value = readJson(filePath)?.portability?.workflowAutoDetect;
     return typeof value === 'boolean' ? value : undefined;
 }
 
-/**
- * Decide the switch from an ALREADY-LOADED config object — ONE layer, no cascade.
- * Callers that hold a parsed team config use this only when they have separately accounted
- * for the developer layer; prefer `resolveWorkflowAutoDetect` unless you know you have not.
- * @param {object|null|undefined} config parsed project-config.json
- * @returns {boolean} true when workflow auto-detect routing should be emitted
- */
 function readWorkflowAutoDetect(config) {
     return config?.portability?.workflowAutoDetect !== false;
 }
 
-/**
- * Resolve the switch through the full cascade, reporting WHICH layer decided.
- * The provenance lets a generator or report say "routing is off because of YOUR local
- * override" rather than leaving a developer to wonder whether the team changed something.
- * @param {string|{rootDir?:string, configPath?:string, localPath?:string, scope?:string}} source
- *        `scope: 'team'` stops before the developer layer — REQUIRED for any caller writing a
- *        git-tracked file. Default `'effective'` applies the full cascade.
- * @returns {{enabled:boolean, source:string, scope:string, configPath:string, localPath:string,
- *            teamEnabled:boolean, overriddenLocally:boolean}}
- */
 function resolveWorkflowAutoDetect(source) {
     const options = typeof source === 'string' ? { rootDir: source } : (source || {});
     const rootDir = options.rootDir || process.cwd();
     const scope = options.scope === SCOPE_TEAM ? SCOPE_TEAM : SCOPE_EFFECTIVE;
     const configPath = options.configPath || resolveProjectConfigPath(rootDir);
-    const localPath = options.localPath || resolveLocalOverridePath(configPath);
+    const localPath = options.localPath || resolveLocalOverridePath(rootDir);
 
     let enabled = true;
     let decidedBy = SOURCE_DEFAULT;
-
     const team = readLayer(configPath);
     if (team !== undefined) {
         enabled = team;
@@ -180,30 +87,170 @@ function resolveWorkflowAutoDetect(source) {
     }
     const teamEnabled = enabled;
 
-    // Developer layer last, and only at 'effective' scope: it wins over the team default, in
-    // BOTH directions. At 'team' scope it is not even read, so a tracked generator cannot
-    // accidentally bake one developer's preference into a shared file.
-    let overriddenLocally = false;
-    if (scope === SCOPE_EFFECTIVE) {
-        const local = readLayer(localPath);
-        if (local !== undefined) {
-            overriddenLocally = local !== teamEnabled;
-            enabled = local;
-            decidedBy = SOURCE_LOCAL_OVERRIDE;
-        }
+    const local = scope === SCOPE_EFFECTIVE ? readLayer(localPath) : undefined;
+    if (local !== undefined) {
+        enabled = local;
+        decidedBy = SOURCE_LOCAL_OVERRIDE;
     }
 
-    return { enabled, source: decidedBy, scope, configPath, localPath, teamEnabled, overriddenLocally };
+    return {
+        enabled,
+        source: decidedBy,
+        scope,
+        configPath,
+        localPath,
+        teamEnabled,
+        overriddenLocally: local !== undefined && local !== teamEnabled
+    };
 }
 
 /**
- * Boolean form of `resolveWorkflowAutoDetect` — the common call shape.
- * Passing `config` short-circuits to that single object and SKIPS the cascade; only do that
- * when the developer layer has already been accounted for.
- * @param {string|{rootDir?:string, config?:object, configPath?:string, localPath?:string,
- *                 scope?:string}} source
- * @returns {boolean} true when workflow auto-detect routing should be emitted
+ * Normalize a declared `workflowRouteProtocol` value into `{ text?, path? }`.
+ * A bare string is inline text; an object may carry `text` and/or `path`. Blank,
+ * malformed, and empty values return null, which the layer reader treats as "no opinion".
  */
+function normalizeProtocolValue(value) {
+    if (typeof value === 'string') {
+        const text = value.trim();
+        return text ? { text } : null;
+    }
+    if (value && typeof value === 'object' && !Array.isArray(value)) {
+        const text = typeof value.text === 'string' && value.text.trim() ? value.text.trim() : null;
+        const refPath = typeof value.path === 'string' && value.path.trim() ? value.path.trim() : null;
+        if (!text && !refPath) return null;
+        return { text, path: refPath };
+    }
+    return null;
+}
+
+/** Repo-escaping check mirrored from the schema's fail-closed plane (absolute or `..`). */
+function isEscapingProtocolPath(value) {
+    if (typeof value !== 'string' || !value.trim()) return true;
+    if (path.isAbsolute(value) || /^[A-Za-z]:[\\/]/.test(value)) return true;
+    return value.replace(/\\/g, '/').split('/').includes('..');
+}
+
+function isPathWithin(root, candidate) {
+    const relative = path.relative(root, candidate);
+    return relative === '' || (relative !== '..' && !relative.startsWith(`..${path.sep}`) && !path.isAbsolute(relative));
+}
+
+function resolvePhysicalPath(candidate) {
+    if (typeof fs.realpathSync.native === 'function') return fs.realpathSync.native(candidate);
+    return fs.realpathSync(candidate);
+}
+
+/**
+ * Reject privacy-sensitive protocol files. A committed team config could otherwise point `path`
+ * at `.env`/credentials and have the hook read the developer's working tree into model context on
+ * every prompt. Uses the framework's canonical privacy predicate when available; the inline
+ * fallback covers a stripped portable tree where `.claude/hooks/lib` is absent.
+ */
+function isSensitiveProtocolPath(relativePath) {
+    try {
+        const { isPrivacySensitive } = require('../../hooks/lib/sensitive-path-policy.cjs');
+        if (typeof isPrivacySensitive === 'function') return isPrivacySensitive(relativePath);
+    } catch {
+        /* portable fallback below */
+    }
+    return SENSITIVE_PROTOCOL_PATTERN.test(String(relativePath || '').replace(/\\/g, '/'));
+}
+
+/**
+ * Read a repo-relative protocol file, fail-soft: an escaping or privacy-sensitive path, a missing
+ * file, a non-file, or a blank body returns null so the layer expresses no opinion and the cascade
+ * falls through. An oversized file is truncated at MAX_PROTOCOL_FILE_BYTES with a visible marker.
+ */
+function readProtocolFile(rootDir, relativePath) {
+    if (isEscapingProtocolPath(relativePath)) return null;
+    if (isSensitiveProtocolPath(relativePath)) return null;
+    const resolvedRoot = path.resolve(rootDir);
+    const resolved = path.resolve(resolvedRoot, relativePath);
+    if (!isPathWithin(resolvedRoot, resolved)) return null;
+    try {
+        // Lexical containment does not stop a symlink, junction, or other reparse point from
+        // redirecting the read outside the project. Resolve both sides physically and read the
+        // resolved candidate so the checked path is also the path consumed by the reader.
+        const physicalRoot = resolvePhysicalPath(resolvedRoot);
+        const physicalCandidate = resolvePhysicalPath(resolved);
+        if (!isPathWithin(physicalRoot, physicalCandidate)) return null;
+
+        const stat = fs.statSync(physicalCandidate);
+        if (!stat.isFile()) return null;
+        if (stat.size > MAX_PROTOCOL_FILE_BYTES) {
+            const body = fs.readFileSync(physicalCandidate, 'utf8').slice(0, MAX_PROTOCOL_FILE_BYTES).trim();
+            return body
+                ? `${body}\n\n[workflowRouteProtocol: truncated at ${MAX_PROTOCOL_FILE_BYTES} bytes]`
+                : null;
+        }
+        const body = fs.readFileSync(physicalCandidate, 'utf8').trim();
+        return body || null;
+    } catch {
+        return null;
+    }
+}
+
+/** Resolve one config layer's protocol text, or undefined when that layer expresses no opinion. */
+function readProtocolLayer(filePath, rootDir) {
+    const entry = normalizeProtocolValue(readJson(filePath)?.portability?.workflowRouteProtocol);
+    if (!entry) return undefined;
+    const parts = [];
+    if (entry.text) parts.push(entry.text);
+    if (entry.path) {
+        const body = readProtocolFile(rootDir, entry.path);
+        if (body) parts.push(body);
+    }
+    const text = parts.join('\n\n').trim();
+    return text ? text : undefined;
+}
+
+/**
+ * Resolve the effective custom route protocol text across the same cascade as the enable
+ * switch: framework default (none) -> team project config -> local `.ck.local.json`, later
+ * valid layer winning. Returns the text and the layer that decided it.
+ *
+ * @param {string|object} [source] rootDir string, or { rootDir, scope, configPath, localPath }
+ * @returns {{text: string|null, source: string, scope: string, configPath: string, localPath: string, teamText: string|null, overriddenLocally: boolean}}
+ */
+function resolveWorkflowRouteProtocol(source) {
+    const options = typeof source === 'string' ? { rootDir: source } : (source || {});
+    const rootDir = options.rootDir || process.cwd();
+    const scope = options.scope === SCOPE_TEAM ? SCOPE_TEAM : SCOPE_EFFECTIVE;
+    const configPath = options.configPath || resolveProjectConfigPath(rootDir);
+    const localPath = options.localPath || resolveLocalOverridePath(rootDir);
+
+    let text = null;
+    let decidedBy = SOURCE_DEFAULT;
+    const team = readProtocolLayer(configPath, rootDir);
+    if (team !== undefined) {
+        text = team;
+        decidedBy = SOURCE_PROJECT_CONFIG;
+    }
+    const teamText = text;
+
+    const local = scope === SCOPE_EFFECTIVE ? readProtocolLayer(localPath, rootDir) : undefined;
+    if (local !== undefined) {
+        text = local;
+        decidedBy = SOURCE_LOCAL_OVERRIDE;
+    }
+
+    return {
+        text,
+        source: decidedBy,
+        scope,
+        configPath,
+        localPath,
+        teamText,
+        overriddenLocally: local !== undefined && local !== teamText
+    };
+}
+
+/** Convenience: the resolved protocol text, or '' when none is configured. */
+function readWorkflowRouteProtocol(source) {
+    const resolved = resolveWorkflowRouteProtocol(source);
+    return resolved.text || '';
+}
+
 function isWorkflowAutoDetectEnabled(source) {
     const options = typeof source === 'string' ? { rootDir: source } : (source || {});
     if (options.config !== undefined && options.config !== null) {
@@ -214,6 +261,8 @@ function isWorkflowAutoDetectEnabled(source) {
 
 module.exports = {
     DEFAULT_PROJECT_CONFIG_PATH,
+    LOCAL_OVERRIDE_PATH,
+    MAX_PROTOCOL_FILE_BYTES,
     SOURCE_DEFAULT,
     SOURCE_PROJECT_CONFIG,
     SOURCE_LOCAL_OVERRIDE,
@@ -221,7 +270,9 @@ module.exports = {
     SCOPE_EFFECTIVE,
     isWorkflowAutoDetectEnabled,
     readWorkflowAutoDetect,
+    readWorkflowRouteProtocol,
     resolveLocalOverridePath,
     resolveProjectConfigPath,
-    resolveWorkflowAutoDetect
+    resolveWorkflowAutoDetect,
+    resolveWorkflowRouteProtocol
 };

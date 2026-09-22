@@ -7,6 +7,7 @@ Use --output to write to a specific file instead.
 
 import argparse
 import difflib
+import io
 import json
 import os
 import re
@@ -21,15 +22,49 @@ SKILL_STATUSES = ('active', 'deprecated', 'experimental')
 # Script directory for resolving relative paths
 SCRIPT_DIR = Path(__file__).parent
 
-# Windows UTF-8 compatibility (use shared utility)
+# Windows UTF-8 compatibility. The fallback keeps this utility standalone when
+# copied without its shared helper, and detaches legacy streams before wrapping.
+def _ensure_utf8_fallback(stream):
+    reconfigure = getattr(stream, 'reconfigure', None)
+    if callable(reconfigure):
+        try:
+            reconfigure(encoding='utf-8')
+        except (AttributeError, io.UnsupportedOperation, ValueError):
+            pass
+        else:
+            return stream
+
+    buffer = getattr(stream, 'buffer', None)
+    detach = getattr(stream, 'detach', None)
+    if buffer is None or not callable(detach):
+        return stream
+
+    previous_errors = getattr(stream, 'errors', None) or 'strict'
+    line_buffering = bool(getattr(stream, 'line_buffering', False))
+    write_through = bool(getattr(stream, 'write_through', False))
+    try:
+        detached_buffer = detach()
+    except (AttributeError, OSError, ValueError):
+        return stream
+
+    return io.TextIOWrapper(
+        detached_buffer,
+        encoding='utf-8',
+        errors=previous_errors,
+        line_buffering=line_buffering,
+        write_through=write_through,
+    )
+
+
 try:
-    from win_compat import ensure_utf8_stdout
-    ensure_utf8_stdout()
+    from win_compat import ensure_utf8_stderr, ensure_utf8_stdout
 except ImportError:
     if sys.platform == 'win32':
-        import io
-        if hasattr(sys.stdout, 'buffer'):
-            sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
+        sys.stdout = _ensure_utf8_fallback(sys.stdout)
+        sys.stderr = _ensure_utf8_fallback(sys.stderr)
+else:
+    ensure_utf8_stdout()
+    ensure_utf8_stderr()
 
 try:
     from scan_skills import scan_skills

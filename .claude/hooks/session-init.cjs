@@ -21,6 +21,8 @@ const {
   getReportsPath,
   resolveNamingPattern,
 } = require("./lib/ck-config-utils.cjs");
+// Same single owner `getReportsPath` uses, so the plans root cannot be resolved two ways.
+const { resolvePlansDir } = require("./lib/ck-plan-resolver.cjs");
 const { cleanupAll } = require("./lib/temp-file-cleanup.cjs");
 const {
   loadState: loadWorkflowState,
@@ -297,23 +299,6 @@ function detectFramework(configOverride) {
 }
 
 /**
- * Get coding level style name mapping
- * @param {number} level - Coding level (0-5)
- * @returns {string} Style name for /output-style command
- */
-function getCodingLevelStyleName(level) {
-  const styleMap = {
-    0: "coding-level-0-eli5",
-    1: "coding-level-1-junior",
-    2: "coding-level-2-mid",
-    3: "coding-level-3-senior",
-    4: "coding-level-4-lead",
-    5: "coding-level-5-god",
-  };
-  return styleMap[level] || "coding-level-5-god";
-}
-
-/**
  * Main hook execution
  */
 async function main() {
@@ -424,7 +409,9 @@ async function main() {
 
       // Paths
       writeEnv(envFile, "CK_DOCS_PATH", config.paths.docs);
-      writeEnv(envFile, "CK_PLANS_PATH", config.paths.plans);
+      // Resolve through the SAME owner as CK_REPORTS_PATH: a project that relocates its plans
+      // via `docsRoots.plans.path` must not get a CK_PLANS_PATH pointing at the abandoned default.
+      writeEnv(envFile, "CK_PLANS_PATH", resolvePlansDir(config.paths));
       writeEnv(envFile, "CK_PROJECT_ROOT", PROJECT_DIR);
 
       // Project detection
@@ -483,16 +470,6 @@ async function main() {
             "architecture",
           ]
         ).join(","),
-      );
-
-      // Coding level config (for output style selection)
-      // Default -1 (disabled) — user opts in via config.codingLevel
-      const codingLevel = config.codingLevel ?? -1;
-      writeEnv(envFile, "CK_CODING_LEVEL", codingLevel);
-      writeEnv(
-        envFile,
-        "CK_CODING_LEVEL_STYLE",
-        getCodingLevelStyleName(codingLevel),
       );
     }
 

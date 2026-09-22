@@ -2,16 +2,16 @@
 
 ## Quick Summary
 
-**Goal:** Define the standard development workflow phases and map them to the workflow catalog in `workflows.json`.
+**Goal:** Define the standard development workflow phases and map them to the workflow catalog in `.claude/workflows.json`.
 
 **Core Phases (all workflows follow subsets of these):**
 
-1. **Discover** — Use `/investigate` to locate files, inspect patterns, and run graph traces
+1. **Discover** — Use `/investigate` to locate files and inspect patterns; run graph traces when the project's graph database is available
 2. **Plan** — `/plan` + `/plan-review` + `/plan-validate`, save in the plans root (default `plans/`; a `docsRoots.plans.path` entry in `docs/project-config.json` overrides the path)
-3. **Design Review** — `/why-review` (rationale), `/spec [mode=tests]` + `/artifact-review --type=spec-tests` (test specs)
+3. **Design Review** — `/why-review`; spec and test-spec work follows the project's configured spec-artifact profile or documented native spec contract
 4. **Implement** — `/feature-implement` or `/plan-execute`, compile-check after every file change
-5. **Verify** — `/test`, `/integration-test`, `/spec [mode=sync]`
-6. **Quality** — `/workflow-review-changes` (initial parallel phase: inline changes-review + whole-target why-review → specialist parallel batch → code-simplifier → fix/re-review → final whole-target why-review, conditional on the fix cycle having changed files)
+5. **Verify** — `/test`, `/integration-test`, and any spec reconciliation step defined by the selected project profile
+6. **Quality** — Use `workflow-review-changes` for the canonical review and repair cycle; follow its registered sequence in `.claude/workflows.json`. It invokes the `changes-review` skill as one part of the workflow.
 7. **Ship** — `/production-readiness-review`, `/security-review`, `/docs-update`, `/watzup`, `/workflow-end`
 
 **Key Rules:**
@@ -30,7 +30,7 @@
 ## Phase 0: Understand Code First (MANDATORY)
 
 > **Understand-Code-First** — Do NOT write code, create plans, or attempt fixes until you READ existing code.
-> Search 3+ similar implementations first. Run graph on key files (MANDATORY when graph.db exists).
+> Search 3+ similar implementations first. Run graph on key files when the project's graph database exists; when it is absent, use source search and direct tracing.
 
 -   Read existing code before modifying. Validate assumptions with evidence. Search before creating.
 
@@ -44,17 +44,17 @@
 ## Phase 2: Design Review
 
 -   Use `/why-review` to validate design rationale before implementation
--   Use `/spec [mode=tests]` to write test specifications (feature doc Section 8) — CREATE mode before implementation, UPDATE mode after
--   Use `/artifact-review --type=spec-tests` to review test specs for coverage and correctness
+-   Before spec or test-spec work, resolve the project's configured spec-artifact profile or documented native spec contract
+-   Use `/spec [mode=tests]`, `/artifact-review --type=spec-tests`, and a Feature Spec Section 8 CREATE-before-implementation / UPDATE-after lifecycle only when the selected profile defines that format; otherwise follow its native artifact, identifier, and review contract
 -   Every assertion-bearing test uses explicit `Given` → `When` → `Then` phases, names the guarded business intent/invariant or technical contract, and asserts an owned outcome; framework-native BDD, named helpers, or comments are valid, while bare Arrange/Act/Assert is insufficient unless all three GWT phases are also labeled
--   Every `/changes-review` or specialist `*review` call first applies `SYNC:review-principle-awareness`; route only contextually applicable scale-ready foundation, GWT test, AI-agent-as-user, and UI/component obligations to their detailed skill protocols, recording evidence-backed N/A/defer/block/unverified status rather than inventing findings or expanding scope
+-   Every `changes-review` skill invocation or specialist review first applies `SYNC:review-principle-awareness`; route only contextually applicable scale-ready foundation, GWT test, AI-agent-as-user, and UI/component obligations to their detailed skill protocols, recording evidence-backed N/A/defer/block/unverified status rather than inventing findings or expanding scope
 -   For features: two planning rounds — PLAN1 (architecture) then PLAN2 (incorporating test strategy)
 
 ## Phase 3: Implementation
 
 -   Use `/feature-implement` or `/plan-execute` skill to implement the plan
 -   Write clean, readable, maintainable code
--   Follow established architectural patterns (CQRS, project store, BEM)
+-   Follow the project's documented architecture, state-management, and styling conventions; load the project references that apply to the changed area
 -   Handle edge cases and error scenarios
 -   **[IMPORTANT]** After creating or modifying code, run compile command to check for errors
 
@@ -62,14 +62,14 @@
 
 -   Use `/test` skill to run tests and analyze results
 -   Use `/integration-test` to generate integration tests from specs
--   Use `/spec [mode=sync]` to sync test spec dashboard
--   **Bugfixes:** the regression `/integration-test` must FAIL before `/fix` (RED) and PASS after it (GREEN), then production-code changes get `/changes-review` (inside `workflow-review-changes` for `workflow-bugfix`; standalone `/fix` runs it before `/why-review`) — see `workflow-bugfix/SKILL.md` and `fix/SKILL.md`
+-   Reconcile affected spec/test-spec artifacts according to the selected project's profile or native contract; use `/spec [mode=sync]` only when that profile defines the mode or dashboard format
+-   **Bugfixes:** where the selected project's integration-test protocol requires a regression test, establish the failing behavior before `/fix` (RED) and verify it passes after the fix (GREEN). Production-code changes go through `workflow-review-changes`; it uses the `changes-review` skill. The standalone `/fix` route runs that skill before `/why-review` — see `workflow-bugfix/SKILL.md` and `fix/SKILL.md`
 -   **IMPORTANT:** Never use fake data, mocks, cheats, or tricks just to pass the build
 -   **IMPORTANT:** Fix failing tests and re-run until all pass
 
 ## Phase 5: Quality
 
--   Use `/workflow-review-changes` for the canonical changes-review workflow (inline changes-review + whole-target why-review in parallel → specialist reviewers → code-simplifier → fix/re-review → final whole-target why-review, conditional on the fix cycle having changed files), then continue until the current severity bar is clear (Round 2+ LOW-only findings are deferred)
+-   Use `workflow-review-changes` for the canonical review and repair workflow; follow its registered sequence and severity bar. Use the standalone `changes-review` skill only when a standalone review is the selected task.
 -   Alternatively use individual skills: `/code-simplifier`, `/code-review`, `/architecture-review`, `/performance-review`
 -   Follow coding standards and conventions
 -   Optimize for performance and maintainability
@@ -94,63 +94,59 @@
 
 ## Workflow Catalog Reference
 
-All workflows are defined in `.claude/workflows.json` — the canonical catalog (19 workflows). Each workflow composes a subset of the phases above into a specific sequence. Tables below are regenerated from the live catalog.
+`.claude/workflows.json` is the execution authority for workflow IDs, steps, and conditions. The IDs below are a routing index checked against the current catalog; update this index when the catalog changes.
 
 ### Core Development Workflows
 
-| Workflow            | Phases Used                     | When To Use                                                                 |
-| ------------------- | ------------------------------- | --------------------------------------------------------------------------- |
-| **feature**         | 0→1→2→3→4→5→6                   | Well-defined feature implementation (spec-driven, test specs before code)   |
-| **bugfix**          | 0→7→1→2→3→4→5→6                 | Bug reports, debugging, troubleshooting with end-to-start trace + RED/GREEN |
-| **refactor**        | 0→1→2→3→4→5→6                   | Code restructuring without behavior change, technical debt                  |
-| **big-feature**     | Full lifecycle with research    | Large/ambiguous features needing market research, domain modeling           |
-| **changes-review**  | 5→3→5→6                         | Pre-commit review of uncommitted changes (recursive fix loop)               |
-| **feature-spec**    | 0→1→2→6                         | Business feature docs (tech-free 8-section template, TCs in Section 8)      |
-| **greenfield-init** | Full inception + implementation | New project from scratch                                                    |
+| Workflow ID | When to use |
+| --- | --- |
+| `workflow-feature` | Implement a well-defined feature. |
+| `workflow-bugfix` | Investigate and fix a bug or regression. |
+| `workflow-refactor` | Restructure or improve code without changing behavior. |
+| `workflow-big-feature` | Handle a large, ambiguous, or research-heavy feature. |
+| `workflow-greenfield-init` | Initialize a new project from its initial idea through implementation. |
+| `workflow-review-changes` | Review current changes and follow the registered repair/re-review loop. |
+| `workflow-architecture-audit` | Produce a read-only architecture, scalability, and production-readiness assessment. |
 
-### PBI & Discovery Workflows
+### Planning & Spec Workflows
 
-| Workflow              | Flow                                                                                                                                  |
-| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
-| **idea-to-pbi**       | PO/BA: idea (or PO artifact) → review → refine → stories → spec [mode=tests] (specs) → domain-analysis → plan → DoR gate → prioritize |
-| **product-discovery** | Raw vision/problem → brainstorm → N PBIs with stories, challenge review, DoR gate, wireframes → ranked backlog                        |
-| **spec-to-pbi**       | Existing Feature Specs → dependency-aware PBI backlog with stories, DoR gate, prioritization                                          |
-
-### Spec-Driven Workflows
-
-| Workflow        | Purpose                                                                                                                |
-| --------------- | ---------------------------------------------------------------------------------------------------------------------- |
-| **build-specs** | Author/maintain the canonical tech-free 8-section Feature Spec — initial generation, sync after changes, health audits |
-| **spec-sync**   | Update test specs and feature docs after code changes, bug fixes, or PR reviews                                        |
+| Workflow ID | When to use |
+| --- | --- |
+| `workflow-idea-to-pbi` | Turn an idea or product opportunity into a grooming-ready backlog. |
+| `workflow-idea-to-spec` | Turn an idea into one provisional feature specification. |
+| `workflow-code-to-spec` | Create or update capability documentation from existing code. |
+| `workflow-spec-to-pbi` | Build a dependency-aware backlog from existing feature specifications. |
+| `workflow-feature-spec` | Create or maintain business feature documentation. |
+| `workflow-spec-sync` | Reconcile affected spec and test-spec artifacts according to the project's configured profile or native contract. |
 
 ### Test & Data Workflows
 
-| Workflow                                           | Purpose                                                                                                                                                                                         |
-| -------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **e2e** (`--source=recording\|update-ui\|changes\|prompt\|context\|whole`) | Maintenance sources generate/update E2E tests; prompt/context/whole hand off to the config-first human-QC green loop                                                                   |
-| **write-integration-test**                         | Spec-first integration test authoring for existing code: specs → test code → review gates → run and verify                                                                                      |
-| **integration-test-green**                         | Drive an existing integration-test suite to fully green: verify whole system → adjudicate every failure (debug-investigate + integration-test-review) → fix at owning layer → re-verify, looped |
-| **workflow-seed-test-data**                        | Generate/enhance idempotent test-data seeders simulating QC happy-path scenarios                                                                                                                |
+| Workflow ID | Purpose |
+| --- | --- |
+| `workflow-e2e` | Write, update, and verify end-to-end tests through the configured lifecycle. |
+| `workflow-write-integration-test` | Author or update integration tests for existing code. |
+| `workflow-integration-test-green` | Verify and adjudicate an existing integration-test suite, fixing only validated failures. |
+| `workflow-seed-test-data` | Create or improve idempotent test-data seeders. |
 
 ### Design & Visualization Workflows
 
-| Workflow      | Purpose                                     |
-| ------------- | ------------------------------------------- |
-| **visualize** | Codebase or knowledge → Excalidraw diagrams |
+| Workflow ID | Purpose |
+| --- | --- |
+| `workflow-visualize` | Create visual diagrams from codebase investigation or research. |
 
 ### Research & Content Workflows
 
-| Workflow                                                              | Purpose                                                                                                                    |
-| --------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
-| **research** (`--output=synthesis\|business-eval\|marketing\|course`) | Web sources → synthesize into a cited knowledge report, business/market evaluation, marketing strategy, or course material |
+| Workflow ID | Purpose |
+| --- | --- |
+| `workflow-research` | Research a topic and synthesize the requested report or content artifact. |
 
 ---
 
 ## Closing Reminders
 
-**MANDATORY IMPORTANT MUST ATTENTION** understand existing code FIRST (read, grep 3+ patterns, graph trace) before ANY modification
+**MANDATORY IMPORTANT MUST ATTENTION** understand existing code FIRST (read and search 3+ patterns; use graph tracing when the project graph database exists) before ANY code modification
 **MANDATORY IMPORTANT MUST ATTENTION** compile-check after every code file change
 **MANDATORY IMPORTANT MUST ATTENTION** never use fake data/mocks/cheats just to pass tests — fix real issues
 **MANDATORY IMPORTANT MUST ATTENTION** activate relevant skills from catalog during the process
 **MANDATORY IMPORTANT MUST ATTENTION** auto-select the best-matching workflow from the catalog and activate it via `/start-workflow <workflowId>` — selection is model-driven; do not ask the user to confirm activation
-**MANDATORY IMPORTANT MUST ATTENTION** run at least ONE graph command on key files before concluding investigation/plan/fix
+**MANDATORY IMPORTANT MUST ATTENTION** when graph tooling and its configured database are available, run at least ONE graph command on key files before concluding investigation/plan/fix; otherwise use direct source tracing and record that graph analysis was unavailable

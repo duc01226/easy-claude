@@ -118,12 +118,13 @@ export async function resolveScanRoots(rootDir) {
 }
 
 /**
- * Generated mirrors carry the converted text only after the user runs `/sync-codex`. Scanning them
+ * Generated mirrors carry the converted text only after the user runs the owning sync. Scanning them
  * would report each source's state twice and go red in the window between a source edit and the
- * sync. SC-7 over mirrors is proven transitively instead: source is clean AND
- * `verify-sync-divergence` proves the mirror matches the source.
+ * sync. SC-7 over mirrors is proven transitively instead: source is clean AND a divergence gate
+ * proves the mirror matches the source — `verify-sync-divergence` for `AGENTS.md`, `.codex/` and
+ * `.agents/`, and the `verify-opencode-agents` stage of `run-opencode-sync.mjs` for `.opencode/`.
  */
-export const MIRROR_PREFIXES = ['AGENTS.md', '.codex/', '.agents/'];
+export const MIRROR_PREFIXES = ['AGENTS.md', '.codex/', '.agents/', '.opencode/'];
 
 /**
  * Test fixtures legitimately hardcode the DEFAULT paths to prove the default still works; banning
@@ -133,6 +134,9 @@ export const EXCLUDED_PREFIXES = ['.claude/hooks/tests/'];
 
 /** `.claude/skills/<name>/tests/**` — same fixture rationale, expressed positionally. */
 const SKILL_TESTS_PATTERN = /^\.claude\/skills\/[^/]+\/tests\//;
+
+// `.claude/scripts/<pkg>/tests/` — the same fixture rationale for script-level test suites.
+const SCRIPT_TESTS_PATTERN = /^\.claude\/scripts\/.*\/tests\//;
 
 const ignoredParts = new Set(['node_modules', '.git', '.venv', '__pycache__', 'tmp', 'temp']);
 const ignoredExtensions = new Set(['.pyc', '.pyo', '.exe', '.dll', '.png', '.jpg', '.jpeg', '.gif', '.webp', '.ico', '.zip', '.db']);
@@ -187,6 +191,7 @@ export function isExcluded(relPath) {
     if (MIRROR_PREFIXES.some(prefix => relPath === prefix || relPath.startsWith(prefix))) return true;
     if (EXCLUDED_PREFIXES.some(prefix => relPath.startsWith(prefix))) return true;
     if (SKILL_TESTS_PATTERN.test(relPath)) return true;
+    if (SCRIPT_TESTS_PATTERN.test(relPath)) return true;
     if (relPath.split('/').some(part => ignoredParts.has(part))) return true;
     if (ignoredExtensions.has(path.extname(relPath).toLowerCase())) return true;
     return false;

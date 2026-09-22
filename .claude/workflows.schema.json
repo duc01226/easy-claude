@@ -64,27 +64,6 @@
       "title": "Pre-Actions",
       "type": "object"
     },
-    "Settings": {
-      "additionalProperties": false,
-      "description": "Global configuration for workflow detection.",
-      "properties": {
-        "enabled": {
-          "default": true,
-          "description": "Master toggle to enable or disable all workflow detection and automation.",
-          "title": "Enable Workflows",
-          "type": "boolean"
-        },
-        "showDetection": {
-          "default": true,
-          "description": "Whether to display the detected intent and workflow sequence to the user before execution.",
-          "title": "Show Detection",
-          "type": "boolean"
-        }
-      },
-      "required": ["enabled", "showDetection"],
-      "title": "Global Settings",
-      "type": "object"
-    },
     "StepMeta": {
       "additionalProperties": false,
       "description": "Optional runtime hints for a specific workflow step. Read by the model (per the model-driven advancement rule) to decide sub-agent vs inline execution. Overrides values in the skill's SKILL.md front matter.",
@@ -228,9 +207,6 @@
       "title": "Configuration Description",
       "type": "string"
     },
-    "settings": {
-      "$ref": "#/definitions/Settings"
-    },
     "version": {
       "description": "Semantic version of the workflow configuration (e.g., 2.0.0).",
       "examples": ["1.0.0", "2.0.0"],
@@ -248,7 +224,7 @@
       "type": "object"
     }
   },
-  "required": ["version", "description", "settings", "workflows"],
+  "required": ["version", "description", "workflows"],
   "title": "Workflow Configuration",
   "type": "object"
 }

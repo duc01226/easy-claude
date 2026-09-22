@@ -228,12 +228,15 @@ function validateNamingPattern(pattern) {
  * @returns {string} Resolved naming pattern with {slug} placeholder
  */
 function resolveNamingPattern(planConfig, gitBranch) {
-  const { namingFormat, dateFormat, issuePrefix } = planConfig;
+  const { namingFormat, dateFormat } = planConfig;
   const formattedDate = formatDate(dateFormat);
 
   // Try to extract issue ID from branch name
   const issueId = extractIssueFromBranch(gitBranch);
-  const fullIssue = issueId && issuePrefix ? `${issuePrefix}${issueId}` : null;
+  // Delegate to formatIssueId so a configured prefix and the documented generic `#`
+  // fallback stay in ONE place; duplicating the rule here silently dropped the
+  // extracted issue whenever no prefix was configured.
+  const fullIssue = formatIssueId(issueId, planConfig);
 
   // Build pattern by substituting {date} and {issue}, keep {slug}
   let pattern = namingFormat;

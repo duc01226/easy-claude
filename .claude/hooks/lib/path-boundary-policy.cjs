@@ -1,13 +1,12 @@
 'use strict';
 
 /**
- * Pure, bounded path-boundary policy adapter.
+ * Pure command/path classification adapter.
  *
- * The entrypoint owns event/config I/O and maps BLOCK/UNKNOWN to the host's
- * safety exit. This module owns only static command roles, relative/cwd and
- * container intent, and aggregation. `inspect` and `resolver` are injected so
- * tests can prove the policy without executing a command or touching a real
- * filesystem.
+ * Owns static command roles, relative/cwd and container intent, and the file
+ * operand collectors.
+ * `inspect` and `resolver` are injected so tests can prove the classification
+ * without executing a command or touching a real filesystem.
  */
 
 const path = require('node:path');
@@ -57,6 +56,9 @@ const GIT_DIFF_VALUE_OPTIONS = new Set([
 // Optional long-option values are attached with '='; a following word is
 // still a revision/pathspec, never the value of a bare presentation option.
 const GIT_DIFF_OPTIONAL_OPTIONS = new Set(['--unified', '--abbrev', '--color', '--word-diff', '--ignore-submodules', '--relative', '--submodule']);
+// Recovered only from Git diff's bounded revision positions. The command scanner
+// leaves caret words UNKNOWN because an embedded cmd.exe body may treat `^` as escape.
+const GIT_PARENT_REVISION = /^[A-Za-z0-9][A-Za-z0-9._/-]*\^[0-9]+$/;
 const GIT_DIFF_FLAGS = new Set([
   '--no-index', '--cached', '--staged', '--check', '--name-only', '--name-status',
   // `--numstat`/`--compact-summary`/`--cumulative` are display-only siblings of
@@ -182,6 +184,22 @@ function staticValue(token) {
   return token && token.static !== false && typeof token.value === 'string' ? token.value : null;
 }
 
+function recoveredGitParentRevision(token) {
+  if (token?.kind !== 'word' || token.static !== false || typeof token.value !== 'string'
+    || token.raw !== token.value || !Array.isArray(token.parts) || token.parts.length !== 1) return null;
+  const [part] = token.parts;
+  if (part.quote !== 'unquoted' || part.raw !== token.raw || part.value !== token.value
+    || !GIT_PARENT_REVISION.test(token.value)) return null;
+  return { ...token, static: true, interpretation: 'git-parent-revision' };
+}
+
+function onlyGitParentRevisionUnknowns(statement, tokens) {
+  const diagnostics = statement?.diagnostics || [];
+  if (!tokens.length || diagnostics.length !== tokens.length) return false;
+  const spans = new Set(tokens.map(token => `${token.start}:${token.end}`));
+  return diagnostics.every(item => item.code === 'UNSUPPORTED_WORD' && spans.has(`${item.start}:${item.end}`));
+}
+
 function staticPathValue(token) {
   const value = staticValue(token);
   if (value === null) return null;
@@ -213,8 +231,12 @@ function splitOption(token) {
   return index < 0 ? { name: value, inline: undefined } : { name: value.slice(0, index), inline: value.slice(index + 1) };
 }
 
-function collectFileOperands(statement, { privacy = false } = {}) {
+function collectFileOperands(statement) {
   const command = commandName(statement);
+  if (command === 'git') {
+    const gitShow = collectGitShowOperands(statement);
+    if (gitShow.protected) return gitShow;
+  }
   if (!READ_ROLES.has(command) && !WRITE_ROLES.has(command)) return { paths: [], protected: false };
 
   const argv = Array.isArray(statement?.argv) ? statement.argv.slice(1) : [];
@@ -287,8 +309,7 @@ function collectFileOperands(statement, { privacy = false } = {}) {
         const operand = inline === undefined ? argv[++index] : token;
         const operandValue = inline === undefined ? staticPathValue(operand) : inline;
         if (operandValue === null && optionRole !== 'pattern') return { paths, protected: true, unknown: true, unknownCode: 'DYNAMIC_PATH_OPTION' };
-        const privacySelector = privacy && ['--include', '--exclude', '--exclude-dir', '--exclude-from', '-g', '--glob', '--iglob'].includes(name);
-        if (optionRole === 'pattern-file' || privacySelector) paths.push(pathEntry(operandValue, 'path-option', 'argv', statement, operand, requiresExistingRead(command, operandValue)));
+        if (optionRole === 'pattern-file') paths.push(pathEntry(operandValue, 'path-option', 'argv', statement, operand, requiresExistingRead(command, operandValue)));
         continue;
       }
       if (inline !== undefined && (name === '--target-directory' || name === '-Path' || name === '-LiteralPath')) {
@@ -327,6 +348,20 @@ function collectFileOperands(statement, { privacy = false } = {}) {
   return { paths, protected: true };
 }
 
+function gitDiffUsesNoIndex(argv, start) {
+  for (let index = start; index < argv.length; index++) {
+    const value = staticValue(argv[index]);
+    if (value === '--') return false;
+    if (value === '--no-index') return true;
+    if (value === null || !value.startsWith('-')) continue;
+    const { name, inline } = splitOption(argv[index]);
+    if (GIT_DIFF_OPTIONAL_OPTIONS.has(name)) continue;
+    if (GIT_DIFF_VALUE_OPTIONS.has(name) && inline === undefined) { index++; continue; }
+    if (/^-U\d+$/.test(name)) continue;
+  }
+  return false;
+}
+
 function collectGitDiffOperands(statement) {
   if (commandName(statement) !== 'git') return { paths: [], protected: false };
   const argv = Array.isArray(statement?.argv) ? statement.argv.slice(1) : [];
@@ -350,21 +385,34 @@ function collectGitDiffOperands(statement) {
   if (staticValue(argv[operationIndex]) !== 'diff') return { paths: [], protected: false };
 
   const paths = [];
+  const recoveredParentTokens = [];
   let afterTerminator = false;
+  let revisionOperands = 0;
+  const noIndex = gitDiffUsesNoIndex(argv, operationIndex + 1);
   for (let index = operationIndex + 1; index < argv.length; index++) {
     const token = argv[index];
-    const value = staticValue(token);
-    if (value === null) return { paths, protected: true, unknown: true, unknownCode: 'DYNAMIC_GIT_DIFF_OPERAND' };
+    let operandToken = token;
+    let value = staticValue(token);
+    if (value === '--' && !afterTerminator) {
+      afterTerminator = true;
+      continue;
+    }
     if (afterTerminator) {
-      const pathspec = staticPathValue(token);
+      if (value === null) return { paths, protected: true, unknown: true, unknownCode: 'DYNAMIC_GIT_DIFF_OPERAND' };
+      const pathspec = staticPathValue(operandToken);
       paths.push(pathEntry(pathspec, 'git-diff-pathspec', 'argv', statement, token,
         /[\\/]/.test(String(pathspec || ''))));
       continue;
     }
-    if (value === '--') {
-      afterTerminator = true;
-      continue;
+    if (value === null && !noIndex && revisionOperands < 2) {
+      const recovered = recoveredGitParentRevision(token);
+      if (recovered) {
+        operandToken = recovered;
+        value = recovered.value;
+        recoveredParentTokens.push(recovered);
+      }
     }
+    if (value === null) return { paths, protected: true, unknown: true, unknownCode: 'DYNAMIC_GIT_DIFF_OPERAND' };
     if (value === '--output') {
       const output = argv[++index];
       if (staticValue(output) === null) return { paths, protected: true, unknown: true, unknownCode: 'DYNAMIC_GIT_OUTPUT' };
@@ -403,11 +451,66 @@ function collectGitDiffOperands(statement) {
     // Git accepts revisions and pathspecs in this position. Treat both as
     // boundary candidates; a revision resolves lexically inside the project,
     // while an absolute/outside path remains visible to the boundary check.
-    const operand = staticPathValue(token);
-    paths.push(pathEntry(operand, 'git-diff-operand', 'argv', statement, token,
+    revisionOperands++;
+    const operand = staticPathValue(operandToken);
+    paths.push(pathEntry(operand, 'git-diff-operand', 'argv', statement, operandToken,
       /[\\/]/.test(String(operand || ''))));
   }
   // Carry command-local cwd through nested shells without changing siblings.
+  for (const entry of paths) entry.cwdChanges = cwdChanges;
+  if (cwdChanges.length) paths.push({ ...pathEntry('.', 'git-cwd', 'argv', statement), cwdChanges });
+  return {
+    paths,
+    protected: true,
+    recoveredParentRevision: onlyGitParentRevisionUnknowns(statement, recoveredParentTokens)
+  };
+}
+
+function collectGitShowOperands(statement) {
+  if (commandName(statement) !== 'git') return { paths: [], protected: false };
+  const argv = Array.isArray(statement?.argv) ? statement.argv.slice(1) : [];
+  if (!argv.some(token => staticValue(token) === 'show')) return { paths: [], protected: false };
+
+  const cwdChanges = [];
+  let operationIndex = 0;
+  for (; operationIndex < argv.length; operationIndex++) {
+    const token = argv[operationIndex];
+    const value = staticValue(token);
+    if (value === '-C' || value?.startsWith('-C') && value.length > 2) {
+      const directory = value === '-C' ? staticPathValue(argv[++operationIndex]) : value.slice(2);
+      if (directory === null) return { paths: [], protected: true, unknown: true, unknownCode: 'DYNAMIC_GIT_CWD' };
+      if (directory !== '') cwdChanges.push(directory);
+      continue;
+    }
+    if (['--no-pager', '--paginate', '--no-optional-locks'].includes(value)) continue;
+    if (value === null || value.startsWith('-')) return { paths: [], protected: true, unknown: true, unknownCode: 'UNSUPPORTED_GIT_GLOBAL_OPTION' };
+    break;
+  }
+  if (staticValue(argv[operationIndex]) !== 'show') return { paths: [], protected: false };
+
+  const paths = [];
+  let afterTerminator = false;
+  for (let index = operationIndex + 1; index < argv.length; index++) {
+    const token = argv[index];
+    const value = staticValue(token);
+    if (value === null) return { paths, protected: true, unknown: true, unknownCode: 'DYNAMIC_GIT_SHOW_OBJECT' };
+    if (!afterTerminator && value === '--') {
+      afterTerminator = true;
+      continue;
+    }
+    // Presentation switches and options (including optional `--format`) are
+    // not object operands. Keep scanning so a following tree-object path is
+    // still classified.
+    if (!afterTerminator && value.startsWith('-')) continue;
+
+    const separator = value.indexOf(':');
+    if (separator < 0) continue; // A revision such as HEAD names no file path.
+    const objectPath = value.slice(separator + 1);
+    if (!objectPath) continue;
+    paths.push(pathEntry(objectPath, 'git-show-object', 'argv', statement, token,
+      /[\\/]/.test(objectPath)));
+  }
+
   for (const entry of paths) entry.cwdChanges = cwdChanges;
   if (cwdChanges.length) paths.push({ ...pathEntry('.', 'git-cwd', 'argv', statement), cwdChanges });
   return { paths, protected: true };
@@ -640,7 +743,7 @@ function collectContainerOperands(statement) {
   return { paths, protected: true, unknown, unknownCode: unknown ? 'CONTAINER_SCOPE_UNKNOWN' : null };
 }
 
-// Wrapper argv roles are shared by boundary and privacy policy. This does not
+// Wrapper argv roles are owned by the boundary policy. This does not
 // evaluate assignments, shell split-string syntax, aliases or executables.
 function unwrapCommand(statement) {
   const command = commandName(statement);
@@ -769,7 +872,8 @@ function collectStatement(statement, index, inspect, depth = 0) {
   // Legacy pattern strippers intentionally accept opaque sed/awk/grep bodies.
   // Do not turn an otherwise path-free opaque pattern into a false boundary
   // denial; absolute/relative operands still flow through the collected paths.
-  if (statement.status === 'UNKNOWN' && (paths.length > 0 || navigation) && !new Set([
+  if (statement.status === 'UNKNOWN' && (paths.length > 0 || navigation)
+    && !gitDiff.recoveredParentRevision && !new Set([
     'find', 'sed', 'awk', 'gawk', 'mawk', 'grep', 'egrep', 'fgrep', 'rg', 'ripgrep',
     ...POWERSHELL_FILE_COMMANDS
   ]).has(commandName(statement))) {

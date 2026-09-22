@@ -10,8 +10,8 @@
 | **Need a skill?**              | [skills/README.md](./skills/README.md) - 124 skills catalog                                                                        |
 | **Building a feature?**        | [skills/README.md](./skills/README.md) + project-reference root patterns                                                           |
 | **Verifying user experience?** | [configuration/experience-verification.md](./configuration/experience-verification.md) - portable evidence and acceptance contract |
-| **Understanding hooks?**       | [hooks/README.md](./hooks/README.md) - 21 top-level hook files deep-dive                                                           |
-| **Understanding workflows?**   | `CLAUDE.md` workflow catalog (project root) - 19 workflows                                                                         |
+| **Understanding hooks?**       | [hooks/README.md](./hooks/README.md) - 14 top-level hook files deep-dive                                                           |
+| **Understanding workflows?**   | `.claude/workflows.json` canonical catalog plus opt-in prompt injection - 19 workflows                                            |
 | **Configuring Claude?**        | [configuration/README.md](./configuration/README.md)                                                                               |
 | **Team collaboration?**        | [team-collaboration-guide.md](./team-collaboration-guide.md) - PO, BA, QA, QC, UX workflows                                        |
 | **Graph intelligence?**        | [code-graph-mechanism.md](./code-graph-mechanism.md) - How structural code analysis works                                          |
@@ -30,7 +30,7 @@ Project-owned branches below sit at their DEFAULT roots; `docs/project-config.js
 |   |-- README.md             Skills overview + full catalog
 |   +-- (patterns)           → docs/project-reference/
 |
-|-- hooks/                    21 top-level hook files, 37 lib modules
+|-- hooks/                    14 top-level hook files, 43 lib modules
 |   |-- README.md             Hooks overview, lessons system, session lifecycle
 |   +-- extending-hooks.md    How to create custom hooks
 |
@@ -46,7 +46,7 @@ Project-owned branches below sit at their DEFAULT roots; `docs/project-config.js
 |-- configuration/            All configuration files
 |   |-- README.md             Config overview
 |   |-- settings-reference.md settings.json reference
-|   |-- output-styles.md      Coding levels 0-5
+|   |-- output-styles.md      Custom output styles
 |   +-- experience-verification.md  Observable-surface evidence and acceptance
 |
 +-- troubleshooting.md        Consolidated troubleshooting guide
@@ -90,7 +90,7 @@ Project-owned branches below sit at their DEFAULT roots; `docs/project-config.js
 | How hooks intercept events                  | [hooks/README.md](./hooks/README.md) — hook catalog + lifecycle                                                 |
 | Hook execution order by event               | [hooks/README.md](./hooks/README.md) — hook catalog + execution order                                           |
 | Session lifecycle (init → compact → resume) | [hooks/README.md#session-lifecycle](./hooks/README.md#session-lifecycle)                                        |
-| Workflow detection and routing              | `CLAUDE.md` workflow catalog (project root)                                                                     |
+| Workflow detection and routing              | Opt-in `workflow-route-inject.cjs`; definitions in `.claude/workflows.json`                                     |
 | How to create custom hooks                  | [hooks/extending-hooks.md](./hooks/extending-hooks.md)                                                          |
 | How to configure output                     | [configuration/output-styles.md](./configuration/output-styles.md)                                              |
 | How team collaboration works                | [team-collaboration-guide.md](./team-collaboration-guide.md)                                                    |
@@ -128,7 +128,7 @@ Unprefixed filenames resolve inside the project-reference docs root — default 
 
 | Document                                         | Size  | Use Case           |
 | ------------------------------------------------ | ----- | ------------------ |
-| `scss-styling-guide.md` (project-reference root) | ~30KB | BEM, design tokens |
+| `configured styling reference` (project-reference root) | ~30KB | BEM, design tokens |
 
 ## Related Documentation
 
@@ -152,12 +152,12 @@ Unprefixed filenames resolve inside the project-reference docs root — default 
 | Category               | Count |
 | ---------------------- | ----- |
 | Skills                 | 124   |
-| Hook files (top-level) | 21    |
-| Lib Modules            | 36    |
+| Hook files (top-level) | 14    |
+| Lib Modules            | 43    |
 | Hook Events            | 8     |
 | Agents                 | 23    |
 | Workflows              | 19    |
-| Hook Tests             | 232   |
+| Hook Tests             | 130   |
 | Documentation Files    | 28    |
 
 ---

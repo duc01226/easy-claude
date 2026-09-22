@@ -1,6 +1,25 @@
-> The `spec` skill (`../SKILL.md`) loads this body for `[mode=sync]`. It is the spec↔test-code reconciliation procedure: reconcile the canonical business Section 8 TCs against test code (§8 is canonical; test code implements it). The host SKILL.md owns the generic gates and the standalone next-steps tail — this body carries only the sync-mode procedure. For TC authoring/generation, see `tests.md` (`[mode=tests]`).
+> The `spec` skill (`../SKILL.md`) loads this body for `[mode=sync]`. The host SKILL.md resolves the project profile and routes to shared semantic/evidence gates. This body carries the mode-specific reconciliation procedure. For authoring cases, see `tests.md` (`[mode=tests]`).
 
-# Mode: Sync §8 TCs ↔ Test Code
+# Mode: Sync Canonical Cases ↔ Test Code
+
+## Native Profile Procedure
+
+Apply this branch when the host selected a native profile. Do not execute the strict-default TC/Section 8 algorithms below. They preserve the default representation and are not additional native registries or carrier requirements.
+
+1. **Resolve one canonical scope.** Read the configured business root, artifact type, owner rules, logical identifiers, section aliases, native case carriers/field mappings, executable-test or manual-QC selectors, and local lifecycle. Follow explicit local authority/supersession rules before judging declarations to conflict. Exclude derived technical roots and out-of-scope files. A malformed/unresolved profile, unreadable required carrier, incomplete file selection, unresolved owner, or unsupported expression yields `UNKNOWN`/`BLOCKED`; never fall back to TC or report an empty selection as clean.
+2. **Enumerate canonical rows from their declared carriers.** Use the project's bounded/validated carrier reader when available; otherwise inspect only an explicit, reviewable file set and record spans. Preserve identity as owner + scenario ID + optional variant ID. Retain declared delivery-slice association as metadata where the owner defines it; do not turn slice numbers into case IDs. A repeated scenario with distinct variants is valid; an exact duplicate identity or conflicting owner is a finding. Do not build or persist a second case registry.
+3. **Detect direction.** `forward` compares canonical owner/case rows to the proof carriers selected by the profile (executing tests or explicitly approved manual-QC records); `reverse` reports executable-test or manual-QC proof rows that lack an accepted canonical owner; `full` runs both sequentially; `harvest` captures a proven, spec-silent invariant into the native owner. Default to `forward` when no direction is provided. Reverse insertion or semantic changes still require the canonical owner's approval under the active workflow.
+4. **Prove each coverage claim.** For every required owner/scenario/variant row, trace its requirement/invariant and source evidence to the profile-selected proof. For executable tests, inspect the assertion that checks the expected outcome and record the selected runner command and observed result when run. Use manual-QC proof only when the profile explicitly authorizes it; record the approved procedure and observed evidence without labeling it runner-executed. ID/name/source presence or a `status: approved` field alone is not execution proof. A source-mapped row is `mapped/unverified`; report pass only after observing the selected execution method's result. An aggregate runner result covers only rows whose assertions were inspected and whose results were observed.
+5. **Reconcile without destroying intent.** Report uncovered canonical rows, unowned executable/manual-QC proof rows, stale links, incompatible expectations, and out-of-scope candidates separately. Never delete or overwrite a canonical case/test during sync. Do not promote an orphan test or QC record into the spec merely because it has a scenario identifier; establish its accepted requirement/invariant, owner, expected outcomes, and applicable semantic scope first.
+6. **Harvest invariants at the native owner.** Prove the constraint from enforcement evidence, distinguish invariant from example, record the quantified domain and boundary counter-case where applicable, and route the rule to the configured contract section and guarding scenario carrier. Preserve healthy behavior in bugfixes. A harvest that changes intended behavior or ownership follows the workflow's user/owner approval gate; never create a TC solely to satisfy the default procedure.
+7. **Use N/A only when applicability is proven.** A missing default TC does not make a native scenario N/A. Classify an item as N/A only when the resolved profile/scope and evidence demonstrate that the requirement does not apply; otherwise preserve `UNKNOWN`/`BLOCKED` or uncovered. Never claim a passing summary when required cases or selected files remain unresolved.
+8. **Keep reconciliation reports disposable.** Put the selected-file inventory, row identities/spans, executor/assertion/result mapping, coverage gaps, and uncertainty in a run-scoped `tmp/` report. Do not write a new tracked index, case list, or mirror to record the sync.
+
+Follow the host workflow, operation-authority, review, and confirmation gates; profile selection changes representation only. If no native profile was selected, use the strict-default procedure below unchanged.
+
+## Strict Default TC/Section 8 Procedure
+
+Everything from this point through the end describes the strict default TC/Section 8 representation only.
 
 **Triggered when:** "sync test specs", "sync tests", "reconcile tests", "reverse sync", "full sync", or `[mode=sync]` with an optional `[direction=sync|forward|reverse|full]` qualifier.
 
@@ -38,8 +57,9 @@ Matching a TC id against the corpus answers *"does something carry this string?"
 
 <!-- SYNC:tc-test-join-evidence -->
 
-> 1. **The resolved artifact is a TEST** — test project/suite membership, a test-framework annotation, or an executing assertion. Say which you checked. A corpus search matches production source too; implementations routinely cite in a comment the TC they satisfy.
-> 2. **The resolved test's SUBJECT matches this TC's `Given/When/Then`.** TC IDs are not guaranteed unique — the same ID may be bound by an unrelated test or one in a different module. An ID match is a string match; only the body match is evidence.
+> 1. **The resolved artifact is an executing TEST** — prove suite/project membership, the configured test-carrier row, or an executing assertion, and say which you checked. A corpus search can match production source; a comment citing a case is not execution evidence.
+> 2. With a valid `specArtifacts` profile, join by the configured ownership tuple: canonical owner path + native case/scenario ID + optional variant. Trace each tuple to its actual executor and inspect the assertion at `file:line`; preserve configured one-to-many or many-to-many cardinality. A result for several scenarios proves each only when the executor reaches an assertion for every row.
+> 3. With no `specArtifacts` profile, use the strict-default TC identity; a malformed declared profile blocks without fallback. In either profile, the resolved test must match the scenario's native preconditions/actions and owned outcome (Given/When/Then when selected); an ID match is a string match, not proof.
 
 <!-- /SYNC:tc-test-join-evidence -->
 

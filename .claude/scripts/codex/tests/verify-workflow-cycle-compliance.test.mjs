@@ -907,10 +907,10 @@ test("checkStartWorkflowPreActionPolicy requires canonical pre-actions before Ta
     "The complete entry has non-empty preActions.injectContext.",
     "Use a JSON-aware complete canonical entry read.",
     "Read preActions.injectContext from the selected entry.",
-    "The static catalog is a route-selection aid.",
+    "The runtime catalog is for route selection only.",
     "Use the exact canonical run condition and evidence-backed skip transition.",
     "Search for the exact workflow ID.",
-    "Do NOT parse a static catalog sequence for TaskCreate.",
+    "Do NOT parse the runtime catalog sequence for TaskCreate.",
     "Invoke each with the active host's command syntax.",
     "A conditionally skipped task may complete without invoking its Skill tool.",
   ].join("\n");
@@ -919,7 +919,7 @@ test("checkStartWorkflowPreActionPolicy requires canonical pre-actions before Ta
 
   const failures = checkStartWorkflowPreActionPolicy(
     rel,
-    "Tier 1 alone creates tasks from the static catalog."
+    "Tier 1 alone creates tasks from a route summary."
   );
   assert.equal(failures.length, 11);
   assert.ok(failures.some((failure) => /Tier-2 canonical entry read/.test(failure)));

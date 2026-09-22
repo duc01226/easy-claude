@@ -5,24 +5,30 @@ disable-model-invocation: false
 ---
 
 > **[IMPORTANT]** Create complete task plan before shell checks, scans, generators, edits, or skill calls.
-> **[IMPORTANT]** After config exists, run `/scan-all` + `/workflow-code-to-spec` as post-config barrier; do not proceed until both return outcome/blocker/deferral.
-> **[IMPORTANT]** After setup/review/verification is otherwise done, spawn background `/graph-build` sub-agent and record outcome.
+> **[IMPORTANT]** The config file is required, but only `project.name` is mandatory; select optional setup work from declared capabilities and repository evidence.
+> **[IMPORTANT]** Run `/scan-all` only when selected built-in or generic scan targets apply; custom references default to manual ownership. Run `/workflow-code-to-spec` only for an existing spec corpus or accepted capability scope.
 
 ## Quick Summary
 
-**Goal:** Initialize or re-evaluate all portable project context files through one idempotent route, so any agent — with or without hooks — can discover missing context and reach a verified state with project config, reference docs, root instruction files, and Codex mirrors aligned.
+**Goal:** Initialize or re-evaluate portable project context through one idempotent route, requiring a valid project identity while configuring only capabilities supported by the project and task.
+
+**Summary:**
+
+- Plan and assess the configured project, then repair the required config until non-empty `project.name` validates.
+- Keep always-on context separate from exact task-specific reference selection; add optional capabilities only from evidence.
+- Run scan, spec, surface, host, and graph work only when selected; preserve native spec formats or use strict defaults, then verify, review, and report outcomes and skips.
 
 **Workflow:**
 
-1. **Plan Tasks** - Before any setup action, create task-tracking entries for every project-init phase and every required final skill call.
+1. **Plan Tasks** - Before setup, create task-tracking entries for required setup and review work; include conditional tasks only when their evidence and prerequisites apply.
 2. **Assess** - Classify folder state and current context-file health.
-3. **Bootstrap** - Create missing config/doc stubs when useful, then route scans/generators.
-4. **Populate** - After project config is initialized/refreshed, start the post-config parallel group: call `/scan-all` and `/workflow-code-to-spec`.
-5. **Spec Finalization** - Resolve the mandatory Feature Spec gate from `/workflow-code-to-spec`; only empty/no-content or no-accepted-capability projects may defer with evidence.
-6. **Review** - Run `/changes-review`, then `/why-review` as final quality gates after scan/spec completion.
-7. **Verify** - Validate config, root files, docs, mirrors, spec workflow status, and staleness.
-8. **Background Graph Refresh** - After setup/review/verification is otherwise done, spawn a background sub-agent to run `/graph-build`.
-9. **Report** - List completed actions, skipped actions, and remaining manual steps.
+3. **Bootstrap** - Require the configured config file with non-empty `project.name`; derive optional properties only from evidence.
+4. **Select Context Work** - Ensure always-on `lessons.md` and `docs-index-reference.md` independently of task-specific `referenceDocs`; run only applicable selected/evidenced scans.
+5. **Spec Work** - For selected spec work, preserve a valid native `specArtifacts` profile or use the strict TC/Section-8 default when absent. Select the spec workflow only when canonical specs exist or accepted capability scope is available.
+6. **Review** - Run `/changes-review`, then `/why-review` after setup changes and selected scan/spec work are complete.
+7. **Verify** - Validate the required config, declared optional sections, changed docs, selected workflow outcomes, and generated mirrors that apply to this host.
+8. **Graph Refresh** - Run `/graph-build` in a background sub-agent only when graph tooling is available and the project/task needs graph coverage; otherwise record an evidence-backed skip.
+9. **Report** - List completed actions, evidence-backed skips, blockers, and remaining manual steps.
 
 **Key Rules:**
 
@@ -31,12 +37,62 @@ disable-model-invocation: false
 - MUST ATTENTION keep reusable skill text project-neutral; local rules belong in project config/reference docs.
 - MUST ATTENTION use configured portability paths from `.claude/.ck.json` when present.
 - MUST ATTENTION before any shell check, scan, generator, or file edit, create a complete task plan covering assessment, setup routes, final skill calls, verification, report, and lessons.
-- MUST ATTENTION immediately after `/project-config` initializes or refreshes config, create and execute a post-config parallel task group with `Call /scan-all` and `Call /workflow-code-to-spec`.
-- MUST ATTENTION call `/scan-all` after config initialization for every content-bearing project; skip only empty/no-content projects with recorded evidence.
-- MUST ATTENTION invoke `/workflow-code-to-spec` for every content-bearing project; it may run in parallel with `/scan-all` after config exists, but do not treat "handoff suggested" as completion.
-- MUST ATTENTION end every setup run with final task-plan rows, in order: `Call /changes-review`, `Call /why-review`, `Spawn background /graph-build sub-agent`, after the scan/spec parallel group is resolved.
-- MUST ATTENTION run `/graph-build` as a required final background sub-agent task after setup/review/verification work is otherwise done; do not run this final graph refresh inline in the main context.
-- MUST ATTENTION resolve Codex mirrors through the `/ai-context-refresh` completion handoff when that root route runs; if it is skipped or blocked, ask the user to run the full `/sync-codex` route or its standalone runner, whose preflight handles `CLAUDE.md` first.
+- MUST ATTENTION treat only the config file and non-empty `project.name` as required; valid omitted capability sections do not make the config incomplete.
+- MUST ATTENTION distinguish absent `referenceDocs` (portable baseline, possibly empty, plus evidenced capabilities) from an explicit array (authoritative, including `[]`); always-on `lessons.md` and `docs-index-reference.md` are handled separately.
+- MUST ATTENTION run `/scan-all` only for selected/evidenced built-in targets or custom docs explicitly marked `scanTarget: "generic"`; custom docs otherwise remain manual and are not freshness-tracked.
+- MUST ATTENTION run `/workflow-code-to-spec` only when an existing canonical spec corpus or accepted project/capability scope supplies a real owner target; code/package names alone are not acceptance.
+- MUST ATTENTION if both scan and spec work are selected, run them as siblings and wait for both outcomes; otherwise run only the applicable task.
+- MUST ATTENTION preserve valid native `specArtifacts`; absence keeps strict TC/Section-8 defaults; an invalid declared profile blocks spec setup instead of falling back silently.
+- MUST ATTENTION keep `/changes-review` then `/why-review` as final review gates after setup changes; report a no-change result when no artifacts were modified.
+- MUST ATTENTION run `/graph-build` as a background sub-agent only when graph tooling is available and graph work is relevant; do not make graph support a hidden prerequisite for non-code projects.
+- MUST ATTENTION resolve Codex mirrors through the `/ai-context-refresh` completion handoff when Codex context is installed or selected; otherwise record the host-specific step as not applicable.
+- MUST ATTENTION when the user asks for help, options, or "what does init decide", run **Help Mode** below and STOP — never start Phase -1.
+
+## Help Mode (`--help`)
+
+**Trigger:** `$ARGUMENTS` contains `--help`, `-h`, `help`, `options`, `what does this set up`, `what will it change`, or any other request to understand the setup surface rather than to run setup.
+
+**Help Mode is read-only and terminal.** It creates no tasks, runs no scan, generates no file, and edits nothing. Answer, then STOP. If the user then asks to initialize, re-enter this skill at Phase -1.
+
+### 1. What init decides (read this out, it is the part that is skill-owned)
+
+| Decision | Inputs it reads | Effect if you get it wrong |
+| --- | --- | --- |
+| Route (greenfield / bootstrap / repair / re-evaluate) | `session-init-helpers.cjs` state checks in Phase 0 | A repair route run on a greenfield tree overwrites nothing but reports nothing useful; the reverse regenerates context the project already owns |
+| Required config identity | the configured project-config path, non-empty `project.name` | Every downstream skill blocks on invalid config |
+| Optional capability sections | repository evidence, not the project name | An invented section makes skills demand a lane the project does not have |
+| Always-on vs task-specific reference docs | `lessons.md` + `docs-index-reference.md` are always-on; `referenceDocs[]` is task-specific selection | Selecting a built-in doc with no owning scan target leaves a permanently stale file |
+| Spec profile | `specArtifacts` (valid native profile) else strict TC/Section-8 defaults | An invalid declared profile BLOCKS spec setup; it never falls back silently |
+| Host mirrors | `/ai-context-refresh` completion handoff | Hand-edited `.agents/**` is overwritten on the next sync |
+
+### 2. The option surface it configures
+
+Init writes the project-config file, so the full option catalog is the same one `/project-config --help` renders. Run the generator directly:
+
+```bash
+node .claude/skills/project-config/scripts/project-config-help.cjs            # orientation + most-consumed options
+node .claude/skills/project-config/scripts/project-config-help.cjs --sections # every option init can write
+node .claude/skills/project-config/scripts/project-config-help.cjs --roots    # relocatable roots init resolves
+node .claude/skills/project-config/scripts/project-config-help.cjs --docs     # reference docs init selects, and their owners
+node .claude/skills/project-config/scripts/project-config-help.cjs --consumers # how much of the framework each option moves
+node .claude/skills/project-config/scripts/project-config-help.cjs --current  # what THIS project already declares
+```
+
+### 3. Current state of this project (run before answering "what would init do here?")
+
+```bash
+node -e "const h=require('./.claude/hooks/lib/session-init-helpers.cjs'); console.log(JSON.stringify({hasProjectContent:h.hasProjectContent(), isGreenfield:h.isGreenfieldProject()}, null, 2))"
+node -e "const s=require('./.claude/hooks/lib/session-init-helpers.cjs'); console.log(JSON.stringify(s.checkProjectConfig(), null, 2))"
+node -e "const a=require('./.claude/hooks/lib/agent-files-state.cjs'); console.log(JSON.stringify(a.getAgentFileIssues(), null, 2))"
+```
+
+Map the result onto the Phase 1 route table and tell the user which route init would take **and which steps it would skip**, with the evidence for each skip.
+
+**Presentation rules:**
+
+- Show generator output verbatim; it is derived from live sources, so never retype an option list from memory.
+- Name skipped steps explicitly. "Not applicable, because <evidence>" is an answer; silence is not.
+- For framework-wide help beyond setup (skills, workflows, hooks, project architecture), route to `/project-help`.
 
 ## Scope
 
@@ -44,15 +100,15 @@ disable-model-invocation: false
 
 | Concern | Primary route |
 | --- | --- |
-| Project config | `/project-config`, including the optional `e2eTesting.execution` profile linked to the `experienceVerification` surface matrix, then post-config parallel group: `/scan-all` + `/workflow-code-to-spec` |
+| Project config | `/project-config`; the configured file is required and its minimum valid content is non-empty `project.name`. Add optional capabilities only from evidence. |
 | User/downstream experience | `/experience-review` after a runnable outcome exists; during setup, configure the matrix or record evidence-backed `NOT-APPLICABLE`/`ENVIRONMENT-BLOCKED` |
-| Project reference docs | `/scan-all` after config initialization; `/docs-init` or `/scan --target=<key>` only for stubs/focused repairs |
+| Project reference docs | Ensure always-on `lessons.md` and `docs-index-reference.md` separately. Use `/scan-all` only for selected/evidenced applicable targets; use `/docs-init`, a built-in `/scan --target=<key>`, or the configured generic target for a selected stub/focused repair. |
 | Root AI context | `/ai-context-refresh` |
-| Codex mirror, `AGENTS.md`, `.agents`, `.codex` | Consume the `/ai-context-refresh` completion handoff; if unavailable, ask the user to run the full `/sync-codex` route or its standalone node runner |
-| Feature Specs + Section 8 TCs in the business spec root — default `docs/specs`; a `specRoots.business.path` entry in `docs/project-config.json` overrides the path | Mandatory `/workflow-code-to-spec` gate in the post-config parallel group; outcome must resolve before final review/report |
-| Knowledge graph | Final background sub-agent running `/graph-build` after setup/review/verification is otherwise done |
+| Codex mirror, `AGENTS.md`, `.agents`, `.codex` | Consume the `/ai-context-refresh` completion handoff when Codex context is present or requested; if required and unavailable, report the exact user-run route. |
+| Canonical specification and test-case artifacts | `/workflow-code-to-spec` only when canonical artifacts exist or an accepted product/capability scope identifies the owner target. Resolve `specRoots.business.path` when configured; a valid `specArtifacts` profile supplies the native format, while absence keeps strict TC/Section-8 defaults. |
+| Knowledge graph | Background `/graph-build` only when graph tooling is available and selected by code relationships or the active task. |
 
-> **Project-init test matrix** — Defines setup states, routing expectations, and regression cases for post-config scan/spec and final graph behavior.
+> **Project-init test matrix** — Defines config validity, optional capability selection, reference-doc semantics, spec-profile routing, and project-neutral setup behavior.
 > MUST ATTENTION read `references/use-cases-and-test-cases.md` when creating plans, tests, or reviewing changes to this setup.
 
 ## Phase -1: Required Task Plan
@@ -62,21 +118,21 @@ Before Phase 0 shell checks, create a full task-tracking plan. The plan MUST inc
 Minimum required task rows:
 
 1. Read `project-init` instructions and setup reference files.
-2. Assess folder classification, config, docs, root files, mirrors, graph, and spec inventory.
-3. Run required config setup route (`/project-config`) or mark skipped with evidence.
-4. Create a post-config parallel group with both `Call /scan-all` and `Call /workflow-code-to-spec` as sibling tasks.
-5. Call `/scan-all` after config initialization or mark skipped only for empty/no-content evidence.
-6. Call `/workflow-code-to-spec` after config initialization and complete its Step 0 mode/scope route, or record the exact blocking user confirmation needed.
-7. Wait at a barrier until both post-config parallel tasks are completed, blocked, or evidence-deferred.
-8. Run required root-instruction route (`/ai-context-refresh`) or mark skipped with evidence.
-9. Resolve the Codex mirror through the completed `/ai-context-refresh` handoff when the root route ran; otherwise ask for the full `/sync-codex` route when required.
-10. Resolve `experienceVerification`: configure project-observable surfaces and their evidence/baseline roots, or record evidence-backed `NOT-APPLICABLE`/`ENVIRONMENT-BLOCKED`; do not claim live review before a runnable outcome exists.
-11. Call `/changes-review` after the scan/spec barrier.
+2. Assess configured config path/status, always-on docs, task-selected references, applicable root instructions/host mirrors, and evidence for optional capabilities.
+3. Run `/project-config` when the required config is missing, invalid, or stale; accept a valid config containing only `project.name`.
+4. Verify or initialize always-on `lessons.md` and `docs-index-reference.md` independently of task-specific `referenceDocs`.
+5. Select scan targets from the exact `referenceDocs` selection or repository evidence; call `/scan-all` only when at least one applicable target exists, otherwise record each evidence-backed skip.
+6. Decide whether an existing spec corpus or accepted product/capability scope provides a real spec owner; call `/workflow-code-to-spec` only for that scope, otherwise record an evidence-backed deferral.
+7. If both scan and spec work are selected, wait at a barrier until both finish or return an explicit blocker/deferral.
+8. Run `/ai-context-refresh` when root instructions are missing or stale; otherwise record the verified state.
+9. Resolve Codex mirrors through the completed `/ai-context-refresh` handoff only when Codex context is present or requested.
+10. Configure or review `experienceVerification` only for evidenced observable surfaces; do not invent surface commands or baselines.
+11. Call `/changes-review` after selected setup/scan/spec work.
 12. Call `/why-review` after `/changes-review`.
-13. Run verification commands.
-14. Spawn a background sub-agent task named `Spawn background /graph-build sub-agent` after setup/review/verification is otherwise done.
-15. Record the background `/graph-build` sub-agent outcome or explicit blocker.
-16. Report files changed, routes invoked, scan/spec outcomes, experience-matrix outcome, review outcomes, background graph outcome, verification output, and remaining manual actions.
+13. Run focused verification for changed config, selected docs, and generated outputs; run broader harness gates only when the change plan calls for them.
+14. Spawn `Spawn background /graph-build sub-agent` only when graph tooling is available and graph work is relevant; otherwise record the evidence-backed skip.
+15. Record the graph sub-agent outcome or skip reason.
+16. Report the configured identity, changed optional properties, applicable scan/spec outcomes, always-on context, reviews, verification, graph outcome/skip, and remaining actions.
 17. Analyze AI mistakes and reusable lessons.
 
 Keep exactly one row `in_progress`. Mark each row `completed` immediately after its evidence is recorded.
@@ -94,151 +150,138 @@ node -e "const a=require('./.claude/hooks/lib/agent-files-state.cjs'); console.l
 Also check:
 
 - Config path: `node -e "console.log(require('./.claude/hooks/lib/project-config-loader.cjs').getConfiguredProjectConfigPath())"`
-- Experience path: inspect `experienceVerification` in the configured project config; it is optional, and its `enabled`/surface entries never substitute for live evidence.
+- Config status: only the file and non-empty `project.name` are required. A valid config with omitted optional properties is initialized, not a skeleton; repair any invalid declared section before ordinary work.
+- Reference selection: absent `referenceDocs` lets the resolver choose its portable baseline (which can be empty) plus evidenced capabilities; an explicit array, including `[]`, is authoritative for task-specific docs. Do not compare it with or restore a full reference catalog.
+- Custom reference ownership: `referenceDocs[].scanTarget` is optional. Built-in docs keep their framework target; custom docs default to `manual`, while `generic` opts into one selected evidence-based scan using configured `purpose` and optional `sections`.
+- Always-on inputs: check `lessons.md` and `docs-index-reference.md` under the configured project-reference root independently of `referenceDocs`.
+- Experience path: inspect `experienceVerification` only when an observable project surface is evidenced or in scope; configuration never substitutes for live evidence.
 - Docs index path: `node -e "console.log(require('./.claude/hooks/lib/project-config-loader.cjs').getConfiguredDocsIndexPath())"`
-- Feature docs path: `node -e "console.log(require('./.claude/hooks/lib/project-config-loader.cjs').getSpecDocsPath())"`
-- Placeholder docs: use `isPlaceholderFile()` from `.claude/hooks/lib/session-init-helpers.cjs`.
-- Stale docs: use `getStaleReferenceDocs()` from `.claude/hooks/lib/session-init-helpers.cjs`.
-- Reference-doc canonical-floor drift: `node -e "const h=require('./.claude/hooks/lib/session-init-helpers.cjs');const{loadProjectConfig}=require('./.claude/hooks/lib/project-config-loader.cjs');const r=h.normalizeReferenceDocs((loadProjectConfig()||{}).referenceDocs);console.log(JSON.stringify({changed:r.changed,renames:r.renames,added:r.added,removedLegacy:r.removedLegacy},null,2))"`. `changed:true` (non-empty `renames`/`added`/`removedLegacy`) means the config drifted below the canonical reference-doc floor (legacy filenames, missing canonical entries, or wrong order) and MUST be repaired in Phase 2 step 1a before the scan/spec barrier.
-- Spec inventory: probe the configured feature docs path: `node -e "const p=require('./.claude/hooks/lib/project-config-loader.cjs').getSpecDocsPath(); const fs=require('fs'); console.log(JSON.stringify({path:p, exists:fs.existsSync(p)}, null, 2))"`
+- Project-reference root: resolve it with `getDocsRoot('projectReference')`; inspect only the always-on docs and task-selected/evidenced references needed for this run.
+- Placeholder/stale docs: use `isPlaceholderFile()` and `getStaleReferenceDocs()` for selected task-specific docs, not every file in the reference catalog.
+- Spec inventory: inspect a configured or repository-evidenced canonical spec root only when a spec corpus or accepted capability scope is found. A missing default root alone does not select spec creation.
+
+If `specArtifacts` is present, require it to validate before spec work. Preserve a valid native profile; absence keeps the strict TC/Section-8 default when a spec workflow is selected; a malformed declared profile blocks that work rather than silently falling back.
 
 ## Phase 1: Decide Route
 
 | State | Action |
 | --- | --- |
-| Empty folder, no real project content | Do not deep-scan. Create minimal portable context stubs only when the user explicitly requested project initialization; otherwise report that there is no project content yet and continue with generic guidance. Create the post-config parallel tasks but mark `/scan-all` skipped and `/workflow-code-to-spec` deferred only with evidence: `No project content or accepted capability scope`; next trigger is `/workflow-idea-to-spec` or `/workflow-greenfield-init`, then `/workflow-code-to-spec init-full`. Still create final rows for `/changes-review` and `/why-review`; mark them skipped only with this evidence-backed deferral. |
-| Greenfield project with manifests/code scaffold | Run `/project-config`, then start the post-config parallel group. `/scan-all` may be limited to relevant detected stack/docs. `/workflow-code-to-spec` runs when product/capability scope or real code exists; otherwise defer with exact missing scope. Still keep `/changes-review` and `/why-review` as final task rows. |
-| Existing project, config missing or skeleton | Run `/project-config` first. Then immediately start the post-config parallel group (`/scan-all` + `/workflow-code-to-spec`) before nonessential setup work. |
-| Config exists and `experienceVerification` is empty/disabled | Preserve existing project testing practices. Record evidence-backed `NOT-APPLICABLE` only when no observable surface exists; otherwise configure the surface and defer live `/experience-review` until its entry point and inspection capability are available. If E2E is relevant, populate only evidence-backed `e2eTesting.execution` facts and leave missing startup/auth/data/browser/evidence fields blocking. |
-| `e2eTesting.execution` is absent or partial | Preserve known E2E facts, then derive missing values from the linked `experienceVerification.surfaces[].localRun`, E2E reference, runner configs, package/task scripts, compose/CI files, fixtures/seed scripts, and auth docs in that order. Record `file:line` evidence; never invent commands, ports, accounts, selectors, or secrets. |
+| Empty folder, no real project content | Do not deep-scan. Create a valid minimal config only when initialization was explicitly requested; derive `project.name` from repository metadata or the root directory. Do not invent capabilities, reference docs, or specs. |
+| Greenfield project with manifests/code scaffold | Run `/project-config` when the required config is missing or invalid. Add only metadata and capabilities proven by the manifest/source. Manifests and package names alone do not define accepted product scope. |
+| Existing project, config missing or invalid | Run `/project-config` first and stop ordinary setup until the required file validates. A minimal valid config with `project.name` is sufficient when no optional capability is evidenced. |
+| Existing project, config valid but optional properties omitted | Treat it as initialized. Add only requested/evidenced capabilities; do not route back to `/project-config` solely to fill every optional section. |
+| Custom workflow-route protocol requested (team or machine-only) | Team value → `portability.workflowRouteProtocol` in the configured project-config file; machine-only value → git-ignored `.claude/.ck.local.json` (a valid local value replaces the team value). Runtime-only: never regenerate tracked `CLAUDE.md`/`AGENTS.md`/Codex context to apply it. |
+| Configured observable surface is in scope | Preserve existing testing practices. Configure only evidence-backed surface/tool facts, then defer live `/experience-review` until an entry point and inspection capability are available. |
+| `e2eTesting.execution` is absent or partial for an evidenced E2E surface | Preserve known facts, then derive only the missing values from the linked surface config, E2E reference, runner configs, package/task scripts, compose/CI files, fixtures/seed scripts, and auth docs. Record `file:line` evidence; never invent commands, ports, accounts, selectors, or secrets. |
 | Configured observable surface is relevant but cannot run or be inspected | Record `ENVIRONMENT-BLOCKED` with the missing capability and evidence. Do not substitute a screenshot, source review, or passing automated test for the missing exercise. |
-| Config populated, reference docs missing/placeholders | Run `/scan-all` after config initialization. Use `/docs-init` or targeted `/scan --target=<key>` only as follow-up repair if `/scan-all` identifies missing/stub files. |
-| Config present but `referenceDocs` drifted (legacy filenames, missing canonical entries, or wrong order per the Phase 0 normalize probe) | Run **Reference-doc normalization** (Phase 2 step 1a) BEFORE the scan/spec barrier: rewrite `config.referenceDocs` to `normalizeReferenceDocs(...).normalized`, `git mv` each `renames[]` legacy file to its canonical name (or `git rm` a stale duplicate), migrate downstream textual refs, then let the SessionStart hook / `/scan --target=<key>` create the `added[]` docs. Re-run the probe until `changed:false`. |
-| Config/docs populated, `CLAUDE.md` missing | Run `/ai-context-refresh --mode init` after the scan/spec barrier is resolved or explicitly blocked/deferred. |
+| Always-on `lessons.md` or `docs-index-reference.md` missing/stale | Create/refresh these through their owner setup routes at the configured project-reference root; their lifecycle is independent of task-specific `referenceDocs`. |
+| A selected/evidenced task-specific reference is missing, a placeholder, or stale | Run only its applicable built-in scan target or explicitly generic custom target, using `/scan-all` when multiple targets are selected. Manual custom docs remain owner-managed. Explicit `referenceDocs: []` selects no task-specific doc scan. |
+| `referenceDocs` absent | Use the resolver's portable baseline (possibly empty) and capability-aware selection from config/repository evidence; keep the property absent unless the project wants a fixed explicit selection. |
+| `referenceDocs` explicitly lists a subset or `[]` | Preserve it exactly as task-specific selection. Do not restore unselected catalog entries; continue ensuring always-on docs separately. |
+| `CLAUDE.md` missing | Run `/ai-context-refresh --mode init` when the Claude host/root context is in use. |
 | `CLAUDE.md` exists but lacks universal guides | Run `/ai-context-refresh --mode update` if marker-managed. If markerless/project-only, manually merge the universal-guide blocks from `ai-context-refresh/references/claude-md-template.md` while preserving project content, then rerun update. |
-| `AGENTS.md` missing or incomplete | Consume the `/ai-context-refresh` completion handoff when available; otherwise ask the user to run `/sync-codex` or `node .claude/skills/sync-codex/scripts/run-codex-sync.mjs`, then verify mirrors. |
-| Config/docs/root ready but the configured Feature Spec root is missing or empty (default `docs/specs/`; a `specRoots.business.path` entry in `docs/project-config.json` overrides the path) | The post-config `/workflow-code-to-spec` task suggests `init-full` and completes Step 0 mode/bucket/capability confirmation before `/project-init` can report complete. |
-| Config/docs/root ready and Feature Specs exist | The post-config `/workflow-code-to-spec` task suggests `audit`, unless an active diff/new requirement implies `update`. Then run `/changes-review` and `/why-review`. |
-| Docs stale or graph missing | Run `/scan-all` in the post-config parallel group; queue the required final background `/graph-build` sub-agent task after setup/review/verification is otherwise done. Still resolve the mandatory spec workflow task before final verification. |
-| Everything present | Run verification plus mandatory `/workflow-code-to-spec` audit/update decision; report idempotent status only after the spec workflow task is completed or explicitly deferred with evidence. |
+| `AGENTS.md`, `.agents`, or `.codex` missing/incomplete and Codex is present/requested | Consume the `/ai-context-refresh` completion handoff; if unavailable, report the user-run `/sync-codex` route. |
+| Canonical specs exist, or accepted product/capability scope identifies a spec owner | Run `/workflow-code-to-spec` for the selected owner. Existing specs normally select `audit`, or `update` when an active requirement/change is in scope. If no owner/scope exists, defer spec authoring with evidence; code/package names alone are insufficient. |
+| Existing native spec profile is valid | Preserve `specArtifacts` and route through its configured identifiers, sections, owners, and carriers. Do not translate it to TC identifiers. |
+| `specArtifacts` is absent | When a spec workflow is selected, apply strict business-spec and Section-8 TC defaults. Do not create a profile just to avoid those defaults. |
+| `specArtifacts` is declared but malformed/unsupported | Stop spec-related setup, retain the declared profile for diagnosis, and route to `/project-config` to repair it. Never drop the declaration and continue with TC defaults. |
+| Graph tool and code relationship scope are available | Run `/graph-build` in a background sub-agent after setup/review/verification; otherwise record an evidence-backed skip. |
+| Everything present and valid | Report verified idempotent state. Do not schedule scans, spec creation, or graph work without a selected/evidenced capability. |
 
 ## Phase 2: Execute Order
 
-Run phases sequentially except the explicit post-config parallel group. After each phase, re-run Phase 0 checks.
+Run required setup in order. Only scan/spec work selected from project evidence may run in parallel. After a material setup phase, re-check the configured project state.
 
-1. **Config** - `/project-config` when config is missing, skeleton, invalid, or stale relative to the workspace.
-1b. **Experience/E2E applicability matrix** - inspect `experienceVerification` and `e2eTesting.execution` after config exists. For a new project with no runnable surface yet, configure the intended surface shape and optional E2E profile without claiming execution. For an existing project, invoke `/experience-review`/the E2E workflow when a configured/observed surface is relevant; otherwise record the exact `NOT-APPLICABLE` or `ENVIRONMENT-BLOCKED` evidence. Never create an expected baseline during setup merely from the current implementation.
-1a. **Reference-doc normalization — canonical floor (MANDATORY when Phase 0 probe reports `changed:true`)** - repair reference-doc drift BEFORE the scan/spec barrier so every project converges to the framework floor regardless of starting state (no docs / partial / legacy names / wrong standard):
-   - Rewrite `config.referenceDocs` to `normalizeReferenceDocs(config.referenceDocs).normalized` (canonical order, legacy names resolved via the alias map, canonical `templatePath`s preserved, genuine project-specific extras kept). Never delete or rename a canonical entry.
-   - For each `renames[]` `{from,to}`, inside the project-reference docs root `<ref>` — default `docs/project-reference/`; a `docsRoots.projectReference.path` entry in `docs/project-config.json` overrides the path: `git mv <ref>/<from> <ref>/<to>` when `<to>` is absent; if `<to>` already exists, `<from>` is a stale duplicate → confirm `<to>` holds the canonical content, then `git rm <ref>/<from>`. Migrate every downstream textual reference (`docs-index-reference.md`, `project-structure-reference.md`) `<from>` → `<to>`, then ask the user to re-run `/sync-codex` so the regenerated mirrors match.
-   - `added[]` canonical docs missing on disk are created idempotently by the SessionStart `session-init-docs.cjs` hook (or `/scan --target=<key>`) from `DEFAULT_REFERENCE_DOCS` + `templatePath`; do not hand-fabricate their content.
-   - Re-run the Phase 0 normalize probe and proceed only when it reports `changed:false` with empty `renames`/`added`/`removedLegacy`.
-2. **Post-config parallel context build (MANDATORY)** - after config exists, create sibling tasks `Call /scan-all` and `Call /workflow-code-to-spec`; run them in parallel when the environment/tooling supports parallel skill work, otherwise execute both before crossing the barrier.
-   - `/scan-all`: required for content-bearing projects after config initialization. Skip only empty/no-content projects with evidence. Use `/docs-init` or targeted `/scan --target=<key>` only as follow-up repair when scan output proves it is needed.
-   - `/workflow-code-to-spec`: required for content-bearing projects after config initialization. It may complete Step 0/mode selection in parallel with `/scan-all`; if it needs scan results for capability enumeration, pause inside that workflow until `/scan-all` evidence is available.
-   - **Barrier:** do not proceed to root instruction updates, mirrors, final review, verification, or report until both sibling tasks have an outcome: completed, explicit blocker, or evidence-backed deferral.
-2b. **Convention classes (after the barrier, before root instructions)** - run `node .claude/hooks/lib/convention-merge.cjs --detect --merge` (dry run), then `--detect --merge --write --enable` when it reports `added`/`refreshed` classes; this is additive (maintainer and edited classes kept, nothing removed — `/project-config` 2r). Verify one sample path with `node .claude/hooks/lib/file-conventions.cjs --lookup <path>`. Running it after `/scan-all` lets detection see freshly created reference docs; step 3 then renders the classes into the static table.
-3. **Root instructions** - `/ai-context-refresh --mode init|update`.
-4. **Codex mirror** - consume the `/ai-context-refresh` completion handoff; if the root route was skipped or blocked, ask the user to run `/sync-codex` or `node .claude/skills/sync-codex/scripts/run-codex-sync.mjs`.
-5. **Spec workflow outcome (MANDATORY)** - confirm the existing `Call /workflow-code-to-spec` task has one of these outcomes before review:
-   - Empty/no-content folder: do not deep-scan or fabricate capabilities; mark this task `Deferred: no project content or accepted capability scope`, and report the next trigger (`/workflow-idea-to-spec` or `/workflow-greenfield-init`, then `/workflow-code-to-spec init-full`).
-   - Greenfield with accepted product/capability scope or real code scaffold: invoke `/workflow-code-to-spec`, suggest `init-full`, and let its Step 0 confirm mode/bucket/capability.
-   - Existing/grown project with the configured Feature Spec root missing or empty (default `docs/specs/`; a `specRoots.business.path` entry in `docs/project-config.json` overrides the path): invoke `/workflow-code-to-spec`, suggest `init-full`, and require divide-and-conquer grouping when capability count is large.
-   - Existing/grown project with Feature Specs already present: invoke `/workflow-code-to-spec`, suggest `audit`; suggest `update` when `git diff` or a new requirement/PBI is the trigger.
-6. **Review changes (MANDATORY)** - create a final task named `Call /changes-review`, invoke `/changes-review`, and record pass/fail or explicit blocker.
-7. **Why review (MANDATORY)** - create a final task named `Call /why-review`, invoke `/why-review` after `/changes-review`, and record pass/fail or explicit blocker.
-8. **Enhance** - `/prompt-enhance` on newly created or heavily updated skill/docs files.
-9. **Queue background graph refresh (MANDATORY FINAL)** - create a final task named `Spawn background /graph-build sub-agent`; do not execute it until Phase 4 verification and setup/review work are otherwise done.
+1. **Required config** — run `/project-config` when the configured file is missing, invalid, or stale for an in-scope capability. A schema-valid config with only `project.name` is sufficient when no optional capability applies.
+2. **Always-on context** — ensure `lessons.md` and `docs-index-reference.md` at the configured project-reference root through their owner setup routes. This is independent of `referenceDocs`.
+3. **Select reference scans** — absent `referenceDocs` uses the portable resolver baseline (which may be empty) plus configured/repository-evidenced capabilities; an explicit array, including `[]`, is authoritative for task-specific docs. Do not merge to a fixed floor, rename files, or generate an unselected reference. Use `/scan-all` only when one or more applicable targets are selected.
+4. **Select spec work** — create a task for `/workflow-code-to-spec` only when a canonical spec corpus exists or accepted project/capability scope names the owner to document. If neither exists, record an evidence-backed deferral; code/package names alone do not establish acceptance. Preserve a valid native `specArtifacts` profile; absent profile means strict TC/Section-8 behavior; an invalid declared profile blocks the spec task.
+5. **Post-config selected work** — when both scan and spec tasks apply, create them as sibling tasks and run them in parallel when the host supports it; otherwise finish both before crossing the barrier. When only one applies, run only that task. Every selected task must return completed, blocked, or evidence-deferred before final review.
+6. **Experience/E2E** — configure or review the `experienceVerification`/`e2eTesting` matrix only for evidence-backed observable surfaces. Use `/experience-review` or E2E workflows when the surface can actually run and be inspected; missing prerequisites are `ENVIRONMENT-BLOCKED`, not PASS/N/A. Never create an expected baseline from current output.
+7. **Convention classes** — run the detector only when stable `contextGroups` or convention injection is selected. Apply a write only when the configured preference or explicit request authorizes it; do not turn on injection merely because the detector found candidates. Verify a representative file with `file-conventions.cjs --lookup` when enabled.
+8. **Root instructions** — run `/ai-context-refresh --mode init|update` when `CLAUDE.md` or equivalent root context is missing/stale, preserving user-authored content.
+9. **Codex mirror** — consume the `/ai-context-refresh` completion handoff when Codex files/host are present or requested; otherwise record the Codex-only step as not applicable.
+10. **Enhance** — use `/prompt-enhance` for newly created or materially updated project guidance when prompt quality warrants it.
+11. **Verification** — validate config, selected references, root files, and mirrors that apply; run focused checks for changed behavior.
+12. **Graph refresh** — after verification and reviews, run `/graph-build` in a background sub-agent only when graph tooling is available and relevant; otherwise record the evidence-backed skip.
 
-## Phase 2.5: Mandatory Spec Workflow Finalization
+## Phase 2.5: Conditional Spec Workflow
 
-This phase starts as the `Call /workflow-code-to-spec` sibling task in the post-config parallel group. It is ALWAYS represented in task tracking and MUST be resolved before `/changes-review`, `/why-review`, final verification, and report.
+When existing canonical specs or accepted product/capability scope selects spec work:
 
-| Scenario | Required final task outcome |
-| --- | --- |
-| Empty folder, no product/capability scope | Do not invoke heavy discovery. Mark final task deferred with evidence: `No project content/capability source`. Report exact next route: `/workflow-idea-to-spec` or `/workflow-greenfield-init`, then `/workflow-code-to-spec init-full`. |
-| Greenfield with manifests but no accepted product scope | Ask for/route to product discovery or greenfield planning first; defer spec authoring until capability scope exists. Do not generate fake Feature Specs from package names alone. |
-| Greenfield with accepted scope or code scaffold | Invoke `/workflow-code-to-spec`; recommend `init-full` for the selected bucket/capabilities; complete Step 0 or report the user confirmation blocker. |
-| Existing/grown project, no Feature Specs under the configured Feature Spec root (default `docs/specs/`; a `specRoots.business.path` entry in `docs/project-config.json` overrides the path) | Invoke `/workflow-code-to-spec`; recommend `init-full`, require capability grouping (`>10` split; `4-10` sub-agents) per that workflow; complete Step 0 or report the user confirmation blocker. |
-| Existing/grown project with Feature Specs | Invoke `/workflow-code-to-spec`; recommend `audit` for freshness, or `update` when active code/requirement changes exist; complete Step 0 or report the user confirmation blocker. |
+- Resolve the configured business-spec root. Do not infer a new owner from a missing default directory.
+- For existing specs, choose `audit` unless an active requirement/code change selects `update`.
+- For accepted new capability scope, choose `init-full` for only the accepted scope; apply the workflow's large-scope decomposition rules to that set.
+- Use the existing valid `specArtifacts` profile as the native section/ID/case format. If absent, apply strict business-spec and Section-8 TC defaults. If malformed/unsupported, stop spec setup and repair through `/project-config`; do not drop it or fall back silently.
+- If no existing spec owner or accepted capability scope exists, do not call the spec workflow to manufacture one. Report the evidence and the route needed to establish scope.
 
-**Do not mark `/project-init` complete while this phase is unresolved.** A valid resolution is either: (1) `/workflow-code-to-spec` invoked and its Step 0/mode route completed, (2) `/workflow-code-to-spec` invoked and blocked on explicit user confirmation of mode/bucket/capability, or (3) explicit deferral with evidence that the project has no content/capability source yet. A plain recommendation or handoff without invoking `/workflow-code-to-spec` is NOT a valid resolution.
+## Phase 2.6: Final Review Skills
 
-`/scan-all` and `/workflow-code-to-spec` are allowed to run in parallel only after project config exists. The project-init report must include both outcomes and must state whether `/workflow-code-to-spec` consumed scan evidence directly or paused pending scan output.
+After selected setup, scan, and spec work, create and execute these final tasks in order:
 
-## Phase 2.6: Mandatory Final Review Skills
-
-After Phase 2.5, always create and execute these final tasks in order:
-
-1. `Call /changes-review` - run after `/workflow-code-to-spec` so the setup/spec changes are reviewed from the current diff.
+1. `Call /changes-review` - run after all selected setup, scan, and spec work so changed config/context/artifacts are reviewed from the current diff.
 2. `Call /why-review` - run after `/changes-review` to validate rationale and avoid closing on unchallenged setup decisions.
 
-If either skill cannot run because the environment lacks the required tool, stop and report the missing tool. Do not silently replace them with a summary.
+If either skill cannot run because the environment lacks the required tool, stop and report the missing tool. If no files changed, still record that result rather than claiming a review of nonexistent changes.
 
 ## Phase 3: Hookless Agent Rule
 
 For Codex or any environment where the Claude-specific hook set is unavailable:
 
-- If `docs/project-config.json`, the docs index, `lessons.md`, `CLAUDE.md`, `AGENTS.md`, or a task-required reference doc is missing or stale, invoke `/project-init` before ordinary task work.
+- If the configured project-config file, always-on docs, applicable root instruction files, or a task-required reference doc is missing or stale, invoke `/project-init` before ordinary task work. Resolve config/index paths through the configured path helpers and the reference root through `getDocsRoot('projectReference')`.
 - If `/project-init` cannot run because required tools are absent, report the missing tool and the exact lower-level route that remains.
 - Do not proceed with project-specific coding from guessed context.
 
 ## Phase 4: Verification
 
-Minimum verification before declaring setup complete:
+Verify the required project identity, every declared optional property, and each changed or selected output before declaring setup complete. A valid config containing only non-empty `project.name` passes when no optional capability applies.
 
 ```bash
-node -e "const{validateConfig,formatResult}=require('./.claude/hooks/lib/project-config-schema.cjs');const{getConfiguredProjectConfigPath}=require('./.claude/hooks/lib/project-config-loader.cjs');const c=JSON.parse(require('fs').readFileSync(getConfiguredProjectConfigPath(),'utf-8'));console.log(formatResult(validateConfig(c)))"
-node -e "const a=require('./.claude/hooks/lib/agent-files-state.cjs'); console.log(JSON.stringify(a.getAgentFileIssues(), null, 2))"
-node .claude/hooks/tests/test-all-hooks.cjs
+node -e "const{spawnSync}=require('child_process');const path=require('path');const configPath=require('./.claude/hooks/lib/project-config-loader.cjs').getConfiguredProjectConfigPath();const result=spawnSync(process.execPath,[path.resolve('.claude/hooks/lib/project-config-schema.cjs'),'--validate',configPath],{stdio:'inherit'});if(result.error){console.error(result.error.message);process.exitCode=1}else process.exitCode=result.status??1"
+node -e "const l=require('./.claude/hooks/lib/project-config-loader.cjs');console.log(JSON.stringify({docsIndex:l.getConfiguredDocsIndexPath(),referenceRoot:l.getDocsRoot('projectReference')},null,2))"
 node .claude/skills/skill-creator/scripts/validate-skills.cjs --path .claude/skills/project-init
 ```
 
-Spec workflow verification before declaring setup complete:
+For setup behavior changes, run focused tests that cover the changed contract. For example, use `node .claude/hooks/tests/run-all-tests.cjs --filter=init-reference-docs` when changing reference selection, and `--filter=docroot-relocation` or `--filter=reference-doc-freshness` when those behaviors changed. Do not run the full hook suite merely because project initialization completed; include broader harness checks when the framework-change plan requires them.
 
-- Confirm the `experienceVerification` section is either disabled/empty with an evidence-backed `NOT-APPLICABLE` reason, or has a surface applicability matrix; configuration alone is not live-review evidence. A relevant but unusable surface is `ENVIRONMENT-BLOCKED`, and a first-run expectation remains `ACCEPTANCE-PENDING`.
-- Confirm the task list contains a post-config parallel group with `Call /scan-all` and `Call /workflow-code-to-spec`.
-- Confirm `Call /scan-all` ran after `/project-config`, or was skipped only with empty/no-content evidence.
-- Confirm the task list contains `Call /changes-review` and `Call /why-review` as the final review skill-call rows after the scan/spec barrier.
-- Confirm the `/workflow-code-to-spec` outcome is one of: `init-full`, `audit`, `update`, `blocked on user-confirmed mode/bucket/capability`, or an evidence-backed deferral for empty/no-capability projects.
-- Confirm `/changes-review` ran after `/workflow-code-to-spec`, or stopped with an explicit missing-tool blocker.
-- Confirm `/why-review` ran after `/changes-review`, or stopped with an explicit missing-tool blocker.
-- Confirm `Spawn background /graph-build sub-agent` ran after setup/review/verification was otherwise done, or stopped with an explicit missing-tool/dependency blocker.
-- Confirm the Feature Spec root resolves — `getSpecDocsPath()`; default `docs/specs`, overridden by a `specRoots.business.path` entry in `docs/project-config.json`.
-- Confirm the hook-independent Workflow-First Gate (`<!-- CK:WORKFLOW-GATE -->` block) is present at the TOP of `CLAUDE.md` and `AGENTS.md` so routing survives without hooks. If missing, re-run `/ai-context-refresh` (root AI context); its completion handoff refreshes the AGENTS.md mirror.
-- For grown projects, confirm large scope is split per `/workflow-code-to-spec` (`>10` capabilities grouped; `4-10` capabilities sub-agented).
+For selected spec work, confirm:
 
-If Codex mirrors were changed, run:
+- Confirm an existing canonical owner or accepted capability scope selected the work; otherwise do not create specs or test cases and record the evidence-backed deferral.
+- Confirm the configured business-spec root resolves through `getSpecDocsPath()` only when selected spec work needs it; the default is `docs/specs` (a `specRoots.business.path` entry in `docs/project-config.json` overrides it).
+- Preserve and validate a declared native `specArtifacts` profile. When absent, use strict TC/Section-8 defaults for the selected spec work; malformed declarations block that work.
+- Apply the spec workflow's large-scope decomposition rules only to the accepted scope actually selected.
 
-```bash
-node .claude/skills/sync-codex/scripts/run-codex-sync.mjs --only=tests,wf-cycle,sk-proto,residue,sdd
-```
+For selected observable-surface work, validate only declared or evidenced surfaces. Configuration is not live-review evidence; a relevant but unusable surface is `ENVIRONMENT-BLOCKED`, and first-run expectations remain `ACCEPTANCE-PENDING`.
 
-## Phase 5: Mandatory Final Background Graph Build
+Run `/changes-review` and then `/why-review` after setup and selected work are complete. If no files changed, record that result without claiming a review of nonexistent changes.
 
-After Phase 4 verification and setup/review work are otherwise done, always execute this final task:
+Check root instructions and host mirrors only when those hosts/context files are installed or selected. Preserve user content; if Codex mirrors need regeneration, use the documented `/ai-context-refresh` completion handoff, or report the user-run `/sync-codex` route when that handoff is unavailable.
 
-1. `Spawn background /graph-build sub-agent` - spawn a background sub-agent whose only job is to invoke `/graph-build` with default auto-detect scope, read its result, and return a concise outcome.
+## Phase 5: Conditional Graph Refresh
+
+Run graph work only when graph tooling is available and the project/task has code relationships for which graph coverage helps:
+
+1. When applicable, `Spawn background /graph-build sub-agent` to run `/graph-build` with an evidence-supported scope and return a concise outcome.
 
 Rules:
 
-- Run this final graph refresh in a sub-agent/background task, not inline in the main context.
-- The task is required even if an earlier graph check found `.code-graph/graph.db`; existing graph presence changes `/graph-build` from full build to auto-detected update, not a skip.
-- Keep the task open until the background sub-agent returns, or record an explicit blocker such as missing Python/dependencies.
-- The project-init report must include the background graph task outcome.
+- When graph work is selected, run it in the required background/sub-agent lane and track it to a returned result or an explicit tool/dependency blocker.
+- Existing graph presence is not enough by itself to select a refresh; use the active task's scope and graph freshness evidence.
+- When graph tooling or relevant code relationships are absent, record why graph work was skipped.
 
 ## Output
 
 Report:
 
 - Folder classification: empty, greenfield, existing, or already initialized.
-- Files created/updated/skipped: project config, reference docs, `CLAUDE.md`, `AGENTS.md`, mirrors.
+- Files created/updated/skipped: configured project config, always-on and selected reference docs, applicable root instructions and host mirrors.
 - Lower-level skills/scripts invoked.
-- Post-config parallel skill calls: `/scan-all` and `/workflow-code-to-spec`, each with outcome and evidence.
+- Selected reference scans and spec work: outcome plus evidence, or an explicit applicability-based skip/deferral for each.
+- Always-on `lessons.md` and `docs-index-reference.md`: configured paths and health, independently of task-specific `referenceDocs`.
 - Experience applicability matrix: each configured or observed surface, intended outcome, exercise/inspection capability, evidence status, acceptance state, and limitation/`NOT-APPLICABLE`/`ENVIRONMENT-BLOCKED` reason.
 - Final review skill calls: `/changes-review`, `/why-review`, each with outcome and evidence.
-- Final background graph call: `/graph-build` sub-agent outcome, scope/build type, and blocker if any.
-- Spec workflow finalization: invoked mode (`init-full`, `audit`, `update`), user-confirmation blocker, or exact deferral reason and next trigger.
+- Graph refresh: `/graph-build` sub-agent outcome when selected, or evidence-backed skip.
+- Spec workflow: invoked mode (`init-full`, `audit`, `update`), profile validation result, or evidence-backed deferral reason and next trigger.
 - Verification commands and results.
 - Remaining manual action, especially any user-confirmed `/sync-codex` step.
 
@@ -269,7 +312,7 @@ Report:
 
 <!-- SYNC:project-protocol-overlay -->
 
-> **Project Protocol Overlay** — Before executing this skill, resolve any PROJECT overlay rules layered onto it: match this skill's name against the `Target` column of the project's skill-protocol index (default `docs/project-reference/skill-protocols-reference.md`; a `referenceDocs` entry in `docs/project-config.json` overrides the path, and a `docsRoots.projectReference.path` entry relocates its containing directory), taking the most specific matching tier ONLY — exact name > glob > `*`. **That precedence orders overlays against EACH OTHER, never against this skill.** Read ONLY the matched bodies, resolved as `<protocols-dir>/<Name>.md`; a row's Body link is display text, never a read path. A matched body that is missing or malformed is REPORTED and skipped — never reconstructed from the index Description. No index, or no match -> proceed with no overlay, silently. Full contract: `.claude/skills/project-skill-protocol/references/registry.md`.
+> **Project Protocol Overlay** — Before executing this skill, resolve project overlays from the index at `<docsRoots.projectReference.path>/skill-protocols-reference.md` (default `docs/project-reference/`; `docsRoots.projectReference.path` in `docs/project-config.json` overrides it). A matching `referenceDocs[]` filename may relocate the index within that root; this registry is independent from task-specific reference-doc selection, so omitted or empty `referenceDocs` does not disable it. The index's `**Protocols directory:**` header selects a project-root-relative body directory (default `docs/project-protocols/`). Match this skill against the `Target` column and take the most specific tier ONLY — exact name > glob > `*`. **That precedence orders overlays against EACH OTHER, never against this skill.** Read only matched bodies derived as `<protocols-dir>/<Name>.md`; the row's Body link is display text, never a read path. Reject unsafe paths without reading. A matched body that is missing or malformed is REPORTED and skipped — never reconstructed from the index Description. An absent index or no match -> proceed with no overlay, silently. Full contract: `.claude/skills/project-skill-protocol/references/registry.md`.
 >
 > Overlays are **ADDITIVE ONLY**: they ADD rules on top of this skill's own protocol and NEVER replace, override, disable, or reinterpret a rule it already states — removing every overlay must return this skill to exactly its documented behavior. An overlay is a BRIEF, not an authority escalation: it can NEVER waive a workflow gate, git discipline, a review gate, or a user-confirmation gate. A genuine overlay-vs-skill conflict, or two equally-specific overlays that directly contradict -> surface both to the user; NEVER resolve silently.
 
@@ -277,8 +320,7 @@ Report:
 
 <!-- SYNC:project-protocol-overlay:reminder -->
 
-**MUST ATTENTION** resolve project protocol overlays for this skill BEFORE executing — most specific matching tier only (exact > glob > `*`, which ranks overlays against each other, NEVER against this skill), read only matched bodies at `<protocols-dir>/<Name>.md`; a missing or malformed body is reported, never reconstructed. Overlays are ADDITIVE ONLY (they never replace this skill's own rules) and are a brief, NEVER an authority escalation; an equal-specificity contradiction goes to the user.
-
+**MUST ATTENTION** resolve this skill's overlays from the index at `<docsRoots.projectReference.path>/skill-protocols-reference.md` (default `docs/project-reference/`); an empty task `referenceDocs` does NOT disable this lookup. Read ONLY matched bodies from the directory the index header names (default `docs/project-protocols/`). Specificity (exact > glob > `*`) ranks overlays against EACH OTHER, never against the skill. Missing/malformed body → report and skip; no index or no match → proceed silently. Overlays are ADDITIVE ONLY — never an authority escalation or a gate waiver; equal-tier contradiction goes to the user.
 <!-- /SYNC:project-protocol-overlay:reminder -->
 
 ## Closing Reminders
@@ -292,11 +334,14 @@ Report:
 - **Parallel Sub-Agent Dispatch:** Tag tasks PAR/SEQ, group PAR into disjoint-write-set waves, spawn each wave in ONE message, barrier before advancing.
 
 **IMPORTANT MUST ATTENTION** use `/project-init` as the unified missing-context route; lower-level skills remain implementation steps.
-**IMPORTANT MUST ATTENTION** before doing anything, create many small task-plan rows covering every setup phase, the post-config parallel group, and the final review skill calls.
-**IMPORTANT MUST ATTENTION** after config exists, call `/scan-all` and `/workflow-code-to-spec` as a parallel group when possible, then wait for both outcomes.
-**IMPORTANT MUST ATTENTION** never finish `/project-init` without `Call /scan-all` and `Call /workflow-code-to-spec` after config initialization, followed by final rows `Call /changes-review`, `Call /why-review`, `Spawn background /graph-build sub-agent`.
-**IMPORTANT MUST ATTENTION** final `/graph-build` runs in a background sub-agent after setup/review/verification is otherwise done; track it to returned outcome or explicit blocker.
-**IMPORTANT MUST ATTENTION** for content-bearing projects, invoke `/workflow-code-to-spec`; do not close on a recommendation/handoff alone.
+**IMPORTANT MUST ATTENTION** create task-plan rows for required setup and final reviews; add scan, spec, surface, root-sync, and graph tasks only when evidence selects them.
+**IMPORTANT MUST ATTENTION** the configured project-config file and non-empty `project.name` are required; omitted optional properties are valid unless a declared property is invalid.
+**IMPORTANT MUST ATTENTION** keep absent `referenceDocs` separate from an explicit selection: absent uses the resolver baseline (possibly empty) plus evidenced capability docs; explicit arrays, including `[]`, remain exact. Always-on lessons/index inputs are ensured independently.
+**IMPORTANT MUST ATTENTION** run `/scan-all` only when applicable selected/evidenced scan targets exist; run `/workflow-code-to-spec` only for an existing canonical owner or accepted capability scope.
+**IMPORTANT MUST ATTENTION** when both scan and spec work are selected, run them as parallel siblings when supported and wait for both outcomes; otherwise run only selected tasks.
+**IMPORTANT MUST ATTENTION** preserve valid native `specArtifacts`; absence uses strict TC/Section-8 defaults when spec work is selected, while an invalid declaration blocks spec work.
+**IMPORTANT MUST ATTENTION** run `/graph-build` only when graph tooling exists and relevant code relationships or task needs justify it; record an evidence-backed skip otherwise.
+**IMPORTANT MUST ATTENTION** run `/changes-review` and then `/why-review` after setup and selected work; report no-change explicitly.
 **IMPORTANT MUST ATTENTION** record explicit blocker for any unavailable required skill/tool; silent skip is not completion.
 **IMPORTANT MUST ATTENTION** preserve user-authored root instruction files; do not overwrite project-only content.
 **IMPORTANT MUST ATTENTION** rerun Phase 0 after every setup phase because the next route depends on current evidence.
@@ -307,9 +352,11 @@ Report:
 | Evasion | Rebuttal |
 | --- | --- |
 | "Config exists, skip planning" | Create full task plan first; missing-context setup drifts without visible rows. |
-| "Scan-all and spec workflow can be suggested later" | Call both after config and wait at the barrier; handoff is not completion. |
-| "Graph already exists" | Final `/graph-build` still runs in background; existing graph changes scope to update, not skip. |
-| "Review is enough" | Run `/changes-review`, `/why-review`, verification, then final background graph task. |
+| "A valid minimal config looks incomplete" | Require only non-empty `project.name`; derive optional sections from evidence. |
+| "Partial reference selection needs the full registry" | Preserve the explicit selection; the catalog is metadata, and always-on inputs are separate. |
+| "Package names are enough to define spec scope" | Require an existing canonical owner or accepted scope before creating specs or test cases. |
+| "Graph already exists" | Select refresh from graph freshness and task relevance; do not turn graph support into a setup prerequisite. |
+| "Review is enough" | Run `/changes-review`, `/why-review`, and all applicable focused verification before reporting. |
 
 <!-- SYNC:critical-thinking-mindset -->
 
@@ -322,6 +369,7 @@ Report:
 
 > **AI Mistake Prevention** — Failure modes to avoid on every task:
 >
+> **Project applicability gate.** Before applying a stack, layer, style, tool, or architecture rule, read the project's config and relevant references, then check local implementations. Treat framework examples as examples; honor explicit N/A and do not require a technology or convention the project does not use.
 > **ROOT-CAUSE GATE — INVESTIGATE FIRST.** Before applying any project-related correction, always use the project's root-cause investigation protocol and establish the cause; the failure site may be only a symptom.
 > **FAILED-TEST GATE.** For any failed or unstable test, use the project's test-investigation protocol before editing source or tests; never change either side merely to force green.
 > **Re-read files after context changes.** Context compaction, resume, or long-running work can make memory stale; verify current files before acting.
@@ -340,12 +388,12 @@ Report:
 
 <!-- SYNC:critical-thinking-mindset:reminder -->
 
-**MUST ATTENTION** apply critical + sequential thinking — every claim needs appropriate traced evidence (`file:line` for repo/code claims; source URL or artifact section for research, product, content, and docs claims); confidence >80% to act, <60% DO NOT recommend. Anti-hallucination: never present guess as fact, admit uncertainty freely, cross-reference independently, stay skeptical of own confidence.
+**MUST ATTENTION** critical + sequential thinking: every claim carries traced evidence (`file:line` for code, source URL or artifact section otherwise); confidence >80% to act, <60% do NOT recommend. Never present a guess as fact; admit uncertainty and stay skeptical of your own confidence.
 
 <!-- /SYNC:critical-thinking-mindset:reminder -->
 
 <!-- SYNC:ai-mistake-prevention:reminder -->
 
-**MUST ATTENTION** ROOT-CAUSE GATE: before any project-related correction, use the appropriate root-cause investigation protocol; failed/unstable tests require the test-investigation protocol before editing source/tests — never force green.
+**MUST ATTENTION** Check project config, relevant references, and local evidence before applying stack-specific conventions; honor explicit N/A. ROOT-CAUSE GATE: before any project-related correction, use the appropriate root-cause investigation protocol; failed/unstable tests require the test-investigation protocol before editing source/tests — never force green.
 
 <!-- /SYNC:ai-mistake-prevention:reminder -->

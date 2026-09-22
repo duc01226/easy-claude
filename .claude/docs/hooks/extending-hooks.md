@@ -341,7 +341,7 @@ ensureDir(MARKERS_DIR); // create directory if missing
 const { loadConfig } = require('./lib/ck-config-loader.cjs');
 
 const config = loadConfig();
-// config.codingLevel, config.privacyBlock, config.paths, config.subagent, etc.
+// config.plan, config.paths, config.subagent, etc.
 // (top-level keys of .claude/.ck.json merged with DEFAULT_CONFIG)
 ```
 

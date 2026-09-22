@@ -1,7 +1,7 @@
 ---
 name: e2e-test-verify
 version: 1.1.0
-description: '[Testing] Use when verifying an existing E2E, browser, or user-flow test scope with exact runner output, evidence, and report-only quality-gate results. Flags: --fix-loop drives a configured suite or human-QC journey to green with project-config setup, fault adjudication, and bounded re-verification; --visual-review={true|false} (with --fix-loop; default true, false opts out of the screenshot visual gate).'
+description: '[Testing] Use when verifying an existing E2E, browser, or user-flow test scope with exact runner output, evidence, and report-only quality-gate results. Flags: --fix-loop drives a configured suite or human-QC journey to green with project-config setup, fault adjudication, and bounded re-verification; --visual-review={true|false} (with --fix-loop; follows the explicit request or applicable project contract, with no framework-wide screenshot default).'
 ---
 
 <!-- PROMPT-ENHANCE:STEP-TASK-ANCHOR:START -->
@@ -21,18 +21,18 @@ description: '[Testing] Use when verifying an existing E2E, browser, or user-flo
 
 **Summary:**
 
-- **Contract first:** resolve the fixed scope, project runner, lifecycle, auth, data, browser, evidence, and expected GWT/invariant/TC record from project evidence.
-- **Report-only gate:** inspect test/page-object quality, execute the configured scope when runnable, capture exact results and readable artifacts, and apply the shared E2E quality protocol.
+- **Contract first:** resolve the fixed scope, project runner, lifecycle, auth, data, browser, evidence, scenario/invariant, and profile-selected owner/case/variant/evidence; use TC only under the strict default.
+- **Report-only gate:** inspect tests and the project's declared object/helper organization, execute the configured scope when runnable, capture exact results and readable artifacts, and apply the shared E2E quality protocol.
 - **Honest handoff:** return `PASS`, `NOT-APPLICABLE`, `ENVIRONMENT-BLOCKED`, or `UNVERIFIED`; never repair, weaken, skip, narrow, delete, reset, or baseline-promote.
 <!-- FIX-LOOP-MODE:START -->
-- **OPTIONAL `--fix-loop` MODE (opt-in; absent flag = everything above unchanged)** — drives a configured E2E suite or human-QC journey to a truthful green result over a fixed scope: resolve `--visual-review` (default `true`; explicit `false` opts out), scope, and Goal Contract → resolve the project execution contract → select or generate a traceable Given/When/Then test → bring up the whole system → per round { run the DEFAULT pass inline (never with the flag) → `/experience-review --rounds=0` visual gate → five-way verdict → `/debug-investigate` → `/fix` at the owning layer → `/changes-review` → Round Integrity Check → fresh same-scope rerun } → converge on the configured consecutive fresh green runs (default 2) within the round cap (default 3), or escalate. It is the convergence engine `workflow-e2e` calls; report-only callers NEVER pass it. Full protocol: **Mode: Fix-Loop** section.
+- **OPTIONAL `--fix-loop` MODE (opt-in; absent flag = everything above unchanged)** — drives a configured E2E suite or human-QC journey to a truthful green result over a fixed scope: resolve visual-review applicability from the explicit request and project contract, scope, and Goal Contract → resolve the project execution contract → select or generate a test in the project's declared format → bring up the whole system → per round { run the DEFAULT pass inline (never with the flag) → run the visual gate only when applicable and required → five-way verdict → `/debug-investigate` → `/fix` at the owning layer → `/changes-review` → Round Integrity Check → fresh same-scope rerun } → converge on the configured consecutive fresh green runs (default 2) within the round cap (default 3), or escalate. It is the convergence engine `workflow-e2e` calls; report-only callers NEVER pass it. Full protocol: **Mode: Fix-Loop** section.
 <!-- FIX-LOOP-MODE:END -->
 
 **Workflow:**
 
 1. **Resolve** — fix scope, read config/reference/spec intent, and create the report.
-2. **Model** — record Given/When/Then, invariant, TC, object ownership, auth, data, and the applicable visual matrix plus transition-capture instrumentation.
-3. **Inspect** — review existing tests/page objects and apply every shared quality-gate row.
+2. **Model** — record the scenario and invariant in the project's native test format, configured owner/case/variant/evidence (or strict-default TC), declared locator/action ownership, auth, data, and visual evidence only when applicable.
+3. **Inspect** — review existing tests and the declared locator/helper/object organization; apply every shared quality-gate row.
 4. **Verify** — attach evidence before interaction, run the configured command once, and persist exact output.
 5. **Report** — classify the result and hand findings to the `--fix-loop`/review/experience owner.
 
@@ -40,7 +40,10 @@ description: '[Testing] Use when verifying an existing E2E, browser, or user-flo
 
 - MUST ATTENTION read `docs/project-config.json`, `docs/project-reference/e2e-test-reference.md`, the relevant intent/spec, and the shared protocol before the first verification command.
 - MUST ATTENTION use the configured project command and fixed scope; never infer a framework, selector, credential, data path, or generic browser substitute.
-- MUST ATTENTION apply the GWT + invariant contract and every applicable shared gate row; a test command passing alone is not a quality pass.
+- MUST ATTENTION resolve `specArtifacts` before identifying test cases: use owner-qualified case/variant and configured evidence when declared, strict TC/§8 only when absent; a malformed profile blocks and never falls back.
+- MUST ATTENTION map every selected identity to its actual executing test, assertion, and result, respecting configured cardinality; source/title matches alone remain `UNVERIFIED`.
+- MUST ATTENTION reuse the declared project test organization; a `pageObjectsPath` is not proof that a Page Object Model is required.
+- MUST ATTENTION apply the project's scenario/invariant contract and every applicable shared gate row; use its configured test format. A test command passing alone is not a quality pass.
 - MUST ATTENTION attach and read redacted runtime/visual evidence, report exact counts/exit status, and preserve cleanup/baseline integrity.
 - NEVER edit source, tests, fixtures, user data, snapshots, baselines, or assertions from the report-only default pass; only `--fix-loop` repairs, through its Step FL-4 owning-layer route.
 
@@ -67,19 +70,22 @@ For each requested behavior, persist:
 Given <verified actor, fixture/data, permissions, and starting state>
 When <real actions through the configured interface>
 Then <owned business outcome plus applicable error/recovery result>
-INVARIANT <Feature Spec/acceptance criterion/source contract>
-TC <existing traceable test-case identifier or explicit proposal>
+OWNER <configured canonical root and owner, or UNKNOWN>
+CASE <owner-qualified configured case/scenario plus variant, or strict-default TC>
+INTENT <configured requirement/acceptance references and protected invariant>
+EVIDENCE <configured source carrier and evidence section; §8/Test Specifications only under the strict default>
+PROOF <actual executor(s), assertion(s), and runner result(s); unresolved rows remain UNVERIFIED>
 ```
 
-Resolve configured full/focused commands, zero-match behavior, run identity, isolation, auth reference, data policy, browser/viewport matrix, evidence root/redaction, and cleanup. Search for three comparable tests/page-object patterns when the project has them; cite the reuse or mismatch decision.
+Resolve configured full/focused commands, zero-match behavior, run identity, isolation, auth reference, data policy, browser/viewport matrix, evidence root/redaction, cleanup, and active case profile. Search for three comparable tests and the project's declared organization when available; cite the reuse or mismatch decision without requiring a POM.
 
 ## Step 2 — Inspect the existing artifacts and shared gate
 
-Read the selected test and its Common → Domain-Shared → Page objects. Confirm that locators/actions have one owner, the `THEN` outcome assertion remains in the test, the GWT record names the protected invariant, and applicable auth, fixture/data, async/wait, evidence, cleanup, visual/accessibility/responsive, and spec-traceability rows from the shared protocol have a verdict and evidence.
+Read the selected test and the project's declared locator/action organization. Reuse its helpers or object model where configured or justified by demonstrated reuse; do not infer a POM from a path setting. Confirm each locator/action has one owner, the `THEN` assertion remains visible, the GWT record names the protected invariant, and applicable auth, fixture/data, async/wait, evidence, cleanup, visual/accessibility/responsive, and spec-traceability rows have evidence.
 
-For browser actions, verify the reusable bounded `waitUntil(condition, options)` precondition and postcondition/error-state waits, followed by the exact 500ms presentation delay where applicable. Verify that evidence capture attaches before interaction and that visual artifacts are opened/read rather than merely generated.
+For browser actions, verify the configured runner's native wait strategy or an evidenced bounded project helper for readiness, outcomes, and error states. Action delays apply only when the project contract configures them. Verify that evidence capture attaches before interaction and that visual artifacts are opened/read rather than merely generated.
 
-For a UI surface under visual review, also verify the capture contract report-only (`.claude/skills/shared/ui-state-capture-protocol.md`) for the resolved `uiStateCapture.mode`. Under `every-action`: the capture call lives in the shared action primitives rather than sprinkled through test bodies; it fires after the postcondition wait and the 500ms pacing; the declared triggers cover the journey's UI-state-changing actions; `capture-manifest.json` exists with one row per capture including deduped and capped rows; failure captures are exempt from dedupe and caps; and every row was actually read. Under `declared-only`, verify the matrix rows, manifest, and reads only, and record every state-changing action as an uncaptured-transition blind spot — never a FAIL and never an implicit pass. Under `off`, verify the matrix rows, manifest, and reads exactly as under `declared-only`, and record transition coverage once as `N/A — uiStateCapture off: {reason}` instead of per-action blind spots; `off` never waives or weakens the visual gate, and a missing matrix capture still fails it. Report an uninstrumented suite under `every-action`, an unindexed capture, or an unread image as a gate failure routed to `e2e-test`; never instrument, capture, or repair from this skill.
+For a UI surface where visual review is requested or required by the project contract, also verify the capture contract report-only (`.claude/skills/shared/ui-state-capture-protocol.md`) for the resolved `uiStateCapture.mode`. Under `every-action`: the capture call lives at an evidenced shared action boundary rather than being sprinkled through test bodies; it fires after the configured runner observes the postcondition, plus only pacing specified by the project contract; the declared triggers cover the journey's UI-state-changing actions; `capture-manifest.json` exists with one row per capture including deduped and capped rows; failure captures are exempt from dedupe and caps; and every row was actually read. Under `declared-only`, verify the matrix rows, manifest, and reads only, and record every state-changing action as an uncaptured-transition blind spot — never a FAIL and never an implicit pass. Under `off`, verify the matrix rows, manifest, and reads exactly as under `declared-only`, and record transition coverage once as `N/A — uiStateCapture off: {reason}` instead of per-action blind spots; `off` never waives a visual gate required by the project contract, and a missing required matrix capture still fails it. Report an uninstrumented suite under `every-action`, an unindexed capture, or an unread image as a gate failure routed to `e2e-test`; never instrument, capture, or repair from this skill.
 
 ## Step 3 — Run one report-only verification attempt
 
@@ -93,7 +99,7 @@ Do not repair failures in this default pass. Classify each failure as `SOURCE-WR
 
 ## Required output
 
-Persist: fixed scope and applicability evidence · GWT/invariant/TC records · config and command evidence · gate-row verdicts · exact counts/exit status · runtime/visual artifact paths and read/redaction status · capture instrumentation and manifest completeness verdict with `reviewed/total` · failure classifications and owning routes · cleanup result · final verdict and next step.
+Persist: fixed scope and applicability evidence · GWT/invariant records · profile owner/case/variant/carrier/evidence mapping or strict-default TC record · actual executor/assertion/result mapping · config and command evidence · gate-row verdicts · exact counts/exit status · runtime/visual artifact paths and read/redaction status · capture instrumentation and manifest completeness verdict with `reviewed/total` · failure classifications and owning routes · cleanup result · final verdict and next step.
 
 <!-- FIX-LOOP-MODE:START -->
 
@@ -101,15 +107,15 @@ Persist: fixed scope and applicability evidence · GWT/invariant/TC records · c
 
 > **Scope gate:** this section runs ONLY when the invocation carries `--fix-loop`. Without the flag NOTHING here applies — Steps 0–4, their report-only boundary, and every report-only caller behave exactly as documented above. It is the ONLY path through which this skill changes source, tests, fixtures, or configuration, and only through Step FL-4's `/debug-investigate` → `/fix` route.
 >
-> **Flag rules:** `--visual-review={true|false}` is defined once, in Step FL-0.1. Outside `--fix-loop`, an explicit `--visual-review` value is only the caller-supplied visual applicability that Step 2 verifies; the `true` default applies only inside this mode. Report-only callers (`/changes-review` Phase 3.9 and the `/workflow-review-changes` step-1 E2E route) invoke the default pass and NEVER pass `--fix-loop`. NEVER self-invoke with the flag: each round's pass is the default pass (Steps 0–4) run inline, never `/e2e-test-verify --fix-loop` — one loop, no nesting.
+> **Flag rules:** `--visual-review={true|false}` is resolved once, in Step FL-0.1, from an explicit value, the project contract, and the task request. There is no framework-wide screenshot default. Outside `--fix-loop`, an explicit `--visual-review` value is only caller-supplied applicability that Step 2 verifies; report-only callers (`/changes-review` Phase 3.9 and the `/workflow-review-changes` step-1 E2E route) invoke the default pass and NEVER pass `--fix-loop`. NEVER self-invoke with the flag: each round's pass is the default pass (Steps 0–4) run inline, never `/e2e-test-verify --fix-loop` — one loop, no nesting.
 
-**Goal:** Drive a configured E2E suite or real-user journey to a truthful green result over a fixed scope. Resolve the project contract first, select an existing test or generate a traceable Given/When/Then test, bring up the whole system, use a visible browser for web human-QC, inspect runtime/visual evidence, adjudicate every failure, fix the owning layer, and re-run fresh until the declared scope converges or a bounded blocker is escalated.
+**Goal:** Drive a configured E2E suite or real-user journey to a truthful green result over a fixed scope. Resolve the project contract first, select an existing test or generate one in the project's declared format, bring up the whole system, use a visible browser for web human-QC when requested, inspect applicable runtime/visual evidence, adjudicate every failure, fix the owning layer, and re-run fresh until the declared scope converges or a bounded blocker is escalated.
 
 **Mode summary:**
 
 - **Main path:** resolve scope/contract → read config/reference → resolve readiness/auth/data/browser/evidence → select or generate tests → run and inspect → adjudicate/fix → rerun fresh → report or escalate.
-- **Visual gate:** default `--visual-review=true`; capture per the resolved `uiStateCapture.mode` (default `every-action`: every UI-state-changing transition plus the declared state × viewport matrix; `declared-only` records transitions as blind spots; `off` keeps the matrix and records transition coverage as `N/A`), index them in `capture-manifest.json`, and have `/experience-review --rounds=0` read and record EVERY capture case by case before synthesizing clustered, owner-routed findings (`.claude/skills/shared/ui-state-capture-protocol.md`); explicit `--visual-review=false` opts out; preserve baselines.
-- **Shared quality gate:** every fixed scope and round carries the canonical GWT/invariant and gate-row record from `.claude/skills/shared/e2e-quality-protocol.md`; the default pass (Steps 0–4) is the report-only attempt inside each round, while this mode owns repeats, fixes, and integrity.
+- **Visual gate:** apply only when requested or required by the project contract on a visual surface; resolve `uiStateCapture.mode` from project config (default `declared-only`), capture the required state × viewport matrix, and add transitions only under opted-in, supported `every-action`; index and read every required capture case by case before synthesizing owner-routed findings (`.claude/skills/shared/ui-state-capture-protocol.md`). An explicit `false` cannot waive a project-required visual gate; preserve baselines.
+- **Shared quality gate:** every fixed scope and round carries the project's scenario/invariant and gate-row record from `.claude/skills/shared/e2e-quality-protocol.md`; the default pass (Steps 0–4) is the report-only attempt inside each round, while this mode owns repeats, fixes, and integrity.
 
 **Role in `workflow-e2e`:** This mode is the internal convergence engine, not a
 second E2E workflow. `workflow-e2e` calls `/e2e-test-verify --fix-loop` after
@@ -123,24 +129,23 @@ source.
 
 **Workflow:** resolve scope and Goal Contract → read project-config/reference → resolve startup/readiness/auth/data/browser/evidence → select or generate tests → run and inspect → adjudicate failures → fix/review/re-run → require fresh consecutive green runs → report or escalate.
 
-**Visual review mode:** Visual screenshot review is enabled by default,
-equivalent to `--visual-review=true`. It changes each round to `E2E run →
-capture per `uiStateCapture.mode` (default `every-action`: every UI-state-changing
-transition plus the declared matrix) →
-reconcile the capture manifest → open/read and judge every image case by case
-through /experience-review → synthesize clustered findings → fix blocking UI
-defects at the owning layer → re-run the same E2E scope`. An explicit
-`--visual-review=false` preserves the non-visual E2E loop; a UI surface is not
-required to infer the default.
+**Visual review mode:** Enable screenshot review only when requested or required
+by the project contract for an applicable visual surface. It changes each round
+to `E2E run → capture the configured matrix, plus opted-in transitions where
+supported → reconcile the capture manifest → open/read and judge every required
+image case by case through /experience-review → synthesize clustered findings →
+fix validated blocking UI defects at the owning layer → re-run the same E2E
+scope`. With no request or project requirement, visual review is `N/A` for a
+non-visual surface and is not inferred merely from the presence of a UI test.
 
 **Key rules:**
 
 - `e2eTesting.execution` is optional, but missing capability is never a guessed default. Link `surfaceIds[]` to `experienceVerification.surfaces[]`; the linked `localRun` owns startup/readiness/log/teardown.
-- For browser/UI E2E or human-QC, use the configured visible Playwright CLI path when supported. Before every UI-control operation, use one reusable bounded `waitUntil(condition, options)` helper for readiness/actionability and applicable error-alert absence; after it, use the helper for the expected positive/negative outcome or error-alert state, then wait exactly **500ms** as presentation pacing. Keep real settle signals separate; the delay is never readiness and cannot be disabled by configuration.
+- For browser/UI E2E or human-QC, use the configured visible runner when supported. Follow its native readiness/actionability and outcome waits, or an evidenced bounded project helper; action delays apply only when the project contract configures them. Keep real settle signals separate; a delay is never readiness.
 - Use project-owned auth and data paths. Never copy credentials, storage state, cookies, tokens, or seed values into prompts/reports; never bypass the UI with direct datastore mutation.
-- Reuse a suitable existing test and its reusable Common/Domain-Shared/Page objects. Generate through `/e2e-test` → `e2e-runner` only when coverage is missing or the current test does not protect the requested invariant; generated objects must use the project's idiomatic abstract base and cohesive helpers/utilities.
+- Reuse a suitable existing test and the project's declared locator/action organization, including helpers or objects when present. Generate through `/e2e-test` → `e2e-runner` only when coverage is missing or the current test does not protect the requested invariant; add an abstraction only when the configured project pattern or demonstrated reuse supports it, and keep helpers cohesive.
 - A passing screen is not enough: runtime errors, uncaught exceptions, unhandled rejections, journey-critical failed requests, unread evidence, and baseline mismatches remain visible findings.
-- When visual review is enabled (the default or explicit `--visual-review=true`), the screenshot matrix and image inspection are a required part of the E2E gate. Use `/experience-review --rounds=0` as the report-only visual adjudicator inside this mode; this mode owns UI fixes and the subsequent E2E rerun. `--visual-review=false` is the explicit opt-out.
+- When visual review is requested or required by the project contract, the configured screenshot matrix and image inspection are part of the E2E gate. Use `/experience-review --rounds=0` as the report-only visual adjudicator inside this mode; this mode owns UI fixes and the subsequent E2E rerun. A user-supplied false value cannot waive a project-required visual gate.
 - MUST ATTENTION apply the shared E2E quality protocol to every round and carry its gate verdicts into the persisted report; keep each round's default pass report-only and route fixes through the owning layer.
 - Never delete, skip, narrow, weaken, retry-wrap an assertion, silence logs, or auto-promote a baseline to obtain green.
 
@@ -157,7 +162,7 @@ becoming another user-facing workflow.
 
 Before any test command or edit:
 
-1. Resolve `--visual-review=true|false`. The default is `true`; an invalid or ambiguous value is a blocker, not permission to guess. Record the resolved mode before the first command. Only an explicit `--visual-review=false` opts out.
+1. Resolve `--visual-review=true|false` from an explicit value, the project contract, and the task request. There is no framework-wide visual default: use `true` only when requested or required for an applicable visual surface; otherwise use `false`/`N/A` as appropriate. An invalid value or conflict with a required project gate is a blocker, not permission to guess or waive it. Record the resolved mode before the first command.
 2. Read the Step 0.1 document set (`docs/project-config.json`, `docs/project-reference/docs-index-reference.md`, `docs/project-reference/lessons.md`, `docs/project-reference/e2e-test-reference.md`, `.claude/skills/shared/e2e-quality-protocol.md`) and the relevant feature/spec/code contract.
 3. Resolve `{scope}`:
 
@@ -169,7 +174,7 @@ Before any test command or edit:
    | Code diff/branch named | The E2E projects/surfaces affected by that explicit change set |
 
 4. Record the scope as a stable list. If no runnable E2E framework exists, record `N/A — <config and scan evidence>` and do not substitute a generic browser runner. If a relevant surface exists but cannot run or be inspected, record `ENVIRONMENT-BLOCKED — <missing capability and evidence>`.
-5. When visual mode is enabled (the default unless explicitly false), add the required capability that every applicable visual surface has a configured screenshot matrix, an evidence root, and an image-inspection path; missing capability is `ENVIRONMENT-BLOCKED`.
+5. When visual review is requested or required by the project contract, verify that every applicable surface has a configured screenshot matrix, evidence root, and image-inspection path; a missing required capability is `ENVIRONMENT-BLOCKED`.
 6. Create a Goal Contract whose required criterion is:
 
    > A fresh full E2E verification over the fixed scope reports zero failed scenarios across the configured consecutive-green requirement (default 2), with exact runner output, no scope shrink, no test deletion/skip/weakening, and no automatic baseline acceptance.
@@ -185,7 +190,7 @@ runner. Resolve each row and cite the source:
 
 | Area | Required record | Block condition |
 | --- | --- | --- |
-| Framework/project | config file, test root, page-object/fixture root, full and focused command | No runnable framework/command → `N/A` or `ENVIRONMENT-BLOCKED` |
+| Framework/project | config file, test root, declared helper/object organization (if any), fixture root, full and focused command | No runnable framework/command → `N/A` or `ENVIRONMENT-BLOCKED` |
 | Surface/lifecycle | `surfaceIds[]` → `experienceVerification.surfaces[]` → `localRun` dependency/start/ready/log/teardown | Missing recipe or readiness signal → blocked |
 | Auth | fixture/storage-state/registration/manual/none, reference only | Missing required account or safe path → blocked |
 | Data | seed command, project-relative working directory, reference/idempotent/additive mode, cleanup policy | Missing or destructive/shared reset path → blocked |
@@ -201,7 +206,7 @@ storage-state value.
 
 ### Step FL-2 — Build the scenario and choose generate-or-use
 
-Read `.claude/skills/shared/e2e-quality-protocol.md` and create its GWT + invariant + TC record before selecting or generating a test; the detailed cross-skill gate is canonical there.
+Read `.claude/skills/shared/e2e-quality-protocol.md`, resolve `specArtifacts`, and create its GWT + invariant + owner/case/variant/evidence record before selecting or generating a test. Use strict TC/§8 only when no native profile applies; a malformed profile blocks.
 
 For each requested behavior, persist the Step 1 record before execution and extend it with the wait and settle lines this mode drives:
 
@@ -210,15 +215,7 @@ WAIT_UNTIL <bounded positive/negative condition before and after each meaningful
 SETTLE <observable readiness/state signal after each meaningful action>
 ```
 
-Search for at least three comparable existing E2E tests/page objects when the
-project has them, including Common, Domain-Shared, and Page tiers where they
-exist. If a suitable test covers the same invariant and scope, select it and do
-not generate a duplicate. If no suitable test exists, invoke `/e2e-test` and
-the `e2e-runner` specialist to generate a tiered Page/Component Object Model in
-the project’s local convention, with one canonical owner per selector/action/
-wait and reusable lower-tier contracts tested once. A coverage gap feeds both
-the spec/intent record and the test; never patch only the test to hide a
-missing rule.
+Search at least three comparable tests and inspect the declared local organization when available. If a suitable test covers the same invariant and scope, select it and do not generate a duplicate. If no suitable test exists, invoke `/e2e-test` and the `e2e-runner` specialist to follow the configured project pattern, keeping one owner per selector/action/wait and extracting helpers or objects only when required by that pattern or demonstrated reuse. A coverage gap feeds both the owner/intent record and test; never patch only the test to hide a missing rule.
 
 ### Step FL-3 — Bring up and exercise the whole system
 
@@ -228,9 +225,9 @@ For every `APPLICABLE` surface, in order:
 2. Run migrations/seed through supported project paths. Use unique run data, count-before-create/reference data, idempotent or additive setup, and current-run-only cleanup after evidence capture.
 3. Start the surface and poll its declared readiness signal. A started process, open port, or fixed sleep is not readiness.
 4. Attach server logs and browser console/page-error/request capture before the first interaction.
-5. For web, open the configured browser visibly when human-QC is requested. Use semantic/accessible actions and stable locators. Before every UI-control operation, call the reusable bounded `waitUntil(condition, options)` helper for readiness/actionability and applicable blocking error-alert absence; after the operation, call it for the expected positive/negative outcome, including dropdown/options and expected error-alert present/absent states; then wait exactly **500ms**. Observe any real settle signal separately.
-6. Drive the Given/When/Then path through the real interface. Capture screenshots for relevant states and trace/video/console/requests when configured; when visual review is enabled (the default unless explicitly false), capture every matrix state at every matrix viewport, including loading, empty, error, permission, and post-submit states plus a full-page capture where the surface scrolls. Store captures under the configured evidence root, open/read every image, record the visual observation, and redact sensitive content.
-6a. **Transition capture (visual mode, per the resolved `uiStateCapture.mode`).** Under `declared-only`, list each state-changing action as an uncaptured transition (a recorded blind spot); under `off`, record transition coverage once as `N/A — uiStateCapture off: {reason}`; the item 6 matrix is captured in every mode. Under `every-action` (the default), the action-layer helper emits one capture after each UI-state-changing action's `waitUntil` postcondition and 500ms pacing — navigation, activation, selection, toggle, tab/step, overlay open and close, filter/sort/paginate, direct manipulation, mode/theme/role switch, async boundary resolution, feedback, session change. These are ADDITIVE to the matrix, not a replacement. Write one `capture-manifest.json` row per capture including deduped and capped rows, with `expected_delta` and `console_since_last` so a reviewer can judge "this action changed nothing" and attribute a runtime error to the transition that caused it. If the project's tests are not instrumented, record it as a capture-coverage gap and route the instrumentation to `/e2e-test`; do not hand-sprinkle screenshots into test bodies inside this mode.
+5. For web, open the configured browser visibly when human-QC is requested. Use semantic/accessible actions and stable locators. Follow the configured runner's native wait strategy or an evidenced bounded project helper for readiness/actionability and expected positive/negative outcomes, including applicable error states. Apply action delay only when the project contract configures it, and observe any real settle signal separately.
+6. Drive the scenario through the real interface using the project's declared test format. Capture trace/video/console/request evidence when configured. When visual review is requested or required, capture each project-declared matrix state and viewport, store evidence under the configured root, open/read every required image, record observations, and redact sensitive content.
+6a. **Transition capture (visual mode, per the resolved `uiStateCapture.mode`).** Under `declared-only` (the default), capture the matrix and record relevant state-changing actions as transition coverage gaps; under `off`, record transition coverage once as `N/A — uiStateCapture off: {reason}`; the item 6 matrix remains in every mode. Under `every-action` (opt-in), capture transitions only through a source-verified project boundary, after the configured runner observes the expected postcondition and any project-configured pacing. These captures are additive to the matrix. Write manifest rows using the configured owner/case identity and evidence path; include the evidence needed to connect captures to expected outcomes. If the project has no supported boundary, report that limitation instead of inventing one or forcing an object model.
 7. Tear down only processes/services started by this run. Preserve accepted baselines and record candidate evidence separately.
 
 If any precondition fails, preserve the logs and classify the branch
@@ -244,7 +241,7 @@ Each round is a fresh full verification over the exact recorded scope:
 1. Snapshot scope, test/scenario IDs, executed/passed/failed/skipped counts, and the working tree.
 2. Run the default pass (Steps 0–4) INLINE, WITHOUT `--fix-loop`, over the fixed scope against the system brought up in Step FL-3, supplying the recorded scope and the resolved visual mode as its visual applicability. It runs the configured full command for the fixed scope; a focused command is only in addition to, never instead of, the declared full scope. Record command, exit status, counts, failing names, run identity, data mode, and evidence paths from its report.
 3. Invoke `/experience-review --rounds=0` report-only for configured observable surfaces. It may classify evidence and runtime/UI findings but must not fix, update baselines, or change expectations inside this mode.
-4. When visual review is enabled (the default unless explicitly false), make the experience-review result a required visual gate. Every capture — matrix state and transition alike — must be opened, read, and recorded individually before synthesis; reconcile the per-case records against the manifest and report `reviewed/total`, because a manifest row with no record is `UNVERIFIED`, never a clean result. Add validated `BLOCKING` findings — `UIX-BROKEN`, `UIX-UNSTYLED`, `UIX-OVERFLOW`, `UIX-OVERLAP`, `UIX-STATE` (the action produced no change where `expected_delta` required one), blocking `UIX-LAYOUT`/`UIX-CONVENTION`/`UIX-FLOW`, accessibility-floor violations, and `P0`–`P2` `CL-*` findings — to the round's failure set. Cluster a defect repeating across captures into ONE finding owned by its `Common`/`Domain-Shared`/`Page` component so the round fixes it once at the owning layer instead of N times at the pages. Record `UIX-POLISH`/`DD-*` identity, polish, or non-contract spacing preferences without reopening the loop unless the governing design/acceptance contract makes the issue objectively required.
+4. When visual review is requested or required by the project contract for an applicable visual surface, make the experience-review result a required visual gate. Every required capture — matrix state and any configured transition — must be opened, read, and recorded individually before synthesis; reconcile the per-case records against the manifest and report `reviewed/total`, because a manifest row with no record is `UNVERIFIED`, never a clean result. Add validated `BLOCKING` findings — `UIX-BROKEN`, `UIX-UNSTYLED`, `UIX-OVERFLOW`, `UIX-OVERLAP`, `UIX-STATE` (the action produced no change where `expected_delta` required one), blocking `UIX-LAYOUT`/`UIX-CONVENTION`/`UIX-FLOW`, accessibility-floor violations, and `P0`–`P2` `CL-*` findings — to the round's failure set. Cluster a defect repeating across captures into ONE finding owned by the affected UI component or the project's declared locator/action/helper owner; fix it once at that owner instead of once per capture or page. Record `UIX-POLISH`/`DD-*` identity, polish, or non-contract spacing preferences without reopening the loop unless the governing design/acceptance contract makes the issue objectively required.
 4a. Carry the synthesis into the round record: capture coverage (`reviewed/total`, uncaptured state-changing actions — or the single `N/A — uiStateCapture off: {reason}` record when `uiStateCapture.mode` is `off` — caps or sampling hit), sequence-level findings visible only across captures (no feedback between an action and its result, layout shift between steps, the same component rendered inconsistently across surfaces, convention drift accumulating through the flow), and the owning layer for each cluster.
 5. If green, compare counts and visual-blocker totals to the previous round. Require the configured consecutive-green runs without a reset; each must be fresh, same-scope, and, in visual mode, have fresh screenshots that were opened/read.
 6. If anything fails, record a provisional verdict before editing, using the Step 3 taxonomy:
@@ -283,7 +280,7 @@ promotes a baseline automatically.
 - resolved `--visual-review` mode, screenshot state × viewport matrix, transition-capture trigger set, manifest path and row count, `reviewed/total` reconciliation, capture coverage gaps, and the per-case plus synthesized image-inspection result;
 - Goal Contract and Given/When/Then + invariant records;
 - config/reference evidence for framework, lifecycle, auth, data, browser, evidence, and convergence;
-- existing-test reuse or generated test files and TC coverage;
+- existing-test reuse or generated test files and owner/case/variant-to-test/assertion/result coverage; strict TC coverage only when no native profile applies;
 - every command, run identity, exact Passed/Failed/Skipped counts, exit status, and fresh repeat evidence;
 - runtime/visual evidence paths and redaction/read status;
 - each failure’s single fault verdict, debug/fix/review references, and owning layer;
@@ -295,7 +292,7 @@ promotes a baseline automatically.
 | --- | --- |
 | Run only changed E2E files | Resolve and record the whole configured scope unless the prompt explicitly narrows it. |
 | Generate a new test because it is convenient | Reuse a suitable existing invariant-protecting test and report the mapping. |
-| Use a sleep because the page is slow | Reuse bounded `waitUntil(condition, options)` for readiness/actionability and the expected positive/negative postcondition; the mandatory 500ms delay is presentation pacing only. |
+| Use a sleep because the page is slow | Use the configured runner's native wait strategy or an evidenced bounded project helper for readiness/actionability and expected postconditions; add action pacing only when the project contract configures it. |
 | Treat a passing E2E command as a visual pass | In visual mode, capture and open/read every capture the resolved `uiStateCapture.mode` requires (matrix AND transition captures under `every-action`) and adjudicate each through `/experience-review`; a test pass does not erase a visual blocker. |
 | Summarize the captures instead of reviewing them | Record ONE per-case entry per manifest row before synthesizing. A synthesis with no per-case records is a summary of memory, and `reviewed/total` will expose it. |
 | Report the same broken shared component once per page | Cluster it into one finding owned by the component and fix it at that layer; N page-level duplicates hide the single real cause. |
@@ -344,6 +341,7 @@ evidence, after every fix was adjudicated, reviewed, and re-run fresh.
 
 > **AI Mistake Prevention** — Failure modes to avoid on every task:
 >
+> **Project applicability gate.** Before applying a stack, layer, style, tool, or architecture rule, read the project's config and relevant references, then check local implementations. Treat framework examples as examples; honor explicit N/A and do not require a technology or convention the project does not use.
 > **ROOT-CAUSE GATE — INVESTIGATE FIRST.** Before applying any project-related correction, always use the project's root-cause investigation protocol and establish the cause; the failure site may be only a symptom.
 > **FAILED-TEST GATE.** For any failed or unstable test, use the project's test-investigation protocol before editing source or tests; never change either side merely to force green.
 > **Re-read files after context changes.** Context compaction, resume, or long-running work can make memory stale; verify current files before acting.
@@ -362,7 +360,7 @@ evidence, after every fix was adjudicated, reviewed, and re-run fresh.
 
 <!-- SYNC:project-protocol-overlay -->
 
-> **Project Protocol Overlay** — Before executing this skill, resolve any PROJECT overlay rules layered onto it: match this skill's name against the `Target` column of the project's skill-protocol index (default `docs/project-reference/skill-protocols-reference.md`; a `referenceDocs` entry in `docs/project-config.json` overrides the path, and a `docsRoots.projectReference.path` entry relocates its containing directory), taking the most specific matching tier ONLY — exact name > glob > `*`. **That precedence orders overlays against EACH OTHER, never against this skill.** Read ONLY the matched bodies, resolved as `<protocols-dir>/<Name>.md`; a row's Body link is display text, never a read path. A matched body that is missing or malformed is REPORTED and skipped — never reconstructed from the index Description. No index, or no match -> proceed with no overlay, silently. Full contract: `.claude/skills/project-skill-protocol/references/registry.md`.
+> **Project Protocol Overlay** — Before executing this skill, resolve project overlays from the index at `<docsRoots.projectReference.path>/skill-protocols-reference.md` (default `docs/project-reference/`; `docsRoots.projectReference.path` in `docs/project-config.json` overrides it). A matching `referenceDocs[]` filename may relocate the index within that root; this registry is independent from task-specific reference-doc selection, so omitted or empty `referenceDocs` does not disable it. The index's `**Protocols directory:**` header selects a project-root-relative body directory (default `docs/project-protocols/`). Match this skill against the `Target` column and take the most specific tier ONLY — exact name > glob > `*`. **That precedence orders overlays against EACH OTHER, never against this skill.** Read only matched bodies derived as `<protocols-dir>/<Name>.md`; the row's Body link is display text, never a read path. Reject unsafe paths without reading. A matched body that is missing or malformed is REPORTED and skipped — never reconstructed from the index Description. An absent index or no match -> proceed with no overlay, silently. Full contract: `.claude/skills/project-skill-protocol/references/registry.md`.
 >
 > Overlays are **ADDITIVE ONLY**: they ADD rules on top of this skill's own protocol and NEVER replace, override, disable, or reinterpret a rule it already states — removing every overlay must return this skill to exactly its documented behavior. An overlay is a BRIEF, not an authority escalation: it can NEVER waive a workflow gate, git discipline, a review gate, or a user-confirmation gate. A genuine overlay-vs-skill conflict, or two equally-specific overlays that directly contradict -> surface both to the user; NEVER resolve silently.
 
@@ -370,15 +368,15 @@ evidence, after every fix was adjudicated, reviewed, and re-run fresh.
 
 <!-- SYNC:e2e-visual-design-contract -->
 
-> **E2E Visual Design Contract** — Binds when this skill or agent handles `--visual-review=true`, screenshot/recording evidence, human-QC of a user-facing UI, or visual expectation/baseline updates; for non-visual E2E/API/CLI work state `N/A — no user-facing visual surface` and do not invent a design review.
+> **E2E Visual Design Contract** — Binds when this skill or agent handles visual-review evidence, human-QC of a user-facing visual surface, or visual expectation/baseline updates; for non-visual E2E/API/CLI work state `N/A — no user-facing visual surface` and do not invent a design review.
 >
-> 1. **Resolve authority first.** Read `docs/project-config.json`, its `designSystem.canonicalDoc`, `tokenFiles`, and `appMappings[]`, plus the resolved `design-system/README.md`, `frontend-patterns-reference.md`, `scss-styling-guide.md`, `.claude/docs/design-knowledge.md`, and `.claude/docs/design-review-checklist.md`; record `N/A` only for a proven absent surface or `ENVIRONMENT-BLOCKED` for an applicable missing capability — never invent tokens, components, breakpoints, type, CSS/BEM, or runner defaults.
+> 1. **Resolve authority first.** Read `docs/project-config.json`, its docs index, and the applicable project references for design, accessibility, platform, styling, and components; consult `.claude/docs/design-knowledge.md` and `.claude/docs/design-review-checklist.md` when they apply. Record `N/A` only for a proven absent surface or `ENVIRONMENT-BLOCKED` for an applicable missing configured capability — never invent tokens, components, breakpoints, type, styling conventions, or runner defaults.
 > 2. **Use project decisions.** Apply precedence: brief/accepted design contract → adopter project design-system/SCSS/frontend docs and ADRs → shared `UI-1.1`–`UI-9.4`, `DD-1`–`DD-8`, and `CL-1`–`CL-6`; surface a genuine conflict with both sides, never silently choose. Read and apply the full shared `SYNC:design-system-check`, `SYNC:ui-ux-design-principles`, `SYNC:design-distinctiveness-gate`, and `SYNC:design-review-checklist` bodies for their applicable roles. When UI generation or repair is in scope, consume the accepted `/design` decisions (or the adopter's equivalent professional design/component system); review-only E2E evidence must not invent a new visual language.
-> 3. **Map UI architecture before generation or UI fixes.** Inventory related screens, flows, and components; classify each relevant component `Common`, `Domain-Shared`, or `Page`; record its base abstraction and owner; reuse/compose before creating; record why reuse does not fit; keep one owner for markup, selectors, styling, lifecycle, and lower-tier test contracts. Page tests cover composition/outcomes, not copied lower-tier behavior.
-> 4. **Separate review owners.** Use `/experience-review` for the running surface and opened/read screenshot evidence; route source-only token, BEM/SCSS, z-index, component ownership, reuse, and static design findings to `/ui-review`. Never infer source architecture or design tokens from an image, and never treat a passing E2E command as visual/design approval.
-> 5. **Capture every UI state the journey reaches, not only the declared ones.** Apply `.claude/skills/shared/ui-state-capture-protocol.md`. Instrument one project-owned capture helper in the shared page/component action primitives so every UI-state-changing action — navigation, activation, selection, toggle, tab/step, overlay open and close, filter/sort/paginate, direct manipulation, mode/theme/role switch, async boundary resolution, feedback, session change — emits a capture automatically after its `waitUntil` postcondition and the 500ms pacing; a screenshot call written per test decays invisibly. The resolved `uiStateCapture.mode` decides which captures are produced: `every-action` is the default described here, `declared-only` keeps the matrix and records every transition as a blind spot, and `off` keeps the matrix and records transition coverage as `N/A` — it never waives or weakens this gate. Transition captures are ADDITIVE to the declared state × viewport matrix (loading, empty, error, permission, post-submit, full-page where applicable), never a replacement. Index every capture (including deduped and capped rows) in a `capture-manifest.json` under the evidence root; dedupe by fingerprint, bound per test/run with an escalation record instead of silent truncation, sample repetition, mask volatile regions, capture full-page where the surface scrolls, and never dedupe or cap a failure capture.
-> 6. **Gate every visual round case by case, then synthesize.** Reload the design/UI convention authority BEFORE judging the first image. Open/read ONE capture at a time and append its record — image path, expected delta, observed facts with locations, attributed console output, taxonomy findings or an explicit `none`, verdict — before opening the next. Then reconcile records against the manifest, cluster a repeated defect into ONE finding owned by its `Common`/`Domain-Shared`/`Page` component, report sequence-level findings only visible across captures, and list uncaptured transitions as recorded coverage gaps. `UIX-BROKEN`/`UNSTYLED`/`OVERFLOW`/`OVERLAP`/`STATE`, `UI-*`/accessibility/layout-floor, and `P0`–`P2` `CL-*` findings are `BLOCKING`; `UIX-POLISH`/`DD-*` identity is `ADVISORY` unless the governing brief/project contract makes it objectively required. A `UIX-CONVENTION` finding cites the authority clause it breaks. Unmeasurable values are `NOT VERIFIABLE`; a missing record is incomplete review, never a clean result; never promote a baseline/expectation automatically.
-> 7. **Report the contract.** Persist authority paths and resolution status, component tier/base/owner/reuse decisions, matrix plus transition-capture coverage (`reviewed/total` and gaps), `UI`/`DD`/`CL`/`UIX` coverage or skips, manifest path, evidence/read status, and remaining human acceptance; preserve the protected business invariant and exact E2E scope.
+> 3. **Map UI ownership when generation or UI fixes are in scope.** Inventory related screens, flows, and components. Use the adopter's documented component/module taxonomy when one exists; otherwise record actual component owners and boundaries from the code. Reuse or compose abstractions that fit, and record why they do not fit when creating new ones. Preserve ownership of markup, selectors, styling, lifecycle, and tests according to the project's architecture.
+> 4. **Separate review owners.** Use `/experience-review` for the running surface and opened/read screenshot evidence; route source-only styling, tokens, accessibility, z-index, component ownership, reuse, and static design findings to `/ui-review`. Apply BEM/SCSS checks only when selected by the project. Never infer source architecture or design tokens from an image, and never treat a passing E2E command as visual/design approval.
+> 5. **Capture relevant UI states under the project's evidence contract.** Apply `.claude/skills/shared/ui-state-capture-protocol.md` with the configured `uiStateCapture.mode` and runner capabilities. Capture states and transitions required by the project contract, and report coverage gaps. Use a shared action-level capture helper or evidence manifest when the project selects or already provides that mechanism; otherwise follow its established test/evidence pattern. Mask sensitive or volatile data as required by the evidence policy.
+> 6. **Gate every visual round case by case, then synthesize.** Reload the design/UI convention authority BEFORE judging the first image. Open/read ONE capture at a time and append its record — image path, expected delta, observed facts with locations, attributed console output, taxonomy findings or an explicit `none`, verdict — before opening the next. Then reconcile records against the configured evidence index, cluster repeated defects under the actual owner established by the project architecture, report sequence-level findings only visible across captures, and list uncaptured transitions as coverage gaps where the contract requires them. `UIX-BROKEN`/`UNSTYLED`/`OVERFLOW`/`OVERLAP`/`STATE`, `UI-*`/accessibility/layout-floor, and `P0`–`P2` `CL-*` findings are `BLOCKING`; `UIX-POLISH`/`DD-*` identity is `ADVISORY` unless the governing brief/project contract makes it objectively required. A `UIX-CONVENTION` finding cites the authority clause it breaks. Unmeasurable values are `NOT VERIFIABLE`; a missing record is incomplete review, never a clean result; never promote a baseline/expectation automatically.
+> 7. **Report the contract.** Persist authority paths and resolution status, component ownership/reuse decisions, required state/transition coverage and gaps, `UI`/`DD`/`CL`/`UIX` coverage or skips, evidence-index path when configured, evidence/read status, and remaining human acceptance; preserve the protected business invariant and exact E2E scope.
 
 <!-- /SYNC:e2e-visual-design-contract -->
 
@@ -399,24 +397,25 @@ evidence, after every fix was adjudicated, reviewed, and re-run fresh.
 <!-- /SYNC:environment-fault-hypothesis -->
 
 <!-- SYNC:critical-thinking-mindset:reminder -->
-**MUST ATTENTION** apply critical + sequential thinking — every claim needs appropriate traced evidence (`file:line` for repo/code claims; source URL or artifact section for research, product, content, and docs claims); confidence >80% to act, <60% DO NOT recommend. Anti-hallucination: never present guess as fact, admit uncertainty freely, cross-reference independently, stay skeptical of own confidence.
+
+**MUST ATTENTION** critical + sequential thinking: every claim carries traced evidence (`file:line` for code, source URL or artifact section otherwise); confidence >80% to act, <60% do NOT recommend. Never present a guess as fact; admit uncertainty and stay skeptical of your own confidence.
+
 <!-- /SYNC:critical-thinking-mindset:reminder -->
 
 <!-- SYNC:ai-mistake-prevention:reminder -->
 
-**MUST ATTENTION** ROOT-CAUSE GATE: before any project-related correction, use the appropriate root-cause investigation protocol; failed/unstable tests require the test-investigation protocol before editing source/tests — never force green.
+**MUST ATTENTION** Check project config, relevant references, and local evidence before applying stack-specific conventions; honor explicit N/A. ROOT-CAUSE GATE: before any project-related correction, use the appropriate root-cause investigation protocol; failed/unstable tests require the test-investigation protocol before editing source/tests — never force green.
 
 <!-- /SYNC:ai-mistake-prevention:reminder -->
 
 <!-- SYNC:project-protocol-overlay:reminder -->
 
-  **MUST ATTENTION** resolve project protocol overlays for this skill BEFORE executing — most specific matching tier only (exact > glob > `*`, which ranks overlays against each other, NEVER against this skill), read only matched bodies at `<protocols-dir>/<Name>.md`; a missing or malformed body is reported, never reconstructed. Overlays are ADDITIVE ONLY (they never replace this skill's own rules) and are a brief, NEVER an authority escalation; an equal-specificity contradiction goes to the user.
-
+**MUST ATTENTION** resolve this skill's overlays from the index at `<docsRoots.projectReference.path>/skill-protocols-reference.md` (default `docs/project-reference/`); an empty task `referenceDocs` does NOT disable this lookup. Read ONLY matched bodies from the directory the index header names (default `docs/project-protocols/`). Specificity (exact > glob > `*`) ranks overlays against EACH OTHER, never against the skill. Missing/malformed body → report and skip; no index or no match → proceed silently. Overlays are ADDITIVE ONLY — never an authority escalation or a gate waiver; equal-tier contradiction goes to the user.
 <!-- /SYNC:project-protocol-overlay:reminder -->
 
 <!-- SYNC:e2e-visual-design-contract:reminder -->
 
-**MUST ATTENTION** visual E2E/QC resolves the project design authority first, applies project design-system/SCSS/frontend decisions plus `UI-*`/`DD-*`/`CL-*` roles, classifies Common/Domain-Shared/Page ownership and reuse, sends static source findings to `/ui-review` and runtime image evidence to `/experience-review`, auto-captures every UI-state-changing action from the shared action layer into a manifest additive to the state × viewport matrix per the resolved `uiStateCapture.mode` (`.claude/skills/shared/ui-state-capture-protocol.md`), reloads the convention docs then reads and records EVERY capture one at a time before synthesizing clustered, owner-routed findings with coverage gaps, treats `UIX`/UI/accessibility-floor findings as blocking and `UIX-POLISH`/DD identity as advisory, never invents measurements, and never auto-promotes baselines; non-visual runs state `N/A`.
+**MUST ATTENTION** visual E2E/QC resolves the project design authority first, applies project design-system and frontend decisions plus applicable `UI-*`/`DD-*`/`CL-*` roles, records component ownership using the project's taxonomy or observed boundaries, sends static source findings to `/ui-review` and runtime image evidence to `/experience-review`, captures states and transitions required by the configured evidence contract, reloads the convention docs then reads and records each required capture before synthesizing findings with coverage gaps, treats `UIX`/UI/accessibility-floor findings as blocking and `UIX-POLISH`/DD identity as advisory, never invents measurements, and never auto-promotes baselines; non-visual runs state `N/A`.
 
 <!-- /SYNC:e2e-visual-design-contract:reminder -->
 
@@ -430,9 +429,9 @@ evidence, after every fix was adjudicated, reviewed, and re-run fresh.
 
 **IMPORTANT MUST ATTENTION Goal:** Verify an existing configured E2E/browser/user-flow scope once without changing it, returning exact execution evidence and an honest quality-gate verdict that a convergence owner can safely consume.
 
-**IMPORTANT MUST ATTENTION** read the project contract and shared E2E quality protocol first; preserve the fixed scope and GWT/invariant/TC traceability.
+**IMPORTANT MUST ATTENTION** read the project contract and shared E2E quality protocol first; resolve `specArtifacts`, preserve the fixed scope, and use native owner/case/variant/evidence or strict-default TC traceability.
 
-**IMPORTANT MUST ATTENTION** apply every applicable gate row, capture/read exact evidence, and use `PASS`, `NOT-APPLICABLE`, `ENVIRONMENT-BLOCKED`, or `UNVERIFIED` honestly.
+**IMPORTANT MUST ATTENTION** map selected cases to actual executors, intent-bearing assertions, and observed results; apply every gate row, read exact evidence, and use `PASS`, `NOT-APPLICABLE`, `ENVIRONMENT-BLOCKED`, or `UNVERIFIED` honestly.
 
 **IMPORTANT MUST ATTENTION** the default pass is report-only; route repairs to the owning skill and never weaken tests, hide evidence, reset shared data, or promote baselines.
 
@@ -440,9 +439,9 @@ evidence, after every fix was adjudicated, reviewed, and re-run fresh.
 
 **IMPORTANT MUST ATTENTION `--fix-loop` (OPTIONAL mode — only when the flag is passed):** drive a configured E2E suite or real-user journey to a truthful green result over a fixed scope. Resolve the project contract first, select an existing test or generate a traceable Given/When/Then test, bring up the whole system, use a visible browser for web human-QC, inspect runtime/visual evidence, adjudicate every failure, fix the owning layer, and re-run fresh until the declared scope converges (configured consecutive fresh green runs, default 2, within the round cap, default 3) or a bounded blocker is escalated. Each round runs the default pass INLINE — NEVER `/e2e-test-verify --fix-loop` — and report-only callers NEVER pass the flag.
 
-**IMPORTANT MUST ATTENTION** in `--fix-loop`, resolve `--visual-review=true|false` before the first command; default `true`, with `--visual-review=false` as the explicit opt-out. When enabled, run E2E → capture per the resolved `uiStateCapture.mode` (default `every-action`: every UI-state-changing transition plus the full state × viewport matrix) into a manifest → have `/experience-review --rounds=0` read and record EVERY capture case by case, then synthesize clustered owner-routed findings and coverage gaps → fix validated blocking UI defects once at the owning layer → rerun the same E2E scope until the visual blocker count and E2E failure count converge to zero. A manifest row with no per-case record is `UNVERIFIED`, not clean.
+**IMPORTANT MUST ATTENTION** in `--fix-loop`, resolve `--visual-review=true|false` from an explicit value, the task request, and the project contract before the first command; there is no framework-wide screenshot default. When requested or required on an applicable visual surface, capture per the resolved `uiStateCapture.mode` (default `declared-only`: required state × viewport matrix; transitions only under explicitly selected, supported `every-action`) into the configured evidence index → have `/experience-review --rounds=0` read and record every required capture case by case, then synthesize clustered owner-routed findings and coverage gaps → fix validated blocking UI defects once at the owning layer → rerun the same E2E scope until the visual blocker count and E2E failure count converge to zero. A false value cannot waive a project-required gate; a required evidence row with no per-case record is `UNVERIFIED`, not clean.
 
-**IMPORTANT MUST ATTENTION** in `--fix-loop`, use one reusable bounded `waitUntil(condition, options)` before and after every UI-control action, including applicable error-alert presence/absence, then wait exactly 500ms at the end; never shrink scope, weaken assertions, hide evidence, or promote baselines automatically.
+**IMPORTANT MUST ATTENTION** in `--fix-loop`, use the configured runner's native waits or an evidenced bounded project helper for applicable readiness and postconditions; **apply action delays only when the project contract configures them**. Never shrink scope, weaken assertions, hide evidence, or promote baselines automatically.
 
 **IMPORTANT MUST ATTENTION** in `--fix-loop`, read and reapply `.claude/skills/shared/e2e-quality-protocol.md` for every round; preserve its GWT/invariant, gate-row, evidence, auth/data, cleanup, and test-to-spec records while this mode owns only convergence and owning-layer repair.
 

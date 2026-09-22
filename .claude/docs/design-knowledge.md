@@ -295,7 +295,7 @@ Run before presenting any design, mockup, or implemented UI surface.
 | 40 usability clauses `UI-1.1`–`UI-9.4`                    | `SYNC:ui-ux-design-principles`                                                      | this file (referenced only)                                  |
 | Tech-agnostic spec interaction layer                      | `SYNC:ui-intent-layer`                                                              | design artifacts (they own fidelity, the spec owns behavior) |
 | Existing-UI inventory before designing                    | `SYNC:existing-ui-research`                                                         | —                                                            |
-| Project tokens, components, icons, BEM                    | `design-system/` + `scss-styling-guide.md`, both in the project-reference docs root | this file (this file NEVER names project-specific values)    |
+| Project tokens, components, icons, BEM                    | `design-system/` + `configured styling reference`, both in the project-reference docs root | this file (this file NEVER names project-specific values)    |
 
 ---
 

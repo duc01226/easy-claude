@@ -4,7 +4,7 @@ import path from "node:path";
 import { createRequire } from "node:module";
 import { fileURLToPath } from "node:url";
 
-// Locks buildDevCommands' note-rendering contract. The function used to `return null` the moment
+// Locks section-builder contracts. The functions used to `return null` the moment
 // `testing.commands` was empty — silently dropping a configured `testing.commandsNote` even though
 // the note is config-sourced SPECIFICALLY to survive every `--mode update` regeneration. These tests
 // pin the fix: the note renders independently of the command block, so a note-only config still emits.
@@ -12,7 +12,7 @@ import { fileURLToPath } from "node:url";
 const require = createRequire(import.meta.url);
 const thisDir = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(thisDir, "..", "..", "..", "..");
-const { buildDevCommands } = require(
+const { buildDevCommands, buildE2eTesting } = require(
   path.join(repoRoot, ".claude", "skills", "ai-context-refresh", "scripts", "section-builders.cjs")
 );
 
@@ -43,4 +43,10 @@ test("SB-DC-004 returns null only when BOTH commands and note are absent", () =>
 test("SB-DC-005 still emits the command block alone when no note is configured", () => {
   const out = buildDevCommands({ testing: { commands: { all: "node test" } } });
   assert.equal(out, "```bash\nnode test" + " ".repeat(45 - "node test".length) + " # all\n```");
+});
+
+test("SB-DC-006 describes E2E references without requiring a page-object model", () => {
+  const out = buildE2eTesting({ e2eTesting: { guideDoc: "docs/project-reference/e2e-test-reference.md" } });
+  assert.match(out, /test organization/);
+  assert.doesNotMatch(out, /page objects/i);
 });

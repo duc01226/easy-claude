@@ -11,10 +11,10 @@
 // Runs all stages sequentially, fails fast on first non-zero exit.
 // No npm dependency — pure node + spawned subprocesses.
 //
-// Scope: opencode SURFACE = the generated hooks bridge + the recommended
-// root `opencode.json` defaults. opencode auto-discovers skills from
-// .claude/skills and .agents/skills, so no skill mirroring happens here
-// (unlike sync-codex).
+// Scope: opencode SURFACE = the generated hooks bridge, recommended root
+// `opencode.json` defaults, and the generated sub-agent mirror. opencode
+// auto-discovers skills from `.claude/skills` and `.agents/skills`, so skill
+// files themselves are not copied here (unlike sync-codex).
 
 import { spawn } from "node:child_process";
 import { readdir } from "node:fs/promises";
@@ -83,9 +83,11 @@ const testsDir = path.join(sourceScriptsDir, "tests");
 const stages = [
     { id: "config", label: "sync-opencode-config", mutate: true, cmd: process.execPath, args: [path.join(sourceScriptsDir, "sync-config.mjs")] },
     { id: "hooks", label: "sync-opencode-hooks", mutate: true, cmd: process.execPath, args: [path.join(sourceScriptsDir, "sync-hooks.mjs")] },
+    { id: "agents", label: "sync-opencode-agents", mutate: true, cmd: process.execPath, args: [path.join(sourceScriptsDir, "sync-agents.mjs")] },
     { id: "tests", label: "test-opencode", cmd: process.execPath, argsAsync: async () => ["--test", ...testConcurrencyArgs, ...await listTestFiles(testsDir)] },
     { id: "verify-config", label: "verify-opencode-config", cmd: process.execPath, args: [path.join(sourceScriptsDir, "sync-config.mjs"), "--check"] },
     { id: "verify-hooks", label: "verify-opencode-hooks", cmd: process.execPath, args: [path.join(sourceScriptsDir, "sync-hooks.mjs"), "--check"] },
+    { id: "verify-agents", label: "verify-opencode-agents", cmd: process.execPath, args: [path.join(sourceScriptsDir, "sync-agents.mjs"), "--check"] },
 ];
 
 function shouldRun(stage) {

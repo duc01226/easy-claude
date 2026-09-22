@@ -90,10 +90,10 @@ async function loadBridge(pluginPath) {
 }
 
 test("extractHookPath parses node $CLAUDE_PROJECT_DIR hook commands", () => {
-  assert.equal(extractHookPath(hookCommand("git-commit-block.cjs")), ".claude/hooks/git-commit-block.cjs");
+  assert.equal(extractHookPath(hookCommand("review-commit-gate.cjs")), ".claude/hooks/review-commit-gate.cjs");
   assert.equal(
-    extractHookPath('node "${CLAUDE_PROJECT_DIR}"/.claude/hooks/scout-block.cjs'),
-    ".claude/hooks/scout-block.cjs"
+    extractHookPath('node "${CLAUDE_PROJECT_DIR}"/.claude/hooks/session-init.cjs'),
+    ".claude/hooks/session-init.cjs"
   );
   assert.equal(extractHookPath("python .claude/scripts/other.py"), null);
   assert.equal(extractHookPath(""), null);
@@ -234,6 +234,72 @@ test("generated bridge injects UserPromptSubmit context and SessionStart system 
     const system = { system: ["base"] };
     await hooks["experimental.chat.system.transform"]({ sessionID: "s1" }, system);
     assert.deepEqual(system.system, ["base", "SESSION_CTX"]);
+  } finally {
+    await fs.rm(root, { recursive: true, force: true });
+  }
+});
+
+test("generated bridge runs the canonical Git capability hook with validated child environment augmentation", async () => {
+  const settings = {
+    hooks: {
+      SessionStart: [
+        {
+          matcher: "startup|resume|clear|compact",
+          hooks: [{ type: "command", command: hookCommand("verify-install.cjs") }],
+        },
+      ],
+    },
+  };
+  const root = await createProject(settings);
+  try {
+    await fs.mkdir(path.join(root, ".claude", "hooks", "lib"), { recursive: true });
+    await fs.writeFile(
+      path.join(root, ".claude", "hooks", "lib", "windows-git.cjs"),
+      `module.exports = {
+  OUTCOMES: { READY: "ready" },
+  resolveWindowsGit: () => ({ outcome: "ready", capability: { root: "C:\\\\Program Files\\\\Git" } }),
+  withGitEnvironment: (env) => {
+    const pathKey = Object.keys(env).find(key => key.toLowerCase() === "path") || "PATH";
+    return { ...env, [pathKey]: "C:\\\\Program Files\\\\Git\\\\cmd;" + (env[pathKey] || ""), CK_GIT_EXE: "C:\\\\Program Files\\\\Git\\\\cmd\\\\git.exe" };
+  }
+};\n`,
+      "utf8"
+    );
+    await fs.writeFile(
+      path.join(root, ".claude", "hooks", "verify-install.cjs"),
+      `const fs = require("node:fs");
+const path = require("node:path");
+let input = "";
+process.stdin.on("data", chunk => { input += chunk.toString(); });
+process.stdin.on("end", () => {
+  fs.mkdirSync(path.join(process.env.CLAUDE_PROJECT_DIR, "tmp"), { recursive: true });
+  fs.writeFileSync(path.join(process.env.CLAUDE_PROJECT_DIR, "tmp", "git-child-env.json"), JSON.stringify({
+    root: process.env.CLAUDE_PROJECT_DIR,
+    git: process.env.CK_GIT_EXE,
+    path: process.env.PATH,
+    input
+  }));
+  process.stdout.write(JSON.stringify({ hookSpecificOutput: { hookEventName: "SessionStart", additionalContext: "GIT_READY" } }));
+});\n`,
+      "utf8"
+    );
+
+    const { pluginPath, pluginText, report } = await materializeOpencodeHooks({ rootDir: root });
+    assert.match(pluginText, /verify-install\.cjs/);
+    assert.match(pluginText, /windows-git\.cjs/);
+    assert.match(pluginText, /withGitEnvironment/);
+    assert.equal(report.converted_events[0].event, "SessionStart");
+    assert.equal(report.hooks_total, 1);
+
+    const factory = await loadBridge(pluginPath);
+    const hooks = await factory({ directory: root });
+    await hooks.event({ event: { type: "session.created", properties: { sessionID: "s-git" } } });
+
+    const observed = JSON.parse(await fs.readFile(path.join(root, "tmp", "git-child-env.json"), "utf8"));
+    assert.equal(observed.root, root);
+    assert.equal(observed.git, "C:\\Program Files\\Git\\cmd\\git.exe");
+    assert.match(observed.path, /^C:\\Program Files\\Git\\cmd;/);
+    assert.match(observed.input, /"hook_event_name":"SessionStart"/);
   } finally {
     await fs.rm(root, { recursive: true, force: true });
   }

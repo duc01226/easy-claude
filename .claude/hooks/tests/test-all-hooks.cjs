@@ -10,7 +10,6 @@
  * - Output validation (JSON, system-reminder, markdown)
  * - State verification (file writes, state persistence)
  * - Edge cases (empty, null, malformed JSON, Unicode)
- * - Complete pattern coverage (12 Windows commands, 10 privacy patterns)
  *
  * Usage: node test-all-hooks.cjs [--verbose] [--filter=<pattern>] [--validate-output] [--verify-state]
  *
@@ -391,7 +390,7 @@ function readSkeletonWithDocsIndex(docsIndexPath) {
 }
 
 async function testProjectConfigInit() {
-    logSection('SessionStart: session-init-docs.cjs (config init)');
+    logSection('SessionStart: session-init-docs.cjs (required config/reference docs)');
 
     // Test 1: When populated config exists, should exit silently
     {
@@ -403,7 +402,7 @@ async function testProjectConfigInit() {
         logResult('No AI directive when config populated', !result.stdout.includes('AI ACTION REQUIRED'));
     }
 
-    // Test 2: When config is missing, should create skeleton and suggest /project-config
+    // Test 2: SessionStart must not invent a required config or materialize docs before project-init.
     {
         const tmpDir = createMarkedTestProject();
         try {
@@ -418,72 +417,60 @@ async function testProjectConfigInit() {
             );
             logResult('Exits 0 when config missing', result.code === 0);
             logResult('Silent creation (no verbose output)', !result.stdout.includes('Project Config Initialized'));
-            // Advisory text removed — enforcement is now in init-prompt-gate.cjs (exit 2)
-            logResult('No advisory text (gate handles enforcement)', !result.stdout.includes('MANDATORY MUST ATTENTION'));
+            // UserPromptSubmit blocks normal work; SessionStart itself is side-effect-free.
+            logResult('No advisory text (prompt gate owns required-config enforcement)', !result.stdout.includes('MANDATORY MUST ATTENTION'));
 
-            // Verify skeleton was created
+            // A missing required config must remain missing until its setup owner creates it.
             const configPath = path.join(docsDir, 'project-config.json');
             const configExists = fs.existsSync(configPath);
-            logResult('Creates skeleton file', configExists);
-
-            if (configExists) {
-                const config = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
-                logResult('Skeleton has framework', !!config.framework);
-                logResult('Skeleton has modules', Array.isArray(config.modules));
-                logResult('Skeleton has contextGroups', Array.isArray(config.contextGroups));
-                logResult('Skeleton has designSystem', !!config.designSystem);
-                logResult('Skeleton has styling', !!config.styling);
-                logResult('Skeleton has componentSystem', !!config.componentSystem);
-                logResult('Skeleton has referenceDocs', Array.isArray(config.referenceDocs));
-                // TC-DOCROOT-073 — a FRESH config self-documents the 6 relocatable roots.
-                const roots = config.docsRoots || {};
-                logResult(
-                    'TC-DOCROOT-073 skeleton seeds docsRoots with all 6 keys at their defaults',
-                    roots.projectReference?.path === 'docs/project-reference' &&
-                        roots.adr?.path === 'docs/adr' &&
-                        roots.templates?.path === 'docs/templates' &&
-                        roots.plans?.path === 'plans' &&
-                        roots.teamArtifacts?.path === 'team-artifacts' &&
-                        roots.productRoadmap?.path === 'docs/product-roadmap.md'
-                );
-            }
+            logResult('Does not create a config skeleton', !configExists);
+            logResult('Does not create reference docs while config is missing', !fs.existsSync(path.join(tmpDir, 'docs', 'project-reference')));
         } finally {
             cleanupTempDir(tmpDir);
         }
     }
 
-    // Test 2b: SC-10 — the skeleton DERIVES its doc paths from the configured
-    // docs-index location instead of re-writing `docs/project-reference` literals,
-    // so `/project-init` cannot re-break a relocated project (R9).
+    // Test 2a: A present but invalid config also prevents SessionStart writes.
+    {
+        const tmpDir = createMarkedTestProject();
+        try {
+            const docsDir = path.join(tmpDir, 'docs');
+            fs.mkdirSync(docsDir, { recursive: true });
+            const configPath = path.join(docsDir, 'project-config.json');
+            const invalidConfig = JSON.stringify({ project: { name: '  ' } });
+            fs.writeFileSync(configPath, invalidConfig);
+            const result = await runHook(
+                'session-init-docs.cjs',
+                { source: 'startup' },
+                { env: { CLAUDE_PROJECT_DIR: tmpDir } }
+            );
+            logResult('Exits 0 when config is invalid', result.code === 0);
+            logResult('Preserves invalid config for project-init repair', fs.readFileSync(configPath, 'utf-8') === invalidConfig);
+            logResult('Does not create reference docs while config is invalid', !fs.existsSync(path.join(docsDir, 'project-reference')));
+        } finally {
+            cleanupTempDir(tmpDir);
+        }
+    }
+
+    // Test 2b: a bootstrap skeleton contains identity only, with no invented
+    // stack/capability sections or task-specific reference-doc selection.
     {
         const relocated = readSkeletonWithDocsIndex('documentation/reference/docs-index-reference.md');
         logResult(
-            'TC-DOCROOT-070 relocated docsIndexPath derives framework.backendPatternsDoc',
-            relocated.framework.backendPatternsDoc === 'documentation/reference/backend-patterns-reference.md'
+            'Skeleton derives a non-empty project identity',
+            typeof relocated.project?.name === 'string' && relocated.project.name.trim().length > 0
         );
         logResult(
-            'TC-DOCROOT-071 relocated docsIndexPath derives designSystem.docsPath',
-            relocated.designSystem.docsPath === 'documentation/reference/design-system'
+            'Skeleton omits unknown framework and design-system capabilities',
+            relocated.framework === undefined && relocated.designSystem === undefined
         );
         logResult(
-            'TC-DOCROOT-071b relocated docsIndexPath derives docsRoots.projectReference.path',
-            relocated.docsRoots.projectReference.path === 'documentation/reference'
+            'Skeleton omits optional doc roots and reference-doc selection',
+            relocated.docsRoots === undefined && relocated.referenceDocs === undefined
         );
         logResult(
-            'TC-DOCROOT-072 skeleton paths contain no backslash on any platform',
-            !JSON.stringify(relocated).includes('\\\\')
-        );
-
-        // TC-DOCROOT-075 — SC-11: with the DEFAULT docsIndexPath every derived value is
-        // byte-identical to the pre-change literal skeleton.
-        const fresh = readSkeletonWithDocsIndex(null);
-        logResult(
-            'TC-DOCROOT-075 default docsIndexPath reproduces the pre-change literals',
-            fresh.framework.backendPatternsDoc === 'docs/project-reference/backend-patterns-reference.md' &&
-                fresh.framework.frontendPatternsDoc === 'docs/project-reference/frontend-patterns-reference.md' &&
-                fresh.framework.codeReviewDoc === 'docs/project-reference/code-review-rules.md' &&
-                fresh.framework.integrationTestDoc === 'docs/project-reference/integration-test-reference.md' &&
-                fresh.designSystem.docsPath === 'docs/project-reference/design-system'
+            'Skeleton carries no framework path derived from optional docs-index settings',
+            relocated.framework === undefined
         );
     }
 
@@ -525,7 +512,7 @@ async function testProjectConfigInit() {
         }
     }
 
-    // Test 3: Creates docs/ directory if missing (requires content dir for guard)
+    // Test 3: Missing required config must not create a config skeleton or docs.
     {
         const tmpDir = createMarkedTestProject();
         // Add a content directory so hasProjectContent() guard passes
@@ -539,8 +526,8 @@ async function testProjectConfigInit() {
                 }
             );
             logResult('Exits 0 when docs/ missing', result.code === 0);
-            logResult('Creates docs/ directory', fs.existsSync(path.join(tmpDir, 'docs')));
-            logResult('Creates config inside docs/', fs.existsSync(path.join(tmpDir, 'docs', 'project-config.json')));
+            logResult('Does not create docs/ while required config is missing', !fs.existsSync(path.join(tmpDir, 'docs')));
+            logResult('Does not create a config skeleton', !fs.existsSync(path.join(tmpDir, 'docs', 'project-config.json')));
         } finally {
             cleanupTempDir(tmpDir);
         }
@@ -552,14 +539,14 @@ async function testProjectConfigInit() {
         logResult('Empty input exits 0', result.code === 0);
     }
 
-    // Test 5: Persistent — second run STILL suggests when skeleton is unpopulated
+    // Test 5: Repeated SessionStart runs leave a missing required config untouched.
     {
         const tmpDir = createMarkedTestProject();
         try {
             const docsDir = path.join(tmpDir, 'docs');
             fs.mkdirSync(docsDir, { recursive: true });
 
-            // First run — creates file
+            // First run — missing config is left for the project-init repair route.
             await runHook(
                 'session-init-docs.cjs',
                 { source: 'startup' },
@@ -568,7 +555,7 @@ async function testProjectConfigInit() {
                 }
             );
 
-            // Second run — should STILL suggest (skeleton is unpopulated)
+            // Second run — still performs no config/reference writes and emits no advice.
             const result = await runHook(
                 'session-init-docs.cjs',
                 { source: 'startup' },
@@ -577,61 +564,21 @@ async function testProjectConfigInit() {
                 }
             );
             logResult('Second run exits 0', result.code === 0);
-            // Advisory removed — gate handles enforcement via init-prompt-gate.cjs
-            logResult('Second run silent (gate handles enforcement)', !result.stdout.includes('MANDATORY MUST ATTENTION'));
+            logResult('Repeated run leaves config missing', !fs.existsSync(path.join(docsDir, 'project-config.json')));
+            logResult('Second run silent (prompt gate owns enforcement)', result.stdout.trim() === '');
         } finally {
             cleanupTempDir(tmpDir);
         }
     }
 
-    // Test 6: No suggestion when config is populated with real values
+    // Test 6: The minimal valid config is sufficient for SessionStart defaults.
     {
         const tmpDir = createMarkedTestProject();
         try {
             const docsDir = path.join(tmpDir, 'docs');
             fs.mkdirSync(docsDir, { recursive: true });
-            const populatedConfig = {
-                schemaVersion: 2,
-                project: {
-                    name: 'MyProject',
-                    description: 'A real project',
-                    languages: ['TypeScript'],
-                    packageManagers: ['npm']
-                },
-                backendServices: {
-                    patterns: [],
-                    serviceMap: { RealService: 'src/services/real' },
-                    serviceRepositories: {},
-                    serviceDomains: {}
-                },
-                frontendApps: {
-                    patterns: [],
-                    appMap: {},
-                    legacyApps: [],
-                    modernApps: [],
-                    frontendRegex: '',
-                    sharedLibRegex: ''
-                },
-                designSystem: {
-                    docsPath: 'docs/project-reference/design-system',
-                    appMappings: []
-                },
-                scss: { appMap: {}, patterns: [] },
-                componentFinder: {
-                    selectorPrefixes: [],
-                    layerClassification: { platform: [], common: [], domain: [] }
-                },
-                sharedNamespace: 'shared',
-                framework: { name: 'Angular', searchPatternKeywords: [] },
-                modules: [{ code: 'REAL', name: 'Real Module' }],
-                contextGroups: [],
-                testing: { frameworks: [], filePatterns: {}, commands: {} },
-                databases: {},
-                messaging: {},
-                api: {},
-                infrastructure: {}
-            };
-            fs.writeFileSync(path.join(docsDir, 'project-config.json'), JSON.stringify(populatedConfig, null, 2), 'utf-8');
+            const minimalConfig = { project: { name: 'Minimal Fixture Project' } };
+            fs.writeFileSync(path.join(docsDir, 'project-config.json'), JSON.stringify(minimalConfig, null, 2), 'utf-8');
 
             const result = await runHook(
                 'session-init-docs.cjs',
@@ -640,7 +587,18 @@ async function testProjectConfigInit() {
                     env: { CLAUDE_PROJECT_DIR: tmpDir }
                 }
             );
-            logResult('No AI directive when populated', !result.stdout.includes('AI ACTION REQUIRED'));
+            logResult('Minimal valid config allows SessionStart defaults without an AI directive', !result.stdout.includes('AI ACTION REQUIRED'));
+            logResult(
+                'Always-on docs index is created independently of referenceDocs',
+                fs.existsSync(path.join(docsDir, 'project-reference', 'docs-index-reference.md'))
+            );
+            logResult('Always-on lessons are created independently of referenceDocs', fs.existsSync(path.join(docsDir, 'project-reference', 'lessons.md')));
+            const refDir = path.join(docsDir, 'project-reference');
+            const names = fs.existsSync(refDir) ? fs.readdirSync(refDir).sort() : [];
+            logResult(
+                'Minimal config does not auto-create backend/frontend/SCSS/E2E/spec references',
+                !names.some(name => /^(backend-patterns|frontend-patterns|scss-styling|e2e-test|feature-spec)-/.test(name))
+            );
         } finally {
             cleanupTempDir(tmpDir);
         }
@@ -747,6 +705,17 @@ async function testInitPromptGate() {
             }, null, 2)
         );
     };
+    const runInvalidConfigPrompt = async prompt => {
+        const tmpDir = createMarkedTestProject();
+        try {
+            const docsDir = path.join(tmpDir, 'docs');
+            fs.mkdirSync(docsDir, { recursive: true });
+            fs.writeFileSync(path.join(docsDir, 'project-config.json'), JSON.stringify({ project: { name: '' } }));
+            return await runHook('init-prompt-gate.cjs', { prompt }, { env: { CLAUDE_PROJECT_DIR: tmpDir } });
+        } finally {
+            cleanupTempDir(tmpDir);
+        }
+    };
 
     // Test 1: Populated config → exit 0 (silent pass-through)
     {
@@ -777,7 +746,7 @@ async function testInitPromptGate() {
         }
     }
 
-    // Test 2: Unpopulated config → exit 0 with setup guidance
+    // Test 2: Schema-invalid config blocks normal work with an explicit repair route.
     {
         const tmpDir = createMarkedTestProject();
         try {
@@ -801,17 +770,16 @@ async function testInitPromptGate() {
                     env: { CLAUDE_PROJECT_DIR: tmpDir }
                 }
             );
-            logResult('Exit 0 when config unpopulated', result.code === 0);
-            logResult('Claude guidance uses plaintext stdout', !result.stdout.trim().startsWith('{'));
-            logResult('Codex guidance avoids JSON-looking stdout', !/^\s*[\[{]/.test(result.stdout));
-            logResult('Guidance mentions /project-init', result.stdout.includes('/project-init'));
-            logResult('Guidance mentions /project-config', result.stdout.includes('/project-config'));
+            const decision = JSON.parse(result.stdout);
+            logResult('Schema-invalid config blocks normal work', decision.decision === 'block');
+            logResult('Block reason identifies project-init repair route', decision.reason.includes('/project-init'));
+            logResult('Block reason requires a non-empty project identity', decision.reason.includes('project.name'));
         } finally {
             cleanupTempDir(tmpDir);
         }
     }
 
-    // Test 3: Unpopulated config BUT /project-config prompt → exit 0 (allowlisted)
+    // Test 3: Explicit project-config repair command is allowed through invalid config.
     {
         const tmpDir = createMarkedTestProject();
         try {
@@ -831,13 +799,23 @@ async function testInitPromptGate() {
                     env: { CLAUDE_PROJECT_DIR: tmpDir }
                 }
             );
-            logResult('Allowlist: /project-config passes through', result.code === 0);
+            logResult('Repair route: /project-config passes through', result.code === 0 && result.stdout === '');
         } finally {
             cleanupTempDir(tmpDir);
         }
     }
 
-    // Test 4: Unpopulated config BUT /scan --target=backend-patterns → exit 0 (allowlisted)
+    // Test 3a: The Codex skill prefix is supported, but an incidental mention is not a bypass.
+    {
+        const result = await runInvalidConfigPrompt('$project-init');
+        logResult('Repair route: Codex $project-init invocation passes through', result.code === 0 && result.stdout === '');
+
+        const incidental = await runInvalidConfigPrompt('Implement this feature; /project-init is a later setup step.');
+        const decision = JSON.parse(incidental.stdout);
+        logResult('Incidental repair-command mention does not bypass the gate', decision.decision === 'block');
+    }
+
+    // Test 4: Scan cannot bypass the required config file.
     {
         const tmpDir = createMarkedTestProject();
         try {
@@ -857,13 +835,14 @@ async function testInitPromptGate() {
                     env: { CLAUDE_PROJECT_DIR: tmpDir }
                 }
             );
-            logResult('Allowlist: /scan host passes through', result.code === 0);
+            const decision = JSON.parse(result.stdout);
+            logResult('Scan is blocked until required config exists', decision.decision === 'block');
         } finally {
             cleanupTempDir(tmpDir);
         }
     }
 
-    // Test 5: "skip init" → writes dismiss flag + exit 0
+    // Test 5: A dismiss phrase cannot bypass the required config file.
     {
         const tmpDir = createMarkedTestProject();
         try {
@@ -885,15 +864,16 @@ async function testInitPromptGate() {
                     env: { CLAUDE_PROJECT_DIR: tmpDir }
                 }
             );
-            logResult('Dismiss: skip init exits 0', result.code === 0);
+            const decision = JSON.parse(result.stdout);
+            logResult('Dismiss: skip init is blocked without valid config', decision.decision === 'block');
             const flagExists = fs.existsSync(path.join(tmpDir, 'tmp', 'claude-temp', '.init-dismissed'));
-            logResult('Dismiss: flag file created', flagExists);
+            logResult('Dismiss: no flag created for missing/invalid config', !flagExists);
         } finally {
             cleanupTempDir(tmpDir);
         }
     }
 
-    // Test 6: Active dismiss flag → exit 0 even with unpopulated config
+    // Test 6: An existing dismiss flag cannot bypass invalid config.
     {
         const tmpDir = createMarkedTestProject();
         try {
@@ -919,13 +899,14 @@ async function testInitPromptGate() {
                     env: { CLAUDE_PROJECT_DIR: tmpDir }
                 }
             );
-            logResult('Dismiss: active flag allows prompt', result.code === 0);
+            const decision = JSON.parse(result.stdout);
+            logResult('Dismiss: active flag cannot bypass required config', decision.decision === 'block');
         } finally {
             cleanupTempDir(tmpDir);
         }
     }
 
-    // Test 7: Expired dismiss flag (>1 day old) → exit 2
+    // Test 7: An expired dismiss flag also cannot bypass invalid config.
     {
         const tmpDir = createMarkedTestProject();
         try {
@@ -954,13 +935,18 @@ async function testInitPromptGate() {
                     env: { CLAUDE_PROJECT_DIR: tmpDir }
                 }
             );
-            logResult('Dismiss: expired flag warns/allows prompt', result.code === 0);
+            const decision = JSON.parse(result.stdout);
+            logResult('Dismiss: expired flag cannot bypass required config', decision.decision === 'block');
         } finally {
             cleanupTempDir(tmpDir);
         }
     }
 
-    // Test 8: Missing config file entirely → exit 0 with setup guidance
+    // Test 8: PORTABILITY INVARIANT — a project with NO config is a supported adopter
+    // state, not an error. The gate emits a one-a-day plaintext notice pointing the model
+    // at repository evidence and lets the prompt through. (This asserted a block until the
+    // config was made optional; blocking is now reserved for a config that EXISTS and does
+    // not validate — covered by tests 5–7 above.)
     {
         const tmpDir = createMarkedTestProject();
         try {
@@ -974,8 +960,9 @@ async function testInitPromptGate() {
                     env: { CLAUDE_PROJECT_DIR: tmpDir }
                 }
             );
-            logResult('Missing config file warns/allows prompt', result.code === 0);
-            logResult('Missing config guidance mentions /project-init', result.stdout.includes('/project-init'));
+            logResult('Missing config file does NOT block normal work', !/"decision"\s*:\s*"block"/.test(result.stdout));
+            logResult('Missing config notice names the config path', result.stdout.includes('docs/project-config.json'));
+            logResult('Missing config notice points at repository evidence', result.stdout.includes('repository evidence'));
         } finally {
             cleanupTempDir(tmpDir);
         }
@@ -1092,8 +1079,9 @@ async function testInitPromptGate() {
             fs.mkdirSync(srcDir, { recursive: true });
             fs.writeFileSync(path.join(docsDir, 'project-config.json'), JSON.stringify({ project: { name: '' }, modules: [] }));
             const result = await runHook('init-prompt-gate.cjs', { prompt: 'implement feature X' }, { env: { CLAUDE_PROJECT_DIR: tmpDir } });
-            logResult('Config gate warns/allows before graph guidance', result.code === 0);
-            logResult('Guidance message is config (not graph)', result.stdout.includes('/project-config') && !result.stdout.includes('/graph-build'));
+            const decision = JSON.parse(result.stdout);
+            logResult('Invalid config blocks before graph guidance', decision.decision === 'block');
+            logResult('Block reason is config repair (not graph setup)', decision.reason.includes('/project-config') && !decision.reason.includes('/graph-build'));
         } finally {
             cleanupTempDir(tmpDir);
         }
@@ -1214,371 +1202,6 @@ async function testLessonLearnedReminder() {
         } finally {
             cleanupTempDir(tempDir);
         }
-    }
-}
-
-// ============================================================================
-// Test Cases: PreToolUse (Blocking Hooks)
-// ============================================================================
-
-async function testWindowsCommandDetector() {
-    logSection('PreToolUse: windows-command-detector.cjs');
-
-    // ALL Windows CMD patterns (12 patterns)
-    logSubsection('Windows CMD Patterns (Should Block)');
-    const windowsPatterns = [
-        { cmd: 'dir /b /s src', name: 'dir with flags', shouldBlock: true },
-        { cmd: 'dir /w', name: 'dir /w', shouldBlock: true },
-        { cmd: 'type file.txt', name: 'type command', shouldBlock: true },
-        { cmd: 'type package.json', name: 'type package.json', shouldBlock: true },
-        {
-            cmd: 'copy file1.txt file2.txt',
-            name: 'copy command',
-            shouldBlock: true
-        },
-        { cmd: 'move src dst', name: 'move command', shouldBlock: true },
-        { cmd: 'del file.txt', name: 'del command', shouldBlock: true },
-        { cmd: 'del /f /q temp', name: 'del with flags', shouldBlock: true },
-        { cmd: 'rmdir /s /q path', name: 'rmdir /s', shouldBlock: true },
-        { cmd: 'where node', name: 'where command', shouldBlock: true },
-        { cmd: 'set NODE_ENV=production', name: 'set VAR=', shouldBlock: true },
-        { cmd: 'set PATH=%PATH%;C:\\bin', name: 'set PATH', shouldBlock: true },
-        { cmd: 'cls', name: 'cls command', shouldBlock: true },
-        { cmd: 'ren old.txt new.txt', name: 'ren command', shouldBlock: true },
-        // Note: 'rename' (full word) is not blocked - only 'ren' shorthand is Windows-specific
-        { cmd: 'attrib +r file', name: 'attrib command', shouldBlock: true },
-        { cmd: 'findstr pattern file', name: 'findstr command', shouldBlock: true },
-        {
-            cmd: 'findstr /s /i "search" *.txt',
-            name: 'findstr with flags',
-            shouldBlock: true
-        }
-    ];
-
-    for (const { cmd, name, shouldBlock } of windowsPatterns) {
-        const result = await runHook('windows-command-detector.cjs', {
-            tool_name: 'Bash',
-            tool_input: { command: cmd }
-        });
-        // Exit code 2 = block, exit code 0 = allow
-        const isBlocked = result.code === 2;
-        logResult(`${name}`, isBlocked === shouldBlock);
-        if (shouldBlock) {
-            logOutputValidation(`${name} has block message`, result.stderr.includes('Windows CMD'));
-        }
-    }
-
-    // Unix commands (should allow)
-    logSubsection('Unix Commands (Should Allow)');
-    const unixPatterns = [
-        { cmd: 'ls -la src', name: 'ls -la' },
-        { cmd: 'cat file.txt', name: 'cat command' },
-        { cmd: 'cp file1 file2', name: 'cp command' },
-        { cmd: 'mv src dst', name: 'mv command' },
-        { cmd: 'rm file.txt', name: 'rm command' },
-        { cmd: 'rm -rf temp', name: 'rm -rf' },
-        { cmd: 'which node', name: 'which command' },
-        { cmd: 'export NODE_ENV=production', name: 'export command' },
-        { cmd: 'clear', name: 'clear command' },
-        { cmd: 'grep pattern file', name: 'grep command' },
-        { cmd: 'find . -name "*.ts"', name: 'find command' }
-    ];
-
-    for (const { cmd, name } of unixPatterns) {
-        const result = await runHook('windows-command-detector.cjs', {
-            tool_name: 'Bash',
-            tool_input: { command: cmd }
-        });
-        logResult(`${name} allowed`, result.code === 0);
-    }
-
-    // Non-Bash tools (should ignore)
-    logSubsection('Non-Bash Tools');
-    const nonBashTools = ['Read', 'Write', 'Edit', 'Glob', 'Grep', 'Task'];
-    for (const tool of nonBashTools) {
-        const result = await runHook('windows-command-detector.cjs', {
-            tool_name: tool,
-            tool_input: { file_path: 'test.txt' }
-        });
-        logResult(`${tool} tool ignored`, result.code === 0);
-    }
-
-    // Backslash-bang rewrite tests (node -e "\!" -> "!")
-    logSubsection('Backslash-Bang Rewrite (\\! -> !)');
-    {
-        // Should rewrite: node -e with \! in double quotes
-        const result = await runHook('windows-command-detector.cjs', {
-            tool_name: 'Bash',
-            tool_input: { command: 'node -e "console.log(\\!true)"' }
-        });
-        logResult('node -e "\\!true" rewrites', result.code === 0);
-        const output = result.stdout.trim();
-        let parsed = {};
-        try {
-            parsed = JSON.parse(output);
-        } catch {}
-        logResult('updatedInput fixes command without auto-approval',
-            parsed.hookSpecificOutput?.updatedInput?.command === 'node -e "console.log(!true)"'
-            && !Object.hasOwn(parsed.hookSpecificOutput, 'permissionDecision'));
-    }
-    {
-        // Should rewrite: node -e with \! in if statement
-        const result = await runHook('windows-command-detector.cjs', {
-            tool_name: 'Bash',
-            tool_input: { command: 'node -e "if(\\!x) {}"' }
-        });
-        let parsed = {};
-        try {
-            parsed = JSON.parse(result.stdout.trim());
-        } catch {}
-        logResult('node -e "if(\\!x)" rewrites', parsed.hookSpecificOutput?.updatedInput?.command === 'node -e "if(!x) {}"');
-    }
-    {
-        // Should rewrite: node with flags before -e
-        const result = await runHook('windows-command-detector.cjs', {
-            tool_name: 'Bash',
-            tool_input: {
-                command: 'node --experimental-vm-modules -e "arr.filter(x => \\!x.done)"'
-            }
-        });
-        let parsed = {};
-        try {
-            parsed = JSON.parse(result.stdout.trim());
-        } catch {}
-        logResult('node --flag -e "\\!" rewrites', parsed.hookSpecificOutput?.updatedInput?.command === 'node --experimental-vm-modules -e "arr.filter(x => !x.done)"');
-    }
-    {
-        // Should NOT rewrite: single-quoted node -e (no \! issue)
-        const result = await runHook('windows-command-detector.cjs', {
-            tool_name: 'Bash',
-            tool_input: { command: "node -e 'if(!x) {}'" }
-        });
-        logResult('single-quoted node -e not rewritten', result.code === 0 && result.stdout.trim() === '');
-    }
-    {
-        // Should NOT rewrite: echo with \! (not a node -e command)
-        const result = await runHook('windows-command-detector.cjs', {
-            tool_name: 'Bash',
-            tool_input: { command: 'echo "\\!"' }
-        });
-        logResult('echo "\\!" not rewritten', result.code === 0 && result.stdout.trim() === '');
-    }
-    {
-        // Should rewrite: multiple \! in one command
-        const result = await runHook('windows-command-detector.cjs', {
-            tool_name: 'Bash',
-            tool_input: { command: 'node -e "if(\\!a && \\!b) {}"' }
-        });
-        let parsed = {};
-        try {
-            parsed = JSON.parse(result.stdout.trim());
-        } catch {}
-        logResult('multiple \\! all replaced', parsed.hookSpecificOutput?.updatedInput?.command === 'node -e "if(!a && !b) {}"');
-    }
-
-    // Edge cases
-    logSubsection('Edge Cases');
-    {
-        const result = await runHook('windows-command-detector.cjs', {
-            tool_name: 'Bash',
-            tool_input: { command: '' }
-        });
-        logResult('Empty command handled', result.code === 0);
-    }
-    {
-        const result = await runHook('windows-command-detector.cjs', {
-            tool_name: 'Bash',
-            tool_input: {}
-        });
-        logResult('Missing command handled', result.code === 0);
-    }
-}
-
-async function testScoutBlock() {
-    logSection('PreToolUse: scout-block.cjs');
-
-    // Blocked paths
-    logSubsection('Blocked Paths');
-    const blockedPaths = [
-        'node_modules/pkg/index.js',
-        'node_modules/@types/node/index.d.ts',
-        '.git/config',
-        '.git/HEAD',
-        'dist/bundle.js',
-        'build/output.js',
-        'coverage/lcov.info',
-        '.next/cache/webpack',
-        '.nuxt/dist/server'
-    ];
-
-    for (const filePath of blockedPaths) {
-        const result = await runHook('scout-block.cjs', {
-            tool_name: 'Read',
-            tool_input: { file_path: filePath }
-        });
-        logResult(`${filePath} blocked`, result.code === 2);
-    }
-
-    // Allowed paths
-    logSubsection('Allowed Paths');
-    const allowedPaths = [
-        'src/index.ts',
-        'src/components/App.tsx',
-        'lib/utils.js',
-        'tests/unit.test.ts',
-        'package.json',
-        'tsconfig.json',
-        '.claude/hooks/test.cjs'
-    ];
-
-    for (const filePath of allowedPaths) {
-        const result = await runHook('scout-block.cjs', {
-            tool_name: 'Read',
-            tool_input: { file_path: filePath }
-        });
-        logResult(`${filePath} allowed`, result.code === 0);
-    }
-
-    // Glob patterns
-    logSubsection('Glob Patterns');
-    {
-        const result = await runHook('scout-block.cjs', {
-            tool_name: 'Glob',
-            tool_input: { pattern: '**/*.ts' }
-        });
-        logResult('Broad glob **/*.ts blocked', result.code === 2);
-    }
-    {
-        const result = await runHook('scout-block.cjs', {
-            tool_name: 'Glob',
-            tool_input: { pattern: 'src/**/*.ts' }
-        });
-        logResult('Scoped glob src/**/*.ts allowed', result.code === 0);
-    }
-    {
-        // Note: *.json at root IS blocked as broad pattern - use scoped path instead
-        const result = await runHook('scout-block.cjs', {
-            tool_name: 'Glob',
-            tool_input: { pattern: '*.json' }
-        });
-        logResult('Root glob *.json blocked (broad pattern)', result.code === 2);
-    }
-    {
-        // Scoped path makes simple patterns OK
-        const result = await runHook('scout-block.cjs', {
-            tool_name: 'Glob',
-            tool_input: { pattern: '*.json', path: 'src/config' }
-        });
-        logResult('Scoped glob src/config/*.json allowed', result.code === 0);
-    }
-
-    // Bash commands
-    logSubsection('Bash Commands');
-    {
-        const result = await runHook('scout-block.cjs', {
-            tool_name: 'Bash',
-            tool_input: { command: 'npm run build' }
-        });
-        logResult('npm build allowed', result.code === 0);
-    }
-    {
-        const result = await runHook('scout-block.cjs', {
-            tool_name: 'Bash',
-            tool_input: { command: 'cat node_modules/pkg/index.js' }
-        });
-        logResult('cat node_modules blocked', result.code === 2);
-    }
-}
-
-async function testPrivacyBlock() {
-    logSection('PreToolUse: privacy-block.cjs');
-
-    // ALL privacy patterns (10 patterns)
-    logSubsection('Privacy Patterns (Should Block)');
-    const privacyPatterns = [
-        '.env',
-        '.env.local',
-        '.env.production',
-        '.env.development',
-        'config/.env',
-        'secrets.yaml',
-        'secrets.yml',
-        'credentials.json',
-        'config/credentials.json',
-        'key.pem',
-        'server.pem',
-        'private.key',
-        'ssl.key',
-        'id_rsa',
-        '.ssh/id_rsa',
-        'id_ed25519',
-        '.ssh/id_ed25519',
-        'public.pem' // All .pem files are blocked (can't distinguish public/private by name)
-        // Note: service-account.json and firebase-config.json are NOT blocked
-        // The hook only blocks files matching /credentials/i pattern
-    ];
-
-    for (const filePath of privacyPatterns) {
-        const result = await runHook('privacy-block.cjs', {
-            tool_name: 'Read',
-            tool_input: { file_path: filePath }
-        });
-        logResult(`${filePath} blocked`, result.code === 2);
-    }
-
-    // Exempt patterns (should allow)
-    logSubsection('Exempt Patterns (Should Allow)');
-    const exemptPatterns = [
-        '.env.example',
-        '.env.sample',
-        '.env.template',
-        // Note: public.pem IS blocked - hook can't distinguish public vs private by name alone
-        'APPROVED:.env',
-        'APPROVED:credentials.json'
-    ];
-
-    for (const filePath of exemptPatterns) {
-        const result = await runHook('privacy-block.cjs', {
-            tool_name: 'Read',
-            tool_input: { file_path: filePath }
-        });
-        logResult(`${filePath} allowed`, result.code === 0);
-    }
-
-    // Regular files (should allow)
-    logSubsection('Regular Files (Should Allow)');
-    const regularFiles = ['src/index.ts', 'package.json', 'README.md', 'config.ts', 'settings.json'];
-
-    for (const filePath of regularFiles) {
-        const result = await runHook('privacy-block.cjs', {
-            tool_name: 'Read',
-            tool_input: { file_path: filePath }
-        });
-        logResult(`${filePath} allowed`, result.code === 0);
-    }
-
-    // Bash commands with privacy files
-    logSubsection('Bash Privacy Commands');
-    {
-        const result = await runHook('privacy-block.cjs', {
-            tool_name: 'Bash',
-            tool_input: { command: 'cat .env' }
-        });
-        logResult('cat .env blocked', result.code === 2);
-    }
-    {
-        const result = await runHook('privacy-block.cjs', {
-            tool_name: 'Bash',
-            tool_input: { command: 'grep password .env' }
-        });
-        logResult('grep .env blocked', result.code === 2);
-    }
-    {
-        const result = await runHook('privacy-block.cjs', {
-            tool_name: 'Bash',
-            tool_input: { command: 'cat config.json' }
-        });
-        logResult('cat config.json allowed', result.code === 0);
     }
 }
 
@@ -1751,11 +1374,11 @@ async function testEdgeCases() {
 
     // Malformed JSON input
     logSubsection('Malformed JSON');
-    const hooksToTest = ['session-init.cjs', 'init-prompt-gate.cjs', 'windows-command-detector.cjs', 'privacy-block.cjs'];
+    const hooksToTest = ['session-init.cjs', 'init-prompt-gate.cjs'];
 
     for (const hook of hooksToTest) {
         const result = await runHook(hook, 'not valid json');
-        const expectedCode = hook === 'privacy-block.cjs' ? 2 : 0;
+        const expectedCode = 0;
         logResult(`${hook} handles malformed JSON`, result.code === expectedCode);
         logOutputValidation(`${hook} reports malformed JSON`, result.stderr.length > 0);
     }
@@ -1764,15 +1387,13 @@ async function testEdgeCases() {
     logSubsection('Empty/Null Inputs');
     for (const hook of hooksToTest) {
         const result = await runHook(hook, null);
-        const expectedCode = hook === 'privacy-block.cjs' ? 2 : 0;
+        const expectedCode = 0;
         logResult(`${hook} handles null input`, result.code === expectedCode);
-        if (hook === 'privacy-block.cjs') logOutputValidation(`${hook} reports empty input`, result.stderr.length > 0);
     }
     for (const hook of hooksToTest) {
         const result = await runHook(hook, {});
-        const expectedCode = hook === 'privacy-block.cjs' ? 2 : 0;
+        const expectedCode = 0;
         logResult(`${hook} handles empty object`, result.code === expectedCode);
-        if (hook === 'privacy-block.cjs') logOutputValidation(`${hook} reports empty object`, result.stderr.length > 0);
     }
 
     // Unicode and special characters
@@ -1784,7 +1405,8 @@ async function testEdgeCases() {
         logResult('Unicode in prompt', result.code === 0);
     }
     {
-        const result = await runHook('windows-command-detector.cjs', {
+        const result = await runHook('doc-sync-gate.cjs', {
+            hook_event_name: 'PreToolUse',
             tool_name: 'Bash',
             tool_input: { command: 'echo "hello 世界"' }
         });
@@ -1800,7 +1422,8 @@ async function testEdgeCases() {
         logResult('Long prompt handled', result.code === 0);
     }
     {
-        const result = await runHook('windows-command-detector.cjs', {
+        const result = await runHook('doc-sync-gate.cjs', {
+            hook_event_name: 'PreToolUse',
             tool_name: 'Bash',
             tool_input: { command: 'echo ' + 'a'.repeat(10000) }
         });
@@ -1869,13 +1492,6 @@ async function runAllTests() {
         await testInitPromptGate();
         await testMapSkillToStepId();
         await testLessonLearnedReminder();
-    }
-
-    // PreToolUse
-    if (!FILTER || 'pre'.includes(FILTER) || 'tool'.includes(FILTER) || 'block'.includes(FILTER)) {
-        await testWindowsCommandDetector();
-        await testScoutBlock();
-        await testPrivacyBlock();
     }
 
     // PostToolUse
