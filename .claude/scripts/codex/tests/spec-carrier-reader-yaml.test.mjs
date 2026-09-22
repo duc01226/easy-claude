@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import { carrierTestProfile, diskReader, rawReadSpecCarriers, readSpecCarriers, repoRoot, skipMissingCarrierParsers, withTempProject, writeProjectFile } from "./support/spec-carrier-test-support.mjs";
-import { isFrameworkRepo } from "./framework-repo.helper.mjs";
+import { isFrameworkRepo, hasRepoFiles } from "./framework-repo.helper.mjs";
 
 const frameworkRepo = isFrameworkRepo(repoRoot);
 const projectConfig = frameworkRepo
@@ -62,7 +62,18 @@ test("yaml-cases-v1 reads configured case lists and joins the selected explicit 
   });
 });
 
-test("Orient One YAML carriers stay scoped and preserve every explicit executor", { skip: !frameworkRepo }, async () => {
+// This case reads Orient One's real on-disk contract corpus and asserts its exact row, link and
+// executor counts. Those files live in that project, not in the framework package, so the corpus
+// itself is the precondition — `isFrameworkRepo` alone admits it here, where the corpus has never
+// existed, and turns an inapplicable case into a failure.
+const ORIENT_ONE_YAML_CORPUS = [
+  "specs/platform/014-custom-field-engine-consolidation/scenario-contracts/coercion.yaml",
+  "specs/platform/014-custom-field-engine-consolidation/scenario-contracts/custom-wrapper-sales-hr.yaml",
+  "specs/platform/014-custom-field-engine-consolidation/scenario-contracts/servicedesk-wrapper.yaml",
+  "specs/platform/014-custom-field-engine-consolidation/scenario-contracts/tasks-wrapper.yaml",
+];
+
+test("Orient One YAML carriers stay scoped and preserve every explicit executor", { skip: !frameworkRepo || !hasRepoFiles(repoRoot, ORIENT_ONE_YAML_CORPUS) }, async () => {
   // Given: four configured YAML contracts and their five explicit executor files.
   // When: the reader normalizes the complete selected corpus.
   // Then: all 79 rows, 94 links, and both executors per shared row are retained.

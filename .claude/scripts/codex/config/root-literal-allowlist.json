@@ -130,6 +130,9 @@
         ".claude/skills/ai-context-refresh/scripts/section-builders.cjs": {
             "reason": "permanent — DEFAULT_REF_DOCS_ROOT / DEFAULT_SPEC_ROOT are the single definition of the defaults the config overrides"
         },
+        ".claude/skills/project-help/scripts/project-overview.cjs": {
+            "reason": "permanent — the roots table renders each root as form (b): the config value with the framework default as its fallback, so the literal IS the documented default the config overrides"
+        },
         ".claude/skills/git-developer-performance/scripts/git-developer-performance.cjs": {
             "reason": "permanent — code default literal"
         },
