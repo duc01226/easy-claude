@@ -7,6 +7,6 @@ Relocation-fixture business spec. Canonical bucket grammar preserved:
 
 ## 8. Test Cases
 
-| TC | Behaviour |
-| --- | --- |
+| TC            | Behaviour                                                              |
+| ------------- | ---------------------------------------------------------------------- |
 | TC-SAMPLE-001 | A reader resolves this file through the configured business spec root. |

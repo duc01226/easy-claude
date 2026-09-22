@@ -153,6 +153,7 @@ Apply a group's rules only when the file matches at least one include matcher, m
   2. Hook files read stdin JSON and write to stdout/stderr
   3. Shared utilities go in .claude/hooks/lib/
   4. Test hooks via node .claude/hooks/tests/test-all-hooks.cjs
+  5. Every AI-agent folder (.claude/, .codex/, .agents/, .opencode/) ships to other projects: keep it portable and configurable — no project names, absolute paths, or consumer-specific terms; project specifics belong in docs/project-config.json or project-reference docs
 
 - **skills-context** — include any of: path regex `[\\/]\.claude[\\/]skills[\\/].*SKILL\.md# Codex Project Instructions
 
@@ -160,12 +161,26 @@ Apply a group's rules only when the file matches at least one include matcher, m
   1. Each skill is a directory with SKILL.md as entry point
   2. Skills may have scripts/, references/, and tests/ subdirectories
   3. Follow naming conventions in .claude/docs/skill-naming-conventions.md
+  4. Every AI-agent folder (.claude/, .codex/, .agents/, .opencode/) ships to other projects: keep it portable and configurable — no project names, absolute paths, or consumer-specific terms; project specifics belong in docs/project-config.json or project-reference docs
 
 - **agents-context** — include any of: path regex `[\\/]\.claude[\\/]agents[\\/].*\.md# Codex Project Instructions
 
 ; extensions: `.md`
   1. Agent definitions are markdown files in .claude/agents/
   2. Follow patterns in .claude/docs/agents/agent-patterns.md
+  3. Every AI-agent folder (.claude/, .codex/, .agents/, .opencode/) ships to other projects: keep it portable and configurable — no project names, absolute paths, or consumer-specific terms; project specifics belong in docs/project-config.json or project-reference docs
+
+- **scripts-context** — include any of: path regex `[\/].claude[\/]scripts[\/].*.(cjs|mjs|js|py)# Codex Project Instructions
+
+; extensions: `.cjs`, `.mjs`, `.js`, `.py`
+  1. Every AI-agent folder (.claude/, .codex/, .agents/, .opencode/) ships to other projects: keep it portable and configurable — no project names, absolute paths, or consumer-specific terms; project specifics belong in docs/project-config.json or project-reference docs
+  2. Verifiers and generators under .claude/scripts/ are portable framework surfaces — gate them with the residue and root-literal checks before commit
+  3. Resolve every root from project config with the framework default as fallback; never hardcode a spec, docs, or package path
+
+- **agent-mirrors-context** — include any of: path regex `^[\/]?.(codex|agents|opencode)[\/]`; extensions: `.md`, `.toml`, `.json`, `.mjs`, `.cjs`
+  1. Every AI-agent folder (.claude/, .codex/, .agents/, .opencode/) ships to other projects: keep it portable and configurable — no project names, absolute paths, or consumer-specific terms; project specifics belong in docs/project-config.json or project-reference docs
+  2. These folders are GENERATED mirrors of .claude/ — never hand-edit them; fix the .claude/** source and regenerate, or the next sync reverts the edit
+  3. A project-specific leak found in a mirror means the leak is in the .claude/** source — fix it there
 
 <!-- /SECTION:golden-rules -->
 
@@ -398,9 +413,11 @@ When editing files matching these path patterns, pre-read the listed context fir
 |---|---|---|
 | `docs/specs/**/*.md` | `spec` | `docs/project-reference/feature-spec-reference.md`, `docs/project-reference/spec-system-reference.md`, `docs/project-reference/spec-principles.md`, `[[convention:feature-spec@e0967a10]]` |
 | `**/*.test.cjs` | `integration-test` | `docs/project-reference/integration-test-reference.md`, `[[convention:integration-test@f3af9787]]` |
-| `/\.claude/hooks/.*\.cjs$**` ext `.cjs` | _(auto-context)_ | `.claude/docs/hooks/README.md`, `[[convention:hooks-context@6ef66337]]` |
-| `/\.claude/skills/.*SKILL\.md$**` ext `.md` | _(auto-context)_ | `.claude/docs/skills/README.md`, `[[convention:skills-context@f15fc150]]` |
-| `/\.claude/agents/.*\.md$**` ext `.md` | _(auto-context)_ | `.claude/docs/agents/README.md`, `[[convention:agents-context@705ea67c]]` |
+| `/\.claude/hooks/.*\.cjs$**` ext `.cjs` | _(auto-context)_ | `.claude/docs/hooks/README.md`, `[[convention:hooks-context@98585d7f]]` |
+| `/\.claude/skills/.*SKILL\.md$**` ext `.md` | _(auto-context)_ | `.claude/docs/skills/README.md`, `[[convention:skills-context@73cff91e]]` |
+| `/\.claude/agents/.*\.md$**` ext `.md` | _(auto-context)_ | `.claude/docs/agents/README.md`, `[[convention:agents-context@27d7a6ce]]` |
+| `[\/].claude[\/]scripts[\/].*.(cjs\|mjs\|js\|py)$**` ext `.cjs`, `.mjs`, `.js`, `.py` | _(auto-context)_ | `.claude/docs/framework-portability.md`, `[[convention:scripts-context@dee3627a]]` |
+| `^[\/]?.(codex\|agents\|opencode)[\/]**` ext `.md`, `.toml`, `.json`, `.mjs`, `.cjs` | _(auto-context)_ | `.claude/docs/framework-portability.md`, `[[convention:agent-mirrors-context@1bdb68d5]]` |
 | `**/*` ext `.js`, `.cjs`, `.mjs`, `.jsx`, `.py` · not `**/node_modules/**`, `**/dist/**`, `**/build/**`, `**/vendor/**`, `tmp/**`, `temp/**` | _(auto-context)_ | `docs/project-reference/code-review-rules.md`, `[[convention:general-code@487c3358]]` |
 
 <!-- /SECTION:skill-activation -->

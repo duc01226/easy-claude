@@ -43,6 +43,16 @@ if (!ROOT) {
     process.exit(2);
 }
 
+// Documentation-plane defaults live ONLY in the loader's PORTABILITY_TOKENS; resolve through it
+// (same pattern as project-config-help.cjs) so this overview never forks a second copy of them.
+let loader;
+try {
+    loader = require(path.join(ROOT, '.claude', 'hooks', 'lib', 'project-config-loader.cjs'));
+} catch (error) {
+    console.error(`[project-help] Failed to load project-config-loader.cjs: ${error.message}`);
+    process.exit(2);
+}
+
 const out = [];
 const say = line => out.push(line === undefined ? '' : line);
 function heading(text) {
@@ -336,17 +346,16 @@ function renderCommands() {
 function renderDocs() {
     say('# Documentation planes — which one is authoritative for what');
     say('');
-    const roots = CONFIG.docsRoots || {};
-    const specRoots = CONFIG.specRoots || {};
+    const root = token => loader.resolvePortabilityToken(token, CONFIG);
     const rows = [
-        ['Business specs', (specRoots.business && specRoots.business.path) || 'docs/specs', 'WHAT the system must do. The contract behind every test.'],
-        ['Technical specs', (specRoots.technical && specRoots.technical.path) || 'docs/specs-technical', 'Derived technical view of the business specs.'],
-        ['Reference docs', (roots.projectReference && roots.projectReference.path) || 'docs/project-reference', 'GENERATED projections of the codebase that skills read instead of re-deriving conventions.'],
-        ['Decisions (ADR)', (roots.adr && roots.adr.path) || 'docs/adr', 'WHY a choice was made. Durable, never renumbered.'],
-        ['Templates', (roots.templates && roots.templates.path) || 'docs/templates', 'Document skeletons for the artifacts above.'],
-        ['Plans', (roots.plans && roots.plans.path) || 'plans', 'Implementation plans produced by /plan.'],
-        ['Team artifacts', (roots.teamArtifacts && roots.teamArtifacts.path) || 'team-artifacts', 'Ideas, PBIs, stories — product-side artifacts.'],
-        ['Product roadmap', (roots.productRoadmap && roots.productRoadmap.path) || 'docs/product-roadmap.md', 'Milestone selection. Written only by an explicit roadmap request.'],
+        ['Business specs', root('SPEC_ROOT'), 'WHAT the system must do. The contract behind every test.'],
+        ['Technical specs', root('SPEC_ROOT_TECHNICAL'), 'Derived technical view of the business specs.'],
+        ['Reference docs', root('REF_DOCS_ROOT'), 'GENERATED projections of the codebase that skills read instead of re-deriving conventions.'],
+        ['Decisions (ADR)', root('ADR_ROOT'), 'WHY a choice was made. Durable, never renumbered.'],
+        ['Templates', root('TEMPLATES_ROOT'), 'Document skeletons for the artifacts above.'],
+        ['Plans', root('PLANS_ROOT'), 'Implementation plans produced by /plan.'],
+        ['Team artifacts', root('TEAM_ARTIFACTS_ROOT'), 'Ideas, PBIs, stories — product-side artifacts.'],
+        ['Product roadmap', root('PRODUCT_ROADMAP_DOC'), 'Milestone selection. Written only by an explicit roadmap request.'],
         ['Disposable output', 'tmp/', 'Regenerable output: reports, evidence, logs, traces. Never source, never docs.']
     ];
     say(`  ${pad('PLANE', 18)} ${pad('PATH', 28)} PURPOSE`);

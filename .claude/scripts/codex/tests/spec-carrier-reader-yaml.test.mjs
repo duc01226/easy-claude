@@ -1,14 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
 import path from "node:path";
-import { carrierTestProfile, diskReader, rawReadSpecCarriers, readSpecCarriers, repoRoot, skipMissingCarrierParsers, withTempProject, writeProjectFile } from "./support/spec-carrier-test-support.mjs";
-import { isFrameworkRepo, hasRepoFiles } from "./framework-repo.helper.mjs";
-
-const frameworkRepo = isFrameworkRepo(repoRoot);
-const projectConfig = frameworkRepo
-  ? JSON.parse(readFileSync(path.join(repoRoot, "docs/project-config.json"), "utf8"))
-  : null;
+import { carrierTestProfile, diskReader, readSpecCarriers, skipMissingCarrierParsers, withTempProject, writeProjectFile } from "./support/spec-carrier-test-support.mjs";
 
 const yamlContract = (scenario, examples, reconciliation = "") => `
 scenario_ref: ${scenario}
@@ -60,87 +53,6 @@ test("yaml-cases-v1 reads configured case lists and joins the selected explicit 
     assert.ok(yamlRecords.every(record => !Object.hasOwn(record, "executionResult")));
     assert.deepEqual(result.unknown, []);
   });
-});
-
-// This case reads Orient One's real on-disk contract corpus and asserts its exact row, link and
-// executor counts. Those files live in that project, not in the framework package, so the corpus
-// itself is the precondition — `isFrameworkRepo` alone admits it here, where the corpus has never
-// existed, and turns an inapplicable case into a failure.
-const ORIENT_ONE_YAML_CORPUS = [
-  "specs/platform/014-custom-field-engine-consolidation/scenario-contracts/coercion.yaml",
-  "specs/platform/014-custom-field-engine-consolidation/scenario-contracts/custom-wrapper-sales-hr.yaml",
-  "specs/platform/014-custom-field-engine-consolidation/scenario-contracts/servicedesk-wrapper.yaml",
-  "specs/platform/014-custom-field-engine-consolidation/scenario-contracts/tasks-wrapper.yaml",
-];
-
-test("Orient One YAML carriers stay scoped and preserve every explicit executor", { skip: !frameworkRepo || !hasRepoFiles(repoRoot, ORIENT_ONE_YAML_CORPUS) }, async () => {
-  // Given: four configured YAML contracts and their five explicit executor files.
-  // When: the reader normalizes the complete selected corpus.
-  // Then: all 79 rows, 94 links, and both executors per shared row are retained.
-  // Business Intent / Invariant Guarded: scenario-to-test coverage keeps its evidenced many-to-many cardinality.
-  // Failure Signal: a dropped row/link, missing executor, or unresolved corpus item changes these assertions.
-  const yamlFiles = [
-    "specs/platform/014-custom-field-engine-consolidation/scenario-contracts/coercion.yaml",
-    "specs/platform/014-custom-field-engine-consolidation/scenario-contracts/custom-wrapper-sales-hr.yaml",
-    "specs/platform/014-custom-field-engine-consolidation/scenario-contracts/servicedesk-wrapper.yaml",
-    "specs/platform/014-custom-field-engine-consolidation/scenario-contracts/tasks-wrapper.yaml",
-  ];
-  const executorFiles = [
-    "packages/std/src/__tests__/field-coercion.contract.test.ts",
-    "packages/sales/src/commands/__tests__/custom-field-wrapper.contract.test.ts",
-    "packages/hr/src/__tests__/custom-field-wrapper.contract.test.ts",
-    "packages/servicedesk/src/__tests__/field-validation.contract.test.ts",
-    "packages/tasks/src/commands/custom-fields.contract.test.ts",
-  ];
-  const result = await readSpecCarriers({
-    rootDir: repoRoot, profile: projectConfig, selectedFiles: [...yamlFiles, ...executorFiles], readText: diskReader(repoRoot),
-  });
-  const yamlRecords = result.records.filter(record => record.dialect === "yaml-cases-v1");
-  const rowsByFile = Object.fromEntries(yamlFiles.map(file => [file, yamlRecords.filter(record => record.carrierFile === file).length]));
-  const executorLinks = yamlRecords.reduce((total, record) => total + record.executors.length, 0);
-  const sharedRows = yamlRecords.filter(record => record.carrierFile === yamlFiles[1]);
-
-  assert.deepEqual(rowsByFile, {
-    [yamlFiles[0]]: 31, [yamlFiles[1]]: 15, [yamlFiles[2]]: 15, [yamlFiles[3]]: 18,
-  });
-  assert.equal(yamlRecords.length, 79);
-  assert.equal(executorLinks, 94);
-  assert.ok(yamlRecords.every(record => Array.isArray(record.executors) && record.executors.length > 0));
-  assert.ok(sharedRows.every(record => record.executors.length === 2));
-  assert.deepEqual([...new Set(sharedRows.flatMap(record => record.executors.map(executor => executor.file)))].sort(), [
-    "packages/hr/src/__tests__/custom-field-wrapper.contract.test.ts",
-    "packages/sales/src/commands/__tests__/custom-field-wrapper.contract.test.ts",
-  ].sort());
-  assert.ok(yamlRecords.filter(record => record.carrierFile === yamlFiles[3]).every(record => record.caseList === "cases"));
-  assert.deepEqual(result.unknown, []);
-});
-
-test("Orient One YAML roots exclude unrelated finance coverage maps without reading them", { skip: !frameworkRepo }, async () => {
-  // Given: unrelated finance YAML candidates outside the configured scenario-contract root.
-  // When: the actual project profile selects carrier files for this run.
-  // Then: those paths yield no records, UNKNOWN entries, or source reads.
-  // Business Intent / Invariant Guarded: only configured scenario-contract roots become YAML evidence.
-  // Failure Signal: an overbroad selector reads a finance map or returns any carrier outcome.
-  const financeFiles = [
-    "specs/finance/031-fx-revaluation-and-intercompany/coverage/dimensions.yaml",
-    "specs/finance/031-fx-revaluation-and-intercompany/coverage/surfaces.yaml",
-    "specs/finance/032-manual-journal-entries/coverage/dimensions.yaml",
-    "specs/finance/032-manual-journal-entries/coverage/surfaces.yaml",
-    "specs/finance/037-budgeting-and-forecasting/coverage/dimensions.yaml",
-    "specs/finance/037-budgeting-and-forecasting/coverage/surfaces.yaml",
-  ];
-  const reads = [];
-  const result = await rawReadSpecCarriers({
-    rootDir: repoRoot,
-    profile: projectConfig,
-    selectedFiles: financeFiles,
-    listFiles: async () => financeFiles,
-    readText: async file => { reads.push(file); return "unrelated finance coverage"; },
-  });
-
-  assert.deepEqual(result.records, []);
-  assert.deepEqual(result.unknown, []);
-  assert.deepEqual(reads, []);
 });
 
 test("tagged, merged, malformed, or dynamic YAML metadata remains UNKNOWN with source spans", async t => {

@@ -4,7 +4,6 @@ import { promises as fs } from "node:fs";
 import path from "node:path";
 import { createRequire } from "node:module";
 import { fileURLToPath } from "node:url";
-import { isFrameworkRepo, hasRepoFiles } from "./framework-repo.helper.mjs";
 
 const require = createRequire(import.meta.url);
 const here = path.dirname(fileURLToPath(import.meta.url));
@@ -192,37 +191,3 @@ test("Given canonical UI-intent guidance, When consumer copies are reconciled, T
   }
 });
 
-// The adaptation this case describes is carried by Orient One's own spec template, UI spec and
-// UI-conventions doc. They belong to that project, so their presence — not framework-package
-// identity — is the precondition: guarded by `isFrameworkRepo` alone the case runs in this
-// repository, whose spec root is docs/specs and which has never carried these files.
-const ORIENT_ONE_UI_CONTRACT = [
-  "specs/templates/specification.md",
-  "specs/ui/023-responsive-frame-and-phone-readiness.md",
-  "docs/ui-conventions.md",
-];
-
-test("Given Orient One's native UI and design contracts, When a UI-bearing spec is mapped, Then existing AC/SCN and related-path owners resolve the shared intent", { skip: !isFrameworkRepo(repoRoot) || !hasRepoFiles(repoRoot, ORIENT_ONE_UI_CONTRACT) }, async () => {
-  // Business Intent / Invariant Guarded: local adaptation uses real canonical owners and links instead of importing the portable §6 representation.
-  // Failure Signal: UI behavior has no native owner, executable scenario link, or resolvable design authority.
-  const localReference = await fs.readFile(path.join(repoRoot, "docs", "project-reference", "spec-system-reference.md"), "utf8");
-  const template = await fs.readFile(path.join(repoRoot, "specs", "templates", "specification.md"), "utf8");
-  const uiSpec = await fs.readFile(path.join(repoRoot, "specs", "ui", "023-responsive-frame-and-phone-readiness.md"), "utf8");
-  const uiConventions = await fs.readFile(path.join(repoRoot, "docs", "ui-conventions.md"), "utf8");
-  const shared = await fs.readFile(path.join(claudeRoot, "skills", "shared", "sync-inline-versions.md"), "utf8");
-  const frontmatter = uiSpec.match(/^---\r?\n([\s\S]*?)\r?\n---/m)?.[1];
-
-  assert.ok(localReference.includes("UI interaction intent and design links"));
-  assert.ok(localReference.includes("Purpose` and `Scope`"));
-  assert.ok(localReference.includes("Acceptance Criteria` for observable pass/fail outcomes under the native `AC-*` identifiers"));
-  assert.ok(localReference.includes("`SCN-*` identities"));
-  assert.ok(template.includes("related: []"));
-  assert.ok(template.includes("## Acceptance Criteria"));
-  assert.ok(uiSpec.includes("AC-001") && uiSpec.includes("SCN-023-01"));
-  assert.ok(frontmatter?.includes("docs/design/orient-one-design-system.md"));
-  assert.ok(frontmatter?.includes("docs/ui-conventions.md"));
-  assert.ok(/design system document\s+decides what Orient One should LOOK like/i.test(uiConventions));
-  assert.ok(/A one-off HTML mockup under `specs\/\*\*\/\*\.html`/i.test(uiConventions));
-  assert.ok(!shared.includes("docs/design/orient-one-design-system.md"));
-  assert.ok(!shared.includes("Orient One"));
-});

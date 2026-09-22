@@ -74,20 +74,17 @@ CLAUDE.md                # Project instructions at repo root (read by Claude)
             "maxQuestions": 8
         }
     },
-    "assertions": [
-        "Search for existing implementations before creating new code",
-        "Follow the project's documented architecture and conventions"
-    ]
+    "assertions": ["Search for existing implementations before creating new code", "Follow the project's documented architecture and conventions"]
 }
 ```
 
-| Field               | Type     | Description                                  |
-| ------------------- | -------- | -------------------------------------------- |
-| `plan.namingFormat` | string   | Plan directory naming pattern                |
-| `plan.validation`   | object   | Plan validation settings                     |
+| Field               | Type     | Description                                                                                                                                                                    |
+| ------------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `plan.namingFormat` | string   | Plan directory naming pattern                                                                                                                                                  |
+| `plan.validation`   | object   | Plan validation settings                                                                                                                                                       |
 | `assertions`        | string[] | Legacy compatibility field. The standard SessionStart path does not add it to prompt context; active project rules belong in `docs/project-config.json` and its reference docs |
-| `locale`            | object   | Language settings for thinking/responses     |
-| `trust`             | object   | Trust passphrase configuration               |
+| `locale`            | object   | Language settings for thinking/responses                                                                                                                                       |
+| `trust`             | object   | Trust passphrase configuration                                                                                                                                                 |
 
 In this repository, the SessionStart hook loads `.ck.json` settings but does not inject the `assertions` array into prompt text. Keep this field only for compatibility with external consumers; use `contextGroups` and project reference docs for active project conventions.
 
@@ -150,7 +147,7 @@ The `codeReview` section records which project-specific review-rule doc the revi
 | `enabled`                   | `false`   | boolean       | Explicit opt-in                                                                                                 |
 | `maxChars`                  | `4000`    | 500–10000     | Reminder size cap                                                                                               |
 | `maxClassesPerEdit`         | `4`       | 1–10          | Classes per trigger (applied before dedup)                                                                      |
-| `reinjectAfterBytes`        | `4500000` | ≥ 4500000     | Conversation-history growth (transcript bytes, ~5–6 per visible character, ≈200K tokens) that re-arms a class |
+| `reinjectAfterBytes`        | `4500000` | ≥ 4500000     | Conversation-history growth (transcript bytes, ~5–6 per visible character, ≈200K tokens) that re-arms a class   |
 | `reinjectAfterMinutes`      | `30`      | 1–1440        | Age re-arm when history size is unknown but condensations ARE observed (host report or transcript mark)         |
 | `blindReinjectAfterMinutes` | `5`       | 1–1440        | Age re-arm when the scope is blind — no transcript AND no condensation ever observed, so age is the only signal |
 | `onRead`                    | `true`    | boolean       | Reads trigger reminders too                                                                                     |
@@ -228,11 +225,11 @@ and attempts no install at all.
 }
 ```
 
-| `hooks.startupInstall` field | Type    | Default  | Allowed                              | Meaning                                                                                                      |
-| ---------------------------- | ------- | -------- | ------------------------------------ | ------------------------------------------------------------------------------------------------------------ |
-| `enabled`                    | boolean | `true`   | boolean                              | `false` disables installation only (outcome `skip-disabled`)                                                 |
-| `packageManager`             | string  | `"auto"` | `auto`, `npm`, `pnpm`, `yarn`, `bun` | One manager **signal**, never a precedence override                                                          |
-| `allowLifecycleScripts`      | boolean | `false`  | boolean                              | A repository **request** only — effective solely with the `CK_STARTUP_INSTALL_TRUST=1` host grant (below)     |
+| `hooks.startupInstall` field | Type    | Default  | Allowed                              | Meaning                                                                                                   |
+| ---------------------------- | ------- | -------- | ------------------------------------ | --------------------------------------------------------------------------------------------------------- |
+| `enabled`                    | boolean | `true`   | boolean                              | `false` disables installation only (outcome `skip-disabled`)                                              |
+| `packageManager`             | string  | `"auto"` | `auto`, `npm`, `pnpm`, `yarn`, `bun` | One manager **signal**, never a precedence override                                                       |
+| `allowLifecycleScripts`      | boolean | `false`  | boolean                              | A repository **request** only — effective solely with the `CK_STARTUP_INSTALL_TRUST=1` host grant (below) |
 
 **The section and every property in it are optional.** An omitted property keeps the portable default,
 and the defaults are identical whether the property, the whole `hooks` section, or the entire
@@ -328,11 +325,11 @@ Validate with `node .claude/hooks/lib/project-config-schema.cjs --validate docs/
 
 **Live catalog (19 workflows):** `workflow-big-feature`, `workflow-bugfix`, `workflow-e2e`, `workflow-feature`, `workflow-feature-spec`, `workflow-greenfield-init`, `workflow-idea-to-pbi`, `workflow-idea-to-spec`, `workflow-refactor`, `workflow-research`, `workflow-review-changes`, `workflow-architecture-audit`, `workflow-code-to-spec`, `workflow-spec-to-pbi`, `workflow-spec-sync`, `workflow-visualize`, `workflow-seed-test-data`, `workflow-write-integration-test`, `workflow-integration-test-green`.
 
-| Workflow                  | Sequence (abridged, from `workflows.json`)                                                                                                                           | whenToUse (abridged)                              |
-| ------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------- |
-| `workflow-feature`        | investigate → … → plan → plan-review → … → plan-execute → … → integration-test → … → workflow-end                                                                    | Well-defined feature implementation               |
-| `workflow-bugfix`         | investigate → debug-investigate → … → fix → … → workflow-end                                                                                                         | Bug, error, crash, regression; end-to-start trace |
-| `workflow-refactor`       | investigate → plan → … → plan-execute → … → workflow-end                                                                                                             | Restructure code without behavior change          |
+| Workflow                  | Sequence (abridged, from `workflows.json`)                                                                                                                                          | whenToUse (abridged)                              |
+| ------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------- |
+| `workflow-feature`        | investigate → … → plan → plan-review → … → plan-execute → … → integration-test → … → workflow-end                                                                                   | Well-defined feature implementation               |
+| `workflow-bugfix`         | investigate → debug-investigate → … → fix → … → workflow-end                                                                                                                        | Bug, error, crash, regression; end-to-start trace |
+| `workflow-refactor`       | investigate → plan → … → plan-execute → … → workflow-end                                                                                                                            | Restructure code without behavior change          |
 | `workflow-review-changes` | [parallel: changes-review + whole-target why-review] → parallel specialists → code-simplifier → … → final whole-target why-review (conditional on fix-cycle changes) → workflow-end | Review uncommitted changes before committing      |
 
 ---
@@ -368,14 +365,14 @@ Validate with `node .claude/hooks/lib/project-config-schema.cjs --validate docs/
 
 **Purpose:** opencode's project config. The framework ships recommended defaults and reconciles them into each consuming project through `$sync-opencode`.
 
-| Item | Path |
-| --- | --- |
-| Source of truth (edit this to change defaults) | `.opencode/opencode.recommended.json` |
-| Generated target (created/updated by the sync) | `<project-root>/opencode.json` |
-| Writer / verifier | `.claude/scripts/opencode/sync-config.mjs` (`--check` verifies) |
-| Sub-agent mirror source of truth | `.claude/agents/*.md` |
-| Sub-agent mirror target (generated) | `.opencode/agent/<name>.md` — one per canonical agent, `mode: subagent` + the canonical body verbatim |
-| Sub-agent mirror writer / verifier | `.claude/scripts/opencode/sync-agents.mjs` (`--check` verifies) |
+| Item                                           | Path                                                                                                  |
+| ---------------------------------------------- | ----------------------------------------------------------------------------------------------------- |
+| Source of truth (edit this to change defaults) | `.opencode/opencode.recommended.json`                                                                 |
+| Generated target (created/updated by the sync) | `<project-root>/opencode.json`                                                                        |
+| Writer / verifier                              | `.claude/scripts/opencode/sync-config.mjs` (`--check` verifies)                                       |
+| Sub-agent mirror source of truth               | `.claude/agents/*.md`                                                                                 |
+| Sub-agent mirror target (generated)            | `.opencode/agent/<name>.md` — one per canonical agent, `mode: subagent` + the canonical body verbatim |
+| Sub-agent mirror writer / verifier             | `.claude/scripts/opencode/sync-agents.mjs` (`--check` verifies)                                       |
 
 **To update a default recommended opencode setting:** edit `.opencode/opencode.recommended.json` and run `$sync-opencode` (or `node .claude/skills/sync-opencode/scripts/run-opencode-sync.mjs`). The `config` stage deep-merges the recommended defaults into the project-root `opencode.json` — recommended keys win at every leaf, project-only keys survive untouched, and a project with no root config receives the recommended defaults verbatim. A malformed existing root config is reported, never clobbered.
 
@@ -385,11 +382,11 @@ Validate with `node .claude/hooks/lib/project-config-schema.cjs --validate docs/
 
 This is a DEFAULT OF THE PORTABLE BUNDLE, not a setting of this repository: copy `.claude/` (plus `.codex/` and `.opencode/`) into any project and that project compacts at 500K too. Each surface delivers it differently:
 
-| Surface | Key | How an adopting project receives it |
-| --- | --- | --- |
-| Claude Code | `env.CLAUDE_CODE_AUTO_COMPACT_WINDOW = "500000"` in `.claude/settings.json` | The file is copied verbatim with the bundle — nothing generates or rewrites it |
-| Codex | `model_auto_compact_token_limit = 500000` in `.codex/config.toml` | Upserted by `.claude/scripts/codex/migrate-claude-to-codex.mjs` on every `$sync-codex`, alongside `notify` and the `[tui]` keys; an existing project config keeps its other keys |
-| opencode | the pinned model's `limit.context = 500000` in `.opencode/opencode.recommended.json` | Deep-merged into the project-root `opencode.json` by `$sync-opencode`; a project with no root config receives it verbatim |
+| Surface     | Key                                                                                  | How an adopting project receives it                                                                                                                                              |
+| ----------- | ------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Claude Code | `env.CLAUDE_CODE_AUTO_COMPACT_WINDOW = "500000"` in `.claude/settings.json`          | The file is copied verbatim with the bundle — nothing generates or rewrites it                                                                                                   |
+| Codex       | `model_auto_compact_token_limit = 500000` in `.codex/config.toml`                    | Upserted by `.claude/scripts/codex/migrate-claude-to-codex.mjs` on every `$sync-codex`, alongside `notify` and the `[tui]` keys; an existing project config keeps its other keys |
+| opencode    | the pinned model's `limit.context = 500000` in `.opencode/opencode.recommended.json` | Deep-merged into the project-root `opencode.json` by `$sync-opencode`; a project with no root config receives it verbatim                                                        |
 
 opencode has no absolute compaction threshold — it compacts relative to the model's declared window, so `limit.context` is the knob (it actually compacts at `limit.context - min(limit.output, 32000)` = 468,000). `compaction.reserved` is inert for this model: opencode reads it only for models that declare `limit.input`. See the `sync-opencode` skill ("Compaction budget") for the exact formula before changing any of these.
 
@@ -465,11 +462,11 @@ Configuration is loaded in order with later files overriding earlier:
 
 ## Environment Variables
 
-| Variable                                   | Purpose                                        |
-| ------------------------------------------ | ---------------------------------------------- |
-| `CLAUDE_PROJECT_DIR`                       | Project root directory (used in hook commands) |
-| `CK_DEBUG`                                 | Enable hook debug logging                      |
-| `GITHUB_PERSONAL_ACCESS_TOKEN`             | GitHub MCP server auth                         |
+| Variable                       | Purpose                                        |
+| ------------------------------ | ---------------------------------------------- |
+| `CLAUDE_PROJECT_DIR`           | Project root directory (used in hook commands) |
+| `CK_DEBUG`                     | Enable hook debug logging                      |
+| `GITHUB_PERSONAL_ACCESS_TOKEN` | GitHub MCP server auth                         |
 
 ---
 

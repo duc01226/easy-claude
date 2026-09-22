@@ -462,7 +462,7 @@ const tests = [
 
             // getReportsPath intentionally loads the ambient project config through
             // resolvePlansDir(). The relocated integration fixture has docsRoots.plans.path,
-            // so calling it in this process tests Orient One's live config instead of the
+            // so calling it in this process tests the host project's live config instead of the
             // fixture's .ck.json fallback. Use a fresh minimal project with no plans root to
             // prove the legacy tier end-to-end without ambient config leakage.
             const tmpRoot = path.join(REPO, 'tmp');

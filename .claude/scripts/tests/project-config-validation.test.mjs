@@ -300,7 +300,7 @@ test('TC-FIT-PROFILE-003: an unrelated adopter can relocate roots and configure 
     // When: the shared profile resolver normalizes its declarations.
     // Then: the relocated roots, identifiers, and `reviewed` value are preserved.
     // Business Intent / Invariant Guarded: project-specific locations and vocabulary stay in configuration.
-    // Failure Signal: any Orient One-only root, identifier, or status value changes the expected profile.
+    // Failure Signal: any one adopter's root, identifier, or status value changes the expected profile.
     const profile = standardProfile();
     profile.identifiers.requirement.prefix = 'NEED-';
     profile.identifiers.acceptance.prefix = 'ACCEPT-';

@@ -4,9 +4,7 @@
   "project": {
     "name": "relocated-fixture",
     "description": "Fixture project whose docs and spec roots are all relocated.",
-    "languages": [
-      "javascript"
-    ],
+    "languages": ["javascript"],
     "packageManagers": []
   },
   "framework": {

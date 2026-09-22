@@ -99,20 +99,6 @@ export function isFrameworkRepo(repoRoot) {
 }
 
 /**
- * True when EVERY given repo-relative path exists on disk.
- *
- * `isFrameworkRepo` answers "is this the framework package", which is NOT the same question as
- * "does this repository carry the project corpus a test reads". A test that asserts row counts,
- * identifiers, or prose belonging to one particular project must gate on that corpus being
- * present: guarded only by `isFrameworkRepo`, it runs here — where the corpus has never existed —
- * and reports a defect in a repository that cannot own one. Pair the two guards so such a test
- * stays fully asserted wherever its corpus lives and skips cleanly everywhere else.
- */
-export function hasRepoFiles(repoRoot, relPaths) {
-    return relPaths.every(relPath => fs.existsSync(path.join(repoRoot, relPath)));
-}
-
-/**
  * Read a framework-repo-only root file (e.g. `.prettierignore`), or `null` outside this repo /
  * when absent. Callers `return` early on null — the adopting project's own tooling config is theirs.
  */

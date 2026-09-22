@@ -29,7 +29,13 @@ const genericSourceFiles = [
 // scan from forbiddenTerms above: it matches only the unambiguous denylist symbols, so hook
 // config/test fixtures (which carry service NAMES, not base-CLASS symbols) do not trip it.
 export const projectSymbolScanRoots = ['.claude/skills', '.claude/hooks', '.claude/agents', '.codex', '.agents'];
-const forbiddenTerms = ['br' + 'avo', 'Br' + 'avoSuite'];
+// Consuming-project NAMES. Split so this verifier never matches its own source. A consumer
+// project name must never enter the portable bundle: it ships verbatim into every adopting
+// repository, where it is both meaningless and misleading. The Orient entries were added after
+// that project's spec paths, package names and design-doc pointers reached
+// .claude/scripts/codex/tests -- inside this scan scope, yet passing because only the two
+// pre-existing terms were listed. The gap was the term list, not the scope.
+export const forbiddenTerms = ['br' + 'avo', 'Br' + 'avoSuite', 'Orient' + 'Software', 'Orient' + ' One', 'orient' + '-one'];
 
 // Project-specific framework symbols (this codebase's .NET/Angular base classes) that must NOT
 // leak into portable generic skills/hooks as load-bearing rules. Case-SENSITIVE, word-boundary

@@ -218,11 +218,11 @@ Register hooks for Claude Code lifecycle events.
 
 The `hooks` object above only REGISTERS hooks — it carries no behavior knobs. A hook's own settings live in project config:
 
-| Behavior                      | File                        | Section                  |
-| ----------------------------- | --------------------------- | ------------------------ |
-| Startup dependency install    | `docs/project-config.json` | `hooks.startupInstall`   |
-| Per-file convention reminders | `docs/project-config.json` | `conventionInjection`    |
-| Session prompt ledger         | `.claude/.ck.json`         | `promptLedger`           |
+| Behavior                      | File                       | Section                |
+| ----------------------------- | -------------------------- | ---------------------- |
+| Startup dependency install    | `docs/project-config.json` | `hooks.startupInstall` |
+| Per-file convention reminders | `docs/project-config.json` | `conventionInjection`  |
+| Session prompt ledger         | `.claude/.ck.json`         | `promptLedger`         |
 
 `hooks.startupInstall` accepts `enabled` (boolean, default `true`), `packageManager` (`auto` | `npm` | `pnpm` | `yarn` | `bun`, default `"auto"`) and `allowLifecycleScripts` (boolean, default `false`). Those defaults apply identically when the property, the `hooks` section, or the whole project-config file is absent; a non-`auto` `packageManager` is one manager signal and never an override (a value contradicting the lockfile skips with `skip-manager-conflict`); `enabled: false` disables installation only and never the `.claude` install-integrity verification; and neither the manager executable nor its arguments are configurable — the hook runs a fixed, version-matched argv from its own support matrix. `allowLifecycleScripts: true` is only a repository REQUEST: it takes effect solely on a host that also sets `CK_STARTUP_INSTALL_TRUST=1` (an `env` entry in the git-ignored `.claude/settings.local.json` is the intended place), and that same grant stops the runner sanitizing registry credentials out of the manager's environment. Setting the config key alone fails silently — the install runs with suppression intact. Full contract, including the supported manager/lockfile/platform breadth: [README.md § Startup dependency installation](./README.md#startup-dependency-installation).
 
@@ -275,9 +275,9 @@ Set environment variables for all tool executions.
 }
 ```
 
-| Variable                                   | Value      | Purpose                                                                                     |
-| ------------------------------------------ | ---------- | ------------------------------------------------------------------------------------------- |
-| `CLAUDE_BASH_MAINTAIN_PROJECT_WORKING_DIR` | `"1"`      | Keep Bash in project directory                                                              |
+| Variable                                   | Value      | Purpose                                                                                                                                                                                                                                                                             |
+| ------------------------------------------ | ---------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `CLAUDE_BASH_MAINTAIN_PROJECT_WORKING_DIR` | `"1"`      | Keep Bash in project directory                                                                                                                                                                                                                                                      |
 | `CLAUDE_CODE_AUTO_COMPACT_WINDOW`          | `"500000"` | Auto-compact window in tokens. The effective threshold is the MIN of this and the model max context, so a 200K-context model is unaffected and a 1M-context model gets the full 500K window. Equivalent to the `autoCompactWindow` setting; the env var wins when both are present. |
 
 ---

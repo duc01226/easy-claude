@@ -14,6 +14,7 @@
 - MUST ATTENTION apply the shared M1-M7 contract in either branch; identifiers and matching text NEVER prove the behavior ran.
 
 > **Shared SDD contract:** Every profile preserves its applicable M1-M7 and invariant, evidence, execution, and review obligations. MUST ATTENTION READ `.claude/skills/shared/sdd-artifact-contract.md` for the complete rules.
+
 ## Configured Artifact Profile
 
 Read and validate `docs/project-config.json` before authoring or reviewing a feature spec. When `specArtifacts` is present:

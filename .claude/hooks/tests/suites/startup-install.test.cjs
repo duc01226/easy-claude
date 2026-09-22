@@ -39,6 +39,18 @@ const {
 
 const HOOKS_ROOT = path.resolve(__dirname, '..', '..');
 const REPO_ROOT = path.resolve(HOOKS_ROOT, '..', '..');
+
+// The CI-matrix pin below asserts the UPSTREAM framework repo's own GitHub Actions workflow, so it
+// applies ONLY in that repo, identified by its package name (lockstep with DEFAULT_FRAMEWORK_PACKAGE_NAME
+// in .claude/scripts/codex/tests/framework-repo.helper.mjs; PORT-011 fails loudly on a rename).
+// Never key it on `.github/workflows/ci.yml` existing: an adopting project's own ci.yml would
+// then fail these pins.
+const UPSTREAM_CI_WORKFLOW = path.join(REPO_ROOT, '.github', 'workflows', 'ci.yml');
+const UPSTREAM_CI_SKIP = (() => {
+    let name = null;
+    try { name = JSON.parse(fs.readFileSync(path.join(REPO_ROOT, 'package.json'), 'utf8')).name; } catch { /* no root package */ }
+    return name === 'easy-claude-tooling' ? false : 'asserts the upstream framework repo CI workflow only';
+})();
 const SOURCE_VERIFIER = path.join(HOOKS_ROOT, 'verify-install.cjs');
 
 function withTempFixture(fn) {
@@ -1640,8 +1652,9 @@ lock.withProjectLock({ canonicalRoot: fs.realpathSync(root), seams, recheck: () 
     },
     {
         name: '[startup-process] CI native platform matrix is pinned and fail-closed in the required aggregate',
+        skip: UPSTREAM_CI_SKIP,
         fn: () => {
-            const workflow = fs.readFileSync(path.join(REPO_ROOT, '.github', 'workflows', 'ci.yml'), 'utf8');
+            const workflow = fs.readFileSync(UPSTREAM_CI_WORKFLOW, 'utf8');
             const jobStart = workflow.indexOf('  startup-install-platform-security:');
             const aggregateStart = workflow.indexOf('\n  static-and-unit:', jobStart);
             assert.ok(jobStart >= 0, 'native startup-install CI job is registered');

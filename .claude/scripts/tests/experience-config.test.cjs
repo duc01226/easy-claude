@@ -651,8 +651,8 @@ function captureCarriers(config = realConfig) {
         .filter(carrier => /state-changing (action|transition|trigger)/.test(fs.readFileSync(path.join(repoRoot, carrier), 'utf8')))
     // The project-reference E2E doc is a declared floor exactly like CAPTURE_CARRIER_FLOOR: it stays a
     // consumer after it delegates the contract to the shared protocol and its wording turns conditional,
-    // so it must be audited even once it no longer matches the discovery phrase. Project-owned docs are
-    // optional in an adopting project, so include it only when present.
+    // so it must be audited even once it no longer matches the discovery phrase. Resolved from config so
+    // a relocated root still works, and included only when present since project docs are optional.
     const floors = [...CAPTURE_CARRIER_FLOOR, path.posix.join(projectReferenceRoot, "e2e-test-reference.md")]
         .filter(carrier => fs.existsSync(path.join(repoRoot, carrier)));
     return [...new Set([...discovered, ...floors])].sort();

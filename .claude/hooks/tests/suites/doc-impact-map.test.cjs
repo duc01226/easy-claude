@@ -107,6 +107,20 @@ function cleanupRepo(dir) {
     }
 }
 
+/** Run `checkClaims` against a throwaway repo — PROJECT_DIR is fixed at module load, so spawn. */
+function checkClaimsIn(dir, relDoc) {
+    const driver =
+        'const m = require(process.argv[1]);' +
+        'process.stdout.write(JSON.stringify(m.checkClaims(process.argv[2])));';
+    const out = spawnSync('node', ['-e', driver, SCRIPT, relDoc], {
+        cwd: dir,
+        env: { ...process.env, CLAUDE_PROJECT_DIR: dir },
+        encoding: 'utf8'
+    });
+    if (out.status !== 0) throw new Error(`checkClaims driver failed: ${out.stderr}`);
+    return JSON.parse(out.stdout);
+}
+
 function runMapper(dir, args) {
     return spawnSync('node', [SCRIPT, ...args], {
         cwd: dir,
@@ -685,53 +699,66 @@ const tests = [
         }
     },
     {
+        // Self-contained: the workspace packages and target files these claims cite are seeded in a
+        // throwaway repo, so the assertion never depends on one adopting project's live tree.
         name: '[doc-impact-map] D16 exported and no-exports workspace package paths resolve only when targets exist',
+        skip: GIT_SKIP,
         fn: () => {
-            const fixture = path.join(REPO, '.claude', 'hooks', 'tests', 'fixtures', 'doc-impact-map-package-export.tmp.md');
-            const rel = '.claude/hooks/tests/fixtures/doc-impact-map-package-export.tmp.md';
-            fs.writeFileSync(
-                fixture,
-                [
-                    'Public export: `@orient/survey-runner/styles.css`.',
-                    'Missing export: `@orient/survey-runner/no-such-d15.css`.',
-                    'Existing path in package without exports: `@orient/web/app/page.tsx`.',
-                    'Missing path in package without exports: `@orient/web/no-such-d16.ts`.',
-                    ''
-                ].join('\n'),
-                'utf8'
-            );
+            const { dir, g } = makeRepo();
             try {
-                const result = mapper.checkClaims(rel);
-                assertTrue(!result.missing.includes('@orient/survey-runner/styles.css'), 'an exported workspace subpath with an existing target is valid');
-                assertTrue(result.missing.includes('@orient/survey-runner/no-such-d15.css'), 'a missing package export must remain visible');
-                assertTrue(!result.missing.includes('@orient/web/app/page.tsx'), 'an existing in-package path remains valid when the package has no exports map');
-                assertTrue(result.missing.includes('@orient/web/no-such-d16.ts'), 'a missing in-package path remains visible when the package has no exports map');
+                const write = (rel, text) => {
+                    fs.mkdirSync(path.dirname(path.join(dir, rel)), { recursive: true });
+                    fs.writeFileSync(path.join(dir, rel), text, 'utf8');
+                };
+                write('packages/survey-runner/package.json', JSON.stringify({ name: '@example/survey-runner', exports: { './styles.css': './dist/styles.css' } }));
+                write('packages/survey-runner/dist/styles.css', 'body{}\n');
+                write('packages/web/package.json', JSON.stringify({ name: '@example/web' }));
+                write('packages/web/app/page.tsx', 'export default null;\n');
+                write('docs/claims.md', [
+                    'Public export: `@example/survey-runner/styles.css`.',
+                    'Missing export: `@example/survey-runner/no-such-d15.css`.',
+                    'Existing path in package without exports: `@example/web/app/page.tsx`.',
+                    'Missing path in package without exports: `@example/web/no-such-d16.ts`.',
+                    ''
+                ].join('\n'));
+                g(['add', '-A']);
+                g(['commit', '-qm', 'seed']);
+
+                const result = checkClaimsIn(dir, 'docs/claims.md');
+                assertTrue(!result.missing.includes('@example/survey-runner/styles.css'), 'an exported workspace subpath with an existing target is valid');
+                assertTrue(result.missing.includes('@example/survey-runner/no-such-d15.css'), 'a missing package export must remain visible');
+                assertTrue(!result.missing.includes('@example/web/app/page.tsx'), 'an existing in-package path remains valid when the package has no exports map');
+                assertTrue(result.missing.includes('@example/web/no-such-d16.ts'), 'a missing in-package path remains visible when the package has no exports map');
             } finally {
-                if (fs.existsSync(fixture)) fs.unlinkSync(fixture);
+                cleanupRepo(dir);
             }
         }
     },
     {
+        // Self-contained for the same reason as D16: the full citation's target is seeded locally.
         name: '[doc-impact-map] D17 ASCII and Unicode path elisions are ignored while full paths still resolve',
+        skip: GIT_SKIP,
         fn: () => {
-            const fixture = path.join(REPO, '.claude', 'hooks', 'tests', 'fixtures', 'doc-impact-map-ellipsis.tmp.md');
-            const rel = '.claude/hooks/tests/fixtures/doc-impact-map-ellipsis.tmp.md';
-            fs.writeFileSync(
-                fixture,
-                [
+            const { dir, g } = makeRepo();
+            try {
+                const target = path.join(dir, 'packages', 'platform', 'src', 'jobs', '__tests__', 'idempotency.integration.test.ts');
+                fs.mkdirSync(path.dirname(target), { recursive: true });
+                fs.writeFileSync(target, '// fixture\n', 'utf8');
+                fs.mkdirSync(path.join(dir, 'docs'), { recursive: true });
+                fs.writeFileSync(path.join(dir, 'docs', 'claims.md'), [
                     'ASCII elision: `packages/.../idempotency.test.ts`.',
                     'Unicode elision: `packages/…/idempotency.test.ts`.',
                     'Full citation: `packages/platform/src/jobs/__tests__/idempotency.integration.test.ts`.',
                     ''
-                ].join('\n'),
-                'utf8'
-            );
-            try {
-                const result = mapper.checkClaims(rel);
+                ].join('\n'), 'utf8');
+                g(['add', '-A']);
+                g(['commit', '-qm', 'seed']);
+
+                const result = checkClaimsIn(dir, 'docs/claims.md');
                 assertEqual(result.missing.length, 0, `Elided examples should be ignored and the full path should resolve: ${JSON.stringify(result)}`);
                 assertTrue(result.checked >= 1, 'the checker must still examine at least the full path');
             } finally {
-                if (fs.existsSync(fixture)) fs.unlinkSync(fixture);
+                cleanupRepo(dir);
             }
         }
     },

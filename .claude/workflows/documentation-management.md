@@ -103,20 +103,20 @@ Disposable investigation, researcher, and verification reports belong under `tmp
 
 Each phase file contains:
 
-| Section                     | Contents                                         |
-| --------------------------- | ------------------------------------------------ |
+| Section                     | Contents                                                                                                                       |
+| --------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
 | **Context Links**           | Durable source files and documentation; summarize essential findings in the plan rather than relying on temporary report links |
-| **Overview**                | Priority, status, brief description              |
-| **Key Insights**            | Findings from research, critical considerations  |
-| **Requirements**            | Functional + non-functional                      |
-| **Architecture**            | System design, component interactions, data flow |
-| **Related Code Files**      | Files to modify / create / delete                |
-| **Implementation Steps**    | Detailed, numbered, specific instructions        |
-| **Todo List**               | Checkbox list for tracking                       |
-| **Success Criteria**        | Definition of done, validation methods           |
-| **Risk Assessment**         | Potential issues, mitigation strategies          |
-| **Security Considerations** | Auth/authorization, data protection              |
-| **Next Steps**              | Dependencies, follow-up tasks                    |
+| **Overview**                | Priority, status, brief description                                                                                            |
+| **Key Insights**            | Findings from research, critical considerations                                                                                |
+| **Requirements**            | Functional + non-functional                                                                                                    |
+| **Architecture**            | System design, component interactions, data flow                                                                               |
+| **Related Code Files**      | Files to modify / create / delete                                                                                              |
+| **Implementation Steps**    | Detailed, numbered, specific instructions                                                                                      |
+| **Todo List**               | Checkbox list for tracking                                                                                                     |
+| **Success Criteria**        | Definition of done, validation methods                                                                                         |
+| **Risk Assessment**         | Potential issues, mitigation strategies                                                                                        |
+| **Security Considerations** | Auth/authorization, data protection                                                                                            |
+| **Next Steps**              | Dependencies, follow-up tasks                                                                                                  |
 
 ---
 

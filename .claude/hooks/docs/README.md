@@ -4,10 +4,10 @@ This directory contains hooks for Claude Code sessions.
 
 ## Hooks Overview
 
-| Hook              | Location                  | Description                                                   |
-| ----------------- | ------------------------- | ------------------------------------------------------------- |
-| **Notifications** | `notifications/`          | Multi-provider notification system (Telegram, Discord, Slack) |
-| **Session Init**  | `session-init.cjs`        | Session startup initialization                                |
+| Hook              | Location           | Description                                                   |
+| ----------------- | ------------------ | ------------------------------------------------------------- |
+| **Notifications** | `notifications/`   | Multi-provider notification system (Telegram, Discord, Slack) |
+| **Session Init**  | `session-init.cjs` | Session startup initialization                                |
 
 ## Notifications
 

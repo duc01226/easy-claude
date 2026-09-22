@@ -218,12 +218,7 @@
   },
   "includeCoAuthoredBy": false,
   "permissions": {
-    "allow": [
-      "Edit(.claude/**)",
-      "Bash(tmp/**)",
-      "Edit(tmp/**)",
-      "Read(tmp/**)"
-    ],
+    "allow": ["Edit(.claude/**)", "Bash(tmp/**)", "Edit(tmp/**)", "Read(tmp/**)"],
     "ask": [
       "Bash(git push:*)",
       "Bash(npm publish:*)",

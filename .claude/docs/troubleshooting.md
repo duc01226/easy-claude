@@ -266,9 +266,9 @@ See [configuration/README.md](./configuration/README.md) for precedence and file
 
 Blocking is expected when a safety gate detects a risky target or command. Use the message emitted by the gate to identify the cause:
 
-| Gate                                                     | Typical cause                                                | Safe next check                                                                  |
-| -------------------------------------------------------- | ------------------------------------------------------------ | -------------------------------------------------------------------------------- |
-| `review-commit-gate.cjs`                                 | A commit was attempted without a review fix-loop receipt     | Review the intended candidate, then use the explicit commit workflow             |
+| Gate                     | Typical cause                                            | Safe next check                                                      |
+| ------------------------ | -------------------------------------------------------- | -------------------------------------------------------------------- |
+| `review-commit-gate.cjs` | A commit was attempted without a review fix-loop receipt | Review the intended candidate, then use the explicit commit workflow |
 
 Do not disable a safety gate globally to bypass one blocked operation. Confirm the target, reduce the scope, or correct the command first.
 

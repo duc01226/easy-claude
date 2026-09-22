@@ -5,7 +5,7 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 
 const thisDir = path.dirname(fileURLToPath(import.meta.url));
 const verifierPath = path.resolve(thisDir, '..', 'verify-no-project-residue.mjs');
-const { findProjectSymbolViolations, genericSourceRoots, managedBlockRanges, projectSymbolDenylist, projectSymbolAllowlist, projectSymbolScanRoots } =
+const { findProjectSymbolViolations, forbiddenTerms, genericSourceRoots, managedBlockRanges, projectSymbolDenylist, projectSymbolAllowlist, projectSymbolScanRoots } =
     await import(pathToFileURL(verifierPath).href);
 
 // TC-SKILLFIX-010 — a denylisted project symbol in a NON-allowlisted generic skill is flagged.
@@ -85,4 +85,16 @@ test('TC-SKILLFIX-013f: prompt protocol mirrors are not exempt from project-term
         false,
         'PROMPT-PROTOCOLS is generated portable context and must not hide project-specific lesson bodies'
     );
+});
+
+// TC-SKILLFIX-013g — every consuming-project NAME must be denied. The Orient entries were added
+// after that project's spec paths and package names reached .claude/scripts/codex/tests: the scan
+// already covered that directory, so what failed was the term list. Terms are split here for the
+// same reason they are split in the verifier -- this test file sits inside the scanned tree and
+// would otherwise flag itself.
+test('TC-SKILLFIX-013g: the forbidden-term list denies every known consuming-project name', () => {
+    const lowered = forbiddenTerms.map(term => term.toLowerCase());
+    for (const name of ['br' + 'avo', 'Orient' + 'Software', 'Orient' + ' One', 'orient' + '-one']) {
+        assert.ok(lowered.includes(name.toLowerCase()), `consuming-project name is not denied: ${name}`);
+    }
 });

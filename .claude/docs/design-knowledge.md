@@ -288,13 +288,13 @@ Run before presenting any design, mockup, or implemented UI surface.
 
 ## 14. Consumers & Single-Sourcing Map
 
-| Concern                                                   | Single source                                                                       | NEVER duplicate into                                         |
-| --------------------------------------------------------- | ----------------------------------------------------------------------------------- | ------------------------------------------------------------ |
-| Distinctiveness laws, tell catalog, design plan, critique | **this file** + `SYNC:design-distinctiveness-gate`                                  | any skill body (carry the SYNC block instead)                |
-| Words-as-design-content                                   | §8 + `SYNC:ui-copywriting`                                                          | —                                                            |
-| 40 usability clauses `UI-1.1`–`UI-9.4`                    | `SYNC:ui-ux-design-principles`                                                      | this file (referenced only)                                  |
-| Tech-agnostic spec interaction layer                      | `SYNC:ui-intent-layer`                                                              | design artifacts (they own fidelity, the spec owns behavior) |
-| Existing-UI inventory before designing                    | `SYNC:existing-ui-research`                                                         | —                                                            |
+| Concern                                                   | Single source                                                                              | NEVER duplicate into                                         |
+| --------------------------------------------------------- | ------------------------------------------------------------------------------------------ | ------------------------------------------------------------ |
+| Distinctiveness laws, tell catalog, design plan, critique | **this file** + `SYNC:design-distinctiveness-gate`                                         | any skill body (carry the SYNC block instead)                |
+| Words-as-design-content                                   | §8 + `SYNC:ui-copywriting`                                                                 | —                                                            |
+| 40 usability clauses `UI-1.1`–`UI-9.4`                    | `SYNC:ui-ux-design-principles`                                                             | this file (referenced only)                                  |
+| Tech-agnostic spec interaction layer                      | `SYNC:ui-intent-layer`                                                                     | design artifacts (they own fidelity, the spec owns behavior) |
+| Existing-UI inventory before designing                    | `SYNC:existing-ui-research`                                                                | —                                                            |
 | Project tokens, components, icons, BEM                    | `design-system/` + `configured styling reference`, both in the project-reference docs root | this file (this file NEVER names project-specific values)    |
 
 ---

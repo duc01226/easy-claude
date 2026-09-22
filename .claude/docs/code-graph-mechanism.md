@@ -362,9 +362,9 @@ Tree-sitter captures built-in method calls (e.g., `map`, `push`, `forEach` in JS
 
 After all files are parsed, a batch SQL pass resolves unqualified CALLS targets. For each bare target name (no `::` separator), it queries the global node table:
 
--   **Exact 1 match** → resolve to qualified name (e.g., `BuildCheckInPermissionExpr` → `PermissionService.cs::BuildCheckInPermissionExpr`)
--   **2+ matches** → use IMPORTS_FROM edges from the calling file to disambiguate (import-based resolution)
--   **0 matches** → leave bare (built-in method or external library)
+- **Exact 1 match** → resolve to qualified name (e.g., `BuildCheckInPermissionExpr` → `PermissionService.cs::BuildCheckInPermissionExpr`)
+- **2+ matches** → use IMPORTS_FROM edges from the calling file to disambiguate (import-based resolution)
+- **0 matches** → leave bare (built-in method or external library)
 
 ### 3. Implicit Connectors
 
@@ -374,8 +374,8 @@ Creates behavioral edges (MESSAGE_BUS, TRIGGERS_EVENT, CQRS_DISPATCH, etc.) base
 
 After build, analyzes results and outputs suggestions for projects missing config:
 
--   "No project-config.json found — create one for framework-specific edges"
--   "No implicit connection rules — add for cross-service tracing"
+- "No project-config.json found — create one for framework-specific edges"
+- "No implicit connection rules — add for cross-service tracing"
 
 ### Trace Edge Kind Auto-Discovery
 
@@ -403,8 +403,8 @@ The API connector automatically detects frontend and backend frameworks without 
 
 The connector runs automatically:
 
--   After `build`, `update`, `sync` via `_auto_connect()` in `cli.py`
--   On first `trace`, `query`, `connections` via `_ensure_connectors_ran()` (metadata timestamp check, <1ms)
+- After `build`, `update`, `sync` via `_auto_connect()` in `cli.py`
+- On first `trace`, `query`, `connections` via `_ensure_connectors_ran()` (metadata timestamp check, <1ms)
 
 ### Trace BFS Connector Edge Bridge
 
@@ -425,23 +425,23 @@ The BFS trace algorithm (`tools.py:trace_connections`) follows both structural e
 
 ### Python Package (`.claude/scripts/code_graph/`)
 
-| File                    | Lines | Purpose                                                                                                                               |
-| ----------------------- | ----- | ------------------------------------------------------------------------------------------------------------------------------------- |
-| `parser.py`             | ~1350 | Tree-sitter AST walker, 14 languages, multi-language noise filter (`_BUILTIN_CALL_NOISE`), C# `base_list` INHERITS; import targets resolved via `resolver.py`; emits cross-file TESTED_BY                    |
-| `resolver.py`           | ~450  | Import/alias resolver: relative paths, tsconfig `paths`, and pnpm-workspace packages via `exports`/`main`/`module`; shared by parser and incremental builds |
-| `graph.py`              | ~750  | SQLite GraphStore, BFS impact, `resolve_bare_calls()` post-build resolution, `get_distinct_edge_kinds()`, NetworkX caching            |
-| `incremental.py`        | ~750  | git diff detection, full/incremental/sync build, `find_project_config()`, `load_project_config()`, `_make_parser()` multi-lang config |
-| `tools.py`              | ~1100 | Query/analysis tools, `trace_connections()` with auto-discover edge kinds, class-name resolution, Class node seeding                  |
-| `cli.py`                | ~650  | CLI with 17 subcommands, `_auto_connect()`, `_generate_build_suggestions()`, `--json` output, `--node-mode` option                    |
-| `implicit_connector.py` | ~250  | Regex-based implicit connection engine: reads rules from `project-config.json → graphConnectors.implicitConnections[]`; joins on `contentPattern` (code) or `pathPattern` (filename), per-side `paths`, and honours `graphSettings.scanSkipDirs`                |
-| `mermaid_exporter.py`   | ~150  | Export single-file graph as Mermaid flowchart markdown                                                                                |
-| `api_connector.py`      | ~620  | Detect frontend-backend API connections, delegates config to shared `find_project_config()`; file-based routes via configurable `routeFile`/`methodExports`/`urlPrefix`                                           |
-| `api_patterns.py`       | ~85   | Framework-specific HTTP call and route patterns                                                                                       |
-| `models.py`             | ~50   | Data classes: `NodeInfo`, `EdgeInfo` for parser output                                                                                |
-| `descriptions.py`       | ~150  | MCP-style structured descriptions for `describe` command                                                                              |
-| `__init__.py`           | ~10   | Package init with MIT attribution                                                                                                     |
-| `__main__.py`           | ~15   | Entry point for `python .claude/scripts/code_graph`                                                                                   |
-| `LICENSE`               | MIT   | License from code-graph v1.8.4                                                                                                        |
+| File                    | Lines | Purpose                                                                                                                                                                                                                                          |
+| ----------------------- | ----- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `parser.py`             | ~1350 | Tree-sitter AST walker, 14 languages, multi-language noise filter (`_BUILTIN_CALL_NOISE`), C# `base_list` INHERITS; import targets resolved via `resolver.py`; emits cross-file TESTED_BY                                                        |
+| `resolver.py`           | ~450  | Import/alias resolver: relative paths, tsconfig `paths`, and pnpm-workspace packages via `exports`/`main`/`module`; shared by parser and incremental builds                                                                                      |
+| `graph.py`              | ~750  | SQLite GraphStore, BFS impact, `resolve_bare_calls()` post-build resolution, `get_distinct_edge_kinds()`, NetworkX caching                                                                                                                       |
+| `incremental.py`        | ~750  | git diff detection, full/incremental/sync build, `find_project_config()`, `load_project_config()`, `_make_parser()` multi-lang config                                                                                                            |
+| `tools.py`              | ~1100 | Query/analysis tools, `trace_connections()` with auto-discover edge kinds, class-name resolution, Class node seeding                                                                                                                             |
+| `cli.py`                | ~650  | CLI with 17 subcommands, `_auto_connect()`, `_generate_build_suggestions()`, `--json` output, `--node-mode` option                                                                                                                               |
+| `implicit_connector.py` | ~250  | Regex-based implicit connection engine: reads rules from `project-config.json → graphConnectors.implicitConnections[]`; joins on `contentPattern` (code) or `pathPattern` (filename), per-side `paths`, and honours `graphSettings.scanSkipDirs` |
+| `mermaid_exporter.py`   | ~150  | Export single-file graph as Mermaid flowchart markdown                                                                                                                                                                                           |
+| `api_connector.py`      | ~620  | Detect frontend-backend API connections, delegates config to shared `find_project_config()`; file-based routes via configurable `routeFile`/`methodExports`/`urlPrefix`                                                                          |
+| `api_patterns.py`       | ~85   | Framework-specific HTTP call and route patterns                                                                                                                                                                                                  |
+| `models.py`             | ~50   | Data classes: `NodeInfo`, `EdgeInfo` for parser output                                                                                                                                                                                           |
+| `descriptions.py`       | ~150  | MCP-style structured descriptions for `describe` command                                                                                                                                                                                         |
+| `__init__.py`           | ~10   | Package init with MIT attribution                                                                                                                                                                                                                |
+| `__main__.py`           | ~15   | Entry point for `python .claude/scripts/code_graph`                                                                                                                                                                                              |
+| `LICENSE`               | MIT   | License from code-graph v1.8.4                                                                                                                                                                                                                   |
 
 ### CJS Hooks (`.claude/hooks/`)
 
@@ -942,8 +942,8 @@ Claude traces the full chain in 3 queries: Command → Event Handler → Message
 
 **Token comparison:**
 
--   Without graph: ~25,000 tokens grepping across 3 services for "email", "notification", "user created"
--   With graph: ~2,000 tokens for 3 targeted queries + reading 4 files in the chain
+- Without graph: ~25,000 tokens grepping across 3 services for "email", "notification", "user created"
+- With graph: ~2,000 tokens for 3 targeted queries + reading 4 files in the chain
 
 ---
 
@@ -1021,10 +1021,10 @@ Stores "def456" as new last_synced_commit
 
 **Edge cases handled:**
 
--   **First sync (no stored commit):** Scans all files on disk, adds missing ones to graph
--   **Unreachable commit (rebase/force-push):** Falls back to full rebuild automatically
--   **No git in workspace:** Skips sync silently
--   **Large diff after long absence:** Hash-based skip prevents re-parsing unchanged content
+- **First sync (no stored commit):** Scans all files on disk, adds missing ones to graph
+- **Unreachable commit (rebase/force-push):** Falls back to full rebuild automatically
+- **No git in workspace:** Skips sync silently
+- **Large diff after long absence:** Hash-based skip prevents re-parsing unchanged content
 
 ### 3. Build Stores Git Commit Hash
 

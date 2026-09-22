@@ -97,59 +97,59 @@ If fewer than four of these are known, state the gap at the top of the report an
 
 ## B. Cognitive Load & Decision Design
 
-| ID  | Check                                                                                 | Failure signal                                                               | Default |
-| --- | ------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------- | ------- |
-| B1  | **Fitts** — primary targets are large and near the likely pointer/thumb origin        | Main CTA is small and in the hardest-to-reach corner                         | P2      |
-| B2  | **Hick** — choices are chunked, staged, or defaulted; no undifferentiated long lists  | 12+ equal-weight options presented simultaneously at a decision point        | P2      |
-| B3  | **Miller** — grouped items stay within ~5–9 per cluster                               | Navigation with 15 flat, ungrouped items                                     | P2      |
-| B4  | **Jakob** — conventional patterns behave conventionally                               | Logo doesn't link home; hamburger opens something unexpected                 | P2      |
-| B5  | **Tesler** — unavoidable complexity is absorbed by the system, not pushed to the user | User asked to compute, format, or reformat something the system could derive | P2      |
-| B6  | **Doherty** — interactions meet the product/platform response expectation or show progress | Perceptible dead time with no feedback                                    | P1      |
-| B7  | **Von Restorff** — exactly one element per view is visually dominant                  | Three "primary" buttons on one screen                                        | P2      |
-| B8  | **Peak–End** — flow endings are satisfying and clearly closed                         | Successful submission ends on a blank screen with no confirmation            | P2      |
-| B9  | **Goal-gradient / Zeigarnik** — multi-step flows show progress and remaining effort   | Unbounded wizard with no step count                                          | P2      |
-| B10 | **Pareto** — the top 20% of features get the most prominent placement                 | Rarely used admin action occupies prime real estate                          | P3      |
-| B11 | Reading level and information density suit the audience                               | Dense expert jargon in a consumer onboarding flow                            | P2      |
+| ID  | Check                                                                                      | Failure signal                                                               | Default |
+| --- | ------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------- | ------- |
+| B1  | **Fitts** — primary targets are large and near the likely pointer/thumb origin             | Main CTA is small and in the hardest-to-reach corner                         | P2      |
+| B2  | **Hick** — choices are chunked, staged, or defaulted; no undifferentiated long lists       | 12+ equal-weight options presented simultaneously at a decision point        | P2      |
+| B3  | **Miller** — grouped items stay within ~5–9 per cluster                                    | Navigation with 15 flat, ungrouped items                                     | P2      |
+| B4  | **Jakob** — conventional patterns behave conventionally                                    | Logo doesn't link home; hamburger opens something unexpected                 | P2      |
+| B5  | **Tesler** — unavoidable complexity is absorbed by the system, not pushed to the user      | User asked to compute, format, or reformat something the system could derive | P2      |
+| B6  | **Doherty** — interactions meet the product/platform response expectation or show progress | Perceptible dead time with no feedback                                       | P1      |
+| B7  | **Von Restorff** — exactly one element per view is visually dominant                       | Three "primary" buttons on one screen                                        | P2      |
+| B8  | **Peak–End** — flow endings are satisfying and clearly closed                              | Successful submission ends on a blank screen with no confirmation            | P2      |
+| B9  | **Goal-gradient / Zeigarnik** — multi-step flows show progress and remaining effort        | Unbounded wizard with no step count                                          | P2      |
+| B10 | **Pareto** — the top 20% of features get the most prominent placement                      | Rarely used admin action occupies prime real estate                          | P3      |
+| B11 | Reading level and information density suit the audience                                    | Dense expert jargon in a consumer onboarding flow                            | P2      |
 
 ---
 
 ## C. Visual Design & Hierarchy
 
-| ID  | Check                                                                                          | Failure signal                                                           | Default |
-| --- | ---------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------ | ------- |
-| C1  | Visual hierarchy matches task priority — the most important thing looks most important         | Eye lands on a banner before the primary action                          | P2      |
-| C2  | Alignment is systematic; elements share edges and a consistent grid                            | Ragged left edges, off-grid components, inconsistent gutters             | P3      |
-| C3  | Spacing follows a scale (e.g. 4/8pt) and is applied consistently                               | Arbitrary values: 13px here, 17px there                                  | P3      |
-| C4  | Proximity groups related items and separates unrelated ones                                    | Label sits closer to the wrong input than its own                        | P2      |
-| C5  | Type styles and weights are limited, intentional, and consistent with the project's design system | Unrelated type treatments compete within one surface                   | P3      |
-| C6  | Text width, size, and line spacing support comfortable reading for the audience and platform   | Long lines or tight spacing make content difficult to follow             | P2      |
-| C7  | Color is systematic and semantic — success/warning/error/info are consistent                   | Red used both for errors and for a brand accent                          | P2      |
-| C8  | White space is used deliberately; no wall-to-wall density without reason                       | Zero breathing room around dense content blocks                          | P3      |
-| C9  | Elevation/shadow/layering communicates real hierarchy, not decoration                          | Random shadow depths with no z-order logic                               | P3      |
-| C10 | Iconography is consistent in style, weight, grid, and metaphor                                 | Mixed outline and filled icons in one toolbar                            | P3      |
-| C11 | Imagery is purposeful, optimized, and consistent in treatment                                  | Generic stock photos with mismatched crops and color                     | P3      |
-| C12 | Gestalt principles are respected — grouping, similarity, closure, common region read correctly | Card boundaries imply grouping that contradicts the actual relationships | P2      |
-| C13 | Brand expression is present but never at the cost of clarity                                   | Custom styling makes a button unrecognizable as a button                 | P2      |
+| ID  | Check                                                                                             | Failure signal                                                           | Default |
+| --- | ------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------ | ------- |
+| C1  | Visual hierarchy matches task priority — the most important thing looks most important            | Eye lands on a banner before the primary action                          | P2      |
+| C2  | Alignment is systematic; elements share edges and a consistent grid                               | Ragged left edges, off-grid components, inconsistent gutters             | P3      |
+| C3  | Spacing follows a scale (e.g. 4/8pt) and is applied consistently                                  | Arbitrary values: 13px here, 17px there                                  | P3      |
+| C4  | Proximity groups related items and separates unrelated ones                                       | Label sits closer to the wrong input than its own                        | P2      |
+| C5  | Type styles and weights are limited, intentional, and consistent with the project's design system | Unrelated type treatments compete within one surface                     | P3      |
+| C6  | Text width, size, and line spacing support comfortable reading for the audience and platform      | Long lines or tight spacing make content difficult to follow             | P2      |
+| C7  | Color is systematic and semantic — success/warning/error/info are consistent                      | Red used both for errors and for a brand accent                          | P2      |
+| C8  | White space is used deliberately; no wall-to-wall density without reason                          | Zero breathing room around dense content blocks                          | P3      |
+| C9  | Elevation/shadow/layering communicates real hierarchy, not decoration                             | Random shadow depths with no z-order logic                               | P3      |
+| C10 | Iconography is consistent in style, weight, grid, and metaphor                                    | Mixed outline and filled icons in one toolbar                            | P3      |
+| C11 | Imagery is purposeful, optimized, and consistent in treatment                                     | Generic stock photos with mismatched crops and color                     | P3      |
+| C12 | Gestalt principles are respected — grouping, similarity, closure, common region read correctly    | Card boundaries imply grouping that contradicts the actual relationships | P2      |
+| C13 | Brand expression is present but never at the cost of clarity                                      | Custom styling makes a button unrecognizable as a button                 | P2      |
 
 ---
 
 ## D. Interaction & State Design
 
-| ID  | Check                                                                                                      | Failure signal                                                                   | Default |
-| --- | ---------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------- | ------- |
-| D1  | Applicable interaction states are clear for the supported inputs: default, focus/hover where available, active, disabled, loading, error, selected | A supported input has no clear state feedback | P1      |
-| D2  | Relevant states are handled for the surface and its supported capabilities: ideal, empty, first-run, loading, partial, error, offline, or maximum-data as applicable | An applicable empty or error state has no useful content | P1      |
-| D3  | Empty states explain what belongs there and offer the action to fill it                                    | "No results" with no suggestion or reset                                         | P2      |
-| D4  | Loading uses skeletons or optimistic UI, not spinners on full pages                                        | 4-second full-page spinner                                                       | P2      |
-| D5  | Affordances are unambiguous — clickable looks clickable, disabled looks disabled                           | Flat text that is secretly a link; disabled state indistinguishable from enabled | P1      |
-| D6  | Feedback is immediate and proportional to the action                                                       | Save with no confirmation of any kind                                            | P1      |
-| D7  | Animation is purposeful, platform-appropriate, and respects the user's motion settings                     | Decorative motion delays or obscures the task                                    | P3      |
-| D8  | `prefers-reduced-motion` is respected                                                                      | Parallax and large motion play regardless of OS setting                          | P1      |
-| D9  | Destructive actions have undo (preferred) or confirmation naming the consequence                           | "Are you sure?" with no statement of what is lost                                | P1      |
-| D10 | Work in progress is preserved — autosave, draft recovery, state restoration                                | Navigating away silently discards 10 minutes of input                            | P0      |
-| D11 | Smart defaults are pre-selected for the most common case                                                   | Every field blank when 90% of users pick the same value                          | P2      |
-| D12 | Direct manipulation where natural — drag, resize, inline edit                                              | Requires a modal round-trip to change one value                                  | P3      |
-| D13 | No dead ends: every error, empty, and edge state offers a forward path                                     | 404 with no navigation or search                                                 | P1      |
+| ID  | Check                                                                                                                                                                | Failure signal                                                                   | Default |
+| --- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------- | ------- |
+| D1  | Applicable interaction states are clear for the supported inputs: default, focus/hover where available, active, disabled, loading, error, selected                   | A supported input has no clear state feedback                                    | P1      |
+| D2  | Relevant states are handled for the surface and its supported capabilities: ideal, empty, first-run, loading, partial, error, offline, or maximum-data as applicable | An applicable empty or error state has no useful content                         | P1      |
+| D3  | Empty states explain what belongs there and offer the action to fill it                                                                                              | "No results" with no suggestion or reset                                         | P2      |
+| D4  | Loading uses skeletons or optimistic UI, not spinners on full pages                                                                                                  | 4-second full-page spinner                                                       | P2      |
+| D5  | Affordances are unambiguous — clickable looks clickable, disabled looks disabled                                                                                     | Flat text that is secretly a link; disabled state indistinguishable from enabled | P1      |
+| D6  | Feedback is immediate and proportional to the action                                                                                                                 | Save with no confirmation of any kind                                            | P1      |
+| D7  | Animation is purposeful, platform-appropriate, and respects the user's motion settings                                                                               | Decorative motion delays or obscures the task                                    | P3      |
+| D8  | `prefers-reduced-motion` is respected                                                                                                                                | Parallax and large motion play regardless of OS setting                          | P1      |
+| D9  | Destructive actions have undo (preferred) or confirmation naming the consequence                                                                                     | "Are you sure?" with no statement of what is lost                                | P1      |
+| D10 | Work in progress is preserved — autosave, draft recovery, state restoration                                                                                          | Navigating away silently discards 10 minutes of input                            | P0      |
+| D11 | Smart defaults are pre-selected for the most common case                                                                                                             | Every field blank when 90% of users pick the same value                          | P2      |
+| D12 | Direct manipulation where natural — drag, resize, inline edit                                                                                                        | Requires a modal round-trip to change one value                                  | P3      |
+| D13 | No dead ends: every error, empty, and edge state offers a forward path                                                                                               | 404 with no navigation or search                                                 | P1      |
 
 ---
 
@@ -170,42 +170,42 @@ If fewer than four of these are known, state the gap at the top of the report an
 
 ## F. Web-Specific _(apply only if platform includes web)_
 
-| ID  | Check                                                                                                  | Failure signal                                        | Default |
-| --- | ------------------------------------------------------------------------------------------------------ | ----------------------------------------------------- | ------- |
-| F1  | Usable across the project's supported viewport range with no unintended clipping or horizontal scroll | Layout breaks at a required supported size             | P1      |
-| F2  | Core content and primary action work without JavaScript or on slow networks                            | Blank page until a 2MB bundle loads                   | P2      |
-| F3  | Measure applicable Core Web Vitals against the product's declared performance budget or selected current guidance | Content shifts after load, causing misclicks     | P1      |
-| F4  | Value proposition and primary action are clear in the first viewport                                   | User must scroll to learn what the product does       | P2      |
-| F5  | Semantic HTML: one h1, logical heading order, landmarks, lists, native buttons/links                   | `<div onclick>` used as a button                      | P1      |
-| F6  | Links navigate, buttons act — and each looks like what it is                                           | "Button" that changes the URL, or a link that submits | P2      |
-| F7  | Forms: single column, top-aligned labels, correct `type` and `autocomplete`, inline validation on blur | Validation fires per keystroke or only on submit      | P2      |
-| F8  | URLs are readable, stable, shareable, and reflect state where appropriate                              | Filtered view cannot be shared or bookmarked          | P3      |
-| F9  | Page titles, meta descriptions, alt text, and structured data are present and accurate                 | Duplicate or missing `<title>` across pages           | P3      |
-| F10 | Scanning pattern supported (F-pattern for content, Z for landing)                                      | Key information placed where no one looks             | P3      |
-| F11 | Works in the browsers and versions the project supports                                                | Feature silently fails in a supported browser        | P1      |
-| F12 | Dark mode and forced-colors mode render legibly if supported                                           | Text disappears in dark mode                          | P2      |
+| ID  | Check                                                                                                             | Failure signal                                        | Default |
+| --- | ----------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------- | ------- |
+| F1  | Usable across the project's supported viewport range with no unintended clipping or horizontal scroll             | Layout breaks at a required supported size            | P1      |
+| F2  | Core content and primary action work without JavaScript or on slow networks                                       | Blank page until a 2MB bundle loads                   | P2      |
+| F3  | Measure applicable Core Web Vitals against the product's declared performance budget or selected current guidance | Content shifts after load, causing misclicks          | P1      |
+| F4  | Value proposition and primary action are clear in the first viewport                                              | User must scroll to learn what the product does       | P2      |
+| F5  | Semantic HTML: one h1, logical heading order, landmarks, lists, native buttons/links                              | `<div onclick>` used as a button                      | P1      |
+| F6  | Links navigate, buttons act — and each looks like what it is                                                      | "Button" that changes the URL, or a link that submits | P2      |
+| F7  | Forms: single column, top-aligned labels, correct `type` and `autocomplete`, inline validation on blur            | Validation fires per keystroke or only on submit      | P2      |
+| F8  | URLs are readable, stable, shareable, and reflect state where appropriate                                         | Filtered view cannot be shared or bookmarked          | P3      |
+| F9  | Page titles, meta descriptions, alt text, and structured data are present and accurate                            | Duplicate or missing `<title>` across pages           | P3      |
+| F10 | Scanning pattern supported (F-pattern for content, Z for landing)                                                 | Key information placed where no one looks             | P3      |
+| F11 | Works in the browsers and versions the project supports                                                           | Feature silently fails in a supported browser         | P1      |
+| F12 | Dark mode and forced-colors mode render legibly if supported                                                      | Text disappears in dark mode                          | P2      |
 
 ---
 
 ## G. Mobile-Specific _(apply only if platform includes iOS/Android)_
 
-| ID  | Check                                                                                | Failure signal                                              | Default |
-| --- | ------------------------------------------------------------------------------------ | ----------------------------------------------------------- | ------- |
-| G1  | Touch targets and spacing meet the target OS, accessibility standard, and project guidance           | Adjacent targets are difficult to operate                  | P1      |
-| G2  | Primary actions sit within the natural thumb arc; destructive actions do not         | Main CTA in the top-left corner                             | P2      |
-| G3  | One-handed use is possible for core tasks                                            | Reaching the send button requires two hands                 | P2      |
-| G4  | Safe areas respected — notch, dynamic island, home indicator, rounded corners        | Content hidden behind the gesture bar                       | P1      |
-| G5  | Platform conventions followed (HIG / Material) for navigation, sheets, back behavior | Android hardware/gesture back does nothing or exits the app | P1      |
-| G6  | Offline and poor-connectivity behavior is designed: cached, queued, communicated     | Infinite spinner on airplane mode                           | P1      |
-| G7  | Permissions requested just-in-time with a plain rationale, never all at launch       | Location + contacts + notifications prompt on first open    | P1      |
-| G8  | Notifications are relevant, timed, batched, and user-controllable                    | Daily marketing push with no granular settings              | P2      |
-| G9  | Rotation and multitasking preserve state                                             | Rotating clears the form                                    | P1      |
-| G10 | Onboarding is short, skippable, and demonstrates value before asking for anything    | 6 mandatory screens before any use                          | P2      |
-| G11 | Gestures are discoverable and never the only path to a function                      | Swipe-only delete with no visible alternative               | P2      |
-| G12 | Respects OS text size, bold text, and reduced motion settings                        | Layout breaks at largest Dynamic Type setting               | P1      |
-| G13 | Cold start and time-to-first-meaningful-screen are acceptable (<2s target)           | 5s splash on every launch                                   | P2      |
-| G14 | Haptics are meaningful and sparing                                                   | Haptic on every scroll tick                                 | P3      |
-| G15 | Deep links resolve correctly and preserve back stack                                 | Deep link opens home instead of the target                  | P2      |
+| ID  | Check                                                                                      | Failure signal                                              | Default |
+| --- | ------------------------------------------------------------------------------------------ | ----------------------------------------------------------- | ------- |
+| G1  | Touch targets and spacing meet the target OS, accessibility standard, and project guidance | Adjacent targets are difficult to operate                   | P1      |
+| G2  | Primary actions sit within the natural thumb arc; destructive actions do not               | Main CTA in the top-left corner                             | P2      |
+| G3  | One-handed use is possible for core tasks                                                  | Reaching the send button requires two hands                 | P2      |
+| G4  | Safe areas respected — notch, dynamic island, home indicator, rounded corners              | Content hidden behind the gesture bar                       | P1      |
+| G5  | Platform conventions followed (HIG / Material) for navigation, sheets, back behavior       | Android hardware/gesture back does nothing or exits the app | P1      |
+| G6  | Offline and poor-connectivity behavior is designed: cached, queued, communicated           | Infinite spinner on airplane mode                           | P1      |
+| G7  | Permissions requested just-in-time with a plain rationale, never all at launch             | Location + contacts + notifications prompt on first open    | P1      |
+| G8  | Notifications are relevant, timed, batched, and user-controllable                          | Daily marketing push with no granular settings              | P2      |
+| G9  | Rotation and multitasking preserve state                                                   | Rotating clears the form                                    | P1      |
+| G10 | Onboarding is short, skippable, and demonstrates value before asking for anything          | 6 mandatory screens before any use                          | P2      |
+| G11 | Gestures are discoverable and never the only path to a function                            | Swipe-only delete with no visible alternative               | P2      |
+| G12 | Respects OS text size, bold text, and reduced motion settings                              | Layout breaks at largest Dynamic Type setting               | P1      |
+| G13 | Cold start and time-to-first-meaningful-screen are acceptable (<2s target)                 | 5s splash on every launch                                   | P2      |
+| G14 | Haptics are meaningful and sparing                                                         | Haptic on every scroll tick                                 | P3      |
+| G15 | Deep links resolve correctly and preserve back stack                                       | Deep link opens home instead of the target                  | P2      |
 
 ---
 
@@ -231,22 +231,22 @@ If fewer than four of these are known, state the gap at the top of the report an
 
 Resolve the applicable law, project policy, and platform accessibility standard from project references and evidence; record its name, version/level, and source. The numeric criteria below describe WCAG 2.2 AA where marked and apply only when that standard governs the relevant surface. For other standards or modalities, use their corresponding criteria. Default severities are guidance; follow the project's release contract. Failures blocking task completion may be **P0**.
 
-| ID  | Check                                                                                         | Failure signal                                        |
-| --- | --------------------------------------------------------------------------------------------- | ----------------------------------------------------- |
-| I1  | Text contrast ≥4.5:1 (normal), ≥3:1 (large ≥18.66px/24px); UI components and graphics ≥3:1    | Light gray placeholder text at 2.8:1                  |
-| I2  | Meaning is never conveyed by color alone                                                      | Required fields marked only in red                    |
-| I3  | All functionality is keyboard-operable with no traps                                          | Custom dropdown unreachable by keyboard               |
-| I4  | Focus indicator is always visible and has sufficient contrast                                 | `outline: none` with no replacement                   |
-| I5  | All images, icons, and media have appropriate text alternatives; decorative images are hidden | Icon-only button with no accessible name              |
-| I6  | Form inputs have programmatically associated labels; errors are announced                     | Placeholder used as the only label                    |
-| I7  | Heading structure is logical and sequential                                                   | Skips from h1 to h4; headings used for styling        |
-| I8  | ARIA used only where native semantics fall short, and used correctly                          | `role="button"` on a `<div>` with no keyboard handler |
-| I9  | Content reflows at the zoom, viewport, and text-scaling levels required by the applicable standard and platform | Required content is lost or unusable at a supported setting |
-| I10 | Motion, autoplay, and flashing respect user settings; nothing flashes >3×/sec                 | Autoplaying video with sound                          |
-| I11 | Time limits are adjustable, extendable, or absent                                             | Session expires mid-form with no warning              |
-| I12 | Screen reader pass completed on the primary flow (VoiceOver / TalkBack / NVDA)                | Not tested                                            |
-| I13 | Touch/pointer alternatives exist for complex gestures; drag has a non-drag path               | Reorder possible only by drag                         |
-| I14 | Interactive targets meet the applicable standard and platform target-size guidance (WCAG 2.2 examples apply only when selected) | Dense controls are difficult to activate |
+| ID  | Check                                                                                                                           | Failure signal                                              |
+| --- | ------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------- |
+| I1  | Text contrast ≥4.5:1 (normal), ≥3:1 (large ≥18.66px/24px); UI components and graphics ≥3:1                                      | Light gray placeholder text at 2.8:1                        |
+| I2  | Meaning is never conveyed by color alone                                                                                        | Required fields marked only in red                          |
+| I3  | All functionality is keyboard-operable with no traps                                                                            | Custom dropdown unreachable by keyboard                     |
+| I4  | Focus indicator is always visible and has sufficient contrast                                                                   | `outline: none` with no replacement                         |
+| I5  | All images, icons, and media have appropriate text alternatives; decorative images are hidden                                   | Icon-only button with no accessible name                    |
+| I6  | Form inputs have programmatically associated labels; errors are announced                                                       | Placeholder used as the only label                          |
+| I7  | Heading structure is logical and sequential                                                                                     | Skips from h1 to h4; headings used for styling              |
+| I8  | ARIA used only where native semantics fall short, and used correctly                                                            | `role="button"` on a `<div>` with no keyboard handler       |
+| I9  | Content reflows at the zoom, viewport, and text-scaling levels required by the applicable standard and platform                 | Required content is lost or unusable at a supported setting |
+| I10 | Motion, autoplay, and flashing respect user settings; nothing flashes >3×/sec                                                   | Autoplaying video with sound                                |
+| I11 | Time limits are adjustable, extendable, or absent                                                                               | Session expires mid-form with no warning                    |
+| I12 | Screen reader pass completed on the primary flow (VoiceOver / TalkBack / NVDA)                                                  | Not tested                                                  |
+| I13 | Touch/pointer alternatives exist for complex gestures; drag has a non-drag path                                                 | Reorder possible only by drag                               |
+| I14 | Interactive targets meet the applicable standard and platform target-size guidance (WCAG 2.2 examples apply only when selected) | Dense controls are difficult to activate                    |
 
 ---
 
@@ -302,17 +302,17 @@ Resolve the applicable law, project policy, and platform accessibility standard 
 
 ## M. Cross-Cutting Consistency & System Health
 
-| ID  | Check                                                                                                                                                                | Default |
-| --- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------- |
-| M1  | Components come from a design system; one-off variants are justified                                                                                                 | P3      |
-| M2  | Design tokens (color, spacing, type, radius, motion) are used rather than hard-coded values                                                                          | P3      |
-| M3  | The same task feels the same across web, mobile, and desktop where the user crosses platforms                                                                        | P2      |
-| M4  | Patterns are internally consistent: same modal type for same purpose, same table behavior everywhere                                                                 | P2      |
-| M5  | New work doesn't fork existing patterns without a documented reason                                                                                                  | P3      |
-| M6  | UI code has clear ownership using the project's documented component/module organization, or evidenced local boundaries when none is documented                     | P2      |
-| M7  | Existing components and abstractions are reused or composed when they fit; a meaningful deviation names its constraint                                               | P2      |
-| M8  | Shared behavior has an appropriate owner; duplication is consolidated when doing so reduces real maintenance cost                                                   | P2      |
-| M9  | Tests cover reusable behavior and surface composition according to the project's test organization and capabilities                                                 | P2      |
+| ID  | Check                                                                                                                                           | Default |
+| --- | ----------------------------------------------------------------------------------------------------------------------------------------------- | ------- |
+| M1  | Components come from a design system; one-off variants are justified                                                                            | P3      |
+| M2  | Design tokens (color, spacing, type, radius, motion) are used rather than hard-coded values                                                     | P3      |
+| M3  | The same task feels the same across web, mobile, and desktop where the user crosses platforms                                                   | P2      |
+| M4  | Patterns are internally consistent: same modal type for same purpose, same table behavior everywhere                                            | P2      |
+| M5  | New work doesn't fork existing patterns without a documented reason                                                                             | P3      |
+| M6  | UI code has clear ownership using the project's documented component/module organization, or evidenced local boundaries when none is documented | P2      |
+| M7  | Existing components and abstractions are reused or composed when they fit; a meaningful deviation names its constraint                          | P2      |
+| M8  | Shared behavior has an appropriate owner; duplication is consolidated when doing so reduces real maintenance cost                               | P2      |
+| M9  | Tests cover reusable behavior and surface composition according to the project's test organization and capabilities                             | P2      |
 
 ---
 

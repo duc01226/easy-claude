@@ -161,10 +161,7 @@
         "sequence": {
           "description": "Ordered legacy command strings or explicit occurrences. With variants, this base sequence remains a compatibility projection; execution uses the complete selected variant.",
           "items": {
-            "oneOf": [
-              { "type": "string", "pattern": "\\S" },
-              { "$ref": "#/definitions/Occurrence" }
-            ]
+            "oneOf": [{ "type": "string", "pattern": "\\S" }, { "$ref": "#/definitions/Occurrence" }]
           },
           "minItems": 1,
           "title": "Command Sequence",

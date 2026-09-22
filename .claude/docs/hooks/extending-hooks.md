@@ -212,13 +212,13 @@ if (!result.allowed) {
 
 Each of those three lines carries the whole contract:
 
--   **`process.stderr.write(result.message)`** — the block message is the only thing the user and Claude
-    see. A rejection with no stderr text is a silent failure the caller cannot act on.
--   **`process.exitCode = 2`** — never `process.exit(2)`. `process.exit` tears the process down
-    immediately, so a large diagnostic queued on a pipe is truncated or lost entirely; setting
-    `exitCode` lets Node drain first and exit with the same status.
--   **`return`** — the rejection must not fall through into the allow path that follows it. Dropping the
-    `return` produces a hook that writes a block message and then permits the operation anyway.
+- **`process.stderr.write(result.message)`** — the block message is the only thing the user and Claude
+  see. A rejection with no stderr text is a silent failure the caller cannot act on.
+- **`process.exitCode = 2`** — never `process.exit(2)`. `process.exit` tears the process down
+  immediately, so a large diagnostic queued on a pipe is truncated or lost entirely; setting
+  `exitCode` lets Node drain first and exit with the same status.
+- **`return`** — the rejection must not fall through into the allow path that follows it. Dropping the
+  `return` produces a hook that writes a block message and then permits the operation anyway.
 
 The canonical implementation of this contract lives in `runBlockingHook` itself
 (`.claude/hooks/lib/hook-runner.cjs`), so a hook that delegates inherits it; the rules above bind any hook
@@ -481,14 +481,14 @@ runHook(
 
 Use this shape only for a reminder that ALSO exists statically (CLAUDE.md/AGENTS.md or a lookup CLI) — the hook speeds delivery up, it never becomes the source of truth. Reference implementation: `file-convention-inject.cjs` (lib `file-conventions.cjs` / `convention-ledger.cjs`).
 
--   **Output:** one JSON object on stdout, exit `0`, no decision fields:
-    `{"hookSpecificOutput":{"hookEventName":"PostToolUse","additionalContext":"…"}}`. The tool call has already run; the text reaches the model before its next step.
--   **Opt-in + fast no-op:** read one config switch first and return silently when it is off; keep heavy `require`s behind that check.
--   **Fail-open:** any parse/config/IO error ⇒ empty stdout, exit `0`, no stderr noise (a reminder must never disrupt the tool flow).
--   **Deliver only what is missing:** key delivery memory by `session_id` + working context (`agent_id` when present, else main); write the record only in the `process.stdout.write` callback so an undelivered reminder is retried; re-arm after condensation (SessionStart `compact|clear`, transcript marks) and after enough conversation growth.
--   **Concurrency:** claim with an exclusive-create lock (`fs.openSync(file, 'wx')`), treat an old lock as stale, and re-check presence after acquiring it.
--   **Budget:** cap the text, put the must-do lines first and last, and degrade lowest-precedence content first.
--   **Codex:** `run-codex-sync.mjs` mirrors the registration; Codex runs the hook via a `node -e` launcher where `require.main` is undefined, so gate the entry point on `require.main === module || (!require.main && resolved argv[1] === __filename)`.
+- **Output:** one JSON object on stdout, exit `0`, no decision fields:
+  `{"hookSpecificOutput":{"hookEventName":"PostToolUse","additionalContext":"…"}}`. The tool call has already run; the text reaches the model before its next step.
+- **Opt-in + fast no-op:** read one config switch first and return silently when it is off; keep heavy `require`s behind that check.
+- **Fail-open:** any parse/config/IO error ⇒ empty stdout, exit `0`, no stderr noise (a reminder must never disrupt the tool flow).
+- **Deliver only what is missing:** key delivery memory by `session_id` + working context (`agent_id` when present, else main); write the record only in the `process.stdout.write` callback so an undelivered reminder is retried; re-arm after condensation (SessionStart `compact|clear`, transcript marks) and after enough conversation growth.
+- **Concurrency:** claim with an exclusive-create lock (`fs.openSync(file, 'wx')`), treat an old lock as stale, and re-check presence after acquiring it.
+- **Budget:** cap the text, put the must-do lines first and last, and degrade lowest-precedence content first.
+- **Codex:** `run-codex-sync.mjs` mirrors the registration; Codex runs the hook via a `node -e` launcher where `require.main` is undefined, so gate the entry point on `require.main === module || (!require.main && resolved argv[1] === __filename)`.
 
 ---
 
@@ -539,8 +539,8 @@ export CK_DEBUG=1
 
 Debug logs are written to stderr and appear in:
 
--   Terminal output during Claude Code execution
--   stderr when `CLAUDE_HOOK_DEBUG=1` is enabled
+- Terminal output during Claude Code execution
+- stderr when `CLAUDE_HOOK_DEBUG=1` is enabled
 
 For the Bash PreToolUse chain, `CLAUDE_HOOK_DEBUG=1` writes one JSON record per invocation to the
 platform temp directory at `ck/debug/bash-hooks.log` (override with `CLAUDE_HOOK_DEBUG_LOG`). Records
@@ -656,7 +656,7 @@ command or path contents. A sink failure is reported on stderr and does not chan
 
 ## Related Documentation
 
--   [README.md](./README.md) - Hooks overview and catalog
+- [README.md](./README.md) - Hooks overview and catalog
 
 ---
 

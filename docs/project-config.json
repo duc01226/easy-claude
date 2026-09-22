@@ -4,8 +4,13 @@
   "project": {
     "name": "easy-claude",
     "description": "Claude Code enhancement framework — hooks, skills, agents, and workflows that extend Claude Code capabilities",
-    "languages": ["javascript", "python"],
-    "packageManagers": ["npm"]
+    "languages": [
+      "javascript",
+      "python"
+    ],
+    "packageManagers": [
+      "npm"
+    ]
   },
   "framework": {
     "name": "claude-code-framework",
@@ -13,10 +18,26 @@
     "frontendPatternsDoc": "docs/project-reference/frontend-patterns-reference.md",
     "codeReviewDoc": "docs/project-reference/code-review-rules.md",
     "integrationTestDoc": "docs/project-reference/integration-test-reference.md",
-    "searchPatternKeywords": ["hook", "skill", "agent", "workflow", "context", "injector", "session"]
+    "searchPatternKeywords": [
+      "hook",
+      "skill",
+      "agent",
+      "workflow",
+      "context",
+      "injector",
+      "session"
+    ]
   },
   "skillConventions": {
-    "conventionFields": ["version", "activation", "triggers", "execution-mode", "context-budget", "tags", "category"],
+    "conventionFields": [
+      "version",
+      "activation",
+      "triggers",
+      "execution-mode",
+      "context-budget",
+      "tags",
+      "category"
+    ],
     "removableFields": [],
     "fieldFixes": {}
   },
@@ -26,93 +47,173 @@
       "kind": "library",
       "pathRegex": "[\\\\/]\\.claude[\\\\/]hooks[\\\\/]",
       "description": "Runtime hooks for session initialization, safety gates, graph maintenance, and code formatting",
-      "tags": ["core", "cjs"]
+      "tags": [
+        "core",
+        "cjs"
+      ]
     },
     {
       "name": "hooks-lib",
       "kind": "library",
       "pathRegex": "[\\\\/]\\.claude[\\\\/]hooks[\\\\/]lib[\\\\/]",
       "description": "Shared utility modules consumed by hooks",
-      "tags": ["core", "cjs"]
+      "tags": [
+        "core",
+        "cjs"
+      ]
     },
     {
       "name": "skills",
       "kind": "library",
       "pathRegex": "[\\\\/]\\.claude[\\\\/]skills[\\\\/]",
       "description": "Skill definitions for task automation (SKILL.md + scripts)",
-      "tags": ["core", "markdown"]
+      "tags": [
+        "core",
+        "markdown"
+      ]
     },
     {
       "name": "agents",
       "kind": "library",
       "pathRegex": "[\\\\/]\\.claude[\\\\/]agents[\\\\/]",
       "description": "Agent definitions for specialized subagent roles",
-      "tags": ["core", "markdown"]
+      "tags": [
+        "core",
+        "markdown"
+      ]
     },
     {
       "name": "scripts",
       "kind": "library",
       "pathRegex": "[\\\\/]\\.claude[\\\\/]scripts[\\\\/]",
       "description": "Utility scripts for catalog generation, skill/agent management, shared-protocol sync, and code-graph tooling",
-      "tags": ["tooling", "cjs", "python"]
+      "tags": [
+        "tooling",
+        "cjs",
+        "python"
+      ]
     },
     {
       "name": "workflows",
       "kind": "library",
       "pathRegex": "[\\\\/]\\.claude[\\\\/]workflows[\\\\/]",
       "description": "Workflow definitions for orchestrating multi-step task sequences",
-      "tags": ["core", "markdown"]
+      "tags": [
+        "core",
+        "markdown"
+      ]
     },
     {
       "name": "docs-framework",
       "kind": "library",
       "pathRegex": "[\\\\/]\\.claude[\\\\/]docs[\\\\/]",
       "description": "Framework documentation — agents, skills, hooks, configuration guides",
-      "tags": ["docs"]
+      "tags": [
+        "docs"
+      ]
     }
   ],
   "contextGroups": [
     {
       "name": "hooks-context",
-      "pathRegexes": ["[\\\\/]\\.claude[\\\\/]hooks[\\\\/].*\\.cjs$"],
-      "fileExtensions": [".cjs"],
+      "pathRegexes": [
+        "[\\\\/]\\.claude[\\\\/]hooks[\\\\/].*\\.cjs$"
+      ],
+      "fileExtensions": [
+        ".cjs"
+      ],
       "guideDoc": ".claude/docs/hooks/README.md",
       "rules": [
         "Hooks use CommonJS (require/module.exports)",
         "Hook files read stdin JSON and write to stdout/stderr",
         "Shared utilities go in .claude/hooks/lib/",
-        "Test hooks via node .claude/hooks/tests/test-all-hooks.cjs"
+        "Test hooks via node .claude/hooks/tests/test-all-hooks.cjs",
+        "Every AI-agent folder (.claude/, .codex/, .agents/, .opencode/) ships to other projects: keep it portable and configurable — no project names, absolute paths, or consumer-specific terms; project specifics belong in docs/project-config.json or project-reference docs"
       ]
     },
     {
       "name": "skills-context",
-      "pathRegexes": ["[\\\\/]\\.claude[\\\\/]skills[\\\\/].*SKILL\\.md$"],
-      "fileExtensions": [".md"],
+      "pathRegexes": [
+        "[\\\\/]\\.claude[\\\\/]skills[\\\\/].*SKILL\\.md$"
+      ],
+      "fileExtensions": [
+        ".md"
+      ],
       "guideDoc": ".claude/docs/skills/README.md",
       "rules": [
         "Each skill is a directory with SKILL.md as entry point",
         "Skills may have scripts/, references/, and tests/ subdirectories",
-        "Follow naming conventions in .claude/docs/skill-naming-conventions.md"
+        "Follow naming conventions in .claude/docs/skill-naming-conventions.md",
+        "Every AI-agent folder (.claude/, .codex/, .agents/, .opencode/) ships to other projects: keep it portable and configurable — no project names, absolute paths, or consumer-specific terms; project specifics belong in docs/project-config.json or project-reference docs"
       ]
     },
     {
       "name": "agents-context",
-      "pathRegexes": ["[\\\\/]\\.claude[\\\\/]agents[\\\\/].*\\.md$"],
-      "fileExtensions": [".md"],
+      "pathRegexes": [
+        "[\\\\/]\\.claude[\\\\/]agents[\\\\/].*\\.md$"
+      ],
+      "fileExtensions": [
+        ".md"
+      ],
       "guideDoc": ".claude/docs/agents/README.md",
-      "rules": ["Agent definitions are markdown files in .claude/agents/", "Follow patterns in .claude/docs/agents/agent-patterns.md"]
+      "rules": [
+        "Agent definitions are markdown files in .claude/agents/",
+        "Follow patterns in .claude/docs/agents/agent-patterns.md",
+        "Every AI-agent folder (.claude/, .codex/, .agents/, .opencode/) ships to other projects: keep it portable and configurable — no project names, absolute paths, or consumer-specific terms; project specifics belong in docs/project-config.json or project-reference docs"
+      ]
+    },
+    {
+      "name": "scripts-context",
+      "pathRegexes": [
+        "[\\/].claude[\\/]scripts[\\/].*.(cjs|mjs|js|py)$"
+      ],
+      "fileExtensions": [
+        ".cjs",
+        ".mjs",
+        ".js",
+        ".py"
+      ],
+      "guideDoc": ".claude/docs/framework-portability.md",
+      "rules": [
+        "Every AI-agent folder (.claude/, .codex/, .agents/, .opencode/) ships to other projects: keep it portable and configurable — no project names, absolute paths, or consumer-specific terms; project specifics belong in docs/project-config.json or project-reference docs",
+        "Verifiers and generators under .claude/scripts/ are portable framework surfaces — gate them with the residue and root-literal checks before commit",
+        "Resolve every root from project config with the framework default as fallback; never hardcode a spec, docs, or package path"
+      ]
+    },
+    {
+      "name": "agent-mirrors-context",
+      "pathRegexes": [
+        "^[\\/]?.(codex|agents|opencode)[\\/]"
+      ],
+      "fileExtensions": [
+        ".md",
+        ".toml",
+        ".json",
+        ".mjs",
+        ".cjs"
+      ],
+      "guideDoc": ".claude/docs/framework-portability.md",
+      "rules": [
+        "Every AI-agent folder (.claude/, .codex/, .agents/, .opencode/) ships to other projects: keep it portable and configurable — no project names, absolute paths, or consumer-specific terms; project specifics belong in docs/project-config.json or project-reference docs",
+        "These folders are GENERATED mirrors of .claude/ — never hand-edit them; fix the .claude/** source and regenerate, or the next sync reverts the edit",
+        "A project-specific leak found in a mirror means the leak is in the .claude/** source — fix it there"
+      ]
     },
     {
       "name": "feature-spec",
       "pathRegexes": [],
       "priority": 100,
-      "pathGlobs": ["docs/specs/**/*.md"],
+      "pathGlobs": [
+        "docs/specs/**/*.md"
+      ],
       "referenceDocs": [
         "docs/project-reference/feature-spec-reference.md",
         "docs/project-reference/spec-system-reference.md",
         "docs/project-reference/spec-principles.md"
       ],
-      "skills": ["spec"],
+      "skills": [
+        "spec"
+      ],
       "origin": "detected",
       "detectedFingerprint": "ced81f62cf9ef9f0"
     },
@@ -120,9 +221,15 @@
       "name": "integration-test",
       "pathRegexes": [],
       "priority": 100,
-      "pathGlobs": ["**/*.test.cjs"],
-      "referenceDocs": ["docs/project-reference/integration-test-reference.md"],
-      "skills": ["integration-test"],
+      "pathGlobs": [
+        "**/*.test.cjs"
+      ],
+      "referenceDocs": [
+        "docs/project-reference/integration-test-reference.md"
+      ],
+      "skills": [
+        "integration-test"
+      ],
       "origin": "detected",
       "detectedFingerprint": "342fb4bf9f19054a"
     },
@@ -130,10 +237,27 @@
       "name": "general-code",
       "pathRegexes": [],
       "priority": 900,
-      "pathGlobs": ["**/*"],
-      "excludePathGlobs": ["**/node_modules/**", "**/dist/**", "**/build/**", "**/vendor/**", "tmp/**", "temp/**"],
-      "fileExtensions": [".js", ".cjs", ".mjs", ".jsx", ".py"],
-      "referenceDocs": ["docs/project-reference/code-review-rules.md"],
+      "pathGlobs": [
+        "**/*"
+      ],
+      "excludePathGlobs": [
+        "**/node_modules/**",
+        "**/dist/**",
+        "**/build/**",
+        "**/vendor/**",
+        "tmp/**",
+        "temp/**"
+      ],
+      "fileExtensions": [
+        ".js",
+        ".cjs",
+        ".mjs",
+        ".jsx",
+        ".py"
+      ],
+      "referenceDocs": [
+        "docs/project-reference/code-review-rules.md"
+      ],
       "origin": "detected",
       "detectedFingerprint": "48230fd6183bdc93"
     }
@@ -156,7 +280,9 @@
     "layerClassification": {}
   },
   "testing": {
-    "frameworks": ["custom-cjs-runner"],
+    "frameworks": [
+      "custom-cjs-runner"
+    ],
     "filePatterns": {
       "unit": "*.test.cjs",
       "integration": "*.test.cjs"
@@ -189,7 +315,12 @@
     "evidenceRoot": "tmp/experience",
     "baselineRoot": "tests/experience-baselines",
     "acceptancePolicy": "manual-acceptance-required",
-    "reviewOn": ["new-surface", "changed-surface", "bugfix", "baseline-mismatch"],
+    "reviewOn": [
+      "new-surface",
+      "changed-surface",
+      "bugfix",
+      "baseline-mismatch"
+    ],
     "surfaces": [],
     "notApplicableReason": "easy-claude is a framework repository with no user-facing application surface; adopters configure their own observable surfaces."
   },
@@ -198,20 +329,37 @@
   "api": {},
   "infrastructure": {},
   "specRoots": {
-    "business": { "path": "docs/specs", "authorship": "authored", "m1Policy": "enforced" },
-    "technical": { "path": "docs/specs-technical", "authorship": "derived", "m1Policy": "exempt" }
+    "business": {
+      "path": "docs/specs",
+      "authorship": "authored",
+      "m1Policy": "enforced"
+    },
+    "technical": {
+      "path": "docs/specs-technical",
+      "authorship": "derived",
+      "m1Policy": "exempt"
+    }
   },
   "_techSpecScanNote": "`techSpecScan` is DELIBERATELY OMITTED, not overlooked. It tells the tech-spec generator how to discover annotated tests (sourceRoot / fileExtensions / annotationPattern). This repo is a JavaScript + Python framework with no `[Trait]`-style test-annotation convention, so there is nothing to scan. Declaring a fabricated pattern would make the generator appear runnable while finding nothing. With the key absent, `node .claude/skills/tech-spec/scripts/generate-tech-specs.mjs` exits non-zero with 'Missing docs/project-config.json techSpecScan.{sourceRoot,fileExtensions,annotationPattern}' instead of reporting a false `status: ok`. When adding it, `annotationPattern` MUST expose exactly two capture groups: group 1 = trait name (must be `TestSpec` or `TechnicalSpec`), group 2 = the spec id (non-empty). The generator validates both and refuses to run otherwise.",
   "referenceDocs": [
     {
       "filename": "project-structure-reference.md",
       "purpose": "Project directory structure and module overview",
-      "sections": ["directory-tree", "module-descriptions"]
+      "sections": [
+        "directory-tree",
+        "module-descriptions"
+      ]
     },
     {
       "filename": "backend-patterns-reference.md",
       "purpose": "Backend coding patterns (N/A for framework project)",
-      "sections": ["Repository Pattern", "CQRS Patterns", "Validation Patterns", "Entity Patterns", "Message Bus"]
+      "sections": [
+        "Repository Pattern",
+        "CQRS Patterns",
+        "Validation Patterns",
+        "Entity Patterns",
+        "Message Bus"
+      ]
     },
     {
       "filename": "seed-test-data-reference.md",
@@ -222,41 +370,74 @@
     {
       "filename": "frontend-patterns-reference.md",
       "purpose": "Frontend coding patterns (N/A for framework project)",
-      "sections": ["Status: Not Applicable"]
+      "sections": [
+        "Status: Not Applicable"
+      ]
     },
     {
       "filename": "integration-test-reference.md",
       "purpose": "Integration test patterns and conventions",
-      "sections": ["Test Architecture", "Test Base Classes", "Test Helpers", "Service-Specific Setup"]
+      "sections": [
+        "Test Architecture",
+        "Test Base Classes",
+        "Test Helpers",
+        "Service-Specific Setup"
+      ]
     },
     {
       "filename": "feature-spec-reference.md",
       "purpose": "Feature Spec structure, authoring rules, and test case format",
-      "sections": ["Directory Convention", "8-Section Structure", "Test Case ID Format", "Evidence Rule"],
+      "sections": [
+        "Directory Convention",
+        "8-Section Structure",
+        "Test Case ID Format",
+        "Evidence Rule"
+      ],
       "templatePath": ".claude/templates/reference-docs/feature-spec-reference.md"
     },
     {
       "filename": "spec-system-reference.md",
       "purpose": "Project-specific extension for local spec routing, canonical artifact ownership, and generated-artifact rules",
-      "sections": ["Configured Spec Roots", "Canonical Artifact", "Test Case Registry", "Derived Artifacts"],
+      "sections": [
+        "Configured Spec Roots",
+        "Canonical Artifact",
+        "Test Case Registry",
+        "Derived Artifacts"
+      ],
       "templatePath": ".claude/templates/reference-docs/spec-system-reference.md"
     },
     {
       "filename": "spec-principles.md",
       "purpose": "Project-specific extension for local spec, test, and documentation rules",
-      "sections": ["Local Authority", "Local Source Routing", "Local Prose Rules", "Verification Commands"],
+      "sections": [
+        "Local Authority",
+        "Local Source Routing",
+        "Local Prose Rules",
+        "Verification Commands"
+      ],
       "templatePath": ".claude/templates/reference-docs/spec-principles.md"
     },
     {
       "filename": "workflow-spec-test-code-cycle-reference.md",
       "purpose": "Project-specific workflow sequence for keeping specs, tests, code, docs, and generated mirrors aligned",
-      "sections": ["Local Workflow Sequence", "Local Artifact Owners", "Local Closure Gates"],
+      "sections": [
+        "Local Workflow Sequence",
+        "Local Artifact Owners",
+        "Local Closure Gates"
+      ],
       "templatePath": ".claude/templates/reference-docs/workflow-spec-test-code-cycle-reference.md"
     },
     {
       "filename": "code-review-rules.md",
       "purpose": "Code review checklist and rules",
-      "sections": ["Critical Rules", "Backend Rules", "Frontend Rules", "Architecture Rules", "Anti-Patterns", "Checklists"]
+      "sections": [
+        "Critical Rules",
+        "Backend Rules",
+        "Frontend Rules",
+        "Architecture Rules",
+        "Anti-Patterns",
+        "Checklists"
+      ]
     },
     {
       "filename": "lessons.md",
@@ -266,7 +447,11 @@
     {
       "filename": "custom-prompts-reference.md",
       "purpose": "Index of project-specific custom prompts (name, description, triggers) — managed by the /custom-prompt skill; prompt bodies live in docs/project-prompts/.",
-      "sections": ["Usage", "Registry", "Conventions"]
+      "sections": [
+        "Usage",
+        "Registry",
+        "Conventions"
+      ]
     },
     {
       "filename": "skill-protocols-reference.md",
@@ -277,12 +462,23 @@
     {
       "filename": "scss-styling-guide.md",
       "purpose": "SCSS styling patterns (N/A for framework project)",
-      "sections": ["BEM Methodology", "SCSS Architecture", "Mixins & Variables", "Theming", "Responsive Patterns"]
+      "sections": [
+        "BEM Methodology",
+        "SCSS Architecture",
+        "Mixins & Variables",
+        "Theming",
+        "Responsive Patterns"
+      ]
     },
     {
       "filename": "design-system/README.md",
       "purpose": "Design system index: app-to-doc mapping, design tokens overview, component inventory.",
-      "sections": ["Design System Overview", "App Documentation Map", "Design Tokens", "Component Inventory"]
+      "sections": [
+        "Design System Overview",
+        "App Documentation Map",
+        "Design Tokens",
+        "Component Inventory"
+      ]
     },
     {
       "filename": "e2e-test-reference.md",
@@ -300,12 +496,25 @@
     {
       "filename": "domain-entities-reference.md",
       "purpose": "Framework conceptual domain — Hook, Skill, Agent, Workflow, Context Group, Module",
-      "sections": ["hook", "skill", "agent", "workflow", "context-group", "module", "entity-relationships"]
+      "sections": [
+        "hook",
+        "skill",
+        "agent",
+        "workflow",
+        "context-group",
+        "module",
+        "entity-relationships"
+      ]
     },
     {
       "filename": "docs-index-reference.md",
       "purpose": "Documentation tree, file counts by category, doc relationships, and keyword-to-doc lookup table.",
-      "sections": ["Documentation System", "Documentation Graph", "Key Doc Relationships", "Doc Lookup Guide"]
+      "sections": [
+        "Documentation System",
+        "Documentation Graph",
+        "Key Doc Relationships",
+        "Doc Lookup Guide"
+      ]
     }
   ],
   "portability": {

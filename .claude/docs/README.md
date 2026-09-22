@@ -11,7 +11,7 @@
 | **Building a feature?**        | [skills/README.md](./skills/README.md) + project-reference root patterns                                                           |
 | **Verifying user experience?** | [configuration/experience-verification.md](./configuration/experience-verification.md) - portable evidence and acceptance contract |
 | **Understanding hooks?**       | [hooks/README.md](./hooks/README.md) - 14 top-level hook files deep-dive                                                           |
-| **Understanding workflows?**   | `.claude/workflows.json` canonical catalog plus opt-in prompt injection - 19 workflows                                            |
+| **Understanding workflows?**   | `.claude/workflows.json` canonical catalog plus opt-in prompt injection - 19 workflows                                             |
 | **Configuring Claude?**        | [configuration/README.md](./configuration/README.md)                                                                               |
 | **Team collaboration?**        | [team-collaboration-guide.md](./team-collaboration-guide.md) - PO, BA, QA, QC, UX workflows                                        |
 | **Graph intelligence?**        | [code-graph-mechanism.md](./code-graph-mechanism.md) - How structural code analysis works                                          |
@@ -126,8 +126,8 @@ Unprefixed filenames resolve inside the project-reference docs root — default 
 
 ## Complete Guides (Large Reference Docs)
 
-| Document                                         | Size  | Use Case           |
-| ------------------------------------------------ | ----- | ------------------ |
+| Document                                                | Size  | Use Case           |
+| ------------------------------------------------------- | ----- | ------------------ |
 | `configured styling reference` (project-reference root) | ~30KB | BEM, design tokens |
 
 ## Related Documentation
