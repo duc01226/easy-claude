@@ -319,6 +319,7 @@ The workflow router (the `WORKFLOW-GATE`) automatically classifies each prompt b
 - "fix this bug" → `workflow-bugfix`
 - "refactor Y without changing behavior" → `workflow-refactor`
 - "build a large/ambiguous feature needing research" → `workflow-big-feature`
+- a focused change (one module/policy, clear intent, no public-contract change) → custom-simple: only the steps it needs, keeping test and review
 - a trivial, low-risk one-off → direct execution (no workflow)
 
 The gate **auto-selects** the route — it does not ask you to choose between direct/skill/workflow paths. A standard workflow is activated via `/start-workflow <id>`, which loads the workflow's canonical step sequence and builds the task list 1:1. An explicit `/skill` or `/workflow` in your prompt is always honored as-is.

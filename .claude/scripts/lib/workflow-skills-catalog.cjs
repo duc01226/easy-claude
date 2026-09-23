@@ -240,18 +240,17 @@ function renderRoutingSection() {
   return [
     "### Routing Decision Guide",
     "",
-    "Classify complexity + risk FIRST, then route (declare `Route: {id|skill|custom-simple|direct} — because {reason}`, then activate it):",
+    "Assess briefly FIRST — scope, change type (answer/tweak/behavior/public contract), risk, ambiguity, artifacts actually needed — then route (declare `Route: {id|skill|custom-simple [steps]|direct} — because {key signals}`, then activate it):",
     "",
-    "| Request is about… | Route |",
+    "| Signals | Route |",
     "| --- | --- |",
-    "| Simple, clear target, low risk | **direct execution** (no workflow) |",
-    "| Simple but needs a few coordinated steps | **custom simple workflow** — sequence only the needed skills/steps |",
-    "| Non-trivial bug / regression / wrong output | **`workflow-bugfix`** |",
-    "| Non-trivial feature or enhancement | **`workflow-feature`** (`workflow-big-feature` when large/ambiguous/research-heavy) |",
+    "| Question, lookup, or trivial low-risk edit; one skill covers it | **direct execution** (plain answer or that one skill) |",
+    "| Focused change: one module/policy, clear intent, no public-contract change | **custom simple workflow** — sequence only the needed canonical steps |",
+    "| Non-trivial bug / regression / wrong output, cause unknown or wide reach | **`workflow-bugfix`** |",
+    "| Non-trivial feature or enhancement changing behavior or a contract across modules | **`workflow-feature`** (`workflow-big-feature` when large/ambiguous/research-heavy) |",
     "| Matches a skill's or workflow's \"Use\" clause | that skill / workflow |",
-    "| One-off question or trivial edit | direct execution |",
     "",
-    "An explicit `/skill` or `/workflow` in the prompt is the user's choice — execute it. Otherwise auto-select; never ask which path to take.",
+    "The table route is the default. Keep a catalog workflow only when >80% of its unconditional steps would do real work for the request; otherwise downgrade to custom-simple, trimming only steps that would do no real work. A behavior change keeps its test and review steps; a downgraded route also keeps root-cause investigation for bugs and spec/doc sync when behavior or a public contract changes. An explicit `/skill` or `/workflow` in the prompt is the user's choice — execute it. Otherwise auto-select; never ask which path to take.",
   ].join("\n");
 }
 

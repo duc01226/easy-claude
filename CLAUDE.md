@@ -2,24 +2,28 @@
 
 <!-- CK:WORKFLOW-GATE -->
 
-> **[WORKFLOW-GATE] — routing is your FIRST action, before any tool call.** This gate is the single intent router.
+> **[WORKFLOW-GATE] — routing is your FIRST action; only a quick read-only look may precede it.**
 >
-> Honor an explicit request to execute a skill/workflow first. Otherwise auto-select by complexity and risk; never ask the user to choose the execution path.
+> Honor an explicit skill/workflow request first. Otherwise assess, auto-select and proceed; never ask the user to choose the execution path — the declared route is the user's override point.
 >
-> | Intent | Route |
+> **Assess (brief, from the prompt plus that quick look):** scope · change type (answer, tweak, behavior, public contract) · risk (irreversible, data, security, cross-module) · ambiguity · artifacts actually needed. Escalate on risk and ambiguity, not file count alone.
+>
+> | Signals | Route |
 > | --- | --- |
-> | Clear, low-risk task or one-off question | direct |
-> | Simple coordinated steps | custom-simple: only the necessary skills/steps |
-> | Non-trivial bug/regression/stale output | `workflow-bugfix` |
-> | Non-trivial feature/enhancement | `workflow-feature`; large/ambiguous/research-heavy scope uses `workflow-big-feature` |
+> | Question, lookup, or trivial low-risk edit; one skill covers it | direct: plain answer or that one skill |
+> | Focused change (one module/policy, clear intent, no public-contract change) | custom-simple: only the canonical steps it needs, in dependency order |
+> | Non-trivial bug/regression/stale output, cause unknown or wide reach | `workflow-bugfix` |
+> | Non-trivial feature/enhancement changing behavior or a contract across modules | `workflow-feature` (`workflow-big-feature` if large/ambiguous/research-heavy) |
 > | Product vision, greenfield or release-scoped idea | owning idea/feature workflow; apply shared `isLargeIdea` and embed decomposition in its artifacts |
-> | Explicit roadmap/update/milestone-selection request | `product-roadmap`; only this explicit intent may write the product-roadmap artifact (default `docs/product-roadmap.md`; `docsRoots.productRoadmap.path` in `docs/project-config.json` overrides) |
-> | Milestone/large-idea scope needing adversarial failure, replay, state, ownership, recovery or evidence analysis | conditional `scenario` before planning; no roadmap artifact |
+> | Explicit roadmap/update/milestone-selection request | `product-roadmap`; the only writer of the product-roadmap artifact (default `docs/product-roadmap.md`; `docsRoots.productRoadmap.path` in `docs/project-config.json` overrides) |
+> | Milestone/large-idea scope needing adversarial failure/replay/state/ownership/recovery/evidence analysis | conditional `scenario` before planning; no roadmap artifact |
 > | Other matching skill/workflow Use clause | that skill/workflow, verified from its canonical definition |
 >
-> Declare `Route: {workflow-id | skill | custom-simple | direct} — because {reason}`, then ACTIVATE before edits, agents or commands. Workflow: invoke `start-workflow` with the workflow id using the host's supported skill syntax and use its canonical sequence for tasks 1:1; never improvise that list. Skill: read and execute its SKILL.md through the host's supported mechanism. Custom/direct: create a small task list and execute it. Missing required tools/details: stop and report; never fabricate invocation.
+> **Catalog fit:** the table route is the default. Keep a catalog workflow when >80% of its unconditional steps would do real work; otherwise downgrade to custom-simple, trimming only steps that would do no real work. A behavior change keeps its test and review steps; a downgraded route also keeps root-cause investigation for bugs and spec/doc sync when behavior or a public contract changes. Re-declare if evidence changes the complexity.
 >
-> Ordinary large-idea routes do not create a roadmap by default. New foundations in `workflow-greenfield-init`/`workflow-big-feature` require an `architecture-review-full` reviewed scaffold, golden-path examples and project references BEFORE feature fan-out. Routing preserves operation authority, user data and all required quality gates.
+> Declare `Route: {workflow-id | skill | custom-simple [step → step] | direct} — because {key signals}` (e.g. `Route: custom-simple [investigate → fix → test → changes-review] — because known cause, one module`), then ACTIVATE before edits, agents or commands. Workflow: invoke `start-workflow` with its id; map its canonical sequence to tasks 1:1. Skill: read and execute its SKILL.md. Custom/direct: one task per step plus a final review. Missing tools/details: stop and report; never fabricate invocation.
+>
+> New foundations in `workflow-greenfield-init`/`workflow-big-feature` require an `architecture-review-full` reviewed scaffold, golden-path examples and project references BEFORE feature fan-out. Routing preserves operation authority, user data and all required quality gates.
 
 <!-- /CK:WORKFLOW-GATE -->
 
@@ -353,10 +357,10 @@ Add a final task — "Analyze AI mistakes & lessons learned" — to every non-tr
 
 > **[BLOCKING] Hook-independent guardrail — binds Claude, Codex, and Copilot equally.** On a hookless host (Codex/Copilot) or an un-wired project this section is the ONLY guardrail — obey it without any block.
 >
-> **The hook enforces a NARROWER set than this section.** `git-commit-block.cjs` blocks only what is **irreversible**: commands that destroy uncommitted work (`checkout`/`restore` on a pathspec, `reset --hard`, `clean -f`, `switch --discard-changes`, `stash drop|clear`, `rm -f`) and destructive history rewrites (`push --force`, `branch -D`, `reflog expire`, `filter-branch`), plus `commit --amend` and the irreversible `gh` verbs of rule 6. A SECOND hook, `review-commit-gate.cjs`, is NOT about irreversibility: it blocks an agent `git commit` whose changeset has neither a review fix-loop receipt nor a user-approved skip (rule 7). Rules 1, 3 and 4 — and the recoverable half of rule 6 — are **model-behavioral**: nothing blocks them, so obeying them is your responsibility on every host including this one. A command being allowed by the hook is NEVER evidence you were asked to run it.
+> **The hook enforces a NARROWER set than this section.** `git-commit-block.cjs` blocks only what is **irreversible**: commands that destroy uncommitted work (`checkout`/`restore` on a pathspec, `reset --hard`, `clean -f`, `switch --discard-changes`, `stash drop|clear`, `rm -f`) and destructive history rewrites (`push --force`, `branch -D`, `reflog expire`, `filter-branch`), plus the irreversible `gh` verbs of rule 6. A SECOND hook, `review-commit-gate.cjs`, is NOT about irreversibility: it blocks an agent `git commit` whose changeset has neither a review fix-loop receipt nor a user-approved skip (rule 7). Rules 1, 3 and 4 — and the recoverable half of rule 6 — are **model-behavioral**: nothing blocks them, so obeying them is your responsibility on every host including this one. A command being allowed by the hook is NEVER evidence you were asked to run it.
 
 1. **Never commit, push, or stage (`git add`) unless the user explicitly asks for it.** "Implement X" / "fix the bug" is NOT permission to commit — finish the work, report what changed, and wait. Only an explicit "commit"/"push" (or an invoked commit skill / git-manager) authorizes it. _(**Model-behavioral** — the hook deliberately does NOT block these. They are recoverable, and gating them made the correct workflow harder to reach than the destructive one. Nothing catches this but you.)_
-2. **Never `git commit --amend`.** Amending rewrites history and can corrupt commits once HEAD has moved — always create a NEW commit. No bypass. _(Hook-enforced, unconditional — no lease clears it.)_
+2. **Amend is a commit — gated like one.** `git commit --amend` and `git reset --soft HEAD~1` + `git commit` produce the same commit, so both follow the same rules: only on an explicit amend request (a plain commit request makes a new commit), and never on a commit that is already pushed or that this task did not create (either path rewrites it). `review-commit-gate.cjs` gates an amend by a review receipt over the amended commit's candidate measured against HEAD's parent; the `commit` skill passes `"amend":true` in the commit descriptor. Amending a merge commit fails closed. _(Authority is model-behavioral; the review is hook-enforced. The replaced commit stays in the reflog, so neither path is irreversible.)_
 3. **Branch before committing on the default branch.** If asked to commit while on `main`/`master`, create a feature branch first. _(**Model-behavioral** — the hook has no branch awareness and will not stop a commit on `main`. Nothing catches this but you.)_
 4. **Read-only git needs no permission** — `status`, `diff`, `log`, `show`, `rev-parse`, `describe`, `blame`, `check-ignore`, `ls-files`, `shortlog`, and the _listing_ forms of `branch`, `tag`, `remote`, `config` and `stash`. _(Model-behavioral permission note.)_
 5. **Never run a command that can destroy uncommitted work.** Unstaged edits and untracked files exist in exactly one place — the working tree. `git checkout -- <path>`, `git restore <path>`, `git reset --hard`, `git clean -f`, `git switch --discard-changes` and `git stash drop` erase the only copy that ever existed. _(Hook-enforced — this is the one class the hook blocks outright. Ask before running one; there is nothing to undo it with.)_
@@ -365,7 +369,7 @@ Add a final task — "Analyze AI mistakes & lessons learned" — to every non-tr
 
 **Why:** auto-committing/pushing unprompted publishes unreviewed work and can rewrite shared history, so it stays gated on explicit human intent on every host. That gate is now **behavioral, not mechanical** — a deliberate trade. Blocking every recoverable operation taxed correct work on every turn (branching before a commit was harder to reach than committing onto `main`) while buying little: a commit is revertable, a push is revertable, and neither loses data. The hook's budget is spent where nothing can undo the damage — destroyed uncommitted work and rewritten history. Read rule 1 as binding on YOU, not on the hook.
 
-**What the lease is and is not.** Where the hook runs, an irreversible operation clears only with a current session lease for that exact repository and operation. The git-side destructive class (`reset --hard`, `clean -f`, `checkout -- <path>`, `branch -D`, `stash drop`, a force push…) consumes the **`discard`** term; an irreversible `gh` write consumes **`push`**. `amend` has no term at all — nothing clears it. A lease is **bookkeeping, not consent**: it records that a commit skill or `git-manager` was asked to act, and it is a _scoped speedbump_, not a security boundary. Its store is an ordinary directory that is not tamper-proof (`.claude/hooks/lib/git-operation-lease.cjs:14`) and `issueLease` performs no issuer-authority check — any process able to write that store can mint one. So the lease raises the cost of an accidental push; it does not stop a determined one, and holding a lease NEVER substitutes for rule 1's explicit human request.
+**What the lease is and is not.** Where the hook runs, an irreversible operation clears only with a current session lease for that exact repository and operation. The git-side destructive class (`reset --hard`, `clean -f`, `checkout -- <path>`, `branch -D`, `stash drop`, a force push…) consumes the **`discard`** term; an irreversible `gh` write consumes **`push`**. `amend` needs no term — it is a recoverable commit, gated by the review receipt (rule 2). A lease is **bookkeeping, not consent**: it records that a commit skill or `git-manager` was asked to act, and it is a _scoped speedbump_, not a security boundary. Its store is an ordinary directory that is not tamper-proof (`.claude/hooks/lib/git-operation-lease.cjs:14`) and `issueLease` performs no issuer-authority check — any process able to write that store can mint one. So the lease raises the cost of an accidental push; it does not stop a determined one, and holding a lease NEVER substitutes for rule 1's explicit human request.
 
 ---
 
@@ -468,7 +472,3 @@ docs/templates/  (1 files)
 | Frontend patterns, components, stores | `docs/project-reference/frontend-patterns-reference.md` |
 
 <!-- /SECTION:doc-lookup -->
-
-
-
-

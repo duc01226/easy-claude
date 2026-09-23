@@ -86,7 +86,8 @@ function loadMutantGate(file, repo, statements) {
     Module._load = function (request, parent, isMain) {
         if (parent?.filename === file) {
             if (request === './lib/command-inspection.cjs') return { inspectCommand: () => ({ status: 'KNOWN', statements }) };
-            if (request === './lib/git-statement.cjs') return { classifyStatement, findRepository: () => repo, canonical: value => value };
+            if (request === './lib/git-statement.cjs') return { classifyStatement, findRepository: () => repo, canonical: value => value,
+                AMEND_ABBREVIATIONS: new Set() };
             if (request === './lib/hook-runner.cjs') return { runPreToolHookSync: () => undefined };
             if (request === './lib/debug-log.cjs') return { reportHookInternalError: () => undefined };
             if (request === './lib/review-receipt.cjs') return {
@@ -592,6 +593,138 @@ const tests = [
                 issueCandidate(receipt(), fx.store, snapshot(receipt(), fx.repoA), 'skip', { reason: 'user approved skip' });
                 assert.equal(commit(), undefined, 'user-approved skip passes');
             });
+        })
+    },
+    {
+        // Amend and `reset --soft HEAD~1` + commit produce the same commit, so they must be gated
+        // identically: one receipt over the candidate against HEAD's PARENT authorizes either path,
+        // and a receipt over the candidate against HEAD (a plain commit) authorizes neither.
+        name: 'REQ-GUARD-03 amend is gated like the equivalent reset --soft + commit, against HEAD\'s parent',
+        skip: !GIT,
+        fn: async () => fixture(fx => {
+            makeRepo(fx.repoA);
+            fs.writeFileSync(path.join(fx.repoA, 'file.txt'), 'second\n');
+            git(fx.repoA, ['commit', '-q', '-am', 'second']);
+            fs.writeFileSync(path.join(fx.repoA, 'extra.txt'), 'staged for amend\n');
+            git(fx.repoA, ['add', 'extra.txt']);
+            const api = receipt();
+            const parentTree = git(fx.repoA, ['rev-parse', 'HEAD~1^{tree}']).trim();
+
+            const amendCandidate = snapshot(api, fx.repoA, 'commit-descriptor', { mode: 'staged', literalPaths: [], amend: true });
+            assert.equal(amendCandidate.status, 'CHANGED');
+            assert.equal(amendCandidate.baseTree, parentTree, 'amend candidate is measured against HEAD\'s parent');
+            assert.equal(amendCandidate.descriptor.amend, true);
+            const plainCandidate = snapshot(api, fx.repoA, 'staged');
+            assert.equal(plainCandidate.candidateTree, amendCandidate.candidateTree, 'same staged content');
+            assert.notEqual(plainCandidate.fingerprint, amendCandidate.fingerprint, 'a different base is a different candidate');
+
+            withStore(fx.store, () => {
+                const amend = command => gate().evaluate({ tool_name: 'Bash', tool_input: { command, cwd: fx.repoA } });
+                const unreviewed = amend('git commit --amend --no-edit');
+                assert.equal(unreviewed.code, 2, 'an unreviewed amend must block');
+                // The recovery path must lead to a receipt that CAN match: the amend descriptor.
+                assert.match(unreviewed.stderr, /HEAD's parent/);
+                assert.match(unreviewed.stderr, /--descriptor-json='\{[^']*"amend":true\}'/);
+                assert.doesNotMatch(amend('git commit -m plain').stderr, /HEAD's parent/, 'a plain commit gets no amend guidance');
+                issueCandidate(api, fx.store, plainCandidate);
+                assert.equal(amend('git commit --amend --no-edit').code, 2, 'a plain-commit receipt cannot authorize an amend');
+                issueCandidate(api, fx.store, amendCandidate);
+                for (const command of ['git commit --amend --no-edit', 'git commit --amen --no-edit', 'git commit --am -m x']) {
+                    assert.equal(amend(command), undefined, `${command} matches the reviewed amend candidate`);
+                }
+                assert.equal(amend('git commit --amend=x').code, 2, 'a malformed amend flag fails closed');
+            });
+
+            // The receipt must describe the commit git actually produces, and the reset path must
+            // produce the identical candidate.
+            git(fx.repoA, ['commit', '-q', '--amend', '--no-edit']);
+            assert.equal(git(fx.repoA, ['rev-parse', 'HEAD^{tree}']).trim(), amendCandidate.candidateTree);
+            assert.equal(git(fx.repoA, ['rev-parse', 'HEAD~1^{tree}']).trim(), amendCandidate.baseTree);
+            git(fx.repoA, ['reset', '-q', '--soft', 'HEAD~1']);
+            const resetCandidate = snapshot(api, fx.repoA, 'staged');
+            assert.equal(resetCandidate.fingerprint, amendCandidate.fingerprint, 'reset --soft + commit is the same candidate');
+        })
+    },
+    {
+        name: 'REQ-GUARD-03 amend literal paths build on HEAD, root commits use the empty tree, merges fail closed',
+        skip: !GIT,
+        fn: async () => fixture(fx => {
+            makeRepo(fx.repoA);
+            const api = receipt();
+            const root = snapshot(api, fx.repoA, 'commit-descriptor', { mode: 'staged', literalPaths: [], amend: true });
+            assert.equal(root.status, 'CHANGED', 'amending the root commit reviews its whole content');
+            assert.equal(root.baseTree, git(fx.repoA, ['mktree']).trim(), 'root amend base is the empty tree');
+
+            fs.writeFileSync(path.join(fx.repoA, 'file.txt'), 'literal amend\n');
+            fs.writeFileSync(path.join(fx.repoA, 'other.txt'), 'not part of the amend\n');
+            const literal = snapshot(api, fx.repoA, 'commit-descriptor', { mode: 'literal-paths', literalPaths: ['file.txt'], amend: true });
+            git(fx.repoA, ['commit', '-q', '--amend', '--no-edit', '--', 'file.txt']);
+            assert.equal(git(fx.repoA, ['rev-parse', 'HEAD^{tree}']).trim(), literal.candidateTree,
+                'literal-path amend candidate equals the tree git commits');
+
+            git(fx.repoA, ['checkout', '-q', '-b', 'side']);
+            fs.writeFileSync(path.join(fx.repoA, 'side.txt'), 'side\n');
+            git(fx.repoA, ['add', 'side.txt']);
+            git(fx.repoA, ['commit', '-q', '-m', 'side']);
+            git(fx.repoA, ['checkout', '-q', '-']);
+            git(fx.repoA, ['merge', '-q', '--no-ff', '--no-edit', 'side']);
+            const merge = snapshot(api, fx.repoA, 'commit-descriptor', { mode: 'staged', literalPaths: [], amend: true });
+            assert.equal(merge.status, 'ERROR');
+            assert.equal(merge.errorCode, 'UNSUPPORTED_AMEND_MERGE');
+        })
+    },
+    {
+        // Invariant: amend is read from the SAME parse that assigns option values. The dangerous
+        // candidate is a staged revert of HEAD: measured as an amend (against HEAD's parent) it is
+        // CLEAN and needs no receipt, so a plain commit misread as an amend would skip review.
+        name: 'REQ-GUARD-03 amend is detected only in option position, never inside an option value',
+        skip: !GIT,
+        fn: async () => fixture(fx => {
+            makeRepo(fx.repoA);
+            fs.writeFileSync(path.join(fx.repoA, 'file.txt'), 'second\n');
+            git(fx.repoA, ['commit', '-q', '-am', 'second']);
+            fs.writeFileSync(path.join(fx.repoA, 'file.txt'), 'base\n');
+            git(fx.repoA, ['add', 'file.txt']);
+            assert.equal(git(fx.repoA, ['write-tree']).trim(), git(fx.repoA, ['rev-parse', 'HEAD~1^{tree}']).trim(),
+                'fixture: the staged tree reverts HEAD');
+            withStore(fx.store, () => {
+                const run = command => gate().evaluate({ tool_name: 'Bash', tool_input: { command, cwd: fx.repoA } });
+                for (const command of ['git commit -am --amend', 'git commit -sm --amend', 'git commit -m --amend',
+                    'git commit --message --amend', 'git commit --author --amend -m x']) {
+                    assert.equal(run(command)?.code, 2, `${command} is a plain unreviewed commit and must block`);
+                }
+                for (const command of ['git commit --amend --no-edit', 'git commit --amen --no-edit', 'git commit --ame --no-edit',
+                    'git commit --am --no-edit', 'git commit --no-edit --am', 'git commit -m x --amend']) {
+                    assert.equal(run(command), undefined, `${command} is an amend whose candidate equals HEAD's parent`);
+                }
+            });
+        })
+    },
+    {
+        name: 'REQ-GUARD-03 amend descriptor edges: unborn HEAD and non-boolean amend fail closed, -a amend matches git',
+        skip: !GIT,
+        fn: async () => fixture(fx => {
+            const api = receipt();
+            git(fx.repoA, ['init', '-q']);
+            fs.writeFileSync(path.join(fx.repoA, 'file.txt'), 'unborn\n');
+            git(fx.repoA, ['add', 'file.txt']);
+            const unborn = snapshot(api, fx.repoA, 'commit-descriptor', { mode: 'staged', literalPaths: [], amend: true });
+            assert.equal(unborn.status, 'ERROR');
+            assert.equal(unborn.errorCode, 'AMEND_WITHOUT_HEAD');
+
+            makeRepo(fx.repoB);
+            const invalid = snapshot(api, fx.repoB, 'commit-descriptor', { mode: 'staged', literalPaths: [], amend: 'yes' });
+            assert.equal(invalid.status, 'ERROR');
+            assert.equal(invalid.errorCode, 'INVALID_DESCRIPTOR');
+
+            fs.writeFileSync(path.join(fx.repoB, 'file.txt'), 'second\n');
+            git(fx.repoB, ['commit', '-q', '-am', 'second']);
+            fs.writeFileSync(path.join(fx.repoB, 'file.txt'), 'unstaged tracked edit\n');
+            const all = snapshot(api, fx.repoB, 'commit-descriptor', { mode: 'all', literalPaths: [], amend: true });
+            assert.equal(all.baseTree, git(fx.repoB, ['rev-parse', 'HEAD~1^{tree}']).trim());
+            git(fx.repoB, ['commit', '-q', '-a', '--amend', '--no-edit']);
+            assert.equal(git(fx.repoB, ['rev-parse', 'HEAD^{tree}']).trim(), all.candidateTree,
+                '-a amend candidate equals the tree git commits');
         })
     },
     {

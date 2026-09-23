@@ -268,7 +268,11 @@ function descriptorForCapture(repository, storageIdentity, cwd, indexPath, descr
     }
     if (mode === 'literal-paths') validateLiteralPaths(repository, cwd, literalPaths);
     else if (literalPaths.length !== 0) throw Object.assign(new Error('Literal paths cannot be mixed with staged or -a mode'), { code: 'MIXED_COMMIT_MODE' });
-    return { repository, storageIdentity, cwd, indexPath, mode, literalPaths: [...literalPaths] };
+    if (descriptor.amend !== undefined && typeof descriptor.amend !== 'boolean') {
+        throw Object.assign(new Error('amend must be a boolean'), { code: 'INVALID_DESCRIPTOR' });
+    }
+    // `amend` is recorded only when true so every non-amend descriptor keeps its prior identity.
+    return { repository, storageIdentity, cwd, indexPath, mode, literalPaths: [...literalPaths], ...(descriptor.amend ? { amend: true } : {}) };
 }
 
 function errorSnapshot(target, error, repository = null, cwd = null) {
@@ -352,6 +356,16 @@ function captureReviewTarget(options = {}) {
                 if (refError.code === 'HEAD_UNRESOLVED' || refError.status !== 1) throw refError;
             }
             baseTree = treeId(run(['hash-object', '-t', 'tree', '--stdin'], { input: '' }), 'empty baseTree');
+        }
+        if (descriptor?.amend) {
+            // An amend replaces HEAD, so the commit it produces is reviewed against HEAD's parent —
+            // the same base `git reset --soft HEAD~1 && git commit` would have.
+            if (!headCommit) throw Object.assign(new Error('Cannot amend: HEAD has no commit'), { code: 'AMEND_WITHOUT_HEAD' });
+            const parents = run(['rev-list', '--parents', '-n', '1', headCommit]).trim().split(/\s+/).slice(1);
+            if (parents.length > 1) throw Object.assign(new Error('Amending a merge commit is unsupported for receipt matching'), { code: 'UNSUPPORTED_AMEND_MERGE' });
+            baseTree = parents.length === 1
+                ? treeId(run(['rev-parse', `${parents[0]}^{tree}`]), 'amend baseTree')
+                : treeId(run(['hash-object', '-t', 'tree', '--stdin'], { input: '' }), 'empty amend baseTree');
         }
 
         const projectTmp = path.join(repository, 'tmp');

@@ -23,7 +23,9 @@
  * @matcher Bash
  */
 const { inspectCommand } = require('./lib/command-inspection.cjs');
-const { classifyStatement, findRepository, canonical } = require('./lib/git-statement.cjs');
+const {
+  classifyStatement, findRepository, canonical, AMEND_ABBREVIATIONS
+} = require('./lib/git-statement.cjs');
 const { runPreToolHookSync } = require('./lib/hook-runner.cjs');
 const { reportHookInternalError } = require('./lib/debug-log.cjs');
 const {
@@ -38,7 +40,7 @@ function statementCwd(input) {
 
 const UNSUPPORTED_COMMIT_FLAGS = new Set([
   '--include', '-i', '--only', '-o', '--interactive', '--patch', '-p',
-  '--pathspec-from-file', '--pathspec-file-nul', '--amend'
+  '--pathspec-from-file', '--pathspec-file-nul'
 ]);
 const COMMIT_VALUE_FLAGS = new Set([
   '--message', '-m', '--file', '-F', '--author', '--date', '--cleanup',
@@ -122,6 +124,7 @@ function parseCommitDescriptor(classification) {
   const args = argv.slice(2);
   let mode = 'staged';
   let sawAll = false;
+  let sawAmend = false;
   let literalPaths = [];
   let afterTerminator = false;
   for (let i = 0; i < args.length; i++) {
@@ -131,6 +134,13 @@ function parseCommitDescriptor(classification) {
     if (!arg.startsWith('-')) return { error: `Commit positional argument ${arg} is unsupported; use -- before exact file paths` };
     const flag = arg.includes('=') ? arg.slice(0, arg.indexOf('=')) : arg;
     if (NO_COMMIT_FLAGS.has(flag)) return { noCommit: true };
+    // Amend is a commit whose candidate sits over HEAD's parent. Recorded by THIS loop, which knows
+    // which tokens are option values (`-am --amend` is a plain commit with message "--amend").
+    if (AMEND_ABBREVIATIONS.has(flag)) {
+      if (arg !== flag) return { error: `Commit option ${flag} takes no value` };
+      sawAmend = true;
+      continue;
+    }
     if (arg.startsWith('-') && !arg.startsWith('--') && arg.length > 2) {
       const cluster = arg.slice(1);
       for (let position = 0; position < cluster.length; position++) {
@@ -173,7 +183,10 @@ function parseCommitDescriptor(classification) {
     repository: canonical(resolved.repository),
     cwd: canonical(resolved.cwd),
     mode,
-    literalPaths
+    literalPaths,
+    // `git commit --amend` and `git reset --soft HEAD~1 && git commit` produce the same commit,
+    // so both are gated the same way: by a receipt over the candidate against HEAD's parent.
+    ...(sawAmend ? { amend: true } : {})
   };
   if (!descriptor.repository || !descriptor.cwd) return { error: 'Repository or effective cwd could not be canonicalized' };
   return { descriptor };
@@ -209,7 +222,6 @@ function resolveCommitDescriptors(command, cwd) {
     if (!classification.resolved?.known || !classification.resolved.repository || !classification.resolved.cwd) {
       return { known: false, reason: classification.reason || classification.resolved?.reason || 'commit repository context is unresolved' };
     }
-    if (classification.kind === 'deny') return { known: false, reason: classification.reason || 'commit mode is denied' };
     const parsed = parseCommitDescriptor(classification);
     if (parsed.noCommit) continue;
     if (parsed.error) return { known: false, reason: parsed.error };
@@ -248,6 +260,11 @@ function blockMessage(repository, snapshot, descriptor, reason) {
     `Repository: ${repository}`,
     `Candidate fingerprint: ${short}`,
     ...(descriptor ? [`Commit mode: ${descriptor.mode}`, `Effective cwd: ${descriptor.cwd}`] : []),
+    // An amend candidate sits over HEAD's parent, so a staged/worktree receipt can never match it.
+    ...(descriptor?.amend ? [
+      'Amend: candidate measured against HEAD\'s parent. The review fix-loop must snapshot this exact descriptor:',
+      `  --target=commit-descriptor --descriptor-json=${shellQuote(JSON.stringify(descriptor))}`
+    ] : []),
     ...(snapshot?.errorCode ? [`Candidate status: ERROR (${snapshot.errorCode})`] : []),
     ...(reason ? [`Reason: ${reason}`] : []),
     '',

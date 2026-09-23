@@ -22,7 +22,8 @@ const MAX_LIFETIME_MS = 15 * 60 * 1000;
 // (`reset --hard`, `clean -f`, `checkout -- <path>`, `branch -D`, `stash drop`, a force push…).
 // It exists so an explicitly-requested destructive command has SOME path to consent: without a
 // mintable term the gate would be unclearable, and an unclearable gate is one the user turns off
-// wholesale. `amend` is deliberately absent — CLAUDE.md forbids it unconditionally.
+// wholesale. `amend` needs no term: it is a recoverable commit (the replaced commit stays in the
+// reflog), gated by the review receipt like any other commit.
 const OPERATIONS = Object.freeze(['add', 'commit', 'push', 'discard']);
 const ID_PATTERN = /^[a-f0-9]{32}$/;
 const hash = value => crypto.createHash('sha256').update(value).digest('hex');

@@ -6,6 +6,7 @@ import { readFileSync } from 'node:fs';
 // evaluator or a measurement of model compliance. No fixture executes Git.
 const skill = readFileSync(new URL('../../../skills/plan-execute/SKILL.md', import.meta.url), 'utf8');
 const agent = readFileSync(new URL('../../../agents/git-manager.md', import.meta.url), 'utf8');
+const commitSkill = readFileSync(new URL('../../../skills/commit/SKILL.md', import.meta.url), 'utf8');
 const section = (text, heading) => {
     const start = text.indexOf(heading);
     assert.notEqual(start, -1, `missing ${heading}`);
@@ -34,7 +35,10 @@ function assertAuthority(plan, role) {
         assert.doesNotMatch(text, /(?:must|always|mandatory)[^\n.]{0,100}(?:commit after approval|commit when complete|stage after review|push after commit)/i);
         assert.match(text, /operation[^\n]+scope[^\n]+sourceRequest/);
         assert.match(text, /implementation[^\n]+approval[^\n]+never[^\n]+(?:authoriz|grant)/i);
-        assert.match(text, /NEVER `git commit --amend`/);
+        // Amend is authority-gated like a commit, and never rewrites a pushed commit.
+        assert.match(text, /`git commit --amend` only on an explicit amend request, never a pushed commit/);
+        // Failure signal: the retired unconditional ban (or "amending is forbidden") coming back.
+        assert.doesNotMatch(text, /NEVER `git commit --amend`|amend[^\n.]{0,80}forbidden/i);
     }
     const finalize = section(plan, '## Step 6: Finalize');
     assert.match(finalize, /Implementation complete/);
@@ -84,6 +88,13 @@ test('TC-HARNESS-004 secret-diagnostic mutants fail at every positive-output anc
             assert.throws(() => assertSecretDiagnostics(mutant), { code: 'ERR_ASSERTION' });
         }
     }
+});
+
+test('TC-HARNESS-004 commit skill gates amend on an explicit amend request, never a blanket ban', () => {
+    // Failure signal: the commit skill reinstating the retired ban, or letting a plain commit request amend.
+    assert.doesNotMatch(commitSkill, /amend[^\n.]{0,80}forbidden/i);
+    assert.match(commitSkill, /Amend only on an explicit amend request\*\* \(a plain commit request makes a new commit\)/);
+    assert.match(commitSkill, /"amend":true/);
 });
 
 test('TC-HARNESS-004 implementation-only completes without Git or a grant file', () => {

@@ -11,6 +11,10 @@
  * Coverage (what THIS suite asserts today):
  *   TC-CP-001 — CLAUDE.md carries the workflow route gate and path→reference-doc pointer table.
  *   TC-CP-008 — tracked context surfaces carry the route gate without a duplicated catalog.
+ *   TC-CP-015 — the canonical route gate carries the brief complexity assessment, the >80%
+ *               catalog-fit rule, table precedence, downgrade guards (investigation, spec/doc sync,
+ *               test, review) and auto-select; route examples use canonical step ids; start-workflow
+ *               never proposes or asks the user to choose a route.
  *   TC-CP-002 — the universal subagent-bootstrap phrases are present in a
  *               representative sample of agents (one code, one non-code).
  *   TC-CP-003 — agent-code-standards (dev-rules + pattern docs) is present in a
@@ -109,6 +113,95 @@ module.exports = {
                     assertTrue(!/###\s+Workflows Index \(\d+\)/.test(body),
                         `${relative} carries a static Workflows Index`);
                 }
+            },
+        },
+        {
+            // Guards routing INTENT: a brief complexity assessment picks direct / custom-simple /
+            // catalog workflow, a catalog workflow needs >80% of its steps to do real work, and the
+            // route is auto-selected (declared, never asked). Without these, a focused change routes
+            // into a full catalog workflow whose spec/scenario/seed-data steps do no work.
+            name: '[content-presence] TC-CP-015 route gate assesses complexity, applies catalog fit, never asks',
+            fn: () => {
+                const gate = readFile(path.join(SKILLS_DIR, 'shared', 'workflow-first-gate.md'));
+                const missing = [
+                    '**Assess (brief',
+                    'change type',
+                    'risk',
+                    'ambiguity',
+                    'artifacts actually needed',
+                    'custom-simple: only the canonical steps it needs',
+                    '>80% of its unconditional steps would do real work',
+                    'A behavior change keeps its test and review steps',
+                    'never ask the user to choose the execution path',
+                    '— because {key signals}',
+                ].filter(phrase => !gate.includes(phrase));
+                assertTrue(missing.length === 0,
+                    `workflow-first-gate.md lost routing-assessment guidance:\n  ${missing.join('\n  ')}`);
+
+                // Downgrade guards: the Signals → Route table is the default and catalog fit may only
+                // trim no-work steps — a downgraded route keeps root-cause investigation, spec/doc
+                // sync, test and review. The same phrases must reach every routing surface.
+                const DOWNGRADE_GUARDS = [
+                    'trimming only steps that would do no real work',
+                    'a downgraded route also keeps root-cause investigation for bugs and spec/doc sync when behavior or a public contract changes',
+                ];
+                const missingGuards = (label, body) => DOWNGRADE_GUARDS
+                    .filter(phrase => !body.includes(phrase)).map(phrase => `${label} → "${phrase}"`);
+                assertTrue(/the table route is the default/i.test(gate),
+                    'workflow-first-gate.md no longer states the Signals → Route table takes precedence over catalog fit');
+
+                const { buildWorkflowSkillsCatalog } = require(path.resolve(PROJECT_DIR, '.claude', 'scripts', 'lib', 'workflow-skills-catalog.cjs'));
+                const guide = buildWorkflowSkillsCatalog({ rootDir: PROJECT_DIR, sections: ['routing'] });
+                assertTrue(guide.includes('>80% of its unconditional steps would do real work'),
+                    'runtime Routing Decision Guide diverges from the gate catalog-fit rule');
+                assertTrue(guide.includes('never ask which path to take'),
+                    'runtime Routing Decision Guide lost the auto-select rule');
+                assertTrue(/the table route is the default/i.test(guide),
+                    'runtime Routing Decision Guide lost the table-precedence rule');
+                assertTrue(guide.includes('A behavior change keeps its test and review steps'),
+                    'runtime Routing Decision Guide lost the test/review guard');
+
+                const skill = readSkill('start-workflow');
+                const guardGaps = [
+                    ...missingGuards('workflow-first-gate.md', gate),
+                    ...missingGuards('Routing Decision Guide', guide),
+                    ...missingGuards('start-workflow/SKILL.md', skill),
+                ];
+                assertTrue(guardGaps.length === 0,
+                    `downgrade guards diverge across routing surfaces:\n  ${guardGaps.join('\n  ')}`);
+
+                // Negative guard spans the WHOLE skill: no step may propose a route or ask the user
+                // to pick one. (Prohibitions like "do not use AskUserQuestion to choose" stay legal.)
+                for (const [pattern, why] of [
+                    [/MAY propose/, '"MAY propose" a route'],
+                    [/How to present \(AskUserQuestion/, 'an AskUserQuestion route-presentation step'],
+                    [/Propose Custom Pipeline/i, 'a "Propose Custom Pipeline" step'],
+                ]) {
+                    assertTrue(!pattern.test(skill),
+                        `start-workflow carries ${why}, contradicting the auto-select gate`);
+                }
+                const section = skill.slice(skill.indexOf('## Custom Pipeline Option'),
+                    skill.indexOf('### Task creation for Custom Pipeline'));
+                assertTrue(section.length > 0, 'start-workflow lost its Custom Pipeline section');
+                assertTrue(section.includes('Do NOT use `AskUserQuestion` to choose'),
+                    'start-workflow must auto-select the custom pipeline without a confirmation prompt');
+
+                // Example routes teach the model the step vocabulary: every step in a
+                // `Route: custom-simple [a → b]` example must be a real canonical skill id.
+                const invalidSteps = [];
+                for (const [label, body] of [['workflow-first-gate.md', gate], ['start-workflow/SKILL.md', skill]]) {
+                    const examples = [...body.matchAll(/Route: custom-simple(?: "[^"]*")? \[([^\]]+)\]/g)];
+                    assertTrue(examples.length > 0, `${label} lost its custom-simple route example`);
+                    for (const match of examples) {
+                        for (const step of match[1].split('→').map(s => s.trim().split(/\s+/)[0])) {
+                            if (!fs.existsSync(path.join(SKILLS_DIR, step, 'SKILL.md'))) {
+                                invalidSteps.push(`${label} → "${step}"`);
+                            }
+                        }
+                    }
+                }
+                assertTrue(invalidSteps.length === 0,
+                    `route examples name non-canonical step ids:\n  ${invalidSteps.join('\n  ')}`);
             },
         },
         {

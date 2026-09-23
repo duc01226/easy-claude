@@ -59,7 +59,7 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 
 - MUST ATTENTION automatic selection applies only when the runtime route payload is present. When it is absent, this skill requires an explicit workflow ID.
 - Explicit `/workflow-*` or `$start-workflow <id>` invocation counts as the user choosing that workflow; execute it directly.
-- Propose Custom Pipeline when no catalog workflow is a strong fit (>80% steps relevant = use catalog)
+- Auto-select a Custom Pipeline when no catalog workflow is a strong fit (>80% of its unconditional steps do real work = use catalog); declare it, never ask the user to choose
 - `workflows.json` `workflows` field is an **OBJECT** — use `workflows[workflowId]`, NEVER `.find()` or `[index]`; resolve `variants[mode]` through `.claude/scripts/lib/workflow-manifest.cjs`
 - Create ALL task tracking items BEFORE marking the first task `in_progress` — batch creation, then execute
 - Read the selected manifest's `occurrences` and `parallelGroups` at activation and tag its member tasks as one wave — 1:1 occurrence tasks still stand (a group never collapses members into one task)
@@ -77,46 +77,40 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 
 ## Custom Pipeline Option
 
-When the prompt doesn't cleanly match a single catalog workflow — or combining steps from multiple workflows serves the request better — the AI MAY propose a **Custom Pipeline** alongside the catalog option.
+When the prompt doesn't cleanly match a single catalog workflow — or combining steps from multiple workflows serves the request better — the AI auto-selects a **Custom Pipeline** instead of the catalog workflow.
 
-### When to propose
+### When to choose
 
 | Condition                                    | Example                                                                              |
 | -------------------------------------------- | ------------------------------------------------------------------------------------ |
 | No catalog workflow matches well             | "Review hook changes and update skill docs" — spans review + docs                    |
-| Best-match has significant unnecessary steps | Quick investigate + fix, but `workflow-bugfix` includes full TDD + integration cycle |
+| Best-match has significant unnecessary steps | Focused policy change in one module; `workflow-feature` adds spec, scenario, seed-data and demo steps that would do no real work |
 | Prompt combines 2+ workflow domains          | "Audit performance and write integration tests for the slow query"                   |
 | User explicitly requests a step sequence     | "Just run investigate, plan, and feature-implement — nothing else"                         |
 
-**Do NOT propose** when a catalog workflow is a strong match (>80% of its steps are relevant). Catalog workflows encode validated best-practice sequences — prefer them.
+**Use the catalog workflow** when it is a strong match (>80% of its unconditional steps would do real work for this request). The gate's Signals → Route table is the default; catalog fit may downgrade it to a custom pipeline, trimming only steps that would do no real work. Catalog workflows encode validated best-practice sequences — prefer them.
 
 ### How to build
 
 1. **Valid steps only** — Use only canonical step ids — those appearing in a resolved workflow manifest's `occurrences` (legacy `sequence` entries are normalized by the resolver; variant entries are selected by mode). Each maps to a real `.claude/skills/<step>/SKILL.md` and is invoked with the active host's syntax. No invented step names.
 2. **Logical order** — Investigate → Plan → Implement → Test. Never reverse dependency order.
 3. **Minimal** — Include only steps the prompt needs. No "just in case" additions.
-4. **Name it** — Short descriptive name: "Quick Fix + Docs", "Audit + Test Coverage".
+4. **Keep required gates** — A behavior change keeps its test and review steps; a downgraded route also keeps root-cause investigation for bugs and spec/doc sync when behavior or a public contract changes (`investigate`/`debug-investigate`, `spec`/`docs-update` per the project's spec-test-code cycle reference). A custom pipeline never drops a quality gate the change still requires.
+5. **Name it** — Short descriptive name: "Quick Fix + Docs", "Audit + Test Coverage".
 
-### How to present (ask the user directly format)
+### How to declare (auto-select, no confirmation prompt)
 
-Show full step sequences for ALL options so the user compares scope:
+Declare the chosen route with its full step list and key signals, then activate it immediately. Do NOT use ask the user directly to choose between the catalog workflow and the custom pipeline — the declaration is the user's override point.
 
 ```
-Option A — Activate "Bug Fix" workflow (Recommended)
-  Steps: $investigate → $debug-investigate → $plan → $fix → $test → ...
-
-Option B — Custom Pipeline: "Quick Fix + Docs"
-  Steps: $investigate → $fix → $docs-update
-  Rationale: Prompt targets a known location — full TDD cycle is over-engineered here.
-
+Route: custom-simple "Quick Fix + Docs" [investigate → fix → test → changes-review → docs-update] — because known location, one module, no contract change; workflow-bugfix adds spec, integration-test and demo steps this request does not need
 ```
 
 **Rules:**
 
-- Always show full step list per option
-- One-sentence AI rationale for the custom pipeline
-- Catalog workflow = "(Recommended)" unless custom pipeline confidence is clearly higher
-- NEVER present custom pipeline as the only option — always include the catalog option
+- Always show the full step list and one-sentence rationale naming the key signals
+- Name the closest catalog workflow in the rationale when you skipped it, so the user can override
+- If the user redirects to the catalog workflow (or other steps), re-route and continue — no re-confirmation
 - For project-specific architecture, test, documentation, naming, or workflow rules, read `docs/project-config.json` and `docs/project-reference/docs-index-reference.md`; keep this reusable start-workflow protocol generic.
 
 ### Task creation for Custom Pipeline

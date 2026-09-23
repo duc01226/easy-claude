@@ -80,7 +80,7 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 - Tests must be 100% passing (Step 3 gate)
 - No blocking findings under the current Step 4 review bar (Round 1: all severities; Round 2: CRITICAL/HIGH/MEDIUM; binary gates always block)
 - User must explicitly approve before finalize (Step 5 gate)
-- Implementation completion, review approval, and `--approval=off` never authorize staging, committing, or pushing. Dispatch Git only with `operation`, `scope`, and `sourceRequest` from an explicit user request; NEVER `git commit --amend`.
+- Implementation completion, review approval, and `--approval=off` never authorize staging, committing, or pushing. Dispatch Git only with `operation`, `scope`, and `sourceRequest` from an explicit user request; run `git commit --amend` only on an explicit amend request, never a pushed commit or one this task did not create.
 - One plan phase per command run — a multi-phase run requires `--approval=off` with `$ALL_PHASES=Yes`
 - Phases run sequentially unless fan-out is explicitly opted in; even then, two phases writing the same file NEVER share a wave
 - **Mode flags** (see [Mode Flags](#mode-flags)): `--approval=off` (auto/trust, no approval gate + optional all-phases loop), `--tests=off` (skip the test step), `--parallel={auto|on|off}` (default `off` = sequential; `on` = opt in to wave dispatch; `auto` = fan out only when the plan declares `PAR`/`SEQ` tags + write sets). No flags = full 7-step spine below, run sequentially.
@@ -268,7 +268,7 @@ This approval accepts the implementation; it does not authorize staging, committ
 
 3. **COMPLETION REPORT:** Report implementation status, validation and docs outcomes independently of Git. Ordinary finalization writes no grant file and does not stage, commit, or push.
 
-4. **OPTIONAL GIT REQUEST (SEQ — after the barrier and all required reviews):** Dispatch `git-manager` only when the user explicitly requested the operation. Pass `operation`, `scope`, and `sourceRequest` (the actual user message/quote authorizing that operation and scope); apply the agent's Git Request Contract. Scope names the repository and authorized files, or the remote/branch for push. Generic implementation/review approval never grants this authority. Commit permits necessary staging of those files and a new commit; push requires its own explicit request and never follows commit implicitly. Stage-only and push-only requests retain those limits. If the request is absent, skip Git and finish; if scope or sourceRequest is missing/ambiguous, report the missing input and ask only about that Git operation. Required standalone/workflow reviews still precede any requested Git operation. NEVER `git commit --amend`.
+4. **OPTIONAL GIT REQUEST (SEQ — after the barrier and all required reviews):** Dispatch `git-manager` only when the user explicitly requested the operation. Pass `operation`, `scope`, and `sourceRequest` (the actual user message/quote authorizing that operation and scope); apply the agent's Git Request Contract. Scope names the repository and authorized files, or the remote/branch for push. Generic implementation/review approval never grants this authority. Commit permits necessary staging of those files and a new commit; push requires its own explicit request and never follows commit implicitly. Stage-only and push-only requests retain those limits. If the request is absent, skip Git and finish; if scope or sourceRequest is missing/ambiguous, report the missing input and ask only about that Git operation. Required standalone/workflow reviews still precede any requested Git operation. Run `git commit --amend` only on an explicit amend request, never a pushed commit or one this task did not create.
 
 **Output:** `✓ Step 6: Finalize - Implementation complete - Status/docs updated - No Git request (skipped)`; when Git was explicitly requested, replace the last field with the observed operation result (including blocked/failed), never a presumed commit. A blocked Git operation does not erase completed implementation work.
 
@@ -756,7 +756,7 @@ Execute every step in declared order; proceed only when validation passes and th
 ---
 
 **IMPORTANT MUST ATTENTION** the three BLOCKING gates (tests 100% · no blocking findings under the current review bar · explicit approval) cannot be faked-green — Round 1 blocks every validated severity, Round 2 defers LOW-only findings but still blocks CRITICAL/HIGH/MEDIUM and failed binary gates; NEVER bypass a gate to declare done.
-**IMPORTANT MUST ATTENTION** implementation completion, review approval and `--approval=off` never authorize Git: require explicit user operation/scope/sourceRequest, report completion independently, and NEVER `git commit --amend`.
+**IMPORTANT MUST ATTENTION** implementation completion, review approval and `--approval=off` never authorize Git: require explicit user operation/scope/sourceRequest, report completion independently, and run `git commit --amend` only on an explicit amend request, never a pushed commit or one this task did not create.
 **IMPORTANT MUST ATTENTION** cite `file:line` + confidence % for every claim; search 3+ patterns and read code before writing.
 **IMPORTANT MUST ATTENTION** break work into small task tracking todos BEFORE starting; add a final review todo; on context loss call the current task list first.
 

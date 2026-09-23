@@ -284,7 +284,7 @@ test("TC-HARNESS-015 ownership and type-check mutants fail the same preservation
 
 const ROOT_SENTINELS = [
   /Never commit, push, or stage.*unless the user explicitly asks/i,
-  /Never `git commit --amend`/,
+  /`git commit --amend` and `git reset --soft HEAD~1` \+ commit produce the same commit/,
   /Branch before committing on the default branch/,
   /Preserve unrelated\/user work/,
   /Never hand-edit.*\.agents\/.*\.codex\/.*AGENTS\.md/,
@@ -305,6 +305,8 @@ function assertRootContract(text) {
   assert.equal((text.match(/<!-- CK:CRITICAL-THINKING -->/g) || []).length, 1);
   assert.equal((text.match(/<!-- CK:AI-MISTAKE-PREVENTION -->/g) || []).length, 1);
   assert.doesNotMatch(text, /ask.*whether to activate|MANDATORY FIRST ACTION|invoke.*Skill tool/i);
+  // Amend parity: the retired unconditional ban must not survive beside the parity rule.
+  assert.doesNotMatch(text, /Never `git commit --amend`|amend[^\n.]{0,80}forbidden/i);
   assert.ok(Buffer.byteLength(text) <= 32768, "operational root fits 32 KiB without truncating");
 }
 

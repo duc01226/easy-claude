@@ -61,7 +61,7 @@ When `.code-graph/graph.db` exists, run at least one graph command on key files 
 
 - Never commit, push, or stage (`git add`) unless the user explicitly asks for that operation. Implementation approval, a workflow or delegated role grants none of these operations.
 - Commit through the `commit` skill, never a raw ad-hoc `git commit`: the skill runs the review-before-commit gate, and `review-commit-gate.cjs` blocks an agent commit whose changeset has no review fix-loop receipt (`changes-review --fix-loop` / `why-review --fix-loop` / `workflow-review-changes --fix-loop`) or user-approved skip.
-- Never `git commit --amend`. Create a new commit only when authorized.
+- Amend only on an explicit amend request (a plain commit request makes a new commit), and never a pushed commit or one this task did not create: `git commit --amend` and `git reset --soft HEAD~1` + commit produce the same commit and follow the same rules, including the review receipt (against HEAD's parent).
 - Branch before committing on the default branch (`main`/`master`).
 - Read-only inspection needs no permission. Index/worktree/history mutations and external publication must stay within actual user authority; never infer it from a read-only request.
 - Preserve unrelated/user work, custom content and existing backups. Never reset, overwrite or delete user data to satisfy a gate. Resolve exact destructive targets and obtain required authority; never access secrets or spend externally without authorization.

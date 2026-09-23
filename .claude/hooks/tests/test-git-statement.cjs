@@ -122,8 +122,11 @@ async function run() {
       const result = await runHook(bashInput(command, f, f.session), env);
       logResult(`BLOCK irreversible: ${command}`, result.code === 2, result.stderr);
     }
-    const amend = await runHook(bashInput('git commit --amend', f, f.session), env);
-    logResult('BLOCK: --amend is unconditional', amend.code === 2 && amend.stderr.includes('never allowed'));
+    // Amend is recoverable (the replaced commit stays in the reflog) and yields the same commit as
+    // `reset --soft HEAD~1` + commit, which is allowed below — so it is allowed too, without a lease.
+    // The review gate, not this classifier, gates it.
+    const amend = await runHook(bashInput('git commit --amend --no-edit', f), env);
+    logResult('ALLOW: --amend is an ordinary recoverable commit', amend.code === 0, amend.stderr);
 
     // Recoverable work is not this hook's business. Every one of these was blocked under the old
     // authority model and must now run — that regression is the whole point of the rework.
@@ -254,22 +257,13 @@ async function run() {
       logResult(`ALLOW explicit-scope control: ${command}`, result.code === 0, result.stderr);
     }
 
-    // Invariant: amend stays unbypassable while a valid lease is held. Git resolves any
-    // unambiguous prefix of a long option, so --am/--ame/--amen rewrite history exactly as
-    // --amend does; matching the literal spelling alone let an abbreviation fall through to the
-    // lease-authorized 'protected' path.
-    for (const command of ['git commit --amend', 'git commit --amen --no-edit', 'git commit --ame --no-edit',
-      'git commit --am --no-edit', 'git commit --amend=x', 'git commit -m x --amen',
+    // Invariant: amend is recoverable (reflog), so this hook allows every spelling git accepts without
+    // a lease; the review gate owns amend detection (review-commit-gate.test.cjs, REQ-GUARD-03).
+    for (const command of ['git commit --amend', 'git commit --amen --no-edit', 'git commit --ame --no-edit', 'git commit --am --no-edit',
+      'git commit --amend=x', 'git commit -m x --amen',
       'git commit --no-edit --am', 'git commit --author me --amend', 'git commit --amend -- --amend']) {
-      const result = await runHook(bashInput(command, f, f.session), env);
-      logResult(`BLOCK amend abbreviation with lease: ${command}`, result.code === 2 && result.stderr.includes('never allowed'), result.stderr);
-    }
-    // Invariant: the amend rule reads options only — operand text and option VALUES that merely
-    // spell --amend are ordinary commits the lease already authorizes.
-    for (const command of ['git commit -m "--amend"', 'git commit -- --amend', 'git commit --message --amend',
-      'git commit -m "--am" -- --amen']) {
-      const result = await runHook(bashInput(command, f, f.session), env);
-      logResult(`ALLOW amend look-alike operand: ${command}`, result.code === 0, result.stderr);
+      const result = await runHook(bashInput(command, f), env);
+      logResult(`ALLOW amend spelling without lease: ${command}`, result.code === 0, result.stderr);
     }
     const foreignCommand = `git -C ${shellPath(f.foreign)} reset --hard`;
     const parsedForeign = resolveGitStatement(inspectCommand(foreignCommand).statements[0], f.repo, {});

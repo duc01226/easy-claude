@@ -232,37 +232,12 @@ function resolveGitStatement(statement, initialCwd, env = process.env) {
 // Git honours any UNAMBIGUOUS abbreviation of a long option, so `--am`, `--ame` and `--amen`
 // all amend exactly as `--amend` does (verified against real git; `--a` alone is rejected as
 // ambiguous with --allow-empty/--allow-empty-message, so the set stops at two characters).
-// Matching only the full spelling let an abbreviated flag fall through to `protected`, where a
-// held lease ALLOWS it (see the lease check in evaluate) — rewriting history despite this rule
-// being documented as unbypassable. Detection must cover every spelling git itself accepts.
+// Amend is NOT irreversible — the replaced commit stays in the reflog, exactly as it does after
+// `git reset --soft HEAD~1 && git commit`, which produces the same result — so this hook allows
+// it. The review gate (its own commit-argv parse, which knows which tokens are option values)
+// uses this set to measure an amend's candidate against HEAD's PARENT; it must list every
+// spelling git accepts, or an abbreviated flag would be reviewed against the wrong base.
 const AMEND_ABBREVIATIONS = new Set(['--am', '--ame', '--amen', '--amend']);
-// Options whose value is a SEPARATE operand. An `--amend`-looking token in that position is
-// message/author/date text, not a flag, so denying it falsely blocks a legitimate commit under
-// a rule that cannot be overridden. Attached (`--message=...`) forms consume no extra operand.
-const COMMIT_VALUE_OPTIONS = new Set([
-  '--message', '-m', '--file', '-F', '--reuse-message', '-C', '--reedit-message', '-c',
-  '--fixup', '--squash', '--author', '--date', '--template', '-t', '--cleanup',
-  '--pathspec-from-file', '--trailer'
-]);
-
-/**
- * Does this `git commit` argv request an amend, in ANY spelling git accepts?
- * Scans flag positions only: stops at the `--` terminator and steps over separate value operands.
- * Non-static tokens are skipped — an opaque statement is already routed to `unknown` (and blocked)
- * upstream, so this scan never has to guess at one.
- */
-function commitHasAmend(argv) {
-  for (let index = 2; index < argv.length; index++) {
-    const token = argv[index];
-    if (!token?.static) continue;
-    const value = token.value;
-    if (value === '--') break; // pathspecs follow; they are operands, never the amend flag
-    const { name, inline } = optionParts(value);
-    if (AMEND_ABBREVIATIONS.has(name)) return true;
-    if (COMMIT_VALUE_OPTIONS.has(name) && inline === undefined) index++; // skip its value operand
-  }
-  return false;
-}
 
 // ── Irreversibility model ───────────────────────────────────────────────────────────────────────
 // This hook blocks exactly ONE class of action: work that nothing can bring back afterwards.
@@ -612,8 +587,6 @@ function classifyStatement(statement, initialCwd, depth = 0) {
   if (!resolved.operation) return { kind: 'unknown', resolved, statement };
   const operation = resolved.operation;
   const argv = resolved.operationArgv || [];
-  const hasAmend = operation === 'commit' && commitHasAmend(argv);
-  if (hasAmend) return { kind: 'deny', reason: 'git commit --amend is never allowed', operation, resolved, statement };
   const irreversible = irreversibleReason(operation, argv);
   // Every destructive git spelling consumes the ONE `discard` lease term rather than its own
   // operation name. Minting `reset`/`clean`/`branch`/… separately would mean an issuer had to
@@ -644,9 +617,6 @@ function hasLease(input, resolved, operation, root) {
 }
 
 function formatBlockMessage(result) {
-  if (result.reason?.includes('amend')) {
-    return `[BLOCKED] git commit --amend — ${result.reason}\n\nNEVER use --amend. Always create a NEW commit instead.\nThis block cannot be bypassed.`;
-  }
   // `subject` lets a non-git publisher name itself. Reporting `gh pr merge` as
   // "Git push" would send the reader looking for a git command that never ran.
   const subject = result.subject || `Git ${result.operation || 'statement'}`;
@@ -724,14 +694,6 @@ function evaluate(input) {
     return item;
   }).filter(item => item.kind !== 'none');
   if (classifications.length === 0) return undefined;
-  const amend = classifications.find(item => item.kind === 'deny');
-  if (amend) {
-    return {
-      code: 2,
-      stderr: `${formatBlockMessage({ ...amend, reason: 'Amending commits is never allowed' })}\n`,
-      decision: 'block'
-    };
-  }
   const root = projectRoot(input);
   for (const item of classifications) {
     if (item.kind === 'protected' && hasLease(input, item.resolved, item.leaseOperation || item.operation, root)) continue;
@@ -759,7 +721,7 @@ module.exports = {
   irreversibleReason,
   matchesFlag,
   looksLikePathspec,
-  commitHasAmend,
+  AMEND_ABBREVIATIONS,
   wrappedGitStatement,
   wrappedCliStatement,
   ghWriteAction,

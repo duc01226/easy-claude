@@ -53,7 +53,7 @@ Connected contracts:
 - NEVER include AI attribution in commit messages — write `type(scope): description` only. The Estimate line is NOT attribution: it is a size metric, carrying no authorship claim
 - NEVER push unless user explicitly said "push" / "commit and push" — "commit" alone means commit, not push
 - Protected branches (main/master) → land via PR; NEVER direct push — why: bypasses required review
-- NEVER `git commit --amend` — create a new commit; an explicit commit request does not waive this rule.
+- Run `git commit --amend` only on an explicit amend request, never a pushed commit or one this task did not create. An amend request is a `commit` request whose `sourceRequest` explicitly asks to amend; a plain commit request makes a new commit. It is gated by a review receipt against HEAD's parent (descriptor `"amend":true`), exactly like `git reset --soft HEAD~1` + commit, which produces the same result.
 
 > **[IMPORTANT]** NEVER force push to main/master. NEVER commit secrets or .env files. NEVER skip pre-commit hooks.
 > **Evidence Gate:** MANDATORY IMPORTANT MUST ATTENTION — every claim, finding, and recommendation requires `file:line` proof or traced evidence with confidence percentage (>80% to act, <80% must verify first).
@@ -76,7 +76,7 @@ Require `operation`, `scope`, and `sourceRequest` before any mutation. `sourceRe
 | `commit and push` | `stage, commit, push` |
 | `create-pr` | `create-pr` |
 
-This table states authority, not readiness: all applicable quality/security gates still bind. For a stage-only request, stop after TOOL 1. For a push-only request, skip staging, message generation and commits; use Authorized Push. For create-pr, use Pull Request Workflow only; any missing remote branch requires a separate explicit push request. A combined request authorizes only the operations it names, within the same scope. NEVER `git commit --amend`.
+This table states authority, not readiness: all applicable quality/security gates still bind. For a stage-only request, stop after TOOL 1. For a push-only request, skip staging, message generation and commits; use Authorized Push. For create-pr, use Pull Request Workflow only; any missing remote branch requires a separate explicit push request. A combined request authorizes only the operations it names, within the same scope. Run `git commit --amend` only on an explicit amend request, never a pushed commit or one this task did not create.
 
 ### Lease Lifecycle
 
@@ -673,7 +673,7 @@ For stage-only or push-only requests, report only the requested operation's obse
 **IMPORTANT MUST ATTENTION** NEVER force push to main/master — land protected-branch changes via PR — why: direct push bypasses required review and rewrites shared history
 
 **IMPORTANT MUST ATTENTION** NEVER skip pre-commit hooks (`--no-verify`) — fix the underlying issue instead — why: hooks gate quality and security
-**IMPORTANT MUST ATTENTION** NEVER `git commit --amend` — create a NEW commit instead — why: amending rewrites history and corrupts commits once HEAD moved
+**IMPORTANT MUST ATTENTION** run `git commit --amend` (or `reset --soft HEAD~1` + commit) only on an explicit amend request, never a pushed commit or one this task did not create — why: both rewrite the last commit
 **IMPORTANT MUST ATTENTION** NEVER include AI attribution in commit messages — write `type(scope): description` only, no "Generated with Claude" / "Co-Authored-By"
 **IMPORTANT MUST ATTENTION** validate operation/scope/sourceRequest FIRST. Run TOOL 1 only for authorized stage/commit requests, with exact paths after `--`; preserve unrelated staged work. Stage-only stops there; push-only skips it — why: invoking this role never grants extra operations.
 **IMPORTANT MUST ATTENTION** Split into multiple commits when types/scopes mix (feat+fix, code+deps, config+features, FILES>10 unrelated); keep ONE commit for same-type/scope, FILES<=3, LINES<=50 — why: mixed commits hide intent and block clean revert
@@ -704,4 +704,4 @@ For stage-only or push-only requests, report only the requested operation's obse
 
 **IMPORTANT MUST ATTENTION** SECRETS > 0 → STOP and block; never let a credential reach history.
 **IMPORTANT MUST ATTENTION** Push ONLY when the user explicitly said push; NEVER force-push or commit directly to main/master — go via PR.
-**IMPORTANT MUST ATTENTION** require explicit user operation/scope/sourceRequest; implementation completion, review approval and `--approval=off` never grant Git authority. NEVER `git commit --amend`.
+**IMPORTANT MUST ATTENTION** require explicit user operation/scope/sourceRequest; implementation completion, review approval and `--approval=off` never grant Git authority. Run `git commit --amend` only on an explicit amend request, never a pushed commit or one this task did not create.
