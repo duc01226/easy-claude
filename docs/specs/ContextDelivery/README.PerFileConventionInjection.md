@@ -5,7 +5,7 @@ feature_code: 'PFCI'
 entities: ['ConventionClass', 'ClassMatcher', 'ConventionDigest', 'DeliveryRecord', 'WorkingContext']
 status: draft
 owner: 'Framework maintainers'
-last_updated: '2026-09-16'
+last_updated: '2026-09-23'
 scope_mode: FRAMEWORK-LIBRARY
 large_idea_decomposition: null
 roadmap: null
@@ -41,25 +41,25 @@ In long working sessions an AI assistant tends to change a file after the conven
 
 ## 2. Glossary
 
-| Term                | Definition                                                                                                                         | Context                                                                      |
-| ------------------- | ---------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------- |
-| Convention Class    | A named kind of file (for example "hook source" or "feature spec") plus the conventions that apply when such a file is changed     | Defined by a maintainer or by setup detection in the project configuration   |
-| Include Pattern     | A rule that makes a file belong to a class: a location pattern, a wildcard location, or a file-name pattern                        | A class needs at least one                                                   |
-| Exclude Pattern     | A rule that removes a file from a class even when an include pattern matched                                                       | Exclusion always wins                                                        |
-| File-Type Filter    | An optional list of file types a class is limited to                                                                               | Must pass in addition to an include pattern                                  |
-| Precedence Rank     | A whole number ordering classes when several match; lower means more specific and comes first                                      | Default ranks: specific 100, default 500, general 900                        |
-| Deliverable Item    | A short rule, a protocol reference, or a reference document attached to a class                                                    | A class with at least one is deliverable                                     |
-| Delivery Switch     | The project-level setting that turns automatic delivery on                                                                         | Off unless the project explicitly turns it on                                |
-| Trigger             | The assistant opening a file for reading, or finishing a change to files                                                           | Reading can be excluded by setting                                           |
-| Convention Digest   | The short reminder assembled for one trigger from all matched classes not currently present                                        | Bounded in size                                                              |
-| Working Context     | One assistant conversation window: the main conversation, or one helper agent's own conversation                                   | Each keeps its own delivery memory                                           |
-| Condensation        | The assistant host shortening a long conversation, which may drop earlier reminders                                                | Invalidates earlier deliveries in the affected conversation                  |
-| Reminder Distance   | How much conversation has accumulated since a class was last delivered, or how much time passed when the amount cannot be measured | Large distance means the reminder has faded                                  |
-| Content Version     | A short fingerprint of a class's rendered reminder and of the patterns deciding which files belong to it                           | Changes whenever the class's deliverable items or membership patterns change |
-| Delivery Record     | The memory that a class at a content version was delivered in a working context, and when                                          | Prevents duplicates                                                          |
-| Static Instructions | The always-loaded project instruction files every assistant reads at the start of work                                             | Carry the same conventions without automatic delivery                        |
-| Convention Lookup   | An on-demand command that prints the conventions for a given file                                                                  | Fallback for hosts without automatic delivery                                |
-| Detected Class      | A class created by setup detection rather than written by a maintainer                                                             | Setup may refresh it only while nobody has edited it                         |
+| Term                | Definition                                                                                                                         | Context                                                                                                        |
+| ------------------- | ---------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
+| Convention Class    | A named kind of file (for example "hook source" or "feature spec") plus the conventions that apply when such a file is changed     | Defined by a maintainer or by setup detection in the project configuration                                     |
+| Include Pattern     | A rule that makes a file belong to a class: a location pattern, a wildcard location, or a file-name pattern                        | A class needs at least one                                                                                     |
+| Exclude Pattern     | A rule that removes a file from a class even when an include pattern matched                                                       | Exclusion always wins                                                                                          |
+| File-Type Filter    | An optional list of file types a class is limited to                                                                               | Must pass in addition to an include pattern                                                                    |
+| Precedence Rank     | A whole number ordering classes when several match; lower means more specific and comes first                                      | Default ranks: specific 100, default 500, general 900                                                          |
+| Deliverable Item    | A short rule, a protocol reference, or a reference document attached to a class                                                    | A class with at least one is deliverable                                                                       |
+| Delivery Switch     | The project-level setting that turns automatic delivery on                                                                         | Off unless the project explicitly turns it on; a project with no configuration file gets the built-in fallback |
+| Trigger             | The assistant opening a file for reading, or finishing a change to files                                                           | Reading can be excluded by setting                                                                             |
+| Convention Digest   | The short reminder assembled for one trigger from all matched classes not currently present                                        | Bounded in size                                                                                                |
+| Working Context     | One assistant conversation window: the main conversation, or one helper agent's own conversation                                   | Each keeps its own delivery memory                                                                             |
+| Condensation        | The assistant host shortening a long conversation, which may drop earlier reminders                                                | Invalidates earlier deliveries in the affected conversation                                                    |
+| Reminder Distance   | How much conversation has accumulated since a class was last delivered, or how much time passed when the amount cannot be measured | Large distance means the reminder has faded                                                                    |
+| Content Version     | A short fingerprint of a class's rendered reminder and of the patterns deciding which files belong to it                           | Changes whenever the class's deliverable items or membership patterns change                                   |
+| Delivery Record     | The memory that a class at a content version was delivered in a working context, and when                                          | Prevents duplicates                                                                                            |
+| Static Instructions | The always-loaded project instruction files every assistant reads at the start of work                                             | Carry the same conventions without automatic delivery                                                          |
+| Convention Lookup   | An on-demand command that prints the conventions for a given file                                                                  | Fallback for hosts without automatic delivery                                                                  |
+| Detected Class      | A class created by setup detection rather than written by a maintainer                                                             | Setup may refresh it only while nobody has edited it                                                           |
 
 ---
 
@@ -75,7 +75,8 @@ In long working sessions an AI assistant tends to change a file after the conven
 
 - **AC-PFCI-01** — **Given** a class with an include pattern and a deliverable item **When** the project configuration is validated **Then** it is accepted
 - **AC-PFCI-02** — **Given** a class with no include pattern, a malformed pattern, or a name used by another class **When** the configuration is validated **Then** an error names the class
-- **AC-PFCI-03** — **Given** the delivery switch is off or absent, or no class is deliverable **When** the assistant reads or edits any file **Then** nothing is delivered and the work proceeds normally
+- **AC-PFCI-03** — **Given** a configuration exists and the delivery switch is off or absent, or no class is deliverable **When** the assistant reads or edits any file **Then** nothing is delivered and the work proceeds normally
+- **AC-PFCI-28** — **Given** no project configuration file exists **When** the assistant reads or edits a front-end file **Then** the built-in user-interface design class is delivered, and a file of any other kind receives nothing
 
 ### US-PFCI-02: Receive conventions when working on a file
 
@@ -184,10 +185,12 @@ In long working sessions an AI assistant tends to change a file after the conven
 
 ### BR-PFCI-01: Explicit opt-in and silence when nothing is deliverable [HARD]
 
-**Statement:** Automatic delivery happens only when the project's delivery switch is explicitly on and at least one class is deliverable. A project that has never set the switch receives no automatic delivery.
+**Statement:** Automatic delivery happens only when the project's delivery switch is explicitly on and at least one class is deliverable. A project whose configuration exists but has never set the switch receives no automatic delivery. A project with no configuration file at all gets a built-in fallback: delivery on, with the framework's user-interface design class as the only class, so a front-end file still receives the design rules before it is edited. A configuration that exists but cannot be read is not missing — it stays silent (BR-PFCI-10).
 
 ```
-IF delivery switch is absent or off OR no class is deliverable OR no configuration exists
+IF no configuration file exists
+  → act on the built-in fallback (switch on; the user-interface design class only)
+ELSE IF delivery switch is absent or off OR no class is deliverable OR the configuration is unreadable
   → deliver nothing; the work proceeds unchanged
 ELSE
   → evaluate the trigger
@@ -473,7 +476,7 @@ Setup detection acts on the delivery switch only on a maintainer's explicit requ
 | Setup Merge Permission Tests | TC-PFCI-021, TC-PFCI-022, TC-PFCI-023                                                                                            |
 | Delivery Lifecycle Tests     | TC-PFCI-031, TC-PFCI-032, TC-PFCI-033, TC-PFCI-034, TC-PFCI-035, TC-PFCI-036, TC-PFCI-037, TC-PFCI-038, TC-PFCI-039, TC-PFCI-040 |
 | Host Signal Tests            | TC-PFCI-041                                                                                                                      |
-| Edge and Failure Tests       | TC-PFCI-051, TC-PFCI-052, TC-PFCI-053, TC-PFCI-054, TC-PFCI-055, TC-PFCI-056                                                     |
+| Edge and Failure Tests       | TC-PFCI-051, TC-PFCI-082, TC-PFCI-052, TC-PFCI-053, TC-PFCI-054, TC-PFCI-055, TC-PFCI-056                                        |
 | Reminder Shape Tests         | TC-PFCI-061, TC-PFCI-062                                                                                                         |
 | Invariant / Property Tests   | TC-PFCI-071, TC-PFCI-072, TC-PFCI-073, TC-PFCI-074, TC-PFCI-075, TC-PFCI-076, TC-PFCI-077, TC-PFCI-078, TC-PFCI-079              |
 
@@ -2207,9 +2210,9 @@ Then nothing is shown and the report succeeds
 
 #### TC-PFCI-051: Nothing is delivered unless explicitly switched on [P0]
 
-**Objective:** Prove silence when the switch is absent or off, when no configuration exists, and when no class is deliverable.
+**Objective:** Prove silence when a configuration exists and the switch is absent or off, or when no class is deliverable.
 
-**Business Intent / Invariant Guarded:** Projects that never opted in see no behavior change (BR-PFCI-01).
+**Business Intent / Invariant Guarded:** Projects whose configuration never opted in see no behavior change (BR-PFCI-01). No configuration at all is covered by TC-PFCI-082.
 
 **Traces:** AC-PFCI-03 / BR-PFCI-01
 
@@ -2225,7 +2228,7 @@ Then nothing is shown and the report succeeds
 Given the delivery switch is absent
 When a file of a deliverable class is changed
 Then nothing is shown and the change succeeds
-And the same holds with the switch off, with no configuration, and with no deliverable class
+And the same holds with the switch off and with no deliverable class
 ```
 
 **Expected Result:**
@@ -2239,13 +2242,13 @@ And the same holds with the switch off, with no configuration, and with no deliv
 
 **Acceptance Criteria:**
 
-- ✅ Silent in all four conditions
+- ✅ Silent in all three conditions
 - ❌ Any reminder or memory written
 
 **Test Data:**
 
 ```yaml
-inputDomain: 'any trigger with switch absent/off, configuration absent, or zero deliverable classes'
+inputDomain: 'any trigger with an existing configuration whose switch is absent/off, or with zero deliverable classes'
 invariant: 'output is empty and no delivery memory is created — for ALL such triggers'
 boundaryCounterCase: 'switch on with one deliverable matching class → reminder shown'
 ```
@@ -2260,6 +2263,67 @@ boundaryCounterCase: 'switch on with one deliverable matching class → reminder
 > **Evidence:** `[Source: rule/hooks/explicit-opt-in]`
 > **Related Behaviors:** `rule/hooks/explicit-opt-in` · `test/hooks/file-convention-inject`
 > **CoveredBy:** `.claude/hooks/tests/suites/file-convention-inject.test.cjs::TC-PFCI-051 no-op when disabled or unconfigured` · **Status:** Tested
+
+---
+
+#### TC-PFCI-082: No configuration gets the built-in design class on front-end files only [P0]
+
+**Objective:** Prove that a project with no configuration file receives the built-in user-interface design reminder on front-end files, nothing on other files, with the same de-duplication as a configured class.
+
+**Business Intent / Invariant Guarded:** A framework installed without setup still puts the design rules in front of the assistant before it edits a user-facing surface, without adding noise elsewhere (BR-PFCI-01, BR-PFCI-05).
+
+**Traces:** AC-PFCI-28 / BR-PFCI-01 / BR-PFCI-05 / BR-PFCI-13
+
+**Preconditions:**
+
+- No project configuration file exists
+
+**Real-World Reachability:** An adopter copies the framework into a front-end repository and starts working before running setup.
+
+**Demo Flow:** Open a component file, then a stylesheet, then a logic file.
+
+```gherkin
+Given no project configuration file exists
+When the assistant reads or changes a component, template, stylesheet or native layout file
+Then the design reminder is shown once for the working context
+And a logic file or an excluded dependency folder file receives nothing
+And an existing configuration without the switch, or an unreadable one, stays silent
+```
+
+**Expected Result:**
+
+| Dimension               | Expectation                                                                                     |
+| ----------------------- | ----------------------------------------------------------------------------------------------- |
+| **UI**                  | Not applicable — the observable surface is the reminder text and the lookup output              |
+| **System behavior**     | Built-in fallback acts as switch on with the design class only; presence rules apply unchanged  |
+| **Business data state** | Delivery memory is written for delivered or evidenced classes only                              |
+| **Data shown on UI**    | The design reminder on front-end files; empty output otherwise; the lookup shows the same class |
+
+**Acceptance Criteria:**
+
+- ✅ Front-end file → design reminder; repeated front-end files in the same context → nothing
+- ✅ Helper agent, reminder distance past the class window, and condensation each re-arm it once
+- ✅ A design skill already loaded counts as present
+- ❌ Any reminder on a non-front-end file, or any delivery when a configuration exists without the switch
+
+**Test Data:**
+
+```yaml
+inputDomain: 'component, template, stylesheet and native layout files with no configuration file'
+invariant: 'exactly one design reminder per working context until it may have faded'
+boundaryCounterCase: 'a configuration that exists without the switch → silent'
+```
+
+**Edge Cases:**
+
+- Replacing the fallback with a configuration carrying the same detected design class → same content version, not re-sent
+- Plain script files are not front-end files (their extension is shared with non-interface code)
+
+<!-- machine-only carrier — ignore when reading as BA/QA -->
+
+> **Evidence:** `[Source: rule/hooks/explicit-opt-in]`
+> **Related Behaviors:** `rule/hooks/explicit-opt-in` · `test/hooks/file-convention-inject` · `test/hooks/ui-ux-gate-inject`
+> **CoveredBy:** `.claude/hooks/tests/suites/file-convention-inject.test.cjs::TC-PFCI-082 no project config delivers the built-in UI/UX gate on front-end files only` · `.claude/hooks/tests/suites/ui-ux-gate-inject.test.cjs::TC-UIG-012 no-config fallback dedups: same context skips, helper/window/condensation re-arm, evidence counts` · **Status:** Tested
 
 ---
 

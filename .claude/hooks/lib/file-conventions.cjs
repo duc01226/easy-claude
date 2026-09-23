@@ -66,6 +66,60 @@ const BYTES_PER_TOKEN = 22;
 // class from re-injecting every few turns. The config validator mirrors this range.
 const CLASS_REINJECT_TOKENS_RANGE = Object.freeze([20000, 2000000]);
 
+/**
+ * The framework's UI/UX gate class: any file that renders a user-facing surface receives a compact
+ * digest of the three binding rule sets and their docs before it is edited. Setup detection
+ * (convention-merge.cjs) proposes it for a project that records front-end evidence; a project with
+ * NO project config gets it as the built-in fallback (builtinFallbackConfig, BR-PFCI-01).
+ *
+ * Membership by file name, deliberately excluding extensions shared with non-UI code:
+ *   IN  markup/templates  html htm xhtml · razor cshtml · hbs handlebars ejs pug twig liquid njk
+ *       styles            css scss sass less styl pcss
+ *       component files   jsx tsx vue svelte astro · Angular `*.component.ts` (templates/styles via html/scss)
+ *       native UI markup  xaml axml storyboard xib · Android layout XML under `res/layout*`
+ *   OUT mdx (mostly documentation prose) · ts/js (mostly logic) · swift/kt/dart (SwiftUI, Compose and
+ *       Flutter share their extension with all non-UI code; a path matcher cannot tell them apart).
+ * A project widens or narrows this by editing the class (or its own class) in contextGroups.
+ */
+const GENERAL_EXCLUDES = Object.freeze(['**/node_modules/**', '**/dist/**', '**/build/**', '**/vendor/**', 'tmp/**', 'temp/**']);
+const UI_UX_GATE = Object.freeze({
+    name: 'ui-ux-gate',
+    priority: 100,
+    pathRegexes: Object.freeze(['/res/layout[^/]*/[^/]+\\.xml$']),
+    fileNameRegexes: Object.freeze([
+        '\\.(?:html?|xhtml|razor|cshtml|hbs|handlebars|ejs|pug|twig|liquid|njk|css|scss|sass|less|styl|pcss|jsx|tsx|vue|svelte|astro|xaml|axml|storyboard|xib)$',
+        '\\.component\\.ts$'
+    ]),
+    excludePathGlobs: GENERAL_EXCLUDES,
+    referenceDocs: Object.freeze(['.claude/docs/design-review-checklist.md', '.claude/docs/design-knowledge.md', '.claude/docs/design-review-calibration.md']),
+    rules: Object.freeze([
+        'UI/UX gate: have UI-*, DD-* and CL-* in context BEFORE editing this surface; read the docs above unless already loaded',
+        'UI-1.1–UI-9.4 usability/a11y floor (pass/fail): SYNC:ui-ux-design-principles in .claude/skills/shared/sync-inline-versions.md',
+        'DD-1–DD-8 identity (design-knowledge.md): name subject/audience/job, write the Design Plan, pass the generic test',
+        'CL-1–CL-6 (checklist): §0.5 surface scope, B12–B15 load, E9–E11 container fit, §R forms, I15 dialog focus, K10 dead controls',
+        'Calibrate severity with design-review-calibration.md; brief > project design system/ADRs > these rules; no visual change = say skip'
+    ]),
+    reinjectAfterTokens: 100000,
+    evidenceDocs: Object.freeze(['.claude/docs/design-review-checklist.md', '.claude/docs/design-knowledge.md']),
+    evidenceSkills: Object.freeze(['ui-review', 'design', 'design-spec', 'web-design-guidelines', 'pbi-mockup', 'artifact-review'])
+});
+
+/**
+ * BR-PFCI-01 built-in fallback: used ONLY when the project config file does not exist. Delivery is
+ * on with the UI/UX gate as the single class, so a framework install without setup still gets the
+ * design rules on front-end files. A config that exists — even without `conventionInjection`, or
+ * malformed — is the maintainer's decision and is never replaced by this fallback.
+ */
+function builtinFallbackConfig() {
+    return { conventionInjection: { enabled: true }, contextGroups: [UI_UX_GATE] };
+}
+
+/** Config the hook and lookup act on: the loaded config, or the built-in fallback when the file is missing. */
+function effectiveConfig(status) {
+    if (isPlainObject(status) && status.state === 'missing') return builtinFallbackConfig();
+    return isPlainObject(status) && isPlainObject(status.config) ? status.config : {};
+}
+
 function isPlainObject(value) {
     return value !== null && typeof value === 'object' && !Array.isArray(value);
 }
@@ -498,6 +552,9 @@ module.exports = {
     CLASS_REINJECT_TOKENS_RANGE,
     PATH_CAP,
     LOOKUP_COMMAND,
+    UI_UX_GATE,
+    builtinFallbackConfig,
+    effectiveConfig,
     resolveSettings,
     isEnabled,
     extractTargets,
@@ -526,9 +583,10 @@ function runCli(argv) {
         return 2;
     }
     const { resolveProjectRoot } = require('./project-root.cjs');
-    const { loadProjectConfig } = require('./project-config-loader.cjs');
+    const { getProjectConfigStatus } = require('./project-config-loader.cjs');
     const projectDir = resolveProjectRoot({ cwd: process.cwd(), scriptPath: __filename, env: process.env }).rootDir;
-    const config = loadProjectConfig();
+    // Same config the hook acts on (BR-PFCI-13 parity), including the no-config fallback.
+    const config = effectiveConfig(getProjectConfigStatus());
     const result = lookup(config, argv[index + 1], { projectDir, cwd: process.cwd() });
     // The lookup shows what a file WOULD receive; whether the hook delivers it is separate.
     const settings = resolveSettings(config);

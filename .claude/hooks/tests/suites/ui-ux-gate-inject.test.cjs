@@ -102,6 +102,17 @@ async function deliver(fx, config, input, now = NOW) {
 
 const gateDelivered = text => text.includes(TAG);
 
+/** Spawned hook in a project with NO config: the real defaultConfig → built-in fallback path. */
+function spawnNoConfig(fx, input) {
+    const { spawnSync } = require('node:child_process');
+    const result = spawnSync(process.execPath, [path.join(HOOKS_DIR, 'file-convention-inject.cjs')], {
+        cwd: fx.project, input: JSON.stringify(input), encoding: 'utf8', windowsHide: true,
+        env: { ...process.env, CK_DEBUG: '', CLAUDE_HOOK_DEBUG: '', CLAUDE_PROJECT_DIR: fx.project, CK_CONVENTIONS_DIR: fx.store }
+    });
+    assert.equal(result.status, 0, result.stderr);
+    return result.stdout ? JSON.parse(result.stdout).hookSpecificOutput.additionalContext : '';
+}
+
 // ── tests ───────────────────────────────────────────────────────────────────
 
 const tests = [
@@ -290,6 +301,53 @@ const tests = [
                 assert.deepEqual(group[field], GATE[field], `ui-ux-gate.${field} drifted from the framework definition`);
             }
         }
+    },
+    {
+        // INTENT: the no-config fallback (BR-PFCI-01) goes through the SAME dedup as a configured gate —
+        // never a reminder per file, yet never a lost one after a window, condensation or helper hop.
+        name: 'TC-UIG-012 no-config fallback dedups: same context skips, helper/window/condensation re-arm, evidence counts',
+        fn: async () => withFixture(async fx => {
+            assert.equal(fs.existsSync(path.join(fx.project, 'docs', 'project-config.json')), false, 'no project config');
+            const edit = (rel, extra) => post(fx, 'Edit', rel, extra);
+
+            // First front-end touch in the main conversation delivers; any further front-end file does not
+            assert.ok(gateDelivered(spawnNoConfig(fx, post(fx, 'Read', 'web/a.tsx'))), 'first touch delivers');
+            for (const rel of ['web/a.tsx', 'web/b.vue', 'web/site.scss']) {
+                assert.equal(spawnNoConfig(fx, edit(rel)), '', `${rel}: already present, not repeated`);
+            }
+
+            // A helper agent keeps its own memory: it gets the gate once, then dedups in its own context
+            assert.ok(gateDelivered(spawnNoConfig(fx, edit('web/b.vue', { agent_id: 'helper-1' }))), 'helper receives its own copy');
+            assert.equal(spawnNoConfig(fx, edit('web/c.svelte', { agent_id: 'helper-1' })), '', 'helper dedups');
+            assert.equal(spawnNoConfig(fx, edit('web/c.svelte')), '', 'the helper delivery does not re-arm the main context');
+
+            // The gate scrolled out of its ~100K-token window → delivered again, once
+            fx.grow(WINDOW_BYTES + 100);
+            assert.ok(gateDelivered(spawnNoConfig(fx, edit('web/a.tsx'))), 'window edge re-arms');
+            assert.equal(spawnNoConfig(fx, edit('web/b.vue')), '', 'and dedups again right after');
+
+            // A host-reported condensation (SessionStart compact) is recorded without a config and re-arms
+            const condensed = spawnNoConfig(fx, { hook_event_name: 'SessionStart', source: 'compact', session_id: 'session-1', cwd: fx.project });
+            assert.equal(condensed, '', 'the condensation report shows nothing');
+            assert.equal(typeof ledger.readSessionCompaction(fx.store, 'session-1'), 'number', 'condensation recorded');
+            assert.ok(gateDelivered(spawnNoConfig(fx, edit('web/a.tsx', { session_id: 'session-1' }))), 'condensation re-arms');
+            assert.equal(spawnNoConfig(fx, edit('web/b.vue')), '', 'and dedups again right after');
+
+            // The protocol already loaded by a UI skill counts as delivered (evidence), and is remembered
+            const evidence = { session_id: 'evidence-session' };
+            fx.append(toolUse('Skill', { skill: 'ui-review' }, Date.now() - MINUTE));
+            assert.equal(spawnNoConfig(fx, edit('web/a.tsx', evidence)), '', 'skill evidence counts as present');
+            const record = ledger.readRecord(fx.store, 'evidence-session', 'main', 'ui-ux-gate');
+            assert.equal(record && record.form, 'evidence', 'evidence skip recorded so later triggers skip on the record');
+
+            // Switching from the fallback to a config carrying the same detected gate keeps the content
+            // version, so an adopter who later runs setup is not re-sent the gate for the same content.
+            const fallbackEntry = conventions.injectableEntries(conventions.builtinFallbackConfig())[0];
+            const detected = merge.detectGroups({ styling: { fileExtensions: ['.scss'] } }, { projectDir: fx.project, fileExists: () => true })
+                .find(g => g.name === 'ui-ux-gate');
+            const detectedEntry = conventions.injectableEntries({ contextGroups: [detected] })[0];
+            assert.equal(conventions.groupHash(fallbackEntry), conventions.groupHash(detectedEntry), 'fallback and detected gate share one content version');
+        })
     }
 ];
 

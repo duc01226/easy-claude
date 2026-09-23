@@ -978,7 +978,7 @@ The excerpt below illustrates `docs/project-config.json` shape; document paths m
 }
 ```
 
-**Convention classes.** Each `contextGroups[]` entry is also a per-file convention class. Optional fields `pathGlobs`, `fileNameRegexes`, `excludePathRegexes`, `excludePathGlobs`, `priority` (100 specific · 500 default · 900 general), `skills` and `referenceDocs` refine membership, precedence and what is delivered; `"conventionInjection": { "enabled": true }` turns on the `file-convention-inject.cjs` reminder, which shows the matching classes' rules, skill protocols and reference docs after a file is read or changed, only when they are missing from the current working context. `/project-config`, `/project-init` and `/scan` detect and merge classes additively (`convention-merge.cjs`); without hooks, the same classes appear in the CLAUDE.md/AGENTS.md "Automatic Skill Activation" table and via `node .claude/hooks/lib/file-conventions.cjs --lookup <path>`.
+**Convention classes.** Each `contextGroups[]` entry is also a per-file convention class. Optional fields `pathGlobs`, `fileNameRegexes`, `excludePathRegexes`, `excludePathGlobs`, `priority` (100 specific · 500 default · 900 general), `skills` and `referenceDocs` refine membership, precedence and what is delivered; `"conventionInjection": { "enabled": true }` turns on the `file-convention-inject.cjs` reminder (a project with no config file gets the built-in `ui-ux-gate` class on front-end files only), which shows the matching classes' rules, skill protocols and reference docs after a file is read or changed, only when they are missing from the current working context. `/project-config`, `/project-init` and `/scan` detect and merge classes additively (`convention-merge.cjs`); without hooks, the same classes appear in the CLAUDE.md/AGENTS.md "Automatic Skill Activation" table and via `node .claude/hooks/lib/file-conventions.cjs --lookup <path>`.
 
 ### 7.2.5 settings.json — Key Configuration Flags
 
@@ -3452,13 +3452,13 @@ sequenceDiagram
 | Runner                               | Tests   | Scope                                                                                      |
 | ------------------------------------ | ------- | ------------------------------------------------------------------------------------------ |
 | `test-all-hooks.cjs` (primary gate)  | **130** | All hook behaviors + bridged suites + count-drift guard                                    |
-| `run-all-tests.cjs` (full aggregate) | **663** | Primary + extended lib, swap-engine, shared-utilities, and every `tests/suites/*.test.cjs` |
+| `run-all-tests.cjs` (full aggregate) | **665** | Primary + extended lib, swap-engine, shared-utilities, and every `tests/suites/*.test.cjs` |
 
 > The primary suite passes with 130 tests.
-> The full aggregate discovers 663 tests: 659 passed and 4 skipped on a clean checkout.
+> The full aggregate discovers 665 tests: 661 passed and 4 skipped on a clean checkout.
 > Both counts are checked against live totals by the runners on full runs.
 
-> Live-verified: `test-all-hooks.cjs` = 130; `run-all-tests.cjs` = 663 discovered.
+> Live-verified: `test-all-hooks.cjs` = 130; `run-all-tests.cjs` = 665 discovered.
 
 Suites under `tests/suites/` (38): agent-files-gate, agent-universal-rules, bash-hook-contract, bugfix-regression, check-subagent-routing, code-graph-storage-portability, command-inspection, content-presence, count-drift, desktop-argv, doc-impact-map, doc-stamp-guard, doc-sync-gate, docroot-relocation, emit-prompt-context, failure-log-hygiene, file-convention-inject, git-operation-lease, graph-head-staleness, init-prompt-gate, init-reference-docs, integration, lifecycle, notification, plan-naming, project-protocol-drift, prompt-ledger, protocol-text-parity, python-fallback, reference-doc-freshness, review-commit-gate, skill-protocol-overlay, standalone-scripts, swap-engine, sync-carrier-parity, windows-stdio-portability, workflow-routing-switch, workflow.
 

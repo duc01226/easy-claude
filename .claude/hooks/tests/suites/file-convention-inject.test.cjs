@@ -1178,13 +1178,12 @@ const tests = [
                 ['switch absent', { contextGroups: [hooksGroup()] }],
                 ['switch off', { conventionInjection: { enabled: false }, contextGroups: [hooksGroup()] }],
                 ['non-yes value', { conventionInjection: { enabled: 'yes' }, contextGroups: [hooksGroup()] }],
-                ['no deliverable class', enabled([{ name: 'styles', pathRegexes: [HOOKS_REGEX], stylingDoc: 'docs/s.md' }])],
-                ['no configuration', null]
+                ['no deliverable class', enabled([{ name: 'styles', pathRegexes: [HOOKS_REGEX], stylingDoc: 'docs/s.md' }])]
             ];
+            // (No configuration at all is NOT silent: it gets the built-in UI/UX gate — TC-PFCI-082.)
             for (const [label, config] of silent) {
                 // Given the condition / When each trigger fires / Then silent and no delivery memory
-                if (config) fx.writeConfig(config);
-                else fs.rmSync(fx.abs('docs/project-config.json'), { force: true });
+                fx.writeConfig(config);
                 for (const [trigger, payload] of everyEvent) {
                     assertSilent(await spawnHook(fx, payload), `${label} / ${trigger}`);
                     assert.ok(storeIsEmpty(fx), `${label} / ${trigger}: no delivery memory`);
@@ -2184,6 +2183,44 @@ const tests = [
             assert.ok(/no project config at/.test(write.stderr), `names the missing config. Got: ${write.stderr}`);
             assert.ok(/project-config/.test(write.stderr), `names the protocol that creates it. Got: ${write.stderr}`);
             assert.equal(fs.existsSync(configFile), false, 'no config fabricated by an inspection command');
+        })
+    },
+    {
+        // BR-PFCI-01 built-in fallback: a framework install with NO project config still puts the
+        // design rules in front of the assistant on front-end files — and only there. A config that
+        // exists (without the switch, or malformed) remains the maintainer's decision: silent.
+        name: 'TC-PFCI-082 no project config delivers the built-in UI/UX gate on front-end files only',
+        fn: async () => withFixture(async fx => {
+            fs.rmSync(fx.abs('docs/project-config.json'), { force: true });
+            for (const rel of ['web/a.tsx', 'web/a.vue', 'web/a.scss', 'web/app.component.ts', 'app/src/main/res/layout/main.xml', '.claude/hooks/a.cjs', 'web/a.ts', 'node_modules/x/a.css']) fx.write(rel);
+
+            // Given no config / When a front-end file is edited / Then the UI/UX gate is delivered
+            for (const rel of ['web/a.tsx', 'web/a.vue', 'web/a.scss', 'web/app.component.ts', 'app/src/main/res/layout/main.xml']) {
+                const result = await spawnHook(fx, post(fx, 'Edit', rel, { session_id: `fe-${rel}` }));
+                assert.equal(result.code, 0, result.stderr);
+                const ctx = contextOf(result.stdout);
+                assert.ok(ctx.includes('ui-ux-gate') && ctx.includes('design-knowledge.md'), `${rel}: gate delivered. Got: ${result.stdout}`);
+            }
+            // And a non-front-end or excluded file receives nothing (no other class exists in the fallback)
+            for (const rel of ['.claude/hooks/a.cjs', 'web/a.ts', 'node_modules/x/a.css']) {
+                assert.equal((await spawnHook(fx, post(fx, 'Edit', rel, { session_id: `other-${rel}` }))).stdout, '', rel);
+            }
+            // And it is not repeated while present in the same working context
+            assert.equal((await spawnHook(fx, post(fx, 'Edit', 'web/a.vue', { session_id: 'fe-web/a.tsx' }))).stdout, '');
+
+            // And the lookup shows exactly what the hook delivers (BR-PFCI-13 parity)
+            const lookup = await spawnNode([path.join(HOOKS_DIR, 'lib', 'file-conventions.cjs'), '--lookup', 'web/a.tsx', '--json'], { cwd: fx.project, env: { CLAUDE_PROJECT_DIR: fx.project } });
+            const shown = JSON.parse(lookup.stdout);
+            assert.deepEqual([shown.enabled, shown.classes.map(c => c.name)], [true, ['ui-ux-gate']]);
+
+            // Counter-cases: an existing config never falls back — without the switch, or malformed
+            const store = path.join(fx.root, 'counter-store');
+            fs.mkdirSync(store, { recursive: true });
+            fx.writeConfig({ contextGroups: [hooksGroup()] });
+            assertSilent(await spawnHook(fx, post(fx, 'Edit', 'web/a.tsx', { session_id: 'cfg-no-switch' }), { env: { CK_CONVENTIONS_DIR: store } }), 'config without switch');
+            fx.write('docs/project-config.json', '{ not json');
+            assertSilent(await spawnHook(fx, post(fx, 'Edit', 'web/a.tsx', { session_id: 'cfg-malformed' }), { env: { CK_CONVENTIONS_DIR: store } }), 'malformed config');
+            assert.equal(fs.readdirSync(store).length, 0, 'no delivery memory for an existing config that did not opt in');
         })
     }
 ];

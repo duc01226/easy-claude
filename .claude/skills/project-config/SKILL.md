@@ -624,7 +624,7 @@ node .claude/hooks/lib/file-conventions.cjs --lookup <sample-path>      # verify
 - Detection is stack-agnostic: it derives classes (`feature-spec`, `integration-test`, `e2e-test`, `test`, `backend`, `frontend`, `styling`, `general-code`) only from existing config keys and keeps only docs/skills that exist on disk.
 - Merge is additive: a new class is ADDED with `origin: "detected"` + `detectedFingerprint`; a maintainer class (no/other origin) or an edited detected class (fingerprint no longer matches) is KEPT byte-identical; only an unedited detected class is REFRESHED. Nothing is ever removed.
 - `--write` replaces the config atomically (temp + rename) and re-serializes it as 2-space JSON, so formatting may change even when no class did; content is unchanged unless the summary reports `added`, `refreshed` or a switch flip. Precedence: `priority` ascending (100 specific · 500 default · 900 general), ties by declaration order; earlier section wins on conflict.
-- Opt-in only: `--enable` belongs to this explicit setup run; upgrades and hooks never flip it (absent `conventionInjection` ⇒ disabled, silent), and it never overrides a maintainer's explicit `enabled: false` (reported as `enableSkipped`).
+- Opt-in only: `--enable` belongs to this explicit setup run; upgrades and hooks never flip it (in an existing config, absent `conventionInjection` ⇒ disabled, silent; only a project with NO config file gets the built-in `ui-ux-gate` fallback), and it never overrides a maintainer's explicit `enabled: false` (reported as `enableSkipped`).
 
 ---
 

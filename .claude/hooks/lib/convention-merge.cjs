@@ -17,7 +17,7 @@
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
-const { isInjectable, skillPath } = require('./file-conventions.cjs');
+const { isInjectable, skillPath, UI_UX_GATE } = require('./file-conventions.cjs');
 const { getDocsRoot } = require('./project-config-loader.cjs');
 
 // The three spec-authoring reference docs. Only the FILENAMES are fixed; the root resolves from
@@ -56,42 +56,8 @@ const LANGUAGE_EXTENSIONS = {
 const GENERAL_EXCLUDES = ['**/node_modules/**', '**/dist/**', '**/build/**', '**/vendor/**', 'tmp/**', 'temp/**'];
 const META_FIELDS = new Set(['origin', 'detectedFingerprint']);
 
-/**
- * The framework's UI/UX gate class: any file that renders a user-facing surface receives a compact
- * digest of the three binding rule sets and their docs before it is edited. Detected only for a
- * project that records front-end evidence (a frontend module or styling file types), so a project
- * without a front-end never pays.
- *
- * Membership by file name, deliberately excluding extensions shared with non-UI code:
- *   IN  markup/templates  html htm xhtml · razor cshtml · hbs handlebars ejs pug twig liquid njk
- *       styles            css scss sass less styl pcss
- *       component files   jsx tsx vue svelte astro · Angular `*.component.ts` (templates/styles via html/scss)
- *       native UI markup  xaml axml storyboard xib · Android layout XML under `res/layout*`
- *   OUT mdx (mostly documentation prose) · ts/js (mostly logic) · swift/kt/dart (SwiftUI, Compose and
- *       Flutter share their extension with all non-UI code; a path matcher cannot tell them apart).
- * A project widens or narrows this by editing the class (or its own class) in contextGroups.
- */
-const UI_UX_GATE = Object.freeze({
-    name: 'ui-ux-gate',
-    priority: 100,
-    pathRegexes: ['/res/layout[^/]*/[^/]+\\.xml$'],
-    fileNameRegexes: [
-        '\\.(?:html?|xhtml|razor|cshtml|hbs|handlebars|ejs|pug|twig|liquid|njk|css|scss|sass|less|styl|pcss|jsx|tsx|vue|svelte|astro|xaml|axml|storyboard|xib)$',
-        '\\.component\\.ts$'
-    ],
-    excludePathGlobs: GENERAL_EXCLUDES,
-    referenceDocs: ['.claude/docs/design-review-checklist.md', '.claude/docs/design-knowledge.md', '.claude/docs/design-review-calibration.md'],
-    rules: [
-        'UI/UX gate: have UI-*, DD-* and CL-* in context BEFORE editing this surface; read the docs above unless already loaded',
-        'UI-1.1–UI-9.4 usability/a11y floor (pass/fail): SYNC:ui-ux-design-principles in .claude/skills/shared/sync-inline-versions.md',
-        'DD-1–DD-8 identity (design-knowledge.md): name subject/audience/job, write the Design Plan, pass the generic test',
-        'CL-1–CL-6 (checklist): §0.5 surface scope, B12–B15 load, E9–E11 container fit, §R forms, I15 dialog focus, K10 dead controls',
-        'Calibrate severity with design-review-calibration.md; brief > project design system/ADRs > these rules; no visual change = say skip'
-    ],
-    reinjectAfterTokens: 100000,
-    evidenceDocs: ['.claude/docs/design-review-checklist.md', '.claude/docs/design-knowledge.md'],
-    evidenceSkills: ['ui-review', 'design', 'design-spec', 'web-design-guidelines', 'pbi-mockup', 'artifact-review']
-});
+// The UI/UX gate class lives in file-conventions.cjs (it is also the built-in fallback when no
+// project config exists); detection proposes it only for a project with recorded front-end evidence.
 
 function isPlainObject(value) {
     return value !== null && typeof value === 'object' && !Array.isArray(value);

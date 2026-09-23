@@ -18,8 +18,10 @@
  *
  * Opt-in: conventionInjection.enabled === true with at least one deliverable class, decided
  * once in run() for EVERY event before any handler runs, so no path reaches the delivery store
- * unless the project opted in. Otherwise, and on ANY failure, exit 0 with empty stdout
- * (BR-PFCI-01, BR-PFCI-10). Hookless fallback: CLAUDE.md
+ * unless the project opted in. With NO project config file, the built-in fallback applies:
+ * delivery on, the UI/UX gate class only (file-conventions builtinFallbackConfig). An existing
+ * config without the switch, or a malformed one, stays silent. On ANY failure, exit 0 with empty
+ * stdout (BR-PFCI-01, BR-PFCI-10). Hookless fallback: CLAUDE.md
  * "Automatic Skill Activation" table + `node .claude/hooks/lib/file-conventions.cjs --lookup <path>`.
  *
  * Exit: always 0.
@@ -114,9 +116,11 @@ function defaultProjectDir(input, env) {
     return resolveProjectRoot({ cwd, scriptPath: __filename, env }).rootDir;
 }
 
+/** The project config, or the built-in UI/UX-gate fallback when no config file exists (BR-PFCI-01). */
 function defaultConfig() {
-    const { loadProjectConfig } = require('./lib/project-config-loader.cjs');
-    return loadProjectConfig();
+    const { getProjectConfigStatus } = require('./lib/project-config-loader.cjs');
+    const { effectiveConfig } = require('./lib/file-conventions.cjs');
+    return effectiveConfig(getProjectConfigStatus());
 }
 
 /** Hands the payload to stdout; `done(false)` when the write fails, so nothing is recorded (BR-PFCI-17). */
