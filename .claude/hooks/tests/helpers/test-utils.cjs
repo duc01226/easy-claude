@@ -371,17 +371,17 @@ class TestGroup {
   }
 
   test(name, fn) {
-    this.tests.push({ name, fn, async: fn.constructor.name === 'AsyncFunction' });
+    this.tests.push({ name, fn });
   }
 
   async run(verbose = false) {
     console.log(`\n▶ ${this.name}`);
 
-    for (const { name, fn, async: isAsync } of this.tests) {
+    for (const { name, fn } of this.tests) {
       try {
         if (this.beforeEachFn) await this.beforeEachFn();
-        if (isAsync) await fn();
-        else fn();
+        // Always await: a plain fn may RETURN a promise; not awaiting it counted a pass early.
+        await fn();
         if (this.afterEachFn) await this.afterEachFn();
         this.passed++;
         console.log(`  ✓ ${name}`);

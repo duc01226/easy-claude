@@ -121,11 +121,9 @@ async function runTest(test, verbose) {
   const start = Date.now();
 
   try {
-    if (test.fn.constructor.name === 'AsyncFunction') {
-      await test.fn();
-    } else {
-      test.fn();
-    }
+    // Always await: a plain function may RETURN a promise (fn: () => withFixture(...)); not
+    // awaiting it recorded a pass before its assertions ran (runner-await-contract suite).
+    await test.fn();
     const duration = Date.now() - start;
     return {
       name: test.name,
@@ -503,6 +501,10 @@ async function main() {
   process.exit(hasFailures || countGuardFailed ? 1 : 0);
 }
 
+// Exported before main() starts: main() loads the suites synchronously, and a suite that
+// requires this runner (runner-await-contract) must see the real exports, not an empty object.
+module.exports = { runSuite, runTest, discoverSuites };
+
 // Run if executed directly
 if (require.main === module) {
   main().catch(error => {
@@ -510,5 +512,3 @@ if (require.main === module) {
     process.exit(1);
   });
 }
-
-module.exports = { runSuite, runTest, discoverSuites };

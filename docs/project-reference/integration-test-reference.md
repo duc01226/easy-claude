@@ -31,7 +31,7 @@ Integration is process/filesystem based: `runHook` spawns `node`, merges test en
 
 ## Test Base Classes
 
-There is no integration-test inheritance hierarchy. Suite files export `{ name, tests }`; each test is `{ name, fn, skip? }`, and the runner executes synchronous or async functions (`.claude/hooks/tests/run-all-tests.cjs:108-164`, `.claude/hooks/tests/suites/integration.test.cjs:72-77`).
+There is no integration-test inheritance hierarchy. Suite files export `{ name, tests }`; each test is `{ name, fn, skip? }`, and the runner executes synchronous or async functions (`.claude/hooks/tests/run-all-tests.cjs:108-164`, `.claude/hooks/tests/suites/integration.test.cjs:72-77`). Both `runTest` and `TestGroup.run` await whatever `fn` returns, so a plain function returning a promise (`fn: () => withFixture(...)`) is settled before it counts as passed (`.claude/hooks/tests/suites/runner-await-contract.test.cjs`).
 
 Standalone tests may use `TestGroup` and `TestSuite` from `.claude/hooks/tests/helpers/test-utils.cjs:361-444`. `TestGroup.afterEach` is skipped when a test throws because teardown is on the success path (`.claude/hooks/tests/helpers/test-utils.cjs:383-399`); use per-test `try/finally` for required cleanup.
 
@@ -49,8 +49,8 @@ Use `.claude/hooks/tests/lib/assertions.cjs:12-223` for equality, content/regex,
 const results = await runHooksParallel(hooks, { cwd: tmpDir, timeout: SPAWN_TIMEOUT_MS });
 
 for (const { result } of results) {
-  assertAllowed(result.code, 'Parallel execution should not crash');
-  assertFalse(result.timedOut, 'Should not timeout');
+    assertAllowed(result.code, 'Parallel execution should not crash');
+    assertFalse(result.timedOut, 'Should not timeout');
 }
 ```
 
