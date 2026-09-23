@@ -5,7 +5,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 
 const execFileAsync = promisify(execFile);
 const thisDir = path.dirname(fileURLToPath(import.meta.url));
@@ -92,6 +92,7 @@ test('migrate-claude-to-codex mirrors skills and injects protocol block', async 
         );
 
         await fs.writeFile(path.join(skillDir, 'README.md'), 'Legacy /simplify note.   \r\n', 'utf8');
+        await fs.writeFile(path.join(skillDir, 'package.json'), '{\r\n  "name": "sample-skill"\r\n}\r\n', 'utf8');
         await fs.writeFile(path.join(skillDir, 'package-lock.json'), '{\r\n  "lockfileVersion": 3\r\n}\r\n', 'utf8');
         await fs.writeFile(path.join(skillDir, 'config.yaml'), 'name: sample\r\nsteps:\r\n  - plan\r\n', 'utf8');
         await fs.writeFile(path.join(skillDir, 'settings.yml'), 'enabled: true\r\n', 'utf8');
@@ -170,7 +171,7 @@ test('migrate-claude-to-codex mirrors skills and injects protocol block', async 
         const mirroredSkill = await fs.readFile(path.join(tempRoot, '.agents', 'skills', 'sample-skill', 'SKILL.md'), 'utf8');
         const mirroredAgent = await fs.readFile(path.join(tempRoot, '.codex', 'agents', 'sample-agent.toml'), 'utf8');
         const mirroredReadme = await fs.readFile(path.join(tempRoot, '.agents', 'skills', 'sample-skill', 'README.md'), 'utf8');
-        const mirroredPackageLock = await fs.readFile(path.join(tempRoot, '.agents', 'skills', 'sample-skill', 'package-lock.json'), 'utf8');
+        const mirroredPackageJson = await fs.readFile(path.join(tempRoot, '.agents', 'skills', 'sample-skill', 'package.json'), 'utf8');
         const mirroredYaml = await fs.readFile(path.join(tempRoot, '.agents', 'skills', 'sample-skill', 'config.yaml'), 'utf8');
         const mirroredYml = await fs.readFile(path.join(tempRoot, '.agents', 'skills', 'sample-skill', 'settings.yml'), 'utf8');
         const codexConfig = await fs.readFile(path.join(tempRoot, '.codex', 'config.toml'), 'utf8');
@@ -196,10 +197,17 @@ test('migrate-claude-to-codex mirrors skills and injects protocol block', async 
         assert.doesNotMatch(mirroredSkill, /a direct user question/);
         assert.doesNotMatch(mirroredSkill, /\bAgent\(|\bsubagent_type\b/);
         assert.equal(mirroredReadme, 'Legacy $code-simplifier note.\n');
-        assert.equal(mirroredPackageLock, '{\n  "lockfileVersion": 3\n}\n');
+        assert.equal(mirroredPackageJson, '{\n  "name": "sample-skill"\n}\n');
+        // Lockfiles are local install artifacts the source tree ignores; the writer must never mirror them.
+        await assert.rejects(fs.access(path.join(tempRoot, '.agents', 'skills', 'sample-skill', 'package-lock.json')), { code: 'ENOENT' });
+        // The mirror ships its own generated .gitignore so a copied .agents/ never tracks a local install.
+        const mirrorGitignore = await fs.readFile(path.join(tempRoot, '.agents', '.gitignore'), 'utf8');
+        for (const ignored of ['package-lock.json', 'yarn.lock', 'pnpm-lock.yaml', 'node_modules/', '__pycache__/', '.venv/']) {
+            assert.ok(mirrorGitignore.split('\n').includes(ignored), `.agents/.gitignore must ignore ${ignored}`);
+        }
         assert.equal(mirroredYaml, 'name: sample\nsteps:\n  - plan\n');
         assert.equal(mirroredYml, 'enabled: true\n');
-        assert.doesNotMatch(mirroredPackageLock, /\r/);
+        assert.doesNotMatch(mirroredPackageJson, /\r/);
         assert.doesNotMatch(mirroredYaml, /\r/);
         assert.doesNotMatch(mirroredYml, /\r/);
         assert.doesNotMatch(mirroredSkill, /adr-service-pattern-v1-v2-split|integration-test-guide|seed-test-data-reference/);
@@ -421,5 +429,62 @@ test('migrate refuses unmanaged .agents skills even when marker text exists', as
         );
     } finally {
         await fs.rm(tempRoot, { recursive: true, force: true });
+    }
+});
+
+// Business intent: the skill mirror carries only what the source tree tracks. `.claude/.gitignore`
+// keeps package-manager lockfiles out of `.claude/skills`, so a mirrored lockfile exists only on the
+// machine that ran `npm install` and makes a clean checkout fail the sync-divergence gate.
+test('skill mirror excludes local package-manager lockfiles but keeps real skill files', async () => {
+    const { isMirroredSkillSource } = await import(pathToFileURL(migrateScript).href);
+    for (const lockfile of ['package-lock.json', 'yarn.lock', 'pnpm-lock.yaml']) {
+        assert.equal(isMirroredSkillSource(path.join('docx-convert', 'to-docx', lockfile)), false, `${lockfile} must not be mirrored`);
+    }
+    assert.equal(isMirroredSkillSource(path.join('pdf-convert', 'to-pdf', 'node_modules', 'x', 'index.js')), false);
+    assert.equal(isMirroredSkillSource(path.join('shared', 'workflow-first-gate.md')), false);
+    assert.equal(isMirroredSkillSource(path.join('docx-convert', 'to-docx', 'package.json')), true);
+    assert.equal(isMirroredSkillSource(path.join('commit', 'SKILL.md')), true);
+});
+
+// Business intent: the divergence gate ignores exactly what a copied mirror's .gitignore ignores
+// (a local install), but still reports a stray runtime-only or hand-added file.
+test('local install artifacts are recognised at any depth with either separator; real files are not', async () => {
+    const { isLocalInstallArtifact, buildAgentsMirrorGitignore } = await import(pathToFileURL(migrateScript).href);
+    for (const rel of ['docx-convert/to-docx/package-lock.json', 'a\\b\\yarn.lock', 'pdf-convert/node_modules', 'x/node_modules/y/z.js', 'pnpm-lock.yaml']) {
+        assert.equal(isLocalInstallArtifact(rel), true, `${rel} is a local install artifact`);
+    }
+    for (const rel of ['docx-convert/to-docx/package.json', 'shared/workflow-first-gate.md', 'commit/SKILL.md', 'excalidraw-diagram/references/uv.lock']) {
+        assert.equal(isLocalInstallArtifact(rel), false, `${rel} is not a local install artifact`);
+    }
+    // Every non-VCS directory the divergence gate skips must also be git-ignored, or a committed
+    // bytecode cache / venv slips past both.
+    const lines = buildAgentsMirrorGitignore().split('\n');
+    for (const ignored of ['package-lock.json', 'yarn.lock', 'pnpm-lock.yaml', 'node_modules/', '__pycache__/', '.venv/']) {
+        assert.ok(lines.includes(ignored), `generated .gitignore lists ${ignored}`);
+        const sample = ignored.endsWith('/') ? `s/${ignored}f` : `s/${ignored}`;
+        assert.equal(isLocalInstallArtifact(sample), true, `${ignored} is also skipped by the gate`);
+    }
+    assert.ok(!lines.includes('.git/'), 'VCS metadata is not an install artifact to ignore');
+});
+
+// Business intent: the sync owns only its marked block — an adopter's own .agents/.gitignore
+// rules survive every sync, and re-running the sync is idempotent.
+test('mirror .gitignore preserves adopter content outside the managed block and is idempotent', async () => {
+    const { buildAgentsMirrorGitignore } = await import(pathToFileURL(migrateScript).href);
+    const adopter = '# team rule\nplugins/cache/\n';
+    const first = buildAgentsMirrorGitignore(adopter);
+    assert.ok(first.startsWith(adopter), 'adopter rules kept verbatim ahead of the block');
+    assert.ok(first.includes('node_modules/'));
+    assert.equal(buildAgentsMirrorGitignore(first), first, 'second sync rewrites only the block');
+    const stale = first.replace('node_modules/', 'stale-entry/');
+    assert.equal(buildAgentsMirrorGitignore(stale), first, 'a hand-edited block is regenerated');
+    assert.equal(buildAgentsMirrorGitignore(first.replace(/\n/g, '\r\n')), first, 'CRLF input converges');
+    // A hand-damaged block (either marker deleted) must never make a later sync delete adopter rules.
+    const [startMarker] = first.split('\n').filter(line => line.startsWith('# >>> codex-sync'));
+    for (const damaged of [`keep1\n${startMarker}\nkeep2\n`, 'keep1\n# <<< codex-sync\nkeep2\n']) {
+        const once = buildAgentsMirrorGitignore(damaged);
+        const twice = buildAgentsMirrorGitignore(once);
+        assert.equal(twice, once, 'damaged input converges after one sync');
+        for (const kept of ['keep1', 'keep2']) assert.ok(twice.includes(kept), `${kept} survives repeated syncs`);
     }
 });

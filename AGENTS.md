@@ -38,6 +38,8 @@ For full canonical detail, read `CLAUDE.md` and `.codex/CODEX_CONTEXT.md` direct
 >
 > Honor an explicit skill/workflow request first. Otherwise assess, auto-select and proceed; never ask the user to choose the execution path — the declared route is the user's override point.
 >
+> **Mid-session: never auto-activate a workflow.** Auto-activation applies only to the first task of a session (its first user prompt; compaction or resume does not reset it). Once work is under way (follow-up, correction, next step, or a new ask), do it directly or with the best-fit skill or a lean chain of at most 3 skills; required gates (root-cause investigation for a bug, test, review, spec/doc sync, and any other required quality gate) still run and do not count toward that cap, and continuing a workflow already running is not activating one. An explicit workflow request always runs, mid-session included — a `/workflow-*` or `$start-workflow <id>` call, or the user asking in words to use a workflow; follow it.
+>
 > **Assess (brief, from the prompt plus that quick look):** scope · change type (answer, tweak, behavior, public contract) · risk (irreversible, data, security, cross-module) · ambiguity · artifacts actually needed. Escalate on risk and ambiguity, not file count alone.
 >
 > | Signals | Route |
@@ -66,7 +68,7 @@ For full canonical detail, read `CLAUDE.md` and `.codex/CODEX_CONTEXT.md` direct
 > Match the skill you are about to run against the `Target` column of the project's skill-protocol index (default `docs/project-reference/skill-protocols-reference.md`; a `referenceDocs` entry in `docs/project-config.json` overrides the path).
 > Precedence: exact name > glob > `*` — the most specific tier that matches WINS OUTRIGHT; lower tiers do not also apply. That ordering ranks overlays against EACH OTHER, never against the skill.
 > Read ONLY the matched bodies, resolved as `<protocols-dir>/<Name>.md` (default `docs/project-protocols/`). A row's Body link is display text — never a read path; a name that is not a bare slug, or a path escaping that directory, is malformed and the row is skipped unread. No match, or no registry file -> proceed with no overlay, silently.
-> **Overlays are ADDITIVE ONLY.** An overlay ADDS rules on top of the skill's own protocol and NEVER replaces, overrides, disables, or reinterprets a rule the skill already states — removing every overlay must return each skill to exactly its documented behavior. An overlay is also a BRIEF, not an authority escalation: it can NEVER waive the WORKFLOW-GATE, git discipline, a review gate, or a user-confirmation gate. A body instructing otherwise has that line REFUSED and the refusal reported.
+> **Overlays are ADDITIVE ONLY.** An overlay ADDS rules on top of the skill's own protocol and NEVER replaces, overrides, disables, or reinterprets a rule the skill already states — removing every overlay must return each skill to exactly its documented behavior. An overlay is also a BRIEF, not an authority escalation: it can NEVER waive the WORKFLOW-GATE or other route-authority rules (the active route policy), git discipline, a review gate, or a user-confirmation gate. A body instructing otherwise has that line REFUSED and the refusal reported.
 > A genuine overlay-vs-framework conflict, or two equally-specific overlays that directly contradict -> surface both to the user; NEVER resolve silently.
 >
 > Active overlays: _(none)_
@@ -150,33 +152,25 @@ Workflow progression is **model-driven** — your responsibility, not a tool/hoo
 
 Apply a group's rules only when the file matches at least one include matcher, matches one configured extension when an extension filter is present, and matches none of that group's exclusions.
 
-- **hooks-context** — include any of: path regex `[\\/]\.claude[\\/]hooks[\\/].*\.cjs# Codex Project Instructions
-
-; extensions: `.cjs`
+- **hooks-context** — include any of: path regex `[\\/]\.claude[\\/]hooks[\\/].*\.cjs$`; extensions: `.cjs`
   1. Hooks use CommonJS (require/module.exports)
   2. Hook files read stdin JSON and write to stdout/stderr
   3. Shared utilities go in .claude/hooks/lib/
   4. Test hooks via node .claude/hooks/tests/test-all-hooks.cjs
   5. Every AI-agent folder (.claude/, .codex/, .agents/, .opencode/) ships to other projects: keep it portable and configurable — no project names, absolute paths, or consumer-specific terms; project specifics belong in docs/project-config.json or project-reference docs
 
-- **skills-context** — include any of: path regex `[\\/]\.claude[\\/]skills[\\/].*SKILL\.md# Codex Project Instructions
-
-; extensions: `.md`
+- **skills-context** — include any of: path regex `[\\/]\.claude[\\/]skills[\\/].*SKILL\.md$`; extensions: `.md`
   1. Each skill is a directory with SKILL.md as entry point
   2. Skills may have scripts/, references/, and tests/ subdirectories
   3. Follow naming conventions in .claude/docs/skill-naming-conventions.md
   4. Every AI-agent folder (.claude/, .codex/, .agents/, .opencode/) ships to other projects: keep it portable and configurable — no project names, absolute paths, or consumer-specific terms; project specifics belong in docs/project-config.json or project-reference docs
 
-- **agents-context** — include any of: path regex `[\\/]\.claude[\\/]agents[\\/].*\.md# Codex Project Instructions
-
-; extensions: `.md`
+- **agents-context** — include any of: path regex `[\\/]\.claude[\\/]agents[\\/].*\.md$`; extensions: `.md`
   1. Agent definitions are markdown files in .claude/agents/
   2. Follow patterns in .claude/docs/agents/agent-patterns.md
   3. Every AI-agent folder (.claude/, .codex/, .agents/, .opencode/) ships to other projects: keep it portable and configurable — no project names, absolute paths, or consumer-specific terms; project specifics belong in docs/project-config.json or project-reference docs
 
-- **scripts-context** — include any of: path regex `[\/].claude[\/]scripts[\/].*.(cjs|mjs|js|py)# Codex Project Instructions
-
-; extensions: `.cjs`, `.mjs`, `.js`, `.py`
+- **scripts-context** — include any of: path regex `[\/].claude[\/]scripts[\/].*.(cjs|mjs|js|py)$`; extensions: `.cjs`, `.mjs`, `.js`, `.py`
   1. Every AI-agent folder (.claude/, .codex/, .agents/, .opencode/) ships to other projects: keep it portable and configurable — no project names, absolute paths, or consumer-specific terms; project specifics belong in docs/project-config.json or project-reference docs
   2. Verifiers and generators under .claude/scripts/ are portable framework surfaces — gate them with the residue and root-literal checks before commit
   3. Resolve every root from project config with the framework default as fallback; never hardcode a spec, docs, or package path
@@ -185,6 +179,13 @@ Apply a group's rules only when the file matches at least one include matcher, m
   1. Every AI-agent folder (.claude/, .codex/, .agents/, .opencode/) ships to other projects: keep it portable and configurable — no project names, absolute paths, or consumer-specific terms; project specifics belong in docs/project-config.json or project-reference docs
   2. These folders are GENERATED mirrors of .claude/ — never hand-edit them; fix the .claude/** source and regenerate, or the next sync reverts the edit
   3. A project-specific leak found in a mirror means the leak is in the .claude/** source — fix it there
+
+- **ui-ux-gate** — include any of: path regex `/res/layout[^/]*/[^/]+\.xml$`, filename regex `\.(?:html?|xhtml|razor|cshtml|hbs|handlebars|ejs|pug|twig|liquid|njk|css|scss|sass|less|styl|pcss|jsx|tsx|vue|svelte|astro|xaml|axml|storyboard|xib)$`, filename regex `\.component\.ts$`; exclude path globs: `**/node_modules/**`, `**/dist/**`, `**/build/**`, `**/vendor/**`, `tmp/**`, `temp/**`, `.agents/**`, `.codex/**`, `.opencode/**`
+  1. UI/UX gate: have UI-*, DD-* and CL-* in context BEFORE editing this surface; read the docs above unless already loaded
+  2. UI-1.1–UI-9.4 usability/a11y floor (pass/fail): SYNC:ui-ux-design-principles in .claude/skills/shared/sync-inline-versions.md
+  3. DD-1–DD-8 identity (design-knowledge.md): name subject/audience/job, write the Design Plan, pass the generic test
+  4. CL-1–CL-6 (checklist): §0.5 surface scope, B12–B15 load, E9–E11 container fit, §R forms, I15 dialog focus, K10 dead controls
+  5. Calibrate severity with design-review-calibration.md; brief > project design system/ADRs > these rules; no visual change = say skip
 
 <!-- /SECTION:golden-rules -->
 
@@ -275,7 +276,7 @@ Place logic with the owner selected by the project's documented architecture. Re
 | Type           | Convention       | Example                                       |
 | -------------- | ---------------- | --------------------------------------------- |
 | Files          | kebab-case       | `context-injector.cjs`, `session-manager.cjs` |
-| Hook files     | `<name>.cjs`     | `.claude/hooks/privacy-block.cjs`             |
+| Hook files     | `<name>.cjs`     | `.claude/hooks/review-commit-gate.cjs`        |
 | Hook libraries | `<name>.cjs`     | `.claude/hooks/lib/project-config-schema.cjs` |
 | Skill dirs     | `<skill-name>/`  | `.claude/skills/code-review/SKILL.md`         |
 | Agent files    | `<name>.md`      | `.claude/agents/code-reviewer.md`             |
@@ -367,19 +368,19 @@ Add a final task — "Analyze AI mistakes & lessons learned" — to every non-tr
 
 > **[BLOCKING] Hook-independent guardrail — binds Claude, Codex, and Copilot equally.** On a hookless host (Codex/Copilot) or an un-wired project this section is the ONLY guardrail — obey it without any block.
 >
-> **The hook enforces a NARROWER set than this section.** `git-commit-block.cjs` blocks only what is **irreversible**: commands that destroy uncommitted work (`checkout`/`restore` on a pathspec, `reset --hard`, `clean -f`, `switch --discard-changes`, `stash drop|clear`, `rm -f`) and destructive history rewrites (`push --force`, `branch -D`, `reflog expire`, `filter-branch`), plus the irreversible `gh` verbs of rule 6. A SECOND hook, `review-commit-gate.cjs`, is NOT about irreversibility: it blocks an agent `git commit` whose changeset has neither a review fix-loop receipt nor a user-approved skip (rule 7). Rules 1, 3 and 4 — and the recoverable half of rule 6 — are **model-behavioral**: nothing blocks them, so obeying them is your responsibility on every host including this one. A command being allowed by the hook is NEVER evidence you were asked to run it.
+> **Only ONE rule here is hook-enforced.** `review-commit-gate.cjs` blocks an agent `git commit` whose changeset has neither a review fix-loop receipt nor a user-approved skip (rules 2 and 7), and fails closed on any statement it cannot parse that places `commit` right after `git` — even a read-only one (rephrase such text or write it with a file tool); it ignores every other git statement. Destructive-git mechanical gating was removed by explicit user decision (`.claude/docs/development-rules.md`): no hook blocks `reset --hard`, `clean -f`, `checkout -- <path>`, a force push, or a `gh`/GitHub-MCP write. Only the literal `permissions.ask` patterns in `.claude/settings.json` still prompt (`ask` prompts even under `bypassPermissions`), and a destructive spelling outside that literal set runs without one. Every other rule is **model-behavioral** — obeying it is your responsibility on every host. A command being allowed is NEVER evidence you were asked to run it.
 
-1. **Never commit, push, or stage (`git add`) unless the user explicitly asks for it.** "Implement X" / "fix the bug" is NOT permission to commit — finish the work, report what changed, and wait. Only an explicit "commit"/"push" (or an invoked commit skill / git-manager) authorizes it. _(**Model-behavioral** — the hook deliberately does NOT block these. They are recoverable, and gating them made the correct workflow harder to reach than the destructive one. Nothing catches this but you.)_
+1. **Never commit, push, or stage (`git add`) unless the user explicitly asks for it.** "Implement X" / "fix the bug" is NOT permission to commit — finish the work, report what changed, and wait. Only an explicit "commit"/"push" (or an invoked commit skill / git-manager) authorizes it. _(**Model-behavioral** — the hook deliberately does NOT block these; only `git push` also hits a `permissions.ask` prompt. They are recoverable, and gating them made the correct workflow harder to reach than the destructive one. Nothing catches this but you.)_
 2. **Amend is a commit — gated like one.** `git commit --amend` and `git reset --soft HEAD~1` + `git commit` produce the same commit, so both follow the same rules: only on an explicit amend request (a plain commit request makes a new commit), and never on a commit that is already pushed or that this task did not create (either path rewrites it). `review-commit-gate.cjs` gates an amend by a review receipt over the amended commit's candidate measured against HEAD's parent; the `commit` skill passes `"amend":true` in the commit descriptor. Amending a merge commit fails closed. _(Authority is model-behavioral; the review is hook-enforced. The replaced commit stays in the reflog, so neither path is irreversible.)_
 3. **Branch before committing on the default branch.** If asked to commit while on `main`/`master`, create a feature branch first. _(**Model-behavioral** — the hook has no branch awareness and will not stop a commit on `main`. Nothing catches this but you.)_
 4. **Read-only git needs no permission** — `status`, `diff`, `log`, `show`, `rev-parse`, `describe`, `blame`, `check-ignore`, `ls-files`, `shortlog`, and the _listing_ forms of `branch`, `tag`, `remote`, `config` and `stash`. _(Model-behavioral permission note.)_
-5. **Never run a command that can destroy uncommitted work.** Unstaged edits and untracked files exist in exactly one place — the working tree. `git checkout -- <path>`, `git restore <path>`, `git reset --hard`, `git clean -f`, `git switch --discard-changes` and `git stash drop` erase the only copy that ever existed. _(Hook-enforced — this is the one class the hook blocks outright. Ask before running one; there is nothing to undo it with.)_
-6. **Publishing through the GitHub CLI — or the GitHub MCP server — is the same act as pushing.** `gh pr create|merge`, `gh release create`, `gh repo delete`, `gh api -X POST|PUT|PATCH|DELETE` and their siblings need the same explicit request rule 1 demands; `git-commit-block.cjs` gates only the **irreversible** modeled verbs — any `delete`/`delete-asset` (repo, release, secret, variable, cache, gist, label, run, issue, project, codespace, ssh-key, gpg-key), plus `archive`, `rename`, `transfer`, and any mutating `gh api` — and those consume a session **push** lease. `gh pr create|merge`, `gh release create` and the other publishing verbs are closeable, revertable or deletable afterwards, so they are NOT hook-gated; an unmodeled `gh` write verb is NOT gated either. Rule 1 binds all of them. The MCP tools (`mcp__github__merge_pull_request`, `create_*`, `update_*`, `push_files`, …) reach the same remote without a shell and are gated by `github-mcp-write-block.cjs` against the same session **push** lease; there an unmodeled verb IS gated, because only `get_*`/`list_*`/`search_*` are treated as reads.
+5. **Never run a command that can destroy uncommitted work.** Unstaged edits and untracked files exist in exactly one place — the working tree. `git checkout -- <path>`, `git restore <path>`, `git reset --hard`, `git clean -f`, `git switch --discard-changes` and `git stash drop` erase the only copy that ever existed. _(**Model-behavioral** — no hook blocks these; only some literal spellings hit a `permissions.ask` prompt. Ask before running one; there is nothing to undo it with.)_
+6. **Publishing through the GitHub CLI — or the GitHub MCP server — is the same act as pushing.** `gh pr create|merge`, `gh release create`, `gh repo delete`, `gh api -X POST|PUT|PATCH|DELETE` and their siblings need the same explicit request rule 1 demands. The MCP tools (`mcp__github__merge_pull_request`, `create_*`, `update_*`, `push_files`, …) reach the same remote without a shell and need it too; only `get_*`/`list_*`/`search_*` are reads. _(**Model-behavioral** — no hook gates any `gh` or GitHub-MCP write.)_
 7. **Commit through the `commit` skill — NEVER a raw ad-hoc `git commit` from the agent.** The skill stages, derives the estimate, runs the test-verify gate, runs the review-before-commit gate, and mints the review receipt. `review-commit-gate.cjs` blocks an agent `git commit` whose changeset has no review fix-loop receipt — `changes-review --fix-loop`, `why-review --fix-loop`, or `workflow-review-changes --fix-loop` — and no user-approved `skip`; a raw commit therefore both skips the review and is refused. Each fix-loop mints a receipt over the exact changeset it converged on, and any content edit after the review invalidates it. The user may always run git themselves or approve a skip; the agent's path is the skill. _(Hook-enforced by `review-commit-gate.cjs`; the receipt is bounded bookkeeping, not consent.)_
 
-**Why:** auto-committing/pushing unprompted publishes unreviewed work and can rewrite shared history, so it stays gated on explicit human intent on every host. That gate is now **behavioral, not mechanical** — a deliberate trade. Blocking every recoverable operation taxed correct work on every turn (branching before a commit was harder to reach than committing onto `main`) while buying little: a commit is revertable, a push is revertable, and neither loses data. The hook's budget is spent where nothing can undo the damage — destroyed uncommitted work and rewritten history. Read rule 1 as binding on YOU, not on the hook.
+**Why:** auto-committing/pushing unprompted publishes unreviewed work and can rewrite shared history, so it stays gated on explicit human intent on every host. That gate is **behavioral, not mechanical** — a deliberate trade: the only mechanical check left is the review receipt on a commit (rule 7). Read every rule as binding on YOU, not on a hook.
 
-**What the lease is and is not.** Where the hook runs, an irreversible operation clears only with a current session lease for that exact repository and operation. The git-side destructive class (`reset --hard`, `clean -f`, `checkout -- <path>`, `branch -D`, `stash drop`, a force push…) consumes the **`discard`** term; an irreversible `gh` write consumes **`push`**. `amend` needs no term — it is a recoverable commit, gated by the review receipt (rule 2). A lease is **bookkeeping, not consent**: it records that a commit skill or `git-manager` was asked to act, and it is a _scoped speedbump_, not a security boundary. Its store is an ordinary directory that is not tamper-proof (`.claude/hooks/lib/git-operation-lease.cjs:14`) and `issueLease` performs no issuer-authority check — any process able to write that store can mint one. So the lease raises the cost of an accidental push; it does not stop a determined one, and holding a lease NEVER substitutes for rule 1's explicit human request.
+**What the lease is and is not.** The `commit` skill and `git-manager` record a session lease (`.claude/hooks/lib/git-operation-lease.cjs`) for the operations the user asked for, and `session-end.cjs` revokes it. No hook consumes it any more, so a lease grants nothing and blocks nothing: it is **bookkeeping, not consent**, and holding one NEVER substitutes for rule 1's explicit human request.
 
 ---
 
@@ -417,6 +418,7 @@ When editing files matching these path patterns, pre-read the listed context fir
 |---|---|---|
 | `docs/specs/**/*.md` | `spec` | `docs/project-reference/feature-spec-reference.md`, `docs/project-reference/spec-system-reference.md`, `docs/project-reference/spec-principles.md`, `[[convention:feature-spec@e0967a10]]` |
 | `**/*.test.cjs` | `integration-test` | `docs/project-reference/integration-test-reference.md`, `[[convention:integration-test@f3af9787]]` |
+| `/res/layout[^/]*/[^/]+\.xml$**`, `name:\.(?:html?\|xhtml\|razor\|cshtml\|hbs\|handlebars\|ejs\|pug\|twig\|liquid\|njk\|css\|scss\|sass\|less\|styl\|pcss\|jsx\|tsx\|vue\|svelte\|astro\|xaml\|axml\|storyboard\|xib)$`, `name:\.component\.ts$` · not `**/node_modules/**`, `**/dist/**`, `**/build/**`, `**/vendor/**`, `tmp/**`, `temp/**`, `.agents/**`, `.codex/**`, `.opencode/**` | _(auto-context)_ | `.claude/docs/design-review-checklist.md`, `.claude/docs/design-knowledge.md`, `.claude/docs/design-review-calibration.md`, `[[convention:ui-ux-gate@4a189e29]]` |
 | `/\.claude/hooks/.*\.cjs$**` ext `.cjs` | _(auto-context)_ | `.claude/docs/hooks/README.md`, `[[convention:hooks-context@98585d7f]]` |
 | `/\.claude/skills/.*SKILL\.md$**` ext `.md` | _(auto-context)_ | `.claude/docs/skills/README.md`, `[[convention:skills-context@73cff91e]]` |
 | `/\.claude/agents/.*\.md$**` ext `.md` | _(auto-context)_ | `.claude/docs/agents/README.md`, `[[convention:agents-context@27d7a6ce]]` |
@@ -462,7 +464,7 @@ Apply the shared AI-SDD contract from `shared/sdd-artifact-contract.md` and `SYN
 
 This compact pointer is auto-generated from `.codex/CODEX_CONTEXT.md` by `node .claude/scripts/codex/sync-context-workflows.mjs`.
 Read `.codex/CODEX_CONTEXT.md` before non-trivial project work; it carries shared quality and project-reference protocol detail.
-Context fingerprint (SHA-256): 13420be235bb0cc7f68dda59347b4345af364327f61afc697a1260337b9ea251
+Context fingerprint (SHA-256): c920a4e53f6d5ab0fcce6aff1fd438c6ec10c389101885e9efdf9c61e711ff50
 Do not edit this pointer manually; update canonical Claude sources and re-sync.
 
 ## Codex Project Reference Gate (Hook-Independent)

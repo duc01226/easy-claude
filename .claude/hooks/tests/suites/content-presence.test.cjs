@@ -48,6 +48,15 @@
  *               enumerate the form set. Presence checks cannot catch two present-but-disagreeing
  *               statements, which is what drifted in three consecutive review rounds.
  *
+ *   TC-CP-016 — the UI-review surface obligations stay wired end to end: the checklist owns the
+ *               surface-scope/composition rule, surface-load (B12-B15), container-fit (E9-E11),
+ *               forms (§R), dialog-focus (I15) and non-working-control (K10) checks plus the single
+ *               severity map; ui-review runs Surface Composition + Surface UX passes and writes
+ *               per-surface reports; plan + plan-review bind the UI checklist to front-end plans;
+ *               design-spec carries information priority; the calibration set exists. Each phrase
+ *               is load-bearing — dropping any one silently lets an overloaded or ancestor-broken
+ *               surface pass review again.
+ *
  * The 3 per-context inject hooks (design-system-canonical-guide / ba-refinement-context /
  * graph-grep-suggester) are now presence-asserted by TC-CP-004, TC-CP-006 and TC-CP-007
  * against the verbatim load-bearing phrases their guidance relocated to. A future skill edit
@@ -169,6 +178,31 @@ module.exports = {
                 ];
                 assertTrue(guardGaps.length === 0,
                     `downgrade guards diverge across routing surfaces:\n  ${guardGaps.join('\n  ')}`);
+
+                // Mid-session guard: auto-activation is a first-task-of-session behavior only. Losing
+                // it lets a follow-up or correction mid-work restart a full workflow over work already
+                // under way. Every routing surface the model reads must carry the same rule.
+                // Required gates stay outside the skill cap, and continuing a running workflow is not
+                // activation — without these the cap silently drops investigation, test, review or
+                // doc sync, or cuts an active workflow short.
+                const MID_SESSION = [
+                    'Mid-session: never auto-activate a workflow.',
+                    'Auto-activation applies only to the first task of a session (its first user prompt; compaction or resume does not reset it).',
+                    'a lean chain of at most 3 skills',
+                    'required gates (root-cause investigation for a bug, test, review, spec/doc sync, and any other required quality gate) still run and do not count toward that cap',
+                    'continuing a workflow already running is not activating one',
+                    'An explicit workflow request always runs, mid-session included',
+                    'or the user asking in words to use a workflow; follow it.',
+                ];
+                // Generated root contexts carry the same gate; check each one this project has.
+                const generatedCopies = ['CLAUDE.md', 'AGENTS.md', path.join('.codex', 'CODEX_CONTEXT.md')]
+                    .map(rel => [rel, path.join(PROJECT_DIR, rel)])
+                    .filter(([, abs]) => fs.existsSync(abs))
+                    .map(([rel, abs]) => [rel, readFile(abs)]);
+                const midSessionGaps = [['workflow-first-gate.md', gate], ['Routing Decision Guide', guide], ['start-workflow/SKILL.md', skill], ...generatedCopies]
+                    .flatMap(([label, body]) => MID_SESSION.filter(p => !body.includes(p)).map(p => `${label} → "${p}"`));
+                assertTrue(midSessionGaps.length === 0,
+                    `mid-session no-auto-activation rule diverges across routing surfaces:\n  ${midSessionGaps.join('\n  ')}`);
 
                 // Negative guard spans the WHOLE skill: no step may propose a route or ask the user
                 // to pick one. (Prohibitions like "do not use AskUserQuestion to choose" stay legal.)
@@ -730,6 +764,59 @@ module.exports = {
                     `under the configured release-notes output dir. Remove the changelog step, key, ` +
                     `or script; do not rename it. Reading an existing or third-party CHANGELOG is ` +
                     `fine — writing one is not.`);
+            },
+        },
+        {
+            name: '[content-presence] TC-CP-016 UI review judges whole surfaces, surface load, container fit, and binds plans',
+            // Business Intent / Invariant Guarded: a UI review must judge what RENDERS (the composed
+            // surface) and whether a view asks for more than its task needs, and a front-end plan must
+            // be checked against the same checklist before code exists. Every phrase below is the only
+            // carrier of one obligation; removing it re-opens the "30-field dialog passes review" gap.
+            fn: () => {
+                const DOCS_DIR = path.resolve(PROJECT_DIR, '.claude', 'docs');
+                const expectations = [
+                    ['docs/design-review-checklist.md', readFile(path.join(DOCS_DIR, 'design-review-checklist.md')), [
+                        '### 0.5 Surface scope and composition',
+                        'Severity vocabulary map',
+                        '| B12 | **Surface load fits the task**',
+                        '| B15 | **Complexity budget respected**',
+                        '| E9  | **Container fits the task**',
+                        '| E11 | Dismissing a container with unsaved input is protected',
+                        '## R. Forms & Data Entry',
+                        'Field Necessity Matrix',
+                        '| I15 | Dialogs and overlays manage focus',
+                        '| K10 | Every visible control works end to end',
+                        '## H. Expert, Data-Heavy & Enterprise Use',
+                    ]],
+                    ['docs/design-review-calibration.md', readFile(path.join(DOCS_DIR, 'design-review-calibration.md')), [
+                        '## C1 — The overloaded creation dialog',
+                        '**NOT a finding.**',
+                    ]],
+                    ['skills/ui-review/SKILL.md', readSkill('ui-review'), [
+                        '**Expand files → surfaces (MANDATORY when UI files match).**',
+                        '## Phase 2B: Surface Composition',
+                        '**Style-origin map.**',
+                        '## Phase 2C: Surface UX Pass',
+                        '**Stacking-context trap**',
+                        '/surfaces/{surface}.md',
+                    ]],
+                    ['skills/plan-review/SKILL.md', readSkill('plan-review'), [
+                        '## UI Plan Checklist Gate',
+                        '**UI Plan Checklist lens**',
+                    ]],
+                    ['skills/plan/SKILL.md', readSkill('plan'), [
+                        '**UI Surface Contract (MANDATORY',
+                    ]],
+                    ['skills/design-spec/SKILL.md', readSkill('design-spec'), [
+                        '## 1b. Information Priority & Container',
+                    ]],
+                ];
+                const missing = [];
+                for (const [label, body, phrases] of expectations) {
+                    for (const phrase of phrases) if (!body.includes(phrase)) missing.push(`${label} → ${phrase}`);
+                }
+                assertTrue(missing.length === 0,
+                    `UI-review surface obligations lost:\n  ${missing.join('\n  ')}`);
             },
         },
     ],

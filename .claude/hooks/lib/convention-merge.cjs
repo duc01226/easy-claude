@@ -56,6 +56,43 @@ const LANGUAGE_EXTENSIONS = {
 const GENERAL_EXCLUDES = ['**/node_modules/**', '**/dist/**', '**/build/**', '**/vendor/**', 'tmp/**', 'temp/**'];
 const META_FIELDS = new Set(['origin', 'detectedFingerprint']);
 
+/**
+ * The framework's UI/UX gate class: any file that renders a user-facing surface receives a compact
+ * digest of the three binding rule sets and their docs before it is edited. Detected only for a
+ * project that records front-end evidence (a frontend module or styling file types), so a project
+ * without a front-end never pays.
+ *
+ * Membership by file name, deliberately excluding extensions shared with non-UI code:
+ *   IN  markup/templates  html htm xhtml · razor cshtml · hbs handlebars ejs pug twig liquid njk
+ *       styles            css scss sass less styl pcss
+ *       component files   jsx tsx vue svelte astro · Angular `*.component.ts` (templates/styles via html/scss)
+ *       native UI markup  xaml axml storyboard xib · Android layout XML under `res/layout*`
+ *   OUT mdx (mostly documentation prose) · ts/js (mostly logic) · swift/kt/dart (SwiftUI, Compose and
+ *       Flutter share their extension with all non-UI code; a path matcher cannot tell them apart).
+ * A project widens or narrows this by editing the class (or its own class) in contextGroups.
+ */
+const UI_UX_GATE = Object.freeze({
+    name: 'ui-ux-gate',
+    priority: 100,
+    pathRegexes: ['/res/layout[^/]*/[^/]+\\.xml$'],
+    fileNameRegexes: [
+        '\\.(?:html?|xhtml|razor|cshtml|hbs|handlebars|ejs|pug|twig|liquid|njk|css|scss|sass|less|styl|pcss|jsx|tsx|vue|svelte|astro|xaml|axml|storyboard|xib)$',
+        '\\.component\\.ts$'
+    ],
+    excludePathGlobs: GENERAL_EXCLUDES,
+    referenceDocs: ['.claude/docs/design-review-checklist.md', '.claude/docs/design-knowledge.md', '.claude/docs/design-review-calibration.md'],
+    rules: [
+        'UI/UX gate: have UI-*, DD-* and CL-* in context BEFORE editing this surface; read the docs above unless already loaded',
+        'UI-1.1–UI-9.4 usability/a11y floor (pass/fail): SYNC:ui-ux-design-principles in .claude/skills/shared/sync-inline-versions.md',
+        'DD-1–DD-8 identity (design-knowledge.md): name subject/audience/job, write the Design Plan, pass the generic test',
+        'CL-1–CL-6 (checklist): §0.5 surface scope, B12–B15 load, E9–E11 container fit, §R forms, I15 dialog focus, K10 dead controls',
+        'Calibrate severity with design-review-calibration.md; brief > project design system/ADRs > these rules; no visual change = say skip'
+    ],
+    reinjectAfterTokens: 100000,
+    evidenceDocs: ['.claude/docs/design-review-checklist.md', '.claude/docs/design-knowledge.md'],
+    evidenceSkills: ['ui-review', 'design', 'design-spec', 'web-design-guidelines', 'pbi-mockup', 'artifact-review']
+});
+
 function isPlainObject(value) {
     return value !== null && typeof value === 'object' && !Array.isArray(value);
 }
@@ -110,6 +147,11 @@ function candidate(fields, exists) {
     if (skills.length) group.skills = skills;
     const rules = unique(strings(fields.rules));
     if (rules.length) group.rules = rules;
+    if (Number.isInteger(fields.reinjectAfterTokens)) group.reinjectAfterTokens = fields.reinjectAfterTokens;
+    const evidenceDocs = unique(strings(fields.evidenceDocs).map(trimSlashes)).filter(doc => exists(doc));
+    if (evidenceDocs.length) group.evidenceDocs = evidenceDocs;
+    const evidenceSkills = unique(strings(fields.evidenceSkills)).filter(name => exists(skillPath(name)));
+    if (evidenceSkills.length) group.evidenceSkills = evidenceSkills;
     const hasInclude = group.pathRegexes.length || (group.pathGlobs || []).length || (group.fileNameRegexes || []).length;
     return hasInclude && isInjectable(group) ? group : null;
 }
@@ -188,6 +230,13 @@ function detectGroups(config, opts = {}) {
         .filter(m => typeof m.kind === 'string' && m.kind.toLowerCase().startsWith(prefix))
         .flatMap(m => strings(m.pathRegex))
         .filter(isValidRegex);
+    const styling = isPlainObject(cfg.styling) ? cfg.styling : {};
+
+    // Front-end evidence already recorded in the config: a frontend module or styling file types.
+    const hasFrontEnd = modules.some(m => typeof m.kind === 'string' && m.kind.toLowerCase().startsWith('frontend')) ||
+        strings(styling.fileExtensions).length > 0;
+    if (hasFrontEnd) push(candidate({ ...UI_UX_GATE, excludePathGlobs: GENERAL_EXCLUDES.slice() }, exists));
+
     push(candidate({
         name: 'backend',
         priority: 500,
@@ -201,7 +250,6 @@ function detectGroups(config, opts = {}) {
         referenceDocs: strings(framework.frontendPatternsDoc)
     }, exists));
 
-    const styling = isPlainObject(cfg.styling) ? cfg.styling : {};
     if (strings(styling.fileExtensions).length) {
         push(candidate({
             name: 'styling',
@@ -366,7 +414,7 @@ function runCli(argv) {
     return 0;
 }
 
-module.exports = { detectGroups, fingerprintGroup, mergeDetected, LANGUAGE_EXTENSIONS };
+module.exports = { detectGroups, fingerprintGroup, mergeDetected, LANGUAGE_EXTENSIONS, UI_UX_GATE };
 
 if (require.main === module || (!require.main && path.resolve(process.argv[1] || '') === __filename)) {
     try {

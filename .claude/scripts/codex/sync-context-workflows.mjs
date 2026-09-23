@@ -375,7 +375,7 @@ function upsertProjectReferenceGateSection(contextMd) {
   if (contextWithoutGate.includes(criticalThinkingHeading)) {
     return contextWithoutGate.replace(
       criticalThinkingHeading,
-      `\n\n${gateSection}\n${criticalThinkingHeading}`
+      () => `\n\n${gateSection}\n${criticalThinkingHeading}`
     );
   }
 
@@ -385,7 +385,7 @@ function upsertProjectReferenceGateSection(contextMd) {
   if (contextWithoutGate.includes(START_MARKER)) {
     return contextWithoutGate.replace(
       START_MARKER,
-      `${gateSection}\n\n${START_MARKER}`
+      () => `${gateSection}\n\n${START_MARKER}`
     );
   }
 
@@ -433,10 +433,14 @@ async function upsertContextIntoAgents(contextMd, claudeMd, writePath = agentsPa
     "m"
   );
 
+  // Function replacers only: the CLAUDE block mirrors free CLAUDE.md text, whose regex literals
+  // such as `\.cjs$` followed by a backtick form the "$`" special pattern of a replacement STRING
+  // (text BEFORE the match) and splice the head of AGENTS.md into the rule line. The context
+  // block is generated text today; it uses the same form so a future `$` cannot regress it.
   if (hasClaudeMirror && claudeManagedBlockPattern.test(agentsMd)) {
-    agentsMd = agentsMd.replace(claudeManagedBlockPattern, `${claudeBlock}\n`);
+    agentsMd = agentsMd.replace(claudeManagedBlockPattern, () => `${claudeBlock}\n`);
   } else if (hasClaudeMirror && managedBlockPattern.test(agentsMd)) {
-    agentsMd = agentsMd.replace(managedBlockPattern, `${claudeBlock}\n\n${mirrorBlock}\n`);
+    agentsMd = agentsMd.replace(managedBlockPattern, () => `${claudeBlock}\n\n${mirrorBlock}\n`);
   } else if (hasClaudeMirror) {
     agentsMd = `${agentsMd.trimEnd()}\n\n${claudeBlock}\n`;
   } else {
@@ -444,7 +448,7 @@ async function upsertContextIntoAgents(contextMd, claudeMd, writePath = agentsPa
   }
 
   if (managedBlockPattern.test(agentsMd)) {
-    agentsMd = agentsMd.replace(managedBlockPattern, `${mirrorBlock}\n`);
+    agentsMd = agentsMd.replace(managedBlockPattern, () => `${mirrorBlock}\n`);
   } else {
     agentsMd = `${agentsMd.trimEnd()}\n\n${mirrorBlock}\n`;
   }

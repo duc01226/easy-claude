@@ -37,9 +37,21 @@ template_version: '2.0'
 
 ## 2. Screen Inventory
 
-| Screen        | Type                     | Breakpoints             | Status |
-| ------------- | ------------------------ | ----------------------- | ------ |
-| {Screen name} | Page / Modal / Component | Mobile, Tablet, Desktop | Draft  |
+| Screen        | Primary task        | Container (why)                                                        | Breakpoints             | Status |
+| ------------- | ------------------- | ---------------------------------------------------------------------- | ----------------------- | ------ |
+| {Screen name} | {the one verb it serves} | Full view / Dialog / Side panel / Stepped flow / Inline — {why it fits the task} | Mobile, Tablet, Desktop | Draft  |
+
+### 2.1 Information Priority (per screen)
+
+<!-- Every piece of information and every input the user meets on this screen. Classify it for THIS screen's task:
+     now = the task needs it here · later = deferred to a follow-up step or the record's own edit view · not here = owned elsewhere.
+     A screen whose `now` column exceeds its task is an overload — resolve it here, before visual design. -->
+
+| Screen   | Item (information or input) | Priority (now / later / not here) | Why / where it goes instead | Required at this step? |
+| -------- | --------------------------- | --------------------------------- | --------------------------- | ---------------------- |
+| {Screen} | {Item}                      | now                               | {reason}                    | yes / no               |
+
+**Complexity budget:** {inputs per step · sections per view · equal-weight actions per view} vs the project budget (`uiReview.complexityBudget` in the project config) when declared — otherwise state the counts and the reasoning for the primary user.
 
 ---
 

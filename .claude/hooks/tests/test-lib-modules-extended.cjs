@@ -654,10 +654,13 @@ logSection('describeSchema');
     // derivation note + required `path` + its note) plus the block's own 3-line header
     // = +29 lines, measured 462 -> 491, then to 530 for the optional
     // `portability.workflowRouteProtocol` union field (field line + its one-line note
-    // + the two nested `text`/`path` shapes) — measured 518 -> 522. This remains a
-    // runaway-bloat guard, not a suppression of schema output.
+    // + the two nested `text`/`path` shapes) — measured 518 -> 522, then to 560 for the
+    // optional `uiReview` block (measured 528 -> 543) and the per-class delivery fields
+    // on contextGroups items (`reinjectAfterTokens` + `evidenceDocs`/`evidenceSkills`
+    // array shapes, measured 543 -> 550). This remains a runaway-bloat guard, not a
+    // suppression of schema output.
     const lineCount = output.split('\n').length;
-    logResult('output under 530 lines', lineCount < 530, `${lineCount} lines`);
+    logResult('output under 560 lines', lineCount < 560, `${lineCount} lines`);
 }
 
 // ════════════════════════════════════════════════════════════════════════════

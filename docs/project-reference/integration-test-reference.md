@@ -31,7 +31,7 @@ Integration is process/filesystem based: `runHook` spawns `node`, merges test en
 
 ## Test Base Classes
 
-There is no integration-test inheritance hierarchy. Suite files export `{ name, tests }`; each test is `{ name, fn, skip? }`, and the runner executes synchronous or async functions (`.claude/hooks/tests/run-all-tests.cjs:108-164`, `.claude/hooks/tests/suites/integration.test.cjs:137-144`).
+There is no integration-test inheritance hierarchy. Suite files export `{ name, tests }`; each test is `{ name, fn, skip? }`, and the runner executes synchronous or async functions (`.claude/hooks/tests/run-all-tests.cjs:108-164`, `.claude/hooks/tests/suites/integration.test.cjs:72-77`).
 
 Standalone tests may use `TestGroup` and `TestSuite` from `.claude/hooks/tests/helpers/test-utils.cjs:361-444`. `TestGroup.afterEach` is skipped when a test throws because teardown is on the success path (`.claude/hooks/tests/helpers/test-utils.cjs:383-399`); use per-test `try/finally` for required cleanup.
 
@@ -46,14 +46,15 @@ Standalone tests may use `TestGroup` and `TestSuite` from `.claude/hooks/tests/h
 Use `.claude/hooks/tests/lib/assertions.cjs:12-223` for equality, content/regex, throws, nullability, and hook exit-code assertions. `runHook`, `runHookSequence`, and `runHooksParallel` execute real hook boundaries (`.claude/hooks/tests/lib/hook-runner.cjs:22-155`).
 
 ```js
-const input = createPreToolUseInput('Read', { file_path: '.env' });
-const results = await runHookSequence([PRIVACY_BLOCK, SCOUT_BLOCK], input);
+const results = await runHooksParallel(hooks, { cwd: tmpDir, timeout: SPAWN_TIMEOUT_MS });
 
-assertEqual(results.length, 1, 'Sequence should stop at first block');
-assertBlocked(results[0].result.code, 'Privacy block should block .env');
+for (const { result } of results) {
+  assertAllowed(result.code, 'Parallel execution should not crash');
+  assertFalse(result.timedOut, 'Should not timeout');
+}
 ```
 
-Source: `.claude/hooks/tests/suites/integration.test.cjs:66-76`.
+Source: `.claude/hooks/tests/suites/integration.test.cjs:55-61`.
 
 `waitFor(condition, timeout, interval)` returns `true` on success and `false` on timeout (`.claude/hooks/tests/lib/test-utils.cjs:227-235`). No suite call site is currently verified; if adopted, assert its returned boolean rather than treating elapsed time as success.
 
@@ -67,11 +68,11 @@ Targeted suites may require host executables: count-drift resolves `python` then
 
 ## Service-Specific Setup
 
-Traditional service-specific setup is **N/A** because the repository has no configured services or application infrastructure (`docs/project-config.json:23-73`, `docs/project-config.json:149-152`). Hook-specific setup belongs in focused temp-state helpers and lifecycle payload builders. Security composition and concurrent hook behavior are represented in `.claude/hooks/tests/suites/integration.test.cjs:47-132`.
+Traditional service-specific setup is **N/A** because the repository has no configured services or application infrastructure (`docs/project-config.json:23-73`, `docs/project-config.json:149-152`). Hook-specific setup belongs in focused temp-state helpers and lifecycle payload builders. Concurrent hook behavior is represented in `.claude/hooks/tests/suites/integration.test.cjs:41-69`.
 
 ## Test Data Patterns
 
-Create one OS-temp directory per mutable test and remove it in `finally`. `createTempDir` uses `mkdtempSync`; cleanup refuses paths outside the OS temp root (`.claude/hooks/tests/lib/test-utils.cjs:15-27`). Representative integration/security tests follow `try/finally` cleanup (`.claude/hooks/tests/suites/integration.test.cjs:86-108`, `.claude/hooks/tests/suites/security.test.cjs:161-170`).
+Create one OS-temp directory per mutable test and remove it in `finally`. `createTempDir` uses `mkdtempSync`; cleanup refuses paths outside the OS temp root (`.claude/hooks/tests/lib/test-utils.cjs:15-27`). Representative suites follow `try/finally` cleanup (`.claude/hooks/tests/suites/integration.test.cjs:45-66`, `.claude/hooks/tests/suites/agent-files-gate.test.cjs:348-354`).
 
 Use payload builders for valid lifecycle inputs and assert the observable contract. There is no production repository/database setup path (`docs/project-config.json:149-152`); direct datastore writes remain unsupported unless a future idempotent, service-owned fixture seeder is verified.
 
@@ -79,7 +80,7 @@ Use payload builders for valid lifecycle inputs and assert the observable contra
 
 1. Copy the structure of `.claude/hooks/tests/suites/integration.test.cjs` into a topic-named file beneath `.claude/hooks/tests/suites/`; the runner discovers the .test.cjs suffix automatically (`.claude/hooks/tests/run-all-tests.cjs:87-99`).
 2. Import the real hook runner, payload builder, and focused assertion helpers.
-3. Name tests with a behavioral bracket prefix such as `[security-chain]`; include the governing `TC-*` ID when a canonical spec supplies one (`.claude/hooks/tests/suites/integration.test.cjs:47-77`, `.claude/hooks/tests/suites/workflow.test.cjs:197-198`).
+3. Name tests with a behavioral bracket prefix such as `[concurrent]`; include the governing `TC-*` ID when a canonical spec supplies one (`.claude/hooks/tests/suites/integration.test.cjs:43`, `.claude/hooks/tests/suites/workflow.test.cjs:197-198`).
 4. Label explicit Given/When/Then phases (comments or named helpers are valid), name the guarded business intent/invariant or technical contract, arrange isolated input, act through the real process boundary, assert the owned output/state, and clean up in `finally`.
 5. Run a matching suite filter, then the full repeatability gate.
 
@@ -93,7 +94,7 @@ node .claude/hooks/tests/run-all-tests.cjs
 node .claude/hooks/tests/test-all-hooks.cjs
 
 # Suite-name substring filter; a zero-match filter exits non-zero
-node .claude/hooks/tests/run-all-tests.cjs --filter=security --verbose
+node .claude/hooks/tests/run-all-tests.cjs --filter=integration --verbose
 ```
 
 The filter selects suite names and runs every test in each selected suite; a non-matching explicit filter exits `1` to prevent a vacuous green (`.claude/hooks/tests/run-all-tests.cjs:158-164`, `.claude/hooks/tests/run-all-tests.cjs:275-286`). A complete, clean run exits `1` for a second, non-test reason: a post-summary count guard compares the tests it discovered against the aggregate count documented in `.claude/docs/hooks/README.md` and fails the process on drift, so the summary can read `All N tests passed` while the exit code is still `1` (`.claude/hooks/tests/run-all-tests.cjs:333-400`). It keys on the DISCOVERED total (passed + failed + skipped) rather than the pass count, because host-gated tests move the passed/skipped split per machine, and it stays silent under `--filter` or after any failure — neither total is the canonical figure. Although `--parallel` is parsed and advertised, the runner currently awaits suites in a sequential loop (`.claude/hooks/tests/run-all-tests.cjs:51-75`, `.claude/hooks/tests/run-all-tests.cjs:295-304`).

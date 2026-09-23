@@ -643,12 +643,14 @@ const tests = [
                 'integration-test': { name: 'integration-test', pathRegexes: [], priority: 100, pathGlobs: ['**/*.int.test.ts'], referenceDocs: ['docs/int.md'], skills: ['integration-test'] },
                 'e2e-test': { name: 'e2e-test', pathRegexes: [], priority: 100, pathGlobs: ['e2e/tests/**'], referenceDocs: ['docs/e2e.md'], skills: ['e2e-test'] },
                 test: { name: 'test', pathRegexes: [], priority: 100, pathGlobs: ['**/*.spec.ts'], referenceDocs: ['docs/testing.md'] },
+                // Front-end evidence (a frontend module / styling file types) proposes the framework UI/UX gate.
+                'ui-ux-gate': { ...merge.UI_UX_GATE, excludePathGlobs: excludes },
                 backend: { name: 'backend', pathRegexes: ['src/api/'], priority: 500, referenceDocs: ['docs/be.md'] },
                 frontend: { name: 'frontend', pathRegexes: ['src/web/'], priority: 500, referenceDocs: ['docs/fe.md'] },
                 styling: { name: 'styling', pathRegexes: [], priority: 500, pathGlobs: ['**/*'], excludePathGlobs: excludes, fileExtensions: ['.scss'], referenceDocs: ['docs/styles.md'] },
                 'general-code': { name: 'general-code', pathRegexes: [], priority: 900, pathGlobs: ['**/*'], excludePathGlobs: excludes, fileExtensions: ['.ts', '.tsx', '.mts', '.cts'], referenceDocs: ['docs/review.md'] }
             });
-            assert.deepEqual(Object.keys(byName), ['feature-spec', 'integration-test', 'e2e-test', 'test', 'backend', 'frontend', 'styling', 'general-code']);
+            assert.deepEqual(Object.keys(byName), ['feature-spec', 'integration-test', 'e2e-test', 'test', 'ui-ux-gate', 'backend', 'frontend', 'styling', 'general-code']);
             // And general classes skip dependency and build output anywhere, and temporary output only at the project root
             const general = byName['general-code'];
             for (const [rel, member] of [['src/a.ts', true], ['node_modules/x/a.ts', false], ['pkg/dist/a.ts', false], ['build/a.ts', false], ['lib/vendor/x/a.ts', false],

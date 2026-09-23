@@ -204,8 +204,7 @@ function runGit(args, cwd) {
  * Read-only: it never stages, unstages, or touches the working tree. The CALLER
  * decides what to do, and must limit itself to `git restore --staged <path>`:
  * reverting the working tree destroys the only copy of an uncommitted edit, and
- * `git-commit-block.cjs` gates those spellings. Treat that as the reason the rule
- * exists, not as a guarantee that every host enforces it.
+ * no hook blocks those spellings — the rule is model-behavioral on every host.
  *
  * Added, deleted, renamed, and binary paths are never reported: there is no
  * before/after pair whose difference could be pure churn.

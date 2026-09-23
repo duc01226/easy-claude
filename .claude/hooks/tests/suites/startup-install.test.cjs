@@ -43,13 +43,16 @@ const REPO_ROOT = path.resolve(HOOKS_ROOT, '..', '..');
 // The CI-matrix pin below asserts the UPSTREAM framework repo's own GitHub Actions workflow, so it
 // applies ONLY in that repo, identified by its package name (lockstep with DEFAULT_FRAMEWORK_PACKAGE_NAME
 // in .claude/scripts/codex/tests/framework-repo.helper.mjs; PORT-011 fails loudly on a rename).
-// Never key it on `.github/workflows/ci.yml` existing: an adopting project's own ci.yml would
-// then fail these pins.
+// Never key it on `.github/workflows/ci.yml` existing ALONE: an adopting project's own ci.yml would
+// then fail these pins, so the package-name gate comes first. Existence is a second gate, because
+// the upstream repo does not ship a CI workflow yet. The runner prints such a case as "(skipped)", not
+// as a pass; the skip reason naming the missing file is kept for readers and direct debugging.
 const UPSTREAM_CI_WORKFLOW = path.join(REPO_ROOT, '.github', 'workflows', 'ci.yml');
 const UPSTREAM_CI_SKIP = (() => {
     let name = null;
     try { name = JSON.parse(fs.readFileSync(path.join(REPO_ROOT, 'package.json'), 'utf8')).name; } catch { /* no root package */ }
-    return name === 'easy-claude-tooling' ? false : 'asserts the upstream framework repo CI workflow only';
+    if (name !== 'easy-claude-tooling') return 'asserts the upstream framework repo CI workflow only';
+    return fs.existsSync(UPSTREAM_CI_WORKFLOW) ? false : 'upstream CI workflow .github/workflows/ci.yml is not present in this checkout';
 })();
 const SOURCE_VERIFIER = path.join(HOOKS_ROOT, 'verify-install.cjs');
 

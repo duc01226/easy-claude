@@ -81,7 +81,7 @@ This table states authority, not readiness: all applicable quality/security gate
 
 ### Lease Lifecycle
 
-Before the first protected statement, issue a lease through the canonical
+Before the first mutating Git statement, issue a lease through the canonical
 bookkeeping CLI using structured JSON on stdin. Resolve and pass the canonical
 project directory, effective repository, real session ID, exact operation list,
 and a bounded description of the user's request:
@@ -101,9 +101,11 @@ printf '%s' '{"projectDir":"<canonical-project>","repository":"<canonical-reposi
   | node .claude/hooks/lib/git-operation-lease.cjs revoke
 ```
 
-A missing/expired/foreign/malformed lease denies protected Git operations;
-markers, model-authored approval tokens, implementation completion, and
-generic review approval never authorize Git. SessionEnd revokes this session's
+The lease is bounded bookkeeping recorded for the requested operations: no
+hook consumes it, so it neither grants nor blocks any Git operation. The user's
+explicit request is the authority; the lease, markers, model-authored approval
+tokens, implementation completion, and generic review approval never authorize
+Git. SessionEnd revokes this session's
 remaining records on `clear`/`exit`; `compact` never refreshes them.
 
 ## Workflow

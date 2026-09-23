@@ -7,7 +7,9 @@
  *   PostToolUse  Read|Edit|Write|MultiEdit|NotebookEdit (Claude) · apply_patch (Codex mirror)
  *     → additionalContext digest of the convention classes (docs/project-config.json
  *       contextGroups[]) the touched file belongs to, only for classes not already present
- *       in the current working context (spec BR-PFCI-05..07, 15..17).
+ *       in the current working context (spec BR-PFCI-05..07, 15..17). A class may declare its own
+ *       window (`reinjectAfterTokens`) and transcript evidence (`evidenceDocs`/`evidenceSkills`)
+ *       that counts as present — the front-end `ui-ux-gate` class uses both.
  *   SessionStart compact|clear → records the condensation; prints nothing. BOTH hosts since
  *     2026-09-17: Codex supports SessionStart with the same matcher vocabulary, and this hook
  *     is on the narrow mirror allowlist (sync-hooks.mjs codexSessionStartMirrors) because
@@ -181,12 +183,32 @@ function planDelivery(input, deps) {
         transcriptSize: ledger.transcriptSize(ledger.transcriptPathFor(input)),
         now
     };
+    // Each class ages against its own window (`reinjectAfterTokens`), else the global distance.
     const isRecorded = (entry, hash) =>
-        ledger.isPresent(ledger.readRecord(root, sessionId, scope, entry.name), hash, ctx, settings);
+        ledger.isPresent(ledger.readRecord(root, sessionId, scope, entry.name), hash, ctx, conventions.classSettings(entry, settings));
     const present = (entry, hash) => {
         if (isRecorded(entry, hash)) return true;
+        const perClass = conventions.classSettings(entry, settings);
         const credit = ledger.staticCredit(scope, conventions.conventionTag(entry), hash, ctx, projectDir);
-        return Boolean(credit) && ledger.isPresent(credit, hash, ctx, settings);
+        if (credit && ledger.isPresent(credit, hash, ctx, perClass)) return true;
+        return evidencePresent(entry, hash, perClass);
+    };
+    // The class's protocol already reached this context another way (its evidence docs read, or an
+    // evidence skill loaded, inside the class window and after the last condensation): record that
+    // as an 'evidence' delivery so later triggers skip on the record alone, and deliver nothing.
+    const evidencePresent = (entry, hash, perClass) => {
+        if (!entry.evidenceDocs.length && !entry.evidenceSkills.length) return false;
+        const found = ledger.scanEvidence(ledger.transcriptPathFor(input), { docs: entry.evidenceDocs, skills: entry.evidenceSkills }, {
+            windowBytes: perClass.reinjectAfterBytes,
+            lastCompactionAt: ctx.lastCompactionAt,
+            compactionMarkers: settings.compactionMarkers
+        });
+        if (!found) return false;
+        const record = { hash, deliveredAt: found.at, transcriptBytes: found.transcriptBytes, form: 'evidence' };
+        if (!ledger.isPresent(record, hash, ctx, perClass)) return false;
+        ledger.writeRecordAtomic(root, sessionId, scope, entry.name, record);
+        note(deps, `skip ${entry.name}: protocol already loaded in ${scope} (transcript evidence)`);
+        return true;
     };
 
     const claimed = [];

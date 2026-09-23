@@ -53,7 +53,7 @@ Traditional CQRS, command/query handlers, controllers, pagination, projection, a
 
 ## Validation Patterns
 
-Reusable validator contract: `{ allowed, message? }`; `runBlockingHook` rejection writes stderr and sets exit code `2`, then returns so queued output drains. Its success/error/timeout contract remains fail-open `0` (`.claude/hooks/lib/hook-runner.cjs:345-384`). Registered security gates may own an explicitly tested deny-closed transport policy, but command-bearing consumers use the pure bounded inspection/policy helpers before applying an exit decision (`.claude/hooks/lib/command-inspection.cjs`, `.claude/hooks/git-commit-block.cjs`, `.claude/hooks/privacy-block.cjs`). The rejection branch inside the runner is:
+Reusable validator contract: `{ allowed, message? }`; `runBlockingHook` rejection writes stderr and sets exit code `2`, then returns so queued output drains. Its success/error/timeout contract remains fail-open `0` (`.claude/hooks/lib/hook-runner.cjs:345-384`). Registered security gates may own an explicitly tested deny-closed transport policy, but command-bearing consumers use the pure bounded inspection/policy helpers before applying an exit decision (`.claude/hooks/lib/command-inspection.cjs`, `.claude/hooks/lib/git-statement.cjs`, `.claude/hooks/review-commit-gate.cjs:25-28,288-335`). The rejection branch inside the runner is:
 
 ```js
 if (result && result.allowed === false) {
@@ -98,7 +98,7 @@ Scheduler/recurring job framework: **N/A**. Hooks run only for registered lifecy
 
 ## Authorization
 
-No identity/role/policy layer. Operation authorization lives at `PreToolUse` matcher boundaries, static permissions, exact session-scoped Git leases, operand-local privacy approval, and resolved project/path boundaries (`.claude/settings.json:64-130`, `.claude/settings.json:212-265`, `.claude/hooks/privacy-block.cjs`, `.claude/hooks/lib/git-operation-lease.cjs`, `.claude/hooks/git-commit-block.cjs`, `.claude/hooks/path-boundary-block.cjs`). A lease is bounded bookkeeping rather than user consent or native host permission; missing, expired, foreign, malformed, or mismatched records do not authorize protected Git operations.
+No identity/role/policy layer. Operation authorization lives at static permissions and the `PreToolUse` Bash matcher, where `review-commit-gate` blocks an agent `git commit` whose changeset lacks a review or user-approved skip receipt and ignores every non-commit statement (`.claude/settings.json:84-96`, `.claude/settings.json:220-277`, `.claude/hooks/review-commit-gate.cjs:288-327`). Session Git leases (`.claude/hooks/lib/git-operation-lease.cjs`) are bounded bookkeeping rather than user consent or native host permission; no registered hook consumes them.
 
 ## Anti-Patterns
 

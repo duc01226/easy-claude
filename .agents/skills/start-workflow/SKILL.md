@@ -59,6 +59,7 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 
 - MUST ATTENTION automatic selection applies only when the runtime route payload is present. When it is absent, this skill requires an explicit workflow ID.
 - Explicit `/workflow-*` or `$start-workflow <id>` invocation counts as the user choosing that workflow; execute it directly.
+- **Mid-session: never auto-activate a workflow.** Auto-activation applies only to the first task of a session (its first user prompt; compaction or resume does not reset it). Once work is under way (follow-up, correction, next step, or a new ask), do it directly or with the best-fit skill or a lean chain of at most 3 skills; required gates (root-cause investigation for a bug, test, review, spec/doc sync, and any other required quality gate) still run and do not count toward that cap, and continuing a workflow already running is not activating one. An explicit workflow request always runs, mid-session included — a `/workflow-*` or `$start-workflow <id>` call, or the user asking in words to use a workflow; follow it.
 - Auto-select a Custom Pipeline when no catalog workflow is a strong fit (>80% of its unconditional steps do real work = use catalog); declare it, never ask the user to choose
 - `workflows.json` `workflows` field is an **OBJECT** — use `workflows[workflowId]`, NEVER `.find()` or `[index]`; resolve `variants[mode]` through `.claude/scripts/lib/workflow-manifest.cjs`
 - Create ALL task tracking items BEFORE marking the first task `in_progress` — batch creation, then execute
@@ -506,7 +507,7 @@ When `$workflow-review-changes` appears in any workflow sequence (e.g. `workflow
 - **Sub-Agent Return Contract:** sub-agents return summary only; NEVER inline full output.
 - **Parallel Sub-Agent Dispatch:** Tag tasks PAR/SEQ, group PAR into disjoint-write-set waves, spawn each wave in ONE message, barrier before advancing.
 
-**MUST ATTENTION** auto-select the best path for ordinary prompts; explicit `/workflow-*` or `$start-workflow <id>` invocation executes directly. Do not ask for workflow-selection confirmation.
+**MUST ATTENTION** auto-select the best path for ordinary prompts; explicit `/workflow-*` or `$start-workflow <id>` invocation executes directly. Do not ask for workflow-selection confirmation. Mid-session, never auto-activate a workflow — do the work directly or with a lean skill chain; required gates still run.
 **MUST ATTENTION** `workflows` is an OBJECT — `workflows[workflowId]`, NEVER `.find()` / `[index]` / `.forEach()`
 **MUST ATTENTION** create ALL task tracking items for the full sequence BEFORE marking the first task `in_progress`
 **MUST ATTENTION** never mark a task `completed` without invoking its skill invocation, except an evidence-backed conditional skip explicitly authorized by selected canonical `preActions.injectContext` — cite comment + completed, never delete

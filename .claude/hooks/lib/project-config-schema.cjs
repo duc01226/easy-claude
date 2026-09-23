@@ -104,6 +104,25 @@ const SCHEMA = {
             tokenFiles: { type: 'array', required: false }
         }
     },
+    uiReview: {
+        type: 'object',
+        required: false,
+        describe: 'Optional UI-review tuning. Omit to judge surface load by task and user expertise alone; declared budgets are project policy, never framework defaults.',
+        properties: {
+            complexityBudget: {
+                type: 'object',
+                required: false,
+                describe: 'Project-declared heuristic ceilings a UI review compares against (design-review-checklist B15). Exceeding one is a finding only when the excess is not justified by the primary user and task.',
+                properties: {
+                    inputsPerStep: { type: 'number', required: false, describe: 'Maximum inputs shown in one step of an entry flow.' },
+                    sectionsPerView: { type: 'number', required: false, describe: 'Maximum headed content or input sections in one view.' },
+                    primaryActionsPerView: { type: 'number', required: false, describe: 'Maximum equal-weight actions competing in one view.' },
+                    dialogInputs: { type: 'number', required: false, describe: 'Maximum inputs in a dialog before the task belongs in a full view or stepped flow (checklist E9).' }
+                }
+            },
+            representativeSurfaces: { type: 'array', required: false, describe: 'Pages/views reviewed when a global style, theme, token, or shared primitive changes (checklist 0.5). Use route or view names the project recognizes.' }
+        }
+    },
     // Omitted profiles retain the existing business-spec / section-8 / TestSpec defaults.
     // The bounded, closed profile contract is owned by spec-artifact-profile.cjs.
     specArtifacts: {
@@ -292,6 +311,9 @@ const SCHEMA = {
             rules: { type: 'array', required: false, describe: 'Short, checkable rules injected verbatim (keep each under ~120 chars).' },
             skills: { type: 'array', required: false, describe: 'Skill names whose SKILL.md protocol applies when editing these files.' },
             referenceDocs: { type: 'array', required: false, describe: 'Repo-relative docs the AI must read before editing these files.' },
+            reinjectAfterTokens: { type: 'number', required: false, describe: 'Class re-arm distance in conversation tokens (20000..2000000; x22 transcript bytes per token). Omit to use conventionInjection.reinjectAfterBytes.' },
+            evidenceDocs: { type: 'array', required: false, describe: 'Repo-relative docs whose Read (ALL of them) inside the class window counts as the class being present — no digest re-delivered.' },
+            evidenceSkills: { type: 'array', required: false, describe: 'Skill names whose load (ANY of them) inside the class window counts as the class being present — they carry the protocol inline.' },
             origin: { type: 'string', required: false, describe: '"detected" (written by setup detection; may be refreshed while unedited) or "user" (never touched by setup).' },
             detectedFingerprint: { type: 'string', required: false, describe: 'Setup-owned fingerprint of the detected content; a mismatch marks the group as user-edited.' }
         }
@@ -1211,6 +1233,8 @@ function validateE2eExecutionSemantics(config, errors, warnings) {
 
 const CONTEXT_GROUP_FIELDS = new Set(Object.keys(SCHEMA.contextGroups.itemSchema));
 const CONTEXT_GROUP_ORIGINS = new Set(['detected', 'user']);
+// Mirrors file-conventions.cjs CLASS_REINJECT_TOKENS_RANGE (parity asserted by the ui-ux-gate suite).
+const CONTEXT_GROUP_REINJECT_TOKENS_RANGE = [20000, 2000000];
 
 function nonEmptyArray(value) {
     return Array.isArray(value) && value.length > 0;
@@ -1252,6 +1276,13 @@ function validateContextGroupSemantics(config, errors, warnings) {
         for (const key of Object.keys(group)) {
             if (!CONTEXT_GROUP_FIELDS.has(key)) {
                 warnings.push(`${path}.${key}: unknown context group field (not in schema)`);
+            }
+        }
+        if (group.reinjectAfterTokens !== undefined) {
+            const [min, max] = CONTEXT_GROUP_REINJECT_TOKENS_RANGE;
+            const tokens = group.reinjectAfterTokens;
+            if (typeof tokens !== 'number' || !Number.isInteger(tokens) || tokens < min || tokens > max) {
+                errors.push(`${path}${label}.reinjectAfterTokens: expected an integer from ${min} through ${max}`);
             }
         }
         if (typeof group.priority === 'number' && !Number.isInteger(group.priority)) {

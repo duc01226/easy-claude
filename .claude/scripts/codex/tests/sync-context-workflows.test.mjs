@@ -193,6 +193,33 @@ test("sync-context-workflows mirrors subagent authorization into AGENTS.md", asy
   }
 });
 
+// Business intent: AGENTS.md mirrors CLAUDE.md text verbatim. Rule lines carry regex literals such as
+// `\.cjs$` followed by a backtick; a re-sync must never expand them as replacement patterns
+// ("$`" splices the text before the block into the line, `$&` repeats the old block). The CLAUDE
+// block is the only mirrored block that carries free source text, so it is the one exercised here.
+test("sync-context-workflows re-sync keeps dollar sequences in mirrored CLAUDE.md text verbatim", async () => {
+  const tempRoot = await fs.mkdtemp(path.join(os.tmpdir(), "codex-sync-context-dollar-"));
+  const ruleLine = "- include path regex `[\\\\/]hooks[\\\\/].*\\.cjs$`; replacement tokens $& and $$ stay literal";
+  try {
+    await fs.mkdir(path.join(tempRoot, ".claude", "skills", "test"), { recursive: true });
+    await fs.writeFile(path.join(tempRoot, ".claude", "skills", "test", "SKILL.md"), "---\nname: test\ndescription: fixture\n---\n");
+    await fs.writeFile(path.join(tempRoot, ".claude", "workflows.json"), JSON.stringify({ workflows: {
+      testing: { sequence: ["test"], preActions: { injectContext: "Run fixture test." } },
+    } }));
+    await fs.writeFile(path.join(tempRoot, "CLAUDE.md"), `# Claude Source Instructions\n\n${ruleLine}\n`, "utf8");
+
+    await runSync(tempRoot);
+    await runSync(tempRoot); // second pass takes the managed-block replace path
+
+    const agentsText = await fs.readFile(path.join(tempRoot, "AGENTS.md"), "utf8");
+    assert.ok(agentsText.includes(ruleLine), "mirrored rule line must survive re-sync verbatim");
+    assert.equal(agentsText.split("<!-- CLAUDE-MIRROR:START -->").length, 2, "exactly one CLAUDE mirror block");
+    assert.equal(agentsText.split("<!-- CODEX-CONTEXT-MIRROR:START -->").length, 2, "exactly one context mirror block");
+  } finally {
+    await fs.rm(tempRoot, { recursive: true, force: true });
+  }
+});
+
 test("sync-context-workflows points to lessons.md without inlining project lessons", async () => {
   const tempRoot = await fs.mkdtemp(path.join(os.tmpdir(), "codex-sync-context-lessons-"));
 

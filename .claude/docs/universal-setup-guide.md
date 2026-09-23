@@ -94,7 +94,7 @@ The framework is ready. Use workflows:
 - `/plan` — Create implementation plans
 - `/code-review` — Review code changes
 
-The workflow router injects the catalog; the model auto-selects and activates the best-matching workflow (no confirmation step).
+The workflow router injects the catalog; on the first task of a session the model auto-selects and activates the best-matching workflow (no confirmation step). Mid-session it never auto-activates a workflow — it works directly or with a lean chain of skills unless you call a workflow skill or ask for one in words, which always runs.
 
 ## What's Project-Agnostic vs Project-Specific
 

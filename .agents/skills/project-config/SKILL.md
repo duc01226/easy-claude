@@ -285,6 +285,7 @@ docs/project-config.json
 ├── conventionInjection — { enabled, maxChars, maxClassesPerEdit, reinjectAfterBytes, reinjectAfterMinutes, blindReinjectAfterMinutes, onRead, compactionMarkers[] }  (optional; per-file convention reminder)
 ├── styling — { technology, guideDoc, appMap{}, patterns[] }
 ├── designSystem — { docsPath, modernUiNote, appMappings[] }
+├── uiReview — { complexityBudget{ inputsPerStep, sectionsPerView, primaryActionsPerView, dialogInputs }, representativeSurfaces[] }  (optional; project-declared UI-review budgets — never invent them, omit when the team has not agreed any)
 ├── componentSystem — { type, selectorPrefixes[], filePattern, layerClassification{} }
 ├── framework — { name, backendPatternsDoc, frontendPatternsDoc, codeReviewDoc, integrationTestDoc, searchPatternKeywords[] }
 ├── testing — { frameworks[], filePatterns{}, commands{}, coverageTool, guideDoc, integrationRules[] }

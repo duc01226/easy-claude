@@ -118,10 +118,12 @@ printf '%s' '{"projectDir":"<canonical-project>","repository":"<canonical-reposi
 ```
 
 SessionEnd revokes any remaining records for the ending session on `clear` or
-`exit`; `compact` never refreshes or revokes leases. Missing, expired,
-malformed, foreign, or mismatched records deny protected Git operations. The
-lease is not a substitute for the user's request, native host permissions, or
-the test-verify gate.
+`exit`; `compact` never refreshes or revokes leases. The lease is bounded
+bookkeeping recorded for the requested operations: no hook consumes it, so it
+neither grants nor blocks any Git operation. The user's explicit request is the
+authority; the lease is not a substitute for that request, native host
+permissions, the test-verify gate, or the review receipt `review-commit-gate`
+checks.
 
 ## Workflow
 

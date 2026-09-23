@@ -109,10 +109,9 @@ graph TB
         AUQ[Model Auto-Select<br/>start-workflow]
     end
 
-    subgraph "Hook Layer — 15 Top-Level Hook Files"
+    subgraph "Hook Layer — 14 Top-Level Hook Files"
         subgraph "PreToolUse Gates"
             DSG[Doc Sync Gate — advisory]
-            GCB[Git Commit Block]
             RCG[Review Commit Gate]
         end
         subgraph "Prompt Hooks"
@@ -166,7 +165,7 @@ graph TB
     BC & FC --> PC
     IS & QS & PS --> TS
     TS --> PF
-    IPG & DSG & GCB & RCG & GR & FCI --> ST
+    IPG & DSG & RCG & GR & FCI --> ST
 ```
 
 ### Component Interaction Flow
@@ -872,7 +871,7 @@ sequenceDiagram
     end
 ```
 
-**Auto-selection is default-on.** `docs/project-config.json` can disable it for the team, while git-ignored `.claude/.ck.local.json` can override runtime refresh for one developer. The runtime reminder can also carry a project-supplied `portability.workflowRouteProtocol` (team or developer-local, local replaces team) — inline markdown or a repo-relative file read at runtime — appended by the route hook and never stamped into tracked context. With routing disabled, an explicitly named workflow or skill still runs normally.
+**Auto-selection is default-on for the session's first task only.** Mid-session work (follow-ups, corrections, new asks) runs directly, with the best-fit skill, or with a lean chain of at most 3 skills; an explicit workflow request (`/start-workflow <id>`, `/workflow-*`, or asking in words) always runs. `docs/project-config.json` can disable it for the team, while git-ignored `.claude/.ck.local.json` can override runtime refresh for one developer. The runtime reminder can also carry a project-supplied `portability.workflowRouteProtocol` (team or developer-local, local replaces team) — inline markdown or a repo-relative file read at runtime — appended by the route hook and never stamped into tracked context. With routing disabled, an explicitly named workflow or skill still runs normally.
 
 ### 6.4 Pre-Actions — Context Loading Before Execution
 
@@ -900,7 +899,7 @@ The hook and skill system is **project-agnostic**. All project-specific knowledg
 ```mermaid
 graph LR
     subgraph "Generic Framework (reusable)"
-        H[15 Hook Files]
+        H[14 Hook Files]
         S[124 Skills]
         W[19 Workflows]
     end
@@ -1109,6 +1108,12 @@ graph TB
 │  EXCEPTION: explicit invocation — when the user names a          │
 │  workflow or skill (start-workflow X, slash-skill), that exact   │
 │  one runs without re-evaluation.                                  │
+│                                                                   │
+│  MID-SESSION: auto-activation applies only to the first           │
+│  task of a session. Follow-ups, corrections and new asks run      │
+│  directly or with a lean chain of at most 3 skills. An explicit   │
+│  request always runs, mid-session included: a workflow skill      │
+│  call (start-workflow X, /workflow-*) or asking in words.         │
 │                                                                   │
 │  WHY: Prevents misrouting without blocking. "Fix this test"      │
 │  could be:                                                        │
@@ -2260,7 +2265,7 @@ greenfield-init: FULL WATERFALL INCEPTION -> REVIEWED FOUNDATION -> IMPLEMENTATI
 
 Every step saves artifacts to {id}/ under the plans root.
 Every step validates genuine product or architecture decision points when needed.
-Workflow activation is auto-selected by default.
+Workflow activation is auto-selected on a session's first task; mid-session it runs only on an explicit request.
 Uses triple planning rounds and a reviewed-foundation gate (architecture-review-full + 4 project-reference scans) before any feature code.
 ```
 
@@ -3447,13 +3452,13 @@ sequenceDiagram
 | Runner                               | Tests   | Scope                                                                                      |
 | ------------------------------------ | ------- | ------------------------------------------------------------------------------------------ |
 | `test-all-hooks.cjs` (primary gate)  | **130** | All hook behaviors + bridged suites + count-drift guard                                    |
-| `run-all-tests.cjs` (full aggregate) | **646** | Primary + extended lib, swap-engine, shared-utilities, and every `tests/suites/*.test.cjs` |
+| `run-all-tests.cjs` (full aggregate) | **663** | Primary + extended lib, swap-engine, shared-utilities, and every `tests/suites/*.test.cjs` |
 
 > The primary suite passes with 130 tests.
-> The full aggregate discovers 646 tests: 645 passed and 1 intentional skip.
+> The full aggregate discovers 663 tests: 659 passed and 4 skipped on a clean checkout.
 > Both counts are checked against live totals by the runners on full runs.
 
-> Live-verified: `test-all-hooks.cjs` = 130; `run-all-tests.cjs` = 646 discovered.
+> Live-verified: `test-all-hooks.cjs` = 130; `run-all-tests.cjs` = 663 discovered.
 
 Suites under `tests/suites/` (38): agent-files-gate, agent-universal-rules, bash-hook-contract, bugfix-regression, check-subagent-routing, code-graph-storage-portability, command-inspection, content-presence, count-drift, desktop-argv, doc-impact-map, doc-stamp-guard, doc-sync-gate, docroot-relocation, emit-prompt-context, failure-log-hygiene, file-convention-inject, git-operation-lease, graph-head-staleness, init-prompt-gate, init-reference-docs, integration, lifecycle, notification, plan-naming, project-protocol-drift, prompt-ledger, protocol-text-parity, python-fallback, reference-doc-freshness, review-commit-gate, skill-protocol-overlay, standalone-scripts, swap-engine, sync-carrier-parity, windows-stdio-portability, workflow-routing-switch, workflow.
 

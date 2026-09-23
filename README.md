@@ -4,7 +4,7 @@
 
 ## What is this?
 
-**easy-claude** is a portable `.claude` template you copy into any project to supercharge Claude Code with **21 top-level hook files**, **124 skills**, **19 workflows**, and **23 specialized agents**. It covers the entire software development lifecycle — from idea capture and test specification through implementation, code review, and documentation. The Claude-authored source also syncs to Codex mirrors under `.agents/` and `.codex/`.
+**easy-claude** is a portable `.claude` template you copy into any project to supercharge Claude Code with **14 top-level hook files**, **124 skills**, **19 workflows**, and **23 specialized agents**. It covers the entire software development lifecycle — from idea capture and test specification through implementation, code review, and documentation. The Claude-authored source also syncs to Codex mirrors under `.agents/` and `.codex/`.
 
 **Core insight:** LLMs forget, hallucinate, and drift. Instead of hoping the AI "just gets it right," this framework uses **programmatic guardrails** (hooks) and **prompt-engineered protocols** (skills/workflows) to enforce correctness at every stage.
 
@@ -134,16 +134,16 @@ node .claude/skills/sync-codex/scripts/run-codex-sync.mjs   # standalone Codex s
 
 ## What's Inside
 
-### Hooks (20 top-level `.cjs` files, 36 lib modules)
+### Hooks (14 top-level `.cjs` files, 43 lib modules)
 
 Runtime Node.js scripts that fire on Claude Code lifecycle events.
 
 | Category               | Hooks                                                                                                                                               | Purpose                                                                                                                                                                                    |
 | ---------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| **Safety**             | `path-boundary-block`, `privacy-block`, `scout-block`, `git-commit-block`, `github-mcp-write-block`, `windows-command-detector`, `bash-shell-guard` | Prevent out-of-scope access, block secrets, limit broad searches, guard git and GitHub MCP writes, catch CMD/PowerShell syntax sent to Git Bash                                            |
+| **Safety**             | `review-commit-gate`                                                                                                                                    | Block an agent `git commit` with no review fix-loop receipt or user-approved skip; other git and GitHub writes are model-behavioral                                                          |
 | **Quality**            | `doc-sync-gate`                                                                                                                                     | Warn on doc⇄code drift                                                                                                                                                                     |
-| **Session Management** | `verify-install`, `session-init`, `session-init-docs`, `session-end`, `npm-auto-install`, `graph-session-init`                                      | Initialize state, load config, auto-install deps, seed the graph                                                                                                                           |
-| **Routing**            | `init-prompt-gate`, `graph-prompt-sync`, `prompt-ledger`                                                                                            | Gate prompts until project config is ready, re-sync the graph when HEAD moved, and keep the prompt ledger anchored (routing itself is model-driven from the static catalog in `CLAUDE.md`) |
+| **Session Management** | `verify-install`, `session-init`, `session-init-docs`, `session-end`, `graph-session-init`                                                              | Initialize state, load config, seed the graph                                                                                                                                                |
+| **Routing**            | `init-prompt-gate`, `workflow-route-inject`, `graph-prompt-sync`, `prompt-ledger`                                                                       | Gate prompts until project config is ready, inject the route gate and live catalog, re-sync the graph when HEAD moved, and keep the prompt ledger anchored                                   |
 | **Post-processing**    | `post-edit-prettier`, `graph-auto-update`, `file-convention-inject`                                                                                 | Format after edits, keep the code graph current, remind the opt-in per-file conventions after reads/edits                                                                                  |
 
 > **De-hooked enforcement & context injection.** Earlier versions ran runtime
@@ -245,10 +245,9 @@ easy-claude/
 ├── .codex/                   # Codex agents, hooks, and context parity files
 ├── .claude/                  # <-- The framework template (copy this to your project)
 │   ├── agents/               # 23 specialized agent definitions
-│   ├── hooks/                # 21 top-level hook files + lib/ utilities
+│   ├── hooks/                # 14 top-level hook files + lib/ utilities
 │   │   ├── lib/              # Shared hook libraries
 │   │   ├── notifications/    # Multi-channel notification system
-│   │   ├── scout-block/      # Broad search prevention
 │   │   └── tests/            # Hook test suites
 │   ├── skills/               # 124 skill definitions
 │   │   ├── <skill>/          # Each skill directory contains:
@@ -306,7 +305,7 @@ Hooks register on these Claude Code events (there is no `SubagentStart` hook —
 | `SessionStart`     | Claude Code starts       | `session-init.cjs` — load config, inject context   |
 | `SessionEnd`       | Claude Code exits        | `session-end.cjs` — persist final state            |
 | `UserPromptSubmit` | Before each user message | `init-prompt-gate.cjs` — gate until config ready   |
-| `PreToolUse`       | Before tool execution    | `privacy-block.cjs` — block secrets access         |
+| `PreToolUse`       | Before tool execution    | `review-commit-gate.cjs` — gate unreviewed commits |
 | `PostToolUse`      | After tool execution     | `post-edit-prettier.cjs` — format edited files     |
 | `Notification`     | Desktop notify event     | `notifications/notify.cjs` — unified notify router |
 | `Stop`             | Response complete        | `notifications/notify.cjs` — desktop notification  |
@@ -322,7 +321,7 @@ The workflow router (the `WORKFLOW-GATE`) automatically classifies each prompt b
 - a focused change (one module/policy, clear intent, no public-contract change) → custom-simple: only the steps it needs, keeping test and review
 - a trivial, low-risk one-off → direct execution (no workflow)
 
-The gate **auto-selects** the route — it does not ask you to choose between direct/skill/workflow paths. A standard workflow is activated via `/start-workflow <id>`, which loads the workflow's canonical step sequence and builds the task list 1:1. An explicit `/skill` or `/workflow` in your prompt is always honored as-is.
+The gate **auto-selects** the route — it does not ask you to choose between direct/skill/workflow paths. A workflow auto-activates only on the first task of a session; once work is under way, follow-ups and new asks run directly or with a lean chain of at most 3 skills. An explicit request always wins, at any point in the session: call a workflow skill (`/workflow-*`, `/start-workflow <id>`) or ask in words ("use the bugfix workflow") and it runs. A standard workflow is activated via `/start-workflow <id>`, which loads the workflow's canonical step sequence and builds the task list 1:1. An explicit `/skill` or `/workflow` in your prompt is always honored as-is.
 
 ## Design Principles
 

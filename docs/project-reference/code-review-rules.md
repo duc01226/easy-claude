@@ -25,7 +25,7 @@
 
 1. **Match runtime boundary** — Hooks and hook libraries are strict CommonJS `.cjs`; ESM tooling stays in `.mjs` (`.claude/hooks/graph-session-init.cjs:1-16`; `.claude/scripts/codex/sync-context-workflows.mjs:1-8`).
 2. **Centralize event adaptation** — Use `runHook`/`runHookSync` when their lifecycle fits, or the shared parser when explicit blocking-gate exit control is required (`.claude/hooks/lib/hook-runner.cjs:56-175`; `.claude/hooks/lib/stdin-parser.cjs:28-97`).
-3. **Separate policy rejection from runtime failure** — Exit `2` only for a proved unsafe operation; malformed input, timeouts, and exceptions remain fail-open unless a tested deny-closed model exists (`.claude/hooks/git-commit-block.cjs:139-163`; `.claude/hooks/lib/hook-runner.cjs:144-175`).
+3. **Separate policy rejection from runtime failure** — Exit `2` only for a proved unsafe operation; malformed input, timeouts, and exceptions remain fail-open unless a tested deny-closed model exists (`.claude/hooks/review-commit-gate.cjs:330-335` opts into deny-closed input/error codes; `.claude/hooks/lib/hook-runner.cjs:200-218` defaults them to `0`).
 4. **Protect output channels** — stdout carries intentional result/context; diagnostics and rejection reasons use stderr (`.claude/hooks/lib/hook-runner.cjs:79-85,119-125`; `.claude/hooks/lib/debug-log.cjs:34-40,60-66`).
 5. **Canonical source before mirrors** — Edit `.claude` owners, then generate `.agents`, `.codex`, and `AGENTS.md`; verify parity and provenance (`.claude/skills/shared/sync-inline-versions.md:3-7`; `package.json:2`).
 6. **Entrypoints depend inward** — Hook files orchestrate lifecycle events and delegate reusable behavior to `hooks/lib` or focused hook-local subsystems (`.claude/hooks/session-end.cjs:15-48`; `.claude/hooks/doc-sync-gate.cjs:39-40,238-260`).
@@ -42,7 +42,7 @@
 - Extension: `.cjs` (mandatory)
 - Location: `.claude/hooks/<name>.cjs`
 - Shared utilities: `.claude/hooks/lib/<name>.cjs`
-- File naming: kebab-case (e.g., `privacy-block.cjs`, `session-init.cjs`)
+- File naming: kebab-case (e.g., `review-commit-gate.cjs`, `session-init.cjs`)
 - Cohesion: entrypoints orchestrate one lifecycle event; move reusable or independently testable logic to `hooks/lib` or a focused hook-local subsystem
 
 ### Required Patterns
@@ -59,20 +59,20 @@
 
 - Standard asynchronous lifecycle: `graph-session-init.cjs` uses `runHook`, returns early when configuration or graph prerequisites are absent, and suppresses result output (`.claude/hooks/graph-session-init.cjs:12-20,34-39`).
 - Standard synchronous lifecycle: `session-end.cjs` uses `runHookSync` and delegates cleanup/state operations to shared libraries (`.claude/hooks/session-end.cjs:14-21,27-48`).
-- Explicit blocking policy: `privacy-block.cjs` uses shared event parsing, writes its rejection reason to stderr, and exits `2` only after sensitive paths are confirmed (`.claude/hooks/privacy-block.cjs:204-239`).
+- Explicit blocking policy: `review-commit-gate.cjs` runs through `runPreToolHookSync`, returns `undefined` (allow) for any statement it parses as non-commit, and returns `{ code: 2, stderr }` for a commit whose changeset lacks a review or skip receipt — or for unparsable text that places `commit` right after `git`, which fails closed (`.claude/hooks/review-commit-gate.cjs:288-327,330-335`).
 
 ### Exit Code Rules
 
 | Code | Meaning                              | Use Case                                                                                                                                       |
 | ---- | ------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------- |
 | `0`  | Success / allow / non-critical error | Default for all hooks                                                                                                                          |
-| `2`  | Block operation                      | Verified safety/policy violations in `privacy-block`, `path-boundary-block`, `scout-block`, `git-commit-block`, and `windows-command-detector` |
+| `2`  | Block operation                      | Verified policy violations; `review-commit-gate` (unreviewed agent `git commit`) is the only registered blocking hook                            |
 
 **Rule:** Always exit `0` on errors unless the hook is explicitly a safety blocker. Hooks must be non-blocking by default.
 
 ### Error Handling
 
-Runner-managed hooks inherit fail-open exception and timeout handling from `runHook`/`runHookSync` (`.claude/hooks/lib/hook-runner.cjs:87-97,127-136`). Direct-parser blockers must catch runtime failures separately from verified policy rejection, as `privacy-block.cjs` does (`.claude/hooks/privacy-block.cjs:230-248`).
+Runner-managed hooks inherit fail-open exception and timeout handling from `runHook`/`runHookSync` (`.claude/hooks/lib/hook-runner.cjs:87-97,127-136`). Blockers must catch runtime failures separately from verified policy rejection, as `review-commit-gate.cjs` does: a capture exception is reported via `reportHookInternalError` and blocked with a distinct reason (`.claude/hooks/review-commit-gate.cjs:305-314`).
 
 ### Performance
 
@@ -96,7 +96,7 @@ Not applicable to this repository: Phase-0 detection found no frontend applicati
 | Canonical → generated     | Edit `.claude` owners, then run sync + parity/provenance verification (`.claude/skills/shared/sync-inline-versions.md:3-7`; `package.json:2`)                                        | Hand-edit `.agents`, `.codex`, or `AGENTS.md`; those consumers are overwritten                |
 | Entrypoints → libraries   | Register lifecycle handlers declaratively and import reusable helpers inward (`.claude/settings.json:44-129`; `.claude/hooks/session-end.cjs:15-48`)                                 | Import top-level hooks from libraries or duplicate reusable infrastructure inside entrypoints |
 | One protocol owner        | Own shared protocol bodies in `sync-inline-versions.md`; compose verified carriers (`.claude/scripts/lib/hookless-prompt-protocol.cjs:5-39`)                                         | Maintain standalone or copy-pasted protocol bodies without a canonical owner/parity check     |
-| Narrow security blocking  | Normalize untrusted input and exit `2` only after a verified policy breach (`.claude/hooks/path-boundary-block.cjs:87-88,149-154,425-437`)                                           | Treat advisory/context gates or parser failures as security violations                        |
+| Narrow security blocking  | Prefilter untrusted input; exit `2` on a verified policy breach, or fail closed where a tested deny-closed model owns the input (`.claude/hooks/review-commit-gate.cjs:288-327`) | Treat advisory/context gates as security violations, or fail closed on input the gate does not own |
 | Isolated tests            | Use temp directories and restore environment state (`.claude/hooks/tests/lib/test-utils.cjs:11-20,156-192`)                                                                          | Leak cwd, environment variables, or shared temp state across suites                           |
 | Schema-driven config/docs | Keep config shape in the shared schema and doc impact in the shared classifier (`.claude/hooks/lib/project-config-schema.cjs:517-673`; `.claude/hooks/lib/doc-sync-classify.cjs:24`) | Hardcode module/spec roots, credentials, or doc-impact rules in individual hooks              |
 
@@ -248,7 +248,7 @@ Use a dedicated `## Workflow` when the agent owns an ordered process. The three 
 ### Manual Hook Testing
 
 ```bash
-echo '{"hook_event_name":"PreToolUse","tool_name":"Read","tool_input":{"file_path":".env"}}' | node .claude/hooks/privacy-block.cjs
+echo '{"hook_event_name":"PreToolUse","tool_name":"Bash","tool_input":{"command":"git status"}}' | node .claude/hooks/review-commit-gate.cjs
 echo $?  # Verify exit code
 ```
 

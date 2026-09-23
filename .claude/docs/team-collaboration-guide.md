@@ -33,12 +33,14 @@ Claude Code uses a **three-pillar architecture** to assist every role:
 
 ### Workflow Detection
 
-When you describe what you want to do, Claude automatically:
+When you describe the first task of a session, Claude automatically:
 
 1. **Detects** the best-matching workflow from the catalog
 2. **Auto-selects** the best path and activates it (no confirmation step)
 3. **Creates tasks** for every step and tracks progress
 4. **Executes** each step in sequence
+
+Mid-session (follow-ups, corrections, new asks), Claude does the work directly, with the best-fit skill, or with a lean chain of at most 3 skills instead of auto-activating a workflow. An explicit workflow request — `/start-workflow <id>`, `/workflow-*`, or asking in words — always runs.
 
 You never need to memorize workflow names — just describe your intent.
 
@@ -518,7 +520,7 @@ Plan status tracking is not a separate role here: `/plan-execute` updates `plan.
 
 1. Use explicit skill command: `/idea "..."` instead of natural language
 2. Check `workflows.json`: `cat .claude/workflows.json`
-3. Claude should auto-detect and activate the matching workflow — if it doesn't, remind it: "Check workflow catalog"
+3. On the first task of a session, Claude should auto-detect and activate the matching workflow — if it doesn't, remind it: "Check workflow catalog". Mid-session it deliberately does not auto-activate one; call it (`/start-workflow <id>`, `/workflow-*`) or ask for it in words and it runs
 
 ---
 

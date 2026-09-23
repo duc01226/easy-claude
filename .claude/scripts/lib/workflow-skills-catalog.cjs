@@ -251,6 +251,8 @@ function renderRoutingSection() {
     "| Matches a skill's or workflow's \"Use\" clause | that skill / workflow |",
     "",
     "The table route is the default. Keep a catalog workflow only when >80% of its unconditional steps would do real work for the request; otherwise downgrade to custom-simple, trimming only steps that would do no real work. A behavior change keeps its test and review steps; a downgraded route also keeps root-cause investigation for bugs and spec/doc sync when behavior or a public contract changes. An explicit `/skill` or `/workflow` in the prompt is the user's choice — execute it. Otherwise auto-select; never ask which path to take.",
+    "",
+    "**Mid-session: never auto-activate a workflow.** Auto-activation applies only to the first task of a session (its first user prompt; compaction or resume does not reset it). Once work is under way (follow-up, correction, next step, or a new ask), do it directly or with the best-fit skill or a lean chain of at most 3 skills; required gates (root-cause investigation for a bug, test, review, spec/doc sync, and any other required quality gate) still run and do not count toward that cap, and continuing a workflow already running is not activating one. An explicit workflow request always runs, mid-session included — a `/workflow-*` or `/start-workflow <id>` call, or the user asking in words to use a workflow; follow it.",
   ].join("\n");
 }
 

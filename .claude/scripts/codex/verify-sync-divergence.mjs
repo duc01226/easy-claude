@@ -65,6 +65,7 @@ async function loadSyncModules() {
     ]);
     sync = {
         materializeSkillMirror: migrate.materializeSkillMirror,
+        isLocalInstallArtifact: migrate.isLocalInstallArtifact,
         materializeAgentMirror: migrate.materializeAgentMirror,
         claudeSkillsDir: migrate.claudeSkillsDir,
         agentsSkillsDir: migrate.agentsSkillsDir,
@@ -104,14 +105,16 @@ async function pathExists(target) {
 
 // Read every file under `dir` into Map<relPosixPath, contentLF>. CRLF is normalized so a
 // line-ending-only difference never registers as divergence (the real sync emits LF; we
-// compare on LF). Excluded basenames are skipped at any depth.
-export async function readTreeFiles(dir, { exclude = EXCLUDED_BASENAMES } = {}) {
+// compare on LF). Excluded basenames are skipped at any depth, and so is any relative path
+// `skip` accepts (used for local install artifacts the mirror's .gitignore already ignores).
+export async function readTreeFiles(dir, { exclude = EXCLUDED_BASENAMES, skip = () => false } = {}) {
     const files = new Map();
     async function walk(current) {
         const entries = await fs.readdir(current, { withFileTypes: true });
         for (const entry of entries) {
             if (exclude.has(entry.name)) continue;
             const full = path.join(current, entry.name);
+            if (skip(path.relative(dir, full))) continue;
             if (entry.isDirectory()) {
                 await walk(full);
                 continue;
@@ -255,7 +258,7 @@ function reportSkillsResult(diffs, fenceProblems) {
 }
 
 async function checkSkillsMirror() {
-    const { materializeSkillMirror, claudeSkillsDir, agentsSkillsDir } = await loadSyncModules();
+    const { materializeSkillMirror, isLocalInstallArtifact, claudeSkillsDir, agentsSkillsDir } = await loadSyncModules();
     if (!(await pathExists(claudeSkillsDir))) {
         return { skip: 'no .claude/skills source to mirror' };
     }
@@ -272,7 +275,9 @@ async function checkSkillsMirror() {
     try {
         await materializeSkillMirror(staging, skillReferenceMap);
         const expected = await readTreeFiles(staging);
-        const actual = await readTreeFiles(agentsSkillsDir);
+        // A local npm/pip install inside the mirror is git-ignored (.agents/.gitignore), so it is
+        // not divergence; the writer never produces those paths either.
+        const actual = await readTreeFiles(agentsSkillsDir, { skip: isLocalInstallArtifact });
         // Validate the committed mirror's fence structure too. Equality cannot vouch for
         // structure: a symmetric malformed fence passes the diff but fails here.
         return { diffs: diffTrees(expected, actual), fenceProblems: findFenceImbalances(actual), count: expected.size };

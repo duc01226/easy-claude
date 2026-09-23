@@ -245,7 +245,7 @@ There is a distance between **correct** and **crafted**. Correct means the layou
 
 **Composition** — Does the layout have rhythm, or is it monotone? Are proportions doing work? Is there a clear focal point, or does everything compete equally (§6.4)?
 
-**Craft** — The spacing grid is non-negotiable, every value a multiple of the base unit (`UI-4.1`) — but correctness alone is not craft. A tool panel at 16px padding feels workbench-tight; the same card at 24px feels like a brochure. **Density is a design decision, not a constant.** Surfaces should whisper hierarchy: mentally remove every border from the CSS — can you still perceive the structure through surface color alone? Interactive elements need life; missing hover and press states make an interface feel like a photograph of software.
+**Craft** — Follow the project's declared spacing system consistently, every value from its scale (`UI-4.1`) — but correctness alone is not craft. A tool panel at 16px padding feels workbench-tight; the same card at 24px feels like a brochure. **Density is a design decision, not a constant.** Surfaces should whisper hierarchy: mentally remove every border from the CSS — can you still perceive the structure through surface color alone? Interactive elements need life; missing hover and press states make an interface feel like a photograph of software.
 
 **Content** — Run §8's coherence check.
 

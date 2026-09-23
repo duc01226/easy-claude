@@ -11,6 +11,9 @@
  * ordering, rendering, content hash and the size-capped digest.
  * Config contract: docs/project-config.json `contextGroups[]` + `conventionInjection`
  * (schema: project-config-schema.cjs). Design: plans/260916-per-file-convention-injection.
+ * Per-class delivery policy (not rendered, not hashed): `reinjectAfterTokens` narrows the class's
+ * re-arm distance; `evidenceDocs` / `evidenceSkills` let a transcript read of every listed doc, or a
+ * load of any listed skill, count as the class being present (convention-ledger scanEvidence).
  */
 'use strict';
 
@@ -53,6 +56,15 @@ const RANGES = Object.freeze({
     reinjectAfterMinutes: Object.freeze([1, 1440]),
     blindReinjectAfterMinutes: Object.freeze([1, 1440])
 });
+
+// Transcript bytes per conversation token, the same measurement DEFAULTS.reinjectAfterBytes rests on
+// (~22 bytes of history JSONL per token). Converts a class's token window into the byte distance the
+// ledger measures: 100000 tokens -> 2200000 bytes.
+const BYTES_PER_TOKEN = 22;
+// Per-class `reinjectAfterTokens` range. A class may ask for a SHORTER window than the global floor
+// (a gate the model must not lose, e.g. the UI/UX gate at 100K tokens); the floor still stops a
+// class from re-injecting every few turns. The config validator mirrors this range.
+const CLASS_REINJECT_TOKENS_RANGE = Object.freeze([20000, 2000000]);
 
 function isPlainObject(value) {
     return value !== null && typeof value === 'object' && !Array.isArray(value);
@@ -273,6 +285,22 @@ function priorityOf(group) {
     return typeof group.priority === 'number' && Number.isFinite(group.priority) ? group.priority : DEFAULT_PRIORITY;
 }
 
+/** Class byte window from `reinjectAfterTokens` (null when unset or outside the accepted range). */
+function classReinjectBytes(group) {
+    const tokens = group.reinjectAfterTokens;
+    const [min, max] = CLASS_REINJECT_TOKENS_RANGE;
+    if (typeof tokens !== 'number' || !Number.isInteger(tokens) || tokens < min || tokens > max) return null;
+    return tokens * BYTES_PER_TOKEN;
+}
+
+/** Delivery settings for one class: the class's own byte window, when declared, replaces the global one. */
+function classSettings(entry, settings) {
+    const base = settings || resolveSettings(null);
+    return entry && typeof entry.reinjectAfterBytes === 'number'
+        ? { ...base, reinjectAfterBytes: entry.reinjectAfterBytes }
+        : base;
+}
+
 /** Normalized, deliverable groups in declaration order (first occurrence of a name wins). */
 function injectableEntries(config) {
     const groups = isPlainObject(config) && Array.isArray(config.contextGroups) ? config.contextGroups : [];
@@ -290,6 +318,9 @@ function injectableEntries(config) {
             rules: stringList(group.rules),
             skills: stringList(group.skills),
             docs: docsOf(group),
+            reinjectAfterBytes: classReinjectBytes(group),
+            evidenceDocs: stringList(group.evidenceDocs),
+            evidenceSkills: stringList(group.evidenceSkills),
             group
         });
     });
@@ -463,6 +494,8 @@ module.exports = {
     RENDERER_VERSION,
     DEFAULTS,
     RANGES,
+    BYTES_PER_TOKEN,
+    CLASS_REINJECT_TOKENS_RANGE,
     PATH_CAP,
     LOOKUP_COMMAND,
     resolveSettings,
@@ -474,6 +507,8 @@ module.exports = {
     groupMatches,
     isInjectable,
     injectableEntries,
+    classReinjectBytes,
+    classSettings,
     sortEntries,
     matchGroups,
     skillPath,

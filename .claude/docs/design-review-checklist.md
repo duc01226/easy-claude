@@ -1,6 +1,6 @@
 # UI/UX Design Review Checklist — executable review protocol for user-facing UI
 
-> **Role:** the **executable review protocol** for any artifact carrying a user-facing UI surface. Every item has a stable ID, a verifiable check, an observable failure signal, and a default severity, so an agent can run it against screenshots, prototypes, live URLs, code, or design files and produce a consistent, evidence-backed report. Owns the REVIEW PROTOCOL (§0), the CHECK CATALOG (§A–§M), the EDGE-CASE PROBE LIST (§N), the REPORT FORMAT (§O), the QUICK TRIAGE PASS (§P), and the SCORING model (§Q). Owns NO design reasoning — that lives in `design-knowledge.md`.
+> **Role:** the **executable review protocol** for any artifact carrying a user-facing UI surface. Every item has a stable ID, a verifiable check, an observable failure signal, and a default severity, so an agent can run it against screenshots, prototypes, live URLs, code, or design files and produce a consistent, evidence-backed report. Owns the REVIEW PROTOCOL (§0), the SURFACE-SCOPE & COMPOSITION rule (§0.5), the CHECK CATALOG (§A–§M, §R), the EDGE-CASE PROBE LIST (§N), the REPORT FORMAT (§O), the QUICK TRIAGE PASS (§P), and the SCORING model (§Q). Owns NO design reasoning — that lives in `design-knowledge.md`.
 >
 > **Consumed by:** `ui-review` · `web-design-guidelines` · `artifact-review` · `test-ui` · `changes-review` · `plan-review` · `design` · `design-spec` · `pbi-mockup` · `feature-presentation` · `plan` · `scaffold` · `plan-execute` · `feature-implement` · `fix`, plus the `ui-ux-designer`, `frontend-developer` and `fullstack-developer` agents. This list is the drift-guard's scope — a skill belongs here ONLY if it carries an inline `SYNC:design-review-checklist` block, so the list stays greppable and the sweep stays truthful. NEVER add an aspirational consumer.
 >
@@ -26,7 +26,9 @@
 
 - **Gather context BEFORE checking (§0.1).** Platform, primary user, primary task, success metric, constraints, scope, artifacts. Fewer than four known → state the gap at the top and mark affected findings **low confidence**.
 - **Evidence or nothing (§0.2).** Every finding cites a location. NEVER invent a measurement — an unmeasurable check is `NOT VERIFIABLE`, never a guessed number. Tag each finding `MEASURED` / `OBSERVED` / `HEURISTIC`.
-- **The sections, in order:** §0 protocol → §A heuristics → §B cognitive load → §C visual hierarchy → §D relevant interaction states → §E information architecture → **§F web / §G mobile / §H desktop (conditional on platform)** → §I accessibility (against the governing standard) → §J content → §K trust & ethics → **§L AI patterns (conditional)** → §M consistency → §N applicable edge-case probes → §O report format → §P quick triage → §Q scoring.
+- **Judge the SURFACE, not the diff (§0.5).** Expand changed files to the pages/views they render into, reconstruct how each surface actually composes (component tree + style origins), and review each surface whole — load accumulated over many small diffs is invisible file by file.
+- **The sections, in order:** §0 protocol → §A heuristics → §B cognitive load & surface complexity → §C visual hierarchy → §D relevant interaction states → §E information architecture & container fit → **§F web / §G mobile (conditional on platform) / §H expert & data-heavy use (conditional on usage)** → §I accessibility (against the governing standard) → §J content → §K trust & ethics → **§L AI patterns (conditional)** → §M consistency → **§R forms & data entry (conditional on input)** → §N applicable edge-case probes → §O report format → §P quick triage → §Q scoring.
+- **Calibrate before judging.** Worked bad/good examples with their expected findings live in `.claude/docs/design-review-calibration.md`.
 - **Severity is the output, not the finding count.** P0 blocks ship · P1 fix before release · P2 next iteration · P3 backlog · P4 note. Cap at the top 10 by severity unless a full audit was requested; a clean section reports "no issues found" — NEVER pad.
 - **No time for a full pass?** Run §P (10 checks) — it catches the majority of serious defects.
 
@@ -40,7 +42,7 @@ Do not begin checks until these are known or explicitly marked `UNKNOWN`:
 
 | Field                          | Why it matters                                                              |
 | ------------------------------ | --------------------------------------------------------------------------- |
-| Platform                       | Determines which conditional sections apply (§F web, §G mobile, §H desktop) |
+| Platform & usage profile       | Determines which conditional sections apply (§F web, §G mobile, §H expert/data-heavy use, §R input) |
 | Primary user & expertise level | Novice-facing vs expert-facing changes density and shortcut expectations    |
 | Primary task / job to be done  | Every check is judged against whether it helps or blocks this task          |
 | Success metric                 | Conversion, task completion, retention, error rate                          |
@@ -70,9 +72,28 @@ If fewer than four of these are known, state the gap at the top of the report an
 | **P3 — Low**      | Polish, refinement, minor inconsistency                                        | Backlog            |
 | **P4 — Note**     | Observation or opportunity, no defect                                          | Optional           |
 
+**Severity vocabulary map — the single translation table.** Consumers speak different dialects; this table is authoritative for converting between them. Assign the consequence FIRST with the rubric above, then translate — never translate a label into a different consequence.
+
+| This checklist | `ui-review` category label | Sub-agent / fix-loop severity | `experience-review` round class |
+| -------------- | -------------------------- | ----------------------------- | ------------------------------- |
+| `P0`           | BLOCKED                    | Critical                      | BLOCKING                        |
+| `P1`           | BLOCKED                    | High                          | BLOCKING                        |
+| `P2`           | WARN                       | Medium                        | BLOCKING                        |
+| `P3`           | WARN                       | Low                           | ADVISORY                        |
+| `P4`           | — (note, no finding)       | — (note)                      | ADVISORY                        |
+
 ### 0.4 Status values
 
 `PASS` · `FAIL` · `PARTIAL` · `N/A` · `NOT VERIFIABLE`
+
+### 0.5 Surface scope and composition — review what renders, not what changed
+
+A file is not a screen. Before running the section sweep on source code:
+
+1. **Expand scope to affected surfaces.** Map every changed file to the pages/views/dialogs that render it (routing, parent composition, or the project's code graph). Review each affected surface WHOLE. A change to a global stylesheet, theme, token, or shared primitive affects every consumer — review a representative sample (the project's declared representative surfaces when configured, otherwise the highest-traffic consumers found) and state the sample.
+2. **Reconstruct the composition.** Walk the component tree from the surface root down. For each node record where its effective styles come from: its own styles · ancestor layout context (flex/grid parent, overflow and clipping, positioning, stacking context) · global layers (reset, base, theme, tokens, utilities) · the style-scoping mode the project uses (scoped/module styles, shadow roots, global escapes). A defect is judged against the COMPOSED result, never a single file.
+3. **Render when the surface can run.** Capture the surface at each supported viewport, the computed styles and boxes of every node a finding cites, and an automated accessibility scan when the project toolchain provides one. When it cannot run, record `ENVIRONMENT-BLOCKED` for the render and mark rendered-only claims (contrast, overlap, layout shift, target size) `NOT VERIFIABLE` — never estimate them.
+4. **Cluster systemic defects.** The same defect on many surfaces is ONE finding naming every location (or the shared owner that causes it), ranked by its worst instance — so the top-10 cap never hides a pattern.
 
 ---
 
@@ -95,7 +116,7 @@ If fewer than four of these are known, state the gap at the top of the report an
 
 ---
 
-## B. Cognitive Load & Decision Design
+## B. Cognitive Load, Decision Design & Surface Complexity
 
 | ID  | Check                                                                                      | Failure signal                                                               | Default |
 | --- | ------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------- | ------- |
@@ -110,6 +131,10 @@ If fewer than four of these are known, state the gap at the top of the report an
 | B9  | **Goal-gradient / Zeigarnik** — multi-step flows show progress and remaining effort        | Unbounded wizard with no step count                                          | P2      |
 | B10 | **Pareto** — the top 20% of features get the most prominent placement                      | Rarely used admin action occupies prime real estate                          | P3      |
 | B11 | Reading level and information density suit the audience                                    | Dense expert jargon in a consumer onboarding flow                            | P2      |
+| B12 | **Surface load fits the task** — each view shows the information and inputs its primary task needs NOW; the rest is deferred, derived, or linked | One view asks for everything the record could ever hold, most of it irrelevant to the task at hand | P1      |
+| B13 | **Progressive disclosure** — secondary, rare, or expert detail is revealed on demand, not shown by default | Every optional section expanded by default; the primary path is buried beneath it | P2      |
+| B14 | **One job per view** — a view serves one primary task; alternate entry modes are separate, clearly chosen paths | Upload, paste, pick-existing, and manual entry all presented at once in one view | P2      |
+| B15 | **Complexity budget respected** — counts of inputs per step, sections per view, and equal-weight actions per view stay within the project's declared budget, or the excess is justified by the primary user's expertise | Budget declared at 12 inputs per step; the step shows 31 with no stated reason | P2      |
 
 ---
 
@@ -153,7 +178,7 @@ If fewer than four of these are known, state the gap at the top of the report an
 
 ---
 
-## E. Information Architecture & Navigation
+## E. Information Architecture, Navigation & Container Fit
 
 | ID  | Check                                                                               | Failure signal                                                     | Default |
 | --- | ----------------------------------------------------------------------------------- | ------------------------------------------------------------------ | ------- |
@@ -165,6 +190,9 @@ If fewer than four of these are known, state the gap at the top of the report an
 | E6  | Hierarchy depth is shallow and breadth is chunked                                   | 8-level nested menu                                                | P2      |
 | E7  | Back/breadcrumb behavior is predictable and matches platform expectations           | Back exits the app from mid-flow                                   | P1      |
 | E8  | Naming is consistent between navigation label, page title, and heading              | Nav says "Billing," page says "Payments"                           | P3      |
+| E9  | **Container fits the task** — a dialog holds a short, focused, interrupting task; long or multi-section entry gets a full view or a stepped flow; supporting detail beside ongoing work gets a side panel; single-value edits stay inline | A long multi-section form inside a scrolling dialog | P1      |
+| E10 | Containers do not nest or trap — no dialog on top of a dialog, no scroll area inside a scrolling dialog, primary actions stay reachable without scrolling | The save button of a dialog is reachable only after scrolling through its whole body | P2      |
+| E11 | Dismissing a container with unsaved input is protected — autosave, a draft, or a confirmation that names what will be lost | Clicking outside the dialog silently discards 20 filled fields | P1      |
 
 ---
 
@@ -209,7 +237,9 @@ If fewer than four of these are known, state the gap at the top of the report an
 
 ---
 
-## H. Desktop / Enterprise Software _(apply only if platform includes desktop apps)_
+## H. Expert, Data-Heavy & Enterprise Use _(apply when the primary users are repeat/expert users or the surface is data-heavy — regardless of platform; H7–H9 and H11 apply to desktop apps only)_
+
+A back-office web app, an admin console, and an installed desktop tool share these needs; the platform does not decide them, the usage does. Record the usage profile from §0.1 and state why §H applies or not.
 
 | ID  | Check                                                                                   | Failure signal                                              | Default |
 | --- | --------------------------------------------------------------------------------------- | ----------------------------------------------------------- | ------- |
@@ -224,6 +254,10 @@ If fewer than four of these are known, state the gap at the top of the report an
 | H9  | Right-click context menus provide relevant advanced actions                             | No context menu anywhere                                    | P3      |
 | H10 | Permissions and roles are reflected clearly — hidden or explained, not silently failing | Button visible but silently does nothing without permission | P1      |
 | H11 | Multi-window / multi-monitor / resize behavior is sane                                  | Layout breaks below a certain window width with no reflow   | P2      |
+| H12 | Tables prioritize columns by task — the identifying and deciding columns lead; secondary columns can be hidden or reordered | Twelve equal-width columns; the record name is truncated to make room for audit dates | P2      |
+| H13 | Sort, filter, search, and paging state survives navigation away and back, and is visible (active filters shown and clearable) | Opening a row and returning resets the filtered, sorted list to page 1 | P2      |
+| H14 | Row-level and bulk actions are distinct and discoverable; the bulk action names the count it affects | "Delete" applies to 37 hidden selected rows with no count shown | P1      |
+| H15 | Zero-result and filtered-empty states distinguish "nothing exists" from "nothing matches" and offer the way back | "No data" shown after a filter, with no hint that a filter is active | P2      |
 
 ---
 
@@ -247,6 +281,8 @@ Resolve the applicable law, project policy, and platform accessibility standard 
 | I12 | Screen reader pass completed on the primary flow (VoiceOver / TalkBack / NVDA)                                                  | Not tested                                                  |
 | I13 | Touch/pointer alternatives exist for complex gestures; drag has a non-drag path                                                 | Reorder possible only by drag                               |
 | I14 | Interactive targets meet the applicable standard and platform target-size guidance (WCAG 2.2 examples apply only when selected) | Dense controls are difficult to activate                    |
+| I15 | Dialogs and overlays manage focus: focus moves in on open, stays within while modal, Escape (or the platform equivalent) closes, focus returns to the trigger on close, the background is inert and has an accessible name | Tabbing from an open dialog lands on the page behind it |
+| I16 | View changes that do not reload the page move focus to, or announce, the new content                                          | After in-app navigation, a screen reader is still reading the previous view |
 
 ---
 
@@ -278,6 +314,7 @@ Resolve the applicable law, project policy, and platform accessibility standard 
 | K7  | Automation and AI-generated content are disclosed, explainable, and overridable                                    | AI decision presented as fact with no source or override | P1      |
 | K8  | Sensitive actions (payment, sharing, permissions) show clear consequence before confirming                         | Share button that silently makes content public          | P0      |
 | K9  | Engagement mechanics don't exploit attention by default                                                            | Infinite scroll + autoplay + streaks with no controls    | P2      |
+| K10 | Every visible control works end to end, or is hidden / explicitly marked unavailable; no development-status copy reaches users | An upload control beside the note "parsing is not connected yet" | P1      |
 
 ---
 
@@ -316,6 +353,28 @@ Resolve the applicable law, project policy, and platform accessibility standard 
 
 ---
 
+## R. Forms & Data Entry _(apply when the surface collects input)_
+
+Placed after §M in the sweep; the ID letter is new, not a reordering. Before judging, build the **Field Necessity Matrix** — one row per input, so every judgment below cites a row instead of an impression:
+
+| Field | Needed at THIS step? (why) | Who consumes it, and when | Required / optional | Default or derivable? | Group | Verdict (keep · defer · derive · default · drop) |
+| ----- | -------------------------- | ------------------------- | ------------------- | --------------------- | ----- | ------------------------------------------------- |
+
+| ID  | Check                                                                                                                      | Failure signal                                                                  | Default |
+| --- | -------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------- | ------- |
+| R1  | Every input has a reason to exist at this step; inputs no consumer needs yet are deferred to a later step or the record's own edit view | A creation form collects social handles and marital status nobody reads at creation | P1      |
+| R2  | "Create minimal, enrich later" — creation asks for the smallest set that makes a valid, useful record; enrichment happens in context afterwards | A record cannot be saved until 25 non-essential fields are filled | P1      |
+| R3  | Required and optional inputs are visibly separated or marked consistently; optional sections can be collapsed or skipped | Required and optional fields interleaved, with only a tiny asterisk to tell them apart | P2      |
+| R4  | Inputs are grouped by the user's mental model (who / how to reach / what they bring), each group short enough to scan | One flat "Identity" group of 14 unrelated inputs | P2      |
+| R5  | Conditional inputs appear only when their condition holds                                                                  | Spouse details shown before marital status is chosen | P2      |
+| R6  | Derivable or knowable values are derived, defaulted, or pre-filled (from the source document, the account, locale, prior entries) — never retyped | Birth year AND date of birth asked separately; country retyped although location was selected | P2      |
+| R7  | Long entry offers a way to not lose progress — autosave, a draft, or a stepped flow with saved steps                       | A 40-input form lost on an accidental close | P1      |
+| R8  | Validation on submit summarizes the errors, links or moves focus to the first invalid input, and keeps all entered values  | Submit fails with a generic banner at the top while the invalid input is off-screen | P1      |
+| R9  | Input layout supports scanning and completion order — one reading order, labels bound to inputs, no side-by-side pairs that are unrelated | Two columns whose left/right pairs have nothing in common, so the tab order zigzags | P2      |
+| R10 | Example values are recognizably examples, never mistakable for entered data or for a label                                 | Placeholder shows a realistic full name that users believe is already filled in | P2      |
+
+---
+
 ## N. Edge Cases to Deliberately Probe
 
 Select probes that match the product's supported capabilities, platform, user risks, and declared operating limits. Record results for applicable probes; mark unsupported conditions `N/A` with evidence and missing observations `NOT VERIFIABLE`.
@@ -339,15 +398,24 @@ Select probes that match the product's supported capabilities, platform, user ri
 
 ## O. Report Output Format
 
-The agent returns exactly this structure.
+The agent returns exactly this structure. When more than one surface is in scope, write ONE file per surface (page/view/dialog) and one per shared component that carries findings, each in this shape, plus an index that rolls them up — the consuming skill names the paths. Append each surface's record as it is completed; never hold findings for a final batch write.
 
 ```markdown
 # Design Review — [Product / Flow] — [Date]
 
 ## Context
 
-Platform · Users · Primary task · Artifacts reviewed · Scope
+Platform · Usage profile · Users · Primary task · Artifacts reviewed · Scope
+Surfaces in scope: [surface → changed files that render into it]
 Known gaps: [what was unavailable, and which findings are therefore lower confidence]
+
+## Composition (per surface, source-code reviews)
+
+Component tree (root → leaves) · style origin per node (own · ancestor layout/stacking context · global/theme/reset · scoping mode) · render evidence (captures per viewport, computed values cited, automated scan) or `ENVIRONMENT-BLOCKED`
+
+## Surface load (per surface with input)
+
+Task effort trace (steps · inputs · decisions on the primary path) · Field Necessity Matrix (§R) · container choice and why (§E9) · budget status (§B15)
 
 ## Verdict
 
@@ -363,7 +431,7 @@ Known gaps: [what was unavailable, and which findings are therefore lower confid
 
 **[ID] Title**
 
-- Location: [screen / element / file:line]
+- Location: [screen / element / file:line — a systemic finding lists every location or names the shared owner that causes them]
 - Evidence: [what was observed] — [MEASURED | OBSERVED | HEURISTIC]
 - Impact: [who is affected, and how]
 - Principle: [checklist ID]
@@ -390,7 +458,9 @@ Known gaps: [what was unavailable, and which findings are therefore lower confid
 | Section      | Checked | Passed | Failed | Not verifiable |
 | ------------ | ------- | ------ | ------ | -------------- |
 | A Heuristics | 12      |        |        |                |
-| B Cognitive  | 11      |        |        |                |
+| B Cognitive  | 15      |        |        |                |
+| E IA & fit   | 11      |        |        |                |
+| R Forms      | 10      |        |        |                |
 | ...          |         |        |        |                |
 ```
 
@@ -400,7 +470,7 @@ Known gaps: [what was unavailable, and which findings are therefore lower confid
 
 When a full review isn't possible, run only these. They catch the majority of serious defects.
 
-1. Can the intended user complete the primary task? _(A, E)_
+1. Can the intended user complete the primary task — without wading through information, inputs, or entry modes the task does not need, in a container that fits it? _(A, E, B12, E9, R1)_
 2. Does each action give timely feedback against the product/platform expectation, or show progress? _(A1, B6, D6)_
 3. Do the relevant empty, loading, error, and recovery states offer a forward path? _(D2, D13)_
 4. Is the primary action obvious and reachable using supported inputs? _(B7, C1, G2)_
@@ -425,7 +495,7 @@ Weight for an overall figure:
 | A Heuristics               | 15%    |
 | D Interaction & states     | 15%    |
 | K Ethics & trust           | 12%    |
-| B Cognitive load           | 10%    |
+| B Cognitive load + R forms | 10%    |
 | E Information architecture | 8%     |
 | Platform section (F/G/H)   | 8%     |
 | C Visual design            | 6%     |
@@ -442,7 +512,7 @@ Any P0 caps the overall grade at **Fail**, regardless of score. Report the score
 
 **IMPORTANT MUST ATTENTION** gather §0.1 context FIRST (platform, user, task, metric, constraints, scope, artifacts). Fewer than four known → state the gap at the top and mark affected findings **low confidence** — why: a check judged against an unknown task is a guess wearing an ID.
 
-**IMPORTANT MUST ATTENTION** walk the sections in order: §A heuristics → §B cognitive → §C visual → §D relevant interaction states → §E IA → §F/§G/§H (platform-conditional) → §I against the governing accessibility standard → §J content → §K ethics → §L AI (conditional) → §M consistency → §N applicable edge-case probes → §O report → §P triage → §Q scoring — why: a section skipped in the long middle silently becomes an unreported defect class.
+**IMPORTANT MUST ATTENTION** walk the sections in order: §0.5 surface scope & composition → §A heuristics → §B cognitive & surface complexity → §C visual → §D relevant interaction states → §E IA & container fit → §F/§G (platform-conditional) and §H (usage-conditional) → §I against the governing accessibility standard → §J content → §K ethics → §L AI (conditional) → §M consistency → §R forms (input-conditional) → §N applicable edge-case probes → §O report → §P triage → §Q scoring — why: a section skipped in the long middle silently becomes an unreported defect class.
 
 **IMPORTANT MUST ATTENTION** evidence or nothing — cite a location for every finding, and NEVER invent a measurement. Unmeasurable from the given artifact → `NOT VERIFIABLE`, and tag every finding `MEASURED` / `OBSERVED` / `HEURISTIC`.
 
@@ -461,3 +531,5 @@ Any P0 caps the overall grade at **Fail**, regardless of score. Report the score
 | "This deviates from the checklist, so it's a defect"        | Check intent first — project design-system docs and ADRs outrank this file. A documented convention is not a defect.    |
 | "I found 30 issues, I'll list them all"                     | Cap at the top 10 by severity. An unranked list moves no decision.                                                      |
 | "It's a small diff, the checklist is overkill"              | Then run §P — 10 checks. Small diffs ship P0s too.                                                                      |
+| "Every changed file looks fine on its own"                  | Files do not render; surfaces do. Apply §0.5 — an overloaded page is built from individually reasonable diffs.          |
+| "The form is long, but every field is technically valid"    | Valid is not needed. Fill the §R Field Necessity Matrix — a field with no consumer at this step is a finding.           |

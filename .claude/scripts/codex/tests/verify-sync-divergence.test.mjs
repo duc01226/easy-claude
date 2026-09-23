@@ -49,6 +49,29 @@ test('TC-SKILLFIX-023: extra mirror file is flagged', () => {
     assert.deepEqual(diffTrees(expected, actual), [{ relPath: 'a/hand-edit.md', kind: 'extra-in-mirror' }]);
 });
 
+// A local install inside the committed mirror (git-ignored by .agents/.gitignore) is not
+// divergence, but a stray non-install file still is.
+test('readTreeFiles skip predicate drops local install artifacts but keeps stray files reportable', async () => {
+    const expectedDir = await fs.mkdtemp(path.join(os.tmpdir(), 'sync-div-exp-'));
+    const actualDir = await fs.mkdtemp(path.join(os.tmpdir(), 'sync-div-act-'));
+    const skip = rel => /(^|[\\/])(node_modules)([\\/]|$)|(^|[\\/])package-lock\.json$/.test(rel);
+    try {
+        await fs.mkdir(path.join(expectedDir, 'a'), { recursive: true });
+        await fs.mkdir(path.join(actualDir, 'a', 'node_modules', 'dep'), { recursive: true });
+        await fs.writeFile(path.join(expectedDir, 'a', 'SKILL.md'), 'x\n');
+        await fs.writeFile(path.join(actualDir, 'a', 'SKILL.md'), 'x\n');
+        await fs.writeFile(path.join(actualDir, 'a', 'package-lock.json'), '{}\n');
+        await fs.writeFile(path.join(actualDir, 'a', 'node_modules', 'dep', 'index.js'), 'module.exports = 1;\n');
+        await fs.writeFile(path.join(actualDir, 'a', 'stray.md'), 'hand-added\n');
+
+        const diffs = diffTrees(await readTreeFiles(expectedDir), await readTreeFiles(actualDir, { skip }));
+        assert.deepEqual(diffs, [{ relPath: 'a/stray.md', kind: 'extra-in-mirror' }]);
+    } finally {
+        await fs.rm(expectedDir, { recursive: true, force: true });
+        await fs.rm(actualDir, { recursive: true, force: true });
+    }
+});
+
 // TC-SKILLFIX-024 — readTreeFiles excludes the sentinel and CRLF-normalizes, so a
 // line-ending-only or sentinel-only difference does NOT register as divergence.
 test('TC-SKILLFIX-024: readTreeFiles excludes sentinel and normalizes CRLF', async () => {

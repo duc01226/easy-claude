@@ -62,7 +62,66 @@ const useSkills = !args.has('--no-skills');
 const copySkills = args.has('--copy-skills');
 const normalizeSourceSkills = args.has('--normalize-source-skills');
 const MIRROR_EXCLUDED_DIRS = new Set(['.git', '.hg', '.svn', '.venv', 'node_modules', '__pycache__']);
+// Package-manager lockfiles are local install artifacts: `.claude/.gitignore` keeps them out of the
+// source tree, so mirroring them from disk would track files a clean checkout never has and make
+// the sync-divergence gate pass only on a developer machine.
+const MIRROR_EXCLUDED_FILES = new Set(['package-lock.json', 'yarn.lock', 'pnpm-lock.yaml']);
 const RUNTIME_ONLY_SKILL_FILES = new Set([path.normalize(path.join('shared', 'workflow-first-gate.md'))]);
+const agentsMirrorGitignorePath = path.join(path.dirname(agentsSkillsDir), '.gitignore');
+
+/**
+ * True for a local install/VCS artifact (lockfile, node_modules, venv, …) at any depth — never
+ * mirrored, and ignored when a mirror is compared, because it exists only on a machine that
+ * installed dependencies. Accepts native or `/` separators.
+ */
+export function isLocalInstallArtifact(relativePath) {
+    const segments = path.normalize(relativePath).split(/[\\/]/);
+    if (segments.some(segment => MIRROR_EXCLUDED_DIRS.has(segment))) return true;
+    return MIRROR_EXCLUDED_FILES.has(segments[segments.length - 1]);
+}
+
+/** True when a path under `.claude/skills` belongs in the generated skill mirror. */
+export function isMirroredSkillSource(relativePath) {
+    if (isLocalInstallArtifact(relativePath)) return false;
+    return !RUNTIME_ONLY_SKILL_FILES.has(path.normalize(relativePath));
+}
+
+// VCS metadata is excluded from the mirror but is not an install artifact a .gitignore should list.
+const VCS_DIRS = new Set(['.git', '.hg', '.svn']);
+const GITIGNORE_BLOCK_START = '# >>> codex-sync: local install artifacts (generated; the sync rewrites this block)';
+const GITIGNORE_BLOCK_END = '# <<< codex-sync';
+
+/**
+ * `.agents/.gitignore` content, derived from the same exclusion lists as the mirror filter so a
+ * project that copies `.agents/` whole never tracks a local install (lockfiles, node_modules,
+ * venvs, bytecode caches) at any depth. Only the marked block is owned by the sync: any content an
+ * adopter keeps outside it in `existing` is preserved, never clobbered.
+ */
+export function buildAgentsMirrorGitignore(existing = '') {
+    const block = [
+        GITIGNORE_BLOCK_START,
+        ...[...MIRROR_EXCLUDED_FILES].sort(),
+        ...[...MIRROR_EXCLUDED_DIRS].filter(dir => !VCS_DIRS.has(dir)).sort().map(dir => `${dir}/`),
+        GITIGNORE_BLOCK_END
+    ].join('\n');
+    const text = existing.replace(/\r\n/g, '\n');
+    // Pair each end marker with the NEAREST start before it: an orphan start line (its end deleted by
+    // hand) must never pair with a later block's end and swallow the adopter rules between them.
+    const end = text.lastIndexOf(GITIGNORE_BLOCK_END);
+    const start = end === -1 ? -1 : text.lastIndexOf(GITIGNORE_BLOCK_START, end);
+    if (start !== -1) return text.slice(0, start) + block + text.slice(end + GITIGNORE_BLOCK_END.length);
+    return text.trim() ? `${text.replace(/\n*$/, '\n\n')}${block}\n` : `${block}\n`;
+}
+
+async function writeAgentsMirrorGitignore() {
+    let existing = '';
+    try {
+        existing = await fs.readFile(agentsMirrorGitignorePath, 'utf8');
+    } catch (error) {
+        if (error.code !== 'ENOENT') throw error;
+    }
+    await fs.writeFile(agentsMirrorGitignorePath, buildAgentsMirrorGitignore(existing), 'utf8');
+}
 const TEXT_FILE_EXTENSIONS = new Set(['.cjs', '.css', '.html', '.js', '.json', '.lock', '.md', '.mjs', '.py', '.sh', '.toml', '.ts', '.tsx', '.yaml', '.yml']);
 const CODEX_PROTOCOLS_START = '<!-- CODEX:SYNC-PROMPT-PROTOCOLS:START -->';
 const CODEX_PROTOCOLS_END = '<!-- CODEX:SYNC-PROMPT-PROTOCOLS:END -->';
@@ -443,7 +502,9 @@ function normalizeDescriptionFrontmatter(markdown) {
     if (!changed) return { content: markdown, changed: false };
 
     const updatedFrontmatter = `---${lineEnding}${normalizedLines.join(lineEnding)}${lineEnding}---`;
-    const updatedContent = markdown.replace(/^---\r?\n[\s\S]*?\r?\n---/, updatedFrontmatter);
+    // Function replacer: descriptions are free text, and a `$` sequence in a replacement STRING
+    // would be expanded as a special pattern instead of written literally.
+    const updatedContent = markdown.replace(/^---\r?\n[\s\S]*?\r?\n---/, () => updatedFrontmatter);
     return { content: updatedContent, changed: true };
 }
 
@@ -672,10 +733,7 @@ export async function materializeSkillMirror(targetDir, skillReferenceMap) {
     await fs.cp(claudeSkillsDir, targetDir, {
         recursive: true,
         force: true,
-        filter: sourcePath => {
-            if (sourcePath.split(path.sep).some(segment => MIRROR_EXCLUDED_DIRS.has(segment))) return false;
-            return !RUNTIME_ONLY_SKILL_FILES.has(path.normalize(path.relative(claudeSkillsDir, sourcePath)));
-        }
+        filter: sourcePath => isMirroredSkillSource(path.relative(claudeSkillsDir, sourcePath))
     });
     await normalizeTextLineEndingsUnderDir(targetDir);
     await canonicalizeSkillManifestNames(targetDir);
@@ -711,6 +769,7 @@ async function setupSkills() {
 
     const sanitizedCount = await materializeSkillMirror(agentsSkillsDir, skillReferenceMap);
     await writeAgentsSkillsMirrorSentinel();
+    await writeAgentsMirrorGitignore();
     const modeLabel = copySkills ? 'copied' : 'mirrored';
     return `${modeLabel} + sanitized + rewritten ${sanitizedCount} skill manifest(s)`;
 }

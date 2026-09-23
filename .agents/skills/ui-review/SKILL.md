@@ -53,7 +53,7 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 
 **Goal:** Validate in-scope user interfaces for content fit, adaptation to supported view sizes and input methods, layout sizing, platform-appropriate layering and styling, accessibility, and async feedback. Apply CSS-specific checks only to CSS-based surfaces and the project's own conventions; skip when the project or change has no UI.
 
-**Summary:** Review only the resolved user-interface scope, apply project rules plus six UI categories and nine design-principles passes, then report evidence-backed PASS/WARN/BLOCKED findings through validated full-review loops.
+**Summary:** Expand the resolved user-interface scope from changed files to the SURFACES they render into, reconstruct how each surface composes (component tree + style origins, rendered when runnable), judge each surface's task load, forms and container fit, then apply project rules plus six UI categories and nine design-principles passes, and report evidence-backed PASS/WARN/BLOCKED findings per surface through validated full-review loops.
 
 **Default scope:** All uncommitted UI changes (staged + unstaged) matching the project's configured UI/frontend paths and file-extension patterns. Override: specify files, directories, surfaces, or the full UI codebase.
 
@@ -77,15 +77,19 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 **Workflow:**
 
 1. **Phase 0: Load UI Rules** — Resolve applicable project UI references and accepted ADRs; record N/A where a styling or design-system category does not apply
-2. **Phase 1: Determine Scope** — Changed UI files (default) or user-specified scope
-3. **Phase 2: Blast Radius** — Run graph trace if graph.db exists
-4. **Phase 3: UI Category Review** — Check each file against all 6 applicable categories
-5. **Phase 4: Finalize** — Generate compliance report with PASS/BLOCKED/WARN verdicts
-6. **Fix Loop: Validate → Fix → Full UI Re-Review** — validate findings first; fix only findings that block the current round, then rerun the full UI review using the local sub-agent selection guide only when that protocol calls for agents. Round 1 blocks on every validated severity; Round 2 blocks only CRITICAL/HIGH/MEDIUM, LOW-only is recorded as deferred, and binary accessibility/security gates always block.
+2. **Phase 1: Determine Scope** — Changed UI files (default) or user-specified scope, then expand to affected SURFACES (pages / views / dialogs that render them)
+3. **Phase 2: Blast Radius** — Run graph trace if graph.db exists; its upstream edges feed the surface map
+4. **Phase 2B: Surface Composition** — Per surface: component tree, style-origin map (own · ancestor layout & stacking context · global/theme/reset · scoping mode), render + computed values + automated a11y scan when runnable, else `ENVIRONMENT-BLOCKED`
+5. **Phase 2C: Surface UX Pass** — Per surface: task effort trace, Field Necessity Matrix, container fit, complexity budget (checklist B12–B15, E9–E11, §R, K10)
+6. **Phase 3: UI Category Review** — Check each file IN ITS SURFACE CONTEXT against all 6 applicable categories
+7. **Phase 4: Finalize** — Generate the index report plus one report per surface / per shared component with findings, PASS/BLOCKED/WARN verdicts
+8. **Fix Loop: Validate → Fix → Full UI Re-Review** — validate findings first; fix only findings that block the current round, then rerun the full UI review using the local sub-agent selection guide only when that protocol calls for agents. Round 1 blocks on every validated severity; Round 2 blocks only CRITICAL/HIGH/MEDIUM, LOW-only is recorded as deferred, and binary accessibility/security gates always block.
 
 **Key Rules:**
 
-- Write findings to `tmp/reports/ui-review-{date}-{slug}.md`
+- Write the index to `tmp/reports/ui-review-{date}-{slug}.md`; per-surface and per-component analysis to `tmp/reports/ui-review-{date}-{slug}/surfaces/{surface}.md` and `.../components/{component}.md`, appended as each is finished
+- Judge what RENDERS: a finding about layout, overflow, stacking, spacing or contrast cites the composed result (ancestor and global styles included), never one file in isolation
+- A defect repeated across surfaces is ONE systemic finding naming every location or the shared owner
 - BLOCKED = must fix before merge | WARN = review and decide | PASS = compliant
 - Every violation needs `file:line` proof + grep 3+ counterexamples before flagging
 - Review is read-only until `$why-review --validate-findings` confirms findings; fixes may happen only in the validated fix loop or downstream plan/feature-implement, and every fix that blocks the current round restarts a full UI review from Phase 0 with brand-new tasks. From Round 2 onward, LOW-only findings end the loop and are recorded as deferred.
@@ -153,6 +157,11 @@ git diff --cached   # Staged only
 - Filter to files matching the project's configured UI/frontend path and extension patterns
 - If ZERO UI files match → announce `"No UI changes detected — ui-review skipped"` and report clean (honor the CONDITIONAL skip)
 
+**Expand files → surfaces (MANDATORY when UI files match).** A file does not render; a surface does. For every in-scope file, find the pages / views / dialogs / panels that render it — through routing, parent composition, template usage, or the graph's upstream edges (Phase 2). Record `surface → changed files that render into it` at the top of the index report. Every affected surface is reviewed WHOLE — including its unchanged parts — because load accumulated over many small, individually reasonable diffs is invisible file by file.
+
+- **Shared or global change** (global stylesheet, theme, token, reset, shared primitive): the surface set is every consumer. Review the project's declared representative surfaces (`uiReview.representativeSurfaces` in the project config, when present); otherwise the highest-fan-out consumers found. State the sample and why it is representative.
+- **Standalone component with no rendering surface yet** (library/primitive work): review it inside its documented usage examples or story/demo harness when the project has one; otherwise state `surface: none — component reviewed in isolation` and cap layout findings at `NOT VERIFIABLE`.
+
 ## Phase 2: Blast Radius (if graph.db exists)
 
 - If `.code-graph/graph.db` exists: run graph trace on key changed component files
@@ -168,9 +177,47 @@ python .claude/scripts/code_graph trace <changed-file> --direction both --json
 
 Use `--node-mode file` first (10-30x less noise), then `--node-mode function` for detail. Flag shared-component consumers impacted by a styling or layout change.
 
+## Phase 2B: Surface Composition (MANDATORY per surface — reconstruct what actually renders)
+
+> **Why:** most real layout defects are caused by an ANCESTOR or a GLOBAL layer, not by the file where they show — truncation that never triggers because a flex/grid track refuses to shrink, an overlay trapped by a parent's stacking context, spacing doubled by parent padding plus child margin, a global reset overriding a component's intent. A review that reads one file judges a fiction.
+
+Create the index report `tmp/reports/ui-review-{date}-{slug}.md` now, and one file per surface at `tmp/reports/ui-review-{date}-{slug}/surfaces/{surface}.md` as you reach it. Append each surface's composition record BEFORE moving to the next surface.
+
+For each surface:
+
+1. **Component tree.** Walk from the surface root down to the leaves that the changed files contribute to. Record each node's role and owner (project component, shared primitive, platform element). Stop descending into a shared primitive once its contract is known — review the primitive itself in `components/{component}.md` only when it carries a finding.
+2. **Style-origin map.** For every node a later finding may cite, record where its effective layout and visual styles come from:
+   - its own styles;
+   - **ancestor layout context** — the parent layout model (flex/grid track sizing, minimum-size behavior), overflow/clipping, positioning, and any **stacking context** an ancestor creates (transform, opacity, filter, isolation, positioned + stacking value, or the platform's equivalent);
+   - **global layers** — reset/normalize, base element styles, theme, tokens, utility classes — resolved through the configured styling and design-system references;
+   - **scoping mode** the project uses (scoped/module styles, shadow roots, global escape hatches) and any rule that crosses it.
+3. **Render when the surface can run.** Use the project's run/preview path (`run` skill, `playwright-cli`, or the `experience-review` local-run contract) to capture the surface at each supported viewport and state; read computed values and boxes for every node a finding cites; run the project's automated accessibility scan when its toolchain provides one. Save captures under the run's report folder.
+4. **Cannot run?** Record `render: ENVIRONMENT-BLOCKED — {reason}`; keep the static reconstruction; mark every rendered-only claim (contrast, overlap, clipping, layout shift, target size, focus order) `NOT VERIFIABLE`. Never estimate a rendered value.
+
+**Blocked until:** every surface has a tree, a style-origin map for the nodes it cites, and either render evidence or an explicit `ENVIRONMENT-BLOCKED`.
+
+## Phase 2C: Surface UX Pass (MANDATORY per surface, BEFORE the code categories)
+
+> **Why first:** Categories 1–6 are code mechanics; a surface can pass all of them and still be unusable because it asks for too much, in the wrong container, at the wrong moment. Judge the surface's job before its CSS. Work from `.claude/docs/design-review-checklist.md` §B12–B15, §E9–E11, §R, §K10 and calibrate against `.claude/docs/design-review-calibration.md` (case C1 is the canonical overloaded-dialog example).
+
+**Think:** What is the ONE task this surface exists for? What is the least a user must see and enter to finish it? What is here that the task does not need NOW?
+
+For each surface, append to its surface report:
+
+1. **Task effort trace** — the primary task's path: `steps → inputs → decisions`, from entry to observable outcome. Mark each step or input that serves the system rather than the user's task.
+2. **Field Necessity Matrix** (surfaces with input) — one row per input: needed at THIS step? (why) · who consumes it and when · required/optional · default or derivable? · group · verdict (keep · defer · derive · default · drop). Every §R finding cites a row.
+3. **Container fit** — the container used (full view · dialog · side panel · stepped flow · inline) vs. the one the task calls for (§E9); nesting, reachability of primary actions, and dismiss-with-unsaved-input behavior (§E10–E11).
+4. **Complexity budget** — count inputs per step, sections per view, and equal-weight actions per view. Compare with `uiReview.complexityBudget` in the project config when declared (§B15). When no budget is declared, do not invent a threshold: judge the counts against the task trace and the primary user's expertise (§B12, §H3) and tag the finding `HEURISTIC`.
+5. **Entry modes and honesty** — alternate entry modes competing in one view (§B14); visible controls that do not work or development-status copy (§K10).
+6. **Governing intent** — when a Feature Spec or design-spec records the view's information priority (`now / later / not here`) and container role (`SYNC:ui-intent-layer`), the surface is judged against it; a surface showing `later`/`not here` items by default is a finding, and a missing priority record for a new or reshaped view is recorded as a gap.
+
+**Severity:** use the checklist defaults (B12, E9, R1, R2, K10 → P1) translated through the checklist §0.3 severity map (P0/P1 → BLOCKED, P2/P3 → WARN). An expert, data-heavy surface whose density is justified by its users (§H3) is NOT an overload finding — state that reasoning.
+
+**Blocked until:** every surface with input has a Field Necessity Matrix, and every surface has a task trace and a container verdict.
+
 ## Phase 3: UI Category Review
 
-Create report: `tmp/reports/ui-review-{date}-{slug}.md`
+Continue appending to the index report `tmp/reports/ui-review-{date}-{slug}.md` and the per-surface files. Judge each file IN ITS SURFACE CONTEXT — cite the composed result from Phase 2B, not the file alone.
 
 For EACH file in scope, evaluate against ALL applicable categories. Skip categories not applicable to the file type (e.g., a pure `.ts` store file skips overflow/sizing/z-index but still hits Category 5's architecture checks and Category 6's loading/error/empty-state wiring).
 
@@ -258,6 +305,7 @@ For EACH file in scope, evaluate against ALL applicable categories. Skip categor
 
 - A numeric stacking value where project rules require a named layer or token
 - A forced override that defeats documented ownership or demonstrably hides required content
+- **Stacking-context trap** — an overlay (menu, popover, tooltip, dialog) renders inside an ancestor that creates its own stacking context (Phase 2B style-origin map), so no stacking value on the overlay can lift it above that ancestor's siblings. Fix at the owner: render through the project's overlay/portal mechanism, or remove the unneeded stacking context — NEVER escalate the value (calibration case C2)
 
 **Project fix guidance:**
 
@@ -283,6 +331,9 @@ Cross-reference the project's layering map when one is configured. Any chosen la
 - A hard-coded value where the project requires a declared token or scale
 - CSS `!important` or stacking overrides only where the project forbids them or evidence shows they break intended ownership
 - BEM modifier or element structure only when project configuration/reference docs select BEM
+- **Style leakage across the scoping boundary** — component styles that escape into global scope (unscoped element or global selectors, global escape hatches, deep-piercing selectors) or global/theme/reset rules that silently override a component's intended values; cite both sides from the Phase 2B style-origin map
+- **Specificity escalation** — a selector made heavier (repeated classes, id selectors, `!important`, deep nesting) only to win against another rule, where restructuring ownership would remove the conflict
+- **Spacing owned twice** — a parent's padding/gap plus a child's margin producing a doubled or uneven gap; space belongs to the container (`UI-4.2`)
 
 Apply fixes per the resolved project styling rules doc.
 
@@ -361,7 +412,7 @@ The 40 clauses of `SYNC:ui-ux-design-principles` (full body inlined below in thi
 | 4   | Spacing & Grid            | `UI-4.1`-`UI-4.4` | Follow the configured spacing/layout system where present; check whether grouping, alignment, and sizing serve the current information. For responsive platforms, do layout changes respond to content and supported sizes? |
 | 5   | Interaction & Feedback    | `UI-5.1`-`UI-5.5` | For each interactive element, what feedback does the user receive within the project's/platform's expected response window? Are applicable states and focus/input cues clear? Could an undo path improve a confirmation? Does motion respect user preferences? |
 | 6   | Navigation & IA           | `UI-6.1`-`UI-6.4` | Landing on this surface cold: where am I, what's here, where next? How many top-level destinations exist? Are labels the user's words or the team's internal vocabulary? Where does navigation return, using a URL or platform back path when supported? |
-| 7   | Forms & Input             | `UI-7.1`-`UI-7.5` | Field by field: what breaks if this field is removed today? Is its label still visible once filled? When does validation fire, and does the message say how to fix it? Does the keyboard/autocomplete match the data type? What happens to typed data on validation error, navigation away, and refresh? |
+| 7   | Forms & Input             | `UI-7.1`-`UI-7.5` | Field by field (use the Phase 2C Field Necessity Matrix, do not redo it): what breaks if this field is removed from THIS step? Is its label still visible once filled? When does validation fire, and does the message say how to fix it? Does the keyboard/autocomplete match the data type? What happens to typed data on validation error, navigation away, and refresh? |
 | 8   | Mobile & Touch            | `UI-8.1`-`UI-8.4` | At a touch viewport: measure each tappable element's HIT BOX (not the icon) and the gap to its neighbours; where do primary actions sit relative to the thumb; is anything reachable ONLY by gesture; what do notch, home indicator and the on-screen keyboard cover? _(Mobile/touch surfaces only — when the scope has none, say so explicitly.)_ |
 | 9   | Speed & Perceived Speed   | `UI-9.1`-`UI-9.4` | For everything that loads: what occupies its space before data arrives, and does the layout shift when it lands? Is the optimistic path rolled back VISIBLY on failure? On a slow or offline connection, what does the user see — a designed state or a hang? |
 
@@ -426,8 +477,11 @@ Update report with final sections:
 ## Scope
 
 - Files reviewed: {count}
+- Surfaces reviewed: {surface → changed files that render into it; sample rationale for shared/global changes}
 - Components / apps affected: {list}
 - Blast radius: {summary from Phase 2}
+- Render status: {per surface: captured viewports + scan | ENVIRONMENT-BLOCKED — reason}
+- Per-surface reports: `tmp/reports/ui-review-{date}-{slug}/surfaces/*.md` · per-component: `.../components/*.md`
 
 ## Verdict: {PASS | WARN | BLOCKED}
 
@@ -435,9 +489,10 @@ Update report with final sections:
 
 ### {Category}: {description}
 
+- **Surface(s):** {surface name(s) — a systemic finding lists every surface or names the shared owner}
 - **File:** {path}:{line}
-- **Rule:** {rule from project or platform reference}
-- **Evidence:** {what was found}
+- **Rule:** {rule from project or platform reference, or checklist / `UI-*` ID}
+- **Evidence:** {what was found — composed result from Phase 2B/2C; MEASURED | OBSERVED | HEURISTIC}
 - **Fix:** {project-owned component, platform mechanism, configured style rule, or other applicable reuse target}
 
 ## WARN Findings (Review)
@@ -462,16 +517,23 @@ Update report with final sections:
 - Project styling convention: {PASS/WARN/BLOCKED/N/A}
 - Async UI States & Feedback (loading / error / empty / disabled): {PASS/WARN/BLOCKED}
 - UI Architecture (joint w/ architecture-review): {PASS/WARN/BLOCKED/N/A}
+- Surface load & forms (B12–B15, §R): {PASS/WARN/BLOCKED/N/A}
+- Container fit (E9–E11): {PASS/WARN/BLOCKED/N/A}
+- Composition fidelity (tree + style origins + render): {COMPLETE / PARTIAL — ENVIRONMENT-BLOCKED reason}
 ```
+
+**Per-surface report shape** (`surfaces/{surface}.md`, appended as each surface completes): Context (task, users, container) → Composition (Phase 2B tree, style-origin map, render evidence) → Surface load (Phase 2C trace, Field Necessity Matrix, container verdict, budget) → Findings for this surface (same fields as above) → Coverage. A per-component file (`components/{component}.md`) is written only for a shared component carrying a finding: contract, consumers, style origins, findings.
+
+**Severity translation:** checklist `P0`–`P4` ↔ BLOCKED/WARN ↔ Critical–Low via the single map in `.claude/docs/design-review-checklist.md` §0.3 — never translate ad hoc.
 
 ---
 
 ## Systematic Review Protocol (10+ changed UI files)
 
-1. **Categorize** — Group files by app / shared-library / component concern
+1. **Categorize** — Group files by SURFACE first (the Phase 1 surface map), then by shared-library / component concern; one sub-agent owns a surface end to end (composition, UX pass, categories) so no surface is split across agents
 2. **Parallel Sub-Agents** — Launch one UI/UX-specialized sub-agent per group with the UI-category checklist
 3. **Synchronize** — Collect findings, cross-reference shared-component consumers and cross-system token mixing
-4. **Consolidate** — Single holistic report with per-category verdicts
+4. **Consolidate** — One index report with per-category verdicts plus the per-surface files; cluster defects repeated across surfaces into single systemic findings
 
 ---
 
@@ -1247,9 +1309,9 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 >
 > **1.0 Visual Hierarchy & Layout**
 >
-> - `UI-1.1` One focal point per screen. Two elements competing for first read → demote one.
+> - `UI-1.1` One focal point per view — or per region on a deliberately multi-panel expert surface. Two elements competing for first read → demote one.
 > - `UI-1.2` Signal order: size → weight → colour → position. Use the cheapest signal that works before adding another.
-> - `UI-1.3` Group by proximity, NEVER by border. Whitespace separates cleanly; boxes inside boxes do not.
+> - `UI-1.3` Group by proximity first. Add a border or container only when it encodes a real boundary; boxes inside boxes rarely do.
 > - `UI-1.4` Align to a shared edge. Every unexplained indent reads as an accident.
 > - `UI-1.5` Design the empty, loading and error state FIRST. The full state is the easy one.
 >
@@ -1292,7 +1354,7 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 >
 > **7.0 Forms & Input**
 >
-> - `UI-7.1` Ask for less. Every field needs a reason it exists today.
+> - `UI-7.1` Ask for less. Every field needs a reason to exist at THIS step — defer, derive, or default what the task does not need now (Field Necessity Matrix: `.claude/docs/design-review-checklist.md` §R).
 > - `UI-7.2` Labels stay visible. Placeholders are hints, NEVER labels.
 > - `UI-7.3` Validate at a point that supports timely, useful correction without disrupting entry; follow the project's interaction contract. Explain errors and associate them with the affected input where supported.
 > - `UI-7.4` Match the input control and available input aids to the data and target platform; use autocomplete or capitalization hints only where supported and appropriate.
@@ -1369,7 +1431,7 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 
 <!-- SYNC:design-review-checklist -->
 
-> **Front-End Design Review Checklist** — the EXECUTABLE review protocol for any artifact carrying a user-facing front-end surface. Full catalog (`A1`…`Q`, ~130 checks with failure signals and default severities): **`.claude/docs/design-review-checklist.md`**. This gate carries the protocol and the triage pass; the file carries the checks.
+> **Front-End Design Review Checklist** — the EXECUTABLE review protocol for any artifact carrying a user-facing front-end surface. Full catalog (`A1`…`Q` plus §R, ~155 checks with failure signals and default severities; worked calibration cases in `.claude/docs/design-review-calibration.md`): **`.claude/docs/design-review-checklist.md`**. This gate carries the protocol and the triage pass; the file carries the checks.
 >
 > **Applies when — and ONLY when — the change, plan, or artifact carries a user-facing front-end surface.** A back-end-only diff, a doc edit, or a config change is `N/A`: state that once and move on. NEVER run a UI review on a non-UI change to manufacture coverage. When it DOES apply, **MUST ATTENTION READ `.claude/docs/design-review-checklist.md` and work its sections** — a review that cites a check ID without opening the catalog is asserting, not checking.
 >
@@ -1377,9 +1439,9 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 >
 > **`CL-2` Evidence or nothing (§0.2).** Every finding cites a specific location (screen · element · `file:line`). NEVER invent a measurement — contrast, tap-target size, and load time that cannot be measured from the given artifact are `NOT VERIFIABLE`, never a guessed number. Tag every finding `MEASURED` · `OBSERVED` · `HEURISTIC`. Status values: `PASS` · `FAIL` · `PARTIAL` · `N/A` · `NOT VERIFIABLE`.
 >
-> **`CL-3` Severity, then a cap (§0.3).** `P0` blocks task completion / loses data / excludes a protected group (ship blocker) · `P1` significant friction or a legal accessibility floor (fix before release) · `P2` measurable inefficiency (next iteration) · `P3` polish (backlog) · `P4` note. Cap the report at the top 10 by severity unless a full audit was requested. A clean section reports "no issues found" — NEVER pad. Every `P0`/`P1` carries a concrete fix.
+> **`CL-3` Severity, then a cap (§0.3).** `P0` blocks task completion / loses data / excludes a protected group (ship blocker) · `P1` significant friction or a legal accessibility floor (fix before release) · `P2` measurable inefficiency (next iteration) · `P3` polish (backlog) · `P4` note. Translate to other dialects (BLOCKED/WARN, Critical–Low, BLOCKING/ADVISORY) ONLY through the §0.3 severity map. Cap the report at the top 10 by severity unless a full audit was requested. A clean section reports "no issues found" — NEVER pad. Every `P0`/`P1` carries a concrete fix.
 >
-> **`CL-4` Section sweep, in order.** §A core usability heuristics · §B cognitive load & decision design · §C visual design & hierarchy · §D interaction and relevant product states · §E information architecture · **§F web / §G mobile / §H desktop — conditional on platform** · §I accessibility: use WCAG 2.2 AA as the web baseline and meet any stricter applicable legal or project requirement; for other platforms, use the documented platform standard. Record the selected standard and its source; severity follows the governing release contract · §J content & UX writing · §K trust, ethics & privacy · **§L AI & agentic patterns — conditional on the product having AI features** · §M cross-cutting consistency · §N edge-case probes. Make one focused pass per applicable section and record N/A with evidence for sections the surface does not support.
+> **`CL-4` Section sweep, in order — over whole SURFACES, not files (§0.5).** Map changed files to the pages/views/dialogs they render into, reconstruct each surface's composition (component tree + style origins; render when it can run, else `ENVIRONMENT-BLOCKED`), then sweep: §A core usability heuristics · §B cognitive load & surface complexity (B12–B15: surface load, progressive disclosure, one job per view, the project's complexity budget) · §C visual design & hierarchy · §D interaction and relevant product states · §E information architecture & container fit (E9–E11: dialog vs full view vs stepped flow vs side panel vs inline) · **§F web / §G mobile — conditional on platform; §H expert & data-heavy use — conditional on usage, not platform** · §I accessibility: use WCAG 2.2 AA as the web baseline and meet any stricter applicable legal or project requirement; for other platforms, use the documented platform standard. Record the selected standard and its source; severity follows the governing release contract · §J content & UX writing · §K trust, ethics & privacy · **§L AI & agentic patterns — conditional on the product having AI features** · §M cross-cutting consistency · **§R forms & data entry — conditional on input: fill the Field Necessity Matrix first** · §N edge-case probes. Make one focused pass per applicable section and record N/A with evidence for sections the surface does not support. Cluster a defect repeated across surfaces into ONE finding; calibrate against `.claude/docs/design-review-calibration.md`.
 >
 > **`CL-5` Quick Triage Pass (§P)** when a full sweep is not possible — use these prompts for applicable surfaces: (1) can a new user complete the primary task unaided · (2) is feedback timely against the project/platform expectation · (3) do relevant empty/loading/error states offer a forward path · (4) is the primary action obvious and reachable for supported inputs · (5) do contrast and focus meet the selected accessibility standard (WCAG 2.2 AA baseline for web) · (6) can users operate the surface with its supported input modes · (7) do interactive targets meet the platform's size/spacing guidance · (8) are destructive actions recoverable where appropriate · (9) does the surface work at its smallest supported size and required zoom/reflow · (10) are there deceptive or coercive patterns.
 >
@@ -1389,7 +1451,7 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 >
 > **Precedence and no-double-counting.** The project's design-system / SCSS / frontend-pattern docs and accepted ADRs OUTRANK this checklist; the brief's stated direction outranks aesthetic judgment. A deliberate, documented convention is NEVER a defect — check intent before flagging, and surface a genuine conflict to the user with both sides, NEVER resolve it silently. This checklist is the review PROCEDURE, not a third set of taste rules: `UI-1.1`–`UI-9.4` ask "does it meet the usability floor?", `DD-1`–`DD-8` ask "is this THIS product's interface?", and these checks ask "did the review actually look, with evidence, and rank it?". Where a check restates a `UI-*` or `DD-*` clause, report the defect ONCE under whichever ID the consuming skill already uses.
 >
-> **For a PLAN or a PLAN REVIEW.** When the plan contains UI work, bind applicable acceptance criteria to the target platform/surface, relevant user states, and the selected accessibility standard. Use WCAG 2.2 AA as the web baseline and meet any stricter applicable legal or project requirement; for other platforms, identify the documented platform standard. Identify conditional sections (§F/§G/§H, §L) that apply. Do not require every catalogued state; record the standard and its source, and keep unsupported checks N/A.
+> **For a PLAN or a PLAN REVIEW.** When the plan contains UI work, bind applicable acceptance criteria to the target platform/surface, relevant user states, and the selected accessibility standard. Each UI phase MUST name, per new or reshaped view: its primary task, its container (E9), its information priority (what is shown now / later / never here), and — for input — the inputs required at creation vs deferred (§R1–R2). A plan review treats a UI phase missing these as a finding against the checklist IDs it leaves unbound. Use WCAG 2.2 AA as the web baseline and meet any stricter applicable legal or project requirement; for other platforms, identify the documented platform standard. Identify conditional sections (§F/§G/§H, §L) that apply. Do not require every catalogued state; record the standard and its source, and keep unsupported checks N/A.
 
 <!-- /SYNC:design-review-checklist -->
 
@@ -1588,7 +1650,7 @@ Apply `UI-1.1`–`UI-9.4` only to applicable user-interface work. Resolve platfo
 
 <!-- SYNC:design-review-checklist:reminder -->
 
-- **MUST ATTENTION** when the change/plan/artifact has an applicable user-facing UI surface, READ `.claude/docs/design-review-checklist.md` and run it: `CL-1` establish context first (platform · user · task · metric · constraints · scope · artifacts — state missing context and its confidence impact) · `CL-2` evidence or nothing, cite a location per finding, NEVER invent a measurement (unmeasurable → `NOT VERIFIABLE`), tag `MEASURED`/`OBSERVED`/`HEURISTIC` · `CL-3` rank `P0`–`P4`, cap at top 10 by severity, NEVER pad, concrete fix on every `P0`/`P1` · `CL-4` sweep §A–§N, applying only relevant platform/product sections and the WCAG 2.2 AA web baseline plus any stricter applicable legal/project requirement, or the documented standard for other platforms · `CL-5` short on time → use the §P prompts · `CL-6` report in the §O shape · for source code, assess component ownership, base abstractions, reuse, and duplication using the project's documented taxonomy or observed boundaries. Project design-system docs and ADRs OUTRANK the checklist; report a defect ONCE across `UI-*`/`DD-*`/`CL-*`. For a plan, bind only applicable sections and states to acceptance criteria. Skip when the work has no user-facing UI surface, and state why.
+- **MUST ATTENTION** when the change/plan/artifact has an applicable user-facing UI surface, READ `.claude/docs/design-review-checklist.md` and run it: `CL-1` establish context first (platform · user · task · metric · constraints · scope · artifacts — state missing context and its confidence impact) · `CL-2` evidence or nothing, cite a location per finding, NEVER invent a measurement (unmeasurable → `NOT VERIFIABLE`), tag `MEASURED`/`OBSERVED`/`HEURISTIC` · `CL-3` rank `P0`–`P4`, cap at top 10 by severity, NEVER pad, concrete fix on every `P0`/`P1` · `CL-4` sweep §A–§N plus §R over whole surfaces (changed files → affected views, composition reconstructed, render or `ENVIRONMENT-BLOCKED`), including surface load B12–B15, container fit E9–E11, §H by usage, Field Necessity Matrix for input, applying only relevant platform/product sections and the WCAG 2.2 AA web baseline plus any stricter applicable legal/project requirement, or the documented standard for other platforms · `CL-5` short on time → use the §P prompts · `CL-6` report in the §O shape · for source code, assess component ownership, base abstractions, reuse, and duplication using the project's documented taxonomy or observed boundaries. Project design-system docs and ADRs OUTRANK the checklist; report a defect ONCE across `UI-*`/`DD-*`/`CL-*`. For a plan, bind only applicable sections and states to acceptance criteria, and name each UI view's primary task, container, information priority, and creation-vs-deferred inputs; a plan review flags a UI phase that omits them. Skip when the work has no user-facing UI surface, and state why.
 
 <!-- /SYNC:design-review-checklist:reminder -->
 
@@ -1622,7 +1684,7 @@ Apply `UI-1.1`–`UI-9.4` only to applicable user-interface work. Resolve platfo
 
 **IMPORTANT MUST ATTENTION Goal:** Validate in-scope user interfaces for content fit, supported-size behavior, platform-appropriate layout/layering and styling, accessibility, and async feedback; use the project's own UI patterns and skip absent surfaces.
 
-**IMPORTANT MUST ATTENTION Workflow:** Phase 0 load project UI rules → Phase 1 determine and filter scope (skip with evidence when no frontend files) → Phase 2 graph blast radius → Phase 3 review Categories 1–6 → Phase 3B run all nine UI/UX design-principles passes → Phase 4 write the compliance verdict → Phase 5 validate findings with `$why-review` → Phase 6 fix only validated findings that block the current round and restart the full UI review (Round 1: all severities; Round 2: CRITICAL/HIGH/MEDIUM; LOW-only deferred; binary gates always block); batch large scopes and use the UI/UX specialist only as the protocol requires.
+**IMPORTANT MUST ATTENTION Workflow:** Phase 0 load project UI rules → Phase 1 determine and filter scope (skip with evidence when no frontend files), then expand files → affected surfaces → Phase 2 graph blast radius → Phase 2B reconstruct each surface's composition (component tree, style origins incl. ancestor/stacking/global layers, render or `ENVIRONMENT-BLOCKED`) → Phase 2C surface UX pass (task trace, Field Necessity Matrix, container fit, complexity budget) → Phase 3 review Categories 1–6 in surface context → Phase 3B run all nine UI/UX design-principles passes → Phase 4 write the compliance verdict → Phase 5 validate findings with `$why-review` → Phase 6 fix only validated findings that block the current round and restart the full UI review (Round 1: all severities; Round 2: CRITICAL/HIGH/MEDIUM; LOW-only deferred; binary gates always block); batch large scopes and use the UI/UX specialist only as the protocol requires.
 
 **Protocols in force (concise digest of the SYNC/shared blocks this skill carries — MUST ATTENTION honor each canonical body above):**
 
@@ -1653,6 +1715,8 @@ Apply `UI-1.1`–`UI-9.4` only to applicable user-interface work. Resolve platfo
 **MUST ATTENTION** NEVER mix incompatible project token systems in one file — recommend whichever system the file already imports/uses
 **MUST ATTENTION** after validated UI fixes, rerun the full UI review; when that protocol uses a fresh reviewer, use the UI/UX-specialized sub-agent from the local sub-agent selection guide
 **MUST ATTENTION** run at least ONE graph command on key files when graph.db exists
+**MUST ATTENTION** review SURFACES, not files: expand changed files to the views that render them, reconstruct composition (tree + style origins + render or `ENVIRONMENT-BLOCKED`), and run the Phase 2C surface UX pass (task trace, Field Necessity Matrix, container fit, budget) BEFORE the code categories — why: an overloaded or ancestor-broken surface passes every file-level check
+**MUST ATTENTION** write the index to `tmp/reports/ui-review-{date}-{slug}.md` and one file per surface (and per shared component with findings) under `tmp/reports/ui-review-{date}-{slug}/`, appended as each completes; cluster repeated defects into one systemic finding
 **MUST ATTENTION** NEVER fix code — review and report only
 **MUST ATTENTION** apply `Think:` reasoning prompt before checking each category — derive violations, don't recite checklists
 **MUST ATTENTION** run the Phase 3B UI/UX Design Principles pass for in-scope user interfaces — review the nine principle groups and apply clauses supported by the target platform, project conventions, and interaction modes; record inapplicable clauses with evidence. Findings cite `UI-<clause>` + `file:line` + BLOCKED/WARN severity, and project design-system docs remain authoritative when present (surface genuine conflicts; NEVER resolve them silently).

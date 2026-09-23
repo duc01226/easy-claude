@@ -54,7 +54,7 @@ Delivery stack: **undetermined (no CI/IaC config found)**. Root commands cover l
 | Setting group                 | Surface                                         | Purpose                                                                 |
 | ----------------------------- | ----------------------------------------------- | ----------------------------------------------------------------------- |
 | Framework runtime             | `.claude/settings.json:24-30`                   | Context/auto-memory/todo controls, stop-hook cap, MCP timeout           |
-| MCP authentication references | `.claude/.mcp.json:6-7`                         | `GITHUB_PERSONAL_ACCESS_TOKEN`                                          |
+| MCP authentication references | `.claude/.mcp.json:6-7`                         | `GITHUB_PERSONAL_ACCESS_TOKEN`                                          | <!-- path-role: user-local -->
 | Notification references       | `.claude/hooks/notifications/.env.example:8-21` | Telegram, Discord, and Slack reference names                            |
 | Optional skill credentials    | `.claude/.env.example:34-50`                    | Shared AI/ML API key reference names with per-skill override precedence |
 
@@ -88,7 +88,7 @@ None. No frontend framework dependency, app mapping, dev-server port, or fronten
 | Output Styles  | 6                                                                                             | `.claude/output-styles/*.md`  | Coding level presets (ELI5→God)                                                     |
 | Scripts        | 34                                                                                            | `.claude/scripts/*`           | CJS/ESM + Python utilities (top-level; excludes tests and non-executable data/docs) |
 | Codex Scripts  | 17                                                                                            | `.claude/scripts/codex/*.mjs` | Top-level ESM sync, migration, notification, and verification tools                 |
-| Hook Tests     | 40 suites + 13 `test-*` files                                                                 | `.claude/hooks/tests/`        | CJS/JS test files; top-level `test-*` files plus `run-all-tests.cjs` aggregate      |
+| Hook Tests     | 40 suites + 9 `test-*` files                                                                  | `.claude/hooks/tests/`        | CJS/JS test files; top-level `test-*` files plus `run-all-tests.cjs` aggregate      |
 | Codex Mirrors  | <!-- COUNT:skills -->124<!-- /COUNT --> skills, <!-- COUNT:agents -->23<!-- /COUNT --> agents | `.agents/`, `.codex/`         | Generated Codex-compatible copy                                                     |
 
 ## Project Directory Tree
@@ -142,19 +142,15 @@ easy-claude/
 | CM   | Codex Mirrors  | `.agents/`, `.codex/`          | Generated Codex-compatible skills, agents, hooks                                                                          |
 | OS   | Output Styles  | `.claude/output-styles/`       | 6 coding level presets                                                                                                    |
 | NT   | Notifications  | `.claude/hooks/notifications/` | `notify.cjs` dispatcher + 4 channel providers in `providers/` (desktop, telegram, discord, slack)                         |
-| SB   | Scout Block    | `.claude/hooks/scout-block/`   | Broad search prevention subsystem (4 modules)                                                                             |
-| HT   | Hook Tests     | `.claude/hooks/tests/`         | 40 suite files + 13 top-level `test-*` files + `run-all-tests.cjs` aggregate                                              |
+| HT   | Hook Tests     | `.claude/hooks/tests/`         | 40 suite files + 9 top-level `test-*` files + `run-all-tests.cjs` aggregate                                               |
 
 ## Hooks (<!-- COUNT:hooks -->14<!-- /COUNT --> top-level `.cjs` files)
 
 ### Safety Hooks
 
-| Hook                     | Event      | Purpose                                             |
-| ------------------------ | ---------- | --------------------------------------------------- |
-| `path-boundary-block`    | PreToolUse | Block access outside project scope                  |
-| `privacy-block`          | PreToolUse | Block access to secrets/credentials                 |
-| `scout-block`            | PreToolUse | Prevent overly broad glob/grep patterns             |
-| `github-mcp-write-block` | PreToolUse | Gate GitHub MCP write verbs on a session push lease |
+| Hook                 | Event      | Purpose                                                               |
+| -------------------- | ---------- | --------------------------------------------------------------------- |
+| `review-commit-gate` | PreToolUse | Block an agent `git commit` lacking a review fix-loop or skip receipt |
 
 ### Quality Hooks
 
@@ -162,7 +158,6 @@ easy-claude/
 | ------------------ | ---------------- | ------------------------------------ |
 | `init-prompt-gate` | UserPromptSubmit | Gate initial prompt processing       |
 | `doc-sync-gate`    | PreToolUse       | Gate edits that require doc sync     |
-| `git-commit-block` | PreToolUse       | Block unauthorized commit/stage/push |
 
 > **Static enforcement.** Task creation, skill activation, edit gates, and workflow task-list integrity live in `CLAUDE.md` / `SKILL.md`; hookless harnesses read the same rules.
 
@@ -196,6 +191,10 @@ easy-claude/
 
 ### Workflow Hooks
 
+| Hook                    | Event            | Purpose                                                                                        |
+| ----------------------- | ---------------- | ---------------------------------------------------------------------------------------------- |
+| `workflow-route-inject` | UserPromptSubmit | Inject the canonical workflow routing gate from `.claude/skills/shared/workflow-first-gate.md` |
+
 > **Workflow tracking:** progression is model-driven against `CLAUDE.md` and persisted task tracking; no workflow-step hook advances tasks.
 
 ### Utility Hooks
@@ -203,9 +202,6 @@ easy-claude/
 | Hook                                     | Event             | Purpose                                                        |
 | ---------------------------------------- | ----------------- | -------------------------------------------------------------- |
 | `post-edit-prettier`                     | PostToolUse       | Run prettier after edits                                       |
-| `npm-auto-install`                       | SessionStart      | Auto-install npm deps on startup                               |
-| `windows-command-detector`               | PreToolUse        | Detect Windows-specific commands                               |
-| `bash-shell-guard`                       | PreToolUse        | Block PowerShell here-strings; name the POSIX heredoc form     |
 | `.claude/hooks/notifications/notify.cjs` | Stop/Notification | Unified notification router (desktop + Telegram/Discord/Slack) |
 
 > **Post-processing:** no large-output swap, post-agent validator, or bash-cleanup hook is registered.
