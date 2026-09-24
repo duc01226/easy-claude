@@ -382,7 +382,20 @@ function runCli(argv) {
 
 module.exports = { detectGroups, fingerprintGroup, mergeDetected, LANGUAGE_EXTENSIONS, UI_UX_GATE };
 
-if (require.main === module || (!require.main && path.resolve(process.argv[1] || '') === __filename)) {
+// Launcher-aware entry: Codex runs hooks via `node -e … require()`, where require.main is undefined.
+// hook-runner.cjs isHookEntryPoint (twin of scripts/lib/project-root.cjs isInvokedAsScript)
+// canonicalizes a symlinked launch path; it is loaded only when require.main is undefined.
+function isLauncherEntry() {
+    try {
+        return require('./hook-runner.cjs').isHookEntryPoint(module);
+    } catch (err) {
+        // Only a missing hook-runner means "not a launcher entry"; a broken one must surface.
+        if (err && err.code === 'MODULE_NOT_FOUND' && String(err.message).includes("'./hook-runner.cjs'")) return false;
+        throw err;
+    }
+}
+
+if (require.main === module || (!require.main && isLauncherEntry())) {
     try {
         process.exitCode = runCli(process.argv.slice(2));
     } catch (err) {

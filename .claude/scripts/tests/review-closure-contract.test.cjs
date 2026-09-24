@@ -173,7 +173,8 @@ test('R2-14: interruption and target revision retain spent rounds and reject sta
 });
 
 function closureFixture(t) {
-    const fixtureDir = fs.mkdtempSync(path.join(os.tmpdir(), 'owned-run-closure-'));
+    // Resolve the OS temp root (macOS: /var -> /private/var): a supplied store beneath a link is refused by design.
+    const fixtureDir = fs.realpathSync.native(fs.mkdtempSync(path.join(os.tmpdir(), 'owned-run-closure-')));
     t.after(() => fs.rmSync(fixtureDir, { recursive: true, force: true }));
     const rootDir = path.join(fixtureDir, 'project');
     const storeDir = path.join(fixtureDir, 'private-store');

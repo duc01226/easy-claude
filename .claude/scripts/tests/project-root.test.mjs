@@ -8,7 +8,7 @@ import { createRequire } from 'node:module';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
 const require = createRequire(import.meta.url);
-const { resolveProjectRoot, resolveMutationProjectRoot } = require('../lib/project-root.cjs');
+const { resolveProjectRoot, resolveMutationProjectRoot, isInvokedAsScript } = require('../lib/project-root.cjs');
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..');
 const writers = [
     '.claude/scripts/codex/sync-hooks.mjs',
@@ -19,7 +19,8 @@ const writers = [
 ];
 
 function fixture(fn) {
-    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'ck-root-test-'));
+    // Resolve the OS temp root (macOS: /var -> /private/var) so lexical and module-derived roots share one spelling.
+    const dir = fs.realpathSync.native(fs.mkdtempSync(path.join(os.tmpdir(), 'ck-root-test-')));
     try { fn(dir); } finally { fs.rmSync(dir, { recursive: true, force: true }); }
 }
 
@@ -471,3 +472,124 @@ for (const [file, method, parameters, returnStatement, argument] of guardedApis)
         }
     }));
 }
+
+// --- Script entry-point detection through symlinked paths -------------------------------------
+// Intent: a framework CLI launched through ANY path that resolves to its own file runs its main.
+// Node records the main module's REAL path in `import.meta.url`, while `process.argv[1]` keeps the
+// path as typed. macOS's os.tmpdir() sits behind `/var -> /private/var`, so a lexical comparison
+// made every copied or temp-launched script exit 0 with no output — a silent false pass.
+// Directory links need no privilege on Windows (junction) or POSIX (symlink); a host that still
+// refuses one skips the link-dependent cases instead of failing.
+function linkedFixture(t, fn) {
+    fixture(dir => {
+        // Canonicalize the fixture root so the ONLY link on the launch path is the one made here.
+        const base = fs.realpathSync.native(dir);
+        const real = path.join(base, 'real');
+        const link = path.join(base, 'link');
+        fs.mkdirSync(real);
+        try {
+            fs.symlinkSync(real, link, process.platform === 'win32' ? 'junction' : 'dir');
+        } catch (error) {
+            if (['EACCES', 'EPERM', 'ENOSYS', 'ENOTSUP', 'EOPNOTSUPP'].includes(error && error.code)) {
+                t.skip(`directory symlink/junction creation is unavailable on ${process.platform}: ${error.code}`);
+                return;
+            }
+            throw error;
+        }
+        fn({ real, link });
+    });
+}
+
+test('isInvokedAsScript matches the same file through a symlink/junction and nothing else', t => linkedFixture(t, ({ real, link }) => {
+    const self = path.join(real, 'entry.mjs');
+    const other = path.join(real, 'other.mjs');
+    fs.writeFileSync(self, '');
+    fs.writeFileSync(other, '');
+    assert.equal(isInvokedAsScript(path.join(link, 'entry.mjs'), self), true, 'linked launch path is the same file');
+    assert.equal(isInvokedAsScript(self, self), true, 'direct launch path');
+    assert.equal(isInvokedAsScript(path.relative(process.cwd(), self), self), true, 'relative argv resolves against cwd');
+    assert.equal(isInvokedAsScript(path.join(link, 'other.mjs'), self), false, 'a different file never matches');
+    for (const empty of [undefined, null, '']) assert.equal(isInvokedAsScript(empty, self), false, `argv[1]=${empty}`);
+    // The canonical comparison must be what makes the linked case match: an identity "realpath"
+    // (the pre-fix lexical comparison) must fail it.
+    assert.equal(isInvokedAsScript(path.join(link, 'entry.mjs'), self, { realpath: p => p }), false);
+    // Both sides are canonicalized: Windows keeps 8.3 short names in import.meta.url while argv may
+    // carry the long form, so resolving only argv would still miss.
+    assert.equal(isInvokedAsScript(self, path.join(link, 'entry.mjs')), true, 'linked self path is the same file');
+    const short = path.resolve('/DUC~1/entry.mjs');
+    const long = path.resolve('/duc.long/entry.mjs');
+    const expandShortName = p => (p === short ? long : p);
+    assert.equal(isInvokedAsScript(long, short, { realpath: expandShortName }), true, 'self side is canonicalized');
+    assert.equal(isInvokedAsScript(short, long, { realpath: expandShortName }), true, 'argv side is canonicalized');
+}));
+
+test('isInvokedAsScript compares case-insensitively only on Windows when paths cannot be resolved', () => {
+    const unresolvable = () => { throw Object.assign(new Error('ENOENT'), { code: 'ENOENT' }); };
+    const upper = path.resolve('/Missing/Dir/Entry.mjs');
+    const lower = upper.toLowerCase();
+    assert.equal(isInvokedAsScript(upper, lower, { platform: 'win32', realpath: unresolvable }), true);
+    assert.equal(isInvokedAsScript(upper, lower, { platform: 'linux', realpath: unresolvable }), false);
+});
+
+// End-to-end: a real framework CLI copied into a temp tree and launched through a linked path must
+// produce its output. Pre-fix, this exact shape printed nothing and exited 0.
+test('a copied framework CLI launched through a symlinked path runs its main', t => linkedFixture(t, ({ real, link }) => {
+    const files = [
+        '.claude/scripts/codex/read-workflow-entry.mjs',
+        '.claude/scripts/lib/workflow-manifest.cjs',
+        '.claude/scripts/lib/project-root.cjs',
+    ];
+    for (const file of files) {
+        fs.mkdirSync(path.dirname(path.join(real, file)), { recursive: true });
+        fs.copyFileSync(path.join(root, file), path.join(real, file));
+    }
+    fs.mkdirSync(path.join(real, '.claude', 'skills', 'investigate'), { recursive: true });
+    fs.writeFileSync(path.join(real, '.claude', 'skills', 'investigate', 'SKILL.md'), '# investigate\n');
+    fs.writeFileSync(path.join(real, '.claude', 'workflows.json'), `${JSON.stringify({
+        version: '1.0.0',
+        workflows: {
+            'wf-linked': {
+                name: 'Linked Launch Sentinel', description: 'fixture', whenToUse: 'fixture',
+                preActions: { injectContext: 'fixture context' }, sequence: ['investigate'],
+            },
+        },
+    }, null, 2)}\n`);
+    const entry = path.join(link, '.claude', 'scripts', 'codex', 'read-workflow-entry.mjs');
+    const result = spawnSync(process.execPath, [entry, 'wf-linked'], { cwd: link, env: cleanEnv(), encoding: 'utf8', timeout: 15000 });
+    assert.equal(result.status, 0, result.stderr);
+    assert.notEqual(result.stdout.trim(), '', 'the CLI skipped its main: entry detection missed the linked launch path');
+    assert.equal(JSON.parse(result.stdout).name, 'Linked Launch Sentinel');
+}));
+
+// Structural sensor: every framework CLI gates its entry through a canonical helper
+// (`isInvokedAsScript` for scripts, `isHookEntryPoint` for hooks). A hand-written equality between
+// argv and the module's own path reintroduces the silent no-op on any symlinked launch path.
+test('no framework source compares its own module path by equality', () => {
+    // Every spelling of "my own path": each is a REAL path, so `===` against argv misses a symlinked
+    // launch. Use isInvokedAsScript (scripts) or isHookEntryPoint (hooks) instead. Line-based: an
+    // alias variable or a comparison split across lines is out of reach and left to review.
+    const selfPath = String.raw`(?:(?:url\.)?fileURLToPath\(import\.meta\.url\)|\bimport\.meta\.(?:url|filename)\b|\b__filename\b)`;
+    const ownPathEquality = new RegExp(String.raw`[!=]==?\s*${selfPath}|${selfPath}\s*[!=]==?`);
+    // Framework source only: vendored dependencies and host-local dot-directories (a skill's
+    // gitignored `.venv`) are not ours and would make the sensor depend on the developer's machine;
+    // test code compares fixture paths on purpose and never decides whether a CLI runs its main.
+    const skipDirs = new Set(['node_modules', 'tests', '__tests__']);
+    const offenders = [];
+    let scanned = 0;
+    const walk = dir => {
+        for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+            const full = path.join(dir, entry.name);
+            if (entry.isDirectory()) {
+                if (!skipDirs.has(entry.name) && !entry.name.startsWith('.')) walk(full);
+            } else if (/\.(?:mjs|cjs|js)$/.test(entry.name)) {
+                scanned++;
+                fs.readFileSync(full, 'utf8').split(/\r?\n/).forEach((line, index) => {
+                    if (ownPathEquality.test(line)) offenders.push(`${path.relative(root, full)}:${index + 1}: ${line.trim()}`);
+                });
+            }
+        }
+    };
+    for (const area of ['scripts', 'hooks', 'skills']) walk(path.join(root, '.claude', area));
+    assert.ok(scanned > 100, `sensor scanned only ${scanned} files; the walk is not reaching the framework`);
+    assert.deepEqual(offenders, []);
+});

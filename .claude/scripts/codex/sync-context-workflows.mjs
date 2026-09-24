@@ -13,7 +13,7 @@ import {
 } from "./compat-rewrite.mjs";
 
 const require = createRequire(import.meta.url);
-const { resolveMutationProjectRoot } = require("../lib/project-root.cjs");
+const { resolveMutationProjectRoot, isInvokedAsScript } = require("../lib/project-root.cjs");
 const rootResolution = resolveMutationProjectRoot({
   cwd: process.cwd(),
   scriptPath: fileURLToPath(import.meta.url),
@@ -748,7 +748,7 @@ export async function runContextSync({ outRootDir = rootDir } = {}) {
 }
 
 const invokedAsScript =
-  process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url);
+  isInvokedAsScript(process.argv[1], fileURLToPath(import.meta.url));
 if (invokedAsScript) {
   await runContextSync();
 }

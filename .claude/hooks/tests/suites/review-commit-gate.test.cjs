@@ -26,7 +26,10 @@ function gitAvailable() {
 const GIT = gitAvailable();
 
 function fixture(fn) {
-    const root = fs.mkdtempSync(path.join(os.tmpdir(), 'review-gate-test-'));
+    // Resolve the temp root (macOS /var -> /private/var) so loadMutantGate's parent.filename match
+    // and require.cache keys use the spelling Node's loader records. JS realpathSync, not .native:
+    // the loader keeps Windows 8.3 short names, which .native would expand.
+    const root = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), 'review-gate-test-')));
     try {
         for (const dir of ['repo-a', 'repo-b', 'store']) fs.mkdirSync(path.join(root, dir));
         return fn({ root, repoA: path.join(root, 'repo-a'), repoB: path.join(root, 'repo-b'), store: path.join(root, 'store') });

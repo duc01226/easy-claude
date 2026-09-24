@@ -95,6 +95,39 @@ function resolveProjectRoot({ cwd = process.cwd(), scriptPath, env = process.env
     return { rootDir: path.resolve(cwd), source: 'cwd-fallback' };
 }
 
+/** Absolute, symlink/junction-resolved form of `target`; the plain resolved path when it cannot be resolved. */
+function canonicalPath(target, realpath) {
+    const resolved = path.resolve(target);
+    try {
+        return realpath(resolved);
+    } catch {
+        return resolved;
+    }
+}
+
+/**
+ * True when `invokedPath` (the script's `process.argv[1]`) names the same file as `selfPath` (its
+ * own `fileURLToPath(import.meta.url)`). Node records the main module's REAL path, while argv keeps
+ * the path as typed, so both sides are canonicalized with the same resolver before comparing;
+ * otherwise a launch through a symlink or junction (macOS os.tmpdir() is `/var -> /private/var`)
+ * never matches and the script silently skips its main. Windows paths compare case-insensitively.
+ * Twin of hooks/lib/hook-runner.cjs isHookEntryPoint (CJS launcher entry); keep the two in step.
+ * `options` (tests only): `platform`, `realpath`. Never throws.
+ */
+function isInvokedAsScript(invokedPath, selfPath, options = {}) {
+    try {
+        if (typeof invokedPath !== 'string' || invokedPath === '' || typeof selfPath !== 'string') return false;
+        const realpath = options.realpath || fs.realpathSync.native;
+        const invoked = canonicalPath(invokedPath, realpath);
+        const self = canonicalPath(selfPath, realpath);
+        return (options.platform || process.platform) === 'win32'
+            ? invoked.toLowerCase() === self.toLowerCase()
+            : invoked === self;
+    } catch {
+        return false;
+    }
+}
+
 /** Mutating entrypoints must not discard an explicitly rejected target. */
 function resolveMutationProjectRoot({ allowUnmarkedRoot = false, ...options } = {}) {
     const resolution = resolveProjectRoot(options);
@@ -114,6 +147,7 @@ function resolveMutationProjectRoot({ allowUnmarkedRoot = false, ...options } = 
 
 module.exports = {
     isDirectory,
+    isInvokedAsScript,
     nearestProjectRoot,
     resolveProjectRoot,
     resolveMutationProjectRoot

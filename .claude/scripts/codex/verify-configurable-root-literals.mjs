@@ -31,7 +31,7 @@ import { fileURLToPath } from 'node:url';
 import { createRequire } from 'node:module';
 
 const require = createRequire(import.meta.url);
-const { resolveProjectRoot } = require('../lib/project-root.cjs');
+const { resolveProjectRoot, isInvokedAsScript } = require('../lib/project-root.cjs');
 
 /**
  * The relocatable roots, each declarable under `specRoots` / `docsRoots` in the project config.
@@ -477,7 +477,7 @@ async function main(resolvedRoot) {
     if (!options.json) console.log('[codex-verify-root-literals] PASS');
 }
 
-if (process.argv[1] && fileURLToPath(import.meta.url) === path.resolve(process.argv[1])) {
+if (isInvokedAsScript(process.argv[1], fileURLToPath(import.meta.url))) {
     await main(resolveProjectRoot({
         cwd: process.cwd(),
         scriptPath: fileURLToPath(import.meta.url),

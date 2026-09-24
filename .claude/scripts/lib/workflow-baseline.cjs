@@ -80,7 +80,10 @@ function canonicalRoot(rootDir) {
 }
 
 function defaultStoreDir() {
-  return path.join(os.tmpdir(), "easy-claude-workflow-baselines");
+  // The host temp root is host-configured, not a supplied store, and may itself sit behind a link
+  // (macOS: os.tmpdir() is /var/folders/… with /var -> /private/var). Resolve that root once;
+  // ensureStoreDir still refuses any link at or below it.
+  return path.join(canonicalExisting(os.tmpdir()), "easy-claude-workflow-baselines");
 }
 
 function assertNotRootOrProject(storeDir, rootDir) {

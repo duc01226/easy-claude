@@ -7,7 +7,7 @@ import { createRequire } from 'node:module';
 import { MAX_TEST_CASES_PER_SPEC_PART, loadFeatureRegistry, serializeFeatureRegistry } from './feature-registry.mjs';
 
 const require = createRequire(import.meta.url);
-const { resolveProjectRoot } = require('../lib/project-root.cjs');
+const { resolveProjectRoot, isInvokedAsScript } = require('../lib/project-root.cjs');
 
 const normalizePath = filePath => filePath.split(path.sep).join('/').replace(/^\.\//, '');
 
@@ -285,7 +285,7 @@ async function main(resolvedRoot) {
     process.exitCode = result.ok ? 0 : 1;
 }
 
-if (process.argv[1] && fileURLToPath(import.meta.url) === path.resolve(process.argv[1])) {
+if (isInvokedAsScript(process.argv[1], fileURLToPath(import.meta.url))) {
     await main(resolveProjectRoot({
         cwd: process.cwd(),
         scriptPath: fileURLToPath(import.meta.url),

@@ -34,7 +34,9 @@ const HOOKS_REGEX = '[\\\\/]\\.claude[\\\\/]hooks[\\\\/].*\\.cjs$';
 // ── fixtures ────────────────────────────────────────────────────────────────
 
 async function withFixture(fn) {
-    const root = fs.mkdtempSync(path.join(os.tmpdir(), 'pfci-test-'));
+    // Resolve the temp root (macOS /var -> /private/var) so require.cache evictions hit the key
+    // Node's loader records. JS realpathSync, not .native: the loader keeps Windows 8.3 short names.
+    const root = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), 'pfci-test-')));
     const fx = {
         root,
         project: path.join(root, 'project'),

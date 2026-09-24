@@ -20,7 +20,10 @@ function git(cwd, args) {
 }
 
 function fixture(t, { privacyAvailable = true } = {}) {
-  const parent = fs.mkdtempSync(path.join(os.tmpdir(), "workflow-baseline-test-"));
+  // A supplied store is refused when ANY component is a link (fail-closed by design), and macOS's
+  // os.tmpdir() sits behind `/var -> /private/var`. Canonicalize the fixture root so these tests
+  // supply a link-free store on every host rather than testing the host's temp layout.
+  const parent = fs.realpathSync.native(fs.mkdtempSync(path.join(os.tmpdir(), "workflow-baseline-test-")));
   const root = path.join(parent, "repo");
   const storeDir = path.join(parent, "store");
   fs.mkdirSync(root, { recursive: true });
@@ -318,6 +321,67 @@ test("nested baselines inherit owned scope and close is best-effort/idempotent",
   assert.ok(child.baseline.ownership.paths.some((entry) => entry.path === "owned.txt"));
   assert.equal(baseline.closeBaseline({ ...fx.options, runId: "child", now: BASE + 2 }).closed, true);
   assert.throws(() => baseline.closeBaseline({ ...fx.options, runId: "child", now: BASE + 3 }), /ENOENT|no such file|baseline/i);
+});
+
+// Intent: the DEFAULT store — the only one workflow-end uses — works when the host temp root itself
+// sits behind a link (macOS: os.tmpdir() is /var/folders/… with /var -> /private/var), while a link
+// at or below that root, or anywhere in a supplied store path, is still refused.
+test("default store accepts a linked OS temp root but still refuses links beneath it", (t) => {
+  const fx = fixture(t, { privacyAvailable: false });
+  const parent = path.dirname(fx.root);
+  const linkType = process.platform === "win32" ? "junction" : "dir";
+  const realTemp = path.join(parent, "os-temp-real");
+  const linkTemp = path.join(parent, "os-temp-link");
+  fs.mkdirSync(realTemp);
+  try {
+    fs.symlinkSync(realTemp, linkTemp, linkType);
+  } catch (error) {
+    if (["EACCES", "EPERM", "ENOSYS", "ENOTSUP", "EOPNOTSUPP"].includes(error && error.code)) {
+      t.skip(`directory symlink/junction creation is unavailable on ${process.platform}: ${error.code}`);
+      return;
+    }
+    throw error;
+  }
+  // os.tmpdir() reads TMPDIR on POSIX and TEMP/TMP on Windows; a child process keeps the override
+  // away from every other test in this file.
+  const captureWithDefaultStore = (runId) => spawnSync(process.execPath, ["-e", `
+    const baseline = require(${JSON.stringify(modulePath)});
+    try {
+      const result = baseline.captureBaseline({ rootDir: ${JSON.stringify(fx.root)}, runId: ${JSON.stringify(runId)}, privacyAvailable: false, now: ${BASE} });
+      console.log(JSON.stringify({ manifestPath: result.manifestPath }));
+    } catch (error) {
+      console.error(error.message);
+      process.exitCode = 1;
+    }
+  `], { env: { ...process.env, TMPDIR: linkTemp, TEMP: linkTemp, TMP: linkTemp }, encoding: "utf8", timeout: 60000, windowsHide: true });
+
+  const accepted = captureWithDefaultStore("linked-temp-root");
+  assert.equal(accepted.status, 0, accepted.stderr);
+  const { manifestPath } = JSON.parse(accepted.stdout);
+  assert.ok(fs.existsSync(manifestPath), manifestPath);
+  assert.ok(manifestPath.startsWith(realTemp + path.sep), `store must live under the canonical temp root: ${manifestPath}`);
+
+  const defaultStore = path.join(realTemp, "easy-claude-workflow-baselines");
+  fs.rmSync(defaultStore, { recursive: true, force: true });
+  const redirectTarget = path.join(parent, "redirect-target");
+  fs.mkdirSync(redirectTarget);
+  fs.symlinkSync(redirectTarget, defaultStore, linkType);
+  const redirected = captureWithDefaultStore("linked-store-leaf");
+  assert.equal(redirected.status, 1, redirected.stdout);
+  assert.match(redirected.stderr, /symlink\/reparse/);
+  assert.deepEqual(fs.readdirSync(redirectTarget), [], "a refused store must receive no write");
+
+  // Only the host temp root is trusted: a supplied store is never canonicalized, whether the link
+  // sits above it or IS the store.
+  assert.throws(() => baseline.captureBaseline({ ...fx.options, runId: "supplied-linked",
+    storeDir: path.join(linkTemp, "supplied-store") }), /symlink\/reparse/);
+  const suppliedTarget = path.join(parent, "supplied-target");
+  const suppliedLink = path.join(parent, "supplied-link");
+  fs.mkdirSync(suppliedTarget);
+  fs.symlinkSync(suppliedTarget, suppliedLink, linkType);
+  assert.throws(() => baseline.captureBaseline({ ...fx.options, runId: "supplied-link-store",
+    storeDir: suppliedLink }), /symlink\/reparse/);
+  assert.deepEqual(fs.readdirSync(suppliedTarget), [], "a refused supplied store must receive no write");
 });
 
 test("seeded expiry mutant is killed by the exact-boundary counter-case", (t) => {

@@ -7,6 +7,7 @@ import { fileURLToPath } from "node:url";
 import workflowManifest from "../lib/workflow-manifest.cjs";
 
 const require = createRequire(import.meta.url);
+const { isInvokedAsScript } = require("../lib/project-root.cjs");
 
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(scriptDir, "..", "..", "..");
@@ -167,8 +168,7 @@ async function main() {
   process.stdout.write(`${JSON.stringify(entry, null, 2)}\n`);
 }
 
-const invokedPath = process.argv[1] ? path.resolve(process.argv[1]) : "";
-if (invokedPath === fileURLToPath(import.meta.url)) {
+if (isInvokedAsScript(process.argv[1], fileURLToPath(import.meta.url))) {
   main().catch((error) => {
     process.stderr.write(`${error.message}\n`);
     process.exitCode = 1;

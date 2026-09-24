@@ -81,7 +81,7 @@ async function loadSyncModules() {
 }
 
 const require = createRequire(import.meta.url);
-const { resolveProjectRoot } = require('../lib/project-root.cjs');
+const { resolveProjectRoot, isInvokedAsScript } = require('../lib/project-root.cjs');
 const rootResolution = resolveProjectRoot({
     cwd: process.cwd(),
     scriptPath: fileURLToPath(import.meta.url),
@@ -505,7 +505,7 @@ async function main() {
 
 }
 
-const invokedAsScript = process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url);
+const invokedAsScript = isInvokedAsScript(process.argv[1], fileURLToPath(import.meta.url));
 if (invokedAsScript) {
     try {
         await main();

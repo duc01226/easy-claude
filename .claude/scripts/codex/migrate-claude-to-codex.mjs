@@ -8,14 +8,14 @@ import { parseFrontmatter, parseFrontmatterBoolean, stripQuotes } from '../lib/a
 import { fileURLToPath } from 'node:url';
 
 const require = createRequire(import.meta.url);
-const { resolveMutationProjectRoot } = require('../lib/project-root.cjs');
+const { resolveMutationProjectRoot, isInvokedAsScript } = require('../lib/project-root.cjs');
 const rootResolution = resolveMutationProjectRoot({
     cwd: process.cwd(),
     scriptPath: fileURLToPath(import.meta.url),
     env: process.env
 });
 const rootDir = rootResolution.rootDir;
-const invokedAsScript = process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url);
+const invokedAsScript = isInvokedAsScript(process.argv[1], fileURLToPath(import.meta.url));
 
 const args = new Set(process.argv.slice(2));
 const MIGRATION_FLAGS = new Set(['--no-skills', '--copy-skills', '--normalize-source-skills']);
